@@ -2407,6 +2407,33 @@ func GetMcpServerMocks() []models.McpServer {
 		SourceCode:    stringToPointer("prometheus-community/prometheus-mcp"),
 		RepositoryURL: stringToPointer("https://github.com/prometheus-community/prometheus-mcp"),
 		LastUpdated:   stringToPointer("1706745600000"),
+		RuntimeMetadata: &models.McpRuntimeMetadata{
+			DefaultPort: func() *int32 { p := int32(9090); return &p }(),
+			McpPath:     stringToPointer("/sse"),
+			DefaultArgs: []string{"--config", "/etc/prometheus/config.yaml"},
+			RequiredEnvironmentVariables: []models.McpEnvVarMetadata{
+				{Name: "PROMETHEUS_URL", Description: "Prometheus server URL", Example: stringToPointer("http://prometheus:9090")},
+			},
+			OptionalEnvironmentVariables: []models.McpEnvVarMetadata{
+				{Name: "LOG_LEVEL", Description: "Logging level", DefaultValue: stringToPointer("info")},
+			},
+			Prerequisites: &models.McpPrerequisites{
+				ServiceAccount: &models.McpServiceAccountRequirement{
+					Required:      &trueVal,
+					SuggestedName: stringToPointer("prometheus-mcp-sa"),
+					Hint:          stringToPointer("Needs prometheus-reader ClusterRole binding"),
+				},
+				Secrets: []models.McpSecretRequirement{
+					{
+						Name:        "prometheus-credentials",
+						Description: "Prometheus auth credentials",
+						Keys: []models.McpSecretKey{
+							{Key: "token", Description: "Bearer token for Prometheus API", EnvVarName: stringToPointer("PROM_TOKEN"), Required: &trueVal},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	kubernetesMcp := models.McpServer{
@@ -3176,5 +3203,46 @@ func GetMcpServerCatalogLabelListMock() models.CatalogLabelList {
 		Size:          int32(len(labels)),
 		PageSize:      int32(10),
 		NextPageToken: "",
+	}
+}
+
+func GetMcpDeploymentMocks() []models.McpDeployment {
+	return []models.McpDeployment{
+		{
+			Name:              "kubernetes-mcp",
+			Namespace:         "mcp-servers",
+			CreationTimestamp: "2026-03-10T14:30:00Z",
+			Image:             "quay.io/mcp-servers/kubernetes:1.0.0",
+			Port:              8080,
+			Phase:             models.McpDeploymentPhaseRunning,
+			Conditions: []models.McpDeploymentCondition{
+				{Type: "Available", Status: "True", LastTransitionTime: "2026-03-10T14:32:00Z", Reason: "DeploymentAvailable"},
+				{Type: "Progressing", Status: "True", LastTransitionTime: "2026-03-10T14:31:00Z", Reason: "NewReplicaSetAvailable"},
+			},
+		},
+		{
+			Name:              "slack-mcp",
+			Namespace:         "mcp-servers",
+			CreationTimestamp: "2026-03-14T11:00:00Z",
+			Image:             "quay.io/mcp-servers/slack:0.5.0",
+			Port:              9090,
+			Phase:             models.McpDeploymentPhasePending,
+			Conditions: []models.McpDeploymentCondition{
+				{Type: "Available", Status: "False", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "MinimumReplicasUnavailable"},
+				{Type: "Progressing", Status: "True", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "ReplicaSetUpdated"},
+			},
+		},
+		{
+			Name:              "jira-mcp",
+			Namespace:         "mcp-servers",
+			CreationTimestamp: "2026-03-08T16:45:00Z",
+			Image:             "quay.io/mcp-servers/jira:1.2.0",
+			Port:              8080,
+			Phase:             models.McpDeploymentPhaseFailed,
+			Conditions: []models.McpDeploymentCondition{
+				{Type: "Available", Status: "False", LastTransitionTime: "2026-03-08T16:50:00Z", Reason: "MinimumReplicasUnavailable"},
+				{Type: "Progressing", Status: "False", LastTransitionTime: "2026-03-08T16:55:00Z", Reason: "ProgressDeadlineExceeded"},
+			},
+		},
 	}
 }

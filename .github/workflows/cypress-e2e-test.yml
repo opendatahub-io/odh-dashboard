@@ -37,6 +37,15 @@ name: Cypress e2e Test
 #      To add auto-detection for a frontend area:
 #        Add an entry to .github/frontend-ci-tags.json
 #
+# BFF SUPPORT (Backend-For-Frontend):
+#   Packages with bffConfig.enabled=true in their package.json are automatically
+#   detected and started when changes are found. BFFs start after the frontend
+#   webpack server. See docs/bff-e2e-testing.md for details.
+#
+#   To add BFF support to a package:
+#     Add "bffConfig" to package.json with enabled, port, healthEndpoint,
+#     startCommand, and startCommandCluster properties
+#
 # LIMITS:
 #   - Max 5 additional tags for labels/manual (prevents runner exhaustion)
 #   - Auto-detected tags are consolidated into 1 job (no limit needed)
@@ -230,6 +239,7 @@ jobs:
     outputs:
       matrix: ${{ steps.build.outputs.matrix }}
       source: ${{ steps.build.outputs.source }}
+      bff_packages: ${{ steps.detect.outputs.bff_packages }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -375,6 +385,42 @@ jobs:
           fi
 
           echo "auto_tags=$AUTO_TAGS" >> $GITHUB_OUTPUT
+
+          # --- BFF Package Detection ---
+          # Detect changed packages that have bffConfig.enabled=true
+          echo ""
+          echo "🔍 Detecting BFF packages to start..."
+          BFF_PACKAGES="[]"
+
+          if [[ -n "$CHANGED_PACKAGES" ]]; then
+            for pkg_dir in packages/*/; do
+              pkg_name=$(jq -r '.name // empty' "$pkg_dir/package.json" 2>/dev/null)
+
+              # Check if this package changed
+              if echo "$CHANGED_PACKAGES" | grep -qx "$pkg_name"; then
+                # Check if package has bffConfig with enabled=true
+                bff_enabled=$(jq -r '.bffConfig.enabled // false' "$pkg_dir/package.json" 2>/dev/null)
+
+                if [[ "$bff_enabled" == "true" ]]; then
+                  bff_port=$(jq -r '.bffConfig.port // 4000' "$pkg_dir/package.json" 2>/dev/null)
+                  bff_health=$(jq -r '.bffConfig.healthEndpoint // "/api/health"' "$pkg_dir/package.json" 2>/dev/null)
+                  bff_cmd=$(jq -r '.bffConfig.startCommandCluster // .bffConfig.startCommand' "$pkg_dir/package.json" 2>/dev/null)
+                  pkg_dir_name=$(basename "$pkg_dir")
+
+                  echo "  ✅ $pkg_name (port: $bff_port, health: $bff_health)"
+
+                  # Add to JSON array
+                  BFF_PACKAGES=$(echo "$BFF_PACKAGES" | jq -c --arg name "$pkg_name" --arg dir "$pkg_dir_name" --arg port "$bff_port" --arg health "$bff_health" --arg cmd "$bff_cmd" '. + [{"name": $name, "dir": $dir, "port": ($port | tonumber), "healthEndpoint": $health, "startCommand": $cmd}]')
+                fi
+              fi
+            done
+          fi
+
+          if [[ "$BFF_PACKAGES" == "[]" ]]; then
+            echo "  ℹ️  No BFF packages detected for this change"
+          fi
+
+          echo "bff_packages=$BFF_PACKAGES" >> $GITHUB_OUTPUT
 
       - name: Build test matrix
         id: build
@@ -811,7 +857,11 @@ jobs:
           find ${{ github.workspace }}/packages/cypress/results -type d -empty -delete 2>/dev/null || true
           find ${{ github.workspace }}/packages/cypress/screenshots -type d -empty -delete 2>/dev/null || true
           find ${{ github.workspace }}/packages/cypress/videos -type d -empty -delete 2>/dev/null || true
-          
+
+          # Fix read-only envtest binaries and directories from previous BFF runs
+          # (setup-envtest downloads k8s binaries with 0555 permissions, which blocks actions/checkout cleanup)
+          chmod -R u+w ${{ github.workspace }}/packages/*/bff/bin ${{ github.workspace }}/packages/*/upstream/bff/bin 2>/dev/null || true
+
           echo "✅ Cleanup complete (non-critical, continued on any errors)"
 
       - name: Checkout code
@@ -1047,7 +1097,7 @@ jobs:
           echo "🚀 Starting webpack dev server on port ${WEBPACK_PORT} ($CLUSTER_NAME)..."
 
           # Start webpack with explicit dashboard host (ensures correct proxy target for all tests)
-          cd frontend && env ODH_DASHBOARD_HOST=${DASHBOARD_HOST} ODH_PORT=${WEBPACK_PORT} npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
+          cd frontend && env ODH_DASHBOARD_HOST=${DASHBOARD_HOST} ODH_PORT=${WEBPACK_PORT} ODH_TOKEN_REFRESH=true npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           echo "$SERVER_PID" > "$PORT_INFO_DIR/port-${WEBPACK_PORT}.pid"
@@ -1063,6 +1113,131 @@ jobs:
               grep -v "Logged in as user:" | \
               grep -v "Using project:" || true
           fi
+
+      - name: Install make for BFF builds
+        if: needs.get-test-tags.outputs.bff_packages != '[]'
+        run: |
+          if ! command -v make &> /dev/null; then
+            echo "📦 Installing make..."
+            sudo dnf install -y make 2>/dev/null || sudo yum install -y make 2>/dev/null || sudo apt-get install -y make 2>/dev/null
+          else
+            echo "✅ make already available: $(make --version | head -1)"
+          fi
+
+      - name: Setup Go for BFF builds
+        if: needs.get-test-tags.outputs.bff_packages != '[]'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: false
+
+      - name: Start BFF Services
+        if: needs.get-test-tags.outputs.bff_packages != '[]'
+        env:
+          BFF_PACKAGES: ${{ needs.get-test-tags.outputs.bff_packages }}
+        run: |
+          echo "🚀 Starting BFF services for changed packages..."
+
+          BFF_INFO_DIR="/tmp/gha-bff/${{ github.run_id }}"
+          mkdir -p "$BFF_INFO_DIR"
+
+          # Allowlists to prevent command injection from PR code (CWE-94)
+          ALLOWED_COMMANDS=("make dev-bff-e2e-mock" "make dev-bff-e2e-cluster" "make -C upstream dev-bff-e2e-mock" "make -C upstream dev-bff-e2e-cluster")
+          ALLOWED_DIRS=("automl" "autorag" "eval-hub" "gen-ai" "maas" "mlflow" "model-registry")
+
+          # Parse BFF packages JSON and start each one
+          echo "$BFF_PACKAGES" | jq -c '.[]' | while read -r bff_config; do
+            BFF_NAME=$(echo "$bff_config" | jq -r '.name')
+            BFF_DIR=$(echo "$bff_config" | jq -r '.dir')
+            BFF_PORT=$(echo "$bff_config" | jq -r '.port')
+            BFF_HEALTH=$(echo "$bff_config" | jq -r '.healthEndpoint')
+            BFF_CMD=$(echo "$bff_config" | jq -r '.startCommand')
+
+            echo ""
+            echo "📦 Starting BFF for $BFF_NAME on port $BFF_PORT..."
+
+            # Validate BFF_CMD against allowlist (prevent command injection)
+            CMD_VALID=false
+            for allowed in "${ALLOWED_COMMANDS[@]}"; do
+              if [ "$BFF_CMD" = "$allowed" ]; then
+                CMD_VALID=true
+                break
+              fi
+            done
+            if [ "$CMD_VALID" = "false" ]; then
+              echo "  ❌ Rejected untrusted startCommand: '$BFF_CMD'"
+              echo "  Allowed commands: ${ALLOWED_COMMANDS[*]}"
+              exit 1
+            fi
+
+            # Validate BFF_DIR against allowlist (prevent path traversal)
+            DIR_VALID=false
+            for allowed in "${ALLOWED_DIRS[@]}"; do
+              if [ "$BFF_DIR" = "$allowed" ]; then
+                DIR_VALID=true
+                break
+              fi
+            done
+            if [ "$DIR_VALID" = "false" ]; then
+              echo "  ❌ Rejected untrusted package directory: '$BFF_DIR'"
+              echo "  Allowed directories: ${ALLOWED_DIRS[*]}"
+              exit 1
+            fi
+
+            # Validate port is numeric and health endpoint is a safe path
+            if ! echo "$BFF_PORT" | grep -qE '^[0-9]+$'; then
+              echo "  ❌ Invalid BFF port: '$BFF_PORT' (must be numeric)"
+              exit 1
+            fi
+            if ! echo "$BFF_HEALTH" | grep -qE '^/[a-zA-Z0-9/_-]+$'; then
+              echo "  ❌ Invalid health endpoint: '$BFF_HEALTH' (must be a simple path)"
+              exit 1
+            fi
+
+            # Reuse if already healthy on this port (avoid parallel startup race)
+            if curl -sf "http://localhost:$BFF_PORT$BFF_HEALTH" > /dev/null 2>&1; then
+              echo "  ♻️ BFF $BFF_NAME already healthy on $BFF_PORT, reusing existing process"
+              continue
+            fi
+
+            # Fail fast if port is occupied but unhealthy
+            if lsof -ti:"$BFF_PORT" > /dev/null 2>&1; then
+              echo "  ❌ Port $BFF_PORT already in use and health check failed"
+              lsof -i:"$BFF_PORT" || true
+              exit 1
+            fi
+
+            # Start BFF in background with configurable port
+            cd "packages/$BFF_DIR"
+            E2E_BFF_PORT=$BFF_PORT $BFF_CMD > "/tmp/bff_${BFF_DIR}.log" 2>&1 &
+            BFF_PID=$!
+            cd - > /dev/null
+
+            # Save PID for cleanup
+            echo "$BFF_PID" >> "$BFF_INFO_DIR/pids.txt"
+            echo "$BFF_PORT" >> "$BFF_INFO_DIR/ports.txt"
+
+            echo "  📍 PID: $BFF_PID"
+
+            # Wait for health check (max 60 seconds)
+            echo "  ⏳ Waiting for health at localhost:$BFF_PORT$BFF_HEALTH..."
+            for i in {1..30}; do
+              if curl -sf "http://localhost:$BFF_PORT$BFF_HEALTH" > /dev/null 2>&1; then
+                echo "  ✅ BFF $BFF_NAME is healthy!"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "  ❌ BFF $BFF_NAME failed health check after 60 seconds"
+                echo "  📋 BFF logs:"
+                tail -50 "/tmp/bff_${BFF_DIR}.log" || true
+                exit 1
+              fi
+              sleep 2
+            done
+          done
+
+          echo ""
+          echo "✅ All BFF services started successfully"
 
       - name: Wait for Server Ready
         run: |
@@ -1200,6 +1375,52 @@ jobs:
     runs-on: self-hosted
     if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success')) }}
     steps:
+      - name: Stop BFF Services
+        run: |
+          echo "🛑 Stopping BFF services for run_id: ${{ github.run_id }}..."
+
+          BFF_INFO_DIR="/tmp/gha-bff/${{ github.run_id }}"
+          BFF_KILLED_COUNT=0
+
+          # Check if this workflow started any BFFs
+          if [ -d "$BFF_INFO_DIR" ]; then
+            # Kill all BFF processes
+            if [ -f "$BFF_INFO_DIR/pids.txt" ]; then
+              while read -r pid; do
+                if ps -p "$pid" > /dev/null 2>&1; then
+                  echo "  🛑 Killing BFF process $pid"
+                  pkill -P "$pid" 2>/dev/null || true
+                  kill "$pid" 2>/dev/null || true
+                  BFF_KILLED_COUNT=$((BFF_KILLED_COUNT + 1))
+                fi
+              done < "$BFF_INFO_DIR/pids.txt"
+            fi
+
+            # Clean up BFF ports
+            if [ -f "$BFF_INFO_DIR/ports.txt" ]; then
+              while read -r port; do
+                BFF_PID=$(lsof -ti:${port} 2>/dev/null | head -1)
+                if [ -n "$BFF_PID" ]; then
+                  echo "  🛑 Killing process on BFF port $port (PID: $BFF_PID)"
+                  pkill -P "$BFF_PID" 2>/dev/null || true
+                  kill "$BFF_PID" 2>/dev/null || true
+                fi
+              done < "$BFF_INFO_DIR/ports.txt"
+            fi
+
+            # Clean up info files
+            rm -rf "$BFF_INFO_DIR"
+          fi
+
+          if [ $BFF_KILLED_COUNT -eq 0 ]; then
+            echo "✅ No BFF processes found for run_id: ${{ github.run_id }}"
+          else
+            echo "✅ Cleaned up $BFF_KILLED_COUNT BFF process(es) for run_id: ${{ github.run_id }}"
+          fi
+
+          # Fix read-only envtest binaries and directories so next checkout can clean the workspace
+          chmod -R u+w ${{ github.workspace }}/packages/*/bff/bin ${{ github.workspace }}/packages/*/upstream/bff/bin 2>/dev/null || true
+
       - name: Stop Cypress Servers
         run: |
           echo "🛑 Stopping webpack dev server for run_id: ${{ github.run_id }}..."

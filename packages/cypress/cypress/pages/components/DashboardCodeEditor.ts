@@ -82,4 +82,16 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
         model.setValue(model.getValue().replace(oldText, newText));
       });
   }
+
+  copyToClipboard(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('button[aria-label="Copy code to clipboard"]');
+  }
+
+  upload(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('button[aria-label="Upload code"]');
+  }
+
+  download(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('button[aria-label="Download code"]');
+  }
 }

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Bullseye, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import SearchSelector from '#~/components/searchSelector/SearchSelector';
@@ -10,6 +11,7 @@ import { IconSize, Namespace } from '#~/types';
 type ProjectSelectorProps = {
   onSelection: (projectName: string) => void;
   namespace: string;
+  getSelectionHref?: (projectName: string) => string | undefined;
   invalidDropdownPlaceholder?: string;
   selectAllProjects?: boolean;
   primary?: boolean;
@@ -24,6 +26,7 @@ type ProjectSelectorProps = {
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   onSelection,
   namespace,
+  getSelectionHref,
   invalidDropdownPlaceholder,
   selectAllProjects,
   primary,
@@ -88,18 +91,26 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
           </>
         )}
         {visibleNamespaces.length === 0 && <MenuItem isDisabled>No matching results</MenuItem>}
-        {visibleNamespaces.map((n) => (
-          <MenuItem
-            key={n.name}
-            isSelected={n.name === selection?.name}
-            onClick={() => {
-              setSearchText('');
-              onSelection(n.name);
-            }}
-          >
-            <Truncate content={n.displayName ?? n.name}>{n.displayName ?? n.name}</Truncate>
-          </MenuItem>
-        ))}
+        {visibleNamespaces.map((n) => {
+          const selectionHref = getSelectionHref?.(n.name);
+          return (
+            <MenuItem
+              key={n.name}
+              isSelected={n.name === selection?.name}
+              component={
+                selectionHref
+                  ? (props: React.ComponentProps<'a'>) => <Link {...props} to={selectionHref} />
+                  : undefined
+              }
+              onClick={() => {
+                setSearchText('');
+                onSelection(n.name);
+              }}
+            >
+              <Truncate content={n.displayName ?? n.name}>{n.displayName ?? n.name}</Truncate>
+            </MenuItem>
+          );
+        })}
       </>
     </SearchSelector>
   );

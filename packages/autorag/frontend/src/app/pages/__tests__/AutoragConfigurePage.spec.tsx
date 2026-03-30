@@ -49,6 +49,10 @@ jest.mock('~/app/hooks/queries', () => ({
     isLoading: false,
     error: null,
   })),
+  useLlamaStackVectorStoresQuery: jest.fn(() => ({
+    data: { vector_stores: [] }, // eslint-disable-line camelcase
+    isLoading: false,
+  })),
 }));
 
 const mockNotificationError = jest.fn();

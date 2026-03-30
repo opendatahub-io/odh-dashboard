@@ -15,17 +15,6 @@ type ModelList struct {
 	Items []Model `json:"items"`
 }
 
-type VectorDB struct {
-	EmbeddingDimension int64  `json:"embedding_dimension"`
-	EmbeddingModel     string `json:"embedding_model"`
-	Identifier         string `json:"identifier"`
-	ProviderID         string `json:"provider_id"`
-	ProviderResourceID string `json:"provider_resource_id"`
-}
-type VectorDBList struct {
-	Items []VectorDB `json:"items"`
-}
-
 type NamespaceModel struct {
 	Name        string  `json:"name"`
 	DisplayName *string `json:"displayName,omitempty"`

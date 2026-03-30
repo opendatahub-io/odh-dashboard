@@ -163,19 +163,6 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.LM_EVAL],
-    },
-    properties: {
-      id: 'lm-eval',
-      title: 'Evaluations',
-      href: '/develop-train/evaluations',
-      section: 'develop-and-train',
-      path: '/develop-train/evaluations/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
       required: [SupportedArea.DS_PIPELINES],
     },
     properties: {

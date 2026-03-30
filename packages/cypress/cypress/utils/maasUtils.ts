@@ -4,6 +4,7 @@ import type {
   CreateAPIKeyResponse,
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
+import type { MaaSSubscription } from '@odh-dashboard/maas/types/subscriptions';
 
 // Standardized tier templates - use these directly or as building blocks
 export const MOCK_TIERS: Record<'free' | 'premium' | 'enterprise', Tier> = {
@@ -52,6 +53,8 @@ export const mockAPIKeys = (): APIKey[] => [
     creationDate: '2026-01-07T11:54:34.521671447-05:00',
     expirationDate: '2026-02-06T11:54:34.521671447-05:00',
     status: 'active',
+    username: 'alice',
+    lastUsedAt: '2026-03-10T14:30:00Z',
   },
   {
     id: 'key-dev-testing-002',
@@ -60,6 +63,8 @@ export const mockAPIKeys = (): APIKey[] => [
     creationDate: '2026-01-14T09:54:34.521671447-05:00',
     expirationDate: '2026-01-15T09:54:34.521671447-05:00',
     status: 'active',
+    username: 'bob',
+    lastUsedAt: '2026-03-09T10:15:00Z',
   },
   {
     id: 'key-ci-pipeline-003',
@@ -67,7 +72,8 @@ export const mockAPIKeys = (): APIKey[] => [
     description: 'API key for CI/CD pipeline automation',
     creationDate: '2026-01-11T11:54:34.521671447-05:00',
     expirationDate: '2026-01-18T11:54:34.521671447-05:00',
-    status: 'active',
+    status: 'revoked',
+    username: 'carol',
   },
   {
     id: 'key-expired-old-004',
@@ -76,6 +82,7 @@ export const mockAPIKeys = (): APIKey[] => [
     creationDate: '2025-12-15T11:54:34.521671447-05:00',
     expirationDate: '2026-01-13T11:54:34.521671447-05:00',
     status: 'expired',
+    username: 'dave',
   },
 ];
 
@@ -97,6 +104,51 @@ export const mockCreateAPIKeyRequest = (): CreateAPIKeyRequest => {
     expiresIn: '168h', // 7 days in hours
   };
 };
+
+export const mockSubscriptions = (): MaaSSubscription[] => [
+  {
+    name: 'premium-team-sub',
+    namespace: 'maas-system',
+    phase: 'Active',
+    priority: 10,
+    owner: {
+      groups: [{ name: 'premium-users' }],
+    },
+    modelRefs: [
+      {
+        name: 'granite-3-8b-instruct',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 100000, window: '24h' }],
+      },
+      {
+        name: 'flan-t5-small',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 200000, window: '24h' }],
+      },
+    ],
+    tokenMetadata: {
+      organizationId: 'org-123',
+      costCenter: 'engineering',
+    },
+    creationTimestamp: '2025-03-01T10:00:00Z',
+  },
+  {
+    name: 'basic-team-sub',
+    namespace: 'maas-system',
+    phase: 'Active',
+    owner: {
+      groups: [{ name: 'system:authenticated' }],
+    },
+    modelRefs: [
+      {
+        name: 'flan-t5-small',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 10000, window: '24h' }],
+      },
+    ],
+    creationTimestamp: '2025-02-15T08:00:00Z',
+  },
+];
 
 export const mockTier = ({
   name = 'free',

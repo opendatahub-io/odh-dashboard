@@ -6,14 +6,19 @@ import type {
 } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import type { PodContainer } from '@odh-dashboard/internal/types';
-import { MAAS_TIERS_ANNOTATION } from './wizardFields/modelAvailability';
 import { LLMD_SERVING_ID } from '../extensions/extensions';
+
+export const MAAS_TIERS_ANNOTATION = 'alpha.maas.opendatahub.io/tiers';
+export const MAAS_ENDPOINT_LABEL = 'opendatahub.io/maas-endpoint';
 
 export type LLMdContainer = { name: string; args?: string[] } & Partial<PodContainer>;
 
 // Shared by both LLMInferenceService and LLMInferenceServiceConfig
 // https://kserve.github.io/website/docs/reference/crd-api#llminferenceservice
 type LLMInferenceServiceSpec = {
+  baseRefs?: {
+    name?: string;
+  }[];
   model: {
     uri: string;
     name?: string;
@@ -51,6 +56,7 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
     };
     labels?: {
       'opendatahub.io/genai-asset'?: 'true' | 'false';
+      [MAAS_ENDPOINT_LABEL]?: 'true';
     };
   };
   spec: LLMInferenceServiceSpec;
@@ -68,6 +74,9 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
     observedGeneration?: number;
   };
 };
+export const isLLMInferenceService = (
+  resource?: K8sResourceCommon,
+): resource is LLMInferenceServiceKind => resource?.kind === 'LLMInferenceService';
 
 export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
   kind: 'LLMInferenceServiceConfig';
@@ -77,6 +86,8 @@ export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
     annotations?: DisplayNameAnnotations & {
       'opendatahub.io/recommended-accelerators'?: string;
       'opendatahub.io/runtime-version'?: string;
+      'opendatahub.io/template-name'?: string;
+      'opendatahub.io/disabled'?: 'true' | 'false';
     };
     labels?: {
       'opendatahub.io/config-type'?: 'accelerator' | string;
@@ -84,8 +95,11 @@ export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
   };
   spec?: LLMInferenceServiceSpec;
 };
+export const isLLMInferenceServiceConfig = (
+  resource?: K8sResourceCommon,
+): resource is LLMInferenceServiceConfigKind => resource?.kind === 'LLMInferenceServiceConfig';
 
-export type LLMdDeployment = Deployment<LLMInferenceServiceKind>;
+export type LLMdDeployment = Deployment<LLMInferenceServiceKind, LLMInferenceServiceConfigKind>;
 
 export const isLLMdDeployment = (deployment: Deployment): deployment is LLMdDeployment =>
   deployment.modelServingPlatformId === LLMD_SERVING_ID;

@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { Label, Timestamp, TimestampTooltipVariant, type LabelProps } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
+import { Link } from 'react-router-dom';
 import { relativeTime } from 'mod-arch-shared';
 import { getRunStartTime } from '@odh-dashboard/internal/concepts/pipelines/content/tables/utils';
-import type { PipelineRun, PipelineRunState } from '~/app/types';
+import type { PipelineRun } from '~/app/types';
+import { automlResultsPathname } from '~/app/utilities/routes';
 import { automlRunsColumns } from './columns';
 
 /** Run state values (API / display). Use lowercase for case-insensitive matching. */
@@ -14,17 +16,16 @@ export const RUN_STATE = {
   PENDING: 'pending',
   INCOMPLETE: 'incomplete',
   COMPLETE: 'complete',
-  SKIPPED: 'skipped',
   PAUSED: 'paused',
-  CANCELLED: 'cancelled',
 } as const;
 
 type AutomlRunsTableRowProps = {
   run: PipelineRun;
+  namespace: string;
 };
 
 export const getStatusLabelProps = (
-  state: PipelineRunState | string | undefined,
+  state: string | undefined,
 ): { status?: LabelProps['status']; color?: LabelProps['color'] } => {
   const s = (state ?? '').toLowerCase();
   if (s === RUN_STATE.SUCCEEDED || s === RUN_STATE.COMPLETE || s.includes(RUN_STATE.SUCCEEDED)) {
@@ -44,40 +45,44 @@ export const getStatusLabelProps = (
   ) {
     return { status: 'warning' };
   }
-  if (s === RUN_STATE.SKIPPED || s === RUN_STATE.CANCELLED) {
-    return { color: 'grey' };
-  }
   return { color: 'grey' };
 };
 
-const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({ run }) => (
-  <Tr>
-    <Td dataLabel={automlRunsColumns[0].label}>
-      <span data-testid={`run-name-${run.run_id}`}>{run.display_name}</span>
-    </Td>
-    <Td dataLabel={automlRunsColumns[1].label}>
-      {run.description?.trim() ? run.description : '—'}
-    </Td>
-    <Td dataLabel={automlRunsColumns[2].label}>
-      <Timestamp
-        date={getRunStartTime(run)}
-        tooltip={{
-          variant: TimestampTooltipVariant.default,
-        }}
-      >
-        {relativeTime(Date.now(), getRunStartTime(run).getTime())}
-      </Timestamp>
-    </Td>
-    <Td dataLabel={automlRunsColumns[3].label}>
-      {run.state ? (
-        <Label isCompact {...getStatusLabelProps(run.state)}>
-          {run.state}
-        </Label>
-      ) : (
-        '—'
-      )}
-    </Td>
-  </Tr>
-);
+const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({ run, namespace }) => {
+  const startDate = getRunStartTime(run);
+
+  return (
+    <Tr>
+      <Td dataLabel={automlRunsColumns[0].label}>
+        <Link
+          to={`${automlResultsPathname}/${namespace}/${run.run_id}`}
+          data-testid={`run-name-${run.run_id}`}
+        >
+          {run.display_name}
+        </Link>
+      </Td>
+      <Td dataLabel={automlRunsColumns[1].label}>{run.description ?? '—'}</Td>
+      <Td dataLabel={automlRunsColumns[2].label}>
+        <Timestamp
+          date={startDate}
+          tooltip={{
+            variant: TimestampTooltipVariant.default,
+          }}
+        >
+          {relativeTime(Date.now(), startDate.getTime())}
+        </Timestamp>
+      </Td>
+      <Td dataLabel={automlRunsColumns[3].label}>
+        {run.state ? (
+          <Label isCompact {...getStatusLabelProps(run.state)}>
+            {run.state}
+          </Label>
+        ) : (
+          '—'
+        )}
+      </Td>
+    </Tr>
+  );
+};
 
 export default AutomlRunsTableRow;

@@ -74,7 +74,7 @@ Cypress.Commands.add(
     return cy.intercept(
       {
         method,
-        pathname: `/mlflow/${pathname}`,
+        pathname: `/_bff/mlflow/${pathname}`,
         query: options?.query,
         ...(options?.times && { times: options.times }),
       },

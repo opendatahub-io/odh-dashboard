@@ -8,6 +8,10 @@ jest.mock('mod-arch-core', () => ({
   useNamespaceSelector: jest.fn(),
 }));
 
+jest.mock('~/app/context/CollectionsContext', () => ({
+  CollectionsContextProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () =>
   require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
 );

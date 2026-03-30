@@ -31,6 +31,30 @@ jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
   useWatchConnectionTypes: jest.fn(() => [[]]),
 }));
 
+// Mock useNotification (used by AutoragVectorStoreSelector)
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: jest.fn(() => ({
+    success: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    warning: jest.fn(),
+    remove: jest.fn(),
+  })),
+}));
+
+// Mock queries hooks used by child components (e.g., AutoragVectorStoreSelector)
+jest.mock('~/app/hooks/queries', () => ({
+  ...jest.requireActual('~/app/hooks/queries'),
+  useLlamaStackModelsQuery: jest.fn().mockReturnValue({
+    data: { models: [] },
+    isLoading: false,
+  }),
+  useLlamaStackVectorStoresQuery: jest.fn().mockReturnValue({
+    data: { vector_stores: [] }, // eslint-disable-line camelcase
+    isLoading: false,
+  }),
+}));
+
 // Mock SecretSelector component
 jest.mock('~/app/components/common/SecretSelector', () => ({
   __esModule: true,

@@ -14,6 +14,9 @@ const (
 	APIKeyBulkRevokePath = ApiPathPrefix + "/api-keys/bulk-revoke"
 	APIKeyByIDPath       = ApiPathPrefix + "/api-keys/:id"
 
+	// Access review
+	IsMaasAdminPath = ApiPathPrefix + "/is-maas-admin"
+
 	// Subscription routes
 	SubscriptionListPath     = ApiPathPrefix + "/all-subscriptions"
 	SubscriptionInfoPath     = ApiPathPrefix + "/subscription-info/:name"

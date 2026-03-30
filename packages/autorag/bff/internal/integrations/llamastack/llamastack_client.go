@@ -50,9 +50,26 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 
 // ListModels retrieves all available models from Llama Stack.
 func (c *LlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, error) {
-	modelsPage, err := c.client.Models.List(ctx)
-	if err != nil {
+	iter := c.client.Models.ListAutoPaging(ctx)
+	models := make([]openai.Model, 0)
+	for iter.Next() {
+		models = append(models, iter.Current())
+	}
+	if err := iter.Err(); err != nil {
 		return nil, wrapClientError(err, "ListModels")
 	}
-	return modelsPage.Data, nil
+	return models, nil
+}
+
+// ListVectorStores retrieves all available vector stores from Llama Stack.
+func (c *LlamaStackClient) ListVectorStores(ctx context.Context) ([]openai.VectorStore, error) {
+	iter := c.client.VectorStores.ListAutoPaging(ctx, openai.VectorStoreListParams{})
+	stores := make([]openai.VectorStore, 0)
+	for iter.Next() {
+		stores = append(stores, iter.Current())
+	}
+	if err := iter.Err(); err != nil {
+		return nil, wrapClientError(err, "ListVectorStores")
+	}
+	return stores, nil
 }

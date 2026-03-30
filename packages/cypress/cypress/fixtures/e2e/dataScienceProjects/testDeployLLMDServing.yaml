@@ -6,5 +6,7 @@ modelType: 'Generative AI model (Example, LLM)'
 modelLocationURI: 'hf://facebook/opt-125m'
 servingRuntime: 'Distributed inference with llm-d'
 resourceType: 'llminferenceservice'
-Image: '{"spec":{"template":{"containers":[{"name":"main","image":"quay.io/pierdipi/vllm-cpu:latest"}]}}}'
+existingImage: '- name: main'
+replaceImage: "- name: main\n        image: quay.io/pierdipi/vllm-cpu:latest"
 connectionNameSuffix: '-connection'
+yamlEditorModelName: 'facebook-opt-125m-single'

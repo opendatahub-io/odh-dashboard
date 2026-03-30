@@ -10,6 +10,7 @@ import (
 // LlamaStackClientInterface defines the interface for LlamaStack client operations
 type LlamaStackClientInterface interface {
 	ListModels(ctx context.Context) ([]openai.Model, error)
+	ListVectorStores(ctx context.Context) ([]openai.VectorStore, error)
 }
 
 // LlamaStackClientFactory interface for creating LlamaStack clients

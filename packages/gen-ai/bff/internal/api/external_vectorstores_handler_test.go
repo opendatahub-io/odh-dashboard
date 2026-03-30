@@ -72,8 +72,8 @@ var _ = Describe("ExternalVectorStoresListHandler", func() {
 		err = json.Unmarshal(body, &response)
 		require.NoError(t, err)
 
-		assert.Equal(t, 3, response.Data.TotalCount, "Should return 3 vector stores")
-		assert.Equal(t, 3, len(response.Data.VectorStores))
+		assert.Equal(t, 4, response.Data.TotalCount, "Should return 4 vector stores")
+		assert.Equal(t, 4, len(response.Data.VectorStores))
 
 		for _, store := range response.Data.VectorStores {
 			assert.NotEmpty(t, store.VectorStoreID, "Store should have a vector_store_id")

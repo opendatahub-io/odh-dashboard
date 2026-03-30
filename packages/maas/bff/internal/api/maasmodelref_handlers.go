@@ -90,14 +90,14 @@ func UpdateMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request,
 
 	response, err := app.repositories.MaaSModelRefs.UpdateMaaSModelRef(ctx, namespace, name, request)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-	if response == nil {
-		app.errorResponse(w, r, &HTTPError{
-			StatusCode: http.StatusNotFound,
-			Error:      ErrorPayload{Code: "404", Message: fmt.Sprintf("MaaSModelRef '%s' not found", name)},
-		})
+		if strings.Contains(err.Error(), "not found") {
+			app.errorResponse(w, r, &HTTPError{
+				StatusCode: http.StatusNotFound,
+				Error:      ErrorPayload{Code: "404", Message: err.Error()},
+			})
+		} else {
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 

@@ -17,17 +17,13 @@ describe('ModelsListToolbar', () => {
     filterData: {},
     filterOptions: {
       [AssetsFilterOptions.NAME]: 'Name',
-      [AssetsFilterOptions.SOURCE]: 'Source',
       [AssetsFilterOptions.USE_CASE]: 'Use Case',
       [AssetsFilterOptions.STATUS]: 'Status',
-      [AssetsFilterOptions.MODEL_TYPE]: 'Model Type',
     },
     filterColors: {
       [AssetsFilterOptions.NAME]: AssetsFilterColors.NAME,
-      [AssetsFilterOptions.SOURCE]: AssetsFilterColors.SOURCE,
       [AssetsFilterOptions.USE_CASE]: AssetsFilterColors.USE_CASE,
       [AssetsFilterOptions.STATUS]: AssetsFilterColors.STATUS,
-      [AssetsFilterOptions.MODEL_TYPE]: AssetsFilterColors.MODEL_TYPE,
     },
     onClearFilters: jest.fn(),
   };

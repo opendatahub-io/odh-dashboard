@@ -12,6 +12,11 @@ jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
   default: jest.fn(() => false),
 }));
 
+jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled', () => ({
+  __esModule: true,
+  default: jest.fn(() => false),
+}));
+
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
 }));

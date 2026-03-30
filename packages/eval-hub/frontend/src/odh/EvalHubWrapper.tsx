@@ -8,6 +8,9 @@ import {
 } from 'mod-arch-core';
 import { URL_PREFIX } from '~/app/utilities/const';
 import AppRoutes from '~/app/AppRoutes';
+import { registerMlflowEmbeddedRemote } from './registerMlflowEmbeddedRemote';
+
+registerMlflowEmbeddedRemote();
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,

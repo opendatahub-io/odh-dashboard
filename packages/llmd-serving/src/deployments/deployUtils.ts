@@ -15,48 +15,7 @@ import {
   createRoleIfMissing,
   createRoleBindingIfMissing,
 } from '@odh-dashboard/kserve/deployUtils';
-import { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
-import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import { RecursivePartial } from '@odh-dashboard/internal/typeHelpers.js';
 import { LLMInferenceServiceKind } from '../types';
-import { LLMD_SERVING_ID } from '../../extensions/extensions';
-
-/**
- * For before 3.4 / vLLM on MaaS not enabled
- * @returns true if "LLM-d" runtime selected
- */
-export const isLLMdDeployActive = (
-  wizardData: WizardFormData['state'],
-  resources?: {
-    model?: ModelResourceType;
-  },
-): boolean => {
-  if (wizardData.modelType.data?.legacyVLLM) {
-    return false;
-  }
-  return (
-    wizardData.modelServer.data?.name === LLMD_SERVING_ID ||
-    resources?.model?.kind === 'LLMInferenceService'
-  );
-};
-
-/**
- * For 3.4+ / vLLM on MaaS enabled
- * @returns true if Generative is selected, different from `isLLMdDeployActive` which requires the "llmd serving runtime" to be selected
- */
-export const isLLMInferenceServiceActive = (
-  wizardState: RecursivePartial<WizardFormData['state']>,
-  resources?: {
-    model?: ModelResourceType;
-  },
-): boolean => {
-  return (
-    (wizardState.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE &&
-      wizardState.modelType.data.legacyVLLM !== true) ||
-    resources?.model?.kind === 'LLMInferenceService'
-  );
-};
 
 export const generateRoleLLMInferenceService = (
   roleName: string,

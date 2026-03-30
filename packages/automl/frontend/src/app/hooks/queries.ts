@@ -1,8 +1,20 @@
-import { useQuery, useMutation, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueries,
+  useMutation,
+  UseQueryResult,
+  UseMutationResult,
+} from '@tanstack/react-query';
+import * as z from 'zod';
 import { URL_PREFIX } from '~/app/utilities/const';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-import type { PipelineRun } from '~/app/types';
-import { createPipelineRun } from '~/app/api/pipelines';
+import type {
+  PipelineRun,
+  S3ListObjectsResponse,
+  FeatureImportanceData,
+  ConfusionMatrixData,
+} from '~/app/types';
+import { createPipelineRun, getPipelineRunFromBFF } from '~/app/api/pipelines';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -34,7 +46,78 @@ export type ColumnSchema = {
   values?: (string | number)[];
 };
 
-export function useFilesQuery(
+/**
+ * Zod schema to validate ColumnSchema array shape
+ */
+const ColumnSchemaArraySchema = z.array(
+  z.object({
+    name: z.string(),
+    type: z.enum(['integer', 'double', 'timestamp', 'bool', 'string']),
+    values: z.array(z.union([z.string(), z.number()])).optional(),
+  }),
+);
+
+type FetchS3FileOptions = {
+  secretName?: string;
+  bucket?: string;
+  signal?: AbortSignal;
+};
+
+/**
+ * Fetches a file from S3 storage and returns it as a Blob.
+ * This is a utility function that can be used in both hooks and query functions.
+ */
+export async function fetchS3File(
+  namespace: string,
+  key: string,
+  options?: FetchS3FileOptions,
+): Promise<Blob> {
+  const { secretName, bucket, signal } = options ?? {};
+  const params = new URLSearchParams({
+    namespace,
+    key,
+    ...(secretName && { secretName }),
+    ...(bucket && { bucket }),
+  });
+
+  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`, { signal });
+
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    try {
+      const errorData = await response.json();
+      if (errorData?.error?.message) {
+        errorMessage = errorData.error.message;
+      }
+    } catch {
+      // If parsing fails, fall back to statusText
+    }
+    throw new Error(`Failed to fetch file: ${errorMessage}`);
+  }
+
+  return response.blob();
+}
+
+export function useS3GetFileQuery(
+  namespace?: string,
+  secretName?: string,
+  bucket?: string,
+  key?: string,
+): UseQueryResult<Blob, Error> {
+  return useQuery({
+    queryKey: ['file', namespace, secretName, bucket, key],
+    queryFn: async ({ signal }) => {
+      if (!namespace || !key) {
+        throw new Error('namespace and key are required');
+      }
+      return fetchS3File(namespace, key, { secretName, bucket, signal });
+    },
+    enabled: Boolean(namespace && key),
+    retry: false,
+  });
+}
+
+export function useS3GetFileSchemaQuery(
   namespace?: string,
   secretName?: string,
   bucket?: string,
@@ -69,12 +152,24 @@ export function useFilesQuery(
         throw new Error(`Failed to fetch file schema: ${errorMessage}`);
       }
 
-      const data = await response.json();
-      const columns = data?.data?.columns;
+      const result = await response.json();
+      const columns = result?.data?.columns;
+
       if (!Array.isArray(columns)) {
         return [];
       }
-      return columns;
+
+      try {
+        return ColumnSchemaArraySchema.parse(columns);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          const issues = error.issues
+            .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+            .join(', ');
+          throw new Error(`Invalid column schema response: ${issues}`);
+        }
+        throw error;
+      }
     },
     enabled: Boolean(namespace && secretName && key),
     retry: false,
@@ -82,17 +177,226 @@ export function useFilesQuery(
   });
 }
 
+/**
+ * Zod schema to validate S3ListObjectsResponse shape
+ */
+/* eslint-disable camelcase */
+const S3ListObjectsResponseSchema = z.object({
+  common_prefixes: z.array(
+    z.object({
+      prefix: z.string(),
+    }),
+  ),
+  contents: z.array(
+    z.object({
+      key: z.string(),
+      size: z.number(),
+      last_modified: z.string().optional(),
+      etag: z.string().optional(),
+      storage_class: z.string().optional(),
+    }),
+  ),
+  is_truncated: z.boolean(),
+  key_count: z.number(),
+  max_keys: z.number(),
+  continuation_token: z.string().optional(),
+  delimiter: z.string().optional(),
+  name: z.string().optional(),
+  next_continuation_token: z.string().optional(),
+  prefix: z.string().optional(),
+});
+/* eslint-enable camelcase */
+
+/**
+ * Fetches a list of files/folders from S3 storage.
+ * This is a utility function that can be used in both hooks and query functions.
+ */
+export async function fetchS3Files(
+  namespace: string,
+  path: string,
+): Promise<S3ListObjectsResponse> {
+  const params = new URLSearchParams({
+    namespace,
+    path,
+  });
+
+  const response = await fetch(`${URL_PREFIX}/api/v1/s3/files?${params.toString()}`);
+
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    try {
+      const errorData = await response.json();
+      if (errorData?.error?.message) {
+        errorMessage = errorData.error.message;
+      }
+    } catch {
+      // If parsing fails, fall back to statusText
+    }
+    throw new Error(`Failed to fetch S3 files: ${errorMessage}`);
+  }
+
+  const result = await response.json();
+  const data = result?.data || result;
+
+  try {
+    return S3ListObjectsResponseSchema.parse(data);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const issues = error.issues
+        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+        .join(', ');
+      throw new Error(`Invalid S3ListObjectsResponse: ${issues}`);
+    }
+    throw error;
+  }
+}
+
+export function useS3ListFilesQuery(
+  namespace?: string,
+  path?: string,
+): UseQueryResult<S3ListObjectsResponse, Error> {
+  return useQuery({
+    queryKey: ['s3Files', namespace, path],
+    queryFn: async () => {
+      if (!namespace || !path) {
+        throw new Error('namespace and path are required');
+      }
+      return fetchS3Files(namespace, path);
+    },
+    enabled: Boolean(namespace && path),
+    retry: false,
+  });
+}
+
+const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED']);
+const POLL_INTERVAL_MS = 10000;
+
 export function usePipelineRunQuery(
   runId?: string,
-): UseQueryResult<{ experiment_id: string }, Error> {
+  namespace?: string,
+): UseQueryResult<PipelineRun, Error> {
   return useQuery({
-    queryKey: ['pipelineRun', runId],
-    queryFn: async () => {
-      // eslint-disable-next-line camelcase
-      const pipelineRun = { experiment_id: 'FAKE_EXPERIMENT_ID' };
-      return pipelineRun;
+    queryKey: ['pipelineRun', runId, namespace],
+    queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
+    enabled: !!runId && !!namespace,
+    placeholderData: (previousData) => previousData,
+    refetchInterval: (query) => {
+      const state = query.state.data?.state;
+      if (!state || TERMINAL_STATES.has(state)) {
+        return false;
+      }
+      return POLL_INTERVAL_MS;
     },
-    enabled: !!runId,
+  });
+}
+
+/**
+ * Zod schema to validate FeatureImportanceData shape
+ */
+/* eslint-disable camelcase */
+const FeatureImportanceDataSchema = z.object({
+  importance: z.record(z.string(), z.number()),
+  stddev: z.record(z.string(), z.number()).optional(),
+  p_value: z.record(z.string(), z.number()).optional(),
+  n: z.record(z.string(), z.number()).optional(),
+  p99_high: z.record(z.string(), z.number()).optional(),
+  p99_low: z.record(z.string(), z.number()).optional(),
+});
+/* eslint-enable camelcase */
+
+/**
+ * Zod schema to validate ConfusionMatrixData shape
+ * Records inherently allow optional keys, matching Partial<Record<...>> behavior
+ */
+const ConfusionMatrixDataSchema = z.record(z.string(), z.record(z.string(), z.number()));
+
+/**
+ * Fetches and parses JSON content from S3.
+ *
+ * @param namespace - K8s namespace
+ * @param key - S3 object key
+ * @param options - Optional configuration
+ * @param options.signal - Abort signal for cancellation
+ * @param options.schema - Optional Zod schema for runtime validation
+ * @returns Parsed JSON cast to type T (validated if schema provided)
+ */
+async function fetchS3Json<T>(
+  namespace: string,
+  key: string,
+  options?: {
+    signal?: AbortSignal;
+    schema?: z.ZodSchema<T>;
+  },
+): Promise<T> {
+  const { signal, schema } = options ?? {};
+  const blob = await fetchS3File(namespace, key, { signal });
+  const text = await blob.text();
+
+  try {
+    const parsed = JSON.parse(text);
+
+    // Validate if schema provided, otherwise trust the data
+    if (schema) {
+      return schema.parse(parsed);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- no schema provided, caller accepts risk
+    return parsed as T;
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const issues = error.issues
+        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+        .join(', ');
+      throw new Error(`Invalid JSON structure from S3 file "${key}": ${issues}`);
+    }
+    throw new Error(
+      `Failed to parse JSON from S3 file "${key}": ${error instanceof Error ? error.message : 'Invalid JSON'}`,
+    );
+  }
+}
+
+export function useModelEvaluationArtifactsQuery(
+  namespace?: string,
+  modelDirectory?: string,
+  isClassification?: boolean,
+): {
+  featureImportance?: FeatureImportanceData;
+  confusionMatrix?: ConfusionMatrixData;
+  isLoading: boolean;
+} {
+  const baseDir = modelDirectory?.endsWith('/') ? modelDirectory : `${modelDirectory}/`;
+  return useQueries({
+    queries: [
+      {
+        queryKey: ['featureImportance', namespace, modelDirectory],
+        queryFn: ({ signal }) =>
+          fetchS3Json<FeatureImportanceData>(
+            namespace!,
+            `${baseDir}metrics/feature_importance.json`,
+            {
+              signal,
+              schema: FeatureImportanceDataSchema,
+            },
+          ),
+        enabled: Boolean(namespace && modelDirectory),
+        retry: false,
+      },
+      {
+        queryKey: ['confusionMatrix', namespace, modelDirectory],
+        queryFn: ({ signal }) =>
+          fetchS3Json<ConfusionMatrixData>(namespace!, `${baseDir}metrics/confusion_matrix.json`, {
+            signal,
+            schema: ConfusionMatrixDataSchema,
+          }),
+        enabled: Boolean(namespace && modelDirectory && isClassification),
+        retry: false,
+      },
+    ],
+    combine: (results) => ({
+      featureImportance: results[0].data,
+      confusionMatrix: results[1].data,
+      isLoading: results.some((r) => r.isPending),
+    }),
   });
 }
 
