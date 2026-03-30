@@ -8,8 +8,9 @@ import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
 import { downloadBlob, sanitizeFilename } from '~/app/utilities/utils';
 import AutoragLeaderboard from './AutoragLeaderboard';
-import PatternDetailsModal from './PatternDetailsModal';
 import './AutoragResults.scss';
+
+const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal'));
 
 function AutoragResults(): React.JSX.Element {
   const { namespace } = useParams<{ namespace: string }>();
@@ -128,17 +129,19 @@ function AutoragResults(): React.JSX.Element {
         </StackItem>
       </Stack>
       {selectedPatternName !== null && patternsArray.length > 0 && (
-        <PatternDetailsModal
-          isOpen
-          onClose={() => setSelectedPatternName(null)}
-          patterns={patternsArray}
-          selectedIndex={selectedIndex}
-          rank={rankMap[patternsArray[selectedIndex]?.name] ?? 0}
-          onPatternChange={(index) => setSelectedPatternName(patternsArray[index]?.name ?? null)}
-          namespace={namespace}
-          ragPatternsBasePath={ragPatternsBasePath}
-          onSaveNotebook={handleSaveNotebook}
-        />
+        <React.Suspense fallback={null}>
+          <PatternDetailsModal
+            isOpen
+            onClose={() => setSelectedPatternName(null)}
+            patterns={patternsArray}
+            selectedIndex={selectedIndex}
+            rank={rankMap[patternsArray[selectedIndex]?.name] ?? 0}
+            onPatternChange={(index) => setSelectedPatternName(patternsArray[index]?.name ?? null)}
+            namespace={namespace}
+            ragPatternsBasePath={ragPatternsBasePath}
+            onSaveNotebook={handleSaveNotebook}
+          />
+        </React.Suspense>
       )}
     </>
   );
