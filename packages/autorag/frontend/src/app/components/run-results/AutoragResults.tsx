@@ -6,7 +6,7 @@ import { useAutoRAGTaskTopology } from '~/app/topology/useAutoRAGTaskTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
-import { downloadBlob, sanitizeFilename } from '~/app/utilities/utils';
+import { downloadBlob, getOptimizedMetricForRAG, sanitizeFilename } from '~/app/utilities/utils';
 import AutoragLeaderboard from './AutoragLeaderboard';
 import './AutoragResults.scss';
 
@@ -22,6 +22,7 @@ function AutoragResults(): React.JSX.Element {
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
   const nodes = useAutoRAGTaskTopology(pipelineRun?.pipeline_spec, runDetails);
+  const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
   const patternsArray = React.useMemo(() => Object.values(patterns), [patterns]);
 
@@ -75,8 +76,8 @@ function AutoragResults(): React.JSX.Element {
       }
 
       const notebookFilenames: Record<string, string> = {
-        indexing: 'indexing_notebook.ipynb',
-        inference: 'inference_notebook.ipynb',
+        indexing: 'indexing.ipynb',
+        inference: 'inference.ipynb',
       };
       const notebookKey = `${ragPatternsBasePath}/${patternName}/${notebookFilenames[notebookType]}`;
 
@@ -136,6 +137,7 @@ function AutoragResults(): React.JSX.Element {
             patterns={patternsArray}
             selectedIndex={selectedIndex}
             rank={rankMap[patternsArray[selectedIndex]?.name] ?? 0}
+            optimizedMetric={optimizedMetric}
             onPatternChange={(index) => setSelectedPatternName(patternsArray[index]?.name ?? null)}
             namespace={namespace}
             ragPatternsBasePath={ragPatternsBasePath}

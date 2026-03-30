@@ -110,7 +110,7 @@ describe('PatternDetailsModal', () => {
   it('should show plain text when only one pattern exists', () => {
     render(<PatternDetailsModal {...defaultProps} />);
     expect(screen.queryByTestId('pattern-selector-dropdown')).not.toBeInTheDocument();
-    expect(screen.getByText('Pattern 0')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'pattern0' })).toBeInTheDocument();
   });
 
   it('should display all settings tabs plus Pattern information', () => {
@@ -144,7 +144,7 @@ describe('PatternDetailsModal', () => {
       render(<PatternDetailsModal {...defaultProps} />);
 
       expect(screen.getByText('Name')).toBeInTheDocument();
-      expect(screen.getByText('pattern0')).toBeInTheDocument();
+      expect(screen.getAllByText('pattern0').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('Iteration')).toBeInTheDocument();
       expect(screen.getByText('0')).toBeInTheDocument();
       expect(screen.getByText('Max Combinations')).toBeInTheDocument();
@@ -379,10 +379,10 @@ describe('PatternDetailsModal', () => {
       patterns: [mockPattern, secondPattern],
     };
 
-    it('should display the current pattern index in the dropdown toggle', () => {
+    it('should display the current pattern name in the dropdown toggle', () => {
       render(<PatternDetailsModal {...twoPatternProps} />);
       const toggle = screen.getByTestId('pattern-selector-dropdown');
-      expect(toggle).toHaveTextContent('Pattern 0');
+      expect(toggle).toHaveTextContent('pattern0');
     });
 
     it('should call onPatternChange when a different pattern is selected', async () => {
@@ -391,7 +391,7 @@ describe('PatternDetailsModal', () => {
       render(<PatternDetailsModal {...twoPatternProps} onPatternChange={onPatternChange} />);
 
       await user.click(screen.getByTestId('pattern-selector-dropdown'));
-      await user.click(screen.getByText('Pattern 1'));
+      await user.click(screen.getByText('pattern1'));
 
       expect(onPatternChange).toHaveBeenCalledWith(1);
     });

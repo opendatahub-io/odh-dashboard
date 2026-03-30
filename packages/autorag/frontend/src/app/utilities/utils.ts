@@ -57,6 +57,31 @@ export function downloadBlob(blob: Blob, filename: string): void {
 }
 
 /**
+ * Format metric key names for display (e.g. "answer_correctness" -> "Answer Correctness").
+ */
+export function formatMetricName(metricKey: string): string {
+  /* eslint-disable camelcase */
+  const specialCases: Record<string, string> = {
+    faithfulness: 'Faithfulness',
+    answer_correctness: 'Answer Correctness',
+    context_correctness: 'Context Correctness',
+    answer_relevancy: 'Answer Relevancy',
+    context_precision: 'Context Precision',
+    context_recall: 'Context Recall',
+  };
+  /* eslint-enable camelcase */
+
+  if (specialCases[metricKey]) {
+    return specialCases[metricKey];
+  }
+
+  return metricKey
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/**
  * Format metric values for display.
  * Uses scientific notation for non-zero values that would round to 0.000.
  */

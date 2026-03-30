@@ -1,7 +1,7 @@
 export type AutoragPatternScoreMetric = {
   mean: number;
-  ci_low: number;
-  ci_high: number;
+  ci_low: number | null;
+  ci_high: number | null;
 };
 
 export type AutoragPatternScores = Partial<Record<string, AutoragPatternScoreMetric>>;
@@ -66,7 +66,7 @@ export type AutoRAGEvaluationScores = {
 export type AutoRAGEvaluationResult = {
   question: string;
   correct_answers: string[];
-  question_id: string;
+  question_id?: string;
   answer: string;
   answer_contexts: AutoRAGEvaluationAnswerContext[];
   scores: AutoRAGEvaluationScores;

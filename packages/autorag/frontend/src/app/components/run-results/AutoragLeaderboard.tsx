@@ -23,7 +23,11 @@ import React from 'react';
 import { useParams } from 'react-router';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
-import { getOptimizedMetricForRAG, formatMetricValue } from '~/app/utilities/utils';
+import {
+  getOptimizedMetricForRAG,
+  formatMetricName,
+  formatMetricValue,
+} from '~/app/utilities/utils';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
 import './AutoragLeaderboard.scss';
@@ -42,31 +46,6 @@ type LeaderboardEntry = {
   retrievalSearchMode: string;
   retrievalRankerStrategy: string;
   generationModelId: string;
-};
-
-// Helper function to format metric names for display
-const formatMetricName = (metricKey: string): string => {
-  // Special cases for RAG metrics
-  /* eslint-disable camelcase */
-  const specialCases: Record<string, string> = {
-    faithfulness: 'Faithfulness',
-    answer_correctness: 'Answer Correctness',
-    context_correctness: 'Context Correctness',
-    answer_relevancy: 'Answer Relevancy',
-    context_precision: 'Context Precision',
-    context_recall: 'Context Recall',
-  };
-  /* eslint-enable camelcase */
-
-  if (specialCases[metricKey]) {
-    return specialCases[metricKey];
-  }
-
-  // Convert snake_case to Title Case
-  return metricKey
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
 };
 
 // Helper function to extract the last segment of a model ID

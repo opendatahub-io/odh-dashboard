@@ -51,6 +51,7 @@ import type {
   AutoragPatternSettings,
 } from '~/app/types/autoragPattern';
 import { usePatternEvaluationResults } from '~/app/hooks/usePatternEvaluationResults';
+import { formatMetricName, formatMetricValue } from '~/app/utilities/utils';
 import './PatternDetailsModal.scss';
 
 let echartsRegistered = false;
@@ -66,6 +67,7 @@ export type PatternDetailsModalProps = {
   patterns: AutoragPattern[];
   selectedIndex: number;
   rank: number;
+  optimizedMetric?: string;
   onPatternChange: (index: number) => void;
   namespace?: string;
   ragPatternsBasePath?: string;
@@ -78,12 +80,32 @@ const SAMPLE_QA_KEY = 'sample_qa';
 const humanize = (key: string): string =>
   key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
+const formatValue = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return '—';
+  }
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return JSON.stringify(value);
+};
+
+const flattenEntries = (obj: Record<string, unknown>, prefix = ''): [string, string][] =>
+  Object.entries(obj).flatMap(([key, value]) => {
+    const label = prefix ? `${prefix} ${humanize(key)}` : humanize(key);
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      const nested: Record<string, unknown> = Object.fromEntries(Object.entries(value));
+      return flattenEntries(nested, label);
+    }
+    return [[label, formatValue(value)]];
+  });
+
 const KeyValueList: React.FC<{ entries: Record<string, unknown> }> = ({ entries }) => (
   <DescriptionList isHorizontal>
-    {Object.entries(entries).map(([key, value]) => (
-      <DescriptionListGroup key={key}>
-        <DescriptionListTerm>{humanize(key)}</DescriptionListTerm>
-        <DescriptionListDescription>{String(value)}</DescriptionListDescription>
+    {flattenEntries(entries).map(([label, value]) => (
+      <DescriptionListGroup key={label}>
+        <DescriptionListTerm>{label}</DescriptionListTerm>
+        <DescriptionListDescription>{value}</DescriptionListDescription>
       </DescriptionListGroup>
     ))}
   </DescriptionList>
@@ -109,6 +131,17 @@ const ScoresList: React.FC<{
         return null;
       }
       const value = score[scoreType];
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ci_high/ci_low can be null at runtime
+      if (value === null) {
+        return (
+          <DescriptionListGroup key={key}>
+            <DescriptionListTerm>
+              {humanize(key)} ({scoreTypeLabels[scoreType]})
+            </DescriptionListTerm>
+            <DescriptionListDescription>N/A</DescriptionListDescription>
+          </DescriptionListGroup>
+        );
+      }
       return (
         <DescriptionListGroup key={key}>
           <DescriptionListTerm>
@@ -185,6 +218,7 @@ const ScoreRadarChart: React.FC<{ scores: AutoRAGEvaluationScores }> = ({ scores
       ],
       tooltip: {
         trigger: 'item' as const,
+        appendToBody: true,
       },
     }),
     [scores, labelColor, splitLineColor, seriesColor],
@@ -245,8 +279,8 @@ const SampleQAEntry: React.FC<{ result: AutoRAGEvaluationResult }> = ({ result }
 
 const SampleQAContent: React.FC<{ results: AutoRAGEvaluationResult[] }> = ({ results }) => (
   <Stack hasGutter>
-    {results.map((result) => (
-      <StackItem key={result.question_id}>
+    {results.map((result, index) => (
+      <StackItem key={`qa-${result.question_id || index}`}>
         <SampleQAEntry result={result} />
       </StackItem>
     ))}
@@ -255,8 +289,8 @@ const SampleQAContent: React.FC<{ results: AutoRAGEvaluationResult[] }> = ({ res
 
 const PrintSampleQAContent: React.FC<{ results: AutoRAGEvaluationResult[] }> = ({ results }) => (
   <Stack hasGutter>
-    {results.map((result) => (
-      <StackItem key={result.question_id}>
+    {results.map((result, index) => (
+      <StackItem key={`print-qa-${result.question_id || index}`}>
         <Card isCompact>
           <CardBody>
             <Stack hasGutter>
@@ -277,7 +311,7 @@ const PrintSampleQAContent: React.FC<{ results: AutoRAGEvaluationResult[] }> = (
                 </Content>
               </StackItem>
               {result.correct_answers.map((answer, i) => (
-                <StackItem key={`print-answer-${result.question_id}-${i}`}>
+                <StackItem key={`print-answer-${index}-${i}`}>
                   <Content component={ContentVariants.small}>
                     <strong>Expected answer {i + 1}</strong>
                   </Content>
@@ -300,6 +334,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   patterns,
   selectedIndex,
   rank,
+  optimizedMetric,
   onPatternChange,
   namespace,
   ragPatternsBasePath,
@@ -450,21 +485,21 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                         isExpanded={isPatternDropdownOpen}
                         data-testid="pattern-selector-dropdown"
                       >
-                        Pattern {selectedIndex}
+                        {data.name}
                       </MenuToggle>
                     )}
                   >
                     <DropdownList>
-                      {patterns.map((_pattern, i) => (
+                      {patterns.map((pattern, i) => (
                         <DropdownItem key={i} value={i}>
-                          Pattern {i}
+                          {pattern.name}
                         </DropdownItem>
                       ))}
                     </DropdownList>
                   </Dropdown>
                 ) : (
                   <Title headingLevel="h2" size="lg">
-                    Pattern {selectedIndex}
+                    {data.name}
                   </Title>
                 )}
               </StackItem>
@@ -485,11 +520,17 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
           <FlexItem>
             <Stack>
               <StackItem>
-                <Content component={ContentVariants.small}>Final score</Content>
+                <Content component={ContentVariants.small}>
+                  {optimizedMetric
+                    ? `${formatMetricName(optimizedMetric)} (optimized)`
+                    : 'Final score'}
+                </Content>
               </StackItem>
               <StackItem>
                 <Title headingLevel="h2" size="lg" data-testid="pattern-final-score">
-                  {data.final_score.toFixed(3)}
+                  {optimizedMetric && data.scores[optimizedMetric]
+                    ? formatMetricValue(data.scores[optimizedMetric].mean)
+                    : data.final_score.toFixed(3)}
                 </Title>
               </StackItem>
             </Stack>
@@ -586,7 +627,14 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             <div className="autorag-print-header">
               <h1>{data.name}</h1>
               <p>
-                Pattern {selectedIndex} | Final score: {data.final_score}
+                {data.name} |{' '}
+                {optimizedMetric
+                  ? `${formatMetricName(optimizedMetric)} (optimized): ${
+                      data.scores[optimizedMetric]
+                        ? formatMetricValue(data.scores[optimizedMetric].mean)
+                        : 'N/A'
+                    }`
+                  : `Final score: ${data.final_score}`}
               </p>
             </div>
             <div className="autorag-print-page">
