@@ -52,6 +52,13 @@ const extensions: (
       title: CATALOG_SETTINGS_PAGE_TITLE,
     },
   },
+  {
+    type: 'mcp-catalog.mcp-server/deploy-modal',
+    properties: {
+      useIsDeployAvailable: () =>
+        import('./src/mcpCatalogDeployment/useMcpServerDeployAvailable').then((m) => m.default),
+    },
+  },
 ];
 
 export default extensions;

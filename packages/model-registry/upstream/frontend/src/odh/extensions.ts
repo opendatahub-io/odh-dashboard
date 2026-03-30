@@ -181,16 +181,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | McpServerDepl
       component: () => import('./ModelCatalogSettingsRoutesWrapper'),
     },
   },
-  {
-    type: 'mcp-catalog.mcp-server/deploy-modal',
-    flags: {
-      required: [SupportedArea.MCP_CATALOG],
-    },
-    properties: {
-      useIsDeployAvailable: () =>
-        import('../app/hooks/mcpCatalogDeployment/useMcpServerDeployAvailable').then((m) => m.default),
-    },
-  },
 ];
 
 export default extensions;

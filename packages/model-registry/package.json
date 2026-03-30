@@ -69,7 +69,8 @@
     "./routeUtils": "./upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils.ts"
   },
   "dependencies": {
-    "@odh-dashboard/internal": "*"
+    "@odh-dashboard/internal": "*",
+    "mod-arch-core": "~1.12.0"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
