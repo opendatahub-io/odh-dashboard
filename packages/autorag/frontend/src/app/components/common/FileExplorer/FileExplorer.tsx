@@ -324,7 +324,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
 
   const visibleFiles = Array.isArray(files) ? files.filter((file) => !file.hidden) : [];
   const skeletonRowCount = perPage;
-  const isEmpty = isEmptyProp ?? (!loading && visibleFiles.length === 0);
+  const isEmpty = isEmptyProp === true || (!loading && visibleFiles.length === 0);
 
   return (
     <OuterScrollContainer>
@@ -1000,14 +1000,14 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   }, [onSearch]);
 
   const handleSetPage = useCallback(
-    (_event: React.SyntheticEvent, newPage: number) => {
+    (_event: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPage: number) => {
       onSetPage?.(newPage);
     },
     [onSetPage],
   );
 
   const handlePerPageSelect = useCallback(
-    (_event: React.SyntheticEvent, newPerPage: number) => {
+    (_event: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPerPage: number) => {
       onPerPageSelect?.(newPerPage);
     },
     [onPerPageSelect],
