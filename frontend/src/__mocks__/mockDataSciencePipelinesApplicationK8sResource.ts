@@ -13,7 +13,7 @@ type MockResourceConfigType = {
   mlflowIntegrationMode?: DSPAMlflowIntegrationMode;
   managedPipelines?: {
     image: string;
-    pipelines?: string[];
+    pipelines?: Array<{ name: string }>;
     volumeSizeLimit?: string;
     resources?: Record<string, unknown>;
   };

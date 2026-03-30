@@ -122,6 +122,11 @@ export const deletePipelineCR = async (
     ),
   );
 
+/**
+ * @deprecated Legacy pattern for InstructLab pipeline management.
+ * Use updatePipelineSettings with the new image-based managedPipelines pattern instead.
+ * This function is kept for backward compatibility with existing InstructLab deployments.
+ */
 export const toggleInstructLabState = (
   namespace: string,
   name: string,
@@ -149,7 +154,7 @@ export const updatePipelineSettings = (
     cacheEnabled?: boolean;
     managedPipelines?: {
       image: string;
-      pipelines?: string[];
+      pipelines?: Array<{ name: string }>;
       volumeSizeLimit?: string;
       resources?: Record<string, unknown>;
     };
