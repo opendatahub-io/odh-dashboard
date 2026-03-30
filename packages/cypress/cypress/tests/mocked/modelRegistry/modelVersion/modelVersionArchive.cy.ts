@@ -232,14 +232,20 @@ describe('Archiving version', () => {
         },
       }),
     ]);
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})])).as(
+      'getProjects',
+    );
     cy.intercept(
       { method: 'GET', url: /\/inferenceservices(\?|$)/ },
       { body: inferenceServiceResponse },
-    ).as('inferenceServices');
+    ).as('getInferenceServices');
     initIntercepts({});
 
     modelVersionArchive.visitModelVersionList();
+
+    // Wait for API calls to complete before interacting with the page
+    cy.wait('@getProjects');
+    cy.wait('@getInferenceServices');
 
     modelRegistry
       .getModelVersionRow('model version 3')
@@ -261,11 +267,13 @@ describe('Archiving version', () => {
         },
       }),
     ]);
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})])).as(
+      'getProjects',
+    );
     cy.intercept(
       { method: 'GET', url: /\/inferenceservices(\?|$)/ },
       { body: inferenceServiceResponse },
-    ).as('inferenceServices');
+    ).as('getInferenceServices');
     initIntercepts({});
 
     modelVersionArchive.visitModelVersionList();
@@ -289,14 +297,20 @@ describe('Archiving version', () => {
         },
       }),
     ]);
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})])).as(
+      'getProjects',
+    );
     cy.intercept(
       { method: 'GET', url: /\/inferenceservices(\?|$)/ },
       { body: inferenceServiceResponse },
-    ).as('inferenceServices');
+    ).as('getInferenceServices');
     initIntercepts({});
 
     modelVersionArchive.visitModelVersionDetails();
+
+    // Wait for API calls to complete before interacting with the page
+    cy.wait('@getProjects');
+    cy.wait('@getInferenceServices');
 
     modelVersionArchive
       .findModelVersionsDetailsHeaderAction()
