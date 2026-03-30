@@ -300,7 +300,7 @@ function AutomlConfigure(): React.JSX.Element {
                       </Alert>
                     </StackItem>
                   )}
-                  {Boolean(selectedSecret?.uuid) && (
+                  {Boolean(trainDataSecretName) && (
                     <>
                       <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
                         Selected files
@@ -329,7 +329,7 @@ function AutomlConfigure(): React.JSX.Element {
                 <Content component="h3">Configure details</Content>
               </CardHeader>
               <CardBody>
-                {!selectedSecret ? (
+                {!trainDataSecretName ? (
                   <EmptyState
                     variant="xs"
                     titleText="Select an S3 connection or upload a file to get started"

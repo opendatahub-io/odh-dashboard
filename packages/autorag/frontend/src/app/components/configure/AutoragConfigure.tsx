@@ -231,7 +231,7 @@ function AutoragConfigure(): React.JSX.Element {
                       </Split>
                     </ConfigureFormGroup>
                   </StackItem>
-                  {Boolean(selectedSecret?.uuid) && (
+                  {Boolean(inputDataSecretName) && (
                     <>
                       <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
                         Selected files
@@ -262,7 +262,7 @@ function AutoragConfigure(): React.JSX.Element {
                 <Content component="h3">Configure Details</Content>
               </CardHeader>
               <CardBody>
-                {!selectedSecret ? (
+                {!inputDataSecretName ? (
                   <EmptyState
                     variant="xs"
                     titleText="Select an S3 connection or upload a file to get started"
