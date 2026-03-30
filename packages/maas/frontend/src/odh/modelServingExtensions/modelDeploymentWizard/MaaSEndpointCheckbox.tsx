@@ -36,12 +36,11 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }
           data-testid={id}
           label={
             <>
-              <div className="pf-v6-c-form__label-text">Publish as MaaS endpoint</div>
+              <div className="pf-v6-c-form__label-text">Publish as MaaS</div>
               <Flex>
                 <FlexItem>
-                  Enable users in any namespace to access this model by adding its endpoint to the{' '}
-                  <span className="pf-v6-c-form__label-text">Models as a service</span> page. This
-                  is best for production models.
+                  Publishing as MaaS makes the model deployment endpoint accessible to others as a
+                  service through a gateway API.
                 </FlexItem>
                 <Label isCompact color="yellow" variant="outline">
                   Tech preview
