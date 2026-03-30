@@ -231,6 +231,14 @@ export const mockDeploymentWizardState = (
           setData: jest.fn(),
           isVisible: true,
         },
+        timeoutConfig: {
+          data: {
+            enableTimeoutConfig: true,
+            timeout: 30,
+            return401: false,
+          },
+          setData: jest.fn(),
+        },
         canCreateRoleBindings: true,
       },
       loaded: {

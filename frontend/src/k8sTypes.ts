@@ -499,6 +499,7 @@ export enum DeploymentMode {
 export type InferenceServiceAnnotations = DisplayNameAnnotations &
   Partial<{
     'security.opendatahub.io/enable-auth': string;
+    'security.opendatahub.io/auth-proxy-type': 'kube-rbac-proxy' | 'oauth-proxy' | string;
     'serving.kserve.io/deploymentMode': DeploymentMode;
     'serving.knative.openshift.io/enablePassthrough': 'true';
     'sidecar.istio.io/inject': 'true';
@@ -529,6 +530,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
       annotations?: Record<string, string>;
       tolerations?: Toleration[];
       nodeSelector?: NodeSelector;
+      timeout?: number;
       deploymentStrategy?: {
         type: 'RollingUpdate' | 'Recreate';
       };

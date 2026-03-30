@@ -163,6 +163,7 @@ const extensions: (
         import('./src/modelLocationData').then((m) => m.extractKServeModelLocationData),
       extractDeploymentStrategy: () =>
         import('./src/deployUtils').then((m) => m.extractDeploymentStrategy),
+      extractTimeoutConfig: () => import('./src/deployUtils').then((m) => m.extractTimeoutConfig),
       extractModelServerTemplate: () =>
         import('./src/deployServer').then((m) => m.extractModelServerTemplate),
       hardwareProfilePaths: () =>
