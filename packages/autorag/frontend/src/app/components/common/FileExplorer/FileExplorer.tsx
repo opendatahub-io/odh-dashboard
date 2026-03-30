@@ -69,7 +69,7 @@ import {
 import { EllipsisVIcon, OutlinedEyeIcon, TimesIcon } from '@patternfly/react-icons';
 import React, { type ReactNode, useId, useState } from 'react';
 
-// TODO [ PR-Feedback: AI ] This file is ~1,130 lines containing 6+ components, types, helpers, and globals.
+// TODO [ Gustavo ] This file is ~1,130 lines containing 6+ components, types, helpers, and globals.
 // Consider splitting into:
 //   - FileExplorer.types.ts (Source, File, Folder, FileExplorerEmptyStateConfig, Column)
 //   - FileExplorer.utils.ts (shouldDetailsPanelRender, sanitizeId, defaults, constants)
@@ -77,7 +77,6 @@ import React, { type ReactNode, useId, useState } from 'react';
 //   - components/PathBreadcrumbs.tsx
 //   - components/DetailsPanel.tsx (includes FileDetails, SelectedFilesDataList)
 //   - components/SourceSelector.tsx
-// This would also make unit testing individual sub-components feasible.
 
 // Types ---------------------------------------------------------------------->
 

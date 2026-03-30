@@ -18,12 +18,6 @@ import { getFiles, type GetFilesOptions } from '~/app/api/s3.ts';
 
 const DEFAULT_PER_PAGE = 10;
 
-// TODO [ PR-Feedback: AI ] This entire file (~560 lines) is duplicated verbatim in automl/S3FileExplorer.tsx.
-// formatBytes, mapResultToItems, getBreadcrumbTrail, and the full S3FileExplorer component are all copies.
-// Consider extracting shared code into a common package (e.g., plugin-core or a shared utility) before this
-// duplication becomes a maintenance burden. The FileExplorer.md already acknowledges this as future work,
-// but shipping with 2,200+ duplicated lines across the two modules is risky.
-
 const formatBytes = (bytes: number): string => {
   if (!Number.isFinite(bytes) || bytes <= 0) {
     return '0 B';
