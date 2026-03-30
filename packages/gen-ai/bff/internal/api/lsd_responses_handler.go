@@ -365,7 +365,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
-	providerData := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription)
+	providerData := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription, createRequest.VectorStoreIDs)
 
 	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
@@ -689,20 +689,120 @@ func (app *App) validatePreviousResponse(ctx context.Context, responseID string)
 	return nil
 }
 
-// getProviderData retrieves provider data (auth tokens) for models
-func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string, subscription string) map[string]interface{} {
-	// If model_source_type is custom_endpoint, fetch API key from ConfigMap secret
+// getProviderData retrieves provider data (auth tokens) for models.
+// If vectorStoreIDs is non-empty, it also checks for a custom-endpoint embedding model
+// backing one of those stores and injects its secret as passthrough_api_key.
+func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string, subscription string, vectorStoreIDs []string) map[string]interface{} {
+	var providerData map[string]interface{}
+
 	if modelSourceType == string(models.ModelSourceTypeCustomEndpoint) {
-		return app.getCustomEndpointProviderSecret(ctx, modelID)
+		// Inference custom endpoints are always remote::openai
+		if apiKey := app.getCustomEndpointSecret(ctx, modelID); apiKey != "" {
+			providerData = map[string]interface{}{"openai_api_key": apiKey}
+		}
+	} else if maasData := app.getMaaSProviderData(ctx, modelID, subscription); maasData != nil {
+		providerData = maasData
+	} else {
+		providerData = app.getUserJWTProviderData(ctx, modelID)
 	}
 
-	// For all other cases, use existing auto-detection logic
-	// Try MaaS first (by prefix)
-	if maasData := app.getMaaSProviderData(ctx, modelID, subscription); maasData != nil {
-		return maasData
+	// Inject passthrough_url and passthrough_api_key for custom-endpoint embedding models used by vector stores
+	if passthroughURL, passthroughKey := app.getPassthroughEmbeddingSecret(ctx, vectorStoreIDs); passthroughURL != "" || passthroughKey != "" {
+		if providerData == nil {
+			providerData = make(map[string]interface{})
+		}
+		providerData["passthrough_url"] = passthroughURL
+		providerData["passthrough_api_key"] = passthroughKey
 	}
-	// Then try user JWT for InferenceService and LLMInferenceService
-	return app.getUserJWTProviderData(ctx, modelID)
+
+	return providerData
+}
+
+// getPassthroughEmbeddingSecret iterates vectorStoreIDs and returns the base URL and API key
+// for the first vector store that uses a custom-endpoint (remote::passthrough) embedding model.
+// Returns ("", "") if no such model is found or any lookup fails non-fatally.
+func (app *App) getPassthroughEmbeddingSecret(ctx context.Context, vectorStoreIDs []string) (string, string) {
+	if len(vectorStoreIDs) == 0 {
+		return "", ""
+	}
+
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		return "", ""
+	}
+
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return "", ""
+	}
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.logger.Warn("Failed to get Kubernetes client for passthrough embedding secret", "error", err)
+		return "", ""
+	}
+
+	// Fetch vector stores config
+	vsDoc, err := k8sClient.GetVectorStoresConfig(ctx, namespace)
+	if err != nil {
+		app.logger.Warn("Failed to get vector stores config for passthrough embedding secret", "error", err)
+		return "", ""
+	}
+
+	// Build a lookup from vector_store_id → RegisteredVectorStore
+	vsMap := make(map[string]models.RegisteredVectorStore, len(vsDoc.RegisteredResources.VectorStores))
+	for _, vs := range vsDoc.RegisteredResources.VectorStores {
+		vsMap[vs.VectorStoreID] = vs
+	}
+
+	// Fetch external models config (custom endpoints)
+	externalModelsConfig, err := k8sClient.GetExternalModelsConfig(ctx, namespace)
+	if err != nil {
+		app.logger.Warn("Failed to get external models config for passthrough embedding secret", "error", err)
+		return "", ""
+	}
+
+	// Scan vector store IDs in order; return the first passthrough embedding model found
+	for _, vsID := range vectorStoreIDs {
+		registeredVS, found := vsMap[vsID]
+		if !found || registeredVS.EmbeddingModel == "" {
+			continue
+		}
+
+		embeddingModelID := registeredVS.EmbeddingModel
+
+		// Find the embedding model in the external models ConfigMap
+		var foundModel *models.RegisteredModel
+		for i := range externalModelsConfig.RegisteredResources.Models {
+			m := &externalModelsConfig.RegisteredResources.Models[i]
+			if m.ModelID == embeddingModelID && m.ModelType == models.ModelTypeEmbedding {
+				foundModel = m
+				break
+			}
+		}
+		if foundModel == nil {
+			continue // not a custom endpoint embedding model
+		}
+
+		// Find the provider for this model
+		var foundProvider *models.InferenceProvider
+		for i := range externalModelsConfig.Providers.Inference {
+			if externalModelsConfig.Providers.Inference[i].ProviderID == foundModel.ProviderID {
+				foundProvider = &externalModelsConfig.Providers.Inference[i]
+				break
+			}
+		}
+		if foundProvider == nil || foundProvider.ProviderType != models.ProviderTypePassThrough {
+			continue
+		}
+
+		apiKey := app.fetchSecretFromProvider(ctx, k8sClient, identity, namespace, foundProvider, embeddingModelID)
+		baseURL := foundProvider.Config.BaseURL
+		app.logger.Debug("Resolved passthrough embedding provider secret", "vectorStoreID", vsID, "embeddingModel", embeddingModelID, "url", baseURL)
+		return baseURL, apiKey
+	}
+
+	return "", ""
 }
 
 // getUserJWTProviderData retrieves user JWT token for InferenceService and LLMInferenceService models
@@ -821,68 +921,63 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 	return tokenResponse.Key
 }
 
-// getCustomEndpointProviderSecret retrieves API keys for custom endpoint models from ConfigMap secrets
-func (app *App) getCustomEndpointProviderSecret(ctx context.Context, modelID string) map[string]interface{} {
-	// Early return if context doesn't have required data
+// getCustomEndpointSecret retrieves the raw API key for a provider-qualified custom endpoint
+// model ID (e.g. "endpoint-1/meta-llama/Llama-3.1-8B"). Returns "" when the secret cannot
+// be resolved so the caller can skip injection.
+func (app *App) getCustomEndpointSecret(ctx context.Context, modelID string) string {
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
-		return nil
+		return ""
 	}
 
 	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 	if !ok || namespace == "" {
-		return nil
+		return ""
 	}
 
-	// Extract provider prefix and model ID (e.g., "endpoint-1/meta-llama/Llama-3.1-8B" → "endpoint-1", "meta-llama/Llama-3.1-8B")
 	// Model ID must be provider-qualified to prevent ambiguity when multiple providers expose same model_id
 	if !strings.Contains(modelID, "/") {
 		app.logger.Warn("Custom endpoint model ID must be provider-qualified (provider/model)", "model", modelID)
-		return nil
+		return ""
 	}
 
 	// Split on FIRST slash only (model IDs can contain slashes like "meta-llama/Llama-3.1-8B")
 	parts := strings.SplitN(modelID, "/", 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		app.logger.Warn("Invalid custom endpoint model ID format", "model", modelID)
-		return nil
+		return ""
 	}
 
 	providerPrefix := parts[0]
 	actualModelID := parts[1]
 	app.logger.Debug("Parsed provider-qualified model ID", "original", modelID, "provider", providerPrefix, "modelID", actualModelID)
 
-	// Get Kubernetes client
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		app.logger.Warn("Failed to get Kubernetes client for custom endpoint", "model", modelID, "error", err)
-		return nil
+		return ""
 	}
 
-	// Get external models ConfigMap
 	externalModelsConfig, err := k8sClient.GetExternalModelsConfig(ctx, namespace)
 	if err != nil {
 		app.logger.Warn("Failed to get external models ConfigMap", "model", modelID, "namespace", namespace, "error", err)
-		return nil
+		return ""
 	}
 
-	// Find the model in the ConfigMap - match BOTH ProviderID and ModelID
-	// Prevents returning wrong API key when multiple providers expose same model_id
+	// Match BOTH ProviderID and ModelID to prevent returning the wrong key
 	var foundModel *models.RegisteredModel
 	for i := range externalModelsConfig.RegisteredResources.Models {
-		model := &externalModelsConfig.RegisteredResources.Models[i]
-		if model.ProviderID == providerPrefix && model.ModelID == actualModelID {
-			foundModel = model
+		m := &externalModelsConfig.RegisteredResources.Models[i]
+		if m.ProviderID == providerPrefix && m.ModelID == actualModelID {
+			foundModel = m
 			break
 		}
 	}
-
 	if foundModel == nil {
 		app.logger.Warn("Custom endpoint model not found in ConfigMap", "provider", providerPrefix, "model", actualModelID, "namespace", namespace)
-		return nil
+		return ""
 	}
 
-	// Find the provider for this model
 	var foundProvider *models.InferenceProvider
 	for i := range externalModelsConfig.Providers.Inference {
 		if externalModelsConfig.Providers.Inference[i].ProviderID == foundModel.ProviderID {
@@ -890,33 +985,31 @@ func (app *App) getCustomEndpointProviderSecret(ctx context.Context, modelID str
 			break
 		}
 	}
-
 	if foundProvider == nil {
 		app.logger.Warn("Provider not found for custom endpoint model", "model", actualModelID, "providerID", foundModel.ProviderID, "namespace", namespace)
-		return nil
+		return ""
 	}
 
-	// Get secret reference from provider config
-	secretName := foundProvider.Config.CustomGenAI.APIKey.SecretRef.Name
-	secretKey := foundProvider.Config.CustomGenAI.APIKey.SecretRef.Key
+	apiKey := app.fetchSecretFromProvider(ctx, k8sClient, identity, namespace, foundProvider, actualModelID)
+	app.logger.Debug("Resolved custom endpoint secret", "model", modelID, "actualModelID", actualModelID, "provider", foundProvider.ProviderID)
+	return apiKey
+}
 
-	// Default to fake for models that don't require an API key
-	apiKey := "fake"
-	if secretName != "" && secretKey != "" {
-		// Fetch the actual API key from Kubernetes
-		var err error
-		apiKey, err = k8sClient.GetSecretValue(ctx, identity, namespace, secretName, secretKey)
-		if err != nil {
-			app.logger.Warn("Failed to get secret for custom endpoint model", "model", actualModelID, "secretName", secretName, "error", err)
-		}
-		if apiKey == "" {
-			apiKey = "fake"
-		}
+// fetchSecretFromProvider reads the API key referenced by a provider's SecretRef,
+// defaulting to "fake" when no secret is configured or the fetch fails.
+func (app *App) fetchSecretFromProvider(ctx context.Context, k8sClient k8s.KubernetesClientInterface, identity *integrations.RequestIdentity, namespace string, provider *models.InferenceProvider, logModelID string) string {
+	secretName := provider.Config.CustomGenAI.APIKey.SecretRef.Name
+	secretKey := provider.Config.CustomGenAI.APIKey.SecretRef.Key
+	if secretName == "" || secretKey == "" {
+		return "fake"
 	}
-
-	// All custom endpoints use remote::openai which requires openai_api_key in provider data
-	app.logger.Debug("Injected custom endpoint provider data", "model", modelID, "actualModelID", actualModelID, "provider", foundProvider.ProviderID)
-	return map[string]interface{}{
-		"openai_api_key": apiKey,
+	val, err := k8sClient.GetSecretValue(ctx, identity, namespace, secretName, secretKey)
+	if err != nil {
+		app.logger.Warn("Failed to get secret for custom endpoint model", "model", logModelID, "secretName", secretName, "error", err)
+		return "fake"
 	}
+	if val == "" {
+		return "fake"
+	}
+	return val
 }

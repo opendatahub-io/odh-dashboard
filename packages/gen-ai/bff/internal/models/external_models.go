@@ -31,7 +31,8 @@ type VerifyExternalModelResponse struct {
 type ProviderTypeEnum string
 
 const (
-	ProviderTypeOpenAI ProviderTypeEnum = "remote::openai"
+	ProviderTypeOpenAI      ProviderTypeEnum = "remote::openai"
+	ProviderTypePassThrough ProviderTypeEnum = "remote::passthrough"
 )
 
 // ModelTypeEnum represents supported model types

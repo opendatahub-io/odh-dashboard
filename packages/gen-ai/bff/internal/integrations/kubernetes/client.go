@@ -47,6 +47,7 @@ type KubernetesClientInterface interface {
 	DeleteExternalModel(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) error
 	DeleteSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string) error
 	GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error)
+	GetVectorStoresConfig(ctx context.Context, namespace string) (*models.ExternalVectorStoresDocument, error)
 	GetSecretValue(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretKey string) (string, error)
 
 	// Guardrails operations
