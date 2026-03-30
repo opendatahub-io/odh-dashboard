@@ -97,7 +97,10 @@ import type {
   BulkRevokeResponse,
   CreateAPIKeyResponse,
 } from '@odh-dashboard/maas/types/api-key';
-import type { MaaSSubscription } from '@odh-dashboard/maas/types/subscriptions';
+import type {
+  MaaSSubscription,
+  SubscriptionInfoResponse,
+} from '@odh-dashboard/maas/types/subscriptions';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -1151,6 +1154,11 @@ declare global {
           type: 'DELETE /maas/api/v1/subscription/:name',
           options: { path: { name: string } },
           response: OdhResponse<{ message: string }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/subscription-info/:name',
+          options: { path: { name: string } },
+          response: OdhResponse<SubscriptionInfoResponse>,
         ) => Cypress.Chainable<null>);
     }
   }

@@ -100,7 +100,7 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
 
     items.push(
       {
-        title: 'View job details',
+        title: 'View more details',
         onClick: () => onSelectJob(job),
       },
       {
