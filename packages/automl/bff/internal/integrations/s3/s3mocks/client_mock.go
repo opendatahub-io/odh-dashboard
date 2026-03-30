@@ -138,24 +138,29 @@ func (m *MockS3Client) GetObject(_ context.Context, bucket, key string) (io.Read
 	return io.NopCloser(bytes.NewReader(content)), "application/octet-stream", nil
 }
 
-// UploadObject is a no-op in mock mode: body is drained to mimic a real upload.
+// mockStaticListingKeys matches keys used by ListObjects below (conditional create conflict simulation).
+var mockStaticListingKeys = []string{
+	"datasets/train.csv",
+	"datasets/test.csv",
+	"datasets/validation.csv",
+	"results/model.pkl",
+	"results/metrics.json",
+	"configs/pipeline.yaml",
+}
+
+// UploadObject mimics conditional create: fails if the key is already in the static listing; otherwise drains the body.
 // io.Copy reports errors from reading body (e.g. *http.MaxBytesError on a limited reader).
-func (m *MockS3Client) UploadObject(_ context.Context, _ string, _ string, body io.Reader, _ string) error {
+func (m *MockS3Client) UploadObject(_ context.Context, _ string, key string, body io.Reader, _ string) error {
+	if slices.Contains(mockStaticListingKeys, key) {
+		return s3int.ErrObjectAlreadyExists
+	}
 	_, err := io.Copy(io.Discard, body)
 	return err
 }
 
-// ObjectExists reports whether a key exists in the static mock listings.
+// ObjectExists reports whether the key is in the static listing (HeadObject simulation).
 func (m *MockS3Client) ObjectExists(_ context.Context, _ string, key string) (bool, error) {
-	allObjects := []string{
-		"datasets/train.csv",
-		"datasets/test.csv",
-		"datasets/validation.csv",
-		"results/model.pkl",
-		"results/metrics.json",
-		"configs/pipeline.yaml",
-	}
-	return slices.Contains(allObjects, key), nil
+	return slices.Contains(mockStaticListingKeys, key), nil
 }
 
 // ListObjects returns a mock listing of S3 objects.

@@ -1267,6 +1267,9 @@ func (c *keyCollisionS3Client) ObjectExists(_ context.Context, _ string, key str
 }
 
 func (c *keyCollisionS3Client) UploadObject(_ context.Context, _ string, key string, body io.Reader, _ string) error {
+	if c.existingKeys[key] {
+		return s3int.ErrObjectAlreadyExists
+	}
 	c.uploadedKey = key
 	c.existingKeys[key] = true
 	_, err := io.Copy(io.Discard, body)
@@ -1305,6 +1308,10 @@ func (*alwaysExistsS3Client) ObjectExists(context.Context, string, string) (bool
 	return true, nil
 }
 
+func (*alwaysExistsS3Client) UploadObject(context.Context, string, string, io.Reader, string) error {
+	return s3int.ErrObjectAlreadyExists
+}
+
 type firstUploadCaptureClient struct {
 	s3mocks.MockS3Client
 	uploaded []byte
@@ -1322,8 +1329,9 @@ func (c *firstUploadCaptureClient) UploadObject(_ context.Context, _ string, _ s
 
 // s3HandlerTestAppOptions configures test-only App fields (e.g. PostS3FileHandler upload caps).
 type s3HandlerTestAppOptions struct {
-	S3PostMaxFilePartBytes    int64
-	S3PostMaxRequestBodyBytes int64
+	S3PostMaxFilePartBytes     int64
+	S3PostMaxRequestBodyBytes  int64
+	S3PostMaxCollisionAttempts int
 }
 
 // newS3HandlerTestApp creates a lightweight App wired with K8s and S3 mock factories,
@@ -1344,6 +1352,7 @@ func newS3HandlerTestApp(
 	if opts != nil {
 		app.s3PostMaxFilePartBytes = opts.S3PostMaxFilePartBytes
 		app.s3PostMaxRequestBodyBytes = opts.S3PostMaxRequestBodyBytes
+		app.s3PostMaxCollisionAttempts = opts.S3PostMaxCollisionAttempts
 	}
 	return app
 }
@@ -1979,7 +1988,7 @@ func TestPostS3FileHandler_CollisionResolutionExhausted_Returns500(t *testing.T)
 		k8sFactory,
 		s3Factory,
 		identity,
-		nil,
+		&s3HandlerTestAppOptions{S3PostMaxCollisionAttempts: 5},
 		nil,
 	)
 	res := rr.Result()
@@ -1996,7 +2005,7 @@ func TestPostS3FileHandler_CollisionResolutionExhausted_Returns500(t *testing.T)
 func TestResolveNonCollidingS3Key_PreservesDirectoryPrefix(t *testing.T) {
 	t.Parallel()
 	client := newKeyCollisionS3Client("folder/sub/file.csv", "folder/sub/file-1.csv")
-	key, err := resolveNonCollidingS3Key(context.Background(), client, "my-bucket", "folder/sub/file.csv")
+	key, err := resolveNonCollidingS3Key(context.Background(), client, "my-bucket", "folder/sub/file.csv", 10)
 	assert.NoError(t, err)
 	assert.Equal(t, "folder/sub/file-2.csv", key)
 }
@@ -2005,9 +2014,51 @@ func TestResolveNonCollidingS3Key_DirectoryTrailingSlash(t *testing.T) {
 	t.Parallel()
 	// Key "path/to/" has empty filename; first free candidate is "path/to/-1".
 	client := newKeyCollisionS3Client("path/to/")
-	key, err := resolveNonCollidingS3Key(context.Background(), client, "my-bucket", "path/to/")
+	key, err := resolveNonCollidingS3Key(context.Background(), client, "my-bucket", "path/to/", 10)
 	assert.NoError(t, err)
 	assert.Equal(t, "path/to/-1", key)
+}
+
+// headRaceS3Client simulates HeadObject showing a free key while PutObject hits a conditional conflict (concurrent writer).
+type headRaceS3Client struct{ s3mocks.MockS3Client }
+
+func (headRaceS3Client) ObjectExists(context.Context, string, string) (bool, error) {
+	return false, nil
+}
+
+func (headRaceS3Client) UploadObject(context.Context, string, string, io.Reader, string) error {
+	return s3int.ErrObjectAlreadyExists
+}
+
+func TestPostS3FileHandler_PutConflictAfterHeadReturns409(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&headRaceS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	body, contentType := buildMultipartFileUpload(t, "file", "race.csv", []byte("a,b\n"))
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=race.csv",
+		body,
+		contentType,
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusConflict, res.StatusCode)
+	var env ErrorEnvelope
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
+	require.NotNil(t, env.Error)
+	assert.Equal(t, "409", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "upload conflict")
 }
 
 func buildMultipartFileUpload(t *testing.T, fieldName, fileName string, contents []byte) (*bytes.Buffer, string) {

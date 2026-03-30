@@ -218,11 +218,21 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	}
 }
 
+const defaultS3PostMaxCollisionAttempts = 10
+
+func (app *App) effectivePostS3CollisionAttempts() int {
+	if app != nil && app.s3PostMaxCollisionAttempts > 0 {
+		return app.s3PostMaxCollisionAttempts
+	}
+	return defaultS3PostMaxCollisionAttempts
+}
+
 // PostS3FileHandler uploads a CSV file to S3 storage using credentials from a Kubernetes secret.
 // Query parameters: namespace, secretName, key (required); bucket (optional, uses AWS_S3_BUCKET from secret if not provided).
 // Request body: multipart/form-data with a file part named "file". Only CSV uploads are allowed: Content-Type
 // text/csv, or application/octet-stream with a .csv filename (or empty Content-Type with a .csv filename).
-// Streams the file to S3 without buffering.
+// Candidate keys are chosen via HeadObject; the file is streamed to S3 once with If-None-Match (no full-file buffer).
+// If HeadObject and PUT disagree (concurrent writer), the handler returns 409 Conflict without retrying.
 //
 // Note: namespace is provided via the AttachNamespace middleware
 func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -251,7 +261,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 
 	ctx := r.Context()
 	bucket := s3.bucket
-	resolvedKey, err := resolveNonCollidingS3Key(ctx, s3.client, bucket, key)
+	resolvedKey, err := resolveNonCollidingS3Key(ctx, s3.client, bucket, key, app.effectivePostS3CollisionAttempts())
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("error resolving S3 key for upload: %w", err))
 		return
@@ -326,6 +336,10 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 			app.payloadTooLargeResponse(w, r, "file exceeds maximum size of 1 GiB")
 			return
 		}
+		if errors.Is(err, s3int.ErrObjectAlreadyExists) {
+			app.conflictResponse(w, r, fmt.Sprintf("object key %q already exists in S3 (upload conflict); retry with a different key", resolvedKey))
+			return
+		}
 		var accessDenied interface{ ErrorCode() string }
 		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
 			app.forbiddenResponse(w, r, fmt.Sprintf("access denied uploading to S3 '%s/%s'", bucket, resolvedKey))
@@ -342,11 +356,14 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 	_ = app.WriteJSON(w, http.StatusCreated, body, nil)
 }
 
+// resolveNonCollidingS3Key picks a candidate object key using HeadObject only (no upload body read).
+// When the requested key exists, it tries name-1, name-2, … up to maxSuffixAttempts times.
 func resolveNonCollidingS3Key(
 	ctx context.Context,
 	client s3int.S3ClientInterface,
 	bucket string,
 	requestedKey string,
+	maxCollisionAttempts int,
 ) (string, error) {
 	exists, err := client.ObjectExists(ctx, bucket, requestedKey)
 	if err != nil {
@@ -360,7 +377,6 @@ func resolveNonCollidingS3Key(
 	stem, ext := splitNameAndExtension(name)
 	stemBase, nextIndex := splitStemAndNextIndex(stem)
 
-	const maxCollisionAttempts = 10
 	for range maxCollisionAttempts {
 		candidateName := fmt.Sprintf("%s-%d%s", stemBase, nextIndex, ext)
 		candidateKey := dir + candidateName
