@@ -22,7 +22,11 @@ import {
   MaaSModel,
   VectorStore,
 } from '~/app/types';
-import { convertMaaSModelToAIModel, splitLlamaModelId } from '~/app/utilities/utils';
+import {
+  computeEmbeddingModelStatus,
+  convertMaaSModelToAIModel,
+  splitLlamaModelId,
+} from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
@@ -137,14 +141,12 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 
   const availableCollections = React.useMemo(
     () =>
-      allCollections.filter((c) => {
-        const { id: normalizedEmbedId } = splitLlamaModelId(c.embedding_model);
-        return allModels.some((m) => {
-          const { id: normalizedModelId } = splitLlamaModelId(m.model_id);
-          return m.model_id === c.embedding_model || normalizedModelId === normalizedEmbedId;
-        });
-      }),
-    [allCollections, allModels],
+      allCollections.filter(
+        (c) =>
+          computeEmbeddingModelStatus(c.embedding_model, allModels, existingModels) !==
+          'not_available',
+      ),
+    [allCollections, allModels, existingModels],
   );
 
   const preSelectedCollections = React.useMemo(() => {

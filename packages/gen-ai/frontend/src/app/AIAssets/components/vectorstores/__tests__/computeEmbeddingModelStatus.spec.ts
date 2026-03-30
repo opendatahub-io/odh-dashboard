@@ -1,9 +1,6 @@
 /* eslint-disable camelcase */
 import type { AIModel, LlamaModel } from '~/app/types';
-import {
-  computeEmbeddingModelStatus,
-  EmbeddingModelStatus,
-} from '~/app/AIAssets/components/vectorstores/VectorStoreTableRow';
+import { computeEmbeddingModelStatus, EmbeddingModelStatus } from '~/app/utilities/utils';
 
 const makeAIModel = (model_id: string, overrides: Partial<AIModel> = {}): AIModel => ({
   model_name: 'test',
