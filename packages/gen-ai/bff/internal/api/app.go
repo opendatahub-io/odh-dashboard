@@ -186,15 +186,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	if cfg.MockMLflowClient {
 		mlflowState, err := mlflowmocks.SetupMLflow(logger)
 		if err != nil {
-			return nil, fmt.Errorf("failed to setup MLflow mock server: %w", err)
+			logger.Warn("MLflow mock server not available, MLflow endpoints will fail on request", "error", err)
+		} else {
+			cleanupFuncs = append(cleanupFuncs, func() {
+				logger.Info("stopping MLflow server...")
+				mlflowmocks.CleanupMLflowState(mlflowState,
+					func(format string, args ...any) { logger.Error(fmt.Sprintf(format, args...)) },
+					func(format string, args ...any) { logger.Info(fmt.Sprintf(format, args...)) },
+				)
+			})
 		}
-		cleanupFuncs = append(cleanupFuncs, func() {
-			logger.Info("stopping MLflow server...")
-			mlflowmocks.CleanupMLflowState(mlflowState,
-				func(format string, args ...any) { logger.Error(fmt.Sprintf(format, args...)) },
-				func(format string, args ...any) { logger.Info(fmt.Sprintf(format, args...)) },
-			)
-		})
 		mlflowFactory = mlflowmocks.NewMockClientFactory()
 	} else {
 		mlflowURL := resolveMLflowURL(cfg, logger)
