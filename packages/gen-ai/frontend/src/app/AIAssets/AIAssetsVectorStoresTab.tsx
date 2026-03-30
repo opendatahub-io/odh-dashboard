@@ -13,17 +13,15 @@ const AIAssetsVectorStoresTab: React.FC = () => {
   const { data: lsdStatus } = useFetchLSDStatus();
   const [existingCollections] = useFetchVectorStores();
   // load embedding models from llamastack to check which are "registered"
-  const {
-    data: playgroundModels,
-    loaded: playgroundModelsLoaded,
-    error: playgroundModelsError,
-  } = useFetchLlamaModels(
+  // Note: this may fail when no LSD exists — the table still renders with playgroundModels=[]
+  // and computeEmbeddingModelStatus handles the no-LSD case for the default embedding model.
+  const { data: playgroundModels, error: playgroundModelsError } = useFetchLlamaModels(
     undefined, // lsdNotReady
     true, // includeEmbeddingModels
   );
   const { models: allModels } = useMergedModels();
 
-  if ((!loaded || (!playgroundModelsLoaded && !playgroundModelsError)) && !error) {
+  if (!loaded && !error) {
     return (
       <Bullseye>
         <Spinner />

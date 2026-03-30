@@ -23,6 +23,12 @@ type EmbeddingModelConfig struct {
 
 // DefaultEmbeddingModel returns the default embedding model configuration.
 // This function returns a copy of the configuration, ensuring immutability.
+//
+// IMPORTANT: The frontend mirrors these values in
+// packages/gen-ai/frontend/src/app/utilities/utils.ts (DEFAULT_EMBEDDING_MODEL_ID /
+// DEFAULT_EMBEDDING_NORMALIZED_ID) so that computeEmbeddingModelStatus can treat this
+// model as 'available' before any LSD is installed (it is auto-provisioned on install).
+// If ModelID or ProviderModelID change here, update those frontend constants too.
 func DefaultEmbeddingModel() EmbeddingModelConfig {
 	return EmbeddingModelConfig{
 		ModelID:            "sentence-transformers/ibm-granite/granite-embedding-125m-english",
