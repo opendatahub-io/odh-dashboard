@@ -52,6 +52,14 @@ class ModelsTabPage {
   openEndpointModal(modelName: string): void {
     this.getRow(modelName).findEndpointCell().findByTestId('endpoint-view-button').click();
   }
+
+  findWarningAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('models-tab-warning-alert');
+  }
+
+  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-state');
+  }
 }
 
 class EndpointModalPage {
