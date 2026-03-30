@@ -255,6 +255,13 @@ describe('AutomlModelDetailsModal', () => {
   });
 
   it('should enable download button for timeseries without feature importance', () => {
+    const { useModelEvaluationArtifactsQuery } = jest.requireMock('~/app/hooks/queries');
+    useModelEvaluationArtifactsQuery.mockReturnValue({
+      featureImportance: undefined,
+      confusionMatrix: undefined,
+      isLoading: false,
+    });
+
     render(
       <AutomlResultsContext.Provider value={mockTimeseriesContext}>
         <AutomlModelDetailsModal {...defaultProps} modelName="TemporalFusionTransformer" />

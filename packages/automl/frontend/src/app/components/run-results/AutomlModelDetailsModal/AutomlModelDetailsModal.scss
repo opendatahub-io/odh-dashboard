@@ -145,9 +145,12 @@
 /* Feature importance bar */
 .automl-feature-importance-bar {
   height: 12px;
-  min-width: 4px;
   border-radius: 2px;
   background-color: var(--pf-t--global--color--brand--default);
+
+  &.m-has-value {
+    min-width: 4px;
+  }
 
   &.m-negative {
     background-color: var(--pf-t--global--color--status--danger--default);
@@ -191,12 +194,10 @@
   /* Each tab starts on a new page except the first */
   .automl-print-page {
     break-before: page;
-    page-break-before: always;
   }
 
   .automl-print-page--first {
     break-before: avoid;
-    page-break-before: avoid;
   }
 
   .automl-print-page h2 {

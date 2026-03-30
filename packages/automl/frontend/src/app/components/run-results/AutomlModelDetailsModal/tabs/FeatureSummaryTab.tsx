@@ -33,6 +33,15 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
     return importanceValues.length > 0 ? Math.max(...importanceValues.map(Math.abs)) : 0;
   }, [featureImportance]);
 
+  const hasFeatureData = allEntries.length > 0;
+
+  // Clear stale search when switching to a model with no feature data
+  React.useEffect(() => {
+    if (!hasFeatureData) {
+      setSearchValue('');
+    }
+  }, [hasFeatureData]);
+
   if (!featureImportance) {
     return (
       <Table aria-label="Feature importance loading" variant="compact">
@@ -65,8 +74,6 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
   const entries = allEntries.filter(([name]) =>
     name.toLowerCase().includes(searchValue.toLowerCase()),
   );
-
-  const hasFeatureData = allEntries.length > 0;
 
   return (
     <>
@@ -130,7 +137,7 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
                 <Td dataLabel="Importance">{(importance * 100).toFixed(2)}%</Td>
                 <Td>
                   <div
-                    className={`automl-feature-importance-bar${importance < 0 ? ' m-negative' : ''}`}
+                    className={`automl-feature-importance-bar${importance !== 0 ? ' m-has-value' : ''}${importance < 0 ? ' m-negative' : ''}`}
                     data-testid={`feature-importance-bar-${name}`}
                     style={{
                       width: `${maxImportance > 0 ? (Math.abs(importance) / maxImportance) * 100 : 0}%`,
