@@ -1,12 +1,3 @@
-// TODO [ PR-Feedback: AI ] No unit tests exist for FileExplorer or S3FileExplorer.
-// At minimum, unit tests should cover:
-//   - mapResultToItems: mapping S3 responses to Files (folder markers, hidden items, extensions)
-//   - getBreadcrumbTrail: path to breadcrumb conversion
-//   - formatBytes: byte formatting edge cases
-//   - S3FileExplorer: error state mapping (bucket not configured, not found, generic)
-//   - FileExplorer: selection state management (radio vs checkbox mode)
-// The PR checklist also marks "Add tests" as unchecked.
-
 // Modules -------------------------------------------------------------------->
 
 import {
@@ -212,14 +203,14 @@ const NUMBER_OF_ROWS_TO_SHOW = 10;
  * We get-by by providing a reasonable height to the table to get 10 rows in the modal */
 const STICKY_TABLE_HEIGHT = ROW_HEIGHT * NUMBER_OF_ROWS_TO_SHOW + HEADER_HEIGHT;
 
-const sanitizeId = (value: string): string => value.replace(/[^a-zA-Z0-9-_]/g, '-');
+export const sanitizeId = (value: string): string => value.replace(/[^a-zA-Z0-9-_]/g, '-');
 
 // Private -------------------------------------------------------------------->
 
-const shouldDetailsPanelRender = (state: {
+export const shouldDetailsPanelRender = (state: {
   filesToView: Files | undefined;
   selectedFiles: Files | undefined;
-}) => {
+}): { details: boolean; selected: boolean; panel: boolean } => {
   const { filesToView, selectedFiles } = state;
 
   const shouldDetailsRender = Boolean(Array.isArray(filesToView) && filesToView.length > 0);

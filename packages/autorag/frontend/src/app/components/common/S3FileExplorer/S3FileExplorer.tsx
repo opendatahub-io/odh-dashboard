@@ -18,7 +18,7 @@ import { getFiles, type GetFilesOptions } from '~/app/api/s3.ts';
 
 const DEFAULT_PER_PAGE = 10;
 
-const formatBytes = (bytes: number): string => {
+export const formatBytes = (bytes: number): string => {
   if (!Number.isFinite(bytes) || bytes <= 0) {
     return '0 B';
   }
@@ -28,7 +28,7 @@ const formatBytes = (bytes: number): string => {
 };
 
 /** Maps an S3ListObjectsResponse to FileExplorer-compatible items. */
-const mapResultToItems = (
+export const mapResultToItems = (
   result: S3ListObjectsResponse,
   selectableExtensions?: string[],
 ): Files => {
@@ -112,7 +112,7 @@ const mapResultToItems = (
 };
 
 /** Builds the ordered breadcrumb trail from root to the given path. */
-const getBreadcrumbTrail = (targetPath: string): Folder[] => {
+export const getBreadcrumbTrail = (targetPath: string): Folder[] => {
   if (targetPath === '/') {
     return [];
   }
