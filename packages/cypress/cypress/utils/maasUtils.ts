@@ -4,7 +4,10 @@ import type {
   CreateAPIKeyResponse,
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
-import type { MaaSSubscription } from '@odh-dashboard/maas/types/subscriptions';
+import type {
+  MaaSSubscription,
+  SubscriptionInfoResponse,
+} from '@odh-dashboard/maas/types/subscriptions';
 
 // Standardized tier templates - use these directly or as building blocks
 export const MOCK_TIERS: Record<'free' | 'premium' | 'enterprise', Tier> = {
@@ -175,5 +178,34 @@ export const mockTier = ({
     level,
     groups,
     limits,
+  };
+};
+
+export const mockSubscriptionInfo = (name = 'premium-team-sub'): SubscriptionInfoResponse => {
+  const subscription = mockSubscriptions().find((s) => s.name === name) ?? mockSubscriptions()[0];
+  return {
+    subscription,
+    modelRefs: subscription.modelRefs.map((ref) => ({
+      name: ref.name,
+      namespace: ref.namespace,
+      displayName: `${ref.name} Display`,
+      modelRef: { kind: 'LLMInferenceService', name: ref.name },
+      phase: 'Ready',
+      endpoint: `https://${ref.name}.example.com`,
+    })),
+    authPolicies: [
+      {
+        name: `${name}-policy`,
+        namespace: subscription.namespace,
+        phase: 'Active',
+        modelRefs: subscription.modelRefs.map((ref) => ({
+          name: ref.name,
+          namespace: ref.namespace,
+        })),
+        subjects: {
+          groups: subscription.owner.groups,
+        },
+      },
+    ],
   };
 };
