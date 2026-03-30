@@ -8,5 +8,6 @@ export function DeepCopyPrompt(prompt: MLflowPromptVersion | null): MLflowPrompt
     ...prompt,
     messages: prompt.messages?.map((m) => ({ ...m })),
     tags: prompt.tags ? { ...prompt.tags } : undefined,
+    aliases: prompt.aliases ? [...prompt.aliases] : undefined,
   };
 }

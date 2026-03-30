@@ -99,7 +99,7 @@ export default function PromptAssistantFormGroup({
     // eslint-disable-next-line camelcase -- MLflow API uses snake_case
     newPrompt.commit_message = '';
     updateDirtyPrompt(configId, newPrompt);
-    openModal(mode, configId, dirtyPrompt);
+    openModal(mode, configId, newPrompt);
   }
 
   function buildPromptStub(): MLflowPromptVersion {

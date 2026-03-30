@@ -12,6 +12,7 @@ describe('DeepCopyPrompt', () => {
       { role: 'user', content: 'User message' },
     ],
     tags: { env: 'test', category: 'chat' },
+    aliases: ['prod', 'latest'],
     commit_message: 'Initial commit',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
@@ -53,6 +54,13 @@ describe('DeepCopyPrompt', () => {
     expect(result?.tags).toEqual(mockPrompt.tags);
   });
 
+  it('should create a deep copy of aliases array', () => {
+    const result = DeepCopyPrompt(mockPrompt);
+
+    expect(result?.aliases).not.toBe(mockPrompt.aliases);
+    expect(result?.aliases).toEqual(mockPrompt.aliases);
+  });
+
   it('should handle prompt without messages', () => {
     const promptWithoutMessages: MLflowPromptVersion = {
       name: 'no-messages',
@@ -85,6 +93,21 @@ describe('DeepCopyPrompt', () => {
     expect(result?.tags).toBeUndefined();
   });
 
+  it('should handle prompt without aliases', () => {
+    const promptWithoutAliases: MLflowPromptVersion = {
+      name: 'no-aliases',
+      version: 1,
+      template: 'Template',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    };
+
+    const result = DeepCopyPrompt(promptWithoutAliases);
+
+    expect(result).not.toBe(promptWithoutAliases);
+    expect(result?.aliases).toBeUndefined();
+  });
+
   it('should handle prompt with empty messages array', () => {
     const promptWithEmptyMessages: MLflowPromptVersion = {
       name: 'empty-messages',
@@ -115,12 +138,28 @@ describe('DeepCopyPrompt', () => {
     expect(result?.tags).not.toBe(promptWithEmptyTags.tags);
   });
 
+  it('should handle prompt with empty aliases array', () => {
+    const promptWithEmptyAliases: MLflowPromptVersion = {
+      name: 'empty-aliases',
+      version: 1,
+      aliases: [],
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    };
+
+    const result = DeepCopyPrompt(promptWithEmptyAliases);
+
+    expect(result?.aliases).toEqual([]);
+    expect(result?.aliases).not.toBe(promptWithEmptyAliases.aliases);
+  });
+
   it('should prevent mutations from affecting the original', () => {
     const original: MLflowPromptVersion = {
       name: 'original',
       version: 1,
       messages: [{ role: 'system', content: 'Original content' }],
       tags: { key: 'original-value' },
+      aliases: ['original-alias'],
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z',
     };
@@ -133,8 +172,12 @@ describe('DeepCopyPrompt', () => {
     if (copy?.tags) {
       copy.tags.key = 'modified-value';
     }
+    if (copy?.aliases) {
+      copy.aliases[0] = 'modified-alias';
+    }
 
     expect(original.messages?.[0].content).toBe('Original content');
     expect(original.tags?.key).toBe('original-value');
+    expect(original.aliases?.[0]).toBe('original-alias');
   });
 });
