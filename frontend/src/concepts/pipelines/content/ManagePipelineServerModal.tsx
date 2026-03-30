@@ -98,7 +98,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
         : undefined;
     }
 
-    updatePipelineSettings(namespace, settings)
+    updatePipelineSettings(namespace, settings, pipelineNamespaceCR?.metadata.name ?? 'dspa')
       .then(() => {
         notification.success(
           'Pipeline server settings updated',

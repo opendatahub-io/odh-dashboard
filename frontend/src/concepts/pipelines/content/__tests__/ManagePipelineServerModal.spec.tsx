@@ -259,7 +259,6 @@ describe('ManagePipelineServerModal', () => {
         'test-project',
         {
           cacheEnabled: false,
-          managedPipelines: {},
         },
         'dspa',
       );
