@@ -19,10 +19,7 @@ const deleteSecretMock = deleteSecret as jest.Mock;
 
 describe('configure pipeline server utils', () => {
   describe('createDSPipelineResourceSpec', () => {
-    const createPipelineServerConfig = (
-      enableCaching = true,
-      enableManagedPipelines = false,
-    ) =>
+    const createPipelineServerConfig = (enableCaching = true, enableManagedPipelines = false) =>
       ({
         database: {
           useDefault: true,
