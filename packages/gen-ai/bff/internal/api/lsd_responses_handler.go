@@ -365,7 +365,12 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
-	providerData := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription, createRequest.VectorStoreIDs)
+	providerData, err := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription, createRequest.VectorStoreIDs)
+	if err != nil {
+		app.logger.Error("Failed to resolve provider credentials", "model", createRequest.Model, "error", err)
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to resolve provider credentials: %w", err))
+		return
+	}
 
 	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
@@ -691,8 +696,9 @@ func (app *App) validatePreviousResponse(ctx context.Context, responseID string)
 
 // getProviderData retrieves provider data (auth tokens) for models.
 // If vectorStoreIDs is non-empty, it also checks for a custom-endpoint embedding model
-// backing one of those stores and injects its secret as passthrough_api_key.
-func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string, subscription string, vectorStoreIDs []string) map[string]interface{} {
+// backing one of those stores and injects its URL and secret. Returns an error if the
+// passthrough embedding lookup fails so the handler can fail closed.
+func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string, subscription string, vectorStoreIDs []string) (map[string]interface{}, error) {
 	var providerData map[string]interface{}
 
 	if modelSourceType == string(models.ModelSourceTypeCustomEndpoint) {
@@ -707,7 +713,11 @@ func (app *App) getProviderData(ctx context.Context, modelID string, modelSource
 	}
 
 	// Inject passthrough_url and passthrough_api_key for custom-endpoint embedding models used by vector stores
-	if passthroughURL, passthroughKey := app.getPassthroughEmbeddingSecret(ctx, vectorStoreIDs); passthroughURL != "" || passthroughKey != "" {
+	passthroughURL, passthroughKey, err := app.getPassthroughEmbeddingSecret(ctx, vectorStoreIDs)
+	if err != nil {
+		return nil, err
+	}
+	if passthroughURL != "" || passthroughKey != "" {
 		if providerData == nil {
 			providerData = make(map[string]interface{})
 		}
@@ -715,94 +725,43 @@ func (app *App) getProviderData(ctx context.Context, modelID string, modelSource
 		providerData["passthrough_api_key"] = passthroughKey
 	}
 
-	return providerData
+	return providerData, nil
 }
 
-// getPassthroughEmbeddingSecret iterates vectorStoreIDs and returns the base URL and API key
-// for the first vector store that uses a custom-endpoint (remote::passthrough) embedding model.
-// Returns ("", "") if no such model is found or any lookup fails non-fatally.
-func (app *App) getPassthroughEmbeddingSecret(ctx context.Context, vectorStoreIDs []string) (string, string) {
+// getPassthroughEmbeddingSecret delegates to ExternalModelsRepository to find the first
+// vector store in vectorStoreIDs that uses a custom-endpoint (remote::passthrough) embedding
+// model and returns its base URL and API key. Returns an error on ConfigMap or Secret
+// read failures so the caller can fail closed rather than proceed with bogus credentials.
+func (app *App) getPassthroughEmbeddingSecret(ctx context.Context, vectorStoreIDs []string) (string, string, error) {
 	if len(vectorStoreIDs) == 0 {
-		return "", ""
+		return "", "", nil
 	}
 
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
-		return "", ""
+		return "", "", nil
 	}
 
 	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 	if !ok || namespace == "" {
-		return "", ""
+		return "", "", nil
 	}
 
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
-		app.logger.Warn("Failed to get Kubernetes client for passthrough embedding secret", "error", err)
-		return "", ""
+		return "", "", fmt.Errorf("failed to get Kubernetes client: %w", err)
 	}
 
-	// Fetch vector stores config
-	vsDoc, err := k8sClient.GetVectorStoresConfig(ctx, namespace)
+	info, err := app.repositories.ExternalModels.GetPassthroughEmbeddingProviderInfo(k8sClient, ctx, identity, namespace, vectorStoreIDs)
 	if err != nil {
-		app.logger.Warn("Failed to get vector stores config for passthrough embedding secret", "error", err)
-		return "", ""
+		return "", "", err
+	}
+	if info == nil {
+		return "", "", nil
 	}
 
-	// Build a lookup from vector_store_id → RegisteredVectorStore
-	vsMap := make(map[string]models.RegisteredVectorStore, len(vsDoc.RegisteredResources.VectorStores))
-	for _, vs := range vsDoc.RegisteredResources.VectorStores {
-		vsMap[vs.VectorStoreID] = vs
-	}
-
-	// Fetch external models config (custom endpoints)
-	externalModelsConfig, err := k8sClient.GetExternalModelsConfig(ctx, namespace)
-	if err != nil {
-		app.logger.Warn("Failed to get external models config for passthrough embedding secret", "error", err)
-		return "", ""
-	}
-
-	// Scan vector store IDs in order; return the first passthrough embedding model found
-	for _, vsID := range vectorStoreIDs {
-		registeredVS, found := vsMap[vsID]
-		if !found || registeredVS.EmbeddingModel == "" {
-			continue
-		}
-
-		embeddingModelID := registeredVS.EmbeddingModel
-
-		// Find the embedding model in the external models ConfigMap
-		var foundModel *models.RegisteredModel
-		for i := range externalModelsConfig.RegisteredResources.Models {
-			m := &externalModelsConfig.RegisteredResources.Models[i]
-			if m.ModelID == embeddingModelID && m.ModelType == models.ModelTypeEmbedding {
-				foundModel = m
-				break
-			}
-		}
-		if foundModel == nil {
-			continue // not a custom endpoint embedding model
-		}
-
-		// Find the provider for this model
-		var foundProvider *models.InferenceProvider
-		for i := range externalModelsConfig.Providers.Inference {
-			if externalModelsConfig.Providers.Inference[i].ProviderID == foundModel.ProviderID {
-				foundProvider = &externalModelsConfig.Providers.Inference[i]
-				break
-			}
-		}
-		if foundProvider == nil || foundProvider.ProviderType != models.ProviderTypePassThrough {
-			continue
-		}
-
-		apiKey := app.fetchSecretFromProvider(ctx, k8sClient, identity, namespace, foundProvider, embeddingModelID)
-		baseURL := foundProvider.Config.BaseURL
-		app.logger.Debug("Resolved passthrough embedding provider secret", "vectorStoreID", vsID, "embeddingModel", embeddingModelID, "url", baseURL)
-		return baseURL, apiKey
-	}
-
-	return "", ""
+	app.logger.Debug("Resolved passthrough embedding provider info", "url", info.BaseURL)
+	return info.BaseURL, info.APIKey, nil
 }
 
 // getUserJWTProviderData retrieves user JWT token for InferenceService and LLMInferenceService models
