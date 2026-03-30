@@ -19,13 +19,13 @@ export const filterByMlflowExperiment = <T extends PipelineRunKF | PipelineRecur
   runs: T[],
   filter: string | undefined,
 ): T[] => {
-  const normalized = filter?.toLowerCase();
+  const normalized = filter?.trim().toLowerCase();
   if (!normalized) {
     return runs;
   }
   return runs.filter((run) => {
     const name = getMlflowExperimentNameFromRun(run);
-    return !!name && name.toLowerCase().trim() === normalized;
+    return !!name && name.toLowerCase() === normalized;
   });
 };
 

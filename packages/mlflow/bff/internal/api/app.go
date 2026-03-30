@@ -186,13 +186,14 @@ func validateLoopbackURL(rawURL string, devMode bool) error {
 
 func sanitizeURL(rawURL string) string {
 	parsed, err := url.Parse(rawURL)
-	if err != nil {
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
 		return "<invalid-url>"
 	}
-	parsed.User = nil
-	parsed.RawQuery = ""
-	parsed.Fragment = ""
-	return parsed.String()
+	return (&url.URL{
+		Scheme: parsed.Scheme,
+		Host:   parsed.Host,
+		Path:   parsed.Path,
+	}).String()
 }
 
 func resolveMLflowURL(cfg config.EnvConfig, logger *slog.Logger) string {

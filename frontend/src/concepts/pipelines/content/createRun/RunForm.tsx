@@ -140,7 +140,10 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
             maxLength={NAME_CHARACTER_LIMIT}
           />
           {hasDuplicateName ? <DuplicateNameHelperText name={name} /> : undefined}
-          <CharLimitHelperText limit={NAME_CHARACTER_LIMIT} />
+          <CharLimitHelperText
+            limit={NAME_CHARACTER_LIMIT}
+            currentLength={data.nameDesc.name.length}
+          />
         </FormGroup>
 
         <FormGroup label="Run group" fieldId="run-group" isRequired>
@@ -152,7 +155,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
             maxLength={NAME_CHARACTER_LIMIT}
             isRequired
           />
-          <CharLimitHelperText limit={NAME_CHARACTER_LIMIT} />
+          <CharLimitHelperText limit={NAME_CHARACTER_LIMIT} currentLength={data.runGroup.length} />
         </FormGroup>
 
         <FormGroup label="Description" fieldId="run-description">
@@ -167,7 +170,10 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
             }
             maxLength={DESCRIPTION_CHARACTER_LIMIT}
           />
-          <CharLimitHelperText limit={DESCRIPTION_CHARACTER_LIMIT} />
+          <CharLimitHelperText
+            limit={DESCRIPTION_CHARACTER_LIMIT}
+            currentLength={data.nameDesc.description.length}
+          />
         </FormGroup>
 
         {isSchedule && data.runType.type === RunTypeOption.SCHEDULED && (

@@ -178,7 +178,10 @@ const MlflowIntegrationSection: React.FC<MlflowIntegrationSectionProps> = ({
                 isDisabled={isDisabled}
                 isRequired
               />
-              <CharLimitHelperText limit={NAME_CHARACTER_LIMIT} />
+              <CharLimitHelperText
+                limit={NAME_CHARACTER_LIMIT}
+                currentLength={newExperimentName.length}
+              />
             </FormGroup>
           )
         }
