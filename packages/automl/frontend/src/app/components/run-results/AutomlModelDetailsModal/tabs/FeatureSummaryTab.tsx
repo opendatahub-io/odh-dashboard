@@ -17,6 +17,22 @@ import type { TabContentProps } from '~/app/components/run-results/AutomlModelDe
 const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => {
   const [searchValue, setSearchValue] = React.useState('');
 
+  const allEntries = React.useMemo(
+    () =>
+      featureImportance
+        ? Object.entries(featureImportance.importance).toSorted(([, a], [, b]) => b - a)
+        : [],
+    [featureImportance],
+  );
+
+  const maxImportance = React.useMemo(() => {
+    if (!featureImportance) {
+      return 0;
+    }
+    const importanceValues = Object.values(featureImportance.importance);
+    return importanceValues.length > 0 ? Math.max(...importanceValues.map(Math.abs)) : 0;
+  }, [featureImportance]);
+
   if (!featureImportance) {
     return (
       <Table aria-label="Feature importance loading" variant="compact">
@@ -46,15 +62,9 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
     );
   }
 
-  const allEntries = Object.entries(featureImportance.importance).toSorted(([, a], [, b]) => b - a);
-
   const entries = allEntries.filter(([name]) =>
     name.toLowerCase().includes(searchValue.toLowerCase()),
   );
-
-  const importanceValues = Object.values(featureImportance.importance);
-  const maxImportance =
-    importanceValues.length > 0 ? Math.max(...importanceValues.map(Math.abs)) : 0;
 
   const hasFeatureData = allEntries.length > 0;
 
