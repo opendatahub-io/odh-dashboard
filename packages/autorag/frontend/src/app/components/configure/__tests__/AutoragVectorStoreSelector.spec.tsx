@@ -82,16 +82,16 @@ describe('AutoragVectorStoreSelector', () => {
     fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
 
     expect(screen.getByTestId('vector-store-option-milvus')).toBeInTheDocument();
-    expect(screen.getByText('milvus')).toBeInTheDocument();
+    expect(screen.getByText('Milvus (remote)')).toBeInTheDocument();
   });
 
   it('should update toggle text when a provider is selected', () => {
     renderWithProviders(<AutoragVectorStoreSelector />);
 
     fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
-    fireEvent.click(screen.getByText('milvus'));
+    fireEvent.click(screen.getByText('Milvus (remote)'));
 
-    expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent('milvus');
+    expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent('Milvus (remote)');
   });
 
   it('should deselect provider when clicking the same option again', () => {
@@ -99,13 +99,13 @@ describe('AutoragVectorStoreSelector', () => {
 
     // Select
     fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
-    fireEvent.click(screen.getByText('milvus'));
-    expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent('milvus');
+    fireEvent.click(screen.getByText('Milvus (remote)'));
+    expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent('Milvus (remote)');
 
     // Re-open and deselect by clicking the option inside the dropdown list
     fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
     const selectList = screen.getByTestId('vector-store-select-list');
-    fireEvent.click(within(selectList).getByText('milvus'));
+    fireEvent.click(within(selectList).getByText('Milvus (remote)'));
     expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent(
       'Select vector store',
     );

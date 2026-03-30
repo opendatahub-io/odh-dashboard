@@ -8,6 +8,20 @@ import {
   ConfigureSchema,
 } from '~/app/schemas/configure.schema';
 import { useLlamaStackVectorStoreProvidersQuery } from '~/app/hooks/queries';
+import { LlamaStackVectorStoreProvider } from '~/app/types';
+
+/**
+ * Formats a provider_type for display.
+ * e.g. "remote::milvus" → "Milvus (remote)", "inline::faiss" → "Faiss (inline)"
+ * Falls back to provider_id if provider_type doesn't follow the expected "deployment::name" format.
+ */
+const formatProviderDisplayName = (provider: LlamaStackVectorStoreProvider): string => {
+  const [deployment, name] = provider.provider_type.split('::');
+  if (!deployment || !name) {
+    return provider.provider_id;
+  }
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)} (${deployment})`;
+};
 
 const AutoragVectorStoreSelector: React.FC = () => {
   const { namespace = '' } = useParams();
@@ -66,10 +80,11 @@ const AutoragVectorStoreSelector: React.FC = () => {
           isDisabled={isSubmitting || isError || providers.length === 0}
           data-testid="vector-store-select-toggle"
         >
-          {selectedProvider?.provider_id ??
-            (providers.length === 0
+          {selectedProvider
+            ? formatProviderDisplayName(selectedProvider)
+            : providers.length === 0
               ? 'No vector store providers available'
-              : 'Select vector store')}
+              : 'Select vector store'}
         </MenuToggle>
       )}
     >
@@ -80,7 +95,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
             value={p.provider_id}
             data-testid={`vector-store-option-${p.provider_id}`}
           >
-            {p.provider_id}
+            {formatProviderDisplayName(p)}
           </SelectOption>
         ))}
       </SelectList>
