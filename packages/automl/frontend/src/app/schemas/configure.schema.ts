@@ -22,7 +22,7 @@ function createConfigureSchema() {
   return createSchema({
     schema: z.object({
       // Common fields
-      display_name: z.string().default('').optional(),
+      display_name: z.string().default(''),
       description: z.string().default('').optional(),
       task_type: z.enum(TASK_TYPES).default(TASK_TYPE_BINARY),
       train_data_secret_name: z.string().min(1).default(''),
@@ -106,14 +106,6 @@ function createConfigureSchema() {
           delete data.timestamp_column;
           delete data.prediction_length;
           delete data.known_covariates_names;
-        }
-        return data;
-      },
-      // TODO - Include the task type in the name. Remove this later when we properly
-      // consume the name from the user input field
-      (data) => {
-        if (!data.display_name?.includes(data.task_type)) {
-          data.display_name = `${data.task_type}-${Date.now()}`;
         }
         return data;
       },

@@ -1,7 +1,7 @@
 import * as React from 'react';
-import type { PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-import { getBaseSchema } from '~/app/schemas/configure.schema';
+import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import type { PipelineRun } from '~/app/types';
 
 // Based on the artifact schema from Model artitfact metadata.
 // See https://github.com/LukaszCmielowski/pipelines-components/blob/rhoai_automl/pipelines/training/automl/autogluon_tabular_training_pipeline/README.md#model-artifact-metadata
@@ -55,7 +55,7 @@ export function getAutomlContext({
   const inputParams = pipelineRun?.runtime_config?.parameters;
 
   // Validate runtime_config.parameters against ConfigureSchema to ensure type safety
-  const baseSchema = getBaseSchema();
+  const baseSchema = createConfigureSchema().base;
   const parseResult = baseSchema.partial().safeParse(inputParams ?? {});
 
   let parameters: Partial<ConfigureSchema> = {};
