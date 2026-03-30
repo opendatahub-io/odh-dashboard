@@ -106,7 +106,7 @@ const RayJobResourcesTab: React.FC<RayJobResourcesTabProps> = ({
           <DescriptionListGroup>
             <DescriptionListTerm style={{ fontWeight: 'normal' }}>Nodes</DescriptionListTerm>
             <DescriptionListDescription data-testid="nodes-value">
-            {canScaleNodes ? (
+              {canScaleNodes ? (
                 <Button
                   variant="link"
                   isInline
