@@ -7,6 +7,7 @@ import {
   ModalBody,
   ModalHeader,
   ModalFooter,
+  Checkbox,
 } from '@patternfly/react-core';
 import { getPipelinesCR, toggleInstructLabState } from '#~/api';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
@@ -15,9 +16,7 @@ import {
   NotificationWatcherContext,
   NotificationWatcherResponse,
 } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
-import InstructLabPipelineEnablement from '#~/concepts/pipelines/content/configurePipelinesServer/InstructLabPipelineEnablement';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
-import { DSPipelineManagedPipelinesKind } from '#~/k8sTypes';
 import { ILAB_PIPELINE_NAME } from '#~/pages/pipelines/global/modelCustomization/const';
 import useNotification from '#~/utilities/useNotification';
 
@@ -40,7 +39,11 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
   const [isSubmitting, setSubmitting] = React.useState(false);
   const isInstructLabEnabled = managedPipelines?.instructLab?.state === 'Managed';
   const [checked, setChecked] = React.useState(isInstructLabEnabled);
-  const instructLabStatus: DSPipelineManagedPipelinesKind = {
+  const instructLabStatus: {
+    instructLab?: {
+      state: 'Removed' | 'Managed';
+    };
+  } = {
     instructLab: { state: checked ? 'Managed' : 'Removed' },
   };
   const notification = useNotification();
@@ -142,7 +145,12 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
       <ModalBody>
         <Stack hasGutter>
           <StackItem>
-            <InstructLabPipelineEnablement isEnabled={checked} setEnabled={setChecked} />
+            <Checkbox
+              id="instructlab-pipeline-checkbox"
+              label="InstructLab pipeline"
+              isChecked={checked}
+              onChange={(_event, isChecked) => setChecked(isChecked)}
+            />
           </StackItem>
           {!isInstructLabEnabled && checked ? (
             <StackItem>

@@ -55,14 +55,6 @@ jest.mock(
   }),
 );
 
-jest.mock(
-  '#~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection',
-  () => ({
-    __esModule: true,
-    default: () => <div>Sample pipeline settings</div>,
-  }),
-);
-
 const mockUsePipelinesAPI = usePipelinesAPI as jest.MockedFunction<typeof usePipelinesAPI>;
 const mockUsePipelinesConnections = usePipelinesConnections as jest.MockedFunction<
   typeof usePipelinesConnections
@@ -173,38 +165,6 @@ describe('ConfigurePipelinesServerModal', () => {
     expect(
       screen.getByText('Allow caching to be configured per pipeline and task'),
     ).toBeInTheDocument();
-  });
-
-  it('should show fine-tuning section when available', () => {
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: true,
-      featureFlags: {},
-      devFlags: {},
-      reliantAreas: {},
-      requiredComponents: {},
-      requiredCapabilities: {},
-      customCondition: jest.fn(),
-    } as ReturnType<typeof useIsAreaAvailable>);
-
-    renderModal();
-
-    expect(screen.getByText('Sample pipeline settings')).toBeInTheDocument();
-  });
-
-  it('should not show fine-tuning section when not available', () => {
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: false,
-      featureFlags: {},
-      devFlags: {},
-      reliantAreas: {},
-      requiredComponents: {},
-      requiredCapabilities: {},
-      customCondition: jest.fn(),
-    } as ReturnType<typeof useIsAreaAvailable>);
-
-    renderModal();
-
-    expect(screen.queryByText('Sample pipeline settings')).not.toBeInTheDocument();
   });
 
   it('should have caching enabled by default', () => {
