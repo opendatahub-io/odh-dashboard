@@ -501,13 +501,19 @@ func s3GetResponseTypeAllowsInlineViewing(sanitizedContentType string) bool {
 func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	queryParams := r.URL.Query()
 
-	key := strings.TrimSpace(queryParams.Get("key"))
-	if key == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'key' is required and cannot be empty"))
+	secretName := queryParams.Get("secretName")
+	if secretName != "" && !isValidDNS1123Subdomain(secretName) {
+		app.badRequestResponse(w, r, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
 		return
 	}
 
-	s3, ok := app.resolveS3Client(w, r, strings.TrimSpace(queryParams.Get("secretName")), queryParams.Get("bucket"))
+	key := strings.TrimSpace(queryParams.Get("key"))
+	if key == "" {
+		app.badRequestResponse(w, r, errors.New("query parameter 'key' is required and cannot be empty"))
+		return
+	}
+
+	s3, ok := app.resolveS3Client(w, r, secretName, queryParams.Get("bucket"))
 	if !ok {
 		return
 	}

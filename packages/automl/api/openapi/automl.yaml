@@ -416,6 +416,7 @@ paths:
           description: The S3 object key (CSV file) to retrieve schema from
           schema:
             type: string
+            pattern: '^\S(.*\S)?$'
           example: data/training.csv
       responses:
         "200":
