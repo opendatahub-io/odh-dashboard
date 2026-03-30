@@ -67,7 +67,7 @@ dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
 
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=false MOCK_K8S_CLIENT=false MOCK_MAAS_CLIENT=false MOCK_MCP_CLIENT=false MOCK_MLFLOW_CLIENT=false AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" DISTRIBUTION_NAME="rh-dev"
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=false MOCK_K8S_CLIENT=false MOCK_MAAS_CLIENT=false MOCK_MCP_CLIENT=false MOCK_MLFLOW_CLIENT=false AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" LLAMA_STACK_URL="" MAAS_URL="" MLFLOW_URL="" DISTRIBUTION_NAME="rh-dev"
 
 .PHONY: dev-start-mock-debug
 dev-start-mock-debug: ## Run frontend and bff (all mocks) with Delve debugger (VSCode: F5 → "Attach to BFF")

@@ -307,6 +307,7 @@ describe('Pipeline create runs', () => {
       cy.wait('@duplicateRun').then((interception) => {
         expect(interception.request.body).to.eql({
           display_name: 'Duplicate of Test run',
+          description: '',
           pipeline_version_reference: {
             pipeline_id: 'test-pipeline',
             pipeline_version_id: 'test-pipeline-version',
@@ -892,6 +893,7 @@ describe('Pipeline create runs', () => {
       cy.wait('@duplicateSchedule').then((interception) => {
         expect(interception.request.body).to.eql({
           display_name: 'Duplicate of Test recurring run',
+          description: '',
           pipeline_version_reference: {
             pipeline_id: 'test-pipeline',
             pipeline_version_id: 'test-pipeline-version',
