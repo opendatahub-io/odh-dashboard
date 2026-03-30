@@ -1,3 +1,40 @@
+import type { PipelineRun } from '~/app/types';
+import {
+  TASK_TYPE_BINARY,
+  TASK_TYPE_MULTICLASS,
+  TASK_TYPE_REGRESSION,
+  TASK_TYPE_TIMESERIES,
+} from './const';
+
+/**
+ * Extracts HTTP status from Error.message when handleRestFailures (mod-arch-core)
+ * has flattened AxiosError to a plain Error, so 403/404/503 branches can still run.
+ * @param error - The error object to parse
+ * @returns The HTTP status code, or undefined if not found
+ */
+export function parseErrorStatus(error: Error): number | undefined {
+  const match =
+    error.message.match(/\bstatus\s+code\s+(\d{3})\b/i) ??
+    error.message.match(/\bstatus[:\s]+(\d{3})\b/i) ??
+    error.message.match(/\b(403|404|503)\b/);
+  if (match) {
+    const code = parseInt(match[1], 10);
+    return code >= 100 && code < 600 ? code : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Determines if a task type is tabular.
+ * @param pipelineRun - The pipeline run to check
+ * @returns true if the task type is tabular, false otherwise
+ */
+export const isTabularRun = (pipelineRun?: PipelineRun): boolean => {
+  const taskType = pipelineRun?.runtime_config?.parameters?.task_type ?? TASK_TYPE_TIMESERIES;
+
+  return [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS, TASK_TYPE_REGRESSION].includes(taskType);
+};
+
 /**
  * Format metric keys from snake_case to a human-readable label.
  * Handles common ML acronyms as special cases.
@@ -12,7 +49,7 @@ const METRIC_DISPLAY_NAMES: Record<string, string> = {
   mse: 'MSE',
   rmse: 'RMSE',
   mape: 'MAPE',
-  smape: 'SMAPE',
+  mase: 'MASE',
 };
 /* eslint-enable camelcase */
 
@@ -24,6 +61,22 @@ export function formatMetricName(key: string): string {
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+}
+
+/**
+ * Format metric values for display.
+ * Uses scientific notation for non-zero values that would round to 0.000.
+ */
+export function formatMetricValue(value: number | string): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  // If the value would round to 0.000 but is actually non-zero, use scientific notation
+  const fixed = value.toFixed(3);
+  if ((fixed === '0.000' || fixed === '-0.000') && value !== 0) {
+    return value.toExponential(3);
+  }
+  return fixed;
 }
 
 /**
@@ -42,24 +95,26 @@ export function toNumericMetric(value: unknown): number {
 }
 
 /**
- * Returns the default optimized metric for a given task type.
+ * Gets the optimized metric for a given task type.
+ * @param taskType - The task type to get the metric for
+ * @returns The optimized metric name, or undefined if not found
  */
 export function getOptimizedMetricForTask(taskType: string): string | undefined {
   switch (taskType) {
-    case 'binary':
-    case 'multiclass':
+    case TASK_TYPE_BINARY:
+    case TASK_TYPE_MULTICLASS:
       return 'accuracy';
-    case 'regression':
+    case TASK_TYPE_REGRESSION:
       return 'r2';
-    case 'timeseries':
-      return 'smape';
+    case TASK_TYPE_TIMESERIES:
+      return 'mase';
     default:
       return undefined;
   }
 }
 
 /** Metrics where lower values indicate better performance. */
-const ERROR_METRICS = new Set(['smape', 'mse', 'mae', 'rmse', 'mape']);
+const ERROR_METRICS = new Set(['mase', 'mse', 'mae', 'rmse', 'mape']);
 
 /**
  * Check whether a metric is an error metric (lower-is-better).

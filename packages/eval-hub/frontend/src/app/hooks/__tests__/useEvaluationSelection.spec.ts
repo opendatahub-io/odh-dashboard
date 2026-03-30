@@ -37,6 +37,7 @@ const mockBenchmark: FlatBenchmark = {
   id: 'arc_easy',
   name: 'ARC Easy',
   providerId: 'prov-1',
+  providerName: 'Provider 1',
   primary_score: { metric: 'accuracy', lower_is_better: false },
 };
 

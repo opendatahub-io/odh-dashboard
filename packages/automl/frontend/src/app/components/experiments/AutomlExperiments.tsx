@@ -129,6 +129,7 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   return (
     <AutomlRunsTable
       runs={runs}
+      namespace={effectiveNamespace}
       totalSize={totalSize}
       page={page}
       pageSize={pageSize}

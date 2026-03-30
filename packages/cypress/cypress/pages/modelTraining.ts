@@ -790,6 +790,71 @@ class TrainingJobDetailsTab {
   }
 }
 
+class RayJobStatusModal {
+  find() {
+    return cy.findByTestId('ray-job-status-modal');
+  }
+
+  shouldBeOpen(open = true) {
+    if (open) {
+      this.find().should('be.visible');
+    } else {
+      cy.findByTestId('ray-job-status-modal').should('not.exist');
+    }
+    return this;
+  }
+
+  findHeader() {
+    return this.find().findByTestId('generic-modal-header');
+  }
+
+  findTitle() {
+    return this.findHeader().contains('Ray job progress');
+  }
+
+  findStatusLabel() {
+    return this.findHeader().findByTestId('ray-job-status');
+  }
+
+  getRayJobStatus(expectedStatus: string, timeout?: number) {
+    return cy
+      .get(
+        '[data-testid="ray-job-status-modal"] [data-testid="ray-job-status"]',
+        timeout !== undefined ? { timeout } : {},
+      )
+      .should('contain.text', expectedStatus);
+  }
+
+  findAlert(variant: 'danger' | 'warning' | 'info') {
+    return cy.findByTestId(`ray-job-status-alert-${variant}`);
+  }
+
+  findAlertDescription() {
+    return cy.findByTestId('ray-job-status-alert-description');
+  }
+
+  findPauseJobButton() {
+    return cy.findByTestId('pause-job-button');
+  }
+
+  findResumeJobButton() {
+    return cy.findByTestId('resume-job-button');
+  }
+
+  findDeleteButton() {
+    return cy.findByTestId('delete-job-button');
+  }
+
+  findCloseButton() {
+    return cy.findByTestId('close-status-modal-button');
+  }
+
+  close() {
+    this.findCloseButton().click();
+    return this;
+  }
+}
+
 class RayJobDetailsDrawer {
   find() {
     return cy.findByTestId('ray-job-details-drawer');
@@ -992,3 +1057,4 @@ export const rayJobResourcesTab = new RayJobResourcesTab();
 export const editRayJobNodeCountModal = new ScaleRayJobNodesModal();
 export const rayJobPodsTab = new RayJobPodsTab();
 export const rayJobLogsTab = new RayJobLogsTab();
+export const rayJobStatusModal = new RayJobStatusModal();

@@ -33,7 +33,7 @@ import {
   createCleanHardwareProfile,
 } from '../../../utils/oc_commands/hardwareProfiles';
 
-describe('[Automation Bug: RHOAIENG-52445] Verify Gen AI Namespace - Creation and Connection', () => {
+describe('Verify Gen AI Namespace - Creation and Connection', () => {
   let testData: GenAiTestData;
   let projectName: string;
   let skipTest = false;
@@ -178,15 +178,7 @@ describe('[Automation Bug: RHOAIENG-52445] Verify Gen AI Namespace - Creation an
   it(
     'Deploy Gen AI model using URI',
     {
-      tags: [
-        '@Sanity',
-        '@SanitySet1',
-        '@GenAI',
-        '@ModelServing',
-        '@Deployment',
-        '@NonConcurrent',
-        '@Maintain',
-      ],
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ModelServing', '@Deployment', '@NonConcurrent'],
     },
     () => {
       if (skipTest) {
@@ -264,7 +256,7 @@ describe('[Automation Bug: RHOAIENG-52445] Verify Gen AI Namespace - Creation an
   it(
     'Create and verify Gen AI Playground functionality',
     {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground', '@NonConcurrent', '@Maintain'],
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground', '@NonConcurrent'],
     },
     () => {
       if (skipTest) {

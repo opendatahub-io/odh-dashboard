@@ -21,6 +21,7 @@ const makeBenchmark = (overrides?: Partial<FlatBenchmark>): FlatBenchmark => ({
   id: 'arc_easy',
   name: 'ARC Easy',
   providerId: 'lm_harness',
+  providerName: 'LM Evaluation Harness',
   primary_score: { metric: 'accuracy', lower_is_better: false },
   pass_criteria: { threshold: 0.5 },
   ...overrides,

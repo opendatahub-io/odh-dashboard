@@ -90,6 +90,7 @@ export type StartNotebookData = {
   connections?: Connection[];
   hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind>;
   feastData?: FeastData;
+  mlflowEnabled?: boolean;
 };
 
 export type SecretRef = {

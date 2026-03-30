@@ -19,6 +19,7 @@ import {
   getResultPass,
   getResultScore,
 } from '~/app/utilities/evaluationUtils';
+import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 
@@ -26,6 +27,7 @@ type EvaluationsTableRowProps = {
   job: EvaluationJob;
   rowIndex: number;
   namespace: string;
+  collectionNameMap: CollectionNameMap;
   onActionComplete: () => void;
 };
 
@@ -37,6 +39,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   job,
   rowIndex,
   namespace,
+  collectionNameMap,
   onActionComplete,
 }) => {
   const navigate = useNavigate();
@@ -45,7 +48,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const [isStopping, setIsStopping] = React.useState(false);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const evaluationName = getEvaluationName(job);
-  const benchmarkName = getBenchmarkName(job);
+  const benchmarkName = getBenchmarkName(job, collectionNameMap);
   const allBenchmarkNames = getAllBenchmarkNames(job);
   const isInProgress = IN_PROGRESS_STATES.has(job.status.state);
   const displayState = isStopping ? 'stopping' : job.status.state;

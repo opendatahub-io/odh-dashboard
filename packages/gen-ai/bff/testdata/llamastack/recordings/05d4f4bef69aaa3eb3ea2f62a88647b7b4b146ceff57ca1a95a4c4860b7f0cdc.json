@@ -1,0 +1,1021 @@
+{
+  "test_id": "bff/testdata/llamastack/test.py::record",
+  "request": {
+    "method": "POST",
+    "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "models/gemini-2.5-flash",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Test unified repository"
+        }
+      ],
+      "stream": true,
+      "stream_options": {
+        "include_usage": true
+      }
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "models/gemini-2.5-flash"
+  },
+  "response": {
+    "body": [
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": "Okay, \"test unified repository\" is a broad request, as \"unified repository\" can refer to many things (code",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 24,
+            "prompt_tokens": 4,
+            "total_tokens": 1006,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": ", binaries, packages, data, etc.) and \"test\" can imply various types of testing (functional, performance, security, integration, etc.).\n\nTo help you, please tell me more about:\n\n1.  **What kind of \"",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 74,
+            "prompt_tokens": 4,
+            "total_tokens": 1056,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": "unified repository\" are you referring to?**\n    *   A source code repository (e.g., Git, SVN)?\n    *   A binary/artifact repository (e.g., Artifactory, Nexus, GitLab/",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 123,
+            "prompt_tokens": 4,
+            "total_tokens": 1105,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": "GitHub Packages)?\n    *   A data repository/data lake?\n    *   A combination of these?\n    *   Is it an off-the-shelf product or a custom solution?\n\n2.  **What aspect do",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 172,
+            "prompt_tokens": 4,
+            "total_tokens": 1154,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " you want to test?**\n    *   **Functional Testing:** Can users upload, download, search, delete artifacts/code correctly? Does access control work as expected?\n    *   **Integration Testing:** How well does it integrate with",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 221,
+            "prompt_tokens": 4,
+            "total_tokens": 1203,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " your CI/CD pipelines, build tools, IDEs, or other systems?\n    *   **Performance Testing:** How fast are uploads/downloads? How many concurrent users/operations can it handle?\n    *   **Security Testing:**",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 270,
+            "prompt_tokens": 4,
+            "total_tokens": 1252,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " Are there vulnerabilities? Is authentication/authorization robust? Is data encrypted?\n    *   **Scalability Testing:** How does it behave with a large number of artifacts, users, or projects?\n    *   **Reliability/Disaster",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 319,
+            "prompt_tokens": 4,
+            "total_tokens": 1301,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " Recovery Testing:** How does it handle failures? Can you restore data effectively?\n    *   **Usability Testing:** Is it easy for developers/users to interact with?\n\n3.  **What is the goal of this test?**",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 368,
+            "prompt_tokens": 4,
+            "total_tokens": 1350,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": "\n    *   To validate a new setup?\n    *   To troubleshoot an existing issue?\n    *   To benchmark against alternatives?\n    *   To ensure compliance?\n\n---\n\n**In the absence of more details, here's",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 417,
+            "prompt_tokens": 4,
+            "total_tokens": 1399,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " a general framework and common test scenarios you might consider for a typical \"unified artifact repository\" (like Artifactory, Nexus, or GitLab/GitHub Packages):**\n\n### **I. Key Areas to Test**\n\n1.  **Functional",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 466,
+            "prompt_tokens": 4,
+            "total_tokens": 1448,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " Testing:**\n    *   **Artifact/Package Management:**\n        *   Upload different types of artifacts/packages (e.g., Maven, npm, Docker, PyPI, NuGet, generic files).\n        *   Download artifacts",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 514,
+            "prompt_tokens": 4,
+            "total_tokens": 1496,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": "/packages.\n        *   Delete/purge artifacts/packages (if allowed).\n        *   Search for artifacts by name, version, properties.\n        *   Resolve dependencies correctly.\n        *   Verify immutability of",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 562,
+            "prompt_tokens": 4,
+            "total_tokens": 1544,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " released artifacts.\n    *   **Repository Management:**\n        *   Create different repository types (local, remote, virtual/group).\n        *   Configure remote repositories (proxies, authentication).\n        *   Verify cache behavior for",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 611,
+            "prompt_tokens": 4,
+            "total_tokens": 1593,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " remote repositories.\n        *   Configure and test virtual/group repositories to aggregate others.\n    *   **User & Group Management:**\n        *   Create/delete users and groups.\n        *   Assign roles and permissions.",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 659,
+            "prompt_tokens": 4,
+            "total_tokens": 1641,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": "\n        *   Verify access control: Users can only access what they're authorized for.\n        *   Test anonymous access (if configured).\n        *   Test external authentication (LDAP, SAML, OAuth, etc.).\n",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 705,
+            "prompt_tokens": 4,
+            "total_tokens": 1687,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": "    *   **Metadata & Properties:**\n        *   Add custom properties to artifacts.\n        *   Search by custom properties.\n\n2.  **Integration Testing:**\n    *   **CI/CD Tools:**\n        *   ",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 752,
+            "prompt_tokens": 4,
+            "total_tokens": 1734,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": "Integrate with Jenkins, GitLab CI/CD, GitHub Actions, Azure DevOps, CircleCI, etc.\n        *   Verify builds push artifacts to the repository.\n        *   Verify builds pull dependencies from the repository.\n    *   **Build",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 803,
+            "prompt_tokens": 4,
+            "total_tokens": 1785,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " Tools:**\n        *   Maven, Gradle, npm, Yarn, Docker, pip, etc.\n        *   Ensure they can publish and resolve artifacts correctly.\n    *   **IDE Integration:**\n        *   If applicable, test plugins",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 853,
+            "prompt_tokens": 4,
+            "total_tokens": 1835,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " or direct interaction from IDEs.\n\n3.  **Performance Testing:**\n    *   **Upload/Download Speed:**\n        *   Test with small, medium, and large files.\n        *   Measure time for single large",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 901,
+            "prompt_tokens": 4,
+            "total_tokens": 1883,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " files vs. many small files.\n    *   **Concurrent Operations:**\n        *   Simulate multiple users uploading/downloading simultaneously.\n        *   Test with concurrent CI/CD builds pushing/pulling.\n    *   ",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 949,
+            "prompt_tokens": 4,
+            "total_tokens": 1931,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": "**Search Performance:**\n        *   Measure search response times in a repository with many artifacts.\n\n4.  **Security Testing:**\n    *   **Authentication & Authorization:**\n        *   Test different user roles and ensure they cannot",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 997,
+            "prompt_tokens": 4,
+            "total_tokens": 1979,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " perform unauthorized actions.\n        *   Test against common web vulnerabilities (XSS, CSRF, SQL Injection, broken authentication).\n    *   **Vulnerability Scanning:**\n        *   If the repository has built-in scanning,",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1045,
+            "prompt_tokens": 4,
+            "total_tokens": 2027,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " verify it identifies known vulnerabilities in uploaded components.\n        *   Ensure proper configuration of security policies.\n    *   **Data in Transit/Rest:**\n        *   Verify HTTPS is enforced.\n        *   Check storage encryption (if configured",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1095,
+            "prompt_tokens": 4,
+            "total_tokens": 2077,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": ").\n\n5.  **Scalability & Reliability Testing:**\n    *   **High Volume:**\n        *   Populate with a very large number of artifacts and observe behavior.\n        *   Test with a large number of concurrent",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1143,
+            "prompt_tokens": 4,
+            "total_tokens": 2125,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " users/requests.\n    *   **High Availability:**\n        *   If configured in HA mode, test failover scenarios (e.g., take down a node and ensure service continues).\n    *   **Backup & Restore:**\n",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1192,
+            "prompt_tokens": 4,
+            "total_tokens": 2174,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": "        *   Perform a full backup.\n        *   Simulate a disaster and restore the repository from backup. Verify data integrity post-restore.\n\n### **II. General Testing Steps**\n\n1.  **Define Test Scope & Objectives",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1240,
+            "prompt_tokens": 4,
+            "total_tokens": 2222,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": ":** What are you trying to achieve? What parts are critical?\n2.  **Identify Test Scenarios:** Based on the above, write specific steps for each test.\n3.  **Choose Testing Tools:**\n    *   **Functional",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1290,
+            "prompt_tokens": 4,
+            "total_tokens": 2272,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": ":** Manual testing, scripting with `curl`, Python, or specific client tools (e.g., `mvn deploy`, `npm publish`, `docker push`).\n    *   **Performance:** JMeter, k6, Locust, or dedicated",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1339,
+            "prompt_tokens": 4,
+            "total_tokens": 2321,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " load testing tools.\n    *   **Security:** OWASP ZAP, Burp Suite, vulnerability scanners (e.g., Snyk, SonarQube integration).\n    *   **Automation:** Shell scripts, Python scripts, CI",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1389,
+            "prompt_tokens": 4,
+            "total_tokens": 2371,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": "/CD pipeline jobs.\n4.  **Prepare Test Data:** Create sample code, packages, users, and configurations.\n5.  **Execute Tests:** Run the tests systematically.\n6.  **Analyze & Report Results:**",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1437,
+            "prompt_tokens": 4,
+            "total_tokens": 2419,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-05d4f4bef69a",
+          "choices": [
+            {
+              "delta": {
+                "content": " Document findings, identify bugs, and assess performance metrics.\n\nPlease provide more context, and I can give you a more targeted and useful response!",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": "stop",
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 1466,
+            "prompt_tokens": 4,
+            "total_tokens": 2448,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      }
+    ],
+    "is_streaming": true
+  },
+  "id_normalization_mapping": {}
+}
