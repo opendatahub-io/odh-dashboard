@@ -10,6 +10,11 @@ jest.mock('@openshift/dynamic-plugin-sdk', () => ({
   useFeatureFlag: jest.fn(() => [mockPromptManagementEnabled]),
 }));
 
+jest.mock('~/app/components/SafeNavigationBlocker', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 jest.mock('~/app/Chatbot/store/usePlaygroundStore', () => ({
   usePlaygroundStore: jest.fn(() => ({
     openModal: mockOpenModal,

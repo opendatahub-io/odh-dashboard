@@ -86,6 +86,11 @@ func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity 
 
 // GetAAModels returns mock AA models plus any external models from ConfigMaps
 func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {
+	// Special case: empty-test-namespace should always return empty list for testing empty state (no namespace models, no MaaS models, no external models)
+	if namespace == "empty-test-namespace" {
+		return []models.AAModel{}, nil
+	}
+
 	var mockModels []models.AAModel
 
 	// Return different mock AA models based on namespace
@@ -379,7 +384,13 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 	}, nil
 }
 
-func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, enableGuardrails bool, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, enableGuardrails bool, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+	if len(vectorStores) > 0 {
+		if _, err := m.LoadAndValidateVectorStores(ctx, identity, namespace, vectorStores); err != nil {
+			return nil, err
+		}
+	}
+
 	// Check if LSD already exists in the namespace
 	existingLSDList, err := m.GetLlamaStackDistributions(ctx, identity, namespace)
 	if err != nil {
@@ -599,7 +610,7 @@ registered_resources:
       provider_id: vllm-inference-1
       model_type: llm
 ` + shieldsSection + `
-  vector_dbs: []
+  vector_stores: []
   datasets: []
   scoring_fns: []
   benchmarks: []

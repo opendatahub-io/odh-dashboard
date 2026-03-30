@@ -18,7 +18,9 @@ export type LlamaModel = LlamaModelResponse & {
 export type LSDInstallModel = {
   model_name: string;
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas'; // Source type of the model (required)
-  max_tokens?: number; // Optional per-model token limit (128-128000)
+  model_type?: 'llm' | 'embedding'; // Optional model type
+  max_tokens?: number; // Optional per-model token limit (128-128000), only for llm
+  embedding_dimension?: number; // Optional embedding vector size (128-3072000), only for embedding
 };
 
 export type FileCounts = {
@@ -100,6 +102,7 @@ export type CreateResponseRequest = {
   input_shield_id?: string;
   output_shield_id?: string;
   model_source_type?: string;
+  subscription?: string;
 };
 
 export type SimplifiedUsage = {
@@ -358,7 +361,7 @@ export interface AAModelResponse {
   usecase: string;
   description: string;
   endpoints: string[];
-  status: 'Running' | 'Stop';
+  status: string; // Kubernetes resource status - can be 'Running', 'Stop', or other values
   display_name: string;
   sa_token: {
     name: string;
@@ -367,12 +370,14 @@ export interface AAModelResponse {
   };
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas';
   model_type?: 'llm' | 'embedding';
+  embedding_dimension?: number;
 }
 
 export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
+  subscriptions?: SubscriptionInfo[];
 }
 
 export type ExternalModelRequest = {
@@ -480,6 +485,7 @@ export type MLflowRegisterPromptRequest = {
   template?: string;
   commit_message?: string;
   tags?: Record<string, string>;
+  create_only?: boolean;
 };
 
 export type MLflowPromptVersion = {
@@ -511,6 +517,7 @@ export type MLflowPromptVersionsResponse = {
 export type InstallLSDRequest = {
   models: LSDInstallModel[];
   enable_guardrails?: boolean; // If true, adds safety configuration with guardrail shields for all selected models
+  vector_stores?: { vector_store_id: string }[]; // Optional vector stores to register; embedding models must be in models
 };
 
 export type DeleteLSDRequest = {
@@ -550,7 +557,14 @@ export type GenAiAPIs = {
   listMLflowPromptVersions: ListMLflowPromptVersions;
   createExternalModel: CreateExternalModel;
   verifyExternalModel: VerifyExternalModel;
+  deleteExternalModel: DeleteExternalModel;
 };
+
+export interface SubscriptionInfo {
+  name: string;
+  displayName?: string;
+  description?: string;
+}
 
 export interface MaaSModel {
   id: string;
@@ -565,12 +579,15 @@ export interface MaaSModel {
   description?: string;
   usecase?: string;
   model_type?: 'llm' | 'embedding';
+  subscriptions?: SubscriptionInfo[];
 }
 
 export type MaaSTokenRequest = {
   name?: string;
   description?: string;
   expiresIn?: string;
+  ephemeral?: boolean;
+  subscription?: string;
 };
 export interface MaaSTokenResponse {
   key: string;
@@ -627,3 +644,4 @@ type VerifyExternalModel = ModArchRestCREATE<
   VerifyExternalModelResponse,
   VerifyExternalModelRequest
 >;
+type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;

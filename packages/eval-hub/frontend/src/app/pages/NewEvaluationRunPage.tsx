@@ -4,6 +4,7 @@ import {
   BreadcrumbItem,
   Card,
   CardBody,
+  CardHeader,
   CardTitle,
   Content,
   Gallery,
@@ -16,6 +17,8 @@ import {
   evaluationCollectionsRoute,
   evaluationsBaseRoute,
 } from '~/app/routes';
+import paperLinedIcon from '~/app/bgimages/paper-lined.svg';
+import paperStackIcon from '~/app/bgimages/paper-stack-ined.svg';
 
 const NewEvaluationRunPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -48,6 +51,14 @@ const NewEvaluationRunPage: React.FC = () => {
             style={{ cursor: 'pointer' }}
             onClick={() => navigate(evaluationBenchmarksRoute(namespace))}
           >
+            <CardHeader>
+              <img
+                src={paperLinedIcon}
+                alt=""
+                aria-hidden="true"
+                style={{ width: 36, height: 36 }}
+              />
+            </CardHeader>
             <CardTitle id="standardised-benchmarks-title">Single benchmark</CardTitle>
             <CardBody>
               <Content component="p">
@@ -61,6 +72,14 @@ const NewEvaluationRunPage: React.FC = () => {
             style={{ cursor: 'pointer' }}
             onClick={() => navigate(evaluationCollectionsRoute(namespace))}
           >
+            <CardHeader>
+              <img
+                src={paperStackIcon}
+                alt=""
+                aria-hidden="true"
+                style={{ width: 36, height: 36 }}
+              />
+            </CardHeader>
             <CardTitle id="evaluation-collections-title">Benchmark suite</CardTitle>
             <CardBody>
               <Content component="p">

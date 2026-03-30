@@ -56,8 +56,8 @@ spec:
     - title: Load OpenVINO notebook
       description: |-
         ### Loading the OpenVINO notebook
-        1. Download the "pytorch_onnx_openvino.ipynb" notebook from the [OpenVINO Notebooks repository](https://github.com/openvinotoolkit/openvino_notebooks).
-        2. Upload the **pytorch_onnx_openvino.ipynb** notebook file using the JupyterLab file manager.
+        1. Download the "pytorch-to-openvino.ipynb" notebook from the [OpenVINO Notebooks repository](https://github.com/openvinotoolkit/openvino_notebooks/tree/latest/notebooks/pytorch-to-openvino).
+        2. Upload the **pytorch-to-openvino.ipynb** notebook file using the JupyterLab file manager.
         3. Click on the uploaded notebook to launch it in a new JupyterLab tab.
 
       review:

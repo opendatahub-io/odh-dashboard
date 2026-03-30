@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import type { PipelineRun } from '~/app/types';
 import AutomlRunsTableRow, {
   getStatusLabelProps,
@@ -90,44 +91,94 @@ describe('AutomlRunsTableRow', () => {
     pipeline_version_reference: { pipeline_id: 'p1', pipeline_version_id: 'v1' },
   };
 
+  const mockNamespace = 'test-namespace';
+
   it('should render run name', () => {
-    render(<AutomlRunsTableRow run={mockRun} />);
+    render(
+      <MemoryRouter>
+        <AutomlRunsTableRow run={mockRun} namespace={mockNamespace} />
+      </MemoryRouter>,
+    );
     expect(screen.getByTestId('run-name-r1')).toHaveTextContent('Run One');
   });
 
   it('should render description', () => {
-    render(<AutomlRunsTableRow run={mockRun} />);
+    render(
+      <MemoryRouter>
+        <AutomlRunsTableRow run={mockRun} namespace={mockNamespace} />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('First run')).toBeInTheDocument();
   });
 
   it('should render em dash for missing description', () => {
-    render(<AutomlRunsTableRow run={{ ...mockRun, description: undefined }} />);
+    render(
+      <MemoryRouter>
+        <AutomlRunsTableRow
+          run={{ ...mockRun, description: undefined }}
+          namespace={mockNamespace}
+        />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('—')).toBeInTheDocument();
   });
 
   it('should render state with Label', () => {
-    render(<AutomlRunsTableRow run={mockRun} />);
+    render(
+      <MemoryRouter>
+        <AutomlRunsTableRow run={mockRun} namespace={mockNamespace} />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('SUCCEEDED')).toBeInTheDocument();
   });
 
   it('should render different states correctly', () => {
-    const { rerender } = render(<AutomlRunsTableRow run={mockRun} />);
+    const { rerender } = render(
+      <MemoryRouter>
+        <AutomlRunsTableRow run={mockRun} namespace={mockNamespace} />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('SUCCEEDED')).toBeInTheDocument();
 
-    rerender(<AutomlRunsTableRow run={{ ...mockRun, state: 'FAILED', run_id: 'r2' }} />);
+    rerender(
+      <MemoryRouter>
+        <AutomlRunsTableRow
+          run={{ ...mockRun, state: 'FAILED', run_id: 'r2' }}
+          namespace={mockNamespace}
+        />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('FAILED')).toBeInTheDocument();
 
-    rerender(<AutomlRunsTableRow run={{ ...mockRun, state: 'RUNNING', run_id: 'r3' }} />);
+    rerender(
+      <MemoryRouter>
+        <AutomlRunsTableRow
+          run={{ ...mockRun, state: 'RUNNING', run_id: 'r3' }}
+          namespace={mockNamespace}
+        />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('RUNNING')).toBeInTheDocument();
   });
 
   it('should render em dash for invalid created_at', () => {
-    render(<AutomlRunsTableRow run={{ ...mockRun, created_at: 'invalid-date' }} />);
+    render(
+      <MemoryRouter>
+        <AutomlRunsTableRow
+          run={{ ...mockRun, created_at: 'invalid-date' }}
+          namespace={mockNamespace}
+        />
+      </MemoryRouter>,
+    );
     expect(screen.getAllByText('—')).toHaveLength(1);
   });
 
   it('should render em dash for empty created_at', () => {
-    render(<AutomlRunsTableRow run={{ ...mockRun, created_at: '' }} />);
+    render(
+      <MemoryRouter>
+        <AutomlRunsTableRow run={{ ...mockRun, created_at: '' }} namespace={mockNamespace} />
+      </MemoryRouter>,
+    );
     expect(screen.getAllByText('—')).toHaveLength(1);
   });
 });

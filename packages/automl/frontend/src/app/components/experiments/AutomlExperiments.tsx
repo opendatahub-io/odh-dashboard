@@ -113,6 +113,7 @@ function AutomlExperiments(): React.JSX.Element {
   return (
     <AutomlRunsTable
       runs={runs}
+      namespace={effectiveNamespace}
       totalSize={totalSize}
       page={page}
       pageSize={pageSize}

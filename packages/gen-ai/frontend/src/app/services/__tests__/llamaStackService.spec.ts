@@ -271,6 +271,7 @@ describe('llamaStackService', () => {
           expect.objectContaining({
             input: mockCreateResponseRequest.input,
             model: mockCreateResponseRequest.model,
+            model_source_type: mockCreateResponseRequest.model_source_type,
           }),
           expect.objectContaining({ namespace: TEST_NAMESPACE }),
           {},

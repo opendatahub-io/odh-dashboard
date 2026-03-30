@@ -1119,11 +1119,6 @@ declare global {
           response: { data: OdhResponse<APIKeyListResponse> },
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'POST /maas/api/v1/api-keys/search',
-          options: { query?: { page?: string; limit?: string } },
-          response: { data: OdhResponse<APIKeyListResponse> },
-        ) => Cypress.Chainable<null>) &
-        ((
           type: 'POST /maas/api/v1/api-keys/bulk-revoke',
           response: { data: OdhResponse<BulkRevokeResponse> },
         ) => Cypress.Chainable<null>) &
@@ -1137,6 +1132,10 @@ declare global {
           response: { data: OdhResponse<CreateAPIKeyResponse> },
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'GET /maas/api/v1/is-maas-admin',
+          response: OdhResponse<{ data: { allowed: boolean } }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /maas/api/v1/user',
           response: OdhResponse<{ data: { userId: string; clusterAdmin: boolean } }>,
         ) => Cypress.Chainable<null>) &
@@ -1147,6 +1146,11 @@ declare global {
         ((
           type: 'GET /maas/api/v1/all-subscriptions',
           response: OdhResponse<{ data: MaaSSubscription[] }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/subscription/:name',
+          options: { path: { name: string } },
+          response: OdhResponse<{ message: string }>,
         ) => Cypress.Chainable<null>);
     }
   }

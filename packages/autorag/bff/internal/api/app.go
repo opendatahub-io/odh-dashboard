@@ -24,23 +24,24 @@ import (
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
-	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 
 	"github.com/julienschmidt/httprouter"
 )
 
 const (
-	Version          = "1.0.0"
-	PathPrefix       = "/autorag"
-	ApiPathPrefix    = "/api/v1"
-	HealthCheckPath  = "/healthcheck"
-	UserPath         = ApiPathPrefix + "/user"
-	NamespacePath    = ApiPathPrefix + "/namespaces"
-	SecretsPath      = ApiPathPrefix + "/secrets"
-	S3FilePath       = ApiPathPrefix + "/s3/file"
-	S3FilesPath      = ApiPathPrefix + "/s3/files"
-	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
+	Version             = "1.0.0"
+	PathPrefix          = "/autorag"
+	ApiPathPrefix       = "/api/v1"
+	HealthCheckPath     = "/healthcheck"
+	UserPath            = ApiPathPrefix + "/user"
+	NamespacePath       = ApiPathPrefix + "/namespaces"
+	SecretsPath         = ApiPathPrefix + "/secrets"
+	S3FilePath          = ApiPathPrefix + "/s3/file"
+	S3FilesPath         = ApiPathPrefix + "/s3/files"
+	LSDModelsPath       = ApiPathPrefix + "/lsd/models"
+	LSDVectorStoresPath = ApiPathPrefix + "/lsd/vector-stores"
+	PipelineRunsPath    = ApiPathPrefix + "/pipeline-runs"
 )
 
 type App struct {
@@ -51,6 +52,10 @@ type App struct {
 	pipelineServerClientFactory ps.PipelineServerClientFactory
 	s3ClientFactory             s3int.S3ClientFactory
 	repositories                *repositories.Repositories
+	// s3PostMaxFilePartBytes is for package api tests only (see PostS3FileHandler).
+	s3PostMaxFilePartBytes int64
+	// s3PostMaxRequestBodyBytes caps total POST body in tests (0 = file max + multipart envelope).
+	s3PostMaxRequestBodyBytes int64
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
@@ -211,9 +216,13 @@ func (app *App) Routes() http.Handler {
 	// secretName (the handler resolves credentials directly in that case).
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.attachPipelineClientIfNeeded(app.GetS3FileHandler))))
 	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToService(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler))))
+	// POST /s3/file deliberately omits attachPipelineClientIfNeeded: secretName is required; there is
+	// no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
+	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToService(app.PostS3FileHandler))))
 
-	// LSD Models
-	apiRouter.GET(constants.LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackModelsHandler))))
+	// LLamaStack
+	apiRouter.GET(LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackModelsHandler))))
+	apiRouter.GET(LSDVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackVectorStoresHandler))))
 
 	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunHandler)))))

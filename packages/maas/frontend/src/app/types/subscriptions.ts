@@ -1,18 +1,18 @@
 export type MaaSSubscription = {
   name: string;
   namespace: string;
-  phase: string;
+  phase?: string;
   priority?: number;
   owner: OwnerSpec;
   modelRefs: ModelSubscriptionRef[];
   tokenMetadata?: TokenMetadata;
-  creationTimestamp: string;
+  creationTimestamp?: string;
 };
 
 export type ModelSubscriptionRef = {
   name: string;
   namespace: string;
-  tokenRateLimits: TokenRateLimit[];
+  tokenRateLimits?: TokenRateLimit[];
   tokenRateLimitRef?: string;
   billingRate?: BillingRate;
 };

@@ -250,6 +250,8 @@ const toCreateResponseRecord = (r: CreateResponseRequest): Record<string, unknow
   mcp_servers: r.mcp_servers,
   input_shield_id: r.input_shield_id,
   output_shield_id: r.output_shield_id,
+  model_source_type: r.model_source_type,
+  subscription: r.subscription,
 });
 
 const postCreateResponse = (
@@ -580,6 +582,10 @@ export const verifyExternalModel = (
     return normalized;
   };
 };
+
+export const deleteExternalModel = modArchRestDELETE<string, Record<string, never>>(
+  '/models/external',
+);
 
 export const getMCPServers = (
   hostPath: string,

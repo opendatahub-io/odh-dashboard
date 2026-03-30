@@ -89,9 +89,16 @@ const (
 	McpServerFilterOptionListPath = McpServerCatalogPathPrefix + "/mcp_servers_filter_options"
 	McpServerPath                 = McpServerListPath + "/:" + McpServerId
 	McpServersToolListPath        = McpServerPath + "/tools"
+	MCPServerConverterPath        = McpServerPath + "/mcpserver"
 
 	// Kubernetes resource endpoints (downstream-only implementations)
 	KubernetesServicesListPath = SettingsPath + "/services"
+
+	// MCPServer deployment endpoints (downstream-only implementations)
+	McpDeploymentName         = "mcp_deployment_name"
+	McpDeploymentListPath     = ApiPathPrefix + "/mcp_deployments"
+	McpDeploymentPath         = McpDeploymentListPath + "/:" + McpDeploymentName
+	McpServerAvailabilityPath = McpServerCatalogPathPrefix + "/mcp_server_available"
 )
 
 const (
@@ -104,6 +111,15 @@ const (
 
 	// Kubernetes resource handlers - these have no upstream implementation and must be overridden downstream
 	handlerKubernetesServicesListID HandlerID = "kubernetes:services:list"
+
+	// MCPServer deployment handlers - downstream-only
+	handlerMcpDeploymentListID     HandlerID = "mcpDeployment:list"
+	handlerMcpDeploymentGetID      HandlerID = "mcpDeployment:get"
+	handlerMcpDeploymentCreateID   HandlerID = "mcpDeployment:create"
+	handlerMcpDeploymentUpdateID   HandlerID = "mcpDeployment:update"
+	handlerMcpDeploymentDeleteID   HandlerID = "mcpDeployment:delete"
+	handlerMcpServerAvailabilityID HandlerID = "mcpServer:availability"
+	handlerMCPServerConverterGetID HandlerID = "mcpServer:converter:get"
 )
 
 type App struct {
@@ -344,6 +360,51 @@ func (app *App) Routes() http.Handler {
 			}),
 		)
 
+		// MCPServer deployment endpoints - downstream-only implementations
+		apiRouter.GET(
+			McpDeploymentListPath,
+			app.handlerWithOverride(handlerMcpDeploymentListID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployments list"))
+			}),
+		)
+		apiRouter.GET(
+			McpDeploymentPath,
+			app.handlerWithOverride(handlerMcpDeploymentGetID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment get"))
+			}),
+		)
+		apiRouter.POST(
+			McpDeploymentListPath,
+			app.handlerWithOverride(handlerMcpDeploymentCreateID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment create"))
+			}),
+		)
+		apiRouter.PATCH(
+			McpDeploymentPath,
+			app.handlerWithOverride(handlerMcpDeploymentUpdateID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment update"))
+			}),
+		)
+		apiRouter.DELETE(
+			McpDeploymentPath,
+			app.handlerWithOverride(handlerMcpDeploymentDeleteID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment delete"))
+			}),
+		)
+		apiRouter.GET(
+			McpServerAvailabilityPath,
+			app.handlerWithOverride(handlerMcpServerAvailabilityID, func() httprouter.Handle {
+				return app.EndpointNotImplementedHandler("MCP server availability")
+			}),
+		)
+		apiRouter.GET(
+			MCPServerConverterPath,
+			app.handlerWithOverride(handlerMCPServerConverterGetID, func() httprouter.Handle {
+				return app.AttachNamespace(app.AttachModelCatalogRESTClient(
+					app.EndpointNotImplementedHandler("MCPServer converter")))
+			}),
+		)
+
 		//SettingsPath: Certificate endpoints
 		apiRouter.GET(CertificatesPath, app.AttachNamespace(app.GetCertificatesHandler))
 
@@ -413,4 +474,3 @@ func (app *App) Routes() http.Handler {
 
 	return combinedMux
 }
-

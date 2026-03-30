@@ -5,6 +5,7 @@
   "version": "0.0.0",
   "scripts": {
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix"
   },

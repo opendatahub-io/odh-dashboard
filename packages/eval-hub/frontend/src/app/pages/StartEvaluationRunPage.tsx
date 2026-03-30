@@ -29,6 +29,11 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import {
+  MlflowExperimentSelector,
+  useMlflowExperiments,
+  type MlflowExperiment,
+} from '@odh-dashboard/internal/concepts/mlflow';
 import { createEvaluationJob } from '~/app/api/k8s';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import getErrorTitle from '~/app/utils/getErrorTitle';
@@ -44,6 +49,10 @@ import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import InlineHelpIcon from '~/app/components/InlineHelpIcon';
 
 type InputMode = 'inference' | 'prerecorded';
+type ExperimentMode = 'existing' | 'new';
+
+const DEFAULT_EXPERIMENT_NAME = 'EvalHub';
+const EXPERIMENT_FILTER = "tags.context = 'eval-hub'";
 
 const StartEvaluationRunPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -52,6 +61,11 @@ const StartEvaluationRunPage: React.FC = () => {
 
   const { benchmark, collection, isCollectionFlow, dataLoaded, loadError } =
     useEvaluationSelection(namespace);
+
+  const { data: experiments, loaded: experimentsLoaded } = useMlflowExperiments({
+    workspace: namespace ?? '',
+    filter: EXPERIMENT_FILTER,
+  });
 
   const [evaluationName, setEvaluationName] = React.useState(() =>
     new Date().toLocaleString('en-US', {
@@ -73,6 +87,29 @@ const StartEvaluationRunPage: React.FC = () => {
   const [sourceName, setSourceName] = React.useState('');
   const [datasetUrl, setDatasetUrl] = React.useState('');
   const [accessToken, setAccessToken] = React.useState('');
+
+  const [experimentMode, setExperimentMode] = React.useState<ExperimentMode>('existing');
+  const [selectedExperiment, setSelectedExperiment] = React.useState<MlflowExperiment | undefined>(
+    undefined,
+  );
+  const [newExperimentName, setNewExperimentName] = React.useState('');
+  const [experimentAutoSelected, setExperimentAutoSelected] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!experimentsLoaded || !namespace || experimentAutoSelected) {
+      return;
+    }
+    setExperimentAutoSelected(true);
+
+    if (experiments.length === 0) {
+      setExperimentMode('new');
+      setNewExperimentName(DEFAULT_EXPERIMENT_NAME);
+    } else {
+      const defaultExp = experiments.find((e) => e.name === DEFAULT_EXPERIMENT_NAME);
+      setExperimentMode('existing');
+      setSelectedExperiment(defaultExp ?? experiments[0]);
+    }
+  }, [experimentsLoaded, experiments, namespace, experimentAutoSelected]);
 
   const [showAdditionalArgs, setShowAdditionalArgs] = React.useState(false);
   const [additionalArgs, setAdditionalArgs] = React.useState('');
@@ -103,15 +140,28 @@ const StartEvaluationRunPage: React.FC = () => {
   const hasBenchmarks =
     !!benchmark || (!!collection && !!collection.benchmarks && collection.benchmarks.length > 0);
 
+  const hasExperiment =
+    (experimentMode === 'existing' && !!selectedExperiment) ||
+    (experimentMode === 'new' && newExperimentName.trim() !== '');
+
   const isValid = React.useMemo(() => {
-    if (evaluationName.trim() === '' || !hasBenchmarks) {
+    if (evaluationName.trim() === '' || !hasBenchmarks || !hasExperiment) {
       return false;
     }
     if (inputMode === 'inference') {
       return modelName.trim() !== '' && endpointUrl.trim() !== '';
     }
     return sourceName.trim() !== '' && datasetUrl.trim() !== '';
-  }, [evaluationName, inputMode, modelName, endpointUrl, sourceName, datasetUrl, hasBenchmarks]);
+  }, [
+    evaluationName,
+    inputMode,
+    modelName,
+    endpointUrl,
+    sourceName,
+    datasetUrl,
+    hasBenchmarks,
+    hasExperiment,
+  ]);
 
   const handleAdditionalArgsFileChange = React.useCallback(
     (
@@ -175,6 +225,9 @@ const StartEvaluationRunPage: React.FC = () => {
       }
     }
 
+    const isNewExperiment = experimentMode === 'new';
+    const experimentName = isNewExperiment ? newExperimentName.trim() : selectedExperiment?.name;
+
     const request = buildEvaluationRequest({
       evaluationName,
       description,
@@ -188,6 +241,8 @@ const StartEvaluationRunPage: React.FC = () => {
       datasetUrl,
       accessToken,
       additionalArgs: parsedArgs,
+      experimentName: experimentName || undefined,
+      experimentTags: undefined,
     });
 
     const controller = new AbortController();
@@ -290,6 +345,67 @@ const StartEvaluationRunPage: React.FC = () => {
               onChange={(_e, val) => setEvaluationName(val)}
               isRequired
             />
+          </FormGroup>
+
+          <FormGroup
+            label="MLflow Experiment"
+            isRequired
+            fieldId="mlflow-experiment"
+            labelHelp={
+              <LabelHelpPopover
+                ariaLabel="More info for MLflow experiment"
+                content="Select an existing MLFlow experiment to log this evaluation run to, or create a new one. If you don't have any experiments, the default 'EvalHub' experiment will be used."
+              />
+            }
+          >
+            <Radio
+              id="experiment-existing"
+              data-testid="experiment-mode-existing"
+              name="experiment-mode"
+              label="Add to an existing experiment"
+              isChecked={experimentMode === 'existing'}
+              onChange={() => {
+                setExperimentMode('existing');
+                setNewExperimentName('');
+              }}
+            />
+
+            {experimentMode === 'existing' && namespace && (
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                <MlflowExperimentSelector
+                  workspace={namespace}
+                  filter={EXPERIMENT_FILTER}
+                  selection={selectedExperiment?.name}
+                  onSelect={setSelectedExperiment}
+                />
+              </div>
+            )}
+
+            <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+              <Radio
+                id="experiment-new"
+                data-testid="experiment-mode-new"
+                name="experiment-mode"
+                label="Create new experiment"
+                isChecked={experimentMode === 'new'}
+                onChange={() => {
+                  setExperimentMode('new');
+                  setSelectedExperiment(undefined);
+                }}
+              />
+            </div>
+
+            {experimentMode === 'new' && (
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                <TextInput
+                  id="new-experiment-name"
+                  data-testid="new-experiment-name-input"
+                  value={newExperimentName}
+                  onChange={(_e, val) => setNewExperimentName(val)}
+                  placeholder="Enter experiment name"
+                />
+              </div>
+            )}
           </FormGroup>
 
           <FormGroup label="Description" fieldId="description">
@@ -458,9 +574,7 @@ const StartEvaluationRunPage: React.FC = () => {
                 onClearClick={handleAdditionalArgsClear}
                 browseButtonText="Upload"
                 allowEditingUploadedText
-                textAreaPlaceholder={
-                  '{\n  "num_examples": 10,\n  "experiment": {\n    "name": "my-experiment"\n  }\n}'
-                }
+                textAreaPlaceholder={'{\n  "num_examples": 10\n}'}
                 dropzoneProps={{
                   accept: { 'application/json': ['.json'] },
                 }}

@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import createConfigureSchema, { getDefaultValues } from '~/app/schemas/configure.schema';
+import { createConfigureSchema, getDefaultValues } from '~/app/schemas/configure.schema';
 import AutomlExperimentSettings from '~/app/components/configure/AutomlExperimentSettings';
 
 const configureSchema = createConfigureSchema();

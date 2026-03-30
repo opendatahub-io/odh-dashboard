@@ -10,7 +10,9 @@ import {
   StackItem,
   Stack,
   Skeleton,
+  Button,
 } from '@patternfly/react-core';
+import { PencilAltIcon } from '@patternfly/react-icons';
 import { getAllConsumedResources } from '../trainingJobDetailsDrawer/utils';
 import useClusterQueueFromLocalQueue from '../../hooks/useClusterQueueFromLocalQueue';
 import useClusterQueue from '../../hooks/useClusterQueue';
@@ -22,6 +24,8 @@ import { KUEUE_MANAGED_LABEL, KUEUE_QUEUE_LABEL } from '../../const';
 type RayJobResourcesTabProps = {
   job: RayJobKind;
   nodeCount: number;
+  canScaleNodes?: boolean;
+  onScaleNodes?: () => void;
 };
 
 const getWorkerResources = (group: RayWorkerGroupSpec): RayContainerResources => {
@@ -64,7 +68,12 @@ const ResourceDisplay: React.FC<{
   </>
 );
 
-const RayJobResourcesTab: React.FC<RayJobResourcesTabProps> = ({ job, nodeCount }) => {
+const RayJobResourcesTab: React.FC<RayJobResourcesTabProps> = ({
+  job,
+  nodeCount,
+  canScaleNodes = false,
+  onScaleNodes,
+}) => {
   const { project, projects } = useModelTrainingContext();
   const { clusterSpec, loaded: clusterSpecLoaded } = useRayClusterSpec(job);
   const workerGroupSpecs = clusterSpec?.workerGroupSpecs;
@@ -97,7 +106,20 @@ const RayJobResourcesTab: React.FC<RayJobResourcesTabProps> = ({ job, nodeCount 
           <DescriptionListGroup>
             <DescriptionListTerm style={{ fontWeight: 'normal' }}>Nodes</DescriptionListTerm>
             <DescriptionListDescription data-testid="nodes-value">
-              {nodeCount || '-'}
+            {canScaleNodes ? (
+                <Button
+                  variant="link"
+                  isInline
+                  icon={<PencilAltIcon />}
+                  iconPosition="end"
+                  onClick={onScaleNodes}
+                  data-testid="nodes-edit-button"
+                >
+                  {nodeCount || '-'}
+                </Button>
+              ) : (
+                nodeCount || '-'
+              )}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
