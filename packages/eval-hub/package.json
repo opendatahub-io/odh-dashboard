@@ -16,21 +16,31 @@
     ],
     "local": {
       "host": "localhost",
-      "port": 9105
+      "port": 9106
     },
     "service": {
       "name": "odh-dashboard",
       "port": 8043
     }
   },
+  "e2eCiTags": ["@EvalHubCI"],
+  "bffConfig": {
+    "enabled": true,
+    "port": 4002,
+    "healthEndpoint": "/healthcheck",
+    "startCommand": "make dev-bff-e2e-mock",
+    "startCommandCluster": "make dev-bff-e2e-cluster"
+  },
   "scripts": {
     "install:module": "npm install --prefix frontend",
     "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-evalhub-client' odh-ct-bff-consumer --bff-dir bff",
     "cypress:server:build": "cd frontend && DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
-    "cypress:server": "cd frontend && serve ./public-cypress -p 9103 -s -L",
-    "cypress:server:dev": "cd frontend && DEPLOYMENT_MODE=federated PORT=9103 npm run start:dev",
-    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9103"
+    "cypress:server": "cd frontend && serve ./public-cypress -p 9106 -s -L",
+    "cypress:server:dev": "cd frontend && DEPLOYMENT_MODE=federated PORT=9106 PROXY_PORT=4002 npm run start:dev",
+    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9106",
+    "lint": "cd frontend && npm run lint",
+    "lint:fix": "cd frontend && npm run lint:fix"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",

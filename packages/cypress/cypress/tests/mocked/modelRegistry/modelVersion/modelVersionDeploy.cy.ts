@@ -163,18 +163,6 @@ const initIntercepts = ({
       path: {
         modelRegistryName: 'modelregistry-sample',
         apiVersion: MODEL_REGISTRY_API_VERSION,
-        modelVersionId: 1,
-      },
-    },
-    { data: modelVersionMocked },
-  );
-
-  cy.interceptOdh(
-    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
-    {
-      path: {
-        modelRegistryName: 'modelregistry-sample',
-        apiVersion: MODEL_REGISTRY_API_VERSION,
         modelVersionId: 2,
       },
     },
@@ -457,9 +445,14 @@ describe('Deploy model version', () => {
     modelServingWizard.findProjectScopedTemplateOption('Caikit').click();
     modelServingWizard.findProjectScopedLabel().should('exist');
 
-    // Check for global specific serving runtimes
+    // Reopen dropdown and select a global serving runtime
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().should('be.visible');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').click();
+    modelServingWizard
+      .findGlobalScopedTemplateOption('OpenVINO')
+      .scrollIntoView()
+      .should('be.visible')
+      .click();
     modelServingWizard.findGlobalScopedLabel().should('exist');
   });
 
@@ -490,15 +483,6 @@ describe('Deploy model version', () => {
     modelServingWizard
       .findModelDeploymentNameInput()
       .should('have.value', 'test-1 - test model version 4');
-
-    // Verify project specific hardware profile is displayed
-    // Wait for all hardware profiles to load (both namespaces) to avoid rerender during click
-    // cy.wait('@hardwareProfiles');
-    // cy.wait('@hardwareProfiles');
-    // // Use force: true to bypass actionability checks during rerender
-    // cy.findByTestId('hardware-profile-select').click({ force: true });
-    // hardwareProfileSection.selectProjectScopedProfile('Large Profile-1');
-    // hardwareProfileSection.findProjectScopedLabel().should('exist');
   });
 
   it('Prefills new connection in case of no matching connections', () => {
@@ -694,6 +678,15 @@ describe('Deploy model version', () => {
 
   it('Deploy modal will show spinner, if the data is still loading', () => {
     initIntercepts({ isEmpty: true });
+
+    // Delay connection types so the wizard's model source step stays in a loading
+    // state long enough for the spinner assertion to catch it
+    cy.intercept('GET', '/api/connection-types*', (req) => {
+      req.on('response', (res) => {
+        res.setDelay(1000);
+      });
+    });
+
     modelVersionDetails.visit(undefined, undefined, '4');
     modelVersionDetails.findDeployModelButton().click();
     modelVersionDeployModal.selectProjectByName('KServe project');

@@ -117,6 +117,7 @@ export enum DataScienceStackComponent {
   WORKBENCHES = 'workbenches',
   LLAMA_STACK_OPERATOR = 'llamastackoperator',
   TRAINER = 'trainer',
+  MLFLOW = 'mlflowoperator',
 }
 
 /**

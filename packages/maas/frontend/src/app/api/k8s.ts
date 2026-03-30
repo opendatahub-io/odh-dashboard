@@ -31,3 +31,22 @@ export const getNamespaces =
       }
       throw new Error('Invalid response format');
     });
+
+type IsMaasAdminResult = {
+  allowed: boolean;
+};
+
+const isIsMaasAdminResult = (v: unknown): v is IsMaasAdminResult =>
+  !!v && typeof v === 'object' && 'allowed' in v && typeof v.allowed === 'boolean';
+
+export const getIsMaasAdmin =
+  (hostPath = '') =>
+  (opts: APIOptions): Promise<IsMaasAdminResult> =>
+    handleRestFailures(
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/is-maas-admin`, {}, opts),
+    ).then((response) => {
+      if (isModArchResponse<unknown>(response) && isIsMaasAdminResult(response.data)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });

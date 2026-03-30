@@ -1,0 +1,107 @@
+version: 2
+distro_name: bff-test
+apis:
+- agents
+- files
+- inference
+- safety
+- tool_runtime
+- vector_io
+providers:
+  inference:
+  - provider_id: ${env.TEST_LLAMA_STACK_PROVIDER}
+    provider_type: remote::${env.TEST_LLAMA_STACK_PROVIDER}
+    config:
+      api_key: ${env.GEMINI_API_KEY}
+  vector_io:
+  - provider_id: milvus
+    provider_type: inline::milvus
+    config:
+      db_path: ${env.SQLITE_STORE_DIR}/milvus.db
+      persistence:
+        namespace: vector_io::milvus
+        backend: kv_default
+  files:
+  - provider_id: meta-reference-files
+    provider_type: inline::localfs
+    config:
+      storage_dir: ${env.SQLITE_STORE_DIR}/files
+      metadata_store:
+        table_name: files_metadata
+        backend: sql_default
+  safety:
+  - provider_id: llama-guard
+    provider_type: inline::llama-guard
+    config:
+      excluded_categories: []
+  agents:
+  - provider_id: meta-reference
+    provider_type: inline::meta-reference
+    config:
+      persistence:
+        agent_state:
+          namespace: agents
+          backend: kv_default
+        responses:
+          table_name: responses
+          backend: sql_default
+          max_write_queue_size: 10000
+          num_writers: 4
+  tool_runtime:
+  - provider_id: rag-runtime
+    provider_type: inline::rag-runtime
+storage:
+  backends:
+    kv_default:
+      type: kv_sqlite
+      db_path: ${env.SQLITE_STORE_DIR}/kvstore.db
+    sql_default:
+      type: sql_sqlite
+      db_path: ${env.SQLITE_STORE_DIR}/sql_store.db
+  stores:
+    metadata:
+      namespace: registry
+      backend: kv_default
+    inference:
+      table_name: inference_store
+      backend: sql_default
+    conversations:
+      table_name: openai_conversations
+      backend: sql_default
+    prompts:
+      namespace: prompts
+      backend: kv_default
+    connectors:
+      namespace: connectors
+      backend: kv_default
+registered_resources:
+  models:
+  - model_id: ${env.TEST_LLAMA_STACK_MODEL_ID}
+    model_type: llm
+    provider_id: ${env.TEST_LLAMA_STACK_PROVIDER}
+  - model_id: ${env.TEST_LLAMA_STACK_EMBEDDING_MODEL_ID}
+    model_type: embedding
+    provider_id: ${env.TEST_LLAMA_STACK_PROVIDER}
+    metadata:
+      embedding_dimension: ${env.TEST_LLAMA_STACK_EMBEDDING_DIMENSION}
+  shields:
+  - shield_id: llama-guard
+    provider_id: llama-guard
+    provider_shield_id: ${env.TEST_LLAMA_STACK_SHIELD_MODEL}
+  vector_dbs: []
+  datasets: []
+  scoring_fns: []
+  benchmarks: []
+  tool_groups:
+  - toolgroup_id: builtin::rag
+    provider_id: rag-runtime
+server:
+  port: ${env.TEST_LLAMA_STACK_PORT}
+vector_stores:
+  default_provider_id: milvus
+  default_embedding_model:
+    provider_id: ${env.TEST_LLAMA_STACK_PROVIDER}
+    model_id: ${env.TEST_LLAMA_STACK_EMBEDDING_MODEL_ID}
+safety:
+  default_shield_id: llama-guard
+connectors: []

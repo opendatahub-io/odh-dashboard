@@ -1,7 +1,7 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { asProductAdminUser } from '../../../utils/mockUsers';
-import { subscriptionsPage } from '../../../pages/modelsAsAService';
+import { deleteSubscriptionModal, subscriptionsPage } from '../../../pages/modelsAsAService';
 import { mockSubscriptions } from '../../../utils/maasUtils';
 
 describe('Subscriptions Page', () => {
@@ -71,5 +71,28 @@ describe('Subscriptions Page', () => {
     premiumRow.findKebabAction('View details').should('exist');
     premiumRow.findKebabAction('Edit subscription').should('exist');
     premiumRow.findKebabAction('Delete subscription').should('exist');
+  });
+  it('should delete a subscription', () => {
+    cy.interceptOdh(
+      'DELETE /maas/api/v1/subscription/:name',
+      { path: { name: 'premium-team-sub' } },
+      { message: "MaaSSubscription 'premium-team-sub' deleted successfully" },
+    ).as('deleteSubscription');
+
+    subscriptionsPage.getRow('premium-team-sub').findKebabAction('Delete subscription').click();
+    deleteSubscriptionModal.findInput().type('premium-team-sub');
+
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: mockSubscriptions().filter((subscription) => subscription.name !== 'premium-team-sub'),
+    }).as('getSubscriptions');
+
+    deleteSubscriptionModal.findSubmitButton().click();
+    cy.wait('@deleteSubscription').then((response) => {
+      expect(response.response?.body).to.deep.equal({
+        message: "MaaSSubscription 'premium-team-sub' deleted successfully",
+      });
+    });
+    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.findTable().should('not.contain', 'premium-team-sub');
   });
 });

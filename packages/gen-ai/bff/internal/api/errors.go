@@ -70,6 +70,17 @@ func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, messag
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) conflictResponse(w http.ResponseWriter, r *http.Request, err error) {
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusConflict,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    "conflict",
+			Message: err.Error(),
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) errorResponse(w http.ResponseWriter, r *http.Request, error *integrations.HTTPError) {
 
 	env := ErrorEnvelope{Error: error}

@@ -89,34 +89,39 @@ module.exports = smp.wrap(
             }
 
             // Token refresh mechanism (for when oc user is switched during tests)
-            // Only refreshes when token is actually used, with 5s minimum interval to avoid blocking
+            // Gated behind ODH_TOKEN_REFRESH to avoid unexpected user switches in local dev
             let cachedToken = token;
-            let lastTokenFetch = Date.now();
-            const TOKEN_REFRESH_MIN_INTERVAL = 5000; // Don't refresh more than once per 5 seconds
+            const tokenRefreshEnabled = process.env.ODH_TOKEN_REFRESH === 'true';
 
-            const getCurrentToken = () => {
-              const now = Date.now();
-              // Only refresh if enough time has passed since last fetch (prevents excessive blocking)
-              if (now - lastTokenFetch > TOKEN_REFRESH_MIN_INTERVAL) {
-                try {
-                  const newToken = execSync('oc whoami --show-token', {
-                    stdio: ['pipe', 'pipe', 'ignore'],
-                  })
-                    .toString()
-                    .trim();
-                  // Only update if token actually changed
-                  if (newToken !== cachedToken) {
-                    console.info('Token refreshed (oc user may have switched)');
-                    cachedToken = newToken;
-                  }
-                  lastTokenFetch = now;
-                } catch (e) {
-                  // If refresh fails, keep using cached token
-                  console.warn('Failed to refresh oc token, using cached token');
-                }
+            const getCurrentToken = (() => {
+              if (!tokenRefreshEnabled) {
+                return () => cachedToken;
               }
-              return cachedToken;
-            };
+
+              let lastTokenFetch = Date.now();
+              const TOKEN_REFRESH_MIN_INTERVAL = 5000;
+              return () => {
+                const now = Date.now();
+                if (now - lastTokenFetch > TOKEN_REFRESH_MIN_INTERVAL) {
+                  try {
+                    const newToken = execSync('oc whoami --show-token', {
+                      stdio: ['pipe', 'pipe', 'ignore'],
+                    })
+                      .toString()
+                      .trim();
+                    if (newToken !== cachedToken) {
+                      console.info('Token refreshed (oc user may have switched)');
+                      cachedToken = newToken;
+                    }
+                  } catch (e) {
+                    console.warn('Failed to refresh oc token, using cached token');
+                  } finally {
+                    lastTokenFetch = now;
+                  }
+                }
+                return cachedToken;
+              };
+            })();
 
             const odhProject = process.env.OC_PROJECT || 'opendatahub';
             const app = process.env.ODH_APP || 'odh-dashboard';

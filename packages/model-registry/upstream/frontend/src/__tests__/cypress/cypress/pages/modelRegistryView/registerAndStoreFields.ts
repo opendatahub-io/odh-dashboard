@@ -15,6 +15,10 @@ class RegisterAndStoreFields {
     return cy.findByTestId('form-namespace-selector');
   }
 
+  findNamespaceTextInput() {
+    return cy.findByTestId('form-namespace-text-input');
+  }
+
   findNamespaceSelectTrigger() {
     return cy.findByTestId('form-namespace-selector-trigger');
   }
@@ -135,6 +139,18 @@ class RegisterAndStoreFields {
     this.findNamespaceAccessCheckError()
       .should('be.visible')
       .and('contain.text', 'Could not verify namespace access');
+    return this;
+  }
+
+  findNamespaceCannotCheckAlert() {
+    return cy.findByTestId('namespace-registry-cannot-check-alert');
+  }
+
+  shouldShowCannotCheckAlert(registryName: string) {
+    this.findNamespaceCannotCheckAlert()
+      .should('be.visible')
+      .and('contain.text', 'Cannot check registry access with your permissions')
+      .and('contain.text', registryName);
     return this;
   }
 

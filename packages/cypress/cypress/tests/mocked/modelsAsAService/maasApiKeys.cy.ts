@@ -1,6 +1,7 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
-import { asProductAdminUser } from '../../../utils/mockUsers';
+import type { APIKey } from '@odh-dashboard/maas/types/api-key';
+import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import {
   apiKeysPage,
   bulkRevokeAPIKeyModal,
@@ -10,9 +11,18 @@ import {
 } from '../../../pages/modelsAsAService';
 import { mockAPIKeys, mockCreateAPIKeyResponse } from '../../../utils/maasUtils';
 
+const mockSearchResponse = (keys: APIKey[]) => ({
+  data: {
+    object: 'list',
+    data: keys,
+    // eslint-disable-next-line camelcase
+    has_more: false,
+  },
+});
+
 describe('API Keys Page', () => {
   beforeEach(() => {
-    asProductAdminUser();
+    asClusterAdminUser();
     cy.interceptOdh(
       'GET /api/config',
       mockDashboardConfig({
@@ -23,6 +33,7 @@ describe('API Keys Page', () => {
     cy.interceptOdh('GET /maas/api/v1/user', {
       data: { userId: 'test-user', clusterAdmin: false },
     });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
     cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
 
     cy.interceptOdh(
@@ -33,16 +44,11 @@ describe('API Keys Page', () => {
         },
       }),
     );
-
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search', {
-      data: {
-        object: 'list',
-        data: mockAPIKeys(),
-        // eslint-disable-next-line camelcase
-        has_more: false,
-      },
-    });
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
+      'initialSearch',
+    );
     apiKeysPage.visit();
+    cy.wait('@initialSearch');
   });
 
   it('should display the API keys table page', () => {
@@ -60,11 +66,169 @@ describe('API Keys Page', () => {
     const ciPipelineRow = apiKeysPage.getRow('ci-pipeline');
     ciPipelineRow.findName().should('contain.text', 'ci-pipeline');
     ciPipelineRow.findDescription().should('contain.text', 'API key for CI/CD pipeline automation');
-    ciPipelineRow.findStatus().should('contain.text', 'Active');
+    ciPipelineRow.findStatus().should('contain.text', 'Revoked');
     ciPipelineRow.findCreationDate().should('contain.text', 'Jan 11, 2026');
     ciPipelineRow.findExpirationDate().should('contain.text', 'Jan 18, 2026');
-    apiKeysPage.findTable().should('exist');
-    apiKeysPage.findRows().should('have.length', 4);
+  });
+
+  it('should filter api keys by username', () => {
+    const aliceKeys = mockAPIKeys().filter((k) => k.username === 'alice');
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(aliceKeys)).as(
+      'searchByUsername',
+    );
+
+    apiKeysPage.findFilterInput().type('alice');
+    apiKeysPage.findUsernameFilterTooltip().should('be.visible');
+    apiKeysPage.findFilterInput().type('{enter}');
+
+    cy.wait('@searchByUsername').then((interception) => {
+      expect(interception.request.body.data.filters.username).to.eq('alice');
+    });
+
+    apiKeysPage.findRows().should('have.length', 1);
+    apiKeysPage
+      .getRow('production-backend')
+      .findName()
+      .should('contain.text', 'production-backend');
+  });
+
+  it('should not display the username filter for non-MaaS admins', () => {
+    asProjectAdminUser();
+    apiKeysPage.visit();
+    apiKeysPage.findFilterInput().should('not.exist');
+    apiKeysPage.findUsernameFilterTooltip().should('not.exist');
+  });
+
+  it('should filter api keys by status', () => {
+    const nonActiveKeys = mockAPIKeys().filter((k) => k.status !== 'active');
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(nonActiveKeys)).as(
+      'filterByStatus',
+    );
+
+    apiKeysPage.findStatusFilterToggle().click();
+    apiKeysPage.findStatusFilterOption('Active').click();
+
+    cy.wait('@filterByStatus').then((interception) => {
+      expect(interception.request.body.data.filters.status).to.deep.equal(['active']);
+    });
+
+    apiKeysPage.findRows().should('have.length', 2);
+  });
+
+  it('should sort api keys by name', () => {
+    const keys = mockAPIKeys();
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
+      'sortNameAsc',
+    );
+    apiKeysPage.findColumnSortButton('Name').click();
+
+    cy.wait('@sortNameAsc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'name',
+        order: 'asc',
+      });
+    });
+
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse([...keys].reverse()),
+    ).as('sortNameDesc');
+    apiKeysPage.findColumnSortButton('Name').click();
+
+    cy.wait('@sortNameDesc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'name',
+        order: 'desc',
+      });
+    });
+  });
+
+  it('should sort api keys by creation date', () => {
+    const keys = mockAPIKeys();
+
+    // Creation date is the default active sort (desc). First click toggles to asc.
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
+      'sortCreationDateAsc',
+    );
+    apiKeysPage.findColumnSortButton('Creation date').click();
+
+    cy.wait('@sortCreationDateAsc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'created_at',
+        order: 'asc',
+      });
+    });
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
+      'sortCreationDateDesc',
+    );
+    apiKeysPage.findColumnSortButton('Creation date').click();
+
+    cy.wait('@sortCreationDateDesc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'created_at',
+        order: 'desc',
+      });
+    });
+  });
+
+  it('should sort api keys by expiration date', () => {
+    const keys = mockAPIKeys();
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
+      'sortExpirationAsc',
+    );
+    apiKeysPage.findColumnSortButton('Expiration date').click();
+
+    cy.wait('@sortExpirationAsc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'expires_at',
+        order: 'asc',
+      });
+    });
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
+      'sortExpirationDesc',
+    );
+    apiKeysPage.findColumnSortButton('Expiration date').click();
+
+    cy.wait('@sortExpirationDesc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'expires_at',
+        order: 'desc',
+      });
+    });
+  });
+
+  it('should sort api keys by last used', () => {
+    const keys = mockAPIKeys();
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
+      'sortLastUsedAsc',
+    );
+    apiKeysPage.findColumnSortButton('Last used').click();
+
+    cy.wait('@sortLastUsedAsc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'last_used_at',
+        order: 'asc',
+      });
+    });
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
+      'sortLastUsedDesc',
+    );
+    apiKeysPage.findColumnSortButton('Last used').click();
+
+    cy.wait('@sortLastUsedDesc').then((interception) => {
+      expect(interception.request.body.data).to.have.deep.property('sort', {
+        by: 'last_used_at',
+        order: 'desc',
+      });
+    });
   });
 
   it('should revoke all my API keys', () => {
@@ -95,25 +259,25 @@ describe('API Keys Page', () => {
 
   it('should revoke a specific API key', () => {
     apiKeysPage.findTitle().should('contain.text', 'API Keys');
-    apiKeysPage.getRow('ci-pipeline').findKebabAction('Revoke API key').click();
+    apiKeysPage.getRow('development-testing').findKebabAction('Revoke API key').click();
 
     revokeAPIKeyModal.shouldBeOpen();
     revokeAPIKeyModal.findRevokeButton().should('be.disabled');
     revokeAPIKeyModal.findRevokeConfirmationInput().type('incorrect');
     revokeAPIKeyModal.findRevokeButton().should('be.disabled');
-    revokeAPIKeyModal.findRevokeConfirmationInput().clear().type('ci-pipeline');
+    revokeAPIKeyModal.findRevokeConfirmationInput().clear().type('development-testing');
     revokeAPIKeyModal.findRevokeButton().should('be.enabled');
 
     cy.interceptOdh(
       'DELETE /maas/api/v1/api-keys/:id',
-      { path: { id: 'key-ci-pipeline-003' } },
+      { path: { id: 'key-dev-testing-002' } },
       {
         data: {
-          id: 'key-ci-pipeline-003',
-          name: 'ci-pipeline',
-          description: 'API key for CI/CD pipeline automation',
+          id: 'key-dev-testing-002',
+          name: 'development-testing',
+          description: 'Development API key for testing purposes',
           status: 'revoked',
-          creationDate: '2026-01-11T11:54:34.521671447-05:00',
+          creationDate: '2026-01-14T09:54:34.521671447-05:00',
         },
       },
     ).as('deleteApiKey');
@@ -125,22 +289,21 @@ describe('API Keys Page', () => {
     });
   });
 
-  it('should create a new API key', () => {
-    const now = new Date(2026, 0, 14).getTime(); // January 14, 2026
-    // Set the clock to the same day every time so the expiration date is always the same
-    cy.clock(now);
-
+  it('should create a new API key with the default 30 days expiration', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys', {
       data: mockCreateAPIKeyResponse(),
     }).as('createApiKey');
 
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
+    createApiKeyModal.findExpirationToggle().should('contain.text', '30 days');
+    createApiKeyModal.findSubmitButton().should('be.disabled');
     createApiKeyModal.findNameInput().type('production-backend');
     createApiKeyModal.findDescriptionInput().type('Production API key for backend service');
-    createApiKeyModal.findExpirationDateInput().type('2026-01-20');
-    createApiKeyModal.findCreateButton().click();
+    createApiKeyModal.findSubmitButton().should('be.enabled');
+    createApiKeyModal.findSubmitButton().click();
     cy.wait('@createApiKey').then((interception) => {
+      expect(interception.request.body?.data).to.include({ expiresIn: '30d' });
       expect(interception.response?.body?.data).to.include({
         name: 'production-backend',
         expiresAt: '2026-01-20T11:54:34.521671447-05:00',
@@ -148,9 +311,83 @@ describe('API Keys Page', () => {
     });
 
     copyApiKeyModal.shouldBeOpen();
-    // Verify the token is displayed correctly in the ClipboardCopy input
     copyApiKeyModal.findApiKeyTokenInput().should('have.value', mockCreateAPIKeyResponse().key);
     copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
-    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '2026-01-20');
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '30 days');
+  });
+
+  it('should show the custom days input when Custom (days) is selected and hide it when switching back', () => {
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+
+    createApiKeyModal.findCustomDaysInput().should('not.exist');
+    createApiKeyModal.findExpirationToggle().click();
+    createApiKeyModal.findExpirationOption('custom').click();
+    createApiKeyModal.findCustomDaysInput().should('exist');
+
+    createApiKeyModal.findExpirationToggle().click();
+    createApiKeyModal.findExpirationOption('90d').click();
+    createApiKeyModal.findCustomDaysInput().should('not.exist');
+  });
+
+  it('should create an API key with a custom expiration and show the correct label in the success view', () => {
+    cy.interceptOdh('POST /maas/api/v1/api-keys', {
+      data: mockCreateAPIKeyResponse(),
+    }).as('createApiKey');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    createApiKeyModal.findExpirationToggle().click();
+    createApiKeyModal.findExpirationOption('custom').click();
+    createApiKeyModal.findCustomDaysInput().type('45');
+    createApiKeyModal.findNameInput().type('my-key');
+    createApiKeyModal.findSubmitButton().should('be.enabled');
+    createApiKeyModal.findSubmitButton().click();
+
+    cy.wait('@createApiKey').then((interception) => {
+      expect(interception.request.body?.data).to.include({ expiresIn: '45d' });
+    });
+
+    copyApiKeyModal.shouldBeOpen();
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '45 days');
+  });
+
+  it('should show a validation error for an out-of-range custom days value', () => {
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    createApiKeyModal.findExpirationToggle().click();
+    createApiKeyModal.findExpirationOption('custom').click();
+    createApiKeyModal.findCustomDaysInput().type('366').blur();
+    createApiKeyModal.find().contains('Enter a value between 1 and 365 days').should('exist');
+    createApiKeyModal.findNameInput().type('my-key');
+    createApiKeyModal.findSubmitButton().should('be.disabled');
+  });
+
+  it('should display an inline error alert when API key creation fails', () => {
+    cy.intercept('POST', '/maas/api/v1/api-keys', {
+      statusCode: 400,
+      body: {
+        error: {
+          code: '400',
+          message: 'requested expiration (8760h0m0s) exceeds maximum allowed (90 days)',
+        },
+      },
+    }).as('createApiKeyFail');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    createApiKeyModal.findNameInput().type('production-backend');
+    createApiKeyModal.findSubmitButton().click();
+
+    cy.wait('@createApiKeyFail');
+
+    createApiKeyModal.findErrorAlert().should('exist');
+    createApiKeyModal
+      .findErrorAlert()
+      .should(
+        'contain.text',
+        'Requested expiration exceeds maximum allowed (90 days). Select a shorter duration and try again.',
+      );
+    createApiKeyModal.findSubmitButton().should('be.enabled');
   });
 });

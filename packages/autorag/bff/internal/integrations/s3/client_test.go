@@ -1,6 +1,7 @@
 package s3
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,6 +9,18 @@ import (
 
 func newTestClient() *RealS3Client {
 	return &RealS3Client{options: S3ClientOptions{DevMode: false}}
+}
+
+func TestNewRealS3Client_WrapsErrEndpointValidation(t *testing.T) {
+	t.Parallel()
+	_, err := NewRealS3Client(&S3Credentials{
+		AccessKeyID:     "a",
+		SecretAccessKey: "b",
+		Region:          "us-east-1",
+		EndpointURL:     "http://s3.amazonaws.com",
+	}, S3ClientOptions{})
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, ErrEndpointValidation))
 }
 
 func TestValidateAndNormalizeEndpoint_AcceptsValidHTTPS(t *testing.T) {

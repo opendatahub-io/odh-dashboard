@@ -2,8 +2,13 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import type { PipelineRun } from '~/app/types';
-import { AutomlRunsTable } from '~/app/components/AutomlRunsTable';
+import { AutomlRunsTable } from '~/app/components/AutomlRunsTable/index';
+
+jest.mock('mod-arch-shared', () => ({
+  relativeTime: () => '1 day ago',
+}));
 
 jest.mock('@odh-dashboard/internal/components/table', () => {
   const MockTableBase = ({
@@ -33,10 +38,6 @@ jest.mock('@odh-dashboard/internal/components/table', () => {
 jest.mock('@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView', () => ({
   __esModule: true,
   default: () => <div data-testid="empty-view">Empty</div>,
-}));
-
-jest.mock('mod-arch-shared', () => ({
-  relativeTime: () => '1 day ago',
 }));
 
 const mockRuns: PipelineRun[] = [
@@ -73,14 +74,17 @@ describe('AutomlRunsTable', () => {
 
   it('should render table with runs', () => {
     render(
-      <AutomlRunsTable
-        runs={mockRuns}
-        totalSize={defaultPaginationProps.totalSize}
-        page={defaultPaginationProps.page}
-        pageSize={defaultPaginationProps.pageSize}
-        onPageChange={defaultPaginationProps.onPageChange}
-        onPerPageChange={defaultPaginationProps.onPerPageChange}
-      />,
+      <MemoryRouter>
+        <AutomlRunsTable
+          runs={mockRuns}
+          namespace="test-ns"
+          totalSize={defaultPaginationProps.totalSize}
+          page={defaultPaginationProps.page}
+          pageSize={defaultPaginationProps.pageSize}
+          onPageChange={defaultPaginationProps.onPageChange}
+          onPerPageChange={defaultPaginationProps.onPerPageChange}
+        />
+      </MemoryRouter>,
     );
 
     expect(screen.getByTestId('automl-runs-table')).toBeInTheDocument();
@@ -88,14 +92,17 @@ describe('AutomlRunsTable', () => {
 
   it('should render run names', () => {
     render(
-      <AutomlRunsTable
-        runs={mockRuns}
-        totalSize={defaultPaginationProps.totalSize}
-        page={defaultPaginationProps.page}
-        pageSize={defaultPaginationProps.pageSize}
-        onPageChange={defaultPaginationProps.onPageChange}
-        onPerPageChange={defaultPaginationProps.onPerPageChange}
-      />,
+      <MemoryRouter>
+        <AutomlRunsTable
+          runs={mockRuns}
+          namespace="test-ns"
+          totalSize={defaultPaginationProps.totalSize}
+          page={defaultPaginationProps.page}
+          pageSize={defaultPaginationProps.pageSize}
+          onPageChange={defaultPaginationProps.onPageChange}
+          onPerPageChange={defaultPaginationProps.onPerPageChange}
+        />
+      </MemoryRouter>,
     );
 
     expect(screen.getByTestId('run-name-r1')).toHaveTextContent('Run One');
@@ -106,6 +113,7 @@ describe('AutomlRunsTable', () => {
     render(
       <AutomlRunsTable
         runs={[]}
+        namespace="test-ns"
         totalSize={0}
         page={1}
         pageSize={20}
@@ -121,16 +129,20 @@ describe('AutomlRunsTable', () => {
 
   it('should render Started column with relative time', () => {
     render(
-      <AutomlRunsTable
-        runs={mockRuns}
-        totalSize={defaultPaginationProps.totalSize}
-        page={defaultPaginationProps.page}
-        pageSize={defaultPaginationProps.pageSize}
-        onPageChange={defaultPaginationProps.onPageChange}
-        onPerPageChange={defaultPaginationProps.onPerPageChange}
-      />,
+      <MemoryRouter>
+        <AutomlRunsTable
+          runs={mockRuns}
+          namespace="test-ns"
+          totalSize={defaultPaginationProps.totalSize}
+          page={defaultPaginationProps.page}
+          pageSize={defaultPaginationProps.pageSize}
+          onPageChange={defaultPaginationProps.onPageChange}
+          onPerPageChange={defaultPaginationProps.onPerPageChange}
+        />
+      </MemoryRouter>,
     );
 
+    // The mock relativeTime function returns '1 day ago'
     const relativeTimeElements = screen.getAllByText('1 day ago');
     expect(relativeTimeElements.length).toBeGreaterThan(0);
   });
