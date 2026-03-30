@@ -46,11 +46,13 @@ const CompareRunsRunList: React.FC = () => {
     const startedTime = getDataValue(filterData[FilterOptions.CREATED_AT]);
     const startedDate = startedTime && new Date(startedTime);
     const state = getDataValue(filterData[FilterOptions.STATUS])?.toLowerCase();
-    const runGroupFilter = getDataValue(filterData[FilterOptions.RUN_GROUP])?.toLowerCase();
+    const runGroupFilter = experiment
+      ? undefined
+      : getDataValue(filterData[FilterOptions.RUN_GROUP])?.toLowerCase();
     const pipelineVersionId = getDataValue(filterData[FilterOptions.PIPELINE_VERSION]);
-    const mlflowExperimentFilter = getDataValue(
-      filterData[FilterOptions.MLFLOW_EXPERIMENT],
-    )?.toLowerCase();
+    const mlflowExperimentFilter = isMlflowAvailable
+      ? getDataValue(filterData[FilterOptions.MLFLOW_EXPERIMENT])?.toLowerCase()
+      : undefined;
 
     const matchingRunGroups = runGroupFilter
       ? new Set(
@@ -82,7 +84,7 @@ const CompareRunsRunList: React.FC = () => {
         mlflowExperimentMatch
       );
     });
-  }, [runs, filterData, allExperiments]);
+  }, [runs, filterData, allExperiments, experiment, isMlflowAvailable]);
 
   const manageRunsHref = manageCompareRunsRoute(
     namespace,

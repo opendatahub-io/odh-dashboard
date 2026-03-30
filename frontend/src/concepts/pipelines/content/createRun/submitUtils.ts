@@ -66,12 +66,16 @@ const getPreferredRunGroupExperiment = (experiments: ExperimentKF[]): Experiment
 const findOrCreateRunGroupExperiment = async (
   runGroupName: string,
   api: PipelineAPIs,
-): Promise<ExperimentKF> => {
+  dryRun = false,
+): Promise<ExperimentKF | null> => {
   const trimmed = runGroupName.trim();
   const experiments = await listRunGroupExperiments(trimmed, api);
   const preferredExperiment = getPreferredRunGroupExperiment(experiments);
   if (preferredExperiment) {
     return preferredExperiment;
+  }
+  if (dryRun) {
+    return null;
   }
 
   // eslint-disable-next-line camelcase
@@ -103,9 +107,10 @@ const resolveRunFormContext = async (
   formData: SafeRunFormData,
   api: PipelineAPIs,
   isMlflowAvailable: boolean,
+  dryRun = false,
 ) => {
   const runGroupExperiment = formData.runGroup.trim()
-    ? await findOrCreateRunGroupExperiment(formData.runGroup, api)
+    ? await findOrCreateRunGroupExperiment(formData.runGroup, api, dryRun)
     : null;
 
   const pluginsInput = buildMlflowPluginsInput(formData.mlflow, isMlflowAvailable);
@@ -123,6 +128,7 @@ const createRun = async (
     formData,
     api,
     isMlflowAvailable,
+    dryRun,
   );
 
   if (runGroupExperiment?.storage_state === StorageStateKF.ARCHIVED) {
@@ -175,6 +181,7 @@ const createRecurringRun = async (
     formData,
     api,
     isMlflowAvailable,
+    dryRun,
   );
   const startDate = convertDateDataToKFDateTime(formData.runType.data.start) ?? undefined;
   const endDate = convertDateDataToKFDateTime(formData.runType.data.end) ?? undefined;
@@ -239,7 +246,7 @@ const isMissingRequiredMlflowExperiment = (
 export const handleSubmit = (
   formData: RunFormData,
   api: PipelineAPIs,
-  isMlflowAvailable = false,
+  isMlflowAvailable: boolean,
 ): Promise<PipelineRunKF | PipelineRecurringRunKF> => {
   if (isMissingRequiredMlflowExperiment(formData.mlflow, isMlflowAvailable)) {
     return Promise.reject(

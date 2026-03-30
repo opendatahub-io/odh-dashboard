@@ -294,7 +294,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
                         if (!isFilledRunFormData(runFormDataWithParams)) {
                           throw new Error('Form data was incomplete.');
                         }
-                        await handleSubmit(runFormDataWithParams, api)
+                        await handleSubmit(runFormDataWithParams, api, false)
                           .then((run) => {
                             afterSubmit(run);
                             setIsSubmitting(false);

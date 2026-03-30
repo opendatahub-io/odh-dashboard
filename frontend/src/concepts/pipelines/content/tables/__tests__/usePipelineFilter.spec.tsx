@@ -423,10 +423,23 @@ describe('usePipelineFilterSearchParams', () => {
       });
     });
 
-    it('should fall back to raw value when run group matches no experiments', () => {
+    it('should produce no experiment predicate when run group matches no experiments', () => {
       const setFilterMock = jest.fn();
       renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
         wrapper: wrapperWithExperiments('/?run_group=NoMatch'),
+      });
+
+      jest.runAllTimers();
+
+      const lastCall = setFilterMock.mock.calls[setFilterMock.mock.calls.length - 1][0];
+      const predicateKeys = (lastCall?.predicates ?? []).map((p: { key: string }) => p.key);
+      expect(predicateKeys).not.toContain('experiment_id');
+    });
+
+    it('should use exact experiment ID for legacy ?experiment= deep links', () => {
+      const setFilterMock = jest.fn();
+      renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
+        wrapper: wrapperWithExperiments('/?experiment=exp-alpha'),
       });
 
       jest.runAllTimers();
@@ -436,7 +449,7 @@ describe('usePipelineFilterSearchParams', () => {
           {
             key: 'experiment_id',
             operation: PipelinesFilterOp.EQUALS,
-            string_value: 'NoMatch',
+            string_value: 'exp-alpha',
           },
         ]),
       });

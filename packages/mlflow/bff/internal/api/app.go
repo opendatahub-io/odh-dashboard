@@ -190,6 +190,8 @@ func sanitizeURL(rawURL string) string {
 		return "<invalid-url>"
 	}
 	parsed.User = nil
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
 	return parsed.String()
 }
 
