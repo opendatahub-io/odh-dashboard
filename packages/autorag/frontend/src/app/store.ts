@@ -8,7 +8,7 @@ export interface AppNotificationAction {
 }
 
 export interface AppNotification {
-  id: number;
+  id: string;
   status: AlertVariant;
   title: string;
   message?: React.ReactNode;
@@ -20,10 +20,8 @@ export interface AppNotification {
 interface StoreState {
   notifications: AppNotification[];
   addNotification: (notification: Omit<AppNotification, 'id'>) => void;
-  removeNotification: (notificationId: number) => void;
+  removeNotification: (notificationId: string) => void;
 }
-
-let notificationCount = 0;
 
 export const useStore = create<StoreState>((set) => ({
   notifications: [],
@@ -33,7 +31,7 @@ export const useStore = create<StoreState>((set) => ({
         ...state.notifications,
         {
           ...notification,
-          id: ++notificationCount,
+          id: globalThis.crypto.randomUUID(),
         },
       ],
     })),

@@ -35,7 +35,6 @@ type SecretSelectorProps = Omit<
   type?: 'storage' | 'lls';
   value?: string; // The UUID of the selected secret
   onChange: (selection: SecretSelection | undefined) => void;
-  label?: string;
   /**
    * Additional keys that must be present in the secret for this specific use case.
    * These are beyond the keys required for secret type classification (handled by the BFF).
@@ -126,7 +125,6 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
 
     // If secrets list becomes empty, clear the selection
     if (secretsList.length === 0) {
-      onChange(undefined);
       setValidationError('');
       return;
     }

@@ -211,7 +211,6 @@ function AutoragConfigure(): React.JSX.Element {
                                   onRefreshReady={(refresh) => {
                                     secretsRefreshRef.current = refresh;
                                   }}
-                                  label="S3 connection"
                                   placeholder="Select connection"
                                   toggleWidth="16rem"
                                   dataTestId="aws-secret-selector"

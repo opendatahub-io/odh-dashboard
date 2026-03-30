@@ -15,7 +15,7 @@ type NotificationProps = (
   actions?: AppNotificationAction[],
 ) => void;
 
-type NotificationRemoveProps = (id: number | undefined) => void;
+type NotificationRemoveProps = (id: string | undefined) => void;
 
 type NotificationTypeFunc = {
   [key in NotificationTypes]: NotificationProps;

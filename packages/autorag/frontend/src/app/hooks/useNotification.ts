@@ -1,5 +1,5 @@
-import React from 'react';
 import { AlertVariant } from '@patternfly/react-core';
+import React from 'react';
 import { AppNotificationAction, useStore } from '~/app/store';
 
 enum NotificationTypes {
@@ -15,7 +15,7 @@ type NotificationProps = (
   actions?: AppNotificationAction[],
 ) => void;
 
-type NotificationRemoveProps = (id: number | undefined) => void;
+type NotificationRemoveProps = (id: string | undefined) => void;
 
 type NotificationTypeFunc = {
   [key in NotificationTypes]: NotificationProps;
