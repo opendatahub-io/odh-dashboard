@@ -34,6 +34,8 @@ export const IMAGE_ANNOTATIONS = {
   OUTDATED: 'opendatahub.io/image-tag-outdated',
 };
 
+export const MANAGED_PIPELINES_REPO_LATEST = 'quay.io/opendatahub/odh-pipelines-components:latest';
+
 /**
  * Our defaults for our app. Foundation for anything defined in the OdhDashboardConfig yaml on cluster.
  * @see odhdashboardconfig.yaml
@@ -111,6 +113,9 @@ export const blankDashboardCR: DashboardConfig = {
         externalProviders: false,
         clusterDomains: [],
       },
+    },
+    pipelinesConfig: {
+      managedPipelinesImage: MANAGED_PIPELINES_REPO_LATEST,
     },
     // templateDisablement: [], Don't create this field, will be used in migration
   },

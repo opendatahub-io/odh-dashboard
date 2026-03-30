@@ -1,5 +1,6 @@
 import { mockDataSciencePipelineApplicationK8sResource } from '#~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { deleteSecret, getPipelinesCR } from '#~/api';
+import { MANAGED_PIPELINES_REPO_LATEST } from '#~/concepts/pipelines/const';
 import { DSPA_SECRET_NAME } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
 import { PipelineServerConfigType } from '#~/concepts/pipelines/content/configurePipelinesServer/types';
 import { createDSPipelineResourceSpec } from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
@@ -125,7 +126,7 @@ describe('configure pipeline server utils', () => {
           enableSamplePipeline: false,
           cacheEnabled: true,
           managedPipelines: {
-            image: 'quay.io/opendatahub/odh-pipelines-components:latest',
+            image: MANAGED_PIPELINES_REPO_LATEST,
           },
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },

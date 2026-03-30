@@ -21,6 +21,8 @@ import { ExternalDatabaseSecret } from '#~/concepts/pipelines/content/configureP
 import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
 import { updatePipelineSettings } from '#~/api/pipelines/k8s';
 import useNotification from '#~/utilities/useNotification';
+import { useAppContext } from '#~/app/AppContext';
+import { MANAGED_PIPELINES_REPO_LATEST } from '#~/concepts/pipelines/const';
 import PipelineKubernetesStoreCheckbox from './PipelineKubernetesStoreCheckbox';
 import { MANAGE_PIPELINE_SERVER_TITLE } from './const';
 import { PipelineCachingSection } from './configurePipelinesServer/PipelineCachingSection';
@@ -36,6 +38,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   pipelineNamespaceCR,
 }) => {
   const { namespace } = usePipelinesAPI();
+  const { dashboardConfig } = useAppContext();
   const notification = useNotification();
   const [pipelineResult] = useNamespaceSecret(
     namespace,
@@ -84,9 +87,13 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
     }
 
     if (enableManagedPipelines !== initManagedPipelinesEnabled) {
+      const managedPipelinesImage =
+        dashboardConfig.spec.pipelinesConfig?.managedPipelinesImage ||
+        MANAGED_PIPELINES_REPO_LATEST;
+
       settings.managedPipelines = enableManagedPipelines
         ? {
-            image: 'quay.io/opendatahub/odh-pipelines-components:latest',
+            image: managedPipelinesImage,
           }
         : undefined;
     }
