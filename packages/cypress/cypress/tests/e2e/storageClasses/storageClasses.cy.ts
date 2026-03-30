@@ -1,4 +1,3 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
   AccessMode,
   StorageProvisioner,
@@ -172,8 +171,8 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
   );
 
   it(
-    'An admin user can edit the access mode of a storage class',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@StorageClassesCI'] },
+    '[Product Bug: RHOAIENG-34808] An admin user can edit the access mode of a storage class',
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@StorageClassesCI', '@Bug'] },
     () => {
       cy.step('Navigate to Storage Classes view');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
