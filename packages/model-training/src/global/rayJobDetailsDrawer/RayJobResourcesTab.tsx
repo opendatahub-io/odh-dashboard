@@ -106,18 +106,20 @@ const RayJobResourcesTab: React.FC<RayJobResourcesTabProps> = ({
           <DescriptionListGroup>
             <DescriptionListTerm style={{ fontWeight: 'normal' }}>Nodes</DescriptionListTerm>
             <DescriptionListDescription data-testid="nodes-value">
-              <Button
-                variant="link"
-                isInline
-                icon={canScaleNodes ? <PencilAltIcon /> : undefined}
-                iconPosition="end"
-                style={{ fontSize: 'inherit', padding: 0 }}
-                isDisabled={!canScaleNodes}
-                onClick={onScaleNodes}
-                data-testid="nodes-edit-button"
-              >
-                {nodeCount || '-'}
-              </Button>
+            {canScaleNodes ? (
+                <Button
+                  variant="link"
+                  isInline
+                  icon={<PencilAltIcon />}
+                  iconPosition="end"
+                  onClick={onScaleNodes}
+                  data-testid="nodes-edit-button"
+                >
+                  {nodeCount || '-'}
+                </Button>
+              ) : (
+                nodeCount || '-'
+              )}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
