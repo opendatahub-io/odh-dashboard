@@ -61,7 +61,11 @@ function AutomlConfigurePage(): React.JSX.Element {
   const createActions = (
     <>
       <ActionListItem>
-        <Button type="submit" variant="primary" isDisabled={!displayName}>
+        <Button
+          type="submit"
+          variant="primary"
+          isDisabled={!configureSchema.base.shape.display_name.safeParse(displayName).success}
+        >
           Next
         </Button>
       </ActionListItem>

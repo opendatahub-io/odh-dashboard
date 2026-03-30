@@ -63,7 +63,15 @@ function AutoragConfigurePage(): React.JSX.Element {
   const createActions = (
     <>
       <ActionListItem>
-        <Button type="submit" variant="primary" isDisabled={!displayName || !llamaStackSecretName}>
+        <Button
+          type="submit"
+          variant="primary"
+          isDisabled={
+            !configureSchema.base.shape.display_name.safeParse(displayName).success ||
+            !configureSchema.base.shape.llama_stack_secret_name.safeParse(llamaStackSecretName)
+              .success
+          }
+        >
           Next
         </Button>
       </ActionListItem>
