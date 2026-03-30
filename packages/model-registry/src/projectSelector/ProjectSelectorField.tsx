@@ -48,6 +48,8 @@ const ProjectSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
   hasAccess,
   isLoading,
   error,
+  cannotCheck,
+  registryName,
 }) => {
   const labelHelpRef = useRef<HTMLSpanElement>(null);
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
@@ -102,6 +104,18 @@ const ProjectSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
           data-testid="namespace-registry-access-alert"
           className="pf-v6-u-mt-sm"
         />
+      )}
+      {selectedNamespace && !isLoading && cannotCheck && (
+        <Alert
+          isInline
+          variant="info"
+          title="Cannot check registry access with your permissions"
+          data-testid="namespace-registry-cannot-check-alert"
+          className="pf-v6-u-mt-sm"
+        >
+          Make sure this project has access to the {registryName} registry before proceeding, or the
+          model storage job will fail.
+        </Alert>
       )}
       {error && (
         <Alert

@@ -1,20 +1,8 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
+import type { NamespaceSelectorFieldProps } from '~/concepts/k8s/NamespaceSelectorField/NamespaceSelectorField';
 
-/**
- * Props contract for the namespace/project selector extension point.
- * Implementations must accept these props to be compatible with the
- * Register and Store form's namespace selection flow.
- */
-export type NamespaceSelectorFieldProps = {
-  selectedNamespace: string;
-  onSelect: (namespace: string) => void;
-  hasAccess?: boolean | undefined;
-  isLoading?: boolean;
-  error?: Error | undefined;
-  cannotCheck?: boolean;
-  registryName?: string;
-};
+export type { NamespaceSelectorFieldProps };
 
 /**
  * Extension point for providing a custom namespace/project selector component.
