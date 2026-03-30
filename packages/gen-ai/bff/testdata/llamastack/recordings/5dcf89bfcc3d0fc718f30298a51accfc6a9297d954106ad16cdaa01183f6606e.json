@@ -1,0 +1,197 @@
+{
+  "test_id": "bff/testdata/llamastack/test.py::record",
+  "request": {
+    "method": "POST",
+    "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "models/gemini-2.5-flash",
+      "messages": [
+        {
+          "role": "user",
+          "content": "First message in conversation"
+        },
+        {
+          "role": "assistant",
+          "content": "The \"best\" first message depends entirely on the **context, your relationship with the person, and your goal** for the conversation.\n\nHere are various options based on common scenarios:\n\n---\n\n### General / Casual Greetings (Text, DM, or In-Person with someone you know a little)\n\n1.  **Simple & Friendly:**\n    *   \"Hey! How's your week going?\"\n    *   \"Hi [Name], what's up?\"\n    *   \"Hello! Long time no talk!\" (If it's been a while)\n\n2.  **Observation / Shared Context:**\n    *   \"Rough commute today, huh?\" (If in person, referring to a shared experience)\n    *   \"Enjoying the [event/party]?\"\n    *   \"This coffee is amazing, have you tried it?\"\n\n---\n\n### Reaching Out to Someone You Haven't Talked to in a While\n\n1.  **Recalling a Memory/Reason:**\n    *   \"Hey [Name], I was just thinking about you because [X happened / I saw Y] and wanted to say hi!\"\n    *   \"Hi [Name], it's been a while! How have you been?\"\n    *   \"Hey! Saw your post about [topic] and it reminded me of [our old memory/shared interest]. Hope you're doing well!\"\n\n---\n\n### Professional / Networking (Email, LinkedIn, or Formal Setting)\n\n1.  **Introduction & Context (if they don't know you):**\n    *   \"Dear [Name], My name is [Your Name], and I'm reaching out because [reason - e.g., I saw your profile on LinkedIn / I was referred by X / I'm interested in Y].\"\n    *   \"Hello [Name], I hope this email finds you well. I'm writing to you today regarding [specific topic].\"\n\n2.  **Follow-up After Meeting:**\n    *   \"Hi [Name], it was great meeting you at [event/meeting] today. I really enjoyed our conversation about [topic].\"\n    *   \"Good morning [Name], I wanted to follow up on our discussion yesterday about [project/idea].\"\n\n---\n\n### Dating App / Online Dating\n\n1.  **Reference Their Profile (Best Approach):**\n    *   \"Hey [Name], I loved your photo from [place/activity]! What was that like?\"\n    *   \"Your bio mentioned [interest] \u2013 I'm a big fan too! What's your favorite [thing related to interest]?\"\n    *   \"Your dog is adorable! What's their name?\"\n    *   \"That's a great taste in [music/movies/books] you have. Any recommendations lately?\"\n\n2.  **Open-Ended Question (If profile is sparse):**\n    *   \"Hi [Name], what's the most interesting thing you've done recently?\"\n    *   \"Hey! What's something that always makes you laugh?\"\n\n3.  **Lighthearted/Humorous (Use with caution, know your audience):**\n    *   \"Okay, I'm terrible at opening lines, so here's a terrible one: [insert a cheesy joke or self-deprecating comment]. How's it going?\"\n\n---\n\n### Asking for Help / Information\n\n1.  **Polite & Direct:**\n    *   \"Excuse me, do you know where [place] is?\" (In-person)\n    *   \"Hi [Name], I was hoping you could help me with something. Do you have a moment?\"\n    *   \"Hello [Name], I'm trying to figure out [problem] and was wondering if you had any insights?\"\n\n---\n\n### When to Keep it Simple\n\nSometimes, especially with someone you already know well or are messaging casually:\n\n*   \"Hey!\"\n*   \"What's up?\"\n*   \"Good morning!\"\n\n---\n\n**Always Remember:**\n\n*   **Be genuine.**\n*   **Be specific** if you have a reason for messaging.\n*   **Ask an open-ended question** to encourage a response.\n*   **Keep it concise.**\n*   **Proofread.**\n*   **Consider the platform** (e.g., text vs. email).\n\nChoose the one that best fits your specific situation!"
+        },
+        {
+          "role": "user",
+          "content": "Continue our conversation"
+        }
+      ],
+      "stream": true,
+      "stream_options": {
+        "include_usage": true
+      }
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "models/gemini-2.5-flash"
+  },
+  "response": {
+    "body": [
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-5dcf89bfcc3d",
+          "choices": [
+            {
+              "delta": {
+                "content": "Okay, I'd be happy to! To continue our conversation effectively, I need a little more information from you.\n\nBased",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 26,
+            "prompt_tokens": 953,
+            "total_tokens": 1168,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-5dcf89bfcc3d",
+          "choices": [
+            {
+              "delta": {
+                "content": " on the first message options I provided, what are you looking to do next? For example:\n\n*   **Do you want to discuss a specific type of first message in more detail?** (e.g., \"Tell me more about the",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 76,
+            "prompt_tokens": 953,
+            "total_tokens": 1218,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-5dcf89bfcc3d",
+          "choices": [
+            {
+              "delta": {
+                "content": " dating app examples.\")\n*   **Do you have a particular scenario in mind** where you need help crafting an *actual* first message? (e.g., \"I need to message a colleague I haven't talked to in a year",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 126,
+            "prompt_tokens": 953,
+            "total_tokens": 1268,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-5dcf89bfcc3d",
+          "choices": [
+            {
+              "delta": {
+                "content": " to ask a work question.\")\n*   **Are you looking for advice on how to respond** to a first message you *received*?\n*   **Do you have a general question** about starting conversations?\n\nTell me what",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 174,
+            "prompt_tokens": 953,
+            "total_tokens": 1316,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-5dcf89bfcc3d",
+          "choices": [
+            {
+              "delta": {
+                "content": "'s on your mind, and we can go from there!",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": "stop",
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 187,
+            "prompt_tokens": 953,
+            "total_tokens": 1329,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      }
+    ],
+    "is_streaming": true
+  },
+  "id_normalization_mapping": {}
+}
