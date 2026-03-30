@@ -1,5 +1,5 @@
 [Guidelines]: ../../../docs/guidelines.md
-[BOOKMARKS]: ../../../docs/BOOKMARKS.md
+[BOOKMARKS]: ../../../BOOKMARKS.md
 [Backend Overview]: ../../../backend/docs/overview.md
 [Module Federation Docs]: ../../../docs/module-federation.md
 [MLflow Overview]: ../../mlflow/docs/overview.md
@@ -10,7 +10,7 @@
 
 # MaaS
 
-**Last Updated**: 2026-03-09 | **Template**: package-template v1
+**Last Updated**: 2026-03-30 | **Template**: package-template v1
 
 ## Overview
 
@@ -33,7 +33,7 @@ package is production-ready and ships with a Go BFF and a React frontend.
   enabled; uses Material UI theme. Best for isolated local development.
 - **Kubeflow**: BFF connects to a live Kubeflow cluster on port 8085; uses Material UI theme.
   Namespace selection is managed by Kubeflow.
-- **Federated**: BFF starts on port 4020 with `AUTH_METHOD=user_token`; frontend starts on
+- **Federated**: BFF starts on port 8081 with `AUTH_METHOD=user_token`; frontend starts on
   port 9104 with PatternFly theme. Requires the main ODH Dashboard also running.
 
 > **Note**: Kubeflow and Standalone modes both use Material UI (`STYLE_THEME=mui-theme`).

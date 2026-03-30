@@ -1,5 +1,5 @@
 [Guidelines]: ../../../docs/guidelines.md
-[BOOKMARKS]: ../../../docs/BOOKMARKS.md
+[BOOKMARKS]: ../../../BOOKMARKS.md
 [Backend Overview]: ../../../backend/docs/overview.md
 [Module Federation Docs]: ../../../docs/module-federation.md
 [LLMd Serving Package]: ../../llmd-serving/docs/overview.md

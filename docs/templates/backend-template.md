@@ -1,5 +1,5 @@
 [Guidelines]: ../guidelines.md
-[BOOKMARKS]: ../BOOKMARKS.md
+[BOOKMARKS]: ../../BOOKMARKS.md
 [Architecture]: ../architecture.md
 
 # [Module / Topic Name]

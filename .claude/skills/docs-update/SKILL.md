@@ -8,7 +8,7 @@ It identifies which docs are affected and updates them to conform to `docs/guide
 ## Prerequisites
 
 - `docs/guidelines.md` — authoritative style and structure guide
-- `docs/BOOKMARKS.md` — indexes frontend area docs, backend docs, and package docs (not all docs in the repo)
+- `BOOKMARKS.md` — indexes frontend area docs, backend docs, and package docs (not all docs in the repo)
 
 ## Inputs
 
@@ -38,7 +38,7 @@ Combined examples:
 ```
 
 If `$ARGUMENTS` has no flags and is empty, default to `HEAD` (all uncommitted staged +
-unstaged changes).
+unstaged changes, plus new untracked files).
 If the positional part is not a valid git reference, treat it as a description and ask the
 user which files or areas changed, or inspect recent commits to determine scope.
 
@@ -51,7 +51,7 @@ Use this path when `--no-cache` is present in `$ARGUMENTS`.
 1. **Determine target docs**
    - If a scope filter follows `--no-cache` (path or keyword), resolve it to the matching
      doc(s) using the mapping table in step B-2.
-   - If no scope filter is given, collect every doc listed in `docs/BOOKMARKS.md` (frontend areas, backend, and packages).
+   - If no scope filter is given, collect every doc listed in `BOOKMARKS.md` (frontend areas, backend, and packages).
 
 2. **Read `docs/guidelines.md`** for style rules.
 
@@ -102,7 +102,7 @@ Use this path when `--no-cache` is **not** present.
 2. **Map changed files to affected docs**
    A code change can affect multiple doc types. Check each category:
 
-   **Template-based overview docs** (check `docs/BOOKMARKS.md` for the index of frontend area, backend, and package docs):
+   **Template-based overview docs** (check `BOOKMARKS.md` for the index of frontend area, backend, and package docs):
    - `frontend/src/pages/pipelines/**` → `frontend/docs/pipelines.md`
    - `frontend/src/pages/notebookController/**` → `frontend/docs/workbenches.md`
    - `frontend/src/pages/projects/**` → `frontend/docs/projects.md`
@@ -118,12 +118,12 @@ Use this path when `--no-cache` is **not** present.
      `local-deployment-guide.md`, `frontend/docs/dev-setup.md`, or `docs/dev-setup.md`
    - Changes to BFF handlers or OpenAPI specs → check `packages/<name>/bff/docs/` and
      any related ADRs in `packages/<name>/docs/adr/`
-   - Changes to test frameworks or patterns → check `docs/agent-rules/` and `docs/testing.md`
+   - Changes to test frameworks or patterns → check `.claude/rules/` and `docs/testing.md`
    - Changes to webpack/Module Federation config → check `docs/module-federation.md`
    - Changes to auth or middleware → check `docs/architecture.md`
    - Changes to a package's README-documented behavior → check `packages/<name>/README.md`
 
-   If no mapping is obvious, search `docs/BOOKMARKS.md` (for indexed docs) and nearby READMEs for references to the changed files.
+   If no mapping is obvious, search `BOOKMARKS.md` (for indexed docs) and nearby READMEs for references to the changed files.
 
 3. **Read each affected doc**.
    If the doc was created from a template, also read the applicable template

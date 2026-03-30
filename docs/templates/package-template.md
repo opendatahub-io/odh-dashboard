@@ -1,5 +1,5 @@
 [Guidelines]: ../guidelines.md
-[BOOKMARKS]: ../BOOKMARKS.md
+[BOOKMARKS]: ../../BOOKMARKS.md
 [Backend Overview]: ../../backend/docs/overview.md
 [Module Federation Docs]: ../module-federation.md
 
@@ -149,7 +149,7 @@ npm run test:contract
 ```
 
 Validates frontend HTTP expectations against the BFF's OpenAPI schema.
-Framework: `@odh-dashboard/contract-tests`. See [docs/agent-rules/contract-tests.md](../../docs/agent-rules/contract-tests.md).
+Framework: `@odh-dashboard/contract-tests`. See [.claude/rules/contract-tests.md](../../.claude/rules/contract-tests.md).
 
 ### Frontend Unit Tests
 

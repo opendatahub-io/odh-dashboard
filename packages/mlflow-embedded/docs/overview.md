@@ -1,8 +1,8 @@
-[Guidelines]: ../../docs/guidelines.md
-[BOOKMARKS]: ../../docs/BOOKMARKS.md
-[Backend Overview]: ../../backend/docs/overview.md
-[Module Federation Docs]: ../../docs/module-federation.md
-[MLflow Package]: ../mlflow/docs/overview.md
+[Guidelines]: ../../../docs/guidelines.md
+[BOOKMARKS]: ../../../BOOKMARKS.md
+[Backend Overview]: ../../../backend/docs/overview.md
+[Module Federation Docs]: ../../../docs/module-federation.md
+[MLflow Package]: ../../mlflow/docs/overview.md
 
 # MLflow Embedded
 

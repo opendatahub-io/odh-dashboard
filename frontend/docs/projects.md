@@ -1,6 +1,6 @@
 [Guidelines]: ../../docs/guidelines.md
 [Architecture]: ../../docs/architecture.md
-[BOOKMARKS]: ../../docs/BOOKMARKS.md
+[BOOKMARKS]: ../../BOOKMARKS.md
 [Backend Overview]: ../../backend/docs/overview.md
 [ProjectsContext]: ../src/concepts/projects/ProjectsContext.tsx
 [ProjectDetailsContext]: ../src/pages/projects/ProjectDetailsContext.tsx

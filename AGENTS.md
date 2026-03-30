@@ -71,7 +71,7 @@ npm run type-check
 
 ## Documentation
 
-**[docs/BOOKMARKS.md](docs/BOOKMARKS.md)** indexes key documentation for frontend areas, the backend, and packages. Review relevant docs for the area you are working on before starting a task.
+**[BOOKMARKS.md](BOOKMARKS.md)** indexes key documentation for frontend areas, the backend, and packages. Review relevant docs for the area you are working on before starting a task.
 
 ## Package-Specific Guidelines
 
@@ -109,6 +109,9 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | Skill                              | Directory                              | Use when                                                                       |
 | ---------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
 | **Dev Workflow**                   | `skills/dev-workflow/`                 | Implementing a feature, fix, or refactor — runs lint, type-check, tests, and optional browser verification |
+| **Docs Create**                    | `skills/docs-create/`                  | Creating a new documentation file from a description                           |
+| **Docs Create Package**            | `skills/docs-create-package/`          | Scaffolding a package doc and registering it in BOOKMARKS.md                   |
+| **Docs Update**                    | `skills/docs-update/`                  | Updating existing docs after code changes                                      |
 | **Upstream Sync Status**           | `skills/upstream-sync-status/`         | Checking whether a package's upstream copy is up to date (pass package name or be prompted) |
 | **Upstream Sync**                  | `skills/upstream-sync/`                | Syncing upstream changes for a package and opening a PR (pass package name or be prompted)  |
 

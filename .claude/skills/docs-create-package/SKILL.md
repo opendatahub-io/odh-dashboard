@@ -3,7 +3,7 @@
 ## Purpose
 
 Use this skill to scaffold a complete package doc for any package under `packages/` and
-automatically register it in `docs/BOOKMARKS.md`. Use this when adding a new package or when
+automatically register it in `BOOKMARKS.md`. Use this when adding a new package or when
 a package needs its first structured doc.
 
 ## Prerequisites
@@ -12,7 +12,7 @@ The following files must exist before invoking this skill:
 
 - `docs/guidelines.md` — authoritative style and structure guide
 - `docs/templates/package-template.md` — the package doc template
-- `docs/BOOKMARKS.md` — will be updated automatically by this skill
+- `BOOKMARKS.md` — will be updated automatically by this skill
 
 ## Inputs
 
@@ -67,7 +67,7 @@ $ARGUMENTS — the package name (directory name under packages/). Examples:
    - Set `Last Updated` to today's date
    - Keep under 500 lines
 
-10. **Update `docs/BOOKMARKS.md`** — append to the correct section:
+10. **Update `BOOKMARKS.md`** — append to the correct section:
     - Full-doc package → add to **Packages > Full Docs**:
       ```markdown
       | [Package Name](../packages/$ARGUMENTS/docs/overview.md) | One-line description |
@@ -81,4 +81,4 @@ $ARGUMENTS — the package name (directory name under packages/). Examples:
 ## Output
 
 - `packages/$ARGUMENTS/docs/overview.md` — fully-populated package doc (full-doc packages only)
-- `docs/BOOKMARKS.md` — updated with the new entry
+- `BOOKMARKS.md` — updated with the new entry

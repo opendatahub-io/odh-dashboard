@@ -1,5 +1,5 @@
 [Guidelines]: ../../../docs/guidelines.md
-[BOOKMARKS]: ../../../docs/BOOKMARKS.md
+[BOOKMARKS]: ../../../BOOKMARKS.md
 [Backend Overview]: ../../../backend/docs/overview.md
 [Module Federation Docs]: ../../../docs/module-federation.md
 [Model Serving]: ../../model-serving/docs/overview.md
@@ -7,7 +7,7 @@
 
 # Model Registry
 
-**Last Updated**: 2026-03-09 | **Template**: package-template v1
+**Last Updated**: 2026-03-30 | **Template**: package-template v1
 
 ## Overview
 
@@ -239,7 +239,7 @@ All variables are read by the BFF at startup. The upstream Makefile passes them 
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|---------|
-| `PORT` | BFF HTTP listen port | `8080` | No |
+| `PORT` | BFF HTTP listen port | `4000` (Go binary defaults to 8080; every Makefile target overrides to 4000) | No |
 | `DEPLOYMENT_MODE` | `standalone`, `kubeflow`, or `federated` | `kubeflow` | No |
 | `DEV_MODE` | Enable dev-mode cluster access (local kubeconfig) | `false` | No |
 | `DEV_MODE_MODEL_REGISTRY_PORT` | Port for local Model Registry service in dev mode | `8080` | No |

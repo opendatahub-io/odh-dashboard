@@ -1,7 +1,7 @@
 # Create a New Doc from a Prompt
 
 When asked to create new documentation, read and follow the full workflow in
-`docs/skills/create-doc.md`.
+`.claude/skills/docs-create/SKILL.md`.
 
 ## Quick Reference
 
@@ -11,6 +11,6 @@ When asked to create new documentation, read and follow the full workflow in
   directory. All other types: follow `docs/guidelines.md` directly.
 - **Research** the subject by reading relevant source files before writing.
 - **Determine the output path** by doc type (e.g., `frontend/docs/<area>.md`,
-  `packages/<name>/docs/overview.md`, `docs/agent-rules/<rule>.md`).
+  `packages/<name>/docs/overview.md`, `.claude/rules/<rule>.md`).
 - No placeholder text (`TODO`, `TBD`, `[Description]`) may remain in the final doc.
 - Set `Last Updated` to today's date for doc types that use it.

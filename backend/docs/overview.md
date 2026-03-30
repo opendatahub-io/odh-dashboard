@@ -1,6 +1,6 @@
 [Guidelines]: ../../docs/guidelines.md
 [Architecture]: ../../docs/architecture.md
-[BOOKMARKS]: ../../docs/BOOKMARKS.md
+[BOOKMARKS]: ../../BOOKMARKS.md
 [Env Vars]: ../../docs/dashboard-environment-variables.md
 [SDK tidbits]: ../../docs/SDK.md
 

@@ -1,5 +1,5 @@
 [Guidelines]: ../../../docs/guidelines.md
-[BOOKMARKS]: ../../../docs/BOOKMARKS.md
+[BOOKMARKS]: ../../../BOOKMARKS.md
 [Backend Overview]: ../../../backend/docs/overview.md
 [Model Serving Overview]: ../../model-serving/docs/overview.md
 [Model Registry Overview]: ../../model-registry/docs/overview.md

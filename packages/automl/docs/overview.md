@@ -1,5 +1,5 @@
 [Guidelines]: ../../../docs/guidelines.md
-[BOOKMARKS]: ../../../docs/BOOKMARKS.md
+[BOOKMARKS]: ../../../BOOKMARKS.md
 [Backend Overview]: ../../../backend/docs/overview.md
 [Module Federation Docs]: ../../../docs/module-federation.md
 [AutoRAG Overview]: ../../autorag/docs/overview.md
@@ -10,7 +10,7 @@
 
 # AutoML
 
-**Last Updated**: 2026-03-09 | **Template**: package-template v1
+**Last Updated**: 2026-03-30 | **Template**: package-template v1
 
 ## Overview
 
@@ -26,8 +26,8 @@ functional BFF infrastructure and placeholder frontend UI.
 
 | Mode | How to start | Access URL |
 |------|-------------|-----------|
-| Standalone | `make dev-start` | `http://localhost:9000` |
-| Kubeflow | `make dev-start-kubeflow` | `http://localhost:9000` |
+| Standalone | `make dev-start` | `http://localhost:9108` |
+| Kubeflow | `make dev-start-kubeflow` | `http://localhost:9108` |
 | Federated | `make dev-start-federated` + run main dashboard | `http://localhost:4010` |
 
 Standalone mode runs the BFF and frontend together with mocked clients — use it for most local
@@ -66,7 +66,7 @@ Start without mocks (requires cluster access):
 
 ```bash
 cd packages/automl/bff
-make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=standalone
+make run PORT=4003 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=standalone
 ```
 
 ## OpenAPI Specification
@@ -162,14 +162,14 @@ cp packages/automl/.env.local.example packages/automl/.env.local
 ```bash
 cd packages/automl
 make dev-start
-# Frontend + BFF available at http://localhost:9000
+# Frontend: http://localhost:9108  BFF: http://localhost:4003
 ```
 
 ## Environment Variables
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|---------|
-| `PORT` | BFF HTTP port | `4000` | No |
+| `PORT` | BFF HTTP port | `4003` | No |
 | `DEPLOYMENT_MODE` | `standalone`, `kubeflow`, or `federated` | `standalone` | No |
 | `DEV_MODE` | Enable development features | `false` | No |
 | `MOCK_K8S_CLIENT` | Use in-memory Kubernetes mock | `false` | No |

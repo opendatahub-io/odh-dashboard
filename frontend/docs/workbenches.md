@@ -1,5 +1,5 @@
 [Guidelines]: ../../docs/guidelines.md
-[BOOKMARKS]: ../../docs/BOOKMARKS.md
+[BOOKMARKS]: ../../BOOKMARKS.md
 [Architecture]: ../../docs/architecture.md
 [Backend Overview]: ../../backend/docs/overview.md
 [Projects Doc]: projects.md

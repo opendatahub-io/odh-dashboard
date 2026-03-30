@@ -1,5 +1,5 @@
 [Guidelines]: ../../../docs/guidelines.md
-[BOOKMARKS]: ../../../docs/BOOKMARKS.md
+[BOOKMARKS]: ../../../BOOKMARKS.md
 [Backend Overview]: ../../../backend/docs/overview.md
 [Module Federation Docs]: ../../../docs/module-federation.md
 [Model Registry Package]: ../../model-registry/docs/overview.md
@@ -11,7 +11,7 @@
 
 # Eval Hub
 
-**Last Updated**: 2026-03-09 | **Template**: package-template v1
+**Last Updated**: 2026-03-30 | **Template**: package-template v1
 
 ## Overview
 
@@ -25,12 +25,12 @@ across versions. The package ships a Go BFF and a React/PatternFly v6 frontend.
 
 | Mode | How to start | Access URL |
 |------|-------------|-----------|
-| Standalone | `make dev-start` | `http://localhost:9105` |
-| Kubeflow | `make dev-start-kubeflow` | `http://localhost:9105` |
+| Standalone | `make dev-start` | `http://localhost:9106` |
+| Kubeflow | `make dev-start-kubeflow` | `http://localhost:9106` |
 | Federated | `make dev-start-federated` + run main dashboard | `http://localhost:4010` |
 
 Standalone mode starts the BFF on port 4002 with all mock clients enabled
-(`MOCK_K8S_CLIENT`, `MOCK_HTTP_CLIENT`, `MOCK_EVALHUB_CLIENT`) and the frontend on port 9105.
+(`MOCK_K8S_CLIENT`, `MOCK_HTTP_CLIENT`, `MOCK_EVALHUB_CLIENT`) and the frontend on port 9106.
 Kubeflow mode disables mocks and port-forwards the live eval-hub service. Federated mode uses
 PatternFly theme and `AUTH_METHOD=user_token`.
 
@@ -152,7 +152,7 @@ cp packages/eval-hub/.env.local.example packages/eval-hub/.env.local
 cd packages/eval-hub
 make dev-start
 # BFF:      http://localhost:4002
-# Frontend: http://localhost:9105
+# Frontend: http://localhost:9106
 ```
 
 ## Environment Variables

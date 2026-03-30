@@ -1,5 +1,5 @@
 [Guidelines]: ../../docs/guidelines.md
-[BOOKMARKS]: ../../docs/BOOKMARKS.md
+[BOOKMARKS]: ../../BOOKMARKS.md
 [Backend Overview]: ../../backend/docs/overview.md
 [Admin Dashboard]: ../../docs/admin-dashboard.md
 

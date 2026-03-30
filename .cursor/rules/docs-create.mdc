@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Create Documentation
 
-When asked to create new documentation, read and follow the skill at `docs/skills/create-doc.md`.
+When asked to create new documentation, read and follow the skill at `.claude/skills/docs-create/SKILL.md`.
 
 Key points:
 - Read `docs/guidelines.md` for style and structure rules before writing.

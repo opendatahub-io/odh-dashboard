@@ -65,7 +65,7 @@ $ARGUMENTS — a natural language description of what to document. Examples:
    - Guide: the relevant package or directory, existing related guides
    - ADR: the code implementing the decision, related ADRs in the same directory
    - README: the directory's contents and purpose
-   - Agent rule: existing rules in `docs/agent-rules/` for style reference,
+   - Agent rule: existing rules in `.claude/rules/` for style reference,
      the relevant test framework or tooling code
    - Architecture doc: the source code being described, existing architecture docs
 
@@ -79,7 +79,7 @@ $ARGUMENTS — a natural language description of what to document. Examples:
    - Dev setup guide: `packages/<name>/frontend/docs/dev-setup.md` or `docs/dev-setup.md`
    - Migration guide: `docs/migration-<topic>.md`
    - README: `<directory>/README.md`
-   - Agent rule: `docs/agent-rules/<rule-name>.md`
+   - Agent rule: `.claude/rules/<rule-name>.md`
    - Architecture doc: `<directory>/docs/architecture.md` or `docs/architecture.md`
    - General reference: `docs/<topic>.md`
 

@@ -5,11 +5,11 @@ alwaysApply: false
 
 # Create Package Documentation
 
-When asked to create documentation for a package, read and follow the skill at `docs/skills/create-package-doc.md`.
+When asked to create documentation for a package, read and follow the skill at `.claude/skills/docs-create-package/SKILL.md`.
 
 Key points:
 - Use the package template at `docs/templates/package-template.md`.
 - Read `docs/guidelines.md` for style rules.
 - Research the package by reading its README, Makefile, package.json, BFF directory, and frontend source — only read files and directories that exist; skip missing ones.
 - Write the doc at `packages/<name>/docs/overview.md`.
-- Automatically update `docs/BOOKMARKS.md` with the new entry.
+- Automatically update `BOOKMARKS.md` with the new entry.

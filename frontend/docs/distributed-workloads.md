@@ -1,5 +1,5 @@
 [Guidelines]: ../../docs/guidelines.md
-[BOOKMARKS]: ../../docs/BOOKMARKS.md
+[BOOKMARKS]: ../../BOOKMARKS.md
 [Backend Overview]: ../../backend/docs/overview.md
 [DistributedWorkloadsContext]: ../src/concepts/distributedWorkloads/DistributedWorkloadsContext.tsx
 [utils.tsx]: ../src/concepts/distributedWorkloads/utils.tsx

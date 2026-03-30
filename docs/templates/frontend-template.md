@@ -1,5 +1,5 @@
 [Guidelines]: ../guidelines.md
-[BOOKMARKS]: ../BOOKMARKS.md
+[BOOKMARKS]: ../../BOOKMARKS.md
 [Backend Overview]: ../../backend/docs/overview.md
 
 # [Area Name]

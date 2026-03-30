@@ -1,15 +1,12 @@
 [Guidelines]: ../../../docs/guidelines.md
-[BOOKMARKS]: ../../../docs/BOOKMARKS.md
+[BOOKMARKS]: ../../../BOOKMARKS.md
 [Backend Overview]: ../../../backend/docs/overview.md
 [Module Federation Docs]: ../../../docs/module-federation.md
 [MaaS Overview]: ../../maas/docs/overview.md
 [Model Registry Overview]: ../../model-registry/docs/overview.md
-[Install Guide]: install.md
-[Local Deployment Guide]: local-deployment-guide.md
-[Local Deployment Guide (UI)]: local-deployment-guide-ui.md
 # MLflow
 
-**Last Updated**: 2026-03-09 | **Template**: package-template v1
+**Last Updated**: 2026-03-30 | **Template**: package-template v1
 
 ## Overview
 
@@ -185,7 +182,7 @@ make dev-start-federated
 | `AUTH_TOKEN_HEADER` | Header carrying the user token in `user_token` mode | `Authorization` | No |
 | `AUTH_TOKEN_PREFIX` | Prefix stripped from the token header value | `Bearer` | No |
 | `DEV_MODE` | Enable development mode (local kubeconfig) | `false` | No |
-| `DEV_MODE_CLIENT_PORT` | Frontend client port the BFF proxies to in dev mode (set to `8085` by kubeflow and federated Makefile targets) | `8080` | No |
+| `DEV_MODE_CLIENT_PORT` | Frontend client port the BFF proxies to in dev mode (set to `8085` by federated Makefile target) | `8080` | No |
 | `MOCK_K8S_CLIENT` | Use in-memory Kubernetes mock | `false` | No |
 | `INSECURE_SKIP_VERIFY` | Skip TLS verification for outbound calls (dev only) | `false` | No |
 | `LOG_LEVEL` | BFF log level: `error`, `warn`, `info`, `debug` | `INFO` | No |
@@ -227,21 +224,14 @@ Contract tests follow the `@odh-dashboard/contract-tests` framework. Start the B
 
 ## Known Issues / Gotchas
 
-- The MLflow package supports three deployment modes: `kubeflow`, `federated`, and
-  `standalone`. The Makefile provides `dev-start-kubeflow`, `dev-start-federated`, and
-  `dev-start` (standalone) targets, and the default `docker-build` uses `DEPLOYMENT_MODE=kubeflow`.
+- The MLflow package supports two deployment modes: `standalone` and `federated`.
+  The Makefile provides `dev-start` (standalone) and `dev-start-federated` targets.
 - MLflow domain data (experiments, runs) bypasses the BFF entirely and flows through the
   main dashboard backend proxy. The OpenAPI spec covers only infrastructure endpoints.
 - `STYLE_THEME=mui-theme` is the default even for standalone mode; set it explicitly to
-  `patternfly-theme` if you need PatternFly styling outside of federated mode.
+  `patternfly-theme` if you need PatternFly styling outside federated mode.
 - The `api/openapi/mlflow.yaml` spec describes only the BFF scaffold endpoints, not the full
   MLflow REST API. Refer to upstream MLflow docs for the complete API surface.
-
-## Package Documentation
-
-- [Install Guide] — installation and cluster prerequisites
-- [Local Deployment Guide] — detailed local development and cluster setup
-- [Local Deployment Guide (UI)] — UI-focused local deployment walkthrough
 
 ## Related Docs
 

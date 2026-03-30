@@ -3,7 +3,7 @@
 [Testing]: testing.md
 [AGENTS.md]: ../AGENTS.md
 [CONTRIBUTING.md]: ../CONTRIBUTING.md
-[BOOKMARKS]: BOOKMARKS.md
+[BOOKMARKS]: ../BOOKMARKS.md
 
 # ODH Dashboard Documentation Guidelines
 
@@ -83,8 +83,8 @@ location, and whether a template exists.
 | **Best practices / coding standards** | `docs/best-practices.md`, `docs/code_examples.md` | None |
 | **Process doc** (DoD, DoR, PR review, release) | `docs/` | None |
 | **Migration guide** | `docs/migration-*.md` | None |
-| **Agent rule** | `docs/agent-rules/<rule>.md` | None |
-| **Skill / command** | `docs/skills/`, `.claude/commands/` | None |
+| **Agent rule** | `.claude/rules/<rule>.md` | None |
+| **Skill / command** | `.claude/skills/`, `.claude/commands/` | None |
 | **Meta doc** (guidelines, BOOKMARKS, templates) | `docs/` | N/A — guidelines govern themselves |
 | **User-facing doc** | `packages/<pkg>/docs/user/` | None |
 
@@ -226,7 +226,7 @@ Do NOT use spaces or underscores in doc file names.
   maintainable in one place.
 - Use **relative paths** for all intra-repo links. Never hardcode `https://github.com/...` for
   files that live in the repo.
-- BOOKMARKS.md entries use relative paths from the `docs/` directory.
+- BOOKMARKS.md entries use relative paths from the repository root.
 
 ---
 

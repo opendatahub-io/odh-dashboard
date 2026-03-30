@@ -1,5 +1,5 @@
 [Guidelines]: ../../../docs/guidelines.md
-[BOOKMARKS]: ../../../docs/BOOKMARKS.md
+[BOOKMARKS]: ../../../BOOKMARKS.md
 [Backend Overview]: ../../../backend/docs/overview.md
 [Distributed Workloads]: ../../../frontend/docs/distributed-workloads.md
 [Model Registry]: ../../model-registry/docs/overview.md
