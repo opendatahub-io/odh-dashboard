@@ -15,9 +15,6 @@ import { SimpleSelectOption } from 'mod-arch-shared/dist/components/SimpleSelect
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import ThemeAwareFormGroupWrapper from '~/app/pages/settings/components/ThemeAwareFormGroupWrapper';
 import { NamespaceSelectorMessages } from '~/app/utilities/const';
-import type { NamespaceSelectorFieldProps } from '~/odh/extension-points';
-
-export type { NamespaceSelectorFieldProps };
 
 const WHO_IS_MY_ADMIN_POPOVER_CONTENT = (
   <Stack hasGutter>
@@ -40,6 +37,16 @@ const WHO_IS_MY_ADMIN_POPOVER_CONTENT = (
     </StackItem>
   </Stack>
 );
+
+export type NamespaceSelectorFieldProps = {
+  selectedNamespace: string;
+  onSelect: (namespace: string) => void;
+  hasAccess?: boolean | undefined;
+  isLoading?: boolean;
+  error?: Error | undefined;
+  cannotCheck?: boolean;
+  registryName?: string;
+};
 
 const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
   selectedNamespace,
