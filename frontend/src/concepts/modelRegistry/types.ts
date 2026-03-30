@@ -1,5 +1,6 @@
 import { K8sAPIOptions } from '#~/k8sTypes';
 
+// TODO: Remove when AutofillConnectionButton is removed from the model-registry package.
 export enum ModelLocationType {
   ObjectStorage = 'Object storage',
   URI = 'URI',
@@ -266,6 +267,7 @@ export type PatchModelArtifact = (
   modelartifactId: string,
 ) => Promise<ModelArtifact>;
 
+// TODO: Remove when AutofillConnectionButton is removed from the model-registry package.
 export type RegistrationCommonFormData = {
   versionName: string;
   versionDescription: string;
