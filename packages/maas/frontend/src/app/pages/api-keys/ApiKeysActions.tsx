@@ -1,17 +1,16 @@
 import * as React from 'react';
 import { Dropdown, DropdownItem, MenuToggle, DropdownList } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
-import useUser from '~/app/hooks/useUser';
 import RevokeAllApiKeysModal from './RevokeAllApiKeysModal';
 import AdminRevokeAllApiKeysModal from './AdminRevokeAllApiKeysModal';
 
 type ApiKeysActionsProps = {
   apiKeyCount: number;
+  isMaasAdmin: boolean;
   onRefresh?: () => void;
 };
 
-const ApiKeysActions: React.FC<ApiKeysActionsProps> = ({ apiKeyCount, onRefresh }) => {
-  const { clusterAdmin } = useUser();
+const ApiKeysActions: React.FC<ApiKeysActionsProps> = ({ apiKeyCount, isMaasAdmin, onRefresh }) => {
   const [open, setOpen] = React.useState(false);
   const [revokeAllOpen, setRevokeAllOpen] = React.useState(false);
 
@@ -47,15 +46,15 @@ const ApiKeysActions: React.FC<ApiKeysActionsProps> = ({ apiKeyCount, onRefresh 
           <DropdownItem
             data-testid="revoke-all-api-keys-action"
             onClick={() => setRevokeAllOpen(true)}
-            isDisabled={!clusterAdmin && apiKeyCount === 0}
+            isDisabled={!isMaasAdmin && apiKeyCount === 0}
             isDanger
           >
-            {clusterAdmin ? 'Revoke all keys for a single user' : 'Revoke all my keys'}
+            {isMaasAdmin ? 'Revoke all keys for a single user' : 'Revoke all my keys'}
           </DropdownItem>
         </DropdownList>
       </Dropdown>
       {revokeAllOpen &&
-        (clusterAdmin ? (
+        (isMaasAdmin ? (
           <AdminRevokeAllApiKeysModal onClose={handleRevokeClose} />
         ) : (
           <RevokeAllApiKeysModal onClose={handleRevokeClose} />
