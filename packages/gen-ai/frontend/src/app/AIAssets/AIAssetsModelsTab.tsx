@@ -21,7 +21,7 @@ import useAiAssetCustomEndpointsEnabled from '~/app/hooks/useAiAssetCustomEndpoi
 
 const AIAssetsModelsTab: React.FC = () => {
   const { namespace } = React.useContext(GenAiContext);
-  const { data: playgroundModels } = useFetchLlamaModels();
+  const { data: playgroundModels } = useFetchLlamaModels(undefined, true);
 
   const { models, loaded, aiError, maasError, refresh } = useMergedModels();
   const { data: lsdStatus } = useFetchLSDStatus();
