@@ -11,6 +11,7 @@ import {
 } from '~/app/pages/modelRegistry/screens/routeUtils';
 import ModelRegistrySelectorNavigator from '~/app/pages/modelRegistry/screens/ModelRegistrySelectorNavigator';
 import DeleteModal from '~/app/shared/components/DeleteModal';
+import { useNotification } from '~/app/hooks/useNotification';
 import ModelTransferJobsListView from './ModelTransferJobsListView';
 import RetryJobModal from './RetryJobModal';
 
@@ -23,9 +24,9 @@ const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) =
   const { modelRegistry } = useParams<{ modelRegistry: string }>();
   const [jobs, jobsLoaded, jobsLoadError, refetchJobs] = useModelTransferJobs();
   const { api, apiAvailable } = useModelRegistryAPI();
+  const notification = useNotification();
   const [jobToDelete, setJobToDelete] = React.useState<ModelTransferJob | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
-  const [deleteError, setDeleteError] = React.useState<Error | undefined>();
   const [jobToRetry, setJobToRetry] = React.useState<ModelTransferJob | null>(null);
 
   const onRetryTransferJob = React.useCallback(
@@ -61,26 +62,26 @@ const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) =
       return;
     }
     setIsDeleting(true);
-    setDeleteError(undefined);
     try {
       await api.deleteModelTransferJob({}, jobToDelete.name, jobToDelete.namespace);
       setJobToDelete(null);
       await refetchJobs();
     } catch (e) {
-      setDeleteError(e instanceof Error ? e : new Error(String(e)));
+      notification.error(
+        `Error deleting ${jobToDelete.name}`,
+        e instanceof Error ? e.message : String(e),
+      );
     } finally {
       setIsDeleting(false);
     }
-  }, [api, apiAvailable, jobToDelete, refetchJobs]);
+  }, [api, apiAvailable, jobToDelete, notification, refetchJobs]);
 
   const onRequestDelete = React.useCallback((job: ModelTransferJob) => {
     setJobToDelete(job);
-    setDeleteError(undefined);
   }, []);
 
   const onCloseDeleteModal = React.useCallback(() => {
     setJobToDelete(null);
-    setDeleteError(undefined);
   }, []);
 
   return (
@@ -120,7 +121,6 @@ const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) =
           deleting={isDeleting}
           onDelete={onDeleteTransferJob}
           deleteName={jobToDelete.name}
-          error={deleteError}
         >
           The <strong>{jobToDelete.name}</strong> model transfer job will be deleted, but the
           storage location of the model will not be affected.
