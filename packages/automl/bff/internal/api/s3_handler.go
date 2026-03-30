@@ -360,7 +360,7 @@ func resolveNonCollidingS3Key(
 	stem, ext := splitNameAndExtension(name)
 	stemBase, nextIndex := splitStemAndNextIndex(stem)
 
-	const maxCollisionAttempts = 1000
+	const maxCollisionAttempts = 10
 	for range maxCollisionAttempts {
 		candidateName := fmt.Sprintf("%s-%d%s", stemBase, nextIndex, ext)
 		candidateKey := dir + candidateName

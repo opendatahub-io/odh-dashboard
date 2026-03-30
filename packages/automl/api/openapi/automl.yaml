@@ -159,6 +159,8 @@ paths:
     get:
       tags:
         - S3Operation
+      security:
+        - Bearer: []
       parameters:
         - name: namespace
           in: query
@@ -196,6 +198,7 @@ paths:
           description: The S3 object key to retrieve
           schema:
             type: string
+            pattern: '^\S(.*\S)?$'
           example: documents/myfile.pdf
       responses:
         "200":
@@ -247,6 +250,8 @@ paths:
     post:
       tags:
         - S3Operation
+      security:
+        - Bearer: []
       parameters:
         - name: namespace
           in: query
@@ -254,6 +259,8 @@ paths:
           description: The Kubernetes namespace containing the secret
           schema:
             type: string
+            maxLength: 63
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
           example: default
         - name: secretName
           in: query
@@ -287,6 +294,7 @@ paths:
             response body `key` field for the actual object key.
           schema:
             type: string
+            pattern: '^\S(.*\S)?$'
           example: data/training.csv
       requestBody:
         required: true
@@ -369,6 +377,8 @@ paths:
     get:
       tags:
         - S3Operation
+      security:
+        - Bearer: []
       parameters:
         - name: namespace
           in: query
