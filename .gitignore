@@ -92,3 +92,6 @@ vendor/
 # AgentReady reports
 .agentready/
 assessment-output.txt
+
+# Speckit artifacts
+**/specs/
