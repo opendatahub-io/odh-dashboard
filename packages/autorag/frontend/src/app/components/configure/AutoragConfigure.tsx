@@ -431,10 +431,11 @@ function AutoragConfigure(): React.JSX.Element {
             const filePath = file.path.replace(/^\//, '');
             if (fileExplorerMode === 'input_data') {
               setValue('input_data_key', filePath, { shouldValidate: true });
+              // TODO: Once test data upload is hooked up, remove this fallback
+              setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
             }
             if (fileExplorerMode === 'test_data') {
-              // TODO [ Gustavo ] Once the upload of test data in the right hand configure page is present, hook it up correctly
-              setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
+              setValue('test_data_key', filePath, { shouldValidate: true });
             }
           }
         }}
