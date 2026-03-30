@@ -99,8 +99,6 @@ export const mapResultToItems = (
               </Timestamp>
             ),
           }),
-          // ...(obj.etag && { ETag: obj.etag }), // Omitting this metadata from rendering. Doesn't seem useful for AutoX use case
-          // ...(obj.storage_class && { 'Storage Class': obj.storage_class }), // Omitting this metadata from rendering. Doesn't seem useful for AutoX use case
           ...{ Size: sizeToRender },
           ...{ Type: fileTypeToRender },
         },
