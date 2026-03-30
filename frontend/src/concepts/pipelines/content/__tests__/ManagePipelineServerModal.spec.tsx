@@ -495,4 +495,153 @@ describe('ManagePipelineServerModal', () => {
       );
     });
   });
+
+  it('should use custom managed pipelines image from dashboard config', async () => {
+    const customImage = 'custom-registry.io/managed-pipelines:custom-tag';
+
+    mockUseAppContext.mockReturnValue({
+      dashboardConfig: mockDashboardConfig({
+        automl: true,
+        autorag: true,
+        pipelinesConfig: {
+          managedPipelinesImage: customImage,
+        },
+      }),
+    } as ReturnType<typeof useAppContext>);
+
+    renderModal();
+
+    const managedPipelinesCheckbox = screen.getByTestId('managed-pipelines-checkbox');
+
+    fireEvent.click(managedPipelinesCheckbox);
+
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
+        'test-project',
+        {
+          managedPipelines: {
+            image: customImage,
+          },
+        },
+        'dspa',
+      );
+    });
+  });
+
+  it('should not render managed pipelines section when automl and autorag are disabled', () => {
+    mockUseAppContext.mockReturnValue({
+      dashboardConfig: mockDashboardConfig({
+        automl: false,
+        autorag: false,
+      }),
+    } as ReturnType<typeof useAppContext>);
+
+    renderModal();
+
+    expect(screen.queryByTestId('managed-pipelines-checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByText('Managed pipelines')).not.toBeInTheDocument();
+  });
+
+  it('should render managed pipelines section when automl is enabled', () => {
+    mockUseAppContext.mockReturnValue({
+      dashboardConfig: mockDashboardConfig({
+        automl: true,
+        autorag: false,
+      }),
+    } as ReturnType<typeof useAppContext>);
+
+    renderModal();
+
+    expect(screen.getByTestId('managed-pipelines-checkbox')).toBeInTheDocument();
+    expect(screen.getByText('Managed pipelines')).toBeInTheDocument();
+  });
+
+  it('should render managed pipelines section when autorag is enabled', () => {
+    mockUseAppContext.mockReturnValue({
+      dashboardConfig: mockDashboardConfig({
+        automl: false,
+        autorag: true,
+      }),
+    } as ReturnType<typeof useAppContext>);
+
+    renderModal();
+
+    expect(screen.getByTestId('managed-pipelines-checkbox')).toBeInTheDocument();
+    expect(screen.getByText('Managed pipelines')).toBeInTheDocument();
+  });
+
+  it('should handle error when updating managed pipelines fails', async () => {
+    // Suppress console.error for this test since we're intentionally testing error handling
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const error = new Error('Failed to update managed pipelines');
+    mockUpdatePipelineSettings.mockRejectedValue(error);
+
+    renderModal();
+
+    const managedPipelinesCheckbox = screen.getByTestId('managed-pipelines-checkbox');
+
+    fireEvent.click(managedPipelinesCheckbox);
+
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockErrorNotification).toHaveBeenCalledWith(
+        'Failed to update pipeline server settings',
+        'An unexpected error occurred while updating settings.',
+      );
+    });
+
+    // Modal should remain open after error
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    // Restore console.error
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should reset state when pipelineNamespaceCR changes', () => {
+    const { rerender } = renderModal();
+
+    const cachingCheckbox = screen.getByTestId('pipeline-cache-enabling');
+    const managedPipelinesCheckbox = screen.getByTestId('managed-pipelines-checkbox');
+
+    // Initially checked
+    expect(cachingCheckbox).toBeChecked();
+    expect(managedPipelinesCheckbox).not.toBeChecked();
+
+    // User makes changes
+    fireEvent.click(cachingCheckbox);
+    fireEvent.click(managedPipelinesCheckbox);
+
+    expect(cachingCheckbox).not.toBeChecked();
+    expect(managedPipelinesCheckbox).toBeChecked();
+
+    // Pipeline CR updates with new state
+    const updatedPipeline = mockDataSciencePipelineApplicationK8sResource({
+      name: 'dspa',
+      namespace: 'test-project',
+      cacheEnabled: false,
+      managedPipelines: {
+        image: MANAGED_PIPELINES_REPO_LATEST,
+      },
+    });
+
+    rerender(
+      <NotificationWatcherContext.Provider value={mockNotificationContext}>
+        <ManagePipelineServerModal {...defaultProps} pipelineNamespaceCR={updatedPipeline} />
+      </NotificationWatcherContext.Provider>,
+    );
+
+    // State should reset to match new CR
+    const updatedCachingCheckbox = screen.getByTestId('pipeline-cache-enabling');
+    const updatedManagedPipelinesCheckbox = screen.getByTestId('managed-pipelines-checkbox');
+
+    expect(updatedCachingCheckbox).not.toBeChecked();
+    expect(updatedManagedPipelinesCheckbox).toBeChecked();
+  });
 });

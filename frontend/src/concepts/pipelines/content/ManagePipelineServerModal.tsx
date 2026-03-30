@@ -53,6 +53,9 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
     !!pipelineNamespaceCR?.spec.apiServer?.managedPipelines &&
     'image' in pipelineNamespaceCR.spec.apiServer.managedPipelines;
 
+  const isManagedPipelinesAvailable =
+    dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
+
   // State for caching configuration
   const [enableCaching, setEnableCaching] = React.useState<boolean>(initCachingEnabled);
 
@@ -63,7 +66,8 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
 
   // Track if changes have been made
   const hasChanges =
-    enableCaching !== initCachingEnabled || enableManagedPipelines !== initManagedPipelinesEnabled;
+    enableCaching !== initCachingEnabled ||
+    (isManagedPipelinesAvailable && enableManagedPipelines !== initManagedPipelinesEnabled);
 
   const [isUpdating, setIsUpdating] = React.useState(false);
 
@@ -86,7 +90,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
       settings.cacheEnabled = enableCaching;
     }
 
-    if (enableManagedPipelines !== initManagedPipelinesEnabled) {
+    if (isManagedPipelinesAvailable && enableManagedPipelines !== initManagedPipelinesEnabled) {
       const managedPipelinesImage =
         dashboardConfig.spec.pipelinesConfig?.managedPipelinesImage ||
         MANAGED_PIPELINES_REPO_LATEST;
@@ -233,11 +237,13 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
                   setEnableCaching={setEnableCaching}
                   variant="description"
                 />
-                <ManagedPipelinesSettingsSection
-                  enableManagedPipelines={enableManagedPipelines}
-                  setEnableManagedPipelines={setEnableManagedPipelines}
-                  variant="description"
-                />
+                {isManagedPipelinesAvailable && (
+                  <ManagedPipelinesSettingsSection
+                    enableManagedPipelines={enableManagedPipelines}
+                    setEnableManagedPipelines={setEnableManagedPipelines}
+                    variant="description"
+                  />
+                )}
               </DescriptionList>
             </>
           </DescriptionList>
