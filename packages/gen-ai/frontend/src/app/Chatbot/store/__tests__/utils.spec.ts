@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { MLflowPromptVersion } from '~/app/types';
-import { DeepCopyPrompt } from '../utils';
+import { DeepCopyPrompt } from '~/app/Chatbot/store/utils';
 
 describe('DeepCopyPrompt', () => {
   const mockPrompt: MLflowPromptVersion = {

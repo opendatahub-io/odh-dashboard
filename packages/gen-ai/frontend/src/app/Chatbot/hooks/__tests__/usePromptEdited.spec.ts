@@ -4,7 +4,7 @@ import { useChatbotConfigStore } from '~/app/Chatbot/store/useChatbotConfigStore
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 import { MLflowPromptVersion } from '~/app/types';
-import { usePromptEdited } from '../usePromptEdited';
+import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',

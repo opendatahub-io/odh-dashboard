@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { act } from '@testing-library/react';
 import { MLflowPromptVersion } from '~/app/types';
-import { usePlaygroundStore } from '../usePlaygroundStore';
+import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 
 describe('usePlaygroundStore', () => {
   const mockPrompt: MLflowPromptVersion = {
