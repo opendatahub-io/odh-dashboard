@@ -363,6 +363,8 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
+	// MCP tests use NewMockLlamaStackClient() directly because the real server
+	// attempts to connect to external MCP URLs which are unreachable in test environments.
 	It("should validate MCP server parameters in request", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
@@ -380,7 +382,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		req, err := createJSONRequest(payload)
 		assert.NoError(t, err)
 
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
+		llamaStackClient := lsmocks.NewMockLlamaStackClient()
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -407,7 +409,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		req, err := createJSONRequest(payload)
 		assert.NoError(t, err)
 
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
+		llamaStackClient := lsmocks.NewMockLlamaStackClient()
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -439,7 +441,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		req, err := createJSONRequest(payload)
 		assert.NoError(t, err)
 
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
+		llamaStackClient := lsmocks.NewMockLlamaStackClient()
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -644,6 +646,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.NotNil(t, responseData["output"], "expected output from RAG response")
 	})
 
+	// Moderation tests use NewMockLlamaStackClient() directly (instead of the factory)
 	It("should pass input moderation with clean input and InputShieldID", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
@@ -655,7 +658,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		req, err := createJSONRequest(payload)
 		assert.NoError(t, err)
 
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
+		llamaStackClient := lsmocks.NewMockLlamaStackClient()
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -695,7 +698,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		req, err := createJSONRequest(payload)
 		assert.NoError(t, err)
 
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
+		llamaStackClient := lsmocks.NewMockLlamaStackClient()
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -743,7 +746,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
+		llamaStackClient := lsmocks.NewMockLlamaStackClient()
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -810,7 +813,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		req, err := createJSONRequest(payload)
 		assert.NoError(t, err)
 
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
+		llamaStackClient := lsmocks.NewMockLlamaStackClient()
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 		req = req.WithContext(ctx)
 
@@ -887,7 +890,15 @@ var _ = Describe("StreamingContextCancellation", func() {
 			done <- true
 		}()
 
-		time.Sleep(500 * time.Millisecond)
+		deadline := time.After(10 * time.Second)
+		for rr.writeCount.Load() == 0 {
+			select {
+			case <-deadline:
+				Fail("Timed out waiting for first streaming event")
+			default:
+				time.Sleep(50 * time.Millisecond)
+			}
+		}
 
 		writesBefore := rr.writeCount.Load()
 

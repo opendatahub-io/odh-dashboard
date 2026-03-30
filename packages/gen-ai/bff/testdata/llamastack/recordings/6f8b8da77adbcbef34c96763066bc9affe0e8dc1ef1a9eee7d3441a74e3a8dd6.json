@@ -29,7 +29,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Well hello there! MaaS \u2013 Mobility as a Service \u2013 what an exciting and transformative",
+                "content": "Well hello back from the digital realm!\n\nMaaS, or Mobility as a Service, is a truly exciting and transformative concept \u2013 connecting different modes of transport into a seamless, user-centric experience.",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -46,9 +46,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 17,
+            "completion_tokens": 40,
             "prompt_tokens": 5,
-            "total_tokens": 1057,
+            "total_tokens": 990,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -61,7 +61,7 @@
           "choices": [
             {
               "delta": {
-                "content": " field!\n\nIt's great to hear from you. Is there something specific you'd like to discuss about MaaS, perhaps a challenge you're facing, an innovation you're working on, or just general thoughts on its",
+                "content": " It's all about making urban (and even rural) travel more efficient, sustainable, and convenient, reducing reliance on private cars.\n\nWhat's on your mind regarding MaaS today? Are you working on a project, curious about",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -78,9 +78,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 65,
+            "completion_tokens": 88,
             "prompt_tokens": 5,
-            "total_tokens": 1105,
+            "total_tokens": 1038,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -93,7 +93,7 @@
           "choices": [
             {
               "delta": {
-                "content": " future?",
+                "content": " specific aspects, or just wanted to share your connection to this innovative field?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -110,9 +110,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 67,
+            "completion_tokens": 103,
             "prompt_tokens": 5,
-            "total_tokens": 1107,
+            "total_tokens": 1053,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

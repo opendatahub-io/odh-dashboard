@@ -16,18 +16,18 @@
           "content": "",
           "tool_calls": [
             {
-              "id": "function-call-14614409618635747749",
+              "id": "function-call-9835680640744007690",
               "type": "function",
               "function": {
                 "name": "knowledge_search",
-                "arguments": "{\"query\":\"What is machine learning\"}"
+                "arguments": "{\"query\":\"machine learning\"}"
               }
             }
           ]
         },
         {
           "role": "tool",
-          "tool_call_id": "function-call-14614409618635747749",
+          "tool_call_id": "function-call-9835680640744007690",
           "content": [
             {
               "type": "text",
@@ -39,7 +39,7 @@
             },
             {
               "type": "text",
-              "text": "The above results were retrieved to help answer the user's query: \"What is machine learning\". Use them as supporting information only in answering this query. \n"
+              "text": "The above results were retrieved to help answer the user's query: \"machine learning\". Use them as supporting information only in answering this query. \n"
             }
           ]
         }
@@ -80,11 +80,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-4f4ac9fd77af",
+          "id": "rec-9d71a96ab4c9",
           "choices": [
             {
               "delta": {
-                "content": "I cannot answer this question as the `knowledge_search` tool",
+                "content": "Machine learning is a field of artificial intelligence (AI) that enables systems to learn from data, identify patterns, and make decisions or predictions with minimal human intervention. Instead of being explicitly programmed for every task, machine learning algorithms are trained",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -101,9 +101,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 13,
-            "prompt_tokens": 157,
-            "total_tokens": 272,
+            "completion_tokens": 46,
+            "prompt_tokens": 153,
+            "total_tokens": 315,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -112,11 +112,43 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-4f4ac9fd77af",
+          "id": "rec-9d71a96ab4c9",
           "choices": [
             {
               "delta": {
-                "content": " did not return any information regarding \"machine learning.\"",
+                "content": " on large datasets, allowing them to improve their performance over time as they are exposed to more data. This technology is at the core of many applications we use daily, such as recommendation systems, spam filters, facial recognition, and self-driving cars.",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 96,
+            "prompt_tokens": 153,
+            "total_tokens": 365,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-9d71a96ab4c9",
+          "choices": [
+            {
+              "delta": {
+                "content": null,
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -133,9 +165,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 23,
-            "prompt_tokens": 157,
-            "total_tokens": 282,
+            "completion_tokens": 96,
+            "prompt_tokens": 153,
+            "total_tokens": 365,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

@@ -58,7 +58,7 @@
                 "tool_calls": [
                   {
                     "index": null,
-                    "id": "function-call-10307607860020032281",
+                    "id": "function-call-13050965173278698385",
                     "function": {
                       "arguments": "{\"query\":\"What is machine learning?\"}",
                       "name": "knowledge_search"

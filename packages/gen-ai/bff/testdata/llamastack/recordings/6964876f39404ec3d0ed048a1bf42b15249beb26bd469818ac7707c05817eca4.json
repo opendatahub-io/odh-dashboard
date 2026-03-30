@@ -16,7 +16,7 @@
           "content": "",
           "tool_calls": [
             {
-              "id": "function-call-10307607860020032281",
+              "id": "function-call-13050965173278698385",
               "type": "function",
               "function": {
                 "name": "knowledge_search",
@@ -27,7 +27,7 @@
         },
         {
           "role": "tool",
-          "tool_call_id": "function-call-10307607860020032281",
+          "tool_call_id": "function-call-13050965173278698385",
           "content": [
             {
               "type": "text",
@@ -80,11 +80,43 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-8337eade37a7",
+          "id": "rec-6964876f3940",
           "choices": [
             {
               "delta": {
-                "content": "I'm sorry, I cannot provide a definition for machine learning with the available tools.",
+                "content": "Machine learning is a field of artificial intelligence that",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 9,
+            "prompt_tokens": 159,
+            "total_tokens": 567,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-6964876f3940",
+          "choices": [
+            {
+              "delta": {
+                "content": " enables systems to learn from data, identify patterns, and make decisions with minimal human intervention. It involves using algorithms to parse data, learn from it, and then apply what they've learned to make informed decisions or predictions.",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -101,9 +133,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 18,
+            "completion_tokens": 55,
             "prompt_tokens": 159,
-            "total_tokens": 245,
+            "total_tokens": 613,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
