@@ -65,27 +65,58 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
 
   const loaded = defsLoaded && runsLoaded;
   const loadError = defsError || runsError;
+  const hasLoadError = Boolean(loadError);
 
   const hasExperiments = totalSize > 0;
 
   const onListStatusRef = React.useRef(onExperimentsListStatus);
   onListStatusRef.current = onExperimentsListStatus;
 
+  const prevListStatusRef = React.useRef<{
+    effectiveNamespace: string;
+    hasLoadError: boolean;
+    loaded: boolean;
+    hasExperiments: boolean;
+  } | null>(null);
+
   React.useEffect(() => {
     const notify = onListStatusRef.current;
     if (!notify) {
       return;
     }
-    if (loadError) {
-      notify({ loaded: true, hasExperiments: false });
+
+    let nextLoaded: boolean;
+    let nextHasExperiments: boolean;
+    if (hasLoadError) {
+      nextLoaded = true;
+      nextHasExperiments = false;
+    } else if (!loaded) {
+      nextLoaded = false;
+      nextHasExperiments = false;
+    } else {
+      nextLoaded = true;
+      nextHasExperiments = hasExperiments;
+    }
+
+    const prev = prevListStatusRef.current;
+    if (
+      prev &&
+      prev.effectiveNamespace === effectiveNamespace &&
+      prev.hasLoadError === hasLoadError &&
+      prev.loaded === loaded &&
+      prev.hasExperiments === hasExperiments
+    ) {
       return;
     }
-    if (!loaded) {
-      notify({ loaded: false, hasExperiments: false });
-      return;
-    }
-    notify({ loaded: true, hasExperiments });
-  }, [effectiveNamespace, loadError, loaded, hasExperiments]);
+
+    notify({ loaded: nextLoaded, hasExperiments: nextHasExperiments });
+    prevListStatusRef.current = {
+      effectiveNamespace,
+      hasLoadError,
+      loaded,
+      hasExperiments,
+    };
+  }, [effectiveNamespace, hasLoadError, loaded, hasExperiments]);
 
   const errorCode = loadError
     ? (getGenericErrorCode(loadError) ??
