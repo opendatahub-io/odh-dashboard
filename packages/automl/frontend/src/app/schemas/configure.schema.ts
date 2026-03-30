@@ -22,7 +22,7 @@ function createConfigureSchema() {
   return createSchema({
     schema: z.object({
       // Common fields
-      display_name: z.string().default(''),
+      display_name: z.string().min(1).default(''),
       description: z.string().default('').optional(),
       task_type: z.enum(TASK_TYPES).default(TASK_TYPE_BINARY),
       train_data_secret_name: z.string().min(1).default(''),

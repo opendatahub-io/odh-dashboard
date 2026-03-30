@@ -32,13 +32,13 @@ jest.mock('mod-arch-core', () => ({
 }));
 
 jest.mock('~/app/hooks/mutations', () => ({
-  usePipelineRunsMutation: jest.fn(() => ({
+  useCreatePipelineRunMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
   })),
 }));
 
 jest.mock('~/app/hooks/queries', () => ({
-  useFilesQuery: jest.fn(() => ({
+  useS3GetFileSchemaQuery: jest.fn(() => ({
     data: [
       { name: 'column1', type: 'string' },
       { name: 'column2', type: 'int64' },
@@ -404,9 +404,13 @@ describe('AutomlConfigurePage', () => {
       const backButton = await screen.findByRole('button', { name: 'Back' });
       await user.click(backButton);
 
+      // Re-query inputs after navigation (DOM elements are remounted)
+      const nameInputAfterBack = await screen.findByLabelText(/Name/i);
+      const descriptionInputAfterBack = await screen.findByLabelText(/Description/i);
+
       // Verify form data is preserved
-      expect(nameInput).toHaveValue('Preserved Name');
-      expect(descriptionInput).toHaveValue('Preserved Description');
+      expect(nameInputAfterBack).toHaveValue('Preserved Name');
+      expect(descriptionInputAfterBack).toHaveValue('Preserved Description');
     });
   });
 

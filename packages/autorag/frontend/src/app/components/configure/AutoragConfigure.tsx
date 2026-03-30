@@ -194,9 +194,8 @@ function AutoragConfigure(): React.JSX.Element {
                                   value={selectedSecret?.uuid}
                                   onChange={(secret) => {
                                     if (!secret) {
-                                      setValue('input_data_secret_name', '', {
-                                        shouldValidate: true,
-                                      });
+                                      setSelectedSecret(undefined);
+                                      onChange('');
                                       return;
                                     }
 
