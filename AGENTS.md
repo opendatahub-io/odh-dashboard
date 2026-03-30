@@ -97,7 +97,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | **Testing Standards**       | `testing-standards.md`        | When working across multiple test types or choosing a testing strategy          |
 | **Third-Party Theming**     | `third-party-theming.md`      | When theming external libraries (Perses, MLflow, etc.) or mapping PF tokens into non-PF component systems |
 | **Unit Tests**              | `unit-tests.md`               | When creating or modifying Jest unit tests for utilities, hooks, or components |
-| **Spec Kit Agents**         | `speckit-agents.md`           | When running any spec kit command (`/speckit.*`)                               |
+| **Sub-Agents**              | `sub-agents.md`               | When delegating work to specialized personas (engineering, product, UX, docs)  |
 
 ## Agent Skills
 
@@ -108,9 +108,5 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Dev Workflow**                   | `skills/dev-workflow/`                 | Implementing a feature, fix, or refactor — runs lint, type-check, tests, and optional browser verification |
 | **Model Registry Sync Status**    | `skills/model-registry-sync-status/`   | Checking whether the local model-registry upstream copy is up to date          |
 | **Model Registry Upstream Sync**  | `skills/model-registry-upstream-sync/` | Syncing upstream changes from kubeflow/model-registry and opening a PR         |
-
-## Sub-Agents
-
-Specialized sub-agent personas are defined in `.claude/agents/`. For a full roster and usage guidance, read [`.claude/agents/AGENTS.md`](.claude/agents/AGENTS.md) before delegating to sub-agents.
 
 **Important**: Always read the relevant rule or skill file before starting the task to ensure you follow the project's conventions and patterns.
