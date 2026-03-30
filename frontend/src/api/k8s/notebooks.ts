@@ -253,17 +253,22 @@ export const getNotebook = (name: string, namespace: string): Promise<NotebookKi
     queryOptions: { name, ns: namespace },
   });
 
-export const stopNotebook = (name: string, namespace: string): Promise<NotebookKind> =>
+export const stopNotebook = (
+  name: string,
+  namespace: string,
+  extraPatches?: Patch[],
+): Promise<NotebookKind> =>
   k8sPatchResource<NotebookKind>({
     model: NotebookModel,
     queryOptions: { name, ns: namespace },
-    patches: [getStopPatch()],
+    patches: [getStopPatch(), ...(extraPatches || [])],
   });
 
 export const startNotebook = async (
   notebook: NotebookKind,
   tolerationChanges: TolerationChanges,
   enablePipelines?: boolean,
+  extraPatches?: Patch[],
 ): Promise<NotebookKind> => {
   const patches: Patch[] = [];
   patches.push(startPatch);
@@ -276,6 +281,9 @@ export const startNotebook = async (
   if (enablePipelines) {
     patches.push(getPipelineVolumePatch());
     patches.push(getPipelineVolumeMountPatch());
+  }
+  if (extraPatches) {
+    patches.push(...extraPatches);
   }
 
   return k8sPatchResource<NotebookKind>({
