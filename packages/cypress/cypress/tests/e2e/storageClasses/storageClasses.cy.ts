@@ -171,8 +171,8 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
   );
 
   it(
-    '[Product Bug: RHOAIENG-34808] An admin user can edit the access mode of a storage class',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@StorageClassesCI', '@Bug'] },
+    'An admin user can edit the access mode of a storage class',
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@StorageClassesCI'] },
     () => {
       cy.step('Navigate to Storage Classes view');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -197,7 +197,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
       storageClassEditModal.findAccessModeCheckbox(AccessMode.ROX).should('not.be.checked');
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWOP)
-        .should('be.disabled')
+        .should('be.enabled')
         .and('not.be.checked');
 
       cy.step('Change access modes - enable ReadWriteMany and ReadOnlyMany');
