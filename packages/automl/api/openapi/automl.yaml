@@ -78,10 +78,14 @@ paths:
   /api/v1/model-registries:
     summary: List available Model Registry instances
     description: >-
-      Returns all ModelRegistry custom resources discovered on the cluster.
-      ModelRegistry CRs are cluster-scoped; no namespace parameter is required.
+      Returns all ModelRegistry instances from the rhoai-model-registries namespace.
+      Registries are presented as global in the RHOAI UX; no namespace parameter is required.
       Each entry includes the registry id, name, readiness, and server URL needed
       to route subsequent model registration calls to the correct registry service.
+
+      Required RBAC: User must have 'list' permission for
+      modelregistries.modelregistry.opendatahub.io resources in the
+      rhoai-model-registries namespace. Returns 403 if permission is denied.
     get:
       tags:
         - ModelRegistry

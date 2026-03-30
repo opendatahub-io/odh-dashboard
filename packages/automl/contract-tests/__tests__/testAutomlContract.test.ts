@@ -81,7 +81,7 @@ describe('AutoML API Contract Tests', () => {
         expect(typeof first.id).toBe('string');
         expect(typeof first.name).toBe('string');
         expect(typeof first.is_ready).toBe('boolean');
-        expect(first.server_url).toContain('/api/model_registry/v1beta1');
+        expect(first.server_url).toContain('/api/model_registry/v1alpha3');
       }
     });
   });
