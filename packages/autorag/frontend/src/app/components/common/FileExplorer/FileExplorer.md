@@ -1,8 +1,8 @@
 # FileExplorer
 
 * **FileExplorer Status**: Review
-* **S3FileExplorer Status**: Pending
-* **S3 BFF Status**: Pending
+* **S3FileExplorer Status**: Review
+* **S3 BFF Status**: Delivered
 
 A reusable file explorer widget in RHOAI that enables user interaction with files found in a given source.
 
@@ -39,6 +39,12 @@ For the S3-specific implementation we will implement an S3FileExplorer component
 ## API
 
 In the initial phase, the S3FileExplorer widget uses the common S3 BFF API primarily for listing connections and files in a bucket/connection.
+
+## Documentation
+
+This doc outlines some high-level requirements for the FileExplorer and any remaining tasks we want to cover in the coming releases.
+For the initial MVP since we may need to duplicate the FileExplorer/S3FileExplore code in _both_ autorag and automl, we will keep autorag as the source of truth.
+Changes will be mirrored to ensure both rag/ml remain in sync.
 
 ## Tasks
 
