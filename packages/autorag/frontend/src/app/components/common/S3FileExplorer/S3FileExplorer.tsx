@@ -316,6 +316,10 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   // Initial fetch on mount / when connection changes / when modal reopens after reset
   useEffect(() => {
     if (!isOpen || !secretName) {
+      // Clear session state so re-selecting the same secret forces a fresh fetch
+      if (connectionKeyRef.current) {
+        resetState();
+      }
       return;
     }
 
@@ -340,7 +344,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     appliedSearchRef.current = '';
 
     fetchPath('/', DEFAULT_PER_PAGE, 1);
-  }, [isOpen, secretName, namespace, bucket, fetchPath]);
+  }, [isOpen, secretName, namespace, bucket, fetchPath, resetState]);
 
   const debouncedSearch = useMemo(
     () =>

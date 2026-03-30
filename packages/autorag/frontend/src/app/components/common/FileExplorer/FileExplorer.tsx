@@ -322,8 +322,9 @@ const FilesTable: React.FC<FilesTableProps> = ({
     },
   };
 
+  const visibleFiles = Array.isArray(files) ? files.filter((file) => !file.hidden) : [];
   const skeletonRowCount = perPage;
-  const isEmpty = isEmptyProp ?? (!loading && (!Array.isArray(files) || files.length === 0));
+  const isEmpty = isEmptyProp ?? (!loading && visibleFiles.length === 0);
 
   return (
     <OuterScrollContainer>
@@ -384,109 +385,106 @@ const FilesTable: React.FC<FilesTableProps> = ({
             )}
             {!loading &&
               !isEmpty &&
-              Array.isArray(files) &&
-              files
-                .filter((file) => !file.hidden)
-                .map((file, rowIndex) => {
-                  const isSelected =
-                    Array.isArray(selectedFiles) && selectedFiles.some((f) => f.path === file.path);
-                  const isFileBeingViewed =
-                    Array.isArray(filesToView) && filesToView.some((f) => f.path === file.path);
-                  const isUnselectable = file.selectable === false;
+              visibleFiles.map((file, rowIndex) => {
+                const isSelected =
+                  Array.isArray(selectedFiles) && selectedFiles.some((f) => f.path === file.path);
+                const isFileBeingViewed =
+                  Array.isArray(filesToView) && filesToView.some((f) => f.path === file.path);
+                const isUnselectable = file.selectable === false;
 
-                  const actions: IAction[] = [
-                    {
-                      title: defaults.labels.tableActionViewDetails,
-                      onClick: () => onViewDetails(file),
+                const actions: IAction[] = [
+                  {
+                    title: defaults.labels.tableActionViewDetails,
+                    onClick: () => onViewDetails(file),
+                  },
+                ];
+                if (isSelected) {
+                  actions.push({
+                    title: defaults.labels.tableActionRemoveSelection,
+                    onClick: () => {
+                      setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path));
+                      onSelectFile?.(file, false);
                     },
-                  ];
-                  if (isSelected) {
-                    actions.push({
-                      title: defaults.labels.tableActionRemoveSelection,
-                      onClick: () => {
-                        setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path));
-                        onSelectFile?.(file, false);
-                      },
-                    });
-                  }
+                  });
+                }
 
-                  return (
-                    <Tr
-                      key={file.path}
-                      data-testid={`file-explorer-row-${sanitizeId(file.path)}`}
-                      isRowSelected={isSelected}
-                    >
-                      <Td
-                        width={columns.select.width}
-                        title={
-                          isUnselectable &&
-                          typeof unselectableReason === 'string' &&
-                          unselectableReason
-                            ? unselectableReason
-                            : ''
-                        }
-                        select={{
-                          rowIndex,
-                          onSelect: (_event, isSelecting) => {
-                            if (selection === 'radio') {
-                              setSelectedFiles(isSelecting ? [file] : []);
-                            } else {
-                              const current = Array.isArray(selectedFiles) ? selectedFiles : [];
-                              if (isSelecting) {
-                                if (!current.some((f) => f.path === file.path)) {
-                                  setSelectedFiles([...current, file]);
-                                }
-                              } else {
-                                setSelectedFiles(current.filter((f) => f.path !== file.path));
-                              }
-                            }
+                return (
+                  <Tr
+                    key={file.path}
+                    data-testid={`file-explorer-row-${sanitizeId(file.path)}`}
+                    isRowSelected={isSelected}
+                  >
+                    <Td
+                      width={columns.select.width}
+                      title={
+                        isUnselectable &&
+                        typeof unselectableReason === 'string' &&
+                        unselectableReason
+                          ? unselectableReason
+                          : ''
+                      }
+                      select={{
+                        rowIndex,
+                        onSelect: (_event, isSelecting) => {
+                          if (selection === 'radio') {
+                            setSelectedFiles(isSelecting ? [file] : []);
+                          } else {
+                            const current = Array.isArray(selectedFiles) ? selectedFiles : [];
                             if (isSelecting) {
-                              onViewDetails(file);
+                              if (!current.some((f) => f.path === file.path)) {
+                                setSelectedFiles([...current, file]);
+                              }
+                            } else {
+                              setSelectedFiles(current.filter((f) => f.path !== file.path));
                             }
-                            onSelectFile?.(file, isSelecting);
-                          },
-                          isSelected: Boolean(isSelected || file.forceShowAsSelected),
-                          isDisabled: isUnselectable,
-                          variant: selection,
-                        }}
-                      />
-                      <Td width={columns.name.width} dataLabel={columns.name.label}>
-                        <Flex
-                          spaceItems={{ default: 'spaceItemsSm' }}
-                          alignItems={{ default: 'alignItemsCenter' }}
-                          flexWrap={{ default: 'nowrap' }}
-                        >
-                          <FlexItem>
-                            {isFolder(file) && (
-                              <Truncate
-                                href="#"
-                                onClick={(e: React.MouseEvent) => {
-                                  e.preventDefault();
-                                  onFolderClick?.(file);
-                                }}
-                                content={file.name}
-                              />
-                            )}
-                            {!isFolder(file) && <Truncate content={file.name} />}
-                          </FlexItem>
-                          {!isSelected && isFileBeingViewed && (
-                            <FlexItem>
-                              <OutlinedEyeIcon
-                                title={defaults.labels.detailsViewingDetailsOfThisFile}
-                              />
-                            </FlexItem>
+                          }
+                          if (isSelecting) {
+                            onViewDetails(file);
+                          }
+                          onSelectFile?.(file, isSelecting);
+                        },
+                        isSelected: Boolean(isSelected || file.forceShowAsSelected),
+                        isDisabled: isUnselectable,
+                        variant: selection,
+                      }}
+                    />
+                    <Td width={columns.name.width} dataLabel={columns.name.label}>
+                      <Flex
+                        spaceItems={{ default: 'spaceItemsSm' }}
+                        alignItems={{ default: 'alignItemsCenter' }}
+                        flexWrap={{ default: 'nowrap' }}
+                      >
+                        <FlexItem>
+                          {isFolder(file) && (
+                            <Truncate
+                              href="#"
+                              onClick={(e: React.MouseEvent) => {
+                                e.preventDefault();
+                                onFolderClick?.(file);
+                              }}
+                              content={file.name}
+                            />
                           )}
-                        </Flex>
-                      </Td>
-                      <Td width={columns.type.width} dataLabel={columns.type.label}>
-                        {isFolder(file) ? defaults.labels.folderType : file.type}
-                      </Td>
-                      <Td width={columns.actions.width} isActionCell>
-                        <ActionsColumn items={actions} />
-                      </Td>
-                    </Tr>
-                  );
-                })}
+                          {!isFolder(file) && <Truncate content={file.name} />}
+                        </FlexItem>
+                        {!isSelected && isFileBeingViewed && (
+                          <FlexItem>
+                            <OutlinedEyeIcon
+                              title={defaults.labels.detailsViewingDetailsOfThisFile}
+                            />
+                          </FlexItem>
+                        )}
+                      </Flex>
+                    </Td>
+                    <Td width={columns.type.width} dataLabel={columns.type.label}>
+                      {isFolder(file) ? defaults.labels.folderType : file.type}
+                    </Td>
+                    <Td width={columns.actions.width} isActionCell>
+                      <ActionsColumn items={actions} />
+                    </Td>
+                  </Tr>
+                );
+              })}
           </Tbody>
         </Table>
       </InnerScrollContainer>
@@ -931,7 +929,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   };
 
   const isIndeterminate = itemCount === undefined;
-  const fileCount = Array.isArray(files) ? files.length : 0;
+  const fileCount = Array.isArray(files) ? files.filter((f) => !f.hidden).length : 0;
   const currentPerPage = perPage ?? 100;
   const currentPage = page ?? 1;
   // When indeterminate, synthesize a count so PF computes correct firstIndex/lastIndex.
