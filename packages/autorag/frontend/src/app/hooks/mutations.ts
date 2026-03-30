@@ -1,9 +1,9 @@
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { handleRestFailures, isModArchResponse, restCREATE } from 'mod-arch-core';
 import * as z from 'zod';
+import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { PipelineRun } from '~/app/types';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { ConfigureSchema } from '../schemas/configure.schema';
 
 export function useCreatePipelineRunMutation(
   namespace: string,
