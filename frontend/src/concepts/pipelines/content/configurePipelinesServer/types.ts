@@ -12,4 +12,5 @@ export type PipelineServerConfigType = {
   objectStorage: ObjectStorageNew;
   storeYamlInKubernetes: boolean;
   enableCaching: boolean;
+  enableManagedPipelines: boolean;
 };

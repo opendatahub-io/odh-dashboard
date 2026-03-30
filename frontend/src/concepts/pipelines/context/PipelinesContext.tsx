@@ -51,6 +51,12 @@ type PipelineContext = {
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   managedPipelines:
     | {
+        image: string;
+        pipelines?: string[];
+        volumeSizeLimit?: string;
+        resources?: Record<string, unknown>;
+      }
+    | {
         instructLab?: {
           state: 'Removed' | 'Managed';
         };
@@ -212,6 +218,12 @@ type UsePipelinesAPI = PipelineAPIState & {
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   refreshState: () => void;
   managedPipelines:
+    | {
+        image: string;
+        pipelines?: string[];
+        volumeSizeLimit?: string;
+        resources?: Record<string, unknown>;
+      }
     | {
         instructLab?: {
           state: 'Removed' | 'Managed';

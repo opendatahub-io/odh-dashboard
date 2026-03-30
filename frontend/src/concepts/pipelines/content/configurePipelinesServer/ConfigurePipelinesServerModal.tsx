@@ -30,6 +30,7 @@ import {
   hasServerTimedOut,
   isDspaAllReady,
 } from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
+import { useAppContext } from '#~/app/AppContext';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { PipelineCachingSection } from './PipelineCachingSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
@@ -41,6 +42,7 @@ import {
 import { configureDSPipelineResourceSpec, objectStorageIsValid } from './utils';
 import { PipelineServerConfigType } from './types';
 import PipelinesDefinitionStorageSection from './PipelinesDefinitionStorageSection';
+import ManagedPipelinesSettingsSection from './ManagedPipelinesSettingsSection';
 
 type ConfigurePipelinesServerModalProps = {
   onClose: () => void;
@@ -51,6 +53,7 @@ const FORM_DEFAULTS: PipelineServerConfigType = {
   objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
   storeYamlInKubernetes: true,
   enableCaching: true,
+  enableManagedPipelines: false,
 };
 
 const serverConfiguredEvent = 'Pipeline Server Configured';
@@ -66,6 +69,9 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const advancedSettingsRef = React.useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { dashboardConfig } = useAppContext();
+  const isManagedPipelinesAvailable =
+    dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
 
   const databaseIsValid = config.database.useDefault
     ? true
@@ -261,6 +267,9 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                 <div ref={advancedSettingsRef}>
                   <PipelinesDatabaseSection setConfig={setConfig} config={config} />
                   <PipelinesDefinitionStorageSection setConfig={setConfig} config={config} />
+                  {isManagedPipelinesAvailable && (
+                    <ManagedPipelinesSettingsSection setConfig={setConfig} config={config} />
+                  )}
                   <PipelineCachingSection
                     enableCaching={config.enableCaching}
                     setEnableCaching={(enableCaching) => setConfig({ ...config, enableCaching })}
