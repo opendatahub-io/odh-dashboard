@@ -9,8 +9,6 @@ jest.mock('@odh-dashboard/internal/concepts/projects/ProjectSelector', () => {
   function MockProjectSelector(props: {
     namespace: string;
     onSelection: (projectName: string) => void;
-    placeholder?: string;
-    isFullWidth?: boolean;
     isLoading?: boolean;
   }) {
     return (
@@ -52,11 +50,7 @@ const renderComponent = (
 ) =>
   render(
     <ProjectsContext.Provider value={{ ...defaultContextValue, ...contextOverrides }}>
-      <ProjectSelectorField
-        selectedNamespace=""
-        onSelect={jest.fn()}
-        {...props}
-      />
+      <ProjectSelectorField selectedNamespace="" onSelect={jest.fn()} {...props} />
     </ProjectsContext.Provider>,
   );
 
@@ -148,9 +142,7 @@ describe('ProjectSelectorField', () => {
   it('should show no-projects warning when projects list is empty', () => {
     renderComponent({}, { projects: [], loaded: true });
     expect(screen.getByTestId('namespace-registry-access-alert')).toBeInTheDocument();
-    expect(
-      screen.getByText(/You do not have access to any projects/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/You do not have access to any projects/)).toBeInTheDocument();
     expect(screen.getByTestId('who-is-my-admin-trigger')).toBeInTheDocument();
   });
 
