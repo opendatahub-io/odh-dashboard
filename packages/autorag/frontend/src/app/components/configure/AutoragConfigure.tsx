@@ -259,7 +259,7 @@ function AutoragConfigure(): React.JSX.Element {
           <Card className="pf-v6-u-p-xs" isFullHeight>
             <div style={{ overflow: 'auto' }}>
               <CardHeader>
-                <Content component="h3">Configure Details</Content>
+                <Content component="h3">Configure details</Content>
               </CardHeader>
               <CardBody>
                 {!inputDataSecretName ? (

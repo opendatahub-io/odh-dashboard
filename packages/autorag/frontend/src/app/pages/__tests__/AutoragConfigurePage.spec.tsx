@@ -32,7 +32,7 @@ jest.mock('mod-arch-core', () => ({
 }));
 
 jest.mock('~/app/hooks/mutations', () => ({
-  usePipelineRunsMutation: jest.fn(() => ({
+  useCreatePipelineRunMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
   })),
 }));
@@ -221,8 +221,8 @@ describe('AutoragConfigurePage', () => {
     it('should NOT render AutoragConfigure component on initial load', async () => {
       renderWithProviders(<AutoragConfigurePage />);
       // AutoragConfigure has "Documents" and "Configure Details" headings
-      expect(screen.queryByText('Documents')).not.toBeInTheDocument();
-      expect(screen.queryByText('Configure Details')).not.toBeInTheDocument();
+      expect(screen.queryByText('Knowledge setup')).not.toBeInTheDocument();
+      expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
     });
 
     it('should display "Create AutoRAG experiment" subtitle in create step', async () => {
@@ -299,8 +299,8 @@ describe('AutoragConfigurePage', () => {
       await user.click(nextButton);
 
       // Should now show configure component
-      expect(await screen.findByText('Documents')).toBeInTheDocument();
-      expect(await screen.findByText('Configure Details')).toBeInTheDocument();
+      expect(await screen.findByText('Knowledge setup')).toBeInTheDocument();
+      expect(await screen.findByText('Configure details')).toBeInTheDocument();
       expect(screen.queryByLabelText(/Name/i)).not.toBeInTheDocument();
     });
   });
@@ -342,8 +342,8 @@ describe('AutoragConfigurePage', () => {
 
     it('should render AutoragConfigure component in configure step', async () => {
       // Check for distinctive elements from AutoragConfigure
-      expect(await screen.findByText('Documents')).toBeInTheDocument();
-      expect(await screen.findByText('Configure Details')).toBeInTheDocument();
+      expect(await screen.findByText('Knowledge setup')).toBeInTheDocument();
+      expect(await screen.findByText('Configure details')).toBeInTheDocument();
     });
 
     it('should display experiment name in subtitle in configure step', async () => {
@@ -402,8 +402,8 @@ describe('AutoragConfigurePage', () => {
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
       expect(await screen.findByText(/Llama Stack instance/i)).toBeInTheDocument();
       // Should NOT show configure component (Documents, Configure Details)
-      expect(screen.queryByText('Documents')).not.toBeInTheDocument();
-      expect(screen.queryByText('Configure Details')).not.toBeInTheDocument();
+      expect(screen.queryByText('Knowledge setup')).not.toBeInTheDocument();
+      expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
     });
 
     it('should preserve form data when navigating back', async () => {
