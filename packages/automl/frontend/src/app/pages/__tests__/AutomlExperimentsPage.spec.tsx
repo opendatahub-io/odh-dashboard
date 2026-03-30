@@ -11,14 +11,17 @@ let mockListStatusReport: { loaded: boolean; hasExperiments: boolean } = {
 
 jest.mock('~/app/components/experiments/AutomlExperiments', () => {
   const R = jest.requireActual<typeof import('react')>('react');
+  const router = jest.requireActual<typeof import('react-router')>('react-router');
   function MockAutomlExperiments({
     onExperimentsListStatus,
   }: {
     onExperimentsListStatus?: (s: { loaded: boolean; hasExperiments: boolean }) => void;
   }) {
-    R.useLayoutEffect(() => {
-      onExperimentsListStatus?.(mockListStatusReport);
-    });
+    const { namespace } = router.useParams();
+    R.useEffect(() => {
+      const snapshot = { ...mockListStatusReport };
+      onExperimentsListStatus?.(snapshot);
+    }, [namespace, mockListStatusReport.loaded, mockListStatusReport.hasExperiments]);
     return <div data-testid="mock-automl-experiments" />;
   }
   return { __esModule: true, default: MockAutomlExperiments };
@@ -71,14 +74,18 @@ const defaultNamespaceSelector = {
   namespacesLoadError: undefined,
 };
 
-function renderPage(initialPath: string) {
-  return render(
-    <MemoryRouter initialEntries={[initialPath]}>
+function uiAtPath(initialPath: string) {
+  return (
+    <MemoryRouter key={initialPath} initialEntries={[initialPath]}>
       <Routes>
         <Route path="/experiments/:namespace?" element={<AutomlExperimentsPage />} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+}
+
+function renderPage(initialPath: string) {
+  return render(uiAtPath(initialPath));
 }
 
 describe('AutomlExperimentsPage', () => {
@@ -122,5 +129,25 @@ describe('AutomlExperimentsPage', () => {
     });
     renderPage('/experiments/test-ns');
     expect(screen.queryByTestId('automl-header-create-experiment-button')).not.toBeInTheDocument();
+  });
+
+  it('hides header CTA during namespace switch until new list status loads', () => {
+    mockUseNamespaceSelector.mockReturnValue(defaultNamespaceSelector);
+
+    mockListStatusReport = { loaded: true, hasExperiments: true };
+    const { rerender } = renderPage('/experiments/test-ns');
+    expect(screen.getByTestId('automl-header-create-experiment-button')).toBeInTheDocument();
+
+    mockListStatusReport = { loaded: false, hasExperiments: false };
+    rerender(uiAtPath('/experiments/other-ns'));
+    expect(screen.queryByTestId('automl-header-create-experiment-button')).not.toBeInTheDocument();
+
+    mockListStatusReport = { loaded: true, hasExperiments: false };
+    rerender(uiAtPath('/experiments/other-ns'));
+    expect(screen.queryByTestId('automl-header-create-experiment-button')).not.toBeInTheDocument();
+
+    mockListStatusReport = { loaded: true, hasExperiments: true };
+    rerender(uiAtPath('/experiments/other-ns'));
+    expect(screen.getByTestId('automl-header-create-experiment-button')).toBeInTheDocument();
   });
 });

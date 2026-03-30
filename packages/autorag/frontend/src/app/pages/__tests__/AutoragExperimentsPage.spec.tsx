@@ -9,16 +9,23 @@ let mockListStatusReport: { loaded: boolean; hasExperiments: boolean } = {
   hasExperiments: false,
 };
 
+/** Captures payloads passed to onExperimentsListStatus from the mock child (passive useEffect; matches prod). */
+const autoragMockChildNotifyLog: { loaded: boolean; hasExperiments: boolean }[] = [];
+
 jest.mock('~/app/components/experiments/AutoragExperiments', () => {
   const R = jest.requireActual<typeof import('react')>('react');
+  const router = jest.requireActual<typeof import('react-router')>('react-router');
   function MockAutoragExperiments({
     onExperimentsListStatus,
   }: {
     onExperimentsListStatus?: (s: { loaded: boolean; hasExperiments: boolean }) => void;
   }) {
-    R.useLayoutEffect(() => {
-      onExperimentsListStatus?.(mockListStatusReport);
-    });
+    const { namespace } = router.useParams();
+    R.useEffect(() => {
+      const snapshot = { ...mockListStatusReport };
+      autoragMockChildNotifyLog.push(snapshot);
+      onExperimentsListStatus?.(snapshot);
+    }, [namespace, mockListStatusReport.loaded, mockListStatusReport.hasExperiments]);
     return <div data-testid="mock-autorag-experiments" />;
   }
   return { __esModule: true, default: MockAutoragExperiments };
@@ -71,20 +78,25 @@ const defaultNamespaceSelector = {
   namespacesLoadError: undefined,
 };
 
-function renderPage(initialPath: string) {
-  return render(
-    <MemoryRouter initialEntries={[initialPath]}>
+function uiAtPath(initialPath: string) {
+  return (
+    <MemoryRouter key={initialPath} initialEntries={[initialPath]}>
       <Routes>
         <Route path="/experiments/:namespace?" element={<AutoragExperimentsPage />} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+}
+
+function renderPage(initialPath: string) {
+  return render(uiAtPath(initialPath));
 }
 
 describe('AutoragExperimentsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockListStatusReport = { loaded: false, hasExperiments: false };
+    autoragMockChildNotifyLog.length = 0;
     mockUseNamespaceSelector.mockReturnValue(defaultNamespaceSelector);
   });
 
@@ -122,5 +134,47 @@ describe('AutoragExperimentsPage', () => {
     });
     renderPage('/experiments/test-ns');
     expect(screen.queryByTestId('autorag-header-create-run-button')).not.toBeInTheDocument();
+  });
+
+  it('hides header CTA during namespace switch until new list status loads', () => {
+    mockUseNamespaceSelector.mockReturnValue(defaultNamespaceSelector);
+
+    mockListStatusReport = { loaded: true, hasExperiments: true };
+    const { rerender } = renderPage('/experiments/test-ns');
+    expect(screen.getByTestId('autorag-header-create-run-button')).toBeInTheDocument();
+
+    mockListStatusReport = { loaded: false, hasExperiments: false };
+    rerender(uiAtPath('/experiments/other-ns'));
+    expect(screen.queryByTestId('autorag-header-create-run-button')).not.toBeInTheDocument();
+
+    mockListStatusReport = { loaded: true, hasExperiments: false };
+    rerender(uiAtPath('/experiments/other-ns'));
+    expect(screen.queryByTestId('autorag-header-create-run-button')).not.toBeInTheDocument();
+
+    mockListStatusReport = { loaded: true, hasExperiments: true };
+    rerender(uiAtPath('/experiments/other-ns'));
+    expect(screen.getByTestId('autorag-header-create-run-button')).toBeInTheDocument();
+  });
+
+  it('after namespace change, header stays off until child reports new status (layout reset before passive notify)', () => {
+    mockUseNamespaceSelector.mockReturnValue(defaultNamespaceSelector);
+
+    mockListStatusReport = { loaded: true, hasExperiments: true };
+    const { rerender } = renderPage('/experiments/test-ns');
+    expect(screen.getByTestId('autorag-header-create-run-button')).toBeInTheDocument();
+
+    const notifyCountBeforeSwitch = autoragMockChildNotifyLog.length;
+
+    mockListStatusReport = { loaded: false, hasExperiments: false };
+    rerender(uiAtPath('/experiments/other-ns'));
+
+    expect(screen.queryByTestId('autorag-header-create-run-button')).not.toBeInTheDocument();
+
+    const notifiesFromNewMount = autoragMockChildNotifyLog.slice(notifyCountBeforeSwitch);
+    expect(notifiesFromNewMount[0]).toEqual({ loaded: false, hasExperiments: false });
+
+    mockListStatusReport = { loaded: true, hasExperiments: true };
+    rerender(uiAtPath('/experiments/other-ns'));
+    expect(screen.getByTestId('autorag-header-create-run-button')).toBeInTheDocument();
   });
 });
