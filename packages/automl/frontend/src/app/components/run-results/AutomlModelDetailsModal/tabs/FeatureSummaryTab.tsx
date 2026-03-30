@@ -14,7 +14,10 @@ import { SearchIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 
-const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => {
+const FeatureSummaryTab: React.FC<TabContentProps> = ({
+  featureImportance,
+  isArtifactsLoading,
+}) => {
   const [searchValue, setSearchValue] = React.useState('');
 
   const allEntries = React.useMemo(
@@ -42,7 +45,7 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({ featureImportance }) => 
     }
   }, [hasFeatureData]);
 
-  if (!featureImportance) {
+  if (isArtifactsLoading) {
     return (
       <Table aria-label="Feature importance loading" variant="compact">
         <Thead>

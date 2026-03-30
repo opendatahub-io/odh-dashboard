@@ -68,11 +68,11 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   const isClassification = taskType === 'binary' || taskType === 'multiclass';
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record<string,T> hides runtime undefined
   const modelDirectory = model?.location?.model_directory;
-  const { featureImportance, confusionMatrix } = useModelEvaluationArtifactsQuery(
-    namespace,
-    modelDirectory,
-    isClassification,
-  );
+  const {
+    featureImportance,
+    confusionMatrix,
+    isLoading: isArtifactsLoading,
+  } = useModelEvaluationArtifactsQuery(namespace, modelDirectory, isClassification);
 
   const visibleTabs = React.useMemo(() => getVisibleTabs(taskType), [taskType]);
   const [activeTabKey, setActiveTabKey] = React.useState(visibleTabs[0]?.key ?? '');
@@ -194,6 +194,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                         createdAt={createdAt}
                         featureImportance={featureImportance}
                         confusionMatrix={confusionMatrix}
+                        isArtifactsLoading={isArtifactsLoading}
                       />
                     )}
                   </div>

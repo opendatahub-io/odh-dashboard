@@ -30,10 +30,17 @@ const sampleImportance: FeatureImportanceData = {
 };
 
 describe('FeatureSummaryTab', () => {
-  it('should render skeleton loading state when featureImportance is undefined', () => {
-    const { container } = render(<FeatureSummaryTab {...defaultProps} />);
+  it('should render skeleton loading state when isArtifactsLoading is true', () => {
+    const { container } = render(<FeatureSummaryTab {...defaultProps} isArtifactsLoading />);
     const skeletons = container.querySelectorAll('.pf-v6-c-skeleton');
     expect(skeletons.length).toBeGreaterThan(0);
+  });
+
+  it('should show no-data empty state when featureImportance is undefined and not loading', () => {
+    render(<FeatureSummaryTab {...defaultProps} />);
+
+    expect(screen.getByTestId('feature-no-data-empty-state')).toBeInTheDocument();
+    expect(screen.getByText('No feature data available')).toBeInTheDocument();
   });
 
   it('should render feature names in the table', () => {

@@ -20,6 +20,7 @@ export type TabContentProps = {
   createdAt?: string;
   featureImportance?: FeatureImportanceData;
   confusionMatrix?: ConfusionMatrixData;
+  isArtifactsLoading?: boolean;
 };
 
 export type TabDefinition = {
