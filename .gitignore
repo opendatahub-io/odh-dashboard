@@ -94,4 +94,5 @@ vendor/
 assessment-output.txt
 
 # Speckit artifacts
-**/specs/
+specs/
+.specify/memory/specs/
