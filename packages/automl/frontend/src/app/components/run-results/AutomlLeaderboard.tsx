@@ -41,11 +41,13 @@ type LeaderboardEntry = {
 type AutomlLeaderboardProps = {
   onViewDetails?: (modelName: string, rank: number) => void;
   onClickSaveNotebook?: (modelName: string) => void;
+  onRegisterModel?: (modelName: string) => void;
 };
 
 function AutomlLeaderboard({
   onViewDetails,
   onClickSaveNotebook,
+  onRegisterModel,
 }: AutomlLeaderboardProps): React.JSX.Element | null {
   const { namespace } = useParams<{ namespace: string }>();
   const { models, parameters, modelsLoading, pipelineRun, pipelineRunLoading } =
@@ -390,7 +392,7 @@ function AutomlLeaderboard({
                     {
                       title: 'Register model',
                       onClick: () => {
-                        // TODO: Implement register model
+                        onRegisterModel?.(entry.model);
                       },
                     },
                     {
