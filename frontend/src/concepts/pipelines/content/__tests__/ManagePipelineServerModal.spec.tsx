@@ -3,12 +3,15 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ManagePipelineServerModal from '#~/concepts/pipelines/content/ManagePipelineServerModal';
 import { mockDataSciencePipelineApplicationK8sResource } from '#~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret';
 import { updatePipelineSettings } from '#~/api/pipelines/k8s';
 import { NotificationWatcherContext } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
 import { SecretCategory, EnvironmentVariableType } from '#~/pages/projects/types';
 import useNotification from '#~/utilities/useNotification';
+import { useAppContext } from '#~/app/AppContext';
+import { MANAGED_PIPELINES_REPO_LATEST } from '#~/concepts/pipelines/const';
 
 // Mock dependencies
 jest.mock('#~/concepts/pipelines/context', () => ({
@@ -29,12 +32,17 @@ jest.mock('#~/utilities/useNotification', () => ({
   default: jest.fn(),
 }));
 
+jest.mock('#~/app/AppContext', () => ({
+  useAppContext: jest.fn(),
+}));
+
 const mockUsePipelinesAPI = usePipelinesAPI as jest.MockedFunction<typeof usePipelinesAPI>;
 const mockUseNamespaceSecret = useNamespaceSecret as jest.MockedFunction<typeof useNamespaceSecret>;
 const mockUpdatePipelineSettings = updatePipelineSettings as jest.MockedFunction<
   typeof updatePipelineSettings
 >;
 const mockUseNotification = useNotification as jest.MockedFunction<typeof useNotification>;
+const mockUseAppContext = useAppContext as jest.MockedFunction<typeof useAppContext>;
 
 describe('ManagePipelineServerModal', () => {
   const mockOnClose = jest.fn();
@@ -112,6 +120,10 @@ describe('ManagePipelineServerModal', () => {
       info: jest.fn(),
       warning: jest.fn(),
     });
+
+    mockUseAppContext.mockReturnValue({
+      dashboardConfig: mockDashboardConfig({ automl: true, autorag: true }),
+    } as ReturnType<typeof useAppContext>);
   });
 
   it('should render the modal with correct title', () => {
@@ -356,7 +368,7 @@ describe('ManagePipelineServerModal', () => {
       name: 'dspa',
       namespace: 'test-project',
       managedPipelines: {
-        image: 'quay.io/opendatahub/odh-pipelines-components:latest',
+        image: MANAGED_PIPELINES_REPO_LATEST,
       },
     });
 
@@ -415,9 +427,8 @@ describe('ManagePipelineServerModal', () => {
       expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
         'test-project',
         {
-          cacheEnabled: true,
           managedPipelines: {
-            image: 'quay.io/opendatahub/odh-pipelines-components:latest',
+            image: MANAGED_PIPELINES_REPO_LATEST,
           },
         },
         'dspa',
@@ -444,7 +455,7 @@ describe('ManagePipelineServerModal', () => {
         {
           cacheEnabled: false,
           managedPipelines: {
-            image: 'quay.io/opendatahub/odh-pipelines-components:latest',
+            image: MANAGED_PIPELINES_REPO_LATEST,
           },
         },
         'dspa',
@@ -457,7 +468,7 @@ describe('ManagePipelineServerModal', () => {
       name: 'dspa',
       namespace: 'test-project',
       managedPipelines: {
-        image: 'quay.io/opendatahub/odh-pipelines-components:latest',
+        image: MANAGED_PIPELINES_REPO_LATEST,
       },
     });
 
@@ -479,7 +490,6 @@ describe('ManagePipelineServerModal', () => {
       expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
         'test-project',
         {
-          cacheEnabled: true,
           managedPipelines: undefined,
         },
         'dspa',

@@ -283,3 +283,10 @@ spec:
                           type: array
                           items:
                             type: string
+                pipelinesConfig:
+                  description: 'Configuration options for Data Science Pipelines'
+                  type: object
+                  properties:
+                    managedPipelinesImage:
+                      description: 'Container image for managed pipelines (AutoML/AutoRAG). When managedPipelines is enabled, this image is used as an init container to compile and upload pipeline bundles. Defaults to quay.io/opendatahub/odh-pipelines-components:latest'
+                      type: string
