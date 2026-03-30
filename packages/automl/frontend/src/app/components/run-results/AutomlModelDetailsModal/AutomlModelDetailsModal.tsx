@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import {
   Button,
   Grid,
@@ -67,11 +68,11 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   const isClassification = taskType === 'binary' || taskType === 'multiclass';
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record<string,T> hides runtime undefined
   const modelDirectory = model?.location?.model_directory;
-  const { featureImportance, confusionMatrix } = useModelEvaluationArtifactsQuery(
-    namespace,
-    modelDirectory,
-    isClassification,
-  );
+  const {
+    featureImportance,
+    confusionMatrix,
+    isLoading: isArtifactsLoading,
+  } = useModelEvaluationArtifactsQuery(namespace, modelDirectory, isClassification);
 
   const visibleTabs = React.useMemo(() => getVisibleTabs(taskType), [taskType]);
   const [activeTabKey, setActiveTabKey] = React.useState(visibleTabs[0]?.key ?? '');
@@ -90,11 +91,19 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     }
     const handleAfterPrint = () => setIsPrinting(false);
     window.addEventListener('afterprint', handleAfterPrint);
-    const frameId = requestAnimationFrame(() => {
-      window.print();
+    // Double rAF ensures the print-only container is painted before
+    // triggering print — single rAF fires before paint in Safari/Firefox.
+    let innerFrameId: number | undefined;
+    const outerFrameId = requestAnimationFrame(() => {
+      innerFrameId = requestAnimationFrame(() => {
+        window.print();
+      });
     });
     return () => {
-      cancelAnimationFrame(frameId);
+      cancelAnimationFrame(outerFrameId);
+      if (innerFrameId !== undefined) {
+        cancelAnimationFrame(innerFrameId);
+      }
       window.removeEventListener('afterprint', handleAfterPrint);
     };
   }, [isPrinting]);
@@ -108,101 +117,115 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   }
 
   return (
-    <Modal
-      variant="large"
-      isOpen={isOpen}
-      onClose={onClose}
-      aria-labelledby="automl-model-details-title"
-      data-testid="automl-model-details-modal"
-      className="automl-model-details-modal"
-    >
-      <ModalHeader labelId="automl-model-details-title" />
-      <ModalBody>
-        <AutomlModelDetailsModalHeader
-          models={models}
-          currentModelName={selectedModelName}
-          rank={rank}
-          rankMap={rankMap}
-          onSelectModel={(name) => setSelectedModelName(name)}
-          onDownload={() => setIsPrinting(true)}
-          onSaveNotebook={
-            onClickSaveNotebook
-              ? () => {
-                  onClickSaveNotebook(selectedModelName);
-                }
-              : undefined
-          }
-          isDownloadDisabled={!featureImportance}
-        />
-        <Grid hasGutter className="automl-model-details-screen-only">
-          <GridItem span={2} className="automl-model-details-sidebar">
-            <nav aria-label="Model details navigation">
-              {[...groupedTabs.entries()].map(([section, tabs]) => (
-                <div key={section}>
-                  <div className="automl-model-details-sidebar-section">{section}</div>
-                  <ul className="automl-model-details-nav-list">
-                    {tabs.map((tab) => (
-                      <li key={tab.key}>
-                        <button
-                          type="button"
-                          className={`automl-model-details-nav-item${
-                            activeTabKey === tab.key ? ' automl-model-details-nav-item--active' : ''
-                          }`}
-                          onClick={() => setActiveTabKey(tab.key)}
-                          data-testid={`tab-${tab.key}`}
-                        >
-                          {tab.label}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </nav>
-          </GridItem>
-          <GridItem span={10}>
-            {activeTab && (
-              <>
-                <div className="automl-model-details-tab-title">
-                  <Title headingLevel="h2">{activeTab.label}</Title>
-                  <Tooltip content={activeTab.tooltip} position="right">
-                    <Button
-                      variant="plain"
-                      aria-label={`${activeTab.label} info`}
-                      icon={<OutlinedQuestionCircleIcon />}
-                    />
-                  </Tooltip>
-                </div>
-                <div className="automl-model-details-tab-content">
-                  {ActiveComponent && (
-                    <ActiveComponent
-                      model={model}
-                      taskType={taskType}
-                      parameters={parameters}
-                      createdAt={createdAt}
-                      featureImportance={featureImportance}
-                      confusionMatrix={confusionMatrix}
-                    />
-                  )}
-                </div>
-              </>
-            )}
-          </GridItem>
-        </Grid>
+    <>
+      <Modal
+        variant="large"
+        isOpen={isOpen}
+        onClose={onClose}
+        aria-labelledby="automl-model-details-title"
+        data-testid="automl-model-details-modal"
+        className="automl-model-details-modal"
+      >
+        <ModalHeader labelId="automl-model-details-title" />
+        <ModalBody>
+          <AutomlModelDetailsModalHeader
+            models={models}
+            currentModelName={selectedModelName}
+            rank={rank}
+            rankMap={rankMap}
+            onSelectModel={(name) => setSelectedModelName(name)}
+            onDownload={() => setIsPrinting(true)}
+            onSaveNotebook={
+              onClickSaveNotebook
+                ? () => {
+                    onClickSaveNotebook(selectedModelName);
+                  }
+                : undefined
+            }
+            isDownloadDisabled={taskType !== TASK_TYPE_TIMESERIES && !featureImportance}
+          />
+          <Grid hasGutter className="automl-model-details-screen-only">
+            <GridItem span={2} className="automl-model-details-sidebar">
+              <nav aria-label="Model details navigation">
+                {[...groupedTabs.entries()].map(([section, tabs]) => (
+                  <div key={section}>
+                    <div className="automl-model-details-sidebar-section">{section}</div>
+                    <ul className="automl-model-details-nav-list">
+                      {tabs.map((tab) => (
+                        <li key={tab.key}>
+                          <button
+                            type="button"
+                            className={`automl-model-details-nav-item${
+                              activeTabKey === tab.key
+                                ? ' automl-model-details-nav-item--active'
+                                : ''
+                            }`}
+                            onClick={() => setActiveTabKey(tab.key)}
+                            data-testid={`tab-${tab.key}`}
+                          >
+                            {tab.label}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </nav>
+            </GridItem>
+            <GridItem span={10}>
+              {activeTab && (
+                <>
+                  <div className="automl-model-details-tab-title">
+                    <Title headingLevel="h2">{activeTab.label}</Title>
+                    <Tooltip content={activeTab.tooltip} position="right">
+                      <Button
+                        variant="plain"
+                        aria-label={`${activeTab.label} info`}
+                        icon={<OutlinedQuestionCircleIcon />}
+                      />
+                    </Tooltip>
+                  </div>
+                  <div className="automl-model-details-tab-content">
+                    {ActiveComponent && (
+                      <ActiveComponent
+                        model={model}
+                        taskType={taskType}
+                        parameters={parameters}
+                        createdAt={createdAt}
+                        featureImportance={featureImportance}
+                        confusionMatrix={confusionMatrix}
+                        isArtifactsLoading={isArtifactsLoading}
+                      />
+                    )}
+                  </div>
+                </>
+              )}
+            </GridItem>
+          </Grid>
+        </ModalBody>
+      </Modal>
 
-        {/* Print-only container: mounts only when downloading, renders ALL tabs */}
-        {isPrinting && (
-          <div className="automl-model-details-print-only">
-            <div className="automl-print-header">
-              <h1>{model.display_name}</h1>
-              <p>
-                Rank: {rank} | {model.model_config.eval_metric}
-              </p>
-            </div>
-            {visibleTabs.map((tab) => {
+      {/* Print-only container: portalled to document.body so it sits outside
+          the PF modal DOM — avoids backdrop/overflow/centering issues across
+          browsers. Each tab is rendered as a separate print page with its
+          own header since CSS cannot repeat arbitrary headers. */}
+      {isPrinting &&
+        ReactDOM.createPortal(
+          <div className="automl-model-details-print-only" data-testid="print-container">
+            {visibleTabs.map((tab, index) => {
               const TabComponent = tab.component;
               return (
-                <div key={tab.key} className="automl-print-page">
+                <div
+                  key={tab.key}
+                  className={`automl-print-page${index === 0 ? ' automl-print-page--first' : ''}`}
+                  data-testid={`print-page-${tab.key}`}
+                >
+                  <div className="automl-print-header">
+                    <h1>{model.display_name}</h1>
+                    <p>
+                      Rank: {rank} | {model.model_config.eval_metric}
+                    </p>
+                  </div>
                   <Title headingLevel="h2">{tab.label}</Title>
                   <TabComponent
                     model={model}
@@ -215,10 +238,10 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                 </div>
               );
             })}
-          </div>
+          </div>,
+          document.body,
         )}
-      </ModalBody>
-    </Modal>
+    </>
   );
 };
 
