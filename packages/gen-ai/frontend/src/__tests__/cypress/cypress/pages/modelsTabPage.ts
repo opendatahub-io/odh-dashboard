@@ -48,6 +48,37 @@ class ModelsTabPage {
       this.findTable().find('tr:has(td)').contains(modelName).parents('tr'),
     );
   }
+
+  openEndpointModal(modelName: string): void {
+    this.getRow(modelName).findEndpointCell().findByTestId('endpoint-view-button').click();
+  }
+}
+
+class EndpointModalPage {
+  findModal(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('[role="dialog"]');
+  }
+
+  findSubscriptionSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('endpoint-modal-subscription-select');
+  }
+
+  findGenerateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('endpoint-modal-generate-api-key');
+  }
+
+  findApiKeyInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('endpoint-modal-api-key-input');
+  }
+
+  findApiKeyToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('endpoint-modal-api-key-toggle');
+  }
+
+  findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('endpoint-modal-close');
+  }
 }
 
 export const modelsTabPage = new ModelsTabPage();
+export const endpointModalPage = new EndpointModalPage();

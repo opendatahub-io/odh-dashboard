@@ -138,17 +138,9 @@ npm run cypress:run -- --env grepTags="@YourPackageCI"
 
 ## Supported Packages
 
-Currently, the following packages have BFF E2E support:
+Currently, the following packages have BFF E2E support: automl, autorag, eval-hub, gen-ai, maas, mlflow, model-registry.
 
-| Package | Frontend Port | BFF Port | CI Tag |
-|---------|---------------|----------|--------|
-| automl | 9108 | 4003 | @AutoMLCI |
-| autorag | 9107 | 4001 | @AutoRAGCI |
-| eval-hub | 9105 | 4002 | @EvalHubCI |
-| gen-ai | 9102 | 8080 | @GenAICI |
-| maas | 9104 | 8081 | @MaaSCI |
-| mlflow | 9110 | 4020 | @MLflowCI |
-| model-registry | 9100 | 4000 | @ModelRegistryCI |
+To see current port assignments, run `node scripts/validate-module-ports.js`. The source of truth for each package is `module-federation.local.port` in its `package.json` (frontend port) and `PORT=` in its `Makefile` (BFF port). CI tags are in the `e2eCiTags` field of each package's `package.json`.
 
 ## Troubleshooting
 

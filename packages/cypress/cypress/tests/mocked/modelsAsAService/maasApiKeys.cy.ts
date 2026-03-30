@@ -1,7 +1,7 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import type { APIKey } from '@odh-dashboard/maas/types/api-key';
-import { asProductAdminUser } from '../../../utils/mockUsers';
+import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import {
   apiKeysPage,
   bulkRevokeAPIKeyModal,
@@ -22,7 +22,7 @@ const mockSearchResponse = (keys: APIKey[]) => ({
 
 describe('API Keys Page', () => {
   beforeEach(() => {
-    asProductAdminUser();
+    asClusterAdminUser();
     cy.interceptOdh(
       'GET /api/config',
       mockDashboardConfig({
@@ -33,6 +33,7 @@ describe('API Keys Page', () => {
     cy.interceptOdh('GET /maas/api/v1/user', {
       data: { userId: 'test-user', clusterAdmin: false },
     });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
     cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
 
     cy.interceptOdh(
@@ -90,6 +91,13 @@ describe('API Keys Page', () => {
       .getRow('production-backend')
       .findName()
       .should('contain.text', 'production-backend');
+  });
+
+  it('should not display the username filter for non-MaaS admins', () => {
+    asProjectAdminUser();
+    apiKeysPage.visit();
+    apiKeysPage.findFilterInput().should('not.exist');
+    apiKeysPage.findUsernameFilterTooltip().should('not.exist');
   });
 
   it('should filter api keys by status', () => {

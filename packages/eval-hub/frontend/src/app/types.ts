@@ -284,11 +284,28 @@ export type CollectionBenchmark = {
 export type Collection = {
   resource: CollectionResource;
   name: string;
+  category?: string;
   description?: string;
   tags?: string[];
   custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
   benchmarks?: CollectionBenchmark[];
+};
+
+export type ListCollectionsParams = {
+  namespace?: string;
+  limit?: number;
+  offset?: number;
+  name?: string;
+  category?: string | null;
+  tags?: string[];
+  scope?: string;
+};
+
+export type CollectionsListResponse = {
+  items: Collection[];
+  total_count?: number;
+  limit?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -326,7 +343,7 @@ export type ProviderBenchmark = {
   pass_criteria?: ProviderBenchmarkPassCriteria;
 };
 
-export type FlatBenchmark = ProviderBenchmark & { providerId: string };
+export type FlatBenchmark = ProviderBenchmark & { providerId: string; providerName: string };
 
 export type ProviderEnvVar = {
   name: string;

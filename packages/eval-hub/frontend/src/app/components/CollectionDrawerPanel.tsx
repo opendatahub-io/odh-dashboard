@@ -1,12 +1,12 @@
 import * as React from 'react';
 import {
-  Button,
   Content,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
+  Button,
   Panel,
   PanelMain,
   PanelMainBody,
@@ -14,7 +14,6 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { Collection } from '~/app/types';
 
 type CollectionDrawerPanelProps = {
@@ -83,14 +82,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                     <Panel variant="bordered">
                       <PanelMain>
                         <PanelMainBody>
-                          <Button
-                            variant="link"
-                            isInline
-                            icon={<ExternalLinkAltIcon />}
-                            iconPosition="end"
-                          >
-                            {b.id}
-                          </Button>
+                          <Content component="p">{b.id}</Content>
                         </PanelMainBody>
                       </PanelMain>
                     </Panel>
@@ -104,7 +96,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
 
       <DrawerPanelBody style={{ flex: '0 0 auto' }}>
         <Button variant="primary" onClick={() => onRunCollection(collection)}>
-          Run this benchmark suite
+          Use this collection
         </Button>
       </DrawerPanelBody>
     </DrawerPanelContent>

@@ -27,6 +27,11 @@ export interface ChatbotConfiguration {
   guardrailModelOutputEnabled: boolean;
   /** Whether RAG (Retrieval Augmented Generation) is enabled for this pane */
   isRagEnabled: boolean;
+  /** Which knowledge source mode is active: inline file upload or an external vector store */
+  knowledgeMode: 'inline' | 'external';
+  /** The vector store ID selected for RAG in this pane */
+  selectedVectorStoreId: string | null;
+  selectedSubscription: string;
   activePrompt: MLflowPromptVersion | null;
   dirtyPrompt: MLflowPromptVersion | null;
 }
@@ -47,6 +52,9 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   guardrailModelOutputEnabled: false,
   // RAG default - OFF
   isRagEnabled: false,
+  knowledgeMode: 'inline',
+  selectedVectorStoreId: null,
+  selectedSubscription: '',
   activePrompt: null,
   dirtyPrompt: null,
 };
@@ -91,8 +99,12 @@ export interface ChatbotConfigStoreActions {
   updateGuardrailUserInputEnabled: (id: string, value: boolean) => void;
   updateGuardrailModelOutputEnabled: (id: string, value: boolean) => void;
 
+  updateSelectedSubscription: (id: string, value: string) => void;
+
   // RAG toggle (per-pane)
   updateRagEnabled: (id: string, value: boolean) => void;
+  updateKnowledgeMode: (id: string, value: 'inline' | 'external') => void;
+  updateSelectedVectorStoreId: (id: string, value: string | null) => void;
 
   updateActivePrompt: (id: string, prompt: MLflowPromptVersion | null) => void;
   updateDirtyPrompt: (id: string, prompt: MLflowPromptVersion | null) => void;

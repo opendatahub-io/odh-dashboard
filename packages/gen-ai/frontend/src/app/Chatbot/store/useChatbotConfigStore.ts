@@ -214,6 +214,9 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           guardrailUserInputEnabled: sourceConfig.guardrailUserInputEnabled,
           guardrailModelOutputEnabled: sourceConfig.guardrailModelOutputEnabled,
           isRagEnabled: sourceConfig.isRagEnabled,
+          knowledgeMode: sourceConfig.knowledgeMode,
+          selectedVectorStoreId: sourceConfig.selectedVectorStoreId,
+          selectedSubscription: sourceConfig.selectedSubscription,
           activePrompt: deepCopyPrompt(sourceConfig.activePrompt),
           dirtyPrompt: deepCopyPrompt(sourceConfig.dirtyPrompt),
         };
@@ -280,12 +283,26 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         set(
           (state) => {
             const config = state.configurations[id];
-            if (config) {
+            if (config && config.selectedModel !== value) {
               config.selectedModel = value;
+              config.selectedSubscription = '';
             }
           },
           false,
           'updateSelectedModel',
+        );
+      },
+
+      updateSelectedSubscription: (id: string, value: string) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.selectedSubscription = value;
+            }
+          },
+          false,
+          'updateSelectedSubscription',
         );
       },
 
@@ -313,6 +330,32 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           },
           false,
           'updateRagEnabled',
+        );
+      },
+
+      updateKnowledgeMode: (id: string, value: 'inline' | 'external') => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.knowledgeMode = value;
+            }
+          },
+          false,
+          'updateKnowledgeMode',
+        );
+      },
+
+      updateSelectedVectorStoreId: (id: string, value: string | null) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.selectedVectorStoreId = value;
+            }
+          },
+          false,
+          'updateSelectedVectorStoreId',
         );
       },
 
