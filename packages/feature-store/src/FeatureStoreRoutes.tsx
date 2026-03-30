@@ -1,5 +1,8 @@
 import * as React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
+import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
+import { accessAllowedRouteHoC } from '@odh-dashboard/internal/concepts/userSSAR/accessAllowedRouteHoC';
+import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
 import { FeatureStoreObject } from './const';
 import FeatureStore from './FeatureStore';
 import FeatureStoreCoreLoader from './FeatureStoreCoreLoader';
@@ -15,6 +18,9 @@ import FeatureStoreDataSets from './screens/dataSets/FeatureStoreDataSets';
 import DataSetDetails from './screens/dataSets/DataSetDetails/DataSetDetails';
 import DataSources from './screens/dataSources/DataSources';
 import DataSourceDetailsPage from './screens/dataSources/dataSourceDetails/DataSourceDetailsPage';
+import CreateFeatureStoreProject from './screens/create/CreateFeatureStoreProject';
+import DeploymentProgressPage from './screens/create/DeploymentProgressPage';
+import FeatureStoreListPage from './screens/manage/FeatureStoreListPage';
 
 export const featureStoreRootRoute = (): string => `/develop-train/feature-store`;
 
@@ -33,8 +39,19 @@ export const featureRoute = (
 ): string =>
   `${featureStoreRootRoute()}/features/${featureStoreProject}/${featureViewName}/${featureName}`;
 
+const ProtectedCreatePage = accessAllowedRouteHoC(verbModelAccess('create', FeatureStoreModel))(
+  CreateFeatureStoreProject,
+);
+
+const ProtectedDeployPage = accessAllowedRouteHoC(verbModelAccess('create', FeatureStoreModel))(
+  DeploymentProgressPage,
+);
+
 const FeatureStoreRoutes: React.FC = () => (
   <Routes>
+    <Route path="manage" element={<FeatureStoreListPage />} />
+    <Route path="create" element={<ProtectedCreatePage />} />
+    <Route path="create/deploy/:namespace/:name" element={<ProtectedDeployPage />} />
     <Route
       path="/"
       element={

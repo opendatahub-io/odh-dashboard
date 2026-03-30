@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Button, Flex, FlexItem } from '@patternfly/react-core';
+import { CogIcon } from '@patternfly/react-icons';
 import FeatureStoreProjectSelector from './FeatureStoreProjectSelector';
 import { useFeatureStoreObject } from '../../apiHooks/useFeatureStoreObject';
 import { FeatureStoreObject } from '../../const';
@@ -17,14 +19,30 @@ const FeatureStoreProjectSelectorNavigator: React.FC<FeatureStoreProjectSelector
   const { currentProject, updatePreferredFeatureStoreProject } = useFeatureStoreProject();
 
   return (
-    <FeatureStoreProjectSelector
-      onSelection={(featureStoreObject: FeatureStoreObject, featureStoreProject?: string) => {
-        updatePreferredFeatureStoreProject(featureStoreProject || null);
-        navigate(getRedirectPath(featureStoreObject, featureStoreProject));
-      }}
-      featureStoreProject={currentProject ?? ''}
-      featureStoreObject={currentFeatureStoreObject}
-    />
+    <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
+      <FlexItem>
+        <FeatureStoreProjectSelector
+          onSelection={(featureStoreObject: FeatureStoreObject, featureStoreProject?: string) => {
+            updatePreferredFeatureStoreProject(featureStoreProject || null);
+            navigate(getRedirectPath(featureStoreObject, featureStoreProject));
+          }}
+          featureStoreProject={currentProject ?? ''}
+          featureStoreObject={currentFeatureStoreObject}
+        />
+      </FlexItem>
+      <FlexItem>
+        <Button
+          variant="link"
+          icon={<CogIcon />}
+          component={(props: React.ComponentProps<'a'>) => (
+            <Link {...props} to="/develop-train/feature-store/manage" />
+          )}
+          data-testid="manage-feature-stores-link"
+        >
+          Manage feature stores
+        </Button>
+      </FlexItem>
+    </Flex>
   );
 };
 
