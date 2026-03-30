@@ -49,10 +49,11 @@ type PipelineContext = {
   getRecurringRunInformation: GetRecurringRunInformationType;
   apiState: PipelineAPIState;
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
+  /** Managed pipelines configuration - see DSPipelineKind['spec']['apiServer']['managedPipelines'] for details */
   managedPipelines:
     | {
         image: string;
-        pipelines?: string[];
+        pipelines?: Array<{ name: string }>;
         volumeSizeLimit?: string;
         resources?: Record<string, unknown>;
       }
@@ -217,10 +218,11 @@ type UsePipelinesAPI = PipelineAPIState & {
   refreshAllAPI: () => void;
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   refreshState: () => void;
+  /** Managed pipelines configuration - see DSPipelineKind['spec']['apiServer']['managedPipelines'] for details */
   managedPipelines:
     | {
         image: string;
-        pipelines?: string[];
+        pipelines?: Array<{ name: string }>;
         volumeSizeLimit?: string;
         resources?: Record<string, unknown>;
       }

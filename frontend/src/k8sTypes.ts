@@ -736,10 +736,22 @@ export type DSPipelineKind = K8sResourceCommon & {
       }>;
       enableSamplePipeline: boolean;
       cacheEnabled: boolean;
+      /**
+       * Managed pipelines configuration.
+       *
+       * CURRENT (AutoML/AutoRAG pattern):
+       * - image: Container image with pipeline bundle (e.g., quay.io/opendatahub/odh-pipelines-components:latest)
+       * - pipelines: Optional array of specific pipelines to load. If omitted, all managed pipelines from the bundle are loaded.
+       * - When set, an init container runs before the API server to compile and upload pipelines.
+       *
+       * DEPRECATED (InstructLab pattern):
+       * - instructLab.state: Legacy pattern for single InstructLab pipeline management
+       * - Use the new image-based pattern for all new implementations
+       */
       managedPipelines?:
         | {
             image: string;
-            pipelines?: string[];
+            pipelines?: Array<{ name: string }>;
             volumeSizeLimit?: string;
             resources?: Record<string, unknown>;
           }
