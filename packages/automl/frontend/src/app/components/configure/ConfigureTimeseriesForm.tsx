@@ -237,6 +237,7 @@ function ConfigureTimeseriesForm({
             header: 'ID column',
             body: 'Name of the column that identifies each time series (e.g. product_id, store_id).',
           }}
+          isRequired
         >
           <LoadingFormField loading={isLoadingColumns || isFetchingColumns}>
             <Controller
