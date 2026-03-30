@@ -310,12 +310,9 @@ describe('AutomlConfigure', () => {
       train_data_secret_name: 'test-secret',
     };
 
-    beforeEach(() => {
-      renderComponent(trainingDataDefaults);
-    });
-
     describe('Prediction type', () => {
       it('should render all four prediction type tile cards', () => {
+        renderComponent(trainingDataDefaults);
         expect(screen.getByTestId('task-type-card-binary')).toBeInTheDocument();
         expect(screen.getByTestId('task-type-card-multiclass')).toBeInTheDocument();
         expect(screen.getByTestId('task-type-card-regression')).toBeInTheDocument();
@@ -323,6 +320,7 @@ describe('AutomlConfigure', () => {
       });
 
       it('should render prediction type labels', () => {
+        renderComponent(trainingDataDefaults);
         expect(screen.getByText('Binary classification')).toBeInTheDocument();
         expect(screen.getByText('Multiclass classification')).toBeInTheDocument();
         expect(screen.getByText('Regression')).toBeInTheDocument();
@@ -330,6 +328,7 @@ describe('AutomlConfigure', () => {
       });
 
       it('should render prediction type descriptions', () => {
+        renderComponent(trainingDataDefaults);
         expect(
           screen.getByText(
             'Classify data into categories. Choose this if your prediction column contains two distinct categories',
@@ -353,11 +352,13 @@ describe('AutomlConfigure', () => {
       });
 
       it('should have binary classification selected by default', () => {
+        renderComponent(trainingDataDefaults);
         const binaryCard = screen.getByTestId('task-type-card-binary');
         expect(binaryCard).toHaveClass('pf-m-selected');
       });
 
       it('should select a different prediction type when clicked', async () => {
+        renderComponent(trainingDataDefaults);
         const user = userEvent.setup();
 
         await user.click(screen.getByTestId('task-type-card-multiclass'));
@@ -369,6 +370,7 @@ describe('AutomlConfigure', () => {
     describe('Column selector based on prediction type', () => {
       describe('when prediction type is NOT timeseries', () => {
         it('should render the label column dropdown for binary classification', () => {
+          renderComponent(trainingDataDefaults);
           expect(screen.getByText('Label column')).toBeInTheDocument();
           expect(screen.getByTestId('label_column-select')).toBeInTheDocument();
           expect(screen.queryByText('Target column')).not.toBeInTheDocument();
@@ -376,6 +378,7 @@ describe('AutomlConfigure', () => {
         });
 
         it('should render the label column dropdown for multiclass classification', async () => {
+          renderComponent(trainingDataDefaults);
           const user = userEvent.setup();
 
           await user.click(screen.getByTestId('task-type-card-multiclass'));
@@ -387,6 +390,7 @@ describe('AutomlConfigure', () => {
         });
 
         it('should render the label column dropdown for regression', async () => {
+          renderComponent(trainingDataDefaults);
           const user = userEvent.setup();
 
           await user.click(screen.getByTestId('task-type-card-regression'));
@@ -400,6 +404,7 @@ describe('AutomlConfigure', () => {
 
       describe('when prediction type is timeseries', () => {
         it('should render the target column dropdown for timeseries', async () => {
+          renderComponent(trainingDataDefaults);
           const user = userEvent.setup();
 
           await user.click(screen.getByTestId('task-type-card-timeseries'));
@@ -411,6 +416,7 @@ describe('AutomlConfigure', () => {
         });
 
         it('should switch from label column to target column when changing to timeseries', async () => {
+          renderComponent(trainingDataDefaults);
           const user = userEvent.setup();
 
           // Initially shows label column for binary classification
@@ -428,6 +434,7 @@ describe('AutomlConfigure', () => {
         });
 
         it('should switch from target column to label column when changing from timeseries', async () => {
+          renderComponent(trainingDataDefaults);
           const user = userEvent.setup();
 
           // Switch to timeseries
@@ -448,14 +455,17 @@ describe('AutomlConfigure', () => {
 
     describe('Label column', () => {
       it('should render the label column dropdown', () => {
+        renderComponent(trainingDataDefaults);
         expect(screen.getByTestId('label_column-select')).toBeInTheDocument();
       });
 
       it('should show placeholder text when no column is selected', () => {
+        renderComponent(trainingDataDefaults);
         expect(screen.getByTestId('label_column-select')).toHaveTextContent('Select a column');
       });
 
       it('should be disabled when no file is selected', () => {
+        renderComponent(trainingDataDefaults);
         expect(screen.getByTestId('label_column-select')).toBeDisabled();
       });
 
@@ -464,17 +474,20 @@ describe('AutomlConfigure', () => {
           data: [],
           isLoading: false,
         } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
+        renderComponent(trainingDataDefaults);
         expect(screen.getByTestId('label_column-select')).toBeDisabled();
       });
     });
 
     describe('Top models to consider', () => {
       it('should render the top N input with default value 3', () => {
+        renderComponent(trainingDataDefaults);
         const input = screen.getByTestId('top-n-input').querySelector('input');
         expect(input).toHaveValue(3);
       });
 
       it('should show error message when top N exceeds the maximum', async () => {
+        renderComponent(trainingDataDefaults);
         const input = screen.getByTestId('top-n-input').querySelector('input')!;
         fireEvent.change(input, { target: { value: '6' } });
 
@@ -484,6 +497,7 @@ describe('AutomlConfigure', () => {
       });
 
       it('should show error message when top N is below the minimum', async () => {
+        renderComponent(trainingDataDefaults);
         const input = screen.getByTestId('top-n-input').querySelector('input')!;
         fireEvent.change(input, { target: { value: '0' } });
 

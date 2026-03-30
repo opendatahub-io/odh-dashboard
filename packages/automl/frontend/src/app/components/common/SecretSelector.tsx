@@ -146,19 +146,20 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
 
   // Clear stale selection when secrets refresh and current value is no longer valid
   React.useEffect(() => {
-    if (value) {
-      // Clear selection if secrets list is empty
-      if (secretsList.length === 0) {
-        onChange(undefined);
-        return;
-      }
-      // Clear selection if value is no longer in the list
-      const isValueInList = secretsList.some((secret) => secret.uuid === value);
-      if (!isValueInList) {
-        onChange(undefined);
-      }
+    if (!loaded || error || !value) {
+      return;
     }
-  }, [secretsList, value, onChange]);
+    // Clear selection if secrets list is empty
+    if (secretsList.length === 0) {
+      onChange(undefined);
+      return;
+    }
+    // Clear selection if value is no longer in the list
+    const isValueInList = secretsList.some((secret) => secret.uuid === value);
+    if (!isValueInList) {
+      onChange(undefined);
+    }
+  }, [loaded, error, secretsList, value, onChange]);
 
   const options: TypeaheadSelectOption[] = React.useMemo(
     () =>

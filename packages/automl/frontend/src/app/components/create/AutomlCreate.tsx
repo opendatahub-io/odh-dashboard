@@ -20,7 +20,13 @@ function AutomlCreate(): React.JSX.Element {
         name="display_name"
         render={({ field, fieldState }) => (
           <FormGroup fieldId={field.name} label="Name" isRequired>
-            <TextInput {...field} id={field.name} type="text" isRequired />
+            <TextInput
+              {...field}
+              id={field.name}
+              type="text"
+              isRequired
+              validated={fieldState.invalid ? 'error' : undefined}
+            />
             {fieldState.error && (
               <FormHelperText>
                 <HelperText>

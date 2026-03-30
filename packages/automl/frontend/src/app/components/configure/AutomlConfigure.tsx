@@ -141,7 +141,9 @@ function AutomlConfigure(): React.JSX.Element {
 
   // set bucket from selected secret
   useEffect(() => {
+    // reset bucket if secret is removed
     if (!selectedSecret || !selectedSecret.data) {
+      setValue('train_data_bucket_name', '', { shouldValidate: true });
       return;
     }
 
@@ -154,17 +156,10 @@ function AutomlConfigure(): React.JSX.Element {
     });
   }, [selectedSecret, setValue]);
 
-  // reset bucket if secret is removed
-  useEffect(() => {
-    if (trainDataSecretName === '') {
-      setValue('train_data_bucket_name', '', { shouldValidate: true });
-    }
-  }, [trainDataSecretName, setValue]);
-
-  // reset selected file values if bucket changes
+  // reset selected file values if secret or bucket changes
   useEffect(() => {
     setValue('train_data_file_key', '', { shouldValidate: true });
-  }, [trainDataBucketName, setValue]);
+  }, [trainDataSecretName, trainDataBucketName, setValue]);
 
   // reset all column-related form fields when file selection changes
   useEffect(() => {
@@ -253,9 +248,8 @@ function AutomlConfigure(): React.JSX.Element {
                                   value={selectedSecret?.uuid}
                                   onChange={(secret) => {
                                     if (!secret) {
-                                      setValue('train_data_secret_name', '', {
-                                        shouldValidate: true,
-                                      });
+                                      setSelectedSecret(undefined);
+                                      onChange('');
                                       return;
                                     }
 

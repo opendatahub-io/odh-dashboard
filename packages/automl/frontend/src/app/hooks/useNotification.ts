@@ -15,7 +15,7 @@ type NotificationProps = (
   actions?: AppNotificationAction[],
 ) => void;
 
-type NotificationRemoveProps = (id: string | undefined) => void;
+type NotificationRemoveProps = (id: string) => void;
 
 type NotificationTypeFunc = {
   [key in NotificationTypes]: NotificationProps;
@@ -83,9 +83,7 @@ export const useNotification = (): NotificationFunc => {
 
   const remove: NotificationRemoveProps = React.useCallback(
     (id) => {
-      if (id !== undefined) {
-        removeNotification(id);
-      }
+      removeNotification(id);
     },
     [removeNotification],
   );

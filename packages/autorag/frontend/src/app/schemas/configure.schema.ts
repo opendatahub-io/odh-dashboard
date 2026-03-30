@@ -30,8 +30,8 @@ function createConfigureSchema() {
     // Make sure all fields (including optional ones) have a default to ensure RHF works as intended.
     /* eslint-disable camelcase */
     schema: z.object({
-      display_name: z.string().min(1).default(''),
-      description: z.string().default('').optional(),
+      display_name: z.string().trim().min(1).default(''),
+      description: z.string().trim().default('').optional(),
 
       input_data_secret_name: z.string().min(1).default(''),
       input_data_bucket_name: z.string().min(1).default(''),

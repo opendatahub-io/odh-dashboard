@@ -110,7 +110,9 @@ function AutoragConfigure(): React.JSX.Element {
 
   // set bucket from selected secret
   useEffect(() => {
+    // reset bucket if secret is removed
     if (!selectedSecret) {
+      setValue('input_data_bucket_name', '', { shouldValidate: true });
       return;
     }
 
@@ -123,13 +125,6 @@ function AutoragConfigure(): React.JSX.Element {
     });
   }, [selectedSecret, setValue]);
 
-  // reset bucket if secret is removed
-  useEffect(() => {
-    if (inputDataSecretName === '') {
-      setValue('input_data_bucket_name', '', { shouldValidate: true });
-    }
-  }, [inputDataSecretName, setValue]);
-
   // ensure input and test have the same secret and bucket
   useEffect(() => {
     if (inputDataSecretName !== testDataSecretName) {
@@ -140,15 +135,15 @@ function AutoragConfigure(): React.JSX.Element {
     }
   }, [inputDataBucketName, inputDataSecretName, setValue, testDataBucketName, testDataSecretName]);
 
-  // reset selected file values if input bucket changes
+  // reset selected file values if input secret or bucket changes
   useEffect(() => {
     setValue('input_data_key', '', { shouldValidate: true });
-  }, [inputDataBucketName, setValue]);
+  }, [inputDataSecretName, inputDataBucketName, setValue]);
 
-  // reset selected file values if test bucket changes
+  // reset selected file values if test secret or bucket changes
   useEffect(() => {
     setValue('test_data_key', '', { shouldValidate: true });
-  }, [testDataBucketName, setValue]);
+  }, [testDataSecretName, testDataBucketName, setValue]);
 
   const openExperimentSettings = () => {
     // Snapshot current form values as the "default" so reset() can revert to them
