@@ -14,10 +14,13 @@ export type McpDeploymentCondition = {
 
 export type McpDeployment = {
   name: string;
+  displayName?: string;
   namespace: string;
+  uid: string;
   creationTimestamp: string;
   image: string;
   port: number;
+  yaml?: string;
   phase: McpDeploymentPhase;
   conditions?: McpDeploymentCondition[];
 };
@@ -27,4 +30,19 @@ export type McpDeploymentList = {
   nextPageToken?: string;
   pageSize: number;
   size: number;
+};
+
+export type McpDeploymentCreateRequest = {
+  name?: string;
+  displayName?: string;
+  image: string;
+  port?: number;
+  yaml?: string;
+};
+
+export type McpDeploymentUpdateRequest = {
+  displayName?: string;
+  image?: string;
+  port?: number;
+  yaml?: string;
 };

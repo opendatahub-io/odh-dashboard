@@ -16,7 +16,7 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon, PlusIcon } from '@patternfly/react-icons';
 import { APIKey, APIKeyStatus, ApiKeyFilterDataType, STATUS_OPTIONS } from '~/app/types/api-key';
-import ApiKeysActions from '../ApiKeysActions';
+import ApiKeysActions from '~/app/pages/api-keys/ApiKeysActions';
 
 type ApiKeysToolbarProps = {
   setIsModalOpen: (isOpen: boolean) => void;
@@ -29,6 +29,7 @@ type ApiKeysToolbarProps = {
   activeApiKeys: APIKey[];
   refresh: () => void;
   onClearFilters: () => void;
+  isMaasAdmin: boolean;
 };
 
 const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
@@ -42,6 +43,7 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
   activeApiKeys,
   refresh,
   onClearFilters,
+  isMaasAdmin,
 }) => {
   const [isStatusSelectOpen, setIsStatusSelectOpen] = React.useState(false);
 
@@ -109,34 +111,36 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
                 </SelectList>
               </Select>
             </ToolbarFilter>
-            <ToolbarFilter
-              labels={filterData.username ? [filterData.username] : []}
-              deleteLabel={() => {
-                setLocalUsername('');
-                onUsernameChange('');
-              }}
-              categoryName="Username"
-            >
-              <Tooltip
-                content="Please enter the full username"
-                data-testid="username-filter-tooltip"
+            {isMaasAdmin && (
+              <ToolbarFilter
+                labels={filterData.username ? [filterData.username] : []}
+                deleteLabel={() => {
+                  setLocalUsername('');
+                  onUsernameChange('');
+                }}
+                categoryName="Username"
               >
-                <SearchInput
-                  aria-label="Filter by username"
-                  placeholder="Filter by username"
-                  data-testid="username-filter-input"
-                  value={localUsername}
-                  onChange={(_event, value) => {
-                    setLocalUsername(value);
-                  }}
-                  onSearch={(_event, value) => onUsernameChange(value)}
-                  onClear={() => {
-                    setLocalUsername('');
-                    onUsernameChange('');
-                  }}
-                />
-              </Tooltip>
-            </ToolbarFilter>
+                <Tooltip
+                  content="Please enter the full username"
+                  data-testid="username-filter-tooltip"
+                >
+                  <SearchInput
+                    aria-label="Filter by username"
+                    placeholder="Filter by username"
+                    data-testid="username-filter-input"
+                    value={localUsername}
+                    onChange={(_event, value) => {
+                      setLocalUsername(value);
+                    }}
+                    onSearch={(_event, value) => onUsernameChange(value)}
+                    onClear={() => {
+                      setLocalUsername('');
+                      onUsernameChange('');
+                    }}
+                  />
+                </Tooltip>
+              </ToolbarFilter>
+            )}
           </ToolbarGroup>
         </ToolbarToggleGroup>
         <ToolbarGroup>

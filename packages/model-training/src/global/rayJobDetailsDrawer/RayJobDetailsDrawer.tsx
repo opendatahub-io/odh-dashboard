@@ -1,7 +1,5 @@
 import * as React from 'react';
 import {
-  Content,
-  ContentVariants,
   DrawerPanelContent,
   DrawerHead,
   DrawerActions,
@@ -21,9 +19,13 @@ import {
 import { EllipsisVIcon } from '@patternfly/react-icons';
 import RayJobDetailsTab from './RayJobDetailsTab';
 import RayJobResourcesTab from './RayJobResourcesTab';
+import RayJobLogsTab from './RayJobLogsTab';
+import RayJobPodsTab from './RayJobPodsTab';
+import ScaleRayJobNodesModal from './ScaleRayJobNodesModal';
 import PauseRayJobModal from '../trainingJobList/PauseRayJobModal';
 import { useRayJobPauseResume } from '../trainingJobList/hooks/useRayJobPauseResume';
 import { getStatusFlags, getRayJobStatusSync } from '../trainingJobList/utils';
+import { useRayJobNodeScaling } from '../../hooks/useRayJobNodeScaling';
 import { RayJobKind } from '../../k8sTypes';
 import { JobDisplayState, RayJobState, TrainingJobState } from '../../types';
 
@@ -53,6 +55,17 @@ const RayJobDetailsDrawer: React.FC<RayJobDetailsDrawerProps> = ({
 
   const status = job ? jobStatus || getRayJobStatusSync(job) : TrainingJobState.UNKNOWN;
   const { isPaused, canPauseResume } = getStatusFlags(status);
+
+  const {
+    workerGroupReplicas,
+    setWorkerGroupReplicas,
+    hasChanges,
+    canEditNodes,
+    isScaling,
+    modalOpen,
+    setModalOpen,
+    handleSave,
+  } = useRayJobNodeScaling(job, jobStatus);
 
   const {
     isSubmitting,
@@ -159,17 +172,18 @@ const RayJobDetailsDrawer: React.FC<RayJobDetailsDrawerProps> = ({
               <RayJobDetailsTab job={job} />
             </Tab>
             <Tab eventKey={1} title={<TabTitleText>Resources</TabTitleText>} aria-label="Resources">
-              <RayJobResourcesTab job={job} nodeCount={nodeCount} />
+              <RayJobResourcesTab
+                job={job}
+                nodeCount={nodeCount}
+                canScaleNodes={canEditNodes}
+                onScaleNodes={() => setModalOpen(true)}
+              />
             </Tab>
             <Tab eventKey={2} title={<TabTitleText>Pods</TabTitleText>} aria-label="Pods">
-              <Content component={ContentVariants.p} className="pf-v6-u-mt-md">
-                Pods content will be available in a future update.
-              </Content>
+              <RayJobPodsTab job={job} />
             </Tab>
             <Tab eventKey={3} title={<TabTitleText>Logs</TabTitleText>} aria-label="Logs">
-              <Content component={ContentVariants.p} className="pf-v6-u-mt-md">
-                Logs content will be available in a future update.
-              </Content>
+              <RayJobLogsTab job={job} />
             </Tab>
           </Tabs>
         </DrawerPanelBody>
@@ -183,6 +197,24 @@ const RayJobDetailsDrawer: React.FC<RayJobDetailsDrawerProps> = ({
           onConfirm={handlePause}
           dontShowModalValue={dontShowModalValue}
           setDontShowModalValue={setDontShowModalValue}
+        />
+      )}
+
+      {modalOpen && (
+        <ScaleRayJobNodesModal
+          jobName={job.metadata.name}
+          workerGroupReplicas={workerGroupReplicas}
+          hasChanges={hasChanges}
+          isScaling={isScaling}
+          onClose={() => setModalOpen(false)}
+          onSave={handleSave}
+          onReplicaChange={(groupName, newReplicas) =>
+            setWorkerGroupReplicas((prev) =>
+              prev.map((wg) =>
+                wg.groupName === groupName ? { ...wg, replicas: newReplicas } : wg,
+              ),
+            )
+          }
         />
       )}
     </>

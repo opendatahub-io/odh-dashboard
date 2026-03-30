@@ -649,6 +649,19 @@ paths:
                             - llm
                             - embedding
                           example: 'llm'
+                        subscriptions:
+                          type: array
+                          description: >-
+                            Subscriptions that provide access to this model.
+                            Each entry's name field is passed as the subscription field when minting ephemeral API keys for inference.
+                          items:
+                            $ref: '#/components/schemas/SubscriptionInfo'
+                          example:
+                            - name: basic-subscription
+                              displayName: Basic Tier
+                            - name: premium-subscription
+                              displayName: Premium Tier
+                              description: Premium subscription with higher rate limits
                       required:
                         - id
                         - object
@@ -670,10 +683,11 @@ paths:
       description: Gets a list of all available models from MaaS service.
 
   /gen-ai/api/v1/maas/tokens:
-    summary: Manage MaaS authentication tokens
+    summary: Manage MaaS ephemeral API keys
     description: >-
-      Issue new ephemeral tokens and revoke existing tokens for MaaS service authentication.
-      Tokens are JWT-based with configurable TTL (time-to-live).
+      Issue new ephemeral API keys and revoke existing tokens for MaaS service authentication.
+      All keys created through Gen AI Studio are ephemeral (short-lived, max 1h TTL)
+      and are excluded from the MaaS API key list by default.
       Requires namespace parameter for proper multi-tenant isolation.
     post:
       tags:
@@ -688,8 +702,11 @@ paths:
           schema:
             type: string
             example: 'default'
-      summary: Issue New Token
-      description: Create a new ephemeral token with specified TTL for API authentication.
+      summary: Issue Ephemeral API Key
+      description: >-
+        Create an ephemeral API key for MaaS authentication. The BFF always
+        creates ephemeral keys (max 1h TTL), which are excluded from the
+        MaaS API key list by default.
       requestBody:
         required: false
         content:
@@ -697,34 +714,58 @@ paths:
             schema:
               type: object
               properties:
-                expiration:
+                name:
                   type: string
-                  description: Token time-to-live in Go duration format. Supports ns, us, ms, s, m, h units.
-                  default: '4h'
-                  example: '2h'
-                  pattern: '^[0-9]+(ns|us|ms|s|m|h)$'
+                  description: Optional name for the key. If omitted, the MaaS service assigns a name automatically.
+                description:
+                  type: string
+                  description: Optional description for the key.
+                expiresIn:
+                  type: string
+                  description: Expiration duration (e.g., "30m", "1h"). Defaults to 1h, max 1h for ephemeral keys.
+                  default: '1h'
+                  example: '1h'
+                  pattern: '^[0-9]+(m|h)$'
+                ephemeral:
+                  type: boolean
+                  description: Always set to true by the BFF. Callers cannot override this value. Ephemeral keys have a 1h max TTL and are hidden from the API key list.
+                  readOnly: true
+                  default: true
+                subscription:
+                  type: string
+                  description: >-
+                    Optional MaaS subscription name to bind the ephemeral API key to.
+                    When provided, the key is scoped to this subscription.
+                    When omitted, the user's highest-priority accessible subscription is used by MaaS.
+                  example: 'premium-subscription'
             example:
-              expiration: '4h'
+              expiresIn: '1h'
+              subscription: 'premium-subscription'
       responses:
         '201':
-          description: Token created successfully
+          description: Ephemeral API key created successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  token:
-                    type: string
-                    description: Generated JWT token
-                    example: 'maas-token-placeholder-12345'
-                  expiresAt:
-                    type: integer
-                    format: int64
-                    description: Token expiration timestamp as Unix timestamp
-                    example: 1735406400
-                required:
-                  - token
-                  - expiresAt
+                  data:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        description: Generated API key (shown only once)
+                        example: 'sk-oai-...'
+                      expiresAt:
+                        type: string
+                        description: Key expiration timestamp in RFC3339 format
+                        example: '2026-03-23T15:00:00Z'
+                    required:
+                      - key
+              example:
+                data:
+                  key: 'sk-oai-...'
+                  expiresAt: '2026-03-23T15:00:00Z'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2082,6 +2123,27 @@ components:
           example: 'llama_stack'
           description: Model owner/provider
 
+    SubscriptionInfo:
+      type: object
+      description: Metadata about a subscription that provides access to a model
+      properties:
+        name:
+          type: string
+          description: >-
+            Subscription name. Passed as the subscription field when minting
+            ephemeral API keys for inference via POST /v1/api-keys.
+          example: 'premium-subscription'
+        displayName:
+          type: string
+          description: Human-readable display name for UI rendering
+          example: 'Premium Tier'
+        description:
+          type: string
+          description: Subscription description
+          example: 'Premium subscription with higher rate limits'
+      required:
+        - name
+
     # External Model Request Schema
     ExternalModelRequest:
       type: object
@@ -2899,6 +2961,14 @@ components:
             - maas
           example: 'custom_endpoint'
           description: Source type of the model. Required when using custom_endpoint models.
+        subscription:
+          type: string
+          example: 'premium-subscription'
+          description: >-
+            Optional MaaS subscription name to bind when generating an ephemeral API key for MaaS model inference.
+            When provided, the subscription is forwarded to the MaaS /v1/api-keys endpoint.
+            When omitted, the user's highest-priority accessible subscription is used by MaaS.
+            Only relevant for MaaS models (model IDs with "maas-" prefix); ignored for other model types.
 
     # Clean Response Schema - Preserves LlamaStack Structure
     ResponseData:

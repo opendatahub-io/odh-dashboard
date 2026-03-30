@@ -1,4 +1,4 @@
-import { formatApiKeyError } from '../utils';
+import { formatApiKeyError } from '~/app/pages/api-keys/utils';
 
 describe('formatApiKeyError', () => {
   describe('max expiration errors', () => {

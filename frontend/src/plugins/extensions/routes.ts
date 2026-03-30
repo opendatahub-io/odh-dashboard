@@ -457,29 +457,6 @@ const extensions: RouteExtension[] = [
       }),
     },
   },
-  {
-    type: 'app.route',
-    flags: {
-      required: [SupportedArea.LM_EVAL],
-    },
-    properties: {
-      path: '/develop-train/evaluations/*',
-      component: () => import('#~/pages/lmEval/LMEvalRoutes'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [SupportedArea.LM_EVAL],
-    },
-    properties: {
-      path: '/modelEvaluations/*',
-      component: createRedirectComponent({
-        from: '/modelEvaluations/*',
-        to: '/develop-train/evaluations/*',
-      }),
-    },
-  },
 ];
 
 export default extensions;

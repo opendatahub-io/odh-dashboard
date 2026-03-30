@@ -623,7 +623,7 @@ describe('Workbench page', () => {
     initIntercepts({ isEmpty: true });
     workbenchPage.visit('test-project');
     workbenchPage.findEmptyState().should('exist');
-    workbenchPage.findCreateButton().should('be.enabled');
+    workbenchPage.findCreateButton().should('not.have.attr', 'aria-disabled', 'true');
   });
 
   it('Cancel button', () => {
@@ -878,11 +878,11 @@ describe('Workbench page', () => {
             app: 'wb-1234',
             'opendatahub.io/dashboard': 'true',
             'opendatahub.io/odh-managed': 'true',
-            'opendatahub.io/user': 'test-2duser',
           },
           annotations: {
             'openshift.io/display-name': '1234',
             'openshift.io/description': 'test-description',
+            'opendatahub.io/user': 'test-2duser',
             'opendatahub.io/hardware-profile-name': 'small-profile',
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
           },
@@ -2024,7 +2024,7 @@ describe('Workbench page', () => {
     initIntercepts({});
     notFoundSpawnerPage.visit('updated-notebook');
     notFoundSpawnerPage.shouldHaveErrorMessageTitle('Unable to edit workbench');
-    notFoundSpawnerPage.findReturnToPage().should('be.enabled');
+    notFoundSpawnerPage.findReturnToPage().should('have.attr', 'href').and('not.be.empty');
     notFoundSpawnerPage.findReturnToPage().click();
     verifyRelativeURL('/projects/test-project');
   });

@@ -92,18 +92,18 @@ The `local` field in `module-federation` config tells the backend where to proxy
 | Backend | 4000 | Node.js/Fastify reverse proxy | Yes |
 | Host frontend | 4010 | Webpack dev server (host) | Yes |
 
-| Package | Frontend Port | BFF Port (federated) | Has `start:dev`? |
-|---|---|---|---|
-| model-registry | 9100 | **4000** | Yes |
-| gen-ai | 9102 | 8080 (no federated target) | No (use Makefile) |
-| eval-hub | 9105 | 4002 | No (use Makefile) |
-| maas | 9104 | 8081 | No (use Makefile) |
-| notebooks | 9105 | — | Yes |
-| autorag | 9107 | 4001 | No (use Makefile) |
-| automl | 9108 | 4003 | No (use Makefile) |
-| mlflow | 9110 | 4020 | No (use Makefile) |
+To see all current port assignments and detect conflicts:
 
-**Known port conflicts:**
+```bash
+npm run validate:ports
+```
+
+The source of truth for each package is:
+- **Frontend port**: `module-federation.local.port` in the package's `package.json`
+- **BFF port (local dev/E2E)**: `bffConfig.port` in the package's `package.json` (used by CI E2E workflow and Cypress scripts; not currently conflict-checked by the validator)
+- **Production service port**: `service.port` in `federation-configmap.yaml` (validated by CI via `npm run validate:ports`)
+
+**Known port conflict:**
 
 - **model-registry BFF (4000) vs dashboard backend (4000).** Both default to port 4000. To run them together, change the dashboard backend port via `.env.development.local`:
 
@@ -113,10 +113,6 @@ The `local` field in `module-federation` config tells the backend where to proxy
   ```
 
   The frontend's webpack proxy target (`_BACKEND_PORT`) and the backend itself both pick up this override. The model-registry BFF keeps port 4000 (hardcoded in its Makefile). Avoid using 4020 — mlflow's BFF uses that port.
-
-- **eval-hub (9105) vs notebooks (9105).** Both declare `module-federation.local.port: 9105`. Cannot run both simultaneously without changing one.
-
-- **mlflow BFF (4020).** Conflicts with `BACKEND_PORT=4020` if used as a workaround. Use 4050 or another unused port for the dashboard backend instead.
 
 ### Running multi-component dev
 

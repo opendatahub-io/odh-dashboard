@@ -1,9 +1,8 @@
 import React from 'react';
 import { Checkbox, Stack, StackItem, Flex, FlexItem, Label } from '@patternfly/react-core';
 import { z } from 'zod';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import { LLMD_SERVING_ID } from '@odh-dashboard/llmd-serving/extensions';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
+import { isLLMInferenceServiceActive } from '@odh-dashboard/llmd-serving/formUtils';
 
 export type MaaSFieldValue = {
   isChecked: boolean;
@@ -37,12 +36,11 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }
           data-testid={id}
           label={
             <>
-              <div className="pf-v6-c-form__label-text">Publish as MaaS endpoint</div>
+              <div className="pf-v6-c-form__label-text">Publish as MaaS</div>
               <Flex>
                 <FlexItem>
-                  Enable users in any namespace to access this model by adding its endpoint to the{' '}
-                  <span className="pf-v6-c-form__label-text">Models as a service</span> page. This
-                  is best for production models.
+                  Publishing as MaaS makes the model deployment endpoint accessible to others as a
+                  service through a gateway API.
                 </FlexItem>
                 <Label isCompact color="yellow" variant="outline">
                   Tech preview
@@ -66,10 +64,7 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
   parentId: 'model-playground-availability',
   step: 'advancedOptions',
   type: 'addition',
-  isActive: (wizardFormData) =>
-    wizardFormData.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE &&
-    !wizardFormData.modelType.data.legacyVLLM &&
-    wizardFormData.modelServer?.data?.selection?.name === LLMD_SERVING_ID,
+  isActive: isLLMInferenceServiceActive,
   reducerFunctions: {
     setFieldData: setMaaSFieldData,
     getInitialFieldData: getInitialMaaSFieldData,

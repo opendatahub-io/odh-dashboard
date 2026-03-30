@@ -1,46 +1,27 @@
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type {
   ExternalRouteField,
   TokenAuthField,
   DeploymentStrategyField,
 } from '@odh-dashboard/model-serving/types/form-data';
-import { LLMD_OPTION } from '../deployments/server';
+import { isLLMInferenceServiceActive } from '../formUtils';
 
 export const externalRouteField: ExternalRouteField = {
   id: 'externalRoute',
   type: 'modifier',
   isVisible: false, // Hide external route for LLMD deployments
-  isActive: (wizardFormData) => {
-    return (
-      wizardFormData.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE &&
-      !wizardFormData.modelType.data.legacyVLLM &&
-      wizardFormData.modelServer?.data?.selection?.name === LLMD_OPTION.name
-    );
-  },
+  isActive: isLLMInferenceServiceActive,
 };
 
 export const tokenAuthField: TokenAuthField = {
   id: 'tokenAuth',
   type: 'modifier',
   initialValue: true, // Default to checked for LLMD deployments
-  isActive: (wizardFormData) => {
-    return (
-      wizardFormData.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE &&
-      !wizardFormData.modelType.data.legacyVLLM &&
-      wizardFormData.modelServer?.data?.selection?.name === LLMD_OPTION.name
-    );
-  },
+  isActive: isLLMInferenceServiceActive,
 };
 
 export const deploymentStrategyField: DeploymentStrategyField = {
   id: 'deploymentStrategy',
   type: 'modifier',
   isVisible: false,
-  isActive: (wizardFormData): boolean => {
-    return (
-      wizardFormData.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE &&
-      !wizardFormData.modelType.data.legacyVLLM &&
-      wizardFormData.modelServer?.data?.selection?.name === LLMD_OPTION.name
-    );
-  },
+  isActive: isLLMInferenceServiceActive,
 };

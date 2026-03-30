@@ -25,6 +25,7 @@ import {
   selectStreamingEnabled,
   selectSelectedMcpServerIds,
   selectSelectedModel,
+  selectSelectedSubscription,
   selectRagEnabled,
   selectConfigIds,
   DEFAULT_CONFIG_ID,
@@ -105,6 +106,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+  const selectedSubscription = useChatbotConfigStore(selectSelectedSubscription(configId));
   const isRagEnabled = useChatbotConfigStore(selectRagEnabled(configId));
 
   // Get updater functions from store
@@ -112,6 +114,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const updateTemperature = useChatbotConfigStore((state) => state.updateTemperature);
   const updateStreamingEnabled = useChatbotConfigStore((state) => state.updateStreamingEnabled);
   const updateSelectedModel = useChatbotConfigStore((state) => state.updateSelectedModel);
+  const updateSelectedSubscription = useChatbotConfigStore(
+    (state) => state.updateSelectedSubscription,
+  );
 
   // Create callback handlers that include configId
   const handleSystemInstructionChange = React.useCallback(
@@ -140,6 +145,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       updateSelectedModel(configId, model);
     },
     [configId, updateSelectedModel],
+  );
+
+  const handleSubscriptionChange = React.useCallback(
+    (subscription: string) => {
+      updateSelectedSubscription(configId, subscription);
+    },
+    [configId, updateSelectedSubscription],
   );
 
   // Panel width state with session storage persistence
@@ -267,6 +279,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               onStreamingToggle={handleStreamingToggle}
               selectedModel={selectedModel}
               onModelChange={handleModelChange}
+              selectedSubscription={selectedSubscription}
+              onSubscriptionChange={handleSubscriptionChange}
             />
           </Tab>
 
