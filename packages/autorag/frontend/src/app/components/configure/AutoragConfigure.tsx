@@ -269,11 +269,19 @@ function AutoragConfigure(): React.JSX.Element {
             </CardHeader>
             <CardBody>
               <Stack hasGutter>
-                <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm">
-                  Where would you like to index your documents?
-                </StackItem>
                 <StackItem>
-                  <AutoragVectorStoreSelector />
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                    <StackItem>
+                      <Title headingLevel="h4">Index</Title>
+                    </StackItem>
+                    <StackItem className="pf-v6-u-font-size-sm">
+                      Specify the location for storing the vector index used to retrieve your
+                      documents.
+                    </StackItem>
+                    <StackItem>
+                      <AutoragVectorStoreSelector />
+                    </StackItem>
+                  </Flex>
                 </StackItem>
 
                 <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm">
