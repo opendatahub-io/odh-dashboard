@@ -11,6 +11,12 @@ type MockResourceConfigType = {
   pipelineStore?: DSPipelineAPIServerStore;
   cacheEnabled?: boolean;
   mlflowIntegrationMode?: DSPAMlflowIntegrationMode;
+  managedPipelines?: {
+    image: string;
+    pipelines?: string[];
+    volumeSizeLimit?: string;
+    resources?: Record<string, unknown>;
+  };
 };
 
 export const mockDataSciencePipelineApplicationK8sResource = ({
@@ -23,6 +29,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
   pipelineStore,
   cacheEnabled = true,
   mlflowIntegrationMode,
+  managedPipelines,
 }: MockResourceConfigType): DSPipelineKind => ({
   apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1',
   kind: 'DataSciencePipelinesApplication',
@@ -37,6 +44,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
       enableSamplePipeline: false,
       pipelineStore,
       cacheEnabled,
+      managedPipelines,
     },
     database: {
       mariaDB: {

@@ -267,13 +267,15 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                 <div ref={advancedSettingsRef}>
                   <PipelinesDatabaseSection setConfig={setConfig} config={config} />
                   <PipelinesDefinitionStorageSection setConfig={setConfig} config={config} />
-                  {isManagedPipelinesAvailable && (
+                  <div style={{ marginTop: '2rem' }}>
+                    <PipelineCachingSection
+                      enableCaching={config.enableCaching}
+                      setEnableCaching={(enableCaching) => setConfig({ ...config, enableCaching })}
+                    />
+                  </div>
+                  {isManagedPipelinesAvailable ? (
                     <ManagedPipelinesSettingsSection setConfig={setConfig} config={config} />
-                  )}
-                  <PipelineCachingSection
-                    enableCaching={config.enableCaching}
-                    setEnableCaching={(enableCaching) => setConfig({ ...config, enableCaching })}
-                  />
+                  ) : null}
                 </div>
               </ExpandableSection>
             </Form>

@@ -1,35 +1,79 @@
 import React from 'react';
-import { FormGroup, Checkbox } from '@patternfly/react-core';
+import {
+  FormGroup,
+  Checkbox,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  DescriptionListDescription,
+} from '@patternfly/react-core';
 import FormSection from '#~/components/pf-overrides/FormSection';
 import { PipelineServerConfigType } from './types';
 
-type ManagedPipelinesSettingsSectionProps = {
+type FormVariantProps = {
+  variant?: 'form';
   setConfig: (config: PipelineServerConfigType) => void;
   config: PipelineServerConfigType;
 };
 
-const ManagedPipelinesSettingsSection: React.FC<ManagedPipelinesSettingsSectionProps> = ({
-  config,
-  setConfig,
-}) => (
-  <FormSection
-    title="Managed pipelines"
-    description="Select managed pipelines to install on your project and enable automatic updates."
-  >
-    <FormGroup hasNoPaddingTop isStack>
-      <Checkbox
-        id="managed-pipelines-checkbox"
-        data-testid="managed-pipelines-checkbox"
-        name="managed-pipelines-checkbox"
-        label="AutoML and AutoRAG pipelines"
-        isChecked={config.enableManagedPipelines}
-        onChange={() => {
-          setConfig({ ...config, enableManagedPipelines: !config.enableManagedPipelines });
-        }}
-        description="The AutoML and AutoRAG pipelines contain the steps and instructions for automated model training and RAG pattern experimentation."
-      />
-    </FormGroup>
-  </FormSection>
-);
+type DescriptionVariantProps = {
+  variant: 'description';
+  enableManagedPipelines: boolean;
+  setEnableManagedPipelines: (value: boolean) => void;
+};
+
+type ManagedPipelinesSettingsSectionProps = FormVariantProps | DescriptionVariantProps;
+
+const ManagedPipelinesSettingsSection: React.FC<ManagedPipelinesSettingsSectionProps> = (props) => {
+  let isChecked: boolean;
+  let onChange: () => void;
+
+  if (props.variant === 'description') {
+    // Description variant
+    isChecked = props.enableManagedPipelines;
+    onChange = () => props.setEnableManagedPipelines(!props.enableManagedPipelines);
+  } else {
+    // Form variant
+    isChecked = props.config.enableManagedPipelines;
+    onChange = () =>
+      props.setConfig({
+        ...props.config,
+        enableManagedPipelines: !props.config.enableManagedPipelines,
+      });
+  }
+
+  const checkboxElement = (
+    <Checkbox
+      id="managed-pipelines-checkbox"
+      data-testid="managed-pipelines-checkbox"
+      name="managed-pipelines-checkbox"
+      label="AutoML and AutoRAG pipelines"
+      isChecked={isChecked}
+      onChange={onChange}
+      description="The AutoML and AutoRAG pipelines contain the steps and instructions for automated model training and RAG pattern experimentation."
+    />
+  );
+
+  if (props.variant === 'description') {
+    return (
+      <DescriptionListGroup>
+        <DescriptionListTerm>Managed pipelines</DescriptionListTerm>
+        <DescriptionListDescription>{checkboxElement}</DescriptionListDescription>
+      </DescriptionListGroup>
+    );
+  }
+
+  return (
+    <FormSection
+      title="Managed pipelines"
+      description="Select managed pipelines to install in your project. Managed pipelines will be created automatically. Restarting the pipeline server will recreate them in the event that they are deleted."
+    >
+      <FormGroup hasNoPaddingTop isStack>
+        <FormGroup hasNoPaddingTop isStack>
+          {checkboxElement}
+        </FormGroup>
+      </FormGroup>
+    </FormSection>
+  );
+};
 
 export default ManagedPipelinesSettingsSection;
