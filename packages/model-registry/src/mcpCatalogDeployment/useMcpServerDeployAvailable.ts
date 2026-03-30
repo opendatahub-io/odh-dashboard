@@ -2,7 +2,6 @@ import React from 'react';
 import { useFetchState, APIOptions, FetchStateCallbackPromise } from 'mod-arch-core';
 import { getMcpServerAvailability, McpServerAvailabilityResponse } from './service';
 
-
 const useMcpServerDeployAvailable = (): { available: boolean; loaded: boolean } => {
   const callback = React.useCallback<FetchStateCallbackPromise<McpServerAvailabilityResponse>>(
     (opts: APIOptions) => getMcpServerAvailability('')(opts),

@@ -1,6 +1,6 @@
 import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
-import { URL_PREFIX, BFF_API_VERSION } from '../../upstream/frontend/src/app/utilities/const';
 import { MCPServerCR } from './mcpDeploymentTypes';
+import { URL_PREFIX, BFF_API_VERSION } from '../../upstream/frontend/src/app/utilities/const';
 
 export type McpServerAvailabilityResponse = {
   available: boolean;
