@@ -48,11 +48,12 @@ describe('getVisibleTabs', () => {
     }
   });
 
-  it('should exclude confusion matrix for timeseries', () => {
+  it('should exclude confusion matrix and feature summary for timeseries', () => {
     const tabs = getVisibleTabs('timeseries');
     const keys = tabs.map((t) => t.key);
-    expect(keys).toEqual(['model-information', 'feature-summary', 'model-evaluation']);
+    expect(keys).toEqual(['model-information', 'model-evaluation']);
     expect(keys).not.toContain('confusion-matrix');
+    expect(keys).not.toContain('feature-summary');
   });
 
   it('should have a non-empty tooltip for every tab', () => {
