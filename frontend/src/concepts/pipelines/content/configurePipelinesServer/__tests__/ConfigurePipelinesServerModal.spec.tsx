@@ -10,6 +10,7 @@ import { NotificationWatcherContext } from '#~/concepts/notificationWatcher/Noti
 import { createPipelinesCR, deleteSecret } from '#~/api';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { configureDSPipelineResourceSpec } from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
+import { useAppContext } from '#~/app/AppContext';
 
 // Mock dependencies
 jest.mock('#~/concepts/pipelines/context', () => ({
@@ -43,6 +44,10 @@ jest.mock('#~/concepts/pipelines/content/configurePipelinesServer/utils', () => 
   objectStorageIsValid: jest.fn(),
 }));
 
+jest.mock('#~/app/AppContext', () => ({
+  useAppContext: jest.fn(),
+}));
+
 // Mock child components
 jest.mock('#~/concepts/pipelines/content/configurePipelinesServer/ObjectStorageSection', () => ({
   ObjectStorageSection: () => <div>Object storage connection</div>,
@@ -68,6 +73,7 @@ const mockFireFormTrackingEvent = fireFormTrackingEvent as jest.MockedFunction<
 const mockConfigureDSPipelineResourceSpec = configureDSPipelineResourceSpec as jest.MockedFunction<
   typeof configureDSPipelineResourceSpec
 >;
+const mockUseAppContext = useAppContext as jest.MockedFunction<typeof useAppContext>;
 
 describe('ConfigurePipelinesServerModal', () => {
   const mockOnClose = jest.fn();
@@ -120,6 +126,17 @@ describe('ConfigurePipelinesServerModal', () => {
       requiredCapabilities: {},
       customCondition: jest.fn(),
     } as ReturnType<typeof useIsAreaAvailable>);
+
+    mockUseAppContext.mockReturnValue({
+      dashboardConfig: {
+        spec: {
+          dashboardConfig: {
+            automl: false,
+            autorag: false,
+          },
+        },
+      },
+    } as ReturnType<typeof useAppContext>);
 
     mockConfigureDSPipelineResourceSpec.mockResolvedValue(
       {} as Awaited<ReturnType<typeof configureDSPipelineResourceSpec>>,
