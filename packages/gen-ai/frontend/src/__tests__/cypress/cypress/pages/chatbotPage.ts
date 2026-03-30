@@ -465,7 +465,7 @@ class ChatbotPage {
   // Exit compare mode by closing a pane (confirms the modal)
   closePaneByIndex(index: number): void {
     this.findPaneCloseButton(index).click();
-    cy.findByTestId('modal-submit-button').click();
+    cy.findByTestId('close-compare-modal').findByTestId('modal-submit-button').click();
   }
 
   // Open the settings panel via the header Settings button and switch to the given pane (1-based)
