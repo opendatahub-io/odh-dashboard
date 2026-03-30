@@ -18,6 +18,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
@@ -98,6 +99,29 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 			kubernetesClientFactory: k8sFactory,
 			repositories:            repositories.NewRepositories(),
 			logger:                  slog.Default(),
+		}
+
+		if realClient := lsmocks.TryCreateTestClient(); realClient != nil {
+			ctx := context.Background()
+			seedVSID := ""
+			if testCtx != nil && testCtx.llamaStackState != nil && testCtx.llamaStackState.Seed != nil {
+				seedVSID = testCtx.llamaStackState.Seed.VectorStoreID
+			}
+
+			limit := int64(100)
+			stores, listErr := realClient.ListVectorStores(ctx, llamastack.ListVectorStoresParams{Limit: &limit})
+			require.NoError(GinkgoT(), listErr)
+
+			for _, store := range stores {
+				if store.ID != seedVSID {
+					_ = realClient.DeleteVectorStore(ctx, store.ID)
+				}
+			}
+
+			_, createErr := realClient.CreateVectorStore(ctx, llamastack.CreateVectorStoreParams{
+				Name: "List Test External Store",
+			})
+			require.NoError(GinkgoT(), createErr)
 		}
 	})
 

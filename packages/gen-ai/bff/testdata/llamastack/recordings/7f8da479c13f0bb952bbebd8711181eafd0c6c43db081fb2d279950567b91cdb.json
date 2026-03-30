@@ -1,0 +1,59 @@
+{
+  "test_id": "bff/testdata/llamastack/test.py::record",
+  "request": {
+    "method": "POST",
+    "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "models/gemini-2.5-flash",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Task: Check if there is unsafe content in 'User' messages in conversations according our safety policy with the below categories.\n\n<BEGIN UNSAFE CONTENT CATEGORIES>\nS1: Violent Crimes.\nS2: Non-Violent Crimes.\nS3: Sex Crimes.\nS4: Child Exploitation.\nS5: Defamation.\nS6: Specialized Advice.\nS7: Privacy.\nS8: Intellectual Property.\nS9: Indiscriminate Weapons.\nS10: Hate.\nS11: Self-Harm.\nS12: Sexual Content.\nS13: Elections.\nS14: Code Interpreter Abuse.\n<END UNSAFE CONTENT CATEGORIES>\n\n<BEGIN CONVERSATION>\n\nUser: Artificial Intelligence (AI) is a vast and rapidly evolving field that aims to create machines capable of performing tasks that typically require human intelligence. It's not just about robots; it encompasses a wide range of technologies and concepts that allow computers to \"think,\" learn, solve problems, and make decisions.\n\nHere's a breakdown of what AI is, its history, how it works, its applications, and its implications:\n\n## What is AI?\n\nAt its core, AI involves developing computer systems that can:\n\n1.  **Perceive:** Understand and interpret information from the world (e.g., images, speech, data).\n2.  **Reason:** Analyze information and draw conclusions, solve problems, and make logical inferences.\n3.  **Learn:** Improve their performance over time by recognizing patterns in data.\n4.  **Act:** Respond to their environment or take actions based on their reasoning.\n\nThe ultimate goal of AI, in its most ambitious sense, is to create machines that exhibit intelligence indistinguishable from, or even surpassing, human intelligence.\n\n## A Brief History\n\n*   **1950s:** The term \"Artificial Intelligence\" was coined at the Dartmouth workshop in 1956. Alan Turing's \"Turing Test\" in 1950 set a foundational challenge for machine intelligence. Early AI focused on symbolic reasoning and problem-solving.\n*   **1960s-1980s:** Periods of both optimism and \"AI winters\" (due to over-promising and under-delivering, and limited computing power). Expert systems gained some traction.\n*   **1990s-2000s:** Focus shifted to machine learning, particularly with the rise of the internet and increasing data availability. Deep Blue beating Garry Kasparov in chess (1997) was a landmark.\n*   **2010s-Present:** A massive resurgence driven by advancements in **big data**, significantly increased **computing power** (especially GPUs), and breakthroughs in **machine learning algorithms** (especially deep learning). This era saw AI move from academic labs into mainstream applications.\n\n## How AI Works: Key Subfields and Techniques\n\nMost modern AI relies heavily on **Machine Learning (ML)**, which is a subset of AI.\n\n1.  **Machine Learning (ML):**\n    *   **Concept:** Algorithms learn patterns and make predictions from data, rather than being explicitly programmed for every scenario.\n    *   **Types of ML:**\n        *   **Supervised Learning:** Algorithms learn from labeled data (input-output pairs) to make predictions. (e.g., classifying emails as spam/not spam based on past examples).\n        *   **Unsupervised Learning:** Algorithms find patterns and structures in unlabeled data. (e.g., clustering customers into different segments).\n        *   **Reinforcement Learning:** Algorithms learn by trial and error through interactions with an environment, receiving rewards or penalties for actions. (e.g., AI playing games like AlphaGo, self-driving cars learning to navigate).\n    *   **Deep Learning (DL):** A subfield of ML that uses **Artificial Neural Networks (ANNs)** with many layers (hence \"deep\"). Inspired by the structure of the human brain, deep learning has revolutionized areas like image recognition, speech recognition, and natural language processing.\n\n2.  **Natural Language Processing (NLP):** Enables computers to understand, interpret, and generate human language. (e.g., Siri, Google Translate, ChatGPT, sentiment analysis).\n\n3.  **Computer Vision:** Allows computers to \"see\" and interpret visual information from images and videos. (e.g., facial recognition, self-driving cars identifying objects, medical image analysis).\n\n4.  **Robotics:** Involves the design, construction, operation, and use of robots. While often intertwined with AI (especially for autonomous robots), not all robotics is AI, and not all AI is robotics.\n\n5.  **Expert Systems:** Older AI systems that use rule-based logic to mimic the decision-making ability of a human expert in a specific domain.\n\n6.  **Planning and Reasoning:** Focuses on developing intelligent agents that can set goals and devise plans to achieve them.\n\n## Types of AI (Based on Capability)\n\nIt's important to distinguish between what AI can do today and what is still theoretical:\n\n1.  **Narrow AI (ANI) / Weak AI:**\n    *   **Current State:** This is the AI we have today. It excels at performing *specific, well-defined tasks*.\n    *   **Examples:** Image recognition, voice assistants (Siri, Alexa), recommendation engines (Netflix, Amazon), spam filters, chess programs. These AIs are highly intelligent within their narrow domain but lack general understanding or consciousness.\n\n2.  **General AI (AGI) / Strong AI:**\n    *   **Hypothetical:** Refers to AI that possesses human-level cognitive abilities across a wide range of tasks. It would be able to understand, learn, and apply knowledge to solve any intellectual task that a human can.\n    *   **Status:** A major goal of AI research, but it doesn't exist yet.\n\n3.  **Superintelligence (ASI):**\n    *   **Hypothetical:** AI that far surpasses human intelligence in every conceivable aspect, including creativity, general knowledge, and problem-solving.\n    *   **Status:** Purely theoretical and speculative, often discussed in the context of long-term AI safety and ethics.\n\n## Applications of AI\n\nAI is integrated into countless aspects of modern life and industry:\n\n*   **Everyday Life:** Smartphones (facial recognition, voice assistants, predictive text), streaming services (recommendations), search engines, spam filters, online shopping.\n*   **Healthcare:** Diagnostics (identifying diseases from images like X-rays or MRIs), drug discovery, personalized medicine, robotic surgery.\n*   **Finance:** Fraud detection, algorithmic trading, credit scoring, personalized financial advice.\n*   **Transportation:** Self-driving cars, traffic optimization, drone navigation.\n*   **Manufacturing:** Predictive maintenance, quality control, robotic automation.\n*   **Customer Service:** Chatbots, virtual assistants, call routing.\n*   **Education:** Personalized learning platforms, intelligent tutoring systems.\n*   **Science & Research:** Climate modeling, materials science, genomics.\n\n## Benefits of AI\n\n*   **Automation & Efficiency:** Automating repetitive or dangerous tasks, freeing up human workers for more creative or complex work.\n*   **Problem Solving:** Tackling complex challenges in areas like disease, climate change, and resource management.\n*   **Accuracy & Precision:** Performing tasks with greater accuracy and speed than humans.\n*   **Personalization:** Tailoring experiences and services to individual needs.\n*   **New Discoveries:** Analyzing vast datasets to uncover insights and patterns that humans might miss.\n*   **Accessibility:** Providing tools for people with disabilities.\n\n## Challenges and Concerns\n\nWhile promising, AI also presents significant challenges:\n\n*   **Ethical Concerns:**\n    *   **Bias:** AI systems can inherit and amplify biases present in their training data, leading to unfair or discriminatory outcomes.\n    *   **Privacy:** Extensive data collection for AI can raise privacy concerns.\n    *   **Accountability:** Determining responsibility when an AI makes a mistake or causes harm.\n    *   **Misuse:** Potential for autonomous weapons, surveillance, or deepfakes.\n*   **Job Displacement:** Automation fueled by AI could lead to job losses in certain sectors, requiring societal adjustments.\n*   **Explainability (XAI):** Many powerful AI models (especially deep learning) are \"black boxes,\" making it difficult to understand *why* they make certain decisions.\n*   **Security:** AI systems can be vulnerable to adversarial attacks, where subtle changes to input data can trick the AI.\n*   **Control Problem (for AGI/ASI):** In the hypothetical future, ensuring that highly intelligent AI aligns with human values and goals.\n\n## The Future of AI\n\nAI is still in its early stages, despite its current capabilities. The future will likely see:\n\n*   **Increased Integration:** AI becoming even more pervasive and integrated into everyday objects and systems.\n*   **More Sophisticated Models:** Continued advancements in deep learning, leading to more robust, efficient, and versatile AI.\n*   **Emphasis on Responsible AI:** Growing focus on developing ethical, transparent, and fair AI systems.\n*   **Human-AI Collaboration:** AI augmenting human intelligence and capabilities, rather than fully replacing them.\n*   **Closer to AGI?** While AGI remains a distant goal for many, research continues, and breakthroughs could always surprise us.\n\nIn summary, AI is a powerful and transformative technology that is reshaping industries and daily life. It holds immense potential to solve some of humanity's biggest challenges, but it also demands careful ethical consideration and responsible development to ensure it benefits all of society.\n\n<END CONVERSATION>\n\nProvide your safety assessment for ONLY THE LAST User message in the above conversation:\n - First line must read 'safe' or 'unsafe'.\n - If unsafe, a second line must include a comma-separated list of violated categories."
+        }
+      ],
+      "stream": false,
+      "temperature": 0.0
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "models/gemini-2.5-flash"
+  },
+  "response": {
+    "body": {
+      "__type__": "openai.types.chat.chat_completion.ChatCompletion",
+      "__data__": {
+        "id": "rec-7f8da479c13f",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "content": "safe",
+              "refusal": null,
+              "role": "assistant",
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "tool_calls": null
+            }
+          }
+        ],
+        "created": 0,
+        "model": "models/gemini-2.5-flash",
+        "object": "chat.completion",
+        "service_tier": null,
+        "system_fingerprint": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 2108,
+          "total_tokens": 2605,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        }
+      }
+    },
+    "is_streaming": false
+  },
+  "id_normalization_mapping": {}
+}

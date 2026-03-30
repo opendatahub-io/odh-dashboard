@@ -1,5 +1,5 @@
 {
-  "test_id": null,
+  "test_id": "bff/testdata/llamastack/test.py::record",
   "request": {
     "method": "POST",
     "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/models",
@@ -293,6 +293,26 @@
       {
         "__type__": "openai.types.model.Model",
         "__data__": {
+          "id": "models/lyria-3-clip-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Lyria 3 Clip Preview"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/lyria-3-pro-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Lyria 3 Pro Preview"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
           "id": "models/gemini-robotics-er-1.5-preview",
           "created": null,
           "object": "model",
@@ -458,6 +478,16 @@
           "object": "model",
           "owned_by": "google",
           "display_name": "Gemini 2.5 Flash Native Audio Preview 12-2025"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-3.1-flash-live-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemini 3.1 Flash Live Preview"
         }
       },
       {

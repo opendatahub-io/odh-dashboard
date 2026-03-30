@@ -16,18 +16,18 @@
           "content": "",
           "tool_calls": [
             {
-              "id": "function-call-14199370147783428566",
+              "id": "function-call-14614409618635747749",
               "type": "function",
               "function": {
                 "name": "knowledge_search",
-                "arguments": "{\"query\":\"machine learning\"}"
+                "arguments": "{\"query\":\"What is machine learning\"}"
               }
             }
           ]
         },
         {
           "role": "tool",
-          "tool_call_id": "function-call-14199370147783428566",
+          "tool_call_id": "function-call-14614409618635747749",
           "content": [
             {
               "type": "text",
@@ -39,7 +39,7 @@
             },
             {
               "type": "text",
-              "text": "The above results were retrieved to help answer the user's query: \"machine learning\". Use them as supporting information only in answering this query. \n"
+              "text": "The above results were retrieved to help answer the user's query: \"What is machine learning\". Use them as supporting information only in answering this query. \n"
             }
           ]
         }
@@ -69,7 +69,8 @@
             }
           }
         }
-      ]
+      ],
+      "service_tier": "default"
     },
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash"
@@ -79,11 +80,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-4120829e4507",
+          "id": "rec-4f4ac9fd77af",
           "choices": [
             {
               "delta": {
-                "content": "I apologize",
+                "content": "I cannot answer this question as the `knowledge_search` tool",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -100,9 +101,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 2,
-            "prompt_tokens": 153,
-            "total_tokens": 219,
+            "completion_tokens": 13,
+            "prompt_tokens": 157,
+            "total_tokens": 272,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -111,11 +112,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-4120829e4507",
+          "id": "rec-4f4ac9fd77af",
           "choices": [
             {
               "delta": {
-                "content": ", but I cannot provide a definition of machine learning as I could not find any information on it in my knowledge base.",
+                "content": " did not return any information regarding \"machine learning.\"",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -132,9 +133,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 26,
-            "prompt_tokens": 153,
-            "total_tokens": 243,
+            "completion_tokens": 23,
+            "prompt_tokens": 157,
+            "total_tokens": 282,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

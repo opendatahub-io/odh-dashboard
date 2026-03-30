@@ -29,7 +29,39 @@
           "choices": [
             {
               "delta": {
-                "content": "I'm doing well, thank you for asking!\n\nHow are you today?",
+                "content": "Hello! I'm doing well, thank you for asking.\n\nHow",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 15,
+            "prompt_tokens": 7,
+            "total_tokens": 72,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-db3dff136caf",
+          "choices": [
+            {
+              "delta": {
+                "content": " are you today?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -46,9 +78,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 17,
+            "completion_tokens": 19,
             "prompt_tokens": 7,
-            "total_tokens": 117,
+            "total_tokens": 76,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

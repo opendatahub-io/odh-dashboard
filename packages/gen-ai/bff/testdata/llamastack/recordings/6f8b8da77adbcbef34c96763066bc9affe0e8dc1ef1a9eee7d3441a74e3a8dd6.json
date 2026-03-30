@@ -9,7 +9,7 @@
       "messages": [
         {
           "role": "user",
-          "content": "Hello"
+          "content": "Hello from MaaS"
         }
       ],
       "stream": true,
@@ -25,11 +25,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-72e3386ff620",
+          "id": "rec-6f8b8da77adb",
           "choices": [
             {
               "delta": {
-                "content": "Hello! How can I help you",
+                "content": "Well hello there! MaaS \u2013 Mobility as a Service \u2013 what an exciting and transformative",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -46,9 +46,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 7,
-            "prompt_tokens": 2,
-            "total_tokens": 266,
+            "completion_tokens": 17,
+            "prompt_tokens": 5,
+            "total_tokens": 1057,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -57,11 +57,43 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-72e3386ff620",
+          "id": "rec-6f8b8da77adb",
           "choices": [
             {
               "delta": {
-                "content": " today?",
+                "content": " field!\n\nIt's great to hear from you. Is there something specific you'd like to discuss about MaaS, perhaps a challenge you're facing, an innovation you're working on, or just general thoughts on its",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 65,
+            "prompt_tokens": 5,
+            "total_tokens": 1105,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-6f8b8da77adb",
+          "choices": [
+            {
+              "delta": {
+                "content": " future?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -78,9 +110,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 9,
-            "prompt_tokens": 2,
-            "total_tokens": 268,
+            "completion_tokens": 67,
+            "prompt_tokens": 5,
+            "total_tokens": 1107,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
