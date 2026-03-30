@@ -1,7 +1,11 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import type { APIKey } from '@odh-dashboard/maas/types/api-key';
-import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
+import {
+  asClusterAdminUser,
+  asProductAdminUser,
+  asProjectAdminUser,
+} from '../../../utils/mockUsers';
 import {
   adminBulkRevokeAPIKeyModal,
   apiKeysPage,
@@ -406,6 +410,7 @@ describe('API Keys Page (Admin)', () => {
     cy.interceptOdh('GET /maas/api/v1/user', {
       data: { userId: 'admin-user', clusterAdmin: true },
     });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
     cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
 
     cy.interceptOdh(
