@@ -3,8 +3,11 @@ import React, { useEffect, useState } from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
 import { useNotification } from '~/app/hooks/useNotification';
-import { SUPPORTED_VECTOR_STORE_PROVIDERS, ConfigureSchema } from '~/app/schemas/configure.schema';
-import { useLlamaStackVectorStoresQuery } from '~/app/hooks/queries';
+import {
+  SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
+  ConfigureSchema,
+} from '~/app/schemas/configure.schema';
+import { useLlamaStackVectorStoreProvidersQuery } from '~/app/hooks/queries';
 
 const AutoragVectorStoreSelector: React.FC = () => {
   const { namespace = '' } = useParams();
@@ -23,23 +26,23 @@ const AutoragVectorStoreSelector: React.FC = () => {
   const llamaStackSecretName = useWatch({ control, name: 'llama_stack_secret_name' });
 
   const {
-    data: vectorStoresData,
+    data: providersData,
     isLoading,
     isError,
-  } = useLlamaStackVectorStoresQuery(
+  } = useLlamaStackVectorStoreProvidersQuery(
     namespace,
     llamaStackSecretName,
-    SUPPORTED_VECTOR_STORE_PROVIDERS,
+    SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
   );
 
   useEffect(() => {
     if (isError) {
-      notification.error('Failed to load vector stores');
+      notification.error('Failed to load vector store providers');
     }
   }, [isError, notification]);
 
-  const vectorStores = vectorStoresData?.vector_stores ?? [];
-  const selectedStore = vectorStores.find((vs) => vs.id === field.value);
+  const providers = providersData?.vector_store_providers ?? [];
+  const selectedProvider = providers.find((p) => p.provider_id === field.value);
 
   if (isLoading) {
     return <Skeleton width="200px" height="36px" />;
@@ -60,18 +63,24 @@ const AutoragVectorStoreSelector: React.FC = () => {
           ref={toggleRef}
           onClick={() => setIsOpen((prev) => !prev)}
           isExpanded={isOpen}
-          isDisabled={isSubmitting || isError || vectorStores.length === 0}
+          isDisabled={isSubmitting || isError || providers.length === 0}
           data-testid="vector-store-select-toggle"
         >
-          {(selectedStore?.name || selectedStore?.id) ??
-            (vectorStores.length === 0 ? 'No vector stores available' : 'Select vector index')}
+          {selectedProvider?.provider_id ??
+            (providers.length === 0
+              ? 'No vector store providers available'
+              : 'Select vector store')}
         </MenuToggle>
       )}
     >
       <SelectList data-testid="vector-store-select-list">
-        {vectorStores.map((vs) => (
-          <SelectOption key={vs.id} value={vs.id} data-testid={`vector-store-option-${vs.id}`}>
-            {vs.name || vs.id}
+        {providers.map((p) => (
+          <SelectOption
+            key={p.provider_id}
+            value={p.provider_id}
+            data-testid={`vector-store-option-${p.provider_id}`}
+          >
+            {p.provider_id}
           </SelectOption>
         ))}
       </SelectList>

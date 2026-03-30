@@ -49,8 +49,8 @@ jest.mock('~/app/hooks/queries', () => ({
     data: { models: [] },
     isLoading: false,
   }),
-  useLlamaStackVectorStoresQuery: jest.fn().mockReturnValue({
-    data: { vector_stores: [] }, // eslint-disable-line camelcase
+  useLlamaStackVectorStoreProvidersQuery: jest.fn().mockReturnValue({
+    data: { vector_store_providers: [] }, // eslint-disable-line camelcase
     isLoading: false,
   }),
 }));

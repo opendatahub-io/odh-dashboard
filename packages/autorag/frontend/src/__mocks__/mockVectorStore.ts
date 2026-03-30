@@ -1,25 +1,25 @@
-import { LlamaStackVectorStore, LlamaStackVectorStoresResponse } from '~/app/types';
+import { LlamaStackVectorStoreProvider, LlamaStackVectorStoreProvidersResponse } from '~/app/types';
 
-type MockVectorStoreOptions = {
-  id?: string;
-  name?: string;
-  status?: string;
-  provider?: string;
+type MockVectorStoreProviderOptions = {
+  provider_id?: string;
+  provider_type?: string;
 };
 
-export const mockVectorStore = ({
-  id = 'vs_00000000-0000-0000-0000-000000000001',
-  name = 'test-milvus-store',
-  status = 'completed',
-  provider = 'milvus',
-}: MockVectorStoreOptions = {}): LlamaStackVectorStore => ({
-  id,
-  name,
-  status,
-  provider,
+export const mockVectorStoreProvider = ({
+  // eslint-disable-next-line camelcase
+  provider_id = 'milvus',
+  // eslint-disable-next-line camelcase
+  provider_type = 'remote::milvus',
+}: MockVectorStoreProviderOptions = {}): LlamaStackVectorStoreProvider => ({
+  // eslint-disable-next-line camelcase
+  provider_id,
+  // eslint-disable-next-line camelcase
+  provider_type,
 });
 
-export const mockVectorStoresResponse = (
-  stores?: LlamaStackVectorStore[],
+export const mockVectorStoreProvidersResponse = (
+  providers?: LlamaStackVectorStoreProvider[],
+): LlamaStackVectorStoreProvidersResponse => ({
   // eslint-disable-next-line camelcase
-): LlamaStackVectorStoresResponse => ({ vector_stores: stores ?? [mockVectorStore()] });
+  vector_store_providers: providers ?? [mockVectorStoreProvider()],
+});
