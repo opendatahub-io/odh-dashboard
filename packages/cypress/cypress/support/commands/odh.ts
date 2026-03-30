@@ -101,6 +101,7 @@ import type {
   MaaSSubscription,
   SubscriptionInfoResponse,
   UserSubscription,
+  CreateSubscriptionResponse,
 } from '@odh-dashboard/maas/types/subscriptions';
 import type { MaaSModelRef } from '@odh-dashboard/maas/types/maas-model';
 
@@ -1179,6 +1180,10 @@ declare global {
           type: 'PUT /maas/api/v1/maasmodel/:namespace/:name',
           options: { path: { namespace: string; name: string } },
           response: OdhResponse<MaaSModelRef>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /maas/api/v1/new-subscription',
+          response: OdhResponse<{ data: CreateSubscriptionResponse }>,
         ) => Cypress.Chainable<null>);
     }
   }

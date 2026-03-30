@@ -9,6 +9,9 @@ import type {
   MaaSSubscription,
   SubscriptionInfoResponse,
   UserSubscription,
+  MaaSModelRefSummary,
+  SubscriptionFormDataResponse,
+  CreateSubscriptionResponse,
 } from '@odh-dashboard/maas/types/subscriptions';
 
 // Standardized tier templates - use these directly or as building blocks
@@ -155,6 +158,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
         tokenRateLimits: [{ limit: 10000, window: '24h' }],
       },
     ],
+    priority: 0,
     creationTimestamp: '2025-02-15T08:00:00Z',
   },
 ];
@@ -251,3 +255,58 @@ export const mockSubscriptionInfo = (name = 'premium-team-sub'): SubscriptionInf
     ],
   };
 };
+export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
+  {
+    name: 'granite-3-8b-instruct',
+    namespace: 'maas-models',
+    displayName: 'Granite 3 8B Instruct',
+    description: 'A large language model for instruction following',
+    modelRef: { kind: 'InferenceService', name: 'granite-3-8b-instruct' },
+    phase: 'Ready',
+    endpoint: 'https://granite-3-8b-instruct.maas-models.svc.cluster.local',
+  },
+  {
+    name: 'flan-t5-small',
+    namespace: 'maas-models',
+    displayName: 'Flan T5 Small',
+    description: 'A compact text-to-text model',
+    modelRef: { kind: 'InferenceService', name: 'flan-t5-small' },
+    phase: 'Ready',
+    endpoint: 'https://flan-t5-small.maas-models.svc.cluster.local',
+  },
+];
+
+export const mockSubscriptionFormData = (): SubscriptionFormDataResponse => ({
+  groups: ['system:authenticated', 'premium-users', 'enterprise-users', 'beta-testers'],
+  modelRefs: mockModelRefSummaries(),
+  subscriptions: mockSubscriptions(),
+});
+
+export const mockCreateSubscriptionResponse = (): CreateSubscriptionResponse => ({
+  subscription: {
+    name: 'test-subscription',
+    displayName: 'Test Subscription',
+    description: 'A test subscription',
+    namespace: 'maas-system',
+    phase: 'Active',
+    priority: 5,
+    owner: {
+      groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }],
+    },
+    modelRefs: [
+      {
+        name: 'granite-3-8b-instruct',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 5000, window: '1h' }],
+      },
+    ],
+    creationTimestamp: '2025-03-20T10:00:00Z',
+  },
+  authPolicy: {
+    name: 'test-subscription-policy',
+    namespace: 'maas-system',
+    phase: 'Active',
+    modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+    subjects: { groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }] },
+  },
+});

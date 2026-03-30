@@ -4,8 +4,6 @@ export type MaaSSubscription = {
   description?: string;
   namespace: string;
   phase?: string;
-  displayName?: string;
-  description?: string;
   priority?: number;
   owner: OwnerSpec;
   modelRefs: ModelSubscriptionRef[];
@@ -107,7 +105,6 @@ export type SubscriptionInfoResponse = {
   subscription: MaaSSubscription;
   modelRefs: MaaSModelRefSummary[];
   authPolicies: MaaSAuthPolicy[];
-  subjects: { groups: GroupReference[] };
   meteringMetadata?: TokenMetadata;
 };
 

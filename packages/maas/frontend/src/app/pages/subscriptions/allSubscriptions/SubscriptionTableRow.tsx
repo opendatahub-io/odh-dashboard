@@ -49,6 +49,9 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
       <Td dataLabel={subscriptionsColumns[2].label}>
         <Label color="grey">{`${subscription.modelRefs.length} Model${subscription.modelRefs.length === 1 ? '' : 's'}`}</Label>
       </Td>
+      <Td dataLabel={subscriptionsColumns[3].label}>
+        <Label color="grey">{subscription.priority ?? '-'}</Label>
+      </Td>
       <Td isActionCell>
         <ActionsColumn
           data-testid="subscription-actions"
