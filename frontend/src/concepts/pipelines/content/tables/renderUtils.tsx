@@ -83,9 +83,13 @@ export const RunDuration: RunUtil = ({ run }) => {
   return <>{relativeDuration(duration)}</>;
 };
 
-export const RunCreated: RunUtil = ({ run }) => (
-  <PipelinesTableRowTime date={getRunStartTime(run)} />
-);
+export const RunCreated: RunUtil = ({ run }) => {
+  const date = getRunStartTime(run);
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return <NoRunContent />;
+  }
+  return <PipelinesTableRowTime date={date} />;
+};
 
 export const RecurringRunCreated: RecurringRunUtil = ({ recurringRun }) => {
   const createdDate = new Date(recurringRun.created_at);

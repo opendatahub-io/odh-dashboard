@@ -1,9 +1,8 @@
 import * as React from 'react';
-import { Label, Timestamp, TimestampTooltipVariant, type LabelProps } from '@patternfly/react-core';
+import { Label, type LabelProps } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import { relativeTime } from 'mod-arch-shared';
-import { getRunStartTime } from '@odh-dashboard/internal/concepts/pipelines/content/tables/utils';
+import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
 import { automlResultsPathname } from '~/app/utilities/routes';
 import { automlRunsColumns } from './columns';
@@ -48,41 +47,30 @@ export const getStatusLabelProps = (
   return { color: 'grey' };
 };
 
-const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({ run, namespace }) => {
-  const startDate = getRunStartTime(run);
-
-  return (
-    <Tr>
-      <Td dataLabel={automlRunsColumns[0].label}>
-        <Link
-          to={`${automlResultsPathname}/${namespace}/${run.run_id}`}
-          data-testid={`run-name-${run.run_id}`}
-        >
-          {run.display_name}
-        </Link>
-      </Td>
-      <Td dataLabel={automlRunsColumns[1].label}>{run.description ?? '—'}</Td>
-      <Td dataLabel={automlRunsColumns[2].label}>
-        <Timestamp
-          date={startDate}
-          tooltip={{
-            variant: TimestampTooltipVariant.default,
-          }}
-        >
-          {relativeTime(Date.now(), startDate.getTime())}
-        </Timestamp>
-      </Td>
-      <Td dataLabel={automlRunsColumns[3].label}>
-        {run.state ? (
-          <Label isCompact {...getStatusLabelProps(run.state)}>
-            {run.state}
-          </Label>
-        ) : (
-          '—'
-        )}
-      </Td>
-    </Tr>
-  );
-};
+const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({ run, namespace }) => (
+  <Tr>
+    <Td dataLabel={automlRunsColumns[0].label}>
+      <Link
+        to={`${automlResultsPathname}/${namespace}/${run.run_id}`}
+        data-testid={`run-name-${run.run_id}`}
+      >
+        {run.display_name}
+      </Link>
+    </Td>
+    <Td dataLabel={automlRunsColumns[1].label}>{run.description ?? '—'}</Td>
+    <Td dataLabel={automlRunsColumns[2].label}>
+      <RunStartTimestamp run={run} />
+    </Td>
+    <Td dataLabel={automlRunsColumns[3].label}>
+      {run.state ? (
+        <Label isCompact {...getStatusLabelProps(run.state)}>
+          {run.state}
+        </Label>
+      ) : (
+        '—'
+      )}
+    </Td>
+  </Tr>
+);
 
 export default AutomlRunsTableRow;

@@ -1,9 +1,8 @@
 import * as React from 'react';
-import { Label, Timestamp, TimestampTooltipVariant, type LabelProps } from '@patternfly/react-core';
+import { Label, type LabelProps } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import { relativeTime } from 'mod-arch-shared';
-import { getRunStartTime } from '@odh-dashboard/internal/concepts/pipelines/content/tables/utils';
+import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
 import { autoragResultsPathname } from '~/app/utilities/routes';
 import { autoragRunsColumns } from './columns';
@@ -54,14 +53,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({ run, namespac
     </Td>
     <Td dataLabel={autoragRunsColumns[1].label}>{run.description ?? '—'}</Td>
     <Td dataLabel={autoragRunsColumns[2].label}>
-      <Timestamp
-        date={getRunStartTime(run)}
-        tooltip={{
-          variant: TimestampTooltipVariant.default,
-        }}
-      >
-        {relativeTime(Date.now(), getRunStartTime(run).getTime())}
-      </Timestamp>
+      <RunStartTimestamp run={run} />
     </Td>
     <Td dataLabel={autoragRunsColumns[3].label}>
       {run.state ? (
