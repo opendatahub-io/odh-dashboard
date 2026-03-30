@@ -142,3 +142,50 @@ export const toggleInstructLabState = (
       },
     ],
   });
+
+export const updatePipelineSettings = (
+  namespace: string,
+  settings: {
+    cacheEnabled?: boolean;
+    managedPipelines?: {
+      image: string;
+      pipelines?: string[];
+      volumeSizeLimit?: string;
+      resources?: Record<string, unknown>;
+    };
+  },
+  name = 'dspa',
+): Promise<DSPipelineKind> => {
+  const patches: Array<
+    { op: 'replace'; path: string; value: unknown } | { op: 'remove'; path: string }
+  > = [];
+
+  if (settings.cacheEnabled !== undefined) {
+    patches.push({
+      op: 'replace' as const,
+      path: '/spec/apiServer/cacheEnabled',
+      value: settings.cacheEnabled,
+    });
+  }
+
+  // managedPipelines can be set (with image) or removed (undefined)
+  if (settings.managedPipelines !== undefined) {
+    patches.push({
+      op: 'replace' as const,
+      path: '/spec/apiServer/managedPipelines',
+      value: settings.managedPipelines,
+    });
+  } else if ('managedPipelines' in settings) {
+    // Explicitly remove managedPipelines if undefined is passed
+    patches.push({
+      op: 'remove' as const,
+      path: '/spec/apiServer/managedPipelines',
+    });
+  }
+
+  return k8sPatchResource<DSPipelineKind>({
+    model: DataSciencePipelineApplicationModel,
+    queryOptions: { name, ns: namespace },
+    patches,
+  });
+};

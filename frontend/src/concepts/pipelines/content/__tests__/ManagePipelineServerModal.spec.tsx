@@ -5,7 +5,7 @@ import ManagePipelineServerModal from '#~/concepts/pipelines/content/ManagePipel
 import { mockDataSciencePipelineApplicationK8sResource } from '#~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret';
-import { updatePipelineCaching } from '#~/api/pipelines/k8s';
+import { updatePipelineSettings } from '#~/api/pipelines/k8s';
 import { NotificationWatcherContext } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
 import { SecretCategory, EnvironmentVariableType } from '#~/pages/projects/types';
 import useNotification from '#~/utilities/useNotification';
@@ -21,7 +21,7 @@ jest.mock('#~/concepts/projects/apiHooks/useNamespaceSecret', () => ({
 }));
 
 jest.mock('#~/api/pipelines/k8s', () => ({
-  updatePipelineCaching: jest.fn(),
+  updatePipelineSettings: jest.fn(),
 }));
 
 jest.mock('#~/utilities/useNotification', () => ({
@@ -31,8 +31,8 @@ jest.mock('#~/utilities/useNotification', () => ({
 
 const mockUsePipelinesAPI = usePipelinesAPI as jest.MockedFunction<typeof usePipelinesAPI>;
 const mockUseNamespaceSecret = useNamespaceSecret as jest.MockedFunction<typeof useNamespaceSecret>;
-const mockUpdatePipelineCaching = updatePipelineCaching as jest.MockedFunction<
-  typeof updatePipelineCaching
+const mockUpdatePipelineSettings = updatePipelineSettings as jest.MockedFunction<
+  typeof updatePipelineSettings
 >;
 const mockUseNotification = useNotification as jest.MockedFunction<typeof useNotification>;
 
@@ -102,8 +102,8 @@ describe('ManagePipelineServerModal', () => {
       jest.fn(),
     ]);
 
-    mockUpdatePipelineCaching.mockResolvedValue(
-      {} as Awaited<ReturnType<typeof updatePipelineCaching>>,
+    mockUpdatePipelineSettings.mockResolvedValue(
+      {} as Awaited<ReturnType<typeof updatePipelineSettings>>,
     );
 
     mockUseNotification.mockReturnValue({
@@ -233,7 +233,7 @@ describe('ManagePipelineServerModal', () => {
     expect(screen.queryByText('Caching is disabled')).not.toBeInTheDocument();
   });
 
-  it('should call updatePipelineCaching when save button is clicked', async () => {
+  it('should call updatePipelineSettings when save button is clicked', async () => {
     renderModal();
     // Uncheck the caching checkbox to make a change
     const cachingCheckbox = screen.getByTestId('pipeline-cache-enabling');
@@ -243,7 +243,14 @@ describe('ManagePipelineServerModal', () => {
     fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(mockUpdatePipelineCaching).toHaveBeenCalledWith('test-project', false);
+      expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
+        'test-project',
+        {
+          cacheEnabled: false,
+          managedPipelines: {},
+        },
+        'dspa',
+      );
     });
   });
 
@@ -265,8 +272,8 @@ describe('ManagePipelineServerModal', () => {
 
     await waitFor(() => {
       expect(mockSuccessNotification).toHaveBeenCalledWith(
-        'Pipeline caching updated',
-        'Caching has been disabled successfully.',
+        'Pipeline server settings updated',
+        'Settings have been updated successfully.',
       );
     });
   });
@@ -277,7 +284,7 @@ describe('ManagePipelineServerModal', () => {
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const error = new Error('Update failed');
-    mockUpdatePipelineCaching.mockRejectedValue(error);
+    mockUpdatePipelineSettings.mockRejectedValue(error);
 
     renderModal();
 
@@ -290,8 +297,8 @@ describe('ManagePipelineServerModal', () => {
 
     await waitFor(() => {
       expect(mockErrorNotification).toHaveBeenCalledWith(
-        'Failed to update pipeline caching',
-        'An unexpected error occurred while updating caching settings.',
+        'Failed to update pipeline server settings',
+        'An unexpected error occurred while updating settings.',
       );
     });
 
@@ -335,5 +342,148 @@ describe('ManagePipelineServerModal', () => {
 
     expect(screen.getByText('Loading ...')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('should display managed pipelines section', () => {
+    renderModal();
+
+    expect(screen.getByText('Managed pipelines')).toBeInTheDocument();
+    expect(screen.getByTestId('managed-pipelines-checkbox')).toBeInTheDocument();
+  });
+
+  it('should initialize managed pipelines checkbox with correct state from DSPA resource', () => {
+    const pipelineWithManagedPipelines = mockDataSciencePipelineApplicationK8sResource({
+      name: 'dspa',
+      namespace: 'test-project',
+      managedPipelines: {
+        image: 'quay.io/opendatahub/odh-pipelines-components:latest',
+      },
+    });
+
+    renderModal({
+      ...defaultProps,
+      pipelineNamespaceCR: pipelineWithManagedPipelines,
+    });
+
+    const managedPipelinesCheckbox = screen.getByTestId('managed-pipelines-checkbox');
+
+    expect(managedPipelinesCheckbox).toBeChecked();
+  });
+
+  it('should toggle managed pipelines checkbox', () => {
+    renderModal();
+
+    const managedPipelinesCheckbox = screen.getByTestId('managed-pipelines-checkbox');
+
+    // Initially unchecked
+    expect(managedPipelinesCheckbox).not.toBeChecked();
+
+    // Check it
+    fireEvent.click(managedPipelinesCheckbox);
+    expect(managedPipelinesCheckbox).toBeChecked();
+
+    // Uncheck it
+    fireEvent.click(managedPipelinesCheckbox);
+    expect(managedPipelinesCheckbox).not.toBeChecked();
+  });
+
+  it('should enable save button when managed pipelines are toggled', () => {
+    renderModal();
+
+    const managedPipelinesCheckbox = screen.getByTestId('managed-pipelines-checkbox');
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+
+    // Initially disabled
+    expect(saveButton).toBeDisabled();
+
+    // Enable after toggling managed pipeline
+    fireEvent.click(managedPipelinesCheckbox);
+    expect(saveButton).toBeEnabled();
+  });
+
+  it('should call updatePipelineSettings with managed pipelines when save is clicked', async () => {
+    renderModal();
+
+    const managedPipelinesCheckbox = screen.getByTestId('managed-pipelines-checkbox');
+
+    fireEvent.click(managedPipelinesCheckbox);
+
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
+        'test-project',
+        {
+          cacheEnabled: true,
+          managedPipelines: {
+            image: 'quay.io/opendatahub/odh-pipelines-components:latest',
+          },
+        },
+        'dspa',
+      );
+    });
+  });
+
+  it('should call updatePipelineSettings with both caching and managed pipelines changes', async () => {
+    renderModal();
+
+    const cachingCheckbox = screen.getByTestId('pipeline-cache-enabling');
+    const managedPipelinesCheckbox = screen.getByTestId('managed-pipelines-checkbox');
+
+    // Disable caching and enable managed pipelines
+    fireEvent.click(cachingCheckbox);
+    fireEvent.click(managedPipelinesCheckbox);
+
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
+        'test-project',
+        {
+          cacheEnabled: false,
+          managedPipelines: {
+            image: 'quay.io/opendatahub/odh-pipelines-components:latest',
+          },
+        },
+        'dspa',
+      );
+    });
+  });
+
+  it('should call updatePipelineSettings with undefined managedPipelines when disabled', async () => {
+    const pipelineWithManagedPipelines = mockDataSciencePipelineApplicationK8sResource({
+      name: 'dspa',
+      namespace: 'test-project',
+      managedPipelines: {
+        image: 'quay.io/opendatahub/odh-pipelines-components:latest',
+      },
+    });
+
+    renderModal({
+      ...defaultProps,
+      pipelineNamespaceCR: pipelineWithManagedPipelines,
+    });
+
+    const managedPipelinesCheckbox = screen.getByTestId('managed-pipelines-checkbox');
+
+    // Initially checked, uncheck it
+    expect(managedPipelinesCheckbox).toBeChecked();
+    fireEvent.click(managedPipelinesCheckbox);
+
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
+        'test-project',
+        {
+          cacheEnabled: true,
+          managedPipelines: undefined,
+        },
+        'dspa',
+      );
+    });
   });
 });
