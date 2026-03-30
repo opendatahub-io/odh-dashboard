@@ -749,11 +749,18 @@ export type DSPipelineKind = K8sResourceCommon & {
       }>;
       enableSamplePipeline: boolean;
       cacheEnabled: boolean;
-      managedPipelines?: {
-        instructLab?: {
-          state: 'Removed' | 'Managed';
-        };
-      };
+      managedPipelines?:
+        | {
+            image: string;
+            pipelines?: string[];
+            volumeSizeLimit?: string;
+            resources?: Record<string, unknown>;
+          }
+        | {
+            instructLab?: {
+              state: 'Removed' | 'Managed';
+            };
+          };
       pipelineStore?: DSPipelineAPIServerStore;
     }>;
     database?: Partial<{

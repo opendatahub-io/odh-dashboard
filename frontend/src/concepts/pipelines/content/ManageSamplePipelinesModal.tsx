@@ -37,7 +37,10 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
     refreshAllAPI,
   } = usePipelinesAPI();
   const [isSubmitting, setSubmitting] = React.useState(false);
-  const isInstructLabEnabled = managedPipelines?.instructLab?.state === 'Managed';
+  const isInstructLabEnabled =
+    managedPipelines && 'instructLab' in managedPipelines
+      ? managedPipelines.instructLab?.state === 'Managed'
+      : false;
   const [checked, setChecked] = React.useState(isInstructLabEnabled);
   const instructLabStatus: {
     instructLab?: {
@@ -64,7 +67,11 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
       managedPipelines ? { ...managedPipelines, ...instructLabStatus } : instructLabStatus,
     )
       .then((dspa) => {
-        const isEnabled = dspa.spec.apiServer?.managedPipelines?.instructLab?.state === 'Managed';
+        const managedPipelinesResult = dspa.spec.apiServer?.managedPipelines;
+        const isEnabled =
+          managedPipelinesResult && 'instructLab' in managedPipelinesResult
+            ? managedPipelinesResult.instructLab?.state === 'Managed'
+            : false;
         if (isEnabled) {
           notification.info('Restarting pipeline server');
         } else {

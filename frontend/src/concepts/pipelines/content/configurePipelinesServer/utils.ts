@@ -142,9 +142,11 @@ export const createDSPipelineResourceSpec = (
     apiServer: {
       enableSamplePipeline: false,
       cacheEnabled: config.enableCaching,
-      managedPipelines: {
-        instructLab: { state: 'Removed' },
-      },
+      managedPipelines: config.enableManagedPipelines
+        ? {
+            image: 'quay.io/opendatahub/odh-pipelines-components:latest',
+          }
+        : undefined,
       pipelineStore: config.storeYamlInKubernetes
         ? DSPipelineAPIServerStore.KUBERNETES
         : DSPipelineAPIServerStore.DATABASE,
