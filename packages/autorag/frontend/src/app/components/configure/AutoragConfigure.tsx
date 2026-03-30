@@ -425,6 +425,9 @@ function AutoragConfigure(): React.JSX.Element {
         s3Secret={selectedSecret}
         isOpen={Boolean(fileExplorerMode)}
         onClose={() => setFileExplorerMode(false)}
+        // TODO [ PR-Feedback: AI ] The eslint-disable for @typescript-eslint/no-unused-vars here is suspicious.
+        // The `files` parameter IS used in the callback body. If this was silencing something
+        // else, the comment is misleading. Remove the eslint-disable if the lint warning is gone.
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onSelectFiles={(files) => {
           if (files.length > 0) {
@@ -439,6 +442,9 @@ function AutoragConfigure(): React.JSX.Element {
             }
           }
         }}
+        // TODO [ PR-Feedback: AI ] These extension lists are hardcoded strings duplicated between
+        // the selectableExtensions array and the unselectableReason message. If the extensions change,
+        // both must be updated in sync. Extract to a constant and derive the message from it.
         selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
         unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
       />

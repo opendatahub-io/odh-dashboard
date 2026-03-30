@@ -36,6 +36,10 @@ const S3ListObjectsResponseSchema = z.object({
 
 // Public --------------------------------------------------------------------->
 
+// TODO [ PR-Feedback: AI ] The `host` parameter in getFiles is always called with '' (empty string).
+// If the host is always empty/resolved elsewhere, remove it from the function signature to reduce
+// confusion. Same applies to the automl copy.
+
 export type GetFilesOptions = {
   namespace: string;
   secretName?: string;

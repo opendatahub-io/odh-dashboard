@@ -1,3 +1,12 @@
+// TODO [ PR-Feedback: AI ] No unit tests exist for FileExplorer or S3FileExplorer.
+// At minimum, unit tests should cover:
+//   - mapResultToItems: mapping S3 responses to Files (folder markers, hidden items, extensions)
+//   - getBreadcrumbTrail: path to breadcrumb conversion
+//   - formatBytes: byte formatting edge cases
+//   - S3FileExplorer: error state mapping (bucket not configured, not found, generic)
+//   - FileExplorer: selection state management (radio vs checkbox mode)
+// The PR checklist also marks "Add tests" as unchecked.
+
 // Modules -------------------------------------------------------------------->
 
 import {
@@ -60,6 +69,16 @@ import {
 import { EllipsisVIcon, OutlinedEyeIcon, TimesIcon } from '@patternfly/react-icons';
 import React, { type ReactNode, useId, useState } from 'react';
 
+// TODO [ PR-Feedback: AI ] This file is ~1,130 lines containing 6+ components, types, helpers, and globals.
+// Consider splitting into:
+//   - FileExplorer.types.ts (Source, File, Folder, FileExplorerEmptyStateConfig, Column)
+//   - FileExplorer.utils.ts (shouldDetailsPanelRender, sanitizeId, defaults, constants)
+//   - components/FilesTable.tsx
+//   - components/PathBreadcrumbs.tsx
+//   - components/DetailsPanel.tsx (includes FileDetails, SelectedFilesDataList)
+//   - components/SourceSelector.tsx
+// This would also make unit testing individual sub-components feasible.
+
 // Types ---------------------------------------------------------------------->
 
 export interface Source {
@@ -75,6 +94,9 @@ export interface File {
   size?: string;
   type: string;
   items?: number;
+  // TODO [ PR-Feedback: AI ] `object` is overly permissive. The details are iterated with Object.entries
+  // and checked with isRenderableDetailValue. Use `Record<string, RenderableDetailValue>` instead.
+  // This would also eliminate the need for the runtime isRenderableDetailValue filter in FileDetails.
   details?: object;
   hidden?: boolean;
   selectable?: boolean;
@@ -189,6 +211,10 @@ const BREADCRUMB_COLLAPSE_THRESHOLD = 6;
 const BREADCRUMB_LEADING_VISIBLE = 2;
 const BREADCRUMB_TRAILING_VISIBLE = 2;
 
+// TODO [ PR-Feedback: AI ] RENDER_SOURCE_DETAILS_IN_PANEL is hardcoded false, making the source details
+// branch in DetailsPanel dead code. Either remove the guarded code entirely or convert this to a prop
+// so consumers can opt in. The eslint-disable for @typescript-eslint/no-unnecessary-condition in
+// DetailsPanel is a code smell from this constant.
 const RENDER_SOURCE_DETAILS_IN_PANEL = false;
 
 const sanitizeId = (value: string): string => value.replace(/[^a-zA-Z0-9-_]/g, '-');
@@ -243,6 +269,9 @@ const SourceSelector: React.FC<SourceSelectorProps> = ({ sources, source, onSele
       <FlexItem>{defaults.labels.sourceSelector}:</FlexItem>
       {sources.map((s) => (
         <FlexItem key={s.name}>
+          {/* TODO [ PR-Feedback: AI ] Inline style={{ cursor: 'pointer' }} - per CSS rules, avoid inline styles.
+              Label with onClick should use isClickable or variant prop if available in PF6,
+              or wrap in a Button variant="plain". */}
           <Label onClick={() => onSelectSource(s)} style={{ cursor: 'pointer' }}>
             {sourceLabel(s)}
           </Label>
@@ -318,6 +347,11 @@ const FilesTable: React.FC<FilesTableProps> = ({
   return (
     <OuterScrollContainer>
       <InnerScrollContainer>
+        {/* TODO [ PR-Feedback: AI ] No data-testid attributes anywhere in FileExplorer or its sub-components.
+            Per project conventions, all interactive elements need data-testid for Cypress testing.
+            Key elements needing testids: the table, search input, breadcrumb items, select checkboxes/radios,
+            action buttons (View details, Remove selection), pagination controls, modal primary/secondary buttons,
+            and the details panel. Without these, Cypress tests will require brittle selectors. */}
         <Table aria-label={defaults.labels.tableAriaLabel} variant="compact" borders isStickyHeader>
           <Thead>
             <Tr>
@@ -369,6 +403,10 @@ const FilesTable: React.FC<FilesTableProps> = ({
             {!loading &&
               !isEmpty &&
               Array.isArray(files) &&
+              // TODO [ PR-Feedback: AI ] Using Array.reduce to build JSX elements is an unusual pattern
+              // that's hard to read. The hidden file filtering could be done with a simple .filter()
+              // before the .map(), tracking visibleIndex with a simple counter variable.
+              // e.g.: files.filter(f => !f.hidden).map((file, index) => <Tr key={file.path}>...</Tr>)
               files.reduce<{ elements: React.ReactNode[]; visibleIndex: number }>(
                 (acc, file) => {
                   if (file.hidden) {
@@ -380,6 +418,9 @@ const FilesTable: React.FC<FilesTableProps> = ({
                     Array.isArray(selectedFiles) && selectedFiles.some((f) => f.path === file.path);
                   const isFileBeingViewed =
                     Array.isArray(filesToView) && filesToView.some((f) => f.path === file.path);
+                  // TODO [ PR-Feedback: AI ] Misleading variable name: `isSelectable` is true when
+                  // file.selectable === false (i.e., it means "is NOT selectable"). This boolean is
+                  // inverted from what the name suggests. Rename to `isDisabled` or `isUnselectable`.
                   const isSelectable = file.selectable === false;
                   acc.elements.push(
                     <Tr key={file.path} isRowSelected={isSelected}>
@@ -424,7 +465,11 @@ const FilesTable: React.FC<FilesTableProps> = ({
                           flexWrap={{ default: 'nowrap' }}
                         >
                           <FlexItem>
-                            {/* Should this be a Content/a/href or should it be Button variant link */}
+                            {/* TODO [ PR-Feedback: AI ] The comment here asks the right question.
+                                Using Truncate with href="#" is semantically wrong — it's not a link,
+                                it's an action. Per React conventions, use a Button variant="link"
+                                wrapping the Truncate, or use PF's clickable text pattern.
+                                The href="#" also causes scroll-to-top on middle-click. */}
                             {isFolder(file) && (
                               <Truncate
                                 href="#"
@@ -449,6 +494,9 @@ const FilesTable: React.FC<FilesTableProps> = ({
                       <Td width={columns.type.width} dataLabel={columns.type.label}>
                         {isFolder(file) ? defaults.labels.folderType : file.type}
                       </Td>
+                      {/* TODO [ PR-Feedback: AI ] Extract this IIFE to a helper function outside the render.
+                          Building an actions array inside an IIFE in JSX hurts readability.
+                          Create a `getRowActions(file, selectedFiles, ...)` helper and call it cleanly. */}
                       <Td width={columns.actions.width} isActionCell>
                         {(() => {
                           const actions: IAction[] = [];
@@ -784,6 +832,8 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
     <Card isPlain isCompact>
       <CardTitle>{defaults.labels.detailsPanelTitleFiles}</CardTitle>
       <CardBody className="pf-v6-u-pt-sm">
+        {/* TODO [ PR-Feedback: AI ] Remove this dead commented-out code block. If it's an alternative
+            rendering approach worth preserving, move it to a doc/comment explaining the intent. */}
         {/*<DescriptionList>*/}
         {/*  {Array.isArray(selectedFiles) &&*/}
         {/*    selectedFiles.length > 0 &&*/}
@@ -957,6 +1007,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       paginationLabelFunction(firstIndex, lastIndex, lastIndex);
   }
 
+  // TODO [ PR-Feedback: AI ] Magic numbers for pixel-based layout. These hardcoded pixel values
+  // (47px row, 38px header) are fragile — they'll break if PF updates compact row heights or
+  // if font-size/zoom changes. Consider using CSS max-height with overflow-y: auto instead,
+  // or at minimum extract these as named constants with a comment explaining where the values come from.
   const rowHeight = 47;
   const headerHeight = 38;
   const numberOfRowsToShow = 10;

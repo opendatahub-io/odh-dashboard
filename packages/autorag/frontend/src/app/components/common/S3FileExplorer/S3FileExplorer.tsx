@@ -18,6 +18,12 @@ import { getFiles, type GetFilesOptions } from '~/app/api/s3.ts';
 
 const DEFAULT_PER_PAGE = 10;
 
+// TODO [ PR-Feedback: AI ] This entire file (~560 lines) is duplicated verbatim in automl/S3FileExplorer.tsx.
+// formatBytes, mapResultToItems, getBreadcrumbTrail, and the full S3FileExplorer component are all copies.
+// Consider extracting shared code into a common package (e.g., plugin-core or a shared utility) before this
+// duplication becomes a maintenance burden. The FileExplorer.md already acknowledges this as future work,
+// but shipping with 2,200+ duplicated lines across the two modules is risky.
+
 const formatBytes = (bytes: number): string => {
   if (!Number.isFinite(bytes) || bytes <= 0) {
     return '0 B';
@@ -171,6 +177,11 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   // State -------------------------------------------------------------------->
 
+  // TODO [ PR-Feedback: AI ] This component manages 10+ useState + 7 useRef + multiple useEffect + useMemo + useCallback.
+  // Consider using useReducer to consolidate the related state (filesToRender, foldersToRender, fetchError,
+  // loadingToRender, hasNextPage, pageToRender, perPageToRender, currentPath, searchQuery, selectedFolder)
+  // into a single reducer. This would make state transitions more predictable and easier to reason about,
+  // especially the "reset" transitions that currently require touching 10+ setState calls.
   const [filesToRender, setFilesToRender] = useState<Files>([]);
   const [foldersToRender, setFoldersToRender] = useState<Folder[]>([]);
   const sourceToRender: Source | undefined = useMemo(
@@ -185,6 +196,9 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const [pageToRender, setPageToRender] = useState<number | undefined>(1);
   const [perPageToRender, setPerPageToRender] = useState<number | undefined>(DEFAULT_PER_PAGE);
   const [currentPath, setCurrentPath] = useState('/');
+  // TODO [ PR-Feedback: AI ] searchQuery is never read (destructured as [, setSearchQuery]).
+  // If it's only used to reset the FileExplorer's internal search state, consider whether you actually
+  // need this state at all, or if the reset can be done differently (e.g., a key prop change on FileExplorer).
   const [, setSearchQuery] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
 
@@ -454,6 +468,9 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     }
   }, []);
 
+  // TODO [ PR-Feedback: AI ] handleFolderClick and handleNavigate are identical functions.
+  // They both do: navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE).
+  // Consolidate into a single callback and pass it to both onFolderClick and onNavigate props.
   const handleFolderClick = useCallback(
     (folder: Folder) => {
       navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE);
@@ -517,6 +534,9 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     [fetchPath, currentPath],
   );
 
+  // TODO [ PR-Feedback: AI ] This is a trivial wrapper around onSelectFiles with no additional logic.
+  // Consider passing onSelectFiles directly instead of wrapping it in useCallback.
+  // If onSelectFiles is optional, use a fallback: onPrimary={onSelectFiles ?? (() => {})}
   const handlePrimary = useCallback(
     (files: Files) => {
       onSelectFiles?.(files);

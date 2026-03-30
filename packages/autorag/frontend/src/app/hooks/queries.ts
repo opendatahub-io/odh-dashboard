@@ -89,6 +89,10 @@ export async function fetchS3File(
   return response.blob();
 }
 
+// TODO [ PR-Feedback: AI ] useS3ListFilesQuery appears to be dead code — it's not imported or used
+// anywhere in the codebase. S3FileExplorer calls getFiles directly with manual state management.
+// Either remove this hook or refactor S3FileExplorer to use it (which would be cleaner than the
+// current 10+ useState approach). If keeping for future use, add a comment explaining the intent.
 export function useS3ListFilesQuery(
   namespace?: string,
   path?: string,
