@@ -904,6 +904,57 @@ describe('Model Serving LLMD', () => {
       });
     });
 
+    it('should hide disabled LLMInferenceServiceConfigs from the deploy wizard options', () => {
+      initVLLMOnMaaSIntercepts();
+
+      // Override configs: Gaudi is disabled, GPU is enabled
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gaudi-config',
+            displayName: 'vLLM on Gaudi LLMInferenceServiceConfig',
+            runtimeVersion: 'v0.9.1',
+            disabled: true,
+          }),
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gpu-config',
+            displayName: 'vLLM on GPU LLMInferenceServiceConfig',
+            runtimeVersion: 'v0.8.2',
+          }),
+        ]),
+      );
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      // Step 1: Model source
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.findUrilocationInput().type('hf://test/model');
+      modelServingWizard.findSaveConnectionCheckbox().click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 2: Model deployment — open the config dropdown
+      modelServingWizard.findModelDeploymentNameInput().type('test-disabled-config');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+
+      // Enabled config should be visible
+      modelServingWizard
+        .findGlobalScopedTemplateOption('vLLM on GPU LLMInferenceServiceConfig')
+        .should('exist');
+
+      // Disabled config should not appear
+      modelServingWizard
+        .findGlobalScopedTemplateOption('vLLM on Gaudi LLMInferenceServiceConfig')
+        .should('not.exist');
+
+      // The default llm-d option should still be available
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+        .should('exist');
+    });
+
     it('Edit existing LLMInferenceService preserves LLMInferenceServiceConfig and baseRef', () => {
       initVLLMOnMaaSIntercepts();
 

@@ -4,7 +4,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
-import AutomlModelDetailsModalHeader from '../AutomlModelDetailsModalHeader';
+import AutomlModelDetailsModalHeader from '~/app/components/run-results/AutomlModelDetailsModal/AutomlModelDetailsModalHeader';
 
 const buildModel = (
   name: string,

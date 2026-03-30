@@ -89,6 +89,7 @@ const (
 	McpServerFilterOptionListPath = McpServerCatalogPathPrefix + "/mcp_servers_filter_options"
 	McpServerPath                 = McpServerListPath + "/:" + McpServerId
 	McpServersToolListPath        = McpServerPath + "/tools"
+	MCPServerConverterPath        = McpServerPath + "/mcpserver"
 
 	// Kubernetes resource endpoints (downstream-only implementations)
 	KubernetesServicesListPath = SettingsPath + "/services"
@@ -118,6 +119,7 @@ const (
 	handlerMcpDeploymentUpdateID   HandlerID = "mcpDeployment:update"
 	handlerMcpDeploymentDeleteID   HandlerID = "mcpDeployment:delete"
 	handlerMcpServerAvailabilityID HandlerID = "mcpServer:availability"
+	handlerMCPServerConverterGetID HandlerID = "mcpServer:converter:get"
 )
 
 type App struct {
@@ -393,6 +395,13 @@ func (app *App) Routes() http.Handler {
 			McpServerAvailabilityPath,
 			app.handlerWithOverride(handlerMcpServerAvailabilityID, func() httprouter.Handle {
 				return app.EndpointNotImplementedHandler("MCP server availability")
+			}),
+		)
+		apiRouter.GET(
+			MCPServerConverterPath,
+			app.handlerWithOverride(handlerMCPServerConverterGetID, func() httprouter.Handle {
+				return app.AttachNamespace(app.AttachModelCatalogRESTClient(
+					app.EndpointNotImplementedHandler("MCPServer converter")))
 			}),
 		)
 
