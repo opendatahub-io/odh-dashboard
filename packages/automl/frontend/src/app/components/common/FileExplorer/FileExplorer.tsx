@@ -58,7 +58,7 @@ import {
   type IAction,
 } from '@patternfly/react-table';
 import { EllipsisVIcon, OutlinedEyeIcon, TimesIcon } from '@patternfly/react-icons';
-import React, { type ReactNode, useId, useState } from 'react';
+import React, { type ReactNode, useCallback, useId, useState } from 'react';
 
 // Types ---------------------------------------------------------------------->
 
@@ -941,6 +941,71 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       paginationLabelFunction(firstIndex, lastIndex, lastIndex);
   }
 
+  const handleNavigate = useCallback(
+    (folder: Folder) => {
+      onNavigate?.(folder);
+      setSearchQuery('');
+    },
+    [onNavigate],
+  );
+
+  const handleNavigateRoot = useCallback(() => {
+    onNavigateRoot?.();
+    setSearchQuery('');
+  }, [onNavigateRoot]);
+
+  const handleFolderClick = useCallback(
+    (folder: Folder) => {
+      onFolderClick?.(folder);
+      setSearchQuery('');
+    },
+    [onFolderClick],
+  );
+
+  const handleViewDetails = useCallback((file: File) => {
+    setFilesToView([file]);
+  }, []);
+
+  const handleRemoveSelection = useCallback(
+    (file: File) => {
+      setSelectedFiles((prev) => prev.filter((f) => f.path !== file.path));
+      setFilesToView([]);
+      onSelectFile?.(file, false);
+    },
+    [onSelectFile],
+  );
+
+  const handleClearDetails = useCallback(() => {
+    setFilesToView([]);
+  }, []);
+
+  const handleSearchChange = useCallback(
+    (_event: React.SyntheticEvent, value: string) => {
+      setSearchQuery(value);
+      onSearch?.(value);
+    },
+    [onSearch],
+  );
+
+  const handleSearchClear = useCallback(() => {
+    setSearchQuery('');
+    onSearch?.('');
+  }, [onSearch]);
+
+  const handleSetPage = useCallback(
+    (_event: React.SyntheticEvent, newPage: number) => {
+      onSetPage?.(newPage);
+    },
+    [onSetPage],
+  );
+
+  const handlePerPageSelect = useCallback(
+    (_event: React.SyntheticEvent, newPerPage: number) => {
+      onPerPageSelect?.(newPerPage);
+    },
+    [onPerPageSelect],
+  );
+
   const shouldRenderDetails = shouldDetailsPanelRender({ filesToView, selectedFiles });
 
   return (
@@ -977,14 +1042,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
             <PathBreadcrumbs
               folders={folders}
               source={source}
-              onNavigate={(folder) => {
-                onNavigate?.(folder);
-                setSearchQuery('');
-              }}
-              onNavigateRoot={() => {
-                onNavigateRoot?.();
-                setSearchQuery('');
-              }}
+              onNavigate={handleNavigate}
+              onNavigateRoot={handleNavigateRoot}
               loading={loading}
             />
           </FlexItem>
@@ -1004,14 +1063,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                         : undefined,
                   )}
                   value={searchQuery}
-                  onChange={(_event, value) => {
-                    setSearchQuery(value);
-                    onSearch?.(value);
-                  }}
-                  onClear={() => {
-                    setSearchQuery('');
-                    onSearch?.('');
-                  }}
+                  onChange={handleSearchChange}
+                  onClear={handleSearchClear}
                   resultsCount={searchResultsCount}
                   isDisabled={isEmpty}
                 />
@@ -1023,8 +1076,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   itemCount={syntheticItemCount}
                   perPage={currentPerPage}
                   page={currentPage}
-                  onSetPage={(_event, newPage) => onSetPage?.(newPage)}
-                  onPerPageSelect={(_event, newPerPage) => onPerPageSelect?.(newPerPage)}
+                  onSetPage={handleSetPage}
+                  onPerPageSelect={handlePerPageSelect}
                   isDisabled={loading || isEmpty}
                   isCompact
                   {...extraPaginationProps}
@@ -1045,11 +1098,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   setSelectedFiles={setSelectedFiles}
                   selection={selection}
                   unselectableReason={unselectableReason}
-                  onFolderClick={(folder) => {
-                    onFolderClick?.(folder);
-                    setSearchQuery('');
-                  }}
-                  onViewDetails={(file) => setFilesToView([file])}
+                  onFolderClick={handleFolderClick}
+                  onViewDetails={handleViewDetails}
                   filesToView={filesToView}
                   isEmpty={isEmpty}
                   emptyStateProps={emptyStateProps}
@@ -1062,13 +1112,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   <DetailsPanel
                     selectedFiles={selectedFiles}
                     filesToView={filesToView}
-                    onViewDetails={(file) => setFilesToView([file])}
-                    onRemoveSelection={(file) => {
-                      setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path));
-                      setFilesToView([]);
-                      onSelectFile?.(file, false);
-                    }}
-                    onClearDetails={() => setFilesToView([])}
+                    onViewDetails={handleViewDetails}
+                    onRemoveSelection={handleRemoveSelection}
+                    onClearDetails={handleClearDetails}
                   />
                 </GridItem>
               )}
