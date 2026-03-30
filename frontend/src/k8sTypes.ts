@@ -715,12 +715,6 @@ export type DSPipelineExternalStorageKind = {
   };
 };
 
-export type DSPipelineManagedPipelinesKind = {
-  instructLab?: {
-    state: 'Removed' | 'Managed';
-  };
-};
-
 export enum DSPipelineAPIServerStore {
   KUBERNETES = 'kubernetes',
   DATABASE = 'database',
@@ -742,7 +736,11 @@ export type DSPipelineKind = K8sResourceCommon & {
       }>;
       enableSamplePipeline: boolean;
       cacheEnabled: boolean;
-      managedPipelines?: DSPipelineManagedPipelinesKind;
+      managedPipelines?: {
+        instructLab?: {
+          state: 'Removed' | 'Managed';
+        };
+      };
       pipelineStore?: DSPipelineAPIServerStore;
     }>;
     database?: Partial<{

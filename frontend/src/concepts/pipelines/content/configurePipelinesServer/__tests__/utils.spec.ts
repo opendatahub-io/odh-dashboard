@@ -28,7 +28,6 @@ describe('configure pipeline server utils', () => {
         objectStorage: {
           newValue: [{ key: 'AWS_S3_ENDPOINT', value: '' }],
         },
-        enableInstructLab: false,
         storeYamlInKubernetes: false,
         enableCaching,
       } as PipelineServerConfigType);
