@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Breadcrumb,
   BreadcrumbItem,
   Bullseye,
@@ -13,8 +14,19 @@ import {
   DrawerContent,
   DrawerContentBody,
   Gallery,
+  Label,
+  MenuToggle,
+  MenuToggleElement,
   PageSection,
+  Pagination,
+  Select,
+  SelectList,
+  SelectOption,
   Spinner,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
+  SearchInput,
 } from '@patternfly/react-core';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -22,6 +34,7 @@ import { useCollections } from '~/app/hooks/useCollections';
 import { Collection } from '~/app/types';
 import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
+import { getCategoryColor } from '~/app/components/benchmarkUtils';
 
 const ChooseBenchmarkCollectionPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -29,8 +42,24 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
   const [selectedCollection, setSelectedCollection] = React.useState<Collection | undefined>(
     undefined,
   );
+  const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
 
-  const { collections, loaded, loadError } = useCollections(namespace ?? '');
+  const {
+    collections,
+    totalCount,
+    loaded,
+    loadError,
+    isTruncated,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+    nameFilter,
+    setNameFilter,
+    categoryFilter,
+    setCategoryFilter,
+    availableCategories,
+  } = useCollections(namespace ?? '');
 
   const handleRunCollection = React.useCallback(
     (c: Collection) => {
@@ -43,6 +72,24 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
       });
     },
     [navigate, namespace],
+  );
+
+  const handleCategorySelect = React.useCallback(
+    (_: React.MouseEvent | undefined, value: string | number | undefined) => {
+      setCategoryFilter(value === categoryFilter ? '' : String(value ?? ''));
+      setIsCategoryOpen(false);
+    },
+    [categoryFilter, setCategoryFilter],
+  );
+
+  const categoryToggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle
+      ref={toggleRef}
+      onClick={() => setIsCategoryOpen((prev) => !prev)}
+      isExpanded={isCategoryOpen}
+    >
+      {categoryFilter || 'Category'}
+    </MenuToggle>
   );
 
   return (
@@ -59,7 +106,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
         <DrawerContentBody>
           <ApplicationsPage
             title="Select benchmark suite"
-            description="Select a benchmark suite to run on your model, agent or pre-recorded responses."
+            description="Select a benchmark suite to run on your model or agent."
             breadcrumb={
               <Breadcrumb>
                 <BreadcrumbItem
@@ -70,7 +117,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                     <Link to={evaluationCreateRoute(namespace)}>Create evaluation run</Link>
                   )}
                 />
-                <BreadcrumbItem isActive>Choose benchmark collection</BreadcrumbItem>
+                <BreadcrumbItem isActive>Select benchmark suite</BreadcrumbItem>
               </Breadcrumb>
             }
             loaded={loaded}
@@ -78,13 +125,75 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
             empty={false}
           >
             <PageSection hasBodyWrapper={false} isFilled>
+              {isTruncated && (
+                <Alert
+                  variant="warning"
+                  isInline
+                  title="Not all collections are shown"
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                >
+                  This namespace has more benchmark suites than the display limit. Contact your
+                  administrator or use the API directly to access the full list.
+                </Alert>
+              )}
+              <Toolbar>
+                <ToolbarContent>
+                  <ToolbarItem>
+                    <SearchInput
+                      placeholder="Filter by name"
+                      value={nameFilter}
+                      onChange={(_, value) => setNameFilter(value)}
+                      onClear={() => setNameFilter('')}
+                      style={{ width: '220px' }}
+                    />
+                  </ToolbarItem>
+                  <ToolbarItem>
+                    <Select
+                      isOpen={isCategoryOpen}
+                      selected={categoryFilter || undefined}
+                      onSelect={handleCategorySelect}
+                      onOpenChange={setIsCategoryOpen}
+                      toggle={categoryToggle}
+                    >
+                      <SelectList>
+                        {categoryFilter && <SelectOption value="">All categories</SelectOption>}
+                        {availableCategories.map((cat) => (
+                          <SelectOption key={cat} value={cat}>
+                            {cat}
+                          </SelectOption>
+                        ))}
+                      </SelectList>
+                    </Select>
+                  </ToolbarItem>
+                  <ToolbarItem align={{ default: 'alignEnd' }}>
+                    <Pagination
+                      itemCount={totalCount}
+                      perPage={pageSize}
+                      page={page}
+                      onSetPage={(_, newPage) => setPage(newPage)}
+                      onPerPageSelect={(_, newPageSize) => setPageSize(newPageSize)}
+                      perPageOptions={[
+                        { title: '6', value: 6 },
+                        { title: '12', value: 12 },
+                        { title: '24', value: 24 },
+                      ]}
+                      variant="top"
+                    />
+                  </ToolbarItem>
+                </ToolbarContent>
+              </Toolbar>
+
               {!loaded ? (
                 <Bullseye>
                   <Spinner />
                 </Bullseye>
               ) : collections.length === 0 ? (
                 <Bullseye>
-                  <Content component="p">No collections available.</Content>
+                  <Content component="p">
+                    {nameFilter || categoryFilter
+                      ? 'No collections match the current filters.'
+                      : 'No collections available.'}
+                  </Content>
                 </Bullseye>
               ) : (
                 <Gallery hasGutter minWidths={{ default: '280px' }}>
@@ -98,10 +207,20 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                         data-testid={`collection-card-${collection.resource.id}`}
                       >
                         <CardTitle>
+                          {collection.category && (
+                            <Label
+                              color={getCategoryColor(collection.category)}
+                              isCompact
+                              style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                            >
+                              {collection.category}
+                            </Label>
+                          )}
                           <Button
                             variant="link"
                             isInline
                             style={{
+                              display: 'block',
                               textDecoration: 'none',
                               fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
                             }}
@@ -130,13 +249,35 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                             isInline
                             onClick={() => handleRunCollection(collection)}
                           >
-                            Run this benchmark suite
+                            Use this collection
                           </Button>
                         </CardFooter>
                       </Card>
                     );
                   })}
                 </Gallery>
+              )}
+
+              {totalCount > pageSize && (
+                <Toolbar>
+                  <ToolbarContent>
+                    <ToolbarItem align={{ default: 'alignEnd' }}>
+                      <Pagination
+                        itemCount={totalCount}
+                        perPage={pageSize}
+                        page={page}
+                        onSetPage={(_, newPage) => setPage(newPage)}
+                        onPerPageSelect={(_, newPageSize) => setPageSize(newPageSize)}
+                        perPageOptions={[
+                          { title: '6', value: 6 },
+                          { title: '12', value: 12 },
+                          { title: '24', value: 24 },
+                        ]}
+                        variant="bottom"
+                      />
+                    </ToolbarItem>
+                  </ToolbarContent>
+                </Toolbar>
               )}
             </PageSection>
           </ApplicationsPage>

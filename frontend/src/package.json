@@ -5,6 +5,7 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test-unit": "jest --silent",
     "test-unit-coverage": "jest --silent --coverage"
   },

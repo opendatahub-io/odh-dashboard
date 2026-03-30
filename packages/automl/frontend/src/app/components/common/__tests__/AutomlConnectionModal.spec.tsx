@@ -1,6 +1,7 @@
-import React, { act } from 'react';
+import React from 'react';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import * as secretsApi from '@odh-dashboard/internal/api/k8s/secrets';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
@@ -53,6 +54,8 @@ describe('AutomlConnectionModal', () => {
   });
 
   it('should list connection types and select one', async () => {
+    const user = userEvent.setup();
+
     render(
       <AutomlConnectionModal
         project={TEST_PROJECT}
@@ -97,16 +100,12 @@ describe('AutomlConnectionModal', () => {
       />,
     );
 
-    await act(async () => {
-      screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
-    });
+    await user.click(screen.getByRole('button', { name: 'Typeahead menu toggle' }));
     expect(screen.getByRole('option', { name: /type one/ })).toBeTruthy();
     expect(screen.getByRole('option', { name: /type two/ })).toBeTruthy();
     expect(screen.queryByRole('option', { name: /type three disabled/ })).toBeFalsy();
 
-    await act(async () => {
-      screen.getByRole('option', { name: /type one/ }).click();
-    });
+    await user.click(screen.getByRole('option', { name: /type one/ }));
     expect(screen.getByRole('combobox')).toHaveValue('type one');
     expect(screen.getByRole('textbox', { name: 'Connection name' })).toBeVisible();
     expect(screen.getByRole('textbox', { name: 'Connection description' })).toBeVisible();
@@ -114,6 +113,8 @@ describe('AutomlConnectionModal', () => {
   });
 
   it('should enable Add connection button when required fields filled and all valid', async () => {
+    const user = userEvent.setup();
+
     render(
       <AutomlConnectionModal
         project={TEST_PROJECT}
@@ -162,32 +163,22 @@ describe('AutomlConnectionModal', () => {
     const addButton = screen.getByRole('button', { name: 'Add connection' });
     expect(addButton).toBeDisabled();
 
-    await act(async () => {
-      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
-        target: { value: 'a' },
-      });
-      fireEvent.change(screen.getByRole('textbox', { name: 'short text 1' }), {
-        target: { value: 'b' },
-      });
-      fireEvent.change(screen.getByRole('textbox', { name: 'text 2' }), {
-        target: { value: 'c' },
-      });
-      screen.getByRole('button', { name: 'dropdown 4' }).click();
-    });
-    await act(async () => {
-      screen.getByRole('option', { name: /Value: a/ }).click();
-    });
+    await user.type(screen.getByRole('textbox', { name: 'Connection name' }), 'a');
+    await user.type(screen.getByRole('textbox', { name: 'short text 1' }), 'b');
+    await user.type(screen.getByRole('textbox', { name: 'text 2' }), 'c');
+    await user.click(screen.getByRole('button', { name: 'dropdown 4' }));
+    await user.click(screen.getByRole('option', { name: /^a/i }));
 
     expect(addButton).toBeEnabled();
-    await act(async () => {
-      addButton.click();
-    });
+    await user.click(addButton);
     expect(createSecretMock).toHaveBeenCalled();
     expect(onSubmitMock).toHaveBeenCalled();
     expect(onCloseMock).toHaveBeenCalledWith(true);
   });
 
   it('should enable Add connection once field validations are valid', async () => {
+    const user = userEvent.setup();
+
     render(
       <AutomlConnectionModal
         project={TEST_PROJECT}
@@ -226,52 +217,36 @@ describe('AutomlConnectionModal', () => {
     const numeric = screen.getByRole('spinbutton', { name: 'Input' });
     const addButton = screen.getByRole('button', { name: 'Add connection' });
 
-    await act(async () => {
-      fireEvent.change(connectionName, {
-        target: { value: 'name entry' },
-      });
-    });
+    await user.type(connectionName, 'name entry');
     expect(addButton).toBeEnabled();
 
-    await act(async () => {
-      fireEvent.change(uri, {
-        target: { value: 'invalid uri' },
-      });
-      fireEvent.blur(uri);
-    });
+    await user.clear(uri);
+    await user.type(uri, 'invalid uri');
+    await user.click(connectionName); // Trigger blur by clicking elsewhere
     expect(addButton).toBeDisabled();
 
-    await act(async () => {
-      fireEvent.change(uri, {
-        target: { value: 'http://localhost' },
-      });
-      fireEvent.blur(uri);
-    });
+    await user.clear(uri);
+    await user.type(uri, 'http://localhost');
+    await user.click(connectionName); // Trigger blur by clicking elsewhere
     expect(addButton).toBeEnabled();
 
-    await act(async () => {
-      fireEvent.change(numeric, {
-        target: { value: '-10' },
-      });
-    });
+    await user.clear(numeric);
+    await user.type(numeric, '-10');
     expect(addButton).toBeDisabled();
 
-    await act(async () => {
-      fireEvent.change(numeric, {
-        target: { value: '2' },
-      });
-    });
+    await user.clear(numeric);
+    await user.type(numeric, '2');
     expect(addButton).toBeEnabled();
 
-    await act(async () => {
-      addButton.click();
-    });
+    await user.click(addButton);
     expect(createSecretMock).toHaveBeenCalled();
     expect(onSubmitMock).toHaveBeenCalled();
     expect(onCloseMock).toHaveBeenCalledWith(true);
   });
 
   it('should clear type-specific values and preserve name/description when switching types', async () => {
+    const user = userEvent.setup();
+
     render(
       <AutomlConnectionModal
         project={TEST_PROJECT}
@@ -304,23 +279,19 @@ describe('AutomlConnectionModal', () => {
       />,
     );
 
-    await act(async () => {
-      screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
-    });
-    await act(async () => {
-      screen.getByRole('option', { name: /type one/ }).click();
-    });
-    await act(async () => {
-      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
-        target: { value: 'connection one name' },
-      });
-      fireEvent.change(screen.getByRole('textbox', { name: 'Connection description' }), {
-        target: { value: 'connection one desc' },
-      });
-      fireEvent.change(screen.getByRole('textbox', { name: 'Short text 1' }), {
-        target: { value: 'one field' },
-      });
-    });
+    await user.click(screen.getByRole('button', { name: 'Typeahead menu toggle' }));
+    await user.click(screen.getByRole('option', { name: /type one/ }));
+
+    await user.type(
+      screen.getByRole('textbox', { name: 'Connection name' }),
+      'connection one name',
+    );
+    await user.type(
+      screen.getByRole('textbox', { name: 'Connection description' }),
+      'connection one desc',
+    );
+    await user.type(screen.getByRole('textbox', { name: 'Short text 1' }), 'one field');
+
     expect(screen.getByRole('textbox', { name: 'Connection name' })).toHaveValue(
       'connection one name',
     );
@@ -329,13 +300,9 @@ describe('AutomlConnectionModal', () => {
     );
     expect(screen.getByRole('textbox', { name: 'Short text 1' })).toHaveValue('one field');
 
-    await act(async () => {
-      screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
-    });
-    await act(async () => {
-      const optionTwo = await screen.findByRole('option', { name: /type two/ });
-      optionTwo.click();
-    });
+    await user.click(screen.getByRole('button', { name: 'Typeahead menu toggle' }));
+    await user.click(screen.getByRole('option', { name: /type two/ }));
+
     expect(screen.getByRole('textbox', { name: 'Connection name' })).toHaveValue(
       'connection one name',
     );
@@ -346,6 +313,8 @@ describe('AutomlConnectionModal', () => {
   });
 
   it('should call onClose when cancel is clicked', async () => {
+    const user = userEvent.setup();
+
     render(
       <AutomlConnectionModal
         project={TEST_PROJECT}
@@ -361,13 +330,12 @@ describe('AutomlConnectionModal', () => {
     );
 
     const cancelButton = screen.getByRole('button', { name: 'Cancel' });
-    await act(async () => {
-      fireEvent.click(cancelButton);
-    });
+    await user.click(cancelButton);
     expect(onCloseMock).toHaveBeenCalled();
   });
 
   it('should not call onClose with true when createSecret rejects', async () => {
+    const user = userEvent.setup();
     createSecretMock.mockRejectedValueOnce(new Error('API error'));
 
     render(
@@ -391,16 +359,10 @@ describe('AutomlConnectionModal', () => {
       />,
     );
 
-    await act(async () => {
-      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
-        target: { value: 'my-conn' },
-      });
-    });
+    await user.type(screen.getByRole('textbox', { name: 'Connection name' }), 'my-conn');
 
     const addButton = screen.getByRole('button', { name: 'Add connection' });
-    await act(async () => {
-      addButton.click();
-    });
+    await user.click(addButton);
 
     expect(createSecretMock).toHaveBeenCalled();
     expect(onSubmitMock).not.toHaveBeenCalled();

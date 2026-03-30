@@ -21,6 +21,13 @@ func (m *MockS3Client) GetObject(_ context.Context, bucket, key string) (io.Read
 	return io.NopCloser(bytes.NewReader([]byte(content))), "text/plain", nil
 }
 
+// UploadObject is a no-op in mock mode: body is drained to mimic a real upload.
+// io.Copy reports errors from reading body (e.g. *http.MaxBytesError on a limited reader).
+func (m *MockS3Client) UploadObject(_ context.Context, bucket, key string, body io.Reader, contentType string) error {
+	_, err := io.Copy(io.Discard, body)
+	return err
+}
+
 // ListObjects returns a realistic mock listing of S3 objects.
 // Supports path-based navigation and pagination via options.
 func (m *MockS3Client) ListObjects(_ context.Context, bucket string, options s3client.ListObjectsOptions) (*models.S3ListObjectsResponse, error) {

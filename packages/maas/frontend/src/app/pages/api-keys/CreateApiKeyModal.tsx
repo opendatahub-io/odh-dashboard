@@ -38,7 +38,7 @@ import React from 'react';
 import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { formatApiKeyError } from '~/app/pages/api-keys/utils';
-import { createApiKey } from '../../api/api-keys';
+import { createApiKey } from '~/app/api/api-keys';
 
 const EXPIRATION_OPTION_VALUES = ['30d', '60d', '90d', '180d', '1y', 'custom'] as const;
 

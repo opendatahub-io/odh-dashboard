@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
@@ -99,9 +101,13 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 	}
 
 	// Resolve bucket.
-	// On the DSPA path the DSPA-configured bucket always wins; the caller-supplied override
-	// is ignored to prevent bucket substitution and oracle-enumeration attacks.
-	// On the explicit secretName path use the override or fall back to AWS_S3_BUCKET in the secret.
+	// SECURITY MODEL:
+	//   - DSPA path: The DSPA-configured bucket always wins. Caller-supplied override
+	//     is IGNORED to prevent bucket substitution and oracle-enumeration attacks.
+	//   - secretName path: Caller-supplied bucketOverride IS ACCEPTED to allow flexible
+	//     bucket access. The secret's IAM credentials determine authorization scope.
+	//     Administrators MUST configure secrets with least-privilege IAM policies scoped
+	//     to specific buckets to prevent unauthorized access.
 	var bucket string
 	if dspaStorage != nil {
 		if dspaStorage.Bucket == "" {
@@ -128,6 +134,10 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 	//   clients by credential identity (e.g. namespace/secretName) with a sync.Map or TTL cache.
 	s3Client, err := app.s3ClientFactory.CreateClient(creds)
 	if err != nil {
+		if errors.Is(err, s3int.ErrEndpointValidation) {
+			app.badRequestResponse(w, r, err)
+			return nil, false
+		}
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to create S3 client: %w", err))
 		return nil, false
 	}
@@ -159,7 +169,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	key := queryParams.Get("key")
+	key := strings.TrimSpace(queryParams.Get("key"))
 	if key == "" {
 		app.badRequestResponse(w, r, errors.New("query parameter 'key' is required and cannot be empty"))
 		return
@@ -201,7 +211,13 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 
 	defer objectReader.Close()
 
-	w.Header().Set("Content-Type", contentType)
+	sanitizedContentType := sanitizeUploadContentType(contentType)
+	if isInlineDangerousContentType(contentType) || sanitizedContentType == "application/octet-stream" {
+		w.Header().Set("Content-Disposition", "attachment")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+	}
+	// Same normalization as POST uploads so GET cannot echo arbitrary S3 metadata types.
+	w.Header().Set("Content-Type", sanitizedContentType)
 
 	// Stream the file content to the response
 	w.WriteHeader(http.StatusOK)
@@ -214,6 +230,210 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			"key", key,
 		)
 	}
+}
+
+// PostS3FileHandler uploads a file to S3 storage using credentials from a Kubernetes secret.
+// Query parameters: namespace, secretName, key (required); bucket (optional, uses AWS_S3_BUCKET from secret if not provided).
+// Request body: multipart/form-data with a file part named "file". Streams the file to S3 without buffering.
+//
+// Note: namespace is provided via the AttachNamespace middleware
+func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	queryParams := r.URL.Query()
+
+	secretName := queryParams.Get("secretName")
+	if secretName == "" {
+		app.badRequestResponse(w, r, errors.New("query parameter 'secretName' is required and cannot be empty"))
+		return
+	}
+	if !isValidDNS1123Subdomain(secretName) {
+		app.badRequestResponse(w, r, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
+		return
+	}
+
+	key := strings.TrimSpace(queryParams.Get("key"))
+	if key == "" {
+		app.badRequestResponse(w, r, errors.New("query parameter 'key' is required and cannot be empty"))
+		return
+	}
+
+	s3, ok := app.resolveS3Client(w, r, secretName, queryParams.Get("bucket"))
+	if !ok {
+		return
+	}
+
+	ctx := r.Context()
+	bucket := s3.bucket
+
+	maxUploadSize := app.s3PostMaxTotalBodyBytes()
+	// Cap the entire request body so chunked/unknown-length clients cannot force the multipart
+	// scanner (including io.Copy discard of non-file parts) to read without bound. Same limit as
+	// rejectDeclaredOversizedS3Post for declared Content-Length.
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+
+	// Stream multipart body: do not buffer the entire file.
+	mr, err := r.MultipartReader()
+	if err != nil {
+		if isS3PostRequestBodyTooLarge(err) {
+			app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)")
+			return
+		}
+		app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart request: %w", err))
+		return
+	}
+	if mr == nil {
+		app.badRequestResponse(w, r, errors.New("request must be multipart/form-data with a boundary"))
+		return
+	}
+
+	var filePart *multipart.Part
+	for {
+		part, nextErr := mr.NextPart()
+		if nextErr == io.EOF {
+			break
+		}
+		if nextErr != nil {
+			if isS3PostRequestBodyTooLarge(nextErr) {
+				app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)")
+				return
+			}
+			app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", nextErr))
+			return
+		}
+		if part.FormName() == "file" {
+			filePart = part
+			break
+		}
+		_, copyErr := io.Copy(io.Discard, part)
+		if copyErr != nil {
+			if isS3PostRequestBodyTooLarge(copyErr) {
+				app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)")
+				return
+			}
+			app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", copyErr))
+			return
+		}
+	}
+
+	if filePart == nil {
+		app.badRequestResponse(w, r, errors.New("missing 'file' part in multipart form"))
+		return
+	}
+
+	contentType := sanitizeUploadContentType(filePart.Header.Get("Content-Type"))
+
+	maxFilePartBytes := s3MaxUploadFileBytes
+	if app.s3PostMaxFilePartBytes > 0 {
+		maxFilePartBytes = app.s3PostMaxFilePartBytes
+	}
+	// MaxBytesReader’s first arg is the ResponseWriter used by net/http.Server to force-close the
+	// connection when the limit is exceeded. We pass nil because this reader is used for an S3 upload
+	// body, not an inbound server request body—only the read-limit and *MaxBytesError behavior matter.
+	limitedFile := http.MaxBytesReader(nil, filePart, maxFilePartBytes)
+	// MaxBytesReader.Close forwards to Part.Close, which drains the rest of the file part.
+	defer limitedFile.Close()
+	if err := s3.client.UploadObject(ctx, bucket, key, limitedFile, contentType); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			app.payloadTooLargeResponse(w, r, "file exceeds maximum size of 1 GiB")
+			return
+		}
+		var accessDenied interface{ ErrorCode() string }
+		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
+			app.forbiddenResponse(w, r, fmt.Sprintf("access denied uploading to S3 '%s/%s'", bucket, key))
+			return
+		}
+		app.serverErrorResponse(w, r, fmt.Errorf("error uploading file to S3: %w", err))
+		return
+	}
+
+	body := map[string]bool{"uploaded": true}
+	_ = app.WriteJSON(w, http.StatusCreated, body, nil)
+}
+
+// rejectDeclaredOversizedS3Post returns 413 when Content-Length is set and exceeds
+// s3PostMaxTotalBodyBytes. Chunked or unknown length passes here; PostS3FileHandler still wraps
+// r.Body with http.MaxBytesReader before MultipartReader so total bytes read are capped.
+func (app *App) rejectDeclaredOversizedS3Post(next httprouter.Handle) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		if app.s3PostDeclaredBodyExceedsLimit(r) {
+			app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)")
+			return
+		}
+		next(w, r, ps)
+	}
+}
+
+func isS3PostRequestBodyTooLarge(err error) bool {
+	var maxBytesErr *http.MaxBytesError
+	return err != nil && errors.As(err, &maxBytesErr)
+}
+
+// Upload vs GET for HTML and other inline-unsafe types:
+// Users may upload pipeline input files (e.g. text/html) that must be stored in S3 with an
+// accurate Content-Type — see allowedS3UploadMediaTypes. The UI does not need to render those
+// objects inline in the browser; serving them inline from this origin would risk XSS. For the
+// same media types, GetS3FileHandler therefore uses dangerousS3GetMediaTypes / isInlineDangerousContentType
+// to force Content-Disposition: attachment and nosniff. Allowing upload as text/html but
+// downloading as attachment is intentional: store faithfully for RAG input; never execute in-dashboard.
+//
+// dangerousS3GetMediaTypes are served with Content-Disposition: attachment and nosniff so the
+// dashboard origin cannot be used as an XSS/SVG script vector when objects declare these types
+// (including parameterized forms, e.g. text/html; charset=utf-8).
+var dangerousS3GetMediaTypes = map[string]struct{}{
+	"text/html":             {},
+	"application/xhtml+xml": {},
+	"image/svg+xml":         {},
+}
+
+func isInlineDangerousContentType(v string) bool {
+	raw := strings.TrimSpace(v)
+	mediaType, _, err := mime.ParseMediaType(raw)
+	if err != nil {
+		return false
+	}
+	mediaType = strings.ToLower(mediaType)
+	_, ok := dangerousS3GetMediaTypes[mediaType]
+	return ok
+}
+
+// allowedS3UploadMediaTypes are the only multipart part Content-Types we persist to S3.
+// Anything else is stored as application/octet-stream so GET cannot echo arbitrary
+// caller-controlled MIME types (e.g. image/svg+xml, application/javascript) under the dashboard origin.
+// Includes text/html so pipeline input can be stored correctly; GET still forces download for HTML
+// (see the "Upload vs GET" comment before dangerousS3GetMediaTypes).
+var allowedS3UploadMediaTypes = map[string]struct{}{
+	"application/json":     {},
+	"application/markdown": {}, // some clients use this for .md
+	"application/pdf":      {},
+	"application/vnd.openxmlformats-officedocument.presentationml.presentation": {}, // .pptx
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   {}, // .docx
+	// "application/x-yaml":   {},
+	// "application/xml":      {},
+	// "application/yaml":     {},
+	"text/html":           {},
+	"text/markdown":       {},
+	"text/plain":          {},
+	"text/x-web-markdown": {},
+	"text/x-markdown":     {},
+	// "text/x-yaml":        {},
+	// "text/xml":           {},
+	// "text/yaml":          {},
+}
+
+func sanitizeUploadContentType(v string) string {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return "application/octet-stream"
+	}
+	mediaType, _, err := mime.ParseMediaType(v)
+	if err != nil {
+		return "application/octet-stream"
+	}
+	mediaType = strings.ToLower(mediaType)
+	if _, ok := allowedS3UploadMediaTypes[mediaType]; ok {
+		return mediaType
+	}
+	return "application/octet-stream"
 }
 
 // GetS3FilesHandler retrieves files from S3 storage using credentials from a Kubernetes secret.

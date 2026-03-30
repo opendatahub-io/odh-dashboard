@@ -193,6 +193,59 @@ export class ContractApiClient {
   }
 
   /**
+   * Make a POST request with multipart/form-data (e.g. file upload) and log the results
+   */
+  async postFormData(
+    path: string,
+    formData: FormData,
+    options: {
+      headers?: Record<string, string>;
+    } = {},
+    testName?: string,
+  ): Promise<ApiTestResult> {
+    const url = `${this.config.baseUrl}${path}`;
+    const headers: Record<string, string> = {
+      // do not set Content-Type so axios sets it with the correct boundary
+      ...(this.config.defaultHeaders ?? {}),
+      ...(options.headers ?? {}),
+    };
+    const controller = new AbortController();
+
+    try {
+      logApiCall('POST', url, ContractApiClient.getCurrentTestName(testName || ''), headers);
+
+      const response: AxiosResponse = await axios.post(url, formData, {
+        headers,
+        timeout: this.config.timeout,
+        signal: controller.signal,
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+      });
+
+      const apiResponse: ApiResponse = {
+        status: response.status,
+        headers: ContractApiClient.normalizeHeaders(response.headers),
+        data: response.data,
+      };
+
+      logApiResponse(apiResponse, ContractApiClient.getCurrentTestName(testName || ''));
+
+      return {
+        success: true,
+        response: apiResponse,
+      };
+    } catch (error) {
+      const apiError = this.handleAxiosError(error, testName);
+      return {
+        success: false,
+        error: apiError,
+      };
+    } finally {
+      controller.abort();
+    }
+  }
+
+  /**
    * Make a PUT request and log the results
    */
   async put(

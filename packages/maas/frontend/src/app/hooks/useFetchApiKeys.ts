@@ -6,8 +6,8 @@ import {
   type FetchState,
   type FetchStateCallbackPromise,
 } from 'mod-arch-core';
-import { type APIKeyListResponse, type APIKeySearchRequest } from '../types/api-key';
-import { searchApiKeys } from '../api/api-keys';
+import { type APIKeyListResponse, type APIKeySearchRequest } from '~/app/types/api-key';
+import { searchApiKeys } from '~/app/api/api-keys';
 
 export const useFetchApiKeys = (
   searchRequest: APIKeySearchRequest,
