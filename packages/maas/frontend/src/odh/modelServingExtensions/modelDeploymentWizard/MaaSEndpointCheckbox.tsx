@@ -10,7 +10,6 @@ export type MaaSFieldValue = {
 
 export const maasFieldSchema = z.object({
   isChecked: z.boolean(),
-  endpointOverride: z.string().optional(),
 });
 
 const setMaaSFieldData = (value: MaaSFieldValue): MaaSFieldValue => value;
@@ -26,7 +25,7 @@ type MaaSFieldProps = {
 
 const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }) => {
   const handleCheckboxChange = (_: React.FormEvent<HTMLInputElement>, checked: boolean): void => {
-    onChange({ isChecked: checked });
+    onChange({ ...value, isChecked: checked });
   };
 
   return (

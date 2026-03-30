@@ -68,7 +68,7 @@ const MODEL_SERVING_EXTENSIONS: ModelServingExtensions[] = [
       fieldId: MAAS_ENDPOINT_FIELD_ID,
       platform: LLMD_SERVING_ID,
       postDeploy: () =>
-        import('./modelDeploymentWizard/MaaSModelRef').then((m) => m.applyMaaSModelRef),
+        import('./modelDeploymentWizard/maas-model-ref').then((m) => m.applyMaaSModelRef),
     },
   },
 ];

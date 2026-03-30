@@ -23,6 +23,9 @@ export const applyMaaSModelRef = async (
   existingDeployment?: LLMdDeployment,
 ): Promise<void> => {
   const { name, namespace, uid } = deployedModel.metadata;
+  if (typeof fieldData.isChecked !== 'boolean') {
+    return;
+  }
   const { isChecked } = fieldData;
   const modelRef = { kind: LLMINFERENCESERVICE_KIND, name };
   const displayName = deployedModel.metadata.annotations?.['openshift.io/display-name'] ?? name;

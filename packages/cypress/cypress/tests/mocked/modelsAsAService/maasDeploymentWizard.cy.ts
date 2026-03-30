@@ -130,22 +130,6 @@ describe('MaaS Deployment Wizard', () => {
 
   it('should create an LLMD deployment with MaaS enabled and create a MaaSModelRef', () => {
     initMaaSDeploymentIntercepts();
-    const savedURISecret = mockSecretK8sResource({
-      name: 'saved-uri-secret',
-      namespace: 'test-project',
-      displayName: 'Saved URI Secret',
-      connectionType: 'uri',
-      data: {
-        URI: 'aHR0cHM6Ly90ZXN0LmlvL29yZ2FuaXphdGlvbi90ZXN0LW1vZGVsOmxhdGVzdA==',
-      },
-    });
-    cy.interceptK8sList(
-      { model: SecretModel, ns: 'test-project' },
-      mockK8sResourceList([savedURISecret]),
-    );
-
-    cy.interceptK8s(SecretModel, savedURISecret).as('getSavedURISecret');
-    cy.interceptK8s('PATCH', SecretModel, savedURISecret);
 
     // Navigate to wizard and set up basic deployment
     modelServingGlobal.visit('test-project');
@@ -153,6 +137,7 @@ describe('MaaS Deployment Wizard', () => {
 
     // Quick setup: Model source and deployment
     modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
+    modelServingWizard.findExistingConnectionValue().should('have.value', 'test-s3-secret');
     modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
     modelServingWizard.findNextButton().click();
 
@@ -208,37 +193,22 @@ describe('MaaS Deployment Wizard', () => {
   });
   it('should delete the MaaSModelRef when the MaaS checkbox is unchecked', () => {
     initMaaSDeploymentIntercepts();
-    const savedURISecret = mockSecretK8sResource({
-      name: 'saved-uri-secret',
-      namespace: 'test-project',
-      displayName: 'Saved URI Secret',
-      connectionType: 'uri',
-      data: {
-        URI: 'aHR0cHM6Ly90ZXN0LmlvL29yZ2FuaXphdGlvbi90ZXN0LW1vZGVsOmxhdGVzdA==',
-      },
-    });
     const savedURIModel = mockLLMInferenceServiceK8sResource({
       isMaaS: true,
-      secretName: 'saved-uri-secret',
-      modelUri: 'https://test.io/organization/test-model:latest',
       replicas: 2,
     });
-    cy.interceptK8sList(
-      { model: SecretModel, ns: 'test-project' },
-      mockK8sResourceList([savedURISecret]),
-    );
     cy.interceptK8sList(
       { model: LLMInferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([savedURIModel]),
     );
 
-    cy.interceptK8s(SecretModel, savedURISecret).as('getSavedURISecret');
-    cy.interceptK8s('PATCH', SecretModel, savedURISecret);
-
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test LLM Inference Service').findKebabAction('Edit').click();
-    modelServingWizardEdit.findModelLocationSelectOption('Existing connection').should('exist');
-    modelServingWizardEdit.findExistingConnectionValue().should('have.value', 'Saved URI Secret');
+    modelServingWizardEdit
+      .findModelLocationSelectOption('Existing connection')
+      .should('exist')
+      .click();
+    modelServingWizardEdit.findExistingConnectionValue().should('have.value', 'test-s3-secret');
     modelServingWizardEdit
       .findModelTypeSelect()
       .should('be.disabled')

@@ -26,6 +26,8 @@ const isMaaSModelRef = (v: unknown): v is MaaSModelRef =>
   isRecord(v) &&
   typeof v.name === 'string' &&
   typeof v.namespace === 'string' &&
+  (typeof v.displayName === 'string' || v.displayName === undefined) &&
+  (typeof v.description === 'string' || v.description === undefined) &&
   isModelReference(v.modelRef);
 
 const isDeleteMaaSModelRefResponse = (v: unknown): v is DeleteMaaSModelRefResponse =>

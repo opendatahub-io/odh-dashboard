@@ -1,11 +1,8 @@
 import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import type { WizardFormData } from './types';
-import {
-  isWizardFieldPostDeployExtension,
-  isWizardField2Extension,
-  type Deployment,
-} from '../../../extension-points';
+import type { WizardFormData } from '../types';
+import { isWizardFieldPostDeployExtension, type Deployment } from '../../../../extension-points';
+import { useActiveFields } from '../dynamicFormUtils';
 
 /** A record of a post-deploy extension that failed, including the field it belongs to. */
 export type PostDeployFailure = { fieldId: string; error: Error };
@@ -34,21 +31,26 @@ export const useWizardFieldPostDeploy = (
   const [postDeployExtensions, postDeployExtensionsLoaded, postDeployExtensionErrors] =
     useResolvedExtensions(isWizardFieldPostDeployExtension);
 
-  const [fieldExtensions] = useResolvedExtensions(isWizardField2Extension);
+  // const [fieldExtensions] = useResolvedExtensions(isWizardField2Extension);
 
-  const activeFieldIds = React.useMemo(
-    () =>
-      new Set(
-        fieldExtensions
-          .filter((ext) => ext.properties.field.isActive(wizardState))
-          .map((ext) => ext.properties.field.id),
-      ),
-    [fieldExtensions, wizardState],
-  );
+  // const activeFieldIds = React.useMemo(
+  //   () =>
+  //     new Set(
+  //       fieldExtensions
+  //         .filter((ext) => ext.properties.field.isActive(wizardState))
+  //         .map((ext) => ext.properties.field.id),
+  //     ),
+  //   [fieldExtensions, wizardState],
+  // );
+
+  const activeFields = useActiveFields(wizardState);
 
   const activePostDeployExtensions = React.useMemo(
-    () => postDeployExtensions.filter((ext) => activeFieldIds.has(ext.properties.fieldId)),
-    [postDeployExtensions, activeFieldIds],
+    () =>
+      postDeployExtensions.filter((ext) =>
+        activeFields.some((field) => field.id === ext.properties.fieldId),
+      ),
+    [postDeployExtensions, activeFields],
   );
 
   const runPostDeploy = React.useCallback(
