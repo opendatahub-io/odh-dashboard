@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Bullseye, Content, ContentVariants, Spinner, Button, Alert } from '@patternfly/react-core';
+import {
+  Alert,
+  AlertActionCloseButton,
+  Bullseye,
+  Button,
+  Content,
+  ContentVariants,
+  Spinner,
+} from '@patternfly/react-core';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
@@ -22,6 +30,7 @@ const AIAssetsModelsTab: React.FC = () => {
 
   // Modal state
   const [isCreateEndpointModalOpen, setIsCreateEndpointModalOpen] = React.useState(false);
+  const [isWarningDismissed, setIsWarningDismissed] = React.useState(false);
 
   // Submit handler for creating external endpoint
   const handleCreateExternalEndpoint = React.useCallback(
@@ -157,11 +166,13 @@ const AIAssetsModelsTab: React.FC = () => {
 
   return (
     <>
-      {warnings.length > 0 && (
+      {warnings.length > 0 && !isWarningDismissed && (
         <Alert
           variant="warning"
           isInline
           title="Some models may be unavailable"
+          actionClose={<AlertActionCloseButton onClose={() => setIsWarningDismissed(true)} />}
+          data-testid="models-tab-warning-alert"
           style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
         >
           {warnings.join(' ')} Only models from available sources are shown.
