@@ -194,14 +194,14 @@ const NUMBER_OF_ROWS_TO_SHOW = 10;
  * We get-by by providing a reasonable height to the table to get 10 rows in the modal */
 const STICKY_TABLE_HEIGHT = ROW_HEIGHT * NUMBER_OF_ROWS_TO_SHOW + HEADER_HEIGHT;
 
-const sanitizeId = (value: string): string => value.replace(/[^a-zA-Z0-9-_]/g, '-');
+export const sanitizeId = (value: string): string => value.replace(/[^a-zA-Z0-9-_]/g, '-');
 
 // Private -------------------------------------------------------------------->
 
-const shouldDetailsPanelRender = (state: {
+export const shouldDetailsPanelRender = (state: {
   filesToView: Files | undefined;
   selectedFiles: Files | undefined;
-}) => {
+}): { details: boolean; selected: boolean; panel: boolean } => {
   const { filesToView, selectedFiles } = state;
 
   const shouldDetailsRender = Boolean(Array.isArray(filesToView) && filesToView.length > 0);
