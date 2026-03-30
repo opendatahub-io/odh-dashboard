@@ -30,7 +30,6 @@ type ApiKeysToolbarProps = {
   isMaasAdmin: boolean;
   refresh: () => void;
   onClearFilters: () => void;
-  isMaasAdmin: boolean;
 };
 
 const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
@@ -45,7 +44,6 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
   isMaasAdmin,
   refresh,
   onClearFilters,
-  isMaasAdmin,
 }) => {
   const [isStatusSelectOpen, setIsStatusSelectOpen] = React.useState(false);
 

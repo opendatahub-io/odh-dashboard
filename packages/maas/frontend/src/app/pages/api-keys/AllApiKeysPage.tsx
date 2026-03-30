@@ -164,7 +164,6 @@ const AllApiKeysPage: React.FC = () => {
                 onStatusToggle={onStatusToggle}
                 onStatusClear={onStatusClear}
                 activeApiKeys={activeApiKeys}
-                isMaasAdmin={isMaasAdmin}
                 refresh={refresh}
                 onClearFilters={onClearFilters}
               />
