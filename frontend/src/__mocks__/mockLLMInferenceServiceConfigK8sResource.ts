@@ -10,6 +10,7 @@ type MockLLMInferenceServiceConfigType = {
   modelUri?: string;
   modelName?: string;
   templateName?: string;
+  disabled?: boolean;
 };
 
 export const mockLLMInferenceServiceConfigK8sResource = ({
@@ -22,6 +23,7 @@ export const mockLLMInferenceServiceConfigK8sResource = ({
   modelUri = 'hf://test/model',
   modelName = 'test-model',
   templateName,
+  disabled,
 }: MockLLMInferenceServiceConfigType): LLMInferenceServiceConfigKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'LLMInferenceServiceConfig',
@@ -35,6 +37,7 @@ export const mockLLMInferenceServiceConfigK8sResource = ({
         ? { 'opendatahub.io/recommended-accelerators': recommendedAccelerators }
         : {}),
       ...(templateName ? { 'opendatahub.io/template-name': templateName } : {}),
+      ...(disabled ? { 'opendatahub.io/disabled': 'true' as const } : {}),
     },
     labels: {
       'opendatahub.io/config-type': configType,

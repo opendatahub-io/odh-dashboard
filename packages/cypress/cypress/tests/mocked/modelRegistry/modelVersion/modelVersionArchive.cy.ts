@@ -22,7 +22,7 @@ import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/area
 import { mockModelArtifact } from '@odh-dashboard/internal/__mocks__/mockModelArtifact';
 import { modelRegistry } from '../../../../pages/modelRegistry';
 import { modelVersionArchive } from '../../../../pages/modelRegistry/modelVersionArchive';
-import { InferenceServiceModel, ProjectModel } from '../../../../utils/models';
+import { ProjectModel } from '../../../../utils/models';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
 
@@ -224,40 +224,48 @@ describe('Archiving version', () => {
   });
 
   it('Cannot archive version that has a deployment from versions table', () => {
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})])).as(
-      'getProjects',
-    );
-    cy.interceptK8sList(
-      InferenceServiceModel,
-      mockK8sResourceList([
-        mockInferenceServiceK8sResource({
-          additionalLabels: {
-            [KnownLabels.REGISTERED_MODEL_ID]: '1',
-            [KnownLabels.MODEL_VERSION_ID]: '3',
-          },
-        }),
-      ]),
-    ).as('getInferenceServices');
+    const inferenceServiceResponse = mockK8sResourceList([
+      mockInferenceServiceK8sResource({
+        additionalLabels: {
+          [KnownLabels.REGISTERED_MODEL_ID]: '1',
+          [KnownLabels.MODEL_VERSION_ID]: '3',
+        },
+      }),
+    ]);
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.intercept(
+      { method: 'GET', url: /\/inferenceservices(\?|$)/ },
+      { body: inferenceServiceResponse },
+    ).as('inferenceServices');
     initIntercepts({});
 
     modelVersionArchive.visitModelVersionList();
 
-    // Wait for API calls to complete before interacting with the table
-    cy.wait('@getProjects');
-    cy.wait('@getInferenceServices');
-
-    const modelVersionRow = modelRegistry.getModelVersionRow('model version 3');
-    modelVersionRow.findKebabAction('Archive model version').should('have.attr', 'aria-disabled');
+    modelRegistry
+      .getModelVersionRow('model version 3')
+      .find()
+      .findByRole('button', { name: 'Kebab toggle' })
+      .click();
+    cy.findByRole('menuitem', { name: 'Archive model version' }).should(
+      'have.attr',
+      'aria-disabled',
+    );
   });
 
   it('Cannot archive model that has versions with a deployment', () => {
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})])).as(
-      'getProjects',
-    );
-    cy.interceptK8sList(
-      InferenceServiceModel,
-      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
-    ).as('getInferenceServices');
+    const inferenceServiceResponse = mockK8sResourceList([
+      mockInferenceServiceK8sResource({
+        additionalLabels: {
+          [KnownLabels.REGISTERED_MODEL_ID]: '1',
+          [KnownLabels.MODEL_VERSION_ID]: '3',
+        },
+      }),
+    ]);
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.intercept(
+      { method: 'GET', url: /\/inferenceservices(\?|$)/ },
+      { body: inferenceServiceResponse },
+    ).as('inferenceServices');
     initIntercepts({});
 
     modelVersionArchive.visitModelVersionList();
@@ -273,26 +281,22 @@ describe('Archiving version', () => {
   });
 
   it('Cannot archive model version with deployment from the version detail page', () => {
-    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})])).as(
-      'getProjects',
-    );
-    cy.interceptK8sList(
-      InferenceServiceModel,
-      mockK8sResourceList([
-        mockInferenceServiceK8sResource({
-          additionalLabels: {
-            [KnownLabels.REGISTERED_MODEL_ID]: '1',
-            [KnownLabels.MODEL_VERSION_ID]: '3',
-          },
-        }),
-      ]),
-    ).as('getInferenceServices');
+    const inferenceServiceResponse = mockK8sResourceList([
+      mockInferenceServiceK8sResource({
+        additionalLabels: {
+          [KnownLabels.REGISTERED_MODEL_ID]: '1',
+          [KnownLabels.MODEL_VERSION_ID]: '3',
+        },
+      }),
+    ]);
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+    cy.intercept(
+      { method: 'GET', url: /\/inferenceservices(\?|$)/ },
+      { body: inferenceServiceResponse },
+    ).as('inferenceServices');
     initIntercepts({});
-    modelVersionArchive.visitModelVersionDetails();
 
-    // Wait for API calls to complete before interacting with the dropdown
-    cy.wait('@getProjects');
-    cy.wait('@getInferenceServices');
+    modelVersionArchive.visitModelVersionDetails();
 
     modelVersionArchive
       .findModelVersionsDetailsHeaderAction()

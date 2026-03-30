@@ -34,6 +34,7 @@ import {
   updateNotebook,
   restartNotebook,
   patchNotebookImage,
+  getMlflowInstancePatch,
 } from '#~/api/k8s/notebooks';
 
 import {
@@ -406,6 +407,23 @@ describe('assembleNotebook', () => {
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebookK8sResource({ uid: 'test' }));
   });
+
+  it('should include mlflow-instance annotation when mlflowEnabled is true', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.mlflowEnabled = true;
+    const result = assembleNotebook(notebookData, 'test-user');
+    expect(result.metadata.annotations?.['opendatahub.io/mlflow-instance']).toBe('mlflow');
+  });
+
+  it.each([false, undefined])(
+    'should not include mlflow-instance annotation when mlflowEnabled is %s',
+    (mlflowEnabled) => {
+      const notebookData = mockStartNotebookData({});
+      notebookData.mlflowEnabled = mlflowEnabled;
+      const result = assembleNotebook(notebookData, 'test-user');
+      expect(result.metadata.annotations?.['opendatahub.io/mlflow-instance']).toBeUndefined();
+    },
+  );
 });
 
 describe('createNotebook', () => {
@@ -1427,5 +1445,57 @@ describe('updateNotebook', () => {
     const shmMount = volumeMounts.find((m) => m.name === 'shm');
     expect(shmMount).toBeDefined();
     expect(shmMount?.mountPath).toBe('/dev/shm');
+  });
+});
+
+describe('getMlflowInstancePatch', () => {
+  it('should return an add patch when mlflow is enabled and annotation is absent', () => {
+    const notebook = mockNotebookK8sResource({});
+    const patches = getMlflowInstancePatch(notebook, true);
+    expect(patches).toEqual([
+      {
+        op: 'add',
+        path: '/metadata/annotations/opendatahub.io~1mlflow-instance',
+        value: 'mlflow',
+      },
+    ]);
+  });
+
+  it('should initialize annotations when absent before adding mlflow annotation', () => {
+    const notebook = mockNotebookK8sResource({});
+    notebook.metadata.annotations = undefined;
+    const patches = getMlflowInstancePatch(notebook, true);
+    expect(patches).toEqual([
+      {
+        op: 'add',
+        path: '/metadata/annotations',
+        value: {},
+      },
+      {
+        op: 'add',
+        path: '/metadata/annotations/opendatahub.io~1mlflow-instance',
+        value: 'mlflow',
+      },
+    ]);
+  });
+
+  it('should return empty patches when the annotation already exists', () => {
+    const notebook = mockNotebookK8sResource({
+      opts: {
+        metadata: {
+          annotations: {
+            'opendatahub.io/mlflow-instance': 'mlflow',
+          },
+        },
+      },
+    });
+    const patches = getMlflowInstancePatch(notebook, true);
+    expect(patches).toEqual([]);
+  });
+
+  it('should return empty patches when mlflow is not enabled', () => {
+    const notebook = mockNotebookK8sResource({});
+    const patches = getMlflowInstancePatch(notebook, false);
+    expect(patches).toEqual([]);
   });
 });
