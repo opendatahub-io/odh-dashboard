@@ -124,6 +124,47 @@ var _ = Describe("MaaSModelRefHandlers", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
 		})
+
+		It("returns 201 for a dry-run and does not persist the resource", func() {
+			dryRunName := fmt.Sprintf("dry-run-model-%d", GinkgoRandomSeed())
+
+			// Dry-run create should succeed
+			actual, rs, err := setupApiTest[models.MaaSModelRefSummary](
+				http.MethodPost,
+				"/api/v1/maasmodel?dryRun=true",
+				models.CreateMaaSModelRefRequest{
+					Name:      dryRunName,
+					Namespace: "maas-models",
+					ModelRef: models.ModelReference{
+						Kind: "LLMInferenceService",
+						Name: "dry-run-llm",
+					},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated))
+			Expect(actual.Name).To(Equal(dryRunName))
+
+			// A subsequent real create should also succeed, showing the dry-run did not persist
+			_, rs2, err := setupApiTest[models.MaaSModelRefSummary](
+				http.MethodPost,
+				"/api/v1/maasmodel",
+				models.CreateMaaSModelRefRequest{
+					Name:      dryRunName,
+					Namespace: "maas-models",
+					ModelRef: models.ModelReference{
+						Kind: "LLMInferenceService",
+						Name: "dry-run-llm",
+					},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs2.StatusCode).To(Equal(http.StatusCreated))
+		})
 	})
 
 	var _ = Describe("UpdateMaaSModelRefHandler", Ordered, func() {

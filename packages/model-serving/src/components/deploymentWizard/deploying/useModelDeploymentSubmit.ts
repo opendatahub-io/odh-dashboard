@@ -2,6 +2,7 @@ import React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { useDeployMethod } from './useDeployMethod';
+import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
 import { useWizardFieldPostDeploy, type PostDeployFailure } from './useWizardFieldPostDeploy';
 import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidation';
 import { useWizardFieldApply } from '../useWizardFieldApply';
@@ -40,6 +41,7 @@ export const useModelDeploymentSubmit = (
     formState,
     initialWizardData?.navSourceMetadata,
   );
+  const { runPreDeploy, preDeployExtensionsLoaded } = useWizardFieldPreDeploy(formState);
   const { runPostDeploy, postDeployExtensionsLoaded } = useWizardFieldPostDeploy(formState);
 
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
@@ -73,6 +75,7 @@ export const useModelDeploymentSubmit = (
           !deployMethodLoaded ||
           !deployMethod ||
           !applyExtensionsLoaded ||
+          !preDeployExtensionsLoaded ||
           !postDeployExtensionsLoaded
         ) {
           throw new Error(
@@ -89,6 +92,8 @@ export const useModelDeploymentSubmit = (
               ),
             )
           : undefined;
+
+        await runPreDeploy(resources.model, existingDeployment);
 
         const deployedDeployment = await deployModel(
           formState,
@@ -119,6 +124,7 @@ export const useModelDeploymentSubmit = (
       deployMethodLoaded,
       deployMethod,
       applyExtensionsLoaded,
+      preDeployExtensionsLoaded,
       postDeployExtensionsLoaded,
       formState,
       resources,
@@ -126,6 +132,7 @@ export const useModelDeploymentSubmit = (
       existingDeployment,
       initialWizardData,
       applyFieldData,
+      runPreDeploy,
       runPostDeploy,
       exitWizardOnSubmit,
       yamlError,

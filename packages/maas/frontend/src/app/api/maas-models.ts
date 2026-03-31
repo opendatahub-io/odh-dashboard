@@ -46,7 +46,7 @@ export const getMaaSModelsList =
       throw new Error('Invalid response format');
     });
 
-/** POST /api/v1/maasmodel - Create a new MaaSModelRef */
+/** POST /api/v1/maasmodel - Create a new MaaSModelRef. Pass dryRun=true to validate without persisting. */
 export const createMaaSModelRef =
   (
     hostPath = '',
@@ -58,32 +58,13 @@ export const createMaaSModelRef =
       displayName: '',
       description: '',
     },
+    dryRun = false,
   ) =>
   (opts: APIOptions): Promise<MaaSModelRef> =>
     handleRestFailures(
-      restCREATE(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel`, requestBody, {}, opts),
-    ).then((response) => {
-      if (isMaaSModelRef(response)) {
-        return response;
-      }
-      throw new Error('Invalid response format');
-    });
-
-/** PUT /api/v1/maasmodel/:namespace/:name - Update a MaaSModelRef */
-export const updateMaaSModelRef =
-  (
-    namespace: string,
-    name: string,
-    requestBody: UpdateMaaSModelRefRequest = {
-      modelRef: { kind: '', name: '' },
-    },
-    hostPath = '',
-  ) =>
-  (opts: APIOptions): Promise<MaaSModelRef> =>
-    handleRestFailures(
-      restUPDATE(
+      restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel/${namespace}/${name}`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel${dryRun ? '?dryRun=true' : ''}`,
         requestBody,
         {},
         opts,
@@ -95,14 +76,41 @@ export const updateMaaSModelRef =
       throw new Error('Invalid response format');
     });
 
-/** DELETE /api/v1/maasmodel/:namespace/:name - Delete a MaaSModelRef */
+/** PUT /api/v1/maasmodel/:namespace/:name - Update a MaaSModelRef. Pass dryRun=true to validate without persisting. */
+export const updateMaaSModelRef =
+  (
+    namespace: string,
+    name: string,
+    requestBody: UpdateMaaSModelRefRequest = {
+      modelRef: { kind: '', name: '' },
+    },
+    hostPath = '',
+    dryRun = false,
+  ) =>
+  (opts: APIOptions): Promise<MaaSModelRef> =>
+    handleRestFailures(
+      restUPDATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel/${namespace}/${name}${dryRun ? '?dryRun=true' : ''}`,
+        requestBody,
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isMaaSModelRef(response)) {
+        return response;
+      }
+      throw new Error('Invalid response format');
+    });
+
+/** DELETE /api/v1/maasmodel/:namespace/:name - Delete a MaaSModelRef. Pass dryRun=true to validate without persisting. */
 export const deleteMaaSModelRef =
-  (namespace: string, name: string, hostPath = '') =>
+  (namespace: string, name: string, hostPath = '', dryRun = false) =>
   (opts: APIOptions): Promise<DeleteMaaSModelRefResponse> =>
     handleRestFailures(
       restDELETE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel/${namespace}/${name}`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel/${namespace}/${name}${dryRun ? '?dryRun=true' : ''}`,
         {},
         {},
         opts,

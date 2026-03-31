@@ -126,6 +126,15 @@ describe('MaaS Deployment Wizard', () => {
       { path: { namespace: 'test-project', name: 'test-llm-inference-service' } },
       { message: 'Deleted successfully' },
     ).as('deleteMaaSModelRef');
+    cy.interceptOdh(
+      'PUT /maas/api/v1/maasmodel/:namespace/:name',
+      { path: { namespace: '*', name: '*' } },
+      mockMaaSModelRef({
+        name: 'test-maas-model-ref',
+        namespace: 'test-project',
+        modelRef: { name: 'test-llm-inference-service', kind: 'LLMInferenceService' },
+      }),
+    ).as('updateMaaSModelRef');
   };
 
   it('should create an LLMD deployment with MaaS enabled and create a MaaSModelRef', () => {
@@ -165,6 +174,12 @@ describe('MaaS Deployment Wizard', () => {
     // Submit and verify MaaS-specific annotations and gateway refs
     modelServingWizard.findSubmitButton().click();
 
+    cy.wait('@createMaaSModelRef').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=true');
+      expect(interception.request.body.name).to.equal('test-llm-inference-service');
+      expect(interception.request.body.namespace).to.equal('test-project');
+    });
+
     cy.wait('@createLLMInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
 
@@ -179,16 +194,66 @@ describe('MaaS Deployment Wizard', () => {
     cy.wait('@createLLMInferenceService');
     cy.get('@createLLMInferenceService.all').should('have.length', 2);
     cy.wait('@createMaaSModelRef').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=true');
       expect(interception.request.body.name).to.equal('test-llm-inference-service');
       expect(interception.request.body.namespace).to.equal('test-project');
       expect(interception.request.body.displayName).to.equal('Test LLM Inference Service');
       expect(interception.request.body.description).to.equal(
         'Test LLM Inference Service Description',
       );
-      expect(interception.request.body.modelRef).to.deep.equal({
-        name: 'test-llm-inference-service',
-        kind: 'LLMInferenceService',
-      });
+    });
+    cy.get('@createMaaSModelRef.all').should('have.length', 2);
+  });
+  it('should update the MaaSModelRef when editing an existing deployment', () => {
+    initMaaSDeploymentIntercepts();
+    const savedURIModel = mockLLMInferenceServiceK8sResource({
+      isMaaS: true,
+      replicas: 2,
+    });
+    cy.interceptK8sList(
+      { model: LLMInferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([savedURIModel]),
+    );
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test LLM Inference Service').findKebabAction('Edit').click();
+    modelServingWizardEdit
+      .findModelLocationSelectOption('Existing connection')
+      .should('exist')
+      .click();
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+    modelServingWizardEdit.findModelDeploymentNameInput().clear().type('test-llmd-model-2');
+    modelServingWizardEdit.findModelDeploymentDescriptionInput().type('test-llmd-description-2');
+    hardwareProfileSection.findSelect().should('exist');
+    hardwareProfileSection.findSelect().should('contain.text', 'Small');
+    hardwareProfileSection.selectProfile(
+      'Large Profile Compatible CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+    );
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+    maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('be.checked');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+    modelServingWizardEdit.findSubmitButton().click();
+    cy.wait('@updateMaaSModelRef').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=true');
+      expect(interception.request.url).to.include('/test-project/test-llm-inference-service');
+      expect(interception.request.body.displayName).to.equal('test-llmd-model-2');
+      expect(interception.request.body.description).to.equal('test-llmd-description-2');
+    });
+    cy.wait('@updateLLMInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+    });
+
+    cy.wait('@updateLLMInferenceService').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@updateLLMInferenceService.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2);
+    });
+    cy.wait('@updateMaaSModelRef').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=true');
+    });
+    cy.get('@updateMaaSModelRef.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2);
     });
   });
   it('should delete the MaaSModelRef when the MaaS checkbox is unchecked', () => {
@@ -227,6 +292,10 @@ describe('MaaS Deployment Wizard', () => {
     maasWizardField.findSaveAsMaaSCheckbox().should('not.be.checked');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
     modelServingWizardEdit.findSubmitButton().click();
+    cy.wait('@deleteMaaSModelRef').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=true');
+      expect(interception.request.url).to.include('/test-project/test-llm-inference-service');
+    });
     cy.wait('@updateLLMInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
       expect(interception.request.body.spec.router.gateway.refs).to.deep.equal(undefined);
@@ -239,8 +308,60 @@ describe('MaaS Deployment Wizard', () => {
     cy.get('@updateLLMInferenceService.all').then((interceptions) => {
       expect(interceptions).to.have.length(2);
     });
-    cy.wait('@deleteMaaSModelRef').then((interception) => {
-      expect(interception.request.url).to.include('/test-project/test-llm-inference-service');
-    });
+    cy.get('@deleteMaaSModelRef.all').should('have.length', 2);
+  });
+  it('should show an error if the MaaSModelRef dry run fails', () => {
+    initMaaSDeploymentIntercepts();
+    cy.intercept(
+      { method: 'POST', url: '**/maas/api/v1/maasmodel*', query: { dryRun: 'true' } },
+      {
+        statusCode: 409,
+        body: {
+          error: {
+            code: '409',
+            message: "MaaSModelRef 'test-llm-inference-service' already exists",
+          },
+        },
+      },
+    ).as('createMaaSModelRefDryRun');
+
+    // Navigate to wizard and set up basic deployment
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+
+    // Quick setup: Model source and deployment
+    modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
+    modelServingWizard.findExistingConnectionValue().should('have.value', 'test-s3-secret');
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+    modelServingWizard.findNextButton().click();
+
+    modelServingWizard.findModelDeploymentNameInput().type('test-llm-inference-service');
+    modelServingWizard
+      .findModelDeploymentDescriptionInput()
+      .type('Test LLM Inference Service Description');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('Distributed inference with llm-d').click();
+    modelServingWizard.findNextButton().click();
+
+    // Focus on MaaS feature testing
+    // uncheck token auth to simplify test
+    modelServingWizard.findTokenAuthenticationCheckbox().click();
+
+    // Verify MaaS checkbox is unchecked by default
+    maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
+
+    // Check the MaaS checkbox
+    maasWizardField.findSaveAsMaaSCheckbox().click();
+    maasWizardField.findSaveAsMaaSCheckbox().should('be.checked');
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Submit and verify MaaS-specific annotations and gateway refs
+    modelServingWizard.findSubmitButton().click();
+    cy.wait('@createMaaSModelRefDryRun');
+    // Wizard stayed open and shows the error
+    modelServingWizard.findErrorMessageAlert().should('be.visible').contains('Error');
+    // no LLMInferenceService should be created
+    cy.get('@createLLMInferenceService.all').should('have.length', 0);
   });
 });

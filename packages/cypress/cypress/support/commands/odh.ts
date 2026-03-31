@@ -1179,6 +1179,11 @@ declare global {
           type: 'DELETE /maas/api/v1/maasmodel/:namespace/:name',
           options: { path: { namespace: string; name: string } },
           response: OdhResponse<{ message: string }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PUT /maas/api/v1/maasmodel/:namespace/:name',
+          options: { path: { namespace: string; name: string } },
+          response: OdhResponse<MaaSModelRef>,
         ) => Cypress.Chainable<null>);
     }
   }

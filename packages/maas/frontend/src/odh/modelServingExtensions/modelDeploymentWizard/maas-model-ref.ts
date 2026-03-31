@@ -1,8 +1,78 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
+import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
 import { createMaaSModelRef, deleteMaaSModelRef, updateMaaSModelRef } from '~/app/api/maas-models';
 import type { MaaSFieldValue } from './MaaSEndpointCheckbox';
 
 const LLMINFERENCESERVICE_KIND = 'LLMInferenceService';
+
+/**
+ * Pre-deploy extension for the MaaS checkbox field.
+ *
+ * Dry-runs the same MaaSModelRef lifecycle operations as applyMaaSModelRef, validating
+ * that all K8s operations (create, update, delete) can proceed before the inference
+ * service is deployed. Throws on failure to block the deployment.
+ */
+export const preDeployMaaSModelRef = async (
+  fieldData: MaaSFieldValue,
+  wizardState: WizardFormData['state'],
+  modelResource: LLMdDeployment['model'] | undefined,
+  existingDeployment?: LLMdDeployment,
+): Promise<void> => {
+  if (typeof fieldData.isChecked !== 'boolean') {
+    return;
+  }
+  const { isChecked } = fieldData;
+  const name = modelResource?.metadata.name ?? '';
+  const namespace = wizardState.project.projectName ?? modelResource?.metadata.namespace ?? '';
+  if (!name || !namespace) {
+    return;
+  }
+  const modelRef = { kind: LLMINFERENCESERVICE_KIND, name };
+  const displayName = modelResource?.metadata.annotations?.['openshift.io/display-name'] ?? name;
+  const description = modelResource?.metadata.annotations?.['openshift.io/description'] ?? '';
+
+  if (existingDeployment) {
+    if (!isChecked) {
+      try {
+        await deleteMaaSModelRef(namespace, name, '', true)({});
+      } catch (err) {
+        // Tolerate 404 — the MaaSModelRef may have been cleaned up already
+        const message = err instanceof Error ? err.message : String(err);
+        if (!message.includes('not found') && !message.includes('404')) {
+          throw err;
+        }
+      }
+    } else {
+      try {
+        await updateMaaSModelRef(
+          namespace,
+          name,
+          { modelRef, displayName, description },
+          '',
+          true,
+        )({});
+      } catch (err) {
+        // If the MaaSModelRef was somehow removed externally, dry-run the create instead
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.includes('not found') || message.includes('404')) {
+          await createMaaSModelRef(
+            '',
+            { name, namespace, modelRef, uid: '', displayName, description },
+            true,
+          )({});
+        } else {
+          throw err;
+        }
+      }
+    }
+  } else if (isChecked) {
+    await createMaaSModelRef(
+      '',
+      { name, namespace, modelRef, uid: '', displayName, description },
+      true,
+    )({});
+  }
+};
 
 /**
  * Post-deploy extension for the MaaS checkbox field.

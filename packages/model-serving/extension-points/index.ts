@@ -465,6 +465,47 @@ export const isWizardFieldExtractorExtension = <T = unknown, D extends Deploymen
   extension.type === 'model-serving.deployment/wizard-field-extractor';
 
 /**
+ * Extension for performing dry-run validation of side-effect resources before a deployment is saved.
+ * This runs before the inference service is created, in the same phase as other dry runs,
+ * allowing extensions to validate that their associated resources can be created without conflicts.
+ * Unlike post-deploy, errors thrown here propagate and block the deployment.
+ *
+ * The `fieldId` links this to a specific WizardField2Extension so it is only
+ * executed when that field is active.
+ */
+export type WizardFieldPreDeployExtension<
+  T = unknown,
+  D extends Deployment = Deployment,
+> = Extension<
+  'model-serving.deployment/wizard-field-pre-deploy',
+  {
+    /** The ID of the WizardField this pre-deploy extension is associated with */
+    fieldId: string;
+    /** The platform this pre-deploy extension applies to (e.g., 'llmd-serving') */
+    platform: D['modelServingPlatformId'];
+    /**
+     * Async function that dry-runs before the deployment is saved. Throw to block the deployment.
+     * @param fieldData - The current data from the associated wizard field
+     * @param wizardState - The full wizard form state for context (includes project name, etc.)
+     * @param modelResource - The assembled model resource (not yet created, may lack uid/namespace)
+     * @param existingDeployment - The deployment before editing, or undefined for a create
+     */
+    preDeploy: CodeRef<
+      (
+        fieldData: T,
+        wizardState: WizardFormData['state'],
+        modelResource: D['model'] | undefined,
+        existingDeployment?: D,
+      ) => Promise<void>
+    >;
+  }
+>;
+export const isWizardFieldPreDeployExtension = <T = unknown, D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is WizardFieldPreDeployExtension<T, D> =>
+  extension.type === 'model-serving.deployment/wizard-field-pre-deploy';
+
+/**
  * Extension for performing async side effects after a deployment is saved.
  * This runs after the model resource exists in Kubernetes (and has a UID), making
  * it suitable for operations that depend on the deployed resource — such as
