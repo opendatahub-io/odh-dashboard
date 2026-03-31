@@ -237,6 +237,9 @@ describe('API Keys Page', () => {
   });
 
   it('should revoke all my API keys', () => {
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
+    apiKeysPage.visit();
+
     apiKeysPage.findTitle().should('contain.text', 'API Keys');
     apiKeysPage.findActionsToggle().click();
     apiKeysPage.findRevokeAllAPIKeysAction().click();
@@ -255,7 +258,7 @@ describe('API Keys Page', () => {
       },
     }).as('deleteAllApiKeys');
 
-    revokeAPIKeyModal.findRevokeAllButton().click();
+    bulkRevokeAPIKeyModal.findRevokeButton().click();
 
     cy.wait('@deleteAllApiKeys').then((interception) => {
       expect(interception.response?.statusCode).to.eq(200);
