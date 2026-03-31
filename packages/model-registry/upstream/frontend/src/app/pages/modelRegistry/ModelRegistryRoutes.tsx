@@ -2,14 +2,13 @@ import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import OdhModelRegistryCoreLoader from '~/odh/components/OdhModelRegistryCoreLoader';
+import OdhModelRegistry from '~/odh/components/OdhModelRegistry';
 import { generateVersionDetailsTabExtensionRoutes } from '~/odh/VersionDetailsTabExtensionRoutes';
 import { generateDetailsTabExtensionRoutes } from '~/odh/DetailsTabExtensionRoutes';
 import {
   isModelRegistryVersionDetailsTabExtension,
   isModelRegistryDetailsTabExtension,
 } from '~/odh/extension-points';
-import ModelRegistry from './screens/ModelRegistry';
-
 import RegisteredModelsArchive from './screens/RegisteredModelsArchive/RegisteredModelsArchive';
 import { ModelVersionsTab } from './screens/ModelVersions/const';
 import ModelVersions from './screens/ModelVersions/ModelVersions';
@@ -36,7 +35,7 @@ const ModelRegistryRoutes: React.FC = () => {
           />
         }
       >
-        <Route index element={<ModelRegistry empty={false} />} />
+        <Route index element={<OdhModelRegistry empty={false} />} />
         <Route path="model-transfer-jobs" element={<ModelTransferJobs empty={false} />} />
         <Route path="registered-models/:registeredModelId">
           <Route index element={<Navigate to={ModelVersionsTab.OVERVIEW} replace />} />

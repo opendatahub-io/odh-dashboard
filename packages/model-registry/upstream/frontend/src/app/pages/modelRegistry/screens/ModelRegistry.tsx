@@ -16,14 +16,17 @@ type ModelRegistryProps = Omit<
   | 'provideChildrenPadding'
   | 'removeChildrenTopPadding'
   | 'headerContent'
->;
+> & {
+  unavailableErrorPage?: React.ReactNode;
+};
 
-const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
+const ModelRegistry: React.FC<ModelRegistryProps> = ({ unavailableErrorPage, ...pageProps }) => {
   const [registeredModels, modelsLoaded, modelsLoadError, refreshModels] = useRegisteredModels();
   const [modelVersions, versionsLoaded, versionsLoadError, refreshVersions] = useModelVersions();
 
   const loaded = modelsLoaded && versionsLoaded;
   const loadError = modelsLoadError || versionsLoadError;
+  const hasCustomErrorPage = loadError && unavailableErrorPage;
 
   const refresh = React.useCallback(() => {
     refreshModels();
@@ -52,8 +55,10 @@ const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
           getRedirectPath={(modelRegistryName) => modelRegistryUrl(modelRegistryName)}
         />
       }
-      loadError={loadError}
-      loaded={loaded}
+      loadError={hasCustomErrorPage ? undefined : loadError}
+      loaded={hasCustomErrorPage ? true : loaded}
+      empty={hasCustomErrorPage ? true : pageProps.empty}
+      emptyStatePage={hasCustomErrorPage ? unavailableErrorPage : pageProps.emptyStatePage}
       provideChildrenPadding
       removeChildrenTopPadding
     >
