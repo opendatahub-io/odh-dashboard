@@ -4,16 +4,22 @@ import {
   APIOptions,
   restGET,
   restDELETE,
+  restCREATE,
+  assembleModArchBody,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
+  CreateSubscriptionRequest,
+  CreateSubscriptionResponse,
   MaaSAuthPolicy,
   MaaSModelRefSummary,
   MaaSSubscription,
   ModelRef,
   ModelReference,
   ModelSubscriptionRef,
+  OwnerSpec,
   SubjectSpec,
+  SubscriptionFormDataResponse,
   SubscriptionInfoResponse,
   TokenRateLimit,
   UserSubscription,
@@ -23,16 +29,30 @@ import {
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
 
+const isGroupRef = (v: unknown): v is { name: string } => isRecord(v) && typeof v.name === 'string';
+
 const isTokenRateLimit = (v: unknown): v is TokenRateLimit =>
   isRecord(v) && typeof v.limit === 'number' && typeof v.window === 'string';
+
+const isModelRef = (v: unknown): v is ModelRef =>
+  isRecord(v) && typeof v.name === 'string' && typeof v.namespace === 'string';
+
+const isModelReference = (v: unknown): v is ModelReference =>
+  isRecord(v) && typeof v.kind === 'string' && typeof v.name === 'string';
+
+// OwnerSpec and SubjectSpec are structurally identical
+const isGroupsSpec = (v: unknown): boolean =>
+  isRecord(v) && Array.isArray(v.groups) && v.groups.every(isGroupRef);
+
+const isOwnerSpec = (v: unknown): v is OwnerSpec => isGroupsSpec(v);
+const isSubjectSpec = (v: unknown): v is SubjectSpec => isGroupsSpec(v);
 
 const isMaaSSubscriptionRef = (v: unknown): v is ModelSubscriptionRef =>
   isRecord(v) &&
   typeof v.name === 'string' &&
   typeof v.namespace === 'string' &&
-  (v.tokenRateLimits === undefined ||
+  (v.tokenRateLimits == null ||
     (Array.isArray(v.tokenRateLimits) && v.tokenRateLimits.every(isTokenRateLimit))) &&
-  (v.tokenRateLimitRef === undefined || typeof v.tokenRateLimitRef === 'string') &&
   (v.billingRate === undefined || typeof v.billingRate === 'object');
 
 const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
@@ -41,11 +61,8 @@ const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
   (v.displayName === undefined || typeof v.displayName === 'string') &&
   (v.description === undefined || typeof v.description === 'string') &&
   typeof v.namespace === 'string' &&
-  (v.displayName === undefined || typeof v.displayName === 'string') &&
-  (v.description === undefined || typeof v.description === 'string') &&
-  typeof v.phase === 'string' &&
   (v.priority === undefined || typeof v.priority === 'number') &&
-  isRecord(v.owner) &&
+  isOwnerSpec(v.owner) &&
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isMaaSSubscriptionRef) &&
   (v.tokenMetadata === undefined || typeof v.tokenMetadata === 'object') &&
@@ -53,12 +70,6 @@ const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
 
 const isMaaSSubscriptionArray = (v: unknown): v is MaaSSubscription[] =>
   Array.isArray(v) && v.every(isMaaSSubscription);
-
-const isModelRef = (v: unknown): v is ModelRef =>
-  isRecord(v) && typeof v.name === 'string' && typeof v.namespace === 'string';
-
-const isModelReference = (v: unknown): v is ModelReference =>
-  isRecord(v) && typeof v.kind === 'string' && typeof v.name === 'string';
 
 const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
   isRecord(v) &&
@@ -70,11 +81,6 @@ const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
   (v.phase === undefined || typeof v.phase === 'string') &&
   (v.endpoint === undefined || typeof v.endpoint === 'string');
 
-const isGroupRef = (v: unknown): v is { name: string } => isRecord(v) && typeof v.name === 'string';
-
-const isSubjectSpec = (v: unknown): v is SubjectSpec =>
-  isRecord(v) && Array.isArray(v.groups) && v.groups.every(isGroupRef);
-
 const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
   isRecord(v) &&
   typeof v.name === 'string' &&
@@ -83,6 +89,20 @@ const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isModelRef) &&
   isSubjectSpec(v.subjects);
+
+const normalizeModelRefs = (refs: ModelSubscriptionRef[]): ModelSubscriptionRef[] =>
+  refs.map((ref) => ({
+    ...ref,
+    tokenRateLimits: Array.isArray(ref.tokenRateLimits) ? ref.tokenRateLimits : [],
+  }));
+
+const normalizeSubscription = (sub: MaaSSubscription): MaaSSubscription => ({
+  ...sub,
+  modelRefs: normalizeModelRefs(sub.modelRefs),
+});
+
+const isDeleteSubscriptionResponse = (v: unknown): v is { message: string } =>
+  isRecord(v) && typeof v.message === 'string';
 
 const isSubscriptionInfoResponse = (v: unknown): v is SubscriptionInfoResponse =>
   isRecord(v) &&
@@ -112,6 +132,21 @@ const isUserSubscription = (v: unknown): v is UserSubscription =>
 
 const isUserSubscriptionArray = (v: unknown): v is UserSubscription[] =>
   Array.isArray(v) && v.every(isUserSubscription);
+
+const isSubscriptionFormDataResponse = (v: unknown): v is SubscriptionFormDataResponse =>
+  isRecord(v) &&
+  Array.isArray(v.groups) &&
+  v.groups.every((g: unknown) => typeof g === 'string') &&
+  Array.isArray(v.modelRefs) &&
+  v.modelRefs.every(isMaaSModelRefSummary) &&
+  Array.isArray(v.subscriptions) &&
+  v.subscriptions.every(isMaaSSubscription);
+
+const isCreateSubscriptionResponse = (v: unknown): v is CreateSubscriptionResponse =>
+  isRecord(v) &&
+  isMaaSSubscription(v.subscription) &&
+  (v.authPolicy === undefined || isMaaSAuthPolicy(v.authPolicy));
+
 /** GET /api/v1/all-subscriptions - List all subscriptions */
 export const listSubscriptions =
   (hostPath = '') =>
@@ -120,13 +155,10 @@ export const listSubscriptions =
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/all-subscriptions`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && isMaaSSubscriptionArray(response.data)) {
-        return response.data;
+        return response.data.map(normalizeSubscription);
       }
       throw new Error('Invalid response format');
     });
-
-const isDeleteSubscriptionResponse = (v: unknown): v is { message: string } =>
-  isRecord(v) && typeof v.message === 'string';
 
 export const deleteSubscription =
   (hostPath = '') =>
@@ -140,7 +172,10 @@ export const deleteSubscription =
         opts,
       ),
     ).then((response) => {
-      if (isDeleteSubscriptionResponse(response)) {
+      if (
+        isModArchResponse<unknown>(response) &&
+        (response.data == null || isDeleteSubscriptionResponse(response.data))
+      ) {
         return;
       }
       throw new Error('Invalid response format');
@@ -157,8 +192,47 @@ export const getSubscriptionInfo =
         opts,
       ),
     ).then((response) => {
-      if (isSubscriptionInfoResponse(response)) {
-        return response;
+      if (isModArchResponse<unknown>(response) && isSubscriptionInfoResponse(response.data)) {
+        return {
+          ...response.data,
+          subscription: normalizeSubscription(response.data.subscription),
+        };
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getSubscriptionFormData =
+  (hostPath = '') =>
+  (opts: APIOptions): Promise<SubscriptionFormDataResponse> =>
+    handleRestFailures(
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/new-subscription`, {}, opts),
+    ).then((response) => {
+      if (isModArchResponse<unknown>(response) && isSubscriptionFormDataResponse(response.data)) {
+        return {
+          ...response.data,
+          subscriptions: response.data.subscriptions.map(normalizeSubscription),
+        };
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const createSubscription =
+  (hostPath = '') =>
+  (opts: APIOptions, request: CreateSubscriptionRequest): Promise<CreateSubscriptionResponse> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/new-subscription`,
+        assembleModArchBody(request),
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<unknown>(response) && isCreateSubscriptionResponse(response.data)) {
+        return {
+          ...response.data,
+          subscription: normalizeSubscription(response.data.subscription),
+        };
       }
       throw new Error('Invalid response format');
     });

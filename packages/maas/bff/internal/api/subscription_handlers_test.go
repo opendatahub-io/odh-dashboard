@@ -90,7 +90,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 							Groups: []models.GroupReference{{Name: "users"}},
 						},
 						ModelRefs: []models.ModelSubscriptionRef{
-							{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
 						},
 					},
 				},
@@ -111,7 +111,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 							Groups: []models.GroupReference{{Name: "users"}},
 						},
 						ModelRefs: []models.ModelSubscriptionRef{
-							{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
 						},
 					},
 				},
@@ -172,7 +172,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 							Groups: []models.GroupReference{{Name: "users"}},
 						},
 						ModelRefs: []models.ModelSubscriptionRef{
-							{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
 						},
 					},
 				},
@@ -221,7 +221,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 							Groups: []models.GroupReference{{Name: "premium-users"}},
 						},
 						ModelRefs: []models.ModelSubscriptionRef{
-							{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
 						},
 						TokenMetadata: &models.TokenMetadata{
 							OrganizationID: "org-456",
@@ -324,7 +324,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 							Groups: []models.GroupReference{{Name: "users"}},
 						},
 						ModelRefs: []models.ModelSubscriptionRef{
-							{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
 						},
 						Priority: 1,
 					},
@@ -346,8 +346,8 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 							Groups: []models.GroupReference{{Name: "premium-users"}},
 						},
 						ModelRefs: []models.ModelSubscriptionRef{
-							{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
-							{Name: "flan-t5-small", Namespace: "maas-models"},
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 2000, Window: "1h"}}},
+							{Name: "flan-t5-small", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 500, Window: "1m"}}},
 						},
 						TokenMetadata: &models.TokenMetadata{
 							OrganizationID: "updated-org",
@@ -383,7 +383,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 							Groups: []models.GroupReference{{Name: "users"}},
 						},
 						ModelRefs: []models.ModelSubscriptionRef{
-							{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
 						},
 					},
 				},
@@ -426,7 +426,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 							Groups: []models.GroupReference{{Name: "users"}},
 						},
 						ModelRefs: []models.ModelSubscriptionRef{
-							{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
 						},
 					},
 				},

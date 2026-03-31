@@ -136,6 +136,12 @@ func CreateSubscriptionHandler(app *App, w http.ResponseWriter, r *http.Request,
 		app.badRequestResponse(w, r, errors.New("at least one modelRef is required"))
 		return
 	}
+	for _, ref := range request.Data.ModelRefs {
+		if len(ref.TokenRateLimits) == 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("modelRef %q requires at least one tokenRateLimit", ref.Name))
+			return
+		}
+	}
 
 	result, err := app.repositories.Subscriptions.CreateSubscription(ctx, request.Data)
 	if err != nil {
@@ -178,6 +184,12 @@ func UpdateSubscriptionHandler(app *App, w http.ResponseWriter, r *http.Request,
 	if len(request.Data.ModelRefs) == 0 {
 		app.badRequestResponse(w, r, errors.New("at least one modelRef is required"))
 		return
+	}
+	for _, ref := range request.Data.ModelRefs {
+		if len(ref.TokenRateLimits) == 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("modelRef %q requires at least one tokenRateLimit", ref.Name))
+			return
+		}
 	}
 
 	result, err := app.repositories.Subscriptions.UpdateSubscription(ctx, name, request.Data)

@@ -59,7 +59,7 @@ type BillingRate struct {
 type ModelSubscriptionRef struct {
 	Name              string           `json:"name"`
 	Namespace         string           `json:"namespace"`
-	TokenRateLimits   []TokenRateLimit `json:"tokenRateLimits,omitempty"`
+	TokenRateLimits   []TokenRateLimit `json:"tokenRateLimits"`
 	TokenRateLimitRef *string          `json:"tokenRateLimitRef,omitempty"`
 	BillingRate       *BillingRate     `json:"billingRate,omitempty"`
 }

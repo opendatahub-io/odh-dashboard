@@ -9,6 +9,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
+import { z } from 'zod';
 import { RateLimit } from '~/app/types/tier';
 import { TokenRateLimit } from '~/app/types/subscriptions';
 import { UNIT_OPTIONS, toRateLimit, toTokenRateLimit } from '~/app/utilities/rateLimits';
@@ -23,21 +24,24 @@ type EditRateLimitsModalProps = {
 
 const DEFAULT_RATE_LIMIT: RateLimit = { count: 1000, time: 1, unit: 'hour' };
 
-const isValid = (limits: RateLimit[]): boolean =>
-  limits.every((l) => l.count > 0 && !Number.isNaN(l.count) && l.time > 0 && !Number.isNaN(l.time));
+const rateLimitSchema = z.object({
+  count: z.number().int().min(1, 'Token count must be greater than 0'),
+  time: z.number().int().min(1, 'Time value must be greater than 0'),
+  unit: z.enum(['hour', 'minute', 'second', 'millisecond']),
+});
+
+const rateLimitsSchema = z
+  .array(rateLimitSchema)
+  .min(1, 'At least one token rate limit is required');
 
 const getCountError = (limit: RateLimit): string | undefined => {
-  if (Number.isNaN(limit.count) || limit.count <= 0) {
-    return 'Token count must be greater than 0';
-  }
-  return undefined;
+  const result = rateLimitSchema.shape.count.safeParse(limit.count);
+  return result.success ? undefined : result.error.issues[0].message;
 };
 
 const getTimeError = (limit: RateLimit): string | undefined => {
-  if (Number.isNaN(limit.time) || limit.time <= 0) {
-    return 'Time value must be greater than 0';
-  }
-  return undefined;
+  const result = rateLimitSchema.shape.time.safeParse(limit.time);
+  return result.success ? undefined : result.error.issues[0].message;
 };
 
 const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
@@ -53,7 +57,8 @@ const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
 
   const usedUnits = localLimits.map((l) => l.unit);
   const availableUnits = UNIT_OPTIONS.map((opt) => opt.value).filter((u) => !usedUnits.includes(u));
-  const canSave = isValid(localLimits);
+  const validation = rateLimitsSchema.safeParse(localLimits);
+  const canSave = validation.success;
 
   const handleRowChange = (index: number, updated: RateLimit) => {
     setLocalLimits((prev) => prev.map((item, i) => (i === index ? updated : item)));
@@ -79,7 +84,8 @@ const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
   };
 
   const title = `Edit token limits: ${modelName}`;
-  const description = 'Set limits on the number of tokens that can be consumed.';
+  const description =
+    'Set limits on the number of tokens that can be consumed. At least one limit is required.';
 
   return (
     <Modal isOpen onClose={onClose} variant="medium" aria-label={title}>
@@ -115,7 +121,12 @@ const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
         </Stack>
       </ModalBody>
       <ModalFooter>
-        <Button variant="primary" onClick={handleSave} data-testid="save-rate-limits">
+        <Button
+          variant="primary"
+          onClick={handleSave}
+          isDisabled={submitted && !canSave}
+          data-testid="save-rate-limits"
+        >
           Save
         </Button>
         <Button variant="link" onClick={onClose}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ActionGroup,
   Alert,
@@ -27,11 +27,15 @@ import { APIOptions } from 'mod-arch-core';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { createSubscription } from '~/app/api/subscriptions';
 import {
+  MaaSModelRefSummary,
   SubscriptionFormDataResponse,
   SubscriptionModelEntry,
   CreateSubscriptionRequest,
+  TokenRateLimit,
 } from '~/app/types/subscriptions';
-import SubscriptionModelsSection from './SubscriptionModelsSection';
+import AddModelsModal from './AddModelsModal';
+import EditRateLimitsModal from './EditRateLimitsModal';
+import SubscriptionModelsSection from '../viewSubscription/SubscriptionModelsSection';
 
 type CreateSubscriptionFormProps = {
   formData: SubscriptionFormDataResponse;
@@ -60,6 +64,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
   const [models, setModels] = React.useState<SubscriptionModelEntry[]>([]);
   const [createAuthPolicy, setCreateAuthPolicy] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isAddModelsModalOpen, setIsAddModelsModalOpen] = React.useState(false);
+  const [editLimitsTarget, setEditLimitsTarget] = React.useState<number | null>(null);
+  const [rateLimitsTouched, setRateLimitsTouched] = React.useState<Set<number>>(new Set());
   const [submitError, setSubmitError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -102,13 +109,68 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
 
   const isPriorityValid = priority != null && !Number.isNaN(priority);
 
+  const allModelsHaveRateLimits = models.every((m) => m.tokenRateLimits.length > 0);
+
+  const rateLimitErrorIndices = React.useMemo(
+    () =>
+      new Set(
+        models.reduce<number[]>((acc, m, i) => {
+          if (rateLimitsTouched.has(i) && m.tokenRateLimits.length === 0) {
+            acc.push(i);
+          }
+          return acc;
+        }, []),
+      ),
+    [models, rateLimitsTouched],
+  );
+
   const canSubmit =
     isNameDescValid &&
     selectedGroupNames.length > 0 &&
     models.length > 0 &&
+    allModelsHaveRateLimits &&
     isPriorityValid &&
     !isSubmitting &&
     !priorityValidationError;
+
+  const handleAddModels = (selectedRefs: MaaSModelRefSummary[]) => {
+    const existingNames = new Set(models.map((m) => m.modelRefSummary.name));
+    const newEntries: SubscriptionModelEntry[] = selectedRefs
+      .filter((ref) => !existingNames.has(ref.name))
+      .map((ref) => ({
+        modelRefSummary: ref,
+        tokenRateLimits: [],
+      }));
+    setModels((prev) => [...prev, ...newEntries]);
+  };
+
+  const handleRemoveModel = (index: number) => {
+    setModels((prev) => prev.filter((_, i) => i !== index));
+    setRateLimitsTouched((prev) => {
+      const next = new Set<number>();
+      prev.forEach((i) => {
+        if (i < index) {
+          next.add(i);
+        } else if (i > index) {
+          next.add(i - 1);
+        }
+      });
+      return next;
+    });
+  };
+
+  const handleSaveRateLimits = (rateLimits: TokenRateLimit[]) => {
+    if (editLimitsTarget == null) {
+      return;
+    }
+    setModels((prev) =>
+      prev.map((entry, i) =>
+        i === editLimitsTarget ? { ...entry, tokenRateLimits: rateLimits } : entry,
+      ),
+    );
+  };
+
+  const editingModel = editLimitsTarget != null ? models[editLimitsTarget] : null;
 
   const handleSubmit = async () => {
     if (!isPriorityValid) {
@@ -232,12 +294,60 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
           </FormHelperText>
         </FormGroup>
 
-        <SubscriptionModelsSection
-          models={models}
-          setModels={setModels}
-          availableModelRefs={formData.modelRefs}
-          allSubscriptions={formData.subscriptions}
-        />
+        {formData.modelRefs.length === 0 ? (
+          <Alert
+            variant="warning"
+            isInline
+            title="No models available"
+            data-testid="no-models-warning"
+          >
+            There are no model endpoints available on the cluster. Deploy a model on the{' '}
+            <Link to="/ai-hub/deployments">Deployments page</Link> and create a MaaSModelRef before
+            creating a subscription.
+          </Alert>
+        ) : (
+          <SubscriptionModelsSection
+            modelRefSummaries={models.map((m) => m.modelRefSummary)}
+            subscriptionModelRefs={models.map((m) => ({
+              name: m.modelRefSummary.name,
+              namespace: m.modelRefSummary.namespace,
+              tokenRateLimits: m.tokenRateLimits,
+            }))}
+            editable
+            rateLimitErrorIndices={rateLimitErrorIndices}
+            onAddModels={() => setIsAddModelsModalOpen(true)}
+            onEditLimits={(index) => setEditLimitsTarget(index)}
+            onRemoveModel={handleRemoveModel}
+          />
+        )}
+
+        {isAddModelsModalOpen && (
+          <AddModelsModal
+            availableModelRefs={formData.modelRefs}
+            allSubscriptions={formData.subscriptions}
+            currentModels={models}
+            onAdd={handleAddModels}
+            onRemove={(ref) => {
+              const idx = models.findIndex((m) => m.modelRefSummary.name === ref.name);
+              if (idx >= 0) {
+                handleRemoveModel(idx);
+              }
+            }}
+            onClose={() => setIsAddModelsModalOpen(false)}
+          />
+        )}
+
+        {editLimitsTarget != null && editingModel && (
+          <EditRateLimitsModal
+            modelName={editingModel.modelRefSummary.name}
+            rateLimits={editingModel.tokenRateLimits}
+            onSave={handleSaveRateLimits}
+            onClose={() => {
+              setRateLimitsTouched((prev) => new Set(prev).add(editLimitsTarget));
+              setEditLimitsTarget(null);
+            }}
+          />
+        )}
 
         <FormGroup fieldId="subscription-create-auth-policy">
           <Checkbox

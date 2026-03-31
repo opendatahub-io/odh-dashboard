@@ -126,7 +126,7 @@ func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, reques
 			policyName,
 			r.namespace,
 			"",
-			"",
+			fmt.Sprintf("Auth policy created for subscription \"%s\"", request.Name),
 			modelRefs,
 			request.Owner.Groups,
 			request.TokenMetadata,
