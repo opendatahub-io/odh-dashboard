@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -21,8 +22,17 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
+
+// ErrEndpointValidation is returned when the configured S3 endpoint fails URL or SSRF validation.
+// Use errors.Is to classify CreateClient / NewRealS3Client failures.
+var ErrEndpointValidation = errors.New("endpoint validation failed")
+
+// ErrObjectAlreadyExists is returned by UploadObject when the object key already exists.
+// Uploads use S3 conditional create (If-None-Match: *): 412 Precondition Failed or 409 ConditionalRequestConflict.
+var ErrObjectAlreadyExists = errors.New("s3 object already exists at key")
 
 // S3Credentials contains the credentials needed to connect to S3.
 type S3Credentials struct {
@@ -57,8 +67,10 @@ type CSVSchemaResult struct {
 // S3ClientInterface defines the operations available on an S3 client.
 type S3ClientInterface interface {
 	GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error)
+	UploadObject(ctx context.Context, bucket, key string, body io.Reader, contentType string) error
 	ListObjects(ctx context.Context, bucket string, options ListObjectsOptions) (*models.S3ListObjectsResponse, error)
 	GetCSVSchema(ctx context.Context, bucket, key string) (CSVSchemaResult, error)
+	ObjectExists(ctx context.Context, bucket, key string) (bool, error)
 }
 
 // RealS3Client implements S3ClientInterface using the AWS SDK.
@@ -77,7 +89,7 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 
 	validatedEndpoint, err := c.validateAndNormalizeEndpoint(creds.EndpointURL)
 	if err != nil {
-		return nil, fmt.Errorf("endpoint validation failed: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrEndpointValidation, err)
 	}
 
 	cfg := aws.Config{
@@ -122,6 +134,68 @@ func (c *RealS3Client) GetObject(ctx context.Context, bucket, key string) (io.Re
 	}
 
 	return body, contentType, nil
+}
+
+// UploadObject uploads an object to S3 using the transfer manager (same client/endpoint config as GetObject).
+// Returns ErrObjectAlreadyExists when S3 reports a conditional write conflict.
+func (c *RealS3Client) UploadObject(ctx context.Context, bucket, key string, body io.Reader, contentType string) error {
+	transferClient := transfermanager.New(c.s3Client)
+
+	_, err := transferClient.UploadObject(ctx, &transfermanager.UploadObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		Body:        body,
+		ContentType: aws.String(contentType),
+		IfNoneMatch: aws.String("*"),
+	}, func(o *transfermanager.Options) {
+		o.Concurrency = c.options.Concurrency
+		o.PartSizeBytes = c.options.PartSizeBytes
+	})
+	if err != nil {
+		if isS3ConditionalCreateConflict(err) {
+			return ErrObjectAlreadyExists
+		}
+		return fmt.Errorf("error uploading object to S3: %w", err)
+	}
+	return nil
+}
+
+func isS3ConditionalCreateConflict(err error) bool {
+	var codedError interface{ ErrorCode() string }
+	if errors.As(err, &codedError) {
+		switch codedError.ErrorCode() {
+		case "PreconditionFailed", "ConditionalRequestConflict":
+			return true
+		}
+	}
+	return false
+}
+
+// ObjectExists checks whether an object key already exists in the given bucket.
+func (c *RealS3Client) ObjectExists(ctx context.Context, bucket, key string) (bool, error) {
+	_, err := c.s3Client.HeadObject(ctx, &awss3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err == nil {
+		return true, nil
+	}
+
+	var notFound *types.NotFound
+	var noSuchKey *types.NoSuchKey
+	if errors.As(err, &notFound) || errors.As(err, &noSuchKey) {
+		return false, nil
+	}
+
+	var codedError interface{ ErrorCode() string }
+	if errors.As(err, &codedError) {
+		switch codedError.ErrorCode() {
+		case "NotFound", "NoSuchKey", "404":
+			return false, nil
+		}
+	}
+
+	return false, fmt.Errorf("error checking object existence in S3: %w", err)
 }
 
 // ListObjects retrieves a listing of objects from S3 using ListObjectsV2.
