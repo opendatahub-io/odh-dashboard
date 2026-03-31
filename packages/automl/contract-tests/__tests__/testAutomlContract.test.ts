@@ -43,6 +43,49 @@ describe('AutoML API Contract Tests', () => {
     });
   });
 
+  describe('Model Registries Endpoint', () => {
+    it('should return 200 with model registries list', async () => {
+      const result = await apiClient.get('/api/v1/model-registries');
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.response.status).toBe(200);
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/ModelRegistriesResponse/content/application/json/schema',
+          status: 200,
+        });
+      }
+    });
+
+    it('should return data with model_registries array', async () => {
+      const result = await apiClient.get('/api/v1/model-registries');
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const envelope = result.response.data as { data: { model_registries: unknown[] } };
+        expect(envelope.data).toHaveProperty('model_registries');
+        expect(Array.isArray(envelope.data.model_registries)).toBe(true);
+      }
+    });
+
+    it('should return registries with required fields', async () => {
+      const result = await apiClient.get('/api/v1/model-registries');
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const envelope = result.response.data as {
+          data: {
+            model_registries: { id: string; name: string; is_ready: boolean; server_url: string }[];
+          };
+        };
+        const registries = envelope.data.model_registries;
+        expect(registries.length).toBeGreaterThan(0);
+        const first = registries[0];
+        expect(typeof first.id).toBe('string');
+        expect(typeof first.name).toBe('string');
+        expect(typeof first.is_ready).toBe('boolean');
+        expect(first.server_url).toContain('/api/model_registry/v1alpha3');
+      }
+    });
+  });
+
   describe('Secrets Endpoint', () => {
     // Helper type for secret response data
     type SecretItem = {
