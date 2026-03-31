@@ -22,16 +22,18 @@ import {
   HelperTextItem,
   List,
   ListItem,
+  MenuToggle,
   NumberInput,
   Popover,
-  Radio,
+  Select,
+  SelectList,
+  SelectOption,
   Split,
   SplitItem,
   Stack,
   StackItem,
-  Tooltip,
 } from '@patternfly/react-core';
-import { CubesIcon, InfoCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { CubesIcon, InfoCircleIcon } from '@patternfly/react-icons';
 import { findKey } from 'es-toolkit';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React, { useEffect, useRef, useState } from 'react';
@@ -101,6 +103,7 @@ function AutoragConfigure(): React.JSX.Element {
   );
 
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
+  const [isMetricSelectOpen, setIsMetricSelectOpen] = useState(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
@@ -339,36 +342,68 @@ function AutoragConfigure(): React.JSX.Element {
                       label="Optimization metric"
                       labelHelp={{
                         header: 'Optimization metric',
-                        body: 'The metric used to compare configurations and identify the best result.',
+                        position: 'bottom',
+                        body: (
+                          <Stack hasGutter>
+                            {OPTIMIZATION_METRICS.map((metric) => (
+                              <StackItem key={metric.value}>
+                                <Content component="p">
+                                  <strong>{metric.label}:</strong>
+                                  <br />
+                                  {metric.description}
+                                </Content>
+                              </StackItem>
+                            ))}
+                          </Stack>
+                        ),
                       }}
                       description="The metric used to compare configurations and identify the best result."
                     >
                       <Controller
                         control={form.control}
                         name="optimization_metric"
-                        render={({ field }) => (
-                          <>
-                            {OPTIMIZATION_METRICS.map((metric) => (
-                              <Radio
-                                key={metric.value}
-                                id={`metric-${metric.value}`}
-                                name="optimization_metric"
-                                label={
-                                  <span>
-                                    {metric.label}
-                                    {'  '}
-                                    <Tooltip content={metric.description}>
-                                      <OutlinedQuestionCircleIcon className="pf-v6-u-ml-xs" />
-                                    </Tooltip>
-                                  </span>
+                        render={({ field }) => {
+                          const selected = OPTIMIZATION_METRICS.find(
+                            (m) => m.value === field.value,
+                          );
+                          return (
+                            <Select
+                              isOpen={isMetricSelectOpen}
+                              selected={field.value}
+                              onSelect={(_e, val) => {
+                                if (typeof val === 'string') {
+                                  field.onChange(val);
                                 }
-                                isChecked={field.value === metric.value}
-                                onChange={() => field.onChange(metric.value)}
-                                data-testid={`metric-radio-${metric.value}`}
-                              />
-                            ))}
-                          </>
-                        )}
+                                setIsMetricSelectOpen(false);
+                              }}
+                              onOpenChange={setIsMetricSelectOpen}
+                              toggle={(toggleRef) => (
+                                <MenuToggle
+                                  ref={toggleRef}
+                                  onClick={() => setIsMetricSelectOpen((prev) => !prev)}
+                                  isExpanded={isMetricSelectOpen}
+                                  data-testid="optimization-metric-select"
+                                >
+                                  {selected?.label ?? ''}
+                                </MenuToggle>
+                              )}
+                              shouldFocusToggleOnSelect
+                              data-testid="optimization-metric-select-list"
+                            >
+                              <SelectList>
+                                {OPTIMIZATION_METRICS.map((metric) => (
+                                  <SelectOption
+                                    key={metric.value}
+                                    value={metric.value}
+                                    data-testid={`metric-option-${metric.value}`}
+                                  >
+                                    {metric.label}
+                                  </SelectOption>
+                                ))}
+                              </SelectList>
+                            </Select>
+                          );
+                        }}
                       />
                     </ConfigureFormGroup>
 
