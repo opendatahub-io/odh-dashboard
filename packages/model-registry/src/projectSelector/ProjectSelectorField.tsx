@@ -103,7 +103,19 @@ const ProjectSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
           title={SELECTED_PROJECT_NO_ACCESS}
           data-testid="namespace-registry-access-alert"
           className="pf-v6-u-mt-sm"
-        />
+        >
+          <Popover bodyContent={WHO_IS_MY_ADMIN_POPOVER_CONTENT} aria-label="Who is my admin?">
+            <Button
+              variant="link"
+              isInline
+              component="button"
+              data-testid="who-is-my-admin-trigger"
+              aria-label="Who is my admin?"
+            >
+              Who is my admin
+            </Button>
+          </Popover>
+        </Alert>
       )}
       {selectedNamespace && !isLoading && cannotCheck && (
         <Alert
