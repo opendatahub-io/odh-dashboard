@@ -51,9 +51,12 @@ const defaultContext: AutomlResultsContextProps = {
       display_name: 'TestModel',
       model_config: { eval_metric: 'accuracy' },
       location: {
-        model_directory: '/pipeline/run/models/TestModel/',
-        predictor: '/pipeline/run/models/TestModel/predictor',
-        notebook: '/pipeline/run/models/TestModel/notebook.ipynb',
+        model_directory:
+          'autogluon-tabular-training-pipeline/run-1/autogluon-models-full-refit/task-1/model_artifact/TestModel/',
+        predictor:
+          'autogluon-tabular-training-pipeline/run-1/autogluon-models-full-refit/task-1/model_artifact/TestModel/predictor',
+        notebook:
+          'autogluon-tabular-training-pipeline/run-1/autogluon-models-full-refit/task-1/model_artifact/TestModel/notebook.ipynb',
       },
       metrics: { test_data: { accuracy: 0.95 } },
     },
@@ -198,7 +201,9 @@ describe('RegisterModelModal', () => {
       renderModal();
 
       const pathInput = screen.getByTestId('s3-path-display');
-      expect(pathInput).toHaveValue('/pipeline/run/models/TestModel/predictor');
+      expect(pathInput).toHaveValue(
+        'autogluon-tabular-training-pipeline/run-1/autogluon-models-full-refit/task-1/model_artifact/TestModel/predictor',
+      );
       expect(pathInput).toBeDisabled();
     });
 

@@ -20,12 +20,14 @@ import {
   TextInput,
   Tooltip,
 } from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router';
 import { useModelRegistriesQuery } from '~/app/hooks/useModelRegistriesQuery';
 import { registerModel } from '~/app/api/modelRegistry';
 import type { ModelRegistry, RegisterModelRequest } from '~/app/types';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
+import { useNotification } from '~/app/hooks/useNotification';
 
 type RegisterModelModalProps = {
   onClose: () => void;
@@ -35,6 +37,7 @@ type RegisterModelModalProps = {
 const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelName }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const { models, pipelineRun } = useAutomlResultsContext();
+  const notification = useNotification();
 
   const {
     data: registriesData,
@@ -61,13 +64,17 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
   const [registeredModelName, setRegisteredModelName] = React.useState(displayName);
   const [modelDescription, setModelDescription] = React.useState(defaultDescription);
   // The predictor path is a relative S3 key (e.g. "pipeline/run/.../predictor").
-  // The BFF resolves the bucket from the DSPA object-storage config, so only
-  // the key is needed here — not a full s3://bucket/key URI.
+  // The BFF resolves the bucket, endpoint, and region from the DSPA object storage
+  // config and constructs the full URI for the Model Registry.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record<string,T> can be undefined at runtime
   const s3Path = model?.location?.predictor ?? undefined;
 
   const registerMutation = useMutation({
-    mutationFn: async (params: { registryId: string; request: RegisterModelRequest }) => {
+    mutationFn: async (params: {
+      registryId: string;
+      registryName: string;
+      request: RegisterModelRequest;
+    }) => {
       if (!namespace) {
         throw new Error('Namespace is not available');
       }
@@ -77,8 +84,21 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
         request: params.request,
       });
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      const modelDetailsUrl = `/ai-hub/registry/${encodeURIComponent(variables.registryName)}/registered-models/${encodeURIComponent(data.registered_model_id)}/overview`;
+      notification.success(
+        `${registeredModelName.trim()} registered successfully`,
+        <a href={modelDetailsUrl} target="_blank" rel="noopener noreferrer">
+          View in model registry <ExternalLinkAltIcon />
+        </a>,
+      );
       onClose();
+    },
+    onError: (error: unknown) => {
+      notification.error(
+        'Failed to register model',
+        error instanceof Error ? error.message : 'An unexpected error occurred',
+      );
     },
   });
 
@@ -96,7 +116,11 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
     };
     /* eslint-enable camelcase */
 
-    registerMutation.mutate({ registryId: selectedRegistry.id, request });
+    registerMutation.mutate({
+      registryId: selectedRegistry.id,
+      registryName: selectedRegistry.name,
+      request,
+    });
   }, [selectedRegistry, registeredModelName, s3Path, modelDescription, registerMutation]);
 
   const isFormValid =

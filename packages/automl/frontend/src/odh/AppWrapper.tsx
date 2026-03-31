@@ -8,6 +8,7 @@ import {
 } from 'mod-arch-core';
 import React from 'react';
 import AppRoutes from '~/app/AppRoutes';
+import ToastNotifications from '~/app/components/ToastNotifications';
 import { URL_PREFIX } from '~/app/utilities/const';
 
 const queryClient = new QueryClient({
@@ -29,6 +30,7 @@ function AppWrapper(): React.JSX.Element {
     <ModularArchContextProvider config={modularArchConfig}>
       <BrowserStorageContextProvider>
         <NotificationContextProvider>
+          <ToastNotifications />
           <QueryClientProvider client={queryClient}>
             <AppRoutes />
           </QueryClientProvider>

@@ -6,7 +6,11 @@ import {
   restGET,
   restCREATE,
 } from 'mod-arch-core';
-import type { ModelRegistriesResponse, RegisterModelRequest } from '~/app/types';
+import type {
+  ModelRegistriesResponse,
+  RegisterModelRequest,
+  RegisterModelResponse,
+} from '~/app/types';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
 /**
@@ -51,7 +55,7 @@ export async function registerModel(
   hostPath: string,
   params: RegisterModelParams,
   opts?: APIOptions,
-): Promise<Record<string, unknown>> {
+): Promise<RegisterModelResponse> {
   const registryId = encodeURIComponent(params.registryId);
   const response = await handleRestFailures(
     restCREATE(
@@ -62,7 +66,7 @@ export async function registerModel(
       opts ?? {},
     ),
   );
-  if (isModArchResponse<Record<string, unknown>>(response)) {
+  if (isModArchResponse<RegisterModelResponse>(response)) {
     return response.data;
   }
   throw new Error('Invalid response format');

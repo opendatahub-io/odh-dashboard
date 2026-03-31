@@ -24,9 +24,14 @@ interface NotificationFunc extends NotificationTypeFunc {
 export const useNotification = (): NotificationFunc => {
   const { notificationCount, updateNotificationCount, dispatch } = useContext(NotificationContext);
 
+  // Use a ref so callbacks stay stable across notification count changes.
+  const countRef = React.useRef(notificationCount);
+  countRef.current = notificationCount;
+
   const success: NotificationProps = React.useCallback(
     (title, message?) => {
-      updateNotificationCount(notificationCount + 1);
+      const id = countRef.current;
+      updateNotificationCount(id + 1);
       dispatch({
         type: NotificationActionTypes.ADD_NOTIFICATION,
         payload: {
@@ -34,16 +39,17 @@ export const useNotification = (): NotificationFunc => {
           title,
           timestamp: new Date(),
           message,
-          id: notificationCount,
+          id,
         },
       });
     },
-    [dispatch, notificationCount, updateNotificationCount],
+    [dispatch, updateNotificationCount],
   );
 
   const warning: NotificationProps = React.useCallback(
     (title, message?) => {
-      updateNotificationCount(notificationCount + 1);
+      const id = countRef.current;
+      updateNotificationCount(id + 1);
       dispatch({
         type: NotificationActionTypes.ADD_NOTIFICATION,
         payload: {
@@ -51,16 +57,17 @@ export const useNotification = (): NotificationFunc => {
           title,
           timestamp: new Date(),
           message,
-          id: notificationCount,
+          id,
         },
       });
     },
-    [dispatch, notificationCount, updateNotificationCount],
+    [dispatch, updateNotificationCount],
   );
 
   const error: NotificationProps = React.useCallback(
     (title, message?) => {
-      updateNotificationCount(notificationCount + 1);
+      const id = countRef.current;
+      updateNotificationCount(id + 1);
       dispatch({
         type: NotificationActionTypes.ADD_NOTIFICATION,
         payload: {
@@ -68,16 +75,17 @@ export const useNotification = (): NotificationFunc => {
           title,
           timestamp: new Date(),
           message,
-          id: notificationCount,
+          id,
         },
       });
     },
-    [dispatch, notificationCount, updateNotificationCount],
+    [dispatch, updateNotificationCount],
   );
 
   const info: NotificationProps = React.useCallback(
     (title, message?) => {
-      updateNotificationCount(notificationCount + 1);
+      const id = countRef.current;
+      updateNotificationCount(id + 1);
       dispatch({
         type: NotificationActionTypes.ADD_NOTIFICATION,
         payload: {
@@ -85,11 +93,11 @@ export const useNotification = (): NotificationFunc => {
           title,
           timestamp: new Date(),
           message,
-          id: notificationCount,
+          id,
         },
       });
     },
-    [dispatch, notificationCount, updateNotificationCount],
+    [dispatch, updateNotificationCount],
   );
 
   const remove: NotificationRemoveProps = React.useCallback(

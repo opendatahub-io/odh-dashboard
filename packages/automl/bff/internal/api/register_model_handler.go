@@ -25,7 +25,15 @@ import (
 // maxRequestBodyBytes caps the request body size to 1 MiB for register model requests.
 const maxRegisterModelRequestBodyBytes = 1 << 20
 
-type RegisterModelEnvelope Envelope[*openapi.ModelArtifact, None]
+// RegisterModelResponseData is the payload returned to the frontend after a
+// successful model registration. It includes the registered model ID so the
+// frontend can construct a direct link to the model details page.
+type RegisterModelResponseData struct {
+	RegisteredModelID string                 `json:"registered_model_id"`
+	ModelArtifact     *openapi.ModelArtifact `json:"model_artifact"`
+}
+
+type RegisterModelEnvelope Envelope[*RegisterModelResponseData, None]
 
 // RegisterModelHandler handles POST /api/v1/model-registries/:registryId/models
 //
@@ -132,7 +140,15 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	modelArtifact, err := app.repositories.ModelRegistry.RegisterModel(ctx, client, req)
+	// Retrieve DSPA object storage config from context (injected by AttachNamespace middleware)
+	// to construct the full S3 URI for the model artifact.
+	dspaStorage, _ := ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage)
+	if dspaStorage == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("DSPA object storage config not available; cannot construct artifact URI"))
+		return
+	}
+
+	registeredModelID, modelArtifact, err := app.repositories.ModelRegistry.RegisterModel(ctx, client, req, dspaStorage)
 	if err != nil {
 		var httpErr *modelregistry.HTTPError
 		if errors.As(err, &httpErr) {
@@ -152,7 +168,10 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 	}
 
 	response := RegisterModelEnvelope{
-		Data: modelArtifact,
+		Data: &RegisterModelResponseData{
+			RegisteredModelID: registeredModelID,
+			ModelArtifact:     modelArtifact,
+		},
 	}
 
 	if err := app.WriteJSON(w, http.StatusCreated, response, nil); err != nil {

@@ -224,8 +224,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToPipelineServers(app.PostS3FileHandler))))
 
 	// Model Registry - register model binary (target registry via path param + discovered ServerURL)
-	// No DSPA RBAC gate: Model Registry is a separate service; upstream MR API enforces auth.
-	apiRouter.POST(ModelRegistryModelsPath, app.AttachNamespace(app.RegisterModelHandler))
+	// Requires AttachNamespace with pipeline server discovery so DSPA object storage config
+	// is injected into context (needed to construct the full S3 URI for the model artifact).
+	apiRouter.POST(ModelRegistryModelsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.RegisterModelHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()

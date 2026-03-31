@@ -63,7 +63,7 @@ describe('registerModel', () => {
   });
 
   it('should send registration request with namespace and body', async () => {
-    const mockResponse = { id: 'artifact-1' };
+    const mockResponse = { registered_model_id: '17', model_artifact: { id: 'artifact-1' } };
     mockRestCREATE.mockResolvedValue({ data: mockResponse });
     mockIsModArchResponse.mockReturnValue(true);
 

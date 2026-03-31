@@ -788,7 +788,7 @@ describe('AutoML API Contract Tests', () => {
         const result = await apiClient.post(
           `/api/v1/model-registries/${unknownRegistryId}/models?namespace=default`,
           {
-            s3_path: 's3://bucket/path/model.bin',
+            s3_path: 'path/model.bin',
             model_name: 'test-model',
             version_name: 'v1',
           },
@@ -813,11 +813,11 @@ describe('AutoML API Contract Tests', () => {
         }
       });
 
-      it('should return 400 for invalid S3 path', async () => {
+      it('should return 400 for empty S3 path', async () => {
         const result = await apiClient.post(
           `/api/v1/model-registries/${mockRegistryId}/models?namespace=default`,
           {
-            s3_path: 'invalid-path',
+            s3_path: '',
             model_name: 'test-model',
             version_name: 'v1',
           },
@@ -830,7 +830,7 @@ describe('AutoML API Contract Tests', () => {
 
       it('should return 400 when namespace is missing', async () => {
         const result = await apiClient.post(`/api/v1/model-registries/${mockRegistryId}/models`, {
-          s3_path: 's3://bucket/path/model.bin',
+          s3_path: 'path/model.bin',
           model_name: 'test-model',
           version_name: 'v1',
         });

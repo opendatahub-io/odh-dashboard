@@ -178,6 +178,11 @@ export type ModelRegistriesResponse = {
   model_registries: ModelRegistry[];
 };
 
+export type RegisterModelResponse = {
+  registered_model_id: string;
+  model_artifact: Record<string, unknown>;
+};
+
 export type RegisterModelRequest = {
   s3_path: string;
   model_name: string;
