@@ -38,7 +38,7 @@ describe('EmptyExperimentsState', () => {
     );
 
     expect(screen.getByTestId('create-experiment-button')).toHaveTextContent(
-      'Create AutoRAG optimization run',
+      'Create RAG optimization run',
     );
   });
 

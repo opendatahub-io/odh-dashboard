@@ -21,7 +21,7 @@ export type AutomlExperimentsListStatus = {
 type AutomlExperimentsProps = {
   /**
    * Fired when list loading / emptiness changes so the host page can tune chrome (e.g. hide the
-   * header "Create AutoML experiment" action while the centered empty state is shown).
+   * header "Create AutoML optimization run" action while the centered empty state is shown).
    */
   onExperimentsListStatus?: (status: AutomlExperimentsListStatus) => void;
 };

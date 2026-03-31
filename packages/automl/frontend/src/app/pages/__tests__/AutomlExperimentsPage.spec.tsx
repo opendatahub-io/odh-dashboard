@@ -111,7 +111,9 @@ describe('AutomlExperimentsPage', () => {
     mockListStatusReport = { loaded: true, hasExperiments: true };
     renderPage('/experiments/test-ns');
     expect(screen.getByTestId('automl-header-create-experiment-button')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create AutoML experiment' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Create AutoML optimization run' }),
+    ).toBeInTheDocument();
   });
 
   it('does not show header create experiment button when namespace is invalid (empty application state)', () => {

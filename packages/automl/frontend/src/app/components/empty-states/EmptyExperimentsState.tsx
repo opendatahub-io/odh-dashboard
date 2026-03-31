@@ -29,8 +29,7 @@ const EmptyExperimentsState: React.FC<EmptyExperimentsStateProps> = ({
       headingLevel="h2"
     >
       <EmptyStateBody>
-        To get started, create an AutoML experiment to configure and run your machine learning
-        workflow.
+        Test different retrieval and model configurations to find the best-performing setup.
       </EmptyStateBody>
 
       <EmptyStateFooter>

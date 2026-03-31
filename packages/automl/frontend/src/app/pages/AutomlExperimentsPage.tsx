@@ -69,7 +69,7 @@ function AutomlExperimentsPage(): React.JSX.Element {
               }
             }}
           >
-            Create AutoML experiment
+            Create AutoML optimization run
           </Button>
         </FlexItem>
       ) : null}
