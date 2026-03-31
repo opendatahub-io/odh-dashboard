@@ -106,7 +106,16 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	baseURL := strings.TrimSuffix(strings.TrimSpace(reg.ServerURL), "/")
+	// In dev mode, prefer ExternalURL (OpenShift Route) because the in-cluster
+	// ServerURL is not reachable from a local development environment.
+	// In production, always use the in-cluster ServerURL.
+	baseURL := ""
+	if app.config.DevMode && strings.TrimSpace(reg.ExternalURL) != "" {
+		baseURL = strings.TrimSuffix(strings.TrimSpace(reg.ExternalURL), "/")
+		logger.Debug("Using external URL for model registry (dev mode)", "url", baseURL)
+	} else {
+		baseURL = strings.TrimSuffix(strings.TrimSpace(reg.ServerURL), "/")
+	}
 	if baseURL == "" {
 		app.serverErrorResponse(w, r, fmt.Errorf("model registry has empty server_url"))
 		return
