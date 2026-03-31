@@ -1,7 +1,23 @@
 class GenAiPlayground {
   navigate(projectName: string) {
+    cy.intercept({
+      method: 'GET',
+      pathname: '/gen-ai/api/v1/lsd/status',
+      query: { namespace: projectName },
+    }).as('getLsdStatus');
+    cy.intercept({
+      method: 'GET',
+      pathname: '/gen-ai/api/v1/aaa/models',
+      query: { namespace: projectName },
+    }).as('getProjectModels');
+    cy.intercept({
+      method: 'GET',
+      pathname: '/gen-ai/api/v1/config',
+      query: { namespace: projectName },
+    }).as('getProjectConfig');
     cy.visit(`/gen-ai-studio/playground/${projectName}`);
     cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
+    cy.wait(['@getLsdStatus', '@getProjectModels', '@getProjectConfig']);
   }
 
   findEmptyState() {
