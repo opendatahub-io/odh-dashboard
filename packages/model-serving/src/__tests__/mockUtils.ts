@@ -233,7 +233,6 @@ export const mockDeploymentWizardState = (
         },
         timeoutConfig: {
           data: {
-            enableTimeoutConfig: true,
             timeout: 30,
             return401: false,
           },

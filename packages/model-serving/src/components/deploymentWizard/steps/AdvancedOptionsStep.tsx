@@ -216,7 +216,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 </FormGroup>
               </StackItem>
             )}
-            {wizardState.state.timeoutConfig?.data.enableTimeoutConfig && (
+            {wizardState.state.timeoutConfig && (
               <StackItem>
                 <TimeoutField
                   timeoutValue={wizardState.state.timeoutConfig.data.timeout ?? 30}

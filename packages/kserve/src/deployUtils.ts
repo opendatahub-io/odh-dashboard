@@ -426,7 +426,7 @@ export const applyTimeoutConfig = (
   inferenceService: InferenceServiceKind,
   timeoutConfig?: TimeoutConfigFieldData,
 ): InferenceServiceKind => {
-  if (!timeoutConfig?.enableTimeoutConfig) {
+  if (!timeoutConfig) {
     return inferenceService;
   }
 
@@ -466,7 +466,6 @@ export const extractTimeoutConfig = (deployment: {
     deployment.model.metadata.annotations?.['security.opendatahub.io/auth-proxy-type'];
 
   return {
-    enableTimeoutConfig: true,
     timeout: timeout ?? 30,
     return401: authProxyType === 'kube-rbac-proxy',
   };

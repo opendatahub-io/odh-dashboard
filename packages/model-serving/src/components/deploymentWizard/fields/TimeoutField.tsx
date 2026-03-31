@@ -4,7 +4,6 @@ import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWr
 import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';
 
 export type TimeoutConfigData = {
-  enableTimeoutConfig?: boolean;
   timeout?: number;
   return401?: boolean;
 };
@@ -23,7 +22,6 @@ export const useTimeoutField = (existingData?: TimeoutConfigData): TimeoutFieldH
   const [timeoutData, setTimeoutData] = React.useState<TimeoutConfigData>(
     () =>
       existingData ?? {
-        enableTimeoutConfig: true,
         timeout: DEFAULT_TIMEOUT,
         return401: false,
       },
