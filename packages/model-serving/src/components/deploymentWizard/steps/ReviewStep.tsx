@@ -357,6 +357,15 @@ const getStatusSections = (
             return wizardState.state.deploymentStrategy.isVisible;
           },
         },
+        {
+          key: 'timeoutConfig',
+          label: 'Model route timeout',
+          comp: (state) => {
+            const timeout = state.timeoutConfig?.data.timeout;
+            return timeout !== undefined ? `${timeout} seconds` : undefined;
+          },
+          isVisible: (wizardState) => !!wizardState.state.timeoutConfig,
+        },
         ...getExtensionItems(WizardStepTitle.ADVANCED_SETTINGS, extensionStatusSections),
       ],
     },
