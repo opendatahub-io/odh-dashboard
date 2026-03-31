@@ -349,6 +349,8 @@ paths:
         and AWS_S3_ENDPOINT using those exact field names.
       tags:
         - S3Operation
+      security:
+        - Bearer: []
       parameters:
         - name: namespace
           in: query
