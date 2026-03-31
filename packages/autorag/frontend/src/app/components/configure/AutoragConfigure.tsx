@@ -13,6 +13,7 @@ import {
   CardTitle,
   Content,
   Flex,
+  FlexItem,
   Grid,
   GridItem,
   Label,
@@ -271,16 +272,16 @@ function AutoragConfigure(): React.JSX.Element {
               <Stack hasGutter>
                 <StackItem>
                   <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
-                    <StackItem>
+                    <FlexItem>
                       <Title headingLevel="h4">Index</Title>
-                    </StackItem>
-                    <StackItem className="pf-v6-u-font-size-sm">
+                    </FlexItem>
+                    <FlexItem className="pf-v6-u-font-size-sm">
                       Specify the location for storing the vector index used to retrieve your
                       documents.
-                    </StackItem>
-                    <StackItem>
+                    </FlexItem>
+                    <FlexItem>
                       <AutoragVectorStoreSelector />
-                    </StackItem>
+                    </FlexItem>
                   </Flex>
                 </StackItem>
 

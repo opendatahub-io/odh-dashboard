@@ -164,8 +164,8 @@ describe('AutoRAG API Contract Tests', () => {
       });
     });
 
-    describe('Empty Results', () => {
-      it('should return valid response when no vector_io providers exist', async () => {
+    describe('Response Structure', () => {
+      it('should return a valid array in vector_store_providers field', async () => {
         const result = await apiClient.get(
           '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
         );
