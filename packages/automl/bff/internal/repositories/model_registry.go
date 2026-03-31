@@ -147,9 +147,21 @@ func NewModelRegistryRepository() *ModelRegistryRepository {
 // would need DELETE support to implement cleanup; consider manual cleanup of orphaned
 // RegisteredModels if failures occur.
 func (r *ModelRegistryRepository) RegisterModel(
+	_ context.Context,
 	client modelregistry.HTTPClientInterface,
 	req models.RegisterModelRequest,
 ) (*openapi.ModelArtifact, error) {
+	// Normalize fields — validation checked for non-blank, now trim for clean API payloads.
+	req.S3Path = strings.TrimSpace(req.S3Path)
+	req.ModelName = strings.TrimSpace(req.ModelName)
+	req.ModelDescription = strings.TrimSpace(req.ModelDescription)
+	req.VersionName = strings.TrimSpace(req.VersionName)
+	req.VersionDescription = strings.TrimSpace(req.VersionDescription)
+	req.ArtifactName = strings.TrimSpace(req.ArtifactName)
+	req.ArtifactDescription = strings.TrimSpace(req.ArtifactDescription)
+	req.ModelFormatName = strings.TrimSpace(req.ModelFormatName)
+	req.ModelFormatVersion = strings.TrimSpace(req.ModelFormatVersion)
+
 	// 1. Create RegisteredModel
 	regModelCreate := openapi.RegisteredModelCreate{
 		Name: req.ModelName,

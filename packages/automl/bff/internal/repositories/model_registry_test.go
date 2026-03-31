@@ -30,7 +30,7 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 		}
 		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.S3Path)
 
-		artifact, err := repo.RegisterModel(mockClient, req)
+		artifact, err := repo.RegisterModel(context.Background(), mockClient, req)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, artifact)
@@ -50,7 +50,7 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 		}
 		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.S3Path)
 
-		artifact, err := repo.RegisterModel(mockClient, req)
+		artifact, err := repo.RegisterModel(context.Background(), mockClient, req)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, artifact)
@@ -65,7 +65,7 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 		}
 		mockClient := modelregistry.NewFailingMockClient(409, "409", "model name already exists")
 
-		artifact, err := repo.RegisterModel(mockClient, req)
+		artifact, err := repo.RegisterModel(context.Background(), mockClient, req)
 
 		assert.Error(t, err)
 		assert.Nil(t, artifact)
@@ -83,7 +83,7 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 		}
 		mockClient := modelregistry.NewFailingMockClient(503, "503", "service unavailable")
 
-		_, err := repo.RegisterModel(mockClient, req)
+		_, err := repo.RegisterModel(context.Background(), mockClient, req)
 
 		assert.Error(t, err)
 		assert.Equal(t, 1, mockClient.PostCallCount)

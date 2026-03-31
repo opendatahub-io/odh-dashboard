@@ -129,7 +129,7 @@ curl -X POST "http://localhost:4003/automl/api/v1/model-registries/<registry-uid
 
 ## Flow diagram
 
-```
+```text
 Client                    AutoML BFF                    Kubernetes / MR API
   |                            |                                |
   |  GET /model-registries     |                                |

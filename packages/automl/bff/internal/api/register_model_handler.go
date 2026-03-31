@@ -132,7 +132,7 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	modelArtifact, err := app.repositories.ModelRegistry.RegisterModel(client, req)
+	modelArtifact, err := app.repositories.ModelRegistry.RegisterModel(ctx, client, req)
 	if err != nil {
 		var httpErr *modelregistry.HTTPError
 		if errors.As(err, &httpErr) {

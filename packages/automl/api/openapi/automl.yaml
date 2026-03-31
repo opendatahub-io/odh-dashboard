@@ -497,6 +497,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/InternalServerError"
         "503":
@@ -968,12 +970,14 @@ components:
         s3_path:
           type: string
           minLength: 1
-          description: S3 URI where the model binary is stored (e.g., s3://bucket/path/to/model)
+          pattern: "^s3a?://[^/]+/.+"
+          description: S3 URI where the model binary is stored (s3:// or s3a:// scheme required)
           example: "s3://my-bucket/models/v1/model.bin"
         model_name:
           type: string
           minLength: 1
-          description: Name of the registered model
+          pattern: "\\S"
+          description: Name of the registered model (must contain at least one non-whitespace character)
           example: "my-model"
         model_description:
           type: string
@@ -981,7 +985,8 @@ components:
         version_name:
           type: string
           minLength: 1
-          description: Name of the model version (e.g., v1, 1.0.0)
+          pattern: "\\S"
+          description: Name of the model version (must contain at least one non-whitespace character)
           example: "v1"
         version_description:
           type: string
@@ -1459,6 +1464,22 @@ components:
                   message:
                     type: string
                     example: "Internal server error"
+
+    Conflict:
+      description: Conflict (e.g., duplicate model name in the registry)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "409"
+                  message:
+                    type: string
 
     ServiceUnavailable:
       description: Service Unavailable
