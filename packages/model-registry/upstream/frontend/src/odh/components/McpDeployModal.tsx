@@ -13,14 +13,21 @@ import {
   ModalHeader,
   Popover,
   Spinner,
-  TextArea,
+  Split,
+  SplitItem,
   TextInput,
 } from '@patternfly/react-core';
+import { CodeEditor, Language } from '@patternfly/react-code-editor';
 import { SimpleSelect } from 'mod-arch-shared';
 import { SimpleSelectOption } from 'mod-arch-shared/dist/components/SimpleSelect';
 import { APIOptions, useQueryParamNamespaces } from 'mod-arch-core';
+import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import useMcpServerConverter from '~/app/hooks/mcpCatalogDeployment/useMcpServerConverter';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { useNotification } from '~/app/hooks/useNotification';
 import { createMcpDeployment } from '~/app/api/mcpCatalogDeployment/service';
 import { mcpServerCRToYaml } from '~/app/utils/mcpServerYaml';
 
@@ -31,7 +38,12 @@ type McpDeployModalProps = {
 const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose }) => {
   const { serverId = '' } = useParams<{ serverId: string }>();
   const queryParams = useQueryParamNamespaces();
+  const { theme } = useThemeContext();
+  const notification = useNotification();
   const [crData, crLoaded, crError] = useMcpServerConverter(serverId);
+
+  const { data: nameDescData, onDataChange: onNameDescChange } =
+    useK8sNameDescriptionFieldData();
 
   const [namespaces, namespacesLoaded] = useNamespaces();
   const [selectedNamespace, setSelectedNamespace] = React.useState('');
@@ -39,6 +51,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose }) => {
   const [initialYaml, setInitialYaml] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error>();
+  const abortControllerRef = React.useRef<AbortController>();
 
   const ociImage = crData?.spec.source.containerImage?.ref ?? '';
 
@@ -49,6 +62,13 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose }) => {
       setInitialYaml(yaml);
     }
   }, [crData, yamlContent]);
+
+  React.useEffect(
+    () => () => {
+      abortControllerRef.current?.abort();
+    },
+    [],
+  );
 
   const namespaceOptions: SimpleSelectOption[] = React.useMemo(
     () => namespaces.map((ns) => ({ key: ns.name, label: ns.name })),
@@ -68,29 +88,46 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose }) => {
   }, [initialYaml]);
 
   const handleDeploy = React.useCallback(async () => {
-    if (!ociImage || !selectedNamespace) {
+    if (!ociImage || !selectedNamespace || !nameDescData.k8sName.value) {
       return;
     }
 
     setIsSubmitting(true);
     setSubmitError(undefined);
 
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const opts: APIOptions = { signal: new AbortController().signal };
+      const opts: APIOptions = { signal: controller.signal };
       await createMcpDeployment('', { ...queryParams, namespace: selectedNamespace })(opts, {
+        name: nameDescData.k8sName.value,
+        displayName: nameDescData.name,
         image: ociImage,
         yaml: yamlContent,
         port: crData?.spec.config.port,
       });
       onClose();
+      notification.success(
+        'MCP server deployed successfully',
+        `${nameDescData.name || nameDescData.k8sName.value} has been deployed to ${selectedNamespace}.`,
+      );
     } catch (e) {
       setSubmitError(e instanceof Error ? e : new Error('Failed to deploy MCP server'));
     } finally {
       setIsSubmitting(false);
     }
-  }, [ociImage, selectedNamespace, yamlContent, crData, queryParams, onClose]);
+  }, [ociImage, selectedNamespace, nameDescData, yamlContent, crData, queryParams, onClose, notification]);
 
-  const isDeployDisabled = !ociImage || !selectedNamespace || isSubmitting || !crLoaded;
+  const hasValidName =
+    !!nameDescData.name &&
+    !!nameDescData.k8sName.value &&
+    !nameDescData.k8sName.state.invalidCharacters &&
+    !nameDescData.k8sName.state.invalidLength;
+
+  const isDeployDisabled =
+    !hasValidName || !ociImage || !selectedNamespace || isSubmitting || !crLoaded;
 
   const ociImageLabelHelpRef = React.useRef<HTMLSpanElement>(null);
   const configLabelHelpRef = React.useRef<HTMLSpanElement>(null);
@@ -122,6 +159,14 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose }) => {
           </Alert>
         )}
         <Form>
+          <K8sNameDescriptionField
+            data={nameDescData}
+            onDataChange={onNameDescChange}
+            dataTestId="mcp-deploy"
+            nameLabel="Deployment name"
+            hideDescription
+          />
+
           <FormGroup
             label="OCI image"
             isRequired
@@ -167,7 +212,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose }) => {
             labelHelp={
               <Popover
                 triggerRef={configLabelHelpRef}
-                bodyContent="The MCPServer custom resource spec for this deployment. Edit the configuration as needed before deploying."
+                bodyContent="Prefilled from catalog metadata when available; you can adjust before deploying. This block is the spec fragment only (not the full CRD); it is merged into the MCPServer resource—image and project are set by the form. For more options, see the server documentation on the details page."
                 aria-label="Configuration help"
               >
                 <FormGroupLabelHelp
@@ -178,17 +223,16 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose }) => {
             }
           >
             <Content component="small" className="pf-v6-u-mb-sm">
-              Catalog supplies a production-ready template (secretKeyRef, dedicated SA). Edit as
+              Prefilled from catalog metadata. Adjust runtime, config, and environment settings as
               needed.
             </Content>
-            <TextArea
-              id="mcp-deploy-yaml"
-              value={yamlContent}
-              onChange={(_event, value) => setYamlContent(value)}
-              aria-label="MCP server YAML configuration"
-              rows={18}
-              resizeOrientation="vertical"
-              style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '13px' }}
+            <CodeEditor
+              code={yamlContent}
+              onCodeChange={setYamlContent}
+              language={Language.yaml}
+              isDarkTheme={theme === 'dark'}
+              height="300px"
+              isLanguageLabelVisible
               data-testid="mcp-deploy-yaml-editor"
             />
           </FormGroup>
@@ -207,26 +251,35 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose }) => {
         )}
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          onClick={handleDeploy}
-          isDisabled={isDeployDisabled}
-          isLoading={isSubmitting}
-          data-testid="mcp-deploy-submit-button"
-        >
-          Deploy
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={handleReset}
-          isDisabled={isSubmitting}
-          data-testid="mcp-deploy-reset-button"
-        >
-          Reset
-        </Button>
-        <Button variant="link" onClick={onClose} data-testid="mcp-deploy-close-button">
-          Close
-        </Button>
+        <Split hasGutter className="pf-v6-u-w-100">
+          <SplitItem>
+            <Button variant="link" onClick={onClose} data-testid="mcp-deploy-close-button">
+              Close
+            </Button>
+          </SplitItem>
+          <SplitItem isFilled />
+          <SplitItem>
+            <Button
+              variant="secondary"
+              onClick={handleReset}
+              isDisabled={isSubmitting}
+              data-testid="mcp-deploy-reset-button"
+            >
+              Reset
+            </Button>
+          </SplitItem>
+          <SplitItem>
+            <Button
+              variant="primary"
+              onClick={handleDeploy}
+              isDisabled={isDeployDisabled}
+              isLoading={isSubmitting}
+              data-testid="mcp-deploy-submit-button"
+            >
+              Deploy
+            </Button>
+          </SplitItem>
+        </Split>
       </ModalFooter>
     </Modal>
   );
