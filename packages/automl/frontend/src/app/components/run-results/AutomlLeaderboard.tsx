@@ -400,9 +400,7 @@ function AutomlLeaderboard({
                     {
                       title: 'Save notebook',
                       onClick: () => {
-                        if (onClickSaveNotebook) {
-                          onClickSaveNotebook(entry.modelKey);
-                        }
+                        onClickSaveNotebook?.(entry.modelKey);
                       },
                     },
                   ]}

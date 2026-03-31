@@ -45,6 +45,10 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
   const registries = registriesData?.model_registries ?? [];
   const readyRegistries = registries.filter((r) => r.is_ready);
 
+  const model = models[modelName];
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record<string,T> can be undefined at runtime
+  const displayName = model?.display_name || modelName;
+
   // Default description from pipeline run context
   const defaultDescription = pipelineRun?.display_name
     ? `Trained by AutoML pipeline run: ${pipelineRun.display_name}`
@@ -54,10 +58,8 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
   // so no useEffect reset is needed.
   const [selectedRegistry, setSelectedRegistry] = React.useState<ModelRegistry | undefined>();
   const [registrySelectOpen, setRegistrySelectOpen] = React.useState(false);
-  const [registeredModelName, setRegisteredModelName] = React.useState(modelName);
+  const [registeredModelName, setRegisteredModelName] = React.useState(displayName);
   const [modelDescription, setModelDescription] = React.useState(defaultDescription);
-
-  const model = models[modelName];
   // The predictor path is a relative S3 key (e.g. "pipeline/run/.../predictor").
   // The BFF resolves the bucket from the DSPA object-storage config, so only
   // the key is needed here — not a full s3://bucket/key URI.
@@ -106,7 +108,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
     <Modal isOpen onClose={onClose} variant="medium" data-testid="register-model-modal">
       <ModalHeader
         title="Register model"
-        description={`Register ${modelName} to a model registry`}
+        description={`Register ${displayName} to a model registry`}
       />
       <ModalBody>
         <Form>
