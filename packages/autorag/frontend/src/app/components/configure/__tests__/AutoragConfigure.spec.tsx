@@ -127,15 +127,27 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
   ),
 }));
 
-// Mock FileExplorer component
-jest.mock('~/app/components/common/FileExplorer/FileExplorer.tsx', () => ({
+// Mock S3FileExplorer component
+// TODO: Once test data input is hooked up, cleanup mock
+jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
   __esModule: true,
-  default: ({ isOpen, onPrimary }: { isOpen: boolean; onPrimary: (files: unknown) => void }) =>
+  default: ({
+    isOpen,
+    onSelectFiles,
+    onClose,
+  }: {
+    isOpen: boolean;
+    onSelectFiles: (files: { path: string }[]) => void;
+    onClose: () => void;
+  }) =>
     isOpen ? (
       <div data-testid="file-explorer-modal">
         <button
           data-testid="file-explorer-select-file"
-          onClick={() => onPrimary([{ name: 'test-file.txt' }])}
+          onClick={() => {
+            onSelectFiles([{ path: '/test-file.txt' }]);
+            onClose();
+          }}
         >
           Select File
         </button>

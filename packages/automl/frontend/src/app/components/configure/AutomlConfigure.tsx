@@ -48,6 +48,7 @@ import {
 } from '~/app/utilities/const';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
 import ConfigureTabularForm from './ConfigureTabularForm';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 
@@ -485,15 +486,21 @@ function AutomlConfigure(): React.JSX.Element {
           }}
         />
       )}
-      <FileExplorer
-        id="AutoMlConfigure-FileExplorer"
+      <S3FileExplorer
+        id="AutoMLConfigure-S3FileExplorer"
+        namespace={namespace}
+        s3Secret={selectedSecret}
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
-        onSelect={(files) => {
-          if (Array.isArray(files) && files.length > 0) {
-            setValue('train_data_file_key', files[0].name, { shouldValidate: true });
+        onSelectFiles={(files) => {
+          if (files.length > 0) {
+            const file = files[0];
+            const filePath = file.path.replace(/^\//, '');
+            setValue('train_data_file_key', filePath, { shouldValidate: true });
           }
         }}
+        selectableExtensions={['csv']}
+        unselectableReason="You can only select CSV files"
       />
     </>
   );
