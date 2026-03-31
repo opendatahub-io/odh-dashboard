@@ -47,6 +47,11 @@ jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwarePr
   useAssignHardwareProfile: (...args: unknown[]) => mockUseAssignHardwareProfile(...args),
 }));
 
+const mockUseWizardFieldExtractors = jest.fn();
+jest.mock('../../deploymentWizard/useWizardFieldExtractors', () => ({
+  useWizardFieldExtractors: (...args: unknown[]) => mockUseWizardFieldExtractors(...args),
+}));
+
 const mockDeployment = () => ({
   modelServingPlatformId: 'test-platform',
   model: {
@@ -69,10 +74,16 @@ describe('DeploymentsTableRowExpandedSection', () => {
         selectedHardwareProfile: mockHardwareProfile({ displayName: 'test-profile' }),
       }),
     );
+    mockUseWizardFieldExtractors.mockReturnValue({
+      extractedFieldData: { 'maas/save-as-maas-checkbox': { isChecked: true } },
+      extractorsLoaded: true,
+      extractorErrors: [],
+    });
   });
 
   afterEach(() => {
     mockUseAssignHardwareProfile.mockReset();
+    mockUseWizardFieldExtractors.mockReset();
   });
   it('should render the expanded row with correct data', () => {
     render(

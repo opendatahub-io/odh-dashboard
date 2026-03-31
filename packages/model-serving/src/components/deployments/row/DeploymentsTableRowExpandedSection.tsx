@@ -18,16 +18,24 @@ import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelSer
 import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import HardwareProfileNameValue from './HardwareProfileNameValue';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
 import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
 import {
   isModelServingDeploymentFormDataExtension,
-  isWizardFieldExtractorExtension,
   type Deployment,
 } from '../../../../extension-points';
+import { useWizardFieldExtractors } from '../../deploymentWizard/useWizardFieldExtractors';
 import type { ModelAvailabilityFieldsData } from '../../deploymentWizard/types';
+
+const MAAS_ENDPOINT_FIELD_ID = 'maas/save-as-maas-checkbox';
+
+const isMaaSChecked = (value: unknown): boolean =>
+  typeof value === 'object' &&
+  value !== null &&
+  'isChecked' in value &&
+  typeof value.isChecked === 'boolean' &&
+  value.isChecked;
 
 const FrameworkItem = ({ framework }: { framework: SupportedModelFormats }) => {
   const name = `${framework.name}${framework.version ? `-${framework.version}` : ''}`;
@@ -103,27 +111,33 @@ const TokenAuthenticationItem = ({ deployment }: { deployment: Deployment }) => 
 
 const ModelAvailabilityItem = ({
   modelAvailability,
+  isMaaSEnabled,
 }: {
   modelAvailability: ModelAvailabilityFieldsData;
+  isMaaSEnabled: boolean;
 }) => {
   const availabilityTypes = [];
   if (modelAvailability.saveAsAiAsset) {
     availabilityTypes.push('AI asset endpoint');
   }
-  if (modelAvailability.saveAsMaaS) {
+  if (isMaaSEnabled) {
     availabilityTypes.push('Model-as-a-Service (MaaS)');
   }
   return (
-    <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
+    <DescriptionList
+      isHorizontal
+      horizontalTermWidthModifier={{ default: '250px' }}
+      data-testid="model-availability-description-section"
+    >
       <DescriptionListGroup>
         <DescriptionListTerm>Model availability</DescriptionListTerm>
-        <DescriptionListDescription>
+        <DescriptionListDescription data-testid="model-availability-description-item">
           {availabilityTypes.length > 0 ? availabilityTypes.join(', ') : 'No model availability'}
         </DescriptionListDescription>
         {availabilityTypes.length > 0 ? (
           <>
             <DescriptionListTerm>Use case</DescriptionListTerm>
-            <DescriptionListDescription>
+            <DescriptionListDescription data-testid="use-case-description-item">
               <Truncate content={modelAvailability.useCase ?? 'No use case'} />
             </DescriptionListDescription>
           </>
@@ -180,15 +194,13 @@ export const DeploymentRowExpandedSection: React.FC<{
     [formDataExtension, deployment],
   );
 
-  const [extractorExtensions] = useResolvedExtensions(isWizardFieldExtractorExtension);
-  const maasExtractorValue = React.useMemo(() => {
-    const maasExtractor = extractorExtensions.find(
-      (ext) =>
-        ext.properties.fieldId === 'maas/save-as-maas-checkbox' &&
-        ext.properties.platform === deployment.modelServingPlatformId,
-    );
-    return maasExtractor?.properties.extract(deployment);
-  }, [extractorExtensions, deployment]);
+  const { extractedFieldData } = useWizardFieldExtractors(deployment);
+  const maasExtractorValue = React.useMemo(
+    () => ({
+      isMaaSEnabled: isMaaSChecked(extractedFieldData[MAAS_ENDPOINT_FIELD_ID]),
+    }),
+    [extractedFieldData],
+  );
 
   if (!isVisible) {
     return null;
@@ -210,8 +222,15 @@ export const DeploymentRowExpandedSection: React.FC<{
               project={deployment.model.metadata.namespace}
               hardwareProfile={hardwareProfileOptions}
             />
-            {modelAvailability && <ModelAvailabilityItem modelAvailability={modelAvailability} />}
-            {!maasExtractorValue && <TokenAuthenticationItem deployment={deployment} />}
+            {modelAvailability && (
+              <ModelAvailabilityItem
+                modelAvailability={modelAvailability}
+                isMaaSEnabled={maasExtractorValue.isMaaSEnabled}
+              />
+            )}
+            {!maasExtractorValue.isMaaSEnabled && (
+              <TokenAuthenticationItem deployment={deployment} />
+            )}
           </Stack>
         </ExpandableRowContent>
       </Td>
