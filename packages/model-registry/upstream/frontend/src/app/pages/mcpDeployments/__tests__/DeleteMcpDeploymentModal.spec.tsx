@@ -15,18 +15,6 @@ jest.mock('mod-arch-core', () => ({
   useQueryParamNamespaces: jest.fn(() => ({})),
 }));
 
-const mockNotification = {
-  error: jest.fn(),
-  success: jest.fn(),
-  info: jest.fn(),
-  warning: jest.fn(),
-  remove: jest.fn(),
-};
-
-jest.mock('~/app/hooks/useNotification', () => ({
-  useNotification: () => mockNotification,
-}));
-
 const deleteMcpDeploymentMock = jest.mocked(deleteMcpDeployment);
 
 const renderModal = (onClose = jest.fn()) => {
@@ -144,7 +132,7 @@ describe('DeleteMcpDeploymentModal', () => {
     resolveDelete();
   });
 
-  it('should surface deletion failure via notification', async () => {
+  it('should surface deletion failure via inline alert', async () => {
     const user = userEvent.setup();
     deleteMcpDeploymentMock.mockReturnValue(() =>
       Promise.reject(new Error('Internal server error')),
@@ -155,10 +143,10 @@ describe('DeleteMcpDeploymentModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /delete mcp server deployment/i }));
 
     await waitFor(() =>
-      expect(mockNotification.error).toHaveBeenCalledWith(
-        'Error deleting kubernetes-mcp',
-        'Internal server error',
-      ),
+      expect(screen.getByTestId('delete-modal-error-message-alert')).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId('delete-modal-error-message-alert').textContent).toContain(
+      'Internal server error',
     );
   });
 
@@ -171,7 +159,9 @@ describe('DeleteMcpDeploymentModal', () => {
     await user.type(screen.getByTestId('delete-modal-input'), 'kubernetes-mcp');
     fireEvent.click(screen.getByRole('button', { name: /delete mcp server deployment/i }));
 
-    await waitFor(() => expect(mockNotification.error).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByTestId('delete-modal-error-message-alert')).toBeInTheDocument(),
+    );
     expect(onClose).not.toHaveBeenCalled();
   });
 });

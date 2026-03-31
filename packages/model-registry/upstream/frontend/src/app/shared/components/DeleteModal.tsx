@@ -1,6 +1,7 @@
 // // TODO: Move this code to shared library once the migration completes.
 import * as React from 'react';
 import {
+  Alert,
   Button,
   Flex,
   FlexItem,
@@ -22,6 +23,7 @@ type DeleteModalProps = {
   onDelete: () => void;
   deleteName: string;
   submitButtonLabel?: string;
+  error?: Error;
   children: React.ReactNode;
   testId?: string;
   genericLabel?: boolean;
@@ -36,6 +38,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   deleting,
   onDelete,
   deleteName,
+  error,
   submitButtonLabel = 'Delete',
   testId,
   genericLabel,
@@ -105,6 +108,19 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
               ) : null}
             </Flex>
           </StackItem>
+
+          {error && (
+            <StackItem>
+              <Alert
+                data-testid="delete-modal-error-message-alert"
+                title={`Error deleting ${deleteNameSanitized}`}
+                isInline
+                variant="danger"
+              >
+                {error.message}
+              </Alert>
+            </StackItem>
+          )}
         </Stack>
       </ModalBody>
       <ModalFooter>

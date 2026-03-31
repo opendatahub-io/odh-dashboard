@@ -4,7 +4,6 @@ import { McpDeployment } from '~/app/mcpDeploymentTypes';
 import DeleteModal from '~/app/shared/components/DeleteModal';
 import { deleteMcpDeployment } from '~/app/api/mcpDeploymentService';
 import { BFF_HOST_PATH } from '~/app/utilities/const';
-import { useNotification } from '~/app/hooks/useNotification';
 
 type DeleteMcpDeploymentModalProps = {
   deployment: McpDeployment;
@@ -15,20 +14,18 @@ const DeleteMcpDeploymentModal: React.FC<DeleteMcpDeploymentModalProps> = ({
   deployment,
   onClose,
 }) => {
-  const notification = useNotification();
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<Error | undefined>();
   const queryParams = useQueryParamNamespaces();
 
   const handleDelete = async () => {
     setIsDeleting(true);
+    setDeleteError(undefined);
     try {
       await deleteMcpDeployment(BFF_HOST_PATH, queryParams)({}, deployment.name);
       onClose(true);
     } catch (e) {
-      notification.error(
-        `Error deleting ${deployment.name}`,
-        e instanceof Error ? e.message : 'Failed to delete MCP deployment',
-      );
+      setDeleteError(e instanceof Error ? e : new Error('Failed to delete MCP deployment'));
       setIsDeleting(false);
     }
   };
@@ -44,6 +41,7 @@ const DeleteMcpDeploymentModal: React.FC<DeleteMcpDeploymentModalProps> = ({
       submitButtonLabel="Delete MCP server deployment"
       inputPlaceholder={deployment.name}
       inputHelperText="Enter the deployment name exactly as shown to confirm deletion."
+      error={deleteError}
     >
       The <strong>{deployment.name}</strong> MCP server deployment and its API keys will be deleted,
       and its endpoint will no longer be available as an AI asset.
