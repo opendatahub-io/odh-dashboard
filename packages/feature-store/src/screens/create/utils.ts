@@ -1,5 +1,11 @@
 import { FeatureStoreFormSpec } from '@odh-dashboard/internal/api/k8s/featureStores';
-import { FeastServices, FeastAuthzConfig } from '@odh-dashboard/internal/k8sTypes';
+import {
+  FeastServices,
+  FeastAuthzConfig,
+  FeastServerConfigs,
+  FeastRegistryServerConfigs,
+  FeastWorkerConfigs,
+} from '@odh-dashboard/internal/k8sTypes';
 import {
   FeatureStoreFormData,
   RegistryType,
@@ -16,11 +22,90 @@ const buildEnvFrom = (secretName: string): Record<string, unknown>[] | undefined
   return [{ secretRef: { name: secretName.trim() } }];
 };
 
+const cleanWorkerConfigs = (wc: FeastWorkerConfigs | undefined): FeastWorkerConfigs | undefined => {
+  if (!wc) {
+    return undefined;
+  }
+  const cleaned: FeastWorkerConfigs = {};
+  if (wc.workers != null) {
+    cleaned.workers = wc.workers;
+  }
+  if (wc.workerConnections != null) {
+    cleaned.workerConnections = wc.workerConnections;
+  }
+  if (wc.maxRequests != null) {
+    cleaned.maxRequests = wc.maxRequests;
+  }
+  if (wc.maxRequestsJitter != null) {
+    cleaned.maxRequestsJitter = wc.maxRequestsJitter;
+  }
+  if (wc.keepAliveTimeout != null) {
+    cleaned.keepAliveTimeout = wc.keepAliveTimeout;
+  }
+  if (wc.registryTTLSeconds != null) {
+    cleaned.registryTTLSeconds = wc.registryTTLSeconds;
+  }
+  return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+};
+
+const cleanServerConfig = (
+  config: FeastServerConfigs | undefined,
+): FeastServerConfigs | undefined => {
+  if (!config) {
+    return undefined;
+  }
+  const cleaned: FeastServerConfigs = {};
+  if (config.logLevel) {
+    cleaned.logLevel = config.logLevel;
+  }
+  if (config.metrics != null) {
+    cleaned.metrics = config.metrics;
+  }
+  if (config.image) {
+    cleaned.image = config.image;
+  }
+  if (config.resources) {
+    const toRecord = (val: unknown): Record<string, string> => {
+      if (val && typeof val === 'object') {
+        return val as Record<string, string>; // eslint-disable-line @typescript-eslint/consistent-type-assertions
+      }
+      return {};
+    };
+    const requests = toRecord(config.resources.requests);
+    const limits = toRecord(config.resources.limits);
+    const cleanedRequests = Object.fromEntries(
+      Object.entries(requests).filter(([, v]) => v !== ''),
+    );
+    const cleanedLimits = Object.fromEntries(Object.entries(limits).filter(([, v]) => v !== ''));
+    const cleanedResources: Record<string, unknown> = {};
+    if (Object.keys(cleanedRequests).length > 0) {
+      cleanedResources.requests = cleanedRequests;
+    }
+    if (Object.keys(cleanedLimits).length > 0) {
+      cleanedResources.limits = cleanedLimits;
+    }
+    if (Object.keys(cleanedResources).length > 0) {
+      cleaned.resources = cleanedResources;
+    }
+  }
+  const wc = cleanWorkerConfigs(config.workerConfigs);
+  if (wc) {
+    cleaned.workerConfigs = wc;
+  }
+  return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+};
+
 const buildServices = (data: FeatureStoreFormData): FeastServices | undefined => {
   const services: FeastServices = {};
 
   if (data.registryType === RegistryType.LOCAL) {
-    const registryServer = { ...data.services?.registry?.local?.server };
+    const rawRegistryServer = data.services?.registry?.local?.server;
+    const cleanedBase = cleanServerConfig(rawRegistryServer);
+    const registryServer: FeastRegistryServerConfigs = {
+      ...cleanedBase,
+      ...(rawRegistryServer?.restAPI != null && { restAPI: rawRegistryServer.restAPI }),
+      ...(rawRegistryServer?.grpc != null && { grpc: rawRegistryServer.grpc }),
+    };
     const registryEnvFrom = buildEnvFrom(data.registrySecretName);
     if (registryEnvFrom) {
       registryServer.envFrom = registryEnvFrom;
@@ -28,13 +113,18 @@ const buildServices = (data: FeatureStoreFormData): FeastServices | undefined =>
 
     const localRegistry: FeastServices['registry'] = {
       local: {
-        server: registryServer,
+        server: Object.keys(registryServer).length > 0 ? registryServer : undefined,
       },
     };
 
     if (data.registryPersistenceType === PersistenceType.FILE) {
       const filePersistence = data.services?.registry?.local?.persistence?.file;
-      if (filePersistence?.path) {
+      if (
+        filePersistence?.path ||
+        filePersistence?.pvc ||
+        filePersistence?.cache_ttl_seconds ||
+        filePersistence?.cache_mode
+      ) {
         localRegistry.local = {
           ...localRegistry.local,
           persistence: { file: filePersistence },
@@ -61,9 +151,9 @@ const buildServices = (data: FeatureStoreFormData): FeastServices | undefined =>
     const onlineStore: FeastServices['onlineStore'] = {};
 
     if (data.onlinePersistenceType === PersistenceType.FILE) {
-      const filePath = data.services?.onlineStore?.persistence?.file?.path;
-      if (filePath) {
-        onlineStore.persistence = { file: { path: filePath } };
+      const filePersistence = data.services?.onlineStore?.persistence?.file;
+      if (filePersistence?.path || filePersistence?.pvc) {
+        onlineStore.persistence = { file: filePersistence };
       }
     } else {
       const storePersistence = data.services?.onlineStore?.persistence?.store;
@@ -72,7 +162,8 @@ const buildServices = (data: FeatureStoreFormData): FeastServices | undefined =>
       }
     }
 
-    const onlineServer = { ...data.services?.onlineStore?.server };
+    const cleanedOnlineServer = cleanServerConfig(data.services?.onlineStore?.server);
+    const onlineServer: FeastServerConfigs = cleanedOnlineServer ?? {};
     const onlineEnvFrom = buildEnvFrom(data.onlineStoreSecretName);
     if (onlineEnvFrom) {
       onlineServer.envFrom = onlineEnvFrom;
@@ -89,7 +180,7 @@ const buildServices = (data: FeatureStoreFormData): FeastServices | undefined =>
 
     if (data.offlinePersistenceType === PersistenceType.FILE) {
       const filePersistence = data.services?.offlineStore?.persistence?.file;
-      if (filePersistence?.type) {
+      if (filePersistence?.type || filePersistence?.pvc) {
         offlineStore.persistence = { file: filePersistence };
       }
     } else {
@@ -99,7 +190,8 @@ const buildServices = (data: FeatureStoreFormData): FeastServices | undefined =>
       }
     }
 
-    const offlineServer = { ...data.services?.offlineStore?.server };
+    const cleanedOfflineServer = cleanServerConfig(data.services?.offlineStore?.server);
+    const offlineServer: FeastServerConfigs = cleanedOfflineServer ?? {};
     const offlineEnvFrom = buildEnvFrom(data.offlineStoreSecretName);
     if (offlineEnvFrom) {
       offlineServer.envFrom = offlineEnvFrom;
@@ -128,6 +220,10 @@ const buildServices = (data: FeatureStoreFormData): FeastServices | undefined =>
     };
   }
 
+  if (data.services?.podDisruptionBudgets) {
+    services.podDisruptionBudgets = data.services.podDisruptionBudgets;
+  }
+
   return Object.keys(services).length > 0 ? services : undefined;
 };
 
@@ -147,10 +243,21 @@ export const buildFormSpec = (
     labels[FEATURE_STORE_UI_LABEL_KEY] = FEATURE_STORE_UI_LABEL_VALUE;
   }
 
+  let { feastProjectDir } = data;
+  if (feastProjectDir?.git && data.gitSecretName.trim()) {
+    feastProjectDir = {
+      ...feastProjectDir,
+      git: {
+        ...feastProjectDir.git,
+        envFrom: [{ secretRef: { name: data.gitSecretName.trim() } }],
+      },
+    };
+  }
+
   return {
     feastProject: data.feastProject,
     namespace: data.namespace,
-    feastProjectDir: data.feastProjectDir,
+    feastProjectDir,
     services: buildServices(data),
     authz: buildAuthz(data),
     cronJob: data.cronJob,

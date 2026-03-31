@@ -12,7 +12,10 @@ import {
   Alert,
 } from '@patternfly/react-core';
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
+import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
 import { FeatureStoreKind, FeastRemoteRegistryConfig } from '@odh-dashboard/internal/k8sTypes';
+import PvcConfigSection from './PvcConfigSection';
+import ServerConfigSection from './ServerConfigSection';
 import {
   FeatureStoreFormData,
   RegistryType,
@@ -193,6 +196,21 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                 </HelperText>
               </FormHelperText>
             </FormGroup>
+
+            <ServerConfigSection
+              title="Advanced registry server configuration"
+              serverConfig={data.services?.registry?.local?.server}
+              showRegistryTTL
+              onChange={(config) =>
+                setData('services', {
+                  ...data.services,
+                  registry: {
+                    ...data.services?.registry,
+                    local: { ...data.services?.registry?.local, server: config },
+                  },
+                })
+              }
+            />
           </FormSection>
 
           <FormSection title="Registry persistence">
@@ -242,7 +260,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                         },
                       })
                     }
-                    placeholder="/feast-data/registry.db or s3://bucket/registry.db"
+                    placeholder="registry.db or s3://bucket/registry.db"
                   />
                   <FormHelperText>
                     <HelperText>
@@ -338,6 +356,101 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                     )}
                   </>
                 )}
+
+                <PvcConfigSection
+                  pvcConfig={data.services?.registry?.local?.persistence?.file?.pvc}
+                  defaultMountPath="/data/registry"
+                  defaultStorageSize="5Gi"
+                  onChange={(pvc) =>
+                    setData('services', {
+                      ...data.services,
+                      registry: {
+                        local: {
+                          ...data.services?.registry?.local,
+                          persistence: {
+                            file: {
+                              ...data.services?.registry?.local?.persistence?.file,
+                              pvc: pvc ?? undefined,
+                            },
+                          },
+                        },
+                      },
+                    })
+                  }
+                />
+
+                <FormGroup label="File cache TTL (seconds)" fieldId="feast-registry-cache-ttl">
+                  <NumberInputWrapper
+                    min={0}
+                    value={
+                      data.services?.registry?.local?.persistence?.file?.cache_ttl_seconds ?? 0
+                    }
+                    onChange={(val) =>
+                      setData('services', {
+                        ...data.services,
+                        registry: {
+                          local: {
+                            ...data.services?.registry?.local,
+                            persistence: {
+                              file: {
+                                ...data.services?.registry?.local?.persistence?.file,
+                                // eslint-disable-next-line camelcase
+                                cache_ttl_seconds: val || undefined,
+                              },
+                            },
+                          },
+                        },
+                      })
+                    }
+                  />
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        How long (in seconds) the file-based registry cache remains valid before
+                        re-reading from storage. 0 or empty for no caching.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                </FormGroup>
+
+                <FormGroup label="File cache update strategy" fieldId="feast-registry-cache-mode">
+                  <SimpleSelect
+                    dataTestId="feast-registry-cache-mode"
+                    options={[
+                      { key: 'none', label: 'none' },
+                      { key: 'sync', label: 'sync' },
+                      { key: 'thread', label: 'thread' },
+                    ]}
+                    value={data.services?.registry?.local?.persistence?.file?.cache_mode ?? ''}
+                    placeholder="Default (none)"
+                    onChange={(key) =>
+                      setData('services', {
+                        ...data.services,
+                        registry: {
+                          local: {
+                            ...data.services?.registry?.local,
+                            persistence: {
+                              file: {
+                                ...data.services?.registry?.local?.persistence?.file,
+                                // eslint-disable-next-line camelcase
+                                cache_mode: key || undefined,
+                              },
+                            },
+                          },
+                        },
+                      })
+                    }
+                    isFullWidth
+                  />
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        &quot;sync&quot; refreshes the cache synchronously on read.
+                        &quot;thread&quot; uses a background thread for updates.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                </FormGroup>
               </>
             )}
 
@@ -398,6 +511,41 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                     }
                     isFullWidth
                   />
+                </FormGroup>
+                <FormGroup label="Secret key name" fieldId="feast-registry-db-secret-key">
+                  <TextInput
+                    id="feast-registry-db-secret-key"
+                    value={data.services?.registry?.local?.persistence?.store?.secretKeyName ?? ''}
+                    onChange={(_e, val) =>
+                      setData('services', {
+                        ...data.services,
+                        registry: {
+                          local: {
+                            ...data.services?.registry?.local,
+                            persistence: {
+                              store: {
+                                ...data.services?.registry?.local?.persistence?.store,
+                                type:
+                                  data.services?.registry?.local?.persistence?.store?.type ?? '',
+                                secretRef: data.services?.registry?.local?.persistence?.store
+                                  ?.secretRef ?? { name: '' },
+                                secretKeyName: val || undefined,
+                              },
+                            },
+                          },
+                        },
+                      })
+                    }
+                    placeholder="Defaults to the database type"
+                  />
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        Key within the secret that holds the connection config. Defaults to the
+                        database type name if empty.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
                 </FormGroup>
               </>
             )}

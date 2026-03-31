@@ -73,9 +73,11 @@ export type FeatureStoreFormData = {
   batchEngineEnabled: boolean;
   batchEngineConfigMapName: string;
   batchEngineConfigMapKey: string;
+
+  gitSecretName: string;
 };
 
-export const FEAST_PROJECT_NAME_REGEX = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
+export const FEAST_PROJECT_NAME_REGEX = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/;
 
 export const VALID_OFFLINE_FILE_TYPES = ['file', 'dask', 'duckdb'];
 export const VALID_OFFLINE_DB_TYPES = [

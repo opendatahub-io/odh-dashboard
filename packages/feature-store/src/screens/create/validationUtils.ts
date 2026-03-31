@@ -32,7 +32,7 @@ const validateProjectBasics = (
     return {
       valid: false,
       message:
-        'Name must start with a letter or number and contain only letters, numbers, underscores, and hyphens.',
+        'Name must consist of lowercase alphanumeric characters, hyphens, or dots, and must start and end with an alphanumeric character.',
     };
   }
   if (existingProjectNames.includes(data.feastProject)) {

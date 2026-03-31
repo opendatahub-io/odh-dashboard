@@ -25,12 +25,14 @@ type ProjectBasicsStepProps = {
   data: FeatureStoreFormData;
   setData: UpdateObjectAtPropAndValue<FeatureStoreFormData>;
   existingProjectNames: string[];
+  namespaceSecrets: string[];
 };
 
 const ProjectBasicsStep: React.FC<ProjectBasicsStepProps> = ({
   data,
   setData,
   existingProjectNames,
+  namespaceSecrets,
 }) => {
   const { namespaces, loaded: namespacesLoaded } = useAccessibleNamespaces();
 
@@ -83,14 +85,14 @@ const ProjectBasicsStep: React.FC<ProjectBasicsStepProps> = ({
             value={data.feastProject}
             onChange={(_e, val) => setData('feastProject', val)}
             validated={!nameValid || nameIsDuplicate ? 'error' : 'default'}
-            placeholder="my_feature_store"
+            placeholder="myfeaturestore"
           />
           <FormHelperText>
             <HelperText>
               {!nameValid ? (
                 <HelperTextItem variant="error">
-                  Must start with a letter or number and contain only letters, numbers, underscores,
-                  and hyphens.
+                  Must consist of lowercase alphanumeric characters, &apos;-&apos; or &apos;.&apos;,
+                  and must start and end with an alphanumeric character.
                 </HelperTextItem>
               ) : nameIsDuplicate ? (
                 <HelperTextItem variant="error">
@@ -98,8 +100,8 @@ const ProjectBasicsStep: React.FC<ProjectBasicsStepProps> = ({
                 </HelperTextItem>
               ) : (
                 <HelperTextItem>
-                  Alphanumeric name with underscores and hyphens. Cannot start with underscore or
-                  hyphen.
+                  Lowercase alphanumeric name with hyphens or dots. Must start and end with an
+                  alphanumeric character.
                 </HelperTextItem>
               )}
             </HelperText>
@@ -215,6 +217,24 @@ const ProjectBasicsStep: React.FC<ProjectBasicsStepProps> = ({
                 <HelperText>
                   <HelperTextItem>
                     Relative path to the feature repo subdirectory. Must not start with a slash.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            </FormGroup>
+            <FormGroup label="Credentials secret (envFrom)" fieldId="feast-git-envfrom">
+              <SimpleSelect
+                dataTestId="feast-git-envfrom"
+                options={namespaceSecrets.map((s) => ({ key: s, label: s }))}
+                value={data.gitSecretName}
+                placeholder="Select a secret (optional)"
+                onChange={(key) => setData('gitSecretName', key)}
+                isFullWidth
+              />
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    Optional. Secret with credentials for private Git repositories, injected as
+                    environment variables into the git-clone init container.
                   </HelperTextItem>
                 </HelperText>
               </FormHelperText>

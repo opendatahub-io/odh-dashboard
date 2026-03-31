@@ -4,14 +4,10 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
-  Timestamp,
-  Label,
-  Popover,
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { PlusCircleIcon, CubesIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { PlusCircleIcon, CubesIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -23,10 +19,16 @@ import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
 import DeleteFeatureStoreModal from './DeleteFeatureStoreModal';
+import FeatureStoreTableRow from './FeatureStoreTableRow';
 import useExistingFeatureStores from '../../hooks/useExistingFeatureStores';
 import { FEATURE_STORE_UI_LABEL_KEY, FEATURE_STORE_UI_LABEL_VALUE } from '../../const';
 
 const columns: SortableData<FeatureStoreKind>[] = [
+  {
+    field: 'expand',
+    label: '',
+    sortable: false,
+  },
   {
     field: 'name',
     label: 'Name',
@@ -66,24 +68,24 @@ const columns: SortableData<FeatureStoreKind>[] = [
   },
 ];
 
-const phaseLabel = (phase?: string): React.ReactNode => {
-  switch (phase) {
-    case 'Ready':
-      return <Label color="green">Ready</Label>;
-    case 'Failed':
-      return <Label color="red">Failed</Label>;
-    case 'Installing':
-      return <Label color="blue">Installing</Label>;
-    default:
-      return <Label color="grey">{phase ?? 'Pending'}</Label>;
-  }
-};
-
 const FeatureStoreListPage: React.FC = () => {
   const { featureStores, loaded, error, refresh } = useExistingFeatureStores();
   const [canCreate] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
   const [canDelete] = useAccessAllowed(verbModelAccess('delete', FeatureStoreModel));
   const [deleteTarget, setDeleteTarget] = React.useState<FeatureStoreKind | undefined>();
+  const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
+
+  const toggleRowExpansion = React.useCallback((name: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) {
+        next.delete(name);
+      } else {
+        next.add(name);
+      }
+      return next;
+    });
+  }, []);
 
   const onDeleteClose = (deleted: boolean) => {
     setDeleteTarget(undefined);
@@ -156,62 +158,23 @@ const FeatureStoreListPage: React.FC = () => {
           enablePagination
           data={featureStores}
           columns={columns}
-          defaultSortColumn={0}
+          defaultSortColumn={1}
           toolbarContent={toolbarContent}
           emptyTableView={<DashboardEmptyTableView onClearFilters={() => undefined} />}
-          rowRenderer={(fs) => {
-            const isUILabeled =
-              fs.metadata.labels?.[FEATURE_STORE_UI_LABEL_KEY] === FEATURE_STORE_UI_LABEL_VALUE;
-            return (
-              <Tr key={fs.metadata.uid}>
-                <Td dataLabel="Name">
-                  {fs.status?.phase === 'Ready' ? (
-                    <Link to={`/develop-train/feature-store/overview/${fs.spec.feastProject}`}>
-                      {fs.metadata.name}
-                    </Link>
-                  ) : (
-                    fs.metadata.name
-                  )}
-                  {isUILabeled && (
-                    <>
-                      {' '}
-                      <Popover bodyContent="This is the primary feature store whose registry is shared with other feature stores. Additional feature stores should use a remote registry pointing to this store.">
-                        <Label
-                          color="blue"
-                          isCompact
-                          icon={<OutlinedQuestionCircleIcon />}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          Primary
-                        </Label>
-                      </Popover>
-                    </>
-                  )}
-                </Td>
-                <Td dataLabel="Namespace">{fs.metadata.namespace}</Td>
-                <Td dataLabel="Status">{phaseLabel(fs.status?.phase)}</Td>
-                <Td dataLabel="Version">{fs.status?.feastVersion ?? '-'}</Td>
-                <Td dataLabel="Created">
-                  {fs.metadata.creationTimestamp ? (
-                    <Timestamp date={new Date(fs.metadata.creationTimestamp)} />
-                  ) : (
-                    '-'
-                  )}
-                </Td>
-                <Td isActionCell>
-                  <ActionsColumn
-                    items={[
-                      {
-                        title: 'Delete',
-                        isDisabled: !canDelete,
-                        onClick: () => setDeleteTarget(fs),
-                      },
-                    ]}
-                  />
-                </Td>
-              </Tr>
-            );
-          }}
+          rowRenderer={(fs, rowIndex) => (
+            <FeatureStoreTableRow
+              key={fs.metadata.uid}
+              featureStore={fs}
+              rowIndex={rowIndex}
+              isExpanded={expandedRows.has(fs.metadata.name)}
+              onToggleExpansion={() => toggleRowExpansion(fs.metadata.name)}
+              isUILabeled={
+                fs.metadata.labels?.[FEATURE_STORE_UI_LABEL_KEY] === FEATURE_STORE_UI_LABEL_VALUE
+              }
+              canDelete={canDelete}
+              onDelete={setDeleteTarget}
+            />
+          )}
         />
       </ApplicationsPage>
 

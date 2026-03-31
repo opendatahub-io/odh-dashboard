@@ -12,6 +12,8 @@ import {
   Alert,
 } from '@patternfly/react-core';
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
+import PvcConfigSection from './PvcConfigSection';
+import ServerConfigSection from './ServerConfigSection';
 import {
   FeatureStoreFormData,
   PersistenceType,
@@ -89,11 +91,16 @@ const StoreConfigStep: React.FC<StoreConfigStepProps> = ({ data, setData, namesp
                         ...data.services,
                         onlineStore: {
                           ...data.services?.onlineStore,
-                          persistence: { file: { path: val } },
+                          persistence: {
+                            file: {
+                              ...data.services?.onlineStore?.persistence?.file,
+                              path: val,
+                            },
+                          },
                         },
                       })
                     }
-                    placeholder="/feast-data/online_store.db"
+                    placeholder="online_store.db"
                   />
                   <FormHelperText>
                     <HelperText>
@@ -103,6 +110,25 @@ const StoreConfigStep: React.FC<StoreConfigStepProps> = ({ data, setData, namesp
                     </HelperText>
                   </FormHelperText>
                 </FormGroup>
+                <PvcConfigSection
+                  pvcConfig={data.services?.onlineStore?.persistence?.file?.pvc}
+                  defaultMountPath="/data/online"
+                  defaultStorageSize="5Gi"
+                  onChange={(pvc) =>
+                    setData('services', {
+                      ...data.services,
+                      onlineStore: {
+                        ...data.services?.onlineStore,
+                        persistence: {
+                          file: {
+                            ...data.services?.onlineStore?.persistence?.file,
+                            pvc: pvc ?? undefined,
+                          },
+                        },
+                      },
+                    })
+                  }
+                />
               </>
             )}
 
@@ -165,6 +191,38 @@ const StoreConfigStep: React.FC<StoreConfigStepProps> = ({ data, setData, namesp
                     </HelperText>
                   </FormHelperText>
                 </FormGroup>
+                <FormGroup label="Secret key name" fieldId="feast-online-db-secret-key">
+                  <TextInput
+                    id="feast-online-db-secret-key"
+                    value={data.services?.onlineStore?.persistence?.store?.secretKeyName ?? ''}
+                    onChange={(_e, val) =>
+                      setData('services', {
+                        ...data.services,
+                        onlineStore: {
+                          ...data.services?.onlineStore,
+                          persistence: {
+                            store: {
+                              ...data.services?.onlineStore?.persistence?.store,
+                              type: data.services?.onlineStore?.persistence?.store?.type ?? '',
+                              secretRef: data.services?.onlineStore?.persistence?.store
+                                ?.secretRef ?? { name: '' },
+                              secretKeyName: val || undefined,
+                            },
+                          },
+                        },
+                      })
+                    }
+                    placeholder="Defaults to the database type"
+                  />
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        Key within the secret that holds the connection config. Defaults to the
+                        database type name if empty.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                </FormGroup>
                 <FormGroup
                   label="Credentials secret (envFrom)"
                   fieldId="feast-online-credentials-secret"
@@ -189,6 +247,19 @@ const StoreConfigStep: React.FC<StoreConfigStepProps> = ({ data, setData, namesp
               </>
             )}
           </>
+        )}
+
+        {data.onlineStoreEnabled && (
+          <ServerConfigSection
+            title="Advanced online store server configuration"
+            serverConfig={data.services?.onlineStore?.server}
+            onChange={(config) =>
+              setData('services', {
+                ...data.services,
+                onlineStore: { ...data.services?.onlineStore, server: config },
+              })
+            }
+          />
         )}
       </FormSection>
 
@@ -259,6 +330,25 @@ const StoreConfigStep: React.FC<StoreConfigStepProps> = ({ data, setData, namesp
                     isFullWidth
                   />
                 </FormGroup>
+                <PvcConfigSection
+                  pvcConfig={data.services?.offlineStore?.persistence?.file?.pvc}
+                  defaultMountPath="/data/offline"
+                  defaultStorageSize="10Gi"
+                  onChange={(pvc) =>
+                    setData('services', {
+                      ...data.services,
+                      offlineStore: {
+                        ...data.services?.offlineStore,
+                        persistence: {
+                          file: {
+                            ...data.services?.offlineStore?.persistence?.file,
+                            pvc: pvc ?? undefined,
+                          },
+                        },
+                      },
+                    })
+                  }
+                />
               </>
             )}
 
@@ -321,6 +411,38 @@ const StoreConfigStep: React.FC<StoreConfigStepProps> = ({ data, setData, namesp
                     </HelperText>
                   </FormHelperText>
                 </FormGroup>
+                <FormGroup label="Secret key name" fieldId="feast-offline-db-secret-key">
+                  <TextInput
+                    id="feast-offline-db-secret-key"
+                    value={data.services?.offlineStore?.persistence?.store?.secretKeyName ?? ''}
+                    onChange={(_e, val) =>
+                      setData('services', {
+                        ...data.services,
+                        offlineStore: {
+                          ...data.services?.offlineStore,
+                          persistence: {
+                            store: {
+                              ...data.services?.offlineStore?.persistence?.store,
+                              type: data.services?.offlineStore?.persistence?.store?.type ?? '',
+                              secretRef: data.services?.offlineStore?.persistence?.store
+                                ?.secretRef ?? { name: '' },
+                              secretKeyName: val || undefined,
+                            },
+                          },
+                        },
+                      })
+                    }
+                    placeholder="Defaults to the database type"
+                  />
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        Key within the secret that holds the connection config. Defaults to the
+                        database type name if empty.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                </FormGroup>
                 <FormGroup
                   label="Credentials secret (envFrom)"
                   fieldId="feast-offline-credentials-secret"
@@ -345,6 +467,19 @@ const StoreConfigStep: React.FC<StoreConfigStepProps> = ({ data, setData, namesp
               </>
             )}
           </>
+        )}
+
+        {data.offlineStoreEnabled && (
+          <ServerConfigSection
+            title="Advanced offline store server configuration"
+            serverConfig={data.services?.offlineStore?.server}
+            onChange={(config) =>
+              setData('services', {
+                ...data.services,
+                offlineStore: { ...data.services?.offlineStore, server: config },
+              })
+            }
+          />
         )}
       </FormSection>
     </Form>

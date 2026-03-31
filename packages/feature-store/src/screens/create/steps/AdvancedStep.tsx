@@ -27,6 +27,10 @@ const AdvancedStep: React.FC<AdvancedStepProps> = ({ data, setData, namespaceCon
   const [cronExpanded, setCronExpanded] = React.useState(false);
   const [scalingExpanded, setScalingExpanded] = React.useState(false);
   const [batchEngineExpanded, setBatchEngineExpanded] = React.useState(false);
+  const [pdbEnabled, setPdbEnabled] = React.useState(() => !!data.services?.podDisruptionBudgets);
+  const [pdbMode, setPdbMode] = React.useState<'minAvailable' | 'maxUnavailable'>(() =>
+    data.services?.podDisruptionBudgets?.maxUnavailable != null ? 'maxUnavailable' : 'minAvailable',
+  );
 
   const concurrencyOptions = VALID_CONCURRENCY_POLICIES.map((p) => ({
     key: p,
@@ -284,6 +288,103 @@ const AdvancedStep: React.FC<AdvancedStepProps> = ({ data, setData, namespaceCon
               )}
             </>
           )}
+
+          <FormGroup fieldId="feast-pdb-enabled">
+            <Switch
+              id="feast-pdb-enabled"
+              label="Pod disruption budget"
+              isChecked={pdbEnabled}
+              onChange={(_e, checked) => {
+                setPdbEnabled(checked);
+                if (!checked) {
+                  setData('services', { ...data.services, podDisruptionBudgets: undefined });
+                } else {
+                  setData('services', {
+                    ...data.services,
+                    podDisruptionBudgets: { minAvailable: 1 },
+                  });
+                }
+              }}
+            />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  Limits the number of pods that can be down simultaneously during voluntary
+                  disruptions.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          </FormGroup>
+
+          {pdbEnabled && (
+            <>
+              <FormGroup label="PDB mode" fieldId="feast-pdb-mode">
+                <Radio
+                  id="pdb-min-available"
+                  name="pdb-mode"
+                  label="Min available"
+                  description="Minimum number of pods that must remain available"
+                  isChecked={pdbMode === 'minAvailable'}
+                  onChange={() => {
+                    setPdbMode('minAvailable');
+                    setData('services', {
+                      ...data.services,
+                      podDisruptionBudgets: { minAvailable: 1 },
+                    });
+                  }}
+                />
+                <Radio
+                  id="pdb-max-unavailable"
+                  name="pdb-mode"
+                  label="Max unavailable"
+                  description="Maximum number of pods that can be unavailable"
+                  isChecked={pdbMode === 'maxUnavailable'}
+                  onChange={() => {
+                    setPdbMode('maxUnavailable');
+                    setData('services', {
+                      ...data.services,
+                      podDisruptionBudgets: { maxUnavailable: 1 },
+                    });
+                  }}
+                  className="pf-v6-u-mt-sm"
+                />
+              </FormGroup>
+              <FormGroup
+                label={pdbMode === 'minAvailable' ? 'Min available' : 'Max unavailable'}
+                fieldId="feast-pdb-value"
+              >
+                <TextInput
+                  id="feast-pdb-value"
+                  value={
+                    pdbMode === 'minAvailable'
+                      ? String(data.services?.podDisruptionBudgets?.minAvailable ?? 1)
+                      : String(data.services?.podDisruptionBudgets?.maxUnavailable ?? 1)
+                  }
+                  onChange={(_e, val) => {
+                    const parsed = /^\d+%?$/.test(val.trim()) ? val.trim() : val;
+                    const numVal = Number(parsed);
+                    const finalVal =
+                      !Number.isNaN(numVal) && !parsed.includes('%') ? numVal : parsed;
+                    setData('services', {
+                      ...data.services,
+                      podDisruptionBudgets:
+                        pdbMode === 'minAvailable'
+                          ? { minAvailable: finalVal }
+                          : { maxUnavailable: finalVal },
+                    });
+                  }}
+                  placeholder="1 or 50%"
+                />
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem>
+                      Integer value or percentage (e.g. &quot;50%&quot;).
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              </FormGroup>
+            </>
+          )}
         </FormSection>
       </ExpandableSection>
 
@@ -366,38 +467,34 @@ const AdvancedStep: React.FC<AdvancedStepProps> = ({ data, setData, namespaceCon
         </FormSection>
       </ExpandableSection>
 
-      <ExpandableSection toggleText="Services configuration">
-        <FormSection>
-          <FormGroup fieldId="feast-disable-init-containers">
-            <Switch
-              id="feast-disable-init-containers"
-              label="Disable init containers"
-              isChecked={data.services?.disableInitContainers ?? false}
-              onChange={(_e, checked) =>
-                setData('services', { ...data.services, disableInitContainers: checked })
-              }
-            />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>
-                  Disable the feast repo initialization init container.
-                </HelperTextItem>
-              </HelperText>
-            </FormHelperText>
-          </FormGroup>
+      <FormSection title="Init containers">
+        <FormGroup fieldId="feast-disable-init-containers">
+          <Switch
+            id="feast-disable-init-containers"
+            label="Disable init containers"
+            isChecked={data.services?.disableInitContainers ?? false}
+            onChange={(_e, checked) =>
+              setData('services', { ...data.services, disableInitContainers: checked })
+            }
+          />
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem>Disable the feast repo initialization init container.</HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        </FormGroup>
 
-          <FormGroup fieldId="feast-run-apply-on-init">
-            <Switch
-              id="feast-run-apply-on-init"
-              label="Run feast apply on init"
-              isChecked={data.services?.runFeastApplyOnInit ?? true}
-              onChange={(_e, checked) =>
-                setData('services', { ...data.services, runFeastApplyOnInit: checked })
-              }
-            />
-          </FormGroup>
-        </FormSection>
-      </ExpandableSection>
+        <FormGroup fieldId="feast-run-apply-on-init">
+          <Switch
+            id="feast-run-apply-on-init"
+            label="Run feast apply on init"
+            isChecked={data.services?.runFeastApplyOnInit ?? true}
+            onChange={(_e, checked) =>
+              setData('services', { ...data.services, runFeastApplyOnInit: checked })
+            }
+          />
+        </FormGroup>
+      </FormSection>
     </Form>
   );
 };

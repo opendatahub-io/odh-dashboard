@@ -2,6 +2,9 @@ import * as React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Flex, FlexItem } from '@patternfly/react-core';
 import { CogIcon } from '@patternfly/react-icons';
+import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
+import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
+import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
 import FeatureStoreProjectSelector from './FeatureStoreProjectSelector';
 import { useFeatureStoreObject } from '../../apiHooks/useFeatureStoreObject';
 import { FeatureStoreObject } from '../../const';
@@ -17,6 +20,7 @@ const FeatureStoreProjectSelectorNavigator: React.FC<FeatureStoreProjectSelector
   const navigate = useNavigate();
   const currentFeatureStoreObject = useFeatureStoreObject();
   const { currentProject, updatePreferredFeatureStoreProject } = useFeatureStoreProject();
+  const [canManage] = useAccessAllowed(verbModelAccess('list', FeatureStoreModel));
 
   return (
     <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
@@ -30,18 +34,20 @@ const FeatureStoreProjectSelectorNavigator: React.FC<FeatureStoreProjectSelector
           featureStoreObject={currentFeatureStoreObject}
         />
       </FlexItem>
-      <FlexItem>
-        <Button
-          variant="link"
-          icon={<CogIcon />}
-          component={(props: React.ComponentProps<'a'>) => (
-            <Link {...props} to="/develop-train/feature-store/manage" />
-          )}
-          data-testid="manage-feature-stores-link"
-        >
-          Manage feature stores
-        </Button>
-      </FlexItem>
+      {canManage && (
+        <FlexItem>
+          <Button
+            variant="link"
+            icon={<CogIcon />}
+            component={(props: React.ComponentProps<'a'>) => (
+              <Link {...props} to="/develop-train/feature-store/manage" />
+            )}
+            data-testid="manage-feature-stores-link"
+          >
+            Manage feature stores
+          </Button>
+        </FlexItem>
+      )}
     </Flex>
   );
 };

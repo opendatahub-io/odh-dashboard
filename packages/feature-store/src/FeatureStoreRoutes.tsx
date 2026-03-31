@@ -39,6 +39,10 @@ export const featureRoute = (
 ): string =>
   `${featureStoreRootRoute()}/features/${featureStoreProject}/${featureViewName}/${featureName}`;
 
+const ProtectedManagePage = accessAllowedRouteHoC(verbModelAccess('list', FeatureStoreModel))(
+  FeatureStoreListPage,
+);
+
 const ProtectedCreatePage = accessAllowedRouteHoC(verbModelAccess('create', FeatureStoreModel))(
   CreateFeatureStoreProject,
 );
@@ -49,7 +53,7 @@ const ProtectedDeployPage = accessAllowedRouteHoC(verbModelAccess('create', Feat
 
 const FeatureStoreRoutes: React.FC = () => (
   <Routes>
-    <Route path="manage" element={<FeatureStoreListPage />} />
+    <Route path="manage" element={<ProtectedManagePage />} />
     <Route path="create" element={<ProtectedCreatePage />} />
     <Route path="create/deploy/:namespace/:name" element={<ProtectedDeployPage />} />
     <Route

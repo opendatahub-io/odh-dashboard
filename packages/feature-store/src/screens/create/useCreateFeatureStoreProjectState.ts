@@ -57,6 +57,8 @@ export const DEFAULT_FEATURE_STORE_FORM_DATA: FeatureStoreFormData = {
   batchEngineEnabled: false,
   batchEngineConfigMapName: '',
   batchEngineConfigMapKey: '',
+
+  gitSecretName: '',
 };
 
 const useCreateFeatureStoreProjectState = (): GenericObjectState<FeatureStoreFormData> =>

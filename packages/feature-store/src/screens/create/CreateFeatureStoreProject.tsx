@@ -20,7 +20,7 @@ const CreateFeatureStoreProject: React.FC = () => {
   return (
     <ApplicationsPage
       title="Create feature store"
-      description="Configure and deploy a new Feast feature store."
+      description="Configure and deploy a new feature store."
       loaded
       empty={false}
       loadError={error}

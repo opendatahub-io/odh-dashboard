@@ -186,6 +186,7 @@ const CreateFeatureStoreProjectWizard: React.FC<CreateFeatureStoreProjectWizardP
           data={data}
           setData={setData}
           existingProjectNames={existingProjectNames}
+          namespaceSecrets={namespaceSecrets}
         />
       </WizardStep>
       <WizardStep name="Registry" id="registry-step" isDisabled={!validation.projectBasics.valid}>

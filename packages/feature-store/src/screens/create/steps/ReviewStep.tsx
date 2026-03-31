@@ -9,6 +9,7 @@ import {
   CodeBlockCode,
   FormSection,
 } from '@patternfly/react-core';
+import { FeastServerConfigs, FeastPvcConfig } from '@odh-dashboard/internal/k8sTypes';
 import {
   FeatureStoreFormData,
   RegistryType,
@@ -23,6 +24,56 @@ import { buildFormSpec, formSpecToYaml } from '../utils';
 type ReviewStepProps = {
   data: FeatureStoreFormData;
   isFirstProject: boolean;
+};
+
+const hasServerConfig = (config: FeastServerConfigs | undefined): boolean => {
+  if (!config) {
+    return false;
+  }
+  return !!(
+    config.logLevel ||
+    config.metrics ||
+    config.image ||
+    config.resources ||
+    config.workerConfigs
+  );
+};
+
+const summarizeServerConfig = (config: FeastServerConfigs | undefined): string => {
+  if (!config) {
+    return 'Default';
+  }
+  const parts: string[] = [];
+  if (config.logLevel) {
+    parts.push(`log: ${config.logLevel}`);
+  }
+  if (config.metrics) {
+    parts.push('metrics');
+  }
+  if (config.image) {
+    parts.push('custom image');
+  }
+  if (config.resources) {
+    parts.push('custom resources');
+  }
+  if (config.workerConfigs) {
+    parts.push('custom workers');
+  }
+  return parts.length > 0 ? parts.join(', ') : 'Default';
+};
+
+const summarizePvc = (pvc: FeastPvcConfig | undefined): string | undefined => {
+  if (!pvc) {
+    return undefined;
+  }
+  if (pvc.ref) {
+    return `Existing PVC: ${pvc.ref.name} at ${pvc.mountPath}`;
+  }
+  if (pvc.create) {
+    const size = pvc.create.resources?.requests?.storage ?? 'default';
+    return `New PVC (${size}) at ${pvc.mountPath}`;
+  }
+  return undefined;
 };
 
 const ReviewStep: React.FC<ReviewStepProps> = ({ data, isFirstProject }) => {
@@ -55,6 +106,12 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data, isFirstProject }) => {
                 : `Git: ${data.feastProjectDir?.git?.url ?? ''}`}
             </DescriptionListDescription>
           </DescriptionListGroup>
+          {data.gitSecretName && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Git credentials secret</DescriptionListTerm>
+              <DescriptionListDescription>{data.gitSecretName}</DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
         </DescriptionList>
       </FormSection>
 
@@ -90,6 +147,36 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data, isFirstProject }) => {
                     : 'Database'}
                 </DescriptionListDescription>
               </DescriptionListGroup>
+              {data.registryPersistenceType === PersistenceType.FILE &&
+                summarizePvc(data.services?.registry?.local?.persistence?.file?.pvc) && (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Registry PVC</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      {summarizePvc(data.services?.registry?.local?.persistence?.file?.pvc)}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                )}
+              {data.registryPersistenceType === PersistenceType.FILE &&
+                (data.services?.registry?.local?.persistence?.file?.cache_ttl_seconds ||
+                  data.services?.registry?.local?.persistence?.file?.cache_mode) && (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>File cache</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      {[
+                        data.services.registry.local.persistence.file.cache_ttl_seconds
+                          ? `TTL: ${String(
+                              data.services.registry.local.persistence.file.cache_ttl_seconds,
+                            )}s`
+                          : null,
+                        data.services.registry.local.persistence.file.cache_mode
+                          ? `Strategy: ${data.services.registry.local.persistence.file.cache_mode}`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(', ')}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                )}
             </>
           )}
           {data.registryType === RegistryType.REMOTE && (
@@ -129,6 +216,16 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data, isFirstProject }) => {
                 : 'Disabled'}
             </DescriptionListDescription>
           </DescriptionListGroup>
+          {data.onlineStoreEnabled &&
+            data.onlinePersistenceType === PersistenceType.FILE &&
+            summarizePvc(data.services?.onlineStore?.persistence?.file?.pvc) && (
+              <DescriptionListGroup>
+                <DescriptionListTerm>Online store PVC</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {summarizePvc(data.services?.onlineStore?.persistence?.file?.pvc)}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            )}
           <DescriptionListGroup>
             <DescriptionListTerm>Offline store</DescriptionListTerm>
             <DescriptionListDescription>
@@ -139,6 +236,16 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data, isFirstProject }) => {
                 : 'Disabled'}
             </DescriptionListDescription>
           </DescriptionListGroup>
+          {data.offlineStoreEnabled &&
+            data.offlinePersistenceType === PersistenceType.FILE &&
+            summarizePvc(data.services?.offlineStore?.persistence?.file?.pvc) && (
+              <DescriptionListGroup>
+                <DescriptionListTerm>Offline store PVC</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {summarizePvc(data.services?.offlineStore?.persistence?.file?.pvc)}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            )}
         </DescriptionList>
       </FormSection>
 
@@ -174,6 +281,43 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data, isFirstProject }) => {
                 : 'Default (local)'}
             </DescriptionListDescription>
           </DescriptionListGroup>
+          {data.services?.podDisruptionBudgets && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Pod disruption budget</DescriptionListTerm>
+              <DescriptionListDescription>
+                {data.services.podDisruptionBudgets.minAvailable != null
+                  ? `Min available: ${String(data.services.podDisruptionBudgets.minAvailable)}`
+                  : `Max unavailable: ${String(
+                      data.services.podDisruptionBudgets.maxUnavailable ?? '',
+                    )}`}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+          {data.onlineStoreEnabled && hasServerConfig(data.services?.onlineStore?.server) && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Online store server</DescriptionListTerm>
+              <DescriptionListDescription>
+                {summarizeServerConfig(data.services?.onlineStore?.server)}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+          {data.offlineStoreEnabled && hasServerConfig(data.services?.offlineStore?.server) && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Offline store server</DescriptionListTerm>
+              <DescriptionListDescription>
+                {summarizeServerConfig(data.services?.offlineStore?.server)}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+          {data.registryType === RegistryType.LOCAL &&
+            hasServerConfig(data.services?.registry?.local?.server) && (
+              <DescriptionListGroup>
+                <DescriptionListTerm>Registry server</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {summarizeServerConfig(data.services?.registry?.local?.server)}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            )}
         </DescriptionList>
       </FormSection>
 
