@@ -377,9 +377,8 @@ describe('AI Assets Models - User Journeys', () => {
       cy.step('Locate the deployed model in the table');
       aiAssetsPage.verifyModelExists(testData.modelDeploymentName);
 
-      cy.step('View internal and external endpoint URLs');
-      aiAssetsPage.findModelInternalEndpoint(testData.modelDeploymentName).should('be.visible');
-      aiAssetsPage.findModelExternalEndpoint(testData.modelDeploymentName).should('be.visible');
+      cy.step('Verify model endpoints are visible');
+      aiAssetsPage.findModelEndpoints(testData.modelDeploymentName).should('be.visible');
 
       cy.step('View endpoint URL details');
       aiAssetsPage.viewEndpointUrl(testData.modelDeploymentName);
@@ -387,9 +386,8 @@ describe('AI Assets Models - User Journeys', () => {
       cy.step('Copy endpoint URL to clipboard');
       aiAssetsPage.copyEndpoint(testData.modelDeploymentName);
 
-      cy.step('Verify endpoint format is valid and accessible');
-      aiAssetsPage.findModelInternalEndpoint(testData.modelDeploymentName).should('be.visible');
-      aiAssetsPage.findModelExternalEndpoint(testData.modelDeploymentName).should('be.visible');
+      cy.step('Verify endpoint is accessible');
+      aiAssetsPage.findModelEndpoints(testData.modelDeploymentName).should('be.visible');
 
       cy.step('Navigate back and verify model status remains Active');
       // Verify InferenceService is ready by checking from source (oc command)

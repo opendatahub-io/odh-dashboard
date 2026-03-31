@@ -184,33 +184,29 @@ class AIAssetsPage {
 
   // Models Tab - Model Status
   findModelStatus(modelName: string) {
-    return this.findModelsTableRow(modelName).find('[data-label="Status"]');
+    return this.findModelsTableRow(modelName).findByTestId('model-status-cell');
   }
 
   verifyModelStatus(modelName: string, status: 'Active' | 'Inactive') {
-    const testId = status === 'Active' ? 'model-status-active' : 'model-status-inactive';
+    const testId = status === 'Active' ? 'model-status-ready' : 'model-status-inactive';
     this.findModelsTableRow(modelName).findByTestId(testId).should('exist');
   }
 
   // Models Tab - Model Columns
   findModelName(modelName: string) {
-    return this.findModelsTableRow(modelName).find('[data-label="Model deployment name"]');
+    return this.findModelsTableRow(modelName).findByTestId('model-name-cell');
   }
 
-  findModelInternalEndpoint(modelName: string) {
-    return this.findModelsTableRow(modelName).find('[data-label="Internal endpoint"]');
-  }
-
-  findModelExternalEndpoint(modelName: string) {
-    return this.findModelsTableRow(modelName).find('[data-label="External endpoint"]');
+  findModelEndpoints(modelName: string) {
+    return this.findModelsTableRow(modelName).findByTestId('model-endpoints-cell');
   }
 
   findModelUseCase(modelName: string) {
-    return this.findModelsTableRow(modelName).find('[data-label="Use case"]');
+    return this.findModelsTableRow(modelName).findByTestId('model-usecase-cell');
   }
 
   findModelPlaygroundActions(modelName: string) {
-    return this.findModelsTableRow(modelName).find('[data-label="Playground"]');
+    return this.findModelsTableRow(modelName).findByTestId('model-playground-cell');
   }
 
   // Pagination

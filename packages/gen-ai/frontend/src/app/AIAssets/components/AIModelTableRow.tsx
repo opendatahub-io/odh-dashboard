@@ -93,7 +93,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   return (
     <>
       <Tr>
-        <Td dataLabel="Model">
+        <Td dataLabel="Model" data-testid="model-name-cell">
           <TableRowTitleDescription title={<AIModelsTableRowInfo model={model} />} />
           <Truncate
             content={model.model_id}
@@ -107,25 +107,29 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
             />
           )}
         </Td>
-        <Td dataLabel="Use case">
+        <Td dataLabel="Use case" data-testid="model-usecase-cell">
           <TruncatedText maxLines={2} content={model.usecase} />
         </Td>
-        <Td dataLabel="Status">
+        <Td dataLabel="Status" data-testid="model-status-cell">
           {model.status === 'Running' ? (
-            <Label status="success" variant="outline">
+            <Label status="success" variant="outline" data-testid="model-status-ready">
               Ready
             </Label>
           ) : model.status === 'Stop' ? (
-            <Label status="danger" variant="outline">
+            <Label status="danger" variant="outline" data-testid="model-status-inactive">
               Inactive
             </Label>
           ) : (
-            <Label color="grey" icon={<OutlinedQuestionCircleIcon />}>
+            <Label
+              color="grey"
+              icon={<OutlinedQuestionCircleIcon />}
+              data-testid="model-status-unknown"
+            >
               Unknown
             </Label>
           )}
         </Td>
-        <Td dataLabel="Endpoints">
+        <Td dataLabel="Endpoints" data-testid="model-endpoints-cell">
           {model.externalEndpoint || model.internalEndpoint ? (
             <Button
               data-testid="endpoint-view-button"
@@ -144,7 +148,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
             </Label>
           )}
         </Td>
-        <Td dataLabel="Playground">
+        <Td dataLabel="Playground" data-testid="model-playground-cell">
           {enabledModel ? (
             <Button
               data-testid="try-playground-button"
