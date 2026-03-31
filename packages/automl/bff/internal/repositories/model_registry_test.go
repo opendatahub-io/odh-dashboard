@@ -44,9 +44,9 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 
 	t.Run("uses version name as artifact name when artifact_name is empty", func(t *testing.T) {
 		req := models.RegisterModelRequest{
-			S3Path:          "s3://bucket/path/model",
-			ModelName:       "my-model",
-			VersionName:     "v2",
+			S3Path:      "s3://bucket/path/model",
+			ModelName:   "my-model",
+			VersionName: "v2",
 		}
 		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.S3Path)
 
@@ -59,9 +59,9 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 
 	t.Run("propagates HTTP error from model registry API", func(t *testing.T) {
 		req := models.RegisterModelRequest{
-			S3Path:          "s3://bucket/path/model",
-			ModelName:       "my-model",
-			VersionName:     "v1",
+			S3Path:      "s3://bucket/path/model",
+			ModelName:   "my-model",
+			VersionName: "v1",
 		}
 		mockClient := modelregistry.NewFailingMockClient(409, "409", "model name already exists")
 
@@ -77,9 +77,9 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 
 	t.Run("propagates error when first POST fails", func(t *testing.T) {
 		req := models.RegisterModelRequest{
-			S3Path:          "s3://bucket/path/model",
-			ModelName:       "my-model",
-			VersionName:     "v1",
+			S3Path:      "s3://bucket/path/model",
+			ModelName:   "my-model",
+			VersionName: "v1",
 		}
 		mockClient := modelregistry.NewFailingMockClient(503, "503", "service unavailable")
 
