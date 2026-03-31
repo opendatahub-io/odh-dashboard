@@ -164,11 +164,12 @@ describe('AI Assets Models - User Journeys', () => {
       cy.url().should('include', `/ai-hub/deployments/${projectName}`);
 
       cy.step('Navigate to Serving Runtimes settings to create custom serving runtime');
-      // Extended timeout for serving runtimes page navigation which can be slow in cluster environments
-      cy.wrap(servingRuntimes.navigate(), { timeout: 100000 });
+      servingRuntimes.navigate();
+      // Extended timeout for Add button as serving runtimes page can be slow in cluster environments
+      servingRuntimes.findAddButton().should('exist', { timeout: 100000 });
 
       cy.step('Click Add serving runtime button');
-      servingRuntimes.findAddButton().should('exist').and('be.visible').and('be.enabled').click();
+      servingRuntimes.findAddButton().should('be.visible').and('be.enabled').click();
 
       cy.step('Select API Protocol');
       servingRuntimes.findSelectAPIProtocolButton().click();
@@ -183,15 +184,10 @@ describe('AI Assets Models - User Journeys', () => {
       servingRuntimes.uploadYaml(servingRuntimeYaml);
 
       cy.step('Submit and verify serving runtime creation');
-      servingRuntimes
-        .findSubmitButton()
-        .should('be.enabled')
-        .click()
-        .then(() => {
-          cy.url().should('include', '/settings/model-resources-operations/serving-runtimes', {
-            timeout: 30000,
-          });
-        });
+      servingRuntimes.findSubmitButton().should('be.enabled').click();
+      cy.url().should('include', '/settings/model-resources-operations/serving-runtimes', {
+        timeout: 30000,
+      });
 
       cy.step(`Verify serving runtime ${servingRuntimeName} was created`);
       cy.contains(servingRuntimeDisplayName).should('be.visible');
@@ -318,7 +314,7 @@ describe('AI Assets Models - User Journeys', () => {
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
 
       cy.step('Verify redirect to playground');
-      cy.url({ timeout: 30000 }).should('include', `/gen-ai-studio/playground/${projectName}`);
+      cy.url().should('include', `/gen-ai-studio/playground/${projectName}`, { timeout: 30000 });
 
       cy.step('Verify playground resources are created');
       waitForResource('configmap', testData.configMapName, projectName);
@@ -348,7 +344,7 @@ describe('AI Assets Models - User Journeys', () => {
       aiAssetsPage.tryModelInPlayground(testData.modelDeploymentName);
 
       cy.step('Verify redirect to playground with correct model selected');
-      cy.url({ timeout: 30000 }).should('include', `/gen-ai-studio/playground/${projectName}`);
+      cy.url().should('include', `/gen-ai-studio/playground/${projectName}`, { timeout: 30000 });
 
       cy.step('Verify model is ready for interaction');
       genAiPlayground.verifyModelIsSelected(testData.modelDeploymentName);
