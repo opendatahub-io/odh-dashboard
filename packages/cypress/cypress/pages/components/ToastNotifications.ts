@@ -10,6 +10,12 @@ export class ToastNotifications {
       .eq(index);
     return element;
   }
+
+  findAlert(variant: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findToastNotificationList().find(
+      `[data-ouia-component-type="PF5/Alert"][class*="pf-m-${variant}"]`,
+    );
+  }
 }
 
 export const toastNotifications = new ToastNotifications();
