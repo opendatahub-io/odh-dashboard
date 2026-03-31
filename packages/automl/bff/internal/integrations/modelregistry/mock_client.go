@@ -1,6 +1,7 @@
 package modelregistry
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -30,12 +31,12 @@ type MockHTTPClient struct {
 }
 
 // GET implements HTTPClientInterface. Returns empty for tests that don't need GET.
-func (m *MockHTTPClient) GET(_ string) ([]byte, error) {
+func (m *MockHTTPClient) GET(_ context.Context, _ string) ([]byte, error) {
 	return []byte("{}"), nil
 }
 
 // POST implements HTTPClientInterface.
-func (m *MockHTTPClient) POST(url string, body io.Reader) ([]byte, error) {
+func (m *MockHTTPClient) POST(_ context.Context, url string, body io.Reader) ([]byte, error) {
 	m.PostCallCount++
 	if m.PostError != nil {
 		return nil, m.PostError
@@ -62,7 +63,7 @@ func (m *MockHTTPClient) POST(url string, body io.Reader) ([]byte, error) {
 }
 
 // PATCH implements HTTPClientInterface.
-func (m *MockHTTPClient) PATCH(_ string, _ io.Reader) ([]byte, error) {
+func (m *MockHTTPClient) PATCH(_ context.Context, _ string, _ io.Reader) ([]byte, error) {
 	return nil, fmt.Errorf("mock: PATCH not implemented")
 }
 

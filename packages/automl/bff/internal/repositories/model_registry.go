@@ -147,7 +147,7 @@ func NewModelRegistryRepository() *ModelRegistryRepository {
 // would need DELETE support to implement cleanup; consider manual cleanup of orphaned
 // RegisteredModels if failures occur.
 func (r *ModelRegistryRepository) RegisterModel(
-	_ context.Context,
+	ctx context.Context,
 	client modelregistry.HTTPClientInterface,
 	req models.RegisterModelRequest,
 ) (*openapi.ModelArtifact, error) {
@@ -175,7 +175,7 @@ func (r *ModelRegistryRepository) RegisterModel(
 		return nil, fmt.Errorf("error marshaling registered model: %w", err)
 	}
 
-	regModelResp, err := client.POST(registeredModelsPath, bytes.NewBuffer(regModelJSON))
+	regModelResp, err := client.POST(ctx,registeredModelsPath, bytes.NewBuffer(regModelJSON))
 	if err != nil {
 		return nil, fmt.Errorf("error creating registered model: %w", err)
 	}
@@ -209,7 +209,7 @@ func (r *ModelRegistryRepository) RegisterModel(
 		return nil, fmt.Errorf("error marshaling model version: %w", err)
 	}
 
-	versionResp, err := client.POST(versionsURL, bytes.NewBuffer(versionJSON))
+	versionResp, err := client.POST(ctx,versionsURL, bytes.NewBuffer(versionJSON))
 	if err != nil {
 		return nil, fmt.Errorf("error creating model version: %w", err)
 	}
@@ -256,7 +256,7 @@ func (r *ModelRegistryRepository) RegisterModel(
 		return nil, fmt.Errorf("error marshaling model artifact: %w", err)
 	}
 
-	artifactResp, err := client.POST(artifactsURL, bytes.NewBuffer(artifactJSON))
+	artifactResp, err := client.POST(ctx,artifactsURL, bytes.NewBuffer(artifactJSON))
 	if err != nil {
 		return nil, fmt.Errorf("error creating model artifact: %w", err)
 	}

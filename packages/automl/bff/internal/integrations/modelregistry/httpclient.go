@@ -1,6 +1,7 @@
 package modelregistry
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -16,10 +17,11 @@ import (
 )
 
 // HTTPClientInterface defines the interface for Model Registry API HTTP operations.
+// All methods accept a context.Context for cancellation and deadline propagation.
 type HTTPClientInterface interface {
-	GET(url string) ([]byte, error)
-	POST(url string, body io.Reader) ([]byte, error)
-	PATCH(url string, body io.Reader) ([]byte, error)
+	GET(ctx context.Context, url string) ([]byte, error)
+	POST(ctx context.Context, url string, body io.Reader) ([]byte, error)
+	PATCH(ctx context.Context, url string, body io.Reader) ([]byte, error)
 }
 
 // maxResponseBodyBytes caps response body reads to prevent unbounded memory use.
@@ -71,10 +73,10 @@ func NewHTTPClient(logger *slog.Logger, baseURL string, headers http.Header, ins
 	}, nil
 }
 
-func (c *HTTPClient) GET(url string) ([]byte, error) {
+func (c *HTTPClient) GET(ctx context.Context, url string) ([]byte, error) {
 	requestID := uuid.NewString()
 	fullURL := c.baseURL + url
-	req, err := http.NewRequest(http.MethodGet, fullURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -99,10 +101,10 @@ func (c *HTTPClient) GET(url string) ([]byte, error) {
 	return body, nil
 }
 
-func (c *HTTPClient) POST(url string, body io.Reader) ([]byte, error) {
+func (c *HTTPClient) POST(ctx context.Context, url string, body io.Reader) ([]byte, error) {
 	requestID := uuid.NewString()
 	fullURL := c.baseURL + url
-	req, err := http.NewRequest(http.MethodPost, fullURL, body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, body)
 	if err != nil {
 		return nil, err
 	}
@@ -128,10 +130,10 @@ func (c *HTTPClient) POST(url string, body io.Reader) ([]byte, error) {
 	return responseBody, nil
 }
 
-func (c *HTTPClient) PATCH(url string, body io.Reader) ([]byte, error) {
+func (c *HTTPClient) PATCH(ctx context.Context, url string, body io.Reader) ([]byte, error) {
 	requestID := uuid.NewString()
 	fullURL := c.baseURL + url
-	req, err := http.NewRequest(http.MethodPatch, fullURL, body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, fullURL, body)
 	if err != nil {
 		return nil, err
 	}
