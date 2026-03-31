@@ -241,7 +241,8 @@ describe('Archiving version', () => {
     modelVersionArchive.visitModelVersionList();
 
     const row = modelRegistry.getModelVersionRow('model version 3');
-    row.find().findByRole('button', { name: 'Kebab toggle' }).click();
+    row.find().should('be.visible');
+    row.find().findByRole('button', { name: 'Kebab toggle' }).should('be.visible').click();
     cy.findByRole('menuitem', { name: 'Archive model version' }).should(
       'have.attr',
       'aria-disabled',
@@ -265,6 +266,7 @@ describe('Archiving version', () => {
 
     modelVersionArchive.visitModelVersionList();
 
+    modelRegistry.findModelVersionsHeaderAction().should('be.visible');
     modelRegistry
       .findModelVersionsHeaderAction()
       .findDropdownItem('Archive model')
@@ -288,6 +290,7 @@ describe('Archiving version', () => {
 
     modelVersionArchive.visitModelVersionDetails();
 
+    modelVersionArchive.findModelVersionsDetailsHeaderAction().should('be.visible');
     modelVersionArchive
       .findModelVersionsDetailsHeaderAction()
       .findDropdownItem('Archive model version')
