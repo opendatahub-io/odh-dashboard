@@ -29,7 +29,8 @@ const EmptyExperimentsState: React.FC<EmptyExperimentsStateProps> = ({
       headingLevel="h2"
     >
       <EmptyStateBody>
-        Test different retrieval and model configurations to find the best-performing setup.
+        Test different model configurations to find the best-performing solution for classification,
+        regression, and time series problems.
       </EmptyStateBody>
 
       <EmptyStateFooter>
