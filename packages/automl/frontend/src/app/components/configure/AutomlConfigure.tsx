@@ -35,7 +35,7 @@ import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
-import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { ConfigureSchema, MAX_TOP_N, MIN_TOP_N } from '~/app/schemas/configure.schema';
@@ -48,7 +48,6 @@ import {
 } from '~/app/utilities/const';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
-import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
 import ConfigureTabularForm from './ConfigureTabularForm';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 
