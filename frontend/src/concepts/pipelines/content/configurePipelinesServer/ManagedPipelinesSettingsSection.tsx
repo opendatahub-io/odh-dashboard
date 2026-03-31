@@ -68,9 +68,7 @@ const ManagedPipelinesSettingsSection: React.FC<ManagedPipelinesSettingsSectionP
       description="Select managed pipelines to install in your project. Managed pipelines will be created automatically. Restarting the pipeline server will recreate them in the event that they are deleted."
     >
       <FormGroup hasNoPaddingTop isStack>
-        <FormGroup hasNoPaddingTop isStack>
-          {checkboxElement}
-        </FormGroup>
+        {checkboxElement}
       </FormGroup>
     </FormSection>
   );

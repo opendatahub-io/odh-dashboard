@@ -195,7 +195,6 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
             fireFormTrackingEvent(serverConfiguredEvent, {
               outcome: TrackingOutcome.submit,
               success: true,
-              isILabEnabled: false,
             });
           })
           .catch((e) => {
@@ -271,7 +270,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                 <div ref={advancedSettingsRef}>
                   <PipelinesDatabaseSection setConfig={setConfig} config={config} />
                   <PipelinesDefinitionStorageSection setConfig={setConfig} config={config} />
-                  <div style={{ marginTop: '2rem' }}>
+                  <div className="pf-v6-u-mt-lg">
                     <PipelineCachingSection
                       enableCaching={config.enableCaching}
                       setEnableCaching={(enableCaching) => setConfig({ ...config, enableCaching })}
