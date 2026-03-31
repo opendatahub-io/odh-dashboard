@@ -5,6 +5,7 @@ import { useParams } from 'react-router';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
+  PROVIDER_TYPE_TO_VS_TYPE,
   ConfigureSchema,
 } from '~/app/schemas/configure.schema';
 import { useLlamaStackVectorStoreProvidersQuery } from '~/app/hooks/queries';
@@ -56,7 +57,9 @@ const AutoragVectorStoreSelector: React.FC = () => {
   }, [isError, notification]);
 
   const providers = providersData?.vector_store_providers ?? [];
-  const selectedProvider = providers.find((p) => p.provider_id === field.value);
+  const selectedProvider = providers.find(
+    (p) => PROVIDER_TYPE_TO_VS_TYPE[p.provider_type] === field.value,
+  );
 
   if (isLoading) {
     return <Skeleton width="200px" height="36px" />;
@@ -92,7 +95,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
         {providers.map((p) => (
           <SelectOption
             key={p.provider_id}
-            value={p.provider_id}
+            value={PROVIDER_TYPE_TO_VS_TYPE[p.provider_type] ?? ''}
             data-testid={`vector-store-option-${p.provider_id}`}
           >
             {formatProviderDisplayName(p)}

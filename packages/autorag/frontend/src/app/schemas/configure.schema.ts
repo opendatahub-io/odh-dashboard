@@ -4,9 +4,14 @@ import { createSchema } from '~/app/utilities/schema';
 export const MIN_RAG_PATTERNS = 4;
 export const MAX_RAG_PATTERNS = 20;
 
-// The BFF returns all vector_io providers; this allowlist is applied client-side
-// via the select callback to filter by provider_type (e.g., "remote::milvus").
-export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = ['remote::milvus'];
+// Maps LlamaStack provider_type to the pipeline's expected vs_type value.
+// The BFF returns all vector_io providers; only providers in this map are shown in the UI.
+export const PROVIDER_TYPE_TO_VS_TYPE: Record<string, string> = {
+  'remote::milvus': 'ls_milvus',
+};
+
+// The allowlist of supported provider types, derived from the map above.
+export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = Object.keys(PROVIDER_TYPE_TO_VS_TYPE);
 
 export const RAG_METRIC_FAITHFULNESS = 'faithfulness';
 export const RAG_METRIC_ANSWER_CORRECTNESS = 'answer_correctness';
