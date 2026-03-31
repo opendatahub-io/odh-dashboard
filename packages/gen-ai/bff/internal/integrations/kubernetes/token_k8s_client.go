@@ -2001,9 +2001,9 @@ func (kc *TokenKubernetesClient) validateExternalModelsConfig(config *models.Ext
 			return fmt.Errorf("provider at index %d has empty provider_id", i)
 		}
 
-		// Validate ProviderType is remote::openai
+		// Validate ProviderType is remote::openai or remote::passthrough
 		if provider.ProviderType != models.ProviderTypeOpenAI && provider.ProviderType != models.ProviderTypePassThrough {
-			return fmt.Errorf("provider '%s' has invalid provider_type '%s', must be remote::openai", provider.ProviderID, provider.ProviderType)
+			return fmt.Errorf("provider '%s' has invalid provider_type '%s', must be remote::openai or remote::passthrough", provider.ProviderID, provider.ProviderType)
 		}
 
 		// Validate BaseURL is a well-formed URL with scheme and host
