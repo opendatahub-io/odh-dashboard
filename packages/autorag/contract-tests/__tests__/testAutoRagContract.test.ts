@@ -164,6 +164,22 @@ describe('AutoRAG API Contract Tests', () => {
       });
     });
 
+    describe('Empty Results', () => {
+      it('should return valid response when no vector_io providers exist', async () => {
+        const result = await apiClient.get(
+          '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const responseData = result.response.data as {
+            data?: { vector_store_providers?: unknown[] };
+          };
+          expect(responseData.data?.vector_store_providers).toBeDefined();
+          expect(Array.isArray(responseData.data?.vector_store_providers)).toBe(true);
+        }
+      });
+    });
+
     describe('Error Cases', () => {
       it('should return 400 when namespace query parameter is missing', async () => {
         const result = await apiClient.get('/api/v1/lsd/vector-stores?secretName=test-lls-secret');
