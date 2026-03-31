@@ -17,7 +17,9 @@ class GenAiPlayground {
     }).as('getProjectConfig');
     cy.visit(`/gen-ai-studio/playground/${projectName}`);
     cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
-    cy.wait(['@getLsdStatus', '@getProjectModels', '@getProjectConfig']);
+    cy.wait('@getLsdStatus').its('response.statusCode').should('eq', 200);
+    cy.wait('@getProjectModels').its('response.statusCode').should('eq', 200);
+    cy.wait('@getProjectConfig').its('response.statusCode').should('eq', 200);
   }
 
   findEmptyState() {
