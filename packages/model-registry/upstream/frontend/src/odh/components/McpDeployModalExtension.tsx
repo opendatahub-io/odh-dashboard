@@ -1,6 +1,7 @@
 import React from 'react';
 import { HookNotify, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { isMcpServerDeployModalExtension } from '~/odh/extension-points';
+import McpDeployModal from '~/odh/components/McpDeployModal';
 
 type McpDeployModalExtensionProps = {
   render: (
@@ -59,11 +60,7 @@ const McpDeployModalExtension: React.FC<McpDeployModalExtensionProps> = ({ rende
         ) : null,
       )}
       {render(buttonState, onOpenModal, isModalAvailable)}
-      {openModal && (
-        // Modal will be rendered here in a follow-up PR
-        // For now, close immediately (no-op placeholder)
-        <></>
-      )}
+      {openModal && <McpDeployModal onClose={() => setOpenModal(false)} />}
     </>
   );
 };
