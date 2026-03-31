@@ -397,7 +397,7 @@ function AutoragConfigure({
                           <Content component="h4">Upload file</Content>
                         </StackItem>
                         <StackItem>
-                          <Content component="small">
+                          <Content component="small" id="input-data-upload-description">
                             Drop a file here or browse to select a file.
                           </Content>
                         </StackItem>
@@ -421,6 +421,7 @@ function AutoragConfigure({
                           />
                           {!pendingInputDataFile && (
                             <MultipleFileUpload
+                              aria-describedby="input-data-upload-description"
                               onFileDrop={(_event: DropEvent, droppedFiles: File[]) => {
                                 const [file] = droppedFiles;
                                 stageInputDataFile(file);
