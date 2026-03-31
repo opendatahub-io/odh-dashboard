@@ -70,11 +70,16 @@ const AutoragVectorStoreSelector: React.FC = () => {
       aria-label="Vector store selector"
       isOpen={isOpen}
       onOpenChange={setIsOpen}
-      onSelect={(_e, selectedValue) => {
-        field.onChange(selectedValue === field.value ? '' : selectedValue);
+      onSelect={(_e, selectedProviderId) => {
+        if (selectedProviderId === selectedProvider?.provider_id) {
+          field.onChange('');
+        } else {
+          const provider = providers.find((p) => p.provider_id === selectedProviderId);
+          field.onChange(provider ? (PROVIDER_TYPE_TO_VS_TYPE[provider.provider_type] ?? '') : '');
+        }
         setIsOpen(false);
       }}
-      selected={field.value}
+      selected={selectedProvider?.provider_id}
       toggle={(toggleRef) => (
         <MenuToggle
           ref={toggleRef}
@@ -95,7 +100,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
         {providers.map((p) => (
           <SelectOption
             key={p.provider_id}
-            value={PROVIDER_TYPE_TO_VS_TYPE[p.provider_type] ?? ''}
+            value={p.provider_id}
             data-testid={`vector-store-option-${p.provider_id}`}
           >
             {formatProviderDisplayName(p)}

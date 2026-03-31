@@ -1078,7 +1078,8 @@ components:
           description: Metric to optimize (defaults to faithfulness)
         llama_stack_vector_database_id:
           type: string
-          description: Vector database identifier as registered in llama-stack (e.g. llama-stack Milvus)
+          description: Pipeline vector store type derived from the selected LlamaStack provider (e.g. ls_milvus)
+          example: ls_milvus
         optimization_max_rag_patterns:
           type: integer
           minimum: 4

@@ -94,7 +94,8 @@ func (c *LlamaStackClient) ListProviders(ctx context.Context) ([]models.LlamaSta
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	const maxProvidersResponseBytes = 1 << 20 // 1 MiB
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxProvidersResponseBytes))
 	if err != nil {
 		return nil, NewLlamaStackError(ErrCodeInternalError,
 			fmt.Sprintf("failed to read LlamaStack providers response body: %s", err.Error()),
