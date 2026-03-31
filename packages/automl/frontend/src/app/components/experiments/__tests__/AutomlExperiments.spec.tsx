@@ -1,8 +1,10 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
+import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import { useNavigate, useParams } from 'react-router';
-import AutoragExperiments from '~/app/components/experiments/AutoragExperiments';
+import { MemoryRouter } from 'react-router-dom';
+import { useParams } from 'react-router';
+import AutomlExperiments from '~/app/components/experiments/AutomlExperiments';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 import type { PipelineDefinition, PipelineRun } from '~/app/types';
@@ -14,7 +16,6 @@ jest.mock('@odh-dashboard/internal/api/errorUtils', () => ({
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
-  useNavigate: jest.fn(),
   useParams: jest.fn(),
 }));
 
@@ -31,9 +32,9 @@ jest.mock('@odh-dashboard/internal/pages/UnauthorizedError', () => ({
   default: () => <div data-testid="unauthorized-error">Unauthorized</div>,
 }));
 
-jest.mock('~/app/components/AutoragRunsTable', () => {
-  const MockAutoragRunsTable = ({ runs }: { runs: { run_id: string; display_name: string }[] }) => (
-    <div data-testid="autorag-runs-table">
+jest.mock('~/app/components/AutomlRunsTable', () => {
+  const MockAutomlRunsTable = ({ runs }: { runs: { run_id: string; display_name: string }[] }) => (
+    <div data-testid="automl-runs-table">
       {runs.map((r) => (
         <div key={r.run_id} data-testid={`run-${r.run_id}`}>
           {r.display_name}
@@ -43,11 +44,10 @@ jest.mock('~/app/components/AutoragRunsTable', () => {
   );
   return {
     __esModule: true,
-    AutoragRunsTable: MockAutoragRunsTable,
+    AutomlRunsTable: MockAutomlRunsTable,
   };
 });
 
-const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
 const mockUsePipelineDefinitions = jest.mocked(usePipelineDefinitions);
 const mockUsePipelineRuns = jest.mocked(usePipelineRuns);
@@ -92,10 +92,14 @@ const defaultRunsState = {
   refresh: jest.fn().mockResolvedValue(undefined),
 };
 
-describe('AutoragExperiments', () => {
+function renderAutoml(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
+
+describe('AutomlExperiments', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockUseNavigate.mockReturnValue(jest.fn());
+    jest.resetAllMocks();
+    mockGetGenericErrorCode.mockReturnValue(undefined);
     mockUseParams.mockReturnValue({ namespace: 'my-namespace' });
     mockUsePipelineDefinitions.mockReturnValue(defaultDefsState);
     mockUsePipelineRuns.mockReturnValue(defaultRunsState);
@@ -111,7 +115,7 @@ describe('AutoragExperiments', () => {
       loaded: false,
     });
 
-    render(<AutoragExperiments />);
+    renderAutoml(<AutomlExperiments />);
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
@@ -123,33 +127,20 @@ describe('AutoragExperiments', () => {
       totalSize: 0,
     });
 
-    render(<AutoragExperiments />);
+    renderAutoml(<AutomlExperiments />);
 
     expect(screen.getByTestId('empty-experiments-state')).toBeInTheDocument();
     expect(screen.getByText('No experiments yet')).toBeInTheDocument();
     expect(screen.getByTestId('create-experiment-button')).toHaveTextContent(
-      'Create RAG optimization run',
+      'Create AutoML optimization run',
     );
-    expect(screen.queryByTestId('autorag-runs-table')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('automl-runs-table')).not.toBeInTheDocument();
   });
 
-  it('should not show NoProjects when no experiments', () => {
-    mockUsePipelineRuns.mockReturnValue({
-      ...defaultRunsState,
-      runs: [],
-      totalSize: 0,
-    });
+  it('should show AutomlRunsTable when there are experiments', () => {
+    renderAutoml(<AutomlExperiments />);
 
-    render(<AutoragExperiments />);
-
-    expect(screen.queryByText('No projects')).not.toBeInTheDocument();
-    expect(screen.queryByText('Go to Projects page')).not.toBeInTheDocument();
-  });
-
-  it('should show AutoragRunsTable when there are experiments', () => {
-    render(<AutoragExperiments />);
-
-    expect(screen.getByTestId('autorag-runs-table')).toBeInTheDocument();
+    expect(screen.getByTestId('automl-runs-table')).toBeInTheDocument();
     expect(screen.getByTestId('run-r1')).toHaveTextContent('Run 1');
     expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
   });
@@ -157,7 +148,7 @@ describe('AutoragExperiments', () => {
   it('re-notifies onExperimentsListStatus when namespace changes even if loaded and hasExperiments stay true', async () => {
     const onStatus = jest.fn();
     mockUseParams.mockReturnValue({ namespace: 'ns-one' });
-    const { rerender } = render(<AutoragExperiments onExperimentsListStatus={onStatus} />);
+    const { rerender } = renderAutoml(<AutomlExperiments onExperimentsListStatus={onStatus} />);
 
     await waitFor(() => {
       expect(onStatus).toHaveBeenCalledWith({ loaded: true, hasExperiments: true });
@@ -165,7 +156,11 @@ describe('AutoragExperiments', () => {
     const callsAfterFirstNs = onStatus.mock.calls.length;
 
     mockUseParams.mockReturnValue({ namespace: 'ns-two' });
-    rerender(<AutoragExperiments onExperimentsListStatus={onStatus} />);
+    rerender(
+      <MemoryRouter>
+        <AutomlExperiments onExperimentsListStatus={onStatus} />
+      </MemoryRouter>,
+    );
 
     await waitFor(() => {
       expect(onStatus.mock.calls.length).toBeGreaterThan(callsAfterFirstNs);
@@ -179,7 +174,7 @@ describe('AutoragExperiments', () => {
       error: new Error('Fetch failed'),
     });
 
-    render(<AutoragExperiments />);
+    renderAutoml(<AutomlExperiments />);
 
     expect(screen.getByText('Failed to load experiments')).toBeInTheDocument();
     expect(screen.getByText('Fetch failed')).toBeInTheDocument();
@@ -192,7 +187,7 @@ describe('AutoragExperiments', () => {
       error: new Error('Not found'),
     });
 
-    render(<AutoragExperiments />);
+    renderAutoml(<AutomlExperiments />);
 
     expect(screen.getByText('No Pipeline Server in this namespace')).toBeInTheDocument();
   });
@@ -204,7 +199,7 @@ describe('AutoragExperiments', () => {
       error: new Error('Forbidden'),
     });
 
-    render(<AutoragExperiments />);
+    renderAutoml(<AutomlExperiments />);
 
     expect(screen.getByTestId('unauthorized-error')).toBeInTheDocument();
   });
@@ -216,7 +211,7 @@ describe('AutoragExperiments', () => {
       error: new Error('Service Unavailable'),
     });
 
-    render(<AutoragExperiments />);
+    renderAutoml(<AutomlExperiments />);
 
     expect(screen.getByText('Pipeline Server is not ready')).toBeInTheDocument();
   });

@@ -29,7 +29,7 @@ const EmptyExperimentsState: React.FC<EmptyExperimentsStateProps> = ({
       headingLevel="h2"
     >
       <EmptyStateBody>
-        To get started, create an AutoRAG experiment to configure and run your RAG pipeline.
+        Test different retrieval and model configurations to find the best-performing setup.
       </EmptyStateBody>
 
       <EmptyStateFooter>
@@ -39,7 +39,7 @@ const EmptyExperimentsState: React.FC<EmptyExperimentsStateProps> = ({
             variant="primary"
             onClick={() => navigate(createExperimentRoute)}
           >
-            Create AutoRAG experiment
+            Create RAG optimization run
           </Button>
         </EmptyStateActions>
       </EmptyStateFooter>

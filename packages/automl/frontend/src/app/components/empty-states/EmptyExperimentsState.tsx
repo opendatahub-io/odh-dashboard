@@ -29,8 +29,8 @@ const EmptyExperimentsState: React.FC<EmptyExperimentsStateProps> = ({
       headingLevel="h2"
     >
       <EmptyStateBody>
-        To get started, create an AutoML experiment to configure and run your machine learning
-        workflow.
+        Test different model configurations to find the best-performing solution for classification,
+        regression, and time series problems.
       </EmptyStateBody>
 
       <EmptyStateFooter>
@@ -40,7 +40,7 @@ const EmptyExperimentsState: React.FC<EmptyExperimentsStateProps> = ({
             variant="primary"
             onClick={() => navigate(createExperimentRoute)}
           >
-            Create AutoML experiment
+            Create AutoML optimization run
           </Button>
         </EmptyStateActions>
       </EmptyStateFooter>
