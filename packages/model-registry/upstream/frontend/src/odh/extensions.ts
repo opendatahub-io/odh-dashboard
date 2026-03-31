@@ -152,20 +152,20 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | TabRouteTabEx
       }),
     },
   },
-  // Settings (unchanged)
   {
-    type: 'app.navigation/href',
+    type: 'app.tab-route/tab',
     flags: {
       required: [SupportedArea.MCP_CATALOG],
     },
     properties: {
-      id: 'mcpDeployments',
+      pageId: 'mcp-servers-tab-page',
+      id: 'deployments',
       title: 'Deployments',
-      href: '/ai-hub/mcp-deployments',
-      section: 'mcp-servers',
-      path: '/ai-hub/mcp-deployments/*',
+      component: () => import('./McpDeploymentsWrapper'),
+      group: '2_deployments',
     },
   },
+  // Redirect from old MCP deployments URL
   {
     type: 'app.route',
     flags: {
@@ -173,9 +173,13 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | TabRouteTabEx
     },
     properties: {
       path: '/ai-hub/mcp-deployments/*',
-      component: () => import('./McpDeploymentsWrapper'),
+      component: createRedirectComponent({
+        from: '/ai-hub/mcp-deployments/*',
+        to: '/ai-hub/mcp-servers/deployments/*',
+      }),
     },
   },
+  // Settings (unchanged)
   {
     type: 'app.navigation/href',
     flags: {
