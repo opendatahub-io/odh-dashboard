@@ -453,4 +453,41 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			Expect(rr.Code).To(Equal(http.StatusBadRequest))
 		})
 	})
+
+	var _ = Describe("ListSubscriptionsPassthroughHandler", Ordered, func() {
+		It("returns 200 and a list of subscriptions from the maas-api passthrough", func() {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+
+			actual, rs, err := setupApiTest[Envelope[[]models.SubscriptionListItem, None]](
+				http.MethodGet,
+				"/api/v1/subscriptions",
+				nil,
+				k8Factory,
+				identity,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(actual.Data).NotTo(BeNil())
+			Expect(len(actual.Data)).Should(BeNumerically(">", 0))
+
+			first := actual.Data[0]
+			Expect(first.SubscriptionIDHeader).NotTo(BeEmpty())
+			Expect(first.SubscriptionDescription).NotTo(BeEmpty())
+			Expect(first.ModelRefs).NotTo(BeEmpty())
+		})
+
+		It("returns 401 when no identity is provided", func() {
+			_, rs, err := setupApiTest[Envelope[[]models.SubscriptionListItem, None]](
+				http.MethodGet,
+				"/api/v1/subscriptions",
+				nil,
+				k8Factory,
+				nil,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusUnauthorized))
+		})
+	})
 })
