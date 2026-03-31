@@ -15,11 +15,21 @@ class GenAiPlayground {
       pathname: '/gen-ai/api/v1/config',
       query: { namespace: projectName },
     }).as('getProjectConfig');
+    cy.intercept({
+      method: 'GET',
+      pathname: '/gen-ai/api/v1/aaa/vectorstores',
+    }).as('getAaeVectorStores');
+    cy.intercept({
+      method: 'GET',
+      pathname: '/gen-ai/api/v1/lsd/vectorstores',
+    }).as('getLsdVectorStores');
     cy.visit(`/gen-ai-studio/playground/${projectName}`);
     cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
     cy.wait('@getLsdStatus').its('response.statusCode').should('eq', 200);
     cy.wait('@getProjectModels').its('response.statusCode').should('eq', 200);
     cy.wait('@getProjectConfig').its('response.statusCode').should('eq', 200);
+    cy.wait('@getAaeVectorStores');
+    cy.wait('@getLsdVectorStores');
   }
 
   findEmptyState() {
