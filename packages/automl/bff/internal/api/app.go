@@ -40,8 +40,8 @@ const (
 	S3FileSchemaPath    = ApiPathPrefix + "/s3/file/schema"
 	S3FilesPath         = ApiPathPrefix + "/s3/files"
 	PipelineRunsPath    = ApiPathPrefix + "/pipeline-runs"
-	ModelRegistriesPath = ApiPathPrefix + "/model-registries"
-	ModelsRegisterPath  = ApiPathPrefix + "/models/register"
+	ModelRegistriesPath      = ApiPathPrefix + "/model-registries"
+	ModelRegistryModelsPath = ModelRegistriesPath + "/:registryId/models"
 )
 
 // modelRegistryHTTPClientFactory builds a client for Model Registry register calls.
@@ -214,9 +214,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FileHandler)))
 	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler)))
 
-	// Model Registry - register model binary (target registry via model_registry_id + discovered ServerURL)
+	// Model Registry - register model binary (target registry via path param + discovered ServerURL)
 	// No DSPA RBAC gate: Model Registry is a separate service; upstream MR API enforces auth.
-	apiRouter.POST(ModelsRegisterPath, app.AttachNamespace(app.RegisterModelHandler))
+	apiRouter.POST(ModelRegistryModelsPath, app.AttachNamespace(app.RegisterModelHandler))
 
 	// App Router
 	appMux := http.NewServeMux()

@@ -3,10 +3,8 @@ package models
 // RegisterModelRequest is the BFF-level input for registering a model binary in the Model Registry.
 // It contains the S3 path to the model artifact and metadata for creating a RegisteredModel,
 // ModelVersion, and ModelArtifact in the Model Registry.
+// The target registry is identified by the :registryId path parameter, not in the request body.
 type RegisterModelRequest struct {
-	// ModelRegistryID is the Kubernetes UID of the target ModelRegistry CR (from GET /api/v1/model-registries).
-	ModelRegistryID string `json:"model_registry_id"`
-
 	// S3Path is the S3 URI where the model binary is stored (e.g., s3://bucket/path/to/model).
 	S3Path string `json:"s3_path"`
 

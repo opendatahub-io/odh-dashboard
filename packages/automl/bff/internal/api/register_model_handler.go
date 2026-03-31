@@ -27,25 +27,31 @@ const maxRegisterModelRequestBodyBytes = 1 << 20
 
 type RegisterModelEnvelope Envelope[*openapi.ModelArtifact, None]
 
-// RegisterModelHandler handles POST /api/v1/models/register
+// RegisterModelHandler handles POST /api/v1/model-registries/:registryId/models
 //
 // Registers a model binary in the Model Registry by creating a RegisteredModel,
 // ModelVersion, and ModelArtifact in sequence. The ModelArtifact points to the
 // provided S3 URI.
 //
-// The handler resolves the target registry from model_registry_id (Kubernetes UID
-// of the ModelRegistry CR) using the same discovery path as GET /model-registries,
-// then POSTs to that instance's ServerURL.
+// The handler resolves the target registry from the :registryId path parameter
+// (Kubernetes UID of the ModelRegistry CR) using the same discovery path as
+// GET /model-registries, then POSTs to that instance's ServerURL.
 //
 // Error Responses:
 //   - 400: Invalid request body, missing required fields, invalid S3 path, or invalid registry URL
 //   - 403: Caller cannot list ModelRegistries (RBAC)
-//   - 404: No ModelRegistry matches model_registry_id
+//   - 404: No ModelRegistry matches registryId
 //   - 503: Registry exists but is not ready
 //   - 500: Model Registry API error or internal server error
-func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 	logger := helper.GetContextLoggerFromReq(r)
+
+	registryId := strings.TrimSpace(ps.ByName("registryId"))
+	if registryId == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("registryId path parameter is required"))
+		return
+	}
 
 	var req models.RegisterModelRequest
 	decoder := json.NewDecoder(io.LimitReader(r.Body, maxRegisterModelRequestBodyBytes))
@@ -82,14 +88,14 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, _ h
 	}
 
 	reg, err := app.repositories.ModelRegistry.ResolveModelRegistryByUID(
-		ctx, k8sClient, identity, app.config.MockK8Client, req.ModelRegistryID, logger)
+		ctx, k8sClient, identity, app.config.MockK8Client, registryId, logger)
 	if err != nil {
 		if errors.Is(err, repositories.ErrModelRegistryForbidden) {
 			app.forbiddenResponse(w, r, "insufficient permissions to list model registries")
 			return
 		}
 		if errors.Is(err, repositories.ErrModelRegistryNotFound) {
-			app.notFoundResponseWithMessage(w, r, "no model registry found for the given model_registry_id")
+			app.notFoundResponseWithMessage(w, r, "no model registry found for the given registryId")
 			return
 		}
 		if errors.Is(err, repositories.ErrModelRegistryNotReady) {

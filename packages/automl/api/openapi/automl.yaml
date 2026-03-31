@@ -456,16 +456,17 @@ paths:
   # MODEL REGISTRY ENDPOINTS
   # =============================================================================
 
-  /api/v1/models/register:
-    summary: Register a model binary in the Model Registry
+  /api/v1/model-registries/{registryId}/models:
+    summary: Register a model in a specific Model Registry instance
     description: >-
       Registers a model binary by creating a RegisteredModel, ModelVersion, and
-      ModelArtifact in the Model Registry. The model binary remains in S3; the
-      ModelArtifact.uri points to the S3 location.
-      The caller must supply model_registry_id (Kubernetes UID of the ModelRegistry CR from
-      GET /api/v1/model-registries). The BFF resolves server_url for that instance and POSTs
-      to the Model Registry REST API. Returns 404 if the ID is unknown, 403 if the user cannot
-      list ModelRegistries, and 503 if the registry exists but is not ready.
+      ModelArtifact in the specified Model Registry instance. The model binary
+      remains in S3; the ModelArtifact.uri points to the S3 location.
+      The registryId path parameter is the Kubernetes UID of the ModelRegistry CR
+      (from GET /api/v1/model-registries). The BFF resolves the server_url for that
+      instance and POSTs to the Model Registry REST API.
+      Returns 404 if the ID is unknown, 403 if the user cannot list ModelRegistries,
+      and 503 if the registry exists but is not ready.
     post:
       tags:
         - ModelRegistry
@@ -473,6 +474,12 @@ paths:
         - Bearer: []
       parameters:
         - $ref: "#/components/parameters/namespace"
+        - name: registryId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Kubernetes UID of the target ModelRegistry CR (from GET /api/v1/model-registries id field)
       requestBody:
         required: true
         content:
@@ -498,8 +505,8 @@ paths:
       summary: Register model binary
       description: >-
         Creates RegisteredModel, ModelVersion, and ModelArtifact in the Model Registry,
-        linking the artifact to the provided S3 URI. Requires model_registry_id, s3_path,
-        model_name, and version_name.
+        linking the artifact to the provided S3 URI. Requires s3_path, model_name,
+        and version_name in the request body.
 
   # =============================================================================
   # PIPELINE RUNS ENDPOINTS
@@ -950,18 +957,14 @@ components:
 
     RegisterModelRequest:
       type: object
-      description: Request body for registering a model binary in the Model Registry
+      description: >-
+        Request body for registering a model binary in the Model Registry.
+        The target registry is identified by the registryId path parameter.
       required:
-        - model_registry_id
         - s3_path
         - model_name
         - version_name
       properties:
-        model_registry_id:
-          type: string
-          minLength: 1
-          description: Kubernetes UID of the target ModelRegistry CR (from GET /api/v1/model-registries id field)
-          example: "a1b2c3d4-e5f6-7890-abcd-111111111111"
         s3_path:
           type: string
           minLength: 1

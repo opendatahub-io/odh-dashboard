@@ -21,7 +21,7 @@ The Model Registry stores **metadata** only; the actual model binary remains in 
 
 There is **no** global Model Registry base URL. The BFF discovers `modelregistry.opendatahub.io` `ModelRegistry` custom resources (see `GET /api/v1/model-registries`) and returns each instance’s Kubernetes **`id`** (UID) and in-cluster **`server_url`** (REST base path including `/api/model_registry/...`).
 
-Clients call **`POST /api/v1/models/register`** with **`model_registry_id`** set to that UID. The BFF lists registries under the caller’s identity (same RBAC as discovery), finds the matching CR, requires it to be **ready**, and uses **`server_url`** as the HTTP base for Kubeflow Model Registry API calls (`/registered_models`, etc.).
+Clients call **`POST /api/v1/model-registries/:registryId/models`** with the registry’s UID as the `:registryId` path parameter. The BFF lists registries under the caller’s identity (same RBAC as discovery), finds the matching CR, requires it to be **ready**, and uses **`server_url`** as the HTTP base for Kubeflow Model Registry API calls (`/registered_models`, etc.).
 
 > **Security (high severity):** When using `AUTH_METHOD=user_token`, the resolved `server_url` **must** use `https://` unless the host is `localhost` or `127.0.0.1`. The BFF rejects other `http://` URLs before forwarding the Bearer token. Use TLS for in-cluster registries (e.g., kube-rbac-proxy on port 8443) and external Routes.
 
@@ -67,7 +67,9 @@ No `Authorization` header is sent to the Model Registry. This is suitable when:
 
 ## API
 
-### `POST /api/v1/models/register`
+### `POST /api/v1/model-registries/:registryId/models`
+
+**Path parameter:** `registryId` (required) — Kubernetes UID of the target `ModelRegistry` CR (`id` from `GET /api/v1/model-registries`)
 
 **Query parameter:** `namespace` (required)
 
@@ -75,7 +77,6 @@ No `Authorization` header is sent to the Model Registry. This is suitable when:
 
 ```json
 {
-  "model_registry_id": "a1b2c3d4-e5f6-7890-abcd-111111111111",
   "s3_path": "s3://my-bucket/models/model.bin",
   "model_name": "my-automl-model",
   "model_description": "AutoML trained model",
@@ -90,7 +91,6 @@ No `Authorization` header is sent to the Model Registry. This is suitable when:
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `model_registry_id` | Yes | Kubernetes UID of the `ModelRegistry` CR (`id` from `GET /api/v1/model-registries`) |
 | `s3_path` | Yes | S3 URI (e.g., `s3://bucket/path` or `s3a://bucket/path`) |
 | `model_name` | Yes | Name of the registered model |
 | `version_name` | Yes | Version name (e.g., "v1", "1.0.0") |
@@ -106,11 +106,10 @@ No `Authorization` header is sent to the Model Registry. This is suitable when:
 **Example:**
 
 ```bash
-curl -X POST "http://localhost:4003/automl/api/v1/models/register?namespace=my-namespace" \
+curl -X POST "http://localhost:4003/automl/api/v1/model-registries/<registry-uid>/models?namespace=my-namespace" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{
-    "model_registry_id": "<uid-from-GET-model-registries>",
     "s3_path": "s3://my-bucket/models/model.bin",
     "model_name": "my-automl-model",
     "version_name": "v1"
@@ -123,7 +122,7 @@ curl -X POST "http://localhost:4003/automl/api/v1/models/register?namespace=my-n
 |--------|-----------|
 | `400` | Invalid request body, missing required fields, invalid S3 path, invalid `server_url` for auth mode |
 | `403` | Caller cannot list ModelRegistries (RBAC) |
-| `404` | No `ModelRegistry` matches `model_registry_id` |
+| `404` | No `ModelRegistry` matches the `registryId` path parameter |
 | `503` | Registry exists but is not ready (`Available` condition not true) |
 | `409` | Model Registry returns conflict (e.g., duplicate model name) |
 | `500` | Internal error or Model Registry API error |
@@ -136,8 +135,8 @@ Client                    AutoML BFF                    Kubernetes / MR API
   |  GET /model-registries     |                                |
   |--------------------------->|  list ModelRegistry CRs        |
   |<---------------------------|                                |
-  |  POST /models/register     |                                |
-  |  + model_registry_id       |                                |
+  |  POST /model-registries/   |                                |
+  |    :registryId/models      |                                |
   |  + Bearer (optional)       |                                |
   |--------------------------->|                                |
   |                            | 1. Validate request            |

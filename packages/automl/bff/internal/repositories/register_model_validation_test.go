@@ -9,23 +9,14 @@ import (
 
 func TestValidateRegisterModelRequest(t *testing.T) {
 	validReq := models.RegisterModelRequest{
-		ModelRegistryID: "a1b2c3d4-e5f6-7890-abcd-111111111111",
-		S3Path:          "s3://my-bucket/path/to/model.bin",
-		ModelName:       "my-model",
-		VersionName:     "v1",
+		S3Path:      "s3://my-bucket/path/to/model.bin",
+		ModelName:   "my-model",
+		VersionName: "v1",
 	}
 
 	t.Run("valid request passes", func(t *testing.T) {
 		err := ValidateRegisterModelRequest(validReq)
 		assert.NoError(t, err)
-	})
-
-	t.Run("rejects empty model_registry_id", func(t *testing.T) {
-		req := validReq
-		req.ModelRegistryID = ""
-		err := ValidateRegisterModelRequest(req)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "model_registry_id")
 	})
 
 	t.Run("valid s3a path passes", func(t *testing.T) {

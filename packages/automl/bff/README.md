@@ -18,7 +18,7 @@ This service exposes the following endpoints:
 - GET `/api/v1/pipeline-runs/:runId` – get a single pipeline run with full task details
 - POST `/api/v1/pipeline-runs` – create a new AutoML pipeline run
 - GET `/api/v1/model-registries` – list Model Registry instances (Kubernetes CRs) with `id` and `server_url` for routing
-- POST `/api/v1/models/register` – register a model binary in a chosen Model Registry (`model_registry_id` + discovered `server_url`)
+- POST `/api/v1/model-registries/:registryId/models` – register a model binary in a specific Model Registry instance
 
 ## Development
 
@@ -107,7 +107,7 @@ GET  /api/v1/pipeline-runs       (query merged runs from all auto-discovered Aut
 GET  /api/v1/pipeline-runs/:runId
 POST /api/v1/pipeline-runs       (create a new AutoML pipeline run)
 GET  /api/v1/model-registries    (list Model Registry instances: id, server_url, readiness)
-POST /api/v1/models/register     (register model binary; requires model_registry_id from discovery)
+POST /api/v1/model-registries/:registryId/models  (register model in a specific registry)
 ```
 
 For Model Registry integration details (configuration, authentication, S3), see [docs/model-registry-integration.md](docs/model-registry-integration.md).

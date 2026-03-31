@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
@@ -22,7 +23,6 @@ const mockDefaultModelRegistryUID = "a1b2c3d4-e5f6-7890-abcd-111111111111"
 
 func validRegisterModelRequest() models.RegisterModelRequest {
 	return models.RegisterModelRequest{
-		ModelRegistryID:    mockDefaultModelRegistryUID,
 		S3Path:             "s3://my-bucket/models/model.bin",
 		ModelName:          "automl-model",
 		ModelDescription:   "AutoML trained model",
@@ -32,12 +32,16 @@ func validRegisterModelRequest() models.RegisterModelRequest {
 	}
 }
 
+func registryParams(registryId string) httprouter.Params {
+	return httprouter.Params{{Key: "registryId", Value: registryId}}
+}
+
 func newRegisterModelRequest(t *testing.T, body interface{}) *http.Request {
 	t.Helper()
 	b, err := json.Marshal(body)
 	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPost,
-		"/api/v1/models/register?namespace=test-namespace",
+		"/api/v1/model-registries/"+mockDefaultModelRegistryUID+"/models?namespace=test-namespace",
 		bytes.NewReader(b))
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -63,7 +67,7 @@ func TestRegisterModelHandler_Success(t *testing.T) {
 
 		rr := httptest.NewRecorder()
 		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
-		app.RegisterModelHandler(rr, httpReq, nil)
+		app.RegisterModelHandler(rr, httpReq, registryParams(mockDefaultModelRegistryUID))
 
 		assert.Equal(t, http.StatusCreated, rr.Code)
 
@@ -83,7 +87,7 @@ func TestRegisterModelHandler_Success(t *testing.T) {
 
 		rr := httptest.NewRecorder()
 		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
-		app.RegisterModelHandler(rr, httpReq, nil)
+		app.RegisterModelHandler(rr, httpReq, registryParams(mockDefaultModelRegistryUID))
 
 		var raw map[string]interface{}
 		err := json.Unmarshal(rr.Body.Bytes(), &raw)
@@ -99,16 +103,15 @@ func TestRegisterModelHandler_Validation(t *testing.T) {
 		return modelregistry.NewSuccessMockClient("m", "v1", "s3://b/p"), nil
 	}
 
-	t.Run("rejects empty model_registry_id", func(t *testing.T) {
+	t.Run("rejects empty registryId path param", func(t *testing.T) {
 		req := validRegisterModelRequest()
-		req.ModelRegistryID = ""
 
 		rr := httptest.NewRecorder()
 		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
-		app.RegisterModelHandler(rr, httpReq, nil)
+		app.RegisterModelHandler(rr, httpReq, registryParams(""))
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "model_registry_id")
+		assert.Contains(t, rr.Body.String(), "registryId")
 	})
 
 	t.Run("rejects invalid s3 path", func(t *testing.T) {
@@ -117,7 +120,7 @@ func TestRegisterModelHandler_Validation(t *testing.T) {
 
 		rr := httptest.NewRecorder()
 		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
-		app.RegisterModelHandler(rr, httpReq, nil)
+		app.RegisterModelHandler(rr, httpReq, registryParams(mockDefaultModelRegistryUID))
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "s3_path")
@@ -129,7 +132,7 @@ func TestRegisterModelHandler_Validation(t *testing.T) {
 
 		rr := httptest.NewRecorder()
 		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
-		app.RegisterModelHandler(rr, httpReq, nil)
+		app.RegisterModelHandler(rr, httpReq, registryParams(mockDefaultModelRegistryUID))
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "model_name")
@@ -141,7 +144,7 @@ func TestRegisterModelHandler_Validation(t *testing.T) {
 
 		rr := httptest.NewRecorder()
 		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
-		app.RegisterModelHandler(rr, httpReq, nil)
+		app.RegisterModelHandler(rr, httpReq, registryParams(mockDefaultModelRegistryUID))
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "version_name")
@@ -150,26 +153,26 @@ func TestRegisterModelHandler_Validation(t *testing.T) {
 	t.Run("rejects malformed JSON", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, _ := http.NewRequest(http.MethodPost,
-			"/api/v1/models/register?namespace=test-namespace",
+			"/api/v1/model-registries/"+mockDefaultModelRegistryUID+"/models?namespace=test-namespace",
 			bytes.NewReader([]byte("{invalid")))
 		req.Header.Set("Content-Type", "application/json")
 		req = withRegisterModelHandlerContext(req)
 
-		app.RegisterModelHandler(rr, req, nil)
+		app.RegisterModelHandler(rr, req, registryParams(mockDefaultModelRegistryUID))
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
 	t.Run("rejects unknown JSON fields", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		raw := `{"model_registry_id":"` + mockDefaultModelRegistryUID + `","s3_path":"s3://b/p","model_name":"m","version_name":"v1","unknown":"x"}`
+		raw := `{"s3_path":"s3://b/p","model_name":"m","version_name":"v1","unknown":"x"}`
 		req, _ := http.NewRequest(http.MethodPost,
-			"/api/v1/models/register?namespace=test-namespace",
+			"/api/v1/model-registries/"+mockDefaultModelRegistryUID+"/models?namespace=test-namespace",
 			bytes.NewReader([]byte(raw)))
 		req.Header.Set("Content-Type", "application/json")
 		req = withRegisterModelHandlerContext(req)
 
-		app.RegisterModelHandler(rr, req, nil)
+		app.RegisterModelHandler(rr, req, registryParams(mockDefaultModelRegistryUID))
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "unknown")
@@ -185,23 +188,22 @@ func TestRegisterModelHandler_ErrorCases(t *testing.T) {
 		ctx := context.WithValue(httpReq.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
 		httpReq = httpReq.WithContext(ctx)
 
-		app.RegisterModelHandler(rr, httpReq, nil)
+		app.RegisterModelHandler(rr, httpReq, registryParams(mockDefaultModelRegistryUID))
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "RequestIdentity")
 	})
 
-	t.Run("returns 404 when model_registry_id unknown", func(t *testing.T) {
+	t.Run("returns 404 when registryId unknown", func(t *testing.T) {
 		app := newModelRegistryTestApp()
 		req := validRegisterModelRequest()
-		req.ModelRegistryID = "00000000-0000-0000-0000-000000000000"
 
 		rr := httptest.NewRecorder()
 		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
-		app.RegisterModelHandler(rr, httpReq, nil)
+		app.RegisterModelHandler(rr, httpReq, registryParams("00000000-0000-0000-0000-000000000000"))
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
-		assert.Contains(t, rr.Body.String(), "model_registry_id")
+		assert.Contains(t, rr.Body.String(), "registryId")
 	})
 
 	t.Run("propagates HTTP error from model registry API", func(t *testing.T) {
@@ -213,7 +215,7 @@ func TestRegisterModelHandler_ErrorCases(t *testing.T) {
 
 		rr := httptest.NewRecorder()
 		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
-		app.RegisterModelHandler(rr, httpReq, nil)
+		app.RegisterModelHandler(rr, httpReq, registryParams(mockDefaultModelRegistryUID))
 
 		assert.Equal(t, 409, rr.Code)
 		var errResp struct {

@@ -20,7 +20,6 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 
 	t.Run("creates registered model, version, and artifact in sequence", func(t *testing.T) {
 		req := models.RegisterModelRequest{
-			ModelRegistryID:    mockDefaultModelRegistryUID,
 			S3Path:             "s3://my-bucket/models/model.bin",
 			ModelName:          "automl-model",
 			ModelDescription:   "AutoML trained model",
@@ -45,7 +44,6 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 
 	t.Run("uses version name as artifact name when artifact_name is empty", func(t *testing.T) {
 		req := models.RegisterModelRequest{
-			ModelRegistryID: mockDefaultModelRegistryUID,
 			S3Path:          "s3://bucket/path/model",
 			ModelName:       "my-model",
 			VersionName:     "v2",
@@ -61,7 +59,6 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 
 	t.Run("propagates HTTP error from model registry API", func(t *testing.T) {
 		req := models.RegisterModelRequest{
-			ModelRegistryID: mockDefaultModelRegistryUID,
 			S3Path:          "s3://bucket/path/model",
 			ModelName:       "my-model",
 			VersionName:     "v1",
@@ -80,7 +77,6 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 
 	t.Run("propagates error when first POST fails", func(t *testing.T) {
 		req := models.RegisterModelRequest{
-			ModelRegistryID: mockDefaultModelRegistryUID,
 			S3Path:          "s3://bucket/path/model",
 			ModelName:       "my-model",
 			VersionName:     "v1",
