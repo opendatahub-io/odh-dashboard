@@ -10,6 +10,7 @@ export type AutoragResultsContextProps = {
   patterns: Record<string, AutoragPattern>;
   patternsLoading?: boolean;
   parameters?: Partial<ConfigureSchema>;
+  ragPatternsBasePath?: string;
 };
 
 export const AutoragResultsContext = React.createContext<AutoragResultsContextProps | undefined>(
@@ -29,11 +30,13 @@ export function getAutoragContext({
   patterns = {},
   pipelineRunLoading,
   patternsLoading,
+  ragPatternsBasePath,
 }: {
   pipelineRun?: PipelineRun;
   patterns?: Record<string, AutoragPattern>;
   pipelineRunLoading?: boolean;
   patternsLoading?: boolean;
+  ragPatternsBasePath?: string;
 }): AutoragResultsContextProps {
   // Validate runtime_config.parameters against ConfigureSchema to ensure type safety
   const configureSchema = createConfigureSchema();
@@ -55,5 +58,6 @@ export function getAutoragContext({
     patterns,
     patternsLoading,
     parameters,
+    ragPatternsBasePath,
   };
 }

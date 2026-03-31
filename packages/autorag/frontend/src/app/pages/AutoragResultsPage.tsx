@@ -40,6 +40,7 @@ function AutoragResultsPage(): React.JSX.Element {
     isLoading: patternsLoading,
     isError: patternsError,
     error: patternsLoadError,
+    ragPatternsBasePath,
   } = useAutoragResults(runId, namespace, pipelineRun);
 
   const contextValue = React.useMemo(
@@ -49,8 +50,16 @@ function AutoragResultsPage(): React.JSX.Element {
         patterns,
         pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
         patternsLoading,
+        ragPatternsBasePath,
       }),
-    [pipelineRun, patterns, pipelineRunPending, pipelineRunFetching, patternsLoading],
+    [
+      pipelineRun,
+      patterns,
+      pipelineRunPending,
+      pipelineRunFetching,
+      patternsLoading,
+      ragPatternsBasePath,
+    ],
   );
 
   return (

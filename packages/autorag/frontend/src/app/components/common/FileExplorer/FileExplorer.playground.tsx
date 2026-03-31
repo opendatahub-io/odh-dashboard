@@ -16,7 +16,7 @@ import {
   Switch,
 } from '@patternfly/react-core';
 import FileExplorer from './FileExplorer';
-import type { Directory, File, Files, Source, Sources } from './FileExplorer';
+import type { Folder, File, Files, Source, Sources } from './FileExplorer';
 
 // Mocks ---------------------------------------------------------------------->
 
@@ -37,7 +37,7 @@ const createFile = (
   path: string,
   type: string,
   size: string,
-  details?: object,
+  details?: File['details'],
 ): File => ({
   name,
   path,
@@ -60,14 +60,14 @@ const sortFiles = (files: Files) => files.toSorted((fA, fB) => fA.name.localeCom
 // Navigation helpers --------------------------------------------------------->
 
 interface BrowsableDataset {
-  allDirectories: Directory[];
+  allFolders: Folder[];
   allFiles: Files;
 }
 
-/** Returns the direct children (subdirectories + files) at the given path. */
+/** Returns the direct children (subFolders + files) at the given path. */
 const getChildItems = (dataset: BrowsableDataset, parentPath: string): Files => {
   const parent = parentPath === '/' ? '' : parentPath;
-  const allItems: Files = [...dataset.allDirectories, ...dataset.allFiles];
+  const allItems: Files = [...dataset.allFolders, ...dataset.allFiles];
   return allItems.filter((item) => {
     const itemParent = item.path.substring(0, item.path.lastIndexOf('/'));
     return itemParent === parent;
@@ -75,12 +75,12 @@ const getChildItems = (dataset: BrowsableDataset, parentPath: string): Files => 
 };
 
 /** Builds the ordered breadcrumb trail from root to the given path. */
-const getBreadcrumbTrail = (allDirs: Directory[], targetPath: string): Directory[] => {
+const getBreadcrumbTrail = (allDirs: Folder[], targetPath: string): Folder[] => {
   if (targetPath === '/') {
     return [];
   }
   const segments = targetPath.split('/').filter(Boolean);
-  const trail: Directory[] = [];
+  const trail: Folder[] = [];
   let accumulated = '';
   for (const seg of segments) {
     accumulated += `/${seg}`;
@@ -96,18 +96,18 @@ const mock20Files = createFiles(20);
 const mock100Files = createFiles(100);
 const mock1000Files = createFiles(1000);
 
-const mockDirectories: Directory[] = [
-  { name: 'path-level-1', path: '/path-level-1', type: 'directory', items: 5 },
-  { name: 'path-level-2', path: '/path-level-1/path-level-2', type: 'directory', items: 3 },
+const mockFolders: Folder[] = [
+  { name: 'path-level-1', path: '/path-level-1', type: 'folder', items: 5 },
+  { name: 'path-level-2', path: '/path-level-1/path-level-2', type: 'folder', items: 3 },
   {
     name: 'path-level-3',
     path: '/path-level-1/path-level-2/path-level-3',
-    type: 'directory',
+    type: 'folder',
     items: 1,
   },
 ];
 
-const mock10Directories: Directory[] = new Array(10).fill(null).map((_, index) => {
+const mock10Folders: Folder[] = new Array(10).fill(null).map((_, index) => {
   const level = index + 1;
   const path = new Array(level)
     .fill(null)
@@ -116,7 +116,7 @@ const mock10Directories: Directory[] = new Array(10).fill(null).map((_, index) =
   return {
     name: `path-level-${level}`,
     path: `/${path}`,
-    type: 'directory' as const,
+    type: 'folder' as const,
     items: level,
   };
 });
@@ -151,15 +151,15 @@ const mock10Directories: Directory[] = new Array(10).fill(null).map((_, index) =
  * │       └── output-002.json
  * └── changelog.md
  */
-const realisticDirectories: Directory[] = [
-  { name: 'docs', path: '/docs', type: 'directory', items: 6 },
-  { name: 'guides', path: '/docs/guides', type: 'directory', items: 3 },
-  { name: 'api', path: '/docs/api', type: 'directory', items: 2 },
-  { name: 'reports', path: '/reports', type: 'directory', items: 4 },
-  { name: '2024', path: '/reports/2024', type: 'directory', items: 3 },
-  { name: 'data', path: '/data', type: 'directory', items: 205 },
-  { name: 'raw', path: '/data/raw', type: 'directory', items: 203 },
-  { name: 'processed', path: '/data/processed', type: 'directory', items: 2 },
+const realisticFolders: Folder[] = [
+  { name: 'docs', path: '/docs', type: 'folder', items: 6 },
+  { name: 'guides', path: '/docs/guides', type: 'folder', items: 3 },
+  { name: 'api', path: '/docs/api', type: 'folder', items: 2 },
+  { name: 'reports', path: '/reports', type: 'folder', items: 4 },
+  { name: '2024', path: '/reports/2024', type: 'folder', items: 3 },
+  { name: 'data', path: '/data', type: 'folder', items: 205 },
+  { name: 'raw', path: '/data/raw', type: 'folder', items: 203 },
+  { name: 'processed', path: '/data/processed', type: 'folder', items: 2 },
 ];
 const realisticFiles: Files = [
   createFile('getting-started.md', '/docs/guides/getting-started.md', 'markdown', '4200', { encoding: 'utf-8', author: 'jdoe' }),
@@ -190,7 +190,7 @@ const realisticFiles: Files = [
 interface Scenario {
   label: string;
   files: Files;
-  directories: Directory[];
+  folders: Folder[];
   source?: Source;
   sources?: Sources;
   selection?: 'radio' | 'checkbox';
@@ -199,55 +199,55 @@ interface Scenario {
   page?: number;
   perPage?: number;
   itemCount?: number;
-  /** When set, enables interactive directory navigation for this scenario. */
+  /** When set, enables interactive folder navigation for this scenario. */
   browsable?: BrowsableDataset;
 }
 
 const scenarioGroups: Record<string, Scenario[]> = {
   'File counts': [
-    { label: '20 files', files: mock20Files, directories: mockDirectories, source: mockSource },
-    { label: '100 files', files: mock100Files, directories: mockDirectories, source: mockSource },
-    { label: '1000 files', files: mock1000Files, directories: mockDirectories, source: mockSource },
+    { label: '20 files', files: mock20Files, folders: mockFolders, source: mockSource },
+    { label: '100 files', files: mock100Files, folders: mockFolders, source: mockSource },
+    { label: '1000 files', files: mock1000Files, folders: mockFolders, source: mockSource },
   ],
-  'Directory structure': [
+  'Folder structure': [
     {
       label: '10 nested levels',
       files: mock20Files,
-      directories: mock10Directories,
+      folders: mock10Folders,
       source: mockSource,
     },
     {
       label: 'realistic nested structure (browsable)',
-      files: getChildItems({ allDirectories: realisticDirectories, allFiles: realisticFiles }, '/'),
-      directories: [],
+      files: getChildItems({ allFolders: realisticFolders, allFiles: realisticFiles }, '/'),
+      folders: [],
       source: mockSource,
-      browsable: { allDirectories: realisticDirectories, allFiles: realisticFiles },
+      browsable: { allFolders: realisticFolders, allFiles: realisticFiles },
     },
   ],
   Sources: [
     {
       label: 'multiple sources, none selected',
       files: mock20Files,
-      directories: mockDirectories,
+      folders: mockFolders,
       sources: mockSources,
     },
     {
       label: 'source selected',
       files: mock20Files,
-      directories: mockDirectories,
+      folders: mockFolders,
       source: mockSource,
     },
     {
       label: 'no source, no sources',
       files: mock20Files,
-      directories: mockDirectories,
+      folders: mockFolders,
     },
   ],
   Pagination: [
     {
       label: 'page 1 of 10',
       files: mock100Files.slice(0, 10),
-      directories: mockDirectories,
+      folders: mockFolders,
       source: mockSource,
       page: 1,
       perPage: 10,
@@ -256,7 +256,7 @@ const scenarioGroups: Record<string, Scenario[]> = {
     {
       label: 'page 5 of 10',
       files: mock100Files.slice(40, 50),
-      directories: mockDirectories,
+      folders: mockFolders,
       source: mockSource,
       page: 5,
       perPage: 10,
@@ -265,7 +265,7 @@ const scenarioGroups: Record<string, Scenario[]> = {
     {
       label: '25 per page',
       files: mock1000Files.slice(0, 25),
-      directories: mockDirectories,
+      folders: mockFolders,
       source: mockSource,
       page: 1,
       perPage: 25,
@@ -276,7 +276,7 @@ const scenarioGroups: Record<string, Scenario[]> = {
     {
       label: 'checkbox multi-select',
       files: mock20Files,
-      directories: mockDirectories,
+      folders: mockFolders,
       source: mockSource,
       selection: 'checkbox',
     },
@@ -285,20 +285,20 @@ const scenarioGroups: Record<string, Scenario[]> = {
     {
       label: 'loading',
       files: [],
-      directories: [],
+      folders: [],
       source: mockSource,
       loading: true,
     },
     {
       label: 'empty files',
       files: [],
-      directories: mockDirectories,
+      folders: mockFolders,
       source: mockSource,
     },
     {
       label: 'search with results count',
       files: mock20Files,
-      directories: mockDirectories,
+      folders: mockFolders,
       source: mockSource,
       searchResultsCount: 5,
     },
@@ -312,11 +312,11 @@ const App: React.FC = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [selectedFiles, setSelectedFiles] = useState<Files>([]);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
-  const [lastNavigatedDir, setLastNavigatedDir] = useState<Directory | null>(null);
-  const [lastDirectoryClicked, setLastDirectoryClicked] = useState<Directory | null>(null);
+  const [lastNavigatedDir, setLastNavigatedDir] = useState<Folder | null>(null);
+  const [lastFolderClicked, setLastFolderClicked] = useState<Folder | null>(null);
   const [lastSearchQuery, setLastSearchQuery] = useState<string>('');
   const [filesToRender, setFilesToRender] = useState<Files>(mock20Files);
-  const [directoriesToRender, setDirectoriesToRender] = useState<Directory[]>(mockDirectories);
+  const [foldersToRender, setfoldersToRender] = useState<Folder[]>(mockFolders);
   const [sourceToRender, setSourceToRender] = useState<Source | undefined>(mockSource);
   const [sourcesToRender, setSourcesToRender] = useState<Sources | undefined>(undefined);
   const [loadingToRender, setLoadingToRender] = useState(false);
@@ -360,7 +360,7 @@ const App: React.FC = () => {
     setCurrentPath(path);
     setAllChildItems(children);
     setFilteredChildItems(children);
-    setDirectoriesToRender(getBreadcrumbTrail(dataset.allDirectories, path));
+    setfoldersToRender(getBreadcrumbTrail(dataset.allFolders, path));
     setSearchResultsCountToRender(undefined);
     applyView(children, 1, defaultPerPage);
   };
@@ -377,7 +377,7 @@ const App: React.FC = () => {
       navigateTo(scenario.browsable, '/');
     } else {
       setFilesToRender(sortFiles(scenario.files));
-      setDirectoriesToRender(scenario.directories);
+      setfoldersToRender(scenario.folders);
       setPageToRender(scenario.page);
       setPerPageToRender(scenario.perPage);
       setItemCountToRender(scenario.itemCount);
@@ -417,7 +417,7 @@ const App: React.FC = () => {
             <p>Selected source: {selectedSource ? JSON.stringify(selectedSource) : '—'}</p>
             <p>Current path: {currentPath}</p>
             <p>Last navigated dir: {lastNavigatedDir ? lastNavigatedDir.path : '—'}</p>
-            <p>Last directory clicked: {lastDirectoryClicked ? lastDirectoryClicked.path : '—'}</p>
+            <p>Last folder clicked: {lastFolderClicked ? lastFolderClicked.path : '—'}</p>
             <p>Last search query: {lastSearchQuery || '—'}</p>
             <p>Page: {pageToRender ?? '—'}</p>
             <p>Per page: {perPageToRender ?? '—'}</p>
@@ -458,7 +458,7 @@ const App: React.FC = () => {
         files={filesToRender}
         source={sourceToRender}
         sources={sourcesToRender}
-        directories={directoriesToRender}
+        folders={foldersToRender}
         loading={loadingToRender}
         searchResultsCount={searchResultsCountToRender}
         page={pageToRender}
@@ -470,10 +470,10 @@ const App: React.FC = () => {
         onSelectSource={(source) => {
           setSelectedSource(source);
         }}
-        onDirectoryClick={(directory) => {
-          setLastDirectoryClicked(directory);
+        onFolderClick={(folder) => {
+          setLastFolderClicked(folder);
           if (activeDataset) {
-            navigateTo(activeDataset, directory.path);
+            navigateTo(activeDataset, folder.path);
           }
         }}
         onNavigate={(dir) => {

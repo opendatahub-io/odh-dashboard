@@ -142,6 +142,21 @@
   font-weight: var(--pf-t--global--font--weight--body--bold);
 }
 
+/* Feature importance bar */
+.automl-feature-importance-bar {
+  height: 12px;
+  border-radius: 2px;
+  background-color: var(--pf-t--global--color--brand--default);
+
+  &.m-has-value {
+    min-width: 4px;
+  }
+
+  &.m-negative {
+    background-color: var(--pf-t--global--color--status--danger--default);
+  }
+}
+
 /* Model information description list */
 /* Print-only container: hidden on screen, visible when printing */
 .automl-model-details-print-only {
@@ -149,29 +164,8 @@
 }
 
 @media print {
-  /* Hide everything except the print container */
-  body > *:not(.pf-v6-c-backdrop) {
-    display: none !important;
-  }
-
-  .pf-v6-c-backdrop {
-    position: static !important;
-    overflow: visible !important;
-  }
-
-  .automl-model-details-modal {
-    position: static !important;
-    max-width: none !important;
-    min-height: auto !important;
-    box-shadow: none !important;
-    border: none !important;
-    overflow: visible !important;
-  }
-
-  /* Hide the screen-only interactive content */
-  .automl-model-details-screen-only,
-  .automl-model-details-header,
-  .pf-v6-c-modal-box__close {
+  /* Hide everything except the portalled print container */
+  body > *:not(.automl-model-details-print-only) {
     display: none !important;
   }
 
@@ -181,42 +175,36 @@
   }
 
   .automl-print-header {
-    margin-bottom: 24px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #000;
+    margin-bottom: var(--pf-t--global--spacer--md);
+    padding-bottom: var(--pf-t--global--spacer--sm);
+    border-bottom: 2px solid var(--pf-t--global--border--color--strong);
 
     h1 {
-      font-size: 24px;
+      font-size: var(--pf-t--global--font--size--2xl);
       margin: 0;
     }
 
     p {
-      font-size: 14px;
-      color: #555;
-      margin: 4px 0 0;
+      font-size: var(--pf-t--global--font--size--sm);
+      color: var(--pf-t--global--text--color--subtle);
+      margin: var(--pf-t--global--spacer--xs) 0 0;
     }
   }
 
-  /* Hide PF modal header (close button area) */
-  .pf-v6-c-modal-box__header {
-    display: none !important;
-  }
-
-  /* Each tab on its own page; first tab flows after header without page break */
+  /* Each tab starts on a new page except the first */
   .automl-print-page {
-    page-break-before: always;
-    padding-top: 16px;
+    break-before: page;
   }
 
-  .automl-print-header + .automl-print-page {
-    page-break-before: avoid;
+  .automl-print-page--first {
+    break-before: avoid;
+  }
 
-    h2 {
-      font-size: 20px;
-      margin-bottom: 16px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #ccc;
-    }
+  .automl-print-page h2 {
+    font-size: var(--pf-t--global--font--size--xl);
+    margin-bottom: var(--pf-t--global--spacer--md);
+    padding-bottom: var(--pf-t--global--spacer--sm);
+    border-bottom: 1px solid var(--pf-t--global--border--color--default);
   }
 }
 
