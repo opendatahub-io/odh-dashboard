@@ -2,6 +2,7 @@ package s3
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -206,4 +207,51 @@ func TestCountLines(t *testing.T) {
 	assert.Equal(t, 0, countLines([]byte("hello")))
 	assert.Equal(t, 1, countLines([]byte("a\nb")))
 	assert.Equal(t, 3, countLines([]byte("a\nb\nc\n")))
+}
+
+// mockS3CodedError simulates AWS SDK errors that implement ErrorCode().
+type mockS3CodedError struct {
+	msg  string
+	code string
+}
+
+func (e mockS3CodedError) Error() string {
+	if e.msg != "" {
+		return e.msg
+	}
+	return e.code
+}
+
+func (e mockS3CodedError) ErrorCode() string {
+	return e.code
+}
+
+func TestIsS3ConditionalCreateConflict(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{name: "PreconditionFailed", err: mockS3CodedError{code: "PreconditionFailed"}, want: true},
+		{name: "ConditionalRequestConflict", err: mockS3CodedError{code: "ConditionalRequestConflict"}, want: true},
+		{
+			name: "wrapped PreconditionFailed",
+			err:  fmt.Errorf("upload failed: %w", mockS3CodedError{code: "PreconditionFailed"}),
+			want: true,
+		},
+		{
+			name: "wrapped ConditionalRequestConflict",
+			err:  fmt.Errorf("upload failed: %w", mockS3CodedError{code: "ConditionalRequestConflict"}),
+			want: true,
+		},
+		{name: "other ErrorCode", err: mockS3CodedError{code: "NoSuchKey"}, want: false},
+		{name: "plain error", err: errors.New("failed"), want: false},
+		{name: "nil", err: nil, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, isS3ConditionalCreateConflict(tt.err))
+		})
+	}
 }
