@@ -557,7 +557,10 @@ function AutoragConfigure({
                               const pendingTrimmed = pendingFilename.trim();
                               const hasDocumentInput = Boolean(
                                 inputDataBucketName &&
-                                  (mode === 'select' ? keyTrimmed : keyTrimmed || pendingTrimmed),
+                                  (mode === 'select'
+                                    ? keyTrimmed
+                                    : keyTrimmed ||
+                                      (pendingTrimmed && Boolean(pendingInputDataFile))),
                               );
                               return (
                                 <Button
