@@ -1308,6 +1308,7 @@ export type DashboardCommonConfig = {
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  externalVectorStores?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
 };
 
