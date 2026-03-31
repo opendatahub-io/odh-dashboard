@@ -303,8 +303,11 @@ describe('API Keys Page', () => {
 
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
+    cy.wait('@getSubscriptions');
     createApiKeyModal.findExpirationToggle().should('contain.text', '30 days');
     createApiKeyModal.findSubmitButton().should('be.disabled');
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
     createApiKeyModal.findNameInput().type('production-backend');
     createApiKeyModal.findDescriptionInput().type('Production API key for backend service');
     createApiKeyModal.findSubmitButton().should('be.enabled');
@@ -344,9 +347,12 @@ describe('API Keys Page', () => {
 
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
+    cy.wait('@getSubscriptions');
     createApiKeyModal.findExpirationToggle().click();
     createApiKeyModal.findExpirationOption('custom').click();
     createApiKeyModal.findCustomDaysInput().type('45');
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
     createApiKeyModal.findNameInput().type('my-key');
     createApiKeyModal.findSubmitButton().should('be.enabled');
     createApiKeyModal.findSubmitButton().click();
@@ -383,6 +389,9 @@ describe('API Keys Page', () => {
 
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
+    cy.wait('@getSubscriptions');
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
     createApiKeyModal.findNameInput().type('production-backend');
     createApiKeyModal.findSubmitButton().click();
 

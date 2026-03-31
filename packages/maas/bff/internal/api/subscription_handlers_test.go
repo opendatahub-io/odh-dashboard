@@ -477,7 +477,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			Expect(first.ModelRefs).NotTo(BeEmpty())
 		})
 
-		It("returns 401 when no identity is provided", func() {
+		It("returns 400 when no identity is provided", func() {
 			_, rs, err := setupApiTest[Envelope[[]models.SubscriptionListItem, None]](
 				http.MethodGet,
 				"/api/v1/subscriptions",
@@ -487,7 +487,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(rs.StatusCode).To(Equal(http.StatusUnauthorized))
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
 		})
 	})
 })
