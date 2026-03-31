@@ -1,6 +1,7 @@
 import * as React from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
 import './app.css';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Alert,
   Bullseye,
@@ -23,6 +24,17 @@ import AppRoutes from '~/app/AppRoutes';
 import { AppContext } from '~/app/context/AppContext';
 
 const App: React.FC = () => {
+  const [queryClient] = React.useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          mutations: {
+            gcTime: Infinity,
+          },
+        },
+      }),
+  );
+
   const {
     configSettings,
     userSettings,
@@ -87,17 +99,27 @@ const App: React.FC = () => {
   const loading =
     !configLoaded || !userSettings || !configSettings || !contextValue || !namespacesLoaded;
 
-  return loading ? (
-    <Bullseye>
-      <Spinner />
-    </Bullseye>
-  ) : (
+  if (loading) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
+
+  const page = (
     <AppContext.Provider value={contextValue}>
       <Page mainContainerId="primary-app-container" isManagedSidebar={isStandalone}>
         <AppRoutes />
       </Page>
     </AppContext.Provider>
   );
+
+  if (isStandalone) {
+    return <QueryClientProvider client={queryClient}>{page}</QueryClientProvider>;
+  }
+
+  return page;
 };
 
 export default App;

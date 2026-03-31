@@ -55,6 +55,12 @@ type App struct {
 	pipelineServerClientFactory ps.PipelineServerClientFactory
 	s3ClientFactory             s3int.S3ClientFactory
 	repositories                *repositories.Repositories
+	// s3PostMaxFilePartBytes is for package api tests only (see PostS3FileHandler).
+	s3PostMaxFilePartBytes int64
+	// s3PostMaxRequestBodyBytes caps total POST body in tests (0 = file max + multipart envelope).
+	s3PostMaxRequestBodyBytes int64
+	// s3PostMaxCollisionAttempts limits HeadObject-based key suffix attempts in tests (0 = default cap).
+	s3PostMaxCollisionAttempts int
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
@@ -210,9 +216,12 @@ func (app *App) Routes() http.Handler {
 
 	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
 	// secretName (the handler resolves credentials directly in that case).
-	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FileSchemaHandler)))
-	apiRouter.GET(S3FilePath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FileHandler)))
-	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler)))
+	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileSchemaHandler))))
+	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileHandler))))
+	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler))))
+	// POST /s3/file deliberately omits attachPipelineClientIfNeeded: secretName is required; there is
+	// no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
+	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToPipelineServers(app.PostS3FileHandler))))
 
 	// Model Registry - register model binary (target registry via path param + discovered ServerURL)
 	// No DSPA RBAC gate: Model Registry is a separate service; upstream MR API enforces auth.
