@@ -32,7 +32,9 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
 
     projectRbacPermissions
       .findAssignRolesButton()
+      .should('be.visible')
       .should('not.have.attr', 'aria-disabled', 'true')
+      .should('exist')
       .click();
     cy.url().should('include', `/projects/${NAMESPACE}/permissions/assign`);
     projectRbacPermissions.findAssignRolesPage().should('exist');
