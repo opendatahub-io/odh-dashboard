@@ -27,6 +27,7 @@ export type ModelAvailabilityFieldsData = {
 export type ModelAvailabilityFields = {
   data: ModelAvailabilityFieldsData;
   setData: (data: ModelAvailabilityFieldsData) => void;
+  isGenAiEnabled: boolean;
   showField?: boolean;
   showSaveAsMaaS?: boolean;
 };
@@ -70,6 +71,7 @@ export const useModelAvailabilityFields = (
   return {
     data: AiAssetData,
     setData,
+    isGenAiEnabled,
     showField: modelType?.type === ServingRuntimeModelType.GENERATIVE,
   };
 };
@@ -77,6 +79,7 @@ export const useModelAvailabilityFields = (
 type AvailableAiAssetsFieldsComponentProps = {
   data: ModelAvailabilityFieldsData;
   setData: (data: ModelAvailabilityFieldsData) => void;
+  isGenAiEnabled: boolean;
   wizardState: UseModelDeploymentWizardState;
   externalData?: ExternalDataMap;
 };
@@ -84,11 +87,10 @@ type AvailableAiAssetsFieldsComponentProps = {
 export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsComponentProps> = ({
   data,
   setData,
+  isGenAiEnabled,
   wizardState,
   externalData,
 }) => {
-  const isGenAiEnabled = useIsAreaAvailable(SupportedArea.PLUGIN_GEN_AI).status;
-
   const setDataWithClearUseCase = React.useCallback(
     (newData: ModelAvailabilityFieldsData) => {
       if (!newData.saveAsAiAsset) {

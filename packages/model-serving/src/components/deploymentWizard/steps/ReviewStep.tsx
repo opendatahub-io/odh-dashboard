@@ -16,7 +16,6 @@ import {
   ModelServingCompatibleTypes,
   isConnectionTypeDataField,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import {
   ModelLocationType,
@@ -373,7 +372,7 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
   projectName,
   externalData,
 }) => {
-  const isGenAiEnabled = useIsAreaAvailable(SupportedArea.PLUGIN_GEN_AI).status;
+  const { isGenAiEnabled } = wizardState.state.modelAvailability;
 
   const extensionSections = React.useMemo((): WizardReviewSection[] => {
     return wizardState.fields.flatMap((field) => {

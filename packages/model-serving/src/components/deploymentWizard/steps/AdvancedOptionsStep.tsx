@@ -19,7 +19,6 @@ import {
   HelperTextItem,
   Spinner,
 } from '@patternfly/react-core';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
@@ -98,7 +97,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     return kserveContainer.env?.map((ev) => `${ev.name}=${ev.value ?? ''}`) || [];
   };
 
-  const isGenAiEnabled = useIsAreaAvailable(SupportedArea.PLUGIN_GEN_AI).status;
+  const { isGenAiEnabled } = wizardState.state.modelAvailability;
   const hasModelPlaygroundExtensionFields = React.useMemo(
     () => wizardState.fields.some((f) => f.parentId === 'model-playground-availability'),
     [wizardState.fields],
@@ -148,6 +147,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                   <AvailableAiAssetsFieldsComponent
                     data={wizardState.state.modelAvailability.data}
                     setData={wizardState.state.modelAvailability.setData}
+                    isGenAiEnabled={isGenAiEnabled}
                     wizardState={wizardState}
                     externalData={externalData}
                   />

@@ -78,6 +78,7 @@ describe('AvailableAiAssetsFields', () => {
       const { result } = renderHook(() => useModelAvailabilityFields());
       expect(result.current.data.saveAsAiAsset).toBe(false);
       expect(result.current.data.useCase).toBe('');
+      expect(result.current.isGenAiEnabled).toBe(true);
     });
     it('should initialize with existing data', () => {
       const { result } = renderHook(() =>
@@ -102,6 +103,7 @@ describe('AvailableAiAssetsFields', () => {
       expect(result.current.data.saveAsAiAsset).toBe(false);
       expect(result.current.data.useCase).toBe('');
       expect(result.current.data.saveAsMaaS).toBe(true);
+      expect(result.current.isGenAiEnabled).toBe(false);
     });
   });
   describe('AvailableAiAssetsFieldsComponent', () => {
@@ -115,6 +117,7 @@ describe('AvailableAiAssetsFields', () => {
           <AvailableAiAssetsFieldsComponent
             data={{ saveAsAiAsset: false, useCase: '' }}
             setData={jest.fn()}
+            isGenAiEnabled
             wizardState={mockWizardState}
           />,
         );
@@ -127,6 +130,7 @@ describe('AvailableAiAssetsFields', () => {
           <AvailableAiAssetsFieldsComponent
             data={{ saveAsAiAsset: true, useCase: '' }}
             setData={jest.fn()}
+            isGenAiEnabled
             wizardState={mockWizardState}
           />,
         );
@@ -139,6 +143,7 @@ describe('AvailableAiAssetsFields', () => {
           <AvailableAiAssetsFieldsComponent
             data={{ saveAsAiAsset: true, useCase: 'test' }}
             setData={jest.fn()}
+            isGenAiEnabled
             wizardState={mockWizardState}
           />,
         );
@@ -159,6 +164,7 @@ describe('AvailableAiAssetsFields', () => {
           <AvailableAiAssetsFieldsComponent
             data={{ saveAsAiAsset: false, useCase: '' }}
             setData={jest.fn()}
+            isGenAiEnabled={false}
             wizardState={mockWizardState}
           />,
         );
@@ -170,6 +176,7 @@ describe('AvailableAiAssetsFields', () => {
           <AvailableAiAssetsFieldsComponent
             data={{ saveAsAiAsset: true, useCase: 'test' }}
             setData={jest.fn()}
+            isGenAiEnabled={false}
             wizardState={mockWizardState}
           />,
         );
@@ -182,6 +189,7 @@ describe('AvailableAiAssetsFields', () => {
           <AvailableAiAssetsFieldsComponent
             data={{ saveAsAiAsset: true, useCase: 'existing data' }}
             setData={jest.fn()}
+            isGenAiEnabled={false}
             wizardState={mockWizardState}
           />,
         );
