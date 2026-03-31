@@ -144,9 +144,9 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
               <Select
                 id="model-registry-select"
                 isOpen={registrySelectOpen}
-                selected={selectedRegistry?.name}
+                selected={selectedRegistry?.id}
                 onSelect={(_event, value) => {
-                  const registry = readyRegistries.find((r) => r.name === value);
+                  const registry = readyRegistries.find((r) => r.id === value);
                   setSelectedRegistry(registry);
                   setRegistrySelectOpen(false);
                 }}
@@ -167,8 +167,8 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
                 <SelectList>
                   {readyRegistries.map((registry) => (
                     <SelectOption
-                      key={registry.name}
-                      value={registry.name}
+                      key={registry.id}
+                      value={registry.id}
                       description={registry.description}
                       data-testid={`registry-option-${registry.name}`}
                     >

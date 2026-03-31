@@ -33,7 +33,8 @@ import './AutomlLeaderboard.scss';
 
 type LeaderboardEntry = {
   rank: number;
-  model: string;
+  modelKey: string;
+  displayName: string;
   metrics: Record<string, number | string>;
   optimizedMetricValue: number | string;
 };
@@ -144,7 +145,8 @@ function AutomlLeaderboard({
 
       return {
         rank: 0, // Will be assigned after sorting by optimized metric initially
-        model: model.display_name || modelName,
+        modelKey: modelName,
+        displayName: model.display_name || modelName,
         metrics,
         optimizedMetricValue,
       };
@@ -194,7 +196,7 @@ function AutomlLeaderboard({
     if (activeSortIndex === 1) {
       // Sort by model name
       return rankedEntries.toSorted((a, b) => {
-        const comparison = a.model.localeCompare(b.model);
+        const comparison = a.displayName.localeCompare(b.displayName);
         return activeSortDirection === 'asc' ? comparison : -comparison;
       });
     }
@@ -365,10 +367,10 @@ function AutomlLeaderboard({
                 <Button
                   variant="link"
                   isInline
-                  onClick={() => handleViewDetails(entry.model, entry.rank)}
+                  onClick={() => handleViewDetails(entry.modelKey, entry.rank)}
                   data-testid={`model-link-${entry.rank}`}
                 >
-                  {entry.model}
+                  {entry.displayName}
                 </Button>
               </Td>
               {metricKeys.map((metricKey) => (
@@ -387,19 +389,19 @@ function AutomlLeaderboard({
                   items={[
                     {
                       title: 'View details',
-                      onClick: () => handleViewDetails(entry.model, entry.rank),
+                      onClick: () => handleViewDetails(entry.modelKey, entry.rank),
                     },
                     {
                       title: 'Register model',
                       onClick: () => {
-                        onRegisterModel?.(entry.model);
+                        onRegisterModel?.(entry.modelKey);
                       },
                     },
                     {
                       title: 'Save notebook',
                       onClick: () => {
                         if (onClickSaveNotebook) {
-                          onClickSaveNotebook(entry.model);
+                          onClickSaveNotebook(entry.modelKey);
                         }
                       },
                     },
