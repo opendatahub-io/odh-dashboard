@@ -236,8 +236,8 @@ function AutoragConfigure({
   }, [clearErrors, onPendingInputDataFileChange, setValue]);
 
   const stageInputDataFile = useCallback(
-    (file: File) => {
-      if (!selectedSecret?.name) {
+    (file?: File) => {
+      if (!selectedSecret?.name || !file) {
         return;
       }
       if (file.size > INPUT_DATA_UPLOAD_MAX_BYTES) {
