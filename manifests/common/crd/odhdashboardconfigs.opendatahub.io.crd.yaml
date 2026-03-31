@@ -113,6 +113,8 @@ spec:
                       type: boolean
                     aiAssetCustomEndpoints:
                       type: boolean
+                    externalVectorStores:
+                      type: boolean
                     mlflow:
                       type: boolean
                     projectRBAC:
@@ -124,6 +126,8 @@ spec:
                     disableLLMd:
                       type: boolean
                     deploymentWizardYAMLViewer:
+                      type: boolean
+                    promptManagement:
                       type: boolean
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'

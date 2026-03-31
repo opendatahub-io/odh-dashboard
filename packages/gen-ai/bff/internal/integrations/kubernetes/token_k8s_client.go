@@ -583,6 +583,13 @@ func (kc *TokenKubernetesClient) getVectorStoresConfig(
 	return &doc, nil
 }
 
+// GetVectorStoresConfig retrieves and parses the gen-ai-aa-vector-stores ConfigMap.
+// This is the public interface method; identity is not required because the client
+// uses its own configured auth context.
+func (kc *TokenKubernetesClient) GetVectorStoresConfig(ctx context.Context, namespace string) (*models.ExternalVectorStoresDocument, error) {
+	return kc.getVectorStoresConfig(ctx, nil, namespace)
+}
+
 // validateVectorStores looks up each requested vector store in the parsed config document,
 // correlates it with its provider entry by provider_id, assigns credential env vars for
 // providers that need them, and returns the ordered slice.
@@ -1787,7 +1794,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			if resolvedExtType == "" {
 				resolvedExtType = extDetails.modelType
 			}
-			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, resolvedExtType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
+			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, resolvedExtType, extDetails.providerType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
 			kc.Logger.Info("Added custom endpoint model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
 
 			// Track provider info for guardrails
@@ -1994,9 +2001,9 @@ func (kc *TokenKubernetesClient) validateExternalModelsConfig(config *models.Ext
 			return fmt.Errorf("provider at index %d has empty provider_id", i)
 		}
 
-		// Validate ProviderType is remote::openai
-		if provider.ProviderType != models.ProviderTypeOpenAI {
-			return fmt.Errorf("provider '%s' has invalid provider_type '%s', must be remote::openai", provider.ProviderID, provider.ProviderType)
+		// Validate ProviderType is remote::openai or remote::passthrough
+		if provider.ProviderType != models.ProviderTypeOpenAI && provider.ProviderType != models.ProviderTypePassThrough {
+			return fmt.Errorf("provider '%s' has invalid provider_type '%s', must be remote::openai or remote::passthrough", provider.ProviderID, provider.ProviderType)
 		}
 
 		// Validate BaseURL is a well-formed URL with scheme and host
@@ -2685,10 +2692,15 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 		}
 	}
 
-	// Add new provider (hardcoded to remote::openai)
+	// Select provider type based on model type: embedding models use passthrough, inference models use openai
+	providerType := models.ProviderTypeOpenAI
+	if req.ModelType == models.ModelTypeEmbedding {
+		providerType = models.ProviderTypePassThrough
+	}
+
 	newProvider := models.InferenceProvider{
 		ProviderID:   fmt.Sprintf("endpoint-%s", providerID),
-		ProviderType: models.ProviderTypeOpenAI,
+		ProviderType: providerType,
 		Config: models.ProviderConfig{
 			BaseURL: req.BaseURL,
 			CustomGenAI: models.CustomGenAI{
@@ -2703,7 +2715,9 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 	}
 
 	// For OpenAI provider, add allowed_models
-	newProvider.Config.AllowedModels = []string{req.ModelID}
+	if providerType == models.ProviderTypeOpenAI {
+		newProvider.Config.AllowedModels = []string{req.ModelID}
+	}
 
 	config.Providers.Inference = append(config.Providers.Inference, newProvider)
 
