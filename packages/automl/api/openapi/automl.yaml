@@ -566,9 +566,17 @@ paths:
       operationId: getS3Files
       summary: Get files from S3
       description: >-
-        Retrieves a list of files from an S3-compatible storage using credentials from a Kubernetes secret.
-        The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+        Retrieves a list of files from an S3-compatible storage.
         Returns the files in a list, plus any additional metadata that ListObjectsV2 returns.
+
+
+        Two credential resolution modes are supported:
+        (1) **DSPA mode (default in production)** — when secretName is omitted, the endpoint,
+        region, bucket, and credential field names are read from the DSPipelineApplication
+        (DSPA) spec discovered in the namespace.
+        (2) **Explicit mode (override)** — when secretName is supplied, the specified Kubernetes
+        secret must contain AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
+        and AWS_S3_ENDPOINT using those exact field names.
       tags:
         - S3Operation
       parameters:
@@ -581,8 +589,13 @@ paths:
           example: default
         - name: secretName
           in: query
-          required: true
-          description: The name of the Kubernetes secret containing S3 credentials
+          required: false
+          description: >-
+            Override: name of the Kubernetes secret containing S3 credentials.
+            When supplied, the secret must use the conventional AWS_* field names
+            (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+            When omitted, the endpoint falls back to DSPA mode and reads credentials from
+            the DSPipelineApplication spec discovered in the namespace.
           schema:
             type: string
             maxLength: 253
@@ -591,7 +604,11 @@ paths:
         - name: bucket
           in: query
           required: false
-          description: The S3 bucket name. Leading and trailing whitespace is trimmed.
+          description: >-
+            The S3 bucket name. Only honored when secretName is supplied (explicit mode).
+            In DSPA mode (secretName omitted), this parameter is ignored and the bucket
+            configured in the DSPipelineApplication spec is used instead; if the DSPA
+            does not specify a bucket the request is rejected with 400.
           schema:
             type: string
             pattern: '^\S(.*\S)?$'
