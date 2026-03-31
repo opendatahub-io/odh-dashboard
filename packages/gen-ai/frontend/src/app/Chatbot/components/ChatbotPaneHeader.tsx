@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Button, Divider, Flex, FlexItem, Label, Spinner } from '@patternfly/react-core';
-import { CogIcon, TimesIcon } from '@patternfly/react-icons';
+import { Button, Divider, Flex, FlexItem, Label, Spinner, Content } from '@patternfly/react-core';
+import { TimesIcon } from '@patternfly/react-icons';
 import { ChatbotHeaderMain } from '@patternfly/chatbot';
 import { ResponseMetrics } from '~/app/types';
 import { formatDuration } from '~/app/Chatbot/ChatbotMessagesMetrics';
@@ -11,7 +11,6 @@ interface ChatbotPaneHeaderProps {
   label?: string;
   selectedModel: string;
   onModelChange: (model: string) => void;
-  onSettingsClick: () => void;
   /** Optional close button handler (for compare mode) */
   onCloseClick?: () => void;
   /** Metrics from the last response (latency, tokens, TTFT) */
@@ -20,6 +19,8 @@ interface ChatbotPaneHeaderProps {
   isLoading?: boolean;
   /** Whether to show a divider below the header */
   hasDivider?: boolean;
+  isSettingsOpen?: boolean;
+  isActiveConfig?: boolean;
   /** Test ID prefix for the header elements */
   testIdPrefix?: string;
   isDarkMode?: boolean;
@@ -33,11 +34,12 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   label,
   selectedModel,
   onModelChange,
-  onSettingsClick,
   onCloseClick,
   metrics,
   isLoading,
   hasDivider,
+  isSettingsOpen,
+  isActiveConfig,
   testIdPrefix = 'chatbot',
   isDarkMode,
 }) => (
@@ -58,25 +60,39 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
         <FlexItem>
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             {label && (
-              <FlexItem style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</FlexItem>
+              <>
+                <FlexItem
+                  style={{
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    color:
+                      isSettingsOpen && isActiveConfig
+                        ? 'var(--pf-t--global--color--brand--default)'
+                        : undefined,
+                  }}
+                >
+                  {label}
+                </FlexItem>
+                {!isSettingsOpen && (
+                  <Divider
+                    orientation={{ default: 'vertical' }}
+                    style={{ height: '1em', alignSelf: 'center' }}
+                  />
+                )}
+              </>
+            )}
+            {!isSettingsOpen && (
+              <FlexItem>
+                <Content component="p" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  Model
+                </Content>
+              </FlexItem>
             )}
             <FlexItem>
               <ModelDetailsDropdown
                 selectedModel={selectedModel}
                 onModelChange={onModelChange}
                 testId="chatbot-model-selector-toggle"
-              />
-            </FlexItem>
-            <FlexItem>
-              <Button
-                variant="plain"
-                aria-label="Open settings panel"
-                icon={<CogIcon />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSettingsClick();
-                }}
-                data-testid={`${testIdPrefix}-settings-button`}
               />
             </FlexItem>
           </Flex>

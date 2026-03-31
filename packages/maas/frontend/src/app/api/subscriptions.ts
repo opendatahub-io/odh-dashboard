@@ -6,9 +6,22 @@ import {
   restDELETE,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { MaaSSubscription, ModelSubscriptionRef, TokenRateLimit } from '~/app/types/subscriptions';
+import {
+  MaaSAuthPolicy,
+  MaaSModelRefSummary,
+  MaaSSubscription,
+  ModelRef,
+  ModelReference,
+  ModelSubscriptionRef,
+  SubjectSpec,
+  SubscriptionInfoResponse,
+  TokenRateLimit,
+} from '~/app/types/subscriptions';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
+
+const isTokenRateLimit = (v: unknown): v is TokenRateLimit =>
+  isRecord(v) && typeof v.limit === 'number' && typeof v.window === 'string';
 
 const isMaaSSubscriptionRef = (v: unknown): v is ModelSubscriptionRef =>
   isRecord(v) &&
@@ -23,18 +36,56 @@ const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
   isRecord(v) &&
   typeof v.name === 'string' &&
   typeof v.namespace === 'string' &&
-  (v.phase === undefined || typeof v.phase === 'string') &&
+  (v.displayName === undefined || typeof v.displayName === 'string') &&
+  (v.description === undefined || typeof v.description === 'string') &&
+  typeof v.phase === 'string' &&
   (v.priority === undefined || typeof v.priority === 'number') &&
   typeof v.owner === 'object' &&
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isMaaSSubscriptionRef) &&
   (v.tokenMetadata === undefined || typeof v.tokenMetadata === 'object') &&
   (v.creationTimestamp === undefined || typeof v.creationTimestamp === 'string');
-const isTokenRateLimit = (v: unknown): v is TokenRateLimit =>
-  isRecord(v) && typeof v.limit === 'number' && typeof v.window === 'string';
 
 const isMaaSSubscriptionArray = (v: unknown): v is MaaSSubscription[] =>
   Array.isArray(v) && v.every(isMaaSSubscription);
+
+const isModelRef = (v: unknown): v is ModelRef =>
+  isRecord(v) && typeof v.name === 'string' && typeof v.namespace === 'string';
+
+const isModelReference = (v: unknown): v is ModelReference =>
+  isRecord(v) && typeof v.kind === 'string' && typeof v.name === 'string';
+
+const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
+  isRecord(v) &&
+  typeof v.name === 'string' &&
+  typeof v.namespace === 'string' &&
+  (v.displayName === undefined || typeof v.displayName === 'string') &&
+  (v.description === undefined || typeof v.description === 'string') &&
+  isModelReference(v.modelRef) &&
+  (v.phase === undefined || typeof v.phase === 'string') &&
+  (v.endpoint === undefined || typeof v.endpoint === 'string');
+
+const isGroupRef = (v: unknown): v is { name: string } => isRecord(v) && typeof v.name === 'string';
+
+const isSubjectSpec = (v: unknown): v is SubjectSpec =>
+  isRecord(v) && Array.isArray(v.groups) && v.groups.every(isGroupRef);
+
+const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
+  isRecord(v) &&
+  typeof v.name === 'string' &&
+  typeof v.namespace === 'string' &&
+  (v.phase === undefined || typeof v.phase === 'string') &&
+  Array.isArray(v.modelRefs) &&
+  v.modelRefs.every(isModelRef) &&
+  isSubjectSpec(v.subjects);
+
+const isSubscriptionInfoResponse = (v: unknown): v is SubscriptionInfoResponse =>
+  isRecord(v) &&
+  isMaaSSubscription(v.subscription) &&
+  Array.isArray(v.modelRefs) &&
+  v.modelRefs.every(isMaaSModelRefSummary) &&
+  Array.isArray(v.authPolicies) &&
+  v.authPolicies.every(isMaaSAuthPolicy);
 
 /** GET /api/v1/all-subscriptions - List all subscriptions */
 export const listSubscriptions =
@@ -66,6 +117,23 @@ export const deleteSubscription =
     ).then((response) => {
       if (isDeleteSubscriptionResponse(response)) {
         return;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getSubscriptionInfo =
+  (name: string, hostPath = '') =>
+  (opts: APIOptions): Promise<SubscriptionInfoResponse> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/subscription-info/${encodeURIComponent(name)}`,
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isSubscriptionInfoResponse(response)) {
+        return response;
       }
       throw new Error('Invalid response format');
     });

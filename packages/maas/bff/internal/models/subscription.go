@@ -43,6 +43,8 @@ type TokenMetadata struct {
 type MaaSSubscription struct {
 	Name              string                 `json:"name"`
 	Namespace         string                 `json:"namespace"`
+	DisplayName       string                 `json:"displayName,omitempty"`
+	Description       string                 `json:"description,omitempty"`
 	Phase             string                 `json:"phase,omitempty"`
 	Priority          int32                  `json:"priority,omitempty"`
 	Owner             OwnerSpec              `json:"owner"`
@@ -80,11 +82,13 @@ type ModelReference struct {
 
 // MaaSModelRefSummary is the BFF representation of a MaaSModelRef CR.
 type MaaSModelRefSummary struct {
-	Name      string         `json:"name"`
-	Namespace string         `json:"namespace"`
-	ModelRef  ModelReference `json:"modelRef"`
-	Phase     string         `json:"phase,omitempty"`
-	Endpoint  string         `json:"endpoint,omitempty"`
+	Name        string         `json:"name"`
+	Namespace   string         `json:"namespace"`
+	DisplayName string         `json:"displayName,omitempty"`
+	Description string         `json:"description,omitempty"`
+	ModelRef    ModelReference `json:"modelRef"`
+	Phase       string         `json:"phase,omitempty"`
+	Endpoint    string         `json:"endpoint,omitempty"`
 }
 
 // CreateSubscriptionRequest is the request body for creating a new subscription.

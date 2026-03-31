@@ -13,7 +13,10 @@ import {
   StackItem,
   Alert,
   FormGroup,
+  FormHelperText,
   FormSection,
+  HelperText,
+  HelperTextItem,
   Spinner,
 } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
@@ -130,10 +133,18 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
             {showModelPlaygroundAvailabilitySection && (
               <StackItem>
                 <FormGroup
-                  label="Model playground availability"
+                  label="Model availability"
                   data-testid="model-playground-availability"
                   fieldId="model-playground-availability"
                 >
+                  <FormHelperText className="pf-v6-u-mb-md">
+                    <HelperText>
+                      <HelperTextItem>
+                        Make this model available to other users by publishing it on the{' '}
+                        <b>AI asset endpoints</b> page.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
                   <AvailableAiAssetsFieldsComponent
                     data={wizardState.state.modelAvailability.data}
                     setData={wizardState.state.modelAvailability.setData}
