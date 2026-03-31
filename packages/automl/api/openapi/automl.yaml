@@ -75,6 +75,39 @@ paths:
       operationId: getNamespaces
       summary: Get Available Namespaces
       description: Get Available Namespaces endpoint.
+  /api/v1/model-registries:
+    summary: List available Model Registry instances
+    description: >-
+      Returns all ModelRegistry instances from the rhoai-model-registries namespace.
+      Registries are presented as global in the RHOAI UX; no namespace parameter is required.
+      Each entry includes the registry id, name, readiness, and server URL needed
+      to route subsequent model registration calls to the correct registry service.
+
+      Required RBAC: User must have 'list' permission for
+      modelregistries.modelregistry.opendatahub.io resources in the
+      rhoai-model-registries namespace. Returns 403 if permission is denied.
+    get:
+      tags:
+        - ModelRegistry
+      security:
+        - Bearer: []
+      responses:
+        "200":
+          $ref: "#/components/responses/ModelRegistriesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getModelRegistries
+      summary: List Model Registries
+      description: >-
+        Returns all ModelRegistry instances visible to the authenticated user.
+        When no registries are installed the response is 200 with an empty list.
+
   /api/v1/secrets:
     summary: Path used to retrieve and filter secrets from a namespace.
     description: >-
@@ -638,6 +671,62 @@ components:
                 commonOptionalKeys:
                   example: ["aws_s3_bucket"]
 
+    ModelRegistry:
+      description: A Model Registry instance discovered from the cluster
+      type: object
+      required:
+        - id
+        - name
+        - display_name
+        - is_ready
+        - server_url
+      properties:
+        id:
+          type: string
+          description: The Kubernetes UID of the ModelRegistry CR
+          example: a1b2c3d4-e5f6-7890-abcd-111111111111
+        name:
+          type: string
+          description: The ModelRegistry CR name (also the Kubernetes service name)
+          example: default-modelregistry
+        display_name:
+          type: string
+          description: Human-readable name from openshift.io/display-name annotation; falls back to name
+          example: Default Model Registry
+        description:
+          type: string
+          description: Optional description from openshift.io/description annotation
+          example: Shared model registry for the organization
+        is_ready:
+          type: boolean
+          description: Whether the ModelRegistry has an Available=True condition
+          example: true
+        server_url:
+          type: string
+          description: >-
+            Full in-cluster REST API base URL for this registry, derived from
+            status.hosts (set by the operator). Callers append resource paths
+            (e.g. /registered_models) to this URL.
+          example: "https://default-modelregistry.rhoai-model-registries.svc.cluster.local:8443/api/model_registry/v1beta1"
+        external_url:
+          type: string
+          description: >-
+            Public Route URL for the registry, present only when serviceRoute is enabled.
+            Empty when no Route is configured.
+          example: "https://default-modelregistry-rest.apps.cluster.example.com/api/model_registry/v1beta1"
+
+    ModelRegistriesData:
+      description: Wrapper for the model registries list response
+      type: object
+      required:
+        - model_registries
+      properties:
+        model_registries:
+          type: array
+          description: List of available Model Registry instances
+          items:
+            $ref: "#/components/schemas/ModelRegistry"
+
     SecretListItem:
       description: A Kubernetes secret with its UUID, name, type classification, data keys with values/redaction, and metadata
       required:
@@ -1068,6 +1157,18 @@ components:
       example: 1
 
   responses:
+    ModelRegistriesResponse:
+      description: Successful response containing available Model Registry instances
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/ModelRegistriesData"
+
     SecretsResponse:
       content:
         application/json:

@@ -28,17 +28,18 @@ import (
 )
 
 const (
-	Version          = "1.0.0"
-	PathPrefix       = "/automl"
-	ApiPathPrefix    = "/api/v1"
-	HealthCheckPath  = "/healthcheck"
-	UserPath         = ApiPathPrefix + "/user"
-	NamespacePath    = ApiPathPrefix + "/namespaces"
-	SecretsPath      = ApiPathPrefix + "/secrets"
-	S3FilePath       = ApiPathPrefix + "/s3/file"
-	S3FileSchemaPath = ApiPathPrefix + "/s3/file/schema"
-	S3FilesPath      = ApiPathPrefix + "/s3/files"
-	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
+	Version             = "1.0.0"
+	PathPrefix          = "/automl"
+	ApiPathPrefix       = "/api/v1"
+	HealthCheckPath     = "/healthcheck"
+	UserPath            = ApiPathPrefix + "/user"
+	NamespacePath       = ApiPathPrefix + "/namespaces"
+	SecretsPath         = ApiPathPrefix + "/secrets"
+	S3FilePath          = ApiPathPrefix + "/s3/file"
+	S3FileSchemaPath    = ApiPathPrefix + "/s3/file/schema"
+	S3FilesPath         = ApiPathPrefix + "/s3/files"
+	PipelineRunsPath    = ApiPathPrefix + "/pipeline-runs"
+	ModelRegistriesPath = ApiPathPrefix + "/model-registries"
 )
 
 type App struct {
@@ -189,6 +190,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 	apiRouter.GET(SecretsPath, app.AttachNamespace(app.GetSecretsHandler))
+
+	// Model Registry discovery — CRs are namespace-scoped within rhoai-model-registries
+	// but presented as global in the RHOAI UX; no user-supplied namespace parameter needed.
+	apiRouter.GET(ModelRegistriesPath, app.GetModelRegistriesHandler)
 
 	// Pipeline Runs API endpoints (pipeline server and pipeline are auto-discovered)
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunHandler)))))
