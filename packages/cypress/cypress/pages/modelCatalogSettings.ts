@@ -50,6 +50,10 @@ class ModelCatalogSettings {
   findEnableToggle(sourceId: string) {
     return cy.findByTestId(`enable-toggle-${sourceId}`);
   }
+
+  findToggleAlert() {
+    return cy.findByTestId('toggle-alert');
+  }
 }
 
 export const modelCatalogSettings = new ModelCatalogSettings();

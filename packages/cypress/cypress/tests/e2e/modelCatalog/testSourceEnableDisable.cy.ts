@@ -7,7 +7,6 @@ import {
   waitForModelCatalogCards,
   waitForModelCatalogAfterDisable,
   enableModelCatalogSource,
-  ensureModelCatalogSourceEnabled,
 } from '../../../utils/oc_commands/modelCatalog';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import type { ModelCatalogSourceTestData } from '../../../types';
@@ -22,8 +21,10 @@ describe('[product bug: RHOAIENG-53704] Verify Model Catalog Source Enable/Disab
         testData = yaml.load(yamlContent) as ModelCatalogSourceTestData;
       })
       .then(() => {
-        ensureModelCatalogSourceEnabled(testData.redhatAiSourceId);
-        ensureModelCatalogSourceEnabled(testData.redhatAiSourceId2);
+        enableModelCatalogSource(testData.redhatAiSourceId);
+        enableModelCatalogSource(testData.redhatAiSourceId2);
+        verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, true);
+        verifyModelCatalogSourceEnabled(testData.redhatAiSourceId2, true);
       });
   });
 
@@ -58,14 +59,20 @@ describe('[product bug: RHOAIENG-53704] Verify Model Catalog Source Enable/Disab
       cy.step('Navigate back to AI catalog sources');
       modelCatalogSettings.visit();
 
+      cy.intercept('PATCH', '**/source_configs/*').as('toggleSource');
+
       cy.step(`Disable the ${testData.sourceName} source`);
-      modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId).click({ force: true });
+      modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId).click();
+      cy.wait('@toggleSource').its('response.statusCode').should('eq', 200);
+      modelCatalogSettings.findToggleAlert().should('not.exist');
 
       cy.step('Verify first source is disabled in configmap');
       verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, false);
 
       cy.step(`Disable the ${testData.sourceName2} source`);
-      modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId2).click({ force: true });
+      modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId2).click();
+      cy.wait('@toggleSource').its('response.statusCode').should('eq', 200);
+      modelCatalogSettings.findToggleAlert().should('not.exist');
 
       cy.step('Verify second source is disabled in configmap');
       verifyModelCatalogSourceEnabled(testData.redhatAiSourceId2, false);
