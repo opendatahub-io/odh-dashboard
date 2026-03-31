@@ -1,8 +1,8 @@
-.toggle-group-full-width .pf-v6-c-toggle-group__item {
+.autoragConfigureToggleGroupFullWidth .pf-v6-c-toggle-group__item {
   flex: 1 0 0;
 }
 
-.toggle-group-full-width .pf-v6-c-toggle-group__button {
+.autoragConfigureToggleGroupFullWidth .pf-v6-c-toggle-group__button {
   width: 100%;
   justify-content: center;
 }

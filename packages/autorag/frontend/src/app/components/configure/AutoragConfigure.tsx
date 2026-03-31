@@ -346,7 +346,7 @@ function AutoragConfigure({
                     <StackItem className="pf-v6-u-mt-md">
                       <ToggleGroup
                         aria-label="Choose how to add documents"
-                        className="toggle-group-full-width pf-v6-u-mb-md"
+                        className="autoragConfigureToggleGroupFullWidth pf-v6-u-mb-md"
                       >
                         <ToggleGroupItem
                           text="Select file or folder"
