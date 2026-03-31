@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -1400,7 +1401,8 @@ func TestGetProviderDataRouting(t *testing.T) {
 
 		// Call with model_source_type = "custom_endpoint"
 		// Since we don't have a real K8s client, it should return nil but not crash
-		providerData := app.getProviderData(ctx, "endpoint-1/gpt-4o", "custom_endpoint", "")
+		providerData, err := app.getProviderData(ctx, "endpoint-1/gpt-4o", "custom_endpoint", "", nil)
+		require.NoError(t, err)
 
 		// Without a K8s client factory, this should return nil
 		assert.Nil(t, providerData, "Should return nil when K8s client is not available")
@@ -1415,7 +1417,8 @@ func TestGetProviderDataRouting(t *testing.T) {
 
 		// Call with empty model_source_type
 		// Should fall back to auto-detection (tries MaaS prefix, then user JWT)
-		providerData := app.getProviderData(ctx, "test-model", "", "")
+		providerData, err := app.getProviderData(ctx, "test-model", "", "", nil)
+		require.NoError(t, err)
 
 		// Should return user JWT provider data
 		assert.NotNil(t, providerData)
@@ -1433,7 +1436,8 @@ func TestGetProviderDataRouting(t *testing.T) {
 
 		// Call with MaaS model prefix and empty model_source_type
 		// Should auto-detect as MaaS but fail to get token without K8s client
-		providerData := app.getProviderData(ctx, "maas-vllm-inference-1/llama-3", "", "")
+		providerData, err := app.getProviderData(ctx, "maas-vllm-inference-1/llama-3", "", "", nil)
+		require.NoError(t, err)
 
 		// Without proper K8s client, should fall back to user JWT
 		// (MaaS detection fails, falls back to getUserJWTProviderData)
@@ -1449,7 +1453,8 @@ func TestGetProviderDataRouting(t *testing.T) {
 		})
 
 		// Call with namespace model (no special handling, falls through to auto-detection)
-		providerData := app.getProviderData(ctx, "my-namespace-model", "namespace", "")
+		providerData, err := app.getProviderData(ctx, "my-namespace-model", "namespace", "", nil)
+		require.NoError(t, err)
 
 		// Should fall back to auto-detection which returns user JWT
 		assert.NotNil(t, providerData)
@@ -1514,7 +1519,8 @@ func TestGetProviderDataRouting(t *testing.T) {
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
 
 		// Call with provider-qualified model ID and custom_endpoint source type
-		providerData := appWithData.getProviderData(ctx, "endpoint-1/gpt-4o", "custom_endpoint", "")
+		providerData, err := appWithData.getProviderData(ctx, "endpoint-1/gpt-4o", "custom_endpoint", "", nil)
+		require.NoError(t, err)
 
 		// Should return provider data with the API key from the secret
 		assert.NotNil(t, providerData, "Provider data should not be nil")
@@ -1528,11 +1534,140 @@ func TestGetProviderDataRouting(t *testing.T) {
 			Token: "test-token",
 		})
 
-		providerData := app.getProviderData(ctx, "test-model", "", "premium-subscription")
+		providerData, err := app.getProviderData(ctx, "test-model", "", "premium-subscription", nil)
+		require.NoError(t, err)
 
 		assert.NotNil(t, providerData)
 		assert.Contains(t, providerData, "vllm_api_token")
 		assert.Equal(t, "test-token", providerData["vllm_api_token"])
+	})
+}
+
+func TestGetPassthroughEmbeddingSecret(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	memStore := cache.NewMemoryStore()
+
+	newApp := func(client *customEndpointMockClient) *App {
+		return &App{
+			config:                  config.EnvConfig{Port: 4000},
+			logger:                  logger,
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+			kubernetesClientFactory: &customEndpointMockFactory{client: client},
+			memoryStore:             memStore,
+		}
+	}
+
+	newCtx := func() context.Context {
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "test-token"})
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
+		return ctx
+	}
+
+	passthroughProvider := models.InferenceProvider{
+		ProviderID:   "endpoint-1",
+		ProviderType: models.ProviderTypePassThrough,
+		Config: models.ProviderConfig{
+			BaseURL: "https://embedding.example.com",
+			CustomGenAI: models.CustomGenAI{
+				APIKey: models.APIKeyConfig{
+					SecretRef: models.SecretRef{Name: "embed-secret", Key: "api_key"},
+				},
+			},
+		},
+	}
+	embeddingModel := models.RegisteredModel{
+		ModelID:    "my-embedding-model",
+		ProviderID: "endpoint-1",
+		ModelType:  models.ModelTypeEmbedding,
+	}
+	vsDoc := &models.ExternalVectorStoresDocument{
+		RegisteredResources: models.RegisteredResourcesSection{
+			VectorStores: []models.RegisteredVectorStore{
+				{VectorStoreID: "vs-1", EmbeddingModel: "my-embedding-model"},
+			},
+		},
+	}
+	externalModelsConfig := &models.ExternalModelsConfig{
+		Providers:           models.ProvidersConfig{Inference: []models.InferenceProvider{passthroughProvider}},
+		RegisteredResources: models.RegisteredResourcesConfig{Models: []models.RegisteredModel{embeddingModel}},
+	}
+
+	t.Run("returns url and key for passthrough embedding model", func(t *testing.T) {
+		client := &customEndpointMockClient{
+			vectorStoresDoc:      vsDoc,
+			externalModelsConfig: externalModelsConfig,
+			secretValue:          "my-api-key",
+		}
+		providerData, err := newApp(client).getProviderData(newCtx(), "inf-model", "", "", []string{"vs-1"})
+		require.NoError(t, err)
+		assert.Equal(t, "https://embedding.example.com", providerData["passthrough_url"])
+		assert.Equal(t, "my-api-key", providerData["passthrough_api_key"])
+	})
+
+	t.Run("uses fake token when no secret ref is configured", func(t *testing.T) {
+		noSecretProvider := passthroughProvider
+		noSecretProvider.Config.CustomGenAI.APIKey.SecretRef = models.SecretRef{}
+		client := &customEndpointMockClient{
+			vectorStoresDoc: vsDoc,
+			externalModelsConfig: &models.ExternalModelsConfig{
+				Providers:           models.ProvidersConfig{Inference: []models.InferenceProvider{noSecretProvider}},
+				RegisteredResources: models.RegisteredResourcesConfig{Models: []models.RegisteredModel{embeddingModel}},
+			},
+		}
+		providerData, err := newApp(client).getProviderData(newCtx(), "inf-model", "", "", []string{"vs-1"})
+		require.NoError(t, err)
+		assert.Equal(t, "fake", providerData["passthrough_api_key"])
+	})
+
+	t.Run("returns error when vector stores ConfigMap read fails", func(t *testing.T) {
+		client := &customEndpointMockClient{
+			vectorStoresDocErr: errors.New("configmap not found"),
+		}
+		_, err := newApp(client).getProviderData(newCtx(), "inf-model", "", "", []string{"vs-1"})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "configmap not found")
+	})
+
+	t.Run("returns error when external models ConfigMap read fails", func(t *testing.T) {
+		client := &customEndpointMockClient{
+			vectorStoresDoc:         vsDoc,
+			externalModelsConfigErr: errors.New("external models configmap unavailable"),
+		}
+		_, err := newApp(client).getProviderData(newCtx(), "inf-model", "", "", []string{"vs-1"})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "external models configmap unavailable")
+	})
+
+	t.Run("returns error when secret fetch fails", func(t *testing.T) {
+		client := &customEndpointMockClient{
+			vectorStoresDoc:      vsDoc,
+			externalModelsConfig: externalModelsConfig,
+			secretErr:            errors.New("secret access denied"),
+		}
+		_, err := newApp(client).getProviderData(newCtx(), "inf-model", "", "", []string{"vs-1"})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "secret access denied")
+	})
+
+	t.Run("returns no passthrough data when vector store uses non-custom embedding model", func(t *testing.T) {
+		client := &customEndpointMockClient{
+			vectorStoresDoc:      vsDoc,
+			externalModelsConfig: &models.ExternalModelsConfig{}, // embedding model not in external models
+		}
+		providerData, err := newApp(client).getProviderData(newCtx(), "inf-model", "", "", []string{"vs-1"})
+		require.NoError(t, err)
+		assert.NotContains(t, providerData, "passthrough_url")
+		assert.NotContains(t, providerData, "passthrough_api_key")
+	})
+
+	t.Run("returns no passthrough data when vectorStoreIDs is empty", func(t *testing.T) {
+		client := &customEndpointMockClient{}
+		providerData, err := newApp(client).getProviderData(newCtx(), "inf-model", "", "", nil)
+		require.NoError(t, err)
+		assert.NotContains(t, providerData, "passthrough_url")
 	})
 }
 
@@ -1556,14 +1691,22 @@ func (f *customEndpointMockFactory) ValidateRequestIdentity(identity *integratio
 // customEndpointMockClient is a mock K8s client that returns predefined external models config and secret
 type customEndpointMockClient struct {
 	k8s.KubernetesClientInterface
-	externalModelsConfig *models.ExternalModelsConfig
-	secretValue          string
+	externalModelsConfig    *models.ExternalModelsConfig
+	externalModelsConfigErr error
+	vectorStoresDoc         *models.ExternalVectorStoresDocument
+	vectorStoresDocErr      error
+	secretValue             string
+	secretErr               error
 }
 
 func (c *customEndpointMockClient) GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error) {
-	return c.externalModelsConfig, nil
+	return c.externalModelsConfig, c.externalModelsConfigErr
+}
+
+func (c *customEndpointMockClient) GetVectorStoresConfig(ctx context.Context, namespace string) (*models.ExternalVectorStoresDocument, error) {
+	return c.vectorStoresDoc, c.vectorStoresDocErr
 }
 
 func (c *customEndpointMockClient) GetSecretValue(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretKey string) (string, error) {
-	return c.secretValue, nil
+	return c.secretValue, c.secretErr
 }

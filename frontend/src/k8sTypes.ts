@@ -1310,6 +1310,7 @@ export type DashboardCommonConfig = {
   deploymentWizardYAMLViewer?: boolean;
   externalVectorStores?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
+  promptManagement?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition
