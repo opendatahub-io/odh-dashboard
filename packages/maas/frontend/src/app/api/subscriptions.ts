@@ -16,6 +16,9 @@ import {
   SubjectSpec,
   SubscriptionInfoResponse,
   TokenRateLimit,
+  UserSubscription,
+  ModelRefInfo,
+  TokenRateLimitInfo,
 } from '~/app/types/subscriptions';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
@@ -87,6 +90,26 @@ const isSubscriptionInfoResponse = (v: unknown): v is SubscriptionInfoResponse =
   Array.isArray(v.authPolicies) &&
   v.authPolicies.every(isMaaSAuthPolicy);
 
+const isTokenRateLimitInfo = (v: unknown): v is TokenRateLimitInfo =>
+  isRecord(v) && typeof v.limit === 'number' && typeof v.window === 'string';
+
+const isModelRefInfo = (v: unknown): v is ModelRefInfo =>
+  isRecord(v) &&
+  typeof v.name === 'string' &&
+  (v.namespace === undefined || typeof v.namespace === 'string') &&
+  (v.token_rate_limits === undefined ||
+    (Array.isArray(v.token_rate_limits) && v.token_rate_limits.every(isTokenRateLimitInfo)));
+
+const isUserSubscription = (v: unknown): v is UserSubscription =>
+  isRecord(v) &&
+  typeof v.subscription_id_header === 'string' &&
+  typeof v.subscription_description === 'string' &&
+  typeof v.priority === 'number' &&
+  Array.isArray(v.model_refs) &&
+  v.model_refs.every(isModelRefInfo);
+
+const isUserSubscriptionArray = (v: unknown): v is UserSubscription[] =>
+  Array.isArray(v) && v.every(isUserSubscription);
 /** GET /api/v1/all-subscriptions - List all subscriptions */
 export const listSubscriptions =
   (hostPath = '') =>
@@ -134,6 +157,18 @@ export const getSubscriptionInfo =
     ).then((response) => {
       if (isSubscriptionInfoResponse(response)) {
         return response;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const listUserSubscriptions =
+  (hostPath = '') =>
+  (opts: APIOptions): Promise<UserSubscription[]> =>
+    handleRestFailures(
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/subscriptions`, {}, opts),
+    ).then((response) => {
+      if (isModArchResponse<unknown>(response) && isUserSubscriptionArray(response.data)) {
+        return response.data;
       }
       throw new Error('Invalid response format');
     });
