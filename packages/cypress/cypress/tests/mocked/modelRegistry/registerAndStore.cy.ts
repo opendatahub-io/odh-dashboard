@@ -35,7 +35,10 @@ const initIntercepts = () => {
     'GET /api/dsc/status',
     mockDscStatus({
       components: {
-        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+        [DataScienceStackComponent.MODEL_REGISTRY]: {
+          managementState: 'Managed',
+          registriesNamespace: 'odh-model-registries',
+        },
       },
     }),
   );
