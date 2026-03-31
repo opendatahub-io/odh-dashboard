@@ -468,10 +468,12 @@ function AutomlConfigure(): React.JSX.Element {
             if (secret) {
               setNewConnectionNotLoaded(false);
               const requiredKeys = AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
-              const availableKeys = Object.keys(secret.data ?? connection.stringData ?? {});
+              const secretData = secret.data ?? connection.stringData ?? {};
+              const availableKeys = Object.keys(secretData);
               const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
               setSelectedSecret({
                 ...secret,
+                data: secretData,
                 invalid,
               });
               setValue('train_data_secret_name', invalid ? '' : secret.name, {

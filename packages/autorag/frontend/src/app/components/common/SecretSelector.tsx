@@ -70,6 +70,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   onRefreshReady,
   showDescription = false,
   showType = false,
+  toggleProps: userToggleProps,
   ...props
 }) => {
   const [validationError, setValidationError] = React.useState<string>('');
@@ -218,6 +219,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         previewDescription={previewDescription}
         toggleWidth={toggleWidth}
         toggleProps={{
+          ...userToggleProps,
           status: hasError ? 'danger' : undefined,
         }}
         onSelect={(

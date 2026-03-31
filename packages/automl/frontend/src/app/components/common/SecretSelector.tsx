@@ -70,6 +70,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   onRefreshReady,
   showDescription = false,
   showType = false,
+  toggleProps: userToggleProps,
   ...props
 }) => {
   const [validationError, setValidationError] = React.useState<string>('');
@@ -142,7 +143,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
     } else {
       setValidationError('');
     }
-  }, [value, secretsList, validateSecretKeys, onChange]);
+  }, [value, secretsList, validateSecretKeys]);
 
   // Clear stale selection when secrets refresh and current value is no longer valid
   React.useEffect(() => {
@@ -176,11 +177,9 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
           labels.push(
             <div
               key="desc"
+              className="pf-v6-u-text-truncate"
               style={{
                 width: '250px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
               }}
               title={secret.description}
             >
@@ -194,7 +193,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
           value: secret.uuid,
           isSelected: secret.uuid === value,
           description: labels.length ? (
-            <LabelGroup style={{ marginTop: '0.5rem' }}>{labels}</LabelGroup>
+            <LabelGroup className="pf-v6-u-mt-sm">{labels}</LabelGroup>
           ) : undefined,
         };
       }),
@@ -218,6 +217,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         previewDescription={previewDescription}
         toggleWidth={toggleWidth}
         toggleProps={{
+          ...userToggleProps,
           status: hasError ? 'danger' : undefined,
         }}
         onSelect={(

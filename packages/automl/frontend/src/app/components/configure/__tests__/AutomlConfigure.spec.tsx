@@ -306,8 +306,11 @@ describe('AutomlConfigure', () => {
 
   describe('with training data configured', () => {
     const trainingDataDefaults = {
-      // eslint-disable-next-line camelcase
+      /* eslint-disable camelcase */
       train_data_secret_name: 'test-secret',
+      train_data_bucket_name: 'test-bucket',
+      train_data_file_key: 'test-file',
+      /* eslint-enable camelcase */
     };
 
     describe('Prediction type', () => {
