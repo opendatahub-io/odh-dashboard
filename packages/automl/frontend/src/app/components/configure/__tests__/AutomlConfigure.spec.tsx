@@ -14,7 +14,7 @@ jest.mock('react-router', () => ({
 }));
 
 jest.mock('~/app/hooks/queries');
-jest.mock('~/app/components/common/FileExplorer/FileExplorer', () => () => null);
+jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer', () => () => null);
 
 // Mock SecretSelector component
 jest.mock('~/app/components/common/SecretSelector', () => ({
