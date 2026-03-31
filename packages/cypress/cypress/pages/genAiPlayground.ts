@@ -9,7 +9,7 @@ class GenAiPlayground {
   }
 
   findCreatePlaygroundButton() {
-    return cy.get('button[data-testid="empty-state-action-button"]');
+    return cy.findByTestId('empty-state-action-button');
   }
 
   findConfigurationTable() {
