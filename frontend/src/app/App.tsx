@@ -28,6 +28,7 @@ import { IntegrationsStatusProvider } from '#~/concepts/integrations/Integration
 import { NotificationWatcherContextProvider } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
 import { AccessReviewProvider } from '#~/concepts/userSSAR';
 import { ExtensibilityContextProvider } from '#~/plugins/ExtensibilityContext';
+import AppActionsProvider from '#~/plugins/AppActionsProvider';
 import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
 import { PluginStoreAreaFlagsProvider } from '#~/plugins/PluginStoreAreaFlagsProvider';
 import { OdhPlatformType } from '#~/types';
@@ -147,58 +148,60 @@ const App: React.FC = () => {
   }
 
   return (
-    <DashboardConfigContext.Provider value={dashboardConfig.spec}>
-      <AppContext.Provider value={contextValue}>
-        <AreaContextProvider flags={devFeatureFlagsProps.devFeatureFlags}>
-          <PluginStoreAreaFlagsProvider />
-          <AccessReviewProvider>
-            <Page
-              className="odh-dashboard"
-              isManagedSidebar
-              isContentFilled
-              masthead={
-                <Header
-                  dashboardConfig={dashboardConfig.spec.dashboardConfig}
-                  {...devFeatureFlagsProps}
-                  onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)}
-                />
-              }
-              sidebar={isAllowed ? <NavSidebar /> : undefined}
-              notificationDrawer={
-                <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
-              }
-              isNotificationDrawerExpanded={notificationsOpen}
-              mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
-              data-testid={DASHBOARD_MAIN_CONTAINER_ID}
-              banner={
-                <DevFeatureFlagsBanner
-                  dashboardConfig={dashboardConfig.spec.dashboardConfig}
-                  {...devFeatureFlagsProps}
-                />
-              }
-            >
-              <ErrorBoundary>
-                <IntegrationsStatusProvider>
-                  <ProjectsContextProvider>
-                    <HardwareProfilesContextProvider>
-                      <ModelRegistriesContextProvider>
-                        <QuickStarts>
-                          <NotificationWatcherContextProvider>
-                            <AppRoutes />
-                          </NotificationWatcherContextProvider>
-                        </QuickStarts>
-                      </ModelRegistriesContextProvider>
-                    </HardwareProfilesContextProvider>
-                  </ProjectsContextProvider>
-                </IntegrationsStatusProvider>
-                <ToastNotifications />
-                <TelemetrySetup />
-              </ErrorBoundary>
-            </Page>
-          </AccessReviewProvider>
-        </AreaContextProvider>
-      </AppContext.Provider>
-    </DashboardConfigContext.Provider>
+    <AppActionsProvider>
+      <DashboardConfigContext.Provider value={dashboardConfig.spec}>
+        <AppContext.Provider value={contextValue}>
+          <AreaContextProvider flags={devFeatureFlagsProps.devFeatureFlags}>
+            <PluginStoreAreaFlagsProvider />
+            <AccessReviewProvider>
+              <Page
+                className="odh-dashboard"
+                isManagedSidebar
+                isContentFilled
+                masthead={
+                  <Header
+                    dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                    {...devFeatureFlagsProps}
+                    onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)}
+                  />
+                }
+                sidebar={isAllowed ? <NavSidebar /> : undefined}
+                notificationDrawer={
+                  <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
+                }
+                isNotificationDrawerExpanded={notificationsOpen}
+                mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
+                data-testid={DASHBOARD_MAIN_CONTAINER_ID}
+                banner={
+                  <DevFeatureFlagsBanner
+                    dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                    {...devFeatureFlagsProps}
+                  />
+                }
+              >
+                <ErrorBoundary>
+                  <IntegrationsStatusProvider>
+                    <ProjectsContextProvider>
+                      <HardwareProfilesContextProvider>
+                        <ModelRegistriesContextProvider>
+                          <QuickStarts>
+                            <NotificationWatcherContextProvider>
+                              <AppRoutes />
+                            </NotificationWatcherContextProvider>
+                          </QuickStarts>
+                        </ModelRegistriesContextProvider>
+                      </HardwareProfilesContextProvider>
+                    </ProjectsContextProvider>
+                  </IntegrationsStatusProvider>
+                  <ToastNotifications />
+                  <TelemetrySetup />
+                </ErrorBoundary>
+              </Page>
+            </AccessReviewProvider>
+          </AreaContextProvider>
+        </AppContext.Provider>
+      </DashboardConfigContext.Provider>
+    </AppActionsProvider>
   );
 };
 

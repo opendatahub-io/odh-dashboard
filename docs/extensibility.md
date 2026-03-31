@@ -537,3 +537,123 @@ import(/* webpackChunkName: "kserve-deploy" */ './src/deploy')
 // Avoid: generic name may collide with other plugins
 import(/* webpackChunkName: "deploy" */ './src/deploy')
 ```
+
+## App Actions
+
+Extensions frequently need to perform app-level side effects — navigating to a page, showing a toast notification, or opening a modal — in response to user interactions such as kebab menu clicks. These operations normally require React context (router, Redux, etc.), which is not available inside plain extension callback functions.
+
+**`AppActions`** provides a framework-agnostic interface that the host application implements. Extension code can call these actions without importing React Router, Redux, or any host-internal module.
+
+### Available Actions
+
+| Action | Signature | Purpose |
+|--------|-----------|---------|
+| `navigate` | `(path: string) => void` | Navigate to an in-app route |
+| `notification.success` | `(title, message?, actions?) => void` | Show a success toast |
+| `notification.error` | `(title, message?, actions?) => void` | Show an error toast |
+| `notification.info` | `(title, message?, actions?) => void` | Show an info toast |
+| `notification.warning` | `(title, message?, actions?) => void` | Show a warning toast |
+| `openModal` | `(component, props?) => ModalRef` | Open a lazily loaded modal component |
+
+### Using in React Code (Extensions & Host)
+
+Inside any React component that renders within the host application tree, use the `useAppActions` hook:
+
+```tsx
+import { useAppActions } from '@odh-dashboard/plugin-core';
+
+const MyExtensionComponent: React.FC = () => {
+  const { navigate, notification } = useAppActions();
+
+  const handleDeploy = async () => {
+    try {
+      await deployModel(data);
+      notification.success('Model deployed', `${data.name} is now serving.`);
+      navigate(`/model-serving/${data.name}`);
+    } catch (e) {
+      notification.error('Deployment failed', e.message);
+    }
+  };
+
+  return <Button onClick={handleDeploy}>Deploy</Button>;
+};
+```
+
+### Using in Extension Functions (Non-React)
+
+Pass the `AppActions` instance as a parameter to extension callback functions. The host component that invokes the function obtains `AppActions` via `useAppActions()` and forwards it:
+
+```typescript
+// Extension point definition
+export type KebabActionExtension = Extension<
+  'my-plugin.resource/kebab-action',
+  {
+    label: string;
+    action: CodeRef<(resource: MyResource, actions: AppActions) => void | Promise<void>>;
+  }
+>;
+```
+
+```typescript
+// Extension implementation
+export const deleteAction = (resource: MyResource, actions: AppActions): void => {
+  actions.openModal(
+    () => import('./DeleteConfirmModal'),
+    { resourceName: resource.metadata.name },
+  );
+};
+```
+
+```tsx
+// Host component that executes the action
+const { notification, navigate, openModal } = useAppActions();
+const appActions = useAppActions();
+const [resolvedActions] = useResolvedExtensions(isKebabActionExtension);
+
+const menuItems = resolvedActions.map((ext) => ({
+  label: ext.properties.label,
+  onClick: () => ext.properties.action(resource, appActions),
+}));
+```
+
+### Opening Modals
+
+The `openModal` function lazily loads a React component and renders it. The component receives an `onClose` callback plus any additional props:
+
+```tsx
+// ConfirmDeleteModal.tsx (extension-owned component)
+type ConfirmDeleteModalProps = {
+  onClose: () => void;
+  resourceName: string;
+};
+
+const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ onClose, resourceName }) => (
+  <Modal isOpen onClose={onClose} title="Confirm Delete">
+    <p>Delete {resourceName}?</p>
+    <Button onClick={onClose}>Cancel</Button>
+    <Button variant="danger" onClick={() => { /* delete logic */ onClose(); }}>
+      Delete
+    </Button>
+  </Modal>
+);
+
+export default ConfirmDeleteModal;
+```
+
+```typescript
+// Opening from an extension function
+const ref = actions.openModal(
+  () => import('./ConfirmDeleteModal'),
+  { resourceName: 'my-model' },
+);
+
+// Programmatic close (optional)
+ref.close();
+```
+
+### Design Guidelines
+
+1. **Keep actions simple** — `AppActions` is intentionally a thin interface. Complex workflows should still live in dedicated extension components.
+2. **Prefer `AppActions` over custom event bridges** — instead of dispatching custom DOM events for cross-boundary communication, pass `AppActions` through the extension function contract.
+3. **Type your modal props** — although `openModal` accepts `Record<string, unknown>` for props, the modal component itself should define a precise props type for safety.
+4. **Use `useAppActions` in React, pass explicitly in functions** — React code should use the hook; plain functions should receive `AppActions` as a parameter from the calling component.

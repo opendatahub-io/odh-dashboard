@@ -95,6 +95,8 @@ packages/<name>/
 | Extensions codegen | `frontend/config/generateExtensionsPlugin.js` |
 | Extensions loader | `frontend/src/plugins/useAppExtensions.ts` |
 | Plugin store | `packages/plugin-core/src/core/plugin-store.ts` |
+| App actions (types/context) | `packages/plugin-core/src/core/app-actions.ts` |
+| App actions (provider) | `frontend/src/plugins/AppActionsProvider.tsx` |
 | Extension points | `packages/plugin-core/src/extension-points/` |
 | Area flags | `frontend/src/concepts/areas/types.ts`, `const.ts` |
 | Backend MF proxy | `backend/src/routes/module-federation.ts` |
