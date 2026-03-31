@@ -40,7 +40,7 @@ const EmptyExperimentsState: React.FC<EmptyExperimentsStateProps> = ({
             variant="primary"
             onClick={() => navigate(createExperimentRoute)}
           >
-            Create AutoML experiment
+            Create AutoML optimization run
           </Button>
         </EmptyStateActions>
       </EmptyStateFooter>

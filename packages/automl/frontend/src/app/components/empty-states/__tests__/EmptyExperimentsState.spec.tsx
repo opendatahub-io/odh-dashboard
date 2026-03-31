@@ -39,7 +39,7 @@ describe('EmptyExperimentsState', () => {
     );
 
     expect(screen.getByTestId('create-experiment-button')).toHaveTextContent(
-      'Create AutoML experiment',
+      'Create AutoML optimization run',
     );
   });
 

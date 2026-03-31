@@ -132,7 +132,7 @@ describe('AutomlExperiments', () => {
     expect(screen.getByTestId('empty-experiments-state')).toBeInTheDocument();
     expect(screen.getByText('No experiments yet')).toBeInTheDocument();
     expect(screen.getByTestId('create-experiment-button')).toHaveTextContent(
-      'Create AutoML experiment',
+      'Create AutoML optimization run',
     );
     expect(screen.queryByTestId('automl-runs-table')).not.toBeInTheDocument();
   });
