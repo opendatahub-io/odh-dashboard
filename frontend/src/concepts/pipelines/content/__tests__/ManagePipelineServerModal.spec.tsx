@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import ManagePipelineServerModal from '#~/concepts/pipelines/content/ManagePipelineServerModal';
 import { mockDataSciencePipelineApplicationK8sResource } from '#~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
@@ -23,6 +24,11 @@ jest.mock('#~/concepts/projects/apiHooks/useNamespaceSecret', () => ({
   default: jest.fn(),
 }));
 
+jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
+  ...jest.requireActual('@openshift/dynamic-plugin-sdk-utils'),
+  k8sGetResource: jest.fn(),
+}));
+
 jest.mock('#~/api/pipelines/k8s', () => ({
   updatePipelineSettings: jest.fn(),
 }));
@@ -43,6 +49,7 @@ const mockUpdatePipelineSettings = updatePipelineSettings as jest.MockedFunction
 >;
 const mockUseNotification = useNotification as jest.MockedFunction<typeof useNotification>;
 const mockUseAppContext = useAppContext as jest.MockedFunction<typeof useAppContext>;
+const mockK8sGetResource = k8sGetResource as jest.MockedFunction<typeof k8sGetResource>;
 
 describe('ManagePipelineServerModal', () => {
   const mockOnClose = jest.fn();
@@ -109,6 +116,15 @@ describe('ManagePipelineServerModal', () => {
       undefined,
       jest.fn(),
     ]);
+
+    // Mock k8sGetResource to return a default DSPA resource
+    // This is used by updatePipelineSettings to check for existing managedPipelines field
+    mockK8sGetResource.mockResolvedValue(
+      mockDataSciencePipelineApplicationK8sResource({
+        name: 'dspa',
+        namespace: 'test-project',
+      }),
+    );
 
     mockUpdatePipelineSettings.mockResolvedValue(
       {} as Awaited<ReturnType<typeof updatePipelineSettings>>,

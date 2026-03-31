@@ -148,7 +148,7 @@ export const toggleInstructLabState = (
     ],
   });
 
-export const updatePipelineSettings = (
+export const updatePipelineSettings = async (
   namespace: string,
   settings: {
     cacheEnabled?: boolean;
@@ -162,8 +162,16 @@ export const updatePipelineSettings = (
   name = 'dspa',
 ): Promise<DSPipelineKind> => {
   const patches: Array<
-    { op: 'replace'; path: string; value: unknown } | { op: 'remove'; path: string }
+    | { op: 'replace'; path: string; value: unknown }
+    | { op: 'add'; path: string; value: unknown }
+    | { op: 'remove'; path: string }
   > = [];
+
+  // Read current resource to check for existing managedPipelines field
+  const currentResource = await k8sGetResource<DSPipelineKind>({
+    model: DataSciencePipelineApplicationModel,
+    queryOptions: { name, ns: namespace },
+  });
 
   if (settings.cacheEnabled !== undefined) {
     patches.push({
@@ -175,11 +183,23 @@ export const updatePipelineSettings = (
 
   // managedPipelines can be set (with image) or removed (undefined)
   if (settings.managedPipelines !== undefined) {
-    patches.push({
-      op: 'replace' as const,
-      path: '/spec/apiServer/managedPipelines',
-      value: settings.managedPipelines,
-    });
+    const existingManagedPipelines = currentResource.spec.apiServer?.managedPipelines;
+
+    if (existingManagedPipelines) {
+      // Field exists, use 'replace' operation
+      patches.push({
+        op: 'replace' as const,
+        path: '/spec/apiServer/managedPipelines',
+        value: settings.managedPipelines,
+      });
+    } else {
+      // Field doesn't exist, use 'add' operation
+      patches.push({
+        op: 'add' as const,
+        path: '/spec/apiServer/managedPipelines',
+        value: settings.managedPipelines,
+      });
+    }
   } else if ('managedPipelines' in settings) {
     // Explicitly remove managedPipelines if undefined is passed
     patches.push({
