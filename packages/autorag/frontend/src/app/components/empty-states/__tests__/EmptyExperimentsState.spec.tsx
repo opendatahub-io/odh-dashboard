@@ -25,7 +25,7 @@ describe('EmptyExperimentsState', () => {
     expect(screen.getByText('No experiments yet')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'To get started, create an AutoRAG experiment to configure and run your RAG pipeline.',
+        'Test different retrieval and model configurations to find the best-performing setup.',
       ),
     ).toBeInTheDocument();
   });
