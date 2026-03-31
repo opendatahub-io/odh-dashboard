@@ -96,6 +96,7 @@ export const blankDashboardCR: DashboardConfig = {
       deploymentWizardYAMLViewer: false,
       externalVectorStores: false,
       vLLMDeploymentOnMaaS: false,
+      promptManagement: false,
     },
     notebookController: {
       enabled: true,
