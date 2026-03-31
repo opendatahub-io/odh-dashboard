@@ -1327,11 +1327,30 @@ components:
           type: string
           format: date-time
           description: When the API key was last used for validation
+        subscriptionName:
+          type: string
+          description: Name of the MaaSSubscription associated with this API key
+          example: premium-team-sub
       required:
         - id
         - name
         - creationDate
         - status
+
+    SubscriptionDetail:
+      type: object
+      description: Model names within a subscription, used to enrich API key search responses
+      properties:
+        models:
+          type: array
+          items:
+            type: string
+          description: Names of models in the subscription
+          example:
+            - granite-3-8b-instruct
+            - flan-t5-small
+      required:
+        - models
 
     ApiKeyListResponse:
       type: object
@@ -1349,6 +1368,14 @@ components:
           type: boolean
           description: Whether there are more results beyond this page
           example: true
+        subscriptionDetails:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SubscriptionDetail'
+          description: >
+            Map of subscription name to its details (model names).
+            Populated by the BFF by fetching MaaSSubscription resources
+            for any subscriptionName values found on the returned API keys.
       required:
         - object
         - data

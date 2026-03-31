@@ -38,6 +38,35 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(actual.Data.Object).To(Equal("list"))
 			Expect(len(actual.Data.Data)).Should(BeNumerically(">", 0))
 		})
+		It("returns subscriptionName on API keys and handles missing subscriptions gracefully", func() {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			searchRequest := models.APIKeySearchRequest{}
+			actual, rs, err := setupApiTest[Envelope[*models.APIKeyListResponse, None]](
+				http.MethodPost,
+				"/api/v1/api-keys/search",
+				Envelope[models.APIKeySearchRequest, None]{
+					Data: searchRequest,
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(actual.Data).NotTo(BeNil())
+
+			hasSubscriptionName := false
+			for _, key := range actual.Data.Data {
+				if key.SubscriptionName != "" {
+					hasSubscriptionName = true
+					break
+				}
+			}
+			Expect(hasSubscriptionName).To(BeTrue(), "mock data should include subscriptionName on API keys")
+
+			// envtest has no MaaSSubscription CRs, so enrichment should
+			// degrade gracefully: SubscriptionDetails is nil (no panic, no error).
+			Expect(actual.Data.SubscriptionDetails).To(BeNil())
+		})
 		It("returns 400 if the user ID is missing", func() {
 			identity := &kubernetes.RequestIdentity{UserID: ""}
 			searchRequest := models.APIKeySearchRequest{}

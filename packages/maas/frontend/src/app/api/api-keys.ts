@@ -23,10 +23,11 @@ const isAPIKey = (v: unknown): v is APIKey =>
 
 const isAPIKeyListResponse = (v: unknown): v is APIKeyListResponse =>
   isRecord(v) &&
-  (Array.isArray(v.data) || v.data === null) && // if there are no keys, the data returns as null
+  (Array.isArray(v.data) || v.data === null) &&
   typeof v.has_more === 'boolean' &&
   typeof v.object === 'string' &&
-  (v.data === null || v.data.every(isAPIKey)); // if there are no keys, the data returns as null
+  (v.data === null || v.data.every(isAPIKey)) &&
+  (v.subscriptionDetails === undefined || isRecord(v.subscriptionDetails));
 
 const isCreateAPIKeyResponse = (v: unknown): v is CreateAPIKeyResponse =>
   isRecord(v) &&
