@@ -14,6 +14,11 @@ describe('Gen AI Navigation - User Journey Tests', () => {
   const uuid = generateTestUUID();
   const invalidNamespace = `non-existent-project-${generateTestUUID()}`;
 
+  // Skip admin-only setup in non-admin mode
+  if (Cypress.env('IS_NON_ADMIN_RUN')) {
+    skipTest = true;
+  }
+
   retryableBefore(() => {
     // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
     Cypress.on('uncaught:exception', (err) => {
