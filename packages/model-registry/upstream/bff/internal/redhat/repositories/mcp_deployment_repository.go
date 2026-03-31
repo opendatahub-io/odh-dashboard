@@ -355,6 +355,7 @@ func convertUnstructuredToMcpDeployment(obj unstructured.Unstructured) (models.M
 	}
 
 	deployment.Phase, deployment.Conditions = extractMcpServerStatus(obj)
+	deployment.Address = extractMcpServerAddress(obj)
 
 	return deployment, nil
 }
@@ -458,4 +459,20 @@ func extractMcpServerStatus(obj unstructured.Unstructured) (models.McpDeployment
 	}
 
 	return phase, conditions
+}
+
+func extractMcpServerAddress(obj unstructured.Unstructured) *models.McpDeploymentAddress {
+	status, ok := obj.Object["status"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	addr, ok := status["address"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	url := getString(addr, "url")
+	if url == "" {
+		return nil
+	}
+	return &models.McpDeploymentAddress{URL: url}
 }

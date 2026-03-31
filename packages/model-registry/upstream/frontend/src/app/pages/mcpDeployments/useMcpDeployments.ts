@@ -11,11 +11,7 @@ const useMcpDeployments = (): FetchState<McpDeploymentList> => {
     [queryParams],
   );
 
-  return useFetchState(
-    callback,
-    { items: [], size: 0, pageSize: 0 },
-    { initialPromisePurity: true },
-  );
+  return useFetchState(callback, { items: [], size: 0 }, { initialPromisePurity: true });
 };
 
 export default useMcpDeployments;

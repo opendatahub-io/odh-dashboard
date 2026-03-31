@@ -16,6 +16,10 @@ type McpDeploymentCondition struct {
 	Message            string `json:"message,omitempty"`
 }
 
+type McpDeploymentAddress struct {
+	URL string `json:"url"`
+}
+
 // McpDeployment represents a deployed MCPServer instance, flattened from the
 // mcp.x-k8s.io/v1alpha1 MCPServer CRD for API consumption.
 type McpDeployment struct {
@@ -29,6 +33,7 @@ type McpDeployment struct {
 	YAML              string                   `json:"yaml,omitempty"`
 	Phase             McpDeploymentPhase       `json:"phase"`
 	Conditions        []McpDeploymentCondition `json:"conditions,omitempty"`
+	Address           *McpDeploymentAddress    `json:"address,omitempty"`
 }
 
 type McpDeploymentList struct {
