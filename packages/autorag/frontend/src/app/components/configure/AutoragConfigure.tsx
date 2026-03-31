@@ -66,7 +66,6 @@ const INPUT_DATA_FILE_ACCEPT: Record<string, string[]> = {
   'text/markdown': ['.md', '.markdown'],
   'text/html': ['.html', '.htm'],
   'text/plain': ['.txt'],
-  'application/json': ['.json'],
 };
 
 const INPUT_DATA_UPLOAD_NATIVE_ACCEPT = [
@@ -251,7 +250,7 @@ function AutoragConfigure({
         setError('input_data_pending_filename', {
           type: 'manual',
           message:
-            'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text, JSON).',
+            'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
         });
         return;
       }
@@ -438,7 +437,7 @@ function AutoragConfigure({
                                 titleIcon={<UploadIcon />}
                                 titleText="Drag and drop files here"
                                 titleTextSeparator="or"
-                                infoText="Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text, JSON"
+                                infoText="Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text"
                                 browseButtonText="Upload"
                               />
                             </MultipleFileUpload>
