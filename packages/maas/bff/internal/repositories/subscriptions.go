@@ -502,10 +502,6 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) (*mode
 	summary.DisplayName = annotations[displayNameAnnotation]
 	summary.Description = annotations[descriptionAnnotation]
 
-	annotations := obj.GetAnnotations()
-	summary.DisplayName = annotations[displayNameAnnotation]
-	summary.Description = annotations[descriptionAnnotation]
-
 	kind, _, _ := unstructured.NestedString(content, "spec", "modelRef", "kind")
 	name, _, _ := unstructured.NestedString(content, "spec", "modelRef", "name")
 	summary.ModelRef = models.ModelReference{Kind: kind, Name: name}
