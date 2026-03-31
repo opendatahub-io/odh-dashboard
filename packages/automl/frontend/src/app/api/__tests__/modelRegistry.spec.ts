@@ -74,15 +74,15 @@ describe('registerModel', () => {
       model_description: 'A test model',
     };
 
-    const registryUrl = 'https://registry.svc:8443/api/model_registry/v1alpha3';
-    const result = await registerModel('', { namespace: 'test-ns', registryUrl, request });
+    const registryId = 'a1b2c3d4-e5f6-7890-abcd-111111111111';
+    const result = await registerModel('', { namespace: 'test-ns', registryId, request });
 
     expect(result).toEqual(mockResponse);
     expect(mockRestCREATE).toHaveBeenCalledWith(
       '',
-      '/automl/api/v1/models/register',
+      `/automl/api/v1/model-registries/${registryId}/models`,
       request,
-      { namespace: 'test-ns', registryUrl },
+      { namespace: 'test-ns' },
       expect.any(Object),
     );
   });
@@ -98,7 +98,7 @@ describe('registerModel', () => {
     };
 
     await expect(
-      registerModel('', { namespace: 'ns', registryUrl: 'https://r.svc:8443', request }),
+      registerModel('', { namespace: 'ns', registryId: 'some-uid', request }),
     ).rejects.toThrow('Invalid response format');
   });
 });

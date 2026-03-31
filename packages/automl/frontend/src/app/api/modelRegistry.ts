@@ -32,7 +32,7 @@ export async function getModelRegistries(
 
 export type RegisterModelParams = {
   namespace: string;
-  registryUrl: string;
+  registryId: string;
   request: RegisterModelRequest;
 };
 
@@ -40,8 +40,9 @@ export type RegisterModelParams = {
  * Registers a model in the Model Registry via the AutoML BFF.
  * Creates a RegisteredModel, ModelVersion, and ModelArtifact in sequence.
  *
- * The registryUrl is the server_url of the selected ModelRegistry instance,
- * passed as a query parameter so the BFF routes the request to the correct registry.
+ * The registryId is the Kubernetes UID of the target ModelRegistry CR
+ * (from GET /api/v1/model-registries). The BFF resolves the registry's
+ * server_url internally and routes the request to that instance.
  *
  * The BFF response contains the created ModelArtifact. The response shape is
  * defined by the prerequisite PR (#6764) and may evolve; typed as Record for now.
@@ -51,12 +52,13 @@ export async function registerModel(
   params: RegisterModelParams,
   opts?: APIOptions,
 ): Promise<Record<string, unknown>> {
+  const registryId = encodeURIComponent(params.registryId);
   const response = await handleRestFailures(
     restCREATE(
       hostPath,
-      `${URL_PREFIX}/api/${BFF_API_VERSION}/models/register`,
+      `${URL_PREFIX}/api/${BFF_API_VERSION}/model-registries/${registryId}/models`,
       params.request,
-      { namespace: params.namespace, registryUrl: params.registryUrl },
+      { namespace: params.namespace },
       opts ?? {},
     ),
   );

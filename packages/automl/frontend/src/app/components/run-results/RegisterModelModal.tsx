@@ -65,13 +65,13 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
   const s3Path = model?.location?.predictor ?? undefined;
 
   const registerMutation = useMutation({
-    mutationFn: async (params: { registryUrl: string; request: RegisterModelRequest }) => {
+    mutationFn: async (params: { registryId: string; request: RegisterModelRequest }) => {
       if (!namespace) {
         throw new Error('Namespace is not available');
       }
       return registerModel('', {
         namespace,
-        registryUrl: params.registryUrl,
+        registryId: params.registryId,
         request: params.request,
       });
     },
@@ -94,7 +94,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
     };
     /* eslint-enable camelcase */
 
-    registerMutation.mutate({ registryUrl: selectedRegistry.server_url, request });
+    registerMutation.mutate({ registryId: selectedRegistry.id, request });
   }, [selectedRegistry, registeredModelName, s3Path, modelDescription, registerMutation]);
 
   const isFormValid =
