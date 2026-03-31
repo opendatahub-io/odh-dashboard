@@ -69,6 +69,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
       }
       onClick={() => onImageStreamSelect(imageStream)}
       icon={<ProjectScopedIcon isProject={scope === 'project'} alt="" />}
+      description={getRelatedVersionDescription(imageStream)}
     >
       <ImageStreamDropdownLabel
         displayName={getImageStreamDisplayName(imageStream)}

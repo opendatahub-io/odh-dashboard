@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -135,6 +136,31 @@ func (m *MockS3Client) GetObject(_ context.Context, bucket, key string) (io.Read
 	}
 	content := []byte(fmt.Sprintf("[mock] contents of s3://%s/%s", bucket, key))
 	return io.NopCloser(bytes.NewReader(content)), "application/octet-stream", nil
+}
+
+// mockStaticListingKeys matches keys used by ListObjects below (conditional create conflict simulation).
+var mockStaticListingKeys = []string{
+	"datasets/train.csv",
+	"datasets/test.csv",
+	"datasets/validation.csv",
+	"results/model.pkl",
+	"results/metrics.json",
+	"configs/pipeline.yaml",
+}
+
+// UploadObject mimics conditional create: fails if the key is already in the static listing; otherwise drains the body.
+// io.Copy reports errors from reading body (e.g. *http.MaxBytesError on a limited reader).
+func (m *MockS3Client) UploadObject(_ context.Context, _ string, key string, body io.Reader, _ string) error {
+	if slices.Contains(mockStaticListingKeys, key) {
+		return s3int.ErrObjectAlreadyExists
+	}
+	_, err := io.Copy(io.Discard, body)
+	return err
+}
+
+// ObjectExists reports whether the key is in the static listing (HeadObject simulation).
+func (m *MockS3Client) ObjectExists(_ context.Context, _ string, key string) (bool, error) {
+	return slices.Contains(mockStaticListingKeys, key), nil
 }
 
 // ListObjects returns a mock listing of S3 objects.
