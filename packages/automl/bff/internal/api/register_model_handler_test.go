@@ -3,22 +3,26 @@ package api
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/opendatahub-io/automl-library/bff/internal/config"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
-	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
-	"log/slog"
 )
+
+// mockDefaultModelRegistryUID matches getMockModelRegistries() in the repository.
+const mockDefaultModelRegistryUID = "a1b2c3d4-e5f6-7890-abcd-111111111111"
 
 func validRegisterModelRequest() models.RegisterModelRequest {
 	return models.RegisterModelRequest{
+		ModelRegistryID:    mockDefaultModelRegistryUID,
 		S3Path:             "s3://my-bucket/models/model.bin",
 		ModelName:          "automl-model",
 		ModelDescription:   "AutoML trained model",
@@ -40,25 +44,25 @@ func newRegisterModelRequest(t *testing.T, body interface{}) *http.Request {
 	return req
 }
 
-func withModelRegistryClient(req *http.Request, client modelregistry.HTTPClientInterface) *http.Request {
-	ctx := context.WithValue(req.Context(), constants.ModelRegistryHttpClientKey, client)
-	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+func withRegisterModelHandlerContext(req *http.Request) *http.Request {
+	ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
+	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &kubernetes.RequestIdentity{
+		UserID: "test-user",
+	})
 	return req.WithContext(ctx)
 }
 
 func TestRegisterModelHandler_Success(t *testing.T) {
-	app := &App{
-		config:       config.EnvConfig{AuthMethod: config.AuthMethodDisabled},
-		logger:       slog.Default(),
-		repositories: repositories.NewRepositories(slog.Default()),
-	}
+	app := newModelRegistryTestApp()
 
 	t.Run("registers model and returns 201 with artifact", func(t *testing.T) {
 		req := validRegisterModelRequest()
-		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.S3Path)
+		app.modelRegistryHTTPClientFactory = func(_ *slog.Logger, _ string, _ http.Header, _ bool, _ *x509.CertPool) (modelregistry.HTTPClientInterface, error) {
+			return modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.S3Path), nil
+		}
 
 		rr := httptest.NewRecorder()
-		httpReq := withModelRegistryClient(newRegisterModelRequest(t, req), mockClient)
+		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
 		app.RegisterModelHandler(rr, httpReq, nil)
 
 		assert.Equal(t, http.StatusCreated, rr.Code)
@@ -73,10 +77,12 @@ func TestRegisterModelHandler_Success(t *testing.T) {
 
 	t.Run("returns envelope with data field", func(t *testing.T) {
 		req := validRegisterModelRequest()
-		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.S3Path)
+		app.modelRegistryHTTPClientFactory = func(_ *slog.Logger, _ string, _ http.Header, _ bool, _ *x509.CertPool) (modelregistry.HTTPClientInterface, error) {
+			return modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.S3Path), nil
+		}
 
 		rr := httptest.NewRecorder()
-		httpReq := withModelRegistryClient(newRegisterModelRequest(t, req), mockClient)
+		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
 		app.RegisterModelHandler(rr, httpReq, nil)
 
 		var raw map[string]interface{}
@@ -88,19 +94,29 @@ func TestRegisterModelHandler_Success(t *testing.T) {
 }
 
 func TestRegisterModelHandler_Validation(t *testing.T) {
-	app := &App{
-		config:       config.EnvConfig{AuthMethod: config.AuthMethodDisabled},
-		logger:       slog.Default(),
-		repositories: repositories.NewRepositories(slog.Default()),
+	app := newModelRegistryTestApp()
+	app.modelRegistryHTTPClientFactory = func(_ *slog.Logger, _ string, _ http.Header, _ bool, _ *x509.CertPool) (modelregistry.HTTPClientInterface, error) {
+		return modelregistry.NewSuccessMockClient("m", "v1", "s3://b/p"), nil
 	}
-	mockClient := modelregistry.NewSuccessMockClient("model", "v1", "s3://b/p")
+
+	t.Run("rejects empty model_registry_id", func(t *testing.T) {
+		req := validRegisterModelRequest()
+		req.ModelRegistryID = ""
+
+		rr := httptest.NewRecorder()
+		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
+		app.RegisterModelHandler(rr, httpReq, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "model_registry_id")
+	})
 
 	t.Run("rejects invalid s3 path", func(t *testing.T) {
 		req := validRegisterModelRequest()
 		req.S3Path = "https://invalid.com/path"
 
 		rr := httptest.NewRecorder()
-		httpReq := withModelRegistryClient(newRegisterModelRequest(t, req), mockClient)
+		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
 		app.RegisterModelHandler(rr, httpReq, nil)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
@@ -112,7 +128,7 @@ func TestRegisterModelHandler_Validation(t *testing.T) {
 		req.ModelName = ""
 
 		rr := httptest.NewRecorder()
-		httpReq := withModelRegistryClient(newRegisterModelRequest(t, req), mockClient)
+		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
 		app.RegisterModelHandler(rr, httpReq, nil)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
@@ -124,7 +140,7 @@ func TestRegisterModelHandler_Validation(t *testing.T) {
 		req.VersionName = ""
 
 		rr := httptest.NewRecorder()
-		httpReq := withModelRegistryClient(newRegisterModelRequest(t, req), mockClient)
+		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
 		app.RegisterModelHandler(rr, httpReq, nil)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
@@ -137,7 +153,7 @@ func TestRegisterModelHandler_Validation(t *testing.T) {
 			"/api/v1/models/register?namespace=test-namespace",
 			bytes.NewReader([]byte("{invalid")))
 		req.Header.Set("Content-Type", "application/json")
-		req = withModelRegistryClient(req, mockClient)
+		req = withRegisterModelHandlerContext(req)
 
 		app.RegisterModelHandler(rr, req, nil)
 
@@ -146,12 +162,12 @@ func TestRegisterModelHandler_Validation(t *testing.T) {
 
 	t.Run("rejects unknown JSON fields", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		raw := `{"s3_path":"s3://b/p","model_name":"m","version_name":"v1","unknown":"x"}`
+		raw := `{"model_registry_id":"` + mockDefaultModelRegistryUID + `","s3_path":"s3://b/p","model_name":"m","version_name":"v1","unknown":"x"}`
 		req, _ := http.NewRequest(http.MethodPost,
 			"/api/v1/models/register?namespace=test-namespace",
 			bytes.NewReader([]byte(raw)))
 		req.Header.Set("Content-Type", "application/json")
-		req = withModelRegistryClient(req, mockClient)
+		req = withRegisterModelHandlerContext(req)
 
 		app.RegisterModelHandler(rr, req, nil)
 
@@ -161,32 +177,42 @@ func TestRegisterModelHandler_Validation(t *testing.T) {
 }
 
 func TestRegisterModelHandler_ErrorCases(t *testing.T) {
-	app := &App{
-		config:       config.EnvConfig{AuthMethod: config.AuthMethodDisabled},
-		logger:       slog.Default(),
-		repositories: repositories.NewRepositories(slog.Default()),
-	}
-
-	t.Run("returns 503 when model registry client not in context", func(t *testing.T) {
+	t.Run("returns 400 when RequestIdentity missing", func(t *testing.T) {
+		app := newModelRegistryTestApp()
 		req := validRegisterModelRequest()
 		rr := httptest.NewRecorder()
 		httpReq := newRegisterModelRequest(t, req)
 		ctx := context.WithValue(httpReq.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
 		httpReq = httpReq.WithContext(ctx)
-		// No ModelRegistryHttpClientKey in context
 
 		app.RegisterModelHandler(rr, httpReq, nil)
 
-		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
-		assert.Contains(t, rr.Body.String(), "model registry")
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "RequestIdentity")
+	})
+
+	t.Run("returns 404 when model_registry_id unknown", func(t *testing.T) {
+		app := newModelRegistryTestApp()
+		req := validRegisterModelRequest()
+		req.ModelRegistryID = "00000000-0000-0000-0000-000000000000"
+
+		rr := httptest.NewRecorder()
+		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
+		app.RegisterModelHandler(rr, httpReq, nil)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assert.Contains(t, rr.Body.String(), "model_registry_id")
 	})
 
 	t.Run("propagates HTTP error from model registry API", func(t *testing.T) {
+		app := newModelRegistryTestApp()
 		req := validRegisterModelRequest()
-		mockClient := modelregistry.NewFailingMockClient(409, "409", "model name already exists")
+		app.modelRegistryHTTPClientFactory = func(_ *slog.Logger, _ string, _ http.Header, _ bool, _ *x509.CertPool) (modelregistry.HTTPClientInterface, error) {
+			return modelregistry.NewFailingMockClient(409, "409", "model name already exists"), nil
+		}
 
 		rr := httptest.NewRecorder()
-		httpReq := withModelRegistryClient(newRegisterModelRequest(t, req), mockClient)
+		httpReq := withRegisterModelHandlerContext(newRegisterModelRequest(t, req))
 		app.RegisterModelHandler(rr, httpReq, nil)
 
 		assert.Equal(t, 409, rr.Code)

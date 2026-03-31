@@ -17,7 +17,8 @@ This service exposes the following endpoints:
 - GET `/api/v1/pipeline-runs` – query merged pipeline runs from all auto-discovered AutoML pipelines
 - GET `/api/v1/pipeline-runs/:runId` – get a single pipeline run with full task details
 - POST `/api/v1/pipeline-runs` – create a new AutoML pipeline run
-- POST `/api/v1/models/register` – register a model binary in the Model Registry (requires `MODEL_REGISTRY_BASE_URL`)
+- GET `/api/v1/model-registries` – list Model Registry instances (Kubernetes CRs) with `id` and `server_url` for routing
+- POST `/api/v1/models/register` – register a model binary in a chosen Model Registry (`model_registry_id` + discovered `server_url`)
 
 ## Development
 
@@ -60,7 +61,6 @@ make run LOG_LEVEL=DEBUG
 | `-auth-method` | `AUTH_METHOD` | `internal` (mock) or `user_token` |
 | `-auth-header` | `AUTH_HEADER` | Header to read bearer token from (default Authorization) |
 | `-auth-prefix` | `AUTH_PREFIX` | Expected value prefix (default Bearer) |
-| `-model-registry-base-url` | `MODEL_REGISTRY_BASE_URL` | Base URL for Model Registry API (e.g., `http://model-registry:8080/api/model_registry/v1alpha3`). When empty, model registration returns 500. |
 | `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key) |
 | `-key-file` | `KEY_FILE` | TLS key path |
 | `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) |
@@ -106,7 +106,8 @@ GET  /api/v1/secrets             (filter secrets by type, e.g., ?namespace=defau
 GET  /api/v1/pipeline-runs       (query merged runs from all auto-discovered AutoML pipelines)
 GET  /api/v1/pipeline-runs/:runId
 POST /api/v1/pipeline-runs       (create a new AutoML pipeline run)
-POST /api/v1/models/register     (register model binary in Model Registry; requires MODEL_REGISTRY_BASE_URL)
+GET  /api/v1/model-registries    (list Model Registry instances: id, server_url, readiness)
+POST /api/v1/models/register     (register model binary; requires model_registry_id from discovery)
 ```
 
 For Model Registry integration details (configuration, authentication, S3), see [docs/model-registry-integration.md](docs/model-registry-integration.md).

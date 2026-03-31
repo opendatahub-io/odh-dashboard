@@ -17,23 +17,15 @@ The Model Registry stores **metadata** only; the actual model binary remains in 
 
 ## Configuration
 
-### Required: `MODEL_REGISTRY_BASE_URL`
+### Registry discovery and routing
 
-The Model Registry integration is **disabled** unless `MODEL_REGISTRY_BASE_URL` is set. When empty, `POST /api/v1/models/register` returns `500` with a message indicating the Model Registry is not configured.
+There is **no** global Model Registry base URL. The BFF discovers `modelregistry.opendatahub.io` `ModelRegistry` custom resources (see `GET /api/v1/model-registries`) and returns each instance’s Kubernetes **`id`** (UID) and in-cluster **`server_url`** (REST base path including `/api/model_registry/...`).
 
+Clients call **`POST /api/v1/models/register`** with **`model_registry_id`** set to that UID. The BFF lists registries under the caller’s identity (same RBAC as discovery), finds the matching CR, requires it to be **ready**, and uses **`server_url`** as the HTTP base for Kubeflow Model Registry API calls (`/registered_models`, etc.).
 
-**Environment variable:** `MODEL_REGISTRY_BASE_URL`  
-**CLI flag:** `--model-registry-base-url`
+> **Security (high severity):** When using `AUTH_METHOD=user_token`, the resolved `server_url` **must** use `https://` unless the host is `localhost` or `127.0.0.1`. The BFF rejects other `http://` URLs before forwarding the Bearer token. Use TLS for in-cluster registries (e.g., kube-rbac-proxy on port 8443) and external Routes.
 
-**Example values:**
-
-- In-cluster (Kubernetes): `http://model-registry.kubeflow.svc.cluster.local:8080/api/model_registry/v1alpha3` — internal only; when `AUTH_METHOD=user_token`, use `https://` (e.g., via Route/Ingress).
-- Local (port-forward): `http://localhost:8080/api/model_registry/v1alpha3` — dev only; localhost is allowed with `user_token` for local testing.
-- External: `https://model-registry.example.com/api/model_registry/v1alpha3` — always use `https://` for external endpoints.
-
-> **Security (high severity):** When using `AUTH_METHOD=user_token` and forwarding Bearer tokens, tokens **MUST** only be sent over TLS (`https://`) and **never** over plain HTTP (`http://`). Sending tokens over HTTP exposes them to interception (man-in-the-middle attacks). The BFF enforces HTTPS for `user_token` except for `localhost` and `127.0.0.1` (local dev only). **Remediation:** Use HTTPS/TLS for all external and in-cluster Model Registry endpoints when bearer tokens are used, or restrict `http://` to secure local port-forwarding for development only.
-
-The base URL must **not** include a trailing slash. The BFF appends paths such as `/registered_models` and `/model_versions/{id}/artifacts`.
+The base URL must **not** include a trailing slash internally; the BFF normalizes and appends paths such as `/registered_models` and `/model_versions/{id}/artifacts`.
 
 ### Optional: TLS
 
@@ -58,7 +50,7 @@ The AutoML BFF uses the same auth modes as other endpoints. For the Model Regist
 2. The BFF extracts the token and forwards it to the Model Registry API on every outbound request.
 3. The Model Registry must accept that token (e.g., when behind OAuth Proxy or an API gateway that validates it).
 
-**Security:** Bearer tokens **MUST** only be sent over TLS (`https://`). Never use `http://` for `MODEL_REGISTRY_BASE_URL` when `AUTH_METHOD=user_token` except for `localhost`/`127.0.0.1` (local dev). Plain HTTP exposes tokens to interception.
+**Security:** Bearer tokens **MUST** only be sent over TLS (`https://`). With `AUTH_METHOD=user_token`, the BFF rejects non-HTTPS `server_url` values except for `localhost`/`127.0.0.1` (local dev). Plain HTTP exposes tokens to interception.
 
 ### When `internal` or `disabled` is used
 
@@ -70,7 +62,7 @@ No `Authorization` header is sent to the Model Registry. This is suitable when:
 
 ### Requirements for the Model Registry
 
-- If the Model Registry is exposed and requires auth, use `AUTH_METHOD=user_token` and ensure clients pass a valid Bearer token. **Use HTTPS** for `MODEL_REGISTRY_BASE_URL` to avoid token interception.
+- If the Model Registry is exposed and requires auth, use `AUTH_METHOD=user_token` and ensure clients pass a valid Bearer token. **Use HTTPS** for the registry `server_url` to avoid token interception.
 - If the Model Registry is internal and unauthenticated, `internal` or `disabled` is fine; no token is needed.
 
 ## API
@@ -83,6 +75,7 @@ No `Authorization` header is sent to the Model Registry. This is suitable when:
 
 ```json
 {
+  "model_registry_id": "a1b2c3d4-e5f6-7890-abcd-111111111111",
   "s3_path": "s3://my-bucket/models/model.bin",
   "model_name": "my-automl-model",
   "model_description": "AutoML trained model",
@@ -97,6 +90,7 @@ No `Authorization` header is sent to the Model Registry. This is suitable when:
 
 | Field | Required | Description |
 |-------|----------|-------------|
+| `model_registry_id` | Yes | Kubernetes UID of the `ModelRegistry` CR (`id` from `GET /api/v1/model-registries`) |
 | `s3_path` | Yes | S3 URI (e.g., `s3://bucket/path` or `s3a://bucket/path`) |
 | `model_name` | Yes | Name of the registered model |
 | `version_name` | Yes | Version name (e.g., "v1", "1.0.0") |
@@ -116,6 +110,7 @@ curl -X POST "http://localhost:4003/automl/api/v1/models/register?namespace=my-n
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{
+    "model_registry_id": "<uid-from-GET-model-registries>",
     "s3_path": "s3://my-bucket/models/model.bin",
     "model_name": "my-automl-model",
     "version_name": "v1"
@@ -126,28 +121,33 @@ curl -X POST "http://localhost:4003/automl/api/v1/models/register?namespace=my-n
 
 | Status | Condition |
 |--------|-----------|
-| `400` | Invalid request body, missing required fields, invalid S3 path |
+| `400` | Invalid request body, missing required fields, invalid S3 path, invalid `server_url` for auth mode |
+| `403` | Caller cannot list ModelRegistries (RBAC) |
+| `404` | No `ModelRegistry` matches `model_registry_id` |
+| `503` | Registry exists but is not ready (`Available` condition not true) |
 | `409` | Model Registry returns conflict (e.g., duplicate model name) |
-| `500` | `MODEL_REGISTRY_BASE_URL` not configured, or Model Registry API error |
+| `500` | Internal error or Model Registry API error |
 
 ## Flow diagram
 
 ```
-Client                    AutoML BFF                    Model Registry API
+Client                    AutoML BFF                    Kubernetes / MR API
   |                            |                                |
+  |  GET /model-registries     |                                |
+  |--------------------------->|  list ModelRegistry CRs        |
+  |<---------------------------|                                |
   |  POST /models/register     |                                |
-  |  + Bearer token (optional) |                                |
+  |  + model_registry_id       |                                |
+  |  + Bearer (optional)       |                                |
   |--------------------------->|                                |
   |                            | 1. Validate request            |
-  |                            | 2. POST /registered_models     |
+  |                            | 2. Resolve id -> server_url    |
+  |                            | 3. POST .../registered_models    |
   |                            |------------------------------->|
-  |                            |<-------------------------------|
-  |                            | 3. POST /.../versions          |
+  |                            | 4. POST .../versions           |
   |                            |------------------------------->|
-  |                            |<-------------------------------|
-  |                            | 4. POST /.../artifacts (S3 URI)|
+  |                            | 5. POST .../artifacts (S3 URI) |
   |                            |------------------------------->|
-  |                            |<-------------------------------|
   |  201 + ModelArtifact       |                                |
   |<---------------------------|                                |
 ```

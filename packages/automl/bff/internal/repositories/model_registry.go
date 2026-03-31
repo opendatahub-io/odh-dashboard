@@ -38,6 +38,12 @@ const (
 // ModelRegistry CRs. Handlers check this with errors.Is to return 403.
 var ErrModelRegistryForbidden = errors.New("forbidden: cannot list ModelRegistries")
 
+// ErrModelRegistryNotFound is returned when no ModelRegistry CR matches the requested UID.
+var ErrModelRegistryNotFound = errors.New("model registry not found")
+
+// ErrModelRegistryNotReady is returned when the matching CR exists but IsReady is false.
+var ErrModelRegistryNotReady = errors.New("model registry is not ready")
+
 const (
 	// modelRegistryGroup/Version/Resource identify individual ModelRegistry instance CRs.
 	//
@@ -249,6 +255,33 @@ func (r *ModelRegistryRepository) RegisterModel(
 	}
 
 	return &modelArtifact, nil
+}
+
+// ResolveModelRegistryByUID lists ModelRegistry CRs visible to the caller and returns the one
+// whose ID matches registryUID. The registry must be ready (Available=True).
+func (r *ModelRegistryRepository) ResolveModelRegistryByUID(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	identity *k8s.RequestIdentity,
+	mockK8Client bool,
+	registryUID string,
+	logger *slog.Logger,
+) (*models.ModelRegistry, error) {
+	data, err := r.ListModelRegistries(ctx, client, identity, mockK8Client, logger)
+	if err != nil {
+		return nil, err
+	}
+	uid := strings.TrimSpace(registryUID)
+	for i := range data.ModelRegistries {
+		if data.ModelRegistries[i].ID != uid {
+			continue
+		}
+		if !data.ModelRegistries[i].IsReady {
+			return nil, ErrModelRegistryNotReady
+		}
+		return &data.ModelRegistries[i], nil
+	}
+	return nil, ErrModelRegistryNotFound
 }
 
 // ListModelRegistries lists all ModelRegistry instance CRs in the model registries namespace.

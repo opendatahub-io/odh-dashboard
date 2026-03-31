@@ -4,6 +4,9 @@ package models
 // It contains the S3 path to the model artifact and metadata for creating a RegisteredModel,
 // ModelVersion, and ModelArtifact in the Model Registry.
 type RegisterModelRequest struct {
+	// ModelRegistryID is the Kubernetes UID of the target ModelRegistry CR (from GET /api/v1/model-registries).
+	ModelRegistryID string `json:"model_registry_id"`
+
 	// S3Path is the S3 URI where the model binary is stored (e.g., s3://bucket/path/to/model).
 	S3Path string `json:"s3_path"`
 

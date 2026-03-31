@@ -12,6 +12,7 @@ import (
 
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes/k8mocks"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	psmocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
 	s3int "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3"
@@ -43,6 +44,10 @@ const (
 	ModelsRegisterPath  = ApiPathPrefix + "/models/register"
 )
 
+// modelRegistryHTTPClientFactory builds a client for Model Registry register calls.
+// If nil, modelregistry.NewHTTPClient is used. Set by tests only.
+type modelRegistryHTTPClientFactory func(*slog.Logger, string, http.Header, bool, *x509.CertPool) (modelregistry.HTTPClientInterface, error)
+
 type App struct {
 	config                      config.EnvConfig
 	logger                      *slog.Logger
@@ -54,6 +59,8 @@ type App struct {
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
+	// modelRegistryHTTPClientFactory is nil in production; tests may set it to inject mock clients.
+	modelRegistryHTTPClientFactory modelRegistryHTTPClientFactory
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -207,9 +214,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FileHandler)))
 	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler)))
 
-	// Model Registry - register model binary (requires MODEL_REGISTRY_BASE_URL)
+	// Model Registry - register model binary (target registry via model_registry_id + discovered ServerURL)
 	// No DSPA RBAC gate: Model Registry is a separate service; upstream MR API enforces auth.
-	apiRouter.POST(ModelsRegisterPath, app.AttachNamespace(app.AttachModelRegistryClient(app.RegisterModelHandler)))
+	apiRouter.POST(ModelsRegisterPath, app.AttachNamespace(app.RegisterModelHandler))
 
 	// App Router
 	appMux := http.NewServeMux()

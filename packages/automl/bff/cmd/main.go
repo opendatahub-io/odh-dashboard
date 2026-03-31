@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -32,7 +31,6 @@ func main() {
 	flag.StringVar(&cfg.PipelineServerURL, "pipeline-server-url", getEnvAsString("PIPELINE_SERVER_URL", ""), "Override Pipeline Server URL for local testing (e.g., http://localhost:8888)")
 	flag.StringVar(&cfg.AutoMLTimeSeriesPipelineNamePrefix, "automl-timeseries-pipeline-name-prefix", getEnvAsString("AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX", "automl-timeseries"), "Prefix for identifying AutoML time-series managed pipelines during discovery (default: automl-timeseries)")
 	flag.StringVar(&cfg.AutoMLTabularPipelineNamePrefix, "automl-tabular-pipeline-name-prefix", getEnvAsString("AUTOML_TABULAR_PIPELINE_NAME_PREFIX", "automl-tabular"), "Prefix for identifying AutoML tabular managed pipelines (classification + regression) during discovery (default: automl-tabular)")
-	flag.StringVar(&cfg.ModelRegistryBaseURL, "model-registry-base-url", getEnvAsString("MODEL_REGISTRY_BASE_URL", ""), "Base URL for Model Registry API (e.g., http://model-registry:8080/api/model_registry/v1alpha3)")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
@@ -88,34 +86,6 @@ func main() {
 	if cfg.AuthMethod != config.AuthMethodDisabled && cfg.AuthMethod != config.AuthMethodInternal && cfg.AuthMethod != config.AuthMethodUser {
 		logger.Error("invalid auth method: (must be disabled, internal, or user_token)", "authMethod", cfg.AuthMethod)
 		os.Exit(1)
-	}
-
-	// Validate model-registry-base-url when set: require valid URL and HTTPS when auth-method=user_token
-	if cfg.ModelRegistryBaseURL != "" {
-		u, parseErr := url.Parse(cfg.ModelRegistryBaseURL)
-		if parseErr != nil || u.Scheme == "" || u.Host == "" {
-			// Never log raw URL - may contain userinfo credentials
-			if parseErr != nil {
-				logger.Error("invalid model-registry-base-url")
-			} else {
-				u.User = nil
-				logger.Error("invalid model-registry-base-url", "value", u.String())
-			}
-			os.Exit(1)
-		}
-		if cfg.AuthMethod == config.AuthMethodUser &&
-			u.Scheme != "https" &&
-			u.Hostname() != "localhost" &&
-			u.Hostname() != "127.0.0.1" {
-			logger.Error("model-registry-base-url must use https when auth-method=user_token (except for localhost)")
-			os.Exit(1)
-		}
-		// Require path to contain Model Registry API prefix
-		if !strings.Contains(u.Path, "/api/model_registry/") {
-			u.User = nil
-			logger.Error("model-registry-base-url path must contain /api/model_registry/", "value", u.String())
-			os.Exit(1)
-		}
 	}
 
 	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)

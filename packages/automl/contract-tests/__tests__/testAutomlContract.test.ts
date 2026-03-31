@@ -781,22 +781,23 @@ describe('AutoML API Contract Tests', () => {
 
   describe('Models Register Endpoint', () => {
     describe('Error Cases', () => {
-      it('should return 503 when Model Registry is not configured', async () => {
+      it('should return 404 when model_registry_id does not match any registry', async () => {
         const result = await apiClient.post('/api/v1/models/register?namespace=default', {
+          model_registry_id: '00000000-0000-0000-0000-000000000000',
           s3_path: 's3://bucket/path/model.bin',
           model_name: 'test-model',
           version_name: 'v1',
         });
         expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.status).toBe(503);
+          expect(result.error.status).toBe(404);
         }
       });
 
       it('should return 400 for missing required fields', async () => {
         const result = await apiClient.post('/api/v1/models/register?namespace=default', {
           model_name: 'test-model',
-          // Missing s3_path and version_name
+          // Missing model_registry_id, s3_path, version_name
         });
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -806,6 +807,7 @@ describe('AutoML API Contract Tests', () => {
 
       it('should return 400 for invalid S3 path', async () => {
         const result = await apiClient.post('/api/v1/models/register?namespace=default', {
+          model_registry_id: 'a1b2c3d4-e5f6-7890-abcd-111111111111',
           s3_path: 'invalid-path',
           model_name: 'test-model',
           version_name: 'v1',
@@ -818,6 +820,7 @@ describe('AutoML API Contract Tests', () => {
 
       it('should return 400 when namespace is missing', async () => {
         const result = await apiClient.post('/api/v1/models/register', {
+          model_registry_id: 'a1b2c3d4-e5f6-7890-abcd-111111111111',
           s3_path: 's3://bucket/path/model.bin',
           model_name: 'test-model',
           version_name: 'v1',

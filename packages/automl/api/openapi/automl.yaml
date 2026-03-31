@@ -462,7 +462,10 @@ paths:
       Registers a model binary by creating a RegisteredModel, ModelVersion, and
       ModelArtifact in the Model Registry. The model binary remains in S3; the
       ModelArtifact.uri points to the S3 location.
-      Requires MODEL_REGISTRY_BASE_URL to be configured. Returns 503 when not configured.
+      The caller must supply model_registry_id (Kubernetes UID of the ModelRegistry CR from
+      GET /api/v1/model-registries). The BFF resolves server_url for that instance and POSTs
+      to the Model Registry REST API. Returns 404 if the ID is unknown, 403 if the user cannot
+      list ModelRegistries, and 503 if the registry exists but is not ready.
     post:
       tags:
         - ModelRegistry
@@ -483,6 +486,10 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
         "503":
@@ -491,7 +498,8 @@ paths:
       summary: Register model binary
       description: >-
         Creates RegisteredModel, ModelVersion, and ModelArtifact in the Model Registry,
-        linking the artifact to the provided S3 URI. Requires s3_path, model_name, and version_name.
+        linking the artifact to the provided S3 URI. Requires model_registry_id, s3_path,
+        model_name, and version_name.
 
   # =============================================================================
   # PIPELINE RUNS ENDPOINTS
@@ -944,10 +952,16 @@ components:
       type: object
       description: Request body for registering a model binary in the Model Registry
       required:
+        - model_registry_id
         - s3_path
         - model_name
         - version_name
       properties:
+        model_registry_id:
+          type: string
+          minLength: 1
+          description: Kubernetes UID of the target ModelRegistry CR (from GET /api/v1/model-registries id field)
+          example: "a1b2c3d4-e5f6-7890-abcd-111111111111"
         s3_path:
           type: string
           minLength: 1
