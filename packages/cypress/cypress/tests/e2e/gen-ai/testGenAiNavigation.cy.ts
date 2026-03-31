@@ -12,6 +12,7 @@ describe('Gen AI Navigation - User Journey Tests', () => {
   let projectName: string;
   let skipTest = false;
   const uuid = generateTestUUID();
+  const invalidNamespace = `non-existent-project-${generateTestUUID()}`;
 
   retryableBefore(() => {
     // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
@@ -68,17 +69,19 @@ describe('Gen AI Navigation - User Journey Tests', () => {
     }
   });
 
+  beforeEach(function skipIfNotRHOAI() {
+    if (skipTest) {
+      cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
+      this.skip();
+    }
+  });
+
   it(
     'Administrator navigates between Gen AI sections to manage resources',
     {
       tags: ['@Sanity', '@GenAI', '@Navigation'],
     },
     () => {
-      if (skipTest) {
-        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
-        return;
-      }
-
       cy.step('Log into the application as Administrator');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -111,11 +114,6 @@ describe('Gen AI Navigation - User Journey Tests', () => {
       tags: ['@Sanity', '@GenAI', '@Navigation'],
     },
     () => {
-      if (skipTest) {
-        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
-        return;
-      }
-
       cy.step('Log into the application as Data scientist');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -144,11 +142,6 @@ describe('Gen AI Navigation - User Journey Tests', () => {
       tags: ['@Sanity', '@GenAI', '@Navigation'],
     },
     () => {
-      if (skipTest) {
-        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
-        return;
-      }
-
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -169,11 +162,6 @@ describe('Gen AI Navigation - User Journey Tests', () => {
       tags: ['@Sanity', '@GenAI', '@Navigation'],
     },
     () => {
-      if (skipTest) {
-        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
-        return;
-      }
-
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -195,11 +183,6 @@ describe('Gen AI Navigation - User Journey Tests', () => {
       tags: ['@Sanity', '@GenAI', '@Navigation'],
     },
     () => {
-      if (skipTest) {
-        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
-        return;
-      }
-
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -220,11 +203,6 @@ describe('Gen AI Navigation - User Journey Tests', () => {
       tags: ['@Sanity', '@GenAI', '@Navigation'],
     },
     () => {
-      if (skipTest) {
-        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
-        return;
-      }
-
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -253,11 +231,6 @@ describe('Gen AI Navigation - User Journey Tests', () => {
       tags: ['@Sanity', '@GenAI', '@Navigation'],
     },
     () => {
-      if (skipTest) {
-        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
-        return;
-      }
-
       cy.step('Log into the application as first user (Developer)');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -292,16 +265,10 @@ describe('Gen AI Navigation - User Journey Tests', () => {
       tags: ['@Sanity', '@GenAI', '@Navigation'],
     },
     () => {
-      if (skipTest) {
-        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
-        return;
-      }
-
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Attempt to access Playground with non-existent namespace');
-      const invalidNamespace = 'non-existent-project-12345';
       cy.visit(`/gen-ai-studio/playground/${invalidNamespace}`);
 
       cy.step('Verify user receives feedback about invalid namespace');
