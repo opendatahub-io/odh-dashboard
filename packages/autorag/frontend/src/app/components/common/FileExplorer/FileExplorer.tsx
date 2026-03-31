@@ -930,8 +930,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
   const isIndeterminate = itemCount === undefined;
   const fileCount = Array.isArray(files) ? files.filter((f) => !f.hidden).length : 0;
-  const currentPerPage = perPage ?? 100;
-  const currentPage = page ?? 1;
+  const currentPerPage = Math.max(1, perPage ?? 100);
+  const currentPage = Math.max(1, page ?? 1);
   // When indeterminate, synthesize a count so PF computes correct firstIndex/lastIndex.
   // If hasNextPage, ensure the count exceeds the current page's capacity so PF enables "next".
   // Otherwise, report exactly the items seen so far.
