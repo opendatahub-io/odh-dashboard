@@ -32,10 +32,8 @@ type McpDeployment struct {
 }
 
 type McpDeploymentList struct {
-	Items         []McpDeployment `json:"items"`
-	NextPageToken string          `json:"nextPageToken,omitempty"`
-	PageSize      int32           `json:"pageSize"`
-	Size          int32           `json:"size"`
+	Items []McpDeployment `json:"items"`
+	Size  int32           `json:"size"`
 }
 
 type McpDeploymentCreateRequest struct {
@@ -51,4 +49,16 @@ type McpDeploymentUpdateRequest struct {
 	Image       *string `json:"image,omitempty"`
 	Port        *int32  `json:"port,omitempty"`
 	YAML        *string `json:"yaml,omitempty"`
+}
+
+// SpecYAMLWrapper mirrors the "spec:" top-level key the frontend YAML
+// editor uses, so we can unmarshal directly into MCPServerSpec fields.
+type SpecYAMLWrapper struct {
+	Spec McpSpecBody `yaml:"spec"`
+}
+
+// McpSpecBody holds the config and runtime sections parsed from YAML.
+type McpSpecBody struct {
+	Config  *MCPConfigSpec  `yaml:"config,omitempty"`
+	Runtime *MCPRuntimeSpec `yaml:"runtime,omitempty"`
 }

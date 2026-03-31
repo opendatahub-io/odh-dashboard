@@ -93,8 +93,6 @@ export type McpDeployment = {
 
 export type McpDeploymentList = {
   items: McpDeployment[];
-  nextPageToken?: string;
-  pageSize: number;
   size: number;
 };
 
