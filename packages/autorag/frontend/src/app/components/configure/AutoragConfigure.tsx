@@ -15,17 +15,23 @@ import {
   EmptyState,
   EmptyStateBody,
   Flex,
+  FormHelperText,
   Grid,
   GridItem,
+  HelperText,
+  HelperTextItem,
   List,
   ListItem,
+  NumberInput,
   Popover,
+  Radio,
   Split,
   SplitItem,
   Stack,
   StackItem,
+  Tooltip,
 } from '@patternfly/react-core';
-import { CubesIcon, InfoCircleIcon } from '@patternfly/react-icons';
+import { CubesIcon, InfoCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { findKey } from 'es-toolkit';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React, { useEffect, useRef, useState } from 'react';
@@ -36,7 +42,14 @@ import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
-import { ConfigureSchema } from '~/app/schemas/configure.schema';
+import {
+  ConfigureSchema,
+  MIN_RAG_PATTERNS,
+  MAX_RAG_PATTERNS,
+  RAG_METRIC_FAITHFULNESS,
+  RAG_METRIC_ANSWER_CORRECTNESS,
+  RAG_METRIC_CONTEXT_CORRECTNESS,
+} from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
@@ -44,6 +57,28 @@ import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
+
+const OPTIMIZATION_METRICS: {
+  value: ConfigureSchema['optimization_metric'];
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: RAG_METRIC_FAITHFULNESS,
+    label: 'Answer faithfulness',
+    description: 'How factually grounded the answer is in the retrieved context.',
+  },
+  {
+    value: RAG_METRIC_ANSWER_CORRECTNESS,
+    label: 'Answer correctness',
+    description: 'How correct the generated answer is compared to the ground truth.',
+  },
+  {
+    value: RAG_METRIC_CONTEXT_CORRECTNESS,
+    label: 'Context correctness',
+    description: 'How precisely the retrieval step identifies relevant chunks.',
+  },
+];
 
 function AutoragConfigure(): React.JSX.Element {
   const { namespace } = useParams();
@@ -300,6 +335,82 @@ function AutoragConfigure(): React.JSX.Element {
                       Evaluation data source upload component
                     </ConfigureFormGroup>
 
+                    <ConfigureFormGroup
+                      label="Optimization metric"
+                      labelHelp={{
+                        header: 'Optimization metric',
+                        body: 'The metric used to compare configurations and identify the best result.',
+                      }}
+                      description="The metric used to compare configurations and identify the best result."
+                    >
+                      <Controller
+                        control={form.control}
+                        name="optimization_metric"
+                        render={({ field }) => (
+                          <>
+                            {OPTIMIZATION_METRICS.map((metric) => (
+                              <Radio
+                                key={metric.value}
+                                id={`metric-${metric.value}`}
+                                name="optimization_metric"
+                                label={
+                                  <span>
+                                    {metric.label}
+                                    {'  '}
+                                    <Tooltip content={metric.description}>
+                                      <OutlinedQuestionCircleIcon className="pf-v6-u-ml-xs" />
+                                    </Tooltip>
+                                  </span>
+                                }
+                                isChecked={field.value === metric.value}
+                                onChange={() => field.onChange(metric.value)}
+                                data-testid={`metric-radio-${metric.value}`}
+                              />
+                            ))}
+                          </>
+                        )}
+                      />
+                    </ConfigureFormGroup>
+
+                    <ConfigureFormGroup
+                      label="Maximum RAG patterns"
+                      description="Specify the maximum number of RAG patterns to evaluate."
+                    >
+                      <Controller
+                        control={form.control}
+                        name="optimization_max_rag_patterns"
+                        render={({ field, fieldState }) => (
+                          <>
+                            <NumberInput
+                              id="max-rag-patterns"
+                              value={field.value}
+                              min={MIN_RAG_PATTERNS}
+                              max={MAX_RAG_PATTERNS}
+                              validated={fieldState.error ? 'error' : 'default'}
+                              onMinus={() => field.onChange(field.value - 1)}
+                              onPlus={() => field.onChange(field.value + 1)}
+                              onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                                const val = parseInt(event.currentTarget.value, 10);
+                                if (!Number.isNaN(val)) {
+                                  field.onChange(val);
+                                }
+                              }}
+                              data-testid="max-rag-patterns-input"
+                            />
+                            {fieldState.error && (
+                              <FormHelperText>
+                                <HelperText>
+                                  <HelperTextItem variant="error">
+                                    {fieldState.error.message}
+                                  </HelperTextItem>
+                                </HelperText>
+                              </FormHelperText>
+                            )}
+                          </>
+                        )}
+                      />
+                    </ConfigureFormGroup>
+
                     <StackItem>
                       <Card>
                         <CardHeader
@@ -327,9 +438,12 @@ function AutoragConfigure(): React.JSX.Element {
                             ],
                           }}
                         >
-                          <CardTitle>Models to consider</CardTitle>
+                          <CardTitle>Model configuration</CardTitle>
                         </CardHeader>
                         <CardBody>
+                          <Content component="h4" className="pf-v6-u-mb-sm">
+                            Selected models
+                          </Content>
                           <Stack hasGutter>
                             <StackItem>
                               <Watch
@@ -341,7 +455,7 @@ function AutoragConfigure(): React.JSX.Element {
                                     spacer={{ default: 'spacerNone' }}
                                     gap={{ default: 'gapSm' }}
                                   >
-                                    <Content>{`${generationModels.length || 'No'} generation models`}</Content>
+                                    <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
                                     {!!generationModels.length && (
                                       <Popover
                                         bodyContent={
@@ -398,14 +512,6 @@ function AutoragConfigure(): React.JSX.Element {
                               />
                             </StackItem>
                           </Stack>
-                        </CardBody>
-                        <CardTitle>Optimization metric</CardTitle>
-                        <CardBody className="pf-v6-u-mb-sm">
-                          <Watch
-                            control={form.control}
-                            name="optimization_metric"
-                            render={(optimizationMetric) => optimizationMetric}
-                          />
                         </CardBody>
                       </Card>
                     </StackItem>
