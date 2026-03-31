@@ -115,9 +115,9 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
                   <div className="pf-v6-c-form__label-text">Add as AI asset endpoint</div>
                   <Flex>
                     <FlexItem>
-                    Publishing as an AI asset endpoint allows users with access to your project to
-                    test the model in the{' '}
-                    <span className="pf-v6-c-form__label-text">Playground</span>.
+                      Publishing as an AI asset endpoint allows users with access to your project to
+                      test the model in the{' '}
+                      <span className="pf-v6-c-form__label-text">Playground</span>.
                     </FlexItem>
                     <Label isCompact color="yellow" variant="outline">
                       Tech preview
