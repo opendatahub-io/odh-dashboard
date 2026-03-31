@@ -247,7 +247,7 @@ describe('AI Assets - Models Tab (MaaS disabled)', () => {
 
       cy.step('Verify the table shows only AI models (no MaaS)');
       modelsTabPage.findTable().should('be.visible');
-      modelsTabPage.findTableRows().should('have.length', 3);
+      modelsTabPage.findTableRows().should('have.length', 4);
 
       cy.step('Verify MaaS model is not present');
       modelsTabPage.findTable().should('not.contain.text', 'Llama 70B MaaS');
@@ -256,6 +256,7 @@ describe('AI Assets - Models Tab (MaaS disabled)', () => {
       modelsTabPage.findTable().should('contain.text', 'Llama 3B Internal');
       modelsTabPage.findTable().should('contain.text', 'GPT-4 External');
       modelsTabPage.findTable().should('contain.text', 'Embedding Model');
+      modelsTabPage.findTable().should('contain.text', 'Llama 7B Inactive');
 
       cy.step('Verify no warning alert is shown');
       modelsTabPage.findWarningAlert().should('not.exist');
@@ -286,7 +287,7 @@ describe('AI Assets - Models Tab (MaaS error)', () => {
 
       cy.step('Verify AI models still display');
       modelsTabPage.findTable().should('be.visible');
-      modelsTabPage.findTableRows().should('have.length', 3);
+      modelsTabPage.findTableRows().should('have.length', 4);
     },
   );
 
@@ -305,7 +306,7 @@ describe('AI Assets - Models Tab (MaaS error)', () => {
 
       cy.step('Verify models table is still visible');
       modelsTabPage.findTable().should('be.visible');
-      modelsTabPage.findTableRows().should('have.length', 3);
+      modelsTabPage.findTableRows().should('have.length', 4);
     },
   );
 });
