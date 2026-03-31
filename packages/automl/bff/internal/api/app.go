@@ -28,17 +28,18 @@ import (
 )
 
 const (
-	Version          = "1.0.0"
-	PathPrefix       = "/automl"
-	ApiPathPrefix    = "/api/v1"
-	HealthCheckPath  = "/healthcheck"
-	UserPath         = ApiPathPrefix + "/user"
-	NamespacePath    = ApiPathPrefix + "/namespaces"
-	SecretsPath      = ApiPathPrefix + "/secrets"
-	S3FilePath       = ApiPathPrefix + "/s3/file"
-	S3FileSchemaPath = ApiPathPrefix + "/s3/file/schema"
-	S3FilesPath      = ApiPathPrefix + "/s3/files"
-	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
+	Version             = "1.0.0"
+	PathPrefix          = "/automl"
+	ApiPathPrefix       = "/api/v1"
+	HealthCheckPath     = "/healthcheck"
+	UserPath            = ApiPathPrefix + "/user"
+	NamespacePath       = ApiPathPrefix + "/namespaces"
+	SecretsPath         = ApiPathPrefix + "/secrets"
+	S3FilePath          = ApiPathPrefix + "/s3/file"
+	S3FileSchemaPath    = ApiPathPrefix + "/s3/file/schema"
+	S3FilesPath         = ApiPathPrefix + "/s3/files"
+	PipelineRunsPath    = ApiPathPrefix + "/pipeline-runs"
+	ModelRegistriesPath = ApiPathPrefix + "/model-registries"
 )
 
 type App struct {
@@ -48,6 +49,12 @@ type App struct {
 	pipelineServerClientFactory ps.PipelineServerClientFactory
 	s3ClientFactory             s3int.S3ClientFactory
 	repositories                *repositories.Repositories
+	// s3PostMaxFilePartBytes is for package api tests only (see PostS3FileHandler).
+	s3PostMaxFilePartBytes int64
+	// s3PostMaxRequestBodyBytes caps total POST body in tests (0 = file max + multipart envelope).
+	s3PostMaxRequestBodyBytes int64
+	// s3PostMaxCollisionAttempts limits HeadObject-based key suffix attempts in tests (0 = default cap).
+	s3PostMaxCollisionAttempts int
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
@@ -190,6 +197,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 	apiRouter.GET(SecretsPath, app.AttachNamespace(app.GetSecretsHandler))
 
+	// Model Registry discovery — CRs are namespace-scoped within rhoai-model-registries
+	// but presented as global in the RHOAI UX; no user-supplied namespace parameter needed.
+	apiRouter.GET(ModelRegistriesPath, app.GetModelRegistriesHandler)
+
 	// Pipeline Runs API endpoints (pipeline server and pipeline are auto-discovered)
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunHandler)))))
 	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunsHandler)))))
@@ -197,9 +208,12 @@ func (app *App) Routes() http.Handler {
 
 	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
 	// secretName (the handler resolves credentials directly in that case).
-	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FileSchemaHandler)))
-	apiRouter.GET(S3FilePath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FileHandler)))
-	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler)))
+	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileSchemaHandler))))
+	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileHandler))))
+	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler))))
+	// POST /s3/file deliberately omits attachPipelineClientIfNeeded: secretName is required; there is
+	// no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
+	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToPipelineServers(app.PostS3FileHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()

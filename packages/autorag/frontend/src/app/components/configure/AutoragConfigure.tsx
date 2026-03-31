@@ -32,7 +32,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
-import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
@@ -59,7 +59,11 @@ function AutoragConfigure(): React.JSX.Element {
     [allConnectionTypes],
   );
   const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
-  const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
+
+  const [fileExplorerMode, setFileExplorerMode] = useState<false | 'input_data' | 'test_data'>(
+    false,
+  );
+
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
@@ -244,7 +248,7 @@ function AutoragConfigure(): React.JSX.Element {
                       <Button
                         key="select-files"
                         variant="secondary"
-                        onClick={() => setIsFileExplorerOpen(true)}
+                        onClick={() => setFileExplorerMode('input_data')}
                         isDisabled={
                           !selectedSecret || selectedSecret.invalid || form.formState.isSubmitting
                         }
@@ -415,24 +419,28 @@ function AutoragConfigure(): React.JSX.Element {
           }}
         />
       )}
-      <FileExplorer
-        id="AutoRagConfigure-FileExplorer"
-        isOpen={isFileExplorerOpen}
-        onClose={() => setIsFileExplorerOpen(false)}
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        onPrimary={(files) => {
-          // TODO: replace with actual logic once implemented
-          setValue('input_data_key', 'documents', { shouldValidate: true });
-          setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
+      <S3FileExplorer
+        id="AutoRagConfigure-S3FileExplorer"
+        namespace={namespace}
+        s3Secret={selectedSecret}
+        isOpen={Boolean(fileExplorerMode)}
+        onClose={() => setFileExplorerMode(false)}
+        onSelectFiles={(files) => {
+          if (files.length > 0) {
+            const file = files[0];
+            const filePath = file.path.replace(/^\//, '');
+            if (fileExplorerMode === 'input_data') {
+              setValue('input_data_key', filePath, { shouldValidate: true });
+              // TODO: Once test data upload is hooked up, remove this fallback
+              setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
+            }
+            if (fileExplorerMode === 'test_data') {
+              setValue('test_data_key', filePath, { shouldValidate: true });
+            }
+          }
         }}
-        onSelectSource={
-          (source) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */
-        }
-        files={[]}
-        source={{
-          name: 'Foo connection',
-          count: 999999999,
-        }}
+        selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
+        unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
       />
       <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}

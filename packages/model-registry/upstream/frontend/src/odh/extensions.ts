@@ -137,6 +137,29 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | McpServerDepl
   {
     type: 'app.navigation/href',
     flags: {
+      required: [SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      id: 'mcpDeployments',
+      title: 'Deployments',
+      href: '/ai-hub/mcp-deployments',
+      section: 'mcp-servers',
+      path: '/ai-hub/mcp-deployments/*',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      path: '/ai-hub/mcp-deployments/*',
+      component: () => import('./McpDeploymentsWrapper'),
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
       required: [ADMIN_USER],
     },
     properties: {

@@ -9,6 +9,7 @@ type UseAutoragResultsReturn = {
   isLoading: boolean;
   isError: boolean;
   error: Error | undefined;
+  ragPatternsBasePath?: string;
 };
 
 /**
@@ -332,5 +333,6 @@ export function useAutoragResults(
     isLoading: isTemplatesOptimizationLoading || isRagPatternsLoading || patternQueries.isPending,
     isError: hasError,
     error,
+    ragPatternsBasePath: ragPatternsPath,
   };
 }

@@ -60,7 +60,9 @@ export type DashboardConfig = K8sResourceCommon & {
       disableLLMd: boolean;
       projectRBAC: boolean;
       deploymentWizardYAMLViewer: boolean;
+      externalVectorStores: boolean;
       vLLMDeploymentOnMaaS: boolean;
+      promptManagement: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {

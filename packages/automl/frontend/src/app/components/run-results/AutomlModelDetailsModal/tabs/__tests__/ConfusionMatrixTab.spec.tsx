@@ -20,10 +20,17 @@ const defaultProps = {
 };
 
 describe('ConfusionMatrixTab', () => {
-  it('should render skeleton loading state when confusionMatrix is undefined', () => {
-    const { container } = render(<ConfusionMatrixTab {...defaultProps} />);
+  it('should render skeleton loading state when isArtifactsLoading is true', () => {
+    const { container } = render(<ConfusionMatrixTab {...defaultProps} isArtifactsLoading />);
     const skeletons = container.querySelectorAll('.pf-v6-c-skeleton');
     expect(skeletons.length).toBeGreaterThan(0);
+  });
+
+  it('should show no-data empty state when confusionMatrix is undefined and not loading', () => {
+    render(<ConfusionMatrixTab {...defaultProps} />);
+
+    expect(screen.getByTestId('confusion-matrix-no-data-empty-state')).toBeInTheDocument();
+    expect(screen.getByText('No confusion matrix data available')).toBeInTheDocument();
   });
 
   it('should render class labels as both column headers and row labels', () => {
