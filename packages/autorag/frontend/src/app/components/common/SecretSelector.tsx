@@ -220,7 +220,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         toggleWidth={toggleWidth}
         toggleProps={{
           ...userToggleProps,
-          status: hasError ? 'danger' : undefined,
+          status: hasError ? 'danger' : userToggleProps?.status,
         }}
         onSelect={(
           _:
