@@ -66,7 +66,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 >
                   reloading
                 </Button>{' '}
-                the page if there was a recent update.
+                the page if there was a recent update. Or perform a hard refresh to bypass the
+                browser cache.
               </p>
             </SplitItem>
             <SplitItem>

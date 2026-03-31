@@ -1,13 +1,20 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import httpProxy from '@fastify/http-proxy';
-import { FastifyReplyFromHooks } from '@fastify/reply-from';
+import httpProxy, { FastifyHttpProxyOptions } from '@fastify/http-proxy';
 import { K8sResourceCommon, KubeFastifyInstance, ServiceAddressAnnotation } from '../types';
 import { isK8sStatus, passThroughResource } from '../routes/api/k8s/pass-through';
 import { DEV_MODE } from './constants';
 import { createCustomError } from './requestUtils';
 import { getAccessToken, getDirectCallOptions } from './directCallUtils';
 import { EitherNotBoth } from '../typeHelpers';
+import { IncomingHttpHeaders } from 'http';
 import { V1Service } from '@kubernetes/client-node';
+
+export const addDefaultCacheControl = (headers: IncomingHttpHeaders): IncomingHttpHeaders => {
+  if (!headers['cache-control']) {
+    headers['cache-control'] = 'no-cache';
+  }
+  return headers;
+};
 
 export const getParam = <F extends FastifyRequest<any, any>>(req: F, name: string): string =>
   (req.params as { [key: string]: string })[name];
@@ -201,6 +208,7 @@ export const registerProxy = async (
     authorize,
     tls,
     onError,
+    rewriteHeaders,
   }: {
     prefix: string;
     rewritePrefix: string;
@@ -215,7 +223,8 @@ export const registerProxy = async (
       host?: string;
       port?: number | string;
     };
-    onError?: FastifyReplyFromHooks['onError'];
+    onError?: FastifyHttpProxyOptions['replyOptions']['onError'];
+    rewriteHeaders?: FastifyHttpProxyOptions['replyOptions']['rewriteHeaders'];
   },
 ): Promise<void> => {
   const scheme = tls ? 'https' : 'http';
@@ -230,6 +239,7 @@ export const registerProxy = async (
     replyOptions: {
       getUpstream: () => upstream,
       onError,
+      rewriteHeaders,
     },
     preHandler: async (request, reply) => {
       if (checkRequestLimitExceeded(request, fastify, reply)) {
