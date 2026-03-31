@@ -117,6 +117,7 @@ describe('getAutoragContext', () => {
           optimization_metric: 'faithfulness',
           optimization_max_rag_patterns: 8,
         },
+        ragPatternsBasePath: undefined,
       });
     });
 
@@ -147,6 +148,7 @@ describe('getAutoragContext', () => {
           optimization_metric: 'faithfulness',
           optimization_max_rag_patterns: 8,
         },
+        ragPatternsBasePath: undefined,
       });
     });
 
