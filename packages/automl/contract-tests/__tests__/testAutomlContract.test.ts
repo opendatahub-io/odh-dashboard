@@ -779,6 +779,69 @@ describe('AutoML API Contract Tests', () => {
     });
   });
 
+  describe('Register Model Endpoint (POST /model-registries/:registryId/models)', () => {
+    const mockRegistryId = 'a1b2c3d4-e5f6-7890-abcd-111111111111';
+    const unknownRegistryId = '00000000-0000-0000-0000-000000000000';
+
+    describe('Error Cases', () => {
+      it('should return 404 when registryId does not match any registry', async () => {
+        const result = await apiClient.post(
+          `/api/v1/model-registries/${unknownRegistryId}/models?namespace=default`,
+          {
+            s3_path: 's3://bucket/path/model.bin',
+            model_name: 'test-model',
+            version_name: 'v1',
+          },
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should return 400 for missing required fields', async () => {
+        const result = await apiClient.post(
+          `/api/v1/model-registries/${mockRegistryId}/models?namespace=default`,
+          {
+            model_name: 'test-model',
+            // Missing s3_path, version_name
+          },
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for invalid S3 path', async () => {
+        const result = await apiClient.post(
+          `/api/v1/model-registries/${mockRegistryId}/models?namespace=default`,
+          {
+            s3_path: 'invalid-path',
+            model_name: 'test-model',
+            version_name: 'v1',
+          },
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when namespace is missing', async () => {
+        const result = await apiClient.post(`/api/v1/model-registries/${mockRegistryId}/models`, {
+          s3_path: 's3://bucket/path/model.bin',
+          model_name: 'test-model',
+          version_name: 'v1',
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+  });
+
   describe('Pipeline Runs Endpoints', () => {
     describe('List Pipeline Runs', () => {
       it('should retrieve pipeline runs list', async () => {

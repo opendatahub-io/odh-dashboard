@@ -561,6 +561,64 @@ paths:
         Returns a 400 Bad Request error if the file has fewer than 100 data rows.
 
   # =============================================================================
+  # MODEL REGISTRY ENDPOINTS
+  # =============================================================================
+
+  /api/v1/model-registries/{registryId}/models:
+    summary: Register a model in a specific Model Registry instance
+    description: >-
+      Registers a model binary by creating a RegisteredModel, ModelVersion, and
+      ModelArtifact in the specified Model Registry instance. The model binary
+      remains in S3; the ModelArtifact.uri points to the S3 location.
+      The registryId path parameter is the Kubernetes UID of the ModelRegistry CR
+      (from GET /api/v1/model-registries). The BFF resolves the server_url for that
+      instance and POSTs to the Model Registry REST API.
+      Returns 404 if the ID is unknown, 403 if the user cannot list ModelRegistries,
+      and 503 if the registry exists but is not ready.
+    post:
+      tags:
+        - ModelRegistry
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: registryId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Kubernetes UID of the target ModelRegistry CR (from GET /api/v1/model-registries id field)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterModelRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/RegisterModelResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: registerModel
+      summary: Register model binary
+      description: >-
+        Creates RegisteredModel, ModelVersion, and ModelArtifact in the Model Registry,
+        linking the artifact to the provided S3 URI. Requires s3_path, model_name,
+        and version_name in the request body.
+
+  # =============================================================================
   # PIPELINE RUNS ENDPOINTS
   # =============================================================================
 
@@ -1024,6 +1082,70 @@ components:
           not:
             required: [label_column]
 
+    RegisterModelRequest:
+      type: object
+      description: >-
+        Request body for registering a model binary in the Model Registry.
+        The target registry is identified by the registryId path parameter.
+      required:
+        - s3_path
+        - model_name
+        - version_name
+      properties:
+        s3_path:
+          type: string
+          minLength: 1
+          pattern: "^s3a?://[^/]+/.+"
+          description: S3 URI where the model binary is stored (s3:// or s3a:// scheme required)
+          example: "s3://my-bucket/models/v1/model.bin"
+        model_name:
+          type: string
+          minLength: 1
+          pattern: "\\S"
+          description: Name of the registered model (must contain at least one non-whitespace character)
+          example: "my-model"
+        model_description:
+          type: string
+          description: Optional description of the model
+        version_name:
+          type: string
+          minLength: 1
+          pattern: "\\S"
+          description: Name of the model version (must contain at least one non-whitespace character)
+          example: "v1"
+        version_description:
+          type: string
+          description: Optional description of this version
+        artifact_name:
+          type: string
+          description: Name for the ModelArtifact; defaults to version_name if empty
+        artifact_description:
+          type: string
+          description: Optional description of the artifact
+        model_format_name:
+          type: string
+          description: Optional format (e.g., onnx, pytorch, tensorflow)
+        model_format_version:
+          type: string
+          description: Optional format version (e.g., 1.0)
+
+    ModelArtifact:
+      type: object
+      description: Model artifact created in the Model Registry, pointing to the S3 URI
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the artifact
+        name:
+          type: string
+          description: Artifact name
+        uri:
+          type: string
+          description: S3 URI of the model binary
+        artifactType:
+          type: string
+          description: Type of the artifact (e.g., model-artifact)
+
     CreateAutoMLRunRequest:
       description: >-
         Request body for creating an AutoML pipeline run. The schema varies based on the
@@ -1385,6 +1507,21 @@ components:
               data:
                 $ref: "#/components/schemas/PipelineRun"
 
+    RegisterModelResponse:
+      description: Registered model artifact
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: "#/components/schemas/ModelArtifact"
+
     BadRequest:
       description: Bad Request
       content:
@@ -1456,7 +1593,7 @@ components:
     Conflict:
       description: >-
         Conflict (e.g. S3 conditional upload failed because the object already exists at the
-        resolved key; client may retry the request)
+        resolved key, or duplicate model name in the registry; client may retry the request)
       content:
         application/json:
           schema:
