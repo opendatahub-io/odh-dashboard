@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/url"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
@@ -25,6 +27,12 @@ type SubscriptionsRepository struct {
 	logger     *slog.Logger
 	k8sFactory kubernetes.KubernetesClientFactory
 	namespace  string // namespace for MaaSSubscription and MaaSAuthPolicy resources
+}
+
+// MaaSSubscriptionsRepository handles subscription listing via the maas-api passthrough.
+type MaaSSubscriptionsRepository struct {
+	logger     *slog.Logger
+	maasClient *maas.MaasClient
 }
 
 // NewSubscriptionsRepository creates a new subscriptions repository.
@@ -650,4 +658,22 @@ func updateSubscriptionSpec(obj *unstructured.Unstructured, owner models.OwnerSp
 	}
 
 	obj.Object["spec"] = existingSpec
+}
+
+func NewMaaSSubscriptionsRepository(logger *slog.Logger, maasApiUrl string) (*MaaSSubscriptionsRepository, error) {
+	parsedApiUrl, err := url.Parse(maasApiUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MaaSSubscriptionsRepository{
+		logger:     logger,
+		maasClient: maas.NewMaasClient(logger, parsedApiUrl),
+	}, nil
+}
+
+func (r *MaaSSubscriptionsRepository) ListSubscriptions(ctx context.Context) ([]models.SubscriptionListItem, error) {
+	r.logger.Debug("Listing subscriptions via maas-api passthrough")
+
+	return r.maasClient.ListSubscriptions(ctx)
 }
