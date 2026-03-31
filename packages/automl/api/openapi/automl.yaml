@@ -1593,7 +1593,7 @@ components:
     Conflict:
       description: >-
         Conflict (e.g. S3 conditional upload failed because the object already exists at the
-        resolved key; client may retry the request)
+        resolved key, or duplicate model name in the registry; client may retry the request)
       content:
         application/json:
           schema:
@@ -1625,22 +1625,6 @@ components:
                   message:
                     type: string
                     example: "Internal server error"
-
-    Conflict:
-      description: Conflict (e.g., duplicate model name in the registry)
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: object
-                properties:
-                  code:
-                    type: string
-                    example: "409"
-                  message:
-                    type: string
 
     ServiceUnavailable:
       description: Service Unavailable
