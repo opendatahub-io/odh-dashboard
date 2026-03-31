@@ -565,14 +565,14 @@ describe('Pipelines', () => {
 
     cy.wait('@patchDSPA').then((interception) => {
       expect(interception.request.body).to.have.length(1);
-      expect(interception.request.body[0]).to.containSubset({
-        op: 'replace',
-        path: '/spec/apiServer/managedPipelines',
-      });
-      expect(interception.request.body[0].value).to.have.property('image');
+      const managedPipelinesPatch = interception.request.body.find(
+        (patch: { path: string }) => patch.path === '/spec/apiServer/managedPipelines',
+      );
+      expect(managedPipelinesPatch?.op).to.equal('add');
+      expect(managedPipelinesPatch?.value).to.have.property('image');
     });
 
-    toastNotifications.findAlert('success').should('exist');
+    toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
   });
 
   it('should persist managed pipelines state after save', () => {
@@ -644,18 +644,15 @@ describe('Pipelines', () => {
     pipelinesGlobal.visit(projectName);
     pipelinesGlobal.selectPipelineServerAction('Manage pipeline server configuration');
 
-    const cachingCheckbox = managePipelineServerModal.getPipelineCachingCheckbox();
-    const managedPipelinesCheckbox = managePipelineServerModal.getManagedPipelinesCheckbox();
-
     // Disable caching
-    cachingCheckbox.should('be.checked');
-    cachingCheckbox.click();
-    cachingCheckbox.should('not.be.checked');
+    managePipelineServerModal.getPipelineCachingCheckbox().should('be.checked');
+    managePipelineServerModal.getPipelineCachingCheckbox().click();
+    managePipelineServerModal.getPipelineCachingCheckbox().should('not.be.checked');
 
     // Enable managed pipelines
-    managedPipelinesCheckbox.should('not.be.checked');
-    managedPipelinesCheckbox.click();
-    managedPipelinesCheckbox.should('be.checked');
+    managePipelineServerModal.getManagedPipelinesCheckbox().should('not.be.checked');
+    managePipelineServerModal.getManagedPipelinesCheckbox().click();
+    managePipelineServerModal.getManagedPipelinesCheckbox().should('be.checked');
 
     managePipelineServerModal.checkButtonState('save', true);
 
@@ -683,7 +680,7 @@ describe('Pipelines', () => {
       expect(managedPipelinesPatch.value).to.have.property('image');
     });
 
-    toastNotifications.findAlert('success').should('exist');
+    toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
   });
 
   it('should disable managed pipelines when toggled off', () => {
@@ -745,7 +742,7 @@ describe('Pipelines', () => {
       expect(managedPipelinesPatch?.value).to.equal(undefined);
     });
 
-    toastNotifications.findAlert('success').should('exist');
+    toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
   });
 
   it('renders the page with pipelines table data', () => {
