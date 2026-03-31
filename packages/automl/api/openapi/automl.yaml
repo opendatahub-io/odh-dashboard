@@ -182,14 +182,18 @@ paths:
         - 'description': Extracted from 'openshift.io/description' annotation if present
 
   /api/v1/s3/file:
-    summary: Path used to get a file from S3.
+    summary: Path used to get or upload a file in S3.
     description: >-
-      The REST endpoint/path used to retrieve an arbitrary file from S3 storage.
-      Uses the credentials from a specified Kubernetes secret to access the S3 bucket.
-      Returns the file with transfer-encoding: chunked for efficient streaming.
+      The REST endpoint/path used to retrieve or upload files in S3 storage.
+      GET returns an arbitrary file with transfer-encoding: chunked for efficient streaming.
+      POST uploads a CSV file using multipart/form-data (part name `file`) and credentials
+      from a required Kubernetes secret; the stored object key may differ from the requested
+      `key` when a name collision is resolved (numeric suffix).
     get:
       tags:
         - S3Operation
+      security:
+        - Bearer: []
       parameters:
         - name: namespace
           in: query
@@ -227,6 +231,7 @@ paths:
           description: The S3 object key to retrieve
           schema:
             type: string
+            pattern: '^\S(.*\S)?$'
           example: documents/myfile.pdf
       responses:
         "200":
@@ -275,6 +280,106 @@ paths:
         **Explicit mode (override)** — when secretName is supplied, the specified Kubernetes
         secret must contain AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
         and AWS_S3_ENDPOINT using those exact field names.
+    post:
+      tags:
+        - S3Operation
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          description: The Kubernetes namespace containing the secret
+          schema:
+            type: string
+            maxLength: 63
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          example: default
+        - name: secretName
+          in: query
+          required: true
+          description: >-
+            Name of the Kubernetes secret containing S3 credentials (required for POST).
+            The secret must provide AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
+            and AWS_S3_ENDPOINT using those exact field names. Bucket may come from this secret
+            (e.g. AWS_S3_BUCKET) when the bucket query parameter is omitted.
+          schema:
+            type: string
+            maxLength: 253
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+          example: aws-secret-1
+        - name: bucket
+          in: query
+          required: false
+          description: >-
+            The S3 bucket name. When omitted, the bucket is resolved from the secret (e.g. AWS_S3_BUCKET).
+            Leading and trailing whitespace is trimmed.
+          schema:
+            type: string
+            pattern: '^\S(.*\S)?$'
+          example: my-bucket
+        - name: key
+          in: query
+          required: true
+          description: >-
+            Requested S3 object key for the upload. If an object already exists at this key,
+            the server may store the file under a non-colliding key (e.g. `file-1.csv`); see the
+            response body `key` field for the actual object key.
+          schema:
+            type: string
+            pattern: '^\S(.*\S)?$'
+          example: data/training.csv
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: >-
+                    CSV file to upload. Accepted as text/csv, or application/octet-stream / empty
+                    Content-Type when the filename ends with .csv.
+      responses:
+        "201":
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/S3UploadSuccess"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: uploadS3CsvFile
+      summary: Upload CSV file to S3
+      description: >-
+        Uploads a CSV file to S3 using credentials from the specified Kubernetes secret.
+        The request must be multipart/form-data with a part named `file`.
+
+        Only CSV uploads are allowed: Content-Type `text/csv`, or `application/octet-stream` (or empty)
+        when the part filename ends with `.csv`. The body is size-limited (declared Content-Length
+        and total multipart size caps; file part max 1 GiB). Rejects with 413 when limits are exceeded.
+
+        On success, returns JSON with `uploaded: true` and the resolved `key` (which may differ
+        from the requested key if a collision was avoided by probing existing keys).
+
+        Returns 409 if the object key chosen after collision resolution still conflicts at upload time
+        (e.g. concurrent writer); the client should retry the upload.
 
   /api/v1/s3/file/schema:
     summary: Path used to get the schema (column names and types) of a CSV file from S3.
@@ -310,6 +415,8 @@ paths:
     get:
       tags:
         - S3Operation
+      security:
+        - Bearer: []
       parameters:
         - name: namespace
           in: query
@@ -347,6 +454,7 @@ paths:
           description: The S3 object key (CSV file) to retrieve schema from
           schema:
             type: string
+            pattern: '^\S(.*\S)?$'
           example: data/training.csv
       responses:
         "200":
@@ -780,6 +888,23 @@ components:
           type: string
           description: Description from the 'openshift.io/description' annotation (if present)
           example: "S3 bucket for training data storage"
+
+    S3UploadSuccess:
+      description: Response body for successful S3 file upload (POST /api/v1/s3/file)
+      required:
+        - uploaded
+        - key
+      type: object
+      properties:
+        uploaded:
+          type: boolean
+          example: true
+        key:
+          type: string
+          description: >-
+            S3 object key where the file was stored. May differ from the requested `key`
+            when a collision was resolved (e.g. `data/file-1.csv` if `data/file.csv` existed).
+          example: data/training.csv
 
     # Pipeline Run Schemas
     CreateAutoMLRunRequestBase:
@@ -1277,6 +1402,23 @@ components:
                     type: string
                     example: "Invalid request parameters"
 
+    PayloadTooLarge:
+      description: Request entity too large (e.g. declared Content-Length or file part exceeds limit)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "413"
+                  message:
+                    type: string
+                    example: "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)"
+
     Unauthorized:
       description: Unauthorized
       content:
@@ -1310,6 +1452,25 @@ components:
                   message:
                     type: string
                     example: "Resource not found"
+
+    Conflict:
+      description: >-
+        Conflict (e.g. S3 conditional upload failed because the object already exists at the
+        resolved key; client may retry the request)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "409"
+                  message:
+                    type: string
+                    example: "object key \"data/file.csv\" already exists in S3 (upload conflict); retry with a different key"
 
     InternalServerError:
       description: Internal Server Error
