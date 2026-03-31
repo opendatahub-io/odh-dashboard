@@ -270,7 +270,6 @@ describe('ConfigurePipelinesServerModal', () => {
     expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Pipeline Server Configured', {
       outcome: 'submit',
       success: true,
-      isILabEnabled: false,
     });
 
     expect(mockOnClose).toHaveBeenCalled();
