@@ -263,7 +263,7 @@ describe('AutoragEvaluationSelect', () => {
       formValues = values;
     };
 
-    mockUploadMutateAsync.mockResolvedValue(undefined);
+    mockUploadMutateAsync.mockResolvedValue({ key: 'test.json' });
 
     renderWithProviders(<AutoragEvaluationSelect />, { onFormChange });
 

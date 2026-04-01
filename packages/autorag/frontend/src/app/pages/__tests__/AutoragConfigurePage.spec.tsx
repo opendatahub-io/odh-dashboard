@@ -35,6 +35,9 @@ jest.mock('~/app/hooks/mutations', () => ({
   useCreatePipelineRunMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
   })),
+  useUploadToStorageMutation: jest.fn(() => ({
+    mutateAsync: jest.fn().mockResolvedValue({ key: 'test-file.json' }),
+  })),
 }));
 
 jest.mock('~/app/hooks/queries', () => ({
@@ -51,6 +54,10 @@ jest.mock('~/app/hooks/queries', () => ({
   })),
   useLlamaStackVectorStoreProvidersQuery: jest.fn(() => ({
     data: { vector_store_providers: [] }, // eslint-disable-line camelcase
+    isLoading: false,
+  })),
+  useSecretsQuery: jest.fn(() => ({
+    data: [],
     isLoading: false,
   })),
 }));
