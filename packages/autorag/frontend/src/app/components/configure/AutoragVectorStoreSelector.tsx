@@ -77,6 +77,8 @@ const AutoragVectorStoreSelector: React.FC = () => {
     return <Skeleton width="200px" height="36px" />;
   }
 
+  const noProviders = providers.length === 0;
+
   return (
     <Select
       aria-label="Vector store selector"
@@ -93,10 +95,14 @@ const AutoragVectorStoreSelector: React.FC = () => {
           ref={toggleRef}
           onClick={() => setIsOpen((prev) => !prev)}
           isExpanded={isOpen}
-          isDisabled={isSubmitting || isError}
+          isDisabled={isSubmitting || isError || noProviders}
           data-testid="vector-store-select-toggle"
         >
-          {selectedProvider ? formatProviderDisplayName(selectedProvider) : 'Select vector store'}
+          {noProviders
+            ? 'No vector store providers available'
+            : selectedProvider
+              ? formatProviderDisplayName(selectedProvider)
+              : 'Select vector store'}
         </MenuToggle>
       )}
     >

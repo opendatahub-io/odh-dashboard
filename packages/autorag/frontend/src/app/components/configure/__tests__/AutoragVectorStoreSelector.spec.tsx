@@ -132,6 +132,19 @@ describe('AutoragVectorStoreSelector', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('should disable the toggle when no providers are available', () => {
+    mockUseLlamaStackVectorStoreProvidersQuery.mockReturnValue({
+      data: { vector_store_providers: [] }, // eslint-disable-line camelcase
+      isLoading: false,
+    } as unknown as ReturnType<typeof useLlamaStackVectorStoreProvidersQuery>);
+
+    renderWithProviders(<AutoragVectorStoreSelector />);
+
+    const toggle = screen.getByTestId('vector-store-select-toggle');
+    expect(toggle).toBeDisabled();
+    expect(toggle).toHaveTextContent('No vector store providers available');
+  });
+
   it('should disable the toggle and show error notification when fetching providers fails', () => {
     mockUseLlamaStackVectorStoreProvidersQuery.mockReturnValue({
       data: undefined,
