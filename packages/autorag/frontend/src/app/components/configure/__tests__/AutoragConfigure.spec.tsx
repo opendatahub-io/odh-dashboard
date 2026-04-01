@@ -1,12 +1,40 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
+import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+
+const mockNotificationError = jest.fn();
+
+jest.mock('~/app/hooks/mutations', () => {
+  const mockS3MutateAsync = jest
+    .fn()
+    .mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
+  const stableS3UploadMutation = {
+    mutateAsync: mockS3MutateAsync,
+    isPending: false,
+    reset: jest.fn(),
+    variables: undefined as { file: File } | undefined,
+  };
+  return {
+    useS3FileUploadMutation: jest.fn(() => stableS3UploadMutation),
+  };
+});
+
+function getMockS3MutateAsync(): jest.Mock {
+  const result = jest.mocked(useS3FileUploadMutation).mock.results[0]?.value as
+    | { mutateAsync: jest.Mock }
+    | undefined;
+  if (!result?.mutateAsync) {
+    throw new Error('useS3FileUploadMutation was not called; render AutoragConfigure first');
+  }
+  return result.mutateAsync;
+}
 
 // Mock React Router hooks
 jest.mock('react-router', () => ({
@@ -31,11 +59,11 @@ jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
   useWatchConnectionTypes: jest.fn(() => [[]]),
 }));
 
-// Mock useNotification (used by AutoragVectorStoreSelector)
+// Mock useNotification (used by AutoragVectorStoreSelector and upload validation)
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: jest.fn(() => ({
     success: jest.fn(),
-    error: jest.fn(),
+    error: mockNotificationError,
     info: jest.fn(),
     warning: jest.fn(),
     remove: jest.fn(),
@@ -192,11 +220,6 @@ const createTestQueryClient = () =>
     },
   });
 
-const defaultAutoragConfigureProps = {
-  pendingInputDataFile: null as File | null,
-  onPendingInputDataFileChange: jest.fn(),
-};
-
 // Wrapper component that provides QueryClient and Form context
 const renderWithQueryClient = (component: React.ReactElement) => {
   const queryClient = createTestQueryClient();
@@ -210,13 +233,14 @@ const renderWithQueryClient = (component: React.ReactElement) => {
 describe('AutoragConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockNotificationError.mockClear();
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
   });
 
   describe('initial state - no secret selected', () => {
     it('should NOT show document input toggle when no secret is selected', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       expect(
         screen.queryByRole('group', { name: 'Choose how to add documents' }),
@@ -224,7 +248,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should NOT display the select-file section heading when no secret is selected', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       expect(
         screen.queryByRole('heading', { name: 'Select file or folder' }),
@@ -232,7 +256,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should NOT display the "Browse bucket" button when no secret is selected', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
     });
@@ -240,7 +264,7 @@ describe('AutoragConfigure', () => {
 
   describe('secret selection', () => {
     it('should show document input toggle when a secret is selected', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -253,7 +277,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should show the selected secret name in the selector (matches real displayName || name)', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -264,7 +288,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should display the select-file section when a secret is selected', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -275,7 +299,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should display the "Browse bucket" button when a secret is selected', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -286,7 +310,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should show selected-files UI when "Select file or folder" is selected (default)', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
 
       expect(screen.getByRole('heading', { name: 'Select file or folder' })).toBeInTheDocument();
@@ -297,7 +321,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should show upload dropzone when "Upload file" is selected', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
@@ -308,8 +332,8 @@ describe('AutoragConfigure', () => {
       expect(screen.getByText(/Drop a file here or browse to select a file/)).toBeInTheDocument();
     });
 
-    it('should not stage an oversized file from the native file input and should set a form error', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+    it('should not upload an oversized file and should show a notification', () => {
+      renderWithQueryClient(<AutoragConfigure />);
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
@@ -319,15 +343,18 @@ describe('AutoragConfigure', () => {
       const largeFile = new File(['x'], 'big.pdf', { type: 'application/pdf' });
       Object.defineProperty(largeFile, 'size', { value: 1024 * 1024 * 1024 + 1 });
 
-      defaultAutoragConfigureProps.onPendingInputDataFileChange.mockClear();
+      getMockS3MutateAsync().mockClear();
       fireEvent.change(fileInput!, { target: { files: [largeFile] } });
 
-      expect(defaultAutoragConfigureProps.onPendingInputDataFileChange).not.toHaveBeenCalled();
-      expect(screen.getByTestId('input-data-upload-error')).toHaveTextContent(/1 GiB/i);
+      expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'File too large',
+        'File size must be 1 GiB or less.',
+      );
     });
 
-    it('should not stage a disallowed file type from the native file input and should set a form error', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+    it('should not upload a disallowed file type and should show a notification', () => {
+      renderWithQueryClient(<AutoragConfigure />);
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
@@ -335,15 +362,18 @@ describe('AutoragConfigure', () => {
       expect(fileInput).not.toBeNull();
 
       const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
-      defaultAutoragConfigureProps.onPendingInputDataFileChange.mockClear();
+      getMockS3MutateAsync().mockClear();
       fireEvent.change(fileInput!, { target: { files: [badFile] } });
 
-      expect(defaultAutoragConfigureProps.onPendingInputDataFileChange).not.toHaveBeenCalled();
-      expect(screen.getByTestId('input-data-upload-error')).toHaveTextContent(/accepted types/i);
+      expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Invalid file type',
+        'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
+      );
     });
 
-    it('should stage an allowed file from the native file input', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+    it('should upload an allowed file from the native file input', async () => {
+      renderWithQueryClient(<AutoragConfigure />);
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
@@ -351,17 +381,25 @@ describe('AutoragConfigure', () => {
       expect(fileInput).not.toBeNull();
 
       const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
-      defaultAutoragConfigureProps.onPendingInputDataFileChange.mockClear();
+      getMockS3MutateAsync().mockClear();
       fireEvent.change(fileInput!, { target: { files: [goodFile] } });
 
-      expect(defaultAutoragConfigureProps.onPendingInputDataFileChange).toHaveBeenCalledWith(
-        goodFile,
-      );
-      expect(screen.queryByTestId('input-data-upload-error')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(getMockS3MutateAsync()).toHaveBeenCalledWith(
+          expect.objectContaining({
+            namespace: 'test-namespace',
+            secretName: 'Test Secret 1',
+            bucket: 'test-bucket-1',
+            key: 'notes.txt',
+            file: goodFile,
+          }),
+        );
+      });
+      expect(mockNotificationError).not.toHaveBeenCalled();
     });
 
     it('should show the newly selected secret name when switching secrets', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select first secret
       const selectButton1 = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -375,7 +413,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should extract bucket name from secret data when a secret is selected', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select first secret with bucket data
       const selectButton1 = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -398,7 +436,7 @@ describe('AutoragConfigure', () => {
 
   describe('invalid secret selection', () => {
     it('should disable "Browse bucket" button when selected secret is invalid', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select an invalid secret
       const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
@@ -410,7 +448,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should disable "Edit" button for Optimization metric when selected secret is invalid', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select an invalid secret
       const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
@@ -425,7 +463,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should disable "Edit" button for Models to consider when selected secret is invalid', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select an invalid secret
       const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
@@ -439,7 +477,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should enable "Browse bucket" button when selected secret is valid', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a valid secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -451,7 +489,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should enable "Edit" button when a file/folder is selected', () => {
-      renderWithQueryClient(<AutoragConfigure {...defaultAutoragConfigureProps} />);
+      renderWithQueryClient(<AutoragConfigure />);
 
       // Select a valid secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');

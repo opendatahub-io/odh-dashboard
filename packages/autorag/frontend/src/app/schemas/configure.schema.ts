@@ -1,4 +1,3 @@
-import { omit } from 'es-toolkit';
 import * as z from 'zod';
 import { createSchema } from '~/app/utilities/schema';
 
@@ -25,8 +24,6 @@ export const EXPERIMENT_SETTINGS_FIELDS = [
   'generation_models',
 ] as const;
 
-const INPUT_DATA_SOURCE_MODE = z.enum(['select', 'upload']);
-
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 function createConfigureSchema() {
   return createSchema({
@@ -38,13 +35,7 @@ function createConfigureSchema() {
 
       input_data_secret_name: z.string().min(1).default(''),
       input_data_bucket_name: z.string().min(1).default(''),
-      /** Object key in bucket; may be empty in upload mode until Run experiment uploads (see input_data_pending_filename). */
-      input_data_key: z.string().default(''),
-
-      /** UI-only: how the user chose input data; stripped before pipeline API. */
-      input_data_source_mode: INPUT_DATA_SOURCE_MODE.default('select'),
-      /** UI-only: set when a file is staged for deferred upload; stripped before pipeline API. */
-      input_data_pending_filename: z.string().default(''),
+      input_data_key: z.string().min(1).default(''),
 
       test_data_secret_name: z.string().min(1).default(''),
       test_data_bucket_name: z.string().min(1).default(''),
@@ -64,32 +55,6 @@ function createConfigureSchema() {
         .default(8),
     }),
     /* eslint-enable camelcase */
-    validators: [
-      (data) => {
-        const issues: z.core.$ZodRawIssue[] = [];
-        if (data.input_data_source_mode === 'select') {
-          if (!data.input_data_key.trim()) {
-            issues.push({
-              code: 'custom',
-              input: data,
-              path: ['input_data_key'],
-              message: 'Select a file or folder from the bucket.',
-            });
-          }
-        }
-        if (data.input_data_source_mode === 'upload') {
-          if (!data.input_data_key.trim() && !data.input_data_pending_filename.trim()) {
-            issues.push({
-              code: 'custom',
-              input: data,
-              path: ['input_data_key'],
-              message: 'Choose a file to upload or switch to select mode.',
-            });
-          }
-        }
-        return issues;
-      },
-    ],
     /* eslint-disable no-param-reassign */
     transformers: [
       (data) => {
@@ -108,14 +73,4 @@ function createConfigureSchema() {
 
 export type ConfigureSchema = z.infer<ReturnType<typeof createConfigureSchema>['base']>;
 
-/** Fields only used for validation and UI; omit before POST `/pipeline-runs`. */
-export type ConfigurePipelinePayload = Omit<
-  ConfigureSchema,
-  'input_data_source_mode' | 'input_data_pending_filename'
->;
-
-export function stripConfigureUiFieldsForPipeline(data: ConfigureSchema): ConfigurePipelinePayload {
-  return omit(data, ['input_data_source_mode', 'input_data_pending_filename']);
-}
-
-export { createConfigureSchema, INPUT_DATA_SOURCE_MODE };
+export { createConfigureSchema };

@@ -625,7 +625,7 @@ describe('AutoragConfigurePage', () => {
       });
     });
 
-    it('should upload staged file before pipeline run and pass resolved input_data_key', async () => {
+    it('should upload file on selection in upload mode and pass resolved input_data_key to pipeline run', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-456' });
       mockUploadFileToS3.mockResolvedValue({ uploaded: true, key: 'resolved-key.pdf' });
@@ -633,7 +633,7 @@ describe('AutoragConfigurePage', () => {
       renderWithProviders(<AutoragConfigurePage />);
 
       const nameInput = await screen.findByLabelText(/Name/i);
-      await user.type(nameInput, 'Upload Deferred Test');
+      await user.type(nameInput, 'Upload Immediate Test');
 
       const selectLlsSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
       await user.click(selectLlsSecretButton);
@@ -644,25 +644,13 @@ describe('AutoragConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const browseButton = await screen.findByRole('button', { name: 'Browse bucket' });
-      await user.click(browseButton);
-
-      const fileExplorerSelect = await screen.findByTestId('file-explorer-select-file');
-      await user.click(fileExplorerSelect);
-
       await user.click(screen.getByRole('button', { name: 'Upload file' }));
 
       const file = new File(['doc'], 'original-name.pdf', { type: 'application/pdf' });
       const fileInputs = [...document.querySelectorAll('input[type="file"]')] as HTMLInputElement[];
-      const stagedInput = fileInputs.find((el) => el.accept.includes('pdf')) ?? fileInputs[0];
-      expect(stagedInput).toBeTruthy();
-      await user.upload(stagedInput, file);
-
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
-      await waitFor(() => {
-        expect(runButton).toBeEnabled();
-      });
-      await user.click(runButton);
+      const uploadInput = fileInputs.find((el) => el.accept.includes('pdf')) ?? fileInputs[0];
+      expect(uploadInput).toBeTruthy();
+      await user.upload(uploadInput, file);
 
       await waitFor(() => {
         expect(mockUploadFileToS3).toHaveBeenCalledWith(
@@ -676,6 +664,13 @@ describe('AutoragConfigurePage', () => {
           file,
         );
       });
+      expect(mockUploadFileToS3).toHaveBeenCalledTimes(1);
+
+      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      await waitFor(() => {
+        expect(runButton).toBeEnabled();
+      });
+      await user.click(runButton);
 
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledWith(
@@ -684,6 +679,7 @@ describe('AutoragConfigurePage', () => {
           }),
         );
       });
+      expect(mockUploadFileToS3).toHaveBeenCalledTimes(1);
       expect(mockMutateAsync.mock.calls[0][0]).not.toHaveProperty('input_data_source_mode');
     });
   });
