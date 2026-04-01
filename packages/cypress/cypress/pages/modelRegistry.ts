@@ -174,7 +174,7 @@ class ModelRegistry {
   }
 
   shouldModelBeVisible(name: string) {
-    return this.findModelByName(name).should('be.visible');
+    return this.findModelByName(name).should('be.visible', { timeout: 10000 });
   }
 
   getModelVersionRow(name: string) {

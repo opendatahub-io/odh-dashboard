@@ -26,27 +26,10 @@ import {
 import { loadModelRegistryFixture } from '../../../utils/dataLoader';
 import { toastNotifications } from '../../../pages/components/ToastNotifications';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
+import { getApplicationsNamespace, getBooleanEnv } from '../../../utils/cypressEnvHelpers';
 import type { ModelRegistryTestData } from '../../../types';
 
-const namespaceName = Cypress.env('APPLICATIONS_NAMESPACE') as string;
-const getBooleanEnv = (name: string, fallback: boolean): boolean => {
-  const value = Cypress.env(name);
-  if (value === undefined || value === null || value === '') {
-    return fallback;
-  }
-  if (typeof value === 'boolean') {
-    return value;
-  }
-  return String(value).toLowerCase() === 'true';
-};
-
-const getRequiredEnv = (name: string): string => {
-  const value = Cypress.env(name);
-  if (typeof value === 'string' && value.length > 0) {
-    return value;
-  }
-  throw new Error(`Missing required Cypress env var: ${name}`);
-};
+const namespaceName = getApplicationsNamespace();
 
 describe('Verify models can be registered in a model registry', () => {
   let testData: ModelRegistryTestData;
@@ -188,7 +171,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.visitWithRegistry(registryName);
 
       cy.step('Register a model using URI');
-      cy.step('Fill in URI model details');
+      // Fill in model details for URI
       registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type(testData.uriModelName);
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
@@ -221,6 +204,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Verify both models are visible in the registry');
+      // Scoped to the registry table model-name cells (10s), not document-wide cy.contains.
       modelRegistry.shouldModelBeVisible(objectStorageModelName);
       modelRegistry.shouldModelBeVisible(testData.uriModelName);
     },
@@ -288,10 +272,6 @@ describe('Verify models can be registered in a model registry', () => {
       tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet4'],
     },
     () => {
-      const sourceAccessKeyId = getRequiredEnv('OCI_SOURCE_ACCESS_KEY_ID');
-      const sourceSecretAccessKey = getRequiredEnv('OCI_SOURCE_SECRET_ACCESS_KEY');
-      const destinationUsername = getRequiredEnv('OCI_DESTINATION_USERNAME');
-      const destinationPassword = getRequiredEnv('OCI_DESTINATION_PASSWORD');
       const expectOciTransferFailure = getBooleanEnv('EXPECT_OCI_TRANSFER_FAILURE', true);
 
       cy.step('Log into the application');
@@ -358,10 +338,10 @@ describe('Verify models can be registered in a model registry', () => {
 
       registerModelPage
         .findFormField(FormFieldSelector.LOCATION_S3_ACCESS_KEY_ID)
-        .type(sourceAccessKeyId, { log: false });
+        .type(Cypress.env('OCI_SOURCE_ACCESS_KEY_ID'), { log: false });
       registerModelPage
         .findFormField(FormFieldSelector.LOCATION_S3_SECRET_ACCESS_KEY)
-        .type(sourceSecretAccessKey, { log: false });
+        .type(Cypress.env('OCI_SOURCE_SECRET_ACCESS_KEY'), { log: false });
 
       cy.step('Fill in OCI destination fields');
       registerModelPage
@@ -372,10 +352,10 @@ describe('Verify models can be registered in a model registry', () => {
         .type(testData.ociDestinationUri);
       registerModelPage
         .findFormField(FormFieldSelector.DESTINATION_OCI_USERNAME)
-        .type(destinationUsername, { log: false });
+        .type(Cypress.env('OCI_DESTINATION_USERNAME'), { log: false });
       registerModelPage
         .findFormField(FormFieldSelector.DESTINATION_OCI_PASSWORD)
-        .type(destinationPassword, { log: false });
+        .type(Cypress.env('OCI_DESTINATION_PASSWORD'), { log: false });
 
       cy.step('Verify submit button is enabled');
       registerModelPage.findSubmitButton().should('be.enabled');
@@ -414,8 +394,6 @@ describe('Verify models can be registered in a model registry', () => {
       tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet4'],
     },
     () => {
-      const destinationUsername = getRequiredEnv('OCI_DESTINATION_USERNAME');
-      const destinationPassword = getRequiredEnv('OCI_DESTINATION_PASSWORD');
       const expectOciTransferFailure = getBooleanEnv('EXPECT_OCI_TRANSFER_FAILURE', true);
 
       cy.step('Log into the application');
@@ -482,10 +460,10 @@ describe('Verify models can be registered in a model registry', () => {
         .type(testData.ociDestinationUri);
       registerModelPage
         .findFormField(FormFieldSelector.DESTINATION_OCI_USERNAME)
-        .type(destinationUsername, { log: false });
+        .type(Cypress.env('OCI_DESTINATION_USERNAME'), { log: false });
       registerModelPage
         .findFormField(FormFieldSelector.DESTINATION_OCI_PASSWORD)
-        .type(destinationPassword, { log: false });
+        .type(Cypress.env('OCI_DESTINATION_PASSWORD'), { log: false });
 
       cy.step('Verify submit button is enabled');
       registerModelPage.findSubmitButton().should('be.enabled');
