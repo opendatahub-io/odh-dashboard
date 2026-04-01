@@ -13,6 +13,12 @@ import {
   CardHeader,
   CardTitle,
   Content,
+  DataList,
+  DataListAction,
+  DataListCell,
+  DataListItem,
+  DataListItemCells,
+  DataListItemRow,
   EmptyState,
   EmptyStateBody,
   FormHelperText,
@@ -27,7 +33,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { CubesIcon } from '@patternfly/react-icons';
+import { CubesIcon, TimesIcon } from '@patternfly/react-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { findKey } from 'es-toolkit';
 import React, { useEffect, useRef, useState } from 'react';
@@ -36,6 +42,7 @@ import { Navigate, useParams } from 'react-router';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
+import type { File } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { ConfigureSchema, MAX_TOP_N, MIN_TOP_N } from '~/app/schemas/configure.schema';
@@ -105,6 +112,8 @@ function AutomlConfigure(): React.JSX.Element {
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const previousFileKeyRef = useRef<string | undefined>();
+
+  const [selectedTrainingDataFile, setSelectedTrainingDataFile] = useState<File | undefined>();
 
   const form = useFormContext<ConfigureSchema>();
 
@@ -311,6 +320,57 @@ function AutomlConfigure(): React.JSX.Element {
                       </StackItem>
                     </>
                   )}
+                  {selectedTrainingDataFile && (
+                    <StackItem>
+                      <DataList aria-label="Selected input data file" isCompact>
+                        <DataListItem aria-labelledby="selected-input-data-list-header">
+                          <DataListItemRow>
+                            <DataListItemCells
+                              dataListCells={[
+                                <DataListCell key="name" className="pf-v6-u-font-weight-bold">
+                                  <span id="selected-input-data-list-header">Name</span>
+                                </DataListCell>,
+                                <DataListCell key="type" className="pf-v6-u-font-weight-bold">
+                                  Type
+                                </DataListCell>,
+                              ]}
+                            />
+                          </DataListItemRow>
+                        </DataListItem>
+                        <DataListItem aria-labelledby="selected-input-data-file-name">
+                          <DataListItemRow>
+                            <DataListItemCells
+                              dataListCells={[
+                                <DataListCell key="name">
+                                  <span id="selected-input-data-file-name">
+                                    {selectedTrainingDataFile.name}
+                                  </span>
+                                </DataListCell>,
+                                <DataListCell key="type">
+                                  {selectedTrainingDataFile.type}
+                                </DataListCell>,
+                              ]}
+                            />
+                            <DataListAction
+                              aria-labelledby="selected-input-data-file-name"
+                              aria-label="Selected file actions"
+                              id="selected-input-data-file-actions"
+                            >
+                              <Button
+                                variant="plain"
+                                aria-label="Remove selection"
+                                icon={<TimesIcon />}
+                                onClick={() => {
+                                  setSelectedTrainingDataFile(undefined);
+                                  setValue('train_data_file_key', '', { shouldValidate: true });
+                                }}
+                              />
+                            </DataListAction>
+                          </DataListItemRow>
+                        </DataListItem>
+                      </DataList>
+                    </StackItem>
+                  )}
                 </Stack>
               </CardBody>
             </div>
@@ -496,6 +556,7 @@ function AutomlConfigure(): React.JSX.Element {
             const file = files[0];
             const filePath = file.path.replace(/^\//, '');
             setValue('train_data_file_key', filePath, { shouldValidate: true });
+            setSelectedTrainingDataFile(file);
           }
         }}
         selectableExtensions={['csv']}
