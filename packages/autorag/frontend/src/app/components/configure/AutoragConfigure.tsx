@@ -62,9 +62,7 @@ function AutoragConfigure(): React.JSX.Element {
   );
   const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
 
-  const [fileExplorerMode, setFileExplorerMode] = useState<false | 'input_data' | 'test_data'>(
-    false,
-  );
+  const [fileExplorerOpen, setFileExplorerOpen] = useState(false);
 
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
@@ -240,7 +238,7 @@ function AutoragConfigure(): React.JSX.Element {
                         <Button
                           key="select-files"
                           variant="secondary"
-                          onClick={() => setFileExplorerMode('input_data')}
+                          onClick={() => setFileExplorerOpen(true)}
                           isDisabled={
                             !selectedSecret || selectedSecret.invalid || form.formState.isSubmitting
                           }
@@ -448,20 +446,13 @@ function AutoragConfigure(): React.JSX.Element {
         id="AutoRagConfigure-S3FileExplorer"
         namespace={namespace}
         s3Secret={selectedSecret}
-        isOpen={Boolean(fileExplorerMode)}
-        onClose={() => setFileExplorerMode(false)}
+        isOpen={fileExplorerOpen}
+        onClose={() => setFileExplorerOpen(false)}
         onSelectFiles={(files) => {
           if (files.length > 0) {
             const file = files[0];
             const filePath = file.path.replace(/^\//, '');
-            if (fileExplorerMode === 'input_data') {
-              setValue('input_data_key', filePath, { shouldValidate: true });
-              // TODO: Once test data upload is hooked up, remove this fallback
-              setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
-            }
-            if (fileExplorerMode === 'test_data') {
-              setValue('test_data_key', filePath, { shouldValidate: true });
-            }
+            setValue('input_data_key', filePath, { shouldValidate: true });
           }
         }}
         selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
