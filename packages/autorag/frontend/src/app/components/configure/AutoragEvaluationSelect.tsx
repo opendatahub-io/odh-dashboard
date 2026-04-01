@@ -48,7 +48,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         }}
         onClear={() => field.onChange('')}
         fileUploadProps={{
-          filenamePlaceholder: 'Drag or drop or browse from...',
+          filenamePlaceholder: 'Drag and drop or browse from...',
           // @ts-expect-error: bypass ts error to allow icon
           browseButtonText: (
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
