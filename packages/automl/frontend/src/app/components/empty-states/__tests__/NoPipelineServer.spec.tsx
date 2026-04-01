@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import { pipelinesBaseRoute } from '@odh-dashboard/internal/routes/pipelines/global';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -31,9 +32,6 @@ describe('NoPipelineServer', () => {
     );
 
     const control = screen.getByTestId('go-to-pipelines-link');
-    expect(control.closest('a')).toHaveAttribute(
-      'href',
-      '/develop-train/pipelines/definitions/my-project',
-    );
+    expect(control.closest('a')).toHaveAttribute('href', pipelinesBaseRoute('my-project'));
   });
 });
