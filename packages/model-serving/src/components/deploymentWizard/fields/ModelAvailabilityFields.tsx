@@ -19,7 +19,6 @@ import type { ExternalDataMap } from '../ExternalDataLoader';
 
 export type ModelAvailabilityFieldsData = {
   saveAsAiAsset: boolean;
-  saveAsMaaS?: boolean;
   useCase?: string;
 };
 

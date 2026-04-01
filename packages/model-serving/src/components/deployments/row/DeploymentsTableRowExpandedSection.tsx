@@ -25,17 +25,27 @@ import {
   isModelServingDeploymentFormDataExtension,
   type Deployment,
 } from '../../../../extension-points';
-import { useWizardFieldExtractors } from '../../deploymentWizard/useWizardFieldExtractors';
+import {
+  ExtractedFieldData,
+  useWizardFieldExtractors,
+} from '../../deploymentWizard/useWizardFieldExtractors';
 import type { ModelAvailabilityFieldsData } from '../../deploymentWizard/types';
 
 const MAAS_ENDPOINT_FIELD_ID = 'maas/save-as-maas-checkbox';
+type MaaSCheckboxFieldValue = { isChecked: boolean };
 
-const isMaaSChecked = (value: unknown): boolean =>
-  typeof value === 'object' &&
-  value !== null &&
-  'isChecked' in value &&
-  typeof value.isChecked === 'boolean' &&
-  value.isChecked;
+const getMaaSFieldValue = (data: ExtractedFieldData): MaaSCheckboxFieldValue | undefined => {
+  const value = data[MAAS_ENDPOINT_FIELD_ID];
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'isChecked' in value &&
+    typeof value.isChecked === 'boolean'
+  ) {
+    return { isChecked: value.isChecked };
+  }
+  return undefined;
+};
 
 const FrameworkItem = ({ framework }: { framework: SupportedModelFormats }) => {
   const name = `${framework.name}${framework.version ? `-${framework.version}` : ''}`;
@@ -114,7 +124,7 @@ const ModelAvailabilityItem = ({
   isMaaSEnabled,
 }: {
   modelAvailability: ModelAvailabilityFieldsData;
-  isMaaSEnabled: boolean;
+  isMaaSEnabled?: boolean;
 }) => {
   const availabilityTypes = [];
   if (modelAvailability.saveAsAiAsset) {
@@ -194,12 +204,12 @@ export const DeploymentRowExpandedSection: React.FC<{
     [formDataExtension, deployment],
   );
 
-  const { extractedFieldData } = useWizardFieldExtractors(deployment);
+  const { extractedFieldData, extractorsLoaded } = useWizardFieldExtractors(deployment);
   const maasExtractorValue = React.useMemo(
     () => ({
-      isMaaSEnabled: isMaaSChecked(extractedFieldData[MAAS_ENDPOINT_FIELD_ID]),
+      isMaaSEnabled: extractorsLoaded && getMaaSFieldValue(extractedFieldData)?.isChecked,
     }),
-    [extractedFieldData],
+    [extractedFieldData, extractorsLoaded],
   );
 
   if (!isVisible) {
