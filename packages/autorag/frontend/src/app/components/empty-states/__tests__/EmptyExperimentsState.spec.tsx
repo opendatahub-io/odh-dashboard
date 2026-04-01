@@ -1,20 +1,9 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
 
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useNavigate: jest.fn(() => mockNavigate),
-}));
-
 describe('EmptyExperimentsState', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('should render title and body text', () => {
     render(
       <MemoryRouter>
@@ -25,7 +14,7 @@ describe('EmptyExperimentsState', () => {
     expect(screen.getByText('No experiments yet')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'To get started, create an AutoRAG experiment to configure and run your RAG pipeline.',
+        'Test different retrieval and model configurations to find the best-performing setup.',
       ),
     ).toBeInTheDocument();
   });
@@ -38,7 +27,7 @@ describe('EmptyExperimentsState', () => {
     );
 
     expect(screen.getByTestId('create-experiment-button')).toHaveTextContent(
-      'Create AutoRAG experiment',
+      'Create RAG optimization run',
     );
   });
 
@@ -65,17 +54,14 @@ describe('EmptyExperimentsState', () => {
     expect(screen.getByTestId('custom-empty-state')).toBeInTheDocument();
   });
 
-  it('should navigate to create route when button is clicked', async () => {
-    const user = userEvent.setup();
-
+  it('should render link to create route', () => {
     render(
       <MemoryRouter>
         <EmptyExperimentsState createExperimentRoute="/autorag/create/my-namespace" />
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByTestId('create-experiment-button'));
-
-    expect(mockNavigate).toHaveBeenCalledWith('/autorag/create/my-namespace');
+    const createButton = screen.getByTestId('create-experiment-button');
+    expect(createButton.closest('a')).toHaveAttribute('href', '/autorag/create/my-namespace');
   });
 });

@@ -40,7 +40,7 @@ const buildLocation = (
   const base = `${pipelineName}/${runId}/autogluon-models-full-refit/${taskId}/model_artifact/${modelName}`;
   return {
     model_directory: `${base}/`,
-    predictor: `${base}/predictor/predictor.pkl`,
+    predictor: `${base}/predictor`,
     notebook: `${base}/notebooks/automl_predictor_notebook.ipynb`,
   };
 };
@@ -59,6 +59,7 @@ const mockPipelineRun: PipelineRun = {
   finished_at: '2026-03-19T19:30:00Z',
   runtime_config: {
     parameters: {
+      display_name: 'test-run',
       label_column: 'type',
       task_type: 'multiclass',
       top_n: 3,
@@ -172,6 +173,7 @@ const mockTimeseriesPipelineRun: PipelineRun = {
   finished_at: '2026-03-20T15:30:00Z',
   runtime_config: {
     parameters: {
+      display_name: 'test-run',
       task_type: 'timeseries',
       target: 'sales',
       id_column: 'store_id',
@@ -200,7 +202,7 @@ const buildTimeseriesLocation = (
   const base = `autogluon-timeseries-training-pipeline/${runId}/timeseries-models-full-refit/${taskId}/model_artifact/${modelName}`;
   return {
     model_directory: `${base}/`,
-    predictor: `${base}/predictor/predictor.pkl`,
+    predictor: `${base}/predictor`,
     notebook: `${base}/notebooks/automl_predictor_notebook.ipynb`,
   };
 };

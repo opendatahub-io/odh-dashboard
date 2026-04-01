@@ -9,6 +9,7 @@ import { useChatbotConfigStore, selectDirtyPrompt, DEFAULT_CONFIG_ID } from '~/a
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
+import { PROMPT_MANAGEMENT } from '~/odh/extensions';
 
 interface PromptTabContentProps {
   configId?: string;
@@ -23,8 +24,8 @@ function PromptTabContent({
 }: PromptTabContentProps): React.ReactNode {
   const { openModal } = usePlaygroundStore();
   const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
-  const [promptManagementEnabled] = useFeatureFlag('promptManagement');
   const isEdited = usePromptEdited(configId);
+  const [promptManagementEnabled] = useFeatureFlag(PROMPT_MANAGEMENT);
   const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
 
   function handleLoadPromptClick() {
