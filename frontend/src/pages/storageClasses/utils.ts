@@ -163,8 +163,6 @@ export const isValidConfigValue = (
       return typeof value === 'boolean';
     case 'lastModified':
       return typeof value === 'string' && isValidDate(new Date(value));
-    case 'accessModeSettings':
-      return typeof value === 'object' && value !== null;
     default:
       return false;
   }
