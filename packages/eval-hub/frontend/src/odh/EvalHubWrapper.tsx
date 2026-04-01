@@ -32,8 +32,13 @@ const EvalHubWrapperContent: React.FC = () => {
   if (loadError) {
     return (
       <Bullseye>
-        <Alert variant="danger" isInline title="Failed to load settings">
-          Unable to load settings. Please refresh the page or contact your administrator.
+        <Alert
+          variant="danger"
+          isInline
+          isExpandable
+          title="Unable to load settings. Please refresh the page or contact your administrator."
+        >
+          {loadError.message}
         </Alert>
       </Bullseye>
     );

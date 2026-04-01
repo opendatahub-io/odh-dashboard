@@ -42,7 +42,7 @@ export type NamespaceKind = {
 export type EvalHubHealthStatus = 'healthy' | 'service-unreachable' | 'cr-not-found';
 
 export type EvalHubHealthResponse = {
-  status: EvalHubHealthStatus | string;
+  status: EvalHubHealthStatus;
   available: boolean;
 };
 

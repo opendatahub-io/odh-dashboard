@@ -103,15 +103,20 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 //
 // Mock mode is NOT handled here; callers must short-circuit before calling this function.
 func (app *App) evalHubServiceURL(ctx context.Context) (serviceURL, authToken string, crNotFound bool, err error) {
+	// Check the env override first so auth-disabled dev mode works without an identity in context.
+	if app.config.EvalHubURL != "" {
+		identity, _ := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+		if identity != nil {
+			authToken = identity.Token
+		}
+		return app.config.EvalHubURL, authToken, false, nil
+	}
+
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
 	if !ok || identity == nil {
 		return "", "", false, fmt.Errorf("missing RequestIdentity in context")
 	}
 	authToken = identity.Token
-
-	if app.config.EvalHubURL != "" {
-		return app.config.EvalHubURL, authToken, false, nil
-	}
 
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
