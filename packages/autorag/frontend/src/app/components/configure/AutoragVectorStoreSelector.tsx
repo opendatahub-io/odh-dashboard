@@ -16,8 +16,7 @@ import { LlamaStackVectorStoreProvider } from '~/app/types';
  * Formats a provider for display.
  * e.g. provider_id="milvus", provider_type="remote::milvus" → "milvus (remote Milvus)"
  * e.g. provider_id="faiss", provider_type="inline::faiss" → "faiss (inline Faiss)"
- * e.g. provider_id="CHROMADB_IN_MEMORY_DEFAULT", provider_type="IN_MEMORY" → "ChromaDB (in-memory)"
- * Falls back to provider_id if provider_type doesn't follow the expected format.
+ * Falls back to provider_id if provider_type doesn't follow the expected "deployment::name" format.
  */
 const formatProviderDisplayName = (provider: LlamaStackVectorStoreProvider): string => {
   // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
@@ -74,12 +73,13 @@ const AutoragVectorStoreSelector: React.FC = () => {
   const selectedProvider = providers.find((p) => `ls_${p.provider_id}` === field.value);
 
   // Clear stale selection when the provider list changes and no longer includes
-  // the previously selected provider (e.g., LlamaStack secret was changed).
+  // the previously selected provider (e.g., LlamaStack secret was changed or
+  // providers became empty).
   useEffect(() => {
-    if (field.value && !selectedProvider && providers.length > 0) {
+    if (field.value && !providers.some((p) => `ls_${p.provider_id}` === field.value)) {
       field.onChange('');
     }
-  }, [providers, selectedProvider, field]);
+  }, [providers, field]);
 
   if (isLoading) {
     return <Skeleton width="200px" height="36px" />;
