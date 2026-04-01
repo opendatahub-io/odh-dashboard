@@ -20,7 +20,6 @@ import {
   TextInput,
   Tooltip,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router';
 import { useModelRegistriesQuery } from '~/app/hooks/useModelRegistriesQuery';
@@ -86,12 +85,12 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
     },
     onSuccess: (data, variables) => {
       const modelDetailsUrl = `/ai-hub/registry/${encodeURIComponent(variables.registryName)}/registered-models/${encodeURIComponent(data.registered_model_id)}/overview`;
-      notification.success(
-        `${registeredModelName.trim()} registered successfully`,
-        <a href={modelDetailsUrl} target="_blank" rel="noopener noreferrer">
-          View in model registry <ExternalLinkAltIcon />
-        </a>,
-      );
+      notification.success(`${registeredModelName.trim()} registered successfully`, undefined, [
+        {
+          title: 'View in model registry',
+          onClick: () => window.open(modelDetailsUrl, '_blank', 'noopener,noreferrer'),
+        },
+      ]);
       onClose();
     },
     onError: (error: unknown) => {

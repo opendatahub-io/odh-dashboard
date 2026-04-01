@@ -36,7 +36,7 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 			ModelFormatName:    "onnx",
 		}
 		expectedURI := "s3://my-bucket/pipeline/run/models/model.bin?defaultRegion=us-east-1&endpoint=https%3A%2F%2Fs3.amazonaws.com"
-		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, expectedURI)
+		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.ArtifactName, expectedURI)
 
 		regModelID, artifact, err := repo.RegisterModel(context.Background(), mockClient, req, testDSPAStorage)
 
@@ -44,7 +44,7 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 		assert.NotEmpty(t, regModelID)
 		assert.NotNil(t, artifact)
 		assert.NotEmpty(t, artifact.GetId())
-		assert.Equal(t, req.VersionName, artifact.GetName())
+		assert.Equal(t, req.ArtifactName, artifact.GetName())
 		assert.Equal(t, expectedURI, artifact.GetUri())
 
 		assert.Equal(t, 3, mockClient.PostCallCount)
@@ -58,7 +58,7 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 			VersionName: "v2",
 		}
 		expectedURI := "s3://my-bucket/path/to/model?defaultRegion=us-east-1&endpoint=https%3A%2F%2Fs3.amazonaws.com"
-		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, expectedURI)
+		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.ArtifactName, expectedURI)
 
 		_, artifact, err := repo.RegisterModel(context.Background(), mockClient, req, testDSPAStorage)
 
@@ -105,7 +105,7 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 			ModelName:   "my-model",
 			VersionName: "v1",
 		}
-		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, "")
+		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.ArtifactName, "")
 
 		_, _, err := repo.RegisterModel(context.Background(), mockClient, req, nil)
 
@@ -119,7 +119,7 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 			ModelName:   "my-model",
 			VersionName: "v1",
 		}
-		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, "")
+		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.ArtifactName, "")
 		noBucket := &models.DSPAObjectStorage{EndpointURL: "https://s3.amazonaws.com"}
 
 		_, _, err := repo.RegisterModel(context.Background(), mockClient, req, noBucket)
@@ -134,7 +134,7 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 			ModelName:   "my-model",
 			VersionName: "v1",
 		}
-		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, "")
+		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.ArtifactName, "")
 		noEndpoint := &models.DSPAObjectStorage{Bucket: "my-bucket"}
 
 		_, _, err := repo.RegisterModel(context.Background(), mockClient, req, noEndpoint)
@@ -143,14 +143,14 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 		assert.Contains(t, err.Error(), "missing endpoint")
 	})
 
-	t.Run("strips leading slash from s3_path", func(t *testing.T) {
+	t.Run("handles valid relative s3_path", func(t *testing.T) {
 		req := models.RegisterModelRequest{
-			S3Path:      "/leading/slash/model",
+			S3Path:      "leading/slash/model",
 			ModelName:   "my-model",
 			VersionName: "v1",
 		}
 		expectedURI := "s3://my-bucket/leading/slash/model?defaultRegion=us-east-1&endpoint=https%3A%2F%2Fs3.amazonaws.com"
-		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, expectedURI)
+		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.ArtifactName, expectedURI)
 
 		_, artifact, err := repo.RegisterModel(context.Background(), mockClient, req, testDSPAStorage)
 

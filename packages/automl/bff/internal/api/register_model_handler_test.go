@@ -71,7 +71,7 @@ func TestRegisterModelHandler_Success(t *testing.T) {
 		req := validRegisterModelRequest()
 		var capturedClient *modelregistry.MockHTTPClient
 		app.modelRegistryHTTPClientFactory = func(_ *slog.Logger, _ string, _ http.Header, _ bool, _ *x509.CertPool) (modelregistry.HTTPClientInterface, error) {
-			capturedClient = modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, "")
+			capturedClient = modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.ArtifactName, "")
 			return capturedClient, nil
 		}
 
@@ -100,7 +100,7 @@ func TestRegisterModelHandler_Success(t *testing.T) {
 	t.Run("returns envelope with data field", func(t *testing.T) {
 		req := validRegisterModelRequest()
 		app.modelRegistryHTTPClientFactory = func(_ *slog.Logger, _ string, _ http.Header, _ bool, _ *x509.CertPool) (modelregistry.HTTPClientInterface, error) {
-			return modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, ""), nil
+			return modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, req.ArtifactName, ""), nil
 		}
 
 		rr := httptest.NewRecorder()
@@ -118,7 +118,7 @@ func TestRegisterModelHandler_Success(t *testing.T) {
 func TestRegisterModelHandler_Validation(t *testing.T) {
 	app := newModelRegistryTestApp()
 	app.modelRegistryHTTPClientFactory = func(_ *slog.Logger, _ string, _ http.Header, _ bool, _ *x509.CertPool) (modelregistry.HTTPClientInterface, error) {
-		return modelregistry.NewSuccessMockClient("m", "v1", ""), nil
+		return modelregistry.NewSuccessMockClient("m", "v1", "", ""), nil
 	}
 
 	t.Run("rejects empty registryId path param", func(t *testing.T) {
