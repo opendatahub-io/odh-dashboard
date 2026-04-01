@@ -17,6 +17,7 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Icon,
   MenuToggle,
   MenuToggleElement,
   Modal,
@@ -27,6 +28,7 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Spinner,
   Stack,
   StackItem,
   TextArea,
@@ -39,6 +41,9 @@ import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { formatApiKeyError } from '~/app/pages/api-keys/utils';
 import { createApiKey } from '~/app/api/api-keys';
+import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
+import { MaaSModelRefSummary, ModelSubscriptionRef } from '~/app/types/subscriptions';
+import SubscriptionModelsSection from '~/app/pages/subscriptions/viewSubscription/SubscriptionModelsSection';
 
 const EXPIRATION_OPTION_VALUES = ['30d', '60d', '90d', '180d', '1y', 'custom'] as const;
 
@@ -67,6 +72,7 @@ const createApiKeySchema = z
     description: z.string().optional(),
     expirationOption: z.enum(EXPIRATION_OPTION_VALUES),
     customDays: z.string().optional(),
+    subscription: z.string().min(1, 'Subscription is required'),
   })
   .superRefine((data, ctx) => {
     if (data.expirationOption === 'custom') {
@@ -88,16 +94,44 @@ type CreateApiKeyModalProps = {
 };
 
 const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
+  const [subscriptions, subscriptionsLoaded, subscriptionsError] = useUserSubscriptions();
   const [formData, setFormData] = React.useState<CreateApiKeyFormData>({
     name: '',
     description: '',
     expirationOption: '30d',
     customDays: '',
+    subscription: '',
   });
   const [isSelectOpen, setIsSelectOpen] = React.useState(false);
+  const [isSubscriptionSelectOpen, setIsSubscriptionSelectOpen] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [createdToken, setCreatedToken] = React.useState<string | undefined>();
+
+  const selectedSubscription = React.useMemo(
+    () => subscriptions.find((s) => s.subscription_id_header === formData.subscription),
+    [subscriptions, formData.subscription],
+  );
+
+  const modelRefSummaries = React.useMemo<MaaSModelRefSummary[]>(
+    () =>
+      selectedSubscription?.model_refs.map((ref) => ({
+        name: ref.name,
+        namespace: ref.namespace ?? '',
+        modelRef: { kind: 'MaaSModelRef', name: ref.name },
+      })) ?? [],
+    [selectedSubscription],
+  );
+
+  const subscriptionModelRefs = React.useMemo<ModelSubscriptionRef[]>(
+    () =>
+      selectedSubscription?.model_refs.map((ref) => ({
+        name: ref.name,
+        namespace: ref.namespace ?? '',
+        tokenRateLimits: ref.token_rate_limits,
+      })) ?? [],
+    [selectedSubscription],
+  );
 
   const { getFieldValidation, getFieldValidationProps } = useZodFormValidation(
     formData,
@@ -130,6 +164,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
           name: formData.name.trim(),
           description: formData.description?.trim() || undefined,
           expiresIn: getExpiresIn(),
+          subscription: formData.subscription,
         },
       );
 
@@ -210,6 +245,13 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                       </DescriptionListGroup>
                     )}
                     <DescriptionListGroup>
+                      <DescriptionListTerm>Subscription</DescriptionListTerm>
+                      <DescriptionListDescription data-testid="api-key-display-subscription">
+                        {selectedSubscription?.display_name ??
+                          selectedSubscription?.subscription_id_header}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    <DescriptionListGroup>
                       <DescriptionListTerm>Expiration</DescriptionListTerm>
                       <DescriptionListDescription data-testid="api-key-display-expiration">
                         {expirationLabel}
@@ -231,6 +273,31 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                   variant="danger"
                 >
                   {error.message}
+                </Alert>
+              </StackItem>
+            )}
+            {subscriptionsLoaded && subscriptions.length === 0 && !subscriptionsError && (
+              <StackItem>
+                <Alert
+                  variant="warning"
+                  isInline
+                  title="No subscriptions available"
+                  data-testid="no-subscriptions-alert"
+                >
+                  You don&apos;t have access to any subscriptions. Ask your admin to add you to a
+                  subscription.
+                </Alert>
+              </StackItem>
+            )}
+            {subscriptionsError && (
+              <StackItem>
+                <Alert
+                  variant="danger"
+                  isInline
+                  title="Failed to load subscriptions"
+                  data-testid="subscriptions-error-alert"
+                >
+                  {subscriptionsError.message}
                 </Alert>
               </StackItem>
             )}
@@ -280,6 +347,93 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                     </HelperText>
                   </FormHelperText>
                 </FormGroup>
+
+                <FormGroup label="Subscription" isRequired fieldId="api-key-subscription">
+                  <Select
+                    id="api-key-subscription"
+                    isOpen={isSubscriptionSelectOpen}
+                    onOpenChange={(open) => setIsSubscriptionSelectOpen(open)}
+                    selected={formData.subscription}
+                    onSelect={(_event, value) => {
+                      if (typeof value === 'string') {
+                        setFormData({ ...formData, subscription: value });
+                      }
+                      setIsSubscriptionSelectOpen(false);
+                    }}
+                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                      <MenuToggle
+                        ref={toggleRef}
+                        onClick={() => setIsSubscriptionSelectOpen(!isSubscriptionSelectOpen)}
+                        isExpanded={isSubscriptionSelectOpen}
+                        isFullWidth
+                        isDisabled={!subscriptionsLoaded || subscriptions.length === 0}
+                        icon={
+                          !subscriptionsLoaded && !subscriptionsError ? (
+                            <Icon>
+                              <Spinner size="sm" aria-label="Loading subscriptions" />
+                            </Icon>
+                          ) : undefined
+                        }
+                        data-testid="api-key-subscription-toggle"
+                      >
+                        {selectedSubscription?.display_name ??
+                          selectedSubscription?.subscription_id_header ??
+                          'Select a subscription'}
+                      </MenuToggle>
+                    )}
+                  >
+                    <SelectList>
+                      {subscriptions.map((sub) => (
+                        <SelectOption
+                          key={sub.subscription_id_header}
+                          value={sub.subscription_id_header}
+                          description={`${sub.subscription_description} · ${sub.model_refs.length} ${sub.model_refs.length === 1 ? 'model' : 'models'}`}
+                          data-testid={`api-key-subscription-option-${sub.subscription_id_header}`}
+                        >
+                          {sub.display_name || sub.subscription_id_header}
+                        </SelectOption>
+                      ))}
+                    </SelectList>
+                  </Select>
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        Select a subscription to scope this API key. The key will only work with
+                        models in the selected subscription.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                </FormGroup>
+
+                {selectedSubscription && (
+                  <>
+                    {selectedSubscription.cost_center && (
+                      <FormGroup fieldId="api-key-subscription-details">
+                        <DescriptionList
+                          isHorizontal
+                          isCompact
+                          data-testid="subscription-cost-center-details"
+                        >
+                          <DescriptionListGroup>
+                            <DescriptionListTerm>Cost center</DescriptionListTerm>
+                            <DescriptionListDescription data-testid="subscription-cost-center">
+                              {selectedSubscription.cost_center}
+                            </DescriptionListDescription>
+                          </DescriptionListGroup>
+                        </DescriptionList>
+                      </FormGroup>
+                    )}
+                    <FormGroup fieldId="api-key-subscription-models">
+                      <SubscriptionModelsSection
+                        modelRefSummaries={modelRefSummaries}
+                        subscriptionModelRefs={subscriptionModelRefs}
+                        hideColumns={['project']}
+                        titleHeadingLevel="h3"
+                        titleSize="md"
+                      />
+                    </FormGroup>
+                  </>
+                )}
 
                 <FormGroup label="Expiration" fieldId="api-key-expiration">
                   <Select
@@ -371,7 +525,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
               key="create"
               variant="primary"
               onClick={handleSubmit}
-              isDisabled={!isFormValid() || isCreating}
+              isDisabled={!isFormValid() || isCreating || subscriptions.length === 0}
               isLoading={isCreating}
               data-testid="submit-create-api-key-button"
             >

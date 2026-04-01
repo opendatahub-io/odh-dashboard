@@ -86,8 +86,6 @@ jest.mock('mod-arch-shared', () => ({
       {loaded && !empty ? children : null}
     </div>
   ),
-  TitleWithIcon: ({ title }: { title: string }) => <span>{title}</span>,
-  ProjectObjectType: { pipelineExperiment: 'pipelineExperiment' },
 }));
 
 // ============================================================================

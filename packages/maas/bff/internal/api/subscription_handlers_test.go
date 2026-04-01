@@ -453,4 +453,5 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			Expect(rr.Code).To(Equal(http.StatusBadRequest))
 		})
 	})
+
 })

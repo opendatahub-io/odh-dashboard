@@ -1,8 +1,9 @@
 import { Breadcrumb, BreadcrumbItem, Skeleton } from '@patternfly/react-core';
 import { useNamespaceSelector } from 'mod-arch-core';
-import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
+import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useParams } from 'react-router';
+import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
@@ -64,7 +65,7 @@ function AutoragResultsPage(): React.JSX.Element {
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title="AutoRAG" objectType={ProjectObjectType.pipelineExperiment} />}
+      title={<AutoragHeader />}
       subtext={
         <h2 className="pf-v6-u-mt-sm">
           {pipelineRun ? `"${pipelineRun.display_name}" results` : <Skeleton width="300px" />}
