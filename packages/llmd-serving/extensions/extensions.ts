@@ -192,6 +192,17 @@ const extensions: (
     },
   },
   {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/advancedOptionsFields').then((m) => m.timeoutConfigField),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
+  },
+  {
     type: 'model-serving.deployment/wizard-field2',
     properties: {
       platform: LLMD_SERVING_ID,

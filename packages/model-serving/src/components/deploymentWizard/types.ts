@@ -196,7 +196,8 @@ export type DeploymentWizardFieldId =
   | 'modelAvailability'
   | 'externalRoute'
   | 'tokenAuth'
-  | 'deploymentStrategy';
+  | 'deploymentStrategy'
+  | 'timeoutConfig';
 
 export type DeploymentWizardFieldBase<ID extends DeploymentWizardFieldId | string> = {
   id: ID;
@@ -292,7 +293,8 @@ export type DeploymentWizardField =
   | ModelAvailabilityField
   | ExternalRouteField
   | TokenAuthField
-  | DeploymentStrategyField;
+  | DeploymentStrategyField
+  | TimeoutConfigField;
 
 export const isModelServerTemplateField = (
   field: DeploymentWizardField,
@@ -320,4 +322,13 @@ export const isDeploymentStrategyField = (
   field: DeploymentWizardField,
 ): field is DeploymentStrategyField => {
   return field.id === 'deploymentStrategy';
+};
+
+export type TimeoutConfigField = DeploymentWizardFieldBase<'timeoutConfig'> & {
+  id: 'timeoutConfig';
+  type: 'modifier';
+  isVisible: boolean;
+};
+export const isTimeoutConfigField = (field: DeploymentWizardField): field is TimeoutConfigField => {
+  return field.id === 'timeoutConfig';
 };

@@ -364,7 +364,7 @@ const getStatusSections = (
             const timeout = state.timeoutConfig?.data.timeout;
             return timeout !== undefined ? `${timeout} seconds` : undefined;
           },
-          isVisible: (wizardState) => !!wizardState.state.timeoutConfig,
+          isVisible: (wizardState) => !!wizardState.state.timeoutConfig?.isVisible,
         },
         ...getExtensionItems(WizardStepTitle.ADVANCED_SETTINGS, extensionStatusSections),
       ],

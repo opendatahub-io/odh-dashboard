@@ -2,6 +2,10 @@ import React from 'react';
 import { Checkbox, FormGroup } from '@patternfly/react-core';
 import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
 import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';
+import type { ModelTypeField } from './ModelTypeSelectField';
+import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
+import { isTimeoutConfigField } from '../types';
+import { useWizardFieldFromExtension } from '../dynamicFormUtils';
 
 export type TimeoutConfigData = {
   timeout?: number;
@@ -14,11 +18,25 @@ export type TimeoutConfigFieldData = TimeoutConfigData;
 export type TimeoutFieldHook = {
   data: TimeoutConfigData;
   setData: (data: TimeoutConfigData) => void;
+  isVisible: boolean;
 };
 
 const DEFAULT_TIMEOUT = 30;
 
-export const useTimeoutField = (existingData?: TimeoutConfigData): TimeoutFieldHook => {
+export const useTimeoutField = (
+  existingData?: TimeoutConfigData,
+  modelType?: ModelTypeField,
+  modelServer?: ModelServerSelectField,
+): TimeoutFieldHook => {
+  const timeoutConfigField = useWizardFieldFromExtension(isTimeoutConfigField, {
+    modelType,
+    modelServer,
+  });
+
+  const isVisible = React.useMemo(() => {
+    return timeoutConfigField?.isVisible ?? true;
+  }, [timeoutConfigField]);
+
   const [timeoutData, setTimeoutData] = React.useState<TimeoutConfigData>(
     () =>
       existingData ?? {
@@ -30,6 +48,7 @@ export const useTimeoutField = (existingData?: TimeoutConfigData): TimeoutFieldH
   return {
     data: timeoutData,
     setData: setTimeoutData,
+    isVisible,
   };
 };
 

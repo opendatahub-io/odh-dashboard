@@ -237,6 +237,7 @@ export const mockDeploymentWizardState = (
             return401: false,
           },
           setData: jest.fn(),
+          isVisible: true,
         },
         canCreateRoleBindings: true,
       },

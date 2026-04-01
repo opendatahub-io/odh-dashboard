@@ -148,7 +148,11 @@ export const useModelDeploymentWizard = (
     modelType,
     actualModelServer,
   );
-  const timeoutConfig = useTimeoutField(initialData?.timeoutConfig ?? undefined);
+  const timeoutConfig = useTimeoutField(
+    initialData?.timeoutConfig ?? undefined,
+    modelType,
+    actualModelServer,
+  );
 
   // Step 4: Summary
 
