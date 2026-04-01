@@ -21,7 +21,11 @@ describe('NoPipelineServer', () => {
         'To use AutoML, you need access to a pipeline server with AutoML and AutoRAG enabled. Create or edit a pipeline server on the Pipelines page.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('go-to-pipelines-link')).toHaveTextContent('Go to Pipelines');
+    const goToPipelinesControl = screen.getByTestId('go-to-pipelines-link');
+    expect(goToPipelinesControl).toHaveTextContent('Go to Pipelines');
+    const defaultNamespaceAnchor = goToPipelinesControl.closest('a');
+    expect(defaultNamespaceAnchor).not.toBeNull();
+    expect(defaultNamespaceAnchor).toHaveAttribute('href', pipelinesBaseRoute(undefined));
   });
 
   it('renders link to pipelines route for namespace', () => {
@@ -32,6 +36,8 @@ describe('NoPipelineServer', () => {
     );
 
     const control = screen.getByTestId('go-to-pipelines-link');
-    expect(control.closest('a')).toHaveAttribute('href', pipelinesBaseRoute('my-project'));
+    const anchor = control.closest('a');
+    expect(anchor).not.toBeNull();
+    expect(anchor).toHaveAttribute('href', pipelinesBaseRoute('my-project'));
   });
 });
