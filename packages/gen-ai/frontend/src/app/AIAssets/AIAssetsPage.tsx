@@ -26,7 +26,8 @@ export const AIAssetsPage: React.FC = () => {
   const navigate = useNavigate();
 
   const defaultTab = tabExtensions[0]?.properties.id || '';
-  const activeTabKey = tabParam || defaultTab;
+  const isValidTab = tabExtensions.some((ext) => ext.properties.id === tabParam);
+  const activeTabKey = isValidTab ? String(tabParam) : defaultTab;
 
   return (
     <ApplicationsPage
