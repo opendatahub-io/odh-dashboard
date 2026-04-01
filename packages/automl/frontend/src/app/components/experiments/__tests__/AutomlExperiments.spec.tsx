@@ -130,10 +130,10 @@ describe('AutomlExperiments', () => {
     renderAutoml(<AutomlExperiments />);
 
     expect(screen.getByTestId('empty-experiments-state')).toBeInTheDocument();
-    expect(screen.getByText('No experiments yet')).toBeInTheDocument();
-    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent(
-      'Create AutoML optimization run',
-    );
+    expect(
+      screen.getByRole('heading', { name: 'Create an AutoML optimization run' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent('Create experiment');
     expect(screen.queryByTestId('automl-runs-table')).not.toBeInTheDocument();
   });
 
@@ -189,7 +189,40 @@ describe('AutomlExperiments', () => {
 
     renderAutoml(<AutomlExperiments />);
 
-    expect(screen.getByText('No Pipeline Server in this namespace')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
+    ).toBeInTheDocument();
+  });
+
+  it('should show NoPipelineServer when BFF reports no managed AutoML pipelines (500)', () => {
+    mockGetGenericErrorCode.mockReturnValue(500);
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      error: new Error(
+        'no AutoML pipelines found in namespace - ensure managed AutoML pipelines are deployed',
+      ),
+    });
+
+    renderAutoml(<AutomlExperiments />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Failed to load experiments')).not.toBeInTheDocument();
+  });
+
+  it('should show NoPipelineServer for no Pipeline Server (DSPipelineApplication) message', () => {
+    mockGetGenericErrorCode.mockReturnValue(404);
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      error: new Error('no Pipeline Server (DSPipelineApplication) found in namespace'),
+    });
+
+    renderAutoml(<AutomlExperiments />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
+    ).toBeInTheDocument();
   });
 
   it('should show UnauthorizedError for 403 error', () => {
