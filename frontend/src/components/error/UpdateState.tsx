@@ -22,7 +22,10 @@ const UpdateState: React.FC<Props> = ({ onClose }) => (
       titleText="An error occurred"
       variant={EmptyStateVariant.full}
     >
-      <EmptyStateBody>This is likely the result of a recent update.</EmptyStateBody>
+      <EmptyStateBody>
+        This is likely the result of a recent update.
+        <br /> Try reloading the page, or perform a hard refresh to bypass the browser cache.
+      </EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
           <Button
