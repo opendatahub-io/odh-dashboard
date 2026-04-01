@@ -49,8 +49,8 @@ jest.mock('~/app/hooks/queries', () => ({
     data: { models: [] },
     isLoading: false,
   }),
-  useLlamaStackVectorStoresQuery: jest.fn().mockReturnValue({
-    data: { vector_stores: [] }, // eslint-disable-line camelcase
+  useLlamaStackVectorStoreProvidersQuery: jest.fn().mockReturnValue({
+    data: { vector_store_providers: [] }, // eslint-disable-line camelcase
     isLoading: false,
   }),
 }));
@@ -292,7 +292,7 @@ describe('AutoragConfigure', () => {
       ).not.toBeInTheDocument();
 
       // Configure details fields should be visible
-      expect(screen.getByText('Index')).toBeInTheDocument();
+      expect(screen.getByText('Vector database location')).toBeInTheDocument();
       expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
       expect(screen.getByText('Models to consider')).toBeInTheDocument();
       expect(screen.getByText('Optimization metric')).toBeInTheDocument();
