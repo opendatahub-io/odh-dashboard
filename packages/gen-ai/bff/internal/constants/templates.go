@@ -68,7 +68,7 @@ client = LlamaStackClient(base_url=LLAMA_STACK_URL)
 {{- if and .VectorStore .VectorStore.ID }}
 
 # Reference the existing external vector store by ID
-vector_store = client.vector_stores.retrieve(vector_store_id)
+vector_store = client.vector_stores.retrieve(vector_store_id=vector_store_id)
 {{- else if .VectorStore }}
 
 # Create vector store
