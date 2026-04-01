@@ -46,7 +46,8 @@ func (app *App) EvalHubServiceHealthHandler(w http.ResponseWriter, r *http.Reque
 	writeHealth := func(status EvalHubHealthStatus, available bool) {
 		envelope := EvalHubServiceHealthEnvelope{Data: EvalHubServiceHealth{Status: status, Available: available}}
 		if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
-			app.serverErrorResponse(w, r, err)
+			// Headers may already be partially written; log rather than attempt a second write.
+			app.logger.Error("failed to write health response", "error", err)
 		}
 	}
 

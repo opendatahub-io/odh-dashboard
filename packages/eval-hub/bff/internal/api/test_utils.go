@@ -45,7 +45,7 @@ func (f *crStatusK8sFactory) ExtractRequestIdentity(h http.Header) (*kubernetes.
 	if userID == "" {
 		userID = "test-user@example.com"
 	}
-	return &kubernetes.RequestIdentity{UserID: userID}, nil
+	return &kubernetes.RequestIdentity{UserID: userID, Token: "test-token"}, nil
 }
 
 func (f *crStatusK8sFactory) ValidateRequestIdentity(_ *kubernetes.RequestIdentity) error {
@@ -127,7 +127,7 @@ func (f *testK8sFactory) ExtractRequestIdentity(h http.Header) (*kubernetes.Requ
 	if userID == "" {
 		userID = "test-user@example.com"
 	}
-	return &kubernetes.RequestIdentity{UserID: userID}, nil
+	return &kubernetes.RequestIdentity{UserID: userID, Token: "test-token"}, nil
 }
 
 func (f *testK8sFactory) ValidateRequestIdentity(identity *kubernetes.RequestIdentity) error {

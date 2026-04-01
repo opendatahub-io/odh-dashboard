@@ -12,7 +12,7 @@ import (
 )
 
 func TestEvalHubServiceHealthHandler_CRNotFound(t *testing.T) {
-	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com", Token: "test-token"}
 
 	result, response, err := setupApiTestForHealth[EvalHubServiceHealthEnvelope](
 		http.MethodGet,
@@ -30,7 +30,7 @@ func TestEvalHubServiceHealthHandler_CRNotFound(t *testing.T) {
 }
 
 func TestEvalHubServiceHealthHandler_CRFoundButServiceUnreachable(t *testing.T) {
-	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com", Token: "test-token"}
 
 	crStatus := &models.EvalHubCRStatus{
 		Name:      "evalhub",
@@ -55,7 +55,7 @@ func TestEvalHubServiceHealthHandler_CRFoundButServiceUnreachable(t *testing.T) 
 }
 
 func TestEvalHubServiceHealthHandler_Healthy(t *testing.T) {
-	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com", Token: "test-token"}
 
 	crStatus := &models.EvalHubCRStatus{
 		Name:      "evalhub",
@@ -80,7 +80,7 @@ func TestEvalHubServiceHealthHandler_Healthy(t *testing.T) {
 }
 
 func TestEvalHubServiceHealthHandler_CRDiscoveryError(t *testing.T) {
-	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com", Token: "test-token"}
 
 	discoveryErr := errors.New("kubernetes API unreachable")
 
