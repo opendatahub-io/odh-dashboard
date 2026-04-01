@@ -1,40 +1,38 @@
 import {
+  Button,
   FileUpload,
   FileUploadHelperText,
   FileUploadProps,
   HelperText,
   Progress,
   ProgressMeasureLocation,
+  TextInputGroup,
+  TextInputGroupMain,
+  TextInputGroupUtilities,
 } from '@patternfly/react-core';
-import { TypeaheadSelect } from 'mod-arch-shared';
-import { TypeaheadSelectProps } from 'mod-arch-shared/dist/components/TypeaheadSelect';
+import { FileIcon, TimesIcon } from '@patternfly/react-icons';
 import React, { useState } from 'react';
 
-interface FileSelectorProps<Files extends Array<string>> {
+interface FileSelectorProps {
   id: string;
-  files: Files;
-  selected?: Files[number];
-  onSelect: (selected: string) => void;
+  placeholder?: string;
+  selected?: string;
   onUpload: (
     file: File,
     setProgress: (progress: number) => void,
     setStatus: (status: 'success' | 'danger') => void,
   ) => void;
+  onClear: () => void;
+  fileUploadProps?: Omit<FileUploadProps, 'id'>;
   fileUploadHelperText?: string;
-  typeaheadProps?: Omit<TypeaheadSelectProps, 'selectOptions'>;
-  fileUploadProps?: FileUploadProps;
 }
 
-function FileSelector<Files extends Array<string>>(
-  props: FileSelectorProps<Files>,
-): React.JSX.Element {
-  const [selected, setSelected] = useState<Files[number]>('');
-
+function FileSelector(props: FileSelectorProps): React.JSX.Element {
   const [uploadedFile, setUploadedFile] = useState<File>();
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'success' | 'danger'>();
 
-  const hideUpload = !!(props.selected ?? selected);
+  const hideUpload = !!props.selected;
 
   const handleFileChange = async (event: unknown, file: File) => {
     setUploadedFile(file);
@@ -45,23 +43,24 @@ function FileSelector<Files extends Array<string>>(
 
   return (
     <div className="pf-v6-c-multiple-file-upload pf-v6-u-display-block">
-      <div style={{ position: 'relative', zIndex: '1' }}>
-        <TypeaheadSelect
-          selectOptions={props.files.map((file) => ({ content: file, value: file }))}
-          selected={props.selected ?? selected}
-          onSelect={(_event, _selection) => {
-            const selection = String(_selection);
-            props.onSelect(selection);
-            setSelected(selection);
-          }}
-          allowClear
-          onClearSelection={() => {
-            props.onSelect('');
-            setSelected('');
-          }}
-          {...props.typeaheadProps}
+      <TextInputGroup>
+        <TextInputGroupMain
+          inputProps={{ readOnly: true }}
+          icon={<FileIcon />}
+          placeholder={props.placeholder ?? 'No file selected'}
+          value={props.selected}
         />
-      </div>
+        {!!props.selected && (
+          <TextInputGroupUtilities>
+            <Button
+              aria-label="Clear file"
+              variant="plain"
+              icon={<TimesIcon />}
+              onClick={props.onClear}
+            />
+          </TextInputGroupUtilities>
+        )}
+      </TextInputGroup>
       <FileUpload
         id={props.id}
         className="pf-v6-u-mt-sm"
@@ -89,8 +88,6 @@ function FileSelector<Files extends Array<string>>(
             setUploadedFile(undefined);
           }
         }}
-        browseButtonText="Upload"
-        filenamePlaceholder="Drag and drop a file or upload"
         hidden={hideUpload}
         isDisabled={!!uploadedFile && !uploadStatus}
         filename={uploadedFile?.name}
