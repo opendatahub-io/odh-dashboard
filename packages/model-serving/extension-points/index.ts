@@ -473,15 +473,15 @@ export const isWizardFieldExtractorExtension = <T = unknown, D extends Deploymen
  * The `fieldId` links this to a specific WizardField2Extension so it is only
  * executed when that field is active.
  */
-export type WizardFieldPreDeployExtension<
+export type WizardFieldDeploymentFunctionsExtension<
   T = unknown,
   D extends Deployment = Deployment,
 > = Extension<
-  'model-serving.deployment/wizard-field-pre-deploy',
+  'model-serving.deployment/wizard-field-deployment-functions',
   {
-    /** The ID of the WizardField this pre-deploy extension is associated with */
+    /** The ID of the WizardField this deployment functions extension is associated with */
     fieldId: string;
-    /** The platform this pre-deploy extension applies to (e.g., 'llmd-serving') */
+    /** The platform this deployment functions extension applies to (e.g., 'llmd-serving') */
     platform: D['modelServingPlatformId'];
     /**
      * Async function that dry-runs before the deployment is saved. Throw to block the deployment.
@@ -494,48 +494,19 @@ export type WizardFieldPreDeployExtension<
       (
         fieldData: T,
         wizardState: WizardFormData['state'],
-        modelResource: D['model'] | undefined,
+        deployment: D,
         existingDeployment?: D,
-      ) => Promise<void>
+      ) => Promise<D>
     >;
-  }
->;
-export const isWizardFieldPreDeployExtension = <T = unknown, D extends Deployment = Deployment>(
-  extension: Extension,
-): extension is WizardFieldPreDeployExtension<T, D> =>
-  extension.type === 'model-serving.deployment/wizard-field-pre-deploy';
-
-/**
- * Extension for performing async side effects after a deployment is saved.
- * This runs after the model resource exists in Kubernetes (and has a UID), making
- * it suitable for operations that depend on the deployed resource — such as
- * creating a related resource with an owner reference.
- *
- * The `fieldId` links this to a specific WizardField2Extension so it is only
- * executed when that field is active.
- */
-export type WizardFieldPostDeployExtension<
-  T = unknown,
-  D extends Deployment = Deployment,
-> = Extension<
-  'model-serving.deployment/wizard-field-post-deploy',
-  {
-    /** The ID of the WizardField this post-deploy extension is associated with */
-    fieldId: string;
-    /** The platform this post-deploy extension applies to (e.g., 'llmd-serving') */
-    platform: D['modelServingPlatformId'];
-    /**
-     * Async function that runs after the deployment is saved.
-     * @param fieldData - The current data from the associated wizard field
-     * @param deployedModel - The fully saved model resource (has uid, namespace, name)
-     * @param existingDeployment - The deployment before editing, or undefined for a create
-     */
     postDeploy: CodeRef<
       (fieldData: T, deployedModel: D['model'], existingDeployment?: D) => Promise<void>
     >;
   }
 >;
-export const isWizardFieldPostDeployExtension = <T = unknown, D extends Deployment = Deployment>(
+export const isWizardFieldDeploymentFunctionsExtension = <
+  T = unknown,
+  D extends Deployment = Deployment,
+>(
   extension: Extension,
-): extension is WizardFieldPostDeployExtension<T, D> =>
-  extension.type === 'model-serving.deployment/wizard-field-post-deploy';
+): extension is WizardFieldDeploymentFunctionsExtension<T, D> =>
+  extension.type === 'model-serving.deployment/wizard-field-deployment-functions';

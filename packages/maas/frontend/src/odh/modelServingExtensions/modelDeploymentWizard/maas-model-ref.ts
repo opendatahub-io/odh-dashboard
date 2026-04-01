@@ -15,21 +15,22 @@ const LLMINFERENCESERVICE_KIND = 'LLMInferenceService';
 export const preDeployMaaSModelRef = async (
   fieldData: MaaSFieldValue,
   wizardState: WizardFormData['state'],
-  modelResource: LLMdDeployment['model'] | undefined,
+  deployment: LLMdDeployment,
   existingDeployment?: LLMdDeployment,
-): Promise<void> => {
+): Promise<LLMdDeployment> => {
   if (typeof fieldData.isChecked !== 'boolean') {
-    return;
+    return deployment;
   }
   const { isChecked } = fieldData;
-  const name = modelResource?.metadata.name ?? '';
-  const namespace = wizardState.project.projectName ?? modelResource?.metadata.namespace ?? '';
+  const { model: modelResource } = deployment;
+  const { name, namespace: modelNamespace } = modelResource.metadata;
+  const namespace = wizardState.project.projectName ?? modelNamespace;
   if (!name || !namespace) {
-    return;
+    return deployment;
   }
   const modelRef = { kind: LLMINFERENCESERVICE_KIND, name };
-  const displayName = modelResource?.metadata.annotations?.['openshift.io/display-name'] ?? name;
-  const description = modelResource?.metadata.annotations?.['openshift.io/description'] ?? '';
+  const displayName = modelResource.metadata.annotations?.['openshift.io/display-name'] ?? name;
+  const description = modelResource.metadata.annotations?.['openshift.io/description'] ?? '';
 
   if (existingDeployment) {
     if (!isChecked) {
@@ -72,6 +73,7 @@ export const preDeployMaaSModelRef = async (
       true,
     )({});
   }
+  return deployment;
 };
 
 /**
@@ -87,7 +89,7 @@ export const preDeployMaaSModelRef = async (
  *   - Checked  → update the existing MaaSModelRef (or create if it was somehow absent)
  *   - Unchecked → delete the existing MaaSModelRef (silently tolerates a 404)
  */
-export const applyMaaSModelRef = async (
+export const postDeployMaaSModelRef = async (
   fieldData: MaaSFieldValue,
   deployedModel: LLMdDeployment['model'],
   existingDeployment?: LLMdDeployment,

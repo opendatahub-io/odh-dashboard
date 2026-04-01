@@ -2,8 +2,7 @@ import type {
   WizardField2Extension,
   WizardFieldApplyExtension,
   WizardFieldExtractorExtension,
-  WizardFieldPreDeployExtension,
-  WizardFieldPostDeployExtension,
+  WizardFieldDeploymentFunctionsExtension,
 } from '@odh-dashboard/model-serving/extension-points';
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
 import { LLMD_SERVING_ID } from '@odh-dashboard/llmd-serving/extensions';
@@ -16,8 +15,7 @@ export type ModelServingExtensions =
   | WizardField2Extension<MaaSFieldValue, undefined, LLMdDeployment>
   | WizardFieldApplyExtension<MaaSFieldValue, LLMdDeployment>
   | WizardFieldExtractorExtension<MaaSFieldValue, LLMdDeployment>
-  | WizardFieldPreDeployExtension<MaaSFieldValue, LLMdDeployment>
-  | WizardFieldPostDeployExtension<MaaSFieldValue, LLMdDeployment>;
+  | WizardFieldDeploymentFunctionsExtension<MaaSFieldValue, LLMdDeployment>;
 
 const MODEL_SERVING_EXTENSIONS: ModelServingExtensions[] = [
   {
@@ -62,7 +60,7 @@ const MODEL_SERVING_EXTENSIONS: ModelServingExtensions[] = [
     },
   },
   {
-    type: 'model-serving.deployment/wizard-field-pre-deploy',
+    type: 'model-serving.deployment/wizard-field-deployment-functions',
     flags: {
       required: [MODEL_AS_SERVICE_ID, LLMD_SERVING_ID],
     },
@@ -71,18 +69,8 @@ const MODEL_SERVING_EXTENSIONS: ModelServingExtensions[] = [
       platform: LLMD_SERVING_ID,
       preDeploy: () =>
         import('./modelDeploymentWizard/maas-model-ref').then((m) => m.preDeployMaaSModelRef),
-    },
-  },
-  {
-    type: 'model-serving.deployment/wizard-field-post-deploy',
-    flags: {
-      required: [MODEL_AS_SERVICE_ID, LLMD_SERVING_ID],
-    },
-    properties: {
-      fieldId: MAAS_ENDPOINT_FIELD_ID,
-      platform: LLMD_SERVING_ID,
       postDeploy: () =>
-        import('./modelDeploymentWizard/maas-model-ref').then((m) => m.applyMaaSModelRef),
+        import('./modelDeploymentWizard/maas-model-ref').then((m) => m.postDeployMaaSModelRef),
     },
   },
 ];

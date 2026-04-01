@@ -1,11 +1,11 @@
 import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import type { WizardFormData } from '../types';
-import { isWizardFieldPostDeployExtension, type Deployment } from '../../../../extension-points';
+import {
+  isWizardFieldDeploymentFunctionsExtension,
+  type Deployment,
+} from '../../../../extension-points';
 import { useActiveFields } from '../dynamicFormUtils';
-
-/** A record of a post-deploy extension that failed, including the field it belongs to. */
-export type PostDeployFailure = { fieldId: string; error: Error };
 
 /**
  * Hook that returns an async function to run all active post-deploy extensions after
@@ -24,24 +24,12 @@ export const useWizardFieldPostDeploy = (
   runPostDeploy: (
     deployedModel: Deployment['model'],
     existingDeployment?: Deployment,
-  ) => Promise<PostDeployFailure[]>;
+  ) => Promise<void>;
   postDeployExtensionsLoaded: boolean;
   postDeployExtensionErrors: Error[];
 } => {
   const [postDeployExtensions, postDeployExtensionsLoaded, postDeployExtensionErrors] =
-    useResolvedExtensions(isWizardFieldPostDeployExtension);
-
-  // const [fieldExtensions] = useResolvedExtensions(isWizardField2Extension);
-
-  // const activeFieldIds = React.useMemo(
-  //   () =>
-  //     new Set(
-  //       fieldExtensions
-  //         .filter((ext) => ext.properties.field.isActive(wizardState))
-  //         .map((ext) => ext.properties.field.id),
-  //     ),
-  //   [fieldExtensions, wizardState],
-  // );
+    useResolvedExtensions(isWizardFieldDeploymentFunctionsExtension);
 
   const activeFields = useActiveFields(wizardState);
 
@@ -54,21 +42,12 @@ export const useWizardFieldPostDeploy = (
   );
 
   const runPostDeploy = React.useCallback(
-    async (
-      deployedModel: Deployment['model'],
-      existingDeployment?: Deployment,
-    ): Promise<PostDeployFailure[]> => {
-      const failures: PostDeployFailure[] = [];
+    async (deployedModel: Deployment['model'], existingDeployment?: Deployment): Promise<void> => {
       for (const ext of activePostDeployExtensions) {
         const { fieldId } = ext.properties;
         const fieldData: unknown = wizardState[fieldId];
-        try {
-          await ext.properties.postDeploy(fieldData, deployedModel, existingDeployment);
-        } catch (err) {
-          failures.push({ fieldId, error: err instanceof Error ? err : new Error(String(err)) });
-        }
+        await ext.properties.postDeploy(fieldData, deployedModel, existingDeployment);
       }
-      return failures;
     },
     [activePostDeployExtensions, wizardState],
   );

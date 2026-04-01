@@ -3,7 +3,7 @@ import React from 'react';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
-import { useWizardFieldPostDeploy, type PostDeployFailure } from './useWizardFieldPostDeploy';
+import { useWizardFieldPostDeploy } from './useWizardFieldPostDeploy';
 import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidation';
 import { useWizardFieldApply } from '../useWizardFieldApply';
 import { deployModel } from '../utils';
@@ -33,8 +33,6 @@ export const useModelDeploymentSubmit = (
   isLoading: boolean;
   submitError: Error | null;
   clearSubmitError: () => void;
-  submitWarnings: PostDeployFailure[];
-  clearSubmitWarnings: () => void;
 } => {
   const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
   const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(
@@ -46,9 +44,6 @@ export const useModelDeploymentSubmit = (
 
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
-
-  // Warnings that something went wrong during post-deployment, doesn't block submission and closing of the wizard
-  const [submitWarnings, setSubmitWarnings] = React.useState<PostDeployFailure[]>([]);
 
   const onSave = React.useCallback(
     async (overwrite?: boolean) => {
@@ -93,24 +88,30 @@ export const useModelDeploymentSubmit = (
             )
           : undefined;
 
-        await runPreDeploy(resources.model, existingDeployment);
+        const preDeployedDeployment = resources.model
+          ? await runPreDeploy(
+              {
+                modelServingPlatformId: deployMethod.properties.platform,
+                model: resources.model,
+                server: resources.server ?? serverResource,
+              },
+              existingDeployment,
+            )
+          : undefined;
 
         const deployedDeployment = await deployModel(
           formState,
           connectionSecretName,
           deployMethod.properties,
           existingDeployment,
-          resources.model,
-          resources.server ?? serverResource,
+          preDeployedDeployment?.model ?? resources.model,
+          preDeployedDeployment?.server ?? serverResource,
           serverResourceTemplateName,
           overwrite,
           initialWizardData,
           applyFieldData,
         );
-        const failures = await runPostDeploy(deployedDeployment.model, existingDeployment);
-        if (failures.length > 0) {
-          setSubmitWarnings(failures);
-        }
+        await runPostDeploy(deployedDeployment.model, existingDeployment);
         exitWizardOnSubmit();
       } catch (error) {
         setSubmitError(error instanceof Error ? error : new Error(String(error)));
@@ -146,9 +147,7 @@ export const useModelDeploymentSubmit = (
       isLoading,
       submitError,
       clearSubmitError: () => setSubmitError(null),
-      submitWarnings,
-      clearSubmitWarnings: () => setSubmitWarnings([]),
     }),
-    [onSave, deployMethod?.properties.supportsOverwrite, isLoading, submitError, submitWarnings],
+    [onSave, deployMethod?.properties.supportsOverwrite, isLoading, submitError],
   );
 };

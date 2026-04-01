@@ -1,7 +1,10 @@
 import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import type { WizardFormData } from '../types';
-import { isWizardFieldPreDeployExtension, type Deployment } from '../../../../extension-points';
+import {
+  isWizardFieldDeploymentFunctionsExtension,
+  type Deployment,
+} from '../../../../extension-points';
 import { useActiveFields } from '../dynamicFormUtils';
 
 /**
@@ -18,14 +21,11 @@ import { useActiveFields } from '../dynamicFormUtils';
 export const useWizardFieldPreDeploy = (
   wizardState: WizardFormData['state'],
 ): {
-  runPreDeploy: (
-    modelResource: Deployment['model'] | undefined,
-    existingDeployment?: Deployment,
-  ) => Promise<void>;
+  runPreDeploy: (deployment: Deployment, existingDeployment?: Deployment) => Promise<Deployment>;
   preDeployExtensionsLoaded: boolean;
 } => {
   const [preDeployExtensions, preDeployExtensionsLoaded] = useResolvedExtensions(
-    isWizardFieldPreDeployExtension,
+    isWizardFieldDeploymentFunctionsExtension,
   );
 
   const activeFields = useActiveFields(wizardState);
@@ -39,15 +39,19 @@ export const useWizardFieldPreDeploy = (
   );
 
   const runPreDeploy = React.useCallback(
-    async (
-      modelResource: Deployment['model'] | undefined,
-      existingDeployment?: Deployment,
-    ): Promise<void> => {
+    async (deployment: Deployment, existingDeployment?: Deployment): Promise<Deployment> => {
+      let current = deployment;
       for (const ext of activePreDeployExtensions) {
         const { fieldId } = ext.properties;
         const fieldData: unknown = wizardState[fieldId];
-        await ext.properties.preDeploy(fieldData, wizardState, modelResource, existingDeployment);
+        current = await ext.properties.preDeploy(
+          fieldData,
+          wizardState,
+          current,
+          existingDeployment,
+        );
       }
+      return current;
     },
     [activePreDeployExtensions, wizardState],
   );
