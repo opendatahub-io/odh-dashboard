@@ -560,6 +560,114 @@ paths:
         Supports all common line endings (\n, \r\n, \r) and properly handles quoted CSV fields.
         Returns a 400 Bad Request error if the file has fewer than 100 data rows.
 
+  /api/v1/s3/files:
+    summary: Endpoints for dealing with multiple files within an S3-compatible connection
+    get:
+      operationId: getS3Files
+      summary: Get files from S3
+      description: >-
+        Retrieves a list of files from an S3-compatible storage.
+        Returns the files in a list, plus any additional metadata that ListObjectsV2 returns.
+
+
+        Two credential resolution modes are supported:
+        (1) **DSPA mode (default in production)** — when secretName is omitted, the endpoint,
+        region, bucket, and credential field names are read from the DSPipelineApplication
+        (DSPA) spec discovered in the namespace.
+        (2) **Explicit mode (override)** — when secretName is supplied, the specified Kubernetes
+        secret must contain AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
+        and AWS_S3_ENDPOINT using those exact field names.
+      tags:
+        - S3Operation
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          description: The Kubernetes namespace containing the secret
+          schema:
+            type: string
+          example: default
+        - name: secretName
+          in: query
+          required: false
+          description: >-
+            Override: name of the Kubernetes secret containing S3 credentials.
+            When supplied, the secret must use the conventional AWS_* field names
+            (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+            When omitted, the endpoint falls back to DSPA mode and reads credentials from
+            the DSPipelineApplication spec discovered in the namespace.
+          schema:
+            type: string
+            maxLength: 253
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+          example: aws-secret-1
+        - name: bucket
+          in: query
+          required: false
+          description: >-
+            The S3 bucket name. Only honored when secretName is supplied (explicit mode).
+            In DSPA mode (secretName omitted), this parameter is ignored and the bucket
+            configured in the DSPipelineApplication spec is used instead; if the DSPA
+            does not specify a bucket the request is rejected with 400.
+          schema:
+            type: string
+            pattern: '^\S(.*\S)?$'
+          example: my-bucket
+        - name: path
+          in: query
+          required: false
+          description: (Optional) S3-like folder path to search within (if omitted, lists bucket root). When provided, must be non-empty and not exceed 1024 characters.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 1024
+          example: folder1/folder2/folder3
+        - name: search
+          in: query
+          required: false
+          description: The search term to filter results by. S3 only allows searching by leading values. Must not contain '/' characters. Maximum 1024 characters.
+          schema:
+            type: string
+            maxLength: 1024
+            pattern: "^[^/]*$"
+          example: my-search-query
+        - name: next
+          in: query
+          required: false
+          description: The token value to use for the next page
+          schema:
+            type: string
+            minLength: 1
+          example: /continuationtokenexample
+        - name: limit
+          in: query
+          required: false
+          description: The limit for the number of items to return per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1000
+          example: 20
+      responses:
+        "200":
+          $ref: "#/components/responses/S3GetFilesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+
   # =============================================================================
   # MODEL REGISTRY ENDPOINTS
   # =============================================================================
@@ -963,6 +1071,54 @@ components:
             S3 object key where the file was stored. May differ from the requested `key`
             when a collision was resolved (e.g. `data/file-1.csv` if `data/file.csv` existed).
           example: data/training.csv
+
+    S3ListObjectsResult:
+      type: object
+      description: A listing of S3 objects and virtual folders within a bucket prefix.
+      properties:
+        common_prefixes:
+          type: array
+          items:
+            type: object
+            properties:
+              prefix:
+                type: string
+        contents:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+              last_modified:
+                type: string
+                format: date-time
+              etag:
+                type: string
+              size:
+                type: integer
+                format: int64
+              storage_class:
+                type: string
+        continuation_token:
+          type: string
+        delimiter:
+          type: string
+        is_truncated:
+          type: boolean
+        key_count:
+          type: integer
+          format: int32
+        max_keys:
+          type: integer
+          format: int32
+        name:
+          type: string
+        next_continuation_token:
+          type: string
+        prefix:
+          type: string
+
 
     # Pipeline Run Schemas
     CreateAutoMLRunRequestBase:
@@ -1506,6 +1662,19 @@ components:
                 description: Response metadata
               data:
                 $ref: "#/components/schemas/PipelineRun"
+
+    S3GetFilesResponse:
+      description: S3 response when retrieving files successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: "#/components/schemas/S3ListObjectsResult"
 
     RegisterModelResponse:
       description: Registered model artifact
