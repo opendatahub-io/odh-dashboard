@@ -299,7 +299,7 @@ describe('Model version details', () => {
       modelVersionDetails.findRegisteredFromCatalog().should('have.text', 'test-catalog-model');
       modelVersionDetails.findRegisteredFromCatalog().click();
       verifyRelativeURL(
-        `/ai-hub/catalog/test-catalog-source/${encodeURIComponent(
+        `/ai-hub/models/catalog/test-catalog-source/${encodeURIComponent(
           'test-catalog-repo/test-catalog-model',
         )}`,
       );

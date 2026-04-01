@@ -1,11 +1,14 @@
-import type { NavExtension } from '@odh-dashboard/plugin-core/extension-points';
+import type {
+  NavExtension,
+  TabRoutePageExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '#~/concepts/areas/types';
 
 const ADMIN_USER = 'ADMIN_USER';
 
-const extensions: NavExtension[] = [
+const extensions: (NavExtension | TabRoutePageExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
@@ -45,21 +48,27 @@ const extensions: NavExtension[] = [
     },
   },
   {
-    type: 'app.navigation/section',
+    type: 'app.tab-route/page',
     properties: {
-      id: 'models',
+      id: 'models-tab-page',
       title: 'Models',
+      href: '/ai-hub/models',
+      path: '/ai-hub/models/*',
       group: '1_models',
       section: 'ai-hub',
+      objectType: 'registered-models',
     },
   },
   {
-    type: 'app.navigation/section',
+    type: 'app.tab-route/page',
     properties: {
-      id: 'mcp-servers',
+      id: 'mcp-servers-tab-page',
       title: 'MCP servers',
+      href: '/ai-hub/mcp-servers',
+      path: '/ai-hub/mcp-servers/*',
       group: '2_mcp_servers',
       section: 'ai-hub',
+      objectType: 'model-catalog',
     },
   },
   // This is being replaced by the upstream extension for model registry and will be removed along with the old MR UI code as part of https://issues.redhat.com/browse/RHOAIENG-34088
