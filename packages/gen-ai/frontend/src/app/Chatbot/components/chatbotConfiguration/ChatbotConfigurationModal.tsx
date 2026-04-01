@@ -544,7 +544,12 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       {!configuringPlayground && (
         <ModalFooter>
           {!isStepsLoading && isLastStep ? (
-            <Button variant="primary" onClick={onSubmit} isDisabled={submitting}>
+            <Button
+              variant="primary"
+              onClick={onSubmit}
+              isDisabled={submitting}
+              data-testid="modal-submit-button"
+            >
               {isUpdate ? 'Configure' : 'Create'}
             </Button>
           ) : (
