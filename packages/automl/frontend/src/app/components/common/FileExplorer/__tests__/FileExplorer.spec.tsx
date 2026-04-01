@@ -278,6 +278,26 @@ describe('FileExplorer', () => {
         expect(button).toBeDisabled();
       });
     });
+    it('should enable next button in indeterminate mode when hasNextPage is true and fileCount < perPage', () => {
+      // Regression: when fileCount (3) < perPage (10), the old syntheticItemCount
+      // formula produced a value that fit on the current page, so PF disabled "next".
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} page={1} perPage={10} hasNextPage />);
+
+      const pagination = screen.getByTestId('file-explorer-pagination');
+      const nextButton = pagination.querySelector('button[data-action="next"]');
+      expect(nextButton).not.toBeDisabled();
+    });
+    it('should disable next button in indeterminate mode when hasNextPage is false', () => {
+      const files = mockFiles(3);
+      render(
+        <FileExplorer {...defaultProps} files={files} page={1} perPage={10} hasNextPage={false} />,
+      );
+
+      const pagination = screen.getByTestId('file-explorer-pagination');
+      const nextButton = pagination.querySelector('button[data-action="next"]');
+      expect(nextButton).toBeDisabled();
+    });
   });
   describe('cancel and close', () => {
     it('should call onClose when cancel button is clicked', () => {
