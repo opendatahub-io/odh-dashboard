@@ -13,6 +13,7 @@ import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
+  modelServingWizardEdit,
   deleteModelServingModal,
   inferenceServiceActions,
 } from '../../../../pages/modelServing';
@@ -23,7 +24,10 @@ import {
   createCleanHardwareProfile,
   cleanupHardwareProfiles,
 } from '../../../../utils/oc_commands/hardwareProfiles';
-import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
+import {
+  checkInferenceServiceState,
+  checkLLMInferenceServiceState,
+} from '../../../../utils/oc_commands/modelServing';
 import { stubClipboard, getClipboardContent } from '../../../../utils/clipboardUtils';
 
 let testData: DataScienceProjectData;
@@ -39,6 +43,7 @@ let existingImage: string;
 let replaceImage: string;
 let yamlEditorModelName: string;
 let yamlEditorModelPath: string;
+let legacyModelName: string;
 
 describe('A user can deploy an LLMD model', () => {
   retryableBefore(() => {
@@ -56,6 +61,7 @@ describe('A user can deploy an LLMD model', () => {
         replaceImage = testData.replaceImage;
         yamlEditorModelName = testData.yamlEditorModelName;
         yamlEditorModelPath = 'cypress/fixtures/resources/yaml/yaml_editor_model_serving.yaml';
+        legacyModelName = `${testData.singleModelName}-legacy`;
 
         cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
@@ -86,7 +92,7 @@ describe('A user can deploy an LLMD model', () => {
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin(
-        '/?devFeatureFlags=deploymentWizardYAMLViewer=true',
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,vLLMDeploymentOnMaaS=true',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -111,6 +117,10 @@ describe('A user can deploy an LLMD model', () => {
         .clear()
         .type(`${modelName}${testData.connectionNameSuffix}`);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+
+      cy.step('Verify legacy deployment checkbox appears and is unchecked');
+      modelServingWizard.findLegacyModeCheckbox().should('exist').should('not.be.checked');
+
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Select Model deployment');
@@ -120,10 +130,14 @@ describe('A user can deploy an LLMD model', () => {
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .then((val) => {
-          resourceName = val as string;
-        });
-      modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
+        .as('resourceName');
+      modelServingWizard.findHardProfileSelection().then(($el) => {
+        if ($el.prop('disabled')) {
+          cy.log('Hardware profile auto-selected (dropdown disabled)');
+        } else {
+          modelServingWizard.selectProfile(hardwareProfileResourceName);
+        }
+      });
 
       cy.step('Verify YAML Viewer');
       // Stub clipboard API AFTER page load (window changes on navigation)
@@ -175,6 +189,18 @@ describe('A user can deploy an LLMD model', () => {
       const llmdRow = modelServingGlobal.getDeploymentRow(modelName);
       llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');
       llmdRow.findServingRuntime().should('have.text', servingRuntime);
+
+      cy.step('Edit the deployed model and verify serving runtime is pre-filled');
+      llmdRow.findKebab().click();
+      inferenceServiceActions.findEditInferenceServiceAction().click();
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+      modelServingWizardEdit
+        .findServingRuntimeTemplateSearchSelector()
+        .should('be.disabled')
+        .should('contain.text', servingRuntime);
+      modelServingWizardEdit.findCancelButton().click();
+
+      cy.step('Delete the deployed model');
       llmdRow.findKebab().click();
       inferenceServiceActions.findDeleteInferenceServiceAction().click();
       deleteModelServingModal.findInput().clear().type(modelName);
@@ -189,7 +215,7 @@ describe('A user can deploy an LLMD model', () => {
     () => {
       cy.step('Log into the application as admin with YAML viewer feature flag enabled');
       cy.visitWithLogin(
-        '/?devFeatureFlags=deploymentWizardYAMLViewer=true',
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,vLLMDeploymentOnMaaS=true',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -227,6 +253,137 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLEditFallbackAlert().should('exist');
       modelServingWizard.findYAMLCodeEditor().findInput().should('not.be.empty');
       modelServingWizard.findSubmitButton().should('be.enabled').click();
+    },
+  );
+  it(
+    'Verify Legacy Checkbox switches to KServe serving runtime path',
+    {
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+    },
+    () => {
+      cy.step('Log into the application as admin');
+      cy.visitWithLogin(
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,vLLMDeploymentOnMaaS=true',
+        HTPASSWD_CLUSTER_ADMIN_USER,
+      );
+
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+
+      cy.step('Open the deploy model wizard');
+      projectDetails.findSectionTab('model-server').click();
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
+      modelServingGlobal.findDeployModelButton().click();
+
+      cy.step('Select model source with Generative type');
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.findUrilocationInput().clear().type(modelURI);
+      modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+      modelServingWizard.findSaveConnectionInput().clear().type('test-legacy-connection');
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+
+      cy.step('Verify legacy checkbox appears and is unchecked by default');
+      modelServingWizard.findLegacyModeCheckbox().should('exist').should('not.be.checked');
+
+      cy.step('Check the legacy deployment checkbox');
+      modelServingWizard.findLegacyModeCheckbox().check();
+      modelServingWizard.findLegacyModeCheckbox().should('be.checked');
+
+      cy.step('Navigate to deployment step and verify KServe serving runtime path');
+      modelServingWizard.findNextButton().should('be.enabled').click();
+      modelServingWizard.findModelDeploymentNameInput().should('exist');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.findGlobalScopedTemplateOption(servingRuntime).should('exist');
+
+      cy.step('Cancel the deployment');
+      modelServingWizard.findCancelButton().click();
+    },
+  );
+  it(
+    'Verify editing a legacy deployment shows legacy checkbox as checked and disabled',
+    {
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+    },
+    () => {
+      cy.step('Log into the application as admin');
+      cy.visitWithLogin(
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,vLLMDeploymentOnMaaS=true',
+        HTPASSWD_CLUSTER_ADMIN_USER,
+      );
+
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+
+      cy.step('Deploy a model via the legacy path');
+      projectDetails.findSectionTab('model-server').click();
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
+      modelServingGlobal.findDeployModelButton().click();
+
+      cy.step('Select model source with Generative type and enable legacy mode');
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.findUrilocationInput().clear().type(modelURI);
+      modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+      modelServingWizard.findSaveConnectionInput().clear().type(`${legacyModelName}-connection`);
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findLegacyModeCheckbox().check();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      cy.step('Configure legacy model deployment');
+      modelServingWizard.findModelDeploymentNameInput().clear().type(legacyModelName);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .as('legacyResourceName');
+      modelServingWizard.findHardProfileSelection().then(($el) => {
+        if ($el.prop('disabled')) {
+          cy.log('Hardware profile auto-selected (dropdown disabled)');
+        } else {
+          modelServingWizard.selectProfile(hardwareProfileResourceName);
+        }
+      });
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.findGlobalScopedTemplateOption(servingRuntime).should('exist').click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      cy.step('Skip advanced settings');
+      modelServingWizard.findNextButton().click();
+
+      cy.step('Submit legacy deployment');
+      modelServingWizard.findSubmitButton().click();
+
+      cy.step('Wait for legacy deployment to appear');
+      modelServingSection.findModelServerDeployedName(legacyModelName);
+      cy.get<string>('@legacyResourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, {
+          requireLoadedState: false,
+          checkReady: true,
+        });
+      });
+
+      cy.step('Edit the legacy deployment and verify form state');
+      const legacyRow = modelServingGlobal.getDeploymentRow(legacyModelName);
+      legacyRow.findKebab().click();
+      inferenceServiceActions.findEditInferenceServiceAction().click();
+
+      modelServingWizardEdit
+        .findModelTypeSelect()
+        .should('have.text', ModelTypeLabel.GENERATIVE)
+        .should('be.disabled');
+      modelServingWizardEdit.findLegacyModeCheckbox().should('be.checked').should('be.disabled');
+      modelServingWizardEdit.findCancelButton().click();
+
+      cy.step('Delete the legacy deployment');
+      legacyRow.findKebab().click();
+      inferenceServiceActions.findDeleteInferenceServiceAction().click();
+      deleteModelServingModal.findInput().clear().type(legacyModelName);
+      deleteModelServingModal.findSubmitButton().should('be.enabled').click();
     },
   );
 });
