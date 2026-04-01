@@ -27,12 +27,7 @@ export const RAG_OPTIMIZATION_METRICS = z.enum([
   RAG_METRIC_CONTEXT_CORRECTNESS,
 ]);
 
-export const EXPERIMENT_SETTINGS_FIELDS = [
-  'optimization_metric',
-  'optimization_max_rag_patterns',
-  'embeddings_models',
-  'generation_models',
-] as const;
+export const EXPERIMENT_SETTINGS_FIELDS = ['embeddings_models', 'generation_models'] as const;
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 function createConfigureSchema() {

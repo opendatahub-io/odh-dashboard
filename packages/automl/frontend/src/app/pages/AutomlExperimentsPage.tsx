@@ -1,8 +1,9 @@
 import { Button, Flex, FlexItem } from '@patternfly/react-core';
 import { useNamespaceSelector } from 'mod-arch-core';
-import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
+import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
+import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import AutomlExperiments, {
   type AutomlExperimentsListStatus,
 } from '~/app/components/experiments/AutomlExperiments';
@@ -78,7 +79,7 @@ function AutomlExperimentsPage(): React.JSX.Element {
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title="AutoML" objectType={ProjectObjectType.pipelineExperiment} />}
+      title={<AutomlHeader />}
       headerContent={headerContent}
       description={<p>Automatically configure and optimize your machine learning workflows.</p>}
       empty={showEmpty}
