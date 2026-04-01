@@ -37,7 +37,7 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
       }}
       data-testid="experiment-settings-modal"
     >
-      <ModalHeader title="Experiment settings" />
+      <ModalHeader title="Model configuration" />
       <ModalBody>
         <AutoragExperimentSettingsModelSelection />
       </ModalBody>

@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
@@ -24,6 +25,17 @@ jest.mock('mod-arch-core', () => ({
   }),
   asEnumMember: jest.fn((val: unknown) => val),
   DeploymentMode: { Federated: 'federated', Standalone: 'standalone', Kubeflow: 'kubeflow' },
+}));
+
+// Mock mod-arch-shared (used by ConfigureFormGroup)
+jest.mock('mod-arch-shared', () => ({
+  DashboardPopupIconButton: ({
+    icon,
+    ...props
+  }: {
+    icon: React.ReactNode;
+    [key: string]: unknown;
+  }) => <button {...props}>{icon}</button>,
 }));
 
 // Mock useWatchConnectionTypes (used for connection types list)
@@ -294,8 +306,89 @@ describe('AutoragConfigure', () => {
       // Configure details fields should be visible
       expect(screen.getByText('Vector database location')).toBeInTheDocument();
       expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
-      expect(screen.getByText('Models to consider')).toBeInTheDocument();
+      expect(screen.getByText('Model configuration')).toBeInTheDocument();
       expect(screen.getByText('Optimization metric')).toBeInTheDocument();
+      expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
+    });
+  });
+
+  describe('Optimization metric', () => {
+    it('should render the optimization metric dropdown with default value', () => {
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      expect(screen.getByTestId('optimization-metric-select')).toBeInTheDocument();
+      expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
+        'Answer faithfulness',
+      );
+    });
+
+    it('should display all metric options when dropdown is opened', async () => {
+      const user = userEvent.setup();
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      await user.click(screen.getByTestId('optimization-metric-select'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
+        expect(screen.getByTestId('metric-option-answer_correctness')).toBeInTheDocument();
+        expect(screen.getByTestId('metric-option-context_correctness')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Maximum RAG patterns', () => {
+    it('should render the max RAG patterns input with default value 8', () => {
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
+      expect(input).toHaveValue(8);
+    });
+
+    it('should increment value when plus button is clicked', () => {
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      const container = screen.getByTestId('max-rag-patterns-input');
+      const plusButton = container.querySelector('button[aria-label="Plus"]')!;
+      fireEvent.click(plusButton);
+
+      const input = container.querySelector('input');
+      expect(input).toHaveValue(9);
+    });
+
+    it('should decrement value when minus button is clicked', () => {
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      const container = screen.getByTestId('max-rag-patterns-input');
+      const minusButton = container.querySelector('button[aria-label="Minus"]')!;
+      fireEvent.click(minusButton);
+
+      const input = container.querySelector('input');
+      expect(input).toHaveValue(7);
     });
   });
 
