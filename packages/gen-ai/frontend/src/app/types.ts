@@ -298,6 +298,10 @@ export type CodeExportRequest = {
     provider_id: string;
   };
   files?: { file: string; purpose: string }[];
+  prompt?: {
+    name: string;
+    version: number;
+  };
 };
 
 export type CodeExportData = {

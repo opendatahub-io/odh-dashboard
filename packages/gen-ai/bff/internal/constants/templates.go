@@ -31,10 +31,31 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 {{- else }}
 #    - The embedding model used by this vector store must be registered in your Llama Stack instance.
 {{- end }}
+{{- if .Prompt }}
+#
+# 6. Prompt Management (MLflow):
+#    - Set the MLFLOW_TRACKING_URI variable to your MLflow server URL
+#    - Set the MLFLOW_WORKSPACE variable to the namespace containing your prompt
+#    - The prompt "{{.Prompt.Name}}" (version {{.Prompt.Version}}) must exist in that workspace
+{{- end }}
+{{- else }}
+{{- if .Prompt }}
+#
+# 5. Prompt Management (MLflow):
+#    - Set the MLFLOW_TRACKING_URI variable to your MLflow server URL
+#    - Set the MLFLOW_WORKSPACE variable to the namespace containing your prompt
+#    - The prompt "{{.Prompt.Name}}" (version {{.Prompt.Version}}) must exist in that workspace
+{{- end }}
 {{- end }}
 
 # Configuration adjust as needed:
 LLAMA_STACK_URL = ""
+{{- if .Prompt }}
+MLFLOW_TRACKING_URI = "{{if .MLflowExternalURL}}{{.MLflowExternalURL}}{{end}}"
+MLFLOW_WORKSPACE = "{{if .Namespace}}{{.Namespace}}{{end}}"
+prompt_name = "{{.Prompt.Name}}"
+prompt_version = {{.Prompt.Version}}
+{{- end }}
 FILES_BASE_PATH = ""
 input_text = "{{.Input}}"
 model_name = "{{.Model}}"
@@ -65,6 +86,26 @@ import os
 from llama_stack_client import LlamaStackClient
 
 client = LlamaStackClient(base_url=LLAMA_STACK_URL)
+{{- if .Prompt }}
+
+import mlflow
+from mlflow.tracking.request_header.registry import _request_header_provider_registry
+from mlflow.tracking.request_header.abstract_request_header_provider import RequestHeaderProvider
+
+def _make_workspace_header_provider(namespace):
+    class _WorkspaceHeaderProvider(RequestHeaderProvider):
+        def in_context(self):
+            return True
+        def request_headers(self):
+            return {"X-MLFLOW-WORKSPACE": namespace}
+    return _WorkspaceHeaderProvider
+
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+_request_header_provider_registry.register(_make_workspace_header_provider(MLFLOW_WORKSPACE))
+
+prompt = mlflow.genai.load_prompt(f"prompts:/{prompt_name}/{prompt_version}")
+system_instructions = next(m["content"] for m in prompt.format() if m["role"] == "system")
+{{- end }}
 {{- if and .VectorStore .VectorStore.ID }}
 
 # Reference the existing external vector store by ID
@@ -137,7 +178,7 @@ for file_info in files_to_upload:
 config = {
     "input": input_text,
     "model": model_name{{- if .Temperature }},
-    "temperature": temperature{{- end }}{{- if .Instructions }},
+    "temperature": temperature{{- end }}{{- if or .Instructions .Prompt }},
     "instructions": system_instructions{{- end }}{{- if .Stream }},
     "stream": stream_enabled{{- end }}{{- if or .Tools .MCPServers }},
     "tools": tools{{- end }}

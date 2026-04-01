@@ -225,7 +225,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			Temperature:  &temperature,
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		// Note: This test may fail if the template system isn't properly initialized
 		// In a real test environment, you'd want to mock the template repository
@@ -256,7 +256,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -287,7 +287,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -327,7 +327,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -374,7 +374,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -413,7 +413,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -451,7 +451,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -479,7 +479,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -507,7 +507,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -537,7 +537,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)
@@ -566,7 +566,7 @@ func TestGeneratePythonCode(t *testing.T) {
 			},
 		}
 
-		code, err := app.generatePythonCode(config, app.repositories.Template)
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
 
 		if err != nil {
 			t.Skipf("Template system not available in test environment: %v", err)

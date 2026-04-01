@@ -30,6 +30,11 @@ type VectorStoreConfig struct {
 	ProviderID         string `json:"provider_id"`
 }
 
+type PromptConfig struct {
+	Name    string `json:"name"`
+	Version int    `json:"version"`
+}
+
 type CodeExportRequest struct {
 	Input        string             `json:"input"`
 	Model        string             `json:"model"`
@@ -40,6 +45,7 @@ type CodeExportRequest struct {
 	Tools        []CodeExportTool   `json:"tools,omitempty"`
 	VectorStore  *VectorStoreConfig `json:"vector_store,omitempty"`
 	Files        []FileUpload       `json:"files,omitempty"`
+	Prompt       *PromptConfig      `json:"prompt,omitempty"`
 }
 
 type CodeExportResponse struct {
