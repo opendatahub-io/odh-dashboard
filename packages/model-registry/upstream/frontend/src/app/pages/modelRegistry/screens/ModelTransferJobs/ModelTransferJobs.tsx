@@ -75,7 +75,6 @@ const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) =
 
   const onRequestDelete = React.useCallback((job: ModelTransferJob) => {
     setJobToDelete(job);
-    setDeleteError(undefined);
   }, []);
 
   const onCloseDeleteModal = React.useCallback(() => {
