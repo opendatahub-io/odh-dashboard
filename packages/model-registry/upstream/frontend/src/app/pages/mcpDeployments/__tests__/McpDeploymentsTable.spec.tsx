@@ -56,6 +56,7 @@ describe('McpDeploymentsTable', () => {
         deployments={mockDeployments}
         onClearFilters={onClearFilters}
         onDeleteClick={onDeleteClick}
+        onEditClick={onEditClick}
       />,
       { wrapper },
     );
