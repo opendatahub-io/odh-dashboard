@@ -4,6 +4,7 @@ import {
   Popover,
   Spinner,
   Tab,
+  TabAction,
   TabContentBody,
   Tabs,
   TabTitleText,
@@ -168,30 +169,28 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                 eventKey={modelType}
                 title={
                   <TabTitleText>
-                    {label} {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-                    <span
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => e.stopPropagation()}
-                    >
-                      <Popover headerContent={popoverHeader} bodyContent={description}>
-                        <DashboardPopupIconButton
-                          aria-label={`More info for ${label.toLowerCase()}`}
-                          icon={<OutlinedQuestionCircleIcon />}
-                          hasNoPadding
-                        />
-                      </Popover>
-                    </span>{' '}
+                    {label}{' '}
                     <Label
                       variant="outline"
                       color="blue"
                       isCompact
-                      className="pf-v6-u-ml-md"
+                      className="pf-v6-u-ml-xs"
                       data-testid={`${modelType}-selected-count`}
                     >
                       {selectedCount}
                     </Label>
                   </TabTitleText>
+                }
+                actions={
+                  <TabAction>
+                    <Popover headerContent={popoverHeader} bodyContent={description}>
+                      <DashboardPopupIconButton
+                        aria-label={`More info for ${label.toLowerCase()}`}
+                        icon={<OutlinedQuestionCircleIcon />}
+                        hasNoPadding
+                      />
+                    </Popover>
+                  </TabAction>
                 }
                 data-testid={testId}
               >
