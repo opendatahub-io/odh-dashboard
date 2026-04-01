@@ -25,7 +25,8 @@ export function shouldShowConfigurePipelineServerEmptyState(error: unknown): boo
   if (/\bfailed\s+to\s+discover\s+autorag\s+pipeline\b/i.test(msg)) {
     return true;
   }
-  if (/\bpipeline\s+server\s*\(\s*dspa\b/i.test(msg)) {
+  // Require "(DSPA)" closed; exclude readiness wording so 503 → PipelineServerNotReady is not misrouted.
+  if (/\bpipeline\s+server\s*\(\s*dspa\s*\)(?!\s*is\s+not)/i.test(msg)) {
     return true;
   }
   return false;

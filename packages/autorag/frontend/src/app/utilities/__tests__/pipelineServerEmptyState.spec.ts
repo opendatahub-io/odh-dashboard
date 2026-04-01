@@ -49,4 +49,22 @@ describe('shouldShowConfigurePipelineServerEmptyState', () => {
       ),
     ).toBe(true);
   });
+
+  it('returns false for Pipeline Server (DSPA) is not ready (readiness, not missing server)', () => {
+    mockGetGenericErrorCode.mockReturnValue(503);
+    expect(
+      shouldShowConfigurePipelineServerEmptyState(
+        new Error('Pipeline Server (DSPA) is not ready - check APIServer'),
+      ),
+    ).toBe(false);
+  });
+
+  it('returns true for Pipeline Server (DSPA) with non-readiness suffix', () => {
+    mockGetGenericErrorCode.mockReturnValue(500);
+    expect(
+      shouldShowConfigurePipelineServerEmptyState(
+        new Error('Pipeline Server (DSPA) found in namespace x but API URL missing'),
+      ),
+    ).toBe(true);
+  });
 });

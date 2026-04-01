@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
@@ -22,7 +22,7 @@ const EmptyExperimentsState: React.FC<EmptyExperimentsStateProps> = ({
     <EmptyDetailsView
       title="Create a RAG optimization run"
       description="Test different retrieval and model configurations to find the best-performing setup."
-      iconImage={typedEmptyImage(ProjectObjectType.pipeline, 'MissingModel')}
+      iconImage={typedEmptyImage(ProjectObjectType.pipeline)}
       imageAlt=""
       createButton={
         <Button

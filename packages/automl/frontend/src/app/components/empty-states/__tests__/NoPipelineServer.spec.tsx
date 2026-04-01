@@ -1,22 +1,10 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import NoPipelineServer from '~/app/components/empty-states/NoPipelineServer';
 
-const mockNavigate = jest.fn();
-
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useNavigate: () => mockNavigate,
-}));
-
 describe('NoPipelineServer', () => {
-  beforeEach(() => {
-    mockNavigate.mockClear();
-  });
-
   it('renders Empty State A (configure compatible pipeline server)', () => {
     render(
       <MemoryRouter>
@@ -32,19 +20,20 @@ describe('NoPipelineServer', () => {
         'To use AutoML, you need access to a pipeline server with AutoML and AutoRAG enabled. Create or edit a pipeline server on the Pipelines page.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Go to Pipelines' })).toBeInTheDocument();
+    expect(screen.getByTestId('go-to-pipelines-link')).toHaveTextContent('Go to Pipelines');
   });
 
-  it('navigates to pipelines route when Go to Pipelines is clicked', async () => {
-    const user = userEvent.setup();
+  it('renders link to pipelines route for namespace', () => {
     render(
       <MemoryRouter>
         <NoPipelineServer namespace="my-project" />
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Go to Pipelines' }));
-
-    expect(mockNavigate).toHaveBeenCalledWith('/develop-train/pipelines/definitions/my-project');
+    const control = screen.getByTestId('go-to-pipelines-link');
+    expect(control.closest('a')).toHaveAttribute(
+      'href',
+      '/develop-train/pipelines/definitions/my-project',
+    );
   });
 });
