@@ -474,12 +474,20 @@ describe('AutoragConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      // Select files to populate input_data_key and test_data_key
+      // Select input data files
       const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
       await user.click(selectFilesButton);
 
-      // FileExplorer should open
-      const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      // FileExplorer should open for input data
+      let fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      await user.click(fileSelectButton);
+
+      // Select test data file (evaluation dataset)
+      const s3Button = await screen.findByRole('button', { name: /S3/i });
+      await user.click(s3Button);
+
+      // FileExplorer should open for test data
+      fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
       // Wait for form to be valid and Run button to be enabled
@@ -518,10 +526,18 @@ describe('AutoragConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
+      // Select input data files
       const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
       await user.click(selectFilesButton);
 
-      const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      let fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      await user.click(fileSelectButton);
+
+      // Select test data file (evaluation dataset)
+      const s3Button = await screen.findByRole('button', { name: /S3/i });
+      await user.click(s3Button);
+
+      fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
       // Click Run experiment button
@@ -560,10 +576,18 @@ describe('AutoragConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
+      // Select input data files
       const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
       await user.click(selectFilesButton);
 
-      const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      let fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      await user.click(fileSelectButton);
+
+      // Select test data file (evaluation dataset)
+      const s3Button = await screen.findByRole('button', { name: /S3/i });
+      await user.click(s3Button);
+
+      fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
       // Click Run experiment button
@@ -603,10 +627,18 @@ describe('AutoragConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
+      // Select input data files
       const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
       await user.click(selectFilesButton);
 
-      const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      let fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      await user.click(fileSelectButton);
+
+      // Select test data file (evaluation dataset)
+      const s3Button = await screen.findByRole('button', { name: /S3/i });
+      await user.click(s3Button);
+
+      fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
       // Click Run experiment button
