@@ -446,7 +446,10 @@ function AutoragConfigure(): React.JSX.Element {
                       />
                     </ConfigureFormGroup>
 
-                    <StackItem>
+                    <ConfigureFormGroup
+                      label="Model configuration"
+                      description="Select models to determine how documents are retrieved and which models generate responses."
+                    >
                       <Card>
                         <CardHeader
                           hasWrap
@@ -473,12 +476,9 @@ function AutoragConfigure(): React.JSX.Element {
                             ],
                           }}
                         >
-                          <CardTitle>Model configuration</CardTitle>
+                          <CardTitle>Selected models</CardTitle>
                         </CardHeader>
                         <CardBody>
-                          <Content component="h4" className="pf-v6-u-mb-sm">
-                            Selected models
-                          </Content>
                           <Stack hasGutter>
                             <StackItem>
                               <Watch
@@ -549,7 +549,7 @@ function AutoragConfigure(): React.JSX.Element {
                           </Stack>
                         </CardBody>
                       </Card>
-                    </StackItem>
+                    </ConfigureFormGroup>
                   </Stack>
                 )}
               </CardBody>
