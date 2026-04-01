@@ -30,6 +30,9 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
     initProjectRbacIntercepts();
     projectRbacPermissions.visit(NAMESPACE);
 
+    // Wait for role bindings API to complete before interacting with UI
+    cy.wait('@listRoleBindings');
+
     projectRbacPermissions
       .findAssignRolesButton()
       .should('be.visible')
