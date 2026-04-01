@@ -35,6 +35,7 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 #
 # 6. Prompt Management (MLflow):
 #    - Set the MLFLOW_TRACKING_URI variable to your MLflow server URL
+#    - Set the MLFLOW_TRACKING_TOKEN variable to your OpenShift user token
 #    - Set the MLFLOW_WORKSPACE variable to the namespace containing your prompt
 #    - The prompt "{{.Prompt.Name}}" (version {{.Prompt.Version}}) must exist in that workspace
 {{- end }}
@@ -43,6 +44,7 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 #
 # 5. Prompt Management (MLflow):
 #    - Set the MLFLOW_TRACKING_URI variable to your MLflow server URL
+#    - Set the MLFLOW_TRACKING_TOKEN variable to your OpenShift user token
 #    - Set the MLFLOW_WORKSPACE variable to the namespace containing your prompt
 #    - The prompt "{{.Prompt.Name}}" (version {{.Prompt.Version}}) must exist in that workspace
 {{- end }}
@@ -53,6 +55,7 @@ LLAMA_STACK_URL = ""
 {{- if .Prompt }}
 MLFLOW_TRACKING_URI = "{{if .MLflowExternalURL}}{{.MLflowExternalURL}}{{end}}"
 MLFLOW_WORKSPACE = "{{if .Namespace}}{{.Namespace}}{{end}}"
+MLFLOW_TRACKING_TOKEN = ""  # Your OpenShift user token
 prompt_name = "{{.Prompt.Name}}"
 prompt_version = {{.Prompt.Version}}
 {{- end }}
@@ -100,6 +103,7 @@ def _make_workspace_header_provider(namespace):
             return {"X-MLFLOW-WORKSPACE": namespace}
     return _WorkspaceHeaderProvider
 
+os.environ["MLFLOW_TRACKING_TOKEN"] = MLFLOW_TRACKING_TOKEN
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 _request_header_provider_registry.register(_make_workspace_header_provider(MLFLOW_WORKSPACE))
 
