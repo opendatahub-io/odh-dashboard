@@ -36,7 +36,7 @@ jest.mock('~/app/hooks/mutations', () => ({
     mutateAsync: mockMutateAsync,
   })),
   useUploadToStorageMutation: jest.fn(() => ({
-    mutateAsync: jest.fn().mockResolvedValue({ key: 'test-file.json' }),
+    mutateAsync: jest.fn().mockResolvedValue({ uploaded: true, key: 'test-file.json' }),
   })),
 }));
 
@@ -104,6 +104,7 @@ jest.mock('mod-arch-shared', () => ({
 
 // Mock S3FileExplorer used by AutoragConfigure
 // TODO: Once test data input is hooked up, cleanup mock
+let mockFileExplorerCallCount = 0;
 jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
   __esModule: true,
   default: ({
@@ -120,7 +121,11 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
         <button
           data-testid="file-explorer-select-file"
           onClick={() => {
-            onSelectFiles([{ path: '/test-file.txt' }]);
+            mockFileExplorerCallCount += 1;
+            // First call: input data (document), Second call: test data (evaluation dataset - must be .json)
+            const filePath =
+              mockFileExplorerCallCount === 1 ? '/test-file.txt' : '/evaluation-dataset.json';
+            onSelectFiles([{ path: filePath }]);
             onClose();
           }}
         >
@@ -218,6 +223,7 @@ const renderWithProviders = (component: React.ReactElement) => {
 describe('AutoragConfigurePage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFileExplorerCallCount = 0;
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
   });
 
@@ -499,8 +505,13 @@ describe('AutoragConfigurePage', () => {
       // Click Run experiment button
       await user.click(runButton);
 
+      // Assert that the payload contains the .json evaluation dataset
       await waitFor(() => {
-        expect(mockMutateAsync).toHaveBeenCalled();
+        expect(mockMutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({
+            test_data_key: 'evaluation-dataset.json',
+          }),
+        );
       });
     });
 
