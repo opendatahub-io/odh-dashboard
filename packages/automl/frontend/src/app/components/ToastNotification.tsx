@@ -8,6 +8,49 @@ interface ToastNotificationProps {
   notification: AppNotification;
 }
 
+/**
+ * Toast notification component that displays temporary alert messages with
+ * automatic timeout and smart pause behavior.
+ *
+ * The notification automatically dismisses after 8 seconds, but pauses the
+ * timeout when the user hovers over or focuses within the alert. This prevents
+ * accidental dismissal while the user is reading or interacting with the notification.
+ *
+ * Timeout behavior:
+ * - Starts countdown immediately upon mount (8 seconds)
+ * - Pauses when user hovers over the notification
+ * - Pauses when notification or any child element receives focus
+ * - Resumes countdown when user moves mouse away AND focus leaves the notification
+ * - Can be manually dismissed via the close button
+ *
+ * @param props - Component props
+ * @param props.notification - Notification object containing status, title, message, and optional actions
+ *
+ * @example
+ * // Notification will auto-dismiss after 8 seconds
+ * <ToastNotification
+ *   notification={{
+ *     id: '123',
+ *     status: 'success',
+ *     title: 'Experiment created',
+ *     message: 'Your experiment has been successfully created',
+ *     timestamp: new Date()
+ *   }}
+ * />
+ *
+ * @example
+ * // With action links that pause timeout on hover/focus
+ * <ToastNotification
+ *   notification={{
+ *     id: '456',
+ *     status: 'info',
+ *     title: 'Processing complete',
+ *     message: 'Your model is ready',
+ *     actions: [{ title: 'View results', onClick: handleView }],
+ *     timestamp: new Date()
+ *   }}
+ * />
+ */
 const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) => {
   const { removeNotification } = useStore();
 

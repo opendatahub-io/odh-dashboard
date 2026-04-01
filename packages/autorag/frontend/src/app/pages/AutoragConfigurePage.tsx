@@ -77,10 +77,8 @@ function AutoragConfigurePage(): React.JSX.Element {
       </ActionListItem>
       <ActionListItem>
         <Button
+          component={(props) => <Link {...props} to={autoragExperimentsPathname} />}
           variant="link"
-          onClick={() => {
-            navigate(autoragExperimentsPathname);
-          }}
         >
           Cancel
         </Button>

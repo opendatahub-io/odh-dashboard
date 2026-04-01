@@ -288,19 +288,18 @@ describe('AutomlConfigurePage', () => {
   });
 
   describe('Create step - Cancel button', () => {
-    it('should render Cancel button', async () => {
+    it('should render Cancel link', async () => {
       renderWithProviders(<AutomlConfigurePage />);
-      expect(await screen.findByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
+      expect(cancelLink).toBeInTheDocument();
+      expect(cancelLink).toHaveAttribute('href', '/develop-train/automl/experiments');
     });
 
-    it('should navigate to experiments page when Cancel is clicked', async () => {
-      const user = userEvent.setup();
+    it('should have correct href for Cancel link', async () => {
       renderWithProviders(<AutomlConfigurePage />);
 
-      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
-      await user.click(cancelButton);
-
-      expect(mockNavigate).toHaveBeenCalledWith('/develop-train/automl/experiments');
+      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
+      expect(cancelLink).toHaveAttribute('href', '/develop-train/automl/experiments');
     });
   });
 
@@ -350,9 +349,9 @@ describe('AutomlConfigurePage', () => {
       expect(await screen.findByRole('button', { name: 'Back' })).toBeInTheDocument();
     });
 
-    it('should NOT render "Next" or "Cancel" buttons in configure step', async () => {
+    it('should NOT render "Next" or "Cancel" in configure step', async () => {
       expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Cancel' })).not.toBeInTheDocument();
     });
   });
 

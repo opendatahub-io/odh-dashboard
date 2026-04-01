@@ -71,10 +71,8 @@ function AutomlConfigurePage(): React.JSX.Element {
       </ActionListItem>
       <ActionListItem>
         <Button
+          component={(props) => <Link {...props} to={automlExperimentsPathname} />}
           variant="link"
-          onClick={() => {
-            navigate(automlExperimentsPathname);
-          }}
         >
           Cancel
         </Button>
