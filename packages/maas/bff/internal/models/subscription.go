@@ -155,9 +155,10 @@ type SubscriptionInfoResponse struct {
 
 // SubscriptionFormDataResponse contains data for the subscription and policy creation forms.
 type SubscriptionFormDataResponse struct {
-	Groups    []string              `json:"groups"`
-	ModelRefs []MaaSModelRefSummary `json:"modelRefs"`
-	Policies  []MaaSAuthPolicy      `json:"policies"`
+	Groups        []string              `json:"groups"`
+	ModelRefs     []MaaSModelRefSummary `json:"modelRefs"`
+	Policies      []MaaSAuthPolicy      `json:"policies"`
+	Subscriptions []MaaSSubscription    `json:"subscriptions"`
 }
 
 // CreatePolicyRequest is the request body for creating a new policy.
