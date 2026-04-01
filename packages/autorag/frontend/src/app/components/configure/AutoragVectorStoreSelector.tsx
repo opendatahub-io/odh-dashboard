@@ -5,23 +5,31 @@ import { useParams } from 'react-router';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
-  PROVIDER_TYPE_TO_VS_TYPE,
+  DEFAULT_IN_MEMORY_PROVIDER,
   ConfigureSchema,
 } from '~/app/schemas/configure.schema';
 import { useLlamaStackVectorStoreProvidersQuery } from '~/app/hooks/queries';
 import { LlamaStackVectorStoreProvider } from '~/app/types';
 
 /**
- * Formats a provider_type for display.
- * e.g. "remote::milvus" → "Milvus (remote)", "inline::faiss" → "Faiss (inline)"
- * Falls back to provider_id if provider_type doesn't follow the expected "deployment::name" format.
+ * Formats a provider for display.
+ * e.g. provider_id="milvus", provider_type="remote::milvus" → "milvus (remote Milvus)"
+ * e.g. provider_id="faiss", provider_type="inline::faiss" → "faiss (inline Faiss)"
+ * e.g. provider_id="CHROMADB_IN_MEMORY_DEFAULT", provider_type="IN_MEMORY" → "ChromaDB (in-memory)"
+ * Falls back to provider_id if provider_type doesn't follow the expected format.
  */
 const formatProviderDisplayName = (provider: LlamaStackVectorStoreProvider): string => {
+  // Handle special case for IN_MEMORY provider
+  if (provider.provider_type === 'IN_MEMORY') {
+    return 'ChromaDB (in-memory)';
+  }
+
   const [deployment, name] = provider.provider_type.split('::');
   if (!deployment || !name) {
     return provider.provider_id;
   }
-  return `${name.charAt(0).toUpperCase()}${name.slice(1)} (${deployment})`;
+  const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
+  return `${provider.provider_id} (${deployment} ${capitalizedName})`;
 };
 
 const AutoragVectorStoreSelector: React.FC = () => {
@@ -56,10 +64,10 @@ const AutoragVectorStoreSelector: React.FC = () => {
     }
   }, [isError, notification]);
 
-  const providers = providersData?.vector_store_providers ?? [];
-  const selectedProvider = providers.find(
-    (p) => PROVIDER_TYPE_TO_VS_TYPE[p.provider_type] === field.value,
-  );
+  // Inject the default in-memory provider at the beginning of the list
+  const apiProviders = providersData?.vector_store_providers ?? [];
+  const providers = [DEFAULT_IN_MEMORY_PROVIDER, ...apiProviders];
+  const selectedProvider = providers.find((p) => `ls_${p.provider_id}` === field.value);
 
   if (isLoading) {
     return <Skeleton width="200px" height="36px" />;
@@ -71,12 +79,8 @@ const AutoragVectorStoreSelector: React.FC = () => {
       isOpen={isOpen}
       onOpenChange={setIsOpen}
       onSelect={(_e, selectedProviderId) => {
-        if (selectedProviderId === selectedProvider?.provider_id) {
-          field.onChange('');
-        } else {
-          const provider = providers.find((p) => p.provider_id === selectedProviderId);
-          field.onChange(provider ? (PROVIDER_TYPE_TO_VS_TYPE[provider.provider_type] ?? '') : '');
-        }
+        const provider = providers.find((p) => p.provider_id === selectedProviderId);
+        field.onChange(provider ? `ls_${provider.provider_id}` : '');
         setIsOpen(false);
       }}
       selected={selectedProvider?.provider_id}
@@ -85,14 +89,10 @@ const AutoragVectorStoreSelector: React.FC = () => {
           ref={toggleRef}
           onClick={() => setIsOpen((prev) => !prev)}
           isExpanded={isOpen}
-          isDisabled={isSubmitting || isError || providers.length === 0}
+          isDisabled={isSubmitting || isError}
           data-testid="vector-store-select-toggle"
         >
-          {selectedProvider
-            ? formatProviderDisplayName(selectedProvider)
-            : providers.length === 0
-              ? 'No vector store providers available'
-              : 'Select vector store'}
+          {selectedProvider ? formatProviderDisplayName(selectedProvider) : 'Select vector store'}
         </MenuToggle>
       )}
     >

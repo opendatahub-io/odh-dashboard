@@ -276,7 +276,7 @@ function AutoragConfigure(): React.JSX.Element {
                 ) : (
                   <Stack hasGutter>
                     <ConfigureFormGroup
-                      label="Index"
+                      label="Vector database location"
                       description="Specify the location for storing the vector index used to retrieve your documents."
                     >
                       <AutoragVectorStoreSelector />

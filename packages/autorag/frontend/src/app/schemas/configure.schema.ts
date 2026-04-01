@@ -1,17 +1,22 @@
 import * as z from 'zod';
 import { createSchema } from '~/app/utilities/schema';
+import type { LlamaStackVectorStoreProvider } from '~/app/types';
 
 export const MIN_RAG_PATTERNS = 4;
 export const MAX_RAG_PATTERNS = 20;
 
-// Maps LlamaStack provider_type to the pipeline's expected vs_type value.
-// The BFF returns all vector_io providers; only providers in this map are shown in the UI.
-export const PROVIDER_TYPE_TO_VS_TYPE: Record<string, string> = {
-  'remote::milvus': 'ls_milvus',
-};
+// The allowlist of supported vector store provider types.
+// The BFF returns all vector_io providers; only providers with these types are shown in the UI.
+// The selected value is dynamically constructed as ls_${provider_id}.
+export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = ['remote::milvus'];
 
-// The allowlist of supported provider types, derived from the map above.
-export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = Object.keys(PROVIDER_TYPE_TO_VS_TYPE);
+// Default in-memory vector store provider (always available, doesn't require external setup).
+// When this value is selected, it will be removed from the payload before submission.
+// The ai4rag backend treats an empty/missing vector_database_id as a request to use in-memory storage.
+export const DEFAULT_IN_MEMORY_PROVIDER: LlamaStackVectorStoreProvider = {
+  provider_id: 'MILVUS_IN_MEMORY_DEFAULT', // eslint-disable-line camelcase
+  provider_type: 'IN_MEMORY', // eslint-disable-line camelcase
+};
 
 export const RAG_METRIC_FAITHFULNESS = 'faithfulness';
 export const RAG_METRIC_ANSWER_CORRECTNESS = 'answer_correctness';
@@ -47,7 +52,10 @@ function createConfigureSchema() {
       test_data_key: z.string().min(1).default(''),
 
       llama_stack_secret_name: z.string().min(1).default(''),
-      llama_stack_vector_database_id: z.string().default('').optional(),
+      llama_stack_vector_database_id: z
+        .string()
+        .default(`ls_${DEFAULT_IN_MEMORY_PROVIDER.provider_id}`)
+        .optional(),
 
       generation_models: z.array(z.string()).min(1).default([]),
       embeddings_models: z.array(z.string()).min(1).default([]),
@@ -66,7 +74,11 @@ function createConfigureSchema() {
         if (data.description === '') {
           delete data.description;
         }
-        if (data.llama_stack_vector_database_id === '') {
+        // Delete vector database ID if it's empty or set to the default in-memory provider
+        if (
+          data.llama_stack_vector_database_id === '' ||
+          data.llama_stack_vector_database_id === `ls_${DEFAULT_IN_MEMORY_PROVIDER.provider_id}`
+        ) {
           delete data.llama_stack_vector_database_id;
         }
         return data;

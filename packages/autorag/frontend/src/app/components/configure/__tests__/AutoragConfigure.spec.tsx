@@ -292,7 +292,7 @@ describe('AutoragConfigure', () => {
       ).not.toBeInTheDocument();
 
       // Configure details fields should be visible
-      expect(screen.getByText('Index')).toBeInTheDocument();
+      expect(screen.getByText('Vector database location')).toBeInTheDocument();
       expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
       expect(screen.getByText('Models to consider')).toBeInTheDocument();
       expect(screen.getByText('Optimization metric')).toBeInTheDocument();
