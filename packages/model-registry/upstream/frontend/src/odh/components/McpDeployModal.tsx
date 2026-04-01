@@ -28,10 +28,7 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { useNotification } from '~/app/hooks/useNotification';
-import {
-  createMcpDeployment,
-  updateMcpDeployment,
-} from '~/app/api/mcpCatalogDeployment/service';
+import { createMcpDeployment, updateMcpDeployment } from '~/app/api/mcpCatalogDeployment/service';
 import { mcpDeploymentsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import { mcpServerCRToYaml } from '~/app/utils/mcpServerYaml';
 import { McpDeployment } from '~/app/mcpDeploymentTypes';
@@ -42,7 +39,11 @@ type McpDeployModalProps = {
   existingDeployment?: McpDeployment;
 };
 
-const McpDeployModal: React.FC<McpDeployModalProps> = ({ isOpen = true, onClose, existingDeployment }) => {
+const McpDeployModal: React.FC<McpDeployModalProps> = ({
+  isOpen = true,
+  onClose,
+  existingDeployment,
+}) => {
   const { serverId = '' } = useParams<{ serverId: string }>();
   const navigate = useNavigate();
   const queryParams = useQueryParamNamespaces();
@@ -50,17 +51,16 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ isOpen = true, onClose,
   const notification = useNotification();
   const [crData, crLoaded, crError] = useMcpServerConverter(existingDeployment ? '' : serverId);
 
-  const { data: nameDescData, onDataChange: onNameDescChange } =
-    useK8sNameDescriptionFieldData(
-      existingDeployment
-        ? {
-            initialData: {
-              name: existingDeployment.displayName ?? existingDeployment.name,
-              k8sName: existingDeployment.name,
-            },
-          }
-        : {},
-    );
+  const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
+    existingDeployment
+      ? {
+          initialData: {
+            name: existingDeployment.displayName ?? existingDeployment.name,
+            k8sName: existingDeployment.name,
+          },
+        }
+      : {},
+  );
 
   const [namespaces, namespacesLoaded] = useNamespaces();
   const [selectedNamespace, setSelectedNamespace] = React.useState(
@@ -106,7 +106,9 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ isOpen = true, onClose,
 
   const handleReset = React.useCallback(() => {
     setYamlContent(initialYaml);
-    if (!existingDeployment) {
+    if (existingDeployment) {
+      onNameDescChange('name', existingDeployment.displayName ?? existingDeployment.name);
+    } else {
       setSelectedNamespace('');
       onNameDescChange('name', '');
     }
@@ -163,7 +165,9 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ isOpen = true, onClose,
       }
     } catch (e) {
       setSubmitError(
-        e instanceof Error ? e : new Error(`Failed to ${existingDeployment ? 'update' : 'deploy'} MCP server`),
+        e instanceof Error
+          ? e
+          : new Error(`Failed to ${existingDeployment ? 'update' : 'deploy'} MCP server`),
       );
     } finally {
       setIsSubmitting(false);
