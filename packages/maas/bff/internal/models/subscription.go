@@ -17,7 +17,7 @@ type BillingRateInfo struct {
 type ModelRefInfo struct {
 	Name            string               `json:"name"`
 	Namespace       string               `json:"namespace,omitempty"`
-	TokenRateLimits []TokenRateLimitInfo `json:"token_rate_limits,omitempty"`
+	TokenRateLimits []TokenRateLimitInfo `json:"token_rate_limits"`
 	BillingRate     *BillingRateInfo     `json:"billing_rate,omitempty"`
 }
 

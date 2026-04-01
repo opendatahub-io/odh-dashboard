@@ -30,15 +30,14 @@ type MaaSModelRefsRepositoryInterface interface {
 
 // Repositories struct is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
-	HealthCheck       *HealthCheckRepository
-	User              *UserRepository
-	Namespace         *NamespaceRepository
-	Tiers             *TiersRepository
-	APIKeys           *APIKeysRepository
-	Models            *ModelsRepository
-	Subscriptions     SubscriptionsRepositoryInterface
-	MaaSModelRefs     MaaSModelRefsRepositoryInterface
-	MaaSSubscriptions *MaaSSubscriptionsRepository
+	HealthCheck   *HealthCheckRepository
+	User          *UserRepository
+	Namespace     *NamespaceRepository
+	Tiers         *TiersRepository
+	APIKeys       *APIKeysRepository
+	Models        *ModelsRepository
+	Subscriptions SubscriptionsRepositoryInterface
+	MaaSModelRefs MaaSModelRefsRepositoryInterface
 }
 
 func NewRepositories(
@@ -58,11 +57,6 @@ func NewRepositories(
 		return nil, err
 	}
 
-	maasSubscriptionsRepo, err := NewMaaSSubscriptionsRepository(logger, config.MaasApiUrl)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Repositories{
 		HealthCheck: NewHealthCheckRepository(),
 		User:        NewUserRepository(),
@@ -74,10 +68,9 @@ func NewRepositories(
 			config.TiersConfigMapName,
 			config.GatewayNamespace,
 			config.GatewayName),
-		APIKeys:           apiKeysRepo,
-		Models:            modelsRepo,
-		Subscriptions:     subscriptions,
-		MaaSModelRefs:     maasModelRefs,
-		MaaSSubscriptions: maasSubscriptionsRepo,
+		APIKeys:       apiKeysRepo,
+		Models:        modelsRepo,
+		Subscriptions: subscriptions,
+		MaaSModelRefs: maasModelRefs,
 	}, nil
 }

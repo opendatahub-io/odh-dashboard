@@ -247,7 +247,9 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                     <DescriptionListGroup>
                       <DescriptionListTerm>Subscription</DescriptionListTerm>
                       <DescriptionListDescription data-testid="api-key-display-subscription">
-                        {selectedSubscription?.display_name}
+                        {selectedSubscription?.display_name ??
+                          selectedSubscription?.subscription_description ??
+                          selectedSubscription?.subscription_id_header}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
                     <DescriptionListGroup>

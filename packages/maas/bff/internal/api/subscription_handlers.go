@@ -21,27 +21,6 @@ func attachSubscriptionHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.POST(constants.SubscriptionCreatePath, handlerWithApp(app, CreateSubscriptionHandler))
 	apiRouter.PUT(constants.SubscriptionUpdatePath, handlerWithApp(app, UpdateSubscriptionHandler))
 	apiRouter.DELETE(constants.SubscriptionDeletePath, handlerWithApp(app, DeleteSubscriptionHandler))
-	apiRouter.GET(constants.SubscriptionsPassthroughPath, handlerWithApp(app, ListSubscriptionsPassthroughHandler))
-}
-
-// ListSubscriptionsPassthroughHandler handles GET /api/v1/subscriptions
-// Proxies to the maas-api /v1/subscriptions endpoint and returns a sanitised
-func ListSubscriptionsPassthroughHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	ctx := r.Context()
-
-	subscriptions, err := app.repositories.MaaSSubscriptions.ListSubscriptions(ctx)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	response := Envelope[[]models.SubscriptionListItem, None]{
-		Data: subscriptions,
-	}
-
-	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
 }
 
 // ListSubscriptionsHandler handles GET /api/v1/all-subscriptions

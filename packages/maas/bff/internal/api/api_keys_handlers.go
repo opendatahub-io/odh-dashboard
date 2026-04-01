@@ -20,6 +20,27 @@ func attachAPIKeyHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.POST(constants.APIKeyBulkRevokePath, handlerWithApp(app, BulkRevokeAPIKeysHandler))
 	apiRouter.GET(constants.APIKeyByIDPath, handlerWithApp(app, GetAPIKeyHandler))
 	apiRouter.DELETE(constants.APIKeyByIDPath, handlerWithApp(app, RevokeAPIKeyHandler))
+	apiRouter.GET(constants.SubscriptionsPassthroughPath, handlerWithApp(app, ListSubscriptionsPassthroughHandler))
+}
+
+// ListSubscriptionsPassthroughHandler handles GET /api/v1/subscriptions
+// Proxies to the maas-api /v1/subscriptions endpoint and returns a sanitised list of subscriptions accessible to the authenticated user.
+func ListSubscriptionsPassthroughHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	subscriptions, err := app.repositories.APIKeys.ListSubscriptionsForApiKeys(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	response := Envelope[[]models.SubscriptionListItem, None]{
+		Data: subscriptions,
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 // CreateAPIKeyHandler handles POST /api/v1/api-keys
@@ -34,6 +55,11 @@ func CreateAPIKeyHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 
 	if strings.TrimSpace(request.Data.Name) == "" {
 		app.badRequestResponse(w, r, errors.New("name is required"))
+		return
+	}
+
+	if strings.TrimSpace(request.Data.Subscription) == "" {
+		app.badRequestResponse(w, r, errors.New("subscription is required"))
 		return
 	}
 

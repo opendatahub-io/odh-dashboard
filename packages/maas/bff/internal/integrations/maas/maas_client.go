@@ -140,7 +140,7 @@ func (c *MaasClient) ListModels(ctx context.Context) ([]models.MaaSModel, error)
 	return apiResponse.Data, nil
 }
 
-func (c *MaasClient) ListSubscriptions(ctx context.Context) ([]models.SubscriptionListItem, error) {
+func (c *MaasClient) ListSubscriptionsForApiKeys(ctx context.Context) ([]models.SubscriptionListItem, error) {
 	endpoint := c.prefix.JoinPath("subscriptions")
 
 	var apiResponse []models.SubscriptionListItem
