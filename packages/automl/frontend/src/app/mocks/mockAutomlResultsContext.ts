@@ -40,7 +40,7 @@ const buildLocation = (
   const base = `${pipelineName}/${runId}/autogluon-models-full-refit/${taskId}/model_artifact/${modelName}`;
   return {
     model_directory: `${base}/`,
-    predictor: `${base}/predictor/predictor.pkl`,
+    predictor: `${base}/predictor`,
     notebook: `${base}/notebooks/automl_predictor_notebook.ipynb`,
   };
 };
@@ -202,7 +202,7 @@ const buildTimeseriesLocation = (
   const base = `autogluon-timeseries-training-pipeline/${runId}/timeseries-models-full-refit/${taskId}/model_artifact/${modelName}`;
   return {
     model_directory: `${base}/`,
-    predictor: `${base}/predictor/predictor.pkl`,
+    predictor: `${base}/predictor`,
     notebook: `${base}/notebooks/automl_predictor_notebook.ipynb`,
   };
 };

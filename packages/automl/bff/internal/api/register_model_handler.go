@@ -25,7 +25,15 @@ import (
 // maxRequestBodyBytes caps the request body size to 1 MiB for register model requests.
 const maxRegisterModelRequestBodyBytes = 1 << 20
 
-type RegisterModelEnvelope Envelope[*openapi.ModelArtifact, None]
+// RegisterModelResponseData is the payload returned to the frontend after a
+// successful model registration. It includes the registered model ID so the
+// frontend can construct a direct link to the model details page.
+type RegisterModelResponseData struct {
+	RegisteredModelID string                 `json:"registered_model_id"`
+	ModelArtifact     *openapi.ModelArtifact `json:"model_artifact"`
+}
+
+type RegisterModelEnvelope Envelope[*RegisterModelResponseData, None]
 
 // RegisterModelHandler handles POST /api/v1/model-registries/:registryId/models
 //
@@ -132,7 +140,25 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	modelArtifact, err := app.repositories.ModelRegistry.RegisterModel(ctx, client, req)
+	// Best-effort DSPA discovery: pull object storage config from the DSPA spec (bucket,
+	// endpoint, region) without requiring a ready pipeline server. This is needed to
+	// construct the full S3 URI for the model artifact.
+	// Check context first (may already be set by upstream middleware or tests).
+	dspaStorage, _ := ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage)
+	if dspaStorage == nil && app.kubernetesClientFactory != nil {
+		namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		ctx = app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
+		r = r.WithContext(ctx)
+		dspaStorage, _ = ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage)
+	}
+	if dspaStorage == nil {
+		app.serviceUnavailableResponseWithMessage(w, r,
+			fmt.Errorf("DSPA object storage config not available"),
+			"DSPA object storage discovery unavailable; cannot construct artifact URI — ensure a DSPipelineApplication with external storage is configured in this namespace")
+		return
+	}
+
+	registeredModelID, modelArtifact, err := app.repositories.ModelRegistry.RegisterModel(ctx, client, req, dspaStorage)
 	if err != nil {
 		var httpErr *modelregistry.HTTPError
 		if errors.As(err, &httpErr) {
@@ -152,7 +178,10 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 	}
 
 	response := RegisterModelEnvelope{
-		Data: modelArtifact,
+		Data: &RegisterModelResponseData{
+			RegisteredModelID: registeredModelID,
+			ModelArtifact:     modelArtifact,
+		},
 	}
 
 	if err := app.WriteJSON(w, http.StatusCreated, response, nil); err != nil {

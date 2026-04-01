@@ -9,7 +9,7 @@ import (
 
 func TestValidateRegisterModelRequest(t *testing.T) {
 	validReq := models.RegisterModelRequest{
-		S3Path:      "s3://my-bucket/path/to/model.bin",
+		S3Path:      "pipeline/run/models/predictor",
 		ModelName:   "my-model",
 		VersionName: "v1",
 	}
@@ -19,9 +19,9 @@ func TestValidateRegisterModelRequest(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("valid s3a path passes", func(t *testing.T) {
+	t.Run("valid relative path passes", func(t *testing.T) {
 		req := validReq
-		req.S3Path = "s3a://bucket/path/model"
+		req.S3Path = "autogluon-training/run-123/models/model-1/predictor"
 		err := ValidateRegisterModelRequest(req)
 		assert.NoError(t, err)
 	})
@@ -42,20 +42,31 @@ func TestValidateRegisterModelRequest(t *testing.T) {
 		assert.Contains(t, err.Error(), "s3_path")
 	})
 
-	t.Run("rejects invalid s3 path format", func(t *testing.T) {
-		invalidPaths := []string{
-			"https://bucket.s3.amazonaws.com/path",
-			"/local/path/to/model",
-			"s3://",
-			"s3://bucket",
-			"s3://bucket/",
-		}
-		for _, path := range invalidPaths {
+	t.Run("rejects s3_path with URI scheme", func(t *testing.T) {
+		for _, path := range []string{"s3://bucket/key", "https://example.com/model", "s3a://bucket/key"} {
 			req := validReq
 			req.S3Path = path
 			err := ValidateRegisterModelRequest(req)
 			assert.Error(t, err, "expected error for path %q", path)
-			assert.Contains(t, err.Error(), "s3_path", "path %q", path)
+			assert.Contains(t, err.Error(), "relative", "path %q", path)
+		}
+	})
+
+	t.Run("rejects s3_path with path traversal", func(t *testing.T) {
+		for _, path := range []string{"/absolute/path", "./relative", "../parent", "a/../../escape"} {
+			req := validReq
+			req.S3Path = path
+			err := ValidateRegisterModelRequest(req)
+			assert.Error(t, err, "expected error for path %q", path)
+		}
+	})
+
+	t.Run("rejects s3_path with query or fragment delimiters", func(t *testing.T) {
+		for _, path := range []string{"path?query=1", "path#fragment", "user@host/path"} {
+			req := validReq
+			req.S3Path = path
+			err := ValidateRegisterModelRequest(req)
+			assert.Error(t, err, "expected error for path %q", path)
 		}
 	})
 
