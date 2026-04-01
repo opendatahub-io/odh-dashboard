@@ -53,7 +53,7 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   } = usePipelineRuns(effectiveNamespace);
 
   const loaded = defsLoaded && runsLoaded;
-  const loadError = defsError || runsError;
+  const loadError = defsError ?? runsError;
   const hasLoadError = Boolean(loadError);
 
   const hasExperiments = totalSize > 0;
