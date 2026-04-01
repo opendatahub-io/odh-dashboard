@@ -46,6 +46,8 @@ jest.mock('mod-arch-core', () => ({
   restGET: jest.fn(),
   restCREATE: jest.fn(),
   restDELETE: jest.fn(),
+  // Mock handleRestFailures to pass through promises unchanged for testing
+  handleRestFailures: jest.fn((promise) => promise),
 }));
 
 const { restGET, restCREATE, restDELETE } = jest.requireMock('mod-arch-core');
