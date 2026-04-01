@@ -59,6 +59,7 @@ const mockPipelineRun: PipelineRun = {
   finished_at: '2026-03-19T19:30:00Z',
   runtime_config: {
     parameters: {
+      display_name: 'test-run',
       label_column: 'type',
       task_type: 'multiclass',
       top_n: 3,
@@ -172,6 +173,7 @@ const mockTimeseriesPipelineRun: PipelineRun = {
   finished_at: '2026-03-20T15:30:00Z',
   runtime_config: {
     parameters: {
+      display_name: 'test-run',
       task_type: 'timeseries',
       target: 'sales',
       id_column: 'store_id',

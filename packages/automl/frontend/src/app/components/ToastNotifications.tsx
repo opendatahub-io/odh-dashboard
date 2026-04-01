@@ -1,13 +1,13 @@
-import React, { useContext } from 'react';
 import { AlertGroup } from '@patternfly/react-core';
-import { NotificationContext } from 'mod-arch-core';
-import ToastNotification from '~/app/components/ToastNotification';
+import React from 'react';
+import { useStore } from '~/app/store';
+import ToastNotification from './ToastNotification';
 
 const ToastNotifications: React.FC = () => {
-  const { notifications } = useContext(NotificationContext);
+  const notifications = useStore((state) => state.notifications);
 
   return (
-    <AlertGroup isToast isLiveRegion data-testid="toast-notification-group">
+    <AlertGroup isToast isLiveRegion data-testid="toast-notification-group-automl">
       {notifications.map((notification) => (
         <ToastNotification notification={notification} key={notification.id} />
       ))}

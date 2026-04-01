@@ -134,6 +134,7 @@ const mockModelsWithSmallValues: Record<string, AutomlModel> = {
 // Helper to create mock parameters that match ConfigureSchema
 const createMockParameters = (taskType: string) => {
   const base = {
+    display_name: 'test-run',
     task_type: taskType as 'binary' | 'multiclass' | 'regression' | 'timeseries',
     train_data_secret_name: 'test-secret',
     train_data_bucket_name: 'test-bucket',
