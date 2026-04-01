@@ -77,10 +77,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Model Registry');
-      modelRegistry.visit();
-
-      cy.step('Select the created model registry');
-      modelRegistry.findSelectModelRegistry(registryName);
+      modelRegistry.visitWithRegistry(registryName);
 
       cy.step('Register a model using object storage');
       clickRegisterModelButton(30000);
@@ -177,10 +174,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Model Registry');
-      modelRegistry.visit();
-
-      cy.step('Select the created model registry');
-      modelRegistry.findSelectModelRegistry(registryName);
+      modelRegistry.visitWithRegistry(registryName);
 
       cy.step('Navigate to the first registered model');
       cy.contains(objectStorageModelName).click();

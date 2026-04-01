@@ -59,8 +59,11 @@ class ModelRegistry {
   }
 
   visit() {
-    const preferredModelRegistry = 'modelregistry-sample';
-    cy.visitWithLogin(`/ai-hub/models/registry/${preferredModelRegistry}`);
+    this.visitWithRegistry('modelregistry-sample');
+  }
+
+  visitWithRegistry(registryName: string) {
+    cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`);
     this.wait();
   }
 

@@ -78,10 +78,7 @@ describe('Verify that models and versions can be archived and restored via model
     () => {
       cy.step('Login as an Admin and navigate to Model Registry');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-      modelRegistry.visit();
-
-      cy.step('Select the created model registry');
-      modelRegistry.findSelectModelRegistry(registryName);
+      modelRegistry.visitWithRegistry(registryName);
 
       cy.step('Register a model using object storage');
       clickRegisterModelButton(30000);
