@@ -3,8 +3,34 @@ import React, { useEffect, useState } from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
 import { useNotification } from '~/app/hooks/useNotification';
-import { SUPPORTED_VECTOR_STORE_PROVIDERS, ConfigureSchema } from '~/app/schemas/configure.schema';
-import { useLlamaStackVectorStoresQuery } from '~/app/hooks/queries';
+import {
+  SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
+  DEFAULT_IN_MEMORY_PROVIDER,
+  ConfigureSchema,
+} from '~/app/schemas/configure.schema';
+import { useLlamaStackVectorStoreProvidersQuery } from '~/app/hooks/queries';
+import { LlamaStackVectorStoreProvider } from '~/app/types';
+
+/**
+ * Formats a provider for display.
+ * e.g. provider_id="milvus", provider_type="remote::milvus" → "milvus (remote Milvus)"
+ * e.g. provider_id="faiss", provider_type="inline::faiss" → "faiss (inline Faiss)"
+ * e.g. provider_id="CHROMADB_IN_MEMORY_DEFAULT", provider_type="IN_MEMORY" → "ChromaDB (in-memory)"
+ * Falls back to provider_id if provider_type doesn't follow the expected format.
+ */
+const formatProviderDisplayName = (provider: LlamaStackVectorStoreProvider): string => {
+  // Handle special case for IN_MEMORY provider
+  if (provider.provider_type === 'IN_MEMORY') {
+    return 'ChromaDB (in-memory)';
+  }
+
+  const [deployment, name] = provider.provider_type.split('::');
+  if (!deployment || !name) {
+    return provider.provider_id;
+  }
+  const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
+  return `${provider.provider_id} (${deployment} ${capitalizedName})`;
+};
 
 const AutoragVectorStoreSelector: React.FC = () => {
   const { namespace = '' } = useParams();
@@ -23,23 +49,25 @@ const AutoragVectorStoreSelector: React.FC = () => {
   const llamaStackSecretName = useWatch({ control, name: 'llama_stack_secret_name' });
 
   const {
-    data: vectorStoresData,
+    data: providersData,
     isLoading,
     isError,
-  } = useLlamaStackVectorStoresQuery(
+  } = useLlamaStackVectorStoreProvidersQuery(
     namespace,
     llamaStackSecretName,
-    SUPPORTED_VECTOR_STORE_PROVIDERS,
+    SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
   );
 
   useEffect(() => {
     if (isError) {
-      notification.error('Failed to load vector stores');
+      notification.error('Failed to load vector store providers');
     }
   }, [isError, notification]);
 
-  const vectorStores = vectorStoresData?.vector_stores ?? [];
-  const selectedStore = vectorStores.find((vs) => vs.id === field.value);
+  // Inject the default in-memory provider at the beginning of the list
+  const apiProviders = providersData?.vector_store_providers ?? [];
+  const providers = [DEFAULT_IN_MEMORY_PROVIDER, ...apiProviders];
+  const selectedProvider = providers.find((p) => `ls_${p.provider_id}` === field.value);
 
   if (isLoading) {
     return <Skeleton width="200px" height="36px" />;
@@ -50,28 +78,32 @@ const AutoragVectorStoreSelector: React.FC = () => {
       aria-label="Vector store selector"
       isOpen={isOpen}
       onOpenChange={setIsOpen}
-      onSelect={(_e, selectedValue) => {
-        field.onChange(selectedValue === field.value ? '' : selectedValue);
+      onSelect={(_e, selectedProviderId) => {
+        const provider = providers.find((p) => p.provider_id === selectedProviderId);
+        field.onChange(provider ? `ls_${provider.provider_id}` : '');
         setIsOpen(false);
       }}
-      selected={field.value}
+      selected={selectedProvider?.provider_id}
       toggle={(toggleRef) => (
         <MenuToggle
           ref={toggleRef}
           onClick={() => setIsOpen((prev) => !prev)}
           isExpanded={isOpen}
-          isDisabled={isSubmitting || isError || vectorStores.length === 0}
+          isDisabled={isSubmitting || isError}
           data-testid="vector-store-select-toggle"
         >
-          {(selectedStore?.name || selectedStore?.id) ??
-            (vectorStores.length === 0 ? 'No vector stores available' : 'Select vector index')}
+          {selectedProvider ? formatProviderDisplayName(selectedProvider) : 'Select vector store'}
         </MenuToggle>
       )}
     >
       <SelectList data-testid="vector-store-select-list">
-        {vectorStores.map((vs) => (
-          <SelectOption key={vs.id} value={vs.id} data-testid={`vector-store-option-${vs.id}`}>
-            {vs.name || vs.id}
+        {providers.map((p) => (
+          <SelectOption
+            key={p.provider_id}
+            value={p.provider_id}
+            data-testid={`vector-store-option-${p.provider_id}`}
+          >
+            {formatProviderDisplayName(p)}
           </SelectOption>
         ))}
       </SelectList>
