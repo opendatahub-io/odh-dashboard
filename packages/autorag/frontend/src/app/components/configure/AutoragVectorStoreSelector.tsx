@@ -5,7 +5,8 @@ import { useParams } from 'react-router';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
-  DEFAULT_IN_MEMORY_PROVIDER,
+  // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
+  // DEFAULT_IN_MEMORY_PROVIDER,
   ConfigureSchema,
 } from '~/app/schemas/configure.schema';
 import { useLlamaStackVectorStoreProvidersQuery } from '~/app/hooks/queries';
@@ -19,10 +20,11 @@ import { LlamaStackVectorStoreProvider } from '~/app/types';
  * Falls back to provider_id if provider_type doesn't follow the expected format.
  */
 const formatProviderDisplayName = (provider: LlamaStackVectorStoreProvider): string => {
+  // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
   // Handle special case for IN_MEMORY provider
-  if (provider.provider_type === 'IN_MEMORY') {
-    return 'ChromaDB (in-memory)';
-  }
+  // if (provider.provider_type === 'IN_MEMORY') {
+  //   return 'ChromaDB (in-memory)';
+  // }
 
   const [deployment, name] = provider.provider_type.split('::');
   if (!deployment || !name) {
@@ -64,9 +66,11 @@ const AutoragVectorStoreSelector: React.FC = () => {
     }
   }, [isError, notification]);
 
-  // Inject the default in-memory provider at the beginning of the list
+  // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
+  // Inject the default in-memory provider at the beginning of the list.
+  // const providers = [DEFAULT_IN_MEMORY_PROVIDER, ...apiProviders];
   const apiProviders = providersData?.vector_store_providers ?? [];
-  const providers = [DEFAULT_IN_MEMORY_PROVIDER, ...apiProviders];
+  const providers = apiProviders;
   const selectedProvider = providers.find((p) => `ls_${p.provider_id}` === field.value);
 
   if (isLoading) {

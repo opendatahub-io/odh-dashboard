@@ -90,12 +90,12 @@ describe('AutoragVectorStoreSelector', () => {
     } as unknown as ReturnType<typeof useLlamaStackVectorStoreProvidersQuery>);
   });
 
-  it('should display default in-memory provider when no other provider is selected', () => {
+  it('should display placeholder text when no provider is selected', () => {
     renderWithProviders(<AutoragVectorStoreSelector />);
 
     const toggle = screen.getByTestId('vector-store-select-toggle');
     expect(toggle).toBeInTheDocument();
-    expect(toggle).toHaveTextContent('ChromaDB (in-memory)');
+    expect(toggle).toHaveTextContent('Select vector store');
   });
 
   it('should show vector store provider options when clicking the toggle', () => {
@@ -118,33 +118,18 @@ describe('AutoragVectorStoreSelector', () => {
     );
   });
 
-  it('should show both in-memory and API providers in the dropdown', () => {
+  it('should show only API providers in the dropdown', () => {
     renderWithProviders(<AutoragVectorStoreSelector />);
 
     fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
 
-    // In-memory provider should be available
-    expect(screen.getByTestId('vector-store-option-MILVUS_IN_MEMORY_DEFAULT')).toBeInTheDocument();
-
     // API provider should be present
     expect(screen.getByTestId('vector-store-option-milvus')).toBeInTheDocument();
-  });
 
-  it('should show default in-memory provider when no API providers are available', () => {
-    mockUseLlamaStackVectorStoreProvidersQuery.mockReturnValue({
-      data: mockVectorStoreProvidersResponse([]),
-      isLoading: false,
-    } as unknown as ReturnType<typeof useLlamaStackVectorStoreProvidersQuery>);
-
-    renderWithProviders(<AutoragVectorStoreSelector />);
-
-    const toggle = screen.getByTestId('vector-store-select-toggle');
-    expect(toggle).not.toBeDisabled();
-    expect(toggle).toHaveTextContent('ChromaDB (in-memory)');
-
-    // Verify in-memory provider is available in the dropdown
-    fireEvent.click(toggle);
-    expect(screen.getByTestId('vector-store-option-MILVUS_IN_MEMORY_DEFAULT')).toBeInTheDocument();
+    // In-memory provider should NOT be present (disabled until 3.5)
+    expect(
+      screen.queryByTestId('vector-store-option-MILVUS_IN_MEMORY_DEFAULT'),
+    ).not.toBeInTheDocument();
   });
 
   it('should disable the toggle and show error notification when fetching providers fails', () => {
@@ -174,7 +159,7 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   describe('Form field value integration', () => {
-    it('should set default field value to ls_MILVUS_IN_MEMORY_DEFAULT', async () => {
+    it('should set default field value to empty string', async () => {
       let formValues: unknown;
       const onFormChange = (values: unknown) => {
         formValues = values;
@@ -182,17 +167,14 @@ describe('AutoragVectorStoreSelector', () => {
 
       renderWithProviders(<AutoragVectorStoreSelector />, { onFormChange });
 
-      // Wait for initial render and form setup
       expect(screen.getByTestId('vector-store-select-toggle')).toBeInTheDocument();
 
-      // Wait for form values to be set
       await waitFor(() => {
         expect(formValues).toBeDefined();
       });
 
-      // Check the form field value
       expect(formValues).toMatchObject({
-        llama_stack_vector_database_id: 'ls_MILVUS_IN_MEMORY_DEFAULT', // eslint-disable-line camelcase
+        llama_stack_vector_database_id: '', // eslint-disable-line camelcase
       });
     });
 

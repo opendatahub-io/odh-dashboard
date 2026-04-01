@@ -37,6 +37,28 @@ jest.mock('~/app/hooks/mutations', () => ({
   })),
 }));
 
+// Mock the VectorStoreSelector to auto-set the form value since PF6 Select
+// doesn't work in JSDOM (Floating UI portal limitation).
+jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const ReactMock = require('react');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { useFormContext } = require('react-hook-form');
+
+  const MockVectorStoreSelector = () => {
+    const { setValue } = useFormContext();
+    ReactMock.useEffect(() => {
+      setValue('llama_stack_vector_database_id', 'ls_milvus', { shouldValidate: true });
+    }, [setValue]);
+    return ReactMock.createElement(
+      'div',
+      { 'data-testid': 'vector-store-select-toggle' },
+      'milvus (remote Milvus)',
+    );
+  };
+  return { __esModule: true, default: MockVectorStoreSelector };
+});
+
 jest.mock('~/app/hooks/queries', () => ({
   useLlamaStackModelsQuery: jest.fn(() => ({
     data: {
@@ -50,7 +72,7 @@ jest.mock('~/app/hooks/queries', () => ({
     error: null,
   })),
   useLlamaStackVectorStoreProvidersQuery: jest.fn(() => ({
-    data: { vector_store_providers: [] }, // eslint-disable-line camelcase
+    data: { vector_store_providers: [{ provider_id: 'milvus', provider_type: 'remote::milvus' }] }, // eslint-disable-line camelcase
     isLoading: false,
   })),
 }));
@@ -476,6 +498,8 @@ describe('AutoragConfigurePage', () => {
       // FileExplorer should open
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
+
+      // Vector store value is auto-set by the mocked AutoragVectorStoreSelector.
 
       // Wait for form to be valid and Run button to be enabled
       const runButton = await screen.findByRole('button', { name: 'Run experiment' });
