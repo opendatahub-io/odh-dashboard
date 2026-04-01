@@ -45,6 +45,8 @@ jest.mock('~/app/hooks/queries', () => ({
       { name: 'column3', type: 'float64' },
     ],
     isLoading: false,
+    isFetching: false,
+    error: null,
   })),
 }));
 
@@ -90,16 +92,16 @@ jest.mock('mod-arch-shared', () => ({
   DashboardPopupIconButton: ({ icon }: { icon: React.ReactNode }) => <button>{icon}</button>,
 }));
 
-// Mock FileExplorer used by AutomlConfigure
-jest.mock('~/app/components/common/FileExplorer/FileExplorer.tsx', () => ({
+// Mock S3FileExplorer used by AutomlConfigure
+jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
   __esModule: true,
   default: ({
     isOpen,
-    onSelect,
+    onSelectFiles,
     onClose,
   }: {
     isOpen: boolean;
-    onSelect: (files: unknown) => void;
+    onSelectFiles: (files: unknown) => void;
     onClose: () => void;
   }) =>
     isOpen ? (
@@ -107,7 +109,7 @@ jest.mock('~/app/components/common/FileExplorer/FileExplorer.tsx', () => ({
         <button
           data-testid="file-explorer-select-file"
           onClick={() => {
-            onSelect([{ name: 'test-file.csv' }]);
+            onSelectFiles([{ name: 'test-file.csv', path: '/test-file.csv' }]);
             onClose();
           }}
         >
