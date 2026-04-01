@@ -6,8 +6,8 @@ import {
   type FetchState,
   type FetchStateCallbackPromise,
 } from 'mod-arch-core';
-import { getSubscriptionFormData } from '../api/subscriptions';
-import { SubscriptionFormDataResponse } from '../types/subscriptions';
+import { getSubscriptionFormData } from '~/app/api/subscriptions';
+import { SubscriptionFormDataResponse } from '~/app/types/subscriptions';
 
 const DEFAULT_FORM_DATA: SubscriptionFormDataResponse = {
   groups: [],

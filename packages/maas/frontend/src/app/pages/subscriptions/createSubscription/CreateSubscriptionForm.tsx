@@ -34,9 +34,9 @@ import {
   CreateSubscriptionRequest,
   TokenRateLimit,
 } from '~/app/types/subscriptions';
+import SubscriptionModelsSection from '~/app/pages/subscriptions/viewSubscription/SubscriptionModelsSection';
 import AddModelsModal from './AddModelsModal';
 import EditRateLimitsModal from './EditRateLimitsModal';
-import SubscriptionModelsSection from '../viewSubscription/SubscriptionModelsSection';
 
 type CreateSubscriptionFormProps = {
   formData: SubscriptionFormDataResponse;

@@ -1,4 +1,4 @@
-import { getLowestAvailablePriority } from '../subscriptions';
+import { getLowestAvailablePriority } from '~/app/utilities/subscriptions';
 
 describe('getLowestAvailablePriority', () => {
   it('should return 0 when there are no subscriptions', () => {
