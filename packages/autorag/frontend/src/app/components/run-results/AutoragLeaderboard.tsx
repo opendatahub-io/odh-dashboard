@@ -23,7 +23,11 @@ import React from 'react';
 import { useParams } from 'react-router';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
-import { getOptimizedMetricForRAG, formatMetricValue } from '~/app/utilities/utils';
+import {
+  getOptimizedMetricForRAG,
+  formatMetricName,
+  formatMetricValue,
+} from '~/app/utilities/utils';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
 import './AutoragLeaderboard.scss';
@@ -44,31 +48,6 @@ type LeaderboardEntry = {
   generationModelId: string;
 };
 
-// Helper function to format metric names for display
-const formatMetricName = (metricKey: string): string => {
-  // Special cases for RAG metrics
-  /* eslint-disable camelcase */
-  const specialCases: Record<string, string> = {
-    faithfulness: 'Faithfulness',
-    answer_correctness: 'Answer Correctness',
-    context_correctness: 'Context Correctness',
-    answer_relevancy: 'Answer Relevancy',
-    context_precision: 'Context Precision',
-    context_recall: 'Context Recall',
-  };
-  /* eslint-enable camelcase */
-
-  if (specialCases[metricKey]) {
-    return specialCases[metricKey];
-  }
-
-  // Convert snake_case to Title Case
-  return metricKey
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
-
 // Helper function to extract the last segment of a model ID
 const getModelIdShortName = (modelId: string): string => {
   // Don't try to extract a short name from N/A or other non-model-ID values
@@ -79,7 +58,15 @@ const getModelIdShortName = (modelId: string): string => {
   return segments[segments.length - 1] || modelId;
 };
 
-function AutoragLeaderboard(): React.JSX.Element | null {
+type AutoragLeaderboardProps = {
+  onViewDetails?: (patternName: string) => void;
+  onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
+};
+
+function AutoragLeaderboard({
+  onViewDetails,
+  onSaveNotebook,
+}: AutoragLeaderboardProps): React.JSX.Element | null {
   const { namespace } = useParams<{ namespace: string }>();
   const { patterns, patternsLoading, pipelineRun, pipelineRunLoading } = useAutoragResultsContext();
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
@@ -317,11 +304,8 @@ function AutoragLeaderboard(): React.JSX.Element | null {
     [activeSortIndex, activeSortDirection, handleSort],
   );
 
-  // Handler for viewing pattern details
   const handleViewDetails = (patternName: string) => {
-    // TODO: Implement view details
-    // eslint-disable-next-line no-console
-    console.log('View details for pattern:', patternName);
+    onViewDetails?.(patternName);
   };
 
   // Show empty state when pipeline is still running
@@ -548,10 +532,12 @@ function AutoragLeaderboard(): React.JSX.Element | null {
                       onClick: () => handleViewDetails(entry.pattern),
                     },
                     {
-                      title: 'Save notebook',
-                      onClick: () => {
-                        // TODO: Implement save notebook
-                      },
+                      title: 'Save as indexing notebook',
+                      onClick: () => onSaveNotebook?.(entry.pattern, 'indexing'),
+                    },
+                    {
+                      title: 'Save as inference notebook',
+                      onClick: () => onSaveNotebook?.(entry.pattern, 'inference'),
                     },
                   ]}
                 />

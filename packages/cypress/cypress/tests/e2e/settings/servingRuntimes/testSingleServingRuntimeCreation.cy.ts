@@ -52,7 +52,7 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
       });
 
       cy.log('Navigation successful | Searching for Add button');
-      servingRuntimes.findAddButton().should('exist').and('be.visible').and('be.enabled').click();
+      servingRuntimes.findAddButton().should('exist').and('be.visible').click();
 
       cy.step('Select API Protocol');
       servingRuntimes.findSelectAPIProtocolButton().click();

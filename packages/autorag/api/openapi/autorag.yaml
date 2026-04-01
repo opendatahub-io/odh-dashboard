@@ -336,11 +336,21 @@ paths:
       operationId: getS3Files
       summary: Get files from S3
       description: >-
-        Retrieves a list of files from an S3-compatible storage using credentials from a Kubernetes secret.
-        The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+        Retrieves a list of files from an S3-compatible storage.
         Returns the files in a list, plus any additional metadata that ListObjectsV2 returns.
+
+
+        Two credential resolution modes are supported:
+        (1) **DSPA mode (default in production)** — when secretName is omitted, the endpoint,
+        region, bucket, and credential field names are read from the DSPipelineApplication
+        (DSPA) spec discovered in the namespace.
+        (2) **Explicit mode (override)** — when secretName is supplied, the specified Kubernetes
+        secret must contain AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
+        and AWS_S3_ENDPOINT using those exact field names.
       tags:
         - S3Operation
+      security:
+        - Bearer: []
       parameters:
         - name: namespace
           in: query
@@ -351,8 +361,13 @@ paths:
           example: default
         - name: secretName
           in: query
-          required: true
-          description: The name of the Kubernetes secret containing S3 credentials
+          required: false
+          description: >-
+            Override: name of the Kubernetes secret containing S3 credentials.
+            When supplied, the secret must use the conventional AWS_* field names
+            (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+            When omitted, the endpoint falls back to DSPA mode and reads credentials from
+            the DSPipelineApplication spec discovered in the namespace.
           schema:
             type: string
             maxLength: 253
@@ -361,7 +376,11 @@ paths:
         - name: bucket
           in: query
           required: false
-          description: The S3 bucket name. Leading and trailing whitespace is trimmed.
+          description: >-
+            The S3 bucket name. Only honored when secretName is supplied (explicit mode).
+            In DSPA mode (secretName omitted), this parameter is ignored and the bucket
+            configured in the DSPipelineApplication spec is used instead; if the DSPA
+            does not specify a bucket the request is rejected with 400.
           schema:
             type: string
             pattern: '^\S(.*\S)?$'
@@ -415,6 +434,8 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
 
   # =============================================================================
   # LSD ENDPOINTS
@@ -469,10 +490,11 @@ paths:
       description: Returns available models from LlamaStack Distribution using credentials from a Kubernetes secret
 
   /api/v1/lsd/vector-stores:
-    summary: List available LSD vector stores
+    summary: List available LSD vector store providers
     description: >-
-      Lists all available vector stores from LlamaStack Distribution (LSD).
-      Returns a flat list of vector stores with their identifiers, names, statuses, and provider information.
+      Lists available vector store providers from LlamaStack Distribution (LSD).
+      Calls the native /v1/providers endpoint and filters for vector_io API type.
+      Returns provider identifiers and types (e.g., remote::milvus).
       Requires namespace and secretName parameters. The secretName identifies a Kubernetes secret
       containing llama_stack_client_base_url and llama_stack_client_api_key credentials.
     get:
@@ -510,9 +532,9 @@ paths:
           $ref: "#/components/responses/InternalServerError"
         "502":
           $ref: "#/components/responses/BadGateway"
-      operationId: getLSDVectorStores
-      summary: Get LSD Vector Stores
-      description: Returns available vector stores from LlamaStack Distribution using credentials from a Kubernetes secret
+      operationId: getLSDVectorStoreProviders
+      summary: Get LSD Vector Store Providers
+      description: Returns available vector store providers from LlamaStack Distribution using credentials from a Kubernetes secret
 
   # =============================================================================
   # PIPELINE RUNS ENDPOINTS
@@ -697,43 +719,32 @@ components:
           items:
             $ref: '#/components/schemas/LSDModel'
 
-    LSDVectorStore:
+    LSDVectorStoreProvider:
       type: object
-      description: Vector store from LlamaStack Distribution
+      description: Vector store provider from LlamaStack Distribution
       required:
-        - id
-        - name
-        - status
-        - provider
+        - provider_id
+        - provider_type
       properties:
-        id:
+        provider_id:
           type: string
-          description: Unique vector store identifier
-          example: "vs_136a08ec-60da-4f68-b587-54f3def2a84c"
-        name:
-          type: string
-          description: Human-readable name
-          example: "Milvus Vector Store"
-        status:
-          type: string
-          enum: ["expired", "in_progress", "completed"]
-          description: Vector store status
-          example: "completed"
-        provider:
-          type: string
-          description: Database provider identifier
+          description: Provider identifier
           example: "milvus"
-    LSDVectorStoresData:
+        provider_type:
+          type: string
+          description: Provider implementation type
+          example: "remote::milvus"
+    LSDVectorStoreProvidersData:
       type: object
-      description: List of all available vector stores from LlamaStack Distribution
+      description: List of vector store providers from LlamaStack Distribution
       required:
-        - vector_stores
+        - vector_store_providers
       properties:
-        vector_stores:
+        vector_store_providers:
           type: array
-          description: Complete list of all available vector stores
+          description: List of vector_io providers
           items:
-            $ref: '#/components/schemas/LSDVectorStore'
+            $ref: '#/components/schemas/LSDVectorStoreProvider'
 
     SecretTypeSchema:
       description: >-
@@ -1088,7 +1099,8 @@ components:
           description: Metric to optimize (defaults to faithfulness)
         llama_stack_vector_database_id:
           type: string
-          description: Vector database identifier as registered in llama-stack (e.g. llama-stack Milvus)
+          description: Pipeline vector store type derived from the selected LlamaStack provider (e.g. ls_milvus)
+          example: ls_milvus
         optimization_max_rag_patterns:
           type: integer
           minimum: 4
@@ -1457,7 +1469,7 @@ components:
                   resource_path: "ollama://models/nomic-embed-text"
 
     LSDVectorStoresResponse:
-      description: List of available LSD vector stores
+      description: List of available LSD vector store providers
       content:
         application/json:
           schema:
@@ -1467,19 +1479,15 @@ components:
                 type: object
                 description: Metadata about the response
               data:
-                $ref: '#/components/schemas/LSDVectorStoresData'
+                $ref: '#/components/schemas/LSDVectorStoreProvidersData'
           example:
             metadata: {}
             data:
-              vector_stores:
-                - id: "vs_136a08ec-60da-4f68-b587-54f3def2a84c"
-                  name: "Milvus Vector Store"
-                  status: "completed"
-                  provider: "milvus"
-                - id: "vs_abc12345-def6-7890-abcd-ef1234567890"
-                  name: "FAISS In-Memory Store"
-                  status: "completed"
-                  provider: "faiss"
+              vector_store_providers:
+                - provider_id: "milvus"
+                  provider_type: "remote::milvus"
+                - provider_id: "faiss"
+                  provider_type: "inline::faiss"
 
     SecretsResponse:
       content:
@@ -1816,4 +1824,4 @@ tags:
   - name: PipelineOperation
     description: Operations for querying Kubeflow Pipeline runs
   - name: VectorStores
-    description: Vector store discovery and management from LlamaStack Distribution
+    description: Vector store provider discovery from LlamaStack Distribution
