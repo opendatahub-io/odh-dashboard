@@ -60,7 +60,9 @@ const McpDeployModalExtension: React.FC<McpDeployModalExtensionProps> = ({ rende
         ) : null,
       )}
       {render(buttonState, onOpenModal, isModalAvailable)}
-      {openModal && <McpDeployModal onClose={() => setOpenModal(false)} />}
+      {isModalAvailable && (
+        <McpDeployModal isOpen={openModal} onClose={() => setOpenModal(false)} />
+      )}
     </>
   );
 };

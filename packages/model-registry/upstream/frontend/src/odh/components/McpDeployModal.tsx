@@ -37,18 +37,18 @@ import { mcpServerCRToYaml } from '~/app/utils/mcpServerYaml';
 import { McpDeployment } from '~/app/mcpDeploymentTypes';
 
 type McpDeployModalProps = {
+  isOpen?: boolean;
   onClose: () => void;
   existingDeployment?: McpDeployment;
 };
 
-const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeployment }) => {
-  const isEditMode = !!existingDeployment;
+const McpDeployModal: React.FC<McpDeployModalProps> = ({ isOpen = true, onClose, existingDeployment }) => {
   const { serverId = '' } = useParams<{ serverId: string }>();
   const navigate = useNavigate();
   const queryParams = useQueryParamNamespaces();
   const { theme } = useThemeContext();
   const notification = useNotification();
-  const [crData, crLoaded, crError] = useMcpServerConverter(isEditMode ? '' : serverId);
+  const [crData, crLoaded, crError] = useMcpServerConverter(existingDeployment ? '' : serverId);
 
   const { data: nameDescData, onDataChange: onNameDescChange } =
     useK8sNameDescriptionFieldData(
@@ -76,13 +76,13 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
   const configLabelHelpRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
-    if (!isEditMode && crData && !yamlContent) {
+    if (!existingDeployment && crData && !yamlContent) {
       const yaml = mcpServerCRToYaml(crData);
       setYamlContent(yaml);
       setInitialYaml(yaml);
       setOciImageValue(crData.spec.source.containerImage?.ref ?? '');
     }
-  }, [isEditMode, crData, yamlContent]);
+  }, [existingDeployment, crData, yamlContent]);
 
   React.useEffect(
     () => () => {
@@ -104,12 +104,12 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
 
   const handleReset = React.useCallback(() => {
     setYamlContent(initialYaml);
-    if (!isEditMode) {
+    if (!existingDeployment) {
       setSelectedNamespace('');
       onNameDescChange('name', '');
     }
     setSubmitError(undefined);
-  }, [initialYaml, isEditMode, onNameDescChange]);
+  }, [initialYaml, existingDeployment, onNameDescChange]);
 
   const displayName = nameDescData.name;
   const k8sName = nameDescData.k8sName.value;
@@ -128,7 +128,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
 
     try {
       const opts: APIOptions = { signal: controller.signal };
-      if (isEditMode) {
+      if (existingDeployment) {
         await updateMcpDeployment('', { ...queryParams, namespace: selectedNamespace })(
           opts,
           existingDeployment.name,
@@ -161,7 +161,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
       }
     } catch (e) {
       setSubmitError(
-        e instanceof Error ? e : new Error(`Failed to ${isEditMode ? 'update' : 'deploy'} MCP server`),
+        e instanceof Error ? e : new Error(`Failed to ${existingDeployment ? 'update' : 'deploy'} MCP server`),
       );
     } finally {
       setIsSubmitting(false);
@@ -177,7 +177,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
     onClose,
     notification,
     navigate,
-    isEditMode,
     existingDeployment,
   ]);
 
@@ -187,16 +186,16 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
     !nameDescData.k8sName.state.invalidCharacters &&
     !nameDescData.k8sName.state.invalidLength;
 
-  const dataReady = isEditMode || crLoaded;
+  const dataReady = !!existingDeployment || crLoaded;
 
   const isDeployDisabled =
     !hasValidName || !ociImageValue || !selectedNamespace || isSubmitting || !dataReady;
 
-  const modalTitle = isEditMode ? 'Edit MCP server deployment' : 'Deploy MCP server';
+  const modalTitle = existingDeployment ? 'Edit MCP server deployment' : 'Deploy MCP server';
 
-  if (!isEditMode && !crLoaded && !crError) {
+  if (!existingDeployment && !crLoaded && !crError) {
     return (
-      <Modal isOpen variant="medium" onClose={onClose} data-testid="mcp-deploy-modal">
+      <Modal isOpen={isOpen} variant="medium" onClose={onClose} data-testid="mcp-deploy-modal">
         <ModalHeader title={modalTitle} />
         <ModalBody>
           <Spinner aria-label="Loading MCP server configuration" />
@@ -206,7 +205,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
   }
 
   return (
-    <Modal isOpen variant="medium" onClose={onClose} data-testid="mcp-deploy-modal">
+    <Modal isOpen={isOpen} variant="medium" onClose={onClose} data-testid="mcp-deploy-modal">
       <ModalHeader title={modalTitle} />
       <ModalBody>
         {crError && (
@@ -260,7 +259,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
               value={selectedNamespace}
               onChange={handleNamespaceChange}
               placeholder="Select a project"
-              isDisabled={isEditMode || !namespacesLoaded || namespaces.length === 0}
+              isDisabled={!!existingDeployment || !namespacesLoaded || namespaces.length === 0}
               isFullWidth
               isScrollable
               maxMenuHeight="300px"
@@ -338,7 +337,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
               isLoading={isSubmitting}
               data-testid="mcp-deploy-submit-button"
             >
-              {isEditMode ? 'Save' : 'Deploy'}
+              {existingDeployment ? 'Save' : 'Deploy'}
             </Button>
           </SplitItem>
         </Split>
