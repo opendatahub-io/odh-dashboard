@@ -21,13 +21,26 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 #
 # 4. Tools (MCP Integration):
 #    - Any tools used must be properly pre-configured in your Llama Stack setup.
+{{- if and .VectorStore .VectorStore.ID }}
+#
+# 5. External Vector Store:
+#    - This script uses an existing vector store (ID: {{.VectorStore.ID}}).
+#    - The vector store provider "{{.VectorStore.ProviderID}}" must be installed in your Llama Stack instance.
+{{- if .VectorStore.EmbeddingModel }}
+#    - The embedding model "{{.VectorStore.EmbeddingModel}}" must be registered in your Llama Stack instance.
+{{- else }}
+#    - The embedding model used by this vector store must be registered in your Llama Stack instance.
+{{- end }}
+{{- end }}
 
 # Configuration adjust as needed:
 LLAMA_STACK_URL = ""
 FILES_BASE_PATH = ""
 input_text = "{{.Input}}"
 model_name = "{{.Model}}"
-{{- if .VectorStore }}
+{{- if and .VectorStore .VectorStore.ID }}
+vector_store_id = "{{.VectorStore.ID}}"
+{{- else if .VectorStore }}
 vector_store_name = "{{.VectorStore.Name}}"
 {{- end }}
 {{- if .Temperature }}
@@ -52,7 +65,11 @@ import os
 from llama_stack_client import LlamaStackClient
 
 client = LlamaStackClient(base_url=LLAMA_STACK_URL)
-{{- if .VectorStore }}
+{{- if and .VectorStore .VectorStore.ID }}
+
+# Reference the existing external vector store by ID
+vector_store = client.vector_stores.retrieve(vector_store_id)
+{{- else if .VectorStore }}
 
 # Create vector store
 vector_store = client.vector_stores.create(

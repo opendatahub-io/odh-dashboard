@@ -290,6 +290,8 @@ export type CodeExportRequest = {
   tools?: CodeExportTool[];
   mcp_servers?: MCPServerConfig[];
   vector_store?: {
+    /** Set for external vector stores — skips creation and references by ID instead */
+    id?: string;
     name: string;
     embedding_model?: string;
     embedding_dimension?: number;

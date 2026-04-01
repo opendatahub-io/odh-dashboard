@@ -20,8 +20,10 @@ type FileUpload struct {
 	Purpose string `json:"purpose"`
 }
 
-// VectorStoreConfig represents vector store configuration
+// VectorStoreConfig represents vector store configuration.
+// If ID is set, the vector store is external (pre-existing) and will be referenced by ID rather than created.
 type VectorStoreConfig struct {
+	ID                 string `json:"id,omitempty"`
 	Name               string `json:"name"`
 	EmbeddingModel     string `json:"embedding_model"`
 	EmbeddingDimension int    `json:"embedding_dimension"`

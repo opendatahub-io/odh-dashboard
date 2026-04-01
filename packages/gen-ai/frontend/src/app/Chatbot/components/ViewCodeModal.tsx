@@ -208,6 +208,14 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
               vector_store: {
                 name: selectedVectorStore.name,
                 provider_id: selectedVectorStore.metadata.provider_id,
+                // External mode: pass ID (and embedding model if known) so the template
+                // references the existing store rather than creating a new one
+                ...(knowledgeMode === 'external' && {
+                  id: selectedVectorStore.id,
+                  ...(selectedVectorStore.metadata.embedding_model && {
+                    embedding_model: selectedVectorStore.metadata.embedding_model,
+                  }),
+                }),
               },
               // Inline mode: also upload files to the vector store
               ...(knowledgeMode === 'inline' &&
