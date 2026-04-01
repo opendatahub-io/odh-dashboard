@@ -17,7 +17,7 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 #    - Set the LLAMA_STACK_URL variable to the base URL of your Llama Stack server
 #
 # 3. Model Configuration:
-#    - The selected model (e.g., "llama3.2:3b") must be available in your Llama Stack deployment.
+#    - The selected model (e.g., "llama3.2:3b") must be available in your Llama Stack deployment with the correct API key.
 #
 # 4. Tools (MCP Integration):
 #    - Any tools used must be properly pre-configured in your Llama Stack setup.
