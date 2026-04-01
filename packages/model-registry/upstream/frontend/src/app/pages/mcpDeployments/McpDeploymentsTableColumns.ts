@@ -1,6 +1,6 @@
 import { SortableData } from 'mod-arch-shared';
 import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
-import { getServerDisplayName } from './utils';
+import { getDeploymentDisplayName } from './utils';
 
 const phaseOrder: Record<McpDeploymentPhase, number> = {
   [McpDeploymentPhase.RUNNING]: 0,
@@ -12,13 +12,13 @@ export const mcpDeploymentColumns: SortableData<McpDeployment>[] = [
   {
     field: 'server',
     label: 'Server',
-    sortable: (a, b) => getServerDisplayName(a).localeCompare(getServerDisplayName(b)),
+    sortable: (a, b) => (a.serverName ?? '').localeCompare(b.serverName ?? ''),
     width: 20,
   },
   {
     field: 'name',
     label: 'Name',
-    sortable: (a, b) => a.name.localeCompare(b.name),
+    sortable: (a, b) => getDeploymentDisplayName(a).localeCompare(getDeploymentDisplayName(b)),
     width: 20,
   },
   {

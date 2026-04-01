@@ -80,6 +80,7 @@ export type McpDeploymentAddress = {
 export type McpDeployment = {
   name: string;
   displayName?: string;
+  serverName?: string;
   namespace: string;
   uid: string;
   creationTimestamp: string;
@@ -99,6 +100,7 @@ export type McpDeploymentList = {
 export type McpDeploymentCreateRequest = {
   name?: string;
   displayName?: string;
+  serverName?: string;
   image: string;
   port?: number;
   yaml?: string;

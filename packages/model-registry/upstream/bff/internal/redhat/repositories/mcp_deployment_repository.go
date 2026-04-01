@@ -37,10 +37,11 @@ var mcpServerGVR = schema.GroupVersionResource{
 }
 
 const (
-	mcpServerAPIVersion      = "mcp.x-k8s.io/v1alpha1"
-	mcpServerKind            = "MCPServer"
-	mcpDisplayNameAnnotation = "mcp.opendatahub.io/display-name"
-	defaultMcpPort           = int32(8080)
+	mcpServerAPIVersion        = "mcp.x-k8s.io/v1alpha1"
+	mcpServerKind              = "MCPServer"
+	mcpDisplayNameAnnotation   = "mcp.opendatahub.io/display-name"
+	mcpCatalogServerAnnotation = "mcp.opendatahub.io/catalog-server"
+	defaultMcpPort             = int32(8080)
 )
 
 type McpDeploymentRepository struct {
@@ -276,9 +277,13 @@ func buildMcpServerFromCreateRequest(namespace string, req models.McpDeploymentC
 		},
 	}
 
-	if req.DisplayName != "" {
-		server.Metadata.Annotations = map[string]string{
-			mcpDisplayNameAnnotation: req.DisplayName,
+	if req.DisplayName != "" || req.ServerName != "" {
+		server.Metadata.Annotations = map[string]string{}
+		if req.DisplayName != "" {
+			server.Metadata.Annotations[mcpDisplayNameAnnotation] = req.DisplayName
+		}
+		if req.ServerName != "" {
+			server.Metadata.Annotations[mcpCatalogServerAnnotation] = req.ServerName
 		}
 	}
 
@@ -339,6 +344,7 @@ func convertUnstructuredToMcpDeployment(obj unstructured.Unstructured) (models.M
 
 	if server.Metadata.Annotations != nil {
 		deployment.DisplayName = server.Metadata.Annotations[mcpDisplayNameAnnotation]
+		deployment.ServerName = server.Metadata.Annotations[mcpCatalogServerAnnotation]
 	}
 
 	if server.Spec.Source.ContainerImage != nil {

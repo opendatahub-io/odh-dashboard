@@ -9,7 +9,7 @@ import McpDeploymentsTable from './McpDeploymentsTable';
 import McpDeploymentsToolbar from './McpDeploymentsToolbar';
 import McpDeploymentsEmptyState from './McpDeploymentsEmptyState';
 import DeleteMcpDeploymentModal from './DeleteMcpDeploymentModal';
-import { getServerDisplayName } from './utils';
+import { getDeploymentDisplayName } from './utils';
 
 const McpDeploymentsPage: React.FC = () => {
   const [deployments, loaded, loadError, refresh] = useMcpDeployments();
@@ -49,7 +49,7 @@ const McpDeploymentsPage: React.FC = () => {
     return deployments.items.filter(
       (d) =>
         d.name.toLowerCase().includes(lower) ||
-        getServerDisplayName(d).toLowerCase().includes(lower),
+        getDeploymentDisplayName(d).toLowerCase().includes(lower),
     );
   }, [deployments.items, filterText]);
 

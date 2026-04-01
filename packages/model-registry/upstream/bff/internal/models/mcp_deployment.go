@@ -25,6 +25,7 @@ type McpDeploymentAddress struct {
 type McpDeployment struct {
 	Name              string                   `json:"name"`
 	DisplayName       string                   `json:"displayName,omitempty"`
+	ServerName        string                   `json:"serverName,omitempty"`
 	Namespace         string                   `json:"namespace"`
 	UID               string                   `json:"uid"`
 	CreationTimestamp string                   `json:"creationTimestamp"`
@@ -44,6 +45,7 @@ type McpDeploymentList struct {
 type McpDeploymentCreateRequest struct {
 	Name        string `json:"name,omitempty"`
 	DisplayName string `json:"displayName,omitempty"`
+	ServerName  string `json:"serverName,omitempty"`
 	Image       string `json:"image"`
 	Port        int32  `json:"port,omitempty"`
 	YAML        string `json:"yaml,omitempty"`

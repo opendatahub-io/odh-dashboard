@@ -1,18 +1,18 @@
 import { McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
-import { getConnectionUrl, getServerDisplayName, getStatusInfo } from '../utils';
+import { getConnectionUrl, getDeploymentDisplayName, getStatusInfo } from '../utils';
 import { createMockDeployment } from './mcpDeploymentTestUtils';
 
-describe('getServerDisplayName', () => {
+describe('getDeploymentDisplayName', () => {
   it('should return displayName when set', () => {
     const deployment = createMockDeployment({
       displayName: 'My Kubernetes Server',
     });
-    expect(getServerDisplayName(deployment)).toBe('My Kubernetes Server');
+    expect(getDeploymentDisplayName(deployment)).toBe('My Kubernetes Server');
   });
 
   it('should fall back to name when displayName is not set', () => {
     const deployment = createMockDeployment({ name: 'kubernetes-mcp' });
-    expect(getServerDisplayName(deployment)).toBe('kubernetes-mcp');
+    expect(getDeploymentDisplayName(deployment)).toBe('kubernetes-mcp');
   });
 
   it('should fall back to name when displayName is empty string', () => {
@@ -20,7 +20,7 @@ describe('getServerDisplayName', () => {
       displayName: '',
       name: 'kubernetes-mcp',
     });
-    expect(getServerDisplayName(deployment)).toBe('kubernetes-mcp');
+    expect(getDeploymentDisplayName(deployment)).toBe('kubernetes-mcp');
   });
 });
 

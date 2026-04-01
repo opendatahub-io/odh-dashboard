@@ -84,6 +84,50 @@ func TestBuildMcpServerFromCreateRequest_WithDisplayName(t *testing.T) {
 	}
 }
 
+func TestBuildMcpServerFromCreateRequest_WithServerName(t *testing.T) {
+	req := models.McpDeploymentCreateRequest{
+		Name:       "k8s-mcp",
+		ServerName: "kubernetes-mcp-server",
+		Image:      "quay.io/mcp/k8s:latest",
+	}
+
+	server, err := buildMcpServerFromCreateRequest("default", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if server.Metadata.Annotations == nil {
+		t.Fatal("expected annotations to be set")
+	}
+	if server.Metadata.Annotations[mcpCatalogServerAnnotation] != "kubernetes-mcp-server" {
+		t.Fatalf("expected catalog server annotation %q, got %q",
+			"kubernetes-mcp-server", server.Metadata.Annotations[mcpCatalogServerAnnotation])
+	}
+}
+
+func TestBuildMcpServerFromCreateRequest_WithDisplayNameAndServerName(t *testing.T) {
+	req := models.McpDeploymentCreateRequest{
+		Name:        "k8s-mcp",
+		DisplayName: "Kubernetes MCP",
+		ServerName:  "kubernetes-mcp-server",
+		Image:       "quay.io/mcp/k8s:latest",
+	}
+
+	server, err := buildMcpServerFromCreateRequest("default", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if server.Metadata.Annotations[mcpDisplayNameAnnotation] != "Kubernetes MCP" {
+		t.Fatalf("expected display name annotation %q, got %q",
+			"Kubernetes MCP", server.Metadata.Annotations[mcpDisplayNameAnnotation])
+	}
+	if server.Metadata.Annotations[mcpCatalogServerAnnotation] != "kubernetes-mcp-server" {
+		t.Fatalf("expected catalog server annotation %q, got %q",
+			"kubernetes-mcp-server", server.Metadata.Annotations[mcpCatalogServerAnnotation])
+	}
+}
+
 func TestBuildMcpServerFromCreateRequest_WithCustomPort(t *testing.T) {
 	req := models.McpDeploymentCreateRequest{
 		Image: "quay.io/mcp/test:1.0",
@@ -230,7 +274,6 @@ func TestConvertMcpServerToUnstructured(t *testing.T) {
 	}
 }
 
-
 // convertUnstructuredToMcpDeployment
 func newTestUnstructured(name, namespace, image string, port int64) unstructured.Unstructured {
 	obj := unstructured.Unstructured{
@@ -294,6 +337,48 @@ func TestConvertUnstructuredToMcpDeployment_Basic(t *testing.T) {
 	}
 }
 
+func TestConvertUnstructuredToMcpDeployment_WithServerAnnotation(t *testing.T) {
+	obj := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": mcpServerAPIVersion,
+			"kind":       mcpServerKind,
+			"metadata": map[string]interface{}{
+				"name":              "k8s-mcp",
+				"namespace":         "test-ns",
+				"uid":               "test-uid-789",
+				"creationTimestamp": "2026-03-30T10:00:00Z",
+				"annotations": map[string]interface{}{
+					mcpDisplayNameAnnotation:   "Kubernetes MCP",
+					mcpCatalogServerAnnotation: "kubernetes-mcp-server",
+				},
+			},
+			"spec": map[string]interface{}{
+				"source": map[string]interface{}{
+					"type": "ContainerImage",
+					"containerImage": map[string]interface{}{
+						"ref": "quay.io/mcp/k8s:1.0",
+					},
+				},
+				"config": map[string]interface{}{
+					"port": int64(8080),
+				},
+			},
+		},
+	}
+
+	deployment, err := convertUnstructuredToMcpDeployment(obj)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if deployment.DisplayName != "Kubernetes MCP" {
+		t.Fatalf("expected displayName 'Kubernetes MCP', got %q", deployment.DisplayName)
+	}
+	if deployment.ServerName != "kubernetes-mcp-server" {
+		t.Fatalf("expected serverName 'kubernetes-mcp-server', got %q", deployment.ServerName)
+	}
+}
+
 func TestConvertUnstructuredToMcpDeployment_NoAnnotations(t *testing.T) {
 	obj := unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -326,6 +411,9 @@ func TestConvertUnstructuredToMcpDeployment_NoAnnotations(t *testing.T) {
 
 	if deployment.DisplayName != "" {
 		t.Fatalf("expected empty displayName, got %q", deployment.DisplayName)
+	}
+	if deployment.ServerName != "" {
+		t.Fatalf("expected empty serverName, got %q", deployment.ServerName)
 	}
 }
 
@@ -403,7 +491,6 @@ func TestExtractMcpServerStatus_WithConditions(t *testing.T) {
 	}
 }
 
-
 // extractMcpServerAddress
 func TestExtractMcpServerAddress_NoStatus(t *testing.T) {
 	obj := unstructured.Unstructured{
@@ -472,7 +559,6 @@ func TestExtractMcpServerAddress_WithURL(t *testing.T) {
 		t.Fatalf("expected URL 'http://test.default.svc.cluster.local:8080/mcp', got %q", addr.URL)
 	}
 }
-
 
 // convertUnstructuredToMcpDeployment — with status and address
 func TestConvertUnstructuredToMcpDeployment_WithStatusAndAddress(t *testing.T) {
@@ -643,7 +729,6 @@ func TestParseSpecYAML_NoConfigOrRuntimeReturnsError(t *testing.T) {
 	}
 }
 
-
 // buildMcpDeploymentPatch
 func TestBuildMcpDeploymentPatch_DisplayNameOnly(t *testing.T) {
 	displayName := "Updated Name"
@@ -766,7 +851,6 @@ func TestBuildMcpDeploymentPatch_InvalidYAMLReturnsError(t *testing.T) {
 	}
 }
 
-
 // Round-trip: Create -> Unstructured -> McpDeployment
 func TestRoundTrip_CreateToDeployment(t *testing.T) {
 	// yaml.v3 uses lowercased field names when no yaml struct tags exist
@@ -781,6 +865,7 @@ func TestRoundTrip_CreateToDeployment(t *testing.T) {
 	req := models.McpDeploymentCreateRequest{
 		Name:        "round-trip-test",
 		DisplayName: "Round Trip Test",
+		ServerName:  "kubernetes-mcp-server",
 		Image:       "quay.io/mcp/kubernetes:2.0",
 		YAML:        yamlContent,
 	}
@@ -812,6 +897,9 @@ func TestRoundTrip_CreateToDeployment(t *testing.T) {
 	if deployment.DisplayName != "Round Trip Test" {
 		t.Fatalf("expected displayName 'Round Trip Test', got %q", deployment.DisplayName)
 	}
+	if deployment.ServerName != "kubernetes-mcp-server" {
+		t.Fatalf("expected serverName 'kubernetes-mcp-server', got %q", deployment.ServerName)
+	}
 	if deployment.Image != "quay.io/mcp/kubernetes:2.0" {
 		t.Fatalf("expected image 'quay.io/mcp/kubernetes:2.0', got %q", deployment.Image)
 	}
@@ -828,7 +916,6 @@ func TestRoundTrip_CreateToDeployment(t *testing.T) {
 		t.Fatalf("expected YAML to contain 'serviceaccountname: mcp-viewer', got:\n%s", deployment.YAML)
 	}
 }
-
 
 // validateCreateRequest
 func TestValidateCreateRequest_MissingImage(t *testing.T) {

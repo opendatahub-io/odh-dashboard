@@ -10,7 +10,7 @@ export const getConnectionUrl = (deployment: McpDeployment): string | undefined 
   return undefined;
 };
 
-export const getServerDisplayName = (deployment: McpDeployment): string =>
+export const getDeploymentDisplayName = (deployment: McpDeployment): string =>
   deployment.displayName || deployment.name;
 
 export type McpDeploymentStatusInfo = {

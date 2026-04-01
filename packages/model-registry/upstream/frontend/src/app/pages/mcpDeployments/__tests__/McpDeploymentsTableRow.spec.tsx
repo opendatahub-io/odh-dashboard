@@ -17,17 +17,24 @@ const renderRow = (deployment: McpDeployment, onDeleteClick = jest.fn(), onEditC
   );
 
 describe('McpDeploymentsTableRow', () => {
-  it('should render name as server when no displayName', () => {
+  it('should render server column with catalog server name when set', () => {
+    renderRow(createMockDeployment({ serverName: 'kubernetes-mcp-server' }));
+    expect(screen.getByTestId('mcp-deployment-server')).toHaveTextContent(
+      'kubernetes-mcp-server',
+    );
+  });
+
+  it('should render dash in server column when serverName is not set', () => {
     renderRow(createMockDeployment());
-    expect(screen.getByTestId('mcp-deployment-server')).toHaveTextContent('kubernetes-mcp');
+    expect(screen.getByTestId('mcp-deployment-server')).toHaveTextContent('-');
   });
 
-  it('should render displayName as server when set', () => {
+  it('should render displayName in name column when set', () => {
     renderRow(createMockDeployment({ displayName: 'My K8s Server' }));
-    expect(screen.getByTestId('mcp-deployment-server')).toHaveTextContent('My K8s Server');
+    expect(screen.getByTestId('mcp-deployment-name')).toHaveTextContent('My K8s Server');
   });
 
-  it('should render deployment name', () => {
+  it('should fall back to name in name column when no displayName', () => {
     renderRow(createMockDeployment());
     expect(screen.getByTestId('mcp-deployment-name')).toHaveTextContent('kubernetes-mcp');
   });
