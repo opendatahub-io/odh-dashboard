@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Form, FormGroup, FormSection, TextArea, TextInput } from '@patternfly/react-core';
 import { CharLimitHelperText } from '#~/components/CharLimitHelperText';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import {
   MlflowFormData,
   PipelineVersionToUse,
@@ -146,7 +147,14 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
           />
         </FormGroup>
 
-        <FormGroup label="Run group" fieldId="run-group" isRequired>
+        <FormGroup
+          label="Run group"
+          fieldId="run-group"
+          isRequired
+          labelHelp={
+            <DashboardHelpTooltip content="Run groups were formerly known as pipeline experiments. Use this field to group your pipeline runs for easier management." />
+          }
+        >
           <TextInput
             id="run-group"
             data-testid="run-group-field"
