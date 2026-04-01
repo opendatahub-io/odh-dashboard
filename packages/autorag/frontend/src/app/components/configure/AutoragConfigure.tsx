@@ -40,6 +40,7 @@ import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 
@@ -297,7 +298,7 @@ function AutoragConfigure(): React.JSX.Element {
                         </>
                       }
                     >
-                      Evaluation data source upload component
+                      <AutoragEvaluationSelect />
                     </ConfigureFormGroup>
 
                     <StackItem>

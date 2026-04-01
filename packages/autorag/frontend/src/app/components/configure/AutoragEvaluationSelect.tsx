@@ -1,4 +1,3 @@
-import { FormGroup } from '@patternfly/react-core';
 import React from 'react';
 import { useController, useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router';
@@ -41,36 +40,30 @@ function AutoragEvaluationSelect(): React.JSX.Element {
   const { field } = controller;
 
   return (
-    <FormGroup
-      fieldId={field.name}
-      label="Add the data source you would like to use for evaluation"
-      isRequired
-    >
-      <FileSelector
-        id={field.name}
-        // files={storageFiles}
-        files={['watsonx_benchmark.json', 'watsonx_benchmark_2.json']}
-        selected={field.value}
-        onSelect={field.onChange}
-        onUpload={async (file, setProgress, setStatus) => {
-          try {
-            await uploadToStorageMutation.mutateAsync({ file, onProgress: setProgress });
-          } catch (error) {
-            notification.error(
-              'Failed to upload file',
-              error instanceof Error ? error.message : String(error),
-            );
-            setStatus('danger');
-            return;
-          }
+    <FileSelector
+      id={field.name}
+      // files={storageFiles}
+      files={['watsonx_benchmark.json', 'watsonx_benchmark_2.json']}
+      selected={field.value}
+      onSelect={field.onChange}
+      onUpload={async (file, setProgress, setStatus) => {
+        try {
+          await uploadToStorageMutation.mutateAsync({ file, onProgress: setProgress });
+        } catch (error) {
+          notification.error(
+            'Failed to upload file',
+            error instanceof Error ? error.message : String(error),
+          );
+          setStatus('danger');
+          return;
+        }
 
-          field.onChange(file.name);
-          setStatus('success');
-        }}
-        fileUploadHelperText="Supply a JSON file with test questions and answers to evaluate the quality of Q&A responses."
-        typeaheadProps={{ isRequired: true, placeholder: 'Select file from bucket' }}
-      />
-    </FormGroup>
+        field.onChange(file.name);
+        setStatus('success');
+      }}
+      fileUploadHelperText="Supply a JSON file with test questions and answers to evaluate the quality of Q&A responses."
+      typeaheadProps={{ isRequired: true, placeholder: 'Select file from bucket' }}
+    />
   );
 }
 
