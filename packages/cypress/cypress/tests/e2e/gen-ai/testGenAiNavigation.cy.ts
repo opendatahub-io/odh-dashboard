@@ -1,4 +1,4 @@
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../utils/e2eUsers';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { enableGenAiFeatures, disableGenAiFeatures } from '../../../utils/oc_commands/genAi';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
@@ -22,8 +22,14 @@ describe('Gen AI Navigation - User Journey Tests', () => {
   retryableBefore(() => {
     // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
     Cypress.on('uncaught:exception', (err) => {
-      // Ignore SyntaxError from missing federated modules
-      if (err.message.includes('expected expression') || err.message.includes('Unexpected token')) {
+      // Only suppress known module federation / remoteEntry errors
+      // Allow other parse errors to surface as real regressions
+      if (
+        err.message.includes('remoteEntry') ||
+        err.message.includes('module federation') ||
+        err.message.includes('Failed to fetch dynamically imported module') ||
+        err.message.includes('error loading dynamically imported module')
+      ) {
         return false;
       }
       return true;
@@ -67,11 +73,15 @@ describe('Gen AI Navigation - User Journey Tests', () => {
       return;
     }
 
-    disableGenAiFeatures();
+    // Chain Cypress commands to ensure deterministic cleanup
+    // Return the chain so Cypress waits for completion before next spec
+    return cy.then(() => {
+      disableGenAiFeatures();
 
-    if (projectName) {
-      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
-    }
+      if (projectName) {
+        deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
+      }
+    });
   });
 
   beforeEach(function skipIfNotRHOAI() {
@@ -120,7 +130,7 @@ describe('Gen AI Navigation - User Journey Tests', () => {
     },
     () => {
       cy.step('Log into the application as Data scientist');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       cy.step('Navigate directly to Playground using full URL with namespace');
       cy.visit(`/gen-ai-studio/playground/${projectName}`);
@@ -237,7 +247,7 @@ describe('Gen AI Navigation - User Journey Tests', () => {
     },
     () => {
       cy.step('Log into the application as first user (Developer)');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       cy.step('Navigate to AI Assets and note the URL');
       aiAssets.navigate(projectName);
