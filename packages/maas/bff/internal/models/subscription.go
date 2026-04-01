@@ -153,8 +153,30 @@ type SubscriptionInfoResponse struct {
 	AuthPolicies []MaaSAuthPolicy      `json:"authPolicies"`
 }
 
-// SubscriptionFormDataResponse contains data for the subscription creation form.
+// SubscriptionFormDataResponse contains data for the subscription and policy creation forms.
 type SubscriptionFormDataResponse struct {
 	Groups    []string              `json:"groups"`
+	ModelRefs []MaaSModelRefSummary `json:"modelRefs"`
+	Policies  []MaaSAuthPolicy      `json:"policies"`
+}
+
+// CreatePolicyRequest is the request body for creating a new policy.
+type CreatePolicyRequest struct {
+	Name             string         `json:"name"`
+	ModelRefs        []ModelRef     `json:"modelRefs"`
+	Subjects         SubjectSpec    `json:"subjects"`
+	MeteringMetadata *TokenMetadata `json:"meteringMetadata,omitempty"`
+}
+
+// UpdatePolicyRequest is the request body for updating a policy.
+type UpdatePolicyRequest struct {
+	ModelRefs        []ModelRef     `json:"modelRefs"`
+	Subjects         SubjectSpec    `json:"subjects"`
+	MeteringMetadata *TokenMetadata `json:"meteringMetadata,omitempty"`
+}
+
+// PolicyInfoResponse contains detailed policy info with related model refs.
+type PolicyInfoResponse struct {
+	Policy    MaaSAuthPolicy        `json:"policy"`
 	ModelRefs []MaaSModelRefSummary `json:"modelRefs"`
 }

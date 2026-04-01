@@ -28,6 +28,14 @@ const (
 	SubscriptionUpdatePath   = ApiPathPrefix + "/update-subscription/:name"
 	SubscriptionDeletePath   = ApiPathPrefix + "/subscription/:name"
 
+	// Policy routes
+	PolicyListPath     = ApiPathPrefix + "/all-policies"
+	PolicyViewPath     = ApiPathPrefix + "/view-policy/:name"
+	PolicyFormDataPath = ApiPathPrefix + "/subscription-policy-form-data"
+	PolicyCreatePath   = ApiPathPrefix + "/new-policy"
+	PolicyUpdatePath   = ApiPathPrefix + "/update-policy/:name"
+	PolicyDeletePath   = ApiPathPrefix + "/delete-policy/:name"
+
 	// MaaSModelRef routes
 	MaaSModelRefCreatePath = ApiPathPrefix + "/maasmodel"
 	MaaSModelRefUpdatePath = ApiPathPrefix + "/maasmodel/:namespace/:name"

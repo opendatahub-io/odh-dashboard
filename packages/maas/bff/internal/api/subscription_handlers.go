@@ -86,8 +86,8 @@ func GetSubscriptionInfoHandler(app *App, w http.ResponseWriter, r *http.Request
 	}
 }
 
-// GetSubscriptionFormDataHandler handles GET /api/v1/new-subscription
-// K8s calls: GET /k8s/v1/groups, GET /k8s/v1/maasmodelref
+// GetSubscriptionFormDataHandler handles GET /api/v1/new-subscription and GET /api/v1/subscription-policy-form-data
+// K8s calls: GET /k8s/v1/groups, GET /k8s/v1/maasmodelref, GET /k8s/v1/maasauthpolicy
 func GetSubscriptionFormDataHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -96,6 +96,13 @@ func GetSubscriptionFormDataHandler(app *App, w http.ResponseWriter, r *http.Req
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+
+	policies, err := app.repositories.Policies.ListPolicies(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	formData.Policies = policies
 
 	if err := app.WriteJSON(w, http.StatusOK, formData, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
