@@ -95,7 +95,7 @@ export const postDeployMaaSModelRef = async (
   existingDeployment?: LLMdDeployment,
 ): Promise<void> => {
   const { name, namespace, uid } = deployedModel.metadata;
-  if (typeof fieldData.isChecked !== 'boolean') {
+  if (typeof fieldData.isChecked !== 'boolean' || !name || !namespace) {
     return;
   }
   const { isChecked } = fieldData;

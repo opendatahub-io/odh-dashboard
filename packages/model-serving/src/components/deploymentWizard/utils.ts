@@ -78,6 +78,11 @@ export const deployModel = async (
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
   applyFieldData?: DeploymentAssemblyFn,
+  runPreDeploy?: (deployment: Deployment, existingDeployment?: Deployment) => Promise<Deployment>,
+  runPostDeploy?: (
+    deployedModel: Deployment['model'],
+    existingDeployment?: Deployment,
+  ) => Promise<void>,
 ): Promise<Deployment> => {
   const projectName = wizardState.project.projectName || modelResource?.metadata.namespace;
   if (!projectName) {
@@ -126,6 +131,16 @@ export const deployModel = async (
         ]
       : []),
   ]);
+  if (runPreDeploy && modelResource) {
+    await runPreDeploy(
+      {
+        modelServingPlatformId: deployMethod.platform,
+        model: modelResource,
+        server: serverResource,
+      },
+      existingDeployment,
+    );
+  }
 
   // Create secret
   const newSecret = await handleConnectionCreation(
@@ -170,6 +185,9 @@ export const deployModel = async (
       deploymentResult.model.metadata.uid ?? '',
       false,
     );
+  }
+  if (runPostDeploy) {
+    await runPostDeploy(deploymentResult.model, existingDeployment);
   }
 
   return deploymentResult;

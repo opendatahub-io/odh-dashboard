@@ -13,9 +13,9 @@ import { useActiveFields } from '../dynamicFormUtils';
  * saved model resource (which now has a uid), and the original deployment (if editing).
  *
  * Post-deploy extensions are only executed if their associated WizardField2 is active.
- * Errors thrown by individual extensions are caught and collected as PostDeployFailure
- * entries; subsequent extensions still run and the returned promise always resolves so these errors don't block submission and closing of the wizard
- *
+ * Errors thrown by individual extensions are caught; subsequent extensions
+ * still run and the returned promise always resolves so errors don't block submission
+ * and closing of the wizard
  * @param wizardState - The current wizard form state at the point of submission
  */
 export const useWizardFieldPostDeploy = (
@@ -46,10 +46,14 @@ export const useWizardFieldPostDeploy = (
       for (const ext of activePostDeployExtensions) {
         const { fieldId } = ext.properties;
         const fieldData: unknown = wizardState[fieldId];
-        await ext.properties.postDeploy(fieldData, deployedModel, existingDeployment);
+        try {
+          await ext.properties.postDeploy(fieldData, deployedModel, existingDeployment);
+        } catch (error) {
+          postDeployExtensionErrors.push(error instanceof Error ? error : new Error(String(error)));
+        }
       }
     },
-    [activePostDeployExtensions, wizardState],
+    [activePostDeployExtensions, wizardState, postDeployExtensionErrors],
   );
 
   return React.useMemo(

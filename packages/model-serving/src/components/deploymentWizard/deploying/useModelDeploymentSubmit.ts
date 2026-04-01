@@ -88,30 +88,20 @@ export const useModelDeploymentSubmit = (
             )
           : undefined;
 
-        const preDeployedDeployment = resources.model
-          ? await runPreDeploy(
-              {
-                modelServingPlatformId: deployMethod.properties.platform,
-                model: resources.model,
-                server: resources.server ?? serverResource,
-              },
-              existingDeployment,
-            )
-          : undefined;
-
-        const deployedDeployment = await deployModel(
+        await deployModel(
           formState,
           connectionSecretName,
           deployMethod.properties,
           existingDeployment,
-          preDeployedDeployment?.model ?? resources.model,
-          preDeployedDeployment?.server ?? serverResource,
+          resources.model,
+          resources.server ?? serverResource,
           serverResourceTemplateName,
           overwrite,
           initialWizardData,
           applyFieldData,
+          runPreDeploy,
+          runPostDeploy,
         );
-        await runPostDeploy(deployedDeployment.model, existingDeployment);
         exitWizardOnSubmit();
       } catch (error) {
         setSubmitError(error instanceof Error ? error : new Error(String(error)));
