@@ -49,8 +49,7 @@ func (r *PoliciesRepository) ListPolicies(ctx context.Context) ([]models.MaaSAut
 	for _, item := range list.Items {
 		policy, err := convertUnstructuredToAuthPolicy(&item)
 		if err != nil {
-			r.logger.Warn("Failed to convert MaaSAuthPolicy", slog.String("name", item.GetName()), slog.Any("error", err))
-			continue
+			return nil, fmt.Errorf("failed to convert MaaSAuthPolicy %s: %w", item.GetName(), err)
 		}
 		policies = append(policies, *policy)
 	}
@@ -101,7 +100,7 @@ func (r *PoliciesRepository) CreatePolicy(ctx context.Context, request models.Cr
 	created, err := kubeClient.Resource(constants.MaaSAuthPolicyGvr).Namespace(r.namespace).Create(ctx, policyObj, metav1.CreateOptions{})
 	if err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
-			return nil, fmt.Errorf("MaaSAuthPolicy '%s' already exists", request.Name)
+			return nil, fmt.Errorf("%w: MaaSAuthPolicy '%s' already exists", ErrAlreadyExists, request.Name)
 		}
 		return nil, fmt.Errorf("failed to create MaaSAuthPolicy: %w", err)
 	}
@@ -151,7 +150,7 @@ func (r *PoliciesRepository) DeletePolicy(ctx context.Context, name string) erro
 	err = kubeClient.Resource(constants.MaaSAuthPolicyGvr).Namespace(r.namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return fmt.Errorf("MaaSAuthPolicy '%s' not found", name)
+			return fmt.Errorf("%w: MaaSAuthPolicy '%s' not found", ErrNotFound, name)
 		}
 		return fmt.Errorf("failed to delete MaaSAuthPolicy: %w", err)
 	}
@@ -176,11 +175,16 @@ func updateAuthPolicySpec(obj *unstructured.Unstructured, modelRefs []models.Mod
 		}
 	}
 
-	spec := map[string]interface{}{
-		"modelRefs": mrList,
-		"subjects": map[string]interface{}{
-			"groups": groupList,
-		},
+	// Get existing spec or create empty map
+	spec, ok := obj.Object["spec"].(map[string]interface{})
+	if !ok {
+		spec = make(map[string]interface{})
+	}
+
+	// Merge fields instead of overwriting the entire spec
+	spec["modelRefs"] = mrList
+	spec["subjects"] = map[string]interface{}{
+		"groups": groupList,
 	}
 
 	if meteringMetadata != nil {

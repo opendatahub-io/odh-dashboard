@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
+	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
 )
 
 // attachPolicyHandlers registers the policy routes.
@@ -91,7 +91,7 @@ func CreatePolicyHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 	ctx := r.Context()
 
 	var request models.CreatePolicyRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := app.ReadJSON(w, r, &request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -107,7 +107,7 @@ func CreatePolicyHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 
 	policy, err := app.repositories.Policies.CreatePolicy(ctx, request)
 	if err != nil {
-		if strings.Contains(err.Error(), "already exists") {
+		if errors.Is(err, repositories.ErrAlreadyExists) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusConflict,
 				Error:      ErrorPayload{Code: "409", Message: err.Error()},
@@ -134,7 +134,7 @@ func UpdatePolicyHandler(app *App, w http.ResponseWriter, r *http.Request, param
 	}
 
 	var request models.UpdatePolicyRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := app.ReadJSON(w, r, &request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -173,7 +173,7 @@ func DeletePolicyHandler(app *App, w http.ResponseWriter, r *http.Request, param
 	}
 
 	if err := app.repositories.Policies.DeletePolicy(ctx, name); err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, repositories.ErrNotFound) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusNotFound,
 				Error:      ErrorPayload{Code: "404", Message: err.Error()},

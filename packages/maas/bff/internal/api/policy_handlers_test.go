@@ -2,8 +2,10 @@ package api
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 
 	"github.com/julienschmidt/httprouter"
 	. "github.com/onsi/ginkgo/v2"
@@ -252,10 +254,12 @@ var _ = Describe("PolicyHandlers", Ordered, func() {
 		})
 
 		It("returns 400 when name is empty", func() {
+			// Create minimal app for parameter validation test
+			testApp := &App{logger: slog.New(slog.NewTextHandler(os.Stdout, nil))}
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/view-policy/", nil)
 			rr := httptest.NewRecorder()
 			params := httprouter.Params{httprouter.Param{Key: "name", Value: ""}}
-			GetPolicyInfoHandler(nil, rr, req, params)
+			GetPolicyInfoHandler(testApp, rr, req, params)
 			Expect(rr.Code).To(Equal(http.StatusBadRequest))
 		})
 	})
@@ -468,10 +472,12 @@ var _ = Describe("PolicyHandlers", Ordered, func() {
 		})
 
 		It("returns 400 when name is empty", func() {
+			// Create minimal app for parameter validation test
+			testApp := &App{logger: slog.New(slog.NewTextHandler(os.Stdout, nil))}
 			req := httptest.NewRequest(http.MethodDelete, "/api/v1/delete-policy/", nil)
 			rr := httptest.NewRecorder()
 			params := httprouter.Params{httprouter.Param{Key: "name", Value: ""}}
-			DeletePolicyHandler(nil, rr, req, params)
+			DeletePolicyHandler(testApp, rr, req, params)
 			Expect(rr.Code).To(Equal(http.StatusBadRequest))
 		})
 	})
