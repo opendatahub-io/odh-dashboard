@@ -10,7 +10,7 @@ import { usePreferredNamespaceRedirect } from '~/app/hooks/usePreferredNamespace
 import ProjectSelectorNavigator from '~/app/components/common/ProjectSelectorNavigator';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import NoProjects from '~/app/components/empty-states/NoProjects';
-import { automlCreatePathname, automlExperimentsPathname } from '~/app/utilities/routes';
+import { automlConfigurePathname, automlExperimentsPathname } from '~/app/utilities/routes';
 
 function AutomlExperimentsPage(): React.JSX.Element {
   usePreferredNamespaceRedirect();
@@ -65,7 +65,7 @@ function AutomlExperimentsPage(): React.JSX.Element {
             data-testid="automl-header-create-experiment-button"
             onClick={() => {
               if (namespace) {
-                navigate(`${automlCreatePathname}/${namespace}`);
+                navigate(`${automlConfigurePathname}/${namespace}`);
               }
             }}
           >

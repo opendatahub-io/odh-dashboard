@@ -20,7 +20,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
-import { usePipelineRunsMutation } from '~/app/hooks/mutations';
+import { useCreatePipelineRunMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
@@ -45,7 +45,7 @@ function AutoragConfigurePage(): React.JSX.Element {
 
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
 
-  const pipelineRunsMutation = usePipelineRunsMutation(namespace ?? '');
+  const pipelineRunsMutation = useCreatePipelineRunMutation(namespace ?? '');
 
   const form = useForm({
     mode: 'onChange',
@@ -63,16 +63,22 @@ function AutoragConfigurePage(): React.JSX.Element {
   const createActions = (
     <>
       <ActionListItem>
-        <Button type="submit" variant="primary" isDisabled={!displayName || !llamaStackSecretName}>
+        <Button
+          type="submit"
+          variant="primary"
+          isDisabled={
+            !configureSchema.base.shape.display_name.safeParse(displayName).success ||
+            !configureSchema.base.shape.llama_stack_secret_name.safeParse(llamaStackSecretName)
+              .success
+          }
+        >
           Next
         </Button>
       </ActionListItem>
       <ActionListItem>
         <Button
+          component={(props) => <Link {...props} to={autoragExperimentsPathname} />}
           variant="link"
-          onClick={() => {
-            navigate(autoragExperimentsPathname);
-          }}
         >
           Cancel
         </Button>
@@ -138,7 +144,7 @@ function AutoragConfigurePage(): React.JSX.Element {
       <FormProvider {...form}>
         <Stack
           component="form"
-          className="pf-v6-u-h-100"
+          className={classNames('pf-v6-u-h-0', 'pf-v6-u-flex-fill')}
           hasGutter
           noValidate
           onSubmit={(event) => {
@@ -167,7 +173,7 @@ function AutoragConfigurePage(): React.JSX.Element {
             )();
           }}
         >
-          <StackItem isFilled>
+          <StackItem className="pf-v6-u-h-0" isFilled>
             <PageSection
               className={classNames(
                 'pf-v6-c-form',

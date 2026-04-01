@@ -5,11 +5,15 @@ import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { PipelineRun } from '~/app/types';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
+/**
+ * Creates a new pipeline run via the AutoML BFF API.
+ * @see packages/automl/docs/pipeline-runs-api.md
+ */
 export function useCreatePipelineRunMutation(
   namespace: string,
 ): UseMutationResult<PipelineRun, Error, ConfigureSchema, unknown> {
   return useMutation({
-    mutationKey: ['autorag', 'pipelineRun'],
+    mutationKey: ['automl', 'pipelineRun'],
     mutationFn: async (payload: ConfigureSchema) => {
       const response = await handleRestFailures(
         restCREATE<PipelineRun>(

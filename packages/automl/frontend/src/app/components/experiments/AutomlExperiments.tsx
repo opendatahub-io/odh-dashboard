@@ -9,7 +9,7 @@ import NoPipelineServer from '~/app/components/empty-states/NoPipelineServer';
 import PipelineServerNotReady from '~/app/components/empty-states/PipelineServerNotReady';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
-import { automlCreatePathname } from '~/app/utilities/routes';
+import { automlConfigurePathname } from '~/app/utilities/routes';
 
 export type AutomlExperimentsListStatus = {
   /** True once pipeline definitions and runs have finished loading without a blocking list error. */
@@ -151,7 +151,7 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   if (!hasExperiments) {
     return (
       <EmptyExperimentsState
-        createExperimentRoute={`${automlCreatePathname}/${effectiveNamespace}`}
+        createExperimentRoute={`${automlConfigurePathname}/${effectiveNamespace}`}
         dataTestId="empty-experiments-state"
       />
     );

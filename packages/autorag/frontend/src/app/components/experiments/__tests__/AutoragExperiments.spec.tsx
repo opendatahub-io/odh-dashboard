@@ -1,6 +1,7 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { useNavigate, useParams } from 'react-router';
 import AutoragExperiments from '~/app/components/experiments/AutoragExperiments';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
@@ -92,6 +93,10 @@ const defaultRunsState = {
   refresh: jest.fn().mockResolvedValue(undefined),
 };
 
+function renderAutorag(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
+
 describe('AutoragExperiments', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -111,7 +116,7 @@ describe('AutoragExperiments', () => {
       loaded: false,
     });
 
-    render(<AutoragExperiments />);
+    renderAutorag(<AutoragExperiments />);
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
@@ -123,7 +128,7 @@ describe('AutoragExperiments', () => {
       totalSize: 0,
     });
 
-    render(<AutoragExperiments />);
+    renderAutorag(<AutoragExperiments />);
 
     expect(screen.getByTestId('empty-experiments-state')).toBeInTheDocument();
     expect(screen.getByText('No experiments yet')).toBeInTheDocument();
@@ -140,14 +145,14 @@ describe('AutoragExperiments', () => {
       totalSize: 0,
     });
 
-    render(<AutoragExperiments />);
+    renderAutorag(<AutoragExperiments />);
 
     expect(screen.queryByText('No projects')).not.toBeInTheDocument();
     expect(screen.queryByText('Go to Projects page')).not.toBeInTheDocument();
   });
 
   it('should show AutoragRunsTable when there are experiments', () => {
-    render(<AutoragExperiments />);
+    renderAutorag(<AutoragExperiments />);
 
     expect(screen.getByTestId('autorag-runs-table')).toBeInTheDocument();
     expect(screen.getByTestId('run-r1')).toHaveTextContent('Run 1');
@@ -157,7 +162,7 @@ describe('AutoragExperiments', () => {
   it('re-notifies onExperimentsListStatus when namespace changes even if loaded and hasExperiments stay true', async () => {
     const onStatus = jest.fn();
     mockUseParams.mockReturnValue({ namespace: 'ns-one' });
-    const { rerender } = render(<AutoragExperiments onExperimentsListStatus={onStatus} />);
+    const { rerender } = renderAutorag(<AutoragExperiments onExperimentsListStatus={onStatus} />);
 
     await waitFor(() => {
       expect(onStatus).toHaveBeenCalledWith({ loaded: true, hasExperiments: true });
@@ -165,7 +170,11 @@ describe('AutoragExperiments', () => {
     const callsAfterFirstNs = onStatus.mock.calls.length;
 
     mockUseParams.mockReturnValue({ namespace: 'ns-two' });
-    rerender(<AutoragExperiments onExperimentsListStatus={onStatus} />);
+    rerender(
+      <MemoryRouter>
+        <AutoragExperiments onExperimentsListStatus={onStatus} />
+      </MemoryRouter>,
+    );
 
     await waitFor(() => {
       expect(onStatus.mock.calls.length).toBeGreaterThan(callsAfterFirstNs);
@@ -179,7 +188,7 @@ describe('AutoragExperiments', () => {
       error: new Error('Fetch failed'),
     });
 
-    render(<AutoragExperiments />);
+    renderAutorag(<AutoragExperiments />);
 
     expect(screen.getByText('Failed to load experiments')).toBeInTheDocument();
     expect(screen.getByText('Fetch failed')).toBeInTheDocument();
@@ -192,7 +201,7 @@ describe('AutoragExperiments', () => {
       error: new Error('Not found'),
     });
 
-    render(<AutoragExperiments />);
+    renderAutorag(<AutoragExperiments />);
 
     expect(screen.getByText('No Pipeline Server in this namespace')).toBeInTheDocument();
   });
@@ -204,7 +213,7 @@ describe('AutoragExperiments', () => {
       error: new Error('Forbidden'),
     });
 
-    render(<AutoragExperiments />);
+    renderAutorag(<AutoragExperiments />);
 
     expect(screen.getByTestId('unauthorized-error')).toBeInTheDocument();
   });
@@ -216,7 +225,7 @@ describe('AutoragExperiments', () => {
       error: new Error('Service Unavailable'),
     });
 
-    render(<AutoragExperiments />);
+    renderAutorag(<AutoragExperiments />);
 
     expect(screen.getByText('Pipeline Server is not ready')).toBeInTheDocument();
   });
