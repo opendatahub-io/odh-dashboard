@@ -26,7 +26,7 @@ describe('EmptyExperimentsState', () => {
     expect(screen.getByText('No experiments yet')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'To get started, create an AutoML experiment to configure and run your machine learning workflow.',
+        'Test different model configurations to find the best-performing solution for classification, regression, and time series problems.',
       ),
     ).toBeInTheDocument();
   });
@@ -39,7 +39,7 @@ describe('EmptyExperimentsState', () => {
     );
 
     expect(screen.getByTestId('create-experiment-button')).toHaveTextContent(
-      'Create AutoML experiment',
+      'Create AutoML optimization run',
     );
   });
 

@@ -12,6 +12,7 @@ import (
 
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes/k8mocks"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	psmocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
 	s3int "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3"
@@ -28,19 +29,24 @@ import (
 )
 
 const (
-	Version             = "1.0.0"
-	PathPrefix          = "/automl"
-	ApiPathPrefix       = "/api/v1"
-	HealthCheckPath     = "/healthcheck"
-	UserPath            = ApiPathPrefix + "/user"
-	NamespacePath       = ApiPathPrefix + "/namespaces"
-	SecretsPath         = ApiPathPrefix + "/secrets"
-	S3FilePath          = ApiPathPrefix + "/s3/file"
-	S3FileSchemaPath    = ApiPathPrefix + "/s3/file/schema"
-	S3FilesPath         = ApiPathPrefix + "/s3/files"
-	PipelineRunsPath    = ApiPathPrefix + "/pipeline-runs"
-	ModelRegistriesPath = ApiPathPrefix + "/model-registries"
+	Version                 = "1.0.0"
+	PathPrefix              = "/automl"
+	ApiPathPrefix           = "/api/v1"
+	HealthCheckPath         = "/healthcheck"
+	UserPath                = ApiPathPrefix + "/user"
+	NamespacePath           = ApiPathPrefix + "/namespaces"
+	SecretsPath             = ApiPathPrefix + "/secrets"
+	S3FilePath              = ApiPathPrefix + "/s3/file"
+	S3FileSchemaPath        = ApiPathPrefix + "/s3/file/schema"
+	S3FilesPath             = ApiPathPrefix + "/s3/files"
+	PipelineRunsPath        = ApiPathPrefix + "/pipeline-runs"
+	ModelRegistriesPath     = ApiPathPrefix + "/model-registries"
+	ModelRegistryModelsPath = ModelRegistriesPath + "/:registryId/models"
 )
+
+// modelRegistryHTTPClientFactory builds a client for Model Registry register calls.
+// If nil, modelregistry.NewHTTPClient is used. Set by tests only.
+type modelRegistryHTTPClientFactory func(*slog.Logger, string, http.Header, bool, *x509.CertPool) (modelregistry.HTTPClientInterface, error)
 
 type App struct {
 	config                      config.EnvConfig
@@ -59,6 +65,8 @@ type App struct {
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
+	// modelRegistryHTTPClientFactory is nil in production; tests may set it to inject mock clients.
+	modelRegistryHTTPClientFactory modelRegistryHTTPClientFactory
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -214,6 +222,10 @@ func (app *App) Routes() http.Handler {
 	// POST /s3/file deliberately omits attachPipelineClientIfNeeded: secretName is required; there is
 	// no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
 	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToPipelineServers(app.PostS3FileHandler))))
+
+	// Model Registry - register model binary (target registry via path param + discovered ServerURL)
+	// No DSPA RBAC gate: Model Registry is a separate service; upstream MR API enforces auth.
+	apiRouter.POST(ModelRegistryModelsPath, app.AttachNamespace(app.RegisterModelHandler))
 
 	// App Router
 	appMux := http.NewServeMux()

@@ -246,7 +246,7 @@ describe('AutoragConfigurePage', () => {
       renderWithProviders(<AutoragConfigurePage />);
       expect(
         await screen.findByText(
-          'Automatically configure and optimize your Retrieval-Augmented Generation workflows.',
+          'Automatically test and tune retrieval, indexing, and model settings to improve Retrieval-Augmented Generation (RAG) response quality.',
         ),
       ).toBeInTheDocument();
     });
@@ -365,7 +365,7 @@ describe('AutoragConfigurePage', () => {
     it('should NOT display description text in configure step', async () => {
       expect(
         screen.queryByText(
-          'Automatically configure and optimize your Retrieval-Augmented Generation workflows.',
+          'Automatically test and tune retrieval, indexing, and model settings to improve Retrieval-Augmented Generation (RAG) response quality.',
         ),
       ).not.toBeInTheDocument();
     });
