@@ -17,9 +17,14 @@ const renderRow = (deployment: McpDeployment, onDeleteClick = jest.fn(), onEditC
   );
 
 describe('McpDeploymentsTableRow', () => {
-  it('should render server name derived from image', () => {
+  it('should render name as server when no displayName', () => {
     renderRow(createMockDeployment());
-    expect(screen.getByTestId('mcp-deployment-server')).toHaveTextContent('Kubernetes-1.0.0');
+    expect(screen.getByTestId('mcp-deployment-server')).toHaveTextContent('kubernetes-mcp');
+  });
+
+  it('should render displayName as server when set', () => {
+    renderRow(createMockDeployment({ displayName: 'My K8s Server' }));
+    expect(screen.getByTestId('mcp-deployment-server')).toHaveTextContent('My K8s Server');
   });
 
   it('should render deployment name', () => {

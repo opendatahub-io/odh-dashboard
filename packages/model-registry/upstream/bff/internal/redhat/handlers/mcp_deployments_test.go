@@ -369,6 +369,15 @@ func TestMcpDeploymentCreateConflictReturns409(t *testing.T) {
 	if rr.Code != http.StatusConflict {
 		t.Fatalf("expected status 409, got %d", rr.Code)
 	}
+
+	var errResp api.ErrorEnvelope
+	decodeResponse(t, rr, &errResp)
+	if errResp.Error == nil {
+		t.Fatal("expected error envelope, got nil")
+	}
+	if errResp.Error.Code != strconv.Itoa(http.StatusConflict) {
+		t.Fatalf("expected error code %q, got %q", strconv.Itoa(http.StatusConflict), errResp.Error.Code)
+	}
 }
 
 func TestMcpDeploymentCreateReturnsServerErrorOnRepoFailure(t *testing.T) {
@@ -514,6 +523,31 @@ func TestMcpDeploymentUpdateNotFoundReturns404(t *testing.T) {
 	}
 }
 
+func TestMcpDeploymentUpdateForbiddenReturns403(t *testing.T) {
+	factory := &fakeKubeFactory{}
+	app := newRedHatTestApp(factory)
+
+	repo := &mockMcpDeploymentRepo{
+		updateFn: func(_ context.Context, _ k8s.KubernetesClientInterface, _ string, _ string, _ models.McpDeploymentUpdateRequest) (models.McpDeployment, error) {
+			return models.McpDeployment{}, fmt.Errorf("failed to update MCPServer: %w", newForbiddenError())
+		},
+	}
+
+	withMcpDeploymentRepo(t, repo)
+
+	handler := overrideMcpDeploymentUpdate(app, failDefault(t))
+
+	body := `{"data":{"image":"quay.io/test:2.0"}}`
+	req := httptest.NewRequest(http.MethodPatch, api.McpDeploymentPath+"?namespace=test-ns", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	handler(rr, req, httprouter.Params{{Key: api.McpDeploymentName, Value: "test-mcp"}})
+
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", rr.Code)
+	}
+}
+
 func TestMcpDeploymentUpdateReturnsServerErrorOnRepoFailure(t *testing.T) {
 	factory := &fakeKubeFactory{}
 	app := newRedHatTestApp(factory)
@@ -643,6 +677,29 @@ func TestMcpDeploymentGetNotFoundReturns404(t *testing.T) {
 	}
 }
 
+func TestMcpDeploymentGetForbiddenReturns403(t *testing.T) {
+	factory := &fakeKubeFactory{}
+	app := newRedHatTestApp(factory)
+
+	repo := &mockMcpDeploymentRepo{
+		getFn: func(_ context.Context, _ k8s.KubernetesClientInterface, _ string, _ string) (models.McpDeployment, error) {
+			return models.McpDeployment{}, fmt.Errorf("failed to get MCPServer: %w", newForbiddenError())
+		},
+	}
+
+	withMcpDeploymentRepo(t, repo)
+
+	handler := overrideMcpDeploymentGet(app, failDefault(t))
+
+	req := httptest.NewRequest(http.MethodGet, api.McpDeploymentPath+"?namespace=test-ns", nil)
+	rr := httptest.NewRecorder()
+	handler(rr, req, httprouter.Params{{Key: api.McpDeploymentName, Value: "test-mcp"}})
+
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", rr.Code)
+	}
+}
+
 func TestMcpDeploymentGetReturnsServerErrorOnRepoFailure(t *testing.T) {
 	factory := &fakeKubeFactory{}
 	app := newRedHatTestApp(factory)
@@ -715,6 +772,29 @@ func TestMcpDeploymentCreateForbiddenReturns403(t *testing.T) {
 
 	if rr.Code != http.StatusForbidden {
 		t.Fatalf("expected status 403, got %d", rr.Code)
+	}
+}
+
+func TestMcpDeploymentDeleteReturnsServerErrorOnRepoFailure(t *testing.T) {
+	factory := &fakeKubeFactory{}
+	app := newRedHatTestApp(factory)
+
+	repo := &mockMcpDeploymentRepo{
+		deleteFn: func(_ context.Context, _ k8s.KubernetesClientInterface, _ string, _ string) error {
+			return errors.New("storage failure")
+		},
+	}
+
+	withMcpDeploymentRepo(t, repo)
+
+	handler := overrideMcpDeploymentDelete(app, failDefault(t))
+
+	req := httptest.NewRequest(http.MethodDelete, api.McpDeploymentPath+"?namespace=test-ns", nil)
+	rr := httptest.NewRecorder()
+	handler(rr, req, httprouter.Params{{Key: api.McpDeploymentName, Value: "test-mcp"}})
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", rr.Code)
 	}
 }
 

@@ -3,39 +3,24 @@ import { getConnectionUrl, getServerDisplayName, getStatusInfo } from '../utils'
 import { createMockDeployment } from './mcpDeploymentTestUtils';
 
 describe('getServerDisplayName', () => {
-  it('should extract and format server name from full image path', () => {
+  it('should return displayName when set', () => {
     const deployment = createMockDeployment({
-      image: 'quay.io/mcp-servers/kubernetes:1.0.0',
+      displayName: 'My Kubernetes Server',
     });
-    expect(getServerDisplayName(deployment)).toBe('Kubernetes-1.0.0');
+    expect(getServerDisplayName(deployment)).toBe('My Kubernetes Server');
   });
 
-  it('should handle image with no tag', () => {
-    const deployment = createMockDeployment({
-      image: 'quay.io/mcp-servers/kubernetes',
-    });
-    expect(getServerDisplayName(deployment)).toBe('Kubernetes');
+  it('should fall back to name when displayName is not set', () => {
+    const deployment = createMockDeployment({ name: 'kubernetes-mcp' });
+    expect(getServerDisplayName(deployment)).toBe('kubernetes-mcp');
   });
 
-  it('should handle image with hyphenated name', () => {
+  it('should fall back to name when displayName is empty string', () => {
     const deployment = createMockDeployment({
-      image: 'quay.io/mcp-servers/service-now:1.2.0',
+      displayName: '',
+      name: 'kubernetes-mcp',
     });
-    expect(getServerDisplayName(deployment)).toBe('Service-Now-1.2.0');
-  });
-
-  it('should handle simple image name without registry', () => {
-    const deployment = createMockDeployment({
-      image: 'slack:0.5.0',
-    });
-    expect(getServerDisplayName(deployment)).toBe('Slack-0.5.0');
-  });
-
-  it('should handle image name without slash or tag', () => {
-    const deployment = createMockDeployment({
-      image: 'postgres',
-    });
-    expect(getServerDisplayName(deployment)).toBe('Postgres');
+    expect(getServerDisplayName(deployment)).toBe('kubernetes-mcp');
   });
 });
 

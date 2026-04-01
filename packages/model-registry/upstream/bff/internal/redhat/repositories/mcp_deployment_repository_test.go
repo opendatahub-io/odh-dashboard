@@ -10,10 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// ---------------------------------------------------------------------------
 // buildMcpServerFromCreateRequest
-// ---------------------------------------------------------------------------
-
 func TestBuildMcpServerFromCreateRequest_MinimalRequest(t *testing.T) {
 	req := models.McpDeploymentCreateRequest{
 		Image: "quay.io/mcp/test:1.0",
@@ -195,10 +192,7 @@ func TestBuildMcpServerFromCreateRequest_YAMLPortOverridesRequestPort(t *testing
 	}
 }
 
-// ---------------------------------------------------------------------------
 // convertMcpServerToUnstructured
-// ---------------------------------------------------------------------------
-
 func TestConvertMcpServerToUnstructured(t *testing.T) {
 	server := models.MCPServer{
 		APIVersion: mcpServerAPIVersion,
@@ -236,10 +230,8 @@ func TestConvertMcpServerToUnstructured(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// convertUnstructuredToMcpDeployment
-// ---------------------------------------------------------------------------
 
+// convertUnstructuredToMcpDeployment
 func newTestUnstructured(name, namespace, image string, port int64) unstructured.Unstructured {
 	obj := unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -337,10 +329,7 @@ func TestConvertUnstructuredToMcpDeployment_NoAnnotations(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
 // extractMcpServerStatus
-// ---------------------------------------------------------------------------
-
 func TestExtractMcpServerStatus_NoStatus(t *testing.T) {
 	obj := unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -414,10 +403,145 @@ func TestExtractMcpServerStatus_WithConditions(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// parseSpecYAML
-// ---------------------------------------------------------------------------
 
+// extractMcpServerAddress
+func TestExtractMcpServerAddress_NoStatus(t *testing.T) {
+	obj := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"metadata": map[string]interface{}{"name": "test"},
+		},
+	}
+
+	addr := extractMcpServerAddress(obj)
+	if addr != nil {
+		t.Fatalf("expected nil address, got %+v", addr)
+	}
+}
+
+func TestExtractMcpServerAddress_NoAddressField(t *testing.T) {
+	obj := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"metadata": map[string]interface{}{"name": "test"},
+			"status": map[string]interface{}{
+				"phase": "Running",
+			},
+		},
+	}
+
+	addr := extractMcpServerAddress(obj)
+	if addr != nil {
+		t.Fatalf("expected nil address when no address field, got %+v", addr)
+	}
+}
+
+func TestExtractMcpServerAddress_EmptyURL(t *testing.T) {
+	obj := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"metadata": map[string]interface{}{"name": "test"},
+			"status": map[string]interface{}{
+				"address": map[string]interface{}{
+					"url": "",
+				},
+			},
+		},
+	}
+
+	addr := extractMcpServerAddress(obj)
+	if addr != nil {
+		t.Fatalf("expected nil address for empty URL, got %+v", addr)
+	}
+}
+
+func TestExtractMcpServerAddress_WithURL(t *testing.T) {
+	obj := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"metadata": map[string]interface{}{"name": "test"},
+			"status": map[string]interface{}{
+				"address": map[string]interface{}{
+					"url": "http://test.default.svc.cluster.local:8080/mcp",
+				},
+			},
+		},
+	}
+
+	addr := extractMcpServerAddress(obj)
+	if addr == nil {
+		t.Fatal("expected non-nil address")
+	}
+	if addr.URL != "http://test.default.svc.cluster.local:8080/mcp" {
+		t.Fatalf("expected URL 'http://test.default.svc.cluster.local:8080/mcp', got %q", addr.URL)
+	}
+}
+
+
+// convertUnstructuredToMcpDeployment — with status and address
+func TestConvertUnstructuredToMcpDeployment_WithStatusAndAddress(t *testing.T) {
+	obj := newTestUnstructured("k8s-mcp", "test-ns", "quay.io/mcp/k8s:1.0", 8080)
+	obj.Object["status"] = map[string]interface{}{
+		"phase": "Running",
+		"conditions": []interface{}{
+			map[string]interface{}{
+				"type":               "Ready",
+				"status":             "True",
+				"lastTransitionTime": "2026-03-30T10:05:00Z",
+				"reason":             "DeploymentAvailable",
+				"message":            "Deployment is available and ready",
+			},
+		},
+		"address": map[string]interface{}{
+			"url": "http://k8s-mcp.test-ns.svc.cluster.local:8080/mcp",
+		},
+	}
+
+	deployment, err := convertUnstructuredToMcpDeployment(obj)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if deployment.Phase != models.McpDeploymentPhaseRunning {
+		t.Fatalf("expected phase Running, got %q", deployment.Phase)
+	}
+	if len(deployment.Conditions) != 1 {
+		t.Fatalf("expected 1 condition, got %d", len(deployment.Conditions))
+	}
+	if deployment.Conditions[0].Reason != "DeploymentAvailable" {
+		t.Fatalf("expected reason 'DeploymentAvailable', got %q", deployment.Conditions[0].Reason)
+	}
+	if deployment.Address == nil {
+		t.Fatal("expected address to be populated")
+	}
+	if deployment.Address.URL != "http://k8s-mcp.test-ns.svc.cluster.local:8080/mcp" {
+		t.Fatalf("expected address URL 'http://k8s-mcp.test-ns.svc.cluster.local:8080/mcp', got %q", deployment.Address.URL)
+	}
+}
+
+func TestConvertUnstructuredToMcpDeployment_FailedNoAddress(t *testing.T) {
+	obj := newTestUnstructured("broken-mcp", "test-ns", "quay.io/fake:bad", 8080)
+	obj.Object["status"] = map[string]interface{}{
+		"phase": "Failed",
+		"conditions": []interface{}{
+			map[string]interface{}{
+				"type":   "Ready",
+				"status": "False",
+				"reason": "DeploymentFailed",
+			},
+		},
+	}
+
+	deployment, err := convertUnstructuredToMcpDeployment(obj)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if deployment.Phase != models.McpDeploymentPhaseFailed {
+		t.Fatalf("expected phase Failed, got %q", deployment.Phase)
+	}
+	if deployment.Address != nil {
+		t.Fatalf("expected nil address for failed deployment without address, got %+v", deployment.Address)
+	}
+}
+
+// parseSpecYAML
 func TestParseSpecYAML_WithSpecWrapper(t *testing.T) {
 	// yaml.v3 uses lowercased field names when no yaml struct tags exist
 	yamlStr := `spec:
@@ -519,10 +643,8 @@ func TestParseSpecYAML_NoConfigOrRuntimeReturnsError(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// buildMcpDeploymentPatch
-// ---------------------------------------------------------------------------
 
+// buildMcpDeploymentPatch
 func TestBuildMcpDeploymentPatch_DisplayNameOnly(t *testing.T) {
 	displayName := "Updated Name"
 	req := models.McpDeploymentUpdateRequest{
@@ -644,10 +766,8 @@ func TestBuildMcpDeploymentPatch_InvalidYAMLReturnsError(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Round-trip: Create -> Unstructured -> McpDeployment
-// ---------------------------------------------------------------------------
 
+// Round-trip: Create -> Unstructured -> McpDeployment
 func TestRoundTrip_CreateToDeployment(t *testing.T) {
 	// yaml.v3 uses lowercased field names when no yaml struct tags exist
 	yamlContent := `spec:
@@ -709,10 +829,8 @@ func TestRoundTrip_CreateToDeployment(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// validateCreateRequest
-// ---------------------------------------------------------------------------
 
+// validateCreateRequest
 func TestValidateCreateRequest_MissingImage(t *testing.T) {
 	req := models.McpDeploymentCreateRequest{Name: "my-server"}
 	err := validateCreateRequest(req)

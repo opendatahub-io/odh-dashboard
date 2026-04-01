@@ -10,19 +10,8 @@ export const getConnectionUrl = (deployment: McpDeployment): string | undefined 
   return undefined;
 };
 
-export const getServerDisplayName = (deployment: McpDeployment): string => {
-  const { image } = deployment;
-  const lastSlash = image.lastIndexOf('/');
-  const imageWithTag = lastSlash >= 0 ? image.substring(lastSlash + 1) : image;
-  const [imageName, tag] = imageWithTag.split(':');
-
-  const capitalizedName = imageName
-    .split('-')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('-');
-
-  return tag ? `${capitalizedName}-${tag}` : capitalizedName;
-};
+export const getServerDisplayName = (deployment: McpDeployment): string =>
+  deployment.displayName || deployment.name;
 
 export type McpDeploymentStatusInfo = {
   label: string;
