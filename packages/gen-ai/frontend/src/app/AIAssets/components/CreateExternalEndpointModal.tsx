@@ -149,12 +149,12 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
   }, [modelId, existingModels]);
 
   const displayNameConflict = React.useMemo(() => {
-    const effectiveName = displayName.trim() || modelId.trim();
-    if (!effectiveName) {
+    const trimmedDisplayName = displayName.trim();
+    if (!trimmedDisplayName) {
       return null;
     }
-    return existingModels.find((m) => m.display_name === effectiveName);
-  }, [displayName, modelId, existingModels]);
+    return existingModels.find((m) => m.display_name === trimmedDisplayName);
+  }, [displayName, existingModels]);
 
   // URL validation
   const urlValidation = React.useMemo(() => {
@@ -478,7 +478,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                   }
                 >
                   {(touched.displayName || !displayName.trim()) && displayNameConflict
-                    ? `Display name "${displayName.trim() || modelId.trim()}" is already in use.`
+                    ? `Display name "${displayName.trim()}" is already in use.`
                     : 'Optional. A friendly display name for this model.'}
                 </HelperTextItem>
               </HelperText>
