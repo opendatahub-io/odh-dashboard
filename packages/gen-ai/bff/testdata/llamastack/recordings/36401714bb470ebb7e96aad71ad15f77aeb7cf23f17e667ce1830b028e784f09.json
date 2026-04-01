@@ -16,10 +16,10 @@
           "content": "",
           "tool_calls": [
             {
-              "id": "function-call-9835680640744007690",
+              "id": "function-call-8847340012602214185",
               "type": "function",
               "function": {
-                "name": "knowledge_search",
+                "name": "file_search",
                 "arguments": "{\"query\":\"machine learning\"}"
               }
             }
@@ -27,15 +27,15 @@
         },
         {
           "role": "tool",
-          "tool_call_id": "function-call-9835680640744007690",
+          "tool_call_id": "function-call-8847340012602214185",
           "content": [
             {
               "type": "text",
-              "text": "knowledge_search tool found 0 chunks:\nBEGIN of knowledge_search tool results.\n"
+              "text": "file_search tool found 0 chunks:\nBEGIN of file_search tool results.\n"
             },
             {
               "type": "text",
-              "text": "END of knowledge_search tool results.\n"
+              "text": "END of file_search tool results.\n"
             },
             {
               "type": "text",
@@ -53,14 +53,14 @@
         {
           "type": "function",
           "function": {
-            "name": "knowledge_search",
-            "description": "Search for information in a database.",
+            "name": "file_search",
+            "description": "Search files for relevant information",
             "parameters": {
               "type": "object",
               "properties": {
                 "query": {
                   "type": "string",
-                  "description": "The query to search for. Can be a natural language sentence or keywords."
+                  "description": "The search query"
                 }
               },
               "required": [
@@ -73,18 +73,21 @@
       "service_tier": "default"
     },
     "endpoint": "/v1/chat/completions",
-    "model": "models/gemini-2.5-flash"
+    "model": "models/gemini-2.5-flash",
+    "provider_metadata": {
+      "openai_sdk_version": "2.6.1"
+    }
   },
   "response": {
     "body": [
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-9d71a96ab4c9",
+          "id": "rec-36401714bb47",
           "choices": [
             {
               "delta": {
-                "content": "Machine learning is a field of artificial intelligence (AI) that enables systems to learn from data, identify patterns, and make decisions or predictions with minimal human intervention. Instead of being explicitly programmed for every task, machine learning algorithms are trained",
+                "content": "Machine learning is a",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -101,9 +104,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 46,
-            "prompt_tokens": 153,
-            "total_tokens": 315,
+            "completion_tokens": 4,
+            "prompt_tokens": 139,
+            "total_tokens": 143,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -112,11 +115,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-9d71a96ab4c9",
+          "id": "rec-36401714bb47",
           "choices": [
             {
               "delta": {
-                "content": " on large datasets, allowing them to improve their performance over time as they are exposed to more data. This technology is at the core of many applications we use daily, such as recommendation systems, spam filters, facial recognition, and self-driving cars.",
+                "content": " field of artificial intelligence that uses statistical techniques to enable computer systems to \"learn\" from data",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -133,9 +136,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 96,
-            "prompt_tokens": 153,
-            "total_tokens": 365,
+            "completion_tokens": 22,
+            "prompt_tokens": 139,
+            "total_tokens": 161,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -144,11 +147,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-9d71a96ab4c9",
+          "id": "rec-36401714bb47",
           "choices": [
             {
               "delta": {
-                "content": null,
+                "content": ", without being explicitly programmed. This learning involves identifying patterns in data and making predictions or decisions based on those patterns.\n",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -165,9 +168,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 96,
-            "prompt_tokens": 153,
-            "total_tokens": 365,
+            "completion_tokens": 45,
+            "prompt_tokens": 139,
+            "total_tokens": 184,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

@@ -9,19 +9,18 @@ import McpDeploymentServicePopover from './McpDeploymentServicePopover';
 type McpDeploymentsTableRowProps = {
   deployment: McpDeployment;
   onDeleteClick: (deployment: McpDeployment) => void;
+  onEditClick: (deployment: McpDeployment) => void;
 };
 
 const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
   deployment,
   onDeleteClick,
+  onEditClick,
 }) => {
   const actions: IAction[] = [
     {
       title: 'Edit',
-      isAriaDisabled: true,
-      tooltipProps: {
-        content: 'Editing is not yet available.',
-      },
+      onClick: () => onEditClick(deployment),
     },
     {
       title: 'Delete',

@@ -7,6 +7,8 @@ import { mockRegisteredModel } from '@odh-dashboard/internal/__mocks__/mockRegis
 import { mockModelVersionList } from '@odh-dashboard/internal/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '@odh-dashboard/internal/__mocks__/mockModelVersion';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
+import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { mockModelRegistry } from '@odh-dashboard/internal/__mocks__';
 import { archiveModelRegistry } from '../../../pages/archiveModelRegistry';
 
@@ -36,6 +38,14 @@ const initIntercepts = ({
     }),
   ],
 }) => {
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      components: {
+        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+      },
+    }),
+  );
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({

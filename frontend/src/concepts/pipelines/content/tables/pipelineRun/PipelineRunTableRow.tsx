@@ -172,7 +172,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
           />
         </Td>
       )}
-      <Td dataLabel="Created">
+      <Td dataLabel="Started">
         <RunCreated run={run} />
       </Td>
       <Td dataLabel="Duration">
