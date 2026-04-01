@@ -2,7 +2,7 @@ class ModelDetails {
   visit() {
     const preferredModelRegistry = 'modelregistry-sample';
     const rmId = '1';
-    cy.visit(`/ai-hub/registry/${preferredModelRegistry}/registered-models/${rmId}`);
+    cy.visit(`/ai-hub/models/registry/${preferredModelRegistry}/registered-models/${rmId}`);
     this.wait();
   }
 

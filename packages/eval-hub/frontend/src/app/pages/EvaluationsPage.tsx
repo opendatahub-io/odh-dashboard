@@ -3,6 +3,7 @@ import {
   Content,
   EmptyState,
   EmptyStateBody,
+  EmptyStateFooter,
   EmptyStateVariant,
   Flex,
   FlexItem,
@@ -13,10 +14,13 @@ import { useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
+import WhosMyAdministrator from '@odh-dashboard/internal/components/WhosMyAdministrator';
+import SupportIcon from '~/app/icons/SupportIcon';
 import { evalHubEvaluationsRoute } from '~/app/utilities/routes';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
 import useEvalHubHealth from '~/app/hooks/useEvalHubHealth';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
+import useUser from '~/app/hooks/useUser';
 import EvalHubHeader from '~/app/components/EvalHubHeader';
 import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
 import EvalHubEmptyState from '~/app/components/EvalHubEmptyState';
@@ -24,8 +28,9 @@ import EvaluationsTable from '~/app/components/EvaluationsTable';
 
 const EvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
+  const { clusterAdmin } = useUser();
 
-  const { isHealthy, loaded: healthLoaded } = useEvalHubHealth();
+  const { isHealthy, loaded: healthLoaded, error: healthError } = useEvalHubHealth();
 
   const [evaluations, loaded, error, refreshEvaluations] = useEvaluationJobs(
     { namespace },
@@ -52,21 +57,39 @@ const EvaluationsPage: React.FC = () => {
         </Flex>
       }
       loaded={healthLoaded && (!isHealthy || loaded)}
-      loadError={isHealthy ? error : undefined}
-      empty={healthLoaded && !isHealthy}
+      loadError={isHealthy ? error : healthError}
+      empty={healthLoaded && !isHealthy && !healthError}
       emptyStatePage={
         <PageSection hasBodyWrapper={false} isFilled>
-          <EmptyState
-            headingLevel="h4"
-            icon={CogIcon}
-            titleText="Evaluations unavailable"
-            variant={EmptyStateVariant.lg}
-            data-testid="evalhub-unavailable-empty-state"
-          >
-            <EmptyStateBody>
-              To use evaluations, enable the evaluation service using the TrustyAI Operator.
-            </EmptyStateBody>
-          </EmptyState>
+          {clusterAdmin ? (
+            <EmptyState
+              headingLevel="h4"
+              icon={CogIcon}
+              titleText="Evaluations unavailable"
+              variant={EmptyStateVariant.lg}
+              data-testid="evalhub-unavailable-empty-state"
+            >
+              <EmptyStateBody>
+                To use evaluations, enable the evaluation service using the TrustyAI Operator.
+              </EmptyStateBody>
+            </EmptyState>
+          ) : (
+            <EmptyState
+              headingLevel="h4"
+              icon={SupportIcon}
+              titleText="Admin configuration required"
+              variant={EmptyStateVariant.lg}
+              data-testid="evalhub-nonadmin-empty-state"
+            >
+              <EmptyStateBody>
+                To use this service, request that your administrator enable evaluations for this
+                cluster.
+              </EmptyStateBody>
+              <EmptyStateFooter>
+                <WhosMyAdministrator />
+              </EmptyStateFooter>
+            </EmptyState>
+          )}
         </PageSection>
       }
       provideChildrenPadding
