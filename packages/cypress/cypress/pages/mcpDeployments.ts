@@ -71,8 +71,8 @@ class McpDeploymentsPage {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').should('contain.text', 'MCP server deployments');
+    // mod-arch-shared ApplicationsPage does not set data-testid="app-page-title"; wait for page content.
+    cy.findByTestId('mcp-deployments-table').should('be.visible');
     cy.testA11y();
   }
 

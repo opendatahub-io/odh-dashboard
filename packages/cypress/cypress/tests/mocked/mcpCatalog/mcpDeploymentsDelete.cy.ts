@@ -61,6 +61,11 @@ describe('MCP server deployment delete', () => {
   });
 
   it('should close the modal on Cancel without deleting', () => {
+    cy.intercept('DELETE', `${MCP_DEPLOYMENTS_BFF}/kubernetes-mcp*`, {
+      statusCode: 204,
+      body: '',
+    }).as('deleteMcpDeployment');
+
     mcpDeploymentsPage.visit();
 
     mcpDeploymentsPage.findTableRows().should('have.length', 2);
@@ -71,6 +76,7 @@ describe('MCP server deployment delete', () => {
     modal.findCancelButton().click();
 
     modal.shouldNotExist();
+    cy.get('@deleteMcpDeployment.all').should('have.length', 0);
     mcpDeploymentsPage.findTableRows().should('have.length', 2);
   });
 
