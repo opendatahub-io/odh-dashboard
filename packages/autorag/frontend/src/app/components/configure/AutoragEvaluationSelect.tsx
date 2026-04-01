@@ -3,12 +3,12 @@ import { DesktopIcon, StorageDomainIcon } from '@patternfly/react-icons';
 import React, { useState } from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
+import FileSelector from '~/app/components/common/FileSelector';
+import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer';
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
 import { useSecretsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
-import FileSelector from '../common/FileSelector';
-import S3FileExplorer from '../common/S3FileExplorer/S3FileExplorer';
 
 function AutoragEvaluationSelect(): React.JSX.Element {
   const { namespace } = useParams();
