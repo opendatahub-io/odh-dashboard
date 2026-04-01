@@ -123,22 +123,25 @@ export const validateManifestUrlFormats = (
 ): Cypress.Chainable<void> => {
   cy.step(`Validating URL formats in: ${manifestsDir}`);
 
-  return extractAndFilterUrls(manifestsDir, excludedSubstrings).then(
-    ({ urlLocations, filteredUrlLocations, uniqueUrls }) => {
-      cy.step(
-        `Found ${urlLocations.length} total URLs, filtered to ${filteredUrlLocations.length} locations (${uniqueUrls.length} unique URLs)`,
-      );
+  return (
+    extractAndFilterUrls(manifestsDir, excludedSubstrings)
+      .then(({ urlLocations, filteredUrlLocations, uniqueUrls }): void => {
+        cy.step(
+          `Found ${urlLocations.length} total URLs, filtered to ${filteredUrlLocations.length} locations (${uniqueUrls.length} unique URLs)`,
+        );
 
-      // Validate formats
-      const formatErrors = validateUrlFormats(uniqueUrls, filteredUrlLocations);
+        // Validate formats
+        const formatErrors = validateUrlFormats(uniqueUrls, filteredUrlLocations);
 
-      // Report errors if any
-      if (formatErrors.length > 0) {
-        reportFormatErrors(formatErrors);
-      }
+        // Report errors if any
+        if (formatErrors.length > 0) {
+          reportFormatErrors(formatErrors);
+        }
 
-      cy.step(`✅ All ${uniqueUrls.length} URLs have valid format`);
-    },
+        cy.step(`✅ All ${uniqueUrls.length} URLs have valid format`);
+      })
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      .then(() => {}) as unknown as Cypress.Chainable<void>
   );
 };
 
@@ -152,43 +155,47 @@ export const validateManifestUrlReachability = (
 ): Cypress.Chainable<void> => {
   cy.step(`Validating URL reachability in: ${manifestsDir}`);
 
-  return extractAndFilterUrls(manifestsDir, excludedSubstrings)
-    .then(({ urlLocations, filteredUrlLocations, uniqueUrls }) => {
-      const urlToLocationsMap = buildUrlToLocationsMap(filteredUrlLocations);
+  return (
+    extractAndFilterUrls(manifestsDir, excludedSubstrings)
+      .then(({ urlLocations, filteredUrlLocations, uniqueUrls }) => {
+        const urlToLocationsMap = buildUrlToLocationsMap(filteredUrlLocations);
 
-      cy.step(
-        `Found ${urlLocations.length} total URLs, filtered to ${
-          filteredUrlLocations.length
-        } locations (${uniqueUrls.length} unique URLs).\n\nValid status codes: ${Array.from(
-          VALID_STATUS_CODES,
-        ).join(', ')}\nTransient errors (warnings only): ${Array.from(TRANSIENT_ERROR_CODES).join(
-          ', ',
-        )}\nPermanent errors (failures): ${Array.from(PERMANENT_ERROR_CODES).join(
-          ', ',
-        )}\n\nURLs to verify:\n${formatUrlLocationsByFile(filteredUrlLocations)}`,
-      );
+        cy.step(
+          `Found ${urlLocations.length} total URLs, filtered to ${
+            filteredUrlLocations.length
+          } locations (${uniqueUrls.length} unique URLs).\n\nValid status codes: ${Array.from(
+            VALID_STATUS_CODES,
+          ).join(', ')}\nTransient errors (warnings only): ${Array.from(TRANSIENT_ERROR_CODES).join(
+            ', ',
+          )}\nPermanent errors (failures): ${Array.from(PERMANENT_ERROR_CODES).join(
+            ', ',
+          )}\n\nURLs to verify:\n${formatUrlLocationsByFile(filteredUrlLocations)}`,
+        );
 
-      return cy.task<UrlValidationResult[]>('validateHttpsUrls', uniqueUrls).then((results) => {
-        const resultsWithLocation: UrlValidationResultWithLocation[] = results.map((result) => {
-          const finalUrlLocations = urlToLocationsMap.get(result.url);
-          const location =
-            finalUrlLocations && finalUrlLocations.length > 0 ? finalUrlLocations[0] : undefined;
+        return cy.task<UrlValidationResult[]>('validateHttpsUrls', uniqueUrls).then((results) => {
+          const resultsWithLocation: UrlValidationResultWithLocation[] = results.map((result) => {
+            const finalUrlLocations = urlToLocationsMap.get(result.url);
+            const location =
+              finalUrlLocations && finalUrlLocations.length > 0 ? finalUrlLocations[0] : undefined;
 
-          return {
-            ...result,
-            location,
-          };
+            return {
+              ...result,
+              location,
+            };
+          });
+
+          return { resultsWithLocation, urlToLocationsMap };
         });
+      })
+      .then(({ resultsWithLocation, urlToLocationsMap }): void => {
+        if (!Array.isArray(resultsWithLocation)) {
+          throw new Error('Failed to validate URLs');
+        }
 
-        return { resultsWithLocation, urlToLocationsMap };
-      });
-    })
-    .then(({ resultsWithLocation, urlToLocationsMap }) => {
-      if (!Array.isArray(resultsWithLocation)) {
-        throw new Error('Failed to validate URLs');
-      }
-
-      // Process and validate all results (categorize, log, assert)
-      processAndValidateResults(resultsWithLocation, urlToLocationsMap);
-    });
+        // Process and validate all results (categorize, log, assert)
+        processAndValidateResults(resultsWithLocation, urlToLocationsMap);
+      })
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      .then(() => {}) as unknown as Cypress.Chainable<void>
+  );
 };
