@@ -10,14 +10,6 @@ import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import FileSelector from '../common/FileSelector';
 import S3FileExplorer from '../common/S3FileExplorer/S3FileExplorer';
 
-// watches secret and bucket fields
-// show error documenting file size limit (seems like there is a hidden one set to around 40-50 MB)
-// change uploadToStorageMutation to use FormData, and specify a path to upload, which will be hardcoded to root for now
-
-// use FileUpload, change `clearButtonText` to `Browse from S3`, change `onClearClick` to open FileExplorer
-// on upload, open FileExplorer, and allow user to select which folder to upload files to
-// on successful upload, auto-select all the files that were uploaded (for MVP, it will only be 1 file/folder)
-
 function AutoragEvaluationSelect(): React.JSX.Element {
   const { namespace } = useParams();
 
@@ -25,14 +17,14 @@ function AutoragEvaluationSelect(): React.JSX.Element {
 
   const [fileExplorerOpen, setFileExplorerOpen] = useState(false);
 
-  const { data: secrets } = useSecretsQuery(namespace ?? '', 'storage');
-  const uploadToStorageMutation = useUploadToStorageMutation(namespace ?? '');
-
   const form = useFormContext<ConfigureSchema>();
   const controller = useController({ control: form.control, name: 'test_data_key' });
   const { field } = controller;
 
   const [testDataSecretName] = useWatch({ control: form.control, name: ['test_data_secret_name'] });
+
+  const { data: secrets } = useSecretsQuery(namespace ?? '', 'storage');
+  const uploadToStorageMutation = useUploadToStorageMutation(namespace ?? '', testDataSecretName);
 
   return (
     <>

@@ -44,19 +44,22 @@ export function useCreatePipelineRunMutation(
 
 export function useUploadToStorageMutation(
   namespace: string,
+  secretName: string,
 ): UseMutationResult<
   unknown,
   Error,
-  { file: File; onProgress?: (progress: number) => void },
+  { file: File; path?: string; onProgress?: (progress: number) => void },
   unknown
 > {
   return useMutation({
     mutationKey: ['autorag', 'storage'],
     mutationFn: async ({
       file,
+      path = '',
       onProgress,
     }: {
       file: File;
+      path?: string;
       onProgress?: (progress: number) => void;
     }) =>
       new Promise((resolve, reject) => {
@@ -89,9 +92,18 @@ export function useUploadToStorageMutation(
           reject(new Error('Upload failed'));
         });
 
-        // xhr.open('POST', `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/file?namespace=${namespace}`);
-        xhr.open('POST', `${URL_PREFIX}/api/${BFF_API_VERSION}/test-upload?namespace=${namespace}`);
-        xhr.send(file);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        xhr.open(
+          'POST',
+          // eslint-disable-next-line prefer-template
+          `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/file` +
+            `?namespace=${namespace}` +
+            `&secretName=${secretName}` +
+            `&key=${(path ? `${path}/` : '') + file.name}`,
+        );
+        xhr.send(formData);
       }),
   });
 }
