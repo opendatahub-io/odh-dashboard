@@ -12,6 +12,9 @@ import {
   type UrlValidationResultWithLocation,
 } from './urlFormatters';
 
+// Global Cypress soft assertion function from support/e2e.ts
+declare const softTrue: (condition: boolean, message?: string) => void;
+
 interface CategorizedResults {
   successResults: UrlValidationResultWithLocation[];
   transientErrors: UrlValidationResultWithLocation[];

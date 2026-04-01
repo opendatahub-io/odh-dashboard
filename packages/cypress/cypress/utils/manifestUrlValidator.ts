@@ -80,14 +80,14 @@ const buildUrlToLocationsMap = (
  */
 const validateUrlFormats = (
   uniqueUrls: string[],
-  filteredUrlLocations: UrlLocation[],
+  urlToLocationsMap: Map<string, UrlLocation[]>,
 ): FormatError[] => {
   const formatErrors: FormatError[] = [];
 
   uniqueUrls.forEach((url) => {
     const formatResult = validateUrlFormat(url);
     if (!formatResult.valid) {
-      const locations = filteredUrlLocations.filter((loc) => loc.url === url);
+      const locations = urlToLocationsMap.get(url) || [];
       formatErrors.push({
         url,
         error: formatResult.error || 'Unknown format error',
@@ -130,8 +130,11 @@ export const validateManifestUrlFormats = (
           `Found ${urlLocations.length} total URLs, filtered to ${filteredUrlLocations.length} locations (${uniqueUrls.length} unique URLs)`,
         );
 
+        // Build URL to locations map for efficient lookup
+        const urlToLocationsMap = buildUrlToLocationsMap(filteredUrlLocations);
+
         // Validate formats
-        const formatErrors = validateUrlFormats(uniqueUrls, filteredUrlLocations);
+        const formatErrors = validateUrlFormats(uniqueUrls, urlToLocationsMap);
 
         // Report errors if any
         if (formatErrors.length > 0) {
@@ -174,7 +177,10 @@ export const validateManifestUrlReachability = (
 
         return cy.task<UrlValidationResult[]>('validateHttpsUrls', uniqueUrls).then((results) => {
           const resultsWithLocation: UrlValidationResultWithLocation[] = results.map((result) => {
-            const finalUrlLocations = urlToLocationsMap.get(result.url);
+            // Use originalUrl for location lookup (in case of redirects), fall back to url
+            const finalUrlLocations =
+              urlToLocationsMap.get(result.originalUrl || result.url) ||
+              urlToLocationsMap.get(result.url);
             const location =
               finalUrlLocations && finalUrlLocations.length > 0 ? finalUrlLocations[0] : undefined;
 
