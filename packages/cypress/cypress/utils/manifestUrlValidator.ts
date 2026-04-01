@@ -40,9 +40,28 @@ const extractAndFilterUrls = (
   excludedSubstrings: string[],
 ): Cypress.Chainable<UrlExtractionResult> => {
   return cy.task<UrlLocation[]>('extractHttpsUrls', manifestsDir).then((urlLocations) => {
+    // Validate payload shape
     if (!Array.isArray(urlLocations)) {
       throw new Error('Failed to extract URLs from manifests directory');
     }
+    // Runtime validation - task could return wrong shape despite types
+    /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+    if (
+      urlLocations.length > 0 &&
+      !urlLocations.every(
+        (loc) =>
+          typeof loc === 'object' &&
+          loc !== null &&
+          typeof loc.url === 'string' &&
+          loc.url.length > 0 &&
+          typeof loc.file === 'string' &&
+          loc.file.length > 0 &&
+          typeof loc.line === 'number',
+      )
+    ) {
+      throw new Error('Invalid URL location format from extractor task');
+    }
+    /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
     const filteredUrlLocations = urlLocations.filter(
       (urlLocation) => urlLocation.url && !isUrlExcluded(urlLocation.url, excludedSubstrings),
@@ -176,6 +195,25 @@ export const validateManifestUrlReachability = (
         );
 
         return cy.task<UrlValidationResult[]>('validateHttpsUrls', uniqueUrls).then((results) => {
+          // Validate results payload immediately - task could return wrong shape despite types
+          if (!Array.isArray(results)) {
+            throw new Error('validateHttpsUrls task did not return an array');
+          }
+          /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+          if (
+            results.length > 0 &&
+            !results.every(
+              (r) =>
+                typeof r === 'object' &&
+                r !== null &&
+                typeof r.url === 'string' &&
+                typeof r.status === 'number',
+            )
+          ) {
+            throw new Error('Invalid validation result format from validateHttpsUrls task');
+          }
+          /* eslint-enable @typescript-eslint/no-unnecessary-condition */
+
           const resultsWithLocation: UrlValidationResultWithLocation[] = results.map((result) => {
             // Use originalUrl for location lookup (in case of redirects), fall back to url
             const finalUrlLocations =
@@ -194,10 +232,6 @@ export const validateManifestUrlReachability = (
         });
       })
       .then(({ resultsWithLocation, urlToLocationsMap }): void => {
-        if (!Array.isArray(resultsWithLocation)) {
-          throw new Error('Failed to validate URLs');
-        }
-
         // Process and validate all results (categorize, log, assert)
         processAndValidateResults(resultsWithLocation, urlToLocationsMap);
       })
