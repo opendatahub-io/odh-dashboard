@@ -576,6 +576,40 @@ class CopyApiKeyModal extends Modal {
   }
 }
 
+class AdminBulkRevokeAPIKeyModal extends Modal {
+  constructor() {
+    super('Revoke all active keys for a single user?');
+  }
+
+  findUsernameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('admin-revoke-username-input');
+  }
+
+  findSearchButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('admin-revoke-search-button');
+  }
+
+  findRevokeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('admin-revoke-keys-button');
+  }
+
+  findNoKeysAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('admin-revoke-no-keys-alert');
+  }
+
+  findKeysFoundHeading(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('admin-revoke-keys-found-alert');
+  }
+
+  findSearchError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('admin-revoke-search-error');
+  }
+
+  findRevokeError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('admin-revoke-error-alert');
+  }
+}
+
 class SubscriptionsPage {
   visit(): void {
     cy.visitWithLogin('/maas/subscriptions');
@@ -716,6 +750,7 @@ export const maasWizardField = new MaaSWizardField();
 export const tierDetailsPage = new TierDetailsPage();
 export const apiKeysPage = new APIKeysPage();
 export const bulkRevokeAPIKeyModal = new BulkRevokeAPIKeyModal();
+export const adminBulkRevokeAPIKeyModal = new AdminBulkRevokeAPIKeyModal();
 export const revokeAPIKeyModal = new RevokeAPIKeyModal();
 export const createApiKeyModal = new CreateApiKeyModal();
 export const copyApiKeyModal = new CopyApiKeyModal();

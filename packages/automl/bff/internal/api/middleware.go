@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
@@ -42,6 +43,12 @@ func isValidDNS1123Label(label string) bool {
 		return false
 	}
 	return dns1123LabelRegex.MatchString(label)
+}
+
+// isValidDNS1123Subdomain validates a string against DNS-1123 subdomain rules
+// using the Kubernetes apimachinery validation package.
+func isValidDNS1123Subdomain(name string) bool {
+	return len(k8svalidation.IsDNS1123Subdomain(name)) == 0
 }
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
