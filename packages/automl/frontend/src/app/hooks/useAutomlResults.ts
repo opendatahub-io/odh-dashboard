@@ -234,7 +234,9 @@ export function useAutomlResults(
         },
         location: {
           model_directory: directory,
-          predictor: `${directory}predictor/predictor.pkl`,
+          // Points to the predictor folder (not the pkl file) — used as the artifact URI
+          // when registering the model in Model Registry.
+          predictor: `${directory}predictor`,
           notebook: `${directory}notebooks/automl_predictor_notebook.ipynb`,
         },
         metrics: {
