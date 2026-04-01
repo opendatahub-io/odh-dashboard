@@ -179,6 +179,58 @@ paths:
               example:
                 error: Failed to retrieve LLM models
 
+  /api/v1/subscriptions:
+    get:
+      tags:
+        - subscriptions
+      summary: List user subscriptions (passthrough)
+      operationId: listSubscriptions
+      description: Returns all MaaSSubscription resources the user has access to, in a sanitised format safe for basic users. Proxied from the maas-api /v1/subscriptions endpoint.
+      responses:
+        '200':
+          description: List of subscriptions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SubscriptionListItem'
+              example:
+                data:
+                  - subscription_id_header: premium-team-sub
+                    subscription_description: Premium Team Subscription
+                    display_name: Premium Team
+                    priority: 10
+                    cost_center: engineering
+                    organization_id: org-123
+                    model_refs:
+                      - name: granite-3-8b-instruct
+                        namespace: maas-models
+                        token_rate_limits:
+                          - limit: 100000
+                            window: 24h
+                  - subscription_id_header: basic-team-sub
+                    subscription_description: Basic Team Subscription
+                    display_name: Basic Team
+                    priority: 1
+                    model_refs:
+                      - name: flan-t5-small
+                        namespace: maas-models
+                        token_rate_limits:
+                          - limit: 10000
+                            window: 24h
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/api-keys:
     post:
       tags:
@@ -194,6 +246,7 @@ paths:
               type: object
               required:
                 - name
+                - subscription
               properties:
                 name:
                   type: string
@@ -204,18 +257,23 @@ paths:
                 expiresIn:
                   type: string
                   description: Optional expiration duration (e.g., "30d", "90d", "1h"). Omit for permanent key.
+                subscription:
+                  type: string
+                  description: Subscription ID header to scope this API key to a specific subscription.
             examples:
               permanent_key:
                 summary: Permanent API key (no expiration)
                 value:
                   name: my-permanent-key
                   description: Production API key
+                  subscription: premium-team-sub
               expiring_key:
                 summary: Expiring API key (90 days)
                 value:
                   name: my-expiring-key
                   description: 90-day test key
                   expiresIn: 90d
+                  subscription: basic-team-sub
       responses:
         '201':
           description: Created response.
@@ -1394,6 +1452,92 @@ components:
           additionalProperties:
             type: string
           description: Additional labels for tracking and metrics
+
+    SubscriptionListItem:
+      type: object
+      description: Sanitised subscription view returned by the maas-api passthrough endpoint, safe to expose to basic users
+      properties:
+        subscription_id_header:
+          type: string
+          description: Subscription name to use in the X-MaaS-Subscription header
+          example: premium-team-sub
+        subscription_description:
+          type: string
+          description: Human-readable description (falls back to display-name, then name)
+          example: Premium Team Subscription
+        display_name:
+          type: string
+          description: Display name from the openshift.io/display-name annotation
+          example: Premium Team
+        priority:
+          type: integer
+          format: int32
+          description: Subscription priority (higher = higher priority)
+          example: 10
+        model_refs:
+          type: array
+          description: Model references with rate limits
+          items:
+            $ref: '#/components/schemas/ModelRefInfo'
+        organization_id:
+          type: string
+          description: Organization identifier for metering and billing
+          example: premium-org
+        cost_center:
+          type: string
+          description: Cost center for usage attribution
+          example: engineering
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          description: Additional labels for tracking and metrics
+          example:
+            env: production
+      required:
+        - subscription_id_header
+        - subscription_description
+        - priority
+        - model_refs
+
+    ModelRefInfo:
+      type: object
+      description: Model reference with rate limit information from the passthrough endpoint
+      properties:
+        name:
+          type: string
+          description: Name of the MaaSModelRef
+          example: granite-3-8b-instruct
+        namespace:
+          type: string
+          description: Namespace where the MaaSModelRef lives
+          example: maas-models
+        token_rate_limits:
+          type: array
+          items:
+            type: object
+            properties:
+              limit:
+                type: integer
+                format: int64
+                description: Maximum number of tokens allowed
+                example: 100000
+              window:
+                type: string
+                description: "Time window (e.g., 1m, 1h, 24h)"
+                example: 24h
+            required:
+              - limit
+              - window
+        billing_rate:
+          type: object
+          properties:
+            per_token:
+              type: string
+              description: Cost per token
+              example: "0.001"
+      required:
+        - name
 
     MaaSSubscription:
       type: object
