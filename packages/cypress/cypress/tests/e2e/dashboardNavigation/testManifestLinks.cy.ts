@@ -31,7 +31,7 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
   it(
     'Validates URL format and checks for common mistakes in manifest files (fast, stable)',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@Dashboard'],
+      tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard'],
     },
     () => {
       const manifestsDir = '../../manifests';
