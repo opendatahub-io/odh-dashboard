@@ -13,12 +13,6 @@ import {
   CardHeader,
   CardTitle,
   Content,
-  DataList,
-  DataListAction,
-  DataListCell,
-  DataListItem,
-  DataListItemCells,
-  DataListItemRow,
   EmptyState,
   EmptyStateBody,
   FormHelperText,
@@ -32,7 +26,9 @@ import {
   SplitItem,
   Stack,
   StackItem,
+  Tooltip,
 } from '@patternfly/react-core';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { CubesIcon, TimesIcon } from '@patternfly/react-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { findKey } from 'es-toolkit';
@@ -322,53 +318,35 @@ function AutomlConfigure(): React.JSX.Element {
                   )}
                   {selectedTrainingDataFile && (
                     <StackItem>
-                      <DataList aria-label="Selected input data file" isCompact>
-                        <DataListItem aria-labelledby="selected-input-data-list-header">
-                          <DataListItemRow>
-                            <DataListItemCells
-                              dataListCells={[
-                                <DataListCell key="name" className="pf-v6-u-font-weight-bold">
-                                  <span id="selected-input-data-list-header">Name</span>
-                                </DataListCell>,
-                                <DataListCell key="type" className="pf-v6-u-font-weight-bold">
-                                  Type
-                                </DataListCell>,
-                              ]}
-                            />
-                          </DataListItemRow>
-                        </DataListItem>
-                        <DataListItem aria-labelledby="selected-input-data-file-name">
-                          <DataListItemRow>
-                            <DataListItemCells
-                              dataListCells={[
-                                <DataListCell key="name">
-                                  <span id="selected-input-data-file-name">
-                                    {selectedTrainingDataFile.name}
-                                  </span>
-                                </DataListCell>,
-                                <DataListCell key="type">
-                                  {selectedTrainingDataFile.type}
-                                </DataListCell>,
-                              ]}
-                            />
-                            <DataListAction
-                              aria-labelledby="selected-input-data-file-name"
-                              aria-label="Selected file actions"
-                              id="selected-input-data-file-actions"
-                            >
-                              <Button
-                                variant="plain"
-                                aria-label="Remove selection"
-                                icon={<TimesIcon />}
-                                onClick={() => {
-                                  setSelectedTrainingDataFile(undefined);
-                                  setValue('train_data_file_key', '', { shouldValidate: true });
-                                }}
-                              />
-                            </DataListAction>
-                          </DataListItemRow>
-                        </DataListItem>
-                      </DataList>
+                      <Table aria-label="Selected training data file" variant="compact">
+                        <Thead>
+                          <Tr>
+                            <Th>Name</Th>
+                            <Th>Type</Th>
+                            <Th />
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          <Tr>
+                            <Td dataLabel="Name">{selectedTrainingDataFile.name}</Td>
+                            <Td dataLabel="Type">{selectedTrainingDataFile.type}</Td>
+                            <Td isActionCell>
+                              <Tooltip content="Remove selection">
+                                <Button
+                                  size="sm"
+                                  variant="plain"
+                                  aria-label="Remove selection"
+                                  icon={<TimesIcon />}
+                                  onClick={() => {
+                                    setSelectedTrainingDataFile(undefined);
+                                    setValue('train_data_file_key', '', { shouldValidate: true });
+                                  }}
+                                />
+                              </Tooltip>
+                            </Td>
+                          </Tr>
+                        </Tbody>
+                      </Table>
                     </StackItem>
                   )}
                 </Stack>
