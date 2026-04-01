@@ -13,6 +13,6 @@ export const DEFAULT_CONFIG_ID = 'default';
 
 /**
  * Get display label for a config based on its index position.
- * This allows the store to use dynamic IDs while UI shows "Model 1", "Model 2", etc.
+ * This allows the store to use dynamic IDs while UI shows "Chat 1", "Chat 2", etc.
  */
-export const getConfigDisplayLabel = (index: number): string => `Model ${index + 1}`;
+export const getConfigDisplayLabel = (index: number): string => `Chat ${index + 1}`;

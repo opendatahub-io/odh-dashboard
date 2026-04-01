@@ -166,3 +166,8 @@ export type S3ListObjectsResponse = {
   next_continuation_token?: string;
   prefix?: string;
 };
+
+export type Envelope<M, D> = {
+  metadata: M;
+  data: D;
+};

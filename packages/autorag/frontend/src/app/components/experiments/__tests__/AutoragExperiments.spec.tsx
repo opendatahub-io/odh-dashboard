@@ -1,6 +1,6 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { useNavigate, useParams } from 'react-router';
 import AutoragExperiments from '~/app/components/experiments/AutoragExperiments';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
@@ -128,7 +128,7 @@ describe('AutoragExperiments', () => {
     expect(screen.getByTestId('empty-experiments-state')).toBeInTheDocument();
     expect(screen.getByText('No experiments yet')).toBeInTheDocument();
     expect(screen.getByTestId('create-experiment-button')).toHaveTextContent(
-      'Create AutoRAG experiment',
+      'Create RAG optimization run',
     );
     expect(screen.queryByTestId('autorag-runs-table')).not.toBeInTheDocument();
   });
@@ -152,6 +152,25 @@ describe('AutoragExperiments', () => {
     expect(screen.getByTestId('autorag-runs-table')).toBeInTheDocument();
     expect(screen.getByTestId('run-r1')).toHaveTextContent('Run 1');
     expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
+  });
+
+  it('re-notifies onExperimentsListStatus when namespace changes even if loaded and hasExperiments stay true', async () => {
+    const onStatus = jest.fn();
+    mockUseParams.mockReturnValue({ namespace: 'ns-one' });
+    const { rerender } = render(<AutoragExperiments onExperimentsListStatus={onStatus} />);
+
+    await waitFor(() => {
+      expect(onStatus).toHaveBeenCalledWith({ loaded: true, hasExperiments: true });
+    });
+    const callsAfterFirstNs = onStatus.mock.calls.length;
+
+    mockUseParams.mockReturnValue({ namespace: 'ns-two' });
+    rerender(<AutoragExperiments onExperimentsListStatus={onStatus} />);
+
+    await waitFor(() => {
+      expect(onStatus.mock.calls.length).toBeGreaterThan(callsAfterFirstNs);
+    });
+    expect(onStatus).toHaveBeenLastCalledWith({ loaded: true, hasExperiments: true });
   });
 
   it('should show error alert on load error', () => {

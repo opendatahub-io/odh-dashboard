@@ -15,7 +15,6 @@ import (
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
 	"github.com/openai/openai-go/v2/packages/param"
-	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 )
@@ -23,6 +22,11 @@ import (
 // LlamaStackClient wraps the OpenAI client for Llama Stack communication.
 type LlamaStackClient struct {
 	client *openai.Client
+}
+
+// SetClientForTest replaces the internal OpenAI client (test use only).
+func SetClientForTest(c *LlamaStackClient, client *openai.Client) {
+	c.client = client
 }
 
 // NewLlamaStackClient creates a new client configured for Llama Stack.
@@ -543,7 +547,7 @@ func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResp
 }
 
 // CreateResponseStream creates an AI response stream using the specified parameters.
-func (c *LlamaStackClient) CreateResponseStream(ctx context.Context, params CreateResponseParams) (*ssestream.Stream[responses.ResponseStreamEventUnion], error) {
+func (c *LlamaStackClient) CreateResponseStream(ctx context.Context, params CreateResponseParams) (ResponseStreamIterator, error) {
 	apiParams, err := c.prepareResponseParams(params)
 	if err != nil {
 		return nil, err
@@ -715,6 +719,23 @@ func (c *LlamaStackClient) ListVectorStoreFiles(ctx context.Context, vectorStore
 	}
 
 	return filesPage.Data, nil
+}
+
+// GetVectorStoreFile retrieves a single file from a vector store by ID.
+func (c *LlamaStackClient) GetVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) (*openai.VectorStoreFile, error) {
+	if vectorStoreID == "" {
+		return nil, NewInvalidRequestError("vectorStoreID is required")
+	}
+	if fileID == "" {
+		return nil, NewInvalidRequestError("fileID is required")
+	}
+
+	file, err := c.client.VectorStores.Files.Get(ctx, vectorStoreID, fileID)
+	if err != nil {
+		return nil, wrapClientError(err, "GetVectorStoreFile")
+	}
+
+	return file, nil
 }
 
 // DeleteVectorStoreFile removes a file from a vector store.
