@@ -72,17 +72,19 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ isOpen = true, onClose,
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error>();
   const abortControllerRef = React.useRef<AbortController>();
+  const crInitializedRef = React.useRef(false);
   const ociImageLabelHelpRef = React.useRef<HTMLSpanElement>(null);
   const configLabelHelpRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
-    if (!existingDeployment && crData && !yamlContent) {
+    if (!existingDeployment && crData && !crInitializedRef.current) {
+      crInitializedRef.current = true;
       const yaml = mcpServerCRToYaml(crData);
       setYamlContent(yaml);
       setInitialYaml(yaml);
       setOciImageValue(crData.spec.source.containerImage?.ref ?? '');
     }
-  }, [existingDeployment, crData, yamlContent]);
+  }, [existingDeployment, crData]);
 
   React.useEffect(
     () => () => {
