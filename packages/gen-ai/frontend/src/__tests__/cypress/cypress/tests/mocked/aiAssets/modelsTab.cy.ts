@@ -210,7 +210,7 @@ describe('AI Assets - Models Tab (Empty State)', () => {
       maasModels: [],
     });
 
-    aiAssetsPage.visit(TEST_NAMESPACE);
+    aiAssetsPage.visit(TEST_NAMESPACE, { aiAssetCustomEndpoints: 'false' });
   });
 
   it(
