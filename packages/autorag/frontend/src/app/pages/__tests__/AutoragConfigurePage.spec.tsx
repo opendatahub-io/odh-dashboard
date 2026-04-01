@@ -99,8 +99,6 @@ jest.mock('mod-arch-shared', () => ({
       {loaded && !empty ? children : null}
     </div>
   ),
-  TitleWithIcon: ({ title }: { title: string }) => <span>{title}</span>,
-  ProjectObjectType: { pipelineExperiment: 'pipelineExperiment' },
   DashboardPopupIconButton: ({ icon }: { icon: React.ReactNode }) => <button>{icon}</button>,
 }));
 
@@ -246,7 +244,7 @@ describe('AutoragConfigurePage', () => {
 
     it('should display "Create AutoRAG experiment" subtitle in create step', async () => {
       renderWithProviders(<AutoragConfigurePage />);
-      expect(await screen.findByText('Create AutoRAG experiment')).toBeInTheDocument();
+      expect(await screen.findByText('Create RAG optimization run')).toBeInTheDocument();
     });
 
     it('should display description text in create step', async () => {

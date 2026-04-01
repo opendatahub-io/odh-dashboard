@@ -5,9 +5,10 @@ import "time"
 // APIKeyCreateRequest represents a request to create a new API key.
 // Based on the MaaS API OpenAPI spec: POST /v1/api-keys
 type APIKeyCreateRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	ExpiresIn   string `json:"expiresIn,omitempty"`
+	Name         string `json:"name"`
+	Description  string `json:"description,omitempty"`
+	ExpiresIn    string `json:"expiresIn,omitempty"`
+	Subscription string `json:"subscription"`
 }
 
 // APIKeyCreateResponse is the one-time response when an API key is created.
