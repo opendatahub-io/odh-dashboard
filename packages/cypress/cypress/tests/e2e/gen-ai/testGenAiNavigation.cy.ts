@@ -271,7 +271,7 @@ describe('Gen AI Navigation - User Journey Tests', () => {
       aiAssets.findPageDescription().should('be.visible');
 
       cy.step('Verify direct link sharing enables effective team collaboration');
-      cy.log('✅ Team collaboration via direct links is functional');
+      cy.log('Team collaboration via direct links is functional');
     },
   );
 
