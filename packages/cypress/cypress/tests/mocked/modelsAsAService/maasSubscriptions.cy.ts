@@ -16,6 +16,7 @@ describe('Subscriptions Page', () => {
     cy.interceptOdh('GET /maas/api/v1/user', {
       data: { userId: 'test-user', clusterAdmin: false },
     });
+    // @ts-expect-error - Gen AI API endpoint not in Cypress type definitions
     cy.interceptOdh('GET /maas/api/v1/namespaces', {
       /* eslint-disable camelcase */
       data: [{ name: 'test-namespace', display_name: 'Test Namespace' }],
@@ -32,8 +33,9 @@ describe('Subscriptions Page', () => {
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
       data: mockSubscriptions(),
     });
+    // @ts-expect-error - Gen AI API endpoint not in Cypress type definitions
     // Mock MaaS models with subscriptions for AI Assets page
-    cy.interceptOdh('GET /gen-ai/api/v1/maas/models', {
+    cy.interceptOdh('GET /gen-ai/api/v1/maas/models' as string, {
       data: [
         /* eslint-disable camelcase */
         {
@@ -55,8 +57,9 @@ describe('Subscriptions Page', () => {
         /* eslint-enable camelcase */
       ],
     });
+    // @ts-expect-error - Gen AI API endpoint not in Cypress type definitions
     // Mock AI models (namespace models) - empty for these tests
-    cy.interceptOdh('GET /gen-ai/api/v1/aaa/models', { data: [] });
+    cy.interceptOdh('GET /gen-ai/api/v1/aaa/models' as string, { data: [] });
     subscriptionsPage.visit();
   });
 
@@ -126,8 +129,9 @@ describe('Subscriptions Page', () => {
   });
 
   it('should display no subscriptions message when model has no subscriptions', () => {
+    // @ts-expect-error - Gen AI API endpoint not in Cypress type definitions
     // Mock MaaS model without subscriptions
-    cy.interceptOdh('GET /gen-ai/api/v1/maas/models', {
+    cy.interceptOdh('GET /gen-ai/api/v1/maas/models' as string, {
       data: [
         /* eslint-disable camelcase */
         {
@@ -180,8 +184,9 @@ describe('Subscriptions Page', () => {
     cy.get('[data-testid="model-row-kebab"]').first().click();
     cy.contains('View endpoints').click();
 
+    // @ts-expect-error - Gen AI API endpoint not in Cypress type definitions
     // Mock token generation error
-    cy.interceptOdh('POST /gen-ai/api/v1/maas/tokens', {
+    cy.interceptOdh('POST /gen-ai/api/v1/maas/tokens' as string, {
       statusCode: 500,
       body: { error: 'Failed to generate token' },
     });
@@ -209,8 +214,9 @@ describe('Subscriptions Page', () => {
     cy.get('[data-testid="model-row-kebab"]').first().click();
     cy.contains('View endpoints').click();
 
+    // @ts-expect-error - Gen AI API endpoint not in Cypress type definitions
     // Mock token generation with delay to catch loading state
-    cy.interceptOdh('POST /gen-ai/api/v1/maas/tokens', {
+    cy.interceptOdh('POST /gen-ai/api/v1/maas/tokens' as string, {
       delay: 1000,
       body: {
         key: 'test-ephemeral-token-12345',
@@ -238,8 +244,9 @@ describe('Subscriptions Page', () => {
     cy.get('[data-testid="model-row-kebab"]').first().click();
     cy.contains('View endpoints').click();
 
+    // @ts-expect-error - Gen AI API endpoint not in Cypress type definitions
     // Mock token generation
-    cy.interceptOdh('POST /gen-ai/api/v1/maas/tokens', {
+    cy.interceptOdh('POST /gen-ai/api/v1/maas/tokens' as string, {
       body: {
         key: 'test-ephemeral-token-12345',
         expiresAt: new Date(Date.now() + 3600000).toISOString(),
