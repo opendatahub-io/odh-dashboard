@@ -19,6 +19,7 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useNotification } from '~/app/hooks/useNotification';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { useChatbotConfigStore, selectDirtyPrompt } from '~/app/Chatbot/store';
@@ -62,6 +63,14 @@ export default function CreatePrompt({
         newPrompt.template ?? newPrompt.messages?.find((m) => m.role === 'system')?.content ?? '';
       updateSystemInstruction(configId, instruction);
       closeModal();
+      const trackingEvent = isEditMode
+        ? 'Playground Prompt Version Saved'
+        : 'Playground Prompt Saved';
+      fireMiscTrackingEvent(trackingEvent, {
+        outcome: 'submit',
+        success: true,
+        ...(isEditMode && nextVersion != null ? { versionNumber: nextVersion } : {}),
+      });
     },
     onError: (error) => {
       const errorMessage = error.message || 'An error occurred while saving the prompt.';
@@ -71,6 +80,15 @@ export default function CreatePrompt({
         setSaveError(errorMessage);
       }
       notification.error(errorMessage);
+      const trackingEvent = isEditMode
+        ? 'Playground Prompt Version Saved'
+        : 'Playground Prompt Saved';
+      fireMiscTrackingEvent(trackingEvent, {
+        outcome: 'submit',
+        success: false,
+        error: errorMessage,
+        ...(isEditMode && nextVersion != null ? { versionNumber: nextVersion } : {}),
+      });
     },
   });
 

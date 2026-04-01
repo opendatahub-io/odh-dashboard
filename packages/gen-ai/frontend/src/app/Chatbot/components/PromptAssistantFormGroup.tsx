@@ -12,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
 import {
@@ -182,7 +183,12 @@ export default function PromptAssistantFormGroup({
               <Button
                 variant="primary"
                 isDisabled={editMode}
-                onClick={() => setEditMode(!editMode)}
+                onClick={() => {
+                  setEditMode(!editMode);
+                  fireMiscTrackingEvent('Playground Prompt Edit Selected', {
+                    source: 'button',
+                  });
+                }}
               >
                 Edit
               </Button>
@@ -205,7 +211,31 @@ export default function PromptAssistantFormGroup({
                 onClick={() =>
                   confirm(
                     handleRevert,
-                    activePrompt ? CONFIRMATION_CONFIG : RESET_CONFIRMATION_CONFIG,
+                    activePrompt
+                      ? {
+                          ...CONFIRMATION_CONFIG,
+                          onConfirmTracking: () =>
+                            fireMiscTrackingEvent('Playground Prompt Reverted', {
+                              outcome: 'submit',
+                            }),
+                          onCancelTracking: () =>
+                            fireMiscTrackingEvent('Playground Prompt Reverted', {
+                              outcome: 'cancel',
+                            }),
+                        }
+                      : {
+                          ...RESET_CONFIRMATION_CONFIG,
+                          onConfirmTracking: () =>
+                            fireMiscTrackingEvent('Playground Prompt Cleared', {
+                              outcome: 'submit',
+                              hadLoadedPrompt: !!activePrompt,
+                            }),
+                          onCancelTracking: () =>
+                            fireMiscTrackingEvent('Playground Prompt Cleared', {
+                              outcome: 'cancel',
+                              hadLoadedPrompt: !!activePrompt,
+                            }),
+                        },
                   )
                 }
               >

@@ -498,6 +498,26 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
 
       // Utility
       getConfiguration: (id: string) => get().configurations[id],
+      getPromptSourceType(id: string) {
+        const config = get().configurations[id];
+        let instructionSource = '';
+        if (config) {
+          const { activePrompt, systemInstruction } = config;
+          const activeTemplate =
+            activePrompt?.template ??
+            activePrompt?.messages?.find((m) => m.role === 'system')?.content ??
+            '';
+
+          if (activeTemplate === systemInstruction) {
+            instructionSource = 'managed';
+          } else if (systemInstruction === DEFAULT_SYSTEM_INSTRUCTIONS) {
+            instructionSource = 'default';
+          } else if (activeTemplate !== systemInstruction) {
+            instructionSource = 'unsaved';
+          }
+        }
+        return instructionSource;
+      },
     })),
     {
       name: 'ChatbotConfigStore',
