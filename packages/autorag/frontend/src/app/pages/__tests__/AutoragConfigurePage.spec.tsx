@@ -32,7 +32,7 @@ jest.mock('mod-arch-core', () => ({
 }));
 
 jest.mock('~/app/hooks/mutations', () => ({
-  usePipelineRunsMutation: jest.fn(() => ({
+  useCreatePipelineRunMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
   })),
 }));
@@ -233,8 +233,8 @@ describe('AutoragConfigurePage', () => {
     it('should NOT render AutoragConfigure component on initial load', async () => {
       renderWithProviders(<AutoragConfigurePage />);
       // AutoragConfigure has "Documents" and "Configure Details" headings
-      expect(screen.queryByText('Documents')).not.toBeInTheDocument();
-      expect(screen.queryByText('Configure Details')).not.toBeInTheDocument();
+      expect(screen.queryByText('Knowledge setup')).not.toBeInTheDocument();
+      expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
     });
 
     it('should display "Create AutoRAG experiment" subtitle in create step', async () => {
@@ -246,7 +246,7 @@ describe('AutoragConfigurePage', () => {
       renderWithProviders(<AutoragConfigurePage />);
       expect(
         await screen.findByText(
-          'Automatically configure and optimize your Retrieval-Augmented Generation workflows.',
+          'Automatically test and tune retrieval, indexing, and model settings to improve Retrieval-Augmented Generation (RAG) response quality.',
         ),
       ).toBeInTheDocument();
     });
@@ -311,26 +311,25 @@ describe('AutoragConfigurePage', () => {
       await user.click(nextButton);
 
       // Should now show configure component
-      expect(await screen.findByText('Documents')).toBeInTheDocument();
-      expect(await screen.findByText('Configure Details')).toBeInTheDocument();
+      expect(await screen.findByText('Knowledge setup')).toBeInTheDocument();
+      expect(await screen.findByText('Configure details')).toBeInTheDocument();
       expect(screen.queryByLabelText(/Name/i)).not.toBeInTheDocument();
     });
   });
 
   describe('Create step - Cancel button', () => {
-    it('should render Cancel button', async () => {
+    it('should render Cancel link', async () => {
       renderWithProviders(<AutoragConfigurePage />);
-      expect(await screen.findByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
+      expect(cancelLink).toBeInTheDocument();
+      expect(cancelLink).toHaveAttribute('href', '/gen-ai-studio/autorag/experiments');
     });
 
-    it('should navigate to experiments page when Cancel is clicked', async () => {
-      const user = userEvent.setup();
+    it('should have correct href for Cancel link', async () => {
       renderWithProviders(<AutoragConfigurePage />);
 
-      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
-      await user.click(cancelButton);
-
-      expect(mockNavigate).toHaveBeenCalledWith('/gen-ai-studio/autorag/experiments');
+      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
+      expect(cancelLink).toHaveAttribute('href', '/gen-ai-studio/autorag/experiments');
     });
   });
 
@@ -354,8 +353,8 @@ describe('AutoragConfigurePage', () => {
 
     it('should render AutoragConfigure component in configure step', async () => {
       // Check for distinctive elements from AutoragConfigure
-      expect(await screen.findByText('Documents')).toBeInTheDocument();
-      expect(await screen.findByText('Configure Details')).toBeInTheDocument();
+      expect(await screen.findByText('Knowledge setup')).toBeInTheDocument();
+      expect(await screen.findByText('Configure details')).toBeInTheDocument();
     });
 
     it('should display experiment name in subtitle in configure step', async () => {
@@ -365,7 +364,7 @@ describe('AutoragConfigurePage', () => {
     it('should NOT display description text in configure step', async () => {
       expect(
         screen.queryByText(
-          'Automatically configure and optimize your Retrieval-Augmented Generation workflows.',
+          'Automatically test and tune retrieval, indexing, and model settings to improve Retrieval-Augmented Generation (RAG) response quality.',
         ),
       ).not.toBeInTheDocument();
     });
@@ -383,9 +382,9 @@ describe('AutoragConfigurePage', () => {
       expect(await screen.findByRole('button', { name: 'Back' })).toBeInTheDocument();
     });
 
-    it('should NOT render "Next" or "Cancel" buttons in configure step', async () => {
+    it('should NOT render "Next" or "Cancel" in configure step', async () => {
       expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Cancel' })).not.toBeInTheDocument();
     });
   });
 
@@ -414,8 +413,8 @@ describe('AutoragConfigurePage', () => {
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
       expect(await screen.findByText(/Llama Stack instance/i)).toBeInTheDocument();
       // Should NOT show configure component (Documents, Configure Details)
-      expect(screen.queryByText('Documents')).not.toBeInTheDocument();
-      expect(screen.queryByText('Configure Details')).not.toBeInTheDocument();
+      expect(screen.queryByText('Knowledge setup')).not.toBeInTheDocument();
+      expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
     });
 
     it('should preserve form data when navigating back', async () => {

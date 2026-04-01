@@ -1,21 +1,14 @@
-import {
-  useQuery,
-  useQueries,
-  useMutation,
-  UseQueryResult,
-  UseMutationResult,
-} from '@tanstack/react-query';
+import { useQueries, useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { URL_PREFIX } from '~/app/utilities/const';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { getPipelineRunFromBFF } from '~/app/api/pipelines';
+import { getFiles as getS3Files } from '~/app/api/s3';
 import type {
+  ConfusionMatrixData,
+  FeatureImportanceData,
   PipelineRun,
   S3ListObjectsResponse,
-  FeatureImportanceData,
-  ConfusionMatrixData,
 } from '~/app/types';
-import { createPipelineRun, getPipelineRunFromBFF } from '~/app/api/pipelines';
-import { getFiles as getS3Files } from '~/app/api/s3';
+import { URL_PREFIX } from '~/app/utilities/const';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -43,7 +36,7 @@ export function useExperimentQuery(
 
 export type ColumnSchema = {
   name: string;
-  type: 'integer' | 'double' | 'timestamp' | 'bool' | 'string';
+  type: 'integer' | 'double' | 'int64' | 'float64' | 'timestamp' | 'bool' | 'string';
   values?: (string | number)[];
 };
 
@@ -53,7 +46,7 @@ export type ColumnSchema = {
 const ColumnSchemaArraySchema = z.array(
   z.object({
     name: z.string(),
-    type: z.enum(['integer', 'double', 'timestamp', 'bool', 'string']),
+    type: z.enum(['integer', 'double', 'int64', 'float64', 'timestamp', 'bool', 'string']),
     values: z.array(z.union([z.string(), z.number()])).optional(),
   }),
 );
@@ -126,7 +119,7 @@ export function useS3GetFileSchemaQuery(
 ): UseQueryResult<ColumnSchema[], Error> {
   return useQuery({
     queryKey: ['files', namespace, secretName, bucket, key],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!namespace || !secretName || !key) {
         return [];
       }
@@ -138,7 +131,9 @@ export function useS3GetFileSchemaQuery(
         ...(bucket && { bucket }),
       });
 
-      const response = await fetch(`${URL_PREFIX}/api/v1/s3/file/schema?${params.toString()}`);
+      const response = await fetch(`${URL_PREFIX}/api/v1/s3/file/schema?${params.toString()}`, {
+        signal,
+      });
 
       if (!response.ok) {
         let errorMessage = response.statusText;
@@ -331,21 +326,5 @@ export function useModelEvaluationArtifactsQuery(
       confusionMatrix: results[1].data,
       isLoading: results.some((r) => r.isPending),
     }),
-  });
-}
-
-type CreatePipelineRunVariables = {
-  namespace: string;
-  data: ConfigureSchema;
-};
-
-export function useCreatePipelineRun(): UseMutationResult<
-  PipelineRun,
-  Error,
-  CreatePipelineRunVariables
-> {
-  return useMutation({
-    mutationFn: async ({ namespace, data }: CreatePipelineRunVariables) =>
-      createPipelineRun('', { namespace, data }),
   });
 }
