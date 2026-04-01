@@ -184,7 +184,7 @@ export function useSecretsQuery(
 ): UseQueryResult<SecretListItem[], Error> {
   return useQuery({
     enabled: !!namespace,
-    queryKey: ['autorag', 'secrets', namespace],
+    queryKey: ['autorag', 'secrets', namespace, type],
     queryFn: ({ signal }) => getSecrets('')(namespace, type)({ signal }),
   });
 }

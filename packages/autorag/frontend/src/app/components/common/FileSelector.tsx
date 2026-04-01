@@ -34,7 +34,7 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
 
   const hideUpload = !!props.selected;
 
-  const handleFileChange = async (event: unknown, file: File) => {
+  const handleFileChange = (event: unknown, file: File) => {
     setUploadedFile(file);
     setUploadProgress(0);
     setUploadStatus(undefined);
@@ -67,14 +67,14 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
         style={{
           maxHeight: hideUpload ? '0' : '6rem',
           padding: hideUpload ? '0' : undefined,
-          marginTop: hideUpload ? '0' : undefined,
+          margin: hideUpload ? '0' : undefined,
           border: hideUpload ? '0' : undefined,
 
           translate: hideUpload ? '0 -2rem' : '0 0',
           opacity: hideUpload ? '0' : '1',
           visibility: hideUpload ? 'hidden' : 'visible',
 
-          transition: 'max-height, padding, marginTop, border, translate, opacity, visibility',
+          transitionProperty: 'max-height, padding, margin, border, translate, opacity, visibility',
           transitionDuration: hideUpload
             ? 'var(--pf-t--global--motion--duration--slide-out--default)'
             : 'var(--pf-t--global--motion--duration--slide-in--default)',

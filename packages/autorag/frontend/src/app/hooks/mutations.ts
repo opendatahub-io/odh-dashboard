@@ -95,14 +95,13 @@ export function useUploadToStorageMutation(
         const formData = new FormData();
         formData.append('file', file);
 
-        xhr.open(
-          'POST',
-          // eslint-disable-next-line prefer-template
-          `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/file` +
-            `?namespace=${namespace}` +
-            `&secretName=${secretName}` +
-            `&key=${(path ? `${path}/` : '') + file.name}`,
-        );
+        const key = (path ? `${path}/` : '') + file.name;
+        const params = new URLSearchParams({
+          namespace,
+          secretName,
+          key,
+        });
+        xhr.open('POST', `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/file?${params.toString()}`);
         xhr.send(formData);
       }),
   });
