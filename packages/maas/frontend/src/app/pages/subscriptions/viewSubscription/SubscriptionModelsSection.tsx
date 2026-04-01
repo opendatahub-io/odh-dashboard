@@ -17,12 +17,16 @@ type SubscriptionModelsSectionProps = {
   modelRefSummaries: MaaSModelRefSummary[];
   subscriptionModelRefs: ModelSubscriptionRef[];
   hideColumns?: ModelColumnKey[];
+  titleHeadingLevel?: React.ComponentProps<typeof Title>['headingLevel'];
+  titleSize?: React.ComponentProps<typeof Title>['size'];
 };
 
 const SubscriptionModelsSection: React.FC<SubscriptionModelsSectionProps> = ({
   modelRefSummaries,
   subscriptionModelRefs,
   hideColumns = [],
+  titleHeadingLevel = 'h2',
+  titleSize = 'xl',
 }) => {
   const visibleColumns = COLUMNS.filter((col) => !hideColumns.includes(col.key));
 
@@ -31,7 +35,7 @@ const SubscriptionModelsSection: React.FC<SubscriptionModelsSectionProps> = ({
       <StackItem>
         <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
           <FlexItem>
-            <Title headingLevel="h2" size="xl">
+            <Title headingLevel={titleHeadingLevel} size={titleSize}>
               Models
             </Title>
           </FlexItem>

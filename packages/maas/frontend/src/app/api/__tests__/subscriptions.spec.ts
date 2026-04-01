@@ -1,6 +1,11 @@
+/* eslint-disable camelcase */
 import * as modArchCore from 'mod-arch-core';
-import { SubscriptionInfoResponse } from '~/app/types/subscriptions';
-import { getSubscriptionInfo, listSubscriptions } from '~/app/api/subscriptions';
+import { SubscriptionInfoResponse, UserSubscription } from '~/app/types/subscriptions';
+import {
+  getSubscriptionInfo,
+  listSubscriptions,
+  listUserSubscriptions,
+} from '~/app/api/subscriptions';
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
@@ -168,5 +173,88 @@ describe('listSubscriptions', () => {
     mockRestGET.mockResolvedValue([validSubscriptionInfoResponse.subscription]);
 
     await expect(listSubscriptions()({} as never)).rejects.toThrow('Invalid response format');
+  });
+});
+
+describe('listUserSubscriptions', () => {
+  const validItem: UserSubscription = {
+    subscription_id_header: 'premium-team-sub',
+    subscription_description: 'Premium Team Subscription',
+    priority: 10,
+    model_refs: [
+      {
+        name: 'granite-3-8b-instruct',
+        namespace: 'maas-models',
+        token_rate_limits: [{ limit: 100000, window: '24h' }],
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockHandleRestFailures.mockImplementation((p: Promise<unknown>) => p);
+  });
+
+  it('should resolve with subscription list for a valid response', async () => {
+    mockRestGET.mockResolvedValue({ data: [validItem] });
+
+    const result = await listUserSubscriptions()({} as never);
+    expect(result).toHaveLength(1);
+    expect(result[0].subscription_id_header).toBe('premium-team-sub');
+  });
+
+  it('should resolve with an empty array when the list is empty', async () => {
+    mockRestGET.mockResolvedValue({ data: [] });
+
+    const result = await listUserSubscriptions()({} as never);
+    expect(result).toHaveLength(0);
+  });
+
+  it('should accept items without optional fields (namespace, token_rate_limits, cost_center)', async () => {
+    const minimal: UserSubscription = {
+      subscription_id_header: 'basic-sub',
+      subscription_description: 'Basic',
+      priority: 1,
+      model_refs: [{ name: 'flan-t5-small' }],
+    };
+    mockRestGET.mockResolvedValue({ data: [minimal] });
+
+    const result = await listUserSubscriptions()({} as never);
+    expect(result[0].model_refs[0].namespace).toBeUndefined();
+    expect(result[0].model_refs[0].token_rate_limits).toBeUndefined();
+  });
+
+  it('should throw for an unwrapped (non-data) response', async () => {
+    mockRestGET.mockResolvedValue([validItem]);
+
+    await expect(listUserSubscriptions()({} as never)).rejects.toThrow('Invalid response format');
+  });
+
+  it('should throw when subscription_id_header is missing', async () => {
+    const invalid = [{ subscription_description: 'desc', priority: 1, model_refs: [] }];
+    mockRestGET.mockResolvedValue({ data: invalid });
+
+    await expect(listUserSubscriptions()({} as never)).rejects.toThrow('Invalid response format');
+  });
+
+  it('should throw when priority is not a number', async () => {
+    const invalid = [{ ...validItem, priority: '10' }];
+    mockRestGET.mockResolvedValue({ data: invalid });
+
+    await expect(listUserSubscriptions()({} as never)).rejects.toThrow('Invalid response format');
+  });
+
+  it('should throw when model_refs contains an item with an invalid token_rate_limit entry', async () => {
+    const invalid = [
+      {
+        ...validItem,
+        model_refs: [
+          { name: 'model', token_rate_limits: [{ limit: 'not-a-number', window: '24h' }] },
+        ],
+      },
+    ];
+    mockRestGET.mockResolvedValue({ data: invalid });
+
+    await expect(listUserSubscriptions()({} as never)).rejects.toThrow('Invalid response format');
   });
 });

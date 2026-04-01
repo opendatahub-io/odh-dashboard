@@ -93,9 +93,10 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 		It("returns 201 and the created API key", func() {
 			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 			apiKey := models.APIKeyCreateRequest{
-				Name:        "new-api-key",
-				Description: "Newly created API key",
-				ExpiresIn:   "90d",
+				Name:         "new-api-key",
+				Description:  "Newly created API key",
+				ExpiresIn:    "90d",
+				Subscription: "test-subscription",
 			}
 			actual, rs, err := setupApiTest[Envelope[*models.APIKeyCreateResponse, None]](
 				http.MethodPost,
@@ -127,13 +128,43 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 
 			Expect(rr.Code).To(Equal(http.StatusBadRequest))
 		})
+		It("returns 400 when name is empty", func() {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			actual, rs, err := setupApiTest[HTTPError](
+				http.MethodPost,
+				"/api/v1/api-keys",
+				Envelope[models.APIKeyCreateRequest, None]{
+					Data: models.APIKeyCreateRequest{Name: "", Subscription: "test-subscription"},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+			Expect(actual.Error.Message).To(ContainSubstring("name is required"))
+		})
+		It("returns 400 when subscription is empty", func() {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			actual, rs, err := setupApiTest[HTTPError](
+				http.MethodPost,
+				"/api/v1/api-keys",
+				Envelope[models.APIKeyCreateRequest, None]{
+					Data: models.APIKeyCreateRequest{Name: "my-key", Subscription: ""},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+			Expect(actual.Error.Message).To(ContainSubstring("subscription is required"))
+		})
 		It("returns 400 with the upstream message when expiration exceeds the maximum", func() {
 			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 			actual, rs, err := setupApiTest[HTTPError](
 				http.MethodPost,
 				"/api/v1/api-keys",
 				Envelope[models.APIKeyCreateRequest, None]{
-					Data: models.APIKeyCreateRequest{Name: "my-key", ExpiresIn: "trigger_expiration_exceeded"},
+					Data: models.APIKeyCreateRequest{Name: "my-key", ExpiresIn: "trigger_expiration_exceeded", Subscription: "test-subscription"},
 				},
 				k8Factory,
 				identity,
@@ -211,6 +242,42 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			BulkRevokeAPIKeysHandler(nil, rr, req, httprouter.Params{})
 
 			Expect(rr.Code).To(Equal(http.StatusBadRequest))
+		})
+	})
+
+	var _ = Describe("ListSubscriptionsPassthroughHandler", Ordered, func() {
+		It("returns 200 and a list of subscriptions from the maas-api passthrough", func() {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			actual, rs, err := setupApiTest[Envelope[[]models.SubscriptionListItem, None]](
+				http.MethodGet,
+				"/api/v1/subscriptions",
+				nil,
+				k8Factory,
+				identity,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(actual.Data).NotTo(BeNil())
+			Expect(len(actual.Data)).Should(BeNumerically(">", 0))
+
+			first := actual.Data[0]
+			Expect(first.SubscriptionIDHeader).NotTo(BeEmpty())
+			Expect(first.SubscriptionDescription).NotTo(BeEmpty())
+			Expect(first.ModelRefs).NotTo(BeEmpty())
+		})
+
+		It("returns 400 when no identity is provided", func() {
+			_, rs, err := setupApiTest[Envelope[[]models.SubscriptionListItem, None]](
+				http.MethodGet,
+				"/api/v1/subscriptions",
+				nil,
+				k8Factory,
+				nil,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
 		})
 	})
 })

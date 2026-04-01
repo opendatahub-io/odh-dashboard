@@ -100,6 +100,7 @@ import type {
 import type {
   MaaSSubscription,
   SubscriptionInfoResponse,
+  UserSubscription,
 } from '@odh-dashboard/maas/types/subscriptions';
 
 type SuccessErrorResponse = {
@@ -1159,6 +1160,10 @@ declare global {
           type: 'GET /maas/api/v1/subscription-info/:name',
           options: { path: { name: string } },
           response: OdhResponse<SubscriptionInfoResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/subscriptions',
+          response: { data: UserSubscription[] },
         ) => Cypress.Chainable<null>);
     }
   }
