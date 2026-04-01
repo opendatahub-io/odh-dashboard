@@ -182,6 +182,9 @@ describe('FileSelector', () => {
     await waitFor(() => {
       const progressBar = screen.getByRole('progressbar');
       expect(progressBar).toBeInTheDocument();
+      // Verify success variant is applied to the Progress container
+      const progressContainer = container.querySelector('.pf-v6-c-progress');
+      expect(progressContainer).toHaveClass('pf-m-success');
     });
   });
 
@@ -204,6 +207,9 @@ describe('FileSelector', () => {
     await waitFor(() => {
       const progressBar = screen.getByRole('progressbar');
       expect(progressBar).toBeInTheDocument();
+      // Verify danger variant is applied to the Progress container
+      const progressContainer = container.querySelector('.pf-v6-c-progress');
+      expect(progressContainer).toHaveClass('pf-m-danger');
     });
   });
 
@@ -242,9 +248,12 @@ describe('FileSelector', () => {
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(input, file);
 
-    // FileUpload should show the progress bar while uploading
+    // FileUpload should be disabled during upload and show the progress bar
     await waitFor(() => {
       expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      // Check that the form control is disabled
+      const formControl = container.querySelector('.pf-v6-c-form-control');
+      expect(formControl).toHaveClass('pf-m-disabled');
     });
   });
 

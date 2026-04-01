@@ -56,7 +56,12 @@ jest.mock('~/app/components/common/FileSelector', () => ({
       setStatus: (status: 'success' | 'danger') => void,
     ) => void;
     onClear: () => void;
-    fileUploadProps?: { onClearClick?: () => void };
+    fileUploadProps?: {
+      onClearClick?: () => void;
+      browseButtonText?: React.ReactNode;
+      clearButtonText?: React.ReactNode;
+      isClearButtonDisabled?: boolean;
+    };
     fileUploadHelperText?: string;
   }) => (
     <div data-testid="file-selector">
@@ -76,11 +81,15 @@ jest.mock('~/app/components/common/FileSelector', () => ({
           }
         }}
       />
+      {fileUploadProps?.browseButtonText && (
+        <div data-testid="file-selector-browse-button">{fileUploadProps.browseButtonText}</div>
+      )}
       <button
         data-testid="file-selector-s3-button"
         onClick={() => fileUploadProps?.onClearClick?.()}
+        disabled={fileUploadProps?.isClearButtonDisabled}
       >
-        S3
+        {fileUploadProps?.clearButtonText || 'S3'}
       </button>
       {fileUploadHelperText && (
         <div data-testid="file-selector-helper-text">{fileUploadHelperText}</div>
@@ -113,6 +122,12 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer', () => ({
           onClick={() => onSelectFiles([{ path: '/test-data.json' }])}
         >
           Select File
+        </button>
+        <button
+          data-testid="s3-select-nested-file"
+          onClick={() => onSelectFiles([{ path: '/folder/subfolder/test-data.json' }])}
+        >
+          Select Nested File
         </button>
       </div>
     ) : null,
@@ -357,7 +372,7 @@ describe('AutoragEvaluationSelect', () => {
     });
   });
 
-  it('should strip leading slash from S3 file path', async () => {
+  it('should strip leading slash from S3 file path with nested folders', async () => {
     const user = userEvent.setup();
     let formValues: unknown;
     const onFormChange = (values: unknown) => {
@@ -369,12 +384,12 @@ describe('AutoragEvaluationSelect', () => {
     const s3Button = screen.getByTestId('file-selector-s3-button');
     await user.click(s3Button);
 
-    const selectButton = screen.getByTestId('s3-select-file');
+    const selectButton = screen.getByTestId('s3-select-nested-file');
     await user.click(selectButton);
 
     await waitFor(() => {
       expect(formValues).toMatchObject({
-        test_data_key: 'test-data.json', // eslint-disable-line camelcase
+        test_data_key: 'folder/subfolder/test-data.json', // eslint-disable-line camelcase
       });
     });
   });
@@ -410,16 +425,19 @@ describe('AutoragEvaluationSelect', () => {
   it('should render custom browse button text with Computer icon', () => {
     renderWithProviders(<AutoragEvaluationSelect />);
 
-    // The mock component doesn't render the actual button text, but we can verify
-    // that the fileUploadProps are being passed to FileSelector
-    expect(screen.getByTestId('file-selector')).toBeInTheDocument();
+    // Verify the browse button contains the "Computer" text
+    const browseButton = screen.getByTestId('file-selector-browse-button');
+    expect(browseButton).toBeInTheDocument();
+    expect(browseButton).toHaveTextContent('Computer');
   });
 
   it('should render custom clear button text with S3 icon', () => {
     renderWithProviders(<AutoragEvaluationSelect />);
 
-    // Verify S3 button is rendered
-    expect(screen.getByTestId('file-selector-s3-button')).toBeInTheDocument();
+    // Verify S3 button is rendered with correct text
+    const s3Button = screen.getByTestId('file-selector-s3-button');
+    expect(s3Button).toBeInTheDocument();
+    expect(s3Button).toHaveTextContent('S3');
   });
 
   it('should have isClearButtonDisabled set to false', () => {

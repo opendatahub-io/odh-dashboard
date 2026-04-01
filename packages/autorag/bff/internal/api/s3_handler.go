@@ -346,7 +346,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	body := map[string]bool{"uploaded": true}
+	body := map[string]any{"uploaded": true, "key": key}
 	_ = app.WriteJSON(w, http.StatusCreated, body, nil)
 }
 

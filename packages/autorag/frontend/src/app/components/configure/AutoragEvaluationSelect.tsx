@@ -32,8 +32,9 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         id={field.name}
         selected={field.value}
         onUpload={async (file, setProgress, setStatus) => {
+          let response;
           try {
-            await uploadToStorageMutation.mutateAsync({ file, onProgress: setProgress });
+            response = await uploadToStorageMutation.mutateAsync({ file, onProgress: setProgress });
           } catch (error) {
             notification.error(
               'Failed to upload file',
@@ -43,7 +44,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
             return;
           }
 
-          field.onChange(file.name);
+          field.onChange(response.key);
           setStatus('success');
         }}
         onClear={() => field.onChange('')}

@@ -46,7 +46,7 @@ export function useUploadToStorageMutation(
   namespace: string,
   secretName: string,
 ): UseMutationResult<
-  unknown,
+  { uploaded: boolean; key: string },
   Error,
   { file: File; path?: string; onProgress?: (progress: number) => void },
   unknown
@@ -80,8 +80,8 @@ export function useUploadToStorageMutation(
             try {
               const response = JSON.parse(xhr.responseText);
               resolve(response);
-            } catch {
-              resolve(xhr.responseText);
+            } catch (parseError) {
+              reject(new Error(`Failed to parse upload response: ${parseError}`));
             }
           } else {
             reject(new Error(`Upload failed with status ${xhr.status}`));

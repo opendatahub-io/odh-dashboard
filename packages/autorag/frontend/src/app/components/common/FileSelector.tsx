@@ -38,7 +38,7 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
     setUploadedFile(file);
     setUploadProgress(0);
     setUploadStatus(undefined);
-    props.onUpload(file, setUploadProgress, setUploadStatus);
+    void props.onUpload(file, setUploadProgress, setUploadStatus);
   };
 
   return (
