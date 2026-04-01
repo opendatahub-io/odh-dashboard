@@ -15,6 +15,7 @@ import {
   EmptyState,
   EmptyStateBody,
   Flex,
+  FlexItem,
   FormHelperText,
   Grid,
   GridItem,
@@ -312,245 +313,255 @@ function AutoragConfigure(): React.JSX.Element {
                     </EmptyStateBody>
                   </EmptyState>
                 ) : (
-                  <Stack hasGutter>
-                    <ConfigureFormGroup
-                      label="Vector database location"
-                      description="Specify the location for storing the vector index used to retrieve your documents."
-                    >
-                      <AutoragVectorStoreSelector />
-                    </ConfigureFormGroup>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapXl' }}>
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Vector database location"
+                        description="Specify the location for storing the vector index used to retrieve your documents."
+                      >
+                        <AutoragVectorStoreSelector />
+                      </ConfigureFormGroup>
+                    </FlexItem>
 
-                    <ConfigureFormGroup
-                      label="Evaluation dataset"
-                      description={
-                        <>
-                          <span>
-                            Select the evaluation dataset that will be used to measure the quality
-                            of the generated responses. Must adhere to the{' '}
-                          </span>
-                          <Button variant="link" isInline component="span" onClick={() => null}>
-                            evaluation dataset template
-                          </Button>
-                          <span>.</span>
-                        </>
-                      }
-                    >
-                      Evaluation data source upload component
-                    </ConfigureFormGroup>
-
-                    <ConfigureFormGroup
-                      label="Optimization metric"
-                      labelHelp={{
-                        header: 'Optimization metric',
-                        position: 'bottom',
-                        body: (
-                          <Stack hasGutter>
-                            {OPTIMIZATION_METRICS.map((metric) => (
-                              <StackItem key={metric.value}>
-                                <Content component="p">
-                                  <strong>{metric.label}:</strong>
-                                  <br />
-                                  {metric.description}
-                                </Content>
-                              </StackItem>
-                            ))}
-                          </Stack>
-                        ),
-                      }}
-                      description="The metric used to compare configurations and identify the best result."
-                    >
-                      <Controller
-                        control={form.control}
-                        name="optimization_metric"
-                        render={({ field }) => {
-                          const selected = OPTIMIZATION_METRICS.find(
-                            (m) => m.value === field.value,
-                          );
-                          return (
-                            <Select
-                              isOpen={isMetricSelectOpen}
-                              selected={field.value}
-                              onSelect={(_e, val) => {
-                                if (typeof val === 'string') {
-                                  field.onChange(val);
-                                }
-                                setIsMetricSelectOpen(false);
-                              }}
-                              onOpenChange={setIsMetricSelectOpen}
-                              toggle={(toggleRef) => (
-                                <MenuToggle
-                                  ref={toggleRef}
-                                  onClick={() => setIsMetricSelectOpen((prev) => !prev)}
-                                  isExpanded={isMetricSelectOpen}
-                                  data-testid="optimization-metric-select"
-                                >
-                                  {selected?.label ?? ''}
-                                </MenuToggle>
-                              )}
-                              shouldFocusToggleOnSelect
-                              data-testid="optimization-metric-select-list"
-                            >
-                              <SelectList>
-                                {OPTIMIZATION_METRICS.map((metric) => (
-                                  <SelectOption
-                                    key={metric.value}
-                                    value={metric.value}
-                                    data-testid={`metric-option-${metric.value}`}
-                                  >
-                                    {metric.label}
-                                  </SelectOption>
-                                ))}
-                              </SelectList>
-                            </Select>
-                          );
-                        }}
-                      />
-                    </ConfigureFormGroup>
-
-                    <ConfigureFormGroup
-                      label="Maximum RAG patterns"
-                      description="Specify the maximum number of RAG patterns to evaluate."
-                    >
-                      <Controller
-                        control={form.control}
-                        name="optimization_max_rag_patterns"
-                        render={({ field, fieldState }) => (
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Evaluation dataset"
+                        description={
                           <>
-                            <NumberInput
-                              id="max-rag-patterns"
-                              value={field.value}
-                              min={MIN_RAG_PATTERNS}
-                              max={MAX_RAG_PATTERNS}
-                              validated={fieldState.error ? 'error' : 'default'}
-                              onMinus={() => field.onChange(field.value - 1)}
-                              onPlus={() => field.onChange(field.value + 1)}
-                              onChange={(event: React.FormEvent<HTMLInputElement>) => {
-                                const val = parseInt(event.currentTarget.value, 10);
-                                if (!Number.isNaN(val)) {
-                                  field.onChange(val);
-                                }
-                              }}
-                              data-testid="max-rag-patterns-input"
-                            />
-                            {fieldState.error && (
-                              <FormHelperText>
-                                <HelperText>
-                                  <HelperTextItem variant="error">
-                                    {fieldState.error.message}
-                                  </HelperTextItem>
-                                </HelperText>
-                              </FormHelperText>
-                            )}
+                            <span>
+                              Select the evaluation dataset that will be used to measure the quality
+                              of the generated responses. Must adhere to the{' '}
+                            </span>
+                            <Button variant="link" isInline component="span" onClick={() => null}>
+                              evaluation dataset template
+                            </Button>
+                            <span>.</span>
                           </>
-                        )}
-                      />
-                    </ConfigureFormGroup>
+                        }
+                      >
+                        Evaluation data source upload component
+                      </ConfigureFormGroup>
+                    </FlexItem>
 
-                    <ConfigureFormGroup
-                      label="Model configuration"
-                      description="Select models to determine how documents are retrieved and which models generate responses."
-                    >
-                      <Card>
-                        <CardHeader
-                          hasWrap
-                          actions={{
-                            actions: [
-                              <Watch
-                                key="edit-experiment-settings"
-                                control={form.control}
-                                name="input_data_key"
-                                render={(inputDataKey) => (
-                                  <Button
-                                    variant="secondary"
-                                    onClick={openExperimentSettings}
-                                    isDisabled={
-                                      !inputDataBucketName ||
-                                      !inputDataKey ||
-                                      form.formState.isSubmitting
-                                    }
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Optimization metric"
+                        labelHelp={{
+                          header: 'Optimization metric',
+                          position: 'bottom',
+                          body: (
+                            <Stack hasGutter>
+                              {OPTIMIZATION_METRICS.map((metric) => (
+                                <StackItem key={metric.value}>
+                                  <Content component="p">
+                                    <strong>{metric.label}:</strong>
+                                    <br />
+                                    {metric.description}
+                                  </Content>
+                                </StackItem>
+                              ))}
+                            </Stack>
+                          ),
+                        }}
+                        description="The metric used to compare configurations and identify the best result."
+                      >
+                        <Controller
+                          control={form.control}
+                          name="optimization_metric"
+                          render={({ field }) => {
+                            const selected = OPTIMIZATION_METRICS.find(
+                              (m) => m.value === field.value,
+                            );
+                            return (
+                              <Select
+                                isOpen={isMetricSelectOpen}
+                                selected={field.value}
+                                onSelect={(_e, val) => {
+                                  if (typeof val === 'string') {
+                                    field.onChange(val);
+                                  }
+                                  setIsMetricSelectOpen(false);
+                                }}
+                                onOpenChange={setIsMetricSelectOpen}
+                                toggle={(toggleRef) => (
+                                  <MenuToggle
+                                    ref={toggleRef}
+                                    onClick={() => setIsMetricSelectOpen((prev) => !prev)}
+                                    isExpanded={isMetricSelectOpen}
+                                    data-testid="optimization-metric-select"
                                   >
-                                    Edit
-                                  </Button>
+                                    {selected?.label ?? ''}
+                                  </MenuToggle>
                                 )}
-                              />,
-                            ],
+                                shouldFocusToggleOnSelect
+                                data-testid="optimization-metric-select-list"
+                              >
+                                <SelectList>
+                                  {OPTIMIZATION_METRICS.map((metric) => (
+                                    <SelectOption
+                                      key={metric.value}
+                                      value={metric.value}
+                                      data-testid={`metric-option-${metric.value}`}
+                                    >
+                                      {metric.label}
+                                    </SelectOption>
+                                  ))}
+                                </SelectList>
+                              </Select>
+                            );
                           }}
-                        >
-                          <CardTitle>Selected models</CardTitle>
-                        </CardHeader>
-                        <CardBody>
-                          <Stack hasGutter>
-                            <StackItem>
-                              <Watch
-                                control={form.control}
-                                name="generation_models"
-                                render={(generationModels) => (
-                                  <Flex
-                                    alignItems={{ default: 'alignItemsCenter' }}
-                                    spacer={{ default: 'spacerNone' }}
-                                    gap={{ default: 'gapSm' }}
-                                  >
-                                    <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
-                                    {!!generationModels.length && (
-                                      <Popover
-                                        bodyContent={
-                                          <List>
-                                            {generationModels.map((model) => (
-                                              <ListItem key={`generation-${model}`}>
-                                                {model}
-                                              </ListItem>
-                                            ))}
-                                          </List>
-                                        }
-                                      >
-                                        <DashboardPopupIconButton
-                                          icon={<InfoCircleIcon />}
-                                          hasNoPadding
-                                        />
-                                      </Popover>
-                                    )}
-                                  </Flex>
-                                )}
+                        />
+                      </ConfigureFormGroup>
+                    </FlexItem>
+
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Maximum RAG patterns"
+                        description="Specify the maximum number of RAG patterns to evaluate."
+                      >
+                        <Controller
+                          control={form.control}
+                          name="optimization_max_rag_patterns"
+                          render={({ field, fieldState }) => (
+                            <>
+                              <NumberInput
+                                id="max-rag-patterns"
+                                value={field.value}
+                                min={MIN_RAG_PATTERNS}
+                                max={MAX_RAG_PATTERNS}
+                                validated={fieldState.error ? 'error' : 'default'}
+                                onMinus={() => field.onChange(field.value - 1)}
+                                onPlus={() => field.onChange(field.value + 1)}
+                                onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                                  const val = parseInt(event.currentTarget.value, 10);
+                                  if (!Number.isNaN(val)) {
+                                    field.onChange(val);
+                                  }
+                                }}
+                                data-testid="max-rag-patterns-input"
                               />
-                            </StackItem>
-                            <StackItem>
-                              <Watch
-                                control={form.control}
-                                name="embeddings_models"
-                                render={(embeddingModels) => (
-                                  <Flex
-                                    alignItems={{ default: 'alignItemsCenter' }}
-                                    spacer={{ default: 'spacerNone' }}
-                                    gap={{ default: 'gapSm' }}
-                                  >
-                                    <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
-                                    {!!embeddingModels.length && (
-                                      <Popover
-                                        bodyContent={
-                                          <List>
-                                            {embeddingModels.map((model) => (
-                                              <ListItem key={`embedding-${model}`}>
-                                                {model}
-                                              </ListItem>
-                                            ))}
-                                          </List>
-                                        }
-                                      >
-                                        <DashboardPopupIconButton
-                                          icon={<InfoCircleIcon />}
-                                          hasNoPadding
-                                        />
-                                      </Popover>
-                                    )}
-                                  </Flex>
-                                )}
-                              />
-                            </StackItem>
-                          </Stack>
-                        </CardBody>
-                      </Card>
-                    </ConfigureFormGroup>
-                  </Stack>
+                              {fieldState.error && (
+                                <FormHelperText>
+                                  <HelperText>
+                                    <HelperTextItem variant="error">
+                                      {fieldState.error.message}
+                                    </HelperTextItem>
+                                  </HelperText>
+                                </FormHelperText>
+                              )}
+                            </>
+                          )}
+                        />
+                      </ConfigureFormGroup>
+                    </FlexItem>
+
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Model configuration"
+                        description="Select models to determine how documents are retrieved and which models generate responses."
+                      >
+                        <Card>
+                          <CardHeader
+                            hasWrap
+                            actions={{
+                              actions: [
+                                <Watch
+                                  key="edit-experiment-settings"
+                                  control={form.control}
+                                  name="input_data_key"
+                                  render={(inputDataKey) => (
+                                    <Button
+                                      variant="secondary"
+                                      onClick={openExperimentSettings}
+                                      isDisabled={
+                                        !inputDataBucketName ||
+                                        !inputDataKey ||
+                                        form.formState.isSubmitting
+                                      }
+                                    >
+                                      Edit
+                                    </Button>
+                                  )}
+                                />,
+                              ],
+                            }}
+                          >
+                            <CardTitle>Selected models</CardTitle>
+                          </CardHeader>
+                          <CardBody>
+                            <Stack hasGutter>
+                              <StackItem>
+                                <Watch
+                                  control={form.control}
+                                  name="generation_models"
+                                  render={(generationModels) => (
+                                    <Flex
+                                      alignItems={{ default: 'alignItemsCenter' }}
+                                      spacer={{ default: 'spacerNone' }}
+                                      gap={{ default: 'gapSm' }}
+                                    >
+                                      <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
+                                      {!!generationModels.length && (
+                                        <Popover
+                                          bodyContent={
+                                            <List>
+                                              {generationModels.map((model) => (
+                                                <ListItem key={`generation-${model}`}>
+                                                  {model}
+                                                </ListItem>
+                                              ))}
+                                            </List>
+                                          }
+                                        >
+                                          <DashboardPopupIconButton
+                                            icon={<InfoCircleIcon />}
+                                            hasNoPadding
+                                          />
+                                        </Popover>
+                                      )}
+                                    </Flex>
+                                  )}
+                                />
+                              </StackItem>
+                              <StackItem>
+                                <Watch
+                                  control={form.control}
+                                  name="embeddings_models"
+                                  render={(embeddingModels) => (
+                                    <Flex
+                                      alignItems={{ default: 'alignItemsCenter' }}
+                                      spacer={{ default: 'spacerNone' }}
+                                      gap={{ default: 'gapSm' }}
+                                    >
+                                      <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
+                                      {!!embeddingModels.length && (
+                                        <Popover
+                                          bodyContent={
+                                            <List>
+                                              {embeddingModels.map((model) => (
+                                                <ListItem key={`embedding-${model}`}>
+                                                  {model}
+                                                </ListItem>
+                                              ))}
+                                            </List>
+                                          }
+                                        >
+                                          <DashboardPopupIconButton
+                                            icon={<InfoCircleIcon />}
+                                            hasNoPadding
+                                          />
+                                        </Popover>
+                                      )}
+                                    </Flex>
+                                  )}
+                                />
+                              </StackItem>
+                            </Stack>
+                          </CardBody>
+                        </Card>
+                      </ConfigureFormGroup>
+                    </FlexItem>
+                  </Flex>
                 )}
               </CardBody>
             </div>
