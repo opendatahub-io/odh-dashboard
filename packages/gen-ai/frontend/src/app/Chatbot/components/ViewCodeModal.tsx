@@ -147,7 +147,14 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         return;
       }
 
-      const { selectedModel, systemInstruction, selectedMcpServerIds, isRagEnabled } = config;
+      const {
+        selectedModel,
+        systemInstruction,
+        selectedMcpServerIds,
+        isRagEnabled,
+        knowledgeMode,
+        selectedVectorStoreId,
+      } = config;
       const mcpServersToUse = mcpServers.filter((server) =>
         selectedMcpServerIds.includes(server.url),
       );
@@ -166,10 +173,14 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         return;
       }
 
-      if (!vectorStoresLoaded || vectorStores.length === 0) {
+      const selectedVectorStore = isRagEnabled
+        ? vectorStores.find((vs) => vs.id === selectedVectorStoreId)
+        : undefined;
+
+      if (isRagEnabled && (!vectorStoresLoaded || !selectedVectorStore)) {
         setCodeStates((prev) => ({
           ...prev,
-          [cfgId]: { code: '', isLoading: false, error: 'Vector stores not loaded' },
+          [cfgId]: { code: '', isLoading: false, error: 'Vector store not available' },
         }));
         return;
       }
@@ -191,14 +202,19 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
             }
             return serverConfig;
           }),
-          vector_store: {
-            name: vectorStores[0].name,
-            provider_id: vectorStores[0].metadata.provider_id,
-          },
-          files: files.map((file) => ({ file: file.filename, purpose: file.purpose })),
-          ...(files.length > 0 &&
-            isRagEnabled && {
-              tools: [{ type: 'file_search', vector_store_ids: [vectorStores[0].id] }],
+          // Both modes: reference the vector store
+          ...(isRagEnabled &&
+            selectedVectorStore && {
+              vector_store: {
+                name: selectedVectorStore.name,
+                provider_id: selectedVectorStore.metadata.provider_id,
+              },
+              // Inline mode: also upload files to the vector store
+              ...(knowledgeMode === 'inline' &&
+                files.length > 0 && {
+                  files: files.map((file) => ({ file: file.filename, purpose: file.purpose })),
+                  tools: [{ type: 'file_search', vector_store_ids: [selectedVectorStore.id] }],
+                }),
             }),
         };
         /* eslint-enable camelcase */
