@@ -6,7 +6,7 @@ import {
   PipelineRunKF,
   RecurringRunStatus,
 } from '#~/concepts/pipelines/kfTypes';
-import { getRunDuration } from '#~/concepts/pipelines/content/tables/utils';
+import { getRunDuration, getRunStartTime } from '#~/concepts/pipelines/content/tables/utils';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { relativeDuration } from '#~/utilities/time';
 import {
@@ -121,7 +121,10 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
       : []),
     ...(!isPipelineRecurringRun(run)
       ? [
-          { key: 'Started', value: asTimestamp(new Date(run.created_at)) },
+          {
+            key: 'Started',
+            value: asTimestamp(getRunStartTime(run)),
+          },
           {
             key: 'Finished',
             value: isEmptyDateKF(run.finished_at) ? 'N/A' : asTimestamp(new Date(run.finished_at)),

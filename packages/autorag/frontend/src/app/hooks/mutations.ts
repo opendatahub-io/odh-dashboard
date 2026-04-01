@@ -6,6 +6,7 @@ import {
   type UploadFileToS3Params,
   type UploadFileToS3Response,
 } from '~/app/api/s3';
+import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { PipelineRun } from '~/app/types';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
@@ -29,12 +30,12 @@ export function useS3FileUploadMutation(
   });
 }
 
-export function usePipelineRunsMutation(
+export function useCreatePipelineRunMutation(
   namespace: string,
-): UseMutationResult<PipelineRun, Error, Record<string, unknown>, unknown> {
+): UseMutationResult<PipelineRun, Error, ConfigureSchema, unknown> {
   return useMutation({
     mutationKey: ['autorag', 'pipelineRun'],
-    mutationFn: async (payload: Record<string, unknown>) => {
+    mutationFn: async (payload: ConfigureSchema) => {
       const response = await handleRestFailures(
         restCREATE<PipelineRun>(
           '',

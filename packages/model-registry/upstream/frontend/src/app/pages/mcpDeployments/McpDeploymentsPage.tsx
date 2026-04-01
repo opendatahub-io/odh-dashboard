@@ -3,15 +3,19 @@ import { ApplicationsPage, SimpleSelect } from 'mod-arch-shared';
 import { useNamespaceSelector, useModularArchContext } from 'mod-arch-core';
 import { Flex, FlexItem } from '@patternfly/react-core';
 import { McpDeployment } from '~/app/mcpDeploymentTypes';
+import McpDeployModal from '~/odh/components/McpDeployModal';
 import useMcpDeployments from './useMcpDeployments';
 import McpDeploymentsTable from './McpDeploymentsTable';
 import McpDeploymentsToolbar from './McpDeploymentsToolbar';
 import McpDeploymentsEmptyState from './McpDeploymentsEmptyState';
+import DeleteMcpDeploymentModal from './DeleteMcpDeploymentModal';
 import { getServerDisplayName } from './utils';
 
 const McpDeploymentsPage: React.FC = () => {
   const [deployments, loaded, loadError, refresh] = useMcpDeployments();
   const [filterText, setFilterText] = React.useState('');
+  const [deleteTarget, setDeleteTarget] = React.useState<McpDeployment | undefined>();
+  const [editingDeployment, setEditingDeployment] = React.useState<McpDeployment>();
   const { namespaces = [], preferredNamespace, updatePreferredNamespace } = useNamespaceSelector();
   const { config } = useModularArchContext();
 
@@ -29,13 +33,13 @@ const McpDeploymentsPage: React.FC = () => {
     updatePreferredNamespace({ name: key });
   };
 
-  const handleDeleteClick = React.useCallback(
-    (_deployment: McpDeployment) => {
-      // Delete flow handled by RHOAIENG-53380
-      refresh();
-    },
-    [refresh],
-  );
+  const handleDeleteClick = React.useCallback((deployment: McpDeployment) => {
+    setDeleteTarget(deployment);
+  }, []);
+
+  const handleEditClick = React.useCallback((deployment: McpDeployment) => {
+    setEditingDeployment(deployment);
+  }, []);
 
   const filteredDeployments = React.useMemo(() => {
     if (!filterText) {
@@ -56,6 +60,7 @@ const McpDeploymentsPage: React.FC = () => {
   return (
     <ApplicationsPage
       title="MCP server deployments"
+      noTitle
       description="Manage and view the health and performance of your deployed MCP servers."
       headerContent={
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
@@ -91,7 +96,28 @@ const McpDeploymentsPage: React.FC = () => {
         }
         onClearFilters={clearFilters}
         onDeleteClick={handleDeleteClick}
+        onEditClick={handleEditClick}
       />
+      {deleteTarget && (
+        <DeleteMcpDeploymentModal
+          deployment={deleteTarget}
+          onClose={(deleted) => {
+            if (deleted) {
+              refresh();
+            }
+            setDeleteTarget(undefined);
+          }}
+        />
+      )}
+      {editingDeployment && (
+        <McpDeployModal
+          onClose={() => {
+            setEditingDeployment(undefined);
+            refresh();
+          }}
+          existingDeployment={editingDeployment}
+        />
+      )}
     </ApplicationsPage>
   );
 };

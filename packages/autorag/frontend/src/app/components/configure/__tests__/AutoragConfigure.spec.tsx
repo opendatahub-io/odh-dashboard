@@ -77,8 +77,8 @@ jest.mock('~/app/hooks/queries', () => ({
     data: { models: [] },
     isLoading: false,
   }),
-  useLlamaStackVectorStoresQuery: jest.fn().mockReturnValue({
-    data: { vector_stores: [] }, // eslint-disable-line camelcase
+  useLlamaStackVectorStoreProvidersQuery: jest.fn().mockReturnValue({
+    data: { vector_store_providers: [] }, // eslint-disable-line camelcase
     isLoading: false,
   }),
 }));
@@ -201,11 +201,14 @@ const mockUseParams = jest.mocked(useParams);
 
 const configureSchema = createConfigureSchema();
 
-const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const FormWrapper: React.FC<{
+  children: React.ReactNode;
+  defaultValues?: Partial<typeof configureSchema.defaults>;
+}> = ({ children, defaultValues }) => {
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
-    defaultValues: configureSchema.defaults,
+    defaultValues: { ...configureSchema.defaults, ...defaultValues },
   });
   return <FormProvider {...form}>{children}</FormProvider>;
 };
@@ -221,14 +224,20 @@ const createTestQueryClient = () =>
   });
 
 // Wrapper component that provides QueryClient and Form context
-const renderWithQueryClient = (component: React.ReactElement) => {
+const renderWithQueryClient = (
+  component: React.ReactElement,
+  defaultValues?: Partial<typeof configureSchema.defaults>,
+) => {
   const queryClient = createTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <FormWrapper>{component}</FormWrapper>
+      <FormWrapper defaultValues={defaultValues}>{component}</FormWrapper>
     </QueryClientProvider>,
   );
 };
+
+const renderComponent = (defaultValues?: Partial<typeof configureSchema.defaults>) =>
+  renderWithQueryClient(<AutoragConfigure />, defaultValues);
 
 describe('AutoragConfigure', () => {
   beforeEach(() => {
@@ -239,8 +248,21 @@ describe('AutoragConfigure', () => {
   });
 
   describe('initial state - no secret selected', () => {
+    it('should display an empty state when no secret is selected', () => {
+      renderComponent();
+
+      expect(
+        screen.getByText('Select an S3 connection or upload a file to get started'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'In order to configure details and run an experiment, add a document or connection in the widget on the left.',
+        ),
+      ).toBeInTheDocument();
+    });
+
     it('should NOT show document input toggle when no secret is selected', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
 
       expect(
         screen.queryByRole('group', { name: 'Choose how to add documents' }),
@@ -248,7 +270,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should NOT display the select-file section heading when no secret is selected', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
 
       expect(
         screen.queryByRole('heading', { name: 'Select file or folder' }),
@@ -256,7 +278,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should NOT display the "Browse bucket" button when no secret is selected', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
 
       expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
     });
@@ -264,7 +286,7 @@ describe('AutoragConfigure', () => {
 
   describe('secret selection', () => {
     it('should show document input toggle when a secret is selected', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -277,7 +299,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should show the selected secret name in the selector (matches real displayName || name)', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -288,7 +310,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should display the select-file section when a secret is selected', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -299,7 +321,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should display the "Browse bucket" button when a secret is selected', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
 
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -310,7 +332,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should show selected-files UI when "Select file or folder" is selected (default)', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
 
       expect(screen.getByRole('heading', { name: 'Select file or folder' })).toBeInTheDocument();
@@ -321,7 +343,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should show upload dropzone when "Upload file" is selected', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
@@ -333,7 +355,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should not upload an oversized file and should show a notification', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
@@ -354,7 +376,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should not upload a disallowed file type and should show a notification', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
@@ -373,7 +395,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should upload an allowed file from the native file input', async () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
@@ -399,7 +421,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should show the newly selected secret name when switching secrets', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
 
       // Select first secret
       const selectButton1 = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -413,7 +435,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should extract bucket name from secret data when a secret is selected', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
 
       // Select first secret with bucket data
       const selectButton1 = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -432,52 +454,63 @@ describe('AutoragConfigure', () => {
       expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 2');
       expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
     });
+
+    it('should display the "Configure details" fields when a secret is selected', () => {
+      renderComponent();
+
+      // Initially should show empty state
+      expect(
+        screen.getByText('Select an S3 connection or upload a file to get started'),
+      ).toBeInTheDocument();
+
+      // Select a secret
+      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
+      fireEvent.click(selectButton);
+
+      // Empty state should be hidden
+      expect(
+        screen.queryByText('Select an S3 connection or upload a file to get started'),
+      ).not.toBeInTheDocument();
+
+      // Configure details fields should be visible
+      expect(screen.getByText('Vector database location')).toBeInTheDocument();
+      expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
+      expect(screen.getByText('Models to consider')).toBeInTheDocument();
+      expect(screen.getByText('Optimization metric')).toBeInTheDocument();
+    });
   });
 
   describe('invalid secret selection', () => {
     it('should disable "Browse bucket" button when selected secret is invalid', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
 
       // Select an invalid secret
       const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
       fireEvent.click(selectInvalidButton);
 
-      // Verify the "Browse bucket" button is disabled
-      const browseButton = screen.getByRole('button', { name: 'Browse bucket' });
-      expect(browseButton).toBeDisabled();
+      // Verify the "Browse bucket" button does not exist
+      const browseButton = screen.queryByRole('button', { name: 'Browse bucket' });
+      expect(browseButton).not.toBeInTheDocument();
     });
 
-    it('should disable "Edit" button for Optimization metric when selected secret is invalid', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+    it('should display an empty state when an invalid secret is selected', () => {
+      renderComponent();
 
-      // Select an invalid secret
       const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
       fireEvent.click(selectInvalidButton);
 
-      // Find the Edit buttons
-      const editButtons = screen.getAllByRole('button', { name: 'Edit' });
-      const optimizationMetricEditButton = editButtons[0]; // First Edit button is for Optimization metric
-
-      // Verify it's disabled
-      expect(optimizationMetricEditButton).toBeDisabled();
-    });
-
-    it('should disable "Edit" button for Models to consider when selected secret is invalid', () => {
-      renderWithQueryClient(<AutoragConfigure />);
-
-      // Select an invalid secret
-      const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
-      fireEvent.click(selectInvalidButton);
-
-      // Find the Edit buttons
-      const editButton = screen.getByRole('button', { name: 'Edit' });
-
-      // Verify it's disabled
-      expect(editButton).toBeDisabled();
+      expect(
+        screen.getByText('Select an S3 connection or upload a file to get started'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'In order to configure details and run an experiment, add a document or connection in the widget on the left.',
+        ),
+      ).toBeInTheDocument();
     });
 
     it('should enable "Browse bucket" button when selected secret is valid', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
 
       // Select a valid secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
@@ -489,7 +522,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should enable "Edit" button when a file/folder is selected', () => {
-      renderWithQueryClient(<AutoragConfigure />);
+      renderComponent();
 
       // Select a valid secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');

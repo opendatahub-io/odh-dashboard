@@ -13,11 +13,14 @@ import {
 } from '~/app/utilities/routes';
 import type { AIAssetsTabExtension } from '~/odh/extension-points';
 
-const PLUGIN_GEN_AI = 'plugin-gen-ai';
-const GUARDRAILS = 'guardrails';
-const PROMPT_MANAGEMENT = 'promptManagement';
-const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
-const AI_ASSET_VECTOR_STORES = 'ai-asset-vector-stores';
+export const PLUGIN_GEN_AI = 'plugin-gen-ai';
+export const GEN_AI_STUDIO = 'genAiStudio';
+export const MODEL_AS_SERVICE = 'model-as-service';
+export const MODEL_AS_SERVICE_CAMEL = 'modelAsService';
+export const GUARDRAILS = 'guardrails';
+export const PROMPT_MANAGEMENT = 'promptManagement';
+export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
+export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabExtension)[] = [
   {
@@ -25,7 +28,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
     properties: {
       id: PLUGIN_GEN_AI,
       requiredComponents: [DataScienceStackComponent.LLAMA_STACK_OPERATOR],
-      featureFlags: ['genAiStudio'],
+      featureFlags: [GEN_AI_STUDIO],
     },
   },
   {
@@ -55,9 +58,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
   {
     type: 'app.area',
     properties: {
-      id: AI_ASSET_VECTOR_STORES,
+      id: EXTERNAL_VECTOR_STORES,
       reliantAreas: [PLUGIN_GEN_AI],
-      devFlags: [AI_ASSET_VECTOR_STORES],
+      featureFlags: [EXTERNAL_VECTOR_STORES],
     },
   },
   {
@@ -136,7 +139,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
   {
     type: 'gen-ai.ai-assets/tab',
     flags: {
-      required: [PLUGIN_GEN_AI, AI_ASSET_VECTOR_STORES],
+      required: [PLUGIN_GEN_AI, EXTERNAL_VECTOR_STORES],
     },
     properties: {
       id: 'vectorstores',

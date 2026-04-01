@@ -187,7 +187,7 @@ const BREADCRUMB_COLLAPSE_THRESHOLD = 6;
 const BREADCRUMB_LEADING_VISIBLE = 2;
 const BREADCRUMB_TRAILING_VISIBLE = 2;
 
-const ROW_HEIGHT = 47; // Height of each row FileExplorer renders (approximate).
+const ROW_HEIGHT = 46; // Height of each row FileExplorer renders (approximate).
 const HEADER_HEIGHT = 38; // Height of headers FileExplorer renders.
 const NUMBER_OF_ROWS_TO_SHOW = 10;
 /* PF does not have a concept of providing a number of rows to their sticky table.
@@ -923,13 +923,15 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
   const isIndeterminate = itemCount === undefined;
   const fileCount = Array.isArray(files) ? files.filter((f) => !f.hidden).length : 0;
-  const currentPerPage = perPage ?? 100;
-  const currentPage = page ?? 1;
+  const currentPerPage = Math.max(1, perPage ?? 100);
+  const currentPage = Math.max(1, page ?? 1);
   // When indeterminate, synthesize a count so PF computes correct firstIndex/lastIndex.
-  // If hasNextPage is explicitly provided, use it to keep "next" enabled (+1).
-  // Otherwise, fall back to the known item count.
+  // If hasNextPage, ensure the count exceeds the current page's capacity so PF enables "next".
+  // Otherwise, report exactly the items seen so far.
   const syntheticItemCount = isIndeterminate
-    ? (currentPage - 1) * currentPerPage + fileCount + (hasNextPage ? 1 : 0)
+    ? hasNextPage
+      ? currentPage * currentPerPage + 1
+      : (currentPage - 1) * currentPerPage + fileCount
     : itemCount;
 
   const extraPaginationProps: Pick<PaginationProps, 'toggleTemplate'> = {};

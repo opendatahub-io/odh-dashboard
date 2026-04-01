@@ -16,6 +16,8 @@ import {
   Dropdown,
   DropdownItem,
   DropdownList,
+  EmptyState,
+  EmptyStateBody,
   Flex,
   Grid,
   GridItem,
@@ -30,12 +32,11 @@ import {
   SplitItem,
   Stack,
   StackItem,
-  Title,
   ToggleGroup,
   ToggleGroupItem,
   type DropEvent,
 } from '@patternfly/react-core';
-import { EllipsisVIcon, InfoCircleIcon, UploadIcon } from '@patternfly/react-icons';
+import { CubesIcon, EllipsisVIcon, InfoCircleIcon, UploadIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { findKey } from 'es-toolkit';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
@@ -43,6 +44,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
+import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
@@ -169,7 +171,9 @@ function AutoragConfigure(): React.JSX.Element {
 
   // set bucket from selected secret
   useEffect(() => {
+    // reset bucket if secret is removed
     if (!selectedSecret) {
+      setValue('input_data_bucket_name', '', { shouldValidate: true });
       return;
     }
 
@@ -209,12 +213,12 @@ function AutoragConfigure(): React.JSX.Element {
   useEffect(() => {
     setIsInputDataFileUploading(false);
     setValue('input_data_key', '', { shouldValidate: true });
-  }, [inputDataBucketName, inputDataSecretName, setValue]);
+  }, [inputDataSecretName, inputDataBucketName, setValue]);
 
   // reset selected file values if test secret or bucket changes
   useEffect(() => {
     setValue('test_data_key', '', { shouldValidate: true });
-  }, [testDataBucketName, testDataSecretName, setValue]);
+  }, [testDataSecretName, testDataBucketName, setValue]);
 
   const openExperimentSettings = () => {
     // Snapshot current form values as the "default" so reset() can revert to them
@@ -256,6 +260,8 @@ function AutoragConfigure(): React.JSX.Element {
           file,
         });
         setValue('input_data_key', uploadResult.key, { shouldValidate: true });
+        // Match S3 browse selection: placeholder until dedicated test-data upload exists
+        setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
       } catch (err) {
         notification.error('Failed to upload file', err instanceof Error ? err.message : '');
       } finally {
@@ -278,365 +284,407 @@ function AutoragConfigure(): React.JSX.Element {
     <>
       <Grid className="pf-v6-u-h-100" hasGutter>
         <GridItem span={4}>
-          <Card isFullHeight>
-            <CardHeader>
-              <Title headingLevel="h3">Documents</Title>
-              <Content className="pf-v6-u-mt-sm">
-                Select or add an S3 connection to upload files or browse existing files.
-              </Content>
-            </CardHeader>
-            <CardBody>
-              <Stack>
-                <StackItem>
-                  <Split className="pf-v6-u-align-items-flex-end" hasGutter isWrappable>
-                    <SplitItem style={{ width: '10rem' }} isFilled>
-                      {Boolean(namespace) && (
-                        <Controller
-                          control={form.control}
-                          name="input_data_secret_name"
-                          render={({ field: { onChange } }) => (
-                            <SecretSelector
-                              namespace={String(namespace)}
-                              type="storage"
-                              additionalRequiredKeys={AUTORAG_REQUIRED_KEYS}
-                              value={selectedSecret?.uuid}
-                              onChange={(secret) => {
-                                if (!secret) {
-                                  setSelectedSecret(undefined);
-                                  onChange('');
-                                  return;
-                                }
+          <Card className="pf-v6-u-p-xs" isFullHeight>
+            <div style={{ overflow: 'auto' }}>
+              <CardHeader>
+                <Content component="h3">Knowledge setup</Content>
+                <Content component="p">
+                  Select or upload documents to serve as the source of truth for retrieval, and
+                  determine how they should be indexed.
+                </Content>
+              </CardHeader>
+              <CardBody>
+                <Stack hasGutter>
+                  <StackItem>
+                    <ConfigureFormGroup
+                      label="S3 connection"
+                      description="Select the S3 connection that contains your desired documents, or add a new connection."
+                    >
+                      <Split hasGutter isWrappable>
+                        <SplitItem style={{ width: '10rem' }} isFilled>
+                          {Boolean(namespace) && (
+                            <Controller
+                              control={form.control}
+                              name="input_data_secret_name"
+                              render={({ field: { onChange } }) => (
+                                <SecretSelector
+                                  namespace={String(namespace)}
+                                  type="storage"
+                                  additionalRequiredKeys={AUTORAG_REQUIRED_KEYS}
+                                  value={selectedSecret?.uuid}
+                                  onChange={(secret) => {
+                                    if (!secret) {
+                                      setSelectedSecret(undefined);
+                                      onChange('');
+                                      return;
+                                    }
 
-                                const requiredKeys = AUTORAG_REQUIRED_KEYS[secret.type ?? ''] ?? [];
-                                const availableKeys = Object.keys(secret.data);
-                                const invalid =
-                                  getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
-                                setSelectedSecret({ ...secret, invalid });
-                                onChange(invalid ? '' : secret.name);
-                              }}
-                              onRefreshReady={(refresh) => {
-                                secretsRefreshRef.current = refresh;
-                              }}
-                              label="S3 connection"
-                              placeholder="Select connection"
-                              toggleWidth="16rem"
-                              dataTestId="aws-secret-selector"
+                                    const requiredKeys =
+                                      AUTORAG_REQUIRED_KEYS[secret.type ?? ''] ?? [];
+                                    const availableKeys = Object.keys(secret.data);
+                                    const invalid =
+                                      getMissingRequiredKeys(requiredKeys, availableKeys).length >
+                                      0;
+                                    setSelectedSecret({ ...secret, invalid });
+                                    onChange(invalid ? '' : secret.name);
+                                  }}
+                                  onRefreshReady={(refresh) => {
+                                    secretsRefreshRef.current = refresh;
+                                  }}
+                                  placeholder="Select connection"
+                                  toggleWidth="16rem"
+                                  dataTestId="aws-secret-selector"
+                                />
+                              )}
                             />
                           )}
-                        />
-                      )}
-                    </SplitItem>
-                    <SplitItem>
-                      <Button
-                        key="add-new-connection"
-                        onClick={() => setIsConnectionModalOpen(true)}
-                      >
-                        Add new connection
-                      </Button>
-                    </SplitItem>
-                  </Split>
-                </StackItem>
-                {Boolean(selectedSecret?.uuid) && (
-                  <>
-                    <StackItem className="pf-v6-u-mb-md pf-v6-u-mt-md">
-                      <Divider />
-                    </StackItem>
-                    <StackItem className="pf-v6-u-mt-md">
-                      <ToggleGroup
-                        aria-label="Choose how to add documents"
-                        className="autoragConfigureToggleGroupFullWidth pf-v6-u-mb-md"
-                      >
-                        <ToggleGroupItem
-                          text="Select file or folder"
-                          buttonId="document-input-select"
-                          isSelected={inputDataSourceMode === 'select'}
-                          onChange={() => setInputDataSourceMode('select')}
-                        />
-                        <ToggleGroupItem
-                          text="Upload file"
-                          buttonId="document-input-upload"
-                          isSelected={inputDataSourceMode === 'upload'}
-                          onChange={() => setInputDataSourceMode('upload')}
-                        />
-                      </ToggleGroup>
-                    </StackItem>
-
-                    {inputDataSourceMode === 'select' && (
-                      <>
-                        <StackItem className="pf-v6-u-mb-sm">
-                          <Content component="h4">Select file or folder</Content>
-                        </StackItem>
-                        <StackItem>
-                          <Content component="small">
-                            Select one file or folder from this bucket to use as the knowledge for
-                            your experiment.
-                          </Content>
-                        </StackItem>
-                        <StackItem className="pf-v6-u-mt-md">
+                        </SplitItem>
+                        <SplitItem>
                           <Button
-                            key="select-files"
+                            key="add-new-connection"
                             variant="secondary"
-                            onClick={() => setFileExplorerMode('input_data')}
-                            isDisabled={!selectedSecret || selectedSecret.invalid || isSubmitting}
+                            onClick={() => setIsConnectionModalOpen(true)}
                           >
-                            Browse bucket
+                            Add new connection
                           </Button>
-                        </StackItem>
-                      </>
-                    )}
-
-                    {inputDataSourceMode === 'upload' && (
-                      <>
-                        <StackItem className="pf-v6-u-mb-sm">
-                          <Content component="h4">Upload file</Content>
-                        </StackItem>
-                        <StackItem>
-                          <Content component="small" id="input-data-upload-description">
-                            Drop a file here or browse to select a file.
-                          </Content>
-                        </StackItem>
-                        <StackItem className="pf-v6-u-mt-md">
-                          <input
-                            ref={inputDataNativeInputRef}
-                            type="file"
-                            hidden
-                            accept={INPUT_DATA_UPLOAD_NATIVE_ACCEPT}
-                            aria-hidden
-                            tabIndex={-1}
-                            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                              const input = event.currentTarget;
-                              const file = input.files?.[0];
-                              input.value = '';
-                              if (!file) {
-                                return;
-                              }
-                              void uploadInputDataFile(file);
-                            }}
+                        </SplitItem>
+                      </Split>
+                    </ConfigureFormGroup>
+                  </StackItem>
+                  {Boolean(inputDataSecretName) && (
+                    <>
+                      <StackItem>
+                        <Divider />
+                      </StackItem>
+                      <StackItem className="pf-v6-u-mt-sm">
+                        <ToggleGroup
+                          aria-label="Choose how to add documents"
+                          className="autoragConfigureToggleGroupFullWidth pf-v6-u-mb-md"
+                        >
+                          <ToggleGroupItem
+                            text="Select file or folder"
+                            buttonId="document-input-select"
+                            isSelected={inputDataSourceMode === 'select'}
+                            onChange={() => setInputDataSourceMode('select')}
                           />
-                          {showInputDataUploadDropzone && (
-                            <MultipleFileUpload
-                              aria-describedby="input-data-upload-description"
-                              onFileDrop={(_event: DropEvent, droppedFiles: File[]) => {
-                                const [file] = droppedFiles;
+                          <ToggleGroupItem
+                            text="Upload file"
+                            buttonId="document-input-upload"
+                            isSelected={inputDataSourceMode === 'upload'}
+                            onChange={() => setInputDataSourceMode('upload')}
+                          />
+                        </ToggleGroup>
+                      </StackItem>
+
+                      {inputDataSourceMode === 'select' && (
+                        <>
+                          <StackItem className="pf-v6-u-mb-sm">
+                            <Content component="h4">Select file or folder</Content>
+                          </StackItem>
+                          <StackItem>
+                            <Content component="small">
+                              Select one file or folder from this bucket to use as the knowledge for
+                              your experiment.
+                            </Content>
+                          </StackItem>
+                          <StackItem>
+                            <Button
+                              key="select-files"
+                              variant="secondary"
+                              onClick={() => setFileExplorerMode('input_data')}
+                              isDisabled={!selectedSecret || selectedSecret.invalid || isSubmitting}
+                            >
+                              Browse bucket
+                            </Button>
+                          </StackItem>
+                        </>
+                      )}
+
+                      {inputDataSourceMode === 'upload' && (
+                        <>
+                          <StackItem>
+                            <Content component="h4">Upload file</Content>
+                          </StackItem>
+                          <StackItem>
+                            <Content component="small" id="input-data-upload-description">
+                              Drop a file here or browse to select a file.
+                            </Content>
+                          </StackItem>
+                          <StackItem>
+                            <input
+                              ref={inputDataNativeInputRef}
+                              type="file"
+                              hidden
+                              accept={INPUT_DATA_UPLOAD_NATIVE_ACCEPT}
+                              aria-hidden
+                              tabIndex={-1}
+                              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                                const input = event.currentTarget;
+                                const file = input.files?.[0];
+                                input.value = '';
+                                if (!file) {
+                                  return;
+                                }
                                 void uploadInputDataFile(file);
                               }}
-                              dropzoneProps={{
-                                accept: INPUT_DATA_FILE_ACCEPT,
-                                disabled: isSubmitting || isInputDataFileUploading,
-                                maxFiles: 1,
-                                maxSize: INPUT_DATA_UPLOAD_MAX_BYTES,
-                                multiple: false,
-                              }}
-                            >
-                              <MultipleFileUploadMain
-                                titleIcon={<UploadIcon />}
-                                titleText="Drag and drop files here"
-                                titleTextSeparator="or"
-                                infoText="Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text"
-                                browseButtonText="Upload"
-                              />
-                            </MultipleFileUpload>
-                          )}
-                          {!showInputDataUploadDropzone && (
-                            <Table
-                              aria-label="Knowledge document upload"
-                              borders
-                              variant="compact"
-                              className="pf-v6-u-w-100"
-                            >
-                              <Thead>
-                                <Tr>
-                                  <Th>File</Th>
-                                  <Th aria-label="Actions" />
-                                </Tr>
-                              </Thead>
-                              <Tbody>
-                                <Tr>
-                                  <Td dataLabel="File">
-                                    <Split hasGutter>
-                                      {isInputDataFileUploading && (
-                                        <SplitItem>
-                                          <Spinner
-                                            size="md"
-                                            aria-label="Uploading file"
-                                            data-testid="input-data-upload-spinner"
-                                          />
+                            />
+                            {showInputDataUploadDropzone && (
+                              <MultipleFileUpload
+                                aria-describedby="input-data-upload-description"
+                                onFileDrop={(_event: DropEvent, droppedFiles: File[]) => {
+                                  const [file] = droppedFiles;
+                                  void uploadInputDataFile(file);
+                                }}
+                                dropzoneProps={{
+                                  accept: INPUT_DATA_FILE_ACCEPT,
+                                  disabled: isSubmitting || isInputDataFileUploading,
+                                  maxFiles: 1,
+                                  maxSize: INPUT_DATA_UPLOAD_MAX_BYTES,
+                                  multiple: false,
+                                }}
+                              >
+                                <MultipleFileUploadMain
+                                  titleIcon={<UploadIcon />}
+                                  titleText="Drag and drop files here"
+                                  titleTextSeparator="or"
+                                  infoText="Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text"
+                                  browseButtonText="Upload"
+                                />
+                              </MultipleFileUpload>
+                            )}
+                            {!showInputDataUploadDropzone && (
+                              <Table
+                                aria-label="Knowledge document upload"
+                                borders
+                                variant="compact"
+                                className="pf-v6-u-w-100"
+                              >
+                                <Thead>
+                                  <Tr>
+                                    <Th>File</Th>
+                                    <Th aria-label="Actions" />
+                                  </Tr>
+                                </Thead>
+                                <Tbody>
+                                  <Tr>
+                                    <Td dataLabel="File">
+                                      <Split hasGutter>
+                                        {isInputDataFileUploading && (
+                                          <SplitItem>
+                                            <Spinner
+                                              size="md"
+                                              aria-label="Uploading file"
+                                              data-testid="input-data-upload-spinner"
+                                            />
+                                          </SplitItem>
+                                        )}
+                                        <SplitItem isFilled>
+                                          {isInputDataFileUploading ? 'Uploading…' : inputDataKey}
                                         </SplitItem>
-                                      )}
-                                      <SplitItem isFilled>
-                                        {isInputDataFileUploading ? 'Uploading…' : inputDataKey}
-                                      </SplitItem>
-                                    </Split>
-                                  </Td>
-                                  <Td isActionCell modifier="fitContent">
-                                    <Dropdown
-                                      isOpen={isInputDataDropdownOpen}
-                                      onOpenChange={setIsInputDataDropdownOpen}
-                                      shouldFocusToggleOnSelect
-                                      toggle={(toggleRef) => (
-                                        <MenuToggle
-                                          ref={toggleRef}
-                                          variant="plain"
-                                          aria-label="Uploaded file actions"
-                                          icon={<EllipsisVIcon />}
-                                          onClick={() =>
-                                            setIsInputDataDropdownOpen(!isInputDataDropdownOpen)
-                                          }
-                                          isExpanded={isInputDataDropdownOpen}
-                                          isDisabled={isSubmitting || isInputDataFileUploading}
-                                        />
-                                      )}
-                                      popperProps={{ position: 'end', preventOverflow: true }}
-                                    >
-                                      <DropdownList>
-                                        <DropdownItem key="remove" onClick={clearInputDataUpload}>
-                                          Remove
-                                        </DropdownItem>
-                                        <DropdownItem
-                                          key="replace"
-                                          onClick={openInputDataReplaceFileDialog}
-                                        >
-                                          Replace
-                                        </DropdownItem>
-                                      </DropdownList>
-                                    </Dropdown>
-                                  </Td>
-                                </Tr>
-                              </Tbody>
-                            </Table>
-                          )}
-                        </StackItem>
-                      </>
-                    )}
-                  </>
-                )}
-              </Stack>
-            </CardBody>
+                                      </Split>
+                                    </Td>
+                                    <Td isActionCell modifier="fitContent">
+                                      <Dropdown
+                                        isOpen={isInputDataDropdownOpen}
+                                        onOpenChange={setIsInputDataDropdownOpen}
+                                        shouldFocusToggleOnSelect
+                                        toggle={(toggleRef) => (
+                                          <MenuToggle
+                                            ref={toggleRef}
+                                            variant="plain"
+                                            aria-label="Uploaded file actions"
+                                            icon={<EllipsisVIcon />}
+                                            onClick={() =>
+                                              setIsInputDataDropdownOpen(!isInputDataDropdownOpen)
+                                            }
+                                            isExpanded={isInputDataDropdownOpen}
+                                            isDisabled={isSubmitting || isInputDataFileUploading}
+                                          />
+                                        )}
+                                        popperProps={{ position: 'end', preventOverflow: true }}
+                                      >
+                                        <DropdownList>
+                                          <DropdownItem key="remove" onClick={clearInputDataUpload}>
+                                            Remove
+                                          </DropdownItem>
+                                          <DropdownItem
+                                            key="replace"
+                                            onClick={openInputDataReplaceFileDialog}
+                                          >
+                                            Replace
+                                          </DropdownItem>
+                                        </DropdownList>
+                                      </Dropdown>
+                                    </Td>
+                                  </Tr>
+                                </Tbody>
+                              </Table>
+                            )}
+                          </StackItem>
+                        </>
+                      )}
+                    </>
+                  )}
+                </Stack>
+              </CardBody>
+            </div>
           </Card>
         </GridItem>
         <GridItem span={8}>
-          <Card isFullHeight>
-            <CardHeader>
-              <Title headingLevel="h3">Configure Details</Title>
-            </CardHeader>
-            <CardBody>
-              <Stack hasGutter>
-                <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm">
-                  Where would you like to index your documents?
-                </StackItem>
-                <StackItem>
-                  <AutoragVectorStoreSelector />
-                </StackItem>
-
-                <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm">
-                  Add the data source you would like to use for evaluation.{' '}
-                  <span className="pf-v6-u-text-color-required">*</span>
-                </StackItem>
-                <StackItem data-temp-placeholder>Evaluation data source upload component</StackItem>
-
-                <StackItem>
-                  <Card>
-                    <CardHeader
-                      hasWrap
-                      actions={{
-                        actions: [
-                          <Watch
-                            key="edit-experiment-settings"
-                            control={form.control}
-                            name="input_data_key"
-                            render={(inputData) => (
-                              <Button
-                                variant="secondary"
-                                onClick={openExperimentSettings}
-                                isDisabled={!inputDataBucketName || !inputData || isSubmitting}
-                              >
-                                Edit
-                              </Button>
-                            )}
-                          />,
-                        ],
-                      }}
+          <Card className="pf-v6-u-p-xs" isFullHeight>
+            <div style={{ overflow: 'auto' }}>
+              <CardHeader>
+                <Content component="h3">Configure details</Content>
+              </CardHeader>
+              <CardBody>
+                {!inputDataSecretName ? (
+                  <EmptyState
+                    variant="xs"
+                    titleText="Select an S3 connection or upload a file to get started"
+                    headingLevel="h4"
+                    icon={CubesIcon}
+                  >
+                    <EmptyStateBody>
+                      In order to configure details and run an experiment, add a document or
+                      connection in the widget on the left.
+                    </EmptyStateBody>
+                  </EmptyState>
+                ) : (
+                  <Stack hasGutter>
+                    <ConfigureFormGroup
+                      label="Vector database location"
+                      description="Specify the location for storing the vector index used to retrieve your documents."
                     >
-                      <CardTitle>Models to consider</CardTitle>
-                    </CardHeader>
-                    <CardBody>
-                      <Stack hasGutter>
-                        <StackItem>
+                      <AutoragVectorStoreSelector />
+                    </ConfigureFormGroup>
+
+                    <ConfigureFormGroup
+                      label="Evaluation dataset"
+                      description={
+                        <>
+                          <span>
+                            Select the evaluation dataset that will be used to measure the quality
+                            of the generated responses. Must adhere to the{' '}
+                          </span>
+                          <Button variant="link" isInline component="span" onClick={() => null}>
+                            evaluation dataset template
+                          </Button>
+                          <span>.</span>
+                        </>
+                      }
+                    >
+                      Evaluation data source upload component
+                    </ConfigureFormGroup>
+
+                    <StackItem>
+                      <Card>
+                        <CardHeader
+                          hasWrap
+                          actions={{
+                            actions: [
+                              <Watch
+                                key="edit-experiment-settings"
+                                control={form.control}
+                                name="input_data_key"
+                                render={(inputData) => (
+                                  <Button
+                                    variant="secondary"
+                                    onClick={openExperimentSettings}
+                                    isDisabled={!inputDataBucketName || !inputData || isSubmitting}
+                                  >
+                                    Edit
+                                  </Button>
+                                )}
+                              />,
+                            ],
+                          }}
+                        >
+                          <CardTitle>Models to consider</CardTitle>
+                        </CardHeader>
+                        <CardBody>
+                          <Stack hasGutter>
+                            <StackItem>
+                              <Watch
+                                control={form.control}
+                                name="generation_models"
+                                render={(generationModels) => (
+                                  <Flex
+                                    alignItems={{ default: 'alignItemsCenter' }}
+                                    spacer={{ default: 'spacerNone' }}
+                                    gap={{ default: 'gapSm' }}
+                                  >
+                                    <Content>{`${generationModels.length || 'No'} generation models`}</Content>
+                                    {!!generationModels.length && (
+                                      <Popover
+                                        bodyContent={
+                                          <List>
+                                            {generationModels.map((model) => (
+                                              <ListItem key={`generation-${model}`}>
+                                                {model}
+                                              </ListItem>
+                                            ))}
+                                          </List>
+                                        }
+                                      >
+                                        <DashboardPopupIconButton
+                                          icon={<InfoCircleIcon />}
+                                          hasNoPadding
+                                        />
+                                      </Popover>
+                                    )}
+                                  </Flex>
+                                )}
+                              />
+                            </StackItem>
+                            <StackItem>
+                              <Watch
+                                control={form.control}
+                                name="embeddings_models"
+                                render={(embeddingModels) => (
+                                  <Flex
+                                    alignItems={{ default: 'alignItemsCenter' }}
+                                    spacer={{ default: 'spacerNone' }}
+                                    gap={{ default: 'gapSm' }}
+                                  >
+                                    <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
+                                    {!!embeddingModels.length && (
+                                      <Popover
+                                        bodyContent={
+                                          <List>
+                                            {embeddingModels.map((model) => (
+                                              <ListItem key={`embedding-${model}`}>
+                                                {model}
+                                              </ListItem>
+                                            ))}
+                                          </List>
+                                        }
+                                      >
+                                        <DashboardPopupIconButton
+                                          icon={<InfoCircleIcon />}
+                                          hasNoPadding
+                                        />
+                                      </Popover>
+                                    )}
+                                  </Flex>
+                                )}
+                              />
+                            </StackItem>
+                          </Stack>
+                        </CardBody>
+                        <CardTitle>Optimization metric</CardTitle>
+                        <CardBody className="pf-v6-u-mb-sm">
                           <Watch
                             control={form.control}
-                            name="generation_models"
-                            render={(generationModels) => (
-                              <Flex
-                                alignItems={{ default: 'alignItemsCenter' }}
-                                spacer={{ default: 'spacerNone' }}
-                                gap={{ default: 'gapSm' }}
-                              >
-                                <Content>{`${generationModels.length || 'No'} generation models`}</Content>
-                                {!!generationModels.length && (
-                                  <Popover
-                                    bodyContent={
-                                      <List>
-                                        {generationModels.map((model) => (
-                                          <ListItem key={`generation-${model}`}>{model}</ListItem>
-                                        ))}
-                                      </List>
-                                    }
-                                  >
-                                    <DashboardPopupIconButton
-                                      icon={<InfoCircleIcon />}
-                                      hasNoPadding
-                                    />
-                                  </Popover>
-                                )}
-                              </Flex>
-                            )}
+                            name="optimization_metric"
+                            render={(optimizationMetric) => optimizationMetric}
                           />
-                        </StackItem>
-                        <StackItem>
-                          <Watch
-                            control={form.control}
-                            name="embeddings_models"
-                            render={(embeddingModels) => (
-                              <Flex
-                                alignItems={{ default: 'alignItemsCenter' }}
-                                spacer={{ default: 'spacerNone' }}
-                                gap={{ default: 'gapSm' }}
-                              >
-                                <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
-                                {!!embeddingModels.length && (
-                                  <Popover
-                                    bodyContent={
-                                      <List>
-                                        {embeddingModels.map((model) => (
-                                          <ListItem key={`embedding-${model}`}>{model}</ListItem>
-                                        ))}
-                                      </List>
-                                    }
-                                  >
-                                    <DashboardPopupIconButton
-                                      icon={<InfoCircleIcon />}
-                                      hasNoPadding
-                                    />
-                                  </Popover>
-                                )}
-                              </Flex>
-                            )}
-                          />
-                        </StackItem>
-                      </Stack>
-                    </CardBody>
-                    <CardTitle>Optimization metric</CardTitle>
-                    <CardBody className="pf-v6-u-mb-sm">
-                      <Watch
-                        control={form.control}
-                        name="optimization_metric"
-                        render={(optimizationMetric) => optimizationMetric}
-                      />
-                    </CardBody>
-                  </Card>
-                </StackItem>
-              </Stack>
-            </CardBody>
+                        </CardBody>
+                      </Card>
+                    </StackItem>
+                  </Stack>
+                )}
+              </CardBody>
+            </div>
           </Card>
         </GridItem>
       </Grid>

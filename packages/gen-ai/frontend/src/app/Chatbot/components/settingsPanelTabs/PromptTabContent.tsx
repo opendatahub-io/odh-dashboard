@@ -8,6 +8,7 @@ import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFo
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
+import { PROMPT_MANAGEMENT } from '~/odh/extensions';
 
 interface PromptTabContentProps {
   systemInstruction: string;
@@ -19,7 +20,7 @@ function PromptTabContent({
   onSystemInstructionChange,
 }: PromptTabContentProps): React.ReactNode {
   const { openModal } = usePlaygroundStore();
-  const [promptManagementEnabled] = useFeatureFlag('promptManagement');
+  const [promptManagementEnabled] = useFeatureFlag(PROMPT_MANAGEMENT);
   const isEdited = usePromptEdited();
   const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
 

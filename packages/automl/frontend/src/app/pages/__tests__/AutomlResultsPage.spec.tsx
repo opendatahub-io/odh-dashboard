@@ -101,7 +101,7 @@ const createMockModel = (name: string, metrics: Record<string, number>): AutomlM
   },
   location: {
     model_directory: `/models/${name}`,
-    predictor: `/models/${name}/predictor.pkl`,
+    predictor: `/models/${name}/predictor`,
     notebook: `/models/${name}/notebook.ipynb`,
   },
   metrics: {

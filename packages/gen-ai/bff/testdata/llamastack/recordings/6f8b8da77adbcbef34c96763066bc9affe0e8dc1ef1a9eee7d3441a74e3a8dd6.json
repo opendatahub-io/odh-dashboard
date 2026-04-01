@@ -18,7 +18,10 @@
       }
     },
     "endpoint": "/v1/chat/completions",
-    "model": "models/gemini-2.5-flash"
+    "model": "models/gemini-2.5-flash",
+    "provider_metadata": {
+      "openai_sdk_version": "2.6.1"
+    }
   },
   "response": {
     "body": [
@@ -29,7 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Well hello back from the digital realm!\n\nMaaS, or Mobility as a Service, is a truly exciting and transformative concept \u2013 connecting different modes of transport into a seamless, user-centric experience.",
+                "content": "Hello there! It's great to hear from you.\n\nWhen you say \"MaaS\", are you referring to:\n*   **Metal as a Service** (for provisioning bare",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -46,9 +49,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 40,
+            "completion_tokens": 38,
             "prompt_tokens": 5,
-            "total_tokens": 990,
+            "total_tokens": 806,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -61,7 +64,7 @@
           "choices": [
             {
               "delta": {
-                "content": " It's all about making urban (and even rural) travel more efficient, sustainable, and convenient, reducing reliance on private cars.\n\nWhat's on your mind regarding MaaS today? Are you working on a project, curious about",
+                "content": "-metal servers, like Canonical's MaaS)?\n*   Or **Mobility as a Service** (for integrated transportation solutions)?\n\nEither way, welcome! What can I help you with today or what's on your mind",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -78,9 +81,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 88,
+            "completion_tokens": 86,
             "prompt_tokens": 5,
-            "total_tokens": 1038,
+            "total_tokens": 854,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -93,7 +96,7 @@
           "choices": [
             {
               "delta": {
-                "content": " specific aspects, or just wanted to share your connection to this innovative field?",
+                "content": " regarding MaaS?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -110,9 +113,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 103,
+            "completion_tokens": 90,
             "prompt_tokens": 5,
-            "total_tokens": 1053,
+            "total_tokens": 858,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

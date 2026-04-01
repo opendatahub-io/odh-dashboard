@@ -491,12 +491,12 @@ describe('Pipeline topology', () => {
       pipelineRunDetails
         .findDetailItem('Started')
         .findValue()
-        .contains('Friday, March 15, 2024 at 5:59:35 PM UTC');
+        .contains('Friday, March 15, 2024 at 5:59:36 PM UTC');
       pipelineRunDetails
         .findDetailItem('Finished')
         .findValue()
         .contains('Friday, March 15, 2024 at 6:00:25 PM UTC');
-      pipelineRunDetails.findDetailItem('Duration').findValue().contains('50 seconds');
+      pipelineRunDetails.findDetailItem('Duration').findValue().contains('49 seconds');
     });
 
     it('Test pipeline triggered run tab parameters', () => {

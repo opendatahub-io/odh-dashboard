@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -18,6 +19,38 @@ import (
 	"github.com/opendatahub-io/eval-hub/bff/internal/repositories"
 	corev1 "k8s.io/api/core/v1"
 )
+
+// crStatusOverrideK8sClient embeds testK8sClient and replaces GetEvalHubCRStatus with a
+// caller-supplied function so each health-handler test can control what the CR lookup returns.
+type crStatusOverrideK8sClient struct {
+	testK8sClient
+	fn func(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (*models.EvalHubCRStatus, error)
+}
+
+func (c *crStatusOverrideK8sClient) GetEvalHubCRStatus(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (*models.EvalHubCRStatus, error) {
+	return c.fn(ctx, identity, namespace)
+}
+
+// crStatusK8sFactory is a K8s factory that always returns a fixed client instance.
+type crStatusK8sFactory struct {
+	client kubernetes.KubernetesClientInterface
+}
+
+func (f *crStatusK8sFactory) GetClient(_ context.Context) (kubernetes.KubernetesClientInterface, error) {
+	return f.client, nil
+}
+
+func (f *crStatusK8sFactory) ExtractRequestIdentity(h http.Header) (*kubernetes.RequestIdentity, error) {
+	userID := h.Get(constants.KubeflowUserIDHeader)
+	if userID == "" {
+		userID = "test-user@example.com"
+	}
+	return &kubernetes.RequestIdentity{UserID: userID, Token: "test-token"}, nil
+}
+
+func (f *crStatusK8sFactory) ValidateRequestIdentity(_ *kubernetes.RequestIdentity) error {
+	return nil
+}
 
 var testLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
 
@@ -54,7 +87,7 @@ func setupApiTestWithEvalHub[T any](method, url string, body interface{}, k8Fact
 	}
 
 	app := &App{
-		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, EvalHubURL: "http://mock-evalhub:8080", MockEvalHubClient: true},
+		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, MockEvalHubClient: true},
 		logger:                  testLogger,
 		kubernetesClientFactory: k8Factory,
 		evalHubClientFactory:    mockFactory,
@@ -94,7 +127,7 @@ func (f *testK8sFactory) ExtractRequestIdentity(h http.Header) (*kubernetes.Requ
 	if userID == "" {
 		userID = "test-user@example.com"
 	}
-	return &kubernetes.RequestIdentity{UserID: userID}, nil
+	return &kubernetes.RequestIdentity{UserID: userID, Token: "test-token"}, nil
 }
 
 func (f *testK8sFactory) ValidateRequestIdentity(identity *kubernetes.RequestIdentity) error {
@@ -138,6 +171,95 @@ func (c *testK8sClient) GetEvalHubCRStatus(_ context.Context, _ *kubernetes.Requ
 	}, nil
 }
 
+// erroringEHClient is a minimal EvalHub client whose HealthCheck always returns an error.
+// Used in health handler tests to simulate "service-unreachable".
+type erroringEHClient struct{}
+
+func (e *erroringEHClient) HealthCheck(_ context.Context) (*evalhub.HealthResponse, error) {
+	return nil, fmt.Errorf("connection refused")
+}
+func (e *erroringEHClient) ListEvaluationJobs(_ context.Context, _ evalhub.ListEvaluationJobsParams) ([]evalhub.EvaluationJob, error) {
+	return nil, nil
+}
+func (e *erroringEHClient) GetEvaluationJob(_ context.Context, _ string, _ string) (*evalhub.EvaluationJob, error) {
+	return nil, nil
+}
+func (e *erroringEHClient) CreateEvaluationJob(_ context.Context, _ string, _ evalhub.CreateEvaluationJobRequest) (*evalhub.EvaluationJob, error) {
+	return nil, nil
+}
+func (e *erroringEHClient) CancelEvaluationJob(_ context.Context, _ string, _ string, _ bool) error {
+	return nil
+}
+func (e *erroringEHClient) ListCollections(_ context.Context, _ evalhub.ListCollectionsParams) (evalhub.CollectionsResponse, error) {
+	return evalhub.CollectionsResponse{}, nil
+}
+func (e *erroringEHClient) ListProviders(_ context.Context, _ string, _, _ int) (evalhub.ProvidersResponse, error) {
+	return evalhub.ProvidersResponse{}, nil
+}
+
+// setupApiTestForHealth exercises the EvalHub service health handler with injectable
+// CR discovery (via the user's bearer token) and EvalHub client behaviour.
+//
+//   - crStatus / crErr control what GetEvalHubCRStatus returns for the test.
+//   - ehClient controls the EvalHub REST client used for the service ping; pass nil to use
+//     the default mock (healthy response).
+func setupApiTestForHealth[T any](
+	method, url string,
+	identity *kubernetes.RequestIdentity,
+	crStatus *models.EvalHubCRStatus,
+	crErr error,
+	ehClient evalhub.EvalHubClientInterface,
+) (T, *http.Response, error) {
+	var empty T
+	req, err := http.NewRequest(method, url, http.NoBody)
+	if err != nil {
+		return empty, nil, err
+	}
+	if identity != nil && identity.UserID != "" {
+		req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
+	}
+
+	mockFactory := ehmocks.NewMockClientFactory()
+	if ehClient != nil {
+		mockFactory.SetMockClient(ehClient)
+	}
+
+	k8sClient := &crStatusOverrideK8sClient{
+		fn: func(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (*models.EvalHubCRStatus, error) {
+			return crStatus, crErr
+		},
+	}
+
+	app := &App{
+		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
+		logger:                  testLogger,
+		kubernetesClientFactory: &crStatusK8sFactory{client: k8sClient},
+		evalHubClientFactory:    mockFactory,
+		repositories:            repositories.NewRepositories(),
+		dashboardNamespace:      "test-dashboard-ns",
+	}
+
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		return empty, nil, err
+	}
+	if len(data) == 0 {
+		return empty, res, nil
+	}
+	var out T
+	if err := json.Unmarshal(data, &out); err != nil && err != io.EOF {
+		return empty, nil, err
+	}
+	return out, res, nil
+}
+
 // setupApiTest is a minimal helper to exercise remaining handlers (user, namespaces, healthcheck)
 func setupApiTest[T any](method, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, identity *kubernetes.RequestIdentity) (T, *http.Response, error) {
 	var empty T
@@ -166,7 +288,7 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 	}
 
 	app := &App{
-		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, EvalHubURL: "http://mock-evalhub:8080"},
+		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
 		logger:                  testLogger,
 		kubernetesClientFactory: k8Factory,
 		evalHubClientFactory:    ehmocks.NewMockClientFactory(),
