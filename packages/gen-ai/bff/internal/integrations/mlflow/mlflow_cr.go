@@ -124,6 +124,9 @@ func parseExternalURL(item *unstructured.Unstructured) (string, error) {
 	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		return "", fmt.Errorf("MLflow CR %q has invalid status.url", item.GetName())
 	}
+	if parsed.User != nil {
+		return "", fmt.Errorf("MLflow CR %q status.url must not include credentials", item.GetName())
+	}
 
 	return externalURL, nil
 }

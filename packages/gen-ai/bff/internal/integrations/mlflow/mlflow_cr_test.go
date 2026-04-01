@@ -253,6 +253,16 @@ func TestParseExternalURL(t *testing.T) {
 			},
 			want: "http://mlflow.example.com/mlflow",
 		},
+		{
+			name: "url with embedded credentials",
+			obj: map[string]any{
+				"metadata": map[string]any{"name": "mlflow"},
+				"status": map[string]any{
+					"url": "https://user:pass@mlflow.example.com/mlflow",
+				},
+			},
+			wantErr: "must not include credentials",
+		},
 	}
 
 	for _, tc := range tests {
