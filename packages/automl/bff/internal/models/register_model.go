@@ -5,7 +5,10 @@ package models
 // ModelVersion, and ModelArtifact in the Model Registry.
 // The target registry is identified by the :registryId path parameter, not in the request body.
 type RegisterModelRequest struct {
-	// S3Path is the S3 URI where the model binary is stored (e.g., s3://bucket/path/to/model).
+	// S3Path is the relative S3 object key where the model binary is stored
+	// (e.g., "pipeline/run/.../predictor"). The BFF resolves the bucket, endpoint,
+	// and region from the DSPA object storage config and constructs the full URI
+	// in the format expected by the Model Registry UI.
 	S3Path string `json:"s3_path"`
 
 	// ModelName is the name of the registered model. Must be unique within the Model Registry.
