@@ -342,7 +342,7 @@ function AutoragConfigure(): React.JSX.Element {
                         <SplitItem>
                           <Button
                             key="add-new-connection"
-                            variant="secondary"
+                            variant="tertiary"
                             onClick={() => setIsConnectionModalOpen(true)}
                           >
                             Add new connection

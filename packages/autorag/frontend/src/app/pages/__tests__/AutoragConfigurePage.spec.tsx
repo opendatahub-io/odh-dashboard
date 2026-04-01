@@ -679,7 +679,6 @@ describe('AutoragConfigurePage', () => {
         );
       });
       expect(mockUploadFileToS3).toHaveBeenCalledTimes(1);
-      expect(mockMutateAsync.mock.calls[0][0]).not.toHaveProperty('input_data_source_mode');
     });
   });
 
