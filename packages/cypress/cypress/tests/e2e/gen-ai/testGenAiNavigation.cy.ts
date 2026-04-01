@@ -19,22 +19,23 @@ describe('Gen AI Navigation - User Journey Tests', () => {
     skipTest = true;
   }
 
-  retryableBefore(() => {
-    // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
-    Cypress.on('uncaught:exception', (err) => {
-      // Only suppress known module federation / remoteEntry errors
-      // Allow other parse errors to surface as real regressions
-      if (
-        err.message.includes('remoteEntry') ||
-        err.message.includes('module federation') ||
-        err.message.includes('Failed to fetch dynamically imported module') ||
-        err.message.includes('error loading dynamically imported module')
-      ) {
-        return false;
-      }
-      return true;
-    });
+  // Register exception handler at describe level to avoid accumulating listeners on retries
+  // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
+  Cypress.on('uncaught:exception', (err) => {
+    // Only suppress known module federation / remoteEntry errors
+    // Allow other parse errors to surface as real regressions
+    if (
+      err.message.includes('remoteEntry') ||
+      err.message.includes('module federation') ||
+      err.message.includes('Failed to fetch dynamically imported module') ||
+      err.message.includes('error loading dynamically imported module')
+    ) {
+      return false;
+    }
+    return true;
+  });
 
+  retryableBefore(() => {
     // Check if the operator is RHOAI, if it's not (ODH), skip the test
     cy.step('Check if the operator is RHOAI');
     getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
