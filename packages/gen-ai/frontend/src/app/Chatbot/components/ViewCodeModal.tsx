@@ -175,14 +175,30 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         return;
       }
 
+      if (isRagEnabled && !selectedVectorStoreId) {
+        setCodeStates((prev) => ({
+          ...prev,
+          [cfgId]: { code: '', isLoading: false, error: 'No vector store selected' },
+        }));
+        return;
+      }
+
+      if (isRagEnabled && !vectorStoresLoaded) {
+        setCodeStates((prev) => ({
+          ...prev,
+          [cfgId]: { code: '', isLoading: false, error: 'Vector stores not loaded' },
+        }));
+        return;
+      }
+
       const selectedVectorStore = isRagEnabled
         ? vectorStores.find((vs) => vs.id === selectedVectorStoreId)
         : undefined;
 
-      if (isRagEnabled && (!vectorStoresLoaded || !selectedVectorStore)) {
+      if (isRagEnabled && !selectedVectorStore) {
         setCodeStates((prev) => ({
           ...prev,
-          [cfgId]: { code: '', isLoading: false, error: 'Vector store not available' },
+          [cfgId]: { code: '', isLoading: false, error: 'Selected vector store not available' },
         }));
         return;
       }
