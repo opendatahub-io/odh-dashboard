@@ -328,6 +328,41 @@ describe('Pipeline runs', () => {
         activeRunsTable.getRowByName('Test active run 1').find().should('exist');
       });
 
+      it('displays the retry start time instead of created_at for a retried run', () => {
+        const retriedRun = buildMockRunKF({
+          display_name: 'Retried run',
+          run_id: 'retried-run-1',
+          pipeline_version_reference: {
+            pipeline_id: pipelineId,
+            pipeline_version_id: 'test-version-1',
+          },
+          experiment_id: 'test-experiment-1',
+          created_at: '2024-01-01T00:00:00Z',
+          scheduled_at: '2024-01-01T00:00:00Z',
+          finished_at: '2024-01-02T11:00:00Z',
+          state: RuntimeStateKF.SUCCEEDED,
+          state_history: [
+            { update_time: '2024-01-01T00:00:01Z', state: 'PENDING' },
+            { update_time: '2024-01-01T00:00:05Z', state: 'RUNNING' },
+            { update_time: '2024-01-01T01:00:00Z', state: 'FAILED' },
+            { update_time: '2024-01-02T10:00:00Z', state: 'PENDING' },
+            { update_time: '2024-01-02T10:00:05Z', state: 'RUNNING' },
+            { update_time: '2024-01-02T11:00:00Z', state: 'SUCCEEDED' },
+          ],
+        });
+
+        activeRunsTable.mockGetActiveRuns([retriedRun], projectName);
+        pipelineRunsGlobal.visit(projectName, 'active');
+
+        activeRunsTable
+          .getRowByName('Retried run')
+          .find()
+          .find('[data-label=Started]')
+          .find('time')
+          .should('have.attr', 'datetime')
+          .and('include', '2024-01-02');
+      });
+
       it('archive a single run', () => {
         pipelineRunsGlobal.visit(projectName, 'active');
         const [runToArchive] = mockActiveRuns;
