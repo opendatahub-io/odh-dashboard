@@ -3,6 +3,7 @@ import { ApplicationsPage, SimpleSelect } from 'mod-arch-shared';
 import { useNamespaceSelector, useModularArchContext } from 'mod-arch-core';
 import { Flex, FlexItem } from '@patternfly/react-core';
 import { McpDeployment } from '~/app/mcpDeploymentTypes';
+import McpDeployModal from '~/odh/components/McpDeployModal';
 import useMcpDeployments from './useMcpDeployments';
 import McpDeploymentsTable from './McpDeploymentsTable';
 import McpDeploymentsToolbar from './McpDeploymentsToolbar';
@@ -14,6 +15,7 @@ const McpDeploymentsPage: React.FC = () => {
   const [deployments, loaded, loadError, refresh] = useMcpDeployments();
   const [filterText, setFilterText] = React.useState('');
   const [deleteTarget, setDeleteTarget] = React.useState<McpDeployment | undefined>();
+  const [editingDeployment, setEditingDeployment] = React.useState<McpDeployment>();
   const { namespaces = [], preferredNamespace, updatePreferredNamespace } = useNamespaceSelector();
   const { config } = useModularArchContext();
 
@@ -33,6 +35,10 @@ const McpDeploymentsPage: React.FC = () => {
 
   const handleDeleteClick = React.useCallback((deployment: McpDeployment) => {
     setDeleteTarget(deployment);
+  }, []);
+
+  const handleEditClick = React.useCallback((deployment: McpDeployment) => {
+    setEditingDeployment(deployment);
   }, []);
 
   const filteredDeployments = React.useMemo(() => {
@@ -90,6 +96,7 @@ const McpDeploymentsPage: React.FC = () => {
         }
         onClearFilters={clearFilters}
         onDeleteClick={handleDeleteClick}
+        onEditClick={handleEditClick}
       />
       {deleteTarget && (
         <DeleteMcpDeploymentModal
@@ -100,6 +107,15 @@ const McpDeploymentsPage: React.FC = () => {
             }
             setDeleteTarget(undefined);
           }}
+        />
+      )}
+      {editingDeployment && (
+        <McpDeployModal
+          onClose={() => {
+            setEditingDeployment(undefined);
+            refresh();
+          }}
+          existingDeployment={editingDeployment}
         />
       )}
     </ApplicationsPage>
