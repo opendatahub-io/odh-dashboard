@@ -13,8 +13,6 @@ import {
   useWizardContext,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { FeatureStoreKind } from '@odh-dashboard/internal/k8sTypes';
-import { createFeatureStore } from '@odh-dashboard/internal/api/k8s/featureStores';
 import { RegistryType, RemoteRegistryType } from './types';
 import { validateFeatureStoreForm, isFormValid } from './validationUtils';
 import { buildFormSpec } from './utils';
@@ -24,6 +22,8 @@ import RegistryStep from './steps/RegistryStep';
 import StoreConfigStep from './steps/StoreConfigStep';
 import AdvancedStep from './steps/AdvancedStep';
 import ReviewStep from './steps/ReviewStep';
+import { FeatureStoreKind } from '../../k8sTypes';
+import { createFeatureStore } from '../../api/featureStores';
 import useNamespaceSecrets from '../../hooks/useNamespaceSecrets';
 import useNamespaceConfigMaps from '../../hooks/useNamespaceConfigMaps';
 
@@ -47,7 +47,7 @@ const FeatureStoreWizardFooter: React.FC<FeatureStoreWizardFooterProps> = ({
 
   return (
     <WizardFooterWrapper>
-      <Stack hasGutter style={{ flex: 'auto' }}>
+      <Stack hasGutter>
         {submitError && (
           <StackItem>
             <Alert variant="danger" isInline title="Failed to create feature store">

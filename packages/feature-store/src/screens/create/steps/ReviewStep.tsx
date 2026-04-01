@@ -9,7 +9,7 @@ import {
   CodeBlockCode,
   FormSection,
 } from '@patternfly/react-core';
-import { FeastServerConfigs, FeastPvcConfig } from '@odh-dashboard/internal/k8sTypes';
+import { FeastServerConfigs, FeastPvcConfig } from '../../../k8sTypes';
 import {
   FeatureStoreFormData,
   RegistryType,
@@ -209,15 +209,12 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data, isFirstProject }) => {
           <DescriptionListGroup>
             <DescriptionListTerm>Online store</DescriptionListTerm>
             <DescriptionListDescription>
-              {data.onlineStoreEnabled
-                ? `Enabled (${
-                    data.onlinePersistenceType === PersistenceType.FILE ? 'file' : 'database'
-                  })`
-                : 'Disabled'}
+              {data.onlinePersistenceType === PersistenceType.FILE
+                ? 'File-based (ephemeral)'
+                : 'Database'}
             </DescriptionListDescription>
           </DescriptionListGroup>
-          {data.onlineStoreEnabled &&
-            data.onlinePersistenceType === PersistenceType.FILE &&
+          {data.onlinePersistenceType === PersistenceType.FILE &&
             summarizePvc(data.services?.onlineStore?.persistence?.file?.pvc) && (
               <DescriptionListGroup>
                 <DescriptionListTerm>Online store PVC</DescriptionListTerm>
@@ -293,7 +290,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data, isFirstProject }) => {
               </DescriptionListDescription>
             </DescriptionListGroup>
           )}
-          {data.onlineStoreEnabled && hasServerConfig(data.services?.onlineStore?.server) && (
+          {hasServerConfig(data.services?.onlineStore?.server) && (
             <DescriptionListGroup>
               <DescriptionListTerm>Online store server</DescriptionListTerm>
               <DescriptionListDescription>

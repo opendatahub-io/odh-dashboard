@@ -1,8 +1,8 @@
 import * as React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
-import { FeatureStoreKind } from '@odh-dashboard/internal/k8sTypes';
-import { deleteFeatureStore } from '@odh-dashboard/internal/api/k8s/featureStores';
+import { FeatureStoreKind } from '../../k8sTypes';
+import { deleteFeatureStore } from '../../api/featureStores';
 
 type DeleteFeatureStoreModalProps = {
   featureStore: FeatureStoreKind;

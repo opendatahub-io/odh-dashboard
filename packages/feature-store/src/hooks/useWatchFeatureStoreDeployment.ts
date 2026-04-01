@@ -1,17 +1,27 @@
 import React from 'react';
-import { FeatureStoreKind, PodKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
+import { PodKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
 import useFetch, { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
 import { NotReadyError } from '@odh-dashboard/internal/utilities/useFetchState';
 import { FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
-import {
-  getFeatureStore,
-  getPodsForFeatureStore,
-} from '@odh-dashboard/internal/api/k8s/featureStores';
 import { getPodContainerLogText } from '@odh-dashboard/internal/api/k8s/pods';
+import { FeatureStoreKind } from '../k8sTypes';
+import { getFeatureStore, getPodsForFeatureStore } from '../api/featureStores';
 
 const LOG_TAIL_LINES = 200;
 
 export type DeploymentPhase = 'Pending' | 'Installing' | 'Ready' | 'Failed' | 'Unknown';
+
+const isTerminal = (phase: DeploymentPhase): boolean => phase === 'Ready' || phase === 'Failed';
+
+const logFetchFallback = (e: unknown, isInit: boolean): string => {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (msg.includes('ContainerCreating') || msg.includes('PodInitializing') || msg.includes('400')) {
+    return isInit
+      ? '(waiting for init container to start...)'
+      : '(waiting for container to start...)';
+  }
+  return `(error fetching logs: ${msg})`;
+};
 
 type DeploymentData = {
   featureStore: FeatureStoreKind | null;
@@ -59,14 +69,17 @@ const useWatchFeatureStoreDeployment = (namespace: string, name: string): Deploy
     ]).then(([featureStore, pods]) => ({ featureStore, pods }));
   }, [namespace, name]);
 
+  const phaseRef = React.useRef<DeploymentPhase>('Pending');
+
   const { data, loaded, error, refresh } = useFetch<DeploymentData>(
     fetchDeployment,
     { featureStore: null, pods: [] },
-    { refreshRate: FAST_POLL_INTERVAL },
+    { refreshRate: isTerminal(phaseRef.current) ? 0 : FAST_POLL_INTERVAL },
   );
 
   const { featureStore, pods } = data;
   const phase = resolvePhase(featureStore);
+  phaseRef.current = phase;
   const isComplete = phase === 'Ready';
   const isFailed = phase === 'Failed';
 
@@ -81,7 +94,7 @@ const useWatchFeatureStoreDeployment = (namespace: string, name: string): Deploy
         entries.push(
           getPodContainerLogText(namespace, pod.metadata.name, initContainer.name, LOG_TAIL_LINES)
             .then((text): [string, string] => [key, text])
-            .catch((): [string, string] => [key, '(waiting for init container to start...)']),
+            .catch((e): [string, string] => [key, logFetchFallback(e, true)]),
         );
       }
       for (const container of pod.spec.containers) {
@@ -89,7 +102,7 @@ const useWatchFeatureStoreDeployment = (namespace: string, name: string): Deploy
         entries.push(
           getPodContainerLogText(namespace, pod.metadata.name, container.name, LOG_TAIL_LINES)
             .then((text): [string, string] => [key, text])
-            .catch((): [string, string] => [key, '(waiting for container to start...)']),
+            .catch((e): [string, string] => [key, logFetchFallback(e, false)]),
         );
       }
     }
@@ -105,7 +118,7 @@ const useWatchFeatureStoreDeployment = (namespace: string, name: string): Deploy
     fetchLogs,
     {},
     {
-      refreshRate: pods.length > 0 ? FAST_POLL_INTERVAL : 0,
+      refreshRate: pods.length > 0 && !isTerminal(phase) ? FAST_POLL_INTERVAL : 0,
     },
   );
 

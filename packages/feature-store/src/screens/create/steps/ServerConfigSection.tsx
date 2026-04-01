@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
-import { FeastServerConfigs, FeastWorkerConfigs } from '@odh-dashboard/internal/k8sTypes';
+import { FeastServerConfigs, FeastWorkerConfigs } from '../../../k8sTypes';
 import { VALID_LOG_LEVELS } from '../types';
 
 type ServerConfigSectionProps = {

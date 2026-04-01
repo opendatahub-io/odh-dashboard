@@ -1,11 +1,3 @@
-import { FeatureStoreFormSpec } from '@odh-dashboard/internal/api/k8s/featureStores';
-import {
-  FeastServices,
-  FeastAuthzConfig,
-  FeastServerConfigs,
-  FeastRegistryServerConfigs,
-  FeastWorkerConfigs,
-} from '@odh-dashboard/internal/k8sTypes';
 import {
   FeatureStoreFormData,
   RegistryType,
@@ -13,6 +5,14 @@ import {
   AuthzType,
   ScalingMode,
 } from './types';
+import {
+  FeastServices,
+  FeastAuthzConfig,
+  FeastServerConfigs,
+  FeastRegistryServerConfigs,
+  FeastWorkerConfigs,
+} from '../../k8sTypes';
+import { FeatureStoreFormSpec } from '../../api/featureStores';
 import { FEATURE_STORE_UI_LABEL_KEY, FEATURE_STORE_UI_LABEL_VALUE } from '../../const';
 
 const buildEnvFrom = (secretName: string): Record<string, unknown>[] | undefined => {
@@ -106,9 +106,14 @@ const buildServices = (data: FeatureStoreFormData): FeastServices | undefined =>
       ...(rawRegistryServer?.restAPI != null && { restAPI: rawRegistryServer.restAPI }),
       ...(rawRegistryServer?.grpc != null && { grpc: rawRegistryServer.grpc }),
     };
-    const registryEnvFrom = buildEnvFrom(data.registrySecretName);
-    if (registryEnvFrom) {
-      registryServer.envFrom = registryEnvFrom;
+    const registryFilePath = data.services?.registry?.local?.persistence?.file?.path ?? '';
+    const registryIsObjectStore =
+      registryFilePath.startsWith('s3://') || registryFilePath.startsWith('gs://');
+    if (data.registryPersistenceType === PersistenceType.FILE && registryIsObjectStore) {
+      const registryEnvFrom = buildEnvFrom(data.registrySecretName);
+      if (registryEnvFrom) {
+        registryServer.envFrom = registryEnvFrom;
+      }
     }
 
     const localRegistry: FeastServices['registry'] = {
@@ -147,7 +152,7 @@ const buildServices = (data: FeatureStoreFormData): FeastServices | undefined =>
     };
   }
 
-  if (data.onlineStoreEnabled) {
+  {
     const onlineStore: FeastServices['onlineStore'] = {};
 
     if (data.onlinePersistenceType === PersistenceType.FILE) {
@@ -176,7 +181,9 @@ const buildServices = (data: FeatureStoreFormData): FeastServices | undefined =>
   }
 
   if (data.offlineStoreEnabled) {
-    const offlineStore: FeastServices['offlineStore'] = {};
+    const offlineStore: FeastServices['offlineStore'] = {
+      server: {},
+    };
 
     if (data.offlinePersistenceType === PersistenceType.FILE) {
       const filePersistence = data.services?.offlineStore?.persistence?.file;
@@ -196,9 +203,7 @@ const buildServices = (data: FeatureStoreFormData): FeastServices | undefined =>
     if (offlineEnvFrom) {
       offlineServer.envFrom = offlineEnvFrom;
     }
-    if (Object.keys(offlineServer).length > 0) {
-      offlineStore.server = offlineServer;
-    }
+    offlineStore.server = Object.keys(offlineServer).length > 0 ? offlineServer : {};
 
     services.offlineStore = offlineStore;
   }
@@ -320,10 +325,7 @@ const yamlStringify = (obj: unknown, indent = 0): string => {
         const itemStr = yamlStringify(item, indent + 1);
         if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
           const lines = itemStr.split('\n');
-          return `${spaces}- ${lines[0].trim()}\n${lines
-            .slice(1)
-            .map((l) => `${spaces}  ${l.trim()}`)
-            .join('\n')}`;
+          return [`${spaces}- ${lines[0].trimStart()}`, ...lines.slice(1)].join('\n');
         }
         return `${spaces}- ${itemStr}`;
       })

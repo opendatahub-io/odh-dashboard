@@ -118,7 +118,25 @@ describe('validateFeatureStoreForm', () => {
       expect(result.registry.valid).toBe(true);
     });
 
-    it('should fail when both restAPI and grpc are disabled for local registry', () => {
+    it('should fail when restAPI is disabled even if grpc is enabled', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        registryType: RegistryType.LOCAL,
+        services: {
+          registry: {
+            local: {
+              server: { restAPI: false, grpc: true },
+            },
+          },
+        },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.registry.valid).toBe(false);
+      expect(result.registry.message).toContain('REST API must be enabled');
+    });
+
+    it('should fail when both restAPI and grpc are disabled', () => {
       const data = makeFormData({
         feastProject: 'test',
         namespace: 'ns',
@@ -133,10 +151,10 @@ describe('validateFeatureStoreForm', () => {
       });
       const result = validateFeatureStoreForm(data, []);
       expect(result.registry.valid).toBe(false);
-      expect(result.registry.message).toContain('REST API or gRPC');
+      expect(result.registry.message).toContain('REST API must be enabled');
     });
 
-    it('should pass when only restAPI is enabled', () => {
+    it('should pass when restAPI is enabled', () => {
       const data = makeFormData({
         feastProject: 'test',
         namespace: 'ns',
@@ -222,6 +240,65 @@ describe('validateFeatureStoreForm', () => {
       expect(result.registry.valid).toBe(true);
     });
 
+    it('should fail when TLS is enabled but ConfigMap name is empty', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        registryType: RegistryType.REMOTE,
+        remoteRegistryType: RemoteRegistryType.HOSTNAME,
+        services: {
+          registry: {
+            remote: {
+              hostname: 'registry.example.com:443',
+              tls: { configMapRef: { name: '' }, certName: 'service-ca.crt' },
+            },
+          },
+        },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.registry.valid).toBe(false);
+      expect(result.registry.message).toBe('TLS CA certificate ConfigMap is required.');
+    });
+
+    it('should fail when TLS is enabled but cert key name is empty', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        registryType: RegistryType.REMOTE,
+        remoteRegistryType: RemoteRegistryType.HOSTNAME,
+        services: {
+          registry: {
+            remote: {
+              hostname: 'registry.example.com:443',
+              tls: { configMapRef: { name: 'ca-bundle' }, certName: '' },
+            },
+          },
+        },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.registry.valid).toBe(false);
+      expect(result.registry.message).toBe('TLS certificate key name is required.');
+    });
+
+    it('should pass when TLS fields are fully populated', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        registryType: RegistryType.REMOTE,
+        remoteRegistryType: RemoteRegistryType.HOSTNAME,
+        services: {
+          registry: {
+            remote: {
+              hostname: 'registry.example.com:443',
+              tls: { configMapRef: { name: 'ca-bundle' }, certName: 'service-ca.crt' },
+            },
+          },
+        },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.registry.valid).toBe(true);
+    });
+
     it('should fail when feastRef name is empty for remote registry', () => {
       const data = makeFormData({
         feastProject: 'test',
@@ -299,7 +376,6 @@ describe('validateFeatureStoreForm', () => {
       const data = makeFormData({
         feastProject: 'test',
         namespace: 'ns',
-        onlineStoreEnabled: true,
         onlinePersistenceType: PersistenceType.DB,
         services: {
           registry: { local: { server: { restAPI: true, grpc: true } } },
@@ -319,7 +395,6 @@ describe('validateFeatureStoreForm', () => {
       const data = makeFormData({
         feastProject: 'test',
         namespace: 'ns',
-        onlineStoreEnabled: true,
         onlinePersistenceType: PersistenceType.DB,
         services: {
           registry: { local: { server: { restAPI: true, grpc: true } } },
@@ -400,6 +475,29 @@ describe('validateFeatureStoreForm', () => {
       expect(result.advanced.valid).toBe(true);
     });
 
+    it('should fail when batch engine is enabled but ConfigMap name is empty', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        batchEngineEnabled: true,
+        batchEngineConfigMapName: '',
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.advanced.valid).toBe(false);
+      expect(result.advanced.message).toBe('Batch compute engine ConfigMap is required.');
+    });
+
+    it('should pass when batch engine is enabled with a ConfigMap selected', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        batchEngineEnabled: true,
+        batchEngineConfigMapName: 'spark-config',
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.advanced.valid).toBe(true);
+    });
+
     describe('scaling validation', () => {
       it('should fail when HPA max < min replicas', () => {
         const data = makeFormData({
@@ -411,7 +509,6 @@ describe('validateFeatureStoreForm', () => {
           hpaMaxReplicas: 2,
           onlinePersistenceType: PersistenceType.DB,
           registryPersistenceType: PersistenceType.DB,
-          onlineStoreEnabled: true,
           registryType: RegistryType.LOCAL,
           services: {
             registry: {
@@ -438,7 +535,6 @@ describe('validateFeatureStoreForm', () => {
           scalingMode: ScalingMode.HPA,
           hpaMinReplicas: 1,
           hpaMaxReplicas: 3,
-          onlineStoreEnabled: true,
           onlinePersistenceType: PersistenceType.FILE,
           registryType: RegistryType.LOCAL,
           registryPersistenceType: PersistenceType.DB,
@@ -464,7 +560,6 @@ describe('validateFeatureStoreForm', () => {
           scalingMode: ScalingMode.HPA,
           hpaMinReplicas: 1,
           hpaMaxReplicas: 3,
-          onlineStoreEnabled: true,
           onlinePersistenceType: PersistenceType.DB,
           registryType: RegistryType.LOCAL,
           registryPersistenceType: PersistenceType.FILE,
@@ -492,7 +587,6 @@ describe('validateFeatureStoreForm', () => {
           scalingMode: ScalingMode.HPA,
           hpaMinReplicas: 1,
           hpaMaxReplicas: 3,
-          onlineStoreEnabled: true,
           onlinePersistenceType: PersistenceType.DB,
           registryType: RegistryType.LOCAL,
           registryPersistenceType: PersistenceType.FILE,
@@ -533,7 +627,6 @@ describe('validateFeatureStoreForm', () => {
           replicas: 3,
           offlineStoreEnabled: true,
           offlinePersistenceType: PersistenceType.FILE,
-          onlineStoreEnabled: true,
           onlinePersistenceType: PersistenceType.DB,
           registryType: RegistryType.LOCAL,
           registryPersistenceType: PersistenceType.DB,

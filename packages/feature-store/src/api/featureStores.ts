@@ -4,6 +4,11 @@ import {
   k8sGetResource,
   k8sListResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sAPIOptions, PodKind } from '@odh-dashboard/internal/k8sTypes';
+import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
+import { PodModel } from '@odh-dashboard/internal/api/models/k8s';
+import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
+import { kindApiVersion } from '@odh-dashboard/internal/concepts/k8s/utils';
 import {
   FeatureStoreKind,
   FeastServices,
@@ -11,12 +16,41 @@ import {
   FeastAuthzConfig,
   FeastCronJob,
   FeastBatchEngineConfig,
-  K8sAPIOptions,
-  PodKind,
-} from '#~/k8sTypes';
-import { FeatureStoreModel, PodModel } from '#~/api/models';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
-import { kindApiVersion } from '#~/concepts/k8s/utils';
+} from '../k8sTypes';
+
+/**
+ * Validates the minimum shape required by every consumer
+ * (metadata.name, metadata.namespace, spec.feastProject).
+ * These are required fields in the type, but a version-skewed or
+ * partially-populated response could still deliver empty strings.
+ */
+const isValidFeatureStore = (fs: FeatureStoreKind): boolean =>
+  Boolean(fs.metadata.name && fs.metadata.namespace && fs.spec.feastProject);
+
+/**
+ * Ensures optional sub-trees that consumers read with optional chaining
+ * are present with safe defaults so downstream code never encounters
+ * e.g. `undefined.conditions`.
+ */
+const normalizeFeatureStore = (fs: FeatureStoreKind): FeatureStoreKind => ({
+  ...fs,
+  metadata: {
+    ...fs.metadata,
+    labels: fs.metadata.labels ?? {},
+    annotations: fs.metadata.annotations ?? {},
+  },
+  status: fs.status
+    ? {
+        ...fs.status,
+        conditions: fs.status.conditions ?? [],
+        phase: fs.status.phase ?? 'Pending',
+        serviceHostnames: fs.status.serviceHostnames ?? {},
+      }
+    : undefined,
+});
+
+const normalizeFeatureStoreList = (items: FeatureStoreKind[]): FeatureStoreKind[] =>
+  items.filter(isValidFeatureStore).map(normalizeFeatureStore);
 
 export type FeatureStoreFormSpec = {
   feastProject: string;
@@ -89,13 +123,13 @@ export const listFeatureStores = (namespace: string): Promise<FeatureStoreKind[]
     queryOptions: {
       ns: namespace,
     },
-  }).then((listResource) => listResource.items);
+  }).then((listResource) => normalizeFeatureStoreList(listResource.items));
 
 export const listAllFeatureStores = (): Promise<FeatureStoreKind[]> =>
   k8sListResource<FeatureStoreKind>({
     model: FeatureStoreModel,
     queryOptions: {},
-  }).then((listResource) => listResource.items);
+  }).then((listResource) => normalizeFeatureStoreList(listResource.items));
 
 export const getFeatureStore = (namespace: string, name: string): Promise<FeatureStoreKind> =>
   k8sGetResource<FeatureStoreKind>({
@@ -104,7 +138,7 @@ export const getFeatureStore = (namespace: string, name: string): Promise<Featur
       name,
       ns: namespace,
     },
-  });
+  }).then(normalizeFeatureStore);
 
 export const deleteFeatureStore = (namespace: string, name: string): Promise<FeatureStoreKind> =>
   k8sDeleteResource<FeatureStoreKind>({

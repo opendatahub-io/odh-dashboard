@@ -9,15 +9,12 @@ import {
   Stack,
   StackItem,
   Timestamp,
+  Title,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import {
-  FeatureStoreKind,
-  FeastOnlineStore,
-  FeastOfflineStore,
-} from '@odh-dashboard/internal/k8sTypes';
+import { FeatureStoreKind, FeastOnlineStore, FeastOfflineStore } from '../../k8sTypes';
 
 type FeatureStoreTableRowProps = {
   featureStore: FeatureStoreKind;
@@ -158,12 +155,7 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
             <>
               {' '}
               <Popover bodyContent="This is the primary feature store whose registry is shared with other feature stores. Additional feature stores should use a remote registry pointing to this store.">
-                <Label
-                  color="blue"
-                  isCompact
-                  icon={<OutlinedQuestionCircleIcon />}
-                  style={{ cursor: 'pointer' }}
-                >
+                <Label color="blue" isCompact isClickable icon={<OutlinedQuestionCircleIcon />}>
                   Primary
                 </Label>
               </Popover>
@@ -269,7 +261,9 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
                     hostnames.offlineStore ||
                     hostnames.registryRest) && (
                     <StackItem>
-                      <p className="pf-v6-u-font-weight-bold pf-v6-u-mb-sm">Service hostnames</p>
+                      <Title headingLevel="h4" size="md">
+                        Service hostnames
+                      </Title>
                       <DescriptionList columnModifier={{ default: '2Col' }} isCompact>
                         {hostnames.registry && (
                           <DescriptionListGroup>
@@ -308,7 +302,9 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
                   )}
                 {conditions && conditions.length > 0 && (
                   <StackItem>
-                    <p className="pf-v6-u-font-weight-bold pf-v6-u-mb-sm">Conditions</p>
+                    <Title headingLevel="h4" size="md">
+                      Conditions
+                    </Title>
                     <DescriptionList isCompact>
                       {conditions.map((c) => (
                         <DescriptionListGroup key={c.type}>

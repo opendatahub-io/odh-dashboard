@@ -114,7 +114,29 @@ const ProjectBasicsStep: React.FC<ProjectBasicsStepProps> = ({
             options={namespaceOptions}
             value={data.namespace}
             placeholder={namespacesLoaded ? 'Select a namespace' : 'Loading...'}
-            onChange={(key) => setData('namespace', key)}
+            onChange={(key) => {
+              if (key !== data.namespace) {
+                setData('registrySecretName', '');
+                setData('onlineStoreSecretName', '');
+                setData('offlineStoreSecretName', '');
+                setData('gitSecretName', '');
+                setData('batchEngineConfigMapName', '');
+                setData('batchEngineConfigMapKey', '');
+                if (data.services?.registry?.remote?.tls) {
+                  setData('services', {
+                    ...data.services,
+                    registry: {
+                      ...data.services.registry,
+                      remote: {
+                        ...data.services.registry.remote,
+                        tls: { configMapRef: { name: '' }, certName: 'service-ca.crt' },
+                      },
+                    },
+                  });
+                }
+              }
+              setData('namespace', key);
+            }}
             isFullWidth
           />
           <FormHelperText>

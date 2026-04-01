@@ -68,11 +68,17 @@ describe('buildFormSpec', () => {
       expect(registryServer?.grpc).toBe(false);
     });
 
-    it('should include envFrom for registry secret', () => {
+    it('should include envFrom for registry secret when path is object-store URI', () => {
       const data = makeFormData({
         feastProject: 'test',
         namespace: 'ns',
         registrySecretName: 's3-secret',
+        registryPersistenceType: PersistenceType.FILE,
+        services: {
+          registry: {
+            local: { persistence: { file: { path: 's3://bucket/registry.db' } } },
+          },
+        },
       });
       const spec = buildFormSpec(data, false);
       const envFrom = spec.services?.registry?.local?.server?.envFrom;
@@ -84,6 +90,35 @@ describe('buildFormSpec', () => {
         feastProject: 'test',
         namespace: 'ns',
         registrySecretName: '',
+      });
+      const spec = buildFormSpec(data, false);
+      const envFrom = spec.services?.registry?.local?.server?.envFrom;
+      expect(envFrom).toBeUndefined();
+    });
+
+    it('should not include envFrom for registry secret when path is not an object-store URI', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        registrySecretName: 'stale-secret',
+        registryPersistenceType: PersistenceType.FILE,
+        services: {
+          registry: {
+            local: { persistence: { file: { path: '/data/registry.db' } } },
+          },
+        },
+      });
+      const spec = buildFormSpec(data, false);
+      const envFrom = spec.services?.registry?.local?.server?.envFrom;
+      expect(envFrom).toBeUndefined();
+    });
+
+    it('should not include envFrom for registry secret when persistence is DB', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        registrySecretName: 'stale-secret',
+        registryPersistenceType: PersistenceType.DB,
       });
       const spec = buildFormSpec(data, false);
       const envFrom = spec.services?.registry?.local?.server?.envFrom;
@@ -167,31 +202,19 @@ describe('buildFormSpec', () => {
   });
 
   describe('online store', () => {
-    it('should include online store when enabled', () => {
+    it('should always include online store in the spec', () => {
       const data = makeFormData({
         feastProject: 'test',
         namespace: 'ns',
-        onlineStoreEnabled: true,
       });
       const spec = buildFormSpec(data, false);
       expect(spec.services?.onlineStore).toBeDefined();
-    });
-
-    it('should not include online store when disabled', () => {
-      const data = makeFormData({
-        feastProject: 'test',
-        namespace: 'ns',
-        onlineStoreEnabled: false,
-      });
-      const spec = buildFormSpec(data, false);
-      expect(spec.services?.onlineStore).toBeUndefined();
     });
 
     it('should include online store envFrom when secret is provided', () => {
       const data = makeFormData({
         feastProject: 'test',
         namespace: 'ns',
-        onlineStoreEnabled: true,
         onlineStoreSecretName: 'redis-secret',
       });
       const spec = buildFormSpec(data, false);
@@ -204,7 +227,6 @@ describe('buildFormSpec', () => {
       const data = makeFormData({
         feastProject: 'test',
         namespace: 'ns',
-        onlineStoreEnabled: true,
         onlinePersistenceType: PersistenceType.DB,
         services: {
           registry: { local: { server: { restAPI: true, grpc: true } } },
@@ -413,7 +435,6 @@ describe('buildFormSpec', () => {
       const data = makeFormData({
         feastProject: 'test',
         namespace: 'ns',
-        onlineStoreEnabled: true,
         services: {
           registry: { local: { server: { restAPI: true, grpc: true } } },
           onlineStore: {
@@ -436,7 +457,6 @@ describe('buildFormSpec', () => {
       const data = makeFormData({
         feastProject: 'test',
         namespace: 'ns',
-        onlineStoreEnabled: true,
         services: {
           registry: { local: { server: { restAPI: true, grpc: true } } },
           onlineStore: {
@@ -452,7 +472,6 @@ describe('buildFormSpec', () => {
       const data = makeFormData({
         feastProject: 'test',
         namespace: 'ns',
-        onlineStoreEnabled: true,
         services: {
           registry: { local: { server: { restAPI: true, grpc: true } } },
           onlineStore: {
@@ -504,7 +523,6 @@ describe('formSpecToYaml', () => {
     const data = makeFormData({
       feastProject: 'test',
       namespace: 'ns',
-      onlineStoreEnabled: true,
       onlinePersistenceType: PersistenceType.DB,
       services: {
         registry: { local: { server: { restAPI: true, grpc: true } } },
@@ -519,5 +537,37 @@ describe('formSpecToYaml', () => {
     expect(yaml).toContain('services:');
     expect(yaml).toContain('onlineStore:');
     expect(yaml).toContain('type: redis');
+  });
+
+  it('should render envFrom with correct nested indentation', () => {
+    const data = makeFormData({
+      feastProject: 'test',
+      namespace: 'ns',
+      registrySecretName: 's3-creds',
+      registryPersistenceType: PersistenceType.FILE,
+      services: {
+        registry: {
+          local: {
+            server: { restAPI: true, grpc: true },
+            persistence: { file: { path: 's3://bucket/registry.db' } },
+          },
+        },
+      },
+    });
+    const spec = buildFormSpec(data, false);
+    const yaml = formSpecToYaml(spec);
+    const lines = yaml.split('\n');
+
+    const envFromIdx = lines.findIndex((l) => l.includes('envFrom:'));
+    expect(envFromIdx).toBeGreaterThan(-1);
+
+    const secretRefLine = lines[envFromIdx + 1];
+    const nameLine = lines[envFromIdx + 2];
+    expect(secretRefLine).toMatch(/^\s+- secretRef:/);
+    expect(nameLine).toMatch(/^\s+name: s3-creds/);
+
+    const secretRefIndent = secretRefLine.search(/\S/);
+    const nameIndent = nameLine.search(/\S/);
+    expect(nameIndent).toBeGreaterThan(secretRefIndent);
   });
 });

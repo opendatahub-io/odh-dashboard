@@ -10,6 +10,8 @@ import {
   HelperText,
   HelperTextItem,
   Alert,
+  Content,
+  Stack,
 } from '@patternfly/react-core';
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import PvcConfigSection from './PvcConfigSection';
@@ -39,228 +41,210 @@ const StoreConfigStep: React.FC<StoreConfigStepProps> = ({ data, setData, namesp
   return (
     <Form>
       <FormSection title="Online store">
-        <FormGroup fieldId="feast-online-store-enabled">
-          <Switch
-            id="feast-online-store-enabled"
-            data-testid="feast-online-store-enabled"
-            label="Enable online store"
-            isChecked={data.onlineStoreEnabled}
-            onChange={(_e, checked) => setData('onlineStoreEnabled', checked)}
-          />
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem>
-                An ephemeral online store feature server is deployed by default.
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
+        <Content component="p">
+          An online store feature server is always deployed. Configure its persistence and server
+          settings below.
+        </Content>
+
+        <FormGroup label="Persistence type" fieldId="feast-online-persistence-type">
+          <Stack hasGutter>
+            <Radio
+              id="online-persistence-file"
+              name="online-persistence-type"
+              label="File-based (ephemeral)"
+              isChecked={data.onlinePersistenceType === PersistenceType.FILE}
+              onChange={() => setData('onlinePersistenceType', PersistenceType.FILE)}
+            />
+            <Radio
+              id="online-persistence-db"
+              name="online-persistence-type"
+              label="Database store"
+              isChecked={data.onlinePersistenceType === PersistenceType.DB}
+              onChange={() => setData('onlinePersistenceType', PersistenceType.DB)}
+            />
+          </Stack>
         </FormGroup>
 
-        {data.onlineStoreEnabled && (
+        {data.onlinePersistenceType === PersistenceType.FILE && (
           <>
-            <FormGroup label="Persistence type" fieldId="feast-online-persistence-type">
-              <Radio
-                id="online-persistence-file"
-                name="online-persistence-type"
-                label="File-based (ephemeral)"
-                isChecked={data.onlinePersistenceType === PersistenceType.FILE}
-                onChange={() => setData('onlinePersistenceType', PersistenceType.FILE)}
-              />
-              <Radio
-                id="online-persistence-db"
-                name="online-persistence-type"
-                label="Database store"
-                isChecked={data.onlinePersistenceType === PersistenceType.DB}
-                onChange={() => setData('onlinePersistenceType', PersistenceType.DB)}
-                className="pf-v6-u-mt-sm"
-              />
-            </FormGroup>
-
-            {data.onlinePersistenceType === PersistenceType.FILE && (
-              <>
-                <Alert variant="warning" isInline isPlain title="Development only">
-                  File-based persistence is not recommended for production. Use a database-backed
-                  store for production deployments.
-                </Alert>
-                <FormGroup label="File path" fieldId="feast-online-file-path">
-                  <TextInput
-                    id="feast-online-file-path"
-                    value={data.services?.onlineStore?.persistence?.file?.path ?? ''}
-                    onChange={(_e, val) =>
-                      setData('services', {
-                        ...data.services,
-                        onlineStore: {
-                          ...data.services?.onlineStore,
-                          persistence: {
-                            file: {
-                              ...data.services?.onlineStore?.persistence?.file,
-                              path: val,
-                            },
-                          },
-                        },
-                      })
-                    }
-                    placeholder="online_store.db"
-                  />
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>
-                        Leave empty for operator default. Ephemeral stores must use absolute paths.
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
-                </FormGroup>
-                <PvcConfigSection
-                  pvcConfig={data.services?.onlineStore?.persistence?.file?.pvc}
-                  defaultMountPath="/data/online"
-                  defaultStorageSize="5Gi"
-                  onChange={(pvc) =>
-                    setData('services', {
-                      ...data.services,
-                      onlineStore: {
-                        ...data.services?.onlineStore,
-                        persistence: {
-                          file: {
-                            ...data.services?.onlineStore?.persistence?.file,
-                            pvc: pvc ?? undefined,
-                          },
+            <Alert variant="warning" isInline isPlain title="Development only">
+              File-based persistence is not recommended for production. Use a database-backed store
+              for production deployments.
+            </Alert>
+            <FormGroup label="File path" fieldId="feast-online-file-path">
+              <TextInput
+                id="feast-online-file-path"
+                value={data.services?.onlineStore?.persistence?.file?.path ?? ''}
+                onChange={(_e, val) =>
+                  setData('services', {
+                    ...data.services,
+                    onlineStore: {
+                      ...data.services?.onlineStore,
+                      persistence: {
+                        file: {
+                          ...data.services?.onlineStore?.persistence?.file,
+                          path: val,
                         },
                       },
-                    })
-                  }
-                />
-              </>
-            )}
-
-            {data.onlinePersistenceType === PersistenceType.DB && (
-              <>
-                <FormGroup label="Database type" isRequired fieldId="feast-online-db-type">
-                  <SimpleSelect
-                    dataTestId="feast-online-db-type"
-                    options={onlineDbOptions}
-                    value={data.services?.onlineStore?.persistence?.store?.type ?? ''}
-                    placeholder="Select type"
-                    onChange={(key) =>
-                      setData('services', {
-                        ...data.services,
-                        onlineStore: {
-                          ...data.services?.onlineStore,
-                          persistence: {
-                            store: {
-                              type: key,
-                              secretRef: data.services?.onlineStore?.persistence?.store
-                                ?.secretRef ?? {
-                                name: '',
-                              },
-                            },
-                          },
-                        },
-                      })
-                    }
-                    isFullWidth
-                  />
-                </FormGroup>
-                <FormGroup label="Secret name" isRequired fieldId="feast-online-db-secret">
-                  <SimpleSelect
-                    dataTestId="feast-online-db-secret"
-                    options={secretOptions}
-                    value={data.services?.onlineStore?.persistence?.store?.secretRef.name ?? ''}
-                    placeholder="Select a secret"
-                    onChange={(key) =>
-                      setData('services', {
-                        ...data.services,
-                        onlineStore: {
-                          ...data.services?.onlineStore,
-                          persistence: {
-                            store: {
-                              type: data.services?.onlineStore?.persistence?.store?.type ?? '',
-                              secretRef: { name: key },
-                            },
-                          },
-                        },
-                      })
-                    }
-                    isFullWidth
-                  />
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>
-                        Secret with store connection parameters (placed as-is from
-                        feature_store.yaml).
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
-                </FormGroup>
-                <FormGroup label="Secret key name" fieldId="feast-online-db-secret-key">
-                  <TextInput
-                    id="feast-online-db-secret-key"
-                    value={data.services?.onlineStore?.persistence?.store?.secretKeyName ?? ''}
-                    onChange={(_e, val) =>
-                      setData('services', {
-                        ...data.services,
-                        onlineStore: {
-                          ...data.services?.onlineStore,
-                          persistence: {
-                            store: {
-                              ...data.services?.onlineStore?.persistence?.store,
-                              type: data.services?.onlineStore?.persistence?.store?.type ?? '',
-                              secretRef: data.services?.onlineStore?.persistence?.store
-                                ?.secretRef ?? { name: '' },
-                              secretKeyName: val || undefined,
-                            },
-                          },
-                        },
-                      })
-                    }
-                    placeholder="Defaults to the database type"
-                  />
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>
-                        Key within the secret that holds the connection config. Defaults to the
-                        database type name if empty.
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
-                </FormGroup>
-                <FormGroup
-                  label="Credentials secret (envFrom)"
-                  fieldId="feast-online-credentials-secret"
-                >
-                  <SimpleSelect
-                    dataTestId="feast-online-credentials-secret"
-                    options={secretOptions}
-                    value={data.onlineStoreSecretName}
-                    placeholder="Select a secret (optional)"
-                    onChange={(key) => setData('onlineStoreSecretName', key)}
-                    isFullWidth
-                  />
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>
-                        Optional. Secret with cloud credentials (e.g. AWS, GCP) injected as
-                        environment variables into the online store container.
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
-                </FormGroup>
-              </>
-            )}
+                    },
+                  })
+                }
+                placeholder="online_store.db"
+              />
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    Leave empty for operator default. Ephemeral stores must use absolute paths.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            </FormGroup>
+            <PvcConfigSection
+              pvcConfig={data.services?.onlineStore?.persistence?.file?.pvc}
+              defaultMountPath="/data/online"
+              defaultStorageSize="5Gi"
+              onChange={(pvc) =>
+                setData('services', {
+                  ...data.services,
+                  onlineStore: {
+                    ...data.services?.onlineStore,
+                    persistence: {
+                      file: {
+                        ...data.services?.onlineStore?.persistence?.file,
+                        pvc: pvc ?? undefined,
+                      },
+                    },
+                  },
+                })
+              }
+            />
           </>
         )}
 
-        {data.onlineStoreEnabled && (
-          <ServerConfigSection
-            title="Advanced online store server configuration"
-            serverConfig={data.services?.onlineStore?.server}
-            onChange={(config) =>
-              setData('services', {
-                ...data.services,
-                onlineStore: { ...data.services?.onlineStore, server: config },
-              })
-            }
-          />
+        {data.onlinePersistenceType === PersistenceType.DB && (
+          <>
+            <FormGroup label="Database type" isRequired fieldId="feast-online-db-type">
+              <SimpleSelect
+                dataTestId="feast-online-db-type"
+                options={onlineDbOptions}
+                value={data.services?.onlineStore?.persistence?.store?.type ?? ''}
+                placeholder="Select type"
+                onChange={(key) =>
+                  setData('services', {
+                    ...data.services,
+                    onlineStore: {
+                      ...data.services?.onlineStore,
+                      persistence: {
+                        store: {
+                          type: key,
+                          secretRef: data.services?.onlineStore?.persistence?.store?.secretRef ?? {
+                            name: '',
+                          },
+                        },
+                      },
+                    },
+                  })
+                }
+                isFullWidth
+              />
+            </FormGroup>
+            <FormGroup label="Secret name" isRequired fieldId="feast-online-db-secret">
+              <SimpleSelect
+                dataTestId="feast-online-db-secret"
+                options={secretOptions}
+                value={data.services?.onlineStore?.persistence?.store?.secretRef.name ?? ''}
+                placeholder="Select a secret"
+                onChange={(key) =>
+                  setData('services', {
+                    ...data.services,
+                    onlineStore: {
+                      ...data.services?.onlineStore,
+                      persistence: {
+                        store: {
+                          type: data.services?.onlineStore?.persistence?.store?.type ?? '',
+                          secretRef: { name: key },
+                        },
+                      },
+                    },
+                  })
+                }
+                isFullWidth
+              />
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    Secret with store connection parameters (placed as-is from feature_store.yaml).
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            </FormGroup>
+            <FormGroup label="Secret key name" fieldId="feast-online-db-secret-key">
+              <TextInput
+                id="feast-online-db-secret-key"
+                value={data.services?.onlineStore?.persistence?.store?.secretKeyName ?? ''}
+                onChange={(_e, val) =>
+                  setData('services', {
+                    ...data.services,
+                    onlineStore: {
+                      ...data.services?.onlineStore,
+                      persistence: {
+                        store: {
+                          ...data.services?.onlineStore?.persistence?.store,
+                          type: data.services?.onlineStore?.persistence?.store?.type ?? '',
+                          secretRef: data.services?.onlineStore?.persistence?.store?.secretRef ?? {
+                            name: '',
+                          },
+                          secretKeyName: val || undefined,
+                        },
+                      },
+                    },
+                  })
+                }
+                placeholder="Defaults to the database type"
+              />
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    Key within the secret that holds the connection config. Defaults to the database
+                    type name if empty.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            </FormGroup>
+            <FormGroup
+              label="Credentials secret (envFrom)"
+              fieldId="feast-online-credentials-secret"
+            >
+              <SimpleSelect
+                dataTestId="feast-online-credentials-secret"
+                options={secretOptions}
+                value={data.onlineStoreSecretName}
+                placeholder="Select a secret (optional)"
+                onChange={(key) => setData('onlineStoreSecretName', key)}
+                isFullWidth
+              />
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    Optional. Secret with cloud credentials (e.g. AWS, GCP) injected as environment
+                    variables into the online store container.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            </FormGroup>
+          </>
         )}
+
+        <ServerConfigSection
+          title="Advanced online store server configuration"
+          serverConfig={data.services?.onlineStore?.server}
+          onChange={(config) =>
+            setData('services', {
+              ...data.services,
+              onlineStore: { ...data.services?.onlineStore, server: config },
+            })
+          }
+        />
       </FormSection>
 
       <FormSection title="Offline store">
@@ -284,21 +268,22 @@ const StoreConfigStep: React.FC<StoreConfigStepProps> = ({ data, setData, namesp
         {data.offlineStoreEnabled && (
           <>
             <FormGroup label="Persistence type" fieldId="feast-offline-persistence-type">
-              <Radio
-                id="offline-persistence-file"
-                name="offline-persistence-type"
-                label="File-based"
-                isChecked={data.offlinePersistenceType === PersistenceType.FILE}
-                onChange={() => setData('offlinePersistenceType', PersistenceType.FILE)}
-              />
-              <Radio
-                id="offline-persistence-db"
-                name="offline-persistence-type"
-                label="Database store"
-                isChecked={data.offlinePersistenceType === PersistenceType.DB}
-                onChange={() => setData('offlinePersistenceType', PersistenceType.DB)}
-                className="pf-v6-u-mt-sm"
-              />
+              <Stack hasGutter>
+                <Radio
+                  id="offline-persistence-file"
+                  name="offline-persistence-type"
+                  label="File-based"
+                  isChecked={data.offlinePersistenceType === PersistenceType.FILE}
+                  onChange={() => setData('offlinePersistenceType', PersistenceType.FILE)}
+                />
+                <Radio
+                  id="offline-persistence-db"
+                  name="offline-persistence-type"
+                  label="Database store"
+                  isChecked={data.offlinePersistenceType === PersistenceType.DB}
+                  onChange={() => setData('offlinePersistenceType', PersistenceType.DB)}
+                />
+              </Stack>
             </FormGroup>
 
             {data.offlinePersistenceType === PersistenceType.FILE && (

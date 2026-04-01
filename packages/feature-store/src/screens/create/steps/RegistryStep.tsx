@@ -10,10 +10,10 @@ import {
   HelperText,
   HelperTextItem,
   Alert,
+  Stack,
 } from '@patternfly/react-core';
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
-import { FeatureStoreKind, FeastRemoteRegistryConfig } from '@odh-dashboard/internal/k8sTypes';
 import PvcConfigSection from './PvcConfigSection';
 import ServerConfigSection from './ServerConfigSection';
 import {
@@ -23,6 +23,7 @@ import {
   RemoteRegistryType,
   VALID_REGISTRY_DB_TYPES,
 } from '../types';
+import { FeatureStoreKind, FeastRemoteRegistryConfig } from '../../../k8sTypes';
 
 type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(propKey: K, propValue: T[K]) => void;
 
@@ -108,28 +109,29 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
           </Alert>
         )}
         <FormGroup fieldId="feast-registry-type">
-          <Radio
-            id="registry-local"
-            name="registry-type"
-            label="Local registry"
-            description={
-              hasUILabeledStore
-                ? 'Not available — a shared registry already exists'
-                : 'Deploy a registry server as part of this FeatureStore'
-            }
-            isChecked={data.registryType === RegistryType.LOCAL}
-            onChange={() => updateRegistryType(RegistryType.LOCAL)}
-            isDisabled={hasUILabeledStore}
-          />
-          <Radio
-            id="registry-remote"
-            name="registry-type"
-            label="Remote registry"
-            description="Use a registry from another FeatureStore or external hostname"
-            isChecked={data.registryType === RegistryType.REMOTE}
-            onChange={() => updateRegistryType(RegistryType.REMOTE)}
-            className="pf-v6-u-mt-sm"
-          />
+          <Stack hasGutter>
+            <Radio
+              id="registry-local"
+              name="registry-type"
+              label="Local registry"
+              description={
+                hasUILabeledStore
+                  ? 'Not available — a shared registry already exists'
+                  : 'Deploy a registry server as part of this FeatureStore'
+              }
+              isChecked={data.registryType === RegistryType.LOCAL}
+              onChange={() => updateRegistryType(RegistryType.LOCAL)}
+              isDisabled={hasUILabeledStore}
+            />
+            <Radio
+              id="registry-remote"
+              name="registry-type"
+              label="Remote registry"
+              description="Use a registry from another FeatureStore or external hostname"
+              isChecked={data.registryType === RegistryType.REMOTE}
+              onChange={() => updateRegistryType(RegistryType.REMOTE)}
+            />
+          </Stack>
         </FormGroup>
       </FormSection>
 
@@ -215,21 +217,44 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
 
           <FormSection title="Registry persistence">
             <FormGroup fieldId="feast-registry-persistence-type">
-              <Radio
-                id="registry-persistence-file"
-                name="registry-persistence-type"
-                label="File-based"
-                isChecked={data.registryPersistenceType === PersistenceType.FILE}
-                onChange={() => setData('registryPersistenceType', PersistenceType.FILE)}
-              />
-              <Radio
-                id="registry-persistence-db"
-                name="registry-persistence-type"
-                label="Database store"
-                isChecked={data.registryPersistenceType === PersistenceType.DB}
-                onChange={() => setData('registryPersistenceType', PersistenceType.DB)}
-                className="pf-v6-u-mt-sm"
-              />
+              <Stack hasGutter>
+                <Radio
+                  id="registry-persistence-file"
+                  name="registry-persistence-type"
+                  label="File-based"
+                  isChecked={data.registryPersistenceType === PersistenceType.FILE}
+                  onChange={() => setData('registryPersistenceType', PersistenceType.FILE)}
+                />
+                <Radio
+                  id="registry-persistence-db"
+                  name="registry-persistence-type"
+                  label="Database store"
+                  isChecked={data.registryPersistenceType === PersistenceType.DB}
+                  onChange={() => {
+                    setData('registrySecretName', '');
+                    const file = data.services?.registry?.local?.persistence?.file;
+                    // eslint-disable-next-line camelcase
+                    if (file?.s3_additional_kwargs) {
+                      setData('services', {
+                        ...data.services,
+                        registry: {
+                          local: {
+                            ...data.services?.registry?.local,
+                            persistence: {
+                              file: {
+                                ...file,
+                                // eslint-disable-next-line camelcase
+                                s3_additional_kwargs: undefined,
+                              },
+                            },
+                          },
+                        },
+                      });
+                    }
+                    setData('registryPersistenceType', PersistenceType.DB);
+                  }}
+                />
+              </Stack>
             </FormGroup>
 
             {data.registryPersistenceType === PersistenceType.FILE && (
@@ -244,7 +269,17 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                   <TextInput
                     id="feast-registry-file-path"
                     value={data.services?.registry?.local?.persistence?.file?.path ?? ''}
-                    onChange={(_e, val) =>
+                    onChange={(_e, val) => {
+                      const wasObjectStore = registryPathIsObjectStore;
+                      const isObjectStore = val.startsWith('s3://') || val.startsWith('gs://');
+                      const wasS3 = registryPathIsS3;
+                      const isS3 = val.startsWith('s3://');
+
+                      if (wasObjectStore && !isObjectStore) {
+                        setData('registrySecretName', '');
+                      }
+
+                      const file = data.services?.registry?.local?.persistence?.file;
                       setData('services', {
                         ...data.services,
                         registry: {
@@ -252,14 +287,16 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                             ...data.services?.registry?.local,
                             persistence: {
                               file: {
-                                ...data.services?.registry?.local?.persistence?.file,
+                                ...file,
                                 path: val,
+                                // eslint-disable-next-line camelcase
+                                ...(wasS3 && !isS3 ? { s3_additional_kwargs: undefined } : {}),
                               },
                             },
                           },
                         },
-                      })
-                    }
+                      });
+                    }}
                     placeholder="registry.db or s3://bucket/registry.db"
                   />
                   <FormHelperText>
@@ -556,44 +593,45 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
       {data.registryType === RegistryType.REMOTE && (
         <FormSection title="Remote registry configuration">
           <FormGroup fieldId="feast-remote-registry-type">
-            <Radio
-              id="remote-feast-ref"
-              name="remote-registry-type"
-              label="FeatureStore reference"
-              description="Reference another FeatureStore CR in the cluster"
-              isChecked={data.remoteRegistryType === RemoteRegistryType.FEAST_REF}
-              onChange={() => {
-                setData('remoteRegistryType', RemoteRegistryType.FEAST_REF);
-                setHostnameHasTls(false);
-                setData('services', {
-                  ...data.services,
-                  registry: {
-                    remote: {
-                      feastRef: {
-                        name: primaryStore?.metadata.name ?? '',
-                        namespace: primaryStore?.metadata.namespace ?? '',
+            <Stack hasGutter>
+              <Radio
+                id="remote-feast-ref"
+                name="remote-registry-type"
+                label="FeatureStore reference"
+                description="Reference another FeatureStore CR in the cluster"
+                isChecked={data.remoteRegistryType === RemoteRegistryType.FEAST_REF}
+                onChange={() => {
+                  setData('remoteRegistryType', RemoteRegistryType.FEAST_REF);
+                  setHostnameHasTls(false);
+                  setData('services', {
+                    ...data.services,
+                    registry: {
+                      remote: {
+                        feastRef: {
+                          name: primaryStore?.metadata.name ?? '',
+                          namespace: primaryStore?.metadata.namespace ?? '',
+                        },
                       },
                     },
-                  },
-                });
-              }}
-            />
-            <Radio
-              id="remote-hostname"
-              name="remote-registry-type"
-              label="External hostname"
-              description="Connect to a registry by hostname:port"
-              isChecked={data.remoteRegistryType === RemoteRegistryType.HOSTNAME}
-              onChange={() => {
-                setData('remoteRegistryType', RemoteRegistryType.HOSTNAME);
-                const registryHost = primaryStore?.status?.serviceHostnames?.registry ?? '';
-                setData('services', {
-                  ...data.services,
-                  registry: { remote: { hostname: registryHost } },
-                });
-              }}
-              className="pf-v6-u-mt-sm"
-            />
+                  });
+                }}
+              />
+              <Radio
+                id="remote-hostname"
+                name="remote-registry-type"
+                label="External hostname"
+                description="Connect to a registry by hostname:port"
+                isChecked={data.remoteRegistryType === RemoteRegistryType.HOSTNAME}
+                onChange={() => {
+                  setData('remoteRegistryType', RemoteRegistryType.HOSTNAME);
+                  const registryHost = primaryStore?.status?.serviceHostnames?.registry ?? '';
+                  setData('services', {
+                    ...data.services,
+                    registry: { remote: { hostname: registryHost } },
+                  });
+                }}
+              />
+            </Stack>
           </FormGroup>
 
           {data.remoteRegistryType === RemoteRegistryType.FEAST_REF && (

@@ -43,7 +43,6 @@ export const DEFAULT_FEATURE_STORE_FORM_DATA: FeatureStoreFormData = {
   remoteRegistryType: RemoteRegistryType.FEAST_REF,
 
   offlineStoreEnabled: false,
-  onlineStoreEnabled: true,
 
   registrySecretName: '',
   onlineStoreSecretName: '',

@@ -48,10 +48,11 @@ const validateRegistry = (data: FeatureStoreFormData): ValidationResult => {
   if (data.registryType === RegistryType.LOCAL) {
     const localRegistry = data.services?.registry?.local;
     const server = localRegistry?.server;
-    if (server && server.restAPI !== true && server.grpc !== true) {
+    if (server?.restAPI !== true) {
       return {
         valid: false,
-        message: 'At least one of REST API or gRPC must be enabled for the registry server.',
+        message:
+          'REST API must be enabled for the registry server. The Feature Store UI requires it.',
       };
     }
     if (data.registryPersistenceType === PersistenceType.DB) {
@@ -67,6 +68,15 @@ const validateRegistry = (data: FeatureStoreFormData): ValidationResult => {
     const hostname = data.services?.registry?.remote?.hostname;
     if (!hostname?.trim()) {
       return { valid: false, message: 'Remote registry hostname is required.' };
+    }
+    const tls = data.services?.registry?.remote?.tls;
+    if (tls) {
+      if (!tls.configMapRef.name.trim()) {
+        return { valid: false, message: 'TLS CA certificate ConfigMap is required.' };
+      }
+      if (!tls.certName.trim()) {
+        return { valid: false, message: 'TLS certificate key name is required.' };
+      }
     }
   } else {
     const feastRef = data.services?.registry?.remote?.feastRef;
@@ -91,7 +101,7 @@ const validateStoreConfig = (data: FeatureStoreFormData): ValidationResult => {
     }
   }
 
-  if (data.onlineStoreEnabled && data.onlinePersistenceType === PersistenceType.DB) {
+  if (data.onlinePersistenceType === PersistenceType.DB) {
     const store = data.services?.onlineStore?.persistence?.store;
     if (!store?.type) {
       return { valid: false, message: 'Online store DB type is required.' };
@@ -117,6 +127,10 @@ const validateAdvanced = (data: FeatureStoreFormData): ValidationResult => {
     }
   }
 
+  if (data.batchEngineEnabled && !data.batchEngineConfigMapName.trim()) {
+    return { valid: false, message: 'Batch compute engine ConfigMap is required.' };
+  }
+
   if (data.scalingEnabled) {
     const needsMultiReplicaValidation =
       (data.scalingMode === ScalingMode.STATIC && data.replicas > 1) ||
@@ -132,7 +146,7 @@ const validateAdvanced = (data: FeatureStoreFormData): ValidationResult => {
     }
 
     if (needsMultiReplicaValidation) {
-      if (data.onlinePersistenceType !== PersistenceType.DB && data.onlineStoreEnabled) {
+      if (data.onlinePersistenceType !== PersistenceType.DB) {
         return {
           valid: false,
           message: 'Scaling requires DB-backed persistence for the online store.',

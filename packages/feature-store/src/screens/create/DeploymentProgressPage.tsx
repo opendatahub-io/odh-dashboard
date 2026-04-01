@@ -19,8 +19,11 @@ import {
   CodeBlock,
   CodeBlockCode,
   Label,
+  Content,
   Flex,
   FlexItem,
+  HelperText,
+  HelperTextItem,
   Stack,
   StackItem,
   Timestamp,
@@ -39,7 +42,7 @@ import useWatchFeatureStoreDeployment, {
   DeploymentPhase,
 } from '../../hooks/useWatchFeatureStoreDeployment';
 
-const phaseVariant = (phase: DeploymentPhase): 'success' | 'danger' | 'info' | 'pending' => {
+const phaseVariant = (phase: DeploymentPhase): 'success' | 'danger' | 'info' | 'custom' => {
   switch (phase) {
     case 'Ready':
       return 'success';
@@ -48,7 +51,7 @@ const phaseVariant = (phase: DeploymentPhase): 'success' | 'danger' | 'info' | '
     case 'Installing':
       return 'info';
     default:
-      return 'pending';
+      return 'custom';
   }
 };
 
@@ -84,12 +87,14 @@ const ConditionRow: React.FC<{ condition: K8sCondition }> = ({ condition }) => (
     <DescriptionListDescription>
       {condition.message || condition.reason || '—'}
       {condition.lastTransitionTime && (
-        <div style={{ marginTop: 4, fontSize: 'var(--pf-t--global--font--size--xs)' }}>
-          <Timestamp
-            date={new Date(condition.lastTransitionTime)}
-            dateFormat={TimestampFormat.long}
-          />
-        </div>
+        <HelperText>
+          <HelperTextItem>
+            <Timestamp
+              date={new Date(condition.lastTransitionTime)}
+              dateFormat={TimestampFormat.long}
+            />
+          </HelperTextItem>
+        </HelperText>
       )}
     </DescriptionListDescription>
   </DescriptionListGroup>
@@ -97,7 +102,11 @@ const ConditionRow: React.FC<{ condition: K8sCondition }> = ({ condition }) => (
 
 const PodStatusSummary: React.FC<{ pods: PodKind[] }> = ({ pods }) => {
   if (pods.length === 0) {
-    return <i>Waiting for pods to be created...</i>;
+    return (
+      <Content component="p">
+        <em>Waiting for pods to be created...</em>
+      </Content>
+    );
   }
   return (
     <DescriptionList isHorizontal>
@@ -217,7 +226,9 @@ const DeploymentProgressPage: React.FC = () => {
               }
             >
               {featureStore?.status?.feastVersion && (
-                <div>Feast version: {featureStore.status.feastVersion}</div>
+                <Content component="p">
+                  Feature Store version: {featureStore.status.feastVersion}
+                </Content>
               )}
             </Alert>
           </StackItem>
@@ -296,7 +307,7 @@ const DeploymentProgressPage: React.FC = () => {
           {hostnames && Object.values(hostnames).some(Boolean) && (
             <StackItem>
               <Title headingLevel="h3">Service hostnames</Title>
-              <DescriptionList isHorizontal className="pf-v6-u-mt-sm">
+              <DescriptionList isHorizontal>
                 {hostnames.registry && (
                   <DescriptionListGroup>
                     <DescriptionListTerm>Registry</DescriptionListTerm>
@@ -359,7 +370,7 @@ const DeploymentProgressPage: React.FC = () => {
           {Object.keys(podLogs.data).length > 0 && (
             <StackItem>
               <Title headingLevel="h3">Pod logs</Title>
-              <Stack hasGutter className="pf-v6-u-mt-sm">
+              <Stack hasGutter>
                 {Object.entries(podLogs.data).map(([key, logs]) => {
                   const isInit = key.includes('/init:');
                   return (

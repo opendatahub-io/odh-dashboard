@@ -10,6 +10,7 @@ import {
   HelperText,
   HelperTextItem,
   ExpandableSection,
+  Stack,
 } from '@patternfly/react-core';
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
@@ -41,40 +42,40 @@ const AdvancedStep: React.FC<AdvancedStepProps> = ({ data, setData, namespaceCon
     <Form>
       <FormSection title="Authorization">
         <FormGroup fieldId="feast-authz-type">
-          <Radio
-            id="authz-none"
-            name="authz-type"
-            label="None"
-            isChecked={data.authzType === AuthzType.NONE}
-            onChange={() => {
-              setData('authzType', AuthzType.NONE);
-              setData('authz', undefined);
-            }}
-          />
-          <Radio
-            id="authz-kubernetes"
-            name="authz-type"
-            label="Kubernetes RBAC"
-            description="Use Kubernetes RBAC roles for authorization"
-            isChecked={data.authzType === AuthzType.KUBERNETES}
-            onChange={() => {
-              setData('authzType', AuthzType.KUBERNETES);
-              setData('authz', { kubernetes: { roles: [] } });
-            }}
-            className="pf-v6-u-mt-sm"
-          />
-          <Radio
-            id="authz-oidc"
-            name="authz-type"
-            label="OIDC"
-            description="Use OpenID Connect identity provider"
-            isChecked={data.authzType === AuthzType.OIDC}
-            onChange={() => {
-              setData('authzType', AuthzType.OIDC);
-              setData('authz', { oidc: { secretRef: { name: '' } } });
-            }}
-            className="pf-v6-u-mt-sm"
-          />
+          <Stack hasGutter>
+            <Radio
+              id="authz-none"
+              name="authz-type"
+              label="None"
+              isChecked={data.authzType === AuthzType.NONE}
+              onChange={() => {
+                setData('authzType', AuthzType.NONE);
+                setData('authz', undefined);
+              }}
+            />
+            <Radio
+              id="authz-kubernetes"
+              name="authz-type"
+              label="Kubernetes RBAC"
+              description="Use Kubernetes RBAC roles for authorization"
+              isChecked={data.authzType === AuthzType.KUBERNETES}
+              onChange={() => {
+                setData('authzType', AuthzType.KUBERNETES);
+                setData('authz', { kubernetes: { roles: [] } });
+              }}
+            />
+            <Radio
+              id="authz-oidc"
+              name="authz-type"
+              label="OIDC"
+              description="Use OpenID Connect identity provider"
+              isChecked={data.authzType === AuthzType.OIDC}
+              onChange={() => {
+                setData('authzType', AuthzType.OIDC);
+                setData('authz', { oidc: { secretRef: { name: '' } } });
+              }}
+            />
+          </Stack>
         </FormGroup>
 
         {data.authzType === AuthzType.KUBERNETES && (
@@ -205,23 +206,24 @@ const AdvancedStep: React.FC<AdvancedStepProps> = ({ data, setData, namespaceCon
           {data.scalingEnabled && (
             <>
               <FormGroup label="Scaling mode" fieldId="feast-scaling-mode">
-                <Radio
-                  id="scaling-static"
-                  name="scaling-mode"
-                  label="Static replicas"
-                  description="Set a fixed number of pod replicas"
-                  isChecked={data.scalingMode === ScalingMode.STATIC}
-                  onChange={() => setData('scalingMode', ScalingMode.STATIC)}
-                />
-                <Radio
-                  id="scaling-hpa"
-                  name="scaling-mode"
-                  label="Horizontal Pod Autoscaler (HPA)"
-                  description="Automatically scale pods based on CPU/memory metrics"
-                  isChecked={data.scalingMode === ScalingMode.HPA}
-                  onChange={() => setData('scalingMode', ScalingMode.HPA)}
-                  className="pf-v6-u-mt-sm"
-                />
+                <Stack hasGutter>
+                  <Radio
+                    id="scaling-static"
+                    name="scaling-mode"
+                    label="Static replicas"
+                    description="Set a fixed number of pod replicas"
+                    isChecked={data.scalingMode === ScalingMode.STATIC}
+                    onChange={() => setData('scalingMode', ScalingMode.STATIC)}
+                  />
+                  <Radio
+                    id="scaling-hpa"
+                    name="scaling-mode"
+                    label="Horizontal Pod Autoscaler (HPA)"
+                    description="Automatically scale pods based on CPU/memory metrics"
+                    isChecked={data.scalingMode === ScalingMode.HPA}
+                    onChange={() => setData('scalingMode', ScalingMode.HPA)}
+                  />
+                </Stack>
               </FormGroup>
 
               {data.scalingMode === ScalingMode.STATIC && (
@@ -299,10 +301,9 @@ const AdvancedStep: React.FC<AdvancedStepProps> = ({ data, setData, namespaceCon
                 if (!checked) {
                   setData('services', { ...data.services, podDisruptionBudgets: undefined });
                 } else {
-                  setData('services', {
-                    ...data.services,
-                    podDisruptionBudgets: { minAvailable: 1 },
-                  });
+                  const pdb =
+                    pdbMode === 'maxUnavailable' ? { maxUnavailable: 1 } : { minAvailable: 1 };
+                  setData('services', { ...data.services, podDisruptionBudgets: pdb });
                 }
               }}
             />
@@ -319,35 +320,36 @@ const AdvancedStep: React.FC<AdvancedStepProps> = ({ data, setData, namespaceCon
           {pdbEnabled && (
             <>
               <FormGroup label="PDB mode" fieldId="feast-pdb-mode">
-                <Radio
-                  id="pdb-min-available"
-                  name="pdb-mode"
-                  label="Min available"
-                  description="Minimum number of pods that must remain available"
-                  isChecked={pdbMode === 'minAvailable'}
-                  onChange={() => {
-                    setPdbMode('minAvailable');
-                    setData('services', {
-                      ...data.services,
-                      podDisruptionBudgets: { minAvailable: 1 },
-                    });
-                  }}
-                />
-                <Radio
-                  id="pdb-max-unavailable"
-                  name="pdb-mode"
-                  label="Max unavailable"
-                  description="Maximum number of pods that can be unavailable"
-                  isChecked={pdbMode === 'maxUnavailable'}
-                  onChange={() => {
-                    setPdbMode('maxUnavailable');
-                    setData('services', {
-                      ...data.services,
-                      podDisruptionBudgets: { maxUnavailable: 1 },
-                    });
-                  }}
-                  className="pf-v6-u-mt-sm"
-                />
+                <Stack hasGutter>
+                  <Radio
+                    id="pdb-min-available"
+                    name="pdb-mode"
+                    label="Min available"
+                    description="Minimum number of pods that must remain available"
+                    isChecked={pdbMode === 'minAvailable'}
+                    onChange={() => {
+                      setPdbMode('minAvailable');
+                      setData('services', {
+                        ...data.services,
+                        podDisruptionBudgets: { minAvailable: 1 },
+                      });
+                    }}
+                  />
+                  <Radio
+                    id="pdb-max-unavailable"
+                    name="pdb-mode"
+                    label="Max unavailable"
+                    description="Maximum number of pods that can be unavailable"
+                    isChecked={pdbMode === 'maxUnavailable'}
+                    onChange={() => {
+                      setPdbMode('maxUnavailable');
+                      setData('services', {
+                        ...data.services,
+                        podDisruptionBudgets: { maxUnavailable: 1 },
+                      });
+                    }}
+                  />
+                </Stack>
               </FormGroup>
               <FormGroup
                 label={pdbMode === 'minAvailable' ? 'Min available' : 'Max unavailable'}
@@ -361,17 +363,22 @@ const AdvancedStep: React.FC<AdvancedStepProps> = ({ data, setData, namespaceCon
                       : String(data.services?.podDisruptionBudgets?.maxUnavailable ?? 1)
                   }
                   onChange={(_e, val) => {
-                    const parsed = /^\d+%?$/.test(val.trim()) ? val.trim() : val;
-                    const numVal = Number(parsed);
-                    const finalVal =
-                      !Number.isNaN(numVal) && !parsed.includes('%') ? numVal : parsed;
-                    setData('services', {
-                      ...data.services,
-                      podDisruptionBudgets:
-                        pdbMode === 'minAvailable'
-                          ? { minAvailable: finalVal }
-                          : { maxUnavailable: finalVal },
-                    });
+                    const trimmed = val.trim();
+                    if (trimmed !== '' && !/^\d+%?$/.test(trimmed)) {
+                      return;
+                    }
+                    const numVal = Number(trimmed);
+                    let finalVal: number | string = trimmed;
+                    if (trimmed === '') {
+                      finalVal = '';
+                    } else if (!Number.isNaN(numVal) && !trimmed.includes('%')) {
+                      finalVal = numVal;
+                    }
+                    const pdb =
+                      pdbMode === 'minAvailable'
+                        ? { minAvailable: finalVal }
+                        : { maxUnavailable: finalVal };
+                    setData('services', { ...data.services, podDisruptionBudgets: pdb });
                   }}
                   placeholder="1 or 50%"
                 />

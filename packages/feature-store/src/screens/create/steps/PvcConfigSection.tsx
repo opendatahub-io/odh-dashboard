@@ -7,8 +7,9 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Stack,
 } from '@patternfly/react-core';
-import { FeastPvcConfig, FeastPvcCreate } from '@odh-dashboard/internal/k8sTypes';
+import { FeastPvcConfig, FeastPvcCreate } from '../../../k8sTypes';
 
 enum PvcMode {
   NONE = 'none',
@@ -70,32 +71,32 @@ const PvcConfigSection: React.FC<PvcConfigSectionProps> = ({
   return (
     <FormSection>
       <FormGroup fieldId="pvc-mode" label="Persistent volume">
-        <Radio
-          id="pvc-none"
-          name="pvc-mode"
-          label="None (ephemeral storage)"
-          description="Data is lost on pod restart"
-          isChecked={mode === PvcMode.NONE}
-          onChange={() => handleModeChange(PvcMode.NONE)}
-        />
-        <Radio
-          id="pvc-ref"
-          name="pvc-mode"
-          label="Use existing PVC"
-          description="Reference a pre-created PersistentVolumeClaim"
-          isChecked={mode === PvcMode.REF}
-          onChange={() => handleModeChange(PvcMode.REF)}
-          className="pf-v6-u-mt-sm"
-        />
-        <Radio
-          id="pvc-create"
-          name="pvc-mode"
-          label="Create new PVC"
-          description="Operator creates a PVC automatically"
-          isChecked={mode === PvcMode.CREATE}
-          onChange={() => handleModeChange(PvcMode.CREATE)}
-          className="pf-v6-u-mt-sm"
-        />
+        <Stack hasGutter>
+          <Radio
+            id="pvc-none"
+            name="pvc-mode"
+            label="None (ephemeral storage)"
+            description="Data is lost on pod restart"
+            isChecked={mode === PvcMode.NONE}
+            onChange={() => handleModeChange(PvcMode.NONE)}
+          />
+          <Radio
+            id="pvc-ref"
+            name="pvc-mode"
+            label="Use existing PVC"
+            description="Reference a pre-created PersistentVolumeClaim"
+            isChecked={mode === PvcMode.REF}
+            onChange={() => handleModeChange(PvcMode.REF)}
+          />
+          <Radio
+            id="pvc-create"
+            name="pvc-mode"
+            label="Create new PVC"
+            description="Operator creates a PVC automatically"
+            isChecked={mode === PvcMode.CREATE}
+            onChange={() => handleModeChange(PvcMode.CREATE)}
+          />
+        </Stack>
       </FormGroup>
 
       {mode === PvcMode.REF && (

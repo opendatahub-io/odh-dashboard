@@ -14,7 +14,6 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import Table from '@odh-dashboard/internal/components/table/Table';
 import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
 import { SortableData } from '@odh-dashboard/internal/components/table/types';
-import { FeatureStoreKind } from '@odh-dashboard/internal/k8sTypes';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
@@ -22,6 +21,7 @@ import DeleteFeatureStoreModal from './DeleteFeatureStoreModal';
 import FeatureStoreTableRow from './FeatureStoreTableRow';
 import useExistingFeatureStores from '../../hooks/useExistingFeatureStores';
 import { FEATURE_STORE_UI_LABEL_KEY, FEATURE_STORE_UI_LABEL_VALUE } from '../../const';
+import { FeatureStoreKind } from '../../k8sTypes';
 
 const columns: SortableData<FeatureStoreKind>[] = [
   {
@@ -166,8 +166,10 @@ const FeatureStoreListPage: React.FC = () => {
               key={fs.metadata.uid}
               featureStore={fs}
               rowIndex={rowIndex}
-              isExpanded={expandedRows.has(fs.metadata.name)}
-              onToggleExpansion={() => toggleRowExpansion(fs.metadata.name)}
+              isExpanded={expandedRows.has(`${fs.metadata.namespace}/${fs.metadata.name}`)}
+              onToggleExpansion={() =>
+                toggleRowExpansion(`${fs.metadata.namespace}/${fs.metadata.name}`)
+              }
               isUILabeled={
                 fs.metadata.labels?.[FEATURE_STORE_UI_LABEL_KEY] === FEATURE_STORE_UI_LABEL_VALUE
               }

@@ -1,9 +1,4 @@
-import {
-  FeastServices,
-  FeastProjectDir,
-  FeastAuthzConfig,
-  FeastCronJob,
-} from '@odh-dashboard/internal/k8sTypes';
+import { FeastServices, FeastProjectDir, FeastAuthzConfig, FeastCronJob } from '../../k8sTypes';
 
 export enum RegistryType {
   LOCAL = 'local',
@@ -59,7 +54,6 @@ export type FeatureStoreFormData = {
   remoteRegistryType: RemoteRegistryType;
 
   offlineStoreEnabled: boolean;
-  onlineStoreEnabled: boolean;
 
   registrySecretName: string;
   onlineStoreSecretName: string;

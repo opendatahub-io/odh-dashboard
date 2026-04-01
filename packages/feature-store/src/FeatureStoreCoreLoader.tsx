@@ -102,12 +102,11 @@ const FeatureStoreContent: React.FC<{
       </>
     );
 
-    const userTitle = 'Request access to a feature store';
+    const userTitle = 'No feature stores available';
     const userDescription = (
       <>
-        Feature stores enable teams to organize and collaborate on resources within separate
-        namespaces. To request access to a new or existing feature store, contact your
-        administrator.
+        No feature stores have been created yet. Contact your administrator to create a feature
+        store.
       </>
     );
 

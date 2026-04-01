@@ -1,7 +1,8 @@
 import React from 'react';
-import { FeatureStoreKind, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { listFeatureStores } from '@odh-dashboard/internal/api/k8s/featureStores';
+import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { FeatureStoreKind } from '../k8sTypes';
+import { listFeatureStores } from '../api/featureStores';
 import { FEATURE_STORE_UI_LABEL_KEY, FEATURE_STORE_UI_LABEL_VALUE } from '../const';
 
 type UseExistingFeatureStoresReturn = {
@@ -30,6 +31,7 @@ const useExistingFeatureStores = (): UseExistingFeatureStoresReturn => {
     }
     let cancelled = false;
     setLoaded(false);
+    setError(undefined);
     const namespaces = projects.map((p: ProjectKind) => p.metadata.name);
     const emptyList: FeatureStoreKind[] = [];
     Promise.all(namespaces.map((ns) => listFeatureStores(ns).catch(() => emptyList)))
