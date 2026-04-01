@@ -10,16 +10,16 @@ export const trimInputOnBlur =
   };
 
 export const trimInputOnPaste =
-  (value: string | undefined, onChange?: (value: string) => void) =>
+  (onChange?: (value: string) => void) =>
   (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
     const trimmed = e.clipboardData.getData('text').trim();
     if (!onChange) {
       return;
     }
     e.preventDefault();
-    const { selectionStart, selectionEnd } = e.currentTarget;
-    const current = value ?? '';
-    const start = current.slice(0, selectionStart ?? 0);
-    const newValue = start + trimmed + current.slice(selectionEnd ?? 0);
+    const { selectionStart, selectionEnd, value: current } = e.currentTarget;
+    const resolvedStart = selectionStart ?? 0;
+    const start = current.slice(0, resolvedStart);
+    const newValue = start + trimmed + current.slice(selectionEnd ?? resolvedStart);
     onChange(newValue);
   };

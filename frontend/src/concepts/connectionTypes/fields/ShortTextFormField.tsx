@@ -28,7 +28,7 @@ const ShortTextFormField: React.FC<FieldProps<ShortTextField>> = ({
         value={(isPreview ? field.properties.defaultValue : value) ?? ''}
         onChange={isPreview || !onChange ? undefined : (_e, v) => onChange(v)}
         onBlur={(e) => trimInputOnBlur(value, onChange)(e)}
-        onPaste={(e) => trimInputOnPaste(value, onChange)(e)}
+        onPaste={trimInputOnPaste(onChange)}
       />
     </DefaultValueTextRenderer>
   );

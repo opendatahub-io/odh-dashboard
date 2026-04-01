@@ -40,13 +40,32 @@ describe('trimInputOnPaste', () => {
       },
       currentTarget: {
         value: '',
-        setSelectionRange: jest.fn(),
-        dispatchEvent: jest.fn(),
+        selectionStart: 0,
+        selectionEnd: 0,
       },
     } as unknown as React.ClipboardEvent<HTMLInputElement>;
 
-    trimInputOnPaste('', handleChange)(mockEvent);
+    trimInputOnPaste(handleChange)(mockEvent);
     expect(handleChange).toHaveBeenCalledWith('foo');
+  });
+
+  it('reads current text from the DOM, not from React state', () => {
+    const handleChange = jest.fn();
+
+    const mockEvent = {
+      preventDefault: jest.fn(),
+      clipboardData: {
+        getData: () => 'PASTED',
+      },
+      currentTarget: {
+        value: 'dom-value',
+        selectionStart: 9,
+        selectionEnd: 9,
+      },
+    } as unknown as React.ClipboardEvent<HTMLInputElement>;
+
+    trimInputOnPaste(handleChange)(mockEvent);
+    expect(handleChange).toHaveBeenCalledWith('dom-valuePASTED');
   });
 
   it('inserts trimmed pasted text at cursor position within existing value', () => {
@@ -64,7 +83,7 @@ describe('trimInputOnPaste', () => {
       },
     } as unknown as React.ClipboardEvent<HTMLInputElement>;
 
-    trimInputOnPaste('hello world', handleChange)(mockEvent);
+    trimInputOnPaste(handleChange)(mockEvent);
     expect(handleChange).toHaveBeenCalledWith('helloPASTED world');
   });
 
@@ -82,7 +101,25 @@ describe('trimInputOnPaste', () => {
       },
     } as unknown as React.ClipboardEvent<HTMLInputElement>;
 
-    trimInputOnPaste('hello world', handleChange)(mockEvent);
+    trimInputOnPaste(handleChange)(mockEvent);
     expect(handleChange).toHaveBeenCalledWith('hello REPLACEMENT');
+  });
+
+  it('defaults selectionEnd to selectionStart when both are null', () => {
+    const handleChange = jest.fn();
+    const mockEvent = {
+      preventDefault: jest.fn(),
+      clipboardData: {
+        getData: () => 'PASTED',
+      },
+      currentTarget: {
+        value: 'existing',
+        selectionStart: null,
+        selectionEnd: null,
+      },
+    } as unknown as React.ClipboardEvent<HTMLInputElement>;
+
+    trimInputOnPaste(handleChange)(mockEvent);
+    expect(handleChange).toHaveBeenCalledWith('PASTEDexisting');
   });
 });

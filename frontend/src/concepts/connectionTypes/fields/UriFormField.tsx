@@ -67,7 +67,7 @@ const UriFormField: React.FC<FieldProps<UriField>> = ({
           trimInputOnBlur(value, onChange)(e);
           setIsValid(validateUrl(value));
         }}
-        onPaste={(e) => trimInputOnPaste(value, onChange)(e)}
+        onPaste={trimInputOnPaste(onChange)}
       />
       {!isValid && (
         <FormHelperText>

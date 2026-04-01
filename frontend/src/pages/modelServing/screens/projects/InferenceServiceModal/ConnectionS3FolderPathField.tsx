@@ -56,7 +56,7 @@ const ConnectionS3FolderPathField: React.FC<ConnectionFolderPathFieldProps> = ({
         placeholder="Example, data_folder"
         onChange={(e, newFolderPath: string) => handlePathChange(newFolderPath)}
         onBlur={(e) => trimInputOnBlur(folderPath, setFolderPath)(e)}
-        onPaste={(e) => trimInputOnPaste(folderPath, setFolderPath)(e)}
+        onPaste={trimInputOnPaste(setFolderPath)}
       />
       <FormHelperText>
         <HelperText>
