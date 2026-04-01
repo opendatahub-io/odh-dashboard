@@ -139,13 +139,15 @@ describe('Model Catalog core', () => {
     initIntercepts({
       disableModelCatalogFeature: true,
     });
-    modelCatalog.landingPage();
-    appChrome
-      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' })
-      .should('not.exist');
+    // The "Models" nav item still exists (it has Registry and Deployments tabs),
+    // but the Catalog tab should not appear when the feature is disabled.
+    cy.visitWithLogin('/ai-hub/models');
+    cy.findByTestId('app-tab-page-title').should('exist');
+    cy.findByTestId('tab-catalog').should('not.exist');
 
-    cy.visitWithLogin(`/ai-hub/catalog`);
-    modelCatalog.findModelCatalogNotFoundState().should('exist');
+    // Visiting the catalog URL directly should redirect to a valid tab
+    cy.visitWithLogin(`/ai-hub/models/catalog`);
+    cy.location('pathname').should('not.include', '/catalog');
   });
 
   it('Model Catalog Enabled in the cluster', () => {
@@ -153,19 +155,15 @@ describe('Model Catalog core', () => {
       disableModelCatalogFeature: false,
     });
     modelCatalog.landingPage();
-    appChrome
-      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' })
-      .should('exist');
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('exist');
   });
 
   it('Navigates to Model Catalog', () => {
     initIntercepts({ disableModelCatalogFeature: false });
 
     modelCatalog.landingPage();
-    appChrome
-      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' })
-      .should('exist');
-    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' }).click();
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('exist');
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).click();
     modelCatalog.findModelCatalogCards().should('exist');
   });
 
@@ -176,7 +174,7 @@ describe('Model Catalog core', () => {
     modelCatalog.findModelCatalogModelDetailLink().click();
     cy.location('pathname').should(
       'equal',
-      '/ai-hub/catalog/source-2/sample%20category%201-model-1/overview',
+      '/ai-hub/models/catalog/source-2/sample%20category%201-model-1/overview',
     );
   });
 });

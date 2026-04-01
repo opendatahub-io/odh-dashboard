@@ -101,9 +101,9 @@ func TestProviderCreationUtilities(t *testing.T) {
 	config.AddFilesProvider(provider1)
 	assert.Equal(t, 2, len(config.Providers.Files))
 
-	// default agent provider already added; adding one more
-	config.AddAgentProvider(provider1)
-	assert.Equal(t, 2, len(config.Providers.Agents))
+	// default responses provider already added; adding one more
+	config.AddResponsesProvider(provider1)
+	assert.Equal(t, 2, len(config.Providers.Responses))
 
 	// default datasetio provider already added; adding one more
 	config.AddDatasetIOProvider(provider1)
@@ -1316,4 +1316,184 @@ func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
 		require.NotNil(t, m)
 		assert.NotContains(t, m.Metadata, "embedding_dimension", "embedding_dimension should not be set for llm models")
 	})
+}
+
+func TestDefaultConfig_APIsAndProviders(t *testing.T) {
+	config := NewDefaultLlamaStackConfig()
+
+	expectedAPIs := []string{
+		"responses", "datasetio", "files", "inference",
+		"safety", "scoring", "tool_runtime", "vector_io",
+	}
+	assert.Equal(t, expectedAPIs, config.APIs)
+
+	require.Len(t, config.Providers.Responses, 1)
+	assert.Equal(t, "builtin", config.Providers.Responses[0].ProviderID)
+	assert.Equal(t, "inline::builtin", config.Providers.Responses[0].ProviderType)
+
+	require.Len(t, config.Providers.ToolRuntime, 2)
+	assert.Equal(t, "file-search", config.Providers.ToolRuntime[0].ProviderID)
+	assert.Equal(t, "inline::file-search", config.Providers.ToolRuntime[0].ProviderType)
+	assert.Equal(t, "model-context-protocol", config.Providers.ToolRuntime[1].ProviderID)
+	assert.Equal(t, "remote::model-context-protocol", config.Providers.ToolRuntime[1].ProviderType)
+
+	require.Len(t, config.Providers.VectorIO, 1)
+	assert.Equal(t, "milvus", config.Providers.VectorIO[0].ProviderID)
+	assert.Equal(t, "inline::milvus", config.Providers.VectorIO[0].ProviderType)
+
+	require.Len(t, config.Providers.Inference, 1)
+	assert.Equal(t, "sentence-transformers", config.Providers.Inference[0].ProviderID)
+	assert.Equal(t, "inline::sentence-transformers", config.Providers.Inference[0].ProviderType)
+}
+
+func TestDefaultConfig_ResponsesProviderPersistence(t *testing.T) {
+	config := NewDefaultLlamaStackConfig()
+
+	require.Len(t, config.Providers.Responses, 1)
+	persistence, ok := config.Providers.Responses[0].Config["persistence"].(map[string]interface{})
+	require.True(t, ok, "persistence should be a map")
+
+	agentState, ok := persistence["agent_state"].(map[string]interface{})
+	require.True(t, ok, "agent_state should be a map")
+	assert.Equal(t, "agents", agentState["namespace"])
+	assert.Equal(t, "kv_default", agentState["backend"])
+
+	responses, ok := persistence["responses"].(map[string]interface{})
+	require.True(t, ok, "responses should be a map")
+	assert.Equal(t, "responses", responses["table_name"])
+	assert.Equal(t, "sql_default", responses["backend"])
+	assert.Equal(t, 10000, responses["max_write_queue_size"])
+	assert.Equal(t, 4, responses["num_writers"])
+
+	t.Run("round-trip preserves persistence fields", func(t *testing.T) {
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		var parsed LlamaStackConfig
+		require.NoError(t, parsed.FromYAML(yamlStr))
+
+		require.Len(t, parsed.Providers.Responses, 1)
+		pPersistence, ok := parsed.Providers.Responses[0].Config["persistence"].(map[interface{}]interface{})
+		require.True(t, ok, "persistence should survive round-trip")
+
+		pAgentState, ok := pPersistence["agent_state"].(map[interface{}]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "agents", pAgentState["namespace"])
+		assert.Equal(t, "kv_default", pAgentState["backend"])
+
+		pResponses, ok := pPersistence["responses"].(map[interface{}]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "responses", pResponses["table_name"])
+		assert.Equal(t, "sql_default", pResponses["backend"])
+	})
+}
+
+func TestDefaultConfig_Serialization(t *testing.T) {
+	config := NewDefaultLlamaStackConfig()
+
+	t.Run("YAML contains expected keys", func(t *testing.T) {
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		assert.Contains(t, yamlStr, "distro_name: rh")
+		assert.Contains(t, yamlStr, "responses:")
+		assert.Contains(t, yamlStr, "inline::builtin")
+		assert.Contains(t, yamlStr, "inline::file-search")
+		assert.Contains(t, yamlStr, "inline::milvus")
+		assert.Contains(t, yamlStr, "default_provider_id: milvus")
+	})
+
+	t.Run("JSON contains expected keys", func(t *testing.T) {
+		jsonStr, err := config.ToJSON()
+		require.NoError(t, err)
+
+		assert.Contains(t, jsonStr, "\"responses\"")
+		assert.Contains(t, jsonStr, "inline::builtin")
+		assert.Contains(t, jsonStr, "inline::file-search")
+		assert.Contains(t, jsonStr, "inline::milvus")
+		assert.Contains(t, jsonStr, "\"default_provider_id\":\"milvus\"")
+	})
+}
+
+func TestFromYAML_ParsesResponsesProvider(t *testing.T) {
+	yamlData := loadTestData(t, "test_llama_stack_config.yaml")
+
+	var config LlamaStackConfig
+	err := config.FromYAML(yamlData)
+	require.NoError(t, err)
+
+	assert.Equal(t, "rh", config.DistroName)
+	assert.Contains(t, config.APIs, "responses")
+
+	require.Len(t, config.Providers.Responses, 1)
+	assert.Equal(t, "builtin", config.Providers.Responses[0].ProviderID)
+	assert.Equal(t, "inline::builtin", config.Providers.Responses[0].ProviderType)
+
+	require.NotEmpty(t, config.Providers.ToolRuntime)
+	assert.Equal(t, "file-search", config.Providers.ToolRuntime[0].ProviderID)
+	assert.Equal(t, "inline::file-search", config.Providers.ToolRuntime[0].ProviderType)
+}
+
+func TestFromYAML_IgnoresUnknownFields(t *testing.T) {
+	yamlWithExtras := `
+version: "2"
+distro_name: rh
+custom_extension: hello
+future_feature_flag: true
+apis:
+  - inference
+  - vector_io
+providers:
+  inference:
+    - provider_id: test-provider
+      provider_type: remote::vllm
+      config:
+        base_url: https://test.com
+registered_resources:
+  models: []
+  shields: []
+  vector_stores: []
+  datasets: []
+  scoring_fns: []
+  benchmarks: []
+  extra_resources:
+    - id: something
+      value: 42
+`
+	var config LlamaStackConfig
+	err := config.FromYAML(yamlWithExtras)
+	require.NoError(t, err)
+
+	assert.Equal(t, "2", config.Version)
+	assert.Equal(t, "rh", config.DistroName)
+	require.Len(t, config.Providers.Inference, 1)
+	assert.Equal(t, "test-provider", config.Providers.Inference[0].ProviderID)
+	assert.Equal(t, "remote::vllm", config.Providers.Inference[0].ProviderType)
+}
+
+func TestDefaultConfig_RegisteredResourcesShape(t *testing.T) {
+	config := NewDefaultLlamaStackConfig()
+
+	assert.NotNil(t, config.RegisteredResources.Models)
+	assert.NotNil(t, config.RegisteredResources.Shields)
+	assert.NotNil(t, config.RegisteredResources.VectorStores)
+	assert.NotNil(t, config.RegisteredResources.Datasets)
+	assert.NotNil(t, config.RegisteredResources.ScoringFns)
+	assert.NotNil(t, config.RegisteredResources.Benchmarks)
+
+	assert.Empty(t, config.RegisteredResources.Models)
+	assert.Empty(t, config.RegisteredResources.Shields)
+	assert.Empty(t, config.RegisteredResources.VectorStores)
+	assert.Empty(t, config.RegisteredResources.Datasets)
+	assert.Empty(t, config.RegisteredResources.ScoringFns)
+	assert.Empty(t, config.RegisteredResources.Benchmarks)
+
+	jsonStr, err := config.ToJSON()
+	require.NoError(t, err)
+	assert.Contains(t, jsonStr, "\"models\":[]")
+	assert.Contains(t, jsonStr, "\"shields\":[]")
+	assert.Contains(t, jsonStr, "\"vector_stores\":[]")
+	assert.Contains(t, jsonStr, "\"datasets\":[]")
+	assert.Contains(t, jsonStr, "\"scoring_fns\":[]")
+	assert.Contains(t, jsonStr, "\"benchmarks\":[]")
 }

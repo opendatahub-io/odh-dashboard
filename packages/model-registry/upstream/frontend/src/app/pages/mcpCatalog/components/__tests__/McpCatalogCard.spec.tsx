@@ -62,7 +62,7 @@ describe('McpCatalogCard', () => {
     const link = screen.getByTestId('mcp-catalog-card-detail-link-1');
     expect(link).toBeInTheDocument();
     expect(link.tagName).toBe('A');
-    expect(link).toHaveAttribute('href', '/mcp-catalog/1');
+    expect(link).toHaveAttribute('href', '/ai-hub/mcp-servers/catalog/1');
   });
 
   it('renders description with TruncatedText wrapper', () => {

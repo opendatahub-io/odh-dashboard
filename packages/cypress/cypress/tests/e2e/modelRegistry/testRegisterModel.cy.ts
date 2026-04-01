@@ -159,7 +159,7 @@ describe('Verify models can be registered in a model registry', () => {
       checkModelExistsInDatabase(testData.uriModelName, databaseName).should('be.true');
 
       cy.step('Navigate back to model registry to verify both models');
-      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Verify both models are visible in the registry');
       cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
