@@ -541,7 +541,11 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                 touched.endpointUrl && (!endpointUrl.trim() || hasUrlError) ? 'error' : 'default'
               }
               isDisabled={isVerifying || isSubmitting}
-              placeholder="e.g. https://api.openai.com/v1"
+              placeholder={
+                modelType === MODEL_TYPE_EMBEDDING
+                  ? 'e.g. https://api.openai.com'
+                  : 'e.g. https://api.openai.com/v1'
+              }
               data-testid="create-external-model-url-input"
             />
             <FormHelperText>
