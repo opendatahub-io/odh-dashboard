@@ -7,6 +7,7 @@ import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
+import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
 // Mock React Router hooks
@@ -169,6 +170,7 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
 
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
+const mockUseLlamaStackModelsQuery = jest.mocked(useLlamaStackModelsQuery);
 
 const configureSchema = createConfigureSchema();
 
@@ -344,6 +346,21 @@ describe('AutoragConfigure', () => {
         expect(screen.getByTestId('metric-option-context_correctness')).toBeInTheDocument();
       });
     });
+
+    it('should render with a non-default metric when configured', () => {
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+        // eslint-disable-next-line camelcase
+        optimization_metric: 'answer_correctness',
+      });
+
+      expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
+        'Answer correctness',
+      );
+    });
   });
 
   describe('Maximum RAG patterns', () => {
@@ -389,6 +406,69 @@ describe('AutoragConfigure', () => {
 
       const input = container.querySelector('input');
       expect(input).toHaveValue(7);
+    });
+
+    it('should show error when value exceeds maximum', async () => {
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      const input = screen.getByTestId('max-rag-patterns-input').querySelector('input')!;
+      fireEvent.change(input, { target: { value: '21' } });
+
+      await waitFor(() => {
+        expect(screen.getByText('Maximum number of RAG patterns is 20')).toBeInTheDocument();
+      });
+    });
+
+    it('should show error when value is below minimum', async () => {
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      const input = screen.getByTestId('max-rag-patterns-input').querySelector('input')!;
+      fireEvent.change(input, { target: { value: '3' } });
+
+      await waitFor(() => {
+        expect(screen.getByText('Minimum number of RAG patterns is 4')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Model initialization from query data', () => {
+    it('should populate generation and embedding models when query returns data', () => {
+      mockUseLlamaStackModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            {
+              id: 'embed-model-1',
+              type: 'embedding',
+              provider: 'ollama',
+              resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
+            },
+          ],
+        },
+        isLoading: false,
+      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      // The "Selected models" card should show model counts
+      expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
+      expect(screen.getByText(/1 embedding model/)).toBeInTheDocument();
     });
   });
 

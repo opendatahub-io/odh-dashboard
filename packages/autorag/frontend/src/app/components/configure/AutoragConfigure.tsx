@@ -131,6 +131,11 @@ function AutoragConfigure(): React.JSX.Element {
 
   const { data: allModelsData } = useLlamaStackModelsQuery(namespace ?? '', llamaStackSecretName);
 
+  // Reset modelsInitialized when the LlamaStack secret changes so models re-populate
+  useEffect(() => {
+    modelsInitialized.current = false;
+  }, [llamaStackSecretName]);
+
   useEffect(() => {
     // Initialize available generation and embedding models into the form data
     if (allModelsData?.models && !modelsInitialized.current) {
@@ -426,6 +431,7 @@ function AutoragConfigure(): React.JSX.Element {
                             <>
                               <NumberInput
                                 id="max-rag-patterns"
+                                aria-label="Maximum RAG patterns"
                                 value={field.value}
                                 min={MIN_RAG_PATTERNS}
                                 max={MAX_RAG_PATTERNS}

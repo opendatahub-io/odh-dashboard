@@ -13,8 +13,10 @@ import { Table, Tbody, Td, Th, ThProps, Thead, Tr } from '@patternfly/react-tabl
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
+import './AutoragExperimentSettingsModelSelection.scss';
 import { useParams } from 'react-router';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
+import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { LlamaStackModelType } from '~/app/types';
 
@@ -59,18 +61,30 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
     name: 'llama_stack_secret_name',
   });
 
-  const { data: llmModelsData, isLoading: isLlmLoading } = useLlamaStackModelsQuery(
-    namespace,
-    llamaStackSecretName,
-    'llm',
-  );
-  const { data: embeddingModelsData, isLoading: isEmbeddingLoading } = useLlamaStackModelsQuery(
-    namespace,
-    llamaStackSecretName,
-    'embedding',
-  );
+  const {
+    data: llmModelsData,
+    isLoading: isLlmLoading,
+    isError: isLlmError,
+  } = useLlamaStackModelsQuery(namespace, llamaStackSecretName, 'llm');
+  const {
+    data: embeddingModelsData,
+    isLoading: isEmbeddingLoading,
+    isError: isEmbeddingError,
+  } = useLlamaStackModelsQuery(namespace, llamaStackSecretName, 'embedding');
 
   const isLoading = isLlmLoading || isEmbeddingLoading;
+  const isError = isLlmError || isEmbeddingError;
+
+  const notification = useNotification();
+
+  React.useEffect(() => {
+    if (isError) {
+      notification.error(
+        'Failed to load models',
+        'Check that the LlamaStack secret is valid and try again.',
+      );
+    }
+  }, [isError, notification]);
 
   const { field: generationModelField } = useController({
     control: form.control,
@@ -86,6 +100,15 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
     llm: { field: generationModelField, models: llmModelsData?.models ?? [] },
     embedding: { field: embeddingModelField, models: embeddingModelsData?.models ?? [] },
   };
+
+  const activeModels = tabData[activeModelType].models;
+
+  const sortedAndPaginatedModels = React.useMemo(() => {
+    const sorted = activeModels.toSorted((a, b) =>
+      sortDirection === 'asc' ? a.id.localeCompare(b.id) : b.id.localeCompare(a.id),
+    );
+    return sorted.slice((page - 1) * perPage, page * perPage);
+  }, [activeModels, sortDirection, page, perPage]);
 
   const getSortParams = (): ThProps['sort'] => ({
     sortBy: { index: 0, direction: sortDirection },
@@ -145,9 +168,12 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                 eventKey={modelType}
                 title={
                   <TabTitleText>
-                    {label}{' '}
-                    {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-                    <span onClick={(e) => e.stopPropagation()}>
+                    {label} {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+                    <span
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
                       <Popover headerContent={popoverHeader} bodyContent={description}>
                         <DashboardPopupIconButton
                           aria-label={`More info for ${label.toLowerCase()}`}
@@ -187,12 +213,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                         isCompact
                         data-testid={`${modelType}-pagination`}
                       />
-                      <div
-                        style={{
-                          maxHeight: '15rem',
-                          overflow: 'auto',
-                        }}
-                      >
+                      <div className="autorag-model-selection__table-container">
                         <Table
                           aria-label={`${label} table`}
                           data-testid={`${modelType}-models-table`}
@@ -210,28 +231,21 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                             </Tr>
                           </Thead>
                           <Tbody>
-                            {models
-                              .slice((page - 1) * perPage, page * perPage)
-                              .toSorted((a, b) =>
-                                sortDirection === 'asc'
-                                  ? a.id.localeCompare(b.id)
-                                  : b.id.localeCompare(a.id),
-                              )
-                              .map((model, rowIndex) => (
-                                <Tr key={model.id} data-testid={`model-row-${model.id}`}>
-                                  <Td
-                                    select={{
-                                      rowIndex,
-                                      isSelected: selectedModels.some(
-                                        (selectedModel) => selectedModel === model.id,
-                                      ),
-                                      onSelect: (_, isSelecting) =>
-                                        handleToggleModel(model.id, isSelecting),
-                                    }}
-                                  />
-                                  <Td dataLabel="Model name">{model.id}</Td>
-                                </Tr>
-                              ))}
+                            {sortedAndPaginatedModels.map((model, rowIndex) => (
+                              <Tr key={model.id} data-testid={`model-row-${model.id}`}>
+                                <Td
+                                  select={{
+                                    rowIndex,
+                                    isSelected: selectedModels.some(
+                                      (selectedModel) => selectedModel === model.id,
+                                    ),
+                                    onSelect: (_, isSelecting) =>
+                                      handleToggleModel(model.id, isSelecting),
+                                  }}
+                                />
+                                <Td dataLabel="Model name">{model.id}</Td>
+                              </Tr>
+                            ))}
                           </Tbody>
                         </Table>
                       </div>

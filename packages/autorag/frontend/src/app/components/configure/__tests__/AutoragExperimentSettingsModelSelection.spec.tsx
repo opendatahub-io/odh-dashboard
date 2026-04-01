@@ -1,16 +1,26 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
+import { useNotification } from '~/app/hooks/useNotification';
 import AutoragExperimentSettingsModelSelection from '~/app/components/configure/AutoragExperimentSettingsModelSelection';
 import { LlamaStackModelType } from '~/app/types';
 
 jest.mock('~/app/hooks/queries');
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: jest.fn(() => ({
+    success: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    warning: jest.fn(),
+    remove: jest.fn(),
+  })),
+}));
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: () => ({ namespace: 'test-namespace' }),
@@ -26,6 +36,7 @@ jest.mock('mod-arch-shared', () => ({
 }));
 
 const mockUseLlamaStackModelsQuery = jest.mocked(useLlamaStackModelsQuery);
+const mockUseNotification = jest.mocked(useNotification);
 
 const MOCK_MODELS = [
   { id: 'llama-8b', type: 'llm' as const, provider: 'ollama', resource_path: 'ollama://llama-8b' },
@@ -102,8 +113,9 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
     it('should render all foundation model rows', () => {
       renderComponent();
-      expect(screen.getByTestId('model-row-llama-8b')).toBeInTheDocument();
-      expect(screen.getByTestId('model-row-llama-70b')).toBeInTheDocument();
+      const table = within(screen.getByTestId('llm-models-table'));
+      expect(table.getByTestId('model-row-llama-8b')).toBeInTheDocument();
+      expect(table.getByTestId('model-row-llama-70b')).toBeInTheDocument();
     });
 
     it('should render select-all checkbox in table header', () => {
@@ -138,8 +150,8 @@ describe('AutoragExperimentSettingsModelSelection', () => {
       renderComponent();
 
       await user.click(screen.getByText('Embedding models', { exact: false }));
-      expect(screen.getByTestId('embedding-models-table')).toBeInTheDocument();
-      expect(screen.getByTestId('model-row-minilm-v2')).toBeInTheDocument();
+      const table = within(screen.getByTestId('embedding-models-table'));
+      expect(table.getByTestId('model-row-minilm-v2')).toBeInTheDocument();
     });
   });
 
@@ -147,7 +159,8 @@ describe('AutoragExperimentSettingsModelSelection', () => {
     it('should render all models as selected by default', () => {
       renderComponent();
 
-      const row = screen.getByTestId('model-row-llama-8b');
+      const table = within(screen.getByTestId('llm-models-table'));
+      const row = table.getByTestId('model-row-llama-8b');
       const checkbox = row.querySelector('input[type="checkbox"]');
       expect(checkbox).toBeChecked();
     });
@@ -156,7 +169,8 @@ describe('AutoragExperimentSettingsModelSelection', () => {
       const user = userEvent.setup();
       renderComponent();
 
-      const row = screen.getByTestId('model-row-llama-8b');
+      const table = within(screen.getByTestId('llm-models-table'));
+      const row = table.getByTestId('model-row-llama-8b');
       const checkbox = row.querySelector('input[type="checkbox"]');
       expect(checkbox).toBeChecked();
 
@@ -170,7 +184,8 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
       expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('2');
 
-      const row = screen.getByTestId('model-row-llama-8b');
+      const table = within(screen.getByTestId('llm-models-table'));
+      const row = table.getByTestId('model-row-llama-8b');
       const checkbox = row.querySelector('input[type="checkbox"]');
       await user.click(checkbox!);
 
@@ -285,6 +300,32 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
       renderComponent();
       expect(screen.getAllByText('No models available.').length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Error handling', () => {
+    it('should show error notification when model loading fails', () => {
+      const mockError = jest.fn();
+      mockUseNotification.mockReturnValue({
+        success: jest.fn(),
+        error: mockError,
+        info: jest.fn(),
+        warning: jest.fn(),
+        remove: jest.fn(),
+      });
+
+      mockUseLlamaStackModelsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+
+      renderComponent();
+
+      expect(mockError).toHaveBeenCalledWith(
+        'Failed to load models',
+        'Check that the LlamaStack secret is valid and try again.',
+      );
     });
   });
 });
