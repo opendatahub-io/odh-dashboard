@@ -84,6 +84,11 @@ export type PipelineRunDetails = {
   task_details?: PipelineRunTaskDetail[];
 };
 
+export type PipelineRunStateHistoryEntry = {
+  update_time: string;
+  state?: string;
+};
+
 export type PipelineRun = {
   run_id: string;
   display_name: string;
@@ -101,6 +106,7 @@ export type PipelineRun = {
   finished_at?: string;
   error?: PipelineRunError;
   run_details?: PipelineRunDetails;
+  state_history?: PipelineRunStateHistoryEntry[];
 };
 
 export type LlamaStackModelType = 'llm' | 'embedding';
