@@ -217,11 +217,12 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
                   }),
                 }),
               },
+              // Always pass the file_search tool so vector_store_ids reaches responses.create
+              tools: [{ type: 'file_search', vector_store_ids: [selectedVectorStore.id] }],
               // Inline mode: also upload files to the vector store
               ...(knowledgeMode === 'inline' &&
                 files.length > 0 && {
                   files: files.map((file) => ({ file: file.filename, purpose: file.purpose })),
-                  tools: [{ type: 'file_search', vector_store_ids: [selectedVectorStore.id] }],
                 }),
             }),
         };
