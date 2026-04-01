@@ -212,8 +212,16 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
               value={registeredModelName}
               onChange={(_event, value) => setRegisteredModelName(value)}
               isDisabled={isSubmitting}
+              validated={registeredModelName.trim().length === 0 ? 'error' : 'default'}
               data-testid="model-name-input"
             />
+            {registeredModelName.trim().length === 0 && (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem variant="error">Model name is required</HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            )}
           </FormGroup>
 
           <FormGroup label="Model description" fieldId="model-description-input">
@@ -227,8 +235,8 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
             />
           </FormGroup>
 
-          {s3Path && (
-            <FormGroup label="Model artifact location" fieldId="s3-path-display">
+          <FormGroup label="Model artifact location" isRequired fieldId="s3-path-display">
+            {s3Path ? (
               <Tooltip content={s3Path}>
                 <TextInput
                   id="s3-path-display"
@@ -237,13 +245,25 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
                   data-testid="s3-path-display"
                 />
               </Tooltip>
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem>The S3 path where the trained model is stored</HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            </FormGroup>
-          )}
+            ) : (
+              <TextInput
+                id="s3-path-display"
+                value=""
+                isDisabled
+                validated="error"
+                data-testid="s3-path-display"
+              />
+            )}
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant={s3Path ? 'default' : 'error'}>
+                  {s3Path
+                    ? 'The S3 path where the trained model is stored'
+                    : 'No predictor path available for this model'}
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          </FormGroup>
         </Form>
       </ModalBody>
       <ModalFooter>

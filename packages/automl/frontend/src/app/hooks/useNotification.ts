@@ -30,8 +30,8 @@ export const useNotification = (): NotificationFunc => {
 
   const success: NotificationProps = React.useCallback(
     (title, message?) => {
-      const id = countRef.current;
-      updateNotificationCount(id + 1);
+      const id = ++countRef.current;
+      updateNotificationCount(id);
       dispatch({
         type: NotificationActionTypes.ADD_NOTIFICATION,
         payload: {
@@ -48,8 +48,8 @@ export const useNotification = (): NotificationFunc => {
 
   const warning: NotificationProps = React.useCallback(
     (title, message?) => {
-      const id = countRef.current;
-      updateNotificationCount(id + 1);
+      const id = ++countRef.current;
+      updateNotificationCount(id);
       dispatch({
         type: NotificationActionTypes.ADD_NOTIFICATION,
         payload: {
@@ -66,8 +66,8 @@ export const useNotification = (): NotificationFunc => {
 
   const error: NotificationProps = React.useCallback(
     (title, message?) => {
-      const id = countRef.current;
-      updateNotificationCount(id + 1);
+      const id = ++countRef.current;
+      updateNotificationCount(id);
       dispatch({
         type: NotificationActionTypes.ADD_NOTIFICATION,
         payload: {
@@ -84,8 +84,8 @@ export const useNotification = (): NotificationFunc => {
 
   const info: NotificationProps = React.useCallback(
     (title, message?) => {
-      const id = countRef.current;
-      updateNotificationCount(id + 1);
+      const id = ++countRef.current;
+      updateNotificationCount(id);
       dispatch({
         type: NotificationActionTypes.ADD_NOTIFICATION,
         payload: {

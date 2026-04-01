@@ -264,6 +264,10 @@ func (r *ModelRegistryRepository) RegisterModel(
 	if dspaStorage.EndpointURL == "" {
 		return "", nil, fmt.Errorf("DSPA object storage config is missing endpoint URL")
 	}
+	parsedEndpoint, err := neturl.Parse(dspaStorage.EndpointURL)
+	if err != nil || parsedEndpoint.Host == "" || (parsedEndpoint.Scheme != "http" && parsedEndpoint.Scheme != "https") {
+		return "", nil, fmt.Errorf("DSPA object storage config has invalid endpoint URL: %s", dspaStorage.EndpointURL)
+	}
 	artifactURI := buildModelRegistryURI(dspaStorage.Bucket, req.S3Path, dspaStorage.EndpointURL, dspaStorage.Region)
 
 	artifactType := defaultModelArtifactType

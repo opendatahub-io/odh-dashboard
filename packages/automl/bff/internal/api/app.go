@@ -224,9 +224,11 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToPipelineServers(app.PostS3FileHandler))))
 
 	// Model Registry - register model binary (target registry via path param + discovered ServerURL)
-	// Requires AttachNamespace with pipeline server discovery so DSPA object storage config
-	// is injected into context (needed to construct the full S3 URI for the model artifact).
-	apiRouter.POST(ModelRegistryModelsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.RegisterModelHandler))))
+	// Does NOT use AttachPipelineServerClient (which gates on a ready pipeline server and can
+	// 404/503). The handler performs best-effort DSPA discovery itself via
+	// injectDSPAObjectStorageIfAvailable — this only needs the DSPA spec (present regardless
+	// of pipeline server readiness) to resolve bucket, endpoint, and region for the artifact URI.
+	apiRouter.POST(ModelRegistryModelsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.RegisterModelHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

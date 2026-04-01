@@ -140,11 +140,21 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	// Retrieve DSPA object storage config from context (injected by AttachNamespace middleware)
-	// to construct the full S3 URI for the model artifact.
+	// Best-effort DSPA discovery: pull object storage config from the DSPA spec (bucket,
+	// endpoint, region) without requiring a ready pipeline server. This is needed to
+	// construct the full S3 URI for the model artifact.
+	// Check context first (may already be set by upstream middleware or tests).
 	dspaStorage, _ := ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage)
+	if dspaStorage == nil && app.kubernetesClientFactory != nil {
+		namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		ctx = app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
+		r = r.WithContext(ctx)
+		dspaStorage, _ = ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage)
+	}
 	if dspaStorage == nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("DSPA object storage config not available; cannot construct artifact URI"))
+		app.serviceUnavailableResponseWithMessage(w, r,
+			fmt.Errorf("DSPA object storage config not available"),
+			"DSPA object storage discovery unavailable; cannot construct artifact URI — ensure a DSPipelineApplication with external storage is configured in this namespace")
 		return
 	}
 

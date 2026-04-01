@@ -247,4 +247,25 @@ func TestRegisterModelHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, "409", errResp.Error.Code)
 		assert.Contains(t, errResp.Error.Message, "already exists")
 	})
+
+	t.Run("returns 503 when DSPA storage is not available", func(t *testing.T) {
+		app := newModelRegistryTestApp()
+		req := validRegisterModelRequest()
+
+		rr := httptest.NewRecorder()
+		// Build context WITHOUT DSPAObjectStorageKey — handler should try
+		// injectDSPAObjectStorageIfAvailable, which needs a K8s client factory.
+		// Since newModelRegistryTestApp has no factory set, injection returns nil → 503.
+		httpReq := newRegisterModelRequest(t, req)
+		ctx := context.WithValue(httpReq.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &kubernetes.RequestIdentity{
+			UserID: "test-user",
+		})
+		httpReq = httpReq.WithContext(ctx)
+
+		app.RegisterModelHandler(rr, httpReq, registryParams(mockDefaultModelRegistryUID))
+
+		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+		assert.Contains(t, rr.Body.String(), "DSPA object storage")
+	})
 }

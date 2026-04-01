@@ -128,6 +128,21 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 		assert.Contains(t, err.Error(), "missing bucket")
 	})
 
+	t.Run("returns error when DSPA storage missing endpoint URL", func(t *testing.T) {
+		req := models.RegisterModelRequest{
+			S3Path:      "path/to/model",
+			ModelName:   "my-model",
+			VersionName: "v1",
+		}
+		mockClient := modelregistry.NewSuccessMockClient(req.ModelName, req.VersionName, "")
+		noEndpoint := &models.DSPAObjectStorage{Bucket: "my-bucket"}
+
+		_, _, err := repo.RegisterModel(context.Background(), mockClient, req, noEndpoint)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "missing endpoint")
+	})
+
 	t.Run("strips leading slash from s3_path", func(t *testing.T) {
 		req := models.RegisterModelRequest{
 			S3Path:      "/leading/slash/model",
@@ -148,22 +163,17 @@ func TestModelRegistryRepository_RegisterModel(t *testing.T) {
 func TestBuildModelRegistryURI(t *testing.T) {
 	t.Run("builds URI with all fields", func(t *testing.T) {
 		uri := buildModelRegistryURI("my-bucket", "path/to/model", "https://s3.amazonaws.com", "us-east-1")
-		assert.Contains(t, uri, "s3://my-bucket/path/to/model")
-		assert.Contains(t, uri, "endpoint=https")
-		assert.Contains(t, uri, "defaultRegion=us-east-1")
+		assert.Equal(t, "s3://my-bucket/path/to/model?defaultRegion=us-east-1&endpoint=https%3A%2F%2Fs3.amazonaws.com", uri)
 	})
 
 	t.Run("builds URI without region", func(t *testing.T) {
 		uri := buildModelRegistryURI("my-bucket", "path/to/model", "https://s3.amazonaws.com", "")
-		assert.Contains(t, uri, "s3://my-bucket/path/to/model")
-		assert.Contains(t, uri, "endpoint=")
-		assert.NotContains(t, uri, "defaultRegion")
+		assert.Equal(t, "s3://my-bucket/path/to/model?endpoint=https%3A%2F%2Fs3.amazonaws.com", uri)
 	})
 
 	t.Run("strips leading slashes from key", func(t *testing.T) {
 		uri := buildModelRegistryURI("bucket", "/path/to/model", "https://s3.example.com", "")
-		assert.Contains(t, uri, "s3://bucket/path/to/model")
-		assert.NotContains(t, uri, "s3://bucket//")
+		assert.Equal(t, "s3://bucket/path/to/model?endpoint=https%3A%2F%2Fs3.example.com", uri)
 	})
 }
 

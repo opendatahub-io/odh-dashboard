@@ -783,6 +783,10 @@ describe('AutoML API Contract Tests', () => {
     const mockRegistryId = 'a1b2c3d4-e5f6-7890-abcd-111111111111';
     const unknownRegistryId = '00000000-0000-0000-0000-000000000000';
 
+    // Note: Success case (201) cannot be tested in contract tests because the mock BFF
+    // resolves to a real Model Registry URL (ExternalURL) that doesn't exist in the test
+    // environment. The 201 response shape is validated by handler unit tests instead.
+
     describe('Error Cases', () => {
       it('should return 404 when registryId does not match any registry', async () => {
         const result = await apiClient.post(
