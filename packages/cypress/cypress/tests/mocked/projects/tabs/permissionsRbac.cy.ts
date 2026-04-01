@@ -34,8 +34,11 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
       .findAssignRolesButton()
       .should('be.visible')
       .should('not.have.attr', 'aria-disabled', 'true')
-      .should('exist')
-      .click();
+      .should('exist');
+
+    // Re-query to avoid detached DOM element
+    projectRbacPermissions.findAssignRolesButton().click();
+
     cy.url().should('include', `/projects/${NAMESPACE}/permissions/assign`);
     projectRbacPermissions.findAssignRolesPage().should('exist');
   });
