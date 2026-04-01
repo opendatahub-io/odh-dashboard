@@ -1,8 +1,9 @@
 import { Breadcrumb, BreadcrumbItem, Skeleton } from '@patternfly/react-core';
 import { useNamespaceSelector } from 'mod-arch-core';
-import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
+import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useParams } from 'react-router';
+import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import AutomlResults from '~/app/components/run-results/AutomlResults';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
@@ -55,7 +56,7 @@ function AutomlResultsPage(): React.JSX.Element {
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title="AutoML" objectType={ProjectObjectType.pipelineExperiment} />}
+      title={<AutomlHeader />}
       subtext={
         <h2 className="pf-v6-u-mt-sm">
           {pipelineRun ? `"${pipelineRun.display_name}" results` : <Skeleton width="300px" />}
