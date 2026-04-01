@@ -6,7 +6,7 @@ import PasswordInput from '#~/components/PasswordInput';
 import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
 import FormGroupText from '#~/components/FormGroupText';
 import UnspecifiedValue from '#~/concepts/connectionTypes/fields/UnspecifiedValue';
-import { trimInputOnBlur, trimInputOnPaste } from '#~/concepts/connectionTypes/utils';
+import { trimInputOnBlur, trimInputOnPaste } from '#~/utilities/trimInput';
 import { SensitiveFieldHelperText } from './SensitiveFieldHelperText';
 
 const HiddenFormField: React.FC<FieldProps<HiddenField>> = ({

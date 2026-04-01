@@ -9,7 +9,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { containsOnlySlashes, isS3PathValid } from '#~/utilities/string';
 import useDebounceCallback from '#~/utilities/useDebounceCallback';
-import { trimInputOnBlur, trimInputOnPaste } from '#~/concepts/connectionTypes/utils';
+import { trimInputOnBlur, trimInputOnPaste } from '#~/utilities/trimInput';
 
 type ConnectionFolderPathFieldProps = {
   folderPath: string;

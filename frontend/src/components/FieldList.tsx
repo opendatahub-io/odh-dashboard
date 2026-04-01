@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Stack, StackItem, FormGroup, TextInput } from '@patternfly/react-core';
 import { EnvVariableDataEntry } from '#~/pages/projects/types';
 import PasswordInput from '#~/components/PasswordInput';
-import { trimInputOnBlur, trimInputOnPaste } from '#~/concepts/connectionTypes/utils';
+import { trimInputOnBlur, trimInputOnPaste } from '#~/utilities/trimInput';
 
 export type FieldOptions = {
   key: string;
