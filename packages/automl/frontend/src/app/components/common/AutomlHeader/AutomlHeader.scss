@@ -1,12 +1,10 @@
-:root {
-  --automl-header-icon-bg: var(--pf-t--color--teal--10);
-}
-
-:root:where(.pf-v6-theme-dark) {
-  --automl-header-icon-bg: var(--pf-t--color--teal--50);
-}
-
 .automl-header__icon-container {
+  --automl-header-icon-bg: var(--pf-t--color--teal--10);
+
+  :where(.pf-v6-theme-dark) & {
+    --automl-header-icon-bg: var(--pf-t--color--teal--50);
+  }
+
   background: var(--automl-header-icon-bg);
   border-radius: 50%;
   padding: var(--pf-t--global--spacer--xs);
