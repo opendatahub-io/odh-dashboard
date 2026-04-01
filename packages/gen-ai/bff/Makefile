@@ -146,7 +146,7 @@ llamastack-up: uv ## Start local Llama Stack server in replay mode (Ctrl+C to st
 	TEST_LLAMA_STACK_EMBEDDING_MODEL=$(TEST_LLAMA_STACK_EMBEDDING_MODEL) \
 	TEST_LLAMA_STACK_SHIELD_MODEL=$(TEST_LLAMA_STACK_SHIELD_MODEL) \
 	$(UV) run --default-index https://pypi.org/simple/ --index https://test.pypi.org/simple/ \
-		--index-strategy unsafe-first-match --no-build-package psycopg2-binary \
+		--index-strategy unsafe-first-match --no-build-package psycopg2-binary --no-build-package asyncpg \
 		--with llama-stack==$(TEST_LLAMA_STACK_VERSION) --with-requirements $(TEST_LLAMA_STACK_DIR)/requirements.txt \
 		llama stack run $(TEST_LLAMA_STACK_CONFIG) --port $(TEST_LLAMA_STACK_PORT)
 

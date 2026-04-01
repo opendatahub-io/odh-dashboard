@@ -109,6 +109,7 @@ func SetupLlamaStack(logger *slog.Logger) (state *LlamaStackState, err error) {
 		"--index", "https://test.pypi.org/simple/",
 		"--index-strategy", "unsafe-first-match",
 		"--no-build-package", "psycopg2-binary",
+		"--no-build-package", "asyncpg",
 		"--refresh-package", "llama-stack",
 		"--refresh-package", "llama-stack-api",
 		"--with", "llama-stack=="+version,
