@@ -103,5 +103,15 @@ func (app *App) validateCodeExportRequest(config models.CodeExportRequest) error
 		}
 	}
 
+	// Validate prompt config
+	if config.Prompt != nil {
+		if config.Prompt.Name == "" {
+			return errors.New("prompt: name is required")
+		}
+		if config.Prompt.Version < 1 {
+			return errors.New("prompt: version must be >= 1")
+		}
+	}
+
 	return nil
 }
