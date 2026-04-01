@@ -73,6 +73,14 @@ const AutoragVectorStoreSelector: React.FC = () => {
   const providers = apiProviders;
   const selectedProvider = providers.find((p) => `ls_${p.provider_id}` === field.value);
 
+  // Clear stale selection when the provider list changes and no longer includes
+  // the previously selected provider (e.g., LlamaStack secret was changed).
+  useEffect(() => {
+    if (field.value && !selectedProvider && providers.length > 0) {
+      field.onChange('');
+    }
+  }, [providers, selectedProvider, field]);
+
   if (isLoading) {
     return <Skeleton width="200px" height="36px" />;
   }
