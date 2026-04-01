@@ -30,6 +30,8 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 var _ = Describe("LlamaStackCreateResponseHandler", func() {
@@ -1631,6 +1633,16 @@ func TestGetPassthroughEmbeddingSecret(t *testing.T) {
 		assert.Contains(t, err.Error(), "configmap not found")
 	})
 
+	t.Run("returns no passthrough data when vector stores ConfigMap does not exist", func(t *testing.T) {
+		client := &customEndpointMockClient{
+			vectorStoresDocErr: apierrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "gen-ai-aa-vector-stores"),
+		}
+		providerData, err := newApp(client).getProviderData(newCtx(), "inf-model", "", "", []string{"vs-1"})
+		require.NoError(t, err)
+		assert.NotContains(t, providerData, "passthrough_url")
+		assert.NotContains(t, providerData, "passthrough_api_key")
+	})
+
 	t.Run("returns error when external models ConfigMap read fails", func(t *testing.T) {
 		client := &customEndpointMockClient{
 			vectorStoresDoc:         vsDoc,
@@ -1639,6 +1651,17 @@ func TestGetPassthroughEmbeddingSecret(t *testing.T) {
 		_, err := newApp(client).getProviderData(newCtx(), "inf-model", "", "", []string{"vs-1"})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "external models configmap unavailable")
+	})
+
+	t.Run("returns no passthrough data when external models ConfigMap does not exist", func(t *testing.T) {
+		client := &customEndpointMockClient{
+			vectorStoresDoc:         vsDoc,
+			externalModelsConfigErr: apierrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "gen-ai-aa-custom-model-endpoints"),
+		}
+		providerData, err := newApp(client).getProviderData(newCtx(), "inf-model", "", "", []string{"vs-1"})
+		require.NoError(t, err)
+		assert.NotContains(t, providerData, "passthrough_url")
+		assert.NotContains(t, providerData, "passthrough_api_key")
 	})
 
 	t.Run("returns error when secret fetch fails", func(t *testing.T) {

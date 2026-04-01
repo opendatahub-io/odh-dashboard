@@ -13,6 +13,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 type ExternalModelsRepository struct{}
@@ -83,7 +84,8 @@ type PassthroughEmbeddingInfo struct {
 
 // GetPassthroughEmbeddingProviderInfo finds the first vector store in vectorStoreIDs that uses
 // a custom-endpoint (remote::passthrough) embedding model and returns its URL and API key.
-// Returns (nil, nil) when none of the stores use a passthrough embedding model — not an error.
+// Returns (nil, nil) if Vector Stores or External Models config not found, or when none of
+// the stores use a passthrough embedding model — not an error.
 // Returns a non-nil error when ConfigMap or Secret reads fail so callers can fail closed.
 func (r *ExternalModelsRepository) GetPassthroughEmbeddingProviderInfo(
 	client kubernetes.KubernetesClientInterface,
@@ -94,6 +96,9 @@ func (r *ExternalModelsRepository) GetPassthroughEmbeddingProviderInfo(
 ) (*PassthroughEmbeddingInfo, error) {
 	vsDoc, err := client.GetVectorStoresConfig(ctx, namespace)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to get vector stores config: %w", err)
 	}
 
@@ -104,6 +109,9 @@ func (r *ExternalModelsRepository) GetPassthroughEmbeddingProviderInfo(
 
 	externalModelsConfig, err := client.GetExternalModelsConfig(ctx, namespace)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to get external models config: %w", err)
 	}
 
