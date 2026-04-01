@@ -1,3 +1,4 @@
+import yaml from 'js-yaml';
 import type { MCPServerCR } from '~/app/mcpDeploymentTypes';
 import { mcpServerCRToYaml } from '../mcpServerYaml';
 
@@ -15,11 +16,27 @@ const makeCR = (
 });
 
 describe('mcpServerCRToYaml', () => {
+  it('should produce valid YAML that round-trips correctly', () => {
+    const cr = makeCR({ config: { port: 8080 }, runtime: { replicas: 2 } });
+    const yamlStr = mcpServerCRToYaml(cr);
+    const parsed = yaml.load(yamlStr) as Record<string, unknown>;
+
+    expect(parsed).toEqual({
+      spec: {
+        runtime: { replicas: 2 },
+        config: { port: 8080 },
+      },
+    });
+  });
+
   it('should serialize minimal config-only spec', () => {
     const cr = makeCR();
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
 
-    expect(yaml).toBe('spec:\n  config: \n    port: 8080\n');
+    expect(yamlStr).toContain('spec:');
+    expect(yamlStr).toContain('config:');
+    expect(yamlStr).toContain('port: 8080');
+    expect(yamlStr).not.toContain('runtime:');
   });
 
   it('should include runtime before config when present', () => {
@@ -27,11 +44,11 @@ describe('mcpServerCRToYaml', () => {
       config: { port: 8080 },
       runtime: { replicas: 2 },
     });
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
 
-    expect(yaml).toContain('runtime:');
-    expect(yaml).toContain('replicas: 2');
-    expect(yaml.indexOf('runtime:')).toBeLessThan(yaml.indexOf('config:'));
+    expect(yamlStr).toContain('runtime:');
+    expect(yamlStr).toContain('replicas: 2');
+    expect(yamlStr.indexOf('runtime:')).toBeLessThan(yamlStr.indexOf('config:'));
   });
 
   it('should serialize nested runtime security', () => {
@@ -39,11 +56,11 @@ describe('mcpServerCRToYaml', () => {
       config: { port: 9090, path: '/mcp' },
       runtime: { replicas: 1, security: { serviceAccountName: 'my-sa' } },
     });
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
 
-    expect(yaml).toContain('serviceAccountName: my-sa');
-    expect(yaml).toContain('path: /mcp');
-    expect(yaml).toContain('port: 9090');
+    expect(yamlStr).toContain('serviceAccountName: my-sa');
+    expect(yamlStr).toContain('path: /mcp');
+    expect(yamlStr).toContain('port: 9090');
   });
 
   it('should serialize env vars with plain values', () => {
@@ -56,12 +73,12 @@ describe('mcpServerCRToYaml', () => {
         ],
       },
     });
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
 
-    expect(yaml).toContain('- name: API_KEY');
-    expect(yaml).toContain('value: abc123');
-    expect(yaml).toContain('- name: MODE');
-    expect(yaml).toContain('value: production');
+    expect(yamlStr).toContain('- name: API_KEY');
+    expect(yamlStr).toContain('value: abc123');
+    expect(yamlStr).toContain('- name: MODE');
+    expect(yamlStr).toContain('value: production');
   });
 
   it('should serialize env vars with secretKeyRef', () => {
@@ -76,22 +93,22 @@ describe('mcpServerCRToYaml', () => {
         ],
       },
     });
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
 
-    expect(yaml).toContain('- name: DB_PASSWORD');
-    expect(yaml).toContain('secretKeyRef:');
-    expect(yaml).toContain('name: db-secret');
-    expect(yaml).toContain('key: password');
+    expect(yamlStr).toContain('- name: DB_PASSWORD');
+    expect(yamlStr).toContain('secretKeyRef:');
+    expect(yamlStr).toContain('name: db-secret');
+    expect(yamlStr).toContain('key: password');
   });
 
   it('should serialize arguments array', () => {
     const cr = makeCR({
       config: { port: 8080, arguments: ['--verbose', '--timeout=30'] },
     });
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
 
-    expect(yaml).toContain('- --verbose');
-    expect(yaml).toContain('- --timeout=30');
+    expect(yamlStr).toContain('- --verbose');
+    expect(yamlStr).toContain('- --timeout=30');
   });
 
   it('should serialize storage mounts', () => {
@@ -107,35 +124,35 @@ describe('mcpServerCRToYaml', () => {
         ],
       },
     });
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
 
-    expect(yaml).toContain('- path: /data');
-    expect(yaml).toContain('permissions: ReadOnly');
-    expect(yaml).toContain('type: configMap');
+    expect(yamlStr).toContain('- path: /data');
+    expect(yamlStr).toContain('permissions: ReadOnly');
+    expect(yamlStr).toContain('type: configMap');
   });
 
   it('should handle empty arrays as []', () => {
     const cr = makeCR({
       config: { port: 8080, arguments: [], env: [] },
     });
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
 
-    expect(yaml).toContain('arguments: []');
-    expect(yaml).toContain('env: []');
+    expect(yamlStr).toContain('arguments: []');
+    expect(yamlStr).toContain('env: []');
   });
 
-  it('should omit undefined and null values', () => {
+  it('should omit undefined values', () => {
     const cr = makeCR({
       config: { port: 8080, path: undefined },
       runtime: undefined,
     });
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
 
-    expect(yaml).not.toContain('path:');
-    expect(yaml).not.toContain('runtime:');
+    expect(yamlStr).not.toContain('path:');
+    expect(yamlStr).not.toContain('runtime:');
   });
 
-  it('should quote strings with special characters', () => {
+  it('should handle strings with special characters', () => {
     const cr = makeCR({
       config: {
         port: 8080,
@@ -145,34 +162,37 @@ describe('mcpServerCRToYaml', () => {
         ],
       },
     });
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
+    const parsed = yaml.load(yamlStr) as { spec: { config: { env: { value: string }[] } } };
 
-    expect(yaml).toContain('"http://example.com:8080/api"');
-    expect(yaml).toContain('"value with # hash"');
+    expect(parsed.spec.config.env[0].value).toBe('http://example.com:8080/api');
+    expect(parsed.spec.config.env[1].value).toBe('value with # hash');
   });
 
-  it('should quote strings with leading/trailing spaces', () => {
+  it('should handle strings with leading/trailing spaces', () => {
     const cr = makeCR({
       config: {
         port: 8080,
         env: [{ name: 'PADDED', value: ' leading' }],
       },
     });
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
+    const parsed = yaml.load(yamlStr) as { spec: { config: { env: { value: string }[] } } };
 
-    expect(yaml).toContain('" leading"');
+    expect(parsed.spec.config.env[0].value).toBe(' leading');
   });
 
-  it('should escape quotes inside strings', () => {
+  it('should handle strings with quotes', () => {
     const cr = makeCR({
       config: {
         port: 8080,
         env: [{ name: 'QUOTED', value: 'say "hello"' }],
       },
     });
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
+    const parsed = yaml.load(yamlStr) as { spec: { config: { env: { value: string }[] } } };
 
-    expect(yaml).toContain('"say \\"hello\\""');
+    expect(parsed.spec.config.env[0].value).toBe('say "hello"');
   });
 
   it('should serialize boolean values', () => {
@@ -180,9 +200,9 @@ describe('mcpServerCRToYaml', () => {
       config: { port: 8080 },
     });
     (cr.spec.config as Record<string, unknown>).debug = true;
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
 
-    expect(yaml).toContain('debug: true');
+    expect(yamlStr).toContain('debug: true');
   });
 
   it('should handle empty nested objects as {}', () => {
@@ -190,9 +210,9 @@ describe('mcpServerCRToYaml', () => {
       config: { port: 8080 },
       runtime: { security: {} } as MCPServerCR['spec']['runtime'],
     });
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
 
-    expect(yaml).toContain('security: {}');
+    expect(yamlStr).toContain('security: {}');
   });
 
   it('should not include source in output (only config and runtime)', () => {
@@ -200,12 +220,12 @@ describe('mcpServerCRToYaml', () => {
       config: { port: 8080 },
       runtime: { replicas: 1 },
     });
-    const yaml = mcpServerCRToYaml(cr);
+    const yamlStr = mcpServerCRToYaml(cr);
 
-    expect(yaml).not.toContain('containerImage');
-    expect(yaml).not.toContain('quay.io');
-    expect(yaml).toContain('spec:');
-    expect(yaml).toContain('config:');
-    expect(yaml).toContain('runtime:');
+    expect(yamlStr).not.toContain('containerImage');
+    expect(yamlStr).not.toContain('quay.io');
+    expect(yamlStr).toContain('spec:');
+    expect(yamlStr).toContain('config:');
+    expect(yamlStr).toContain('runtime:');
   });
 });

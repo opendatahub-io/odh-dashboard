@@ -72,6 +72,8 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error>();
   const abortControllerRef = React.useRef<AbortController>();
+  const ociImageLabelHelpRef = React.useRef<HTMLSpanElement>(null);
+  const configLabelHelpRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
     if (!isEditMode && crData && !yamlContent) {
@@ -104,12 +106,16 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
     setYamlContent(initialYaml);
     if (!isEditMode) {
       setSelectedNamespace('');
+      onNameDescChange('name', '');
     }
     setSubmitError(undefined);
-  }, [initialYaml, isEditMode]);
+  }, [initialYaml, isEditMode, onNameDescChange]);
+
+  const displayName = nameDescData.name;
+  const k8sName = nameDescData.k8sName.value;
 
   const handleDeploy = React.useCallback(async () => {
-    if (!ociImageValue || !selectedNamespace || !nameDescData.k8sName.value) {
+    if (!ociImageValue || !selectedNamespace || !k8sName) {
       return;
     }
 
@@ -127,7 +133,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
           opts,
           existingDeployment.name,
           {
-            displayName: nameDescData.name,
+            displayName,
             image: ociImageValue,
             yaml: yamlContent,
             port: existingDeployment.port,
@@ -136,12 +142,12 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
         onClose();
         notification.success(
           'MCP server updated successfully',
-          `${nameDescData.name || nameDescData.k8sName.value} has been updated.`,
+          `${displayName || k8sName} has been updated.`,
         );
       } else {
         await createMcpDeployment('', { ...queryParams, namespace: selectedNamespace })(opts, {
-          name: nameDescData.k8sName.value,
-          displayName: nameDescData.name,
+          name: k8sName,
+          displayName,
           image: ociImageValue,
           yaml: yamlContent,
           port: crData?.spec.config.port,
@@ -149,7 +155,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
         onClose();
         notification.success(
           'MCP server deployed successfully',
-          `${nameDescData.name || nameDescData.k8sName.value} has been deployed to ${selectedNamespace}.`,
+          `${displayName || k8sName} has been deployed to ${selectedNamespace}.`,
         );
         navigate(mcpDeploymentsUrl());
       }
@@ -163,7 +169,8 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
   }, [
     ociImageValue,
     selectedNamespace,
-    nameDescData,
+    k8sName,
+    displayName,
     yamlContent,
     crData,
     queryParams,
@@ -175,8 +182,8 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
   ]);
 
   const hasValidName =
-    !!nameDescData.name &&
-    !!nameDescData.k8sName.value &&
+    !!displayName &&
+    !!k8sName &&
     !nameDescData.k8sName.state.invalidCharacters &&
     !nameDescData.k8sName.state.invalidLength;
 
@@ -184,9 +191,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
 
   const isDeployDisabled =
     !hasValidName || !ociImageValue || !selectedNamespace || isSubmitting || !dataReady;
-
-  const ociImageLabelHelpRef = React.useRef<HTMLSpanElement>(null);
-  const configLabelHelpRef = React.useRef<HTMLSpanElement>(null);
 
   const modalTitle = isEditMode ? 'Edit MCP server deployment' : 'Deploy MCP server';
 
