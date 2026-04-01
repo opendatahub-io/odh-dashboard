@@ -1,7 +1,7 @@
-import { RateLimit } from '~/app/types/tier';
-import { TokenRateLimit } from '~/app/types/subscriptions';
+import { RateLimit, TokenRateLimit } from '~/app/types/subscriptions';
 
 const WINDOW_SUFFIX_TO_UNIT: Record<string, RateLimit['unit']> = {
+  d: 'day',
   ms: 'millisecond',
   s: 'second',
   m: 'minute',
@@ -9,6 +9,7 @@ const WINDOW_SUFFIX_TO_UNIT: Record<string, RateLimit['unit']> = {
 };
 
 const UNIT_TO_WINDOW_SUFFIX: Record<RateLimit['unit'], string> = {
+  day: 'd',
   millisecond: 'ms',
   second: 's',
   minute: 'm',
@@ -16,6 +17,7 @@ const UNIT_TO_WINDOW_SUFFIX: Record<RateLimit['unit'], string> = {
 };
 
 export const UNIT_OPTIONS: { value: RateLimit['unit']; label: string }[] = [
+  { value: 'day', label: 'day' },
   { value: 'hour', label: 'hour' },
   { value: 'minute', label: 'minute' },
   { value: 'second', label: 'second' },
@@ -27,7 +29,7 @@ export const UNIT_OPTIONS: { value: RateLimit['unit']; label: string }[] = [
  * Falls back to { time: 1, unit: 'hour' } for unrecognized formats.
  */
 export const parseWindow = (window: string): { time: number; unit: RateLimit['unit'] } => {
-  const match = window.match(/^(\d+)(ms|s|m|h)$/);
+  const match = window.match(/^(\d+)(ms|s|m|h|d)$/);
   if (!match) {
     return { time: 1, unit: 'hour' };
   }

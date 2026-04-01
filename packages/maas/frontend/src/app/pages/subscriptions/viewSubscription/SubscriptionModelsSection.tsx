@@ -112,7 +112,7 @@ const SubscriptionModelsSection: React.FC<SubscriptionModelsSectionProps> = ({
                       {tokenLimitsDisplay}
                     </Button>
                   ) : (
-                    <Stack>
+                    <Stack style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
                       <StackItem>
                         <Button
                           variant="link"
@@ -124,15 +124,15 @@ const SubscriptionModelsSection: React.FC<SubscriptionModelsSectionProps> = ({
                           Add token limit
                         </Button>
                       </StackItem>
-                      {rateLimitErrorIndices?.has(index) && (
-                        <StackItem>
-                          <HelperText>
-                            <HelperTextItem variant="error">
-                              At least one token limit is required
-                            </HelperTextItem>
-                          </HelperText>
-                        </StackItem>
-                      )}
+                      <StackItem>
+                        <HelperText>
+                          <HelperTextItem
+                            variant={rateLimitErrorIndices?.has(index) ? 'error' : 'indeterminate'}
+                          >
+                            At least one token limit is required
+                          </HelperTextItem>
+                        </HelperText>
+                      </StackItem>
                     </Stack>
                   )
                 ) : (

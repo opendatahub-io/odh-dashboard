@@ -90,15 +90,13 @@ const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
   v.modelRefs.every(isModelRef) &&
   isSubjectSpec(v.subjects);
 
-const normalizeModelRefs = (refs: ModelSubscriptionRef[]): ModelSubscriptionRef[] =>
-  refs.map((ref) => ({
-    ...ref,
-    tokenRateLimits: Array.isArray(ref.tokenRateLimits) ? ref.tokenRateLimits : [],
-  }));
-
+/** Coerce null tokenRateLimits (Go nil slice → JSON null) to empty arrays. */
 const normalizeSubscription = (sub: MaaSSubscription): MaaSSubscription => ({
   ...sub,
-  modelRefs: normalizeModelRefs(sub.modelRefs),
+  modelRefs: sub.modelRefs.map((ref) => ({
+    ...ref,
+    tokenRateLimits: Array.isArray(ref.tokenRateLimits) ? ref.tokenRateLimits : [],
+  })),
 });
 
 const isDeleteSubscriptionResponse = (v: unknown): v is { message: string } =>

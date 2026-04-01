@@ -25,6 +25,7 @@ import K8sNameDescriptionField, {
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { APIOptions } from 'mod-arch-core';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { getLowestAvailablePriority } from '~/app/utilities/subscriptions';
 import { createSubscription } from '~/app/api/subscriptions';
 import {
   MaaSModelRefSummary,
@@ -39,18 +40,6 @@ import SubscriptionModelsSection from '../viewSubscription/SubscriptionModelsSec
 
 type CreateSubscriptionFormProps = {
   formData: SubscriptionFormDataResponse;
-};
-
-const getLowestAvailablePriority = (
-  subscriptions: { priority?: number }[],
-  startFrom = 0,
-): number => {
-  const taken = new Set(subscriptions.map((s) => s.priority ?? 0));
-  let p = startFrom;
-  while (taken.has(p)) {
-    p += 1;
-  }
-  return p;
 };
 
 const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formData }) => {
@@ -82,7 +71,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
   }, [formData.groups, selectedGroups.length]);
 
   React.useEffect(() => {
-    if (!priorityInitialized && formData.subscriptions.length > 0) {
+    if (!priorityInitialized) {
       setPriority(getLowestAvailablePriority(formData.subscriptions));
       setPriorityInitialized(true);
     }
@@ -134,9 +123,11 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
     !priorityValidationError;
 
   const handleAddModels = (selectedRefs: MaaSModelRefSummary[]) => {
-    const existingNames = new Set(models.map((m) => m.modelRefSummary.name));
+    const existingKeys = new Set(
+      models.map((m) => `${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`),
+    );
     const newEntries: SubscriptionModelEntry[] = selectedRefs
-      .filter((ref) => !existingNames.has(ref.name))
+      .filter((ref) => !existingKeys.has(`${ref.namespace}/${ref.name}`))
       .map((ref) => ({
         modelRefSummary: ref,
         tokenRateLimits: [],
@@ -155,6 +146,29 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
           next.add(i - 1);
         }
       });
+      return next;
+    });
+  };
+
+  const handleRemoveModelsByRef = (refs: MaaSModelRefSummary[]) => {
+    const keysToRemove = new Set(refs.map((r) => `${r.namespace}/${r.name}`));
+    const removedIndices = new Set<number>();
+    models.forEach((m, i) => {
+      if (keysToRemove.has(`${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`)) {
+        removedIndices.add(i);
+      }
+    });
+    setModels((prev) => prev.filter((_, i) => !removedIndices.has(i)));
+    setRateLimitsTouched((prev) => {
+      const next = new Set<number>();
+      let offset = 0;
+      for (let i = 0; i < models.length; i++) {
+        if (removedIndices.has(i)) {
+          offset++;
+        } else if (prev.has(i)) {
+          next.add(i - offset);
+        }
+      }
       return next;
     });
   };
@@ -302,8 +316,8 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
             data-testid="no-models-warning"
           >
             There are no model endpoints available on the cluster. Deploy a model on the{' '}
-            <Link to="/ai-hub/deployments">Deployments page</Link> and create a MaaSModelRef before
-            creating a subscription.
+            <Link to={`${URL_PREFIX}/deployments`}>Deployments page</Link> and create a MaaSModelRef
+            before creating a subscription.
           </Alert>
         ) : (
           <SubscriptionModelsSection
@@ -327,19 +341,16 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
             allSubscriptions={formData.subscriptions}
             currentModels={models}
             onAdd={handleAddModels}
-            onRemove={(ref) => {
-              const idx = models.findIndex((m) => m.modelRefSummary.name === ref.name);
-              if (idx >= 0) {
-                handleRemoveModel(idx);
-              }
-            }}
+            onRemove={handleRemoveModelsByRef}
             onClose={() => setIsAddModelsModalOpen(false)}
           />
         )}
 
         {editLimitsTarget != null && editingModel && (
           <EditRateLimitsModal
-            modelName={editingModel.modelRefSummary.name}
+            modelName={
+              editingModel.modelRefSummary.displayName ?? editingModel.modelRefSummary.name
+            }
             rateLimits={editingModel.tokenRateLimits}
             onSave={handleSaveRateLimits}
             onClose={() => {
@@ -356,7 +367,29 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
             label={
               <>
                 Create a matching authorization policy{' '}
-                <Popover bodyContent="When enabled, a MaaSAuthPolicy will be created alongside the subscription to authorize the selected groups to access the selected models.">
+                <Popover
+                  headerContent="Why create a policy?"
+                  bodyContent={
+                    <>
+                      <p>
+                        A <b>subscription</b> (MaaSSubscription) defines which models should be
+                        available to certain groups on request, but it does not grant access to
+                        those models on its own.
+                      </p>
+                      <br />
+                      <p>
+                        A <b>policy</b> (MaaSAuthPolicy) is a separate resource that authorizes
+                        specific groups to be able to access model endpoints through the API
+                        gateway.
+                      </p>
+                      <br />
+                      <p>
+                        Both resources are needed in order to consume model endpoints through the
+                        API gateway.
+                      </p>
+                    </>
+                  }
+                >
                   <Button variant="plain" aria-label="Auth policy help" style={{ padding: 0 }}>
                     <OutlinedQuestionCircleIcon />
                   </Button>

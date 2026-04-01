@@ -10,8 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
-import { RateLimit } from '~/app/types/tier';
-import { TokenRateLimit } from '~/app/types/subscriptions';
+import { RateLimit, TokenRateLimit } from '~/app/types/subscriptions';
 import { UNIT_OPTIONS, toRateLimit, toTokenRateLimit } from '~/app/utilities/rateLimits';
 import { RateLimitRow } from './RateLimitRow';
 
@@ -27,7 +26,7 @@ const DEFAULT_RATE_LIMIT: RateLimit = { count: 1000, time: 1, unit: 'hour' };
 const rateLimitSchema = z.object({
   count: z.number().int().min(1, 'Token count must be greater than 0'),
   time: z.number().int().min(1, 'Time value must be greater than 0'),
-  unit: z.enum(['hour', 'minute', 'second', 'millisecond']),
+  unit: z.enum(['day', 'hour', 'minute', 'second', 'millisecond']),
 });
 
 const rateLimitsSchema = z
@@ -35,11 +34,17 @@ const rateLimitsSchema = z
   .min(1, 'At least one token rate limit is required');
 
 const getCountError = (limit: RateLimit): string | undefined => {
+  if (Number.isNaN(limit.count)) {
+    return 'Token count is required';
+  }
   const result = rateLimitSchema.shape.count.safeParse(limit.count);
   return result.success ? undefined : result.error.issues[0].message;
 };
 
 const getTimeError = (limit: RateLimit): string | undefined => {
+  if (Number.isNaN(limit.time)) {
+    return 'Time value is required';
+  }
   const result = rateLimitSchema.shape.time.safeParse(limit.time);
   return result.success ? undefined : result.error.issues[0].message;
 };

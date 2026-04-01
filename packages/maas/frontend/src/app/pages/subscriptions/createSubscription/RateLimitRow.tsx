@@ -16,7 +16,7 @@ import {
   ValidatedOptions,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, MinusCircleIcon } from '@patternfly/react-icons';
-import { RateLimit } from '~/app/types/tier';
+import { RateLimit } from '~/app/types/subscriptions';
 import { UNIT_OPTIONS } from '~/app/utilities/rateLimits';
 
 export type RateLimitRowProps = {

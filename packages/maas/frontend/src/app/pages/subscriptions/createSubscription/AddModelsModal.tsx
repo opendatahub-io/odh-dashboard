@@ -22,11 +22,13 @@ type AddModelsModalProps = {
   allSubscriptions: MaaSSubscription[];
   currentModels: SubscriptionModelEntry[];
   onAdd: (refs: MaaSModelRefSummary[]) => void;
-  onRemove: (ref: MaaSModelRefSummary) => void;
+  onRemove: (refs: MaaSModelRefSummary[]) => void;
   onClose: () => void;
 };
 
 type SortColumn = 'name' | 'namespace' | 'modelId';
+
+const modelRefKey = (namespace: string, name: string): string => `${namespace}/${name}`;
 
 const AddModelsModal: React.FC<AddModelsModalProps> = ({
   availableModelRefs,
@@ -40,9 +42,13 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
   const [sortColumn, setSortColumn] = React.useState<SortColumn>('name');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const [pendingAdds, setPendingAdds] = React.useState<Set<string>>(new Set());
+  const [pendingRemoves, setPendingRemoves] = React.useState<Set<string>>(new Set());
 
-  const currentModelNames = React.useMemo(
-    () => new Set(currentModels.map((m) => m.modelRefSummary.name)),
+  const currentModelKeys = React.useMemo(
+    () =>
+      new Set(
+        currentModels.map((m) => modelRefKey(m.modelRefSummary.namespace, m.modelRefSummary.name)),
+      ),
     [currentModels],
   );
 
@@ -50,15 +56,19 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
     const map = new Map<string, string[]>();
     allSubscriptions.forEach((sub) => {
       sub.modelRefs.forEach((ref) => {
-        const existing = map.get(ref.name) ?? [];
+        const key = modelRefKey(ref.namespace, ref.name);
+        const existing = map.get(key) ?? [];
         existing.push(sub.name);
-        map.set(ref.name, existing);
+        map.set(key, existing);
       });
     });
     return map;
   }, [allSubscriptions]);
 
-  const isInSubscription = (name: string) => currentModelNames.has(name) || pendingAdds.has(name);
+  const isInSubscription = (ref: MaaSModelRefSummary) => {
+    const key = modelRefKey(ref.namespace, ref.name);
+    return (currentModelKeys.has(key) && !pendingRemoves.has(key)) || pendingAdds.has(key);
+  };
 
   const filteredModels = React.useMemo(() => {
     const lowerFilter = filter.toLowerCase();
@@ -66,6 +76,8 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
       ? availableModelRefs.filter(
           (ref) =>
             ref.name.toLowerCase().includes(lowerFilter) ||
+            (ref.displayName?.toLowerCase().includes(lowerFilter) ?? false) ||
+            (ref.description?.toLowerCase().includes(lowerFilter) ?? false) ||
             ref.modelRef.name.toLowerCase().includes(lowerFilter) ||
             ref.namespace.toLowerCase().includes(lowerFilter),
         )
@@ -105,31 +117,54 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
     }
   };
 
+  const sortColumnIndex: Record<SortColumn, number> = { name: 0, namespace: 1, modelId: 2 };
+
   const getSortParams = (column: SortColumn): ThProps['sort'] => ({
     sortBy: {
-      index: column === sortColumn ? 0 : undefined,
+      index: sortColumnIndex[sortColumn],
       direction: sortDirection,
     },
     onSort: () => handleSort(column),
-    columnIndex: 0,
+    columnIndex: sortColumnIndex[column],
   });
 
   const handleToggleModel = (ref: MaaSModelRefSummary) => {
-    if (currentModelNames.has(ref.name)) {
-      onRemove(ref);
-    } else if (pendingAdds.has(ref.name)) {
-      setPendingAdds((prev) => {
+    const key = modelRefKey(ref.namespace, ref.name);
+    if (currentModelKeys.has(key)) {
+      setPendingRemoves((prev) => {
         const next = new Set(prev);
-        next.delete(ref.name);
+        if (next.has(key)) {
+          next.delete(key);
+        } else {
+          next.add(key);
+        }
         return next;
       });
     } else {
-      setPendingAdds((prev) => new Set(prev).add(ref.name));
+      setPendingAdds((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) {
+          next.delete(key);
+        } else {
+          next.add(key);
+        }
+        return next;
+      });
     }
   };
 
   const handleConfirm = () => {
-    const refsToAdd = availableModelRefs.filter((ref) => pendingAdds.has(ref.name));
+    const refsToAdd = availableModelRefs.filter((ref) =>
+      pendingAdds.has(modelRefKey(ref.namespace, ref.name)),
+    );
+    const refsToRemove = currentModels
+      .filter((m) =>
+        pendingRemoves.has(modelRefKey(m.modelRefSummary.namespace, m.modelRefSummary.name)),
+      )
+      .map((m) => m.modelRefSummary);
+    if (refsToRemove.length > 0) {
+      onRemove(refsToRemove);
+    }
     if (refsToAdd.length > 0) {
       onAdd(refsToAdd);
     }
@@ -137,7 +172,13 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
   };
 
   return (
-    <Modal isOpen onClose={onClose} variant="large" aria-label="Add models to subscription">
+    <Modal
+      isOpen
+      onClose={onClose}
+      variant="large"
+      aria-label="Add models to subscription"
+      data-testid="add-models-modal"
+    >
       <ModalHeader title="Add models to subscription" />
       <ModalBody>
         <Stack hasGutter>
@@ -166,11 +207,12 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
               </Thead>
               <Tbody>
                 {filteredModels.map((ref) => {
-                  const inSub = isInSubscription(ref.name);
-                  const subs = subscriptionsByModel.get(ref.name) ?? [];
+                  const key = modelRefKey(ref.namespace, ref.name);
+                  const inSub = isInSubscription(ref);
+                  const subs = subscriptionsByModel.get(key) ?? [];
 
                   return (
-                    <Tr key={ref.name}>
+                    <Tr key={key}>
                       <Td dataLabel="Model name">
                         <strong>{ref.displayName ?? ref.name}</strong>
                         <br />
@@ -189,7 +231,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                         ))}
                         {!inSub && subs.length === 0 && 'None'}
                       </Td>
-                      <Td isActionCell>
+                      <Td isActionCell style={{ textAlign: 'center' }}>
                         <Button
                           variant={inSub ? 'secondary' : 'link'}
                           isDanger={inSub}

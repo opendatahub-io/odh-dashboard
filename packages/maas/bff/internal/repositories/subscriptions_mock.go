@@ -2,9 +2,11 @@ package repositories
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/mocks"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
@@ -31,7 +33,7 @@ func (r *MockSubscriptionsRepository) GetSubscription(_ context.Context, name st
 			return &sub, nil
 		}
 	}
-	return nil, nil
+	return nil, k8sErrors.NewNotFound(constants.MaaSSubscriptionGvr.GroupResource(), name)
 }
 
 func (r *MockSubscriptionsRepository) CreateSubscription(_ context.Context, request models.CreateSubscriptionRequest) (*models.CreateSubscriptionResponse, error) {
@@ -39,7 +41,7 @@ func (r *MockSubscriptionsRepository) CreateSubscription(_ context.Context, requ
 
 	for _, sub := range mocks.GetMockMaaSSubscriptions() {
 		if sub.Name == request.Name {
-			return nil, fmt.Errorf("MaaSSubscription '%s' already exists", request.Name)
+			return nil, k8sErrors.NewAlreadyExists(constants.MaaSSubscriptionGvr.GroupResource(), request.Name)
 		}
 	}
 
@@ -89,7 +91,7 @@ func (r *MockSubscriptionsRepository) UpdateSubscription(_ context.Context, name
 		}
 	}
 	if existing == nil {
-		return nil, nil
+		return nil, k8sErrors.NewNotFound(constants.MaaSSubscriptionGvr.GroupResource(), name)
 	}
 
 	return &models.CreateSubscriptionResponse{
@@ -115,7 +117,7 @@ func (r *MockSubscriptionsRepository) DeleteSubscription(_ context.Context, name
 			return nil
 		}
 	}
-	return fmt.Errorf("MaaSSubscription '%s' not found", name)
+	return k8sErrors.NewNotFound(constants.MaaSSubscriptionGvr.GroupResource(), name)
 }
 
 func (r *MockSubscriptionsRepository) GetFormData(_ context.Context) (*models.SubscriptionFormDataResponse, error) {

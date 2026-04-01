@@ -1750,9 +1750,6 @@ components:
           items:
             $ref: '#/components/schemas/TokenRateLimit'
           description: Token-based rate limits for this model
-        tokenRateLimitRef:
-          type: string
-          description: Reference to an existing TokenRateLimit resource
         billingRate:
           $ref: '#/components/schemas/BillingRate'
       required:

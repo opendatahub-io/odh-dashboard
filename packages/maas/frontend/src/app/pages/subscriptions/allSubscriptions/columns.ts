@@ -22,6 +22,7 @@ export const subscriptionsColumns: SortableData<MaaSSubscription>[] = [
   {
     label: 'Priority',
     field: 'priority',
+    width: 10,
     sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
       (a.priority ?? 0) - (b.priority ?? 0),
   },

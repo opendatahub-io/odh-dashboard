@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
@@ -54,11 +55,11 @@ func GetSubscriptionInfoHandler(app *App, w http.ResponseWriter, r *http.Request
 
 	subscription, err := app.repositories.Subscriptions.GetSubscription(ctx, name)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-	if subscription == nil {
-		app.notFoundResponse(w, r)
+		if k8sErrors.IsNotFound(err) {
+			app.notFoundResponse(w, r)
+		} else {
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 
@@ -145,7 +146,7 @@ func CreateSubscriptionHandler(app *App, w http.ResponseWriter, r *http.Request,
 
 	result, err := app.repositories.Subscriptions.CreateSubscription(ctx, request.Data)
 	if err != nil {
-		if strings.Contains(err.Error(), "already exists") {
+		if k8sErrors.IsAlreadyExists(err) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusConflict,
 				Error:      ErrorPayload{Code: "409", Message: err.Error()},
@@ -194,14 +195,14 @@ func UpdateSubscriptionHandler(app *App, w http.ResponseWriter, r *http.Request,
 
 	result, err := app.repositories.Subscriptions.UpdateSubscription(ctx, name, request.Data)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-	if result == nil {
-		app.errorResponse(w, r, &HTTPError{
-			StatusCode: http.StatusNotFound,
-			Error:      ErrorPayload{Code: "404", Message: fmt.Sprintf("MaaSSubscription '%s' not found", name)},
-		})
+		if k8sErrors.IsNotFound(err) {
+			app.errorResponse(w, r, &HTTPError{
+				StatusCode: http.StatusNotFound,
+				Error:      ErrorPayload{Code: "404", Message: fmt.Sprintf("MaaSSubscription '%s' not found", name)},
+			})
+		} else {
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 
@@ -225,7 +226,7 @@ func DeleteSubscriptionHandler(app *App, w http.ResponseWriter, r *http.Request,
 	}
 
 	if err := app.repositories.Subscriptions.DeleteSubscription(ctx, name); err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if k8sErrors.IsNotFound(err) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusNotFound,
 				Error:      ErrorPayload{Code: "404", Message: err.Error()},

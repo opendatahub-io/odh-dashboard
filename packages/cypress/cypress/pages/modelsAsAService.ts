@@ -825,7 +825,7 @@ class AddModelsToSubscriptionModal extends Modal {
   }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('dialog', { name: 'Add models to subscription' });
+    return cy.findByTestId('add-models-modal');
   }
 
   findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {

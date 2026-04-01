@@ -15,7 +15,6 @@ export type ModelSubscriptionRef = {
   name: string;
   namespace: string;
   tokenRateLimits: TokenRateLimit[];
-  tokenRateLimitRef?: string;
   billingRate?: BillingRate;
 };
 
@@ -138,4 +137,10 @@ export type UserSubscription = {
   organization_id?: string;
   cost_center?: string;
   labels?: Record<string, string>;
+};
+
+export type RateLimit = {
+  count: number;
+  time: number;
+  unit: 'day' | 'hour' | 'minute' | 'second' | 'millisecond';
 };

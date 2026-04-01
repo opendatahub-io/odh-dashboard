@@ -57,11 +57,10 @@ type BillingRate struct {
 
 // ModelSubscriptionRef references a model with rate limits within a subscription.
 type ModelSubscriptionRef struct {
-	Name              string           `json:"name"`
-	Namespace         string           `json:"namespace"`
-	TokenRateLimits   []TokenRateLimit `json:"tokenRateLimits"`
-	TokenRateLimitRef *string          `json:"tokenRateLimitRef,omitempty"`
-	BillingRate       *BillingRate     `json:"billingRate,omitempty"`
+	Name            string           `json:"name"`
+	Namespace       string           `json:"namespace"`
+	TokenRateLimits []TokenRateLimit `json:"tokenRateLimits"`
+	BillingRate     *BillingRate     `json:"billingRate,omitempty"`
 }
 
 // TokenMetadata contains metadata for token usage attribution and metering.
@@ -78,7 +77,7 @@ type MaaSSubscription struct {
 	Description       string                 `json:"description,omitempty"`
 	Namespace         string                 `json:"namespace"`
 	Phase             string                 `json:"phase,omitempty"`
-	Priority          int32                  `json:"priority,omitempty"`
+	Priority          int32                  `json:"priority"`
 	Owner             OwnerSpec              `json:"owner"`
 	ModelRefs         []ModelSubscriptionRef `json:"modelRefs"`
 	TokenMetadata     *TokenMetadata         `json:"tokenMetadata,omitempty"`

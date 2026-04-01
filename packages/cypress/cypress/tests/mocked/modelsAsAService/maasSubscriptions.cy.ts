@@ -160,25 +160,7 @@ describe('View Subscription Page', () => {
 
 describe('Subscription Create Page', () => {
   beforeEach(() => {
-    asProductAdminUser();
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        modelAsService: true,
-      }),
-    );
-    cy.interceptOdh('GET /maas/api/v1/user', {
-      data: { userId: 'test-user', clusterAdmin: false },
-    });
-    cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
-    cy.interceptOdh(
-      'GET /api/dsc/status',
-      mockDscStatus({
-        components: {
-          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
-        },
-      }),
-    );
+    setupCommonIntercepts();
     cy.interceptOdh('GET /maas/api/v1/new-subscription', {
       data: mockSubscriptionFormData(),
     });
@@ -232,7 +214,7 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
 
     // Edit token rate limits for the added model
-    createSubscriptionPage.findModelsTable().findByText('Unlimited').click();
+    createSubscriptionPage.findModelsTable().findByTestId('add-token-limit-0').click();
     editRateLimitsModal.shouldBeOpen();
     editRateLimitsModal.findCountInput(0).clear();
     editRateLimitsModal.findCountInput(0).type('5000');
