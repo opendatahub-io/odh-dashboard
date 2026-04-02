@@ -1167,11 +1167,6 @@ declare global {
           response: { data: UserSubscription[] },
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/secrets/:name',
-          options: { path: { name: string } },
-          response: OdhResponse<SecretKind>,
-        ) => Cypress.Chainable<null>) &
-        ((
           type: 'POST /maas/api/v1/maasmodel',
           response: OdhResponse<MaaSModelRef>,
         ) => Cypress.Chainable<null>) &

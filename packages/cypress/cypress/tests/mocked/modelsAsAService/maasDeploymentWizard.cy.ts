@@ -361,7 +361,7 @@ describe('MaaS Deployment Wizard', () => {
     cy.wait('@createMaaSModelRefDryRun');
     // Wizard stayed open and shows the error
     modelServingWizard.findErrorMessageAlert().should('be.visible').contains('Error');
-    // no LLMInferenceService should be created
-    cy.get('@createLLMInferenceService.all').should('have.length', 0);
+    // no LLMInferenceService should be created but the LLMInferenceService dry run should have been called
+    cy.get('@createLLMInferenceService.all').should('have.length', 1);
   });
 });
