@@ -56,7 +56,7 @@ describe('Subscriptions Page', () => {
         },
         /* eslint-enable camelcase */
       ],
-    });
+    }).as('defaultMaasModels');
     // @ts-expect-error - Gen AI API endpoint not in Cypress type definitions
     // Mock AI models (namespace models) - empty for these tests
     cy.interceptOdh('GET /gen-ai/api/v1/aaa/models' as string, { data: [] });
@@ -149,11 +149,13 @@ describe('Subscriptions Page', () => {
         },
         /* eslint-enable camelcase */
       ],
-    });
+    }).as('maasModels');
 
     // Reload the page to get the new model data
     cy.visit('/gen-ai-studio/assets');
 
+    // Wait for models API call to complete before interacting with the page
+    cy.wait('@maasModels');
     cy.contains('Llama 3 8B').should('exist');
     cy.get('[data-testid="model-row-kebab"]').first().click();
     cy.contains('View endpoints').click();
@@ -180,6 +182,8 @@ describe('Subscriptions Page', () => {
 
   it('should handle API key generation error', () => {
     cy.visit('/gen-ai-studio/assets');
+    // Wait for models API call to complete before interacting with the page
+    cy.wait('@defaultMaasModels');
     cy.contains('Granite 3.1 8B Instruct').should('exist');
     cy.get('[data-testid="model-row-kebab"]').first().click();
     cy.contains('View endpoints').click();
@@ -210,6 +214,8 @@ describe('Subscriptions Page', () => {
 
   it('should disable generate button while loading', () => {
     cy.visit('/gen-ai-studio/assets');
+    // Wait for models API call to complete before interacting with the page
+    cy.wait('@defaultMaasModels');
     cy.contains('Granite 3.1 8B Instruct').should('exist');
     cy.get('[data-testid="model-row-kebab"]').first().click();
     cy.contains('View endpoints').click();
@@ -240,6 +246,8 @@ describe('Subscriptions Page', () => {
 
   it('should reset state when modal is closed', () => {
     cy.visit('/gen-ai-studio/assets');
+    // Wait for models API call to complete before interacting with the page
+    cy.wait('@defaultMaasModels');
     cy.contains('Granite 3.1 8B Instruct').should('exist');
     cy.get('[data-testid="model-row-kebab"]').first().click();
     cy.contains('View endpoints').click();
