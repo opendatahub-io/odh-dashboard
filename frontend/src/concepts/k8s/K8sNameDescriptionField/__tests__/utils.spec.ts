@@ -1,5 +1,6 @@
 import {
   handleUpdateLogic,
+  INFERENCE_SERVICE_NAME_REGEX,
   isK8sNameDescriptionDataValid,
   LimitNameResourceType,
   resourceTypeLimits,
@@ -278,8 +279,6 @@ describe('handleUpdateLogic', () => {
 });
 
 describe('handleUpdateLogic with custom regexp (model deployment)', () => {
-  const INFERENCE_SERVICE_NAME_REGEX = /^[a-z]([-a-z0-9]*[a-z0-9])?$/;
-
   it('should detect invalid characters when k8s name starts with a digit', () => {
     const defaults = setupDefaults({
       limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
