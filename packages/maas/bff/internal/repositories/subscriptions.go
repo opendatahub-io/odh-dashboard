@@ -125,6 +125,8 @@ func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, reques
 		policyObj := buildAuthPolicyUnstructured(
 			policyName,
 			r.namespace,
+			"",
+			"",
 			modelRefs,
 			request.Owner.Groups,
 			request.TokenMetadata,
@@ -442,6 +444,10 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 		Namespace: obj.GetNamespace(),
 	}
 
+	annotations := obj.GetAnnotations()
+	policy.DisplayName = annotations[displayNameAnnotation]
+	policy.Description = annotations[descriptionAnnotation]
+
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	policy.Phase = phase
 
@@ -498,7 +504,6 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) (*mode
 		Name:      obj.GetName(),
 		Namespace: obj.GetNamespace(),
 	}
-
 	annotations := obj.GetAnnotations()
 	summary.DisplayName = annotations[displayNameAnnotation]
 	summary.Description = annotations[descriptionAnnotation]
@@ -539,12 +544,23 @@ func buildSubscriptionUnstructured(name, namespace string, owner models.OwnerSpe
 	return obj
 }
 
-func buildAuthPolicyUnstructured(name, namespace string, modelRefs []models.ModelRef, groups []models.GroupReference, tokenMetadata *models.TokenMetadata) *unstructured.Unstructured {
+func buildAuthPolicyUnstructured(name, namespace, displayName, description string, modelRefs []models.ModelRef, groups []models.GroupReference, tokenMetadata *models.TokenMetadata) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetAPIVersion("maas.opendatahub.io/v1alpha1")
 	obj.SetKind("MaaSAuthPolicy")
 	obj.SetName(name)
 	obj.SetNamespace(namespace)
+
+	annotations := make(map[string]string)
+	if displayName != "" {
+		annotations[displayNameAnnotation] = displayName
+	}
+	if description != "" {
+		annotations[descriptionAnnotation] = description
+	}
+	if len(annotations) > 0 {
+		obj.SetAnnotations(annotations)
+	}
 
 	mrList := make([]interface{}, len(modelRefs))
 	for i, mr := range modelRefs {

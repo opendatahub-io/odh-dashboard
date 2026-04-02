@@ -17,7 +17,6 @@ import (
 func attachSubscriptionHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.GET(constants.SubscriptionListPath, handlerWithApp(app, ListSubscriptionsHandler))
 	apiRouter.GET(constants.SubscriptionInfoPath, handlerWithApp(app, GetSubscriptionInfoHandler))
-	apiRouter.GET(constants.SubscriptionFormDataPath, handlerWithApp(app, GetSubscriptionFormDataHandler))
 	apiRouter.POST(constants.SubscriptionCreatePath, handlerWithApp(app, CreateSubscriptionHandler))
 	apiRouter.PUT(constants.SubscriptionUpdatePath, handlerWithApp(app, UpdateSubscriptionHandler))
 	apiRouter.DELETE(constants.SubscriptionDeletePath, handlerWithApp(app, DeleteSubscriptionHandler))
@@ -86,9 +85,9 @@ func GetSubscriptionInfoHandler(app *App, w http.ResponseWriter, r *http.Request
 	}
 }
 
-// GetSubscriptionFormDataHandler handles GET /api/v1/new-subscription
-// K8s calls: GET /k8s/v1/groups, GET /k8s/v1/maasmodelref
-func GetSubscriptionFormDataHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+// GetSubscriptionPolicyFormDataHandler handles GET /api/v1/subscription-policy-form-data
+// K8s calls: GET /k8s/v1/groups, GET /k8s/v1/maasmodelref, GET /k8s/v1/maasauthpolicy, GET /k8s/v1/maassubscription
+func GetSubscriptionPolicyFormDataHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
 	formData, err := app.repositories.Subscriptions.GetFormData(ctx)
@@ -96,6 +95,20 @@ func GetSubscriptionFormDataHandler(app *App, w http.ResponseWriter, r *http.Req
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+
+	policies, err := app.repositories.Policies.ListPolicies(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	formData.Policies = policies
+
+	subscriptions, err := app.repositories.Subscriptions.ListSubscriptions(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	formData.Subscriptions = subscriptions
 
 	if err := app.WriteJSON(w, http.StatusOK, formData, nil); err != nil {
 		app.serverErrorResponse(w, r, err)

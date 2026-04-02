@@ -143,6 +143,12 @@ const initIntercepts = ({
       body: mockLLMInferenceServiceK8sResource({ name: 'test-llmd-model' }),
     },
   ).as('createLLMInferenceService');
+  // MaaS is enabled so we need to intercept this for edit scenarios
+  cy.interceptOdh(
+    'DELETE /maas/api/v1/maasmodel/:namespace/:name',
+    { path: { namespace: '*', name: '*' } },
+    { message: 'Deleted successfully' },
+  ).as('deleteMaaSModelRef');
 };
 
 describe('Model Serving LLMD', () => {
@@ -774,6 +780,12 @@ describe('Model Serving LLMD', () => {
       cy.intercept('PUT', '**/llminferenceserviceconfigs/test-vllm-gpu*', (req) => {
         req.reply({ statusCode: 200, body: req.body });
       }).as('updateLLMInferenceServiceConfig');
+      // MaaS is enabled so we need to intercept this for edit scenarios
+      cy.interceptOdh(
+        'DELETE /maas/api/v1/maasmodel/:namespace/:name',
+        { path: { namespace: '*', name: '*' } },
+        { message: 'Deleted successfully' },
+      ).as('deleteMaaSModelRef');
     };
 
     it('should display serving runtime name and version, then pre-fill when editing', () => {

@@ -99,6 +99,8 @@ type ModelRef struct {
 type MaaSAuthPolicy struct {
 	Name             string         `json:"name"`
 	Namespace        string         `json:"namespace"`
+	DisplayName      string         `json:"displayName,omitempty"`
+	Description      string         `json:"description,omitempty"`
 	Phase            string         `json:"phase,omitempty"`
 	ModelRefs        []ModelRef     `json:"modelRefs"`
 	Subjects         SubjectSpec    `json:"subjects"`
@@ -153,8 +155,10 @@ type SubscriptionInfoResponse struct {
 	AuthPolicies []MaaSAuthPolicy      `json:"authPolicies"`
 }
 
-// SubscriptionFormDataResponse contains data for the subscription creation form.
+// SubscriptionFormDataResponse contains data for the subscription and policy creation forms.
 type SubscriptionFormDataResponse struct {
-	Groups    []string              `json:"groups"`
-	ModelRefs []MaaSModelRefSummary `json:"modelRefs"`
+	Groups        []string              `json:"groups"`
+	ModelRefs     []MaaSModelRefSummary `json:"modelRefs"`
+	Policies      []MaaSAuthPolicy      `json:"policies"`
+	Subscriptions []MaaSSubscription    `json:"subscriptions"`
 }

@@ -24,7 +24,7 @@ var _ = Describe("TestNamespacesHandler", func() {
 
 		BeforeAll(func() {
 			By("setting up the test app in dev mode")
-			repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, nil, nil)
+			repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			testApp = App{
@@ -137,7 +137,7 @@ var _ = Describe("TestNamespacesHandler", func() {
 			By("setting up the test app in dev mode")
 			kubernetesMockedTokenClientFactory, err := k8mocks.NewTokenClientFactory(clientset, restConfig, logger)
 			Expect(err).NotTo(HaveOccurred())
-			repos, err := repositories.NewRepositories(logger, kubernetesMockedTokenClientFactory, envConfig, nil, nil)
+			repos, err := repositories.NewRepositories(logger, kubernetesMockedTokenClientFactory, envConfig, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			testApp = App{
 				config:                  config.EnvConfig{DevMode: true},
