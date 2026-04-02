@@ -92,6 +92,8 @@ func (r *PoliciesRepository) CreatePolicy(ctx context.Context, request models.Cr
 	policyObj := buildAuthPolicyUnstructured(
 		request.Name,
 		r.namespace,
+		request.DisplayName,
+		request.Description,
 		request.ModelRefs,
 		request.Subjects.Groups,
 		request.MeteringMetadata,
@@ -126,6 +128,19 @@ func (r *PoliciesRepository) UpdatePolicy(ctx context.Context, name string, requ
 		}
 		return nil, fmt.Errorf("failed to get MaaSAuthPolicy: %w", err)
 	}
+
+	// Update annotations for displayName and description
+	annotations := existingObj.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	if request.DisplayName != "" {
+		annotations["openshift.io/display-name"] = request.DisplayName
+	}
+	if request.Description != "" {
+		annotations["openshift.io/description"] = request.Description
+	}
+	existingObj.SetAnnotations(annotations)
 
 	updateAuthPolicySpec(existingObj, request.ModelRefs, request.Subjects.Groups, request.MeteringMetadata)
 

@@ -672,54 +672,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/new-subscription:
-    get:
-      tags:
-        - subscriptions
-      summary: Get subscription creation form data
-      operationId: getNewSubscriptionFormData
-      description: >
-        Returns the data needed to populate a subscription creation form,
-        including available Kubernetes groups and MaaSModelRef resources.
-
-        K8s calls: GET /k8s/v1/groups, GET /k8s/v1/maasmodelref
-      responses:
-        '200':
-          description: Form data for creating a new subscription
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubscriptionFormDataResponse'
-              example:
-                groups:
-                  - system:authenticated
-                  - premium-users
-                  - enterprise-users
-                  - beta-testers
-                modelRefs:
-                  - name: llama-2-7b-chat
-                    namespace: maas-models
-                    modelRef:
-                      kind: LLMInferenceService
-                      name: llama-2-7b-chat
-                    phase: Ready
-                    endpoint: https://llama-2-7b-chat.example.com
-                  - name: mistral-7b-instruct
-                    namespace: maas-models
-                    modelRef:
-                      kind: LLMInferenceService
-                      name: mistral-7b-instruct
-                    phase: Ready
-                    endpoint: https://mistral-7b-instruct.example.com
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
     post:
       tags:
         - subscriptions
@@ -1112,14 +1064,13 @@ paths:
   /api/v1/subscription-policy-form-data:
     get:
       tags:
-        - policies
-      summary: Get policy creation form data
-      operationId: getPolicyFormData
+        - general
+      summary: Get subscription and policy form data
+      operationId: getSubscriptionPolicyFormData
       description: >
-        Returns the data needed to populate a policy creation form,
+        Returns the data needed to populate subscription and policy creation forms,
         including available groups, MaaSModelRef resources, existing
-        policies, and existing subscriptions. Shares the same handler
-        as GET /api/v1/new-subscription.
+        policies, and existing subscriptions.
 
         K8s calls: GET /k8s/v1/groups, GET /k8s/v1/maasmodelref, GET /k8s/v1/maasauthpolicy, GET /k8s/v1/maassubscription
       responses:
@@ -2181,6 +2132,14 @@ components:
           type: string
           description: Name for the MaaSAuthPolicy resource
           example: team-alpha-policy
+        displayName:
+          type: string
+          description: Human-readable display name (stored as openshift.io/display-name annotation)
+          example: Team Alpha Policy
+        description:
+          type: string
+          description: Description of the policy (stored as openshift.io/description annotation)
+          example: Grants Team Alpha access to LLM models
         modelRefs:
           type: array
           items:
@@ -2200,6 +2159,12 @@ components:
       type: object
       description: Request body for updating an existing MaaSAuthPolicy resource
       properties:
+        displayName:
+          type: string
+          description: Human-readable display name (stored as openshift.io/display-name annotation)
+        description:
+          type: string
+          description: Description of the policy (stored as openshift.io/description annotation)
         modelRefs:
           type: array
           items:
