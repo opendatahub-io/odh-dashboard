@@ -161,6 +161,7 @@ function AutoragConfigure(): React.JSX.Element {
   const [isMetricSelectOpen, setIsMetricSelectOpen] = useState(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
   const [inputDataSourceMode, setInputDataSourceMode] = useState<'select' | 'upload'>('select');
+  const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>();
   const [isInputDataFileUploading, setIsInputDataFileUploading] = useState(false);
   const [isInputDataDropdownOpen, setIsInputDataDropdownOpen] = useState(false);
   const inputDataNativeInputRef = useRef<HTMLInputElement>(null);
@@ -168,7 +169,6 @@ function AutoragConfigure(): React.JSX.Element {
   const modelsInitialized = useRef(false);
 
   const notification = useNotification();
-  const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>();
 
   const form = useFormContext<ConfigureSchema>();
   const { getValues, reset, setValue, formState } = form;
@@ -250,6 +250,7 @@ function AutoragConfigure(): React.JSX.Element {
   // reset input data key if document input mode changes
   useEffect(() => {
     setIsInputDataFileUploading(false);
+    setSelectedInputDataFile(undefined);
     setValue('input_data_key', '', { shouldValidate: true });
   }, [inputDataSourceMode, setValue]);
 
@@ -432,7 +433,7 @@ function AutoragConfigure(): React.JSX.Element {
 
                       {inputDataSourceMode === 'select' && (
                         <>
-                          <StackItem className="pf-v6-u-mb-sm">
+                          <StackItem>
                             <Content component="h4">Select file or folder</Content>
                           </StackItem>
                           <StackItem>
@@ -451,6 +452,41 @@ function AutoragConfigure(): React.JSX.Element {
                               Browse bucket
                             </Button>
                           </StackItem>
+                          {selectedInputDataFile && (
+                            <StackItem>
+                              <Table aria-label="Selected input data file" variant="compact">
+                                <Thead>
+                                  <Tr>
+                                    <Th>Name</Th>
+                                    <Th>Type</Th>
+                                    <Th />
+                                  </Tr>
+                                </Thead>
+                                <Tbody>
+                                  <Tr>
+                                    <Td dataLabel="Name">{selectedInputDataFile.name}</Td>
+                                    <Td dataLabel="Type">{selectedInputDataFile.type}</Td>
+                                    <Td isActionCell>
+                                      <Tooltip content="Remove selection">
+                                        <Button
+                                          size="sm"
+                                          variant="plain"
+                                          aria-label="Remove selection"
+                                          icon={<TimesIcon />}
+                                          onClick={() => {
+                                            setSelectedInputDataFile(undefined);
+                                            setValue('input_data_key', '', {
+                                              shouldValidate: true,
+                                            });
+                                          }}
+                                        />
+                                      </Tooltip>
+                                    </Td>
+                                  </Tr>
+                                </Tbody>
+                              </Table>
+                            </StackItem>
+                          )}
                         </>
                       )}
 
@@ -578,39 +614,6 @@ function AutoragConfigure(): React.JSX.Element {
                         </>
                       )}
                     </>
-                  )}
-                  {selectedInputDataFile && (
-                    <StackItem>
-                      <Table aria-label="Selected input data file" variant="compact">
-                        <Thead>
-                          <Tr>
-                            <Th>Name</Th>
-                            <Th>Type</Th>
-                            <Th />
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          <Tr>
-                            <Td dataLabel="Name">{selectedInputDataFile.name}</Td>
-                            <Td dataLabel="Type">{selectedInputDataFile.type}</Td>
-                            <Td isActionCell>
-                              <Tooltip content="Remove selection">
-                                <Button
-                                  size="sm"
-                                  variant="plain"
-                                  aria-label="Remove selection"
-                                  icon={<TimesIcon />}
-                                  onClick={() => {
-                                    setSelectedInputDataFile(undefined);
-                                    setValue('input_data_key', '', { shouldValidate: true });
-                                  }}
-                                />
-                              </Tooltip>
-                            </Td>
-                          </Tr>
-                        </Tbody>
-                      </Table>
-                    </StackItem>
                   )}
                 </Stack>
               </CardBody>
