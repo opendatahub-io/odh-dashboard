@@ -63,60 +63,78 @@ const EvaluationResultsPage: React.FC = () => {
     config: { deploymentMode },
   } = useModularArchContext();
 
-  const benchmarkIds = React.useMemo(
-    () => (job ? getJobBenchmarks(job).map((b) => b.id) : []),
-    [job],
+  const benchmarks = React.useMemo(() => (job ? getJobBenchmarks(job) : []), [job]);
+
+  // Composite key = "id:benchmark_index" when index is present, else "id:listIndex".
+  // Guarantees uniqueness even when the same benchmark id appears multiple times.
+  const benchmarkKeys = React.useMemo(
+    () => benchmarks.map((b, i) => `${b.id}:${b.benchmark_index ?? i}`),
+    [benchmarks],
   );
 
-  const [selectedBenchmarkId, setSelectedBenchmarkId] = React.useState<string | null>(null);
+  const [selectedBenchmarkKey, setSelectedBenchmarkKey] = React.useState<string | null>(null);
   const [showAllBenchmarks, setShowAllBenchmarks] = React.useState(false);
 
   React.useEffect(() => {
-    if (benchmarkIds.length > 0) {
-      setSelectedBenchmarkId((prev) =>
-        prev === null || !benchmarkIds.includes(prev) ? benchmarkIds[0] : prev,
+    if (benchmarkKeys.length > 0) {
+      setSelectedBenchmarkKey((prev) =>
+        prev === null || !benchmarkKeys.includes(prev) ? benchmarkKeys[0] : prev,
       );
     } else {
-      setSelectedBenchmarkId(null);
+      setSelectedBenchmarkKey(null);
     }
     setShowAllBenchmarks(false);
-  }, [benchmarkIds]);
+  }, [benchmarkKeys]);
 
-  const visibleBenchmarkIds = showAllBenchmarks
-    ? benchmarkIds
-    : benchmarkIds.slice(0, DEFAULT_VISIBLE_BENCHMARKS);
+  const visibleBenchmarks = showAllBenchmarks
+    ? benchmarks
+    : benchmarks.slice(0, DEFAULT_VISIBLE_BENCHMARKS);
 
-  const hiddenCount = Math.max(0, benchmarkIds.length - DEFAULT_VISIBLE_BENCHMARKS);
+  const hiddenCount = Math.max(0, benchmarks.length - DEFAULT_VISIBLE_BENCHMARKS);
 
   const evaluationName = job ? getEvaluationName(job) : '';
   const duration = job
     ? formatDuration(job.resource.created_at, job.resource.updated_at)
     : undefined;
 
+  // Resolve the selected benchmark object from the composite key.
+  const selectedBenchmark = React.useMemo(() => {
+    if (!selectedBenchmarkKey) {
+      return undefined;
+    }
+    const idx = benchmarkKeys.indexOf(selectedBenchmarkKey);
+    return idx >= 0 ? benchmarks[idx] : undefined;
+  }, [selectedBenchmarkKey, benchmarkKeys, benchmarks]);
+
   const scoreDisplay = React.useMemo(() => {
     if (!job) {
       return '-';
     }
-    if (selectedBenchmarkId && benchmarkIds.length > 1) {
-      return getBenchmarkResultScore(job, selectedBenchmarkId);
+    if (selectedBenchmark && benchmarks.length > 1) {
+      return getBenchmarkResultScore(job, selectedBenchmark.id, selectedBenchmark.benchmark_index);
     }
     return getResultScore(job);
-  }, [job, selectedBenchmarkId, benchmarkIds.length]);
+  }, [job, selectedBenchmark, benchmarks.length]);
 
   const mlflowExperimentId = job?.resource.mlflow_experiment_id;
   const mlflowRunId = React.useMemo(() => {
-    if (!selectedBenchmarkId || !job?.results.benchmarks) {
+    if (!selectedBenchmark || !job?.results.benchmarks) {
       return undefined;
     }
-    return job.results.benchmarks.find((b) => b.id === selectedBenchmarkId)?.mlflow_run_id;
-  }, [selectedBenchmarkId, job?.results.benchmarks]);
+    return job.results.benchmarks.find(
+      (b) =>
+        b.id === selectedBenchmark.id &&
+        (selectedBenchmark.benchmark_index === undefined ||
+          b.benchmark_index === selectedBenchmark.benchmark_index),
+    )?.mlflow_run_id;
+  }, [selectedBenchmark, job?.results.benchmarks]);
 
   const mlflowRunTabsKey = React.useMemo(() => {
-    if (!mlflowExperimentId || !mlflowRunId || !selectedBenchmarkId) {
+    if (!mlflowExperimentId || !mlflowRunId || !selectedBenchmarkKey) {
       return undefined;
     }
-    return `${namespace ?? ''}:${mlflowExperimentId}:${selectedBenchmarkId}:${mlflowRunId}`;
-  }, [namespace, mlflowExperimentId, mlflowRunId, selectedBenchmarkId]);
+    return `${namespace ?? ''}:${mlflowExperimentId}:${selectedBenchmarkKey}:${mlflowRunId}`;
+  }, [namespace, mlflowExperimentId, mlflowRunId, selectedBenchmarkKey]);
 
   const metadataRow = job ? (
     <Flex
@@ -220,28 +238,32 @@ const EvaluationResultsPage: React.FC = () => {
           </div>
 
           {/* Benchmark cards grid (shown whenever there are multiple benchmarks) */}
-          {benchmarkIds.length > 1 && (
+          {benchmarks.length > 1 && (
             <div className="pf-v6-u-mb-lg" data-testid="benchmarks-grid">
               <Title headingLevel="h3" className="pf-v6-u-mb-md">
                 Benchmarks
               </Title>
               <Gallery hasGutter minWidths={{ default: '250px' }}>
-                {visibleBenchmarkIds.map((id) => (
-                  <BenchmarkResultCard
-                    key={id}
-                    benchmarkId={id}
-                    job={job}
-                    isSelected={selectedBenchmarkId === id}
-                    onClick={() => {
-                      setSelectedBenchmarkId(id);
-                      fireMiscTrackingEvent(EVAL_HUB_EVENTS.RESULT_BENCHMARK_CARD_SELECTED, {
-                        benchmarkId: id,
-                        evaluationName,
-                        collectionName: job.collection?.id,
-                      });
-                    }}
-                  />
-                ))}
+                {visibleBenchmarks.map((benchmark, i) => {
+                  const cardKey = benchmarkKeys[i];
+                  return (
+                    <BenchmarkResultCard
+                      key={cardKey}
+                      benchmarkId={benchmark.id}
+                      benchmarkIndex={benchmark.benchmark_index}
+                      job={job}
+                      isSelected={selectedBenchmarkKey === cardKey}
+                      onClick={() => {
+                        setSelectedBenchmarkKey(cardKey);
+                        fireMiscTrackingEvent(EVAL_HUB_EVENTS.RESULT_BENCHMARK_CARD_SELECTED, {
+                          benchmarkId: benchmark.id,
+                          evaluationName,
+                          collectionName: job.collection?.id,
+                        });
+                      }}
+                    />
+                  );
+                })}
               </Gallery>
               {!showAllBenchmarks && hiddenCount > 0 && (
                 <Button
@@ -257,8 +279,12 @@ const EvaluationResultsPage: React.FC = () => {
           )}
 
           {/* Selected benchmark summary (primary metric + threshold) */}
-          {selectedBenchmarkId && (
-            <BenchmarkResultDetails benchmarkId={selectedBenchmarkId} job={job} />
+          {selectedBenchmark && (
+            <BenchmarkResultDetails
+              benchmarkId={selectedBenchmark.id}
+              benchmarkIndex={selectedBenchmark.benchmark_index ?? 0}
+              job={job}
+            />
           )}
 
           {/* MLflow run tabs for the selected benchmark */}
