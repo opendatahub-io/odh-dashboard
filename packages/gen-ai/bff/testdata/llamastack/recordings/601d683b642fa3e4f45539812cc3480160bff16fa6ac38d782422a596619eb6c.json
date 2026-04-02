@@ -21,14 +21,14 @@
         {
           "type": "function",
           "function": {
-            "name": "knowledge_search",
-            "description": "Search for information in a database.",
+            "name": "file_search",
+            "description": "Search files for relevant information",
             "parameters": {
               "type": "object",
               "properties": {
                 "query": {
                   "type": "string",
-                  "description": "The query to search for. Can be a natural language sentence or keywords."
+                  "description": "The search query"
                 }
               },
               "required": [
@@ -40,14 +40,17 @@
       ]
     },
     "endpoint": "/v1/chat/completions",
-    "model": "models/gemini-2.5-flash"
+    "model": "models/gemini-2.5-flash",
+    "provider_metadata": {
+      "openai_sdk_version": "2.6.1"
+    }
   },
   "response": {
     "body": [
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-65c6b6684b45",
+          "id": "rec-601d683b642f",
           "choices": [
             {
               "delta": {
@@ -58,10 +61,10 @@
                 "tool_calls": [
                   {
                     "index": null,
-                    "id": "function-call-13050965173278698385",
+                    "id": "function-call-8847340012602214185",
                     "function": {
-                      "arguments": "{\"query\":\"What is machine learning?\"}",
-                      "name": "knowledge_search"
+                      "arguments": "{\"query\":\"machine learning\"}",
+                      "name": "file_search"
                     },
                     "type": "function"
                   }
@@ -78,9 +81,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 19,
-            "prompt_tokens": 59,
-            "total_tokens": 132,
+            "completion_tokens": 16,
+            "prompt_tokens": 45,
+            "total_tokens": 269,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

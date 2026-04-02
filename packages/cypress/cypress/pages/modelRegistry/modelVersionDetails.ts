@@ -4,7 +4,7 @@ import { Modal } from '../components/Modal';
 class ModelVersionDetails {
   visit(preferredModelRegistry = 'modelregistry-sample', rmId = '1', mvId = '1') {
     cy.visitWithLogin(
-      `/ai-hub/registry/${preferredModelRegistry}/registered-models/${rmId}/versions/${mvId}`,
+      `/ai-hub/models/registry/${preferredModelRegistry}/registered-models/${rmId}/versions/${mvId}`,
     );
     this.wait();
   }

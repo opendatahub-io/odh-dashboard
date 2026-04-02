@@ -6,7 +6,10 @@
     "headers": {},
     "body": {},
     "endpoint": "/v1/models",
-    "model": ""
+    "model": "",
+    "provider_metadata": {
+      "openai_sdk_version": "2.6.1"
+    }
   },
   "response": {
     "body": [
@@ -448,6 +451,16 @@
           "object": "model",
           "owned_by": "google",
           "display_name": "Veo 3.1 fast"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/veo-3.1-lite-generate-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Veo 3.1 lite"
         }
       },
       {

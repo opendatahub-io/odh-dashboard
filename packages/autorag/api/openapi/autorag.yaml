@@ -316,6 +316,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: uploadS3File
@@ -328,6 +330,12 @@ paths:
         Chunked transfer encoding is supported. When Content-Length is set, it must not exceed
         1 GiB plus allowance for multipart framing (~64 MiB) or the request is rejected with 413.
         The file part is streamed via http.MaxBytesReader (1 GiB max); larger file parts fail with 413.
+
+        On success, returns JSON with `uploaded: true` and the resolved `key` (which may differ
+        from the requested key if a collision was avoided by probing existing keys).
+
+        Returns 409 if the object key chosen after collision resolution still conflicts at upload time
+        (e.g. concurrent writer); the client should retry the upload.
 
   # TODO [ Gustavo ] Ongoing discussion on what this endpoint and the other S3/file endpoint should be structured as
   /api/v1/s3/files:
@@ -1135,11 +1143,18 @@ components:
       description: Response body for successful S3 file upload
       required:
         - uploaded
+        - key
       type: object
       properties:
         uploaded:
           type: boolean
           example: true
+        key:
+          type: string
+          description: >-
+            The actual S3 key used for the uploaded file. When the requested key already exists,
+            the server appends or increments a numeric suffix (for example: file.pdf -> file-1.pdf).
+          example: documents/myfile-1.pdf
 
     S3ListObjectsResult:
       type: object
@@ -1403,6 +1418,14 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
       description: Forbidden - insufficient permissions
+    Conflict:
+      description: >-
+        Conflict (e.g. S3 conditional upload failed because the object already exists at the
+        resolved key; client may retry the request)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
     InternalServerError:
       content:
         application/json:

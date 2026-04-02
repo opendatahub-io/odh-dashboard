@@ -35,6 +35,7 @@ npm run test:contract
 **PR Checklist:**
 - [ ] All tests passing (lint, unit, contract)
 - [ ] ADR created/updated (if architectural decision made)
+- [ ] CHANGELOG.md updated (if breaking or notable change)
 - [ ] OpenAPI spec updated (if API endpoint added/modified)
 - [ ] README updated (if configuration or setup changed)
 - [ ] Commit message follows convention (see below)

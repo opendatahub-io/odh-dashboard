@@ -250,7 +250,7 @@ describe('mapResultToItems', () => {
   });
   it('should filter selectable files by extension', () => {
     const result = mockS3ListObjectsResponse({ common_prefixes: [] });
-    const items = mapResultToItems(result, ['yaml']);
+    const items = mapResultToItems(result, { selectableExtensions: ['yaml'] });
 
     const yaml = items.find((f) => f.name === 'config.yaml');
     const md = items.find((f) => f.name === 'README.md');
