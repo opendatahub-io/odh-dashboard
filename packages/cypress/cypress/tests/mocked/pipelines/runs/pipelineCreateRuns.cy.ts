@@ -637,6 +637,8 @@ describe('Pipeline create runs', () => {
       pipelineVersionImportModal.find();
       pipelineVersionImportModal.fillVersionName(newPipelineVersion.display_name);
       pipelineVersionImportModal.fillVersionDescription(newPipelineVersion.description);
+      // Mock the duplicate name check for the version import modal (before upload)
+      createRunPage.mockGetPipelineVersions(projectName, [], mockPipeline.pipeline_id);
       pipelineVersionImportModal.uploadPipelineYaml(mockPipelineYamlPath);
       pipelineVersionImportModal.submit();
 
