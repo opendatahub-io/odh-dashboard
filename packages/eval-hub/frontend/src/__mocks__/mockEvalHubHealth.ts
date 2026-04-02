@@ -1,7 +1,7 @@
-import { EvalHubHealthResponse } from '~/app/types';
+import { EvalHubHealthResponse, EvalHubHealthStatus } from '~/app/types';
 
 type MockEvalHubHealthOptions = Partial<{
-  status: string;
+  status: EvalHubHealthStatus;
   available: boolean;
 }>;
 
