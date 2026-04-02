@@ -103,6 +103,7 @@ function extractTsDescription(raw) {
 function parseArgs(argv) {
   const args = {
     json: false,
+    outputFile: null,
     baseline: null,
     saveBaseline: null,
     failOnIncrease: false,
@@ -116,6 +117,9 @@ function parseArgs(argv) {
     switch (argv[i]) {
       case '--json':
         args.json = true;
+        break;
+      case '--output-file':
+        args.outputFile = argv[++i];
         break;
       case '--baseline':
         args.baseline = argv[++i];
@@ -151,7 +155,8 @@ function printHelp() {
   console.log(`Usage: node scripts/eslint-disable-audit.mjs [options]
 
 Options:
-  --json                     Output raw JSON instead of formatted tables
+  --json                     Output raw JSON to stdout (or to --output-file)
+  --output-file <file>       Write JSON output to a file instead of stdout
   --baseline <file>          Compare against a baseline JSON file and report deltas
   --save-baseline <file>     Save current results as a baseline JSON file
   --fail-on-increase         Exit 1 if any suppression category increased vs baseline
@@ -834,7 +839,12 @@ async function main() {
   // Output
   if (args.json) {
     const output = comparison ? { ...fullReport, comparison } : fullReport;
-    console.log(JSON.stringify(output, null, 2));
+    const jsonStr = JSON.stringify(output, null, 2);
+    if (args.outputFile) {
+      await writeFile(args.outputFile, jsonStr + '\n', 'utf-8');
+    } else {
+      console.log(jsonStr);
+    }
   } else {
     printReport(report);
     if (comparison) {
@@ -848,7 +858,7 @@ async function main() {
     await writeFile(args.githubSummary, md, { flag: 'a', encoding: 'utf-8' });
   }
 
-  // GitHub Actions annotations
+  // GitHub Actions annotations (always to stdout so Actions can parse them)
   if (args.githubAnnotations) {
     emitAnnotations(report, comparison);
   }
