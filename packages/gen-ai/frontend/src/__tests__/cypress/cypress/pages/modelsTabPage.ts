@@ -60,6 +60,23 @@ class ModelsTabPage {
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('empty-state');
   }
+
+  filterByName(name: string): void {
+    cy.findByTestId('models-table-search').type(name);
+  }
+
+  filterByUseCase(useCase: string): void {
+    cy.findByTestId('use-case-filter-select').click();
+    cy.findByRole('option', { name: useCase }).click();
+  }
+
+  findActiveFilterChip(filterType: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`filter-chip-${filterType}`);
+  }
+
+  clearFilters(): void {
+    cy.findByTestId('clear-all-filters-button').click();
+  }
 }
 
 class EndpointModalPage {

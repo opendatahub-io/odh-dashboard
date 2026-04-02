@@ -159,6 +159,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
           <ToolbarItem>
             {isSelectFilter ? (
               <Select
+                data-testid={`${currentFilterType}-filter-select`}
                 role="menu"
                 aria-label={`Filter by ${filterOptions[currentFilterType].toLowerCase()}`}
                 isOpen={isSelectOpen}
@@ -195,6 +196,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
               </Select>
             ) : (
               <SearchInput
+                data-testid="models-table-search"
                 placeholder={`Filter by ${filterOptions[currentFilterType].toLowerCase()}...`}
                 value={searchValue}
                 onChange={(_event, value) => handleSearchChange(value || '')}
@@ -234,6 +236,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
                 {activeFilters.map(({ filterType, value }) => (
                   <FlexItem key={`${filterType}-${value}`}>
                     <Label
+                      data-testid={`filter-chip-${filterType}`}
                       color={getLabelColor(filterType)}
                       onClose={() => handleRemoveFilter(filterType, value)}
                       closeBtnProps={{
@@ -246,6 +249,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
                 ))}
                 <FlexItem>
                   <Button
+                    data-testid="clear-all-filters-button"
                     variant={ButtonVariant.link}
                     onClick={onClearFilters}
                     icon={<CloseIcon />}
