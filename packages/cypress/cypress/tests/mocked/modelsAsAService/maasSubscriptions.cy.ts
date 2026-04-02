@@ -285,6 +285,6 @@ describe('Subscriptions Page', () => {
     cy.get('[data-testid="endpoint-modal-generate-api-key"]').should('exist');
 
     // Verify subscription dropdown is back to default (first subscription)
-    cy.get('[data-testid="endpoint-modal-subscription-select"]').should('contain', 'Basic Tier');
+    cy.get('[data-testid="endpoint-modal-subscription-select"]').should('contain', 'Premium Tier');
   });
 });

@@ -66,7 +66,7 @@ class ModelsTabPage {
   }
 
   filterByUseCase(useCase: string): void {
-    cy.findByTestId('use-case-filter-select').click();
+    cy.findByTestId('useCase-filter-select').click();
     cy.findByRole('option', { name: useCase }).click();
   }
 
