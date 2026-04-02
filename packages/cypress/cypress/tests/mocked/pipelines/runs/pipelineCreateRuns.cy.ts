@@ -234,7 +234,7 @@ describe('Pipeline create runs', () => {
         createRunPage.findSubmitButton().should('be.disabled');
       });
 
-      it('creates a run with MLflow tracking disabled and no plugins_input in payload', () => {
+      it('creates a run with MLflow tracking disabled and disabled flag in plugins_input', () => {
         const createRunParams = {
           display_name: 'Run without mlflow',
           description: '',
@@ -264,7 +264,6 @@ describe('Pipeline create runs', () => {
         createRunPage.submit();
 
         cy.wait('@createRunNoMlflow').then((interception) => {
-          expect(interception.request.body).to.not.have.property('plugins_input');
           expect(interception.request.body).to.eql({
             display_name: 'Run without mlflow',
             description: '',
@@ -281,6 +280,11 @@ describe('Pipeline create runs', () => {
             },
             service_account: '',
             experiment_id: 'experiment-1',
+            plugins_input: {
+              mlflow: {
+                disabled: true,
+              },
+            },
           });
         });
       });

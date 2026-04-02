@@ -86,8 +86,16 @@ const buildMlflowPluginsInput = (
   mlflow: MlflowFormData,
   isMlflowAvailable: boolean,
 ): Record<string, Record<string, unknown>> | undefined => {
-  if (!isMlflowAvailable || !mlflow.isExperimentTrackingEnabled) {
+  if (!isMlflowAvailable) {
     return undefined;
+  }
+
+  if (!mlflow.isExperimentTrackingEnabled) {
+    return {
+      mlflow: {
+        disabled: true,
+      },
+    };
   }
 
   const mlflowExperimentName = getMlflowExperimentName(mlflow);
