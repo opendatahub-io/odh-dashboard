@@ -30,7 +30,7 @@ const EmptyExperimentsState: React.FC<EmptyExperimentsStateProps> = ({
           variant="primary"
           component={(props) => <Link {...props} to={createExperimentRoute} />}
         >
-          Create experiment
+          Create run
         </Button>
       }
     />

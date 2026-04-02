@@ -20,7 +20,7 @@ const EmptyExperimentsState: React.FC<EmptyExperimentsStateProps> = ({
 }) => (
   <div data-testid={dataTestId}>
     <EmptyDetailsView
-      title="Create a RAG optimization run"
+      title="Create an AutoRAG optimization run"
       description="Test different retrieval and model configurations to find the best-performing setup."
       iconImage={typedEmptyImage(ProjectObjectType.pipeline)}
       imageAlt=""
@@ -30,7 +30,7 @@ const EmptyExperimentsState: React.FC<EmptyExperimentsStateProps> = ({
           variant="primary"
           component={(props) => <Link {...props} to={createExperimentRoute} />}
         >
-          Create experiment
+          Create run
         </Button>
       }
     />

@@ -13,14 +13,14 @@ describe('EmptyExperimentsState', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Create a RAG optimization run' }),
+      screen.getByRole('heading', { name: 'Create an AutoRAG optimization run' }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
         'Test different retrieval and model configurations to find the best-performing setup.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent('Create experiment');
+    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent('Create run');
   });
 
   it('should use default data-testid when not provided', () => {

@@ -20,7 +20,7 @@ describe('EmptyExperimentsState', () => {
         'Test different model configurations to find the best-performing solution for classification, regression, and time series problems.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent('Create experiment');
+    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent('Create run');
   });
 
   it('should use default data-testid when not provided', () => {
