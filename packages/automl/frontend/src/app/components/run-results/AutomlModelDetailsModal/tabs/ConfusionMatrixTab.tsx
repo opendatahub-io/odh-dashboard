@@ -1,5 +1,11 @@
 import React from 'react';
-import { Skeleton } from '@patternfly/react-core';
+import {
+  Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  Skeleton,
+} from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 
@@ -25,8 +31,8 @@ function getCellStyle(
   };
 }
 
-const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix }) => {
-  if (!confusionMatrix) {
+const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix, isArtifactsLoading }) => {
+  if (isArtifactsLoading) {
     return (
       <Table aria-label="Confusion matrix loading" variant="compact">
         <Thead>
@@ -56,6 +62,20 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix }) => {
           ))}
         </Tbody>
       </Table>
+    );
+  }
+
+  if (!confusionMatrix || Object.keys(confusionMatrix).length === 0) {
+    return (
+      <Bullseye>
+        <EmptyState
+          variant={EmptyStateVariant.sm}
+          titleText="No confusion matrix data available"
+          data-testid="confusion-matrix-no-data-empty-state"
+        >
+          <EmptyStateBody>Confusion matrix data is not available for this model.</EmptyStateBody>
+        </EmptyState>
+      </Bullseye>
     );
   }
 

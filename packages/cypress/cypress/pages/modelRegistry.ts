@@ -60,20 +60,20 @@ class ModelRegistry {
 
   visit() {
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visitWithLogin(`/ai-hub/registry/${preferredModelRegistry}`);
+    cy.visitWithLogin(`/ai-hub/models/registry/${preferredModelRegistry}`);
     this.wait();
   }
 
   navigate() {
-    appChrome
-      .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
-      .click();
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).click();
     this.wait();
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Registry');
+    cy.findByTestId('app-tab-page-title').should('exist');
+    cy.findByText('Select a model registry to view and manage your registered models.', {
+      exact: false,
+    }).should('exist');
     cy.testA11y();
   }
 
@@ -131,16 +131,12 @@ class ModelRegistry {
   }
 
   tabEnabled() {
-    appChrome
-      .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
-      .should('exist');
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('exist');
     return this;
   }
 
   tabDisabled() {
-    appChrome
-      .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
-      .should('not.exist');
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('not.exist');
     return this;
   }
 

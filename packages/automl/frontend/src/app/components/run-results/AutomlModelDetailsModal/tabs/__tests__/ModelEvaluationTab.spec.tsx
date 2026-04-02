@@ -8,7 +8,7 @@ import ModelEvaluationTab from '~/app/components/run-results/AutomlModelDetailsM
 const buildModel = (metrics: Record<string, unknown>): AutomlModel => ({
   display_name: 'TestModel',
   model_config: { eval_metric: 'accuracy' },
-  location: { model_directory: '/', predictor: '/p.pkl', notebook: '/n.ipynb' },
+  location: { model_directory: '/', predictor: '/predictor', notebook: '/n.ipynb' },
   metrics: { test_data: metrics },
 });
 

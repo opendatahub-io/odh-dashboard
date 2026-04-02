@@ -1,20 +1,14 @@
-import {
-  useQuery,
-  useQueries,
-  useMutation,
-  UseQueryResult,
-  UseMutationResult,
-} from '@tanstack/react-query';
+import { useQueries, useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { URL_PREFIX } from '~/app/utilities/const';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { getPipelineRunFromBFF } from '~/app/api/pipelines';
+import { getFiles as getS3Files } from '~/app/api/s3';
 import type {
+  ConfusionMatrixData,
+  FeatureImportanceData,
   PipelineRun,
   S3ListObjectsResponse,
-  FeatureImportanceData,
-  ConfusionMatrixData,
 } from '~/app/types';
-import { createPipelineRun, getPipelineRunFromBFF } from '~/app/api/pipelines';
+import { URL_PREFIX } from '~/app/utilities/const';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -42,7 +36,7 @@ export function useExperimentQuery(
 
 export type ColumnSchema = {
   name: string;
-  type: 'integer' | 'double' | 'timestamp' | 'bool' | 'string';
+  type: 'integer' | 'double' | 'int64' | 'float64' | 'timestamp' | 'bool' | 'string';
   values?: (string | number)[];
 };
 
@@ -52,7 +46,7 @@ export type ColumnSchema = {
 const ColumnSchemaArraySchema = z.array(
   z.object({
     name: z.string(),
-    type: z.enum(['integer', 'double', 'timestamp', 'bool', 'string']),
+    type: z.enum(['integer', 'double', 'int64', 'float64', 'timestamp', 'bool', 'string']),
     values: z.array(z.union([z.string(), z.number()])).optional(),
   }),
 );
@@ -125,7 +119,7 @@ export function useS3GetFileSchemaQuery(
 ): UseQueryResult<ColumnSchema[], Error> {
   return useQuery({
     queryKey: ['files', namespace, secretName, bucket, key],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!namespace || !secretName || !key) {
         return [];
       }
@@ -137,7 +131,9 @@ export function useS3GetFileSchemaQuery(
         ...(bucket && { bucket }),
       });
 
-      const response = await fetch(`${URL_PREFIX}/api/v1/s3/file/schema?${params.toString()}`);
+      const response = await fetch(`${URL_PREFIX}/api/v1/s3/file/schema?${params.toString()}`, {
+        signal,
+      });
 
       if (!response.ok) {
         let errorMessage = response.statusText;
@@ -177,91 +173,24 @@ export function useS3GetFileSchemaQuery(
   });
 }
 
-/**
- * Zod schema to validate S3ListObjectsResponse shape
- */
-/* eslint-disable camelcase */
-const S3ListObjectsResponseSchema = z.object({
-  common_prefixes: z.array(
-    z.object({
-      prefix: z.string(),
-    }),
-  ),
-  contents: z.array(
-    z.object({
-      key: z.string(),
-      size: z.number(),
-      last_modified: z.string().optional(),
-      etag: z.string().optional(),
-      storage_class: z.string().optional(),
-    }),
-  ),
-  is_truncated: z.boolean(),
-  key_count: z.number(),
-  max_keys: z.number(),
-  continuation_token: z.string().optional(),
-  delimiter: z.string().optional(),
-  name: z.string().optional(),
-  next_continuation_token: z.string().optional(),
-  prefix: z.string().optional(),
-});
-/* eslint-enable camelcase */
-
-/**
- * Fetches a list of files/folders from S3 storage.
- * This is a utility function that can be used in both hooks and query functions.
- */
-export async function fetchS3Files(
-  namespace: string,
-  path: string,
-): Promise<S3ListObjectsResponse> {
-  const params = new URLSearchParams({
-    namespace,
-    path,
-  });
-
-  const response = await fetch(`${URL_PREFIX}/api/v1/s3/files?${params.toString()}`);
-
-  if (!response.ok) {
-    let errorMessage = response.statusText;
-    try {
-      const errorData = await response.json();
-      if (errorData?.error?.message) {
-        errorMessage = errorData.error.message;
-      }
-    } catch {
-      // If parsing fails, fall back to statusText
-    }
-    throw new Error(`Failed to fetch S3 files: ${errorMessage}`);
-  }
-
-  const result = await response.json();
-  const data = result?.data || result;
-
-  try {
-    return S3ListObjectsResponseSchema.parse(data);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const issues = error.issues
-        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-        .join(', ');
-      throw new Error(`Invalid S3ListObjectsResponse: ${issues}`);
-    }
-    throw error;
-  }
-}
-
 export function useS3ListFilesQuery(
   namespace?: string,
   path?: string,
 ): UseQueryResult<S3ListObjectsResponse, Error> {
   return useQuery({
     queryKey: ['s3Files', namespace, path],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!namespace || !path) {
         throw new Error('namespace and path are required');
       }
-      return fetchS3Files(namespace, path);
+      return getS3Files(
+        '',
+        { signal },
+        {
+          namespace,
+          path,
+        },
+      );
     },
     enabled: Boolean(namespace && path),
     retry: false,
@@ -397,21 +326,5 @@ export function useModelEvaluationArtifactsQuery(
       confusionMatrix: results[1].data,
       isLoading: results.some((r) => r.isPending),
     }),
-  });
-}
-
-type CreatePipelineRunVariables = {
-  namespace: string;
-  data: ConfigureSchema;
-};
-
-export function useCreatePipelineRun(): UseMutationResult<
-  PipelineRun,
-  Error,
-  CreatePipelineRunVariables
-> {
-  return useMutation({
-    mutationFn: async ({ namespace, data }: CreatePipelineRunVariables) =>
-      createPipelineRun('', { namespace, data }),
   });
 }

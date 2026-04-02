@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/url"
 
@@ -61,4 +62,16 @@ func (r *APIKeysRepository) BulkRevokeAPIKeys(ctx context.Context, request model
 	r.logger.Debug("Bulk revoking API keys")
 
 	return r.maasClient.BulkRevokeAPIKeys(ctx, request)
+}
+
+// ListSubscriptionsForApiKeys returns the list of subscriptions available to the authenticated user for API key creation.
+func (r *APIKeysRepository) ListSubscriptionsForApiKeys(ctx context.Context) ([]models.SubscriptionListItem, error) {
+	r.logger.Debug("Listing subscriptions for API key creation")
+
+	items, err := r.maasClient.ListSubscriptionsForApiKeys(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list subscriptions via maas-api: %w", err)
+	}
+
+	return items, nil
 }

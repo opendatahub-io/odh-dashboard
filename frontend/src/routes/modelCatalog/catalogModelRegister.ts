@@ -6,5 +6,5 @@ export const getRegisterCatalogModelRoute = (params: CatalogModelDetailsParams):
     return '';
   }
   const { sourceName = '', repositoryName = '', modelName = '', tag = '' } = encodeParams(params);
-  return `/ai-hub/catalog/${sourceName}/${repositoryName}/${modelName}/${tag}/register`;
+  return `/ai-hub/models/catalog/${sourceName}/${repositoryName}/${modelName}/${tag}/register`;
 };

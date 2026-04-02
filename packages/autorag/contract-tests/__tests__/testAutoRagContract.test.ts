@@ -123,9 +123,9 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
-  describe('LSD Vector Stores Endpoint', () => {
+  describe('LSD Vector Store Providers Endpoint', () => {
     describe('Success Cases', () => {
-      it('should successfully retrieve LSD vector stores list', async () => {
+      it('should successfully retrieve LSD vector store providers list', async () => {
         const result = await apiClient.get(
           '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
         );
@@ -135,7 +135,7 @@ describe('AutoRAG API Contract Tests', () => {
         });
       });
 
-      it('should return vector stores with expected data structure', async () => {
+      it('should return vector store providers with expected data structure', async () => {
         const result = await apiClient.get(
           '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
         );
@@ -143,24 +143,39 @@ describe('AutoRAG API Contract Tests', () => {
         if (result.success) {
           const responseData = result.response.data as {
             data?: {
-              vector_stores?: Array<{
-                id: string;
-                name: string;
-                status: string;
-                provider: string;
+              vector_store_providers?: Array<{
+                provider_id: string;
+                provider_type: string;
               }>;
             };
           };
           expect(responseData.data).toBeDefined();
-          expect(responseData.data?.vector_stores).toBeDefined();
-          expect(Array.isArray(responseData.data?.vector_stores)).toBe(true);
-          if (responseData.data?.vector_stores && responseData.data.vector_stores.length > 0) {
-            const vectorStore = responseData.data.vector_stores[0];
-            expect(vectorStore).toHaveProperty('id');
-            expect(vectorStore).toHaveProperty('name');
-            expect(vectorStore).toHaveProperty('status');
-            expect(vectorStore).toHaveProperty('provider');
+          expect(responseData.data?.vector_store_providers).toBeDefined();
+          expect(Array.isArray(responseData.data?.vector_store_providers)).toBe(true);
+          if (
+            responseData.data?.vector_store_providers &&
+            responseData.data.vector_store_providers.length > 0
+          ) {
+            const provider = responseData.data.vector_store_providers[0];
+            expect(provider).toHaveProperty('provider_id');
+            expect(provider).toHaveProperty('provider_type');
           }
+        }
+      });
+    });
+
+    describe('Response Structure', () => {
+      it('should return a valid array in vector_store_providers field', async () => {
+        const result = await apiClient.get(
+          '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const responseData = result.response.data as {
+            data?: { vector_store_providers?: unknown[] };
+          };
+          expect(responseData.data?.vector_store_providers).toBeDefined();
+          expect(Array.isArray(responseData.data?.vector_store_providers)).toBe(true);
         }
       });
     });
