@@ -9,7 +9,9 @@ import NoPipelineServer from '~/app/components/empty-states/NoPipelineServer';
 import PipelineServerNotReady from '~/app/components/empty-states/PipelineServerNotReady';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
+import { shouldShowConfigurePipelineServerEmptyState } from '~/app/utilities/pipelineServerEmptyState';
 import { autoragConfigurePathname } from '~/app/utilities/routes';
+import { parseErrorStatus } from '~/app/utilities/utils';
 
 export type AutoragExperimentsListStatus = {
   /** True once pipeline definitions and runs have finished loading without a blocking list error. */
@@ -27,8 +29,10 @@ type AutoragExperimentsProps = {
 };
 
 /**
- * Main experiments list page for AutoRAG. Renders pipeline runs in a paginated table,
- * handles loading/error states (403, 404, 503), and shows empty state when no experiments exist.
+ * **Empty State A (`NoPipelineServer`)** — No managed pipeline server and/or managed AutoRAG
+ * pipeline unavailable (see `shouldShowConfigurePipelineServerEmptyState`). Precedence over B.
+ *
+ * **Empty State B (`EmptyExperimentsState`)** — Server and pipeline load succeeded; zero runs.
  */
 function AutoragExperiments({
   onExperimentsListStatus,
@@ -104,13 +108,16 @@ function AutoragExperiments({
     };
   }, [effectiveNamespace, hasLoadError, loaded, hasExperiments]);
 
-  const errorCode = loadError ? getGenericErrorCode(loadError) : undefined;
+  const errorCode = loadError
+    ? (getGenericErrorCode(loadError) ??
+      (loadError instanceof Error ? parseErrorStatus(loadError) : undefined))
+    : undefined;
 
   if (loadError) {
     if (errorCode === 403) {
       return <UnauthorizedError accessDomain="AutoRAG experiments" />;
     }
-    if (errorCode === 404) {
+    if (shouldShowConfigurePipelineServerEmptyState(loadError)) {
       return <NoPipelineServer namespace={effectiveNamespace || undefined} />;
     }
     if (errorCode === 503) {

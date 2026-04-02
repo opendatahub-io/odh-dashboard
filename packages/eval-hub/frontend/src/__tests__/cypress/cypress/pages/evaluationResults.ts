@@ -6,6 +6,10 @@ class EvaluationResultsPage {
 
   private waitForLoad() {
     cy.findByTestId('evaluation-results-content').should('exist');
+    // Exclude aria-prohibited-attr: upstream PatternFly v6 bug on pf-v6-c-icon spans
+    cy.testA11y({
+      axeOptions: { rules: { 'aria-prohibited-attr': { enabled: false } } },
+    });
   }
 
   findTitle() {

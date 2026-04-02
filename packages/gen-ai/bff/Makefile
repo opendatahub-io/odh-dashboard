@@ -23,7 +23,7 @@ MLFLOW_PORT ?= 5001
 MLFLOW_DATA ?= $(shell pwd)/.mlflow
 
 # Llama Stack test server configuration (used by mock/test mode only)
-TEST_LLAMA_STACK_VERSION ?= 0.6.2.dev20260401
+TEST_LLAMA_STACK_VERSION ?= 0.7.0
 TEST_LLAMA_STACK_PORT ?= 18321
 TEST_LLAMA_STACK_DIR ?= testdata/llamastack
 TEST_LLAMA_STACK_DATA ?= $(shell pwd)/$(TEST_LLAMA_STACK_DIR)/.data

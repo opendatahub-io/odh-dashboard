@@ -1,34 +1,26 @@
+import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
 
 describe('EmptyExperimentsState', () => {
-  it('should render title and body text', () => {
+  it('renders Empty State B', () => {
     render(
       <MemoryRouter>
         <EmptyExperimentsState createExperimentRoute="/autorag/create/my-namespace" />
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('No experiments yet')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Create a RAG optimization run' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(
         'Test different retrieval and model configurations to find the best-performing setup.',
       ),
     ).toBeInTheDocument();
-  });
-
-  it('should render create button', () => {
-    render(
-      <MemoryRouter>
-        <EmptyExperimentsState createExperimentRoute="/autorag/create/my-namespace" />
-      </MemoryRouter>,
-    );
-
-    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent(
-      'Create RAG optimization run',
-    );
+    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent('Create experiment');
   });
 
   it('should use default data-testid when not provided', () => {

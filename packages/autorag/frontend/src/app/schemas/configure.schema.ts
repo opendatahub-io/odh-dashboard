@@ -1,6 +1,7 @@
 import * as z from 'zod';
 import { createSchema } from '~/app/utilities/schema';
-import type { LlamaStackVectorStoreProvider } from '~/app/types';
+// TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
+// import type { LlamaStackVectorStoreProvider } from '~/app/types';
 
 export const MIN_RAG_PATTERNS = 4;
 export const MAX_RAG_PATTERNS = 20;
@@ -10,13 +11,13 @@ export const MAX_RAG_PATTERNS = 20;
 // The selected value is dynamically constructed as ls_${provider_id}.
 export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = ['remote::milvus'];
 
-// Default in-memory vector store provider (always available, doesn't require external setup).
-// When this value is selected, it will be removed from the payload before submission.
-// The ai4rag backend treats an empty/missing vector_database_id as a request to use in-memory storage.
-export const DEFAULT_IN_MEMORY_PROVIDER: LlamaStackVectorStoreProvider = {
-  provider_id: 'MILVUS_IN_MEMORY_DEFAULT', // eslint-disable-line camelcase
-  provider_type: 'IN_MEMORY', // eslint-disable-line camelcase
-};
+// Default in-memory vector store provider — disabled until 3.5 or later.
+// When re-enabled, this should be injected at the beginning of the provider list
+// and the schema field should become optional with this as the default.
+// export const DEFAULT_IN_MEMORY_PROVIDER: LlamaStackVectorStoreProvider = {
+//   provider_id: 'MILVUS_IN_MEMORY_DEFAULT',
+//   provider_type: 'IN_MEMORY',
+// };
 
 export const RAG_METRIC_FAITHFULNESS = 'faithfulness';
 export const RAG_METRIC_ANSWER_CORRECTNESS = 'answer_correctness';
@@ -27,12 +28,7 @@ export const RAG_OPTIMIZATION_METRICS = z.enum([
   RAG_METRIC_CONTEXT_CORRECTNESS,
 ]);
 
-export const EXPERIMENT_SETTINGS_FIELDS = [
-  'optimization_metric',
-  'optimization_max_rag_patterns',
-  'embeddings_models',
-  'generation_models',
-] as const;
+export const EXPERIMENT_SETTINGS_FIELDS = ['embeddings_models', 'generation_models'] as const;
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 function createConfigureSchema() {
@@ -52,10 +48,7 @@ function createConfigureSchema() {
       test_data_key: z.string().min(1).default(''),
 
       llama_stack_secret_name: z.string().min(1).default(''),
-      llama_stack_vector_database_id: z
-        .string()
-        .default(`ls_${DEFAULT_IN_MEMORY_PROVIDER.provider_id}`)
-        .optional(),
+      llama_stack_vector_database_id: z.string().min(1).default(''),
 
       generation_models: z.array(z.string()).min(1).default([]),
       embeddings_models: z.array(z.string()).min(1).default([]),
@@ -74,13 +67,14 @@ function createConfigureSchema() {
         if (data.description === '') {
           delete data.description;
         }
-        // Delete vector database ID if it's empty or set to the default in-memory provider
-        if (
-          data.llama_stack_vector_database_id === '' ||
-          data.llama_stack_vector_database_id === `ls_${DEFAULT_IN_MEMORY_PROVIDER.provider_id}`
-        ) {
-          delete data.llama_stack_vector_database_id;
-        }
+        // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
+        // Delete vector database ID if it's empty or set to the default in-memory provider.
+        // if (
+        //   data.llama_stack_vector_database_id === '' ||
+        //   data.llama_stack_vector_database_id === `ls_${DEFAULT_IN_MEMORY_PROVIDER.provider_id}`
+        // ) {
+        //   delete data.llama_stack_vector_database_id;
+        // }
         return data;
       },
     ],

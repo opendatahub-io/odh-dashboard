@@ -1,6 +1,6 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { getLlamaStackModels, getLlamaStackVectorStores } from '~/app/api/k8s';
+import { getLlamaStackModels, getLlamaStackVectorStores, getSecrets } from '~/app/api/k8s';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import {
@@ -9,6 +9,7 @@ import {
   LlamaStackVectorStoreProvidersResponse,
   PipelineRun,
   S3ListObjectsResponse,
+  SecretListItem,
 } from '~/app/types';
 import { URL_PREFIX } from '~/app/utilities/const';
 
@@ -19,7 +20,7 @@ export function useLlamaStackModelsQuery(
 ): UseQueryResult<LlamaStackModelsResponse, Error> {
   return useQuery({
     enabled: !!namespace && !!secretName,
-    queryKey: ['models', namespace, secretName],
+    queryKey: ['autorag', 'models', namespace, secretName],
     queryFn: async () => {
       try {
         const response = await getLlamaStackModels('')(namespace, secretName)({});
@@ -94,7 +95,7 @@ export function useS3ListFilesQuery(
   path?: string,
 ): UseQueryResult<S3ListObjectsResponse, Error> {
   return useQuery({
-    queryKey: ['s3Files', namespace, path],
+    queryKey: ['autorag', 's3Files', namespace, path],
     queryFn: async ({ signal }) => {
       if (!namespace || !path) {
         throw new Error('namespace and path are required');
@@ -122,7 +123,7 @@ export function useLlamaStackVectorStoreProvidersQuery(
     enabled: !!namespace && !!secretName,
     // providerTypes is intentionally excluded: select transforms cached data without
     // affecting the cache, so different provider type filters safely share one cache entry.
-    queryKey: ['vectorStoreProviders', namespace, secretName],
+    queryKey: ['autorag', 'vectorStoreProviders', namespace, secretName],
     queryFn: async () => {
       try {
         const response = await getLlamaStackVectorStores('')(namespace, secretName)({});
@@ -163,7 +164,7 @@ export function usePipelineRunQuery(
   namespace?: string,
 ): UseQueryResult<PipelineRun, Error> {
   return useQuery({
-    queryKey: ['pipelineRun', runId, namespace],
+    queryKey: ['autorag', 'pipelineRun', runId, namespace],
     queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
     enabled: !!runId && !!namespace,
     placeholderData: (previousData) => previousData,
@@ -174,5 +175,16 @@ export function usePipelineRunQuery(
       }
       return POLL_INTERVAL_MS;
     },
+  });
+}
+
+export function useSecretsQuery(
+  namespace: string,
+  type?: 'storage' | 'lls',
+): UseQueryResult<SecretListItem[], Error> {
+  return useQuery({
+    enabled: !!namespace,
+    queryKey: ['autorag', 'secrets', namespace, type],
+    queryFn: ({ signal }) => getSecrets('')(namespace, type)({ signal }),
   });
 }
