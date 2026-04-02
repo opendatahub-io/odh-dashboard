@@ -2,11 +2,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
+import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
+import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
 const mockNotificationError = jest.fn();
@@ -52,6 +55,17 @@ jest.mock('mod-arch-core', () => ({
   }),
   asEnumMember: jest.fn((val: unknown) => val),
   DeploymentMode: { Federated: 'federated', Standalone: 'standalone', Kubeflow: 'kubeflow' },
+}));
+
+// Mock mod-arch-shared (used by ConfigureFormGroup)
+jest.mock('mod-arch-shared', () => ({
+  DashboardPopupIconButton: ({
+    icon,
+    ...props
+  }: {
+    icon: React.ReactNode;
+    [key: string]: unknown;
+  }) => <button {...props}>{icon}</button>,
 }));
 
 // Mock useWatchConnectionTypes (used for connection types list)
@@ -178,7 +192,7 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
     onClose,
   }: {
     isOpen: boolean;
-    onSelectFiles: (files: { path: string }[]) => void;
+    onSelectFiles: (files: Files) => void;
     onClose: () => void;
   }) =>
     isOpen ? (
@@ -186,7 +200,7 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
         <button
           data-testid="file-explorer-select-file"
           onClick={() => {
-            onSelectFiles([{ path: '/test-file.txt' }]);
+            onSelectFiles([{ path: '/test-file.txt', name: 'test-file.txt', type: 'txt' }]);
             onClose();
           }}
         >
@@ -198,6 +212,7 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
 
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
+const mockUseLlamaStackModelsQuery = jest.mocked(useLlamaStackModelsQuery);
 
 const configureSchema = createConfigureSchema();
 
@@ -475,8 +490,217 @@ describe('AutoragConfigure', () => {
       // Configure details fields should be visible
       expect(screen.getByText('Vector database location')).toBeInTheDocument();
       expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
-      expect(screen.getByText('Models to consider')).toBeInTheDocument();
+      expect(screen.getByText('Model configuration')).toBeInTheDocument();
       expect(screen.getByText('Optimization metric')).toBeInTheDocument();
+      expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
+    });
+  });
+
+  describe('Optimization metric', () => {
+    it('should render the optimization metric dropdown with default value', () => {
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      expect(screen.getByTestId('optimization-metric-select')).toBeInTheDocument();
+      expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
+        'Answer faithfulness',
+      );
+    });
+
+    it('should display all metric options when dropdown is opened', async () => {
+      const user = userEvent.setup();
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      await user.click(screen.getByTestId('optimization-metric-select'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
+        expect(screen.getByTestId('metric-option-answer_correctness')).toBeInTheDocument();
+        expect(screen.getByTestId('metric-option-context_correctness')).toBeInTheDocument();
+      });
+    });
+
+    it('should render with a non-default metric when configured', () => {
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+        // eslint-disable-next-line camelcase
+        optimization_metric: 'answer_correctness',
+      });
+
+      expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
+        'Answer correctness',
+      );
+    });
+  });
+
+  describe('Maximum RAG patterns', () => {
+    it('should render the max RAG patterns input with default value 8', () => {
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
+      expect(input).toHaveValue(8);
+    });
+
+    it('should increment value when plus button is clicked', () => {
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      const container = screen.getByTestId('max-rag-patterns-input');
+      const plusButton = container.querySelector('button[aria-label="Plus"]')!;
+      fireEvent.click(plusButton);
+
+      const input = container.querySelector('input');
+      expect(input).toHaveValue(9);
+    });
+
+    it('should decrement value when minus button is clicked', () => {
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      const container = screen.getByTestId('max-rag-patterns-input');
+      const minusButton = container.querySelector('button[aria-label="Minus"]')!;
+      fireEvent.click(minusButton);
+
+      const input = container.querySelector('input');
+      expect(input).toHaveValue(7);
+    });
+
+    it('should show error when value exceeds maximum', async () => {
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      const input = screen.getByTestId('max-rag-patterns-input').querySelector('input')!;
+      fireEvent.change(input, { target: { value: '21' } });
+
+      await waitFor(() => {
+        expect(screen.getByText('Maximum number of RAG patterns is 20')).toBeInTheDocument();
+      });
+    });
+
+    it('should show error when value is below minimum', async () => {
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      const input = screen.getByTestId('max-rag-patterns-input').querySelector('input')!;
+      fireEvent.change(input, { target: { value: '3' } });
+
+      await waitFor(() => {
+        expect(screen.getByText('Minimum number of RAG patterns is 4')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Model initialization from query data', () => {
+    it('should populate generation and embedding models when query returns data', () => {
+      mockUseLlamaStackModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            {
+              id: 'embed-model-1',
+              type: 'embedding',
+              provider: 'ollama',
+              resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
+            },
+          ],
+        },
+        isLoading: false,
+      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+
+      renderComponent({
+        // eslint-disable-next-line camelcase
+        input_data_secret_name: 'test-secret',
+        // eslint-disable-next-line camelcase
+        input_data_bucket_name: 'test-bucket',
+      });
+
+      // The "Selected models" card should show model counts
+      expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
+      expect(screen.getByText(/1 embedding model/)).toBeInTheDocument();
+    });
+  });
+
+  describe('selected input data file table', () => {
+    it('should NOT display the selected file table when no file is selected', () => {
+      renderComponent();
+
+      // Select a secret so the "Browse bucket" button appears
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      expect(
+        screen.queryByRole('grid', { name: 'Selected input data file' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should display the selected file table after selecting a file', () => {
+      renderComponent();
+
+      // Select a secret
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      // Open file explorer and select a file
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Verify the table appears with correct content
+      const table = screen.getByRole('grid', { name: 'Selected input data file' });
+      expect(table).toBeInTheDocument();
+      expect(screen.getByText('test-file.txt')).toBeInTheDocument();
+      expect(screen.getByText('txt')).toBeInTheDocument();
+    });
+
+    it('should remove the selected file when the remove button is clicked', () => {
+      renderComponent();
+
+      // Select a secret and a file
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Verify the table is shown
+      expect(screen.getByRole('grid', { name: 'Selected input data file' })).toBeInTheDocument();
+
+      // Click the remove button
+      fireEvent.click(screen.getByRole('button', { name: 'Remove selection' }));
+
+      // Table should be removed
+      expect(
+        screen.queryByRole('grid', { name: 'Selected input data file' }),
+      ).not.toBeInTheDocument();
     });
   });
 

@@ -19,14 +19,22 @@ import {
   EmptyState,
   EmptyStateBody,
   Flex,
+  FlexItem,
+  FormHelperText,
   Grid,
   GridItem,
+  HelperText,
+  HelperTextItem,
   List,
   ListItem,
   MenuToggle,
   MultipleFileUpload,
   MultipleFileUploadMain,
+  NumberInput,
   Popover,
+  Select,
+  SelectList,
+  SelectOption,
   Spinner,
   Split,
   SplitItem,
@@ -34,9 +42,16 @@ import {
   StackItem,
   ToggleGroup,
   ToggleGroupItem,
+  Tooltip,
   type DropEvent,
 } from '@patternfly/react-core';
-import { CubesIcon, EllipsisVIcon, InfoCircleIcon, UploadIcon } from '@patternfly/react-icons';
+import {
+  CubesIcon,
+  EllipsisVIcon,
+  InfoCircleIcon,
+  TimesIcon,
+  UploadIcon,
+} from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { findKey } from 'es-toolkit';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
@@ -46,11 +61,19 @@ import { Navigate, useParams } from 'react-router';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
+import type { File as S3File } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
-import { ConfigureSchema } from '~/app/schemas/configure.schema';
+import {
+  ConfigureSchema,
+  MIN_RAG_PATTERNS,
+  MAX_RAG_PATTERNS,
+  RAG_METRIC_FAITHFULNESS,
+  RAG_METRIC_ANSWER_CORRECTNESS,
+  RAG_METRIC_CONTEXT_CORRECTNESS,
+} from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
@@ -91,6 +114,28 @@ function isAllowedInputDataUploadFile(file: File): boolean {
   return Boolean(file.type && file.type in INPUT_DATA_FILE_ACCEPT);
 }
 
+const OPTIMIZATION_METRICS: {
+  value: ConfigureSchema['optimization_metric'];
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: RAG_METRIC_FAITHFULNESS,
+    label: 'Answer faithfulness',
+    description: 'How factually grounded the answer is in the retrieved context.',
+  },
+  {
+    value: RAG_METRIC_ANSWER_CORRECTNESS,
+    label: 'Answer correctness',
+    description: 'How correct the generated answer is compared to the ground truth.',
+  },
+  {
+    value: RAG_METRIC_CONTEXT_CORRECTNESS,
+    label: 'Context correctness',
+    description: 'How precisely the retrieval step identifies relevant chunks.',
+  },
+];
+
 function AutoragConfigure(): React.JSX.Element {
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
@@ -112,6 +157,7 @@ function AutoragConfigure(): React.JSX.Element {
   );
 
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
+  const [isMetricSelectOpen, setIsMetricSelectOpen] = useState(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
   const [inputDataSourceMode, setInputDataSourceMode] = useState<'select' | 'upload'>('select');
   const [isInputDataFileUploading, setIsInputDataFileUploading] = useState(false);
@@ -121,6 +167,8 @@ function AutoragConfigure(): React.JSX.Element {
   const modelsInitialized = useRef(false);
 
   const notification = useNotification();
+  const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>();
+
   const form = useFormContext<ConfigureSchema>();
   const { getValues, reset, setValue, formState } = form;
   const { isSubmitting } = formState;
@@ -148,6 +196,11 @@ function AutoragConfigure(): React.JSX.Element {
 
   const { data: allModelsData } = useLlamaStackModelsQuery(namespace ?? '', llamaStackSecretName);
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
+
+  // Reset modelsInitialized when the LlamaStack secret changes so models re-populate
+  useEffect(() => {
+    modelsInitialized.current = false;
+  }, [llamaStackSecretName]);
 
   useEffect(() => {
     // Initialize available generation and embedding models into the form data
@@ -213,11 +266,13 @@ function AutoragConfigure(): React.JSX.Element {
   useEffect(() => {
     setIsInputDataFileUploading(false);
     setValue('input_data_key', '', { shouldValidate: true });
+    setSelectedInputDataFile(undefined);
   }, [inputDataSecretName, inputDataBucketName, setValue]);
 
   // reset selected file values if test secret or bucket changes
   useEffect(() => {
     setValue('test_data_key', '', { shouldValidate: true });
+    setSelectedInputDataFile(undefined);
   }, [testDataSecretName, testDataBucketName, setValue]);
 
   const openExperimentSettings = () => {
@@ -525,6 +580,39 @@ function AutoragConfigure(): React.JSX.Element {
                       )}
                     </>
                   )}
+                  {selectedInputDataFile && (
+                    <StackItem>
+                      <Table aria-label="Selected input data file" variant="compact">
+                        <Thead>
+                          <Tr>
+                            <Th>Name</Th>
+                            <Th>Type</Th>
+                            <Th />
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          <Tr>
+                            <Td dataLabel="Name">{selectedInputDataFile.name}</Td>
+                            <Td dataLabel="Type">{selectedInputDataFile.type}</Td>
+                            <Td isActionCell>
+                              <Tooltip content="Remove selection">
+                                <Button
+                                  size="sm"
+                                  variant="plain"
+                                  aria-label="Remove selection"
+                                  icon={<TimesIcon />}
+                                  onClick={() => {
+                                    setSelectedInputDataFile(undefined);
+                                    setValue('input_data_key', '', { shouldValidate: true });
+                                  }}
+                                />
+                              </Tooltip>
+                            </Td>
+                          </Tr>
+                        </Tbody>
+                      </Table>
+                    </StackItem>
+                  )}
                 </Stack>
               </CardBody>
             </div>
@@ -550,138 +638,256 @@ function AutoragConfigure(): React.JSX.Element {
                     </EmptyStateBody>
                   </EmptyState>
                 ) : (
-                  <Stack hasGutter>
-                    <ConfigureFormGroup
-                      label="Vector database location"
-                      description="Specify the location for storing the vector index used to retrieve your documents."
-                    >
-                      <AutoragVectorStoreSelector />
-                    </ConfigureFormGroup>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapXl' }}>
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Vector database location"
+                        description="Specify the location for storing the vector index used to retrieve your documents."
+                      >
+                        <AutoragVectorStoreSelector />
+                      </ConfigureFormGroup>
+                    </FlexItem>
 
-                    <ConfigureFormGroup
-                      label="Evaluation dataset"
-                      description={
-                        <>
-                          <span>
-                            Select the evaluation dataset that will be used to measure the quality
-                            of the generated responses. Must adhere to the{' '}
-                          </span>
-                          <Button variant="link" isInline component="span" onClick={() => null}>
-                            evaluation dataset template
-                          </Button>
-                          <span>.</span>
-                        </>
-                      }
-                    >
-                      Evaluation data source upload component
-                    </ConfigureFormGroup>
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Evaluation dataset"
+                        description={
+                          <>
+                            <span>
+                              Select the evaluation dataset that will be used to measure the quality
+                              of the generated responses. Must adhere to the{' '}
+                            </span>
+                            <Button variant="link" isInline component="span" onClick={() => null}>
+                              evaluation dataset template
+                            </Button>
+                            <span>.</span>
+                          </>
+                        }
+                      >
+                        Evaluation data source upload component
+                      </ConfigureFormGroup>
+                    </FlexItem>
 
-                    <StackItem>
-                      <Card>
-                        <CardHeader
-                          hasWrap
-                          actions={{
-                            actions: [
-                              <Watch
-                                key="edit-experiment-settings"
-                                control={form.control}
-                                name="input_data_key"
-                                render={(inputData) => (
-                                  <Button
-                                    variant="secondary"
-                                    onClick={openExperimentSettings}
-                                    isDisabled={!inputDataBucketName || !inputData || isSubmitting}
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Optimization metric"
+                        labelHelp={{
+                          header: 'Optimization metric',
+                          position: 'bottom',
+                          body: (
+                            <Stack hasGutter>
+                              {OPTIMIZATION_METRICS.map((metric) => (
+                                <StackItem key={metric.value}>
+                                  <Content component="p">
+                                    <strong>{metric.label}:</strong>
+                                    <br />
+                                    {metric.description}
+                                  </Content>
+                                </StackItem>
+                              ))}
+                            </Stack>
+                          ),
+                        }}
+                        description="The metric used to compare configurations and identify the best result."
+                      >
+                        <Controller
+                          control={form.control}
+                          name="optimization_metric"
+                          render={({ field }) => {
+                            const selected = OPTIMIZATION_METRICS.find(
+                              (m) => m.value === field.value,
+                            );
+                            return (
+                              <Select
+                                isOpen={isMetricSelectOpen}
+                                selected={field.value}
+                                onSelect={(_e, val) => {
+                                  if (typeof val === 'string') {
+                                    field.onChange(val);
+                                  }
+                                  setIsMetricSelectOpen(false);
+                                }}
+                                onOpenChange={setIsMetricSelectOpen}
+                                toggle={(toggleRef) => (
+                                  <MenuToggle
+                                    ref={toggleRef}
+                                    onClick={() => setIsMetricSelectOpen((prev) => !prev)}
+                                    isExpanded={isMetricSelectOpen}
+                                    data-testid="optimization-metric-select"
                                   >
-                                    Edit
-                                  </Button>
+                                    {selected?.label ?? ''}
+                                  </MenuToggle>
                                 )}
-                              />,
-                            ],
+                                shouldFocusToggleOnSelect
+                                data-testid="optimization-metric-select-list"
+                              >
+                                <SelectList>
+                                  {OPTIMIZATION_METRICS.map((metric) => (
+                                    <SelectOption
+                                      key={metric.value}
+                                      value={metric.value}
+                                      data-testid={`metric-option-${metric.value}`}
+                                    >
+                                      {metric.label}
+                                    </SelectOption>
+                                  ))}
+                                </SelectList>
+                              </Select>
+                            );
                           }}
-                        >
-                          <CardTitle>Models to consider</CardTitle>
-                        </CardHeader>
-                        <CardBody>
-                          <Stack hasGutter>
-                            <StackItem>
-                              <Watch
-                                control={form.control}
-                                name="generation_models"
-                                render={(generationModels) => (
-                                  <Flex
-                                    alignItems={{ default: 'alignItemsCenter' }}
-                                    spacer={{ default: 'spacerNone' }}
-                                    gap={{ default: 'gapSm' }}
-                                  >
-                                    <Content>{`${generationModels.length || 'No'} generation models`}</Content>
-                                    {!!generationModels.length && (
-                                      <Popover
-                                        bodyContent={
-                                          <List>
-                                            {generationModels.map((model) => (
-                                              <ListItem key={`generation-${model}`}>
-                                                {model}
-                                              </ListItem>
-                                            ))}
-                                          </List>
-                                        }
-                                      >
-                                        <DashboardPopupIconButton
-                                          icon={<InfoCircleIcon />}
-                                          hasNoPadding
-                                        />
-                                      </Popover>
-                                    )}
-                                  </Flex>
-                                )}
+                        />
+                      </ConfigureFormGroup>
+                    </FlexItem>
+
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Maximum RAG patterns"
+                        description="Specify the maximum number of RAG patterns to evaluate."
+                      >
+                        <Controller
+                          control={form.control}
+                          name="optimization_max_rag_patterns"
+                          render={({ field, fieldState }) => (
+                            <>
+                              <NumberInput
+                                id="max-rag-patterns"
+                                aria-label="Maximum RAG patterns"
+                                value={field.value}
+                                min={MIN_RAG_PATTERNS}
+                                max={MAX_RAG_PATTERNS}
+                                validated={fieldState.error ? 'error' : 'default'}
+                                onMinus={() => field.onChange(field.value - 1)}
+                                onPlus={() => field.onChange(field.value + 1)}
+                                onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                                  const val = parseInt(event.currentTarget.value, 10);
+                                  if (!Number.isNaN(val)) {
+                                    field.onChange(val);
+                                  }
+                                }}
+                                data-testid="max-rag-patterns-input"
                               />
-                            </StackItem>
-                            <StackItem>
-                              <Watch
-                                control={form.control}
-                                name="embeddings_models"
-                                render={(embeddingModels) => (
-                                  <Flex
-                                    alignItems={{ default: 'alignItemsCenter' }}
-                                    spacer={{ default: 'spacerNone' }}
-                                    gap={{ default: 'gapSm' }}
-                                  >
-                                    <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
-                                    {!!embeddingModels.length && (
-                                      <Popover
-                                        bodyContent={
-                                          <List>
-                                            {embeddingModels.map((model) => (
-                                              <ListItem key={`embedding-${model}`}>
-                                                {model}
-                                              </ListItem>
-                                            ))}
-                                          </List>
-                                        }
-                                      >
-                                        <DashboardPopupIconButton
-                                          icon={<InfoCircleIcon />}
-                                          hasNoPadding
-                                        />
-                                      </Popover>
-                                    )}
-                                  </Flex>
-                                )}
-                              />
-                            </StackItem>
-                          </Stack>
-                        </CardBody>
-                        <CardTitle>Optimization metric</CardTitle>
-                        <CardBody className="pf-v6-u-mb-sm">
-                          <Watch
-                            control={form.control}
-                            name="optimization_metric"
-                            render={(optimizationMetric) => optimizationMetric}
-                          />
-                        </CardBody>
-                      </Card>
-                    </StackItem>
-                  </Stack>
+                              {fieldState.error && (
+                                <FormHelperText>
+                                  <HelperText>
+                                    <HelperTextItem variant="error">
+                                      {fieldState.error.message}
+                                    </HelperTextItem>
+                                  </HelperText>
+                                </FormHelperText>
+                              )}
+                            </>
+                          )}
+                        />
+                      </ConfigureFormGroup>
+                    </FlexItem>
+
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Model configuration"
+                        description="Select models to determine how documents are retrieved and which models generate responses."
+                      >
+                        <Card>
+                          <CardHeader
+                            hasWrap
+                            actions={{
+                              actions: [
+                                <Watch
+                                  key="edit-experiment-settings"
+                                  control={form.control}
+                                  name="input_data_key"
+                                  render={(inputDataKeyValue) => (
+                                    <Button
+                                      variant="secondary"
+                                      onClick={openExperimentSettings}
+                                      isDisabled={
+                                        !inputDataBucketName ||
+                                        !inputDataKeyValue ||
+                                        form.formState.isSubmitting
+                                      }
+                                    >
+                                      Edit
+                                    </Button>
+                                  )}
+                                />,
+                              ],
+                            }}
+                          >
+                            <CardTitle>Selected models</CardTitle>
+                          </CardHeader>
+                          <CardBody>
+                            <Stack hasGutter>
+                              <StackItem>
+                                <Watch
+                                  control={form.control}
+                                  name="generation_models"
+                                  render={(generationModels) => (
+                                    <Flex
+                                      alignItems={{ default: 'alignItemsCenter' }}
+                                      spacer={{ default: 'spacerNone' }}
+                                      gap={{ default: 'gapSm' }}
+                                    >
+                                      <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
+                                      {!!generationModels.length && (
+                                        <Popover
+                                          bodyContent={
+                                            <List>
+                                              {generationModels.map((model) => (
+                                                <ListItem key={`generation-${model}`}>
+                                                  {model}
+                                                </ListItem>
+                                              ))}
+                                            </List>
+                                          }
+                                        >
+                                          <DashboardPopupIconButton
+                                            icon={<InfoCircleIcon />}
+                                            hasNoPadding
+                                          />
+                                        </Popover>
+                                      )}
+                                    </Flex>
+                                  )}
+                                />
+                              </StackItem>
+                              <StackItem>
+                                <Watch
+                                  control={form.control}
+                                  name="embeddings_models"
+                                  render={(embeddingModels) => (
+                                    <Flex
+                                      alignItems={{ default: 'alignItemsCenter' }}
+                                      spacer={{ default: 'spacerNone' }}
+                                      gap={{ default: 'gapSm' }}
+                                    >
+                                      <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
+                                      {!!embeddingModels.length && (
+                                        <Popover
+                                          bodyContent={
+                                            <List>
+                                              {embeddingModels.map((model) => (
+                                                <ListItem key={`embedding-${model}`}>
+                                                  {model}
+                                                </ListItem>
+                                              ))}
+                                            </List>
+                                          }
+                                        >
+                                          <DashboardPopupIconButton
+                                            icon={<InfoCircleIcon />}
+                                            hasNoPadding
+                                          />
+                                        </Popover>
+                                      )}
+                                    </Flex>
+                                  )}
+                                />
+                              </StackItem>
+                            </Stack>
+                          </CardBody>
+                        </Card>
+                      </ConfigureFormGroup>
+                    </FlexItem>
+                  </Flex>
                 )}
               </CardBody>
             </div>
@@ -727,6 +933,7 @@ function AutoragConfigure(): React.JSX.Element {
             const filePath = file.path.replace(/^\//, '');
             if (fileExplorerMode === 'input_data') {
               setValue('input_data_key', filePath, { shouldValidate: true });
+              setSelectedInputDataFile(file);
               // TODO: Once test data upload is hooked up, remove this fallback
               setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
             }

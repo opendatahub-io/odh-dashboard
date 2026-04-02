@@ -51,6 +51,7 @@ export type CreateAPIKeyRequest = {
   name: string;
   description?: string;
   expiresIn?: string;
+  subscription: string;
 };
 
 export const STATUS_OPTIONS: APIKeyStatus[] = ['active', 'expired', 'revoked'];

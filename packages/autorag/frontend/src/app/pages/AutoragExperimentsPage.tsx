@@ -1,12 +1,13 @@
 import { Button, Flex, FlexItem } from '@patternfly/react-core';
 import { useNamespaceSelector } from 'mod-arch-core';
-import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
+import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
 import AutoragExperiments, {
   type AutoragExperimentsListStatus,
 } from '~/app/components/experiments/AutoragExperiments';
 import { usePreferredNamespaceRedirect } from '~/app/hooks/usePreferredNamespaceRedirect';
+import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import ProjectSelectorNavigator from '~/app/components/common/ProjectSelectorNavigator';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import NoProjects from '~/app/components/empty-states/NoProjects';
@@ -78,7 +79,7 @@ function AutoragExperimentsPage(): React.JSX.Element {
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title="AutoRAG" objectType={ProjectObjectType.pipelineExperiment} />}
+      title={<AutoragHeader />}
       headerContent={headerContent}
       description={
         <p>
