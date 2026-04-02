@@ -1,15 +1,26 @@
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
+import {
+  mockDashboardConfig,
+  mockK8sResourceList,
+  mockProjectK8sResource,
+} from '@odh-dashboard/internal/__mocks__';
 import {
   mockMcpDeployment,
   mockMcpDeploymentList,
 } from '@odh-dashboard/model-registry/mocks/mockMcpDeployment';
 import { mcpDeploymentsPage } from '../../../pages/mcpDeployments';
+import { ProjectModel } from '../../../utils/models';
 
 const MCP_DEPLOYMENTS_BFF = '**/model-registry/api/v1/mcp_deployments';
 const MR_API_VERSION = 'v1';
 
 const initIntercepts = () => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ mcpCatalog: true }));
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList([
+      mockProjectK8sResource({ k8sName: 'mcp-servers', displayName: 'mcp-servers' }),
+    ]),
+  );
   cy.interceptOdh(
     'GET /model-registry/api/:apiVersion/user',
     { path: { apiVersion: MR_API_VERSION } },

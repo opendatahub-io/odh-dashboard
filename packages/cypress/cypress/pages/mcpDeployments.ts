@@ -71,7 +71,9 @@ class McpDeploymentsPage {
   }
 
   private wait() {
-    // mod-arch-shared ApplicationsPage does not set data-testid="app-page-title"; wait for page content.
+    // A project must be selected before the table loads (namespace drives the BFF list call).
+    cy.findByTestId('project-selector-toggle').should('be.visible').click();
+    cy.findByRole('menuitem', { name: 'mcp-servers' }).click();
     cy.findByTestId('mcp-deployments-table').should('be.visible');
     cy.testA11y();
   }
