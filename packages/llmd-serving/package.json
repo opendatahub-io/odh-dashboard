@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/llmd-serving",
   "description": "Support for LLM-d model serving deployments via kserve",
   "version": "0.0.0",
+  "supportLevel": "TP",
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

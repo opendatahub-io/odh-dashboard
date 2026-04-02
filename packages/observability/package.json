@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/observability",
   "description": "Observability plugin for monitoring AI workloads and infrastructure using Perses dashboards.",
   "version": "0.0.0",
+  "supportLevel": "DP",
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/feature-store",
   "description": "Feature store plugin for managing feature engineering and data pipelines.",
   "version": "0.0.0",
+  "supportLevel": "DP",
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/mlflow",
   "description": "MLflow plugin.",
   "version": "0.0.0",
+  "supportLevel": "TP",
   "module-federation": {
     "name": "mlflow",
     "remoteEntry": "/remoteEntry.js",

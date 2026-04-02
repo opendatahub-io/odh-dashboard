@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/eval-hub",
   "description": "Eval Hub plugin.",
   "version": "0.0.0",
+  "supportLevel": "DP",
   "module-federation": {
     "name": "evalHub",
     "remoteEntry": "/remoteEntry.js",
