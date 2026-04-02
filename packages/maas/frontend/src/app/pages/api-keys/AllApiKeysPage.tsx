@@ -52,6 +52,7 @@ const AllApiKeysPage: React.FC = () => {
 
   const apiKeys = response.data;
   const hasMore = response.has_more;
+  const { subscriptionDetails } = response;
 
   const activeApiKeys = apiKeys.filter((apiKey) => apiKey.status === 'active');
 
@@ -143,6 +144,7 @@ const AllApiKeysPage: React.FC = () => {
           <ApiKeysTable
             onRevokeApiKey={setRevokeApiKey}
             apiKeys={apiKeys}
+            subscriptionDetails={subscriptionDetails}
             hasMore={hasMore}
             page={page}
             perPage={perPage}

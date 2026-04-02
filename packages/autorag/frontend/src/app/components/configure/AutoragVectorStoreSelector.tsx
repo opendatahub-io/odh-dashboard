@@ -5,7 +5,8 @@ import { useParams } from 'react-router';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
-  DEFAULT_IN_MEMORY_PROVIDER,
+  // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
+  // DEFAULT_IN_MEMORY_PROVIDER,
   ConfigureSchema,
 } from '~/app/schemas/configure.schema';
 import { useLlamaStackVectorStoreProvidersQuery } from '~/app/hooks/queries';
@@ -15,14 +16,14 @@ import { LlamaStackVectorStoreProvider } from '~/app/types';
  * Formats a provider for display.
  * e.g. provider_id="milvus", provider_type="remote::milvus" → "milvus (remote Milvus)"
  * e.g. provider_id="faiss", provider_type="inline::faiss" → "faiss (inline Faiss)"
- * e.g. provider_id="CHROMADB_IN_MEMORY_DEFAULT", provider_type="IN_MEMORY" → "ChromaDB (in-memory)"
- * Falls back to provider_id if provider_type doesn't follow the expected format.
+ * Falls back to provider_id if provider_type doesn't follow the expected "deployment::name" format.
  */
 const formatProviderDisplayName = (provider: LlamaStackVectorStoreProvider): string => {
+  // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
   // Handle special case for IN_MEMORY provider
-  if (provider.provider_type === 'IN_MEMORY') {
-    return 'ChromaDB (in-memory)';
-  }
+  // if (provider.provider_type === 'IN_MEMORY') {
+  //   return 'ChromaDB (in-memory)';
+  // }
 
   const [deployment, name] = provider.provider_type.split('::');
   if (!deployment || !name) {
@@ -64,14 +65,27 @@ const AutoragVectorStoreSelector: React.FC = () => {
     }
   }, [isError, notification]);
 
-  // Inject the default in-memory provider at the beginning of the list
+  // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
+  // Inject the default in-memory provider at the beginning of the list.
+  // const providers = [DEFAULT_IN_MEMORY_PROVIDER, ...apiProviders];
   const apiProviders = providersData?.vector_store_providers ?? [];
-  const providers = [DEFAULT_IN_MEMORY_PROVIDER, ...apiProviders];
+  const providers = apiProviders;
   const selectedProvider = providers.find((p) => `ls_${p.provider_id}` === field.value);
+
+  // Clear stale selection when the provider list changes and no longer includes
+  // the previously selected provider (e.g., LlamaStack secret was changed or
+  // providers became empty).
+  useEffect(() => {
+    if (field.value && !providers.some((p) => `ls_${p.provider_id}` === field.value)) {
+      field.onChange('');
+    }
+  }, [providers, field]);
 
   if (isLoading) {
     return <Skeleton width="200px" height="36px" />;
   }
+
+  const noProviders = providers.length === 0;
 
   return (
     <Select
@@ -89,10 +103,14 @@ const AutoragVectorStoreSelector: React.FC = () => {
           ref={toggleRef}
           onClick={() => setIsOpen((prev) => !prev)}
           isExpanded={isOpen}
-          isDisabled={isSubmitting || isError}
+          isDisabled={isSubmitting || isError || noProviders}
           data-testid="vector-store-select-toggle"
         >
-          {selectedProvider ? formatProviderDisplayName(selectedProvider) : 'Select vector store'}
+          {noProviders
+            ? 'No vector store providers available'
+            : selectedProvider
+              ? formatProviderDisplayName(selectedProvider)
+              : 'Select vector store'}
         </MenuToggle>
       )}
     >

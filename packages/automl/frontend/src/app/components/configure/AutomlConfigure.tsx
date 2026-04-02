@@ -26,8 +26,10 @@ import {
   SplitItem,
   Stack,
   StackItem,
+  Tooltip,
 } from '@patternfly/react-core';
-import { CubesIcon } from '@patternfly/react-icons';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { CubesIcon, TimesIcon } from '@patternfly/react-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { findKey } from 'es-toolkit';
 import React, { useEffect, useRef, useState } from 'react';
@@ -36,6 +38,7 @@ import { Navigate, useParams } from 'react-router';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
+import type { File } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { ConfigureSchema, MAX_TOP_N, MIN_TOP_N } from '~/app/schemas/configure.schema';
@@ -106,6 +109,8 @@ function AutomlConfigure(): React.JSX.Element {
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const previousFileKeyRef = useRef<string | undefined>();
 
+  const [selectedTrainingDataFile, setSelectedTrainingDataFile] = useState<File | undefined>();
+
   const form = useFormContext<ConfigureSchema>();
 
   const {
@@ -159,6 +164,7 @@ function AutomlConfigure(): React.JSX.Element {
   // reset selected file values if secret or bucket changes
   useEffect(() => {
     setValue('train_data_file_key', '', { shouldValidate: true });
+    setSelectedTrainingDataFile(undefined);
   }, [trainDataSecretName, trainDataBucketName, setValue]);
 
   // reset all column-related form fields when file selection changes
@@ -310,6 +316,39 @@ function AutomlConfigure(): React.JSX.Element {
                         </Button>
                       </StackItem>
                     </>
+                  )}
+                  {selectedTrainingDataFile && (
+                    <StackItem>
+                      <Table aria-label="Selected training data file" variant="compact">
+                        <Thead>
+                          <Tr>
+                            <Th>Name</Th>
+                            <Th>Type</Th>
+                            <Th />
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          <Tr>
+                            <Td dataLabel="Name">{selectedTrainingDataFile.name}</Td>
+                            <Td dataLabel="Type">{selectedTrainingDataFile.type}</Td>
+                            <Td isActionCell>
+                              <Tooltip content="Remove selection">
+                                <Button
+                                  size="sm"
+                                  variant="plain"
+                                  aria-label="Remove selection"
+                                  icon={<TimesIcon />}
+                                  onClick={() => {
+                                    setSelectedTrainingDataFile(undefined);
+                                    setValue('train_data_file_key', '', { shouldValidate: true });
+                                  }}
+                                />
+                              </Tooltip>
+                            </Td>
+                          </Tr>
+                        </Tbody>
+                      </Table>
+                    </StackItem>
                   )}
                 </Stack>
               </CardBody>
@@ -496,6 +535,7 @@ function AutomlConfigure(): React.JSX.Element {
             const file = files[0];
             const filePath = file.path.replace(/^\//, '');
             setValue('train_data_file_key', filePath, { shouldValidate: true });
+            setSelectedTrainingDataFile(file);
           }
         }}
         selectableExtensions={['csv']}

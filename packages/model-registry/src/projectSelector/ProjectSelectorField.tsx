@@ -50,6 +50,7 @@ const ProjectSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
   error,
   cannotCheck,
   registryName,
+  selectorOnly,
 }) => {
   const labelHelpRef = useRef<HTMLSpanElement>(null);
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
@@ -143,6 +144,20 @@ const ProjectSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
     </>
   );
 
+  const selectorElement = (
+    <ProjectSelector
+      namespace={selectedNamespace}
+      onSelection={onSelect}
+      placeholder="Select a project"
+      isFullWidth={!selectorOnly}
+      isLoading={!projectsLoaded}
+    />
+  );
+
+  if (selectorOnly) {
+    return selectorElement;
+  }
+
   return (
     <FormGroup
       label="Project"
@@ -151,13 +166,7 @@ const ProjectSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
       labelHelp={labelHelp}
       data-testid="namespace-form-group"
     >
-      <ProjectSelector
-        namespace={selectedNamespace}
-        onSelection={onSelect}
-        placeholder="Select a project"
-        isFullWidth
-        isLoading={!projectsLoaded}
-      />
+      {selectorElement}
       {helperTextNode}
     </FormGroup>
   );

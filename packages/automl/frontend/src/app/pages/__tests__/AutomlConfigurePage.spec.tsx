@@ -87,9 +87,12 @@ jest.mock('mod-arch-shared', () => ({
       {loaded && !empty ? children : null}
     </div>
   ),
-  TitleWithIcon: ({ title }: { title: string }) => <span>{title}</span>,
-  ProjectObjectType: { pipelineExperiment: 'pipelineExperiment' },
   DashboardPopupIconButton: ({ icon }: { icon: React.ReactNode }) => <button>{icon}</button>,
+}));
+
+jest.mock('~/app/components/common/AutomlHeader/AutomlHeader', () => ({
+  __esModule: true,
+  default: () => <span>AutoML</span>,
 }));
 
 // Mock S3FileExplorer used by AutomlConfigure

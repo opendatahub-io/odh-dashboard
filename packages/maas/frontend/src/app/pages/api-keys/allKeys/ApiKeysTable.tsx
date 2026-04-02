@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Pagination, Spinner, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
-import { APIKey } from '~/app/types/api-key';
+import { APIKey, SubscriptionDetail } from '~/app/types/api-key';
 import { ApiKeySortField, apiKeyColumns } from './columns';
 import ApiKeysTableRow from './ApiKeysTableRow';
 
@@ -10,6 +10,7 @@ type SortDirection = 'asc' | 'desc';
 
 type ApiKeysTableProps = {
   apiKeys: APIKey[];
+  subscriptionDetails?: Record<string, SubscriptionDetail>;
   hasMore: boolean;
   page: number;
   perPage: number;
@@ -26,6 +27,7 @@ type ApiKeysTableProps = {
 
 const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
   apiKeys,
+  subscriptionDetails,
   hasMore,
   page,
   perPage,
@@ -130,7 +132,14 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
               </Tr>
             ) : (
               apiKeys.map((apiKey) => (
-                <ApiKeysTableRow key={apiKey.id} apiKey={apiKey} onRevokeApiKey={onRevokeApiKey} />
+                <ApiKeysTableRow
+                  key={apiKey.id}
+                  apiKey={apiKey}
+                  subscriptionDetail={
+                    apiKey.subscription ? subscriptionDetails?.[apiKey.subscription] : undefined
+                  }
+                  onRevokeApiKey={onRevokeApiKey}
+                />
               ))
             )}
           </Tbody>

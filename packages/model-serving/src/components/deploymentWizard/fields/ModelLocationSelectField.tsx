@@ -1,10 +1,8 @@
 import React from 'react';
 import {
-  Form,
   FormGroup,
   FormHelperText,
   Alert,
-  FormSection,
   HelperTextItem,
   Stack,
   StackItem,
@@ -297,141 +295,138 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     return baseOptions;
   }, [baseOptions]);
   return (
-    <Form>
-      <FormSection title="Model details">
-        <p style={{ marginTop: '-8px' }}>Provide information about the model you want to deploy.</p>
-        {modelLocationData?.prefillAlertText && (
-          <Alert
-            variant="info"
-            isInline
-            isPlain
-            title={modelLocationData.prefillAlertText}
-            data-testid="prefill-alert"
-          />
-        )}
-        <FormGroup fieldId="model-location-select" label="Model location" isRequired>
-          <FormHelperText>
-            <HelperTextItem>Where is the model currently located?</HelperTextItem>
-          </FormHelperText>
-          <Stack hasGutter>
+    <>
+      {modelLocationData?.prefillAlertText && (
+        <Alert
+          variant="info"
+          isInline
+          isPlain
+          title={modelLocationData.prefillAlertText}
+          data-testid="prefill-alert"
+        />
+      )}
+      <FormGroup fieldId="model-location-select" label="Model location" isRequired>
+        <FormHelperText>
+          <HelperTextItem>Where is the model currently located?</HelperTextItem>
+        </FormHelperText>
+        <Stack hasGutter>
+          <StackItem>
+            <SimpleSelect
+              isDisabled={modelLocationData?.disableInputFields}
+              dataTestId="model-location-select"
+              options={selectOptions}
+              onChange={(key) => {
+                if (key === '__placeholder__') {
+                  return;
+                }
+                if (key === currentKey) {
+                  return;
+                }
+                setSelectedConnection(undefined);
+                resetModelLocationData();
+                setUserSelectedKey(undefined);
+                if (isValidModelLocation(key) && key !== ModelLocationType.NEW) {
+                  setModelLocationData({
+                    type: key,
+                    fieldValues: {},
+                    additionalFields: {},
+                  });
+                } else {
+                  switch (key) {
+                    case s3Option.key:
+                      setUserSelectedKey({ key: s3Option.key, label: s3Option.label });
+                      if (s3ConnectionTypes.length > 1) {
+                        setShowCustomTypeSelect(true);
+                        setTypeOptions(s3ConnectionTypes);
+                        setModelLocationData({
+                          type: ModelLocationType.NEW,
+                          connectionTypeObject: undefined,
+                          fieldValues: {},
+                          additionalFields: {},
+                        });
+                      } else {
+                        setShowCustomTypeSelect(false);
+                        setModelLocationData({
+                          type: ModelLocationType.NEW,
+                          connectionTypeObject: s3ConnectionTypes[0],
+                          fieldValues: {},
+                          additionalFields: {},
+                        });
+                      }
+                      break;
+                    case ociOption.key:
+                      setUserSelectedKey({ key: ociOption.key, label: ociOption.label });
+                      if (ociConnectionTypes.length > 1) {
+                        setShowCustomTypeSelect(true);
+                        setTypeOptions(ociConnectionTypes);
+                        setModelLocationData({
+                          type: ModelLocationType.NEW,
+                          connectionTypeObject: undefined,
+                          fieldValues: {},
+                          additionalFields: {},
+                        });
+                      } else {
+                        setShowCustomTypeSelect(false);
+                        setModelLocationData({
+                          type: ModelLocationType.NEW,
+                          connectionTypeObject: ociConnectionTypes[0],
+                          fieldValues: {},
+                          additionalFields: {},
+                        });
+                      }
+                      break;
+                    case uriOption.key:
+                      setUserSelectedKey({ key: uriOption.key, label: uriOption.label });
+                      if (uriConnectionTypes.length > 1) {
+                        setShowCustomTypeSelect(true);
+                        setTypeOptions(uriConnectionTypes);
+                        setModelLocationData({
+                          type: ModelLocationType.NEW,
+                          connectionTypeObject: undefined,
+                          fieldValues: {},
+                          additionalFields: {},
+                        });
+                      } else {
+                        setShowCustomTypeSelect(false);
+                        setModelLocationData({
+                          type: ModelLocationType.NEW,
+                          connectionTypeObject: uriConnectionTypes[0],
+                          fieldValues: {},
+                          additionalFields: {},
+                        });
+                      }
+                      break;
+                  }
+                }
+              }}
+              onBlur={validationProps?.onBlur}
+              placeholder="Select model location"
+              value={currentKey}
+              toggleProps={{ style: { minWidth: '450px' } }}
+            />
+          </StackItem>
+          <ZodErrorHelperText zodIssue={validationIssues} />
+          {modelLocation && (
             <StackItem>
-              <SimpleSelect
-                isDisabled={modelLocationData?.disableInputFields}
-                dataTestId="model-location-select"
-                options={selectOptions}
-                onChange={(key) => {
-                  if (key === '__placeholder__') {
-                    return;
-                  }
-                  if (key === currentKey) {
-                    return;
-                  }
-                  setSelectedConnection(undefined);
-                  resetModelLocationData();
-                  setUserSelectedKey(undefined);
-                  if (isValidModelLocation(key) && key !== ModelLocationType.NEW) {
-                    setModelLocationData({
-                      type: key,
-                      fieldValues: {},
-                      additionalFields: {},
-                    });
-                  } else {
-                    switch (key) {
-                      case s3Option.key:
-                        setUserSelectedKey({ key: s3Option.key, label: s3Option.label });
-                        if (s3ConnectionTypes.length > 1) {
-                          setShowCustomTypeSelect(true);
-                          setTypeOptions(s3ConnectionTypes);
-                          setModelLocationData({
-                            type: ModelLocationType.NEW,
-                            connectionTypeObject: undefined,
-                            fieldValues: {},
-                            additionalFields: {},
-                          });
-                        } else {
-                          setShowCustomTypeSelect(false);
-                          setModelLocationData({
-                            type: ModelLocationType.NEW,
-                            connectionTypeObject: s3ConnectionTypes[0],
-                            fieldValues: {},
-                            additionalFields: {},
-                          });
-                        }
-                        break;
-                      case ociOption.key:
-                        setUserSelectedKey({ key: ociOption.key, label: ociOption.label });
-                        if (ociConnectionTypes.length > 1) {
-                          setShowCustomTypeSelect(true);
-                          setTypeOptions(ociConnectionTypes);
-                          setModelLocationData({
-                            type: ModelLocationType.NEW,
-                            connectionTypeObject: undefined,
-                            fieldValues: {},
-                            additionalFields: {},
-                          });
-                        } else {
-                          setShowCustomTypeSelect(false);
-                          setModelLocationData({
-                            type: ModelLocationType.NEW,
-                            connectionTypeObject: ociConnectionTypes[0],
-                            fieldValues: {},
-                            additionalFields: {},
-                          });
-                        }
-                        break;
-                      case uriOption.key:
-                        setUserSelectedKey({ key: uriOption.key, label: uriOption.label });
-                        if (uriConnectionTypes.length > 1) {
-                          setShowCustomTypeSelect(true);
-                          setTypeOptions(uriConnectionTypes);
-                          setModelLocationData({
-                            type: ModelLocationType.NEW,
-                            connectionTypeObject: undefined,
-                            fieldValues: {},
-                            additionalFields: {},
-                          });
-                        } else {
-                          setShowCustomTypeSelect(false);
-                          setModelLocationData({
-                            type: ModelLocationType.NEW,
-                            connectionTypeObject: uriConnectionTypes[0],
-                            fieldValues: {},
-                            additionalFields: {},
-                          });
-                        }
-                        break;
-                    }
-                  }
-                }}
-                onBlur={validationProps?.onBlur}
-                placeholder="Select model location"
-                value={currentKey}
-                toggleProps={{ style: { minWidth: '450px' } }}
+              <ModelLocationInputFields
+                modelLocation={modelLocation}
+                connections={connections}
+                connectionTypes={modelServingConnectionTypes}
+                selectedConnection={selectedConnection}
+                setSelectedConnection={setSelectedConnection}
+                selectedConnectionType={selectedConnectionType}
+                setModelLocationData={setModelLocationData}
+                resetModelLocationData={resetModelLocationData}
+                modelLocationData={modelLocationData}
+                pvcs={pvcs}
+                showCustomTypeSelect={showCustomTypeSelect}
+                customTypeOptions={typeOptions}
+                customTypeKey={selectedKey?.label}
               />
             </StackItem>
-            <ZodErrorHelperText zodIssue={validationIssues} />
-            {modelLocation && (
-              <StackItem>
-                <ModelLocationInputFields
-                  modelLocation={modelLocation}
-                  connections={connections}
-                  connectionTypes={modelServingConnectionTypes}
-                  selectedConnection={selectedConnection}
-                  setSelectedConnection={setSelectedConnection}
-                  selectedConnectionType={selectedConnectionType}
-                  setModelLocationData={setModelLocationData}
-                  resetModelLocationData={resetModelLocationData}
-                  modelLocationData={modelLocationData}
-                  pvcs={pvcs}
-                  showCustomTypeSelect={showCustomTypeSelect}
-                  customTypeOptions={typeOptions}
-                  customTypeKey={selectedKey?.label}
-                />
-              </StackItem>
-            )}
-          </Stack>
-        </FormGroup>
-      </FormSection>
-    </Form>
+          )}
+        </Stack>
+      </FormGroup>
+    </>
   );
 };

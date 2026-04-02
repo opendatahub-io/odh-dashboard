@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Label } from '@patternfly/react-core';
+import { Icon, Label, Popover, Stack, StackItem } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -56,19 +56,53 @@ const statusMap: Record<EvaluationJobState, StatusConfig> = {
 
 type EvaluationStatusLabelProps = {
   state: EvaluationJobState;
+  message?: string;
 };
 
-const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({ state }) => {
+const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({ state, message }) => {
   const config = statusMap[state];
+  const hasPopover = state === 'failed' && !!message;
 
-  return (
+  const label = (
     <Label
       color={config.color}
       icon={<Icon isInline>{config.icon}</Icon>}
       data-testid={`status-label-${state}`}
+      {...(hasPopover
+        ? {
+            onClick: () => {
+              /* intentional no-op - Click event is handled by the Popover parent,
+              this prop enables clickable styles in the PatternFly Label */
+            },
+          }
+        : {})}
     >
       {config.label}
     </Label>
+  );
+
+  if (!hasPopover) {
+    return label;
+  }
+
+  const lines = message.split('\n').filter(Boolean);
+
+  return (
+    <Popover
+      headerContent="Evaluation failed"
+      alertSeverityVariant="danger"
+      headerIcon={<ExclamationCircleIcon />}
+      data-testid="evaluation-status-popover"
+      bodyContent={
+        <Stack hasGutter>
+          {lines.map((line, index) => (
+            <StackItem key={`message-${index}`}>{line}</StackItem>
+          ))}
+        </Stack>
+      }
+    >
+      {label}
+    </Popover>
   );
 };
 

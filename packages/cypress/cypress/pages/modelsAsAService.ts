@@ -448,6 +448,14 @@ class APIKeyTableRow extends TableRow {
     return this.find().find('[data-label="Status"]');
   }
 
+  findSubscription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Subscription"]');
+  }
+
+  findSubscriptionPopoverButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findSubscription().findByTestId('subscription-popover-button');
+  }
+
   findCreationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Creation date"]');
   }
@@ -456,6 +464,22 @@ class APIKeyTableRow extends TableRow {
     return this.find().find('[data-label="Expiration date"]');
   }
 }
+
+class SubscriptionPopover {
+  findBody(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-popover-body');
+  }
+
+  findModelCount(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findBody().contains(/\d+ models?/);
+  }
+
+  findModelName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findBody().contains(name);
+  }
+}
+
+export const subscriptionPopover = new SubscriptionPopover();
 
 class BulkRevokeAPIKeyModal extends Modal {
   constructor() {
@@ -533,6 +557,41 @@ class CreateApiKeyModal extends Modal {
 
   findErrorAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('create-api-key-error-alert');
+  }
+
+  findSubscriptionToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-subscription-toggle');
+  }
+
+  findSubscriptionOption(value: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`api-key-subscription-option-${value}`);
+  }
+
+  findSubscriptionCostCenterDetails(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('subscription-cost-center-details');
+  }
+
+  findSubscriptionCostCenter(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('subscription-cost-center');
+  }
+
+  findSubscriptionModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('subscription-models-table');
+  }
+
+  findSubscriptionModelRateLimit(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find()
+      .findByTestId('subscription-models-table')
+      .contains('tr', modelName)
+      .find('[data-label="Token limits"]');
+  }
+
+  findNoSubscriptionsAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('no-subscriptions-alert');
+  }
+
+  findSubscriptionsErrorAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('subscriptions-error-alert');
   }
 }
 

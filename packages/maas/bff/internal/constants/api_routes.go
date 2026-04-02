@@ -17,13 +17,25 @@ const (
 	// Access review
 	IsMaasAdminPath = ApiPathPrefix + "/is-maas-admin"
 
+	// Subscriptions passthrough (maas-api /v1/subscriptions)
+	SubscriptionsPassthroughPath = ApiPathPrefix + "/subscriptions"
+
+	// General MaaS routes
+	SubscriptionPolicyFormDataPath = ApiPathPrefix + "/subscription-policy-form-data"
+
 	// Subscription routes
-	SubscriptionListPath     = ApiPathPrefix + "/all-subscriptions"
-	SubscriptionInfoPath     = ApiPathPrefix + "/subscription-info/:name"
-	SubscriptionFormDataPath = ApiPathPrefix + "/new-subscription"
-	SubscriptionCreatePath   = ApiPathPrefix + "/new-subscription"
-	SubscriptionUpdatePath   = ApiPathPrefix + "/update-subscription/:name"
-	SubscriptionDeletePath   = ApiPathPrefix + "/subscription/:name"
+	SubscriptionListPath   = ApiPathPrefix + "/all-subscriptions"
+	SubscriptionInfoPath   = ApiPathPrefix + "/subscription-info/:name"
+	SubscriptionCreatePath = ApiPathPrefix + "/new-subscription"
+	SubscriptionUpdatePath = ApiPathPrefix + "/update-subscription/:name"
+	SubscriptionDeletePath = ApiPathPrefix + "/subscription/:name"
+
+	// Policy routes
+	PolicyListPath   = ApiPathPrefix + "/all-policies"
+	PolicyViewPath   = ApiPathPrefix + "/view-policy/:name"
+	PolicyCreatePath = ApiPathPrefix + "/new-policy"
+	PolicyUpdatePath = ApiPathPrefix + "/update-policy/:name"
+	PolicyDeletePath = ApiPathPrefix + "/delete-policy/:name"
 
 	// MaaSModelRef routes
 	MaaSModelRefCreatePath = ApiPathPrefix + "/maasmodel"

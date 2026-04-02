@@ -9,7 +9,9 @@ import NoPipelineServer from '~/app/components/empty-states/NoPipelineServer';
 import PipelineServerNotReady from '~/app/components/empty-states/PipelineServerNotReady';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
+import { shouldShowConfigurePipelineServerEmptyState } from '~/app/utilities/pipelineServerEmptyState';
 import { automlConfigurePathname } from '~/app/utilities/routes';
+import { parseErrorStatus } from '~/app/utilities/utils';
 
 export type AutomlExperimentsListStatus = {
   /** True once pipeline definitions and runs have finished loading without a blocking list error. */
@@ -27,24 +29,11 @@ type AutomlExperimentsProps = {
 };
 
 /**
- * Extracts HTTP status from Error.message when handleRestFailures (mod-arch-core)
- * has flattened AxiosError to a plain Error, so 403/404/503 branches can still run.
- */
-function parseErrorStatus(error: Error): number | undefined {
-  const match =
-    error.message.match(/\bstatus\s+code\s+(\d{3})\b/i) ??
-    error.message.match(/\bstatus[:\s]+(\d{3})\b/i) ??
-    error.message.match(/\b(403|404|503)\b/);
-  if (match) {
-    const code = parseInt(match[1], 10);
-    return code >= 100 && code < 600 ? code : undefined;
-  }
-  return undefined;
-}
-
-/**
- * Main experiments list page for AutoML. Renders pipeline runs in a paginated table,
- * handles loading/error states (403, 404, 503), and shows empty state when no experiments exist.
+ * **Empty State A (`NoPipelineServer`)** — No managed pipeline server and/or managed AutoML
+ * pipeline definitions unavailable (see `shouldShowConfigurePipelineServerEmptyState`). Precedence
+ * over B: handled under `loadError` before the zero-runs branch.
+ *
+ * **Empty State B (`EmptyExperimentsState`)** — Server and definitions load succeeded; zero runs.
  */
 function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps): React.JSX.Element {
   const { namespace } = useParams();
@@ -64,7 +53,7 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   } = usePipelineRuns(effectiveNamespace);
 
   const loaded = defsLoaded && runsLoaded;
-  const loadError = defsError || runsError;
+  const loadError = defsError ?? runsError;
   const hasLoadError = Boolean(loadError);
 
   const hasExperiments = totalSize > 0;
@@ -127,7 +116,7 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     if (errorCode === 403) {
       return <UnauthorizedError accessDomain="AutoML experiments" />;
     }
-    if (errorCode === 404) {
+    if (shouldShowConfigurePipelineServerEmptyState(loadError)) {
       return <NoPipelineServer namespace={effectiveNamespace || undefined} />;
     }
     if (errorCode === 503) {
