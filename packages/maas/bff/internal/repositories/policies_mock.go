@@ -46,6 +46,8 @@ func (r *MockPoliciesRepository) CreatePolicy(_ context.Context, request models.
 	return &models.MaaSAuthPolicy{
 		Name:             request.Name,
 		Namespace:        "mock-namespace",
+		DisplayName:      request.DisplayName,
+		Description:      request.Description,
 		Phase:            "Pending",
 		ModelRefs:        request.ModelRefs,
 		Subjects:         request.Subjects,
@@ -70,6 +72,8 @@ func (r *MockPoliciesRepository) UpdatePolicy(_ context.Context, name string, re
 	return &models.MaaSAuthPolicy{
 		Name:             existing.Name,
 		Namespace:        existing.Namespace,
+		DisplayName:      request.DisplayName,
+		Description:      request.Description,
 		Phase:            existing.Phase,
 		ModelRefs:        request.ModelRefs,
 		Subjects:         request.Subjects,

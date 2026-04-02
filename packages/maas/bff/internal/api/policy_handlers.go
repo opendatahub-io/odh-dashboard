@@ -17,7 +17,7 @@ import (
 func attachPolicyHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.GET(constants.PolicyListPath, handlerWithApp(app, ListPoliciesHandler))
 	apiRouter.GET(constants.PolicyViewPath, handlerWithApp(app, GetPolicyInfoHandler))
-	apiRouter.GET(constants.PolicyFormDataPath, handlerWithApp(app, GetSubscriptionFormDataHandler))
+	apiRouter.GET(constants.SubscriptionPolicyFormDataPath, handlerWithApp(app, GetSubscriptionPolicyFormDataHandler))
 	apiRouter.POST(constants.PolicyCreatePath, handlerWithApp(app, CreatePolicyHandler))
 	apiRouter.PUT(constants.PolicyUpdatePath, handlerWithApp(app, UpdatePolicyHandler))
 	apiRouter.DELETE(constants.PolicyDeletePath, handlerWithApp(app, DeletePolicyHandler))
@@ -75,9 +75,11 @@ func GetPolicyInfoHandler(app *App, w http.ResponseWriter, r *http.Request, para
 		return
 	}
 
-	response := models.PolicyInfoResponse{
-		Policy:    *policy,
-		ModelRefs: modelRefSummaries,
+	response := Envelope[models.PolicyInfoResponse, None]{
+		Data: models.PolicyInfoResponse{
+			Policy:    *policy,
+			ModelRefs: modelRefSummaries,
+		},
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
@@ -90,11 +92,12 @@ func GetPolicyInfoHandler(app *App, w http.ResponseWriter, r *http.Request, para
 func CreatePolicyHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	var request models.CreatePolicyRequest
-	if err := app.ReadJSON(w, r, &request); err != nil {
+	var envelope Envelope[models.CreatePolicyRequest, None]
+	if err := app.ReadJSON(w, r, &envelope); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	request := envelope.Data
 
 	if strings.TrimSpace(request.Name) == "" {
 		app.badRequestResponse(w, r, errors.New("name is required"))
@@ -118,7 +121,11 @@ func CreatePolicyHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
-	if err := app.WriteJSON(w, http.StatusCreated, policy, nil); err != nil {
+	response := Envelope[*models.MaaSAuthPolicy, None]{
+		Data: policy,
+	}
+
+	if err := app.WriteJSON(w, http.StatusCreated, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
@@ -133,11 +140,12 @@ func UpdatePolicyHandler(app *App, w http.ResponseWriter, r *http.Request, param
 		return
 	}
 
-	var request models.UpdatePolicyRequest
-	if err := app.ReadJSON(w, r, &request); err != nil {
+	var envelope Envelope[models.UpdatePolicyRequest, None]
+	if err := app.ReadJSON(w, r, &envelope); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	request := envelope.Data
 
 	if len(request.ModelRefs) == 0 {
 		app.badRequestResponse(w, r, errors.New("at least one modelRef is required"))
@@ -157,7 +165,11 @@ func UpdatePolicyHandler(app *App, w http.ResponseWriter, r *http.Request, param
 		return
 	}
 
-	if err := app.WriteJSON(w, http.StatusOK, policy, nil); err != nil {
+	response := Envelope[*models.MaaSAuthPolicy, None]{
+		Data: policy,
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
@@ -184,8 +196,10 @@ func DeletePolicyHandler(app *App, w http.ResponseWriter, r *http.Request, param
 		return
 	}
 
-	response := map[string]string{
-		"message": fmt.Sprintf("MaaSAuthPolicy '%s' deleted successfully", name),
+	response := Envelope[map[string]string, None]{
+		Data: map[string]string{
+			"message": fmt.Sprintf("MaaSAuthPolicy '%s' deleted successfully", name),
+		},
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {

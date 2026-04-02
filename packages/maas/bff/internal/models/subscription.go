@@ -99,6 +99,8 @@ type ModelRef struct {
 type MaaSAuthPolicy struct {
 	Name             string         `json:"name"`
 	Namespace        string         `json:"namespace"`
+	DisplayName      string         `json:"displayName,omitempty"`
+	Description      string         `json:"description,omitempty"`
 	Phase            string         `json:"phase,omitempty"`
 	ModelRefs        []ModelRef     `json:"modelRefs"`
 	Subjects         SubjectSpec    `json:"subjects"`
@@ -159,25 +161,4 @@ type SubscriptionFormDataResponse struct {
 	ModelRefs     []MaaSModelRefSummary `json:"modelRefs"`
 	Policies      []MaaSAuthPolicy      `json:"policies"`
 	Subscriptions []MaaSSubscription    `json:"subscriptions"`
-}
-
-// CreatePolicyRequest is the request body for creating a new policy.
-type CreatePolicyRequest struct {
-	Name             string         `json:"name"`
-	ModelRefs        []ModelRef     `json:"modelRefs"`
-	Subjects         SubjectSpec    `json:"subjects"`
-	MeteringMetadata *TokenMetadata `json:"meteringMetadata,omitempty"`
-}
-
-// UpdatePolicyRequest is the request body for updating a policy.
-type UpdatePolicyRequest struct {
-	ModelRefs        []ModelRef     `json:"modelRefs"`
-	Subjects         SubjectSpec    `json:"subjects"`
-	MeteringMetadata *TokenMetadata `json:"meteringMetadata,omitempty"`
-}
-
-// PolicyInfoResponse contains detailed policy info with related model refs.
-type PolicyInfoResponse struct {
-	Policy    MaaSAuthPolicy        `json:"policy"`
-	ModelRefs []MaaSModelRefSummary `json:"modelRefs"`
 }
