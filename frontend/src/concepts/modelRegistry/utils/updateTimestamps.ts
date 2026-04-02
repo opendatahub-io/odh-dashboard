@@ -3,46 +3,9 @@ import {
   ModelState,
   ModelRegistryMetadataType,
   RegisteredModel,
-  ModelVersion,
 } from '#~/concepts/modelRegistry/types';
 
 type MinimalModelRegistryAPI = Pick<ModelRegistryAPIs, 'patchRegisteredModel'>;
-
-export const bumpModelVersionTimestamp = async (
-  api: ModelRegistryAPIs,
-  modelVersion: ModelVersion,
-): Promise<void> => {
-  if (!modelVersion.id) {
-    throw new Error('Model version ID is required');
-  }
-
-  try {
-    const currentTime = new Date().toISOString();
-    await api.patchModelVersion(
-      {},
-      {
-        // This is a workaround to update the timestamp on the backend. There is a bug opened for model registry team
-        // to fix this issue. see https://issues.redhat.com/browse/RHOAIENG-17614
-        state: ModelState.LIVE,
-        customProperties: {
-          ...modelVersion.customProperties,
-          _lastModified: {
-            metadataType: ModelRegistryMetadataType.STRING,
-            // eslint-disable-next-line camelcase
-            string_value: currentTime,
-          },
-        },
-      },
-      modelVersion.id,
-    );
-  } catch (error) {
-    throw new Error(
-      `Failed to update model version timestamp: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    );
-  }
-};
 
 export const bumpRegisteredModelTimestamp = async (
   api: MinimalModelRegistryAPI,
@@ -78,15 +41,4 @@ export const bumpRegisteredModelTimestamp = async (
       }`,
     );
   }
-};
-
-export const bumpBothTimestamps = async (
-  api: ModelRegistryAPIs,
-  registeredModel: RegisteredModel,
-  modelVersion: ModelVersion,
-): Promise<void> => {
-  await Promise.all([
-    bumpModelVersionTimestamp(api, modelVersion),
-    bumpRegisteredModelTimestamp(api, registeredModel),
-  ]);
 };

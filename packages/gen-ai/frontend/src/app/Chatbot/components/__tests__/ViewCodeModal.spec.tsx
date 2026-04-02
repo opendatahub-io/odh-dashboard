@@ -34,6 +34,8 @@ const createMockStore = (configOverrides = {}) => {
     guardrailsEnabled: false,
     mcpToolSelections: {},
     isRagEnabled: false,
+    knowledgeMode: 'inline' as const,
+    selectedVectorStoreId: null as string | null,
     ...configOverrides,
   };
 
@@ -167,7 +169,6 @@ describe('ViewCodeModal', () => {
           model: 'test-model',
           instructions: 'You are a helpful assistant.',
           stream: false,
-          files: [{ file: 'document.pdf', purpose: 'assistants' }],
         }),
       );
     });
@@ -200,6 +201,7 @@ describe('ViewCodeModal', () => {
 
   it('shows error when vector stores are not loaded', async () => {
     mockUseFetchVectorStores.mockReturnValue([[], false, undefined, jest.fn()]);
+    setupMockStore({ isRagEnabled: true, knowledgeMode: 'inline', selectedVectorStoreId: 'vs-1' });
 
     render(
       <TestWrapper>
@@ -421,7 +423,7 @@ describe('ViewCodeModal', () => {
 
   it('includes file_search tool when RAG is enabled and files are present', async () => {
     // Setup store with RAG enabled
-    setupMockStore({ isRagEnabled: true });
+    setupMockStore({ isRagEnabled: true, knowledgeMode: 'inline', selectedVectorStoreId: 'vs-1' });
 
     render(
       <TestWrapper>
@@ -450,21 +452,18 @@ describe('ViewCodeModal', () => {
     );
 
     await waitFor(() => {
-      expect(mockExportCode).toHaveBeenCalledWith(
-        expect.objectContaining({
-          files: [{ file: 'document.pdf', purpose: 'assistants' }],
-        }),
-      );
+      expect(mockExportCode).toHaveBeenCalled();
     });
 
-    // Verify that tools was not included in the request
+    // Files and tools are not sent when RAG is disabled
     const callArg = mockExportCode.mock.calls[0][0];
+    expect(callArg.files).toBeUndefined();
     expect(callArg.tools).toBeUndefined();
   });
 
   it('does not include tools when RAG is enabled but no files are present', async () => {
-    // Setup store with RAG enabled
-    setupMockStore({ isRagEnabled: true });
+    // Setup store with RAG enabled, inline mode
+    setupMockStore({ isRagEnabled: true, knowledgeMode: 'inline', selectedVectorStoreId: 'vs-1' });
 
     render(
       <TestWrapper>
@@ -473,15 +472,12 @@ describe('ViewCodeModal', () => {
     );
 
     await waitFor(() => {
-      expect(mockExportCode).toHaveBeenCalledWith(
-        expect.objectContaining({
-          files: [],
-        }),
-      );
+      expect(mockExportCode).toHaveBeenCalled();
     });
 
-    // Verify that tools was not included in the request
+    // file_search tool is still sent (vector_store_ids needed), but no files to upload
     const callArg = mockExportCode.mock.calls[0][0];
-    expect(callArg.tools).toBeUndefined();
+    expect(callArg.files).toBeUndefined();
+    expect(callArg.tools).toEqual([{ type: 'file_search', vector_store_ids: ['vs-1'] }]);
   });
 });
