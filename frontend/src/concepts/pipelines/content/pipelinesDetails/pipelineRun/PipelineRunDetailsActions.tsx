@@ -65,6 +65,10 @@ const PipelineRunDetailsActions: React.FC<PipelineRunDetailsActionsProps> = ({
                   onClick={() =>
                     api
                       .retryPipelineRun({}, run.run_id)
+                      .then(() => {
+                        notification.success('Pipeline run retried successfully');
+                        refreshAllAPI();
+                      })
                       .catch((e) => notification.error('Unable to retry pipeline run', e.message))
                   }
                 >
