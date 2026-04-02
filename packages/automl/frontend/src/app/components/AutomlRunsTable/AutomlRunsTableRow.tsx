@@ -16,6 +16,7 @@ export const RUN_STATE = {
   INCOMPLETE: 'incomplete',
   COMPLETE: 'complete',
   PAUSED: 'paused',
+  SKIPPED: 'skipped',
 } as const;
 
 type AutomlRunsTableRowProps = {
