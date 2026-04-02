@@ -712,6 +712,45 @@ describe('AutoragConfigure', () => {
         screen.queryByRole('grid', { name: 'Selected input data file' }),
       ).not.toBeInTheDocument();
     });
+
+    it('after S3 select then switch to upload, should only show the upload table (not both tables)', async () => {
+      renderComponent();
+      getMockS3MutateAsync().mockClear();
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      expect(screen.getByRole('grid', { name: 'Selected input data file' })).toBeInTheDocument();
+      expect(
+        screen.queryByRole('grid', { name: 'Knowledge document upload' }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      expect(
+        screen.queryByRole('grid', { name: 'Selected input data file' }),
+      ).not.toBeInTheDocument();
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+      const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+
+      await waitFor(() => {
+        expect(getMockS3MutateAsync()).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('grid', { name: 'Selected input data file' }),
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole('grid', { name: 'Knowledge document upload' })).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('uploaded-key.txt')).toBeInTheDocument();
+      expect(screen.queryByText('test-file.txt')).not.toBeInTheDocument();
+    });
   });
 
   describe('invalid secret selection', () => {
