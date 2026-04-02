@@ -553,7 +553,9 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                 <HelperTextItem variant={touched.endpointUrl && hasUrlError ? 'error' : 'default'}>
                   {touched.endpointUrl && urlValidation.error
                     ? urlValidation.error
-                    : 'The endpoint URL for this model.'}
+                    : modelType === MODEL_TYPE_EMBEDDING
+                      ? 'The base URL for this model, without the /v1 path (e.g., https://api.openai.com).'
+                      : 'The endpoint URL for this model (e.g., https://api.openai.com/v1).'}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
