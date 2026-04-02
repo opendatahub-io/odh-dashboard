@@ -53,7 +53,6 @@ export const useModelAvailabilityFields = (
     if (modelType && modelType.type !== ServingRuntimeModelType.GENERATIVE) {
       return {
         saveAsAiAsset: false,
-        saveAsMaaS: undefined,
         useCase: '',
       };
     }

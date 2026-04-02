@@ -30,7 +30,6 @@ jest.mock('../../../../src/concepts/extensionUtils', () => ({
         },
         extractModelAvailabilityData: () => ({
           saveAsAiAsset: true,
-          saveAsMaaS: true,
           useCase: 'test-use-case',
         }),
       },
