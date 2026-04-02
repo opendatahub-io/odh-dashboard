@@ -3,7 +3,6 @@
 /**
  * MCP Server mock that matches the real API structure (MCPServerFromAPI)
  * Note: Does NOT include 'id' field - that's added by transformMCPServerData in the frontend
- * Note: Status accepts any string for test flexibility, but defaults to API-compliant values
  */
 export type MCPServerMock = {
   name: string;
@@ -11,16 +10,19 @@ export type MCPServerMock = {
   transport: 'sse' | 'streamable-http';
   description: string;
   logo: string | null;
-  status: string; // In real API: 'healthy' | 'error' | 'unknown', but tests may use other values
+  status: 'healthy' | 'error' | 'unknown';
 };
 
-export type MCPServersData = {
-  total_count: number;
-  servers: MCPServerMock[];
+export type MCPConfigMapInfo = {
+  name: string;
+  namespace: string;
+  last_updated: string;
 };
 
 export type MCPServersResponse = {
-  data: MCPServersData;
+  servers: MCPServerMock[];
+  total_count: number;
+  config_map_info: MCPConfigMapInfo;
 };
 
 export const mockMCPServer = ({
@@ -39,7 +41,10 @@ export const mockMCPServer = ({
   status,
 });
 
-export const mockMCPServers = (servers?: MCPServerMock[]): MCPServersResponse => {
+export const mockMCPServers = (
+  servers?: MCPServerMock[],
+  namespace = 'test-namespace',
+): MCPServersResponse => {
   const serverList = servers ?? [
     mockMCPServer({
       name: 'GitHub-MCP-Server',
@@ -56,9 +61,12 @@ export const mockMCPServers = (servers?: MCPServerMock[]): MCPServersResponse =>
   ];
 
   return {
-    data: {
-      total_count: serverList.length,
-      servers: serverList,
+    servers: serverList,
+    total_count: serverList.length,
+    config_map_info: {
+      name: 'mcp-servers',
+      namespace,
+      last_updated: new Date().toISOString(),
     },
   };
 };

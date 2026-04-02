@@ -228,7 +228,7 @@ describe('Subscriptions Page', () => {
         key: 'test-ephemeral-token-12345',
         expiresAt: new Date(Date.now() + 3600000).toISOString(),
       },
-    });
+    }).as('generateToken');
 
     // Select subscription
     cy.get('[data-testid="endpoint-modal-subscription-select"]').click();
@@ -240,8 +240,9 @@ describe('Subscriptions Page', () => {
     // Verify button is disabled during loading
     cy.get('[data-testid="endpoint-modal-generate-api-key"]').should('be.disabled');
 
-    // Wait for token to be generated
-    cy.get('[data-testid="endpoint-modal-api-key-input"]', { timeout: 2000 }).should('exist');
+    // Wait for token generation API call to complete
+    cy.wait('@generateToken');
+    cy.get('[data-testid="endpoint-modal-api-key-input"]').should('exist');
   });
 
   it('should reset state when modal is closed', () => {

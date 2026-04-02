@@ -36,8 +36,7 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
     projectRbacPermissions
       .findAssignRolesButton()
       .should('be.visible')
-      .should('not.have.attr', 'aria-disabled', 'true')
-      .should('exist');
+      .should('not.have.attr', 'aria-disabled', 'true');
 
     // Re-query to avoid detached DOM element
     projectRbacPermissions.findAssignRolesButton().click();
@@ -63,6 +62,9 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
   it('should render Users/Groups role tables and allow filtering by friendly role names', () => {
     initProjectRbacIntercepts();
     projectRbacPermissions.visit(NAMESPACE);
+
+    // Wait for role bindings API to complete before interacting with UI
+    cy.wait('@listRoleBindings');
 
     projectRbacPermissions.findAssignRolesButton().should('not.have.attr', 'aria-disabled', 'true');
 
