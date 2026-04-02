@@ -382,7 +382,7 @@ describe('usePipelineFilterSearchParams', () => {
       return Wrapper;
     };
 
-    it('should produce EQUALS predicate when run group matches a single experiment', () => {
+    it('should produce IN predicate when run group matches a single experiment', () => {
       const setFilterMock = jest.fn();
       renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
         wrapper: wrapperWithExperiments('/?run_group=Gamma'),
@@ -394,8 +394,8 @@ describe('usePipelineFilterSearchParams', () => {
         predicates: expect.arrayContaining([
           {
             key: 'experiment_id',
-            operation: PipelinesFilterOp.EQUALS,
-            string_value: 'exp-gamma',
+            operation: PipelinesFilterOp.IN,
+            string_values: { values: ['exp-gamma'] },
           },
         ]),
       });
@@ -423,7 +423,7 @@ describe('usePipelineFilterSearchParams', () => {
       });
     });
 
-    it('should produce no experiment predicate when run group matches no experiments', () => {
+    it('should produce empty IN predicate when run group matches no experiments', () => {
       const setFilterMock = jest.fn();
       renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
         wrapper: wrapperWithExperiments('/?run_group=NoMatch'),
@@ -431,15 +431,48 @@ describe('usePipelineFilterSearchParams', () => {
 
       jest.runAllTimers();
 
-      const lastCall = setFilterMock.mock.calls[setFilterMock.mock.calls.length - 1][0];
-      const predicateKeys = (lastCall?.predicates ?? []).map((p: { key: string }) => p.key);
-      expect(predicateKeys).not.toContain('experiment_id');
+      expect(setFilterMock).toHaveBeenLastCalledWith({
+        predicates: expect.arrayContaining([
+          {
+            key: 'experiment_id',
+            operation: PipelinesFilterOp.IN,
+            string_values: { values: [] },
+          },
+        ]),
+      });
     });
 
     it('should use exact experiment ID for legacy ?experiment= deep links', () => {
       const setFilterMock = jest.fn();
       renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
         wrapper: wrapperWithExperiments('/?experiment=exp-alpha'),
+      });
+
+      jest.runAllTimers();
+
+      expect(setFilterMock).toHaveBeenLastCalledWith({
+        predicates: expect.arrayContaining([
+          {
+            key: 'experiment_id',
+            operation: PipelinesFilterOp.EQUALS,
+            string_value: 'exp-alpha',
+          },
+        ]),
+      });
+    });
+
+    it('should preserve exact legacy experiment ID before experiments load', () => {
+      const setFilterMock = jest.fn();
+      const wrapperWithLoadingExperiments = ({ children }: { children: React.ReactNode }) => (
+        <PipelineRunVersionsContext.Provider value={versionsContextValue}>
+          <PipelineRunExperimentsContext.Provider value={{ experiments: [], loaded: false }}>
+            <MemoryRouter initialEntries={['/?experiment=exp-alpha']}>{children}</MemoryRouter>
+          </PipelineRunExperimentsContext.Provider>
+        </PipelineRunVersionsContext.Provider>
+      );
+
+      renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
+        wrapper: wrapperWithLoadingExperiments,
       });
 
       jest.runAllTimers();

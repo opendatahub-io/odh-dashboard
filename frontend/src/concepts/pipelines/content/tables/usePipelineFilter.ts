@@ -48,8 +48,16 @@ const defaultFilterData: FilterProps['filterData'] = {
 const resolveExperimentPredicate = (
   runGroupName: string | undefined,
   experiments: ExperimentKF[],
+  legacyExperimentRawId?: string,
   legacyExperimentId?: string,
 ): PipelinesFilterPredicate | undefined => {
+  if (legacyExperimentRawId) {
+    return {
+      key: 'experiment_id',
+      operation: PipelinesFilterOp.EQUALS,
+      string_value: legacyExperimentRawId,
+    };
+  }
   if (legacyExperimentId) {
     return {
       key: 'experiment_id',
@@ -64,22 +72,11 @@ const resolveExperimentPredicate = (
   const matchingIds = experiments
     .filter((e) => e.display_name.toLowerCase().includes(lowerName))
     .map((e) => e.experiment_id);
-
-  if (matchingIds.length === 1) {
-    return {
-      key: 'experiment_id',
-      operation: PipelinesFilterOp.EQUALS,
-      string_value: matchingIds[0],
-    };
-  }
-  if (matchingIds.length > 1) {
-    return {
-      key: 'experiment_id',
-      operation: PipelinesFilterOp.IN,
-      string_values: { values: matchingIds },
-    };
-  }
-  return undefined;
+  return {
+    key: 'experiment_id',
+    operation: PipelinesFilterOp.IN,
+    string_values: { values: matchingIds },
+  };
 };
 
 const EMPTY_EXPERIMENTS: ExperimentKF[] = [];
@@ -88,6 +85,7 @@ const useSetFilter = (
   setFilter: (filter?: PipelinesFilter) => void,
   filterData: FilterProps['filterData'],
   experiments: ExperimentKF[] = EMPTY_EXPERIMENTS,
+  legacyExperimentRawId?: string,
   legacyExperimentId?: string,
 ) => {
   const doSetFilter = React.useCallback(
@@ -126,6 +124,7 @@ const useSetFilter = (
       const experimentPredicate = resolveExperimentPredicate(
         runGroupName,
         experiments,
+        legacyExperimentRawId,
         legacyExperimentId,
       );
       if (experimentPredicate) {
@@ -148,7 +147,7 @@ const useSetFilter = (
           : undefined,
       );
     },
-    [setFilter, experiments, legacyExperimentId],
+    [setFilter, experiments, legacyExperimentRawId, legacyExperimentId],
   );
 
   const doSetFilterDebounced = useDebounceCallback(doSetFilter);
@@ -206,14 +205,22 @@ export const usePipelineFilterSearchParams = (
   const isLegacyParam =
     !searchParams.has(FilterOptions.RUN_GROUP) && searchParams.has(LEGACY_EXPERIMENT_FILTER_PARAM);
 
-  const { filterData: filterDataFromSearchParams, legacyExperimentId } = React.useMemo(() => {
+  const {
+    filterData: filterDataFromSearchParams,
+    legacyExperimentRawId,
+    legacyExperimentId,
+  } = React.useMemo(() => {
     const runGroupFromParams =
       searchParams.get(FilterOptions.RUN_GROUP) || searchParams.get(LEGACY_EXPERIMENT_FILTER_PARAM);
+    const legacyExperimentRawIdFromParams = isLegacyParam
+      ? searchParams.get(LEGACY_EXPERIMENT_FILTER_PARAM) || undefined
+      : undefined;
     const versionFound = versions.find(
       (v) => v.pipeline_version_id === searchParams.get(FilterOptions.PIPELINE_VERSION),
     );
     const experimentFoundById = experiments.find((e) => e.experiment_id === runGroupFromParams);
     return {
+      legacyExperimentRawId: legacyExperimentRawIdFromParams,
       legacyExperimentId:
         isLegacyParam && experimentFoundById ? experimentFoundById.experiment_id : undefined,
       filterData: {
@@ -234,7 +241,13 @@ export const usePipelineFilterSearchParams = (
     };
   }, [experiments, isLegacyParam, searchParams, versions]);
 
-  useSetFilter(setFilter, filterDataFromSearchParams, experiments, legacyExperimentId);
+  useSetFilter(
+    setFilter,
+    filterDataFromSearchParams,
+    experiments,
+    legacyExperimentRawId,
+    legacyExperimentId,
+  );
 
   const toolbarProps: FilterProps = {
     filterData: filterDataFromSearchParams,
