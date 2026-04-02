@@ -18,7 +18,7 @@ class PipelineImportModal extends Modal {
   }
 
   findSubmitButton(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
-    return cy.findByTestId('modal-submit-button', options);
+    return this.findFooter().findByTestId('modal-submit-button', options);
   }
 
   findVersionNameInput() {
