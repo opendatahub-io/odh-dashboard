@@ -6,7 +6,7 @@ metadata:
   labels:
     kueue.x-k8s.io/queue-name: ${localQueueName}
 spec:
-  shutdownAfterJobFinishes: false
+  shutdownAfterJobFinishes: true
   ttlSecondsAfterFinished: 86400
   submissionMode: K8sJobMode
   entrypoint: python -c "import time; time.sleep(86400)"
@@ -32,6 +32,7 @@ spec:
         replicas: 1
         minReplicas: 0
         maxReplicas: 10
+        rayStartParams: {}
         template:
           spec:
             containers:

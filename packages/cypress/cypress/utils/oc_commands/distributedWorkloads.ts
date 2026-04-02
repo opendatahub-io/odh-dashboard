@@ -81,13 +81,13 @@ export const deleteKueueResources = (
 
   return cy.exec(ocCommand, execOptions).then((result) => {
     if (result.code !== 0) {
-      cy.log(`ERROR deleting Kueue resources
-                stdout: ${result.stdout}
-                stderr: ${result.stderr}`);
       if (!ignoreNotFound) {
-        throw new Error(`Command failed with code ${result.code}`);
+        throw new Error(
+          `Command failed with code ${result.code}: ${result.stderr || result.stdout}`,
+        );
       }
+      cy.log(`Kueue resource deletion returned non-zero (ignored): ${result.stderr}`);
     }
-    return result;
+    return cy.wrap(result);
   });
 };

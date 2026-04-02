@@ -20,7 +20,6 @@ import {
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
-import { getCustomResource } from '../../../../utils/oc_commands/customResources';
 import type { RayJobE2eTestData } from '../../../../types';
 
 const INITIAL_WORKER_REPLICAS = 1;
@@ -46,13 +45,13 @@ describe('[RHOAIENG-56125] Verify pause, scale worker nodes, and delete RayJob',
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
-    cy.step('Check if the operator is RHOAI');
-    getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
-      if (!result.stdout.includes('rhods-operator')) {
-        cy.log('RHOAI operator not found, skipping the test (Ray Jobs E2E is RHOAI-specific).');
+    cy.step('Check if RayJob CRD is available');
+    cy.exec('oc get crd rayjobs.ray.io', { failOnNonZeroExit: false }).then((result) => {
+      if (result.code !== 0) {
+        cy.log('RayJob CRD not found, skipping test (requires KubeRay operator).');
         skipTest = true;
       } else {
-        cy.log('RHOAI operator confirmed:', result.stdout);
+        cy.log('RayJob CRD confirmed.');
       }
     });
 
