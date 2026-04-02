@@ -1,5 +1,18 @@
+const fs = require('fs');
+const path = require('path');
 const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
 const deps = require('../package.json').dependencies;
+
+const odhDashboardDir = path.resolve(__dirname, '../../../../node_modules/@odh-dashboard');
+const odhShared = fs.existsSync(odhDashboardDir)
+  ? fs
+      .readdirSync(odhDashboardDir)
+      .filter((name) => !name.startsWith('.'))
+      .reduce((acc, name) => {
+        acc[`@odh-dashboard/${name}`] = { singleton: true, requiredVersion: '*' };
+        return acc;
+      }, {})
+  : {};
 
 const moduleFederationConfig = {
   name: 'genAi',
@@ -16,10 +29,7 @@ const moduleFederationConfig = {
     '@openshift/dynamic-plugin-sdk': {
       singleton: true,
     },
-    '@odh-dashboard/plugin-core': {
-      singleton: true,
-      requiredVersion: '0.0.0',
-    },
+    ...odhShared,
   },
   exposes: {
     './extensions': './src/odh/extensions',

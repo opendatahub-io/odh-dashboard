@@ -80,6 +80,21 @@ const getWorkspacePackages = () => {
 
 const workspacePackages = getWorkspacePackages();
 
+/**
+ * Build MF shared entries for all @odh-dashboard/* workspace packages.
+ * This ensures library packages are shared at runtime between host and remotes,
+ * avoiding duplicate code being loaded in the browser.
+ */
+const getOdhDashboardShared = (options = {}) => {
+  const shared = {};
+  for (const pkg of workspacePackages) {
+    if (pkg.name && pkg.name.startsWith('@odh-dashboard/')) {
+      shared[pkg.name] = { singleton: true, requiredVersion: pkg.version || '*', ...options };
+    }
+  }
+  return shared;
+};
+
 // Function to read module federation config from workspace packages
 const readModuleFederationConfigFromPackages = () => {
   const configs = [];
@@ -172,11 +187,7 @@ module.exports = {
                 requiredVersion: deps['@openshift/dynamic-plugin-sdk-utils'],
                 eager: true,
               },
-              '@odh-dashboard/plugin-core': {
-                singleton: true,
-                requiredVersion: deps['@odh-dashboard/plugin-core'],
-                eager: true,
-              },
+              ...getOdhDashboardShared({ eager: true }),
             },
             exposes: {},
             dts: updateTypes,

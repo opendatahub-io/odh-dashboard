@@ -1,5 +1,18 @@
+const fs = require('fs');
+const path = require('path');
 const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
 const deps = require('../package.json').dependencies;
+
+const odhDashboardDir = path.resolve(__dirname, '../../../../node_modules/@odh-dashboard');
+const odhShared = fs.existsSync(odhDashboardDir)
+  ? fs
+      .readdirSync(odhDashboardDir)
+      .filter((name) => !name.startsWith('.'))
+      .reduce((acc, name) => {
+        acc[`@odh-dashboard/${name}`] = { singleton: true, requiredVersion: '*' };
+        return acc;
+      }, {})
+  : {};
 
 const moduleFederationConfig = {
   name: 'automl',
@@ -13,16 +26,13 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@patternfly/react-core'],
     },
-    '@odh-dashboard/plugin-core': {
-      singleton: true,
-      requiredVersion: '0.0.0',
-    },
     '@openshift/dynamic-plugin-sdk': {
       singleton: true,
     },
     '@openshift/dynamic-plugin-sdk-utils': {
       singleton: true,
     },
+    ...odhShared,
   },
   exposes: {
     './extensions': './src/odh/extensions',
