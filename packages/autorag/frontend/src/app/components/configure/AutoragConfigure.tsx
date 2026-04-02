@@ -33,8 +33,10 @@ import {
   SplitItem,
   Stack,
   StackItem,
+  Tooltip,
 } from '@patternfly/react-core';
-import { CubesIcon, InfoCircleIcon } from '@patternfly/react-icons';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { CubesIcon, InfoCircleIcon, TimesIcon } from '@patternfly/react-icons';
 import { findKey } from 'es-toolkit';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React, { useEffect, useRef, useState } from 'react';
@@ -43,6 +45,7 @@ import { Navigate, useParams } from 'react-router';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
+import type { File } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import {
@@ -108,6 +111,8 @@ function AutoragConfigure(): React.JSX.Element {
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
+
+  const [selectedInputDataFile, setSelectedInputDataFile] = useState<File | undefined>();
 
   const form = useFormContext<ConfigureSchema>();
   const { getValues, reset, setValue } = form;
@@ -186,11 +191,13 @@ function AutoragConfigure(): React.JSX.Element {
   // reset selected file values if input secret or bucket changes
   useEffect(() => {
     setValue('input_data_key', '', { shouldValidate: true });
+    setSelectedInputDataFile(undefined);
   }, [inputDataSecretName, inputDataBucketName, setValue]);
 
   // reset selected file values if test secret or bucket changes
   useEffect(() => {
     setValue('test_data_key', '', { shouldValidate: true });
+    setSelectedInputDataFile(undefined);
   }, [testDataSecretName, testDataBucketName, setValue]);
 
   const openExperimentSettings = () => {
@@ -292,6 +299,39 @@ function AutoragConfigure(): React.JSX.Element {
                         </Button>
                       </StackItem>
                     </>
+                  )}
+                  {selectedInputDataFile && (
+                    <StackItem>
+                      <Table aria-label="Selected input data file" variant="compact">
+                        <Thead>
+                          <Tr>
+                            <Th>Name</Th>
+                            <Th>Type</Th>
+                            <Th />
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          <Tr>
+                            <Td dataLabel="Name">{selectedInputDataFile.name}</Td>
+                            <Td dataLabel="Type">{selectedInputDataFile.type}</Td>
+                            <Td isActionCell>
+                              <Tooltip content="Remove selection">
+                                <Button
+                                  size="sm"
+                                  variant="plain"
+                                  aria-label="Remove selection"
+                                  icon={<TimesIcon />}
+                                  onClick={() => {
+                                    setSelectedInputDataFile(undefined);
+                                    setValue('input_data_key', '', { shouldValidate: true });
+                                  }}
+                                />
+                              </Tooltip>
+                            </Td>
+                          </Tr>
+                        </Tbody>
+                      </Table>
+                    </StackItem>
                   )}
                 </Stack>
               </CardBody>
@@ -613,6 +653,7 @@ function AutoragConfigure(): React.JSX.Element {
             const filePath = file.path.replace(/^\//, '');
             if (fileExplorerMode === 'input_data') {
               setValue('input_data_key', filePath, { shouldValidate: true });
+              setSelectedInputDataFile(file);
               // TODO: Once test data upload is hooked up, remove this fallback
               setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
             }

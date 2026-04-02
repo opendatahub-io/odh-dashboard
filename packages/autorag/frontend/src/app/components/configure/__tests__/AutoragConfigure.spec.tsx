@@ -7,6 +7,7 @@ import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
+import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
@@ -150,7 +151,7 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
     onClose,
   }: {
     isOpen: boolean;
-    onSelectFiles: (files: { path: string }[]) => void;
+    onSelectFiles: (files: Files) => void;
     onClose: () => void;
   }) =>
     isOpen ? (
@@ -158,7 +159,7 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
         <button
           data-testid="file-explorer-select-file"
           onClick={() => {
-            onSelectFiles([{ path: '/test-file.txt' }]);
+            onSelectFiles([{ path: '/test-file.txt', name: 'test-file.txt', type: 'txt' }]);
             onClose();
           }}
         >
@@ -469,6 +470,56 @@ describe('AutoragConfigure', () => {
       // The "Selected models" card should show model counts
       expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
       expect(screen.getByText(/1 embedding model/)).toBeInTheDocument();
+    });
+  });
+
+  describe('selected input data file table', () => {
+    it('should NOT display the selected file table when no file is selected', () => {
+      renderComponent();
+
+      // Select a secret so the "Select files" button appears
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      expect(
+        screen.queryByRole('grid', { name: 'Selected input data file' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should display the selected file table after selecting a file', () => {
+      renderComponent();
+
+      // Select a secret
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      // Open file explorer and select a file
+      fireEvent.click(screen.getByRole('button', { name: 'Select files' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Verify the table appears with correct content
+      const table = screen.getByRole('grid', { name: 'Selected input data file' });
+      expect(table).toBeInTheDocument();
+      expect(screen.getByText('test-file.txt')).toBeInTheDocument();
+      expect(screen.getByText('txt')).toBeInTheDocument();
+    });
+
+    it('should remove the selected file when the remove button is clicked', () => {
+      renderComponent();
+
+      // Select a secret and a file
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Select files' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Verify the table is shown
+      expect(screen.getByRole('grid', { name: 'Selected input data file' })).toBeInTheDocument();
+
+      // Click the remove button
+      fireEvent.click(screen.getByRole('button', { name: 'Remove selection' }));
+
+      // Table should be removed
+      expect(
+        screen.queryByRole('grid', { name: 'Selected input data file' }),
+      ).not.toBeInTheDocument();
     });
   });
 

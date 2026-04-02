@@ -7,6 +7,7 @@ import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
+import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
@@ -17,7 +18,33 @@ jest.mock('react-router', () => ({
 }));
 
 jest.mock('~/app/hooks/queries');
-jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer', () => () => null);
+
+// Mock S3FileExplorer component
+jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer', () => ({
+  __esModule: true,
+  default: ({
+    isOpen,
+    onSelectFiles,
+    onClose,
+  }: {
+    isOpen: boolean;
+    onSelectFiles: (files: Files) => void;
+    onClose: () => void;
+  }) =>
+    isOpen ? (
+      <div data-testid="file-explorer-modal">
+        <button
+          data-testid="file-explorer-select-file"
+          onClick={() => {
+            onSelectFiles([{ path: '/data.csv', name: 'data.csv', type: 'csv' }]);
+            onClose();
+          }}
+        >
+          Select File
+        </button>
+      </div>
+    ) : null,
+}));
 
 // Mock SecretSelector component
 jest.mock('~/app/components/common/SecretSelector', () => ({
@@ -259,6 +286,56 @@ describe('AutomlConfigure', () => {
       expect(screen.getByText('Binary classification')).toBeInTheDocument();
       expect(screen.getByText('Label column')).toBeInTheDocument();
       expect(screen.getByText('Top models to consider')).toBeInTheDocument();
+    });
+  });
+
+  describe('selected training data file table', () => {
+    it('should NOT display the selected file table when no file is selected', () => {
+      renderComponent();
+
+      // Select a secret so the "Select files" button appears
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      expect(
+        screen.queryByRole('grid', { name: 'Selected training data file' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should display the selected file table after selecting a file', () => {
+      renderComponent();
+
+      // Select a secret
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      // Open file explorer and select a file
+      fireEvent.click(screen.getByRole('button', { name: 'Select files' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Verify the table appears with correct content
+      const table = screen.getByRole('grid', { name: 'Selected training data file' });
+      expect(table).toBeInTheDocument();
+      expect(screen.getByText('data.csv')).toBeInTheDocument();
+      expect(screen.getByText('csv')).toBeInTheDocument();
+    });
+
+    it('should remove the selected file when the remove button is clicked', () => {
+      renderComponent();
+
+      // Select a secret and a file
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Select files' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Verify the table is shown
+      expect(screen.getByRole('grid', { name: 'Selected training data file' })).toBeInTheDocument();
+
+      // Click the remove button
+      fireEvent.click(screen.getByRole('button', { name: 'Remove selection' }));
+
+      // Table should be removed
+      expect(
+        screen.queryByRole('grid', { name: 'Selected training data file' }),
+      ).not.toBeInTheDocument();
     });
   });
 
