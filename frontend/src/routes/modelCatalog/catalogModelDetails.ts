@@ -1,6 +1,5 @@
-import { CatalogModel } from '#~/concepts/modelCatalog/types';
-import { CatalogModelDetailsParams } from '#~/pages/modelCatalog/types';
-import { encodeParams, getTagFromModel } from '#~/pages/modelCatalog/utils';
+import { CatalogModel, CatalogModelDetailsParams } from '#~/concepts/modelCatalog/types';
+import { encodeParams, getTagFromModel } from '#~/concepts/modelCatalog/utils';
 
 export const modelCatalogRoute = `/ai-hub/models/catalog`;
 
