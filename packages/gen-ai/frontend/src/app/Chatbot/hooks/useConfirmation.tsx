@@ -11,6 +11,7 @@ type ConfirmationDisplayConfig = {
 type ConfirmationConfig = ConfirmationDisplayConfig & {
   onConfirmTracking?: () => void;
   onCancelTracking?: () => void;
+  forceConfirm?: boolean;
 };
 
 type UseConfirmationReturn = {
@@ -36,8 +37,9 @@ export function useConfirmation(hasUnsavedChanges: boolean): UseConfirmationRetu
 
   const confirm = React.useCallback(
     (onConfirm: () => void, customConfig?: ConfirmationConfig) => {
-      if (!hasUnsavedChanges) {
+      if (!hasUnsavedChanges && !customConfig?.forceConfirm) {
         onConfirm();
+        customConfig?.onConfirmTracking?.();
         return;
       }
       pendingActionRef.current = onConfirm;

@@ -178,7 +178,7 @@ export default function PromptAssistantFormGroup({
             rows={18}
             data-testid="system-instructions-input"
           />
-          {!editMode && (
+          {(!editMode || !activePrompt) && (
             <Flex>
               <Button
                 variant="primary"
@@ -194,13 +194,29 @@ export default function PromptAssistantFormGroup({
               </Button>
               <Button
                 variant="link"
-                onClick={() => confirm(handleNewPrompt, RESET_CONFIRMATION_CONFIG)}
+                isDisabled={!isEdited && !activePrompt}
+                onClick={() =>
+                  confirm(handleNewPrompt, {
+                    ...RESET_CONFIRMATION_CONFIG,
+                    forceConfirm: true,
+                    onConfirmTracking: () =>
+                      fireMiscTrackingEvent('Playground Prompt Cleared', {
+                        outcome: 'submit',
+                        hadLoadedPrompt: !!activePrompt,
+                      }),
+                    onCancelTracking: () =>
+                      fireMiscTrackingEvent('Playground Prompt Cleared', {
+                        outcome: 'cancel',
+                        hadLoadedPrompt: !!activePrompt,
+                      }),
+                  })
+                }
               >
                 Reset
               </Button>
             </Flex>
           )}
-          {editMode && (
+          {editMode && !!activePrompt && (
             <Flex>
               <Button variant="primary" isDisabled={!isEdited} onClick={handleSaveClicked}>
                 Save
@@ -209,34 +225,17 @@ export default function PromptAssistantFormGroup({
                 variant="link"
                 isDisabled={!isEdited}
                 onClick={() =>
-                  confirm(
-                    handleRevert,
-                    activePrompt
-                      ? {
-                          ...CONFIRMATION_CONFIG,
-                          onConfirmTracking: () =>
-                            fireMiscTrackingEvent('Playground Prompt Reverted', {
-                              outcome: 'submit',
-                            }),
-                          onCancelTracking: () =>
-                            fireMiscTrackingEvent('Playground Prompt Reverted', {
-                              outcome: 'cancel',
-                            }),
-                        }
-                      : {
-                          ...RESET_CONFIRMATION_CONFIG,
-                          onConfirmTracking: () =>
-                            fireMiscTrackingEvent('Playground Prompt Cleared', {
-                              outcome: 'submit',
-                              hadLoadedPrompt: !!activePrompt,
-                            }),
-                          onCancelTracking: () =>
-                            fireMiscTrackingEvent('Playground Prompt Cleared', {
-                              outcome: 'cancel',
-                              hadLoadedPrompt: !!activePrompt,
-                            }),
-                        },
-                  )
+                  confirm(handleRevert, {
+                    ...CONFIRMATION_CONFIG,
+                    onConfirmTracking: () =>
+                      fireMiscTrackingEvent('Playground Prompt Reverted', {
+                        outcome: 'submit',
+                      }),
+                    onCancelTracking: () =>
+                      fireMiscTrackingEvent('Playground Prompt Reverted', {
+                        outcome: 'cancel',
+                      }),
+                  })
                 }
               >
                 Revert
