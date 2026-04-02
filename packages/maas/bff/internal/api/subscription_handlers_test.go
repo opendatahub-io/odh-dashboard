@@ -269,11 +269,11 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 		})
 	})
 
-	var _ = Describe("GetSubscriptionFormDataHandler", Ordered, func() {
+	var _ = Describe("GetSubscriptionPolicyFormDataHandler", Ordered, func() {
 		It("returns 200 with groups and model refs", func() {
 			actual, rs, err := setupApiTest[models.SubscriptionFormDataResponse](
 				http.MethodGet,
-				"/api/v1/new-subscription",
+				"/api/v1/subscription-policy-form-data",
 				nil,
 				k8Factory,
 				identity,
