@@ -164,6 +164,7 @@ function AutoragConfigure(): React.JSX.Element {
   const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>();
   const [isInputDataFileUploading, setIsInputDataFileUploading] = useState(false);
   const [isInputDataDropdownOpen, setIsInputDataDropdownOpen] = useState(false);
+  const inputDataSourceModeRef = useRef<'select' | 'upload'>(inputDataSourceMode);
   const inputDataNativeInputRef = useRef<HTMLInputElement>(null);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
@@ -193,6 +194,7 @@ function AutoragConfigure(): React.JSX.Element {
     ],
   });
 
+  inputDataSourceModeRef.current = inputDataSourceMode;
   const showInputDataUploadDropzone = !isInputDataFileUploading && !inputDataKey.trim();
 
   const { data: allModelsData } = useLlamaStackModelsQuery(namespace ?? '', llamaStackSecretName);
@@ -316,6 +318,9 @@ function AutoragConfigure(): React.JSX.Element {
           key: file.name,
           file,
         });
+        if (inputDataSourceModeRef.current !== 'upload') {
+          return;
+        }
         setValue('input_data_key', uploadResult.key, { shouldValidate: true });
       } catch (err) {
         notification.error('Failed to upload file', err instanceof Error ? err.message : '');
