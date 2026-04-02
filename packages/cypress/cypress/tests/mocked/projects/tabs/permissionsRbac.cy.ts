@@ -33,12 +33,7 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
     // Wait for role bindings API to complete before interacting with UI
     cy.wait('@listRoleBindings');
 
-    projectRbacPermissions
-      .findAssignRolesButton()
-      .should('be.visible')
-      .should('not.have.attr', 'aria-disabled', 'true');
-
-    // Re-query to avoid detached DOM element and assert readiness before clicking
+    // Assert readiness and click - Cypress retry behavior handles DOM updates automatically
     projectRbacPermissions
       .findAssignRolesButton()
       .should('be.visible')
@@ -52,6 +47,9 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
   it('should open Manage permissions with subject prefilled and locked', () => {
     initProjectRbacIntercepts();
     projectRbacPermissions.visit(NAMESPACE);
+
+    // Wait for role bindings API to complete before interacting with UI
+    cy.wait('@listRoleBindings');
 
     usersTable.findManageRolesAction('test-user-1').click();
     cy.url().should('include', `/projects/${NAMESPACE}/permissions/assign`);
