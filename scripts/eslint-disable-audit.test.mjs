@@ -148,6 +148,7 @@ describe('parseArgs', () => {
     const args = parseArgs(['node', 'script.mjs']);
     assert.deepStrictEqual(args, {
       json: false,
+      outputFile: null,
       baseline: null,
       saveBaseline: null,
       failOnIncrease: false,
@@ -931,7 +932,7 @@ describe('emitAnnotations', () => {
 
 // ── parseArgs (new flags) ───────────────────────────────────────────────────
 
-describe('parseArgs (github flags)', () => {
+describe('parseArgs (github and output flags)', () => {
   it('parses --github-summary with file path', () => {
     const args = parseArgs(['node', 'script.mjs', '--github-summary', '/tmp/summary.md']);
     assert.strictEqual(args.githubSummary, '/tmp/summary.md');
@@ -942,9 +943,15 @@ describe('parseArgs (github flags)', () => {
     assert.strictEqual(args.githubAnnotations, true);
   });
 
-  it('defaults github flags to off', () => {
+  it('parses --output-file with file path', () => {
+    const args = parseArgs(['node', 'script.mjs', '--output-file', 'results.json']);
+    assert.strictEqual(args.outputFile, 'results.json');
+  });
+
+  it('defaults github and output flags to off', () => {
     const args = parseArgs(['node', 'script.mjs']);
     assert.strictEqual(args.githubSummary, null);
     assert.strictEqual(args.githubAnnotations, false);
+    assert.strictEqual(args.outputFile, null);
   });
 });
