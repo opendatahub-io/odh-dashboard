@@ -54,14 +54,16 @@ const MlflowIntegrationSection: React.FC<MlflowIntegrationSectionProps> = ({
       ? data.newExperimentName
       : '',
   );
-  if (data.isExperimentTrackingEnabled) {
-    lastModeRef.current = data.mode;
-    if (data.mode === MlflowExperimentMode.EXISTING) {
-      lastExistingNameRef.current = data.existingExperimentName;
-    } else {
-      lastNewNameRef.current = data.newExperimentName;
+  React.useEffect(() => {
+    if (data.isExperimentTrackingEnabled) {
+      lastModeRef.current = data.mode;
+      if (data.mode === MlflowExperimentMode.EXISTING) {
+        lastExistingNameRef.current = data.existingExperimentName;
+      } else {
+        lastNewNameRef.current = data.newExperimentName;
+      }
     }
-  }
+  }, [data]);
   const currentMode = data.isExperimentTrackingEnabled ? data.mode : lastModeRef.current;
   const existingExperimentName =
     data.isExperimentTrackingEnabled && data.mode === MlflowExperimentMode.EXISTING
