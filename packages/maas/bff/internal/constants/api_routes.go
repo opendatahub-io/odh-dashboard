@@ -17,6 +17,9 @@ const (
 	// Access review
 	IsMaasAdminPath = ApiPathPrefix + "/is-maas-admin"
 
+	// Subscriptions passthrough (maas-api /v1/subscriptions)
+	SubscriptionsPassthroughPath = ApiPathPrefix + "/subscriptions"
+
 	// Subscription routes
 	SubscriptionListPath     = ApiPathPrefix + "/all-subscriptions"
 	SubscriptionInfoPath     = ApiPathPrefix + "/subscription-info/:name"

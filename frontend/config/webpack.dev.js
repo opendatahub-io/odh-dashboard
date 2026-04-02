@@ -164,14 +164,15 @@ module.exports = smp.wrap(
             }
 
             if (!dashboardHost) {
-              // try to get dashboard host from Route
+              // try to get dashboard host from Route, but skip if its backend is a redirect service
               try {
-                dashboardHost = execSync(
-                  `oc get routes -n ${odhProject} ${app} -o jsonpath='{.spec.host}'`,
-                  { stdio: ['pipe', 'pipe', 'ignore'] },
-                )
-                  .toString()
-                  .trim();
+                const routeJson = execSync(`oc get routes -n ${odhProject} ${app} -o json`, {
+                  stdio: ['pipe', 'pipe', 'ignore'],
+                }).toString();
+                const route = JSON.parse(routeJson);
+                if (route?.spec?.to?.name !== 'dashboard-redirect') {
+                  dashboardHost = route?.spec?.host;
+                }
               } catch (e) {
                 // ignore
               }

@@ -1,3 +1,64 @@
+export type MCPEnvVarSource = {
+  secretKeyRef?: {
+    name: string;
+    key: string;
+  };
+  configMapKeyRef?: {
+    name: string;
+    key: string;
+  };
+};
+
+export type MCPEnvVar = {
+  name: string;
+  value?: string;
+  valueFrom?: MCPEnvVarSource;
+};
+
+export type MCPStorageSource = {
+  type: string;
+  configMap?: { name: string };
+  secret?: { secretName: string };
+};
+
+export type MCPStorageMount = {
+  path: string;
+  permissions?: string;
+  source: MCPStorageSource;
+};
+
+export type MCPServerCR = {
+  apiVersion: string;
+  kind: string;
+  metadata: {
+    name: string;
+    namespace?: string;
+    annotations?: Record<string, string>;
+  };
+  spec: {
+    source: {
+      type: string;
+      containerImage?: {
+        ref: string;
+      };
+    };
+    config: {
+      port: number;
+      path?: string;
+      arguments?: string[];
+      env?: MCPEnvVar[];
+      envFrom?: unknown[];
+      storage?: MCPStorageMount[];
+    };
+    runtime?: {
+      replicas?: number;
+      security?: {
+        serviceAccountName?: string;
+      };
+    };
+  };
+};
+
 export enum McpDeploymentPhase {
   PENDING = 'Pending',
   RUNNING = 'Running',
@@ -12,86 +73,40 @@ export type McpDeploymentCondition = {
   message?: string;
 };
 
+export type McpDeploymentAddress = {
+  url: string;
+};
+
 export type McpDeployment = {
   name: string;
+  displayName?: string;
+  serverName?: string;
   namespace: string;
+  uid: string;
   creationTimestamp: string;
   image: string;
-  port: number;
+  yaml?: string;
   phase: McpDeploymentPhase;
   conditions?: McpDeploymentCondition[];
+  address?: McpDeploymentAddress;
 };
 
 export type McpDeploymentList = {
   items: McpDeployment[];
-  nextPageToken?: string;
-  pageSize: number;
   size: number;
 };
 
-export type MCPServerMetadata = {
-  name: string;
-  namespace?: string;
-  annotations?: Record<string, string>;
+export type McpDeploymentCreateRequest = {
+  name?: string;
+  displayName?: string;
+  serverName?: string;
+  image: string;
+  yaml?: string;
 };
 
-export type MCPContainerImage = {
-  ref: string;
+export type McpDeploymentUpdateRequest = {
+  displayName?: string;
+  serverName?: string;
+  image?: string;
+  yaml?: string;
 };
-
-export type MCPSourceSpec = {
-  type: string;
-  containerImage?: MCPContainerImage;
-};
-
-export type MCPEnvVar = {
-  name: string;
-  value?: string;
-  valueFrom?: {
-    secretKeyRef?: { name: string; key: string };
-    configMapKeyRef?: { name: string; key: string };
-  };
-};
-
-export type MCPStorageSource = {
-  type: string;
-  configMap?: { name: string; items?: { key: string; path: string }[] };
-  secret?: { secretName: string; items?: { key: string; path: string }[] };
-};
-
-export type MCPStorageMount = {
-  path: string;
-  permissions?: string;
-  source: MCPStorageSource;
-};
-
-export type MCPConfigSpec = {
-  port: number;
-  path?: string;
-  arguments?: string[];
-  env?: MCPEnvVar[];
-  storage?: MCPStorageMount[];
-};
-
-export type MCPSecuritySpec = {
-  serviceAccountName?: string;
-};
-
-export type MCPRuntimeSpec = {
-  replicas?: number;
-  security?: MCPSecuritySpec;
-};
-
-export type MCPServerSpec = {
-  source: MCPSourceSpec;
-  config: MCPConfigSpec;
-  runtime?: MCPRuntimeSpec;
-};
-
-export type MCPServerCR = {
-  apiVersion: string;
-  kind: string;
-  metadata: MCPServerMetadata;
-  spec: MCPServerSpec;
-};
-

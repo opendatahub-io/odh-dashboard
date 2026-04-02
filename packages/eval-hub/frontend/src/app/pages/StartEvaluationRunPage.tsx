@@ -282,6 +282,7 @@ const StartEvaluationRunPage: React.FC = () => {
           icon={ExclamationCircleIcon}
           titleText="Unable to load evaluation data"
           status="danger"
+          data-testid="start-evaluation-load-error"
         >
           <EmptyStateBody>{loadError.message}</EmptyStateBody>
           <EmptyStateFooter>

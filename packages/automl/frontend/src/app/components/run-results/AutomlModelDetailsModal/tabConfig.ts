@@ -20,6 +20,7 @@ export type TabContentProps = {
   createdAt?: string;
   featureImportance?: FeatureImportanceData;
   confusionMatrix?: ConfusionMatrixData;
+  isArtifactsLoading?: boolean;
 };
 
 export type TabDefinition = {
@@ -38,6 +39,12 @@ const ALL_TASK_TYPES: readonly TaskType[] = [
   TASK_TYPE_TIMESERIES,
 ];
 
+const NON_TIMESERIES_TYPES: readonly TaskType[] = [
+  TASK_TYPE_BINARY,
+  TASK_TYPE_MULTICLASS,
+  TASK_TYPE_REGRESSION,
+];
+
 const CLASSIFICATION_TYPES: readonly TaskType[] = [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS];
 
 export const TAB_DEFINITIONS: TabDefinition[] = [
@@ -54,7 +61,7 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     label: 'Feature summary',
     tooltip: 'Feature importance rankings based on permutation importance testing',
     section: 'Model viewer',
-    visibleFor: ALL_TASK_TYPES,
+    visibleFor: NON_TIMESERIES_TYPES,
     component: FeatureSummaryTab,
   },
   {

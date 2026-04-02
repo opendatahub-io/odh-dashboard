@@ -96,7 +96,7 @@ const McpServerDetailsPage: React.FC = () => {
             </EmptyState>
           ) : undefined
         }
-         headerAction={server?.artifacts?.some((a) => a.uri) ? <McpDeployButton /> : undefined}
+        headerAction={server?.artifacts?.some((a) => a.uri) ? <McpDeployButton /> : undefined}
         loadError={isNotFound ? undefined : serverLoadError}
         loaded={isNotFound || serverLoaded}
         errorMessage="Unable to load MCP server details"
