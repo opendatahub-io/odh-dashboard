@@ -38,7 +38,9 @@ const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps
       </SplitItem>
       {isExperimentArchived && (
         <SplitItem>
-          <Label isCompact>Archived</Label>
+          <Label variant="outline" isCompact>
+            Archived
+          </Label>
         </SplitItem>
       )}
     </Split>

@@ -195,7 +195,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       kServeRow
         .findStatusLabel()
         .invoke('text')
-        .should('match', new RegExp(`${ModelStateLabel.STARTING}|${ModelStateLabel.STARTED}`));
+        .should('match', new RegExp(`${ModelStateLabel.STARTING}|${ModelStateLabel.READY}`));
 
       //Verify external access still works after restart
       cy.step('Verify the model is still accessible externally after restart');

@@ -436,7 +436,7 @@ export const runtimeStateLabels = {
   [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: 'Unspecified',
   [RuntimeStateKF.PENDING]: 'Pending',
   [RuntimeStateKF.RUNNING]: 'Running',
-  [RuntimeStateKF.SUCCEEDED]: 'Succeeded',
+  [RuntimeStateKF.SUCCEEDED]: 'Complete',
   [RuntimeStateKF.SKIPPED]: 'Skipped',
   [RuntimeStateKF.FAILED]: 'Failed',
   [RuntimeStateKF.CANCELING]: 'Canceling',

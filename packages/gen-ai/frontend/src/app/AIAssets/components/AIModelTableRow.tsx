@@ -113,19 +113,28 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
           <TruncatedText maxLines={2} content={model.usecase} />
         </Td>
         <Td dataLabel="Status">
-          {model.status === 'Running' ? (
-            <Label status="success" variant="outline">
-              Ready
-            </Label>
-          ) : model.status === 'Stop' ? (
-            <Label status="danger" variant="outline">
-              Inactive
-            </Label>
-          ) : (
-            <Label color="grey" icon={<OutlinedQuestionCircleIcon />}>
-              Unknown
-            </Label>
-          )}
+          {(() => {
+            switch (model.status) {
+              case 'Running':
+                return (
+                  <Label status="success" variant="outline">
+                    Ready
+                  </Label>
+                );
+              case 'Stop':
+                return (
+                  <Label status="danger" variant="outline">
+                    Inactive
+                  </Label>
+                );
+              default:
+                return (
+                  <Label variant="outline" color="grey" icon={<OutlinedQuestionCircleIcon />}>
+                    Unknown
+                  </Label>
+                );
+            }
+          })()}
         </Td>
         <Td dataLabel="Endpoints">
           {model.externalEndpoint || model.internalEndpoint ? (
