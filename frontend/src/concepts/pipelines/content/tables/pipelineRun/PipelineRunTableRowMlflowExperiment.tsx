@@ -1,16 +1,17 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
-import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { mlflowExperimentRoute } from '#~/routes/pipelines/mlflow';
 import { NoRunContent } from '#~/concepts/pipelines/content/tables/renderUtils';
 import TruncatedText from '#~/components/TruncatedText';
 import { MlflowExperimentData } from '#~/concepts/mlflow/types';
 import { getMlflowExperimentNameFromRun } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
+import { isPipelineRun } from '#~/concepts/pipelines/content/utils';
 
 type PipelineRunTableRowMlflowExperimentProps = {
-  run: PipelineRunKF;
+  run: PipelineRunKF | PipelineRecurringRunKF;
   mlflow: MlflowExperimentData;
 };
 
@@ -21,7 +22,9 @@ const PipelineRunTableRowMlflowExperiment: React.FC<PipelineRunTableRowMlflowExp
   const { namespace } = usePipelinesAPI();
 
   const experimentName = getMlflowExperimentNameFromRun(run);
-  const experimentIdFromOutput = run.plugins_output?.mlflow?.entries.experiment_id?.value;
+  const experimentIdFromOutput = isPipelineRun(run)
+    ? run.plugins_output?.mlflow?.entries.experiment_id?.value
+    : undefined;
   const experimentId =
     experimentIdFromOutput ??
     (experimentName ? mlflow.experiments.find((e) => e.name === experimentName)?.id : undefined);

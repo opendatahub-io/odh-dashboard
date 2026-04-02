@@ -39,8 +39,8 @@ const MlflowExperimentSelector: React.FC<MlflowExperimentSelectorProps> = ({
   const { data: experiments, loaded, error } = useMlflowExperiments({ workspace, filter });
   const [isOpen, setIsOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
-  const toggleRef = React.useRef(null);
-  const menuRef = React.useRef(null);
+  const toggleRef = React.useRef<HTMLButtonElement>(null);
+  const menuRef = React.useRef<HTMLDivElement>(null);
 
   const statusCallbackRef = React.useRef(onStatusChange);
   statusCallbackRef.current = onStatusChange;

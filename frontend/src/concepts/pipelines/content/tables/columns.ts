@@ -94,12 +94,12 @@ export const experimentColumns: SortableData<ExperimentKF>[] = [
   kebabTableColumn(),
 ];
 
-const mlflowExperimentColumn: SortableData<PipelineRunKF> = {
+const mlflowExperimentColumn = <T>(): SortableData<T> => ({
   label: 'MLflow experiment',
   field: 'mlflow_experiment',
   sortable: false,
   width: 15,
-};
+});
 
 export const pipelineRunColumns = (isMlflowAvailable?: boolean): SortableData<PipelineRunKF>[] => [
   checkboxTableColumn(),
@@ -114,7 +114,7 @@ export const pipelineRunColumns = (isMlflowAvailable?: boolean): SortableData<Pi
     sortable: false,
     width: 15,
   },
-  ...(isMlflowAvailable ? [mlflowExperimentColumn] : []),
+  ...(isMlflowAvailable ? [mlflowExperimentColumn<PipelineRunKF>()] : []),
   {
     label: 'Run group',
     field: 'run_group',
@@ -155,7 +155,7 @@ export const compareRunColumns = (isMlflowAvailable?: boolean): SortableData<Pip
     sortable: false,
     width: 15,
   },
-  ...(isMlflowAvailable ? [mlflowExperimentColumn] : []),
+  ...(isMlflowAvailable ? [mlflowExperimentColumn<PipelineRunKF>()] : []),
   {
     label: 'Run group',
     field: 'run_group',
@@ -203,7 +203,7 @@ export const getPipelineRunColumns = (
     sortable: false,
     width: 15,
   },
-  ...(isMlflowAvailable ? [mlflowExperimentColumn] : []),
+  ...(isMlflowAvailable ? [mlflowExperimentColumn<PipelineRunKF>()] : []),
   {
     label: 'Run group',
     field: 'run_group',
@@ -236,7 +236,9 @@ export const getPipelineRunColumns = (
   kebabTableColumn(),
 ];
 
-export const pipelineRecurringRunColumns: SortableData<PipelineRecurringRunKF>[] = [
+export const pipelineRecurringRunColumns = (
+  isMlflowAvailable?: boolean,
+): SortableData<PipelineRecurringRunKF>[] => [
   checkboxTableColumn(),
   {
     label: 'Schedule',
@@ -249,6 +251,7 @@ export const pipelineRecurringRunColumns: SortableData<PipelineRecurringRunKF>[]
     sortable: false,
     width: 15,
   },
+  ...(isMlflowAvailable ? [mlflowExperimentColumn<PipelineRecurringRunKF>()] : []),
   {
     label: 'Run group',
     field: 'run_group',

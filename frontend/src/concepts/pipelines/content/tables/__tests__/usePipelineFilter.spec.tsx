@@ -489,7 +489,7 @@ describe('usePipelineFilterSearchParams', () => {
     });
   });
 
-  it('should not include mlflow experiment in server-side predicates', () => {
+  it('should ignore mlflow experiment URL param when feature is unavailable', () => {
     const setFilterMock = jest.fn();
     const { result } = renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
       wrapper: ({ children }: { children: React.ReactNode }) => (
@@ -501,7 +501,7 @@ describe('usePipelineFilterSearchParams', () => {
 
     jest.runAllTimers();
 
-    expect(result.current.filterData[FilterOptions.MLFLOW_EXPERIMENT]).toBe('my-mlflow-exp');
+    expect(result.current.filterData[FilterOptions.MLFLOW_EXPERIMENT]).toBe('');
 
     const lastCall = setFilterMock.mock.calls[setFilterMock.mock.calls.length - 1][0];
     const predicateKeys = (lastCall?.predicates ?? []).map((p: { key: string }) => p.key);

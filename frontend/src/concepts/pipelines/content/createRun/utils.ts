@@ -60,7 +60,7 @@ const runTypeSafeDates = (runType: RunFormData['runType']): boolean =>
 
 export const isFilledRunFormData = (
   formData: RunFormData,
-  isMlflowAvailable = false,
+  isMlflowAvailable: boolean,
 ): formData is SafeRunFormData => {
   const runGroupName = formData.runGroup.trim();
   const mlflowExperimentName = getMlflowExperimentName(formData.mlflow);

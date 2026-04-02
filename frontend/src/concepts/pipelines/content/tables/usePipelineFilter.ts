@@ -12,6 +12,7 @@ import useDebounceCallback from '#~/utilities/useDebounceCallback';
 import FilterToolbar from '#~/components/FilterToolbar';
 import { PipelineRunVersionsContext } from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 export enum FilterOptions {
   NAME = 'name',
@@ -201,6 +202,7 @@ export const usePipelineFilterSearchParams = (
   const [searchParams, setSearchParams] = useSearchParams();
   const { versions } = React.useContext(PipelineRunVersionsContext);
   const { experiments } = React.useContext(PipelineRunExperimentsContext);
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
 
   const isLegacyParam =
     !searchParams.has(FilterOptions.RUN_GROUP) && searchParams.has(LEGACY_EXPERIMENT_FILTER_PARAM);
@@ -236,10 +238,21 @@ export const usePipelineFilterSearchParams = (
         [FilterOptions.RUN_GROUP]: experimentFoundById
           ? experimentFoundById.display_name
           : runGroupFromParams || '',
-        [FilterOptions.MLFLOW_EXPERIMENT]: searchParams.get(FilterOptions.MLFLOW_EXPERIMENT) || '',
+        [FilterOptions.MLFLOW_EXPERIMENT]: isMlflowAvailable
+          ? searchParams.get(FilterOptions.MLFLOW_EXPERIMENT) || ''
+          : '',
       },
     };
-  }, [experiments, isLegacyParam, searchParams, versions]);
+  }, [experiments, isLegacyParam, isMlflowAvailable, searchParams, versions]);
+
+  React.useEffect(() => {
+    if (isMlflowAvailable || !searchParams.has(FilterOptions.MLFLOW_EXPERIMENT)) {
+      return;
+    }
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete(FilterOptions.MLFLOW_EXPERIMENT);
+    setSearchParams(nextParams, { replace: true });
+  }, [isMlflowAvailable, searchParams, setSearchParams]);
 
   useSetFilter(
     setFilter,
