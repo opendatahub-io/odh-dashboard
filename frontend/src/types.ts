@@ -280,7 +280,15 @@ declare global {
   // Webpack injected global variables
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const __COMMIT_HASH__: string | undefined;
+  // eslint-disable-next-line no-var, @typescript-eslint/naming-convention
+  var __PACKAGE_VERSIONS__: PackageVersionInfo[] | undefined;
 }
+
+export type PackageVersionInfo = {
+  name: string;
+  version: string;
+  supportLevel?: 'TP' | 'DP' | 'GA';
+};
 
 export type ApplicationAction = {
   label: string;

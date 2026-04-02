@@ -112,7 +112,36 @@ function getPluginPackageDetails() {
     }));
 }
 
+/**
+ * Filter workspace packages that are feature packages (extensions or module federation).
+ * Excludes tooling-only packages like eslint-config, jest-config, tsconfig, cypress, etc.
+ * @param {Array} workspaces - Array of workspace package objects
+ * @returns {Array} Array of feature packages
+ */
+function filterFeaturePackages(workspaces) {
+  return workspaces.filter((pkg) => pkg.exports?.['./extensions'] || pkg['module-federation']);
+}
+
+/**
+ * Get version and support level metadata for all feature packages
+ * (both static extension plugins and module federation remotes).
+ * Used by DefinePlugin to inject package metadata into the frontend bundle.
+ * @returns {{ name: string, version: string, supportLevel?: string }[]}
+ */
+function getPluginPackageVersions() {
+  const workspacePackages = getWorkspacePackages();
+  const featurePackages = filterFeaturePackages(workspacePackages);
+  return featurePackages
+    .filter((pkg) => pkg.name !== '@odh-dashboard/internal')
+    .map((pkg) => ({
+      name: pkg.name,
+      version: pkg.version || '0.0.0',
+      ...(pkg.supportLevel ? { supportLevel: pkg.supportLevel } : {}),
+    }));
+}
+
 module.exports = {
   discoverPluginPackages,
   getPluginPackageDetails,
+  getPluginPackageVersions,
 };
