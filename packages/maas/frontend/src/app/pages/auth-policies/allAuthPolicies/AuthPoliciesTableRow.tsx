@@ -19,21 +19,26 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   setDeleteAuthPolicy,
 }) => {
   const navigate = useNavigate();
+  const policyNameSegment = (name: string) => encodeURIComponent(name);
   const onViewDetailsAuthPolicy = (authPolicyName: string) => {
-    navigate(`${URL_PREFIX}/auth-policies/view/${authPolicyName}`);
+    navigate(`${URL_PREFIX}/auth-policies/view/${policyNameSegment(authPolicyName)}`);
   };
   const onEditAuthPolicy = (authPolicyName: string) => {
-    navigate(`${URL_PREFIX}/auth-policies/edit/${authPolicyName}`);
+    navigate(`${URL_PREFIX}/auth-policies/edit/${policyNameSegment(authPolicyName)}`);
   };
   const onDeleteAuthPolicy = (authPolicyToDelete: MaaSAuthPolicy) => {
     setDeleteAuthPolicy(authPolicyToDelete);
   };
+  const groupsCount = Array.isArray(authPolicy.subjects.groups)
+    ? authPolicy.subjects.groups.length
+    : 0;
+  const modelsCount = Array.isArray(authPolicy.modelRefs) ? authPolicy.modelRefs.length : 0;
   return (
     <Tr>
       <Td dataLabel={columns[0].label}>
         <TableRowTitleDescription
           title={
-            <Link to={`${URL_PREFIX}/auth-policies/view/${authPolicy.name}`}>
+            <Link to={`${URL_PREFIX}/auth-policies/view/${policyNameSegment(authPolicy.name)}`}>
               {authPolicy.name}
             </Link>
           }
@@ -41,10 +46,10 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         />
       </Td>
       <Td dataLabel={columns[1].label}>
-        <Label color="grey">{`${authPolicy.subjects.groups.length.toString()} ${authPolicy.subjects.groups.length === 1 ? 'Group' : 'Groups'}`}</Label>
+        <Label color="grey">{`${groupsCount.toString()} ${groupsCount === 1 ? 'Group' : 'Groups'}`}</Label>
       </Td>
       <Td dataLabel={columns[2].label}>
-        <Label color="grey">{`${authPolicy.modelRefs.length.toString()} ${authPolicy.modelRefs.length === 1 ? 'Model' : 'Models'}`}</Label>
+        <Label color="grey">{`${modelsCount.toString()} ${modelsCount === 1 ? 'Model' : 'Models'}`}</Label>
       </Td>
       <Td isActionCell>
         <ActionsColumn

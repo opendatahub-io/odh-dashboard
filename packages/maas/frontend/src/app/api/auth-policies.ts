@@ -5,8 +5,8 @@ import {
   isModArchResponse,
   restDELETE,
 } from 'mod-arch-core';
-import { BFF_API_VERSION, URL_PREFIX } from '../utilities/const';
-import { MaaSAuthPolicy } from '../types/subscriptions';
+import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 
 /** GET /api/v1/all-policies - List all policies */
 export const listAuthPolicies =

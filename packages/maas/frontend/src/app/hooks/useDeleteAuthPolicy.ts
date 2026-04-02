@@ -18,7 +18,7 @@ export const useDeleteAuthPolicy = (): UseDeleteAuthPolicyReturn => {
     try {
       await deleteAuthPolicy()({}, name);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to delete subscription'));
+      setError(err instanceof Error ? err : new Error('Failed to delete auth policy'));
       throw err;
     } finally {
       setIsDeleting(false);

@@ -968,7 +968,7 @@ class AuthPoliciesPage {
     return cy.findByTestId('create-auth-policy-button');
   }
 
-  fincActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('auth-policy-actions');
   }
 
