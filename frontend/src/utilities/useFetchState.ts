@@ -8,9 +8,8 @@ import useFetch, {
 
 // This file is a deprecated wrapper and needs to export everything the useFetchState file used to.
 // See deprecation comments on useFetchState below.
-export {
-  NotReadyError,
-  isCommonStateError,
+export { NotReadyError, isCommonStateError } from './useFetch';
+export type {
   FetchStateRefreshPromise,
   AdHocUpdate,
   FetchStateCallbackPromise,
