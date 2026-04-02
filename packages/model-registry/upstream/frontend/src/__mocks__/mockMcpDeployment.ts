@@ -39,7 +39,5 @@ export const mockMcpDeploymentList = (
 ): McpDeploymentList => ({
   items: [mockMcpDeployment()],
   size: 1,
-  pageSize: 10,
-  nextPageToken: '',
   ...partial,
 });
