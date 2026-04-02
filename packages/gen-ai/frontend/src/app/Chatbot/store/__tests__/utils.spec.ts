@@ -1,8 +1,8 @@
 /* eslint-disable camelcase */
 import { MLflowPromptVersion } from '~/app/types';
-import { DeepCopyPrompt } from '~/app/Chatbot/store/utils';
+import { deepCopyPrompt } from '~/app/Chatbot/store/utils';
 
-describe('DeepCopyPrompt', () => {
+describe('deepCopyPrompt', () => {
   const mockPrompt: MLflowPromptVersion = {
     name: 'test-prompt',
     version: 1,
@@ -19,16 +19,16 @@ describe('DeepCopyPrompt', () => {
   };
 
   it('should return null when given null', () => {
-    expect(DeepCopyPrompt(null)).toBeNull();
+    expect(deepCopyPrompt(null)).toBeNull();
   });
 
   it('should create a new object (not the same reference)', () => {
-    const result = DeepCopyPrompt(mockPrompt);
+    const result = deepCopyPrompt(mockPrompt);
     expect(result).not.toBe(mockPrompt);
   });
 
   it('should preserve all primitive properties', () => {
-    const result = DeepCopyPrompt(mockPrompt);
+    const result = deepCopyPrompt(mockPrompt);
 
     expect(result?.name).toBe('test-prompt');
     expect(result?.version).toBe(1);
@@ -39,7 +39,7 @@ describe('DeepCopyPrompt', () => {
   });
 
   it('should create a deep copy of messages array', () => {
-    const result = DeepCopyPrompt(mockPrompt);
+    const result = deepCopyPrompt(mockPrompt);
 
     expect(result?.messages).not.toBe(mockPrompt.messages);
     expect(result?.messages).toEqual(mockPrompt.messages);
@@ -48,14 +48,14 @@ describe('DeepCopyPrompt', () => {
   });
 
   it('should create a deep copy of tags object', () => {
-    const result = DeepCopyPrompt(mockPrompt);
+    const result = deepCopyPrompt(mockPrompt);
 
     expect(result?.tags).not.toBe(mockPrompt.tags);
     expect(result?.tags).toEqual(mockPrompt.tags);
   });
 
   it('should create a deep copy of aliases array', () => {
-    const result = DeepCopyPrompt(mockPrompt);
+    const result = deepCopyPrompt(mockPrompt);
 
     expect(result?.aliases).not.toBe(mockPrompt.aliases);
     expect(result?.aliases).toEqual(mockPrompt.aliases);
@@ -70,7 +70,7 @@ describe('DeepCopyPrompt', () => {
       updated_at: '2024-01-01T00:00:00Z',
     };
 
-    const result = DeepCopyPrompt(promptWithoutMessages);
+    const result = deepCopyPrompt(promptWithoutMessages);
 
     expect(result).not.toBe(promptWithoutMessages);
     expect(result?.messages).toBeUndefined();
@@ -87,7 +87,7 @@ describe('DeepCopyPrompt', () => {
       updated_at: '2024-01-01T00:00:00Z',
     };
 
-    const result = DeepCopyPrompt(promptWithoutTags);
+    const result = deepCopyPrompt(promptWithoutTags);
 
     expect(result).not.toBe(promptWithoutTags);
     expect(result?.tags).toBeUndefined();
@@ -102,7 +102,7 @@ describe('DeepCopyPrompt', () => {
       updated_at: '2024-01-01T00:00:00Z',
     };
 
-    const result = DeepCopyPrompt(promptWithoutAliases);
+    const result = deepCopyPrompt(promptWithoutAliases);
 
     expect(result).not.toBe(promptWithoutAliases);
     expect(result?.aliases).toBeUndefined();
@@ -117,7 +117,7 @@ describe('DeepCopyPrompt', () => {
       updated_at: '2024-01-01T00:00:00Z',
     };
 
-    const result = DeepCopyPrompt(promptWithEmptyMessages);
+    const result = deepCopyPrompt(promptWithEmptyMessages);
 
     expect(result?.messages).toEqual([]);
     expect(result?.messages).not.toBe(promptWithEmptyMessages.messages);
@@ -132,7 +132,7 @@ describe('DeepCopyPrompt', () => {
       updated_at: '2024-01-01T00:00:00Z',
     };
 
-    const result = DeepCopyPrompt(promptWithEmptyTags);
+    const result = deepCopyPrompt(promptWithEmptyTags);
 
     expect(result?.tags).toEqual({});
     expect(result?.tags).not.toBe(promptWithEmptyTags.tags);
@@ -147,7 +147,7 @@ describe('DeepCopyPrompt', () => {
       updated_at: '2024-01-01T00:00:00Z',
     };
 
-    const result = DeepCopyPrompt(promptWithEmptyAliases);
+    const result = deepCopyPrompt(promptWithEmptyAliases);
 
     expect(result?.aliases).toEqual([]);
     expect(result?.aliases).not.toBe(promptWithEmptyAliases.aliases);
@@ -164,7 +164,7 @@ describe('DeepCopyPrompt', () => {
       updated_at: '2024-01-01T00:00:00Z',
     };
 
-    const copy = DeepCopyPrompt(original);
+    const copy = deepCopyPrompt(original);
 
     if (copy?.messages?.[0]) {
       copy.messages[0].content = 'Modified content';

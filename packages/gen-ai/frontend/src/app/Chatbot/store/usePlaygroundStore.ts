@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
 import { MLflowPromptVersion } from '~/app/types';
-import { DeepCopyPrompt } from './utils';
+import { deepCopyPrompt } from './utils';
 
 interface PlaygroundState {
   isPromptManagementModalOpen: boolean;
@@ -42,7 +42,7 @@ export const usePlaygroundStore = create<PlaygroundStore>()(
       ) => {
         set(
           (state) => {
-            state.dirtyPromptSnapshot = DeepCopyPrompt(dirtyPromptToSnapshot);
+            state.dirtyPromptSnapshot = deepCopyPrompt(dirtyPromptToSnapshot);
             state.modalMode = mode;
             state.modalConfigId = configId;
             state.isPromptManagementModalOpen = true;

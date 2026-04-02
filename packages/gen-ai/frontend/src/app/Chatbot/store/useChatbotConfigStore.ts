@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
 import { MLflowPromptVersion } from '~/app/types';
-import { DeepCopyPrompt } from './utils';
+import { deepCopyPrompt } from './utils';
 import {
   ChatbotConfigStore,
   ChatbotConfiguration,
@@ -207,8 +207,8 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           knowledgeMode: sourceConfig.knowledgeMode,
           selectedVectorStoreId: sourceConfig.selectedVectorStoreId,
           selectedSubscription: sourceConfig.selectedSubscription,
-          activePrompt: DeepCopyPrompt(sourceConfig.activePrompt),
-          dirtyPrompt: DeepCopyPrompt(sourceConfig.dirtyPrompt),
+          activePrompt: deepCopyPrompt(sourceConfig.activePrompt),
+          dirtyPrompt: deepCopyPrompt(sourceConfig.dirtyPrompt),
         };
 
         set(
@@ -429,8 +429,8 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           (state) => {
             const config = state.configurations[id];
             if (config) {
-              config.activePrompt = DeepCopyPrompt(prompt);
-              config.dirtyPrompt = DeepCopyPrompt(prompt);
+              config.activePrompt = deepCopyPrompt(prompt);
+              config.dirtyPrompt = deepCopyPrompt(prompt);
             }
           },
           false,
@@ -443,7 +443,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           (state) => {
             const config = state.configurations[id];
             if (config) {
-              config.dirtyPrompt = DeepCopyPrompt(prompt);
+              config.dirtyPrompt = deepCopyPrompt(prompt);
             }
           },
           false,
@@ -456,7 +456,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           (state) => {
             const config = state.configurations[id];
             if (config) {
-              config.dirtyPrompt = DeepCopyPrompt(config.activePrompt);
+              config.dirtyPrompt = deepCopyPrompt(config.activePrompt);
             }
           },
           false,
@@ -470,7 +470,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
             const config = state.configurations[id];
             if (config) {
               config.activePrompt = null;
-              config.dirtyPrompt = DeepCopyPrompt(newDirtyPrompt);
+              config.dirtyPrompt = deepCopyPrompt(newDirtyPrompt);
             }
           },
           false,

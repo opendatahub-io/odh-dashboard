@@ -1,6 +1,6 @@
 import { MLflowPromptVersion } from '~/app/types';
 
-export function DeepCopyPrompt(prompt: MLflowPromptVersion | null): MLflowPromptVersion | null {
+export function deepCopyPrompt(prompt: MLflowPromptVersion | null): MLflowPromptVersion | null {
   if (!prompt) {
     return null;
   }
