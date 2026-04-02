@@ -1004,6 +1004,348 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # ── Policy Management ─────────────────────────────────────────────────
+
+  /api/v1/all-policies:
+    get:
+      tags:
+        - policies
+      summary: List all policies
+      operationId: listAllPolicies
+      description: >
+        Returns all MaaSAuthPolicy resources across the cluster.
+
+        K8s calls: GET /k8s/v1/maasauthpolicy
+      responses:
+        '200':
+          description: List of policies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MaaSAuthPolicy'
+              example:
+                data:
+                  - name: premium-team-policy
+                    namespace: maas-system
+                    phase: Active
+                    modelRefs:
+                      - name: llama-2-7b-chat
+                        namespace: maas-models
+                    subjects:
+                      groups:
+                        - name: premium-users
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/view-policy/{name}:
+    get:
+      tags:
+        - policies
+      summary: Get policy details
+      operationId: getPolicyInfo
+      description: >
+        Returns detailed information about a specific policy, including
+        the MaaSAuthPolicy resource and related MaaSModelRef summaries.
+
+        K8s calls: GET /k8s/v1/maasauthpolicy/:name, GET /k8s/v1/maasmodelref
+      parameters:
+        - in: path
+          name: name
+          schema:
+            type: string
+          required: true
+          description: Name of the MaaSAuthPolicy resource
+      responses:
+        '200':
+          description: Policy details with related model refs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyInfoResponse'
+              example:
+                policy:
+                  name: premium-team-policy
+                  namespace: maas-system
+                  phase: Active
+                  modelRefs:
+                    - name: llama-2-7b-chat
+                      namespace: maas-models
+                  subjects:
+                    groups:
+                      - name: premium-users
+                modelRefs:
+                  - name: llama-2-7b-chat
+                    namespace: maas-models
+                    modelRef:
+                      kind: LLMInferenceService
+                      name: llama-2-7b-chat
+                    phase: Ready
+                    endpoint: https://llama-2-7b-chat.example.com
+        '400':
+          description: Bad Request. Missing policy name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Policy not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/subscription-policy-form-data:
+    get:
+      tags:
+        - policies
+      summary: Get policy creation form data
+      operationId: getPolicyFormData
+      description: >
+        Returns the data needed to populate a policy creation form,
+        including available groups, MaaSModelRef resources, existing
+        policies, and existing subscriptions. Shares the same handler
+        as GET /api/v1/new-subscription.
+
+        K8s calls: GET /k8s/v1/groups, GET /k8s/v1/maasmodelref, GET /k8s/v1/maasauthpolicy, GET /k8s/v1/maassubscription
+      responses:
+        '200':
+          description: Form data for creating a new policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionFormDataResponse'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/new-policy:
+    post:
+      tags:
+        - policies
+      summary: Create a new policy
+      operationId: createPolicy
+      description: >
+        Creates a new MaaSAuthPolicy resource.
+
+        K8s calls: CREATE /k8s/v1/maasauthpolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePolicyRequest'
+            example:
+              name: team-alpha-policy
+              modelRefs:
+                - name: llama-2-7b-chat
+                  namespace: maas-models
+              subjects:
+                groups:
+                  - name: team-alpha
+              meteringMetadata:
+                organizationId: org-123
+                costCenter: engineering
+      responses:
+        '201':
+          description: Policy created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaaSAuthPolicy'
+              example:
+                name: team-alpha-policy
+                namespace: maas-system
+                phase: Pending
+                modelRefs:
+                  - name: llama-2-7b-chat
+                    namespace: maas-models
+                subjects:
+                  groups:
+                    - name: team-alpha
+                meteringMetadata:
+                  organizationId: org-123
+                  costCenter: engineering
+        '400':
+          description: Bad Request. Missing or invalid fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_name:
+                  summary: Missing policy name
+                  value:
+                    error: "name is required"
+                empty_model_refs:
+                  summary: No model refs provided
+                  value:
+                    error: "at least one modelRef is required"
+        '401':
+          description: Unauthorized
+        '409':
+          description: Conflict. Policy with this name already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "MaaSAuthPolicy 'team-alpha-policy' already exists"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/update-policy/{name}:
+    put:
+      tags:
+        - policies
+      summary: Update an existing policy
+      operationId: updatePolicy
+      description: >
+        Updates an existing MaaSAuthPolicy resource.
+
+        K8s calls: PUT /k8s/v1/maasauthpolicy/:name
+      parameters:
+        - in: path
+          name: name
+          schema:
+            type: string
+          required: true
+          description: Name of the MaaSAuthPolicy to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePolicyRequest'
+            example:
+              modelRefs:
+                - name: llama-2-7b-chat
+                  namespace: maas-models
+                - name: mistral-7b-instruct
+                  namespace: maas-models
+              subjects:
+                groups:
+                  - name: team-alpha
+                  - name: beta-testers
+              meteringMetadata:
+                organizationId: org-123
+                costCenter: engineering-v2
+      responses:
+        '200':
+          description: Policy updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaaSAuthPolicy'
+              example:
+                name: team-alpha-policy
+                namespace: maas-system
+                phase: Active
+                modelRefs:
+                  - name: llama-2-7b-chat
+                    namespace: maas-models
+                  - name: mistral-7b-instruct
+                    namespace: maas-models
+                subjects:
+                  groups:
+                    - name: team-alpha
+                    - name: beta-testers
+                meteringMetadata:
+                  organizationId: org-123
+                  costCenter: engineering-v2
+        '400':
+          description: Bad Request. Invalid update specification.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Policy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "MaaSAuthPolicy 'unknown-policy' not found"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/delete-policy/{name}:
+    delete:
+      tags:
+        - policies
+      summary: Delete a policy
+      operationId: deletePolicy
+      description: >
+        Deletes a MaaSAuthPolicy resource by name.
+
+        K8s calls: DELETE /k8s/v1/maasauthpolicy/:name
+      parameters:
+        - in: path
+          name: name
+          schema:
+            type: string
+          required: true
+          description: Name of the MaaSAuthPolicy to delete
+      responses:
+        '200':
+          description: Policy deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Success message
+              example:
+                message: "MaaSAuthPolicy 'team-alpha-policy' deleted successfully"
+        '401':
+          description: Unauthorized
+        '404':
+          description: Policy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "MaaSAuthPolicy 'unknown-policy' not found"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   # ── MaaSModelRef Endpoints ────────────────────────────────────────────
 
   /api/v1/maasmodel:
@@ -1799,7 +2141,7 @@ components:
 
     SubscriptionFormDataResponse:
       type: object
-      description: Data needed to populate a subscription creation/edit form
+      description: Data needed to populate subscription and policy creation/edit forms
       properties:
         groups:
           type: array
@@ -1814,9 +2156,77 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/MaaSModelRefSummary'
-          description: Available MaaSModelRef resources that can be added to a subscription
+          description: Available MaaSModelRef resources that can be added to a subscription or policy
+        policies:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaaSAuthPolicy'
+          description: Available MaaSAuthPolicy resources
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaaSSubscription'
+          description: Available MaaSSubscription resources
       required:
         - groups
+        - modelRefs
+
+    # ── Policy Request/Response Schemas ──────────────────────────────
+
+    CreatePolicyRequest:
+      type: object
+      description: Request body for creating a new MaaSAuthPolicy resource
+      properties:
+        name:
+          type: string
+          description: Name for the MaaSAuthPolicy resource
+          example: team-alpha-policy
+        modelRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelRef'
+          description: Models this policy grants access to
+          minItems: 1
+        subjects:
+          $ref: '#/components/schemas/SubjectSpec'
+        meteringMetadata:
+          $ref: '#/components/schemas/TokenMetadata'
+      required:
+        - name
+        - modelRefs
+        - subjects
+
+    UpdatePolicyRequest:
+      type: object
+      description: Request body for updating an existing MaaSAuthPolicy resource
+      properties:
+        modelRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelRef'
+          description: Updated models for this policy
+          minItems: 1
+        subjects:
+          $ref: '#/components/schemas/SubjectSpec'
+        meteringMetadata:
+          $ref: '#/components/schemas/TokenMetadata'
+      required:
+        - modelRefs
+        - subjects
+
+    PolicyInfoResponse:
+      type: object
+      description: Detailed policy information with related model ref summaries
+      properties:
+        policy:
+          $ref: '#/components/schemas/MaaSAuthPolicy'
+        modelRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaaSModelRefSummary'
+          description: MaaSModelRef resources referenced by this policy
+      required:
+        - policy
         - modelRefs
 
     # ── MaaSModelRef Request Schemas ──────────────────────────────────
