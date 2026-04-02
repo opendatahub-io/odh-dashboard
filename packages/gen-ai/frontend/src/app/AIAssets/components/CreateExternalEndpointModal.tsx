@@ -149,12 +149,12 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
   }, [modelId, existingModels]);
 
   const displayNameConflict = React.useMemo(() => {
-    const effectiveName = displayName.trim() || modelId.trim();
-    if (!effectiveName) {
+    const trimmedDisplayName = displayName.trim();
+    if (!trimmedDisplayName) {
       return null;
     }
-    return existingModels.find((m) => m.display_name === effectiveName);
-  }, [displayName, modelId, existingModels]);
+    return existingModels.find((m) => m.display_name === trimmedDisplayName);
+  }, [displayName, existingModels]);
 
   // URL validation
   const urlValidation = React.useMemo(() => {
@@ -478,7 +478,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                   }
                 >
                   {(touched.displayName || !displayName.trim()) && displayNameConflict
-                    ? `Display name "${displayName.trim() || modelId.trim()}" is already in use.`
+                    ? `Display name "${displayName.trim()}" is already in use.`
                     : 'Optional. A friendly display name for this model.'}
                 </HelperTextItem>
               </HelperText>
@@ -541,7 +541,11 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                 touched.endpointUrl && (!endpointUrl.trim() || hasUrlError) ? 'error' : 'default'
               }
               isDisabled={isVerifying || isSubmitting}
-              placeholder="e.g. https://api.openai.com/v1"
+              placeholder={
+                modelType === MODEL_TYPE_EMBEDDING
+                  ? 'e.g. https://api.openai.com'
+                  : 'e.g. https://api.openai.com/v1'
+              }
               data-testid="create-external-model-url-input"
             />
             <FormHelperText>
@@ -549,7 +553,9 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                 <HelperTextItem variant={touched.endpointUrl && hasUrlError ? 'error' : 'default'}>
                   {touched.endpointUrl && urlValidation.error
                     ? urlValidation.error
-                    : 'The endpoint URL for this model.'}
+                    : modelType === MODEL_TYPE_EMBEDDING
+                      ? 'The base URL for this model, without the /v1 path (e.g., https://api.openai.com).'
+                      : 'The endpoint URL for this model (e.g., https://api.openai.com/v1).'}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
