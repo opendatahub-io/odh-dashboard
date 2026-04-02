@@ -191,11 +191,13 @@ function AutoragConfigure(): React.JSX.Element {
   // reset selected file values if input secret or bucket changes
   useEffect(() => {
     setValue('input_data_key', '', { shouldValidate: true });
+    setSelectedInputDataFile(undefined);
   }, [inputDataSecretName, inputDataBucketName, setValue]);
 
   // reset selected file values if test secret or bucket changes
   useEffect(() => {
     setValue('test_data_key', '', { shouldValidate: true });
+    setSelectedInputDataFile(undefined);
   }, [testDataSecretName, testDataBucketName, setValue]);
 
   const openExperimentSettings = () => {

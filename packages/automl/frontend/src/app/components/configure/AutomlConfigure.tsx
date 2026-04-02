@@ -164,6 +164,7 @@ function AutomlConfigure(): React.JSX.Element {
   // reset selected file values if secret or bucket changes
   useEffect(() => {
     setValue('train_data_file_key', '', { shouldValidate: true });
+    setSelectedTrainingDataFile(undefined);
   }, [trainDataSecretName, trainDataBucketName, setValue]);
 
   // reset all column-related form fields when file selection changes
