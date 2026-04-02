@@ -8,35 +8,41 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
-import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
 const mockNotificationError = jest.fn();
 
-jest.mock('~/app/hooks/mutations', () => {
-  const mockS3MutateAsync = jest
-    .fn()
-    .mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
-  const stableS3UploadMutation = {
+const mockS3MutateAsync = jest.fn().mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
+
+jest.mock('~/app/hooks/mutations', () => ({
+  __esModule: true,
+  useS3FileUploadMutation: jest.fn(() => ({
     mutateAsync: mockS3MutateAsync,
     isPending: false,
     reset: jest.fn(),
-    variables: undefined as { file: File } | undefined,
-  };
-  return {
-    useS3FileUploadMutation: jest.fn(() => stableS3UploadMutation),
-  };
-});
+    variables: undefined,
+  })),
+  useUploadToStorageMutation: jest.fn(() => ({
+    mutateAsync: jest.fn().mockResolvedValue({ uploaded: true, key: 'eval-data.json' }),
+    mutate: jest.fn(),
+    isPending: false,
+    isIdle: true,
+    isSuccess: false,
+    isError: false,
+    reset: jest.fn(),
+    data: undefined,
+    error: null,
+    variables: undefined,
+    status: 'idle',
+  })),
+  useCreatePipelineRunMutation: jest.fn(() => ({
+    mutateAsync: jest.fn(),
+  })),
+}));
 
 function getMockS3MutateAsync(): jest.Mock {
-  const result = jest.mocked(useS3FileUploadMutation).mock.results[0]?.value as
-    | { mutateAsync: jest.Mock }
-    | undefined;
-  if (!result?.mutateAsync) {
-    throw new Error('useS3FileUploadMutation was not called; render AutoragConfigure first');
-  }
-  return result.mutateAsync;
+  return mockS3MutateAsync;
 }
 
 // Mock React Router hooks
@@ -93,6 +99,10 @@ jest.mock('~/app/hooks/queries', () => ({
   }),
   useLlamaStackVectorStoreProvidersQuery: jest.fn().mockReturnValue({
     data: { vector_store_providers: [] }, // eslint-disable-line camelcase
+    isLoading: false,
+  }),
+  useSecretsQuery: jest.fn().mockReturnValue({
+    data: [],
     isLoading: false,
   }),
 }));

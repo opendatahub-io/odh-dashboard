@@ -68,15 +68,16 @@ import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   ConfigureSchema,
-  MIN_RAG_PATTERNS,
   MAX_RAG_PATTERNS,
-  RAG_METRIC_FAITHFULNESS,
+  MIN_RAG_PATTERNS,
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_CONTEXT_CORRECTNESS,
+  RAG_METRIC_FAITHFULNESS,
 } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 import './AutoragConfigure.css';
@@ -315,8 +316,6 @@ function AutoragConfigure(): React.JSX.Element {
           file,
         });
         setValue('input_data_key', uploadResult.key, { shouldValidate: true });
-        // Match S3 browse selection: placeholder until dedicated test-data upload exists
-        setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
       } catch (err) {
         notification.error('Failed to upload file', err instanceof Error ? err.message : '');
       } finally {
@@ -664,7 +663,7 @@ function AutoragConfigure(): React.JSX.Element {
                           </>
                         }
                       >
-                        Evaluation data source upload component
+                        <AutoragEvaluationSelect />
                       </ConfigureFormGroup>
                     </FlexItem>
 
@@ -934,8 +933,6 @@ function AutoragConfigure(): React.JSX.Element {
             if (fileExplorerMode === 'input_data') {
               setValue('input_data_key', filePath, { shouldValidate: true });
               setSelectedInputDataFile(file);
-              // TODO: Once test data upload is hooked up, remove this fallback
-              setValue('test_data_key', 'watsonx_benchmark.json', { shouldValidate: true });
             }
             if (fileExplorerMode === 'test_data') {
               setValue('test_data_key', filePath, { shouldValidate: true });

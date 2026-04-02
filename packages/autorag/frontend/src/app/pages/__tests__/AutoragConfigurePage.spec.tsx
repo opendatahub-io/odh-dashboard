@@ -5,14 +5,14 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
-import { uploadFileToS3 } from '~/app/api/s3';
 import AutoragConfigurePage from '~/app/pages/AutoragConfigurePage';
-
-const mockUploadFileToS3 = jest.mocked(uploadFileToS3);
 
 const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
 const mockMutateAsync = jest.fn();
+const mockS3UploadMutateAsync = jest
+  .fn()
+  .mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -35,15 +35,63 @@ jest.mock('mod-arch-core', () => ({
 }));
 
 jest.mock('~/app/hooks/mutations', () => ({
-  ...jest.requireActual<typeof import('~/app/hooks/mutations')>('~/app/hooks/mutations'),
   useCreatePipelineRunMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
   })),
+  useS3FileUploadMutation: jest.fn(() => ({
+    mutateAsync: mockS3UploadMutateAsync,
+    isPending: false,
+    reset: jest.fn(),
+    variables: undefined,
+  })),
+  useUploadToStorageMutation: jest.fn(() => ({
+    mutateAsync: jest.fn().mockResolvedValue({ uploaded: true, key: 'test-file.json' }),
+    mutate: jest.fn(),
+    isPending: false,
+    isIdle: true,
+    isSuccess: false,
+    isError: false,
+    reset: jest.fn(),
+    data: undefined,
+    error: null,
+    variables: undefined,
+    status: 'idle',
+  })),
 }));
 
-jest.mock('~/app/api/s3', () => ({
-  uploadFileToS3: jest.fn(),
-}));
+// Mock AutoragEvaluationSelect to auto-set test_data_key so the form validates.
+// The real component lets the user pick a file; here we auto-set the value once
+// the synced test_data_secret_name and test_data_bucket_name are non-empty.
+// We use setTimeout(0) so the setValue runs after AutoragConfigure's clear effects
+// (parent effects fire after child effects, so without the defer the clear effect
+// would overwrite the value we set here).
+jest.mock('~/app/components/configure/AutoragEvaluationSelect', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const ReactMock = require('react');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { useFormContext } = require('react-hook-form');
+
+  const MockEvaluationSelect = () => {
+    const { setValue, watch } = useFormContext();
+    const testDataSecretName = watch('test_data_secret_name');
+    const testDataBucketName = watch('test_data_bucket_name');
+
+    ReactMock.useEffect(() => {
+      if (!testDataSecretName || !testDataBucketName) {
+        return undefined;
+      }
+      // Defer so AutoragConfigure's clear effect (which also reacts to
+      // testDataSecretName / testDataBucketName changes) runs first.
+      const timeout = setTimeout(() => {
+        setValue('test_data_key', 'evaluation-dataset.json', { shouldValidate: true });
+      }, 0);
+      return () => clearTimeout(timeout);
+    }, [testDataSecretName, testDataBucketName, setValue]);
+
+    return ReactMock.createElement('div', { 'data-testid': 'evaluation-select' }, 'Mocked eval');
+  };
+  return { __esModule: true, default: MockEvaluationSelect };
+});
 
 // Mock the VectorStoreSelector to auto-set the form value since PF6 Select
 // doesn't work in JSDOM (Floating UI portal limitation).
@@ -81,6 +129,10 @@ jest.mock('~/app/hooks/queries', () => ({
   })),
   useLlamaStackVectorStoreProvidersQuery: jest.fn(() => ({
     data: { vector_store_providers: [{ provider_id: 'milvus', provider_type: 'remote::milvus' }] }, // eslint-disable-line camelcase
+    isLoading: false,
+  })),
+  useSecretsQuery: jest.fn(() => ({
+    data: [],
     isLoading: false,
   })),
 }));
@@ -127,6 +179,7 @@ jest.mock('mod-arch-shared', () => ({
 
 // Mock S3FileExplorer used by AutoragConfigure
 // TODO: Once test data input is hooked up, cleanup mock
+let mockFileExplorerCallCount = 0;
 jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
   __esModule: true,
   default: ({
@@ -143,7 +196,11 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
         <button
           data-testid="file-explorer-select-file"
           onClick={() => {
-            onSelectFiles([{ path: '/test-file.txt' }]);
+            mockFileExplorerCallCount += 1;
+            // First call: input data (document), Second call: test data (evaluation dataset - must be .json)
+            const filePath =
+              mockFileExplorerCallCount === 1 ? '/test-file.txt' : '/evaluation-dataset.json';
+            onSelectFiles([{ path: filePath }]);
             onClose();
           }}
         >
@@ -241,6 +298,7 @@ const renderWithProviders = (component: React.ReactElement) => {
 describe('AutoragConfigurePage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFileExplorerCallCount = 0;
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
   });
 
@@ -497,11 +555,11 @@ describe('AutoragConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      // Select files to populate input_data_key and test_data_key
+      // Select input data files
       const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
-      // FileExplorer should open
+      // FileExplorer should open for input data
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
@@ -516,8 +574,13 @@ describe('AutoragConfigurePage', () => {
       // Click Run experiment button
       await user.click(runButton);
 
+      // Assert that the payload contains the .json evaluation dataset
       await waitFor(() => {
-        expect(mockMutateAsync).toHaveBeenCalled();
+        expect(mockMutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({
+            test_data_key: 'evaluation-dataset.json',
+          }),
+        );
       });
     });
 
@@ -543,6 +606,7 @@ describe('AutoragConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
+      // Select input data files
       const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
@@ -585,6 +649,7 @@ describe('AutoragConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
+      // Select input data files
       const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
@@ -628,6 +693,7 @@ describe('AutoragConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
+      // Select input data files
       const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
@@ -649,7 +715,7 @@ describe('AutoragConfigurePage', () => {
     it('should upload file on selection in upload mode and pass resolved input_data_key to pipeline run', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-456' });
-      mockUploadFileToS3.mockResolvedValue({ uploaded: true, key: 'resolved-key.pdf' });
+      mockS3UploadMutateAsync.mockResolvedValue({ uploaded: true, key: 'resolved-key.pdf' });
 
       renderWithProviders(<AutoragConfigurePage />);
 
@@ -674,18 +740,17 @@ describe('AutoragConfigurePage', () => {
       await user.upload(uploadInput, file);
 
       await waitFor(() => {
-        expect(mockUploadFileToS3).toHaveBeenCalledWith(
-          '',
+        expect(mockS3UploadMutateAsync).toHaveBeenCalledWith(
           expect.objectContaining({
             namespace: 'test-namespace',
             secretName: 'Test AWS Secret',
             bucket: 'test-bucket',
             key: 'original-name.pdf',
+            file,
           }),
-          file,
         );
       });
-      expect(mockUploadFileToS3).toHaveBeenCalledTimes(1);
+      expect(mockS3UploadMutateAsync).toHaveBeenCalledTimes(1);
 
       const runButton = await screen.findByRole('button', { name: 'Run experiment' });
       await waitFor(() => {
@@ -700,7 +765,7 @@ describe('AutoragConfigurePage', () => {
           }),
         );
       });
-      expect(mockUploadFileToS3).toHaveBeenCalledTimes(1);
+      expect(mockS3UploadMutateAsync).toHaveBeenCalledTimes(1);
     });
   });
 

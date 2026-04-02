@@ -66,3 +66,68 @@ export function useCreatePipelineRunMutation(
     },
   });
 }
+
+export function useUploadToStorageMutation(
+  namespace: string,
+  secretName: string,
+): UseMutationResult<
+  { uploaded: boolean; key: string },
+  Error,
+  { file: File; path?: string; onProgress?: (progress: number) => void },
+  unknown
+> {
+  return useMutation({
+    mutationKey: ['autorag', 'storage'],
+    mutationFn: async ({
+      file,
+      path = '',
+      onProgress,
+    }: {
+      file: File;
+      path?: string;
+      onProgress?: (progress: number) => void;
+    }) =>
+      new Promise((resolve, reject) => {
+        // fetch won't work since it doesn't support progress tracking
+        const xhr = new XMLHttpRequest();
+
+        if (onProgress) {
+          xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+              const progress = (event.loaded / event.total) * 100;
+              onProgress(progress);
+            }
+          });
+        }
+
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              resolve(response);
+            } catch (parseError) {
+              reject(new Error(`Failed to parse upload response: ${parseError}`));
+            }
+          } else {
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        });
+
+        xhr.addEventListener('error', () => {
+          reject(new Error('Upload failed'));
+        });
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const key = (path ? `${path}/` : '') + file.name;
+        const params = new URLSearchParams({
+          namespace,
+          secretName,
+          key,
+        });
+        xhr.open('POST', `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/file?${params.toString()}`);
+        xhr.send(formData);
+      }),
+  });
+}
