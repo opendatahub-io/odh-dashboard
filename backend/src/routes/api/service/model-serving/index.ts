@@ -1,9 +1,15 @@
 import { KubeFastifyInstance } from '../../../../types';
 import { getNamespaces } from '../../../../utils/notebookUtils';
-import { registerProxy } from '../../../../utils/proxy';
+import { proxyService } from '../../../../utils/proxy';
 
 /**
- * Proxy the model-serving-api service.
+ * This file creates a `/api/service/model-serving` route on the dashboard nodejs server.
+ * It forwards requests to the model-serving-api service in the dashboard namespace.
+ *
+ * `<dashboard route>/api/service/model-serving/<api-path>`
+ *  ↓
+ * `model-serving-api.<dashboardNamespace>.svc.cluster.local:443/<api-path>`
+ *
  * Current endpoints:
  * GET `/api/v1/gateways?namespace={ns}`
  * Example response body:
@@ -20,22 +26,21 @@ import { registerProxy } from '../../../../utils/proxy';
  * }
  * ```
  */
-export default async (fastify: KubeFastifyInstance): Promise<void> => {
-  const { dashboardNamespace } = getNamespaces(fastify);
-
-  await registerProxy(fastify, {
-    prefix: '/',
-    rewritePrefix: '/',
-    authorize: true,
-    tls: true,
-    service: {
-      name: 'model-serving-api',
-      namespace: dashboardNamespace,
-      port: 443,
-    },
-    local: {
-      // kubectl port-forward -n opendatahub svc/model-serving-api 9443:443
-      port: 9443,
-    },
-  });
-};
+export default proxyService(
+  null,
+  {
+    // Destination URL: model-serving-api.<dashboardNamespace>.svc.cluster.local:443
+    name: 'model-serving-api',
+    namespace: (fastify: KubeFastifyInstance) => getNamespaces(fastify).dashboardNamespace,
+    internalPort: 443,
+  },
+  {
+    // Use port forwarding for local development:
+    // `kubectl port-forward -n opendatahub svc/model-serving-api 8443:443`
+    // then to test locally you can use:
+    // `curl "http://localhost:4010/api/service/model-serving/api/v1/gateways?namespace=<ds project namespace>"
+    host: 'localhost',
+    port: 8443,
+  },
+  null,
+);
