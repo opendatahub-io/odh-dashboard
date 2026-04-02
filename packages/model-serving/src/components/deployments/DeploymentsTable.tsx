@@ -31,7 +31,7 @@ const genericColumns: SortableData<Deployment>[] = [
   // Platform specific columns go here
   {
     field: 'servingRuntime',
-    label: 'Serving runtime',
+    label: 'Deployment resource',
     sortable: false,
   },
   {
