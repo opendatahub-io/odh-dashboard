@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { AboutModal, Alert, Bullseye, Spinner, Content } from '@patternfly/react-core';
-import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
+import { ExpandableRowContent, Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { ODH_LOGO, ODH_LOGO_DARK, ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { DataScienceStackComponentMap } from '#~/concepts/areas/const';
 import { DataScienceClusterComponentStatus } from '#~/k8sTypes';
@@ -10,7 +10,14 @@ import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
 import useFetchDsciStatus from '#~/concepts/areas/useFetchDsciStatus';
 import { useWatchOperatorSubscriptionStatus } from '#~/utilities/useWatchOperatorSubscriptionStatus';
 import ExternalLink from '#~/components/ExternalLink';
+import { PackageVersionInfo } from '#~/types';
 import { useThemeContext } from './ThemeContext';
+
+const supportLevelLabels: Record<string, string> = {
+  GA: 'Generally Available',
+  TP: 'Technology Preview',
+  DP: 'Developer Preview',
+};
 
 const RhoaiAboutText = `Red Hat® OpenShift® AI (formerly Red Hat OpenShift Data Science) is a flexible, scalable MLOps platform for data scientists and developers of artificial intelligence and machine learning (AI/ML) applications. Built using open source technologies, OpenShift AI supports the full lifecycle of AI/ML experiments and models, on premise and in the public cloud.`;
 const RhoaiDefaultReleaseName = `OpenShift AI`;
@@ -38,6 +45,13 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
   const error = errorDsci || errorSubStatus;
   const loading =
     (!errorDsci && !loadedDsci && !loadedDsc) || (!errorSubStatus && !loadedSubStatus && !errorDsc);
+
+  const [isDashboardExpanded, setIsDashboardExpanded] = React.useState(true);
+
+  const packageVersions: PackageVersionInfo[] = useMemo(
+    () => (__PACKAGE_VERSIONS__ ?? []).toSorted((a, b) => a.name.localeCompare(b.name)),
+    [],
+  );
 
   // Group components by display name while merging releases
   const groupedComponents = useMemo(() => {
@@ -149,6 +163,7 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
               <Table aria-label="Component Releases Table" data-testid="component-releases-table">
                 <Thead>
                   <Tr data-testid="table-row-title">
+                    <Th screenReaderText="Row expansion" />
                     <Th modifier="wrap">
                       {isRHOAI ? RhoaiDefaultComponentReleaseName : OdhDefaultComponentReleaseName}{' '}
                       component
@@ -158,35 +173,132 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {groupedComponents.map(([displayName, details]) =>
-                    details?.releases && details.releases.length > 0 ? (
-                      details.releases.map((release, index) => (
-                        <Tr key={`${displayName}-${index}`} data-testid="table-row-data">
-                          {index === 0 ? (
-                            <Td rowSpan={details.releases.length}>{displayName}</Td>
-                          ) : null}
-                          <Td
-                            style={{
-                              paddingInlineStart: 'var(--pf-v6-c-table--cell--Padding--base)',
-                            }}
-                          >
-                            {release.repoUrl ? (
-                              <ExternalLink text={release.name} to={release.repoUrl} />
+                  {groupedComponents.map(([displayName, details], componentIndex) => {
+                    const isDashboard = displayName === 'Dashboard';
+                    const hasPackages = isDashboard && packageVersions.length > 0;
+
+                    return (
+                      <React.Fragment key={displayName}>
+                        {details?.releases && details.releases.length > 0 ? (
+                          details.releases.map((release, index) => (
+                            <Tr key={`${displayName}-${index}`} data-testid="table-row-data">
+                              {index === 0 ? (
+                                <>
+                                  {hasPackages ? (
+                                    <Td
+                                      rowSpan={details.releases.length}
+                                      expand={{
+                                        rowIndex: componentIndex,
+                                        isExpanded: isDashboardExpanded,
+                                        onToggle: () => setIsDashboardExpanded((prev) => !prev),
+                                      }}
+                                    />
+                                  ) : (
+                                    <Td rowSpan={details.releases.length} />
+                                  )}
+                                  <Td rowSpan={details.releases.length}>
+                                    {displayName}
+                                    {hasPackages && !isDashboardExpanded ? (
+                                      <Content
+                                        component="small"
+                                        style={{
+                                          display: 'block',
+                                          color: 'var(--pf-t--global--text--color--subtle)',
+                                        }}
+                                        data-testid="dashboard-packages-hint"
+                                      >
+                                        Includes {packageVersions.length} packages. Expand for more
+                                        details.
+                                      </Content>
+                                    ) : null}
+                                  </Td>
+                                </>
+                              ) : null}
+                              <Td
+                                style={{
+                                  paddingInlineStart: 'var(--pf-v6-c-table--cell--Padding--base)',
+                                }}
+                              >
+                                {release.repoUrl ? (
+                                  <ExternalLink text={release.name} to={release.repoUrl} />
+                                ) : (
+                                  release.name
+                                )}
+                              </Td>
+                              <Td>{release.version}</Td>
+                            </Tr>
+                          ))
+                        ) : (
+                          <Tr data-testid={isDashboard ? 'dashboard-component-row' : undefined}>
+                            {hasPackages ? (
+                              <Td
+                                expand={{
+                                  rowIndex: componentIndex,
+                                  isExpanded: isDashboardExpanded,
+                                  onToggle: () => setIsDashboardExpanded((prev) => !prev),
+                                }}
+                              />
                             ) : (
-                              release.name
+                              <Td />
                             )}
-                          </Td>
-                          <Td>{release.version}</Td>
-                        </Tr>
-                      ))
-                    ) : (
-                      <Tr key={displayName}>
-                        <Td>{displayName}</Td>
-                        <Td>-</Td>
-                        <Td>-</Td>
-                      </Tr>
-                    ),
-                  )}
+                            <Td>
+                              {displayName}
+                              {hasPackages && !isDashboardExpanded ? (
+                                <Content
+                                  component="small"
+                                  style={{
+                                    display: 'block',
+                                    color: 'var(--pf-t--global--text--color--subtle)',
+                                  }}
+                                  data-testid="dashboard-packages-hint"
+                                >
+                                  Includes {packageVersions.length} packages. Expand for more
+                                  details.
+                                </Content>
+                              ) : null}
+                            </Td>
+                            <Td>-</Td>
+                            <Td>-</Td>
+                          </Tr>
+                        )}
+                        {hasPackages && isDashboardExpanded ? (
+                          <Tr isExpanded data-testid="dashboard-packages-expanded-row">
+                            <Td colSpan={4}>
+                              <ExpandableRowContent>
+                                <Table
+                                  aria-label="Package Versions Table"
+                                  data-testid="package-versions-table"
+                                >
+                                  <Thead>
+                                    <Tr data-testid="package-table-row-title">
+                                      <Th modifier="wrap">Package</Th>
+                                      <Th modifier="wrap">Version</Th>
+                                      <Th modifier="wrap">Support level</Th>
+                                    </Tr>
+                                  </Thead>
+                                  <Tbody>
+                                    {packageVersions.map((pkg) => (
+                                      <Tr key={pkg.name} data-testid="package-table-row-data">
+                                        <Td data-testid="package-name">
+                                          {pkg.name.replace(/^@[^/]+\//, '')}
+                                        </Td>
+                                        <Td data-testid="package-version">{pkg.version}</Td>
+                                        <Td data-testid="package-support-level">
+                                          {pkg.supportLevel
+                                            ? supportLevelLabels[pkg.supportLevel]
+                                            : '--'}
+                                        </Td>
+                                      </Tr>
+                                    ))}
+                                  </Tbody>
+                                </Table>
+                              </ExpandableRowContent>
+                            </Td>
+                          </Tr>
+                        ) : null}
+                      </React.Fragment>
+                    );
+                  })}
                 </Tbody>
               </Table>
             ) : (

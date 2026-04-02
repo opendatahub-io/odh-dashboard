@@ -22,8 +22,11 @@ if (typeof global.structuredClone === 'undefined') {
 declare global {
   // eslint-disable-next-line no-var, @typescript-eslint/naming-convention
   var __COMMIT_HASH__: string;
+  // eslint-disable-next-line no-var, @typescript-eslint/naming-convention
+  var __PACKAGE_VERSIONS__: { name: string; version: string; supportLevel?: string }[];
 }
 globalThis.__COMMIT_HASH__ = 'test-commit-hash';
+globalThis.__PACKAGE_VERSIONS__ = [];
 
 const tryExpect = (expectFn: () => void) => {
   try {
