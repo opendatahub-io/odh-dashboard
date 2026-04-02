@@ -241,16 +241,17 @@ describe('Distributed Workload Metrics root page', () => {
     cy.url().should('include', '/workload-status/test-project');
 
     globalDistributedWorkloads.projectDropdown.openAndSelectItem('Test Project 2', true);
-    cy.url().should('include', '/workload-status/test-project-2');
+    // Wait for navigation to complete before checking URL
+    cy.location('pathname').should('include', '/workload-status/test-project-2');
 
     cy.findByLabelText('Project metrics tab').click();
-    cy.url().should('include', '/project-metrics/test-project-2');
+    cy.location('pathname').should('include', '/project-metrics/test-project-2');
 
     cy.findByLabelText('Distributed workload status tab').click();
-    cy.url().should('include', '/workload-status/test-project-2');
+    cy.location('pathname').should('include', '/workload-status/test-project-2');
 
     globalDistributedWorkloads.navigate();
-    cy.url().should('include', '/workload-status/test-project-2');
+    cy.location('pathname').should('include', '/workload-status/test-project-2');
   });
 
   it('Changing the refresh interval and reloading the page should retain the selection', () => {

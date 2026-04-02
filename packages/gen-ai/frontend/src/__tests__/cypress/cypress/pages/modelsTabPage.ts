@@ -60,6 +60,29 @@ class ModelsTabPage {
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('empty-state');
   }
+
+  filterByName(name: string): void {
+    cy.findByTestId('models-table-search').clear();
+    cy.findByTestId('models-table-search').type(`${name}{enter}`);
+  }
+
+  filterByUseCase(useCase: string): void {
+    // Switch to Use Case filter (it's a search filter, not a select)
+    cy.findByRole('button', { name: /Filter toggle/i }).click();
+    cy.findByRole('menuitem', { name: 'Use Case' }).click();
+
+    // Type in the search input and submit
+    cy.findByTestId('models-table-search').clear();
+    cy.findByTestId('models-table-search').type(`${useCase}{enter}`);
+  }
+
+  findActiveFilterChip(filterType: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`filter-chip-${filterType}`);
+  }
+
+  clearFilters(): void {
+    cy.findByTestId('clear-all-filters-button').click();
+  }
 }
 
 class EndpointModalPage {

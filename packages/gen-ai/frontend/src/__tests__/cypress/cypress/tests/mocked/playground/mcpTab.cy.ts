@@ -462,7 +462,9 @@ describe('Playground - MCP Servers', () => {
       playgroundPage.mcpTab.closeSuccessModal();
       // Wait for MCP table to be visible after potential tab remount
       playgroundPage.mcpTab.findMCPServersTable().should('be.visible');
-      serverRow.findToolsButton().click();
+      // Re-query for server row after table remount to avoid stale element reference
+      const freshServerRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
+      freshServerRow.findToolsButton().click();
 
       cy.step('Verify tools modal opens with all tools selected');
       mcpToolsModal.find().should('be.visible');
