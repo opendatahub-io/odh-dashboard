@@ -25,6 +25,8 @@ WORKDIR /usr/src/workspace
 ### Workspace setup
 # Copy root workspace manifest first (allows npm to compute workspace graph)
 COPY --chown=default:root package.json package-lock.json* ./
+# Copy shared build config (odhDashboardShared.js for Module Federation)
+COPY --chown=default:root config/ ./config/
 # Copy the frontend workspace manifest so its dependencies can be resolved if referenced
 COPY --chown=default:root frontend/package.json ./frontend/
 # Copy required shared workspace packages needed for module builds
