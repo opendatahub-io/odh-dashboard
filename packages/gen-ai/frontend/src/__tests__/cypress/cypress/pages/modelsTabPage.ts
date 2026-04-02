@@ -63,16 +63,17 @@ class ModelsTabPage {
 
   filterByName(name: string): void {
     cy.findByTestId('models-table-search').clear();
-    cy.findByTestId('models-table-search').type(name);
+    cy.findByTestId('models-table-search').type(`${name}{enter}`);
   }
 
   filterByUseCase(useCase: string): void {
-    cy.findByTestId('useCase-filter-select').click();
-    cy.findByRole('listbox')
-      .should('be.visible')
-      .within(() => {
-        cy.findByRole('option', { name: useCase }).click();
-      });
+    // Switch to Use Case filter (it's a search filter, not a select)
+    cy.findByRole('button', { name: /Filter toggle/i }).click();
+    cy.findByRole('menuitem', { name: 'Use Case' }).click();
+
+    // Type in the search input and submit
+    cy.findByTestId('models-table-search').clear();
+    cy.findByTestId('models-table-search').type(`${useCase}{enter}`);
   }
 
   findActiveFilterChip(filterType: string): Cypress.Chainable<JQuery<HTMLElement>> {
