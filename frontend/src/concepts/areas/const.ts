@@ -7,6 +7,7 @@ export const techPreviewFlags = {
   automl: false,
   autorag: false,
   modelAsService: false,
+  maasAuthPolicies: false,
   aiAssetCustomEndpoints: false,
   mlflow: false,
   mlflowPipelines: false,
@@ -233,6 +234,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.VLLM_ON_MAAS]: {
     featureFlags: ['vLLMDeploymentOnMaaS'],
+  },
+  [SupportedArea.MAAS_AUTH_POLICIES]: {
+    featureFlags: ['maasAuthPolicies'],
   },
 };
 

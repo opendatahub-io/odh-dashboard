@@ -43,6 +43,7 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  maasAuthPolicies?: boolean;
   externalVectorStores?: boolean;
   aiAssetCustomEndpoints?: boolean;
   trainingJobs?: boolean;
@@ -79,6 +80,7 @@ export const mockDashboardConfig = ({
   automl = false,
   autorag = false,
   modelAsService = true,
+  maasAuthPolicies = false,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -269,6 +271,7 @@ export const mockDashboardConfig = ({
       autorag,
       modelAsService,
       aiAssetCustomEndpoints,
+      maasAuthPolicies,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,

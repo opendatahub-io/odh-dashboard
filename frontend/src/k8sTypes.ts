@@ -1301,6 +1301,7 @@ export type DashboardCommonConfig = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  maasAuthPolicies?: boolean;
   aiAssetCustomEndpoints?: boolean;
   mlflow?: boolean;
   mlflowPipelines?: boolean;
