@@ -10,6 +10,8 @@ import {
   inferPackage,
   aggregate,
   compareBaseline,
+  generateMarkdownSummary,
+  emitAnnotations,
 } from './eslint-disable-audit.mjs';
 
 // ── splitRulesAndDescription ────────────────────────────────────────────────
@@ -150,6 +152,8 @@ describe('parseArgs', () => {
       saveBaseline: null,
       failOnIncrease: false,
       includeGenerated: false,
+      githubSummary: null,
+      githubAnnotations: false,
       help: false,
     });
   });
@@ -786,5 +790,161 @@ describe('compareBaseline', () => {
     const result = compareBaseline(current, baseline);
     assert.strictEqual(result.hasRegression, true);
     assert.ok(result.deltas.length > 0);
+  });
+});
+
+// ── generateMarkdownSummary ─────────────────────────────────────────────────
+
+describe('generateMarkdownSummary', () => {
+  const makeReport = () => ({
+    summary: {
+      totalDirectives: 1400,
+      totalFiles: 774,
+      withDescription: 44,
+      withoutDescription: 1356,
+    },
+    byType: {
+      'eslint-disable-next-line-scoped': 816,
+      'eslint-disable-next-line-bare': 2,
+      'eslint-disable-block-scoped': 407,
+      'eslint-disable-block-bare': 1,
+      'eslint-disable-line-scoped': 129,
+      'eslint-disable-line-bare': 1,
+      'ts-ignore': 32,
+      'ts-expect-error': 7,
+      'ts-nocheck': 5,
+    },
+    byRule: [
+      { rule: 'camelcase', count: 643 },
+      { rule: 'no-console', count: 132 },
+    ],
+    byFile: [{ file: 'src/a.ts', count: 39 }],
+    byPackage: [
+      { package: 'frontend', count: 351 },
+      { package: 'packages/autorag', count: 162 },
+    ],
+    critical: {
+      bareDisables: [
+        { file: 'src/a.ts', line: 34, type: 'eslint-disable-next-line-bare' },
+      ],
+      generatedFiles: ['src/generated/x.ts'],
+    },
+  });
+
+  it('produces valid markdown', () => {
+    const md = generateMarkdownSummary(makeReport(), null);
+    assert.ok(md.includes('## ESLint Disable Audit'));
+    assert.ok(md.includes('1,400'));
+    assert.ok(md.includes('774'));
+  });
+
+  it('includes summary table', () => {
+    const md = generateMarkdownSummary(makeReport(), null);
+    assert.ok(md.includes('Total directives'));
+    assert.ok(md.includes('Files affected'));
+    assert.ok(md.includes('Documented'));
+    assert.ok(md.includes('Undocumented'));
+  });
+
+  it('includes suppression type table', () => {
+    const md = generateMarkdownSummary(makeReport(), null);
+    assert.ok(md.includes('eslint-disable-next-line-scoped'));
+    assert.ok(md.includes('816'));
+    assert.ok(md.includes('Critical'));
+  });
+
+  it('includes bare disables section', () => {
+    const md = generateMarkdownSummary(makeReport(), null);
+    assert.ok(md.includes('Bare Disables'));
+    assert.ok(md.includes('src/a.ts'));
+  });
+
+  it('includes collapsible rules section', () => {
+    const md = generateMarkdownSummary(makeReport(), null);
+    assert.ok(md.includes('<details>'));
+    assert.ok(md.includes('Top 15 Suppressed Rules'));
+    assert.ok(md.includes('camelcase'));
+  });
+
+  it('includes collapsible package breakdown', () => {
+    const md = generateMarkdownSummary(makeReport(), null);
+    assert.ok(md.includes('Per-Package Breakdown'));
+    assert.ok(md.includes('frontend'));
+  });
+
+  it('includes generated files note', () => {
+    const md = generateMarkdownSummary(makeReport(), null);
+    assert.ok(md.includes('1 generated/third-party'));
+  });
+
+  it('shows no-change banner when comparison has no deltas', () => {
+    const comparison = { deltas: [], hasRegression: false, newBare: [] };
+    const md = generateMarkdownSummary(makeReport(), comparison);
+    assert.ok(md.includes('No changes from baseline'));
+  });
+
+  it('shows regression banner when comparison has regressions', () => {
+    const comparison = {
+      deltas: [
+        { category: 'ts-ignore', baseline: 30, current: 35, delta: 5, status: 'REGRESSION' },
+      ],
+      hasRegression: true,
+      newBare: [],
+    };
+    const md = generateMarkdownSummary(makeReport(), comparison);
+    assert.ok(md.includes('Regressions detected'));
+    assert.ok(md.includes('Changes from Baseline'));
+    assert.ok(md.includes('+5'));
+  });
+
+  it('shows improvement banner when comparison has only improvements', () => {
+    const comparison = {
+      deltas: [
+        { category: 'camelcase', baseline: 650, current: 643, delta: -7, status: 'IMPROVED' },
+      ],
+      hasRegression: false,
+      newBare: [],
+    };
+    const md = generateMarkdownSummary(makeReport(), comparison);
+    assert.ok(md.includes('Improvements detected'));
+  });
+
+  it('shows new bare disables in comparison', () => {
+    const comparison = {
+      deltas: [],
+      hasRegression: true,
+      newBare: [{ file: 'src/new.ts', line: 10, type: 'eslint-disable-next-line-bare' }],
+    };
+    const md = generateMarkdownSummary(makeReport(), comparison);
+    assert.ok(md.includes('New Bare Disables'));
+    assert.ok(md.includes('src/new.ts:10'));
+  });
+});
+
+// ── emitAnnotations ─────────────────────────────────────────────────────────
+
+describe('emitAnnotations', () => {
+  it('is a callable function', () => {
+    assert.strictEqual(typeof emitAnnotations, 'function');
+  });
+});
+
+// ── parseArgs (new flags) ───────────────────────────────────────────────────
+
+describe('parseArgs (github flags)', () => {
+  it('parses --github-summary with file path', () => {
+    const args = parseArgs(['node', 'script.mjs', '--github-summary', '/tmp/summary.md']);
+    assert.strictEqual(args.githubSummary, '/tmp/summary.md');
+  });
+
+  it('parses --github-annotations flag', () => {
+    const args = parseArgs(['node', 'script.mjs', '--github-annotations']);
+    assert.strictEqual(args.githubAnnotations, true);
+  });
+
+  it('defaults github flags to off', () => {
+    const args = parseArgs(['node', 'script.mjs']);
+    assert.strictEqual(args.githubSummary, null);
+    assert.strictEqual(args.githubAnnotations, false);
   });
 });

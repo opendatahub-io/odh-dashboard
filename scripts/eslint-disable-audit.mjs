@@ -107,6 +107,8 @@ function parseArgs(argv) {
     saveBaseline: null,
     failOnIncrease: false,
     includeGenerated: false,
+    githubSummary: null,
+    githubAnnotations: false,
     help: false,
   };
   let i = 2; // skip node and script path
@@ -126,6 +128,12 @@ function parseArgs(argv) {
         break;
       case '--include-generated':
         args.includeGenerated = true;
+        break;
+      case '--github-summary':
+        args.githubSummary = argv[++i];
+        break;
+      case '--github-annotations':
+        args.githubAnnotations = true;
         break;
       case '--help':
         args.help = true;
@@ -148,6 +156,8 @@ Options:
   --save-baseline <file>     Save current results as a baseline JSON file
   --fail-on-increase         Exit 1 if any suppression category increased vs baseline
   --include-generated        Include generated/third_party files in counts
+  --github-summary <file>    Write a GitHub-flavored markdown summary to a file
+  --github-annotations       Emit ::error:: / ::warning:: annotations for CI
   --help                     Show usage information`);
 }
 
@@ -621,6 +631,161 @@ function printComparison(comparison) {
   console.log();
 }
 
+// ── GitHub Actions integration ──────────────────────────────────────────────
+
+function fmt(n) {
+  return n.toLocaleString('en-US');
+}
+
+function pct(n, total) {
+  return total > 0 ? ((n / total) * 100).toFixed(1) : '0.0';
+}
+
+function riskBadge(type) {
+  if (type.includes('bare')) {
+    return '🔴 Critical';
+  }
+  if (type === 'ts-ignore' || type.includes('block')) {
+    return '🟡 High';
+  }
+  return '🟢 Medium';
+}
+
+function generateMarkdownSummary(report, comparison) {
+  const { summary, byType, byRule, byPackage, critical } = report;
+  const lines = [];
+
+  lines.push('## ESLint Disable Audit');
+  lines.push('');
+
+  // Comparison result banner
+  if (comparison) {
+    if (comparison.hasRegression) {
+      lines.push('> [!CAUTION]');
+      lines.push('> **Regressions detected** — new inline disables were added without updating the baseline.');
+    } else if (comparison.deltas.length > 0) {
+      lines.push('> [!TIP]');
+      lines.push('> **Improvements detected** — inline disables were removed. Run `npm run lint:audit:save` to update the baseline.');
+    } else {
+      lines.push('> [!NOTE]');
+      lines.push('> No changes from baseline.');
+    }
+    lines.push('');
+  }
+
+  // Summary table
+  lines.push('### Summary');
+  lines.push('');
+  lines.push('| Metric | Value |');
+  lines.push('|:-------|------:|');
+  lines.push(`| Total directives | **${fmt(summary.totalDirectives)}** |`);
+  lines.push(`| Files affected | **${fmt(summary.totalFiles)}** |`);
+  lines.push(`| Documented (with \`--\`) | ${fmt(summary.withDescription)} (${pct(summary.withDescription, summary.totalDirectives)}%) |`);
+  lines.push(`| Undocumented | ${fmt(summary.withoutDescription)} (${pct(summary.withoutDescription, summary.totalDirectives)}%) |`);
+  lines.push('');
+
+  // Comparison delta table
+  if (comparison && comparison.deltas.length > 0) {
+    lines.push('### Changes from Baseline');
+    lines.push('');
+    lines.push('| Category | Baseline | Current | Delta |');
+    lines.push('|:---------|:--------:|:-------:|------:|');
+    for (const d of comparison.deltas) {
+      const arrow = d.delta > 0 ? '⬆️' : '⬇️';
+      const sign = d.delta > 0 ? '+' : '';
+      lines.push(`| \`${d.category}\` | ${d.baseline} | ${d.current} | ${sign}${d.delta} ${arrow} |`);
+    }
+    lines.push('');
+  }
+
+  if (comparison?.newBare?.length > 0) {
+    lines.push(`### 🚨 New Bare Disables (${comparison.newBare.length})`);
+    lines.push('');
+    for (const b of comparison.newBare) {
+      lines.push(`- \`${b.file}:${b.line}\` — ${b.type}`);
+    }
+    lines.push('');
+  }
+
+  // Suppression types
+  lines.push('### By Suppression Type');
+  lines.push('');
+  lines.push('| Type | Count | Risk |');
+  lines.push('|:-----|------:|:-----|');
+  for (const [type, count] of Object.entries(byType)) {
+    lines.push(`| \`${type}\` | ${fmt(count)} | ${riskBadge(type)} |`);
+  }
+  lines.push('');
+
+  // Bare disables
+  if (critical.bareDisables.length > 0) {
+    lines.push(`### ⚠️ Bare Disables (${critical.bareDisables.length})`);
+    lines.push('');
+    lines.push('These suppress **all** rules and should be fixed immediately:');
+    lines.push('');
+    lines.push('| File | Line | Type |');
+    lines.push('|:-----|-----:|:-----|');
+    for (const b of critical.bareDisables) {
+      lines.push(`| \`${b.file}\` | ${b.line} | \`${b.type}\` |`);
+    }
+    lines.push('');
+  }
+
+  // Top rules (collapsible)
+  lines.push('<details>');
+  lines.push('<summary><strong>Top 15 Suppressed Rules</strong></summary>');
+  lines.push('');
+  lines.push('| Rule | Count |');
+  lines.push('|:-----|------:|');
+  for (const r of byRule.slice(0, 15)) {
+    lines.push(`| \`${r.rule}\` | ${fmt(r.count)} |`);
+  }
+  lines.push('');
+  lines.push('</details>');
+  lines.push('');
+
+  // Per-package (collapsible)
+  lines.push('<details>');
+  lines.push('<summary><strong>Per-Package Breakdown</strong></summary>');
+  lines.push('');
+  lines.push('| Package | Count |');
+  lines.push('|:--------|------:|');
+  for (const p of byPackage) {
+    lines.push(`| \`${p.package}\` | ${fmt(p.count)} |`);
+  }
+  lines.push('');
+  lines.push('</details>');
+  lines.push('');
+
+  // Generated files note
+  if (critical.generatedFiles.length > 0) {
+    lines.push(`*${critical.generatedFiles.length} generated/third-party files excluded from counts.*`);
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+function emitAnnotations(report, comparison) {
+  for (const b of report.critical.bareDisables) {
+    console.log(`::error file=${b.file},line=${b.line},title=Bare eslint-disable::This ${b.type} suppresses ALL rules. Specify the rule name(s) being disabled.`);
+  }
+
+  if (comparison?.newBare) {
+    for (const b of comparison.newBare) {
+      console.log(`::error file=${b.file},line=${b.line},title=New bare eslint-disable::This PR introduces a new bare disable that suppresses ALL rules. This is not allowed.`);
+    }
+  }
+
+  if (comparison) {
+    const regressions = comparison.deltas.filter((d) => d.status === 'REGRESSION');
+    if (regressions.length > 0) {
+      const categories = regressions.map((d) => `${d.category} (+${d.delta})`).join(', ');
+      console.log(`::warning title=ESLint disable regressions::Suppression counts increased: ${categories}. Run \`npm run lint:audit\` locally for details.`);
+    }
+  }
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -677,6 +842,17 @@ async function main() {
     }
   }
 
+  // GitHub Actions job summary
+  if (args.githubSummary) {
+    const md = generateMarkdownSummary(report, comparison);
+    await writeFile(args.githubSummary, md, { flag: 'a', encoding: 'utf-8' });
+  }
+
+  // GitHub Actions annotations
+  if (args.githubAnnotations) {
+    emitAnnotations(report, comparison);
+  }
+
   process.exit(exitCode);
 }
 
@@ -691,6 +867,8 @@ export {
   inferPackage,
   aggregate,
   compareBaseline,
+  generateMarkdownSummary,
+  emitAnnotations,
   SKIP_DIRS,
   EXTENSIONS,
 };
