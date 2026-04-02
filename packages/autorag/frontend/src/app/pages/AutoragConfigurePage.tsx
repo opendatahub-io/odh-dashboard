@@ -94,6 +94,8 @@ function AutoragConfigurePage(): React.JSX.Element {
           type="submit"
           variant="primary"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
+          isLoading={form.formState.isSubmitting}
+          spinnerAriaValueText="Submitting"
         >
           Run experiment
         </Button>
@@ -101,6 +103,7 @@ function AutoragConfigurePage(): React.JSX.Element {
       <ActionListItem>
         <Button
           variant="link"
+          isDisabled={form.formState.isSubmitting}
           onClick={() => {
             setStep('create');
           }}
