@@ -80,11 +80,11 @@ export type McpDeploymentAddress = {
 export type McpDeployment = {
   name: string;
   displayName?: string;
+  serverName?: string;
   namespace: string;
   uid: string;
   creationTimestamp: string;
   image: string;
-  port: number;
   yaml?: string;
   phase: McpDeploymentPhase;
   conditions?: McpDeploymentCondition[];
@@ -93,22 +93,20 @@ export type McpDeployment = {
 
 export type McpDeploymentList = {
   items: McpDeployment[];
-  nextPageToken?: string;
-  pageSize: number;
   size: number;
 };
 
 export type McpDeploymentCreateRequest = {
   name?: string;
   displayName?: string;
+  serverName?: string;
   image: string;
-  port?: number;
   yaml?: string;
 };
 
 export type McpDeploymentUpdateRequest = {
   displayName?: string;
+  serverName?: string;
   image?: string;
-  port?: number;
   yaml?: string;
 };

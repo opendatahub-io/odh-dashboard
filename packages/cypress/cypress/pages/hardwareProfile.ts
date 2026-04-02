@@ -143,7 +143,7 @@ class HardwareProfile {
   }
 
   findUniqueTable() {
-    return cy.get('[data-testid="hardware-profile-table"]').first();
+    return cy.findByTestId('hardware-profile-table');
   }
 
   private findHardwareProfileDisabledBanner() {
@@ -173,29 +173,12 @@ class HardwareProfile {
   }
 
   findCreateButton() {
-    // Use Cypress's built-in handling to try one selector, then another if the first fails
-    return cy.get('body').then(() =>
-      cy
-        .get(
-          '[data-testid="display-hardware-modal-button"], [data-testid="create-hardware-profile"]',
-        )
-        .first()
-        .then(($el) => cy.wrap($el)),
-    );
+    return cy.findByTestId('create-hardware-profile');
   }
 
   getUniqueTableToolbar() {
     return new HardwareProfileTableToolbar(() =>
-      // This approach will get all matching elements, then return the first one that's visible
-      cy.get('[data-testid="hardware-profiles-table-toolbar"]').then(($elements) => {
-        // Return the first element that's visible
-        const visibleElements = $elements.filter(':visible');
-        if (visibleElements.length > 0) {
-          return cy.wrap(visibleElements.first());
-        }
-        // Fallback to the first element if none are visible
-        return cy.wrap($elements.first());
-      }),
+      cy.findByTestId('hardware-profiles-table-toolbar'),
     );
   }
 

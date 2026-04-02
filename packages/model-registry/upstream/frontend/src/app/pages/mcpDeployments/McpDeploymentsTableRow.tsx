@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Timestamp, TimestampTooltipVariant, Truncate } from '@patternfly/react-core';
 import { McpDeployment } from '~/app/mcpDeploymentTypes';
-import { getServerDisplayName } from './utils';
+import { getDeploymentDisplayName } from './utils';
 import McpDeploymentStatusLabel from './McpDeploymentStatusLabel';
 import McpDeploymentServicePopover from './McpDeploymentServicePopover';
 
@@ -31,10 +31,10 @@ const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
   return (
     <Tr data-testid={`mcp-deployment-row-${deployment.name}`}>
       <Td dataLabel="Server" data-testid="mcp-deployment-server">
-        <Truncate content={getServerDisplayName(deployment)} />
+        <Truncate content={deployment.serverName || '-'} />
       </Td>
       <Td dataLabel="Name" data-testid="mcp-deployment-name">
-        <Truncate content={deployment.name} />
+        <Truncate content={getDeploymentDisplayName(deployment)} />
       </Td>
       <Td dataLabel="Created" data-testid="mcp-deployment-created">
         <Timestamp
