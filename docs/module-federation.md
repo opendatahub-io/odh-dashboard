@@ -318,23 +318,20 @@ This ensures webpack can parse TypeScript from `@odh-dashboard/*` packages resol
 
 All `@odh-dashboard/*` dependencies are automatically added to the MF `shared` config so that only one copy is loaded at runtime.
 
-**Host** (`frontend/config/moduleFederation.js`): Uses `getOdhDashboardShared({ eager: true })` to derive shared entries from all workspace packages. The `eager: true` flag means the host's copy loads immediately and takes priority during runtime negotiation.
+**Host** (`frontend/config/moduleFederation.js`): Calls `getOdhDashboardShared({ eager: true })`. The `eager: true` flag means the host's copy loads immediately and takes priority during runtime negotiation.
 
-**Remotes** (each package's `moduleFederation.js`): Discover all `@odh-dashboard/*` packages by scanning the `node_modules/@odh-dashboard` directory at build time:
+**Remotes** (each package's `moduleFederation.js`): Import the same utility and call it without `eager`:
 
 ```javascript
-const odhDashboardDir = path.resolve(__dirname, '../../../../node_modules/@odh-dashboard');
-const odhShared = fs.existsSync(odhDashboardDir)
-  ? fs.readdirSync(odhDashboardDir)
-      .filter((name) => !name.startsWith('.'))
-      .reduce((acc, name) => {
-        acc[`@odh-dashboard/${name}`] = { singleton: true, requiredVersion: '*' };
-        return acc;
-      }, {})
-  : {};
+const { getOdhDashboardShared } = require('../../../../config/odhDashboardShared');
+// ...
+shared: {
+  // ...other shared deps...
+  ...getOdhDashboardShared(),
+},
 ```
 
-Note: `@odh-dashboard/*` packages are resolved via npm workspace hoisting, not explicit `dependencies` in each remote's `package.json`, so the directory scan is necessary.
+Both host and remotes use the shared utility in `config/odhDashboardShared.js`, which scans `node_modules/@odh-dashboard` at build time. This directory is populated by npm workspace hoisting. While some remotes also list `@odh-dashboard/*` packages in their `package.json` dependencies, the directory scan is more resilient — it catches all workspace packages automatically, even if a remote imports a package without declaring it as a dependency.
 
 This means:
 

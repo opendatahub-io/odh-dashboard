@@ -1,6 +1,7 @@
 const { execSync } = require('child_process');
 const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
 const deps = require('../package.json').dependencies;
+const { getOdhDashboardShared } = require('../../config/odhDashboardShared');
 
 const updateTypes = !!process.env.MF_UPDATE_TYPES;
 
@@ -79,21 +80,6 @@ const getWorkspacePackages = () => {
 };
 
 const workspacePackages = getWorkspacePackages();
-
-/**
- * Build MF shared entries for all @odh-dashboard/* workspace packages.
- * This ensures library packages are shared at runtime between host and remotes,
- * avoiding duplicate code being loaded in the browser.
- */
-const getOdhDashboardShared = (options = {}) => {
-  const shared = {};
-  for (const pkg of workspacePackages) {
-    if (pkg.name && pkg.name.startsWith('@odh-dashboard/')) {
-      shared[pkg.name] = { singleton: true, requiredVersion: pkg.version || '*', ...options };
-    }
-  }
-  return shared;
-};
 
 // Function to read module federation config from workspace packages
 const readModuleFederationConfigFromPackages = () => {
