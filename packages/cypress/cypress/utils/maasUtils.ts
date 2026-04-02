@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import type { Tier, TierLimits } from '@odh-dashboard/maas/types/tier';
 import type {
   APIKey,
@@ -7,6 +8,7 @@ import type {
 import type {
   MaaSSubscription,
   SubscriptionInfoResponse,
+  UserSubscription,
 } from '@odh-dashboard/maas/types/subscriptions';
 
 // Standardized tier templates - use these directly or as building blocks
@@ -105,6 +107,7 @@ export const mockCreateAPIKeyRequest = (): CreateAPIKeyRequest => {
     name: 'production-backend',
     description: 'Production API key for backend service',
     expiresIn: '168h', // 7 days in hours
+    subscription: 'premium-team-sub',
   };
 };
 
@@ -150,6 +153,42 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
       },
     ],
     creationTimestamp: '2025-02-15T08:00:00Z',
+  },
+];
+
+export const mockSubscriptionListItems = (): UserSubscription[] => [
+  {
+    subscription_id_header: 'premium-team-sub',
+    subscription_description: 'Premium Team Subscription',
+    display_name: 'Premium Team',
+    priority: 10,
+    cost_center: 'engineering',
+    organization_id: 'org-123',
+    model_refs: [
+      {
+        name: 'granite-3-8b-instruct',
+        namespace: 'maas-models',
+        token_rate_limits: [{ limit: 100000, window: '24h' }],
+      },
+      {
+        name: 'flan-t5-small',
+        namespace: 'maas-models',
+        token_rate_limits: [{ limit: 200000, window: '24h' }],
+      },
+    ],
+  },
+  {
+    subscription_id_header: 'basic-team-sub',
+    subscription_description: 'Basic Team Subscription',
+    display_name: 'Basic Team',
+    priority: 1,
+    model_refs: [
+      {
+        name: 'flan-t5-small',
+        namespace: 'maas-models',
+        token_rate_limits: [{ limit: 10000, window: '24h' }],
+      },
+    ],
   },
 ];
 

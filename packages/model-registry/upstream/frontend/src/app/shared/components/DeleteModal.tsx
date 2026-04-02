@@ -5,6 +5,8 @@ import {
   Button,
   Flex,
   FlexItem,
+  HelperText,
+  HelperTextItem,
   Stack,
   StackItem,
   TextInput,
@@ -25,6 +27,8 @@ type DeleteModalProps = {
   children: React.ReactNode;
   testId?: string;
   genericLabel?: boolean;
+  inputPlaceholder?: string;
+  inputHelperText?: string;
 };
 
 const DeleteModal: React.FC<DeleteModalProps> = ({
@@ -38,6 +42,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   submitButtonLabel = 'Delete',
   testId,
   genericLabel,
+  inputPlaceholder,
+  inputHelperText,
 }) => {
   const [value, setValue] = React.useState('');
 
@@ -73,25 +79,40 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
                 {genericLabel ? '' : ' deletion'}:
               </FlexItem>
 
-              <TextInput
-                id="delete-modal-input"
-                data-testid="delete-modal-input"
-                aria-label="Delete modal input"
-                value={value}
-                onChange={(_e, newValue) => setValue(newValue)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && value.trim() === deleteNameSanitized && !deleting) {
-                    onDelete();
-                  }
-                }}
-              />
+              <FlexItem>
+                <TextInput
+                  id="delete-modal-input"
+                  data-testid="delete-modal-input"
+                  aria-label="Delete modal input"
+                  placeholder={inputPlaceholder}
+                  value={value}
+                  onChange={(_e, newValue) => setValue(newValue)}
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === 'Enter' &&
+                      value.trim() === deleteNameSanitized &&
+                      !deleting
+                    ) {
+                      onDelete();
+                    }
+                  }}
+                />
+              </FlexItem>
+
+              {inputHelperText ? (
+                <FlexItem>
+                  <HelperText>
+                    <HelperTextItem>{inputHelperText}</HelperTextItem>
+                  </HelperText>
+                </FlexItem>
+              ) : null}
             </Flex>
           </StackItem>
 
           {error && (
             <StackItem>
               <Alert
-                data-testid="delete-model-error-message-alert"
+                data-testid="delete-modal-error-message-alert"
                 title={`Error deleting ${deleteNameSanitized}`}
                 isInline
                 variant="danger"

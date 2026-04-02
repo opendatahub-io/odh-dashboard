@@ -43,13 +43,13 @@ const NoAccessPopover: React.FC<{ namespace: string }> = ({ namespace }) => (
   <Popover
     headerContent={
       <>
-        You don&apos;t have access to the <strong>{namespace}</strong> namespace.
+        You don&apos;t have access to the <strong>{namespace}</strong> project.
       </>
     }
     bodyContent={
       <>
         <Content component={ContentVariants.p}>
-          To request access to a new or existing namespace, contact your administrator.
+          To request access to a new or existing project, contact your administrator.
         </Content>
         <Content component={ContentVariants.p}>Your administrator might be:</Content>
         <List>
@@ -62,7 +62,7 @@ const NoAccessPopover: React.FC<{ namespace: string }> = ({ namespace }) => (
   >
     <Button
       variant="plain"
-      aria-label="More info about namespace access"
+      aria-label="More info about project access"
       data-testid="no-access-popover-button"
     >
       <OutlinedQuestionCircleIcon />

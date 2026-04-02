@@ -44,7 +44,8 @@ func CreateMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	response, err := app.repositories.MaaSModelRefs.CreateMaaSModelRef(ctx, request)
+	dryRun := r.URL.Query().Get("dryRun") == "true"
+	response, err := app.repositories.MaaSModelRefs.CreateMaaSModelRef(ctx, request, dryRun)
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			app.errorResponse(w, r, &HTTPError{
@@ -88,7 +89,8 @@ func UpdateMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	response, err := app.repositories.MaaSModelRefs.UpdateMaaSModelRef(ctx, namespace, name, request)
+	dryRun := r.URL.Query().Get("dryRun") == "true"
+	response, err := app.repositories.MaaSModelRefs.UpdateMaaSModelRef(ctx, namespace, name, request, dryRun)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			app.errorResponse(w, r, &HTTPError{
@@ -121,7 +123,8 @@ func DeleteMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if err := app.repositories.MaaSModelRefs.DeleteMaaSModelRef(ctx, namespace, name); err != nil {
+	dryRun := r.URL.Query().Get("dryRun") == "true"
+	if err := app.repositories.MaaSModelRefs.DeleteMaaSModelRef(ctx, namespace, name, dryRun); err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusNotFound,

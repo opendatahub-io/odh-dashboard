@@ -534,6 +534,41 @@ class CreateApiKeyModal extends Modal {
   findErrorAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('create-api-key-error-alert');
   }
+
+  findSubscriptionToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-subscription-toggle');
+  }
+
+  findSubscriptionOption(value: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`api-key-subscription-option-${value}`);
+  }
+
+  findSubscriptionCostCenterDetails(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('subscription-cost-center-details');
+  }
+
+  findSubscriptionCostCenter(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('subscription-cost-center');
+  }
+
+  findSubscriptionModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('subscription-models-table');
+  }
+
+  findSubscriptionModelRateLimit(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find()
+      .findByTestId('subscription-models-table')
+      .contains('tr', modelName)
+      .find('[data-label="Token limits"]');
+  }
+
+  findNoSubscriptionsAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('no-subscriptions-alert');
+  }
+
+  findSubscriptionsErrorAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('subscriptions-error-alert');
+  }
 }
 
 class CopyApiKeyModal extends Modal {
@@ -573,6 +608,40 @@ class CopyApiKeyModal extends Modal {
 
   findApiKeyExpirationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('api-key-display-expiration');
+  }
+}
+
+class AdminBulkRevokeAPIKeyModal extends Modal {
+  constructor() {
+    super('Revoke all active keys for a single user?');
+  }
+
+  findUsernameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('admin-revoke-username-input');
+  }
+
+  findSearchButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('admin-revoke-search-button');
+  }
+
+  findRevokeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('admin-revoke-keys-button');
+  }
+
+  findNoKeysAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('admin-revoke-no-keys-alert');
+  }
+
+  findKeysFoundHeading(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('admin-revoke-keys-found-alert');
+  }
+
+  findSearchError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('admin-revoke-search-error');
+  }
+
+  findRevokeError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('admin-revoke-error-alert');
   }
 }
 
@@ -716,6 +785,7 @@ export const maasWizardField = new MaaSWizardField();
 export const tierDetailsPage = new TierDetailsPage();
 export const apiKeysPage = new APIKeysPage();
 export const bulkRevokeAPIKeyModal = new BulkRevokeAPIKeyModal();
+export const adminBulkRevokeAPIKeyModal = new AdminBulkRevokeAPIKeyModal();
 export const revokeAPIKeyModal = new RevokeAPIKeyModal();
 export const createApiKeyModal = new CreateApiKeyModal();
 export const copyApiKeyModal = new CopyApiKeyModal();
