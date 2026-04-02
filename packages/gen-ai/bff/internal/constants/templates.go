@@ -24,7 +24,7 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 {{- if and .VectorStore .VectorStore.ID }}
 #
 # 5. External Vector Store:
-#    - This script uses an existing vector store (ID: {{.VectorStore.ID}}), which was be registered in your Llama Stack instance.
+#    - This script uses an existing vector store (ID: {{.VectorStore.ID}}), which must be registered in your Llama Stack instance.
 #    - The vector store provider "{{.VectorStore.ProviderID}}" must be installed in your Llama Stack instance.
 {{- if .VectorStore.EmbeddingModel }}
 #    - The embedding model "{{.VectorStore.EmbeddingModel}}" must be registered in your Llama Stack instance.
