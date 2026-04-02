@@ -1,5 +1,6 @@
 import {
   ActionsColumn,
+  InnerScrollContainer,
   Table,
   Tbody,
   Td,
@@ -368,19 +369,33 @@ function AutoragLeaderboard({
   }
 
   return (
-    <div className="autorag-leaderboard-wrapper">
+    <InnerScrollContainer>
       <Table
         aria-label="AutoRAG Pattern Leaderboard"
         variant="compact"
         data-testid="leaderboard-table"
         className="autorag-leaderboard"
+        isStickyHeader
       >
         <Thead>
           <Tr>
-            <Th sort={getSortParams(0)} data-testid="rank-header">
+            <Th
+              sort={getSortParams(0)}
+              data-testid="rank-header"
+              isStickyColumn
+              stickyMinWidth="80px"
+              stickyLeftOffset="0"
+            >
               Rank
             </Th>
-            <Th sort={getSortParams(1)} data-testid="pattern-name-header">
+            <Th
+              sort={getSortParams(1)}
+              data-testid="pattern-name-header"
+              isStickyColumn
+              hasRightBorder
+              stickyMinWidth="150px"
+              stickyLeftOffset="80px"
+            >
               Pattern name
             </Th>
             {metricKeys.map((metricKey, index) => (
@@ -445,13 +460,25 @@ function AutoragLeaderboard({
             >
               Generation model ID
             </Th>
-            <Th screenReaderText="Actions" />
+            <Th
+              screenReaderText="Actions"
+              isStickyColumn
+              hasLeftBorder
+              stickyMinWidth="80px"
+              stickyRightOffset="0"
+            />
           </Tr>
         </Thead>
         <Tbody>
           {data.map((entry) => (
             <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
-              <Td dataLabel="Rank" data-testid={`rank-${entry.rank}`}>
+              <Td
+                dataLabel="Rank"
+                data-testid={`rank-${entry.rank}`}
+                isStickyColumn
+                stickyMinWidth="80px"
+                stickyLeftOffset="0"
+              >
                 {entry.rank === 1 ? (
                   <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
                     {entry.rank}
@@ -460,7 +487,14 @@ function AutoragLeaderboard({
                   entry.rank
                 )}
               </Td>
-              <Td dataLabel="Pattern" data-testid={`pattern-name-${entry.rank}`}>
+              <Td
+                dataLabel="Pattern"
+                data-testid={`pattern-name-${entry.rank}`}
+                isStickyColumn
+                hasRightBorder
+                stickyMinWidth="150px"
+                stickyLeftOffset="80px"
+              >
                 <Button
                   variant="link"
                   isInline
@@ -524,7 +558,13 @@ function AutoragLeaderboard({
                   <span>{getModelIdShortName(entry.generationModelId)}</span>
                 </Tooltip>
               </Td>
-              <Td isActionCell>
+              <Td
+                isActionCell
+                isStickyColumn
+                hasLeftBorder
+                stickyMinWidth="80px"
+                stickyRightOffset="0"
+              >
                 <ActionsColumn
                   items={[
                     {
@@ -546,7 +586,7 @@ function AutoragLeaderboard({
           ))}
         </Tbody>
       </Table>
-    </div>
+    </InnerScrollContainer>
   );
 }
 
