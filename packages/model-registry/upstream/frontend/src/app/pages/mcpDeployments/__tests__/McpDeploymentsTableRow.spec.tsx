@@ -64,7 +64,7 @@ describe('McpDeploymentsTableRow', () => {
     await user.click(viewLink);
     const popover = await screen.findByTestId('mcp-deployment-connection-url');
     expect(popover).toBeInTheDocument();
-    expect(popover.querySelector('input')).toHaveValue('kubernetes-test:8080');
+    expect(popover).toHaveTextContent('kubernetes-test:8080');
   });
 
   it.each([McpDeploymentPhase.FAILED, McpDeploymentPhase.PENDING])(

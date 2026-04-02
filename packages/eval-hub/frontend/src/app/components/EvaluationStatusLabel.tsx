@@ -1,56 +1,57 @@
 import * as React from 'react';
-import { Icon, Label, Popover, Stack, StackItem } from '@patternfly/react-core';
+import { Icon, Label, LabelProps, Popover, Stack, StackItem } from '@patternfly/react-core';
 import {
+  BanIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   InProgressIcon,
-  PausedIcon,
+  OffIcon,
   PendingIcon,
-  StopCircleIcon,
 } from '@patternfly/react-icons';
 import { EvaluationJobState } from '~/app/types';
 
 type StatusConfig = {
   label: string;
-  color: React.ComponentProps<typeof Label>['color'];
+  color?: LabelProps['color'];
+  status?: LabelProps['status'];
   icon: React.ReactNode;
 };
 
 const statusMap: Record<EvaluationJobState, StatusConfig> = {
   pending: {
     label: 'Pending',
-    color: 'grey',
+    color: 'purple',
     icon: <PendingIcon />,
   },
   running: {
-    label: 'In progress',
+    label: 'Running',
     color: 'blue',
     icon: <InProgressIcon />,
   },
   completed: {
-    label: 'Completed',
-    color: 'green',
+    label: 'Complete',
+    status: 'success',
     icon: <CheckCircleIcon />,
   },
   failed: {
     label: 'Failed',
-    color: 'red',
+    status: 'danger',
     icon: <ExclamationCircleIcon />,
   },
   cancelled: {
-    label: 'Cancelled',
+    label: 'Canceled',
     color: 'grey',
-    icon: <StopCircleIcon />,
+    icon: <BanIcon />,
   },
   stopping: {
     label: 'Stopping',
-    color: 'blue',
-    icon: <PausedIcon />,
+    color: 'grey',
+    icon: <InProgressIcon className="odh-u-spin" />,
   },
   stopped: {
     label: 'Stopped',
     color: 'grey',
-    icon: <StopCircleIcon />,
+    icon: <OffIcon />,
   },
 };
 
@@ -65,7 +66,9 @@ const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({ state, me
 
   const label = (
     <Label
+      variant="outline"
       color={config.color}
+      status={config.status}
       icon={<Icon isInline>{config.icon}</Icon>}
       data-testid={`status-label-${state}`}
       {...(hasPopover

@@ -14,6 +14,7 @@ import type {
   CreateAPIKeyRequest,
   CreateAPIKeyResponse,
   APIKey,
+  SubscriptionDetail,
 } from '~/app/types/api-key';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
@@ -21,12 +22,22 @@ const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v =
 const isAPIKey = (v: unknown): v is APIKey =>
   isRecord(v) && typeof v.id === 'string' && typeof v.name === 'string';
 
+const isSubscriptionDetail = (v: unknown): v is SubscriptionDetail =>
+  isRecord(v) &&
+  Array.isArray(v.models) &&
+  v.models.every((m) => typeof m === 'string') &&
+  (v.displayName === undefined || typeof v.displayName === 'string');
+
+const isSubscriptionDetails = (v: unknown): v is Record<string, SubscriptionDetail> =>
+  isRecord(v) && Object.values(v).every(isSubscriptionDetail);
+
 const isAPIKeyListResponse = (v: unknown): v is APIKeyListResponse =>
   isRecord(v) &&
-  (Array.isArray(v.data) || v.data === null) && // if there are no keys, the data returns as null
+  (Array.isArray(v.data) || v.data === null) &&
   typeof v.has_more === 'boolean' &&
   typeof v.object === 'string' &&
-  (v.data === null || v.data.every(isAPIKey)); // if there are no keys, the data returns as null
+  (v.data === null || v.data.every(isAPIKey)) &&
+  (v.subscriptionDetails === undefined || isSubscriptionDetails(v.subscriptionDetails));
 
 const isCreateAPIKeyResponse = (v: unknown): v is CreateAPIKeyResponse =>
   isRecord(v) &&

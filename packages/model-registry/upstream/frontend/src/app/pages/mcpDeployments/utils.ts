@@ -1,7 +1,11 @@
 import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
 
-export const getConnectionUrl = (deployment: McpDeployment): string | undefined =>
-  deployment.address?.url;
+export const getConnectionUrl = (deployment: McpDeployment): string | undefined => {
+  if (deployment.phase !== McpDeploymentPhase.RUNNING) {
+    return undefined;
+  }
+  return deployment.address?.url;
+};
 
 export const getDeploymentDisplayName = (deployment: McpDeployment): string =>
   deployment.displayName || deployment.name;

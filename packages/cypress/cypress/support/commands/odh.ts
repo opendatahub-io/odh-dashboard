@@ -102,6 +102,7 @@ import type {
   SubscriptionInfoResponse,
   UserSubscription,
 } from '@odh-dashboard/maas/types/subscriptions';
+import type { MaaSModelRef } from '@odh-dashboard/maas/types/maas-model';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -1164,6 +1165,20 @@ declare global {
         ((
           type: 'GET /maas/api/v1/subscriptions',
           response: { data: UserSubscription[] },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /maas/api/v1/maasmodel',
+          response: OdhResponse<MaaSModelRef>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/maasmodel/:namespace/:name',
+          options: { path: { namespace: string; name: string } },
+          response: OdhResponse<{ message: string }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PUT /maas/api/v1/maasmodel/:namespace/:name',
+          options: { path: { namespace: string; name: string } },
+          response: OdhResponse<MaaSModelRef>,
         ) => Cypress.Chainable<null>);
     }
   }
