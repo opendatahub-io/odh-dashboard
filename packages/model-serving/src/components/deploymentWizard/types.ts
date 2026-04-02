@@ -29,7 +29,6 @@ import type { useNumReplicasField } from './fields/NumReplicasField';
 import type { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import type { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
 import type { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
-import type { useTimeoutField, TimeoutConfigData } from './fields/TimeoutField';
 import {
   useCreateConnectionData,
   type CreateConnectionData,
@@ -131,7 +130,6 @@ export type InitialWizardFormData = {
   modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
   deploymentStrategy?: DeploymentStrategyFieldData;
-  timeoutConfig?: TimeoutConfigData;
   // deploying — serializable metadata merged onto the deployment during assembly
   navSourceMetadata?: K8sResourceCommon['metadata'];
 } & Record<string, unknown>;
@@ -154,7 +152,6 @@ export type WizardFormData = {
     modelServer: ReturnType<typeof useModelServerSelectField>;
     createConnectionData: ReturnType<typeof useCreateConnectionData>;
     deploymentStrategy: ReturnType<typeof useDeploymentStrategyField>;
-    timeoutConfig?: ReturnType<typeof useTimeoutField>;
     canCreateRoleBindings: boolean;
   } & Record<string, unknown>;
 };
@@ -187,7 +184,6 @@ export type HardwareProfileConfigFieldData =
 export type ModelFormatFieldData = WizardFormData['state']['modelFormatState']['modelFormat'];
 export type ModelAvailabilityFieldsData = WizardFormData['state']['modelAvailability']['data'];
 export type DeploymentStrategyFieldData = WizardFormData['state']['deploymentStrategy']['data'];
-export type TimeoutConfigFieldData = NonNullable<WizardFormData['state']['timeoutConfig']>['data'];
 
 // extensible fields
 
@@ -196,8 +192,7 @@ export type DeploymentWizardFieldId =
   | 'modelAvailability'
   | 'externalRoute'
   | 'tokenAuth'
-  | 'deploymentStrategy'
-  | 'timeoutConfig';
+  | 'deploymentStrategy';
 
 export type DeploymentWizardFieldBase<ID extends DeploymentWizardFieldId | string> = {
   id: ID;
@@ -293,8 +288,7 @@ export type DeploymentWizardField =
   | ModelAvailabilityField
   | ExternalRouteField
   | TokenAuthField
-  | DeploymentStrategyField
-  | TimeoutConfigField;
+  | DeploymentStrategyField;
 
 export const isModelServerTemplateField = (
   field: DeploymentWizardField,
@@ -322,13 +316,4 @@ export const isDeploymentStrategyField = (
   field: DeploymentWizardField,
 ): field is DeploymentStrategyField => {
   return field.id === 'deploymentStrategy';
-};
-
-export type TimeoutConfigField = DeploymentWizardFieldBase<'timeoutConfig'> & {
-  id: 'timeoutConfig';
-  type: 'modifier';
-  isVisible: boolean;
-};
-export const isTimeoutConfigField = (field: DeploymentWizardField): field is TimeoutConfigField => {
-  return field.id === 'timeoutConfig';
 };

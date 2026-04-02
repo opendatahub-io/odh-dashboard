@@ -9,7 +9,6 @@ import {
   type ModelLocationData,
   ModelLocationType,
 } from '@odh-dashboard/model-serving/types/form-data';
-import type { TimeoutConfigFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/TimeoutField';
 import type { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelAvailabilityFields';
 import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
 import type { ExternalRouteFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ExternalRouteField';
@@ -31,7 +30,6 @@ import {
   applyDisplayNameDesc,
   applyModelType,
   applyDeploymentStrategy,
-  applyTimeoutConfig,
 } from './deployUtils';
 import { applyReplicas } from './hardware';
 import {
@@ -60,7 +58,6 @@ export type CreatingInferenceServiceObject = {
   modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
   deploymentStrategy?: DeploymentStrategyFieldData;
-  timeoutConfig?: TimeoutConfigFieldData;
 };
 
 const assembleInferenceService = (
@@ -86,7 +83,6 @@ const assembleInferenceService = (
     runtimeArgs,
     environmentVariables,
     deploymentStrategy,
-    timeoutConfig,
   } = data;
   let inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
@@ -158,7 +154,6 @@ const assembleInferenceService = (
   );
 
   inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy);
-  inferenceService = applyTimeoutConfig(inferenceService, timeoutConfig);
 
   return inferenceService;
 };

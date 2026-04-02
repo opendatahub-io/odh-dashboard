@@ -45,10 +45,10 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
                 onChange(undefined);
                 return;
               }
-              if (min) {
+              if (min != null) {
                 v = Math.max(v, min);
               }
-              if (max) {
+              if (max != null) {
                 v = Math.min(v, max);
               }
               onChange(v);
@@ -67,7 +67,7 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
       onChange
         ? () => {
             const newVal = (value || 0) + increment;
-            onChange(min ? Math.max(newVal, min) : newVal);
+            onChange(max != null ? Math.min(newVal, max) : newVal);
           }
         : undefined
     }
@@ -75,7 +75,7 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
       onChange
         ? () => {
             const newVal = (value || 0) - increment;
-            onChange(max ? Math.min(newVal, max) : newVal);
+            onChange(min != null ? Math.max(newVal, min) : newVal);
           }
         : undefined
     }

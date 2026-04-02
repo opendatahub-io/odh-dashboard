@@ -438,6 +438,8 @@ export const applyTimeoutConfig = (
 
   // Clear existing values for update scenarios
   delete result.metadata.annotations['security.opendatahub.io/auth-proxy-type'];
+
+  // Clear existing timeout if present
   if ('timeout' in result.spec.predictor) {
     delete result.spec.predictor.timeout;
   }
@@ -458,6 +460,8 @@ export const applyTimeoutConfig = (
   return result;
 };
 
+export const DEFAULT_TIMEOUT = 30;
+
 export const extractTimeoutConfig = (deployment: {
   model: InferenceServiceKind;
 }): TimeoutConfigFieldData => {
@@ -466,7 +470,7 @@ export const extractTimeoutConfig = (deployment: {
     deployment.model.metadata.annotations?.['security.opendatahub.io/auth-proxy-type'];
 
   return {
-    timeout: timeout ?? 30,
+    timeout: timeout ?? DEFAULT_TIMEOUT,
     return401: authProxyType === 'kube-rbac-proxy',
   };
 };

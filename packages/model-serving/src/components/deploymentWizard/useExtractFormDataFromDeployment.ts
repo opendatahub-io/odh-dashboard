@@ -162,12 +162,6 @@ export const useExtractFormDataFromDeployment = (
           ? formDataExtension.properties.extractDeploymentStrategy(deployment) ?? undefined
           : undefined,
 
-      // Extract timeout configuration
-      timeoutConfig:
-        typeof formDataExtension?.properties.extractTimeoutConfig === 'function'
-          ? formDataExtension.properties.extractTimeoutConfig(deployment) ?? undefined
-          : undefined,
-
       // Extract runtime arguments if available
       runtimeArgs: formDataExtension?.properties.extractRuntimeArgs(deployment) ?? undefined,
 

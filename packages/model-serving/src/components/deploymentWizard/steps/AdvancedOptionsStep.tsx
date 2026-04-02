@@ -23,7 +23,7 @@ import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { DeploymentStrategyField } from '../fields/DeploymentStrategyField';
-import { TimeoutField } from '../fields/TimeoutField';
+import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 import { type UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
 import { showAuthWarning } from '../hooks/useAuthWarning';
@@ -227,26 +227,13 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 </FormGroup>
               </StackItem>
             )}
-            {wizardState.state.timeoutConfig?.isVisible && (
-              <StackItem>
-                <TimeoutField
-                  timeoutValue={wizardState.state.timeoutConfig.data.timeout ?? 30}
-                  onChangeTimeoutValue={(value: number) =>
-                    wizardState.state.timeoutConfig?.setData({
-                      ...wizardState.state.timeoutConfig.data,
-                      timeout: value,
-                    })
-                  }
-                  return401={wizardState.state.timeoutConfig.data.return401 ?? false}
-                  onChangeReturn401={(value: boolean) =>
-                    wizardState.state.timeoutConfig?.setData({
-                      ...wizardState.state.timeoutConfig.data,
-                      return401: value,
-                    })
-                  }
-                />
-              </StackItem>
-            )}
+            {/* Timeout field rendered via extension system */}
+            <GenericFieldRenderer
+              fieldId="kserve/timeout"
+              wizardState={wizardState}
+              externalData={externalData}
+              isEditing={wizardState.initialData?.isEditing}
+            />
           </Stack>
         </FormSection>
       </Form>

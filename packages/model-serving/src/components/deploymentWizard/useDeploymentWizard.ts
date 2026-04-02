@@ -21,7 +21,6 @@ import { type InitialWizardFormData, type WizardField, type WizardFormData } fro
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
-import { useTimeoutField } from './fields/TimeoutField';
 import {
   useDeploymentWizardReducer,
   wizardFormReducer,
@@ -148,11 +147,6 @@ export const useModelDeploymentWizard = (
     modelType,
     actualModelServer,
   );
-  const timeoutConfig = useTimeoutField(
-    initialData?.timeoutConfig ?? undefined,
-    modelType,
-    actualModelServer,
-  );
 
   // Step 4: Summary
 
@@ -176,7 +170,6 @@ export const useModelDeploymentWizard = (
       modelAvailability,
       modelServer,
       deploymentStrategy,
-      timeoutConfig,
       canCreateRoleBindings,
       ...formState,
     }),
@@ -196,7 +189,6 @@ export const useModelDeploymentWizard = (
       modelAvailability,
       modelServer,
       deploymentStrategy,
-      timeoutConfig,
       canCreateRoleBindings,
       formState,
     ],

@@ -178,9 +178,6 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractDeploymentStrategy?: CodeRef<
       (deployment: D) => WizardFormData['state']['deploymentStrategy']['data'] | null
     >;
-    extractTimeoutConfig?: CodeRef<
-      (deployment: D) => NonNullable<WizardFormData['state']['timeoutConfig']>['data'] | null
-    >;
     extractModelType?: CodeRef<(deployment: D) => ModelTypeFieldData | null>;
     extractModelServerTemplate: CodeRef<
       (deployment: D, dashboardNamespace?: string) => { data: ModelServerSelectFieldData } | null
