@@ -21,6 +21,7 @@ import {
   Button,
 } from '@patternfly/react-core';
 import { FieldGroupHelpLabelIcon } from 'mod-arch-shared';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   AIModel,
   ExternalModelRequest,
@@ -232,11 +233,16 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     setIsVerifying(true);
     setVerificationResult(null);
 
+    const trackingModelType = modelType === MODEL_TYPE_EMBEDDING ? 'embedding' : 'inference';
     try {
       await onVerify(request);
       setVerificationResult({
         success: true,
         message: 'Model verified successfully',
+      });
+      fireMiscTrackingEvent('Available Endpoints Create Endpoint Verified', {
+        success: true,
+        modelType: trackingModelType,
       });
     } catch (err: unknown) {
       // Parse error response - mod-arch-core structures errors as { error: { code, message } }
@@ -246,6 +252,10 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
         success: false,
         message: getUserFriendlyMessage(errorData?.code, errorData?.message),
         code: errorData?.code,
+      });
+      fireMiscTrackingEvent('Available Endpoints Create Endpoint Verified', {
+        success: false,
+        modelType: trackingModelType,
       });
     } finally {
       setIsVerifying(false);
@@ -259,6 +269,10 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
 
     setIsSubmitting(true);
     setError(undefined);
+
+    const trackingModelType = modelType === MODEL_TYPE_EMBEDDING ? 'embedding' : 'inference';
+    const wasVerified = verificationResult !== null;
+    const hasUseCase = useCases.trim() !== '';
 
     try {
       const request: ExternalModelRequest = {
@@ -275,10 +289,24 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
       };
 
       await onSubmit(request);
+      fireMiscTrackingEvent('Available Endpoints Create Endpoint Submitted', {
+        outcome: 'submit',
+        success: true,
+        modelType: trackingModelType,
+        wasVerified,
+        hasUseCase,
+      });
       onSuccess();
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to create external endpoint'));
+      fireMiscTrackingEvent('Available Endpoints Create Endpoint Submitted', {
+        outcome: 'submit',
+        success: false,
+        modelType: trackingModelType,
+        wasVerified,
+        hasUseCase,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -291,6 +319,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     modelType,
     useCases,
     embeddingDimension,
+    verificationResult,
     onSubmit,
     onSuccess,
     onClose,
@@ -304,7 +333,12 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     <Modal
       variant={ModalVariant.medium}
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => {
+        fireMiscTrackingEvent('Available Endpoints Create Endpoint Submitted', {
+          outcome: 'cancel',
+        });
+        onClose();
+      }}
       data-testid="create-external-model-modal"
     >
       <ModalHeader title="Create endpoint" />
@@ -351,6 +385,9 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               onSelect={(_event, value) => {
                 if (value === MODEL_TYPE_LLM || value === MODEL_TYPE_EMBEDDING) {
                   setModelType(value);
+                  fireMiscTrackingEvent('Available Endpoints Create Endpoint Embedding Toggled', {
+                    isEmbedding: value === MODEL_TYPE_EMBEDDING,
+                  });
                 }
                 setIsModelTypeOpen(false);
               }}
@@ -656,7 +693,12 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
         <Button
           key="cancel"
           variant="link"
-          onClick={onClose}
+          onClick={() => {
+            fireMiscTrackingEvent('Available Endpoints Create Endpoint Submitted', {
+              outcome: 'cancel',
+            });
+            onClose();
+          }}
           isDisabled={isSubmitting}
           data-testid="create-external-model-cancel-button"
         >
