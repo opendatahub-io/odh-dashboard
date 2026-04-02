@@ -159,7 +159,7 @@ describe('Subscriptions Page', () => {
     cy.wait('@aaaModels');
     cy.contains('Llama 3 8B').should('exist');
     cy.get('[data-testid="model-row-kebab"]').first().click();
-    cy.contains('View endpoints').click();
+    cy.get('[role="menu"]').contains('View endpoints').click();
 
     // Verify endpoint modal is open and scope all assertions to it
     cy.get('[role="dialog"]')
@@ -191,7 +191,7 @@ describe('Subscriptions Page', () => {
     cy.wait('@aaaModels');
     cy.contains('Granite 3.1 8B Instruct').should('exist');
     cy.get('[data-testid="model-row-kebab"]').first().click();
-    cy.contains('View endpoints').click();
+    cy.get('[role="menu"]').contains('View endpoints').click();
 
     // @ts-expect-error - Gen AI API endpoint not in Cypress type definitions
     // Mock token generation error
@@ -228,7 +228,7 @@ describe('Subscriptions Page', () => {
     cy.wait('@aaaModels');
     cy.contains('Granite 3.1 8B Instruct').should('exist');
     cy.get('[data-testid="model-row-kebab"]').first().click();
-    cy.contains('View endpoints').click();
+    cy.get('[role="menu"]').contains('View endpoints').click();
 
     // @ts-expect-error - Gen AI API endpoint not in Cypress type definitions
     // Mock token generation with delay to catch loading state
@@ -266,7 +266,7 @@ describe('Subscriptions Page', () => {
     cy.wait('@aaaModels');
     cy.contains('Granite 3.1 8B Instruct').should('exist');
     cy.get('[data-testid="model-row-kebab"]').first().click();
-    cy.contains('View endpoints').click();
+    cy.get('[role="menu"]').contains('View endpoints').click();
 
     // @ts-expect-error - Gen AI API endpoint not in Cypress type definitions
     // Mock token generation
@@ -298,7 +298,7 @@ describe('Subscriptions Page', () => {
 
     // Reopen the modal
     cy.get('[data-testid="model-row-kebab"]').first().click();
-    cy.contains('View endpoints').click();
+    cy.get('[role="menu"]').contains('View endpoints').click();
 
     // Verify modal is reset - no token shown, key is hidden
     cy.get('[data-testid="endpoint-modal-api-key-input"]').should('not.exist');

@@ -97,8 +97,8 @@ class PipelineImportModal extends Modal {
     // Wait for the button to be enabled before clicking (it may be disabled during file upload/processing)
     // Use a longer timeout for files that take time to process/validate
     this.findSubmitButton({ timeout: 40000 })
+      .should('be.visible')
       .should('not.be.disabled')
-      .should('not.have.attr', 'aria-busy', 'true')
       .click();
   }
 }
