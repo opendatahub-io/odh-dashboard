@@ -1,6 +1,10 @@
+const path = require('path');
 const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
 const deps = require('../package.json').dependencies;
-const { getOdhDashboardShared } = require('../../../../config/odhDashboardShared');
+
+const { getOdhDashboardShared } = require(
+  path.resolve(__dirname, '..', '..', '..', '..', 'config', 'odhDashboardShared'),
+);
 
 const moduleFederationConfig = {
   name: 'evalHub',
