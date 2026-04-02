@@ -85,7 +85,6 @@ export type McpDeployment = {
   uid: string;
   creationTimestamp: string;
   image: string;
-  port: number;
   yaml?: string;
   phase: McpDeploymentPhase;
   conditions?: McpDeploymentCondition[];
@@ -102,13 +101,12 @@ export type McpDeploymentCreateRequest = {
   displayName?: string;
   serverName?: string;
   image: string;
-  port?: number;
   yaml?: string;
 };
 
 export type McpDeploymentUpdateRequest = {
   displayName?: string;
+  serverName?: string;
   image?: string;
-  port?: number;
   yaml?: string;
 };

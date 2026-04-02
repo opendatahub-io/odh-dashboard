@@ -4,16 +4,20 @@ import { McpDeploymentList } from '~/app/mcpDeploymentTypes';
 import { BFF_HOST_PATH } from '~/app/utilities/const';
 import { getListMcpDeployments } from '~/app/api/mcpDeploymentService';
 
+const EMPTY_LIST: McpDeploymentList = { items: [], size: 0 };
+
 const useMcpDeployments = (): FetchState<McpDeploymentList> => {
   const queryParams = useQueryParamNamespaces();
+  const hasNamespace = !!queryParams.namespace;
+
   const callback = React.useMemo(
-    () => getListMcpDeployments(BFF_HOST_PATH, queryParams),
-    [queryParams],
+    () => (hasNamespace ? getListMcpDeployments(BFF_HOST_PATH, queryParams) : () => Promise.resolve(EMPTY_LIST)),
+    [hasNamespace, queryParams],
   );
 
-  return useFetchState(callback, { items: [], size: 0 }, {
+  return useFetchState(callback, EMPTY_LIST, {
     initialPromisePurity: true,
-    refreshRate: POLL_INTERVAL,
+    refreshRate: hasNamespace ? POLL_INTERVAL : 0,
   });
 };
 

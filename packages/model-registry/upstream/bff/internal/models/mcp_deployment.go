@@ -30,7 +30,6 @@ type McpDeployment struct {
 	UID               string                   `json:"uid"`
 	CreationTimestamp string                   `json:"creationTimestamp"`
 	Image             string                   `json:"image"`
-	Port              int32                    `json:"port"`
 	YAML              string                   `json:"yaml,omitempty"`
 	Phase             McpDeploymentPhase       `json:"phase"`
 	Conditions        []McpDeploymentCondition `json:"conditions,omitempty"`
@@ -47,25 +46,23 @@ type McpDeploymentCreateRequest struct {
 	DisplayName string `json:"displayName,omitempty"`
 	ServerName  string `json:"serverName,omitempty"`
 	Image       string `json:"image"`
-	Port        int32  `json:"port,omitempty"`
 	YAML        string `json:"yaml,omitempty"`
 }
 
 type McpDeploymentUpdateRequest struct {
 	DisplayName *string `json:"displayName,omitempty"`
+	ServerName  *string `json:"serverName,omitempty"`
 	Image       *string `json:"image,omitempty"`
-	Port        *int32  `json:"port,omitempty"`
 	YAML        *string `json:"yaml,omitempty"`
 }
 
 // SpecYAMLWrapper mirrors the "spec:" top-level key the frontend YAML
-// editor uses, so we can unmarshal directly into MCPServerSpec fields.
 type SpecYAMLWrapper struct {
-	Spec McpSpecBody `yaml:"spec"`
+	Spec McpSpecBody `json:"spec" yaml:"spec"`
 }
 
 // McpSpecBody holds the config and runtime sections parsed from YAML.
 type McpSpecBody struct {
-	Config  *MCPConfigSpec  `yaml:"config,omitempty"`
-	Runtime *MCPRuntimeSpec `yaml:"runtime,omitempty"`
+	Config  *MCPConfigSpec  `json:"config,omitempty" yaml:"config,omitempty"`
+	Runtime *MCPRuntimeSpec `json:"runtime,omitempty" yaml:"runtime,omitempty"`
 }

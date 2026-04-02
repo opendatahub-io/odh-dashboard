@@ -243,7 +243,6 @@ func TestMcpDeploymentCreateReturnsCreated(t *testing.T) {
 				Namespace:         namespace,
 				CreationTimestamp: "2026-03-26T10:00:00Z",
 				Image:             req.Image,
-				Port:              8080,
 				Phase:             models.McpDeploymentPhasePending,
 			}, nil
 		},
@@ -253,7 +252,7 @@ func TestMcpDeploymentCreateReturnsCreated(t *testing.T) {
 
 	handler := overrideMcpDeploymentCreate(app, failDefault(t))
 
-	body := `{"data":{"name":"github-mcp","image":"quay.io/mcp-servers/github:1.0.0","port":8080}}`
+	body := `{"data":{"name":"github-mcp","image":"quay.io/mcp-servers/github:1.0.0"}}`
 	req := httptest.NewRequest(http.MethodPost, api.McpDeploymentListPath+"?namespace=test-ns", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
@@ -312,30 +311,6 @@ func TestMcpDeploymentCreateInvalidName(t *testing.T) {
 	handler := overrideMcpDeploymentCreate(app, failDefault(t))
 
 	body := `{"data":{"name":"INVALID_NAME!","image":"quay.io/test:1.0"}}`
-	req := httptest.NewRequest(http.MethodPost, api.McpDeploymentListPath+"?namespace=test-ns", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-	handler(rr, req, nil)
-
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", rr.Code)
-	}
-}
-
-func TestMcpDeploymentCreateInvalidPort(t *testing.T) {
-	factory := &fakeKubeFactory{}
-	app := newRedHatTestApp(factory)
-
-	repo := &mockMcpDeploymentRepo{
-		createFn: func(_ context.Context, _ k8s.KubernetesClientInterface, _ string, _ models.McpDeploymentCreateRequest) (models.McpDeployment, error) {
-			return models.McpDeployment{}, fmt.Errorf("%w: port must be between 1 and 65535", redhatrepos.ErrMcpDeploymentValidation)
-		},
-	}
-
-	withMcpDeploymentRepo(t, repo)
-	handler := overrideMcpDeploymentCreate(app, failDefault(t))
-
-	body := `{"data":{"image":"quay.io/test:1.0","port":70000}}`
 	req := httptest.NewRequest(http.MethodPost, api.McpDeploymentListPath+"?namespace=test-ns", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
@@ -429,7 +404,6 @@ func TestMcpDeploymentUpdateReturnsOK(t *testing.T) {
 	app := newRedHatTestApp(factory)
 
 	newImage := "quay.io/mcp-servers/kubernetes:2.0.0"
-	var newPort int32 = 9090
 
 	repo := &mockMcpDeploymentRepo{
 		updateFn: func(_ context.Context, _ k8s.KubernetesClientInterface, namespace string, name string, req models.McpDeploymentUpdateRequest) (models.McpDeployment, error) {
@@ -442,15 +416,11 @@ func TestMcpDeploymentUpdateReturnsOK(t *testing.T) {
 			if req.Image == nil || *req.Image != newImage {
 				t.Fatalf("unexpected image %v", req.Image)
 			}
-			if req.Port == nil || *req.Port != newPort {
-				t.Fatalf("unexpected port %v", req.Port)
-			}
 			return models.McpDeployment{
 				Name:              name,
 				Namespace:         namespace,
 				CreationTimestamp: "2026-03-10T14:30:00Z",
 				Image:             *req.Image,
-				Port:              *req.Port,
 				Phase:             models.McpDeploymentPhaseRunning,
 			}, nil
 		},
@@ -460,7 +430,7 @@ func TestMcpDeploymentUpdateReturnsOK(t *testing.T) {
 
 	handler := overrideMcpDeploymentUpdate(app, failDefault(t))
 
-	body := fmt.Sprintf(`{"data":{"image":"%s","port":%d}}`, newImage, newPort)
+	body := fmt.Sprintf(`{"data":{"image":"%s"}}`, newImage)
 	req := httptest.NewRequest(http.MethodPatch, api.McpDeploymentPath+"?namespace=test-ns", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
@@ -475,9 +445,6 @@ func TestMcpDeploymentUpdateReturnsOK(t *testing.T) {
 
 	if resp.Data.Image != newImage {
 		t.Fatalf("expected image %q, got %q", newImage, resp.Data.Image)
-	}
-	if resp.Data.Port != newPort {
-		t.Fatalf("expected port %d, got %d", newPort, resp.Data.Port)
 	}
 }
 
@@ -610,7 +577,6 @@ func TestMcpDeploymentGetReturnsDeployment(t *testing.T) {
 				UID:               "abc-123",
 				CreationTimestamp: "2026-03-10T14:30:00Z",
 				Image:             "quay.io/mcp-servers/kubernetes:1.0.0",
-				Port:              8080,
 				Phase:             models.McpDeploymentPhaseRunning,
 			}, nil
 		},

@@ -128,10 +128,9 @@ func TestBuildMcpServerFromCreateRequest_WithDisplayNameAndServerName(t *testing
 	}
 }
 
-func TestBuildMcpServerFromCreateRequest_WithCustomPort(t *testing.T) {
+func TestBuildMcpServerFromCreateRequest_DefaultPort(t *testing.T) {
 	req := models.McpDeploymentCreateRequest{
 		Image: "quay.io/mcp/test:1.0",
-		Port:  9090,
 	}
 
 	server, err := buildMcpServerFromCreateRequest("default", req)
@@ -139,20 +138,19 @@ func TestBuildMcpServerFromCreateRequest_WithCustomPort(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if server.Spec.Config.Port != 9090 {
-		t.Fatalf("expected port 9090, got %d", server.Spec.Config.Port)
+	if server.Spec.Config.Port != defaultMcpPort {
+		t.Fatalf("expected default port %d, got %d", defaultMcpPort, server.Spec.Config.Port)
 	}
 }
 
 func TestBuildMcpServerFromCreateRequest_WithSpecYAML(t *testing.T) {
-	// yaml.v3 uses lowercased field names when no yaml struct tags exist
 	yamlContent := `spec:
   config:
     port: 3000
     path: /mcp
   runtime:
     security:
-      serviceaccountname: mcp-viewer`
+      serviceAccountName: mcp-viewer`
 
 	req := models.McpDeploymentCreateRequest{
 		Name:  "k8s-mcp",
@@ -215,14 +213,13 @@ func TestBuildMcpServerFromCreateRequest_InvalidYAML(t *testing.T) {
 	}
 }
 
-func TestBuildMcpServerFromCreateRequest_YAMLPortOverridesRequestPort(t *testing.T) {
+func TestBuildMcpServerFromCreateRequest_YAMLPortTakesPrecedence(t *testing.T) {
 	yamlContent := `spec:
   config:
     port: 5555`
 
 	req := models.McpDeploymentCreateRequest{
 		Image: "quay.io/mcp/test:1.0",
-		Port:  9090,
 		YAML:  yamlContent,
 	}
 
@@ -232,7 +229,7 @@ func TestBuildMcpServerFromCreateRequest_YAMLPortOverridesRequestPort(t *testing
 	}
 
 	if server.Spec.Config.Port != 5555 {
-		t.Fatalf("expected YAML port 5555 to take precedence, got %d", server.Spec.Config.Port)
+		t.Fatalf("expected YAML port 5555, got %d", server.Spec.Config.Port)
 	}
 }
 
@@ -637,7 +634,7 @@ func TestParseSpecYAML_WithSpecWrapper(t *testing.T) {
   runtime:
     replicas: 2
     security:
-      serviceaccountname: test-sa`
+      serviceAccountName: test-sa`
 
 	spec, err := parseSpecYAML(yamlStr)
 	if err != nil {
@@ -799,7 +796,7 @@ func TestBuildMcpDeploymentPatch_DisplayNameAndYAML(t *testing.T) {
     port: 4000
   runtime:
     security:
-      serviceaccountname: admin`
+      serviceAccountName: admin`
 
 	req := models.McpDeploymentUpdateRequest{
 		DisplayName: &displayName,
@@ -839,6 +836,147 @@ func TestBuildMcpDeploymentPatch_EmptyRequest(t *testing.T) {
 	}
 }
 
+func TestBuildMcpDeploymentPatch_EmptyYAMLResetsConfigAndRuntime(t *testing.T) {
+	emptyYAML := ""
+	req := models.McpDeploymentUpdateRequest{
+		YAML: &emptyYAML,
+	}
+
+	patch, err := buildMcpDeploymentPatch(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	specPatch, ok := patch["spec"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected spec in patch when YAML is empty")
+	}
+
+	configPatch, ok := specPatch["config"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected config in spec patch")
+	}
+
+	if configPatch["port"] != defaultMcpPort {
+		t.Fatalf("expected default port %d, got %v", defaultMcpPort, configPatch["port"])
+	}
+	if configPatch["path"] != nil {
+		t.Fatalf("expected path to be nil, got %v", configPatch["path"])
+	}
+	if configPatch["arguments"] != nil {
+		t.Fatalf("expected arguments to be nil, got %v", configPatch["arguments"])
+	}
+	if configPatch["env"] != nil {
+		t.Fatalf("expected env to be nil, got %v", configPatch["env"])
+	}
+	if configPatch["envFrom"] != nil {
+		t.Fatalf("expected envFrom to be nil, got %v", configPatch["envFrom"])
+	}
+	if configPatch["storage"] != nil {
+		t.Fatalf("expected storage to be nil, got %v", configPatch["storage"])
+	}
+
+	if runtimeVal, exists := specPatch["runtime"]; !exists || runtimeVal != nil {
+		t.Fatalf("expected runtime to be explicitly nil in patch, got exists=%v val=%v", exists, runtimeVal)
+	}
+}
+
+func TestBuildMcpDeploymentPatch_ImageOnly(t *testing.T) {
+	newImage := "quay.io/mcp/updated:2.0"
+	req := models.McpDeploymentUpdateRequest{
+		Image: &newImage,
+	}
+
+	patch, err := buildMcpDeploymentPatch(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, exists := patch["metadata"]; exists {
+		t.Fatal("expected no metadata in patch when only image is set")
+	}
+
+	specPatch, ok := patch["spec"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected spec in patch")
+	}
+
+	source, ok := specPatch["source"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected source in spec patch")
+	}
+	if source["type"] != "ContainerImage" {
+		t.Fatalf("expected source type 'ContainerImage', got %v", source["type"])
+	}
+	ci, ok := source["containerImage"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected containerImage in source")
+	}
+	if ci["ref"] != "quay.io/mcp/updated:2.0" {
+		t.Fatalf("expected image ref 'quay.io/mcp/updated:2.0', got %v", ci["ref"])
+	}
+}
+
+func TestBuildMcpDeploymentPatch_ImageAndYAML(t *testing.T) {
+	newImage := "quay.io/mcp/new:3.0"
+	yamlStr := `spec:
+  config:
+    port: 5000
+    path: /sse`
+	req := models.McpDeploymentUpdateRequest{
+		Image: &newImage,
+		YAML:  &yamlStr,
+	}
+
+	patch, err := buildMcpDeploymentPatch(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	specPatch, ok := patch["spec"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected spec in patch")
+	}
+
+	if _, ok := specPatch["source"]; !ok {
+		t.Fatal("expected source in spec patch for image update")
+	}
+	if _, ok := specPatch["config"]; !ok {
+		t.Fatal("expected config in spec patch for YAML update")
+	}
+}
+
+func TestBuildMcpDeploymentPatch_ImageAndEmptyYAML(t *testing.T) {
+	newImage := "quay.io/mcp/new:3.0"
+	emptyYAML := ""
+	req := models.McpDeploymentUpdateRequest{
+		Image: &newImage,
+		YAML:  &emptyYAML,
+	}
+
+	patch, err := buildMcpDeploymentPatch(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	specPatch, ok := patch["spec"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected spec in patch")
+	}
+
+	if _, ok := specPatch["source"]; !ok {
+		t.Fatal("expected source in spec patch for image update")
+	}
+
+	configPatch, ok := specPatch["config"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected config in spec patch for empty YAML reset")
+	}
+	if configPatch["port"] != defaultMcpPort {
+		t.Fatalf("expected default port %d, got %v", defaultMcpPort, configPatch["port"])
+	}
+}
+
 func TestBuildMcpDeploymentPatch_InvalidYAMLReturnsError(t *testing.T) {
 	yamlStr := "broken: yaml: ["
 	req := models.McpDeploymentUpdateRequest{
@@ -851,16 +989,65 @@ func TestBuildMcpDeploymentPatch_InvalidYAMLReturnsError(t *testing.T) {
 	}
 }
 
+func TestConvertUnstructuredToMcpDeployment_YAMLOmitsEmptyFields(t *testing.T) {
+	obj := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": mcpServerAPIVersion,
+			"kind":       mcpServerKind,
+			"metadata": map[string]interface{}{
+				"name":              "clean-yaml",
+				"namespace":         "default",
+				"uid":               "uid-clean",
+				"creationTimestamp": "2026-03-30T12:00:00Z",
+			},
+			"spec": map[string]interface{}{
+				"source": map[string]interface{}{
+					"type": "ContainerImage",
+					"containerImage": map[string]interface{}{
+						"ref": "quay.io/test:1.0",
+					},
+				},
+				"config": map[string]interface{}{
+					"port": int64(8080),
+				},
+			},
+		},
+	}
+
+	deployment, err := convertUnstructuredToMcpDeployment(obj)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if strings.Contains(deployment.YAML, "arguments:") {
+		t.Fatalf("expected YAML to omit empty arguments, got:\n%s", deployment.YAML)
+	}
+	if strings.Contains(deployment.YAML, "env:") {
+		t.Fatalf("expected YAML to omit empty env, got:\n%s", deployment.YAML)
+	}
+	if strings.Contains(deployment.YAML, "envFrom:") {
+		t.Fatalf("expected YAML to omit empty envFrom, got:\n%s", deployment.YAML)
+	}
+	if strings.Contains(deployment.YAML, "storage:") {
+		t.Fatalf("expected YAML to omit empty storage, got:\n%s", deployment.YAML)
+	}
+	if strings.Contains(deployment.YAML, "path:") {
+		t.Fatalf("expected YAML to omit empty path, got:\n%s", deployment.YAML)
+	}
+	if !strings.Contains(deployment.YAML, "port: 8080") {
+		t.Fatalf("expected YAML to contain 'port: 8080', got:\n%s", deployment.YAML)
+	}
+}
+
 // Round-trip: Create -> Unstructured -> McpDeployment
 func TestRoundTrip_CreateToDeployment(t *testing.T) {
-	// yaml.v3 uses lowercased field names when no yaml struct tags exist
 	yamlContent := `spec:
   config:
     port: 9090
     path: /mcp
   runtime:
     security:
-      serviceaccountname: mcp-viewer`
+      serviceAccountName: mcp-viewer`
 
 	req := models.McpDeploymentCreateRequest{
 		Name:        "round-trip-test",
@@ -903,17 +1090,14 @@ func TestRoundTrip_CreateToDeployment(t *testing.T) {
 	if deployment.Image != "quay.io/mcp/kubernetes:2.0" {
 		t.Fatalf("expected image 'quay.io/mcp/kubernetes:2.0', got %q", deployment.Image)
 	}
-	if deployment.Port != 9090 {
-		t.Fatalf("expected port 9090, got %d", deployment.Port)
-	}
 	if deployment.UID != "round-trip-uid" {
 		t.Fatalf("expected UID 'round-trip-uid', got %q", deployment.UID)
 	}
 	if !strings.Contains(deployment.YAML, "path: /mcp") {
 		t.Fatalf("expected YAML to contain 'path: /mcp', got:\n%s", deployment.YAML)
 	}
-	if !strings.Contains(deployment.YAML, "serviceaccountname: mcp-viewer") {
-		t.Fatalf("expected YAML to contain 'serviceaccountname: mcp-viewer', got:\n%s", deployment.YAML)
+	if !strings.Contains(deployment.YAML, "serviceAccountName: mcp-viewer") {
+		t.Fatalf("expected YAML to contain 'serviceAccountName: mcp-viewer', got:\n%s", deployment.YAML)
 	}
 }
 
@@ -968,32 +1152,10 @@ func TestValidateCreateRequest_NameTooLong(t *testing.T) {
 	}
 }
 
-func TestValidateCreateRequest_InvalidPort(t *testing.T) {
-	req := models.McpDeploymentCreateRequest{
-		Image: "quay.io/test:1.0",
-		Port:  70000,
-	}
-	err := validateCreateRequest(req)
-	if err == nil {
-		t.Fatal("expected error for invalid port")
-	}
-	if !errors.Is(err, ErrMcpDeploymentValidation) {
-		t.Fatalf("expected ErrMcpDeploymentValidation, got %v", err)
-	}
-}
-
-func TestValidateCreateRequest_ZeroPortIsValid(t *testing.T) {
-	req := models.McpDeploymentCreateRequest{Image: "quay.io/test:1.0"}
-	if err := validateCreateRequest(req); err != nil {
-		t.Fatalf("expected no error for zero port, got %v", err)
-	}
-}
-
 func TestValidateCreateRequest_ValidRequest(t *testing.T) {
 	req := models.McpDeploymentCreateRequest{
 		Name:  "my-mcp-server",
 		Image: "quay.io/test:1.0",
-		Port:  8080,
 	}
 	if err := validateCreateRequest(req); err != nil {
 		t.Fatalf("expected no error, got %v", err)

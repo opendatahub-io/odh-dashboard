@@ -3244,7 +3244,6 @@ func GetMcpDeploymentMocks() []models.McpDeployment {
 			UID:               "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			CreationTimestamp: "2026-03-10T14:30:00Z",
 			Image:             "quay.io/mcp-servers/kubernetes:1.0.0",
-			Port:              8080,
 			Phase:             models.McpDeploymentPhaseRunning,
 			Conditions: []models.McpDeploymentCondition{
 				{Type: "Available", Status: "True", LastTransitionTime: "2026-03-10T14:32:00Z", Reason: "DeploymentAvailable"},
@@ -3258,7 +3257,6 @@ func GetMcpDeploymentMocks() []models.McpDeployment {
 			UID:               "b2c3d4e5-f6a7-8901-bcde-f12345678901",
 			CreationTimestamp: "2026-03-14T11:00:00Z",
 			Image:             "quay.io/mcp-servers/slack:0.5.0",
-			Port:              9090,
 			Phase:             models.McpDeploymentPhasePending,
 			Conditions: []models.McpDeploymentCondition{
 				{Type: "Available", Status: "False", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "MinimumReplicasUnavailable"},
@@ -3272,7 +3270,6 @@ func GetMcpDeploymentMocks() []models.McpDeployment {
 			UID:               "c3d4e5f6-a7b8-9012-cdef-123456789012",
 			CreationTimestamp: "2026-03-08T16:45:00Z",
 			Image:             "quay.io/mcp-servers/jira:1.2.0",
-			Port:              8080,
 			Phase:             models.McpDeploymentPhaseFailed,
 			Conditions: []models.McpDeploymentCondition{
 				{Type: "Available", Status: "False", LastTransitionTime: "2026-03-08T16:50:00Z", Reason: "MinimumReplicasUnavailable"},

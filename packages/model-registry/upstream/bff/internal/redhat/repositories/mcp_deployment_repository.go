@@ -238,9 +238,6 @@ func validateCreateRequest(req models.McpDeploymentCreateRequest) error {
 			return fmt.Errorf("%w: invalid name: %v", ErrMcpDeploymentValidation, err)
 		}
 	}
-	if req.Port != 0 && (req.Port < 1 || req.Port > 65535) {
-		return fmt.Errorf("%w: port must be between 1 and 65535", ErrMcpDeploymentValidation)
-	}
 	return nil
 }
 
@@ -301,11 +298,7 @@ func buildMcpServerFromCreateRequest(namespace string, req models.McpDeploymentC
 	}
 
 	if server.Spec.Config.Port == 0 {
-		port := defaultMcpPort
-		if req.Port != 0 {
-			port = req.Port
-		}
-		server.Spec.Config.Port = port
+		server.Spec.Config.Port = defaultMcpPort
 	}
 
 	return server, nil
@@ -338,7 +331,6 @@ func convertUnstructuredToMcpDeployment(obj unstructured.Unstructured) (models.M
 		Namespace:         server.Metadata.Namespace,
 		UID:               string(obj.GetUID()),
 		CreationTimestamp: obj.GetCreationTimestamp().UTC().Format("2006-01-02T15:04:05Z"),
-		Port:              server.Spec.Config.Port,
 		Phase:             models.McpDeploymentPhasePending,
 	}
 
@@ -355,10 +347,7 @@ func convertUnstructuredToMcpDeployment(obj unstructured.Unstructured) (models.M
 	if server.Spec.Runtime != nil {
 		specBody.Runtime = server.Spec.Runtime
 	}
-	yamlBytes, err := yaml.Marshal(models.SpecYAMLWrapper{Spec: specBody})
-	if err == nil {
-		deployment.YAML = string(yamlBytes)
-	}
+	deployment.YAML = marshalSpecToYAML(specBody)
 
 	deployment.Phase, deployment.Conditions = extractMcpServerStatus(obj)
 	deployment.Address = extractMcpServerAddress(obj)
@@ -369,50 +358,89 @@ func convertUnstructuredToMcpDeployment(obj unstructured.Unstructured) (models.M
 func buildMcpDeploymentPatch(req models.McpDeploymentUpdateRequest) (map[string]interface{}, error) {
 	patch := map[string]interface{}{}
 
-	if req.DisplayName != nil {
+	if req.DisplayName != nil || req.ServerName != nil {
+		annotations := map[string]interface{}{}
+		if req.DisplayName != nil {
+			annotations[mcpDisplayNameAnnotation] = *req.DisplayName
+		}
+		if req.ServerName != nil {
+			annotations[mcpCatalogServerAnnotation] = *req.ServerName
+		}
 		patch["metadata"] = map[string]interface{}{
-			"annotations": map[string]interface{}{
-				mcpDisplayNameAnnotation: *req.DisplayName,
+			"annotations": annotations,
+		}
+	}
+
+	specPatch := map[string]interface{}{}
+
+	if req.Image != nil {
+		specPatch["source"] = map[string]interface{}{
+			"type": "ContainerImage",
+			"containerImage": map[string]interface{}{
+				"ref": *req.Image,
 			},
 		}
 	}
 
-	if req.YAML != nil && *req.YAML != "" {
-		spec, err := parseSpecYAML(*req.YAML)
-		if err != nil {
-			return nil, fmt.Errorf("invalid configuration YAML: %w", err)
-		}
-
-		specPatch := map[string]interface{}{}
-
-		if spec.Config != nil {
-			configMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(spec.Config)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert config to patch: %w", err)
+	if req.YAML != nil {
+		if *req.YAML == "" {
+			specPatch["config"] = map[string]interface{}{
+				"port":      defaultMcpPort,
+				"path":      nil,
+				"arguments": nil,
+				"env":       nil,
+				"envFrom":   nil,
+				"storage":   nil,
 			}
-			specPatch["config"] = configMap
-		}
-
-		if spec.Runtime != nil {
-			runtimeMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(spec.Runtime)
+			specPatch["runtime"] = nil
+		} else {
+			spec, err := parseSpecYAML(*req.YAML)
 			if err != nil {
-				return nil, fmt.Errorf("failed to convert runtime to patch: %w", err)
+				return nil, fmt.Errorf("invalid configuration YAML: %w", err)
 			}
-			specPatch["runtime"] = runtimeMap
-		}
 
-		if len(specPatch) > 0 {
-			patch["spec"] = specPatch
+			if spec.Config != nil {
+				configMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(spec.Config)
+				if err != nil {
+					return nil, fmt.Errorf("failed to convert config to patch: %w", err)
+				}
+				specPatch["config"] = configMap
+			}
+
+			if spec.Runtime != nil {
+				runtimeMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(spec.Runtime)
+				if err != nil {
+					return nil, fmt.Errorf("failed to convert runtime to patch: %w", err)
+				}
+				specPatch["runtime"] = runtimeMap
+			}
 		}
+	}
+
+	if len(specPatch) > 0 {
+		patch["spec"] = specPatch
 	}
 
 	return patch, nil
 }
 
+// parseSpecYAML unmarshals the frontend YAML into McpSpecBody.
 func parseSpecYAML(rawYAML string) (*models.McpSpecBody, error) {
-	var wrapper models.SpecYAMLWrapper
-	if err := yaml.Unmarshal([]byte(rawYAML), &wrapper); err != nil {
+	var generic map[string]interface{}
+	if err := yaml.Unmarshal([]byte(rawYAML), &generic); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
+	}
+
+	jsonBytes, err := json.Marshal(generic)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert YAML to JSON: %w", err)
+	}
+
+	var wrapper struct {
+		Spec models.McpSpecBody `json:"spec"`
+	}
+	if err := json.Unmarshal(jsonBytes, &wrapper); err != nil {
+		return nil, fmt.Errorf("failed to parse spec: %w", err)
 	}
 
 	if wrapper.Spec.Config != nil || wrapper.Spec.Runtime != nil {
@@ -420,8 +448,8 @@ func parseSpecYAML(rawYAML string) (*models.McpSpecBody, error) {
 	}
 
 	var direct models.McpSpecBody
-	if err := yaml.Unmarshal([]byte(rawYAML), &direct); err != nil {
-		return nil, fmt.Errorf("failed to parse YAML: %w", err)
+	if err := json.Unmarshal(jsonBytes, &direct); err != nil {
+		return nil, fmt.Errorf("failed to parse spec: %w", err)
 	}
 
 	if direct.Config == nil && direct.Runtime == nil {
@@ -429,6 +457,28 @@ func parseSpecYAML(rawYAML string) (*models.McpSpecBody, error) {
 	}
 
 	return &direct, nil
+}
+
+func marshalSpecToYAML(spec models.McpSpecBody) string {
+	wrapper := struct {
+		Spec models.McpSpecBody `json:"spec"`
+	}{Spec: spec}
+
+	jsonBytes, err := json.Marshal(wrapper)
+	if err != nil {
+		return ""
+	}
+
+	var generic map[string]interface{}
+	if err := json.Unmarshal(jsonBytes, &generic); err != nil {
+		return ""
+	}
+
+	yamlBytes, err := yaml.Marshal(generic)
+	if err != nil {
+		return ""
+	}
+	return string(yamlBytes)
 }
 
 func extractMcpServerStatus(obj unstructured.Unstructured) (models.McpDeploymentPhase, []models.McpDeploymentCondition) {

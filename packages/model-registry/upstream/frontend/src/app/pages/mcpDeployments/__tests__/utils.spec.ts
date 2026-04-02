@@ -33,11 +33,11 @@ describe('getConnectionUrl', () => {
     expect(getConnectionUrl(deployment)).toBe('https://kubernetes-mcp.example.com:8080');
   });
 
-  it('should return name:port for Running deployment without address', () => {
+  it('should return undefined when no address URL is set', () => {
     const deployment = createMockDeployment({
       phase: McpDeploymentPhase.RUNNING,
     });
-    expect(getConnectionUrl(deployment)).toBe('kubernetes-mcp:8080');
+    expect(getConnectionUrl(deployment)).toBeUndefined();
   });
 
   it.each([McpDeploymentPhase.PENDING, McpDeploymentPhase.FAILED])(
@@ -47,14 +47,6 @@ describe('getConnectionUrl', () => {
       expect(getConnectionUrl(deployment)).toBeUndefined();
     },
   );
-
-  it('should return address URL even for non-Running deployment', () => {
-    const deployment = createMockDeployment({
-      phase: McpDeploymentPhase.FAILED,
-      address: { url: 'stale-url:8080' },
-    });
-    expect(getConnectionUrl(deployment)).toBe('stale-url:8080');
-  });
 });
 
 describe('getStatusInfo', () => {
