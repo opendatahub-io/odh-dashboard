@@ -2,7 +2,7 @@ import { appChrome } from './appChrome';
 
 class McpCatalog {
   visit() {
-    cy.visit('/ai-hub/mcp-servers/catalog');
+    cy.visit('/mcp-catalog');
     this.wait();
   }
 
@@ -81,7 +81,7 @@ class McpCatalog {
 
 class McpServerDetails {
   visit(serverId: string) {
-    cy.visit(`/ai-hub/mcp-servers/catalog/${serverId}`);
+    cy.visit(`/mcp-catalog/${serverId}`);
     this.wait();
   }
 

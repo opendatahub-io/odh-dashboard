@@ -1,18 +1,14 @@
 import * as React from 'react';
 import { matchPath, useLocation } from 'react-router-dom';
 import { NavExpandable } from '@patternfly/react-core';
-import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
+import { LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import {
   StatusReport,
   NavSectionExtension,
   NavExtension,
-  TabRoutePageExtension,
-  TabRouteTabExtension,
   isHrefNavItemExtension,
   isNavSectionExtension,
   isNavExtension,
-  isTabRoutePageExtension,
-  isTabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { useAccessReviewExtensions } from '#~/utilities/useAccessReviewExtensions';
@@ -22,34 +18,6 @@ import { NavItem } from './NavItem';
 import { NavItemTitle } from './NavItemTitle';
 import { compareNavItemGroups } from './utils';
 import NavIcon from './NavIcon';
-
-type AnyNavExtension = NavExtension | TabRoutePageExtension;
-
-/** Returns true if the extension is a leaf nav item (href or tab-route page). */
-const isLeafNavExtension = (e: Extension): boolean =>
-  isHrefNavItemExtension(e) || isTabRoutePageExtension(e);
-
-/** Gets the path/href for active state matching from a leaf extension. */
-const getLeafPath = (e: Extension): string | undefined => {
-  if (isHrefNavItemExtension(e)) {
-    return e.properties.path ?? e.properties.href;
-  }
-  if (isTabRoutePageExtension(e)) {
-    return e.properties.path;
-  }
-  return undefined;
-};
-
-/** Gets the access review from a leaf extension. */
-const getLeafAccessReview = (e: Extension) => {
-  if (isHrefNavItemExtension(e)) {
-    return e.properties.accessReview;
-  }
-  if (isTabRoutePageExtension(e)) {
-    return e.properties.accessReview;
-  }
-  return undefined;
-};
 
 type Props = {
   extension: NavSectionExtension;
@@ -62,21 +30,7 @@ export const NavSection: React.FC<Props> = ({
 }) => {
   const [status, setStatus] = React.useState<Record<string, StatusReport | undefined>>({});
   const { pathname } = useLocation();
-  const navOnlyExtensions = useExtensions(isNavExtension);
-  const tabRoutePageExtensions = useExtensions<TabRoutePageExtension>(isTabRoutePageExtension);
-  const tabRouteTabExtensions = useExtensions<TabRouteTabExtension>(isTabRouteTabExtension);
-  // Only include tab-route pages that have at least one registered tab
-  const tabRoutePagesWithTabs = React.useMemo(
-    () =>
-      tabRoutePageExtensions.filter((page) =>
-        tabRouteTabExtensions.some((tab) => tab.properties.pageId === page.properties.id),
-      ),
-    [tabRoutePageExtensions, tabRouteTabExtensions],
-  );
-  const extensions: LoadedExtension<AnyNavExtension>[] = React.useMemo(
-    () => [...navOnlyExtensions, ...tabRoutePagesWithTabs],
-    [navOnlyExtensions, tabRoutePagesWithTabs],
-  );
+  const extensions = useExtensions(isNavExtension);
 
   const navExtensions = React.useMemo(
     () =>
@@ -91,9 +45,9 @@ export const NavSection: React.FC<Props> = ({
     navExtensions.forEach((child) => parentByIdMap.set(child.properties.id, id));
 
     const collectDescendants = (
-      roots: LoadedExtension<AnyNavExtension>[],
-    ): LoadedExtension<AnyNavExtension>[] =>
-      roots.flatMap((ext) => {
+      roots: LoadedExtension<NavExtension>[],
+    ): LoadedExtension<NavExtension>[] => {
+      return roots.flatMap((ext) => {
         if (isNavSectionExtension(ext)) {
           const currentSectionId = ext.properties.id;
           const children = extensions.filter(
@@ -104,6 +58,7 @@ export const NavSection: React.FC<Props> = ({
         }
         return [ext];
       });
+    };
 
     return {
       descendantExtensions: collectDescendants(navExtensions),
@@ -113,11 +68,11 @@ export const NavSection: React.FC<Props> = ({
 
   const [allowedDescendants, isAllowedLoaded] = useAccessReviewExtensions(
     descendantExtensions,
-    (e) => getLeafAccessReview(e),
+    (e) => (isHrefNavItemExtension(e) ? e.properties.accessReview : undefined),
   );
 
-  const { visibleLeafIds, visibleSectionIds } = React.useMemo(() => {
-    const leafIds = new Set<string>();
+  const { visibleHrefIds, visibleSectionIds } = React.useMemo(() => {
+    const hrefIds = new Set<string>();
     const sectionIds = new Set<string>();
 
     const addAncestorSections = (childId: string): void => {
@@ -129,37 +84,38 @@ export const NavSection: React.FC<Props> = ({
     };
 
     allowedDescendants.forEach((ext) => {
-      if (isLeafNavExtension(ext)) {
-        const leafId = ext.properties.id;
-        leafIds.add(leafId);
-        addAncestorSections(leafId);
+      if (isHrefNavItemExtension(ext)) {
+        const hrefId = ext.properties.id;
+        hrefIds.add(hrefId);
+        addAncestorSections(hrefId);
       }
     });
 
-    return { visibleLeafIds: leafIds, visibleSectionIds: sectionIds };
+    return { visibleHrefIds: hrefIds, visibleSectionIds: sectionIds };
   }, [allowedDescendants, parentById]);
 
   const visibleChildren = React.useMemo(
     () =>
       navExtensions.filter((e) => {
-        if (isLeafNavExtension(e)) {
-          return visibleLeafIds.has(e.properties.id);
+        if (isHrefNavItemExtension(e)) {
+          return visibleHrefIds.has(e.properties.id);
         }
         if (isNavSectionExtension(e)) {
           return visibleSectionIds.has(e.properties.id);
         }
         return false;
       }),
-    [navExtensions, visibleLeafIds, visibleSectionIds],
+    [navExtensions, visibleHrefIds, visibleSectionIds],
   );
 
   const isActive = React.useMemo(
     () =>
       isAllowedLoaded &&
-      allowedDescendants.some((e) => {
-        const path = getLeafPath(e);
-        return path ? !!matchPath(path, pathname) : false;
-      }),
+      allowedDescendants.some(
+        (e) =>
+          isHrefNavItemExtension(e) &&
+          !!matchPath(e.properties.path ?? e.properties.href, pathname),
+      ),
     [isAllowedLoaded, allowedDescendants, pathname],
   );
 

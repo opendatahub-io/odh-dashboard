@@ -36,7 +36,6 @@ const McpCatalog: React.FC = () => {
     <>
       <ScrollViewOnMount shouldScroll scrollToTop />
       <ApplicationsPage
-        noTitle // rendered inside a TabRoutePage which provides the title
         title={
           <TitleWithIcon title={MCP_CATALOG_TITLE} objectType={ProjectObjectType.modelCatalog} />
         }

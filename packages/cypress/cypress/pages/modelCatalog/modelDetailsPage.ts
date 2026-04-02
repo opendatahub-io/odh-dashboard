@@ -2,13 +2,13 @@ class ModelDetailsPage {
   visit() {
     const sourceName = 'source-2';
     const modelName = 'sample%20category%201-model-1';
-    cy.visitWithLogin(`/ai-hub/models/catalog/${sourceName}/${modelName}/overview`);
+    cy.visitWithLogin(`/ai-hub/catalog/${sourceName}/${modelName}/overview`);
     this.wait();
   }
 
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
-    // TODO: Reinstate cy.testA11y() after RHOAIENG-55182 is fixed upstream and synced
+    cy.testA11y();
   }
 
   findRegisterModelButton() {

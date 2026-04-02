@@ -32,20 +32,6 @@ const mockUseAccessReviewExtensions = useAccessReviewExtensions as jest.MockedFu
 >;
 const mockMatchPath = matchPath as jest.MockedFunction<typeof matchPath>;
 
-/**
- * Helper to set up the useExtensions mock with a backing array.
- * NavSection calls useExtensions twice (nav extensions + tab-route pages),
- * so the mock applies the provided type guard filter to return matching extensions.
- */
-const setMockExtensions = (extensions: LoadedExtension[]): void => {
-  mockUseExtensions.mockImplementation(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ((typeGuard?: (e: any) => boolean) =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      typeGuard ? extensions.filter(typeGuard) : extensions) as any,
-  );
-};
-
 describe('Navigation Sidebar Models Section', () => {
   const createMockNavExtensions = (
     options: {
@@ -177,7 +163,7 @@ describe('Navigation Sidebar Models Section', () => {
         return 'section' in ext.properties && ext.properties.section === 'models';
       });
 
-      setMockExtensions(navExtensions);
+      mockUseExtensions.mockReturnValue(navExtensions);
       mockUseAccessReviewExtensions.mockReturnValue([navExtensions, true]);
 
       renderWithRouter(<NavSection extension={modelsSection} />);
@@ -197,7 +183,7 @@ describe('Navigation Sidebar Models Section', () => {
         return 'section' in ext.properties && ext.properties.section === 'models';
       });
 
-      setMockExtensions(navExtensions);
+      mockUseExtensions.mockReturnValue(navExtensions);
       mockUseAccessReviewExtensions.mockReturnValue([navExtensions, true]);
 
       renderWithRouter(<NavSection extension={modelsSection} />);

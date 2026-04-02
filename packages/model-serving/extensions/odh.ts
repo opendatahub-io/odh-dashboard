@@ -1,9 +1,9 @@
 import type {
   AreaExtension,
+  HrefNavItemExtension,
   OverviewSectionExtension,
   ProjectDetailsTab,
   RouteExtension,
-  TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
@@ -17,9 +17,9 @@ const createRedirectComponent = (args: { from: string; to: string }) => () =>
 const extensions: (
   | AreaExtension
   | ProjectDetailsTab
+  | HrefNavItemExtension
   | RouteExtension
   | OverviewSectionExtension
-  | TabRouteTabExtension
 )[] = [
   {
     type: 'app.area',
@@ -50,40 +50,34 @@ const extensions: (
       required: [SupportedArea.MODEL_SERVING],
     },
   },
-  // Deployments tab in the Models tabbed page
   {
-    type: 'app.tab-route/tab',
+    type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.MODEL_SERVING],
     },
     properties: {
-      pageId: 'models-tab-page',
-      id: 'deployments',
+      id: 'modelServing',
       title: 'Deployments',
-      component: () => import('../src/GlobalModelsRoutes'),
-      group: '3_deployments',
+      section: 'models',
+      href: '/ai-hub/deployments',
+      path: '/ai-hub/deployments/:namespace?/*',
     },
   },
-  // Deployment wizard route (still needs its own route)
   {
     type: 'app.route',
     properties: {
-      path: '/ai-hub/models/deployments/deploy',
+      path: '/ai-hub/deployments/deploy',
       component: () => import('../src/ModelDeploymentWizardRoutes'),
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],
     },
   },
-  // Redirects from old URLs
   {
     type: 'app.route',
     properties: {
       path: '/ai-hub/deployments/:namespace?/*',
-      component: createRedirectComponent({
-        from: '/ai-hub/deployments/:namespace?/*',
-        to: '/ai-hub/models/deployments/:namespace?/*',
-      }),
+      component: () => import('../src/GlobalModelsRoutes'),
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],
@@ -95,7 +89,7 @@ const extensions: (
       path: '/modelServing/:namespace?/*',
       component: createRedirectComponent({
         from: '/modelServing/:namespace?/*',
-        to: '/ai-hub/models/deployments/:namespace?/*',
+        to: '/ai-hub/deployments/:namespace?/*',
       }),
     },
     flags: {

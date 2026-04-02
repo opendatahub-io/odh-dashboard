@@ -37,6 +37,14 @@ describe('Nav Sidebar model section', () => {
     navSidebar.visit();
     navSidebar.findNavSection('AI hub').should('exist');
     navSidebar.findNavSection('Gen AI studio').should('exist');
-    navSidebar.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('exist');
+    navSidebar
+      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' })
+      .should('exist');
+    navSidebar
+      .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
+      .should('exist');
+    navSidebar
+      .findNavItem({ name: 'Deployments', rootSection: 'AI hub', subSection: 'Models' })
+      .should('not.exist');
   });
 });

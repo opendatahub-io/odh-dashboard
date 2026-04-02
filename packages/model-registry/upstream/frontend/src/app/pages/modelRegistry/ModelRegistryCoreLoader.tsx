@@ -127,7 +127,6 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> = ({
 
   return (
     <ApplicationsPage
-      noTitle // rendered inside a TabRoutePage which provides the title
       title={<TitleWithIcon title="Registry" objectType={ProjectObjectType.registeredModels} />}
       description={
         <Stack hasGutter>

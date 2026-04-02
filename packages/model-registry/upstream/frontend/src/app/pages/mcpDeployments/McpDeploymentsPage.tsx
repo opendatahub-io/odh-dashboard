@@ -81,7 +81,6 @@ const McpDeploymentsPage: React.FC = () => {
   return (
     <ApplicationsPage
       title="MCP server deployments"
-      noTitle
       description="Manage and view the health and performance of your deployed MCP servers."
       headerContent={headerContent}
       loadError={noProjectSelected ? undefined : loadError}

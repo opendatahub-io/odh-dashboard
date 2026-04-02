@@ -1,14 +1,11 @@
-import type {
-  NavExtension,
-  TabRoutePageExtension,
-} from '@odh-dashboard/plugin-core/extension-points';
+import type { NavExtension } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '#~/concepts/areas/types';
 
 const ADMIN_USER = 'ADMIN_USER';
 
-const extensions: (NavExtension | TabRoutePageExtension)[] = [
+const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
     flags: {
@@ -48,27 +45,21 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
     },
   },
   {
-    type: 'app.tab-route/page',
+    type: 'app.navigation/section',
     properties: {
-      id: 'models-tab-page',
+      id: 'models',
       title: 'Models',
-      href: '/ai-hub/models',
-      path: '/ai-hub/models/*',
       group: '1_models',
       section: 'ai-hub',
-      objectType: 'registered-models',
     },
   },
   {
-    type: 'app.tab-route/page',
+    type: 'app.navigation/section',
     properties: {
-      id: 'mcp-servers-tab-page',
+      id: 'mcp-servers',
       title: 'MCP servers',
-      href: '/ai-hub/mcp-servers',
-      path: '/ai-hub/mcp-servers/*',
       group: '2_mcp_servers',
       section: 'ai-hub',
-      objectType: 'model-catalog',
     },
   },
   {

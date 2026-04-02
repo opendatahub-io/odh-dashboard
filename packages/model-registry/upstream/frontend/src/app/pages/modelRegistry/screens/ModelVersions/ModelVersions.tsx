@@ -52,7 +52,6 @@ const ModelVersionsContent: React.FC<ModelVersionsProps> = ({ tab, ...pageProps 
   return (
     <ApplicationsPage
       {...pageProps}
-
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
