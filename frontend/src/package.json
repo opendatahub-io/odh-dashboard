@@ -38,7 +38,8 @@
   },
   "dependencies": {
     "@odh-dashboard/app-config": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "lodash-es": "^4.18.1"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*"
