@@ -23,9 +23,9 @@ type SubscriptionsRepositoryInterface interface {
 
 // MaaSModelRefsRepositoryInterface defines the contract for MaaSModelRef operations.
 type MaaSModelRefsRepositoryInterface interface {
-	CreateMaaSModelRef(ctx context.Context, request models.CreateMaaSModelRefRequest) (*models.MaaSModelRefSummary, error)
-	UpdateMaaSModelRef(ctx context.Context, namespace, name string, request models.UpdateMaaSModelRefRequest) (*models.MaaSModelRefSummary, error)
-	DeleteMaaSModelRef(ctx context.Context, namespace, name string) error
+	CreateMaaSModelRef(ctx context.Context, request models.CreateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error)
+	UpdateMaaSModelRef(ctx context.Context, namespace, name string, request models.UpdateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error)
+	DeleteMaaSModelRef(ctx context.Context, namespace, name string, dryRun bool) error
 }
 
 // Repositories struct is a single convenient container to hold and represent all our repositories.
