@@ -39,7 +39,7 @@ func (r *MockPoliciesRepository) CreatePolicy(_ context.Context, request models.
 
 	for _, policy := range mocks.GetMockMaaSAuthPolicies() {
 		if policy.Name == request.Name {
-			return nil, fmt.Errorf("MaaSAuthPolicy '%s' already exists", request.Name)
+			return nil, fmt.Errorf("%w: MaaSAuthPolicy '%s' already exists", ErrAlreadyExists, request.Name)
 		}
 	}
 
@@ -84,5 +84,5 @@ func (r *MockPoliciesRepository) DeletePolicy(_ context.Context, name string) er
 			return nil
 		}
 	}
-	return fmt.Errorf("MaaSAuthPolicy '%s' not found", name)
+	return fmt.Errorf("%w: MaaSAuthPolicy '%s' not found", ErrNotFound, name)
 }
