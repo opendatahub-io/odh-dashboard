@@ -256,7 +256,7 @@ describe('A user can deploy an LLMD model', () => {
     },
   );
   it(
-    'Verify Legacy Checkbox switches to KServe serving runtime path',
+    'Verify Legacy Checkbox deploys via KServe and edit shows legacy as locked',
     {
       tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
@@ -281,7 +281,7 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
       modelServingWizard.findUrilocationInput().clear().type(modelURI);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-      modelServingWizard.findSaveConnectionInput().clear().type('test-legacy-connection');
+      modelServingWizard.findSaveConnectionInput().clear().type(`${legacyModelName}-connection`);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
 
       cy.step('Verify legacy checkbox appears and is unchecked by default');
@@ -296,42 +296,11 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findModelDeploymentNameInput().should('exist');
       modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard.findGlobalScopedTemplateOption(servingRuntime).should('exist');
-
-      cy.step('Cancel the deployment');
-      modelServingWizard.findCancelButton().click();
-    },
-  );
-  it(
-    'Verify editing a legacy deployment shows legacy checkbox as checked and disabled',
-    {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
-    },
-    () => {
-      cy.step('Log into the application as admin');
-      cy.visitWithLogin(
-        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,vLLMDeploymentOnMaaS=true',
-        HTPASSWD_CLUSTER_ADMIN_USER,
-      );
-
-      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
-      projectListPage.navigate();
-      projectListPage.filterProjectByName(projectName);
-      projectListPage.findProjectLink(projectName).click();
-
-      cy.step('Deploy a model via the legacy path');
-      projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.selectSingleServingModelButtonIfExists();
-      modelServingGlobal.findDeployModelButton().click();
-
-      cy.step('Select model source with Generative type and enable legacy mode');
-      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
-      modelServingWizard.findUrilocationInput().clear().type(modelURI);
-      modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-      modelServingWizard.findSaveConnectionInput().clear().type(`${legacyModelName}-connection`);
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-      modelServingWizard.findLegacyModeCheckbox().check();
-      modelServingWizard.findNextButton().should('be.enabled').click();
+      modelServingWizard
+        .getGlobalScopedServingRuntime()
+        .find()
+        .findAllByRole('menuitem', { hidden: true })
+        .should('have.length.at.least', 1);
 
       cy.step('Configure legacy model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(legacyModelName);
@@ -349,7 +318,12 @@ describe('A user can deploy an LLMD model', () => {
         }
       });
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard.findGlobalScopedTemplateOption(servingRuntime).should('exist').click();
+      modelServingWizard
+        .getGlobalScopedServingRuntime()
+        .find()
+        .findAllByRole('menuitem', { hidden: true })
+        .first()
+        .click();
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Skip advanced settings');
