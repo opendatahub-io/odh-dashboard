@@ -13,7 +13,6 @@ const mockDeployments: McpDeployment[] = [
     uid: 'uid-1',
     creationTimestamp: '2026-03-10T14:30:00Z',
     image: 'quay.io/mcp-servers/kubernetes:1.0.0',
-    port: 8080,
     phase: McpDeploymentPhase.RUNNING,
   },
   {
@@ -22,7 +21,6 @@ const mockDeployments: McpDeployment[] = [
     uid: 'uid-2',
     creationTimestamp: '2026-03-14T11:00:00Z',
     image: 'quay.io/mcp-servers/slack:0.5.0',
-    port: 9090,
     phase: McpDeploymentPhase.PENDING,
   },
   {
@@ -31,7 +29,6 @@ const mockDeployments: McpDeployment[] = [
     uid: 'uid-3',
     creationTimestamp: '2026-03-08T16:45:00Z',
     image: 'quay.io/mcp-servers/jira:1.2.0',
-    port: 8080,
     phase: McpDeploymentPhase.FAILED,
   },
 ];
