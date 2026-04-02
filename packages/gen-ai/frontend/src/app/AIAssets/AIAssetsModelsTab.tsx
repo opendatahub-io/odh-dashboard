@@ -8,6 +8,7 @@ import {
   ContentVariants,
   Spinner,
 } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
@@ -131,7 +132,12 @@ const AIAssetsModelsTab: React.FC = () => {
       actionButtonText="Deploy a model"
       actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
       secondaryActionButtonText="Create endpoint"
-      handleSecondaryActionButtonClick={() => setIsCreateEndpointModalOpen(true)}
+      handleSecondaryActionButtonClick={() => {
+        fireMiscTrackingEvent('Available Endpoints Create Endpoint Clicked', {
+          source: 'empty_state',
+        });
+        setIsCreateEndpointModalOpen(true);
+      }}
     />
   ) : (
     <ModelsEmptyState
@@ -196,7 +202,12 @@ const AIAssetsModelsTab: React.FC = () => {
             isExternalModelsEnabled ? (
               <Button
                 variant="primary"
-                onClick={() => setIsCreateEndpointModalOpen(true)}
+                onClick={() => {
+                  fireMiscTrackingEvent('Available Endpoints Create Endpoint Clicked', {
+                    source: 'toolbar',
+                  });
+                  setIsCreateEndpointModalOpen(true);
+                }}
                 data-testid="create-endpoint-button"
               >
                 Create endpoint

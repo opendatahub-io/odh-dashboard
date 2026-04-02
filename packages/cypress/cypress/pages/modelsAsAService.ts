@@ -448,6 +448,14 @@ class APIKeyTableRow extends TableRow {
     return this.find().find('[data-label="Status"]');
   }
 
+  findSubscription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Subscription"]');
+  }
+
+  findSubscriptionPopoverButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findSubscription().findByTestId('subscription-popover-button');
+  }
+
   findCreationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Creation date"]');
   }
@@ -456,6 +464,22 @@ class APIKeyTableRow extends TableRow {
     return this.find().find('[data-label="Expiration date"]');
   }
 }
+
+class SubscriptionPopover {
+  findBody(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-popover-body');
+  }
+
+  findModelCount(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findBody().contains(/\d+ models?/);
+  }
+
+  findModelName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findBody().contains(name);
+  }
+}
+
+export const subscriptionPopover = new SubscriptionPopover();
 
 class BulkRevokeAPIKeyModal extends Modal {
   constructor() {

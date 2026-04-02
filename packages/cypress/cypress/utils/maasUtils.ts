@@ -60,6 +60,7 @@ export const mockAPIKeys = (): APIKey[] => [
     status: 'active',
     username: 'alice',
     lastUsedAt: '2026-03-10T14:30:00Z',
+    subscription: 'premium-team-sub',
   },
   {
     id: 'key-dev-testing-002',
@@ -70,6 +71,7 @@ export const mockAPIKeys = (): APIKey[] => [
     status: 'active',
     username: 'bob',
     lastUsedAt: '2026-03-09T10:15:00Z',
+    subscription: 'basic-team-sub',
   },
   {
     id: 'key-ci-pipeline-003',
@@ -79,6 +81,7 @@ export const mockAPIKeys = (): APIKey[] => [
     expirationDate: '2026-01-18T11:54:34.521671447-05:00',
     status: 'revoked',
     username: 'carol',
+    subscription: 'premium-team-sub',
   },
   {
     id: 'key-expired-old-004',

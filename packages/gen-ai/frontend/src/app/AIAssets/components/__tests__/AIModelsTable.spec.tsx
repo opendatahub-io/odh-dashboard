@@ -10,6 +10,10 @@ import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 jest.mock('~/app/AIAssets/hooks/useAIModelsFilter');
+jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled', () => ({
+  __esModule: true,
+  default: () => false,
+}));
 
 const mockUseAIModelsFilter = jest.mocked(useAIModelsFilter);
 

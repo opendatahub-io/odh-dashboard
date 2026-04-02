@@ -1,6 +1,6 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
-import type { APIKey } from '@odh-dashboard/maas/types/api-key';
+import type { APIKey, SubscriptionDetail } from '@odh-dashboard/maas/types/api-key';
 import {
   asClusterAdminUser,
   asProductAdminUser,
@@ -13,6 +13,7 @@ import {
   revokeAPIKeyModal,
   copyApiKeyModal,
   createApiKeyModal,
+  subscriptionPopover,
 } from '../../../pages/modelsAsAService';
 import {
   mockAPIKeys,
@@ -20,12 +21,24 @@ import {
   mockSubscriptionListItems,
 } from '../../../utils/maasUtils';
 
-const mockSearchResponse = (keys: APIKey[]) => ({
+const mockSubscriptionDetails: Record<string, SubscriptionDetail> = {
+  'premium-team-sub': {
+    displayName: 'Premium Team',
+    models: ['granite-3-8b-instruct', 'flan-t5-small'],
+  },
+  'basic-team-sub': { displayName: 'Basic Team', models: ['flan-t5-small'] },
+};
+
+const mockSearchResponse = (
+  keys: APIKey[],
+  subscriptionDetails?: Record<string, SubscriptionDetail>,
+) => ({
   data: {
     object: 'list',
     data: keys,
     // eslint-disable-next-line camelcase
     has_more: false,
+    subscriptionDetails,
   },
 });
 
@@ -53,9 +66,10 @@ describe('API Keys Page', () => {
         },
       }),
     );
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
-      'initialSearch',
-    );
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse(mockAPIKeys(), mockSubscriptionDetails),
+    ).as('initialSearch');
     cy.interceptOdh('GET /maas/api/v1/subscriptions', {
       data: mockSubscriptionListItems(),
     }).as('getSubscriptions');
@@ -81,6 +95,28 @@ describe('API Keys Page', () => {
     ciPipelineRow.findStatus().should('contain.text', 'Revoked');
     ciPipelineRow.findCreationDate().should('contain.text', 'Jan 11, 2026');
     ciPipelineRow.findExpirationDate().should('contain.text', 'Jan 18, 2026');
+  });
+
+  it('should display the subscription column with display names', () => {
+    apiKeysPage.findTable().contains('th', 'Subscription').should('exist');
+
+    const prodRow = apiKeysPage.getRow('production-backend');
+    prodRow.findSubscription().should('contain.text', 'Premium Team');
+
+    const devRow = apiKeysPage.getRow('development-testing');
+    devRow.findSubscription().should('contain.text', 'Basic Team');
+
+    const expiredRow = apiKeysPage.getRow('old-service-key');
+    expiredRow.findSubscription().should('contain.text', '—');
+  });
+
+  it('should show subscription popover with model names on click', () => {
+    const prodRow = apiKeysPage.getRow('production-backend');
+    prodRow.findSubscriptionPopoverButton().click();
+
+    subscriptionPopover.findModelCount().should('contain.text', '2 models');
+    subscriptionPopover.findModelName('granite-3-8b-instruct').should('be.visible');
+    subscriptionPopover.findModelName('flan-t5-small').should('be.visible');
   });
 
   it('should filter api keys by username', () => {

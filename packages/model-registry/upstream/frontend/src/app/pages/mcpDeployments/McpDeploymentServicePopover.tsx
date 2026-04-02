@@ -20,7 +20,13 @@ const McpDeploymentServicePopover: React.FC<McpDeploymentServicePopoverProps> = 
     <Popover
       headerContent="Connection URL"
       bodyContent={
-        <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied" data-testid="mcp-deployment-connection-url">
+        <ClipboardCopy
+          isReadOnly
+          variant="inline-compact"
+          hoverTip="Copy"
+          clickTip="Copied"
+          data-testid="mcp-deployment-connection-url"
+        >
           {connectionUrl}
         </ClipboardCopy>
       }

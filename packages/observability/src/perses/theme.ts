@@ -394,8 +394,8 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
             '&[aria-label*="query view" i]': {
               display: 'none',
             },
-            // Hide Export CSV button
-            '&[aria-label="Export time series data as CSV"]': {
+            // Hide panel notices (eg warning: PromQL info: metric might not be a counter, name does not end in _total/_sum/_count/_bucket: "...")
+            '&[aria-label="panel notices"]': {
               display: 'none',
             },
           },

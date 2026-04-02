@@ -189,7 +189,7 @@ describe('Model Serving LLMD', () => {
         .findByTestId('api-protocol-label')
         .should('have.text', 'REST');
       row.findLastDeployed().should('have.text', '17 Mar 2023');
-      row.findStatusLabel('Started');
+      row.findStatusLabel('Ready');
 
       // expanded section of the row
       row.findToggleButton('llmd-serving').click();

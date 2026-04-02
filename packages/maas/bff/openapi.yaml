@@ -1620,11 +1620,34 @@ components:
           type: string
           format: date-time
           description: When the API key was last used for validation
+        subscription:
+          type: string
+          description: Name of the subscription associated with this API key
+          example: premium-team-sub
       required:
         - id
         - name
         - creationDate
         - status
+
+    SubscriptionDetail:
+      type: object
+      description: Model names within a subscription, used to enrich API key search responses
+      properties:
+        displayName:
+          type: string
+          description: Human-readable display name of the subscription (falls back to k8s name)
+          example: Premium Team
+        models:
+          type: array
+          items:
+            type: string
+          description: Names of models in the subscription (uses display name when available, falls back to k8s name)
+          example:
+            - granite-3-8b-instruct
+            - flan-t5-small
+      required:
+        - models
 
     ApiKeyListResponse:
       type: object
@@ -1642,6 +1665,14 @@ components:
           type: boolean
           description: Whether there are more results beyond this page
           example: true
+        subscriptionDetails:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SubscriptionDetail'
+          description: >
+            Map of subscription name to its details (model names).
+            Populated by the BFF by fetching MaaSSubscription resources
+            for any subscription values found on the returned API keys.
       required:
         - object
         - data
@@ -1801,6 +1832,10 @@ components:
           type: string
           description: Name of the MaaSModelRef
           example: granite-3-8b-instruct
+        display_name:
+          type: string
+          description: Human-readable display name of the model (from openshift.io/display-name annotation)
+          example: Granite 3 8B Instruct
         namespace:
           type: string
           description: Namespace where the MaaSModelRef lives
