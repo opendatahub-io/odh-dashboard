@@ -14,6 +14,7 @@ export type APIKey = {
 };
 
 export type SubscriptionDetail = {
+  displayName?: string;
   models: string[];
 };
 

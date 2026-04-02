@@ -65,8 +65,10 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 
 			Expect(actual.Data.SubscriptionDetails).NotTo(BeNil())
 			Expect(actual.Data.SubscriptionDetails).To(HaveKey("premium-team-sub"))
+			Expect(actual.Data.SubscriptionDetails["premium-team-sub"].DisplayName).To(Equal("Premium Team"))
 			Expect(actual.Data.SubscriptionDetails["premium-team-sub"].Models).To(ConsistOf("granite-3-8b-instruct", "flan-t5-small"))
 			Expect(actual.Data.SubscriptionDetails).To(HaveKey("basic-team-sub"))
+			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].DisplayName).To(Equal("Basic Team"))
 			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].Models).To(ConsistOf("flan-t5-small"))
 		})
 		It("returns 400 if the user ID is missing", func() {

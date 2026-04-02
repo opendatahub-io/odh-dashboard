@@ -23,7 +23,10 @@ const isAPIKey = (v: unknown): v is APIKey =>
   isRecord(v) && typeof v.id === 'string' && typeof v.name === 'string';
 
 const isSubscriptionDetail = (v: unknown): v is SubscriptionDetail =>
-  isRecord(v) && Array.isArray(v.models) && v.models.every((m) => typeof m === 'string');
+  isRecord(v) &&
+  Array.isArray(v.models) &&
+  v.models.every((m) => typeof m === 'string') &&
+  (v.displayName === undefined || typeof v.displayName === 'string');
 
 const isSubscriptionDetails = (v: unknown): v is Record<string, SubscriptionDetail> =>
   isRecord(v) && Object.values(v).every(isSubscriptionDetail);

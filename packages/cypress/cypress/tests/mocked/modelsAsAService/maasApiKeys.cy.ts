@@ -22,8 +22,11 @@ import {
 } from '../../../utils/maasUtils';
 
 const mockSubscriptionDetails: Record<string, SubscriptionDetail> = {
-  'premium-team-sub': { models: ['granite-3-8b-instruct', 'flan-t5-small'] },
-  'basic-team-sub': { models: ['flan-t5-small'] },
+  'premium-team-sub': {
+    displayName: 'Premium Team',
+    models: ['granite-3-8b-instruct', 'flan-t5-small'],
+  },
+  'basic-team-sub': { displayName: 'Basic Team', models: ['flan-t5-small'] },
 };
 
 const mockSearchResponse = (
@@ -94,14 +97,14 @@ describe('API Keys Page', () => {
     ciPipelineRow.findExpirationDate().should('contain.text', 'Jan 18, 2026');
   });
 
-  it('should display the subscription column with subscription names', () => {
+  it('should display the subscription column with display names', () => {
     apiKeysPage.findTable().contains('th', 'Subscription').should('exist');
 
     const prodRow = apiKeysPage.getRow('production-backend');
-    prodRow.findSubscription().should('contain.text', 'premium-team-sub');
+    prodRow.findSubscription().should('contain.text', 'Premium Team');
 
     const devRow = apiKeysPage.getRow('development-testing');
-    devRow.findSubscription().should('contain.text', 'basic-team-sub');
+    devRow.findSubscription().should('contain.text', 'Basic Team');
 
     const expiredRow = apiKeysPage.getRow('old-service-key');
     expiredRow.findSubscription().should('contain.text', '—');

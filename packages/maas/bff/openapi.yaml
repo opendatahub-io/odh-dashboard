@@ -1341,11 +1341,15 @@ components:
       type: object
       description: Model names within a subscription, used to enrich API key search responses
       properties:
+        displayName:
+          type: string
+          description: Human-readable display name of the subscription (falls back to k8s name)
+          example: Premium Team
         models:
           type: array
           items:
             type: string
-          description: Names of models in the subscription
+          description: Names of models in the subscription (uses display name when available, falls back to k8s name)
           example:
             - granite-3-8b-instruct
             - flan-t5-small
@@ -1535,6 +1539,10 @@ components:
           type: string
           description: Name of the MaaSModelRef
           example: granite-3-8b-instruct
+        display_name:
+          type: string
+          description: Human-readable display name of the model (from openshift.io/display-name annotation)
+          example: Granite 3 8B Instruct
         namespace:
           type: string
           description: Namespace where the MaaSModelRef lives

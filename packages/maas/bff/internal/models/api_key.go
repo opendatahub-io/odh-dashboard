@@ -62,7 +62,8 @@ type APIKeySearchPagination struct {
 // SubscriptionDetail contains the model names within a subscription,
 // used to enrich the API key search response.
 type SubscriptionDetail struct {
-	Models []string `json:"models"`
+	DisplayName string   `json:"displayName,omitempty"`
+	Models      []string `json:"models"`
 }
 
 // APIKeyListResponse is the paginated list response from search.

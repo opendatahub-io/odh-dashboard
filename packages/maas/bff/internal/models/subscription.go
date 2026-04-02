@@ -16,6 +16,7 @@ type BillingRateInfo struct {
 // ModelRefInfo is a model reference with rate limits from the maas-api passthrough.
 type ModelRefInfo struct {
 	Name            string               `json:"name"`
+	DisplayName     string               `json:"display_name,omitempty"`
 	Namespace       string               `json:"namespace,omitempty"`
 	TokenRateLimits []TokenRateLimitInfo `json:"token_rate_limits"`
 	BillingRate     *BillingRateInfo     `json:"billing_rate,omitempty"`

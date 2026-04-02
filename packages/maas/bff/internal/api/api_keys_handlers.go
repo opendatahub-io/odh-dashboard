@@ -136,9 +136,17 @@ func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *m
 		}
 		modelNames := make([]string, len(sub.ModelRefs))
 		for i, ref := range sub.ModelRefs {
-			modelNames[i] = ref.Name
+			if ref.DisplayName != "" {
+				modelNames[i] = ref.DisplayName
+			} else {
+				modelNames[i] = ref.Name
+			}
 		}
-		details[sub.SubscriptionIDHeader] = models.SubscriptionDetail{Models: modelNames}
+		displayName := sub.DisplayName
+		if displayName == "" {
+			displayName = sub.SubscriptionIDHeader
+		}
+		details[sub.SubscriptionIDHeader] = models.SubscriptionDetail{DisplayName: displayName, Models: modelNames}
 	}
 
 	if len(details) > 0 {

@@ -15,15 +15,17 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
     return <>—</>;
   }
 
+  const displayLabel = subscriptionDetail?.displayName || subscriptionName;
+
   if (!subscriptionDetail || subscriptionDetail.models.length === 0) {
-    return <>{subscriptionName}</>;
+    return <>{displayLabel}</>;
   }
 
   const modelCount = subscriptionDetail.models.length;
 
   return (
     <Popover
-      headerContent={subscriptionName}
+      headerContent={displayLabel}
       bodyContent={
         <div data-testid="subscription-popover-body">
           <Content component={ContentVariants.small}>
@@ -40,7 +42,7 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
       }
     >
       <Button variant="link" isInline data-testid="subscription-popover-button">
-        {subscriptionName}
+        {displayLabel}
       </Button>
     </Popover>
   );
