@@ -122,16 +122,6 @@ function AutomlLeaderboard({
         if (typeof value === 'number' && Number.isFinite(value)) {
           return value;
         }
-        if (typeof value === 'string') {
-          // Trim whitespace and treat empty strings as invalid
-          const trimmed = value.trim();
-          if (trimmed === '') {
-            return 'N/A';
-          }
-          // Strict validation: ensure the entire string is a valid number
-          const parsed = Number(trimmed);
-          return Number.isFinite(parsed) ? parsed : 'N/A';
-        }
         return 'N/A';
       };
 
@@ -146,7 +136,7 @@ function AutomlLeaderboard({
       return {
         rank: 0, // Will be assigned after sorting by optimized metric initially
         modelKey: modelName,
-        displayName: model.display_name || modelName,
+        displayName: model.name || modelName,
         metrics,
         optimizedMetricValue,
       };
