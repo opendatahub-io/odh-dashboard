@@ -101,6 +101,8 @@ export type MaaSAuthPolicy = {
   modelRefs: ModelRef[];
   subjects: SubjectSpec;
   meteringMetadata?: TokenMetadata;
+  displayName?: string;
+  description?: string;
 };
 
 export type SubscriptionInfoResponse = {
