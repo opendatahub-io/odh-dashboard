@@ -62,12 +62,17 @@ class ModelsTabPage {
   }
 
   filterByName(name: string): void {
+    cy.findByTestId('models-table-search').clear();
     cy.findByTestId('models-table-search').type(name);
   }
 
   filterByUseCase(useCase: string): void {
     cy.findByTestId('useCase-filter-select').click();
-    cy.findByRole('option', { name: useCase }).click();
+    cy.findByRole('listbox')
+      .should('be.visible')
+      .within(() => {
+        cy.findByRole('option', { name: useCase }).click();
+      });
   }
 
   findActiveFilterChip(filterType: string): Cypress.Chainable<JQuery<HTMLElement>> {

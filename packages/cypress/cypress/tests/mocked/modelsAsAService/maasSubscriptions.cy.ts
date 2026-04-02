@@ -160,24 +160,27 @@ describe('Subscriptions Page', () => {
     cy.get('[data-testid="model-row-kebab"]').first().click();
     cy.contains('View endpoints').click();
 
-    // Verify endpoint modal is open
-    cy.get('[role="dialog"]').should('exist');
-    cy.contains('Endpoints').should('exist');
+    // Verify endpoint modal is open and scope all assertions to it
+    cy.get('[role="dialog"]')
+      .should('exist')
+      .within(() => {
+        cy.contains('Endpoints').should('exist');
 
-    // Verify Authentication heading is NOT shown when no subscriptions
-    cy.contains('Authentication').should('not.exist');
+        // Verify Authentication heading is NOT shown when no subscriptions
+        cy.contains('Authentication').should('not.exist');
 
-    // Verify no subscriptions alert is shown
-    cy.contains('No subscriptions available').should('exist');
-    cy.contains(
-      "You don't have any subscriptions for this model. Contact your administrator to request access.",
-    ).should('exist');
+        // Verify no subscriptions alert is shown
+        cy.contains('No subscriptions available').should('exist');
+        cy.contains(
+          "You don't have any subscriptions for this model. Contact your administrator to request access.",
+        ).should('exist');
 
-    // Verify subscription dropdown is not shown
-    cy.get('[data-testid="endpoint-modal-subscription-select"]').should('not.exist');
+        // Verify subscription dropdown is not shown
+        cy.get('[data-testid="endpoint-modal-subscription-select"]').should('not.exist');
 
-    // Verify Generate API key button is not shown
-    cy.get('[data-testid="endpoint-modal-generate-api-key"]').should('not.exist');
+        // Verify Generate API key button is not shown
+        cy.get('[data-testid="endpoint-modal-generate-api-key"]').should('not.exist');
+      });
   });
 
   it('should handle API key generation error', () => {
@@ -197,7 +200,11 @@ describe('Subscriptions Page', () => {
 
     // Select subscription
     cy.get('[data-testid="endpoint-modal-subscription-select"]').click();
-    cy.contains('Premium Tier').click();
+    cy.findByRole('listbox')
+      .should('be.visible')
+      .within(() => {
+        cy.findByRole('option', { name: 'Premium Tier' }).click();
+      });
 
     // Click generate button
     cy.get('[data-testid="endpoint-modal-generate-api-key"]').click();
@@ -232,7 +239,11 @@ describe('Subscriptions Page', () => {
 
     // Select subscription
     cy.get('[data-testid="endpoint-modal-subscription-select"]').click();
-    cy.contains('Premium Tier').click();
+    cy.findByRole('listbox')
+      .should('be.visible')
+      .within(() => {
+        cy.findByRole('option', { name: 'Premium Tier' }).click();
+      });
 
     // Click generate button
     cy.get('[data-testid="endpoint-modal-generate-api-key"]').click();
@@ -264,7 +275,11 @@ describe('Subscriptions Page', () => {
 
     // Select subscription and generate token
     cy.get('[data-testid="endpoint-modal-subscription-select"]').click();
-    cy.contains('Premium Tier').click();
+    cy.findByRole('listbox')
+      .should('be.visible')
+      .within(() => {
+        cy.findByRole('option', { name: 'Premium Tier' }).click();
+      });
     cy.get('[data-testid="endpoint-modal-generate-api-key"]').click();
 
     // Verify token is displayed

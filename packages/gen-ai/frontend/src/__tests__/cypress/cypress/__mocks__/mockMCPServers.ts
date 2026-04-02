@@ -44,6 +44,7 @@ export const mockMCPServer = ({
 export const mockMCPServers = (
   servers?: MCPServerMock[],
   namespace = 'test-namespace',
+  lastUpdated = '2024-01-01T00:00:00.000Z',
 ): MCPServersResponse => {
   const serverList = servers ?? [
     mockMCPServer({
@@ -66,7 +67,7 @@ export const mockMCPServers = (
     config_map_info: {
       name: 'mcp-servers',
       namespace,
-      last_updated: new Date().toISOString(),
+      last_updated: lastUpdated,
     },
   };
 };
