@@ -10,7 +10,7 @@ export type APIKey = {
   expirationDate?: string;
   status: APIKeyStatus;
   lastUsedAt?: string;
-  subscriptionName?: string;
+  subscription?: string;
 };
 
 export type SubscriptionDetail = {

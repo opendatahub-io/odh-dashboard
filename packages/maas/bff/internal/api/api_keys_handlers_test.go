@@ -38,7 +38,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(actual.Data.Object).To(Equal("list"))
 			Expect(len(actual.Data.Data)).Should(BeNumerically(">", 0))
 		})
-		It("returns subscriptionName on API keys and handles missing subscriptions gracefully", func() {
+		It("returns subscription on API keys and enriches with subscription details from the MaaS API", func() {
 			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 			searchRequest := models.APIKeySearchRequest{}
 			actual, rs, err := setupApiTest[Envelope[*models.APIKeyListResponse, None]](
@@ -61,11 +61,13 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 					break
 				}
 			}
-			Expect(hasSubscriptionName).To(BeTrue(), "mock data should include subscriptionName on API keys")
+			Expect(hasSubscriptionName).To(BeTrue(), "mock data should include subscription on API keys")
 
-			// envtest has no MaaSSubscription CRs, so enrichment should
-			// degrade gracefully: SubscriptionDetails is nil (no panic, no error).
-			Expect(actual.Data.SubscriptionDetails).To(BeNil())
+			Expect(actual.Data.SubscriptionDetails).NotTo(BeNil())
+			Expect(actual.Data.SubscriptionDetails).To(HaveKey("premium-team-sub"))
+			Expect(actual.Data.SubscriptionDetails["premium-team-sub"].Models).To(ConsistOf("granite-3-8b-instruct", "flan-t5-small"))
+			Expect(actual.Data.SubscriptionDetails).To(HaveKey("basic-team-sub"))
+			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].Models).To(ConsistOf("flan-t5-small"))
 		})
 		It("returns 400 if the user ID is missing", func() {
 			identity := &kubernetes.RequestIdentity{UserID: ""}

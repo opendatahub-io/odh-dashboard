@@ -33,7 +33,7 @@ type APIKey struct {
 	ExpirationDate   *time.Time `json:"expirationDate,omitempty"`
 	Status           string     `json:"status"`
 	LastUsedAt       *time.Time `json:"lastUsedAt,omitempty"`
-	SubscriptionName string     `json:"subscriptionName,omitempty"`
+	SubscriptionName string     `json:"subscription,omitempty"`
 }
 
 // APIKeySearchRequest represents a search/filter request for API keys.

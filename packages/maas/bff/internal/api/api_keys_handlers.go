@@ -109,7 +109,7 @@ func SearchAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ ht
 	}
 }
 
-// enrichAPIKeysWithSubscriptionDetails fetches subscription data from Kubernetes
+// enrichAPIKeysWithSubscriptionDetails fetches subscription data from the MaaS API
 // and populates SubscriptionDetails on the response with model names per subscription.
 func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *models.APIKeyListResponse) {
 	subNames := make(map[string]struct{})
@@ -123,22 +123,22 @@ func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *m
 		return
 	}
 
+	subscriptions, err := app.repositories.APIKeys.ListSubscriptionsForApiKeys(r.Context())
+	if err != nil {
+		app.logger.Warn("Failed to fetch subscriptions for API key enrichment", "error", err)
+		return
+	}
+
 	details := make(map[string]models.SubscriptionDetail, len(subNames))
-	for name := range subNames {
-		sub, err := app.repositories.Subscriptions.GetSubscription(r.Context(), name)
-		if err != nil {
-			app.logger.Warn("Failed to fetch subscription for API key enrichment",
-				"subscription", name, "error", err)
-			continue
-		}
-		if sub == nil {
+	for _, sub := range subscriptions {
+		if _, needed := subNames[sub.SubscriptionIDHeader]; !needed {
 			continue
 		}
 		modelNames := make([]string, len(sub.ModelRefs))
 		for i, ref := range sub.ModelRefs {
 			modelNames[i] = ref.Name
 		}
-		details[name] = models.SubscriptionDetail{Models: modelNames}
+		details[sub.SubscriptionIDHeader] = models.SubscriptionDetail{Models: modelNames}
 	}
 
 	if len(details) > 0 {

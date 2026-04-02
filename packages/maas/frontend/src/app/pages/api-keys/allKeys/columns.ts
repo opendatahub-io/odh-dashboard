@@ -22,7 +22,7 @@ export const apiKeyColumns: ApiKeyColumn[] = [
     sortable: false,
   },
   {
-    field: 'subscriptionName',
+    field: 'subscription',
     label: 'Subscription',
     width: 15,
     sortable: false,

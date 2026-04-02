@@ -45,7 +45,7 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({
     </Td>
     <Td dataLabel={apiKeyColumns[2].label}>
       <SubscriptionCell
-        subscriptionName={apiKey.subscriptionName}
+        subscriptionName={apiKey.subscription}
         subscriptionDetail={subscriptionDetail}
       />
     </Td>

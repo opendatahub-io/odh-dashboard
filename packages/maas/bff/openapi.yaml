@@ -1327,9 +1327,9 @@ components:
           type: string
           format: date-time
           description: When the API key was last used for validation
-        subscriptionName:
+        subscription:
           type: string
-          description: Name of the MaaSSubscription associated with this API key
+          description: Name of the subscription associated with this API key
           example: premium-team-sub
       required:
         - id
@@ -1375,7 +1375,7 @@ components:
           description: >
             Map of subscription name to its details (model names).
             Populated by the BFF by fetching MaaSSubscription resources
-            for any subscriptionName values found on the returned API keys.
+            for any subscription values found on the returned API keys.
       required:
         - object
         - data

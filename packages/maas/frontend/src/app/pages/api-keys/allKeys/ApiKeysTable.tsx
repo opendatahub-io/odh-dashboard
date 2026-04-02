@@ -136,9 +136,7 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
                   key={apiKey.id}
                   apiKey={apiKey}
                   subscriptionDetail={
-                    apiKey.subscriptionName
-                      ? subscriptionDetails?.[apiKey.subscriptionName]
-                      : undefined
+                    apiKey.subscription ? subscriptionDetails?.[apiKey.subscription] : undefined
                   }
                   onRevokeApiKey={onRevokeApiKey}
                 />
