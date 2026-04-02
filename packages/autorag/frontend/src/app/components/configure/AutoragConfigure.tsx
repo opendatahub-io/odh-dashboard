@@ -640,7 +640,7 @@ function AutoragConfigure(): React.JSX.Element {
                   <Flex direction={{ default: 'column' }} gap={{ default: 'gapXl' }}>
                     <FlexItem>
                       <ConfigureFormGroup
-                        label="Vector database location"
+                        label="Vector I/O provider"
                         description="Specify the location for storing the vector index used to retrieve your documents."
                       >
                         <AutoragVectorStoreSelector />
