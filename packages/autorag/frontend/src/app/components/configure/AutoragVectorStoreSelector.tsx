@@ -43,8 +43,8 @@ const AutoragVectorStoreSelector: React.FC = () => {
     control,
   } = useFormContext<ConfigureSchema>();
 
-  const { field } = useController<ConfigureSchema, 'llama_stack_vector_database_id'>({
-    name: 'llama_stack_vector_database_id',
+  const { field } = useController<ConfigureSchema, 'llama_stack_vector_io_provider_id'>({
+    name: 'llama_stack_vector_io_provider_id',
   });
 
   const llamaStackSecretName = useWatch({ control, name: 'llama_stack_secret_name' });

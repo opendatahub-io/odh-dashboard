@@ -187,7 +187,7 @@ describe('AutoragVectorStoreSelector', () => {
       });
 
       expect(formValues).toMatchObject({
-        llama_stack_vector_database_id: '', // eslint-disable-line camelcase
+        llama_stack_vector_io_provider_id: '', // eslint-disable-line camelcase
       });
     });
 
@@ -206,7 +206,7 @@ describe('AutoragVectorStoreSelector', () => {
       // Wait for field value to update
       await waitFor(() => {
         expect(formValues).toMatchObject({
-          llama_stack_vector_database_id: 'ls_milvus', // eslint-disable-line camelcase
+          llama_stack_vector_io_provider_id: 'ls_milvus', // eslint-disable-line camelcase
         });
       });
 

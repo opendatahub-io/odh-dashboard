@@ -1105,7 +1105,7 @@ components:
             - answer_correctness
             - context_correctness
           description: Metric to optimize (defaults to faithfulness)
-        llama_stack_vector_database_id:
+        llama_stack_vector_io_provider_id:
           type: string
           description: Pipeline vector store type derived from the selected LlamaStack provider (e.g. ls_milvus)
           example: ls_milvus
