@@ -41,10 +41,10 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         />
       </Td>
       <Td dataLabel={columns[1].label}>
-        <Label color="grey">{`${authPolicy.subjects.groups.length.toString()} Groups`}</Label>
+        <Label color="grey">{`${authPolicy.subjects.groups.length.toString()} ${authPolicy.subjects.groups.length === 1 ? 'Group' : 'Groups'}`}</Label>
       </Td>
       <Td dataLabel={columns[2].label}>
-        <Label color="grey">{`${authPolicy.modelRefs.length.toString()} Models`}</Label>
+        <Label color="grey">{`${authPolicy.modelRefs.length.toString()} ${authPolicy.modelRefs.length === 1 ? 'Model' : 'Models'}`}</Label>
       </Td>
       <Td isActionCell>
         <ActionsColumn

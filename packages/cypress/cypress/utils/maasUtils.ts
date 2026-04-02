@@ -265,4 +265,22 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
     modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
     subjects: { groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }] },
   },
+  {
+    name: 'premium-team-policy',
+    namespace: 'maas-system',
+    phase: 'Active',
+    modelRefs: mockSubscriptions()[0].modelRefs,
+    subjects: {
+      groups: mockSubscriptions()[0].owner.groups,
+    },
+  },
+  {
+    name: 'basic-team-policy',
+    namespace: 'maas-system',
+    phase: 'Active',
+    modelRefs: mockSubscriptions()[1].modelRefs,
+    subjects: {
+      groups: mockSubscriptions()[1].owner.groups,
+    },
+  },
 ];
