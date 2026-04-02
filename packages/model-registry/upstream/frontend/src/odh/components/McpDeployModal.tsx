@@ -15,14 +15,14 @@ import {
   Spinner,
   Split,
   SplitItem,
+  Stack,
+  StackItem,
   TextInput,
 } from '@patternfly/react-core';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
-import { SimpleSelect } from 'mod-arch-shared';
-import { SimpleSelectOption } from 'mod-arch-shared/dist/components/SimpleSelect';
 import { APIOptions, useQueryParamNamespaces } from 'mod-arch-core';
 import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
-import { useNamespaces } from '~/app/hooks/useNamespaces';
+import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFieldWrapper';
 import useMcpServerConverter from '~/app/hooks/mcpCatalogDeployment/useMcpServerConverter';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -35,7 +35,7 @@ import { McpDeployment } from '~/app/mcpDeploymentTypes';
 
 type McpDeployModalProps = {
   isOpen?: boolean;
-  onClose: () => void;
+  onClose: (saved?: boolean) => void;
   existingDeployment?: McpDeployment;
 };
 
@@ -62,7 +62,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
       : {},
   );
 
-  const [namespaces, namespacesLoaded] = useNamespaces();
   const [selectedNamespace, setSelectedNamespace] = React.useState(
     existingDeployment?.namespace ?? '',
   );
@@ -93,15 +92,8 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
     [],
   );
 
-  const namespaceOptions: SimpleSelectOption[] = React.useMemo(
-    () => namespaces.map((ns) => ({ key: ns.name, label: ns.name })),
-    [namespaces],
-  );
-
-  const handleNamespaceChange = React.useCallback((key: string, isPlaceholder: boolean) => {
-    if (!isPlaceholder && key) {
-      setSelectedNamespace(key);
-    }
+  const handleNamespaceSelect = React.useCallback((projectName: string) => {
+    setSelectedNamespace(projectName);
   }, []);
 
   const handleReset = React.useCallback(() => {
@@ -140,10 +132,9 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
             displayName,
             image: ociImageValue,
             yaml: yamlContent,
-            port: existingDeployment.port,
           },
         );
-        onClose();
+        onClose(true);
         notification.success(
           'MCP server updated successfully',
           `${displayName || k8sName} has been updated.`,
@@ -152,11 +143,11 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
         await createMcpDeployment('', { ...queryParams, namespace: selectedNamespace })(opts, {
           name: k8sName,
           displayName,
+          serverName: crData?.metadata.name || undefined,
           image: ociImageValue,
           yaml: yamlContent,
-          port: crData?.spec.config.port,
         });
-        onClose();
+        onClose(true);
         notification.success(
           'MCP server deployed successfully',
           `${displayName || k8sName} has been deployed to ${selectedNamespace}.`,
@@ -201,7 +192,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
 
   if (!existingDeployment && !crLoaded && !crError) {
     return (
-      <Modal isOpen={isOpen} variant="medium" onClose={onClose} data-testid="mcp-deploy-modal">
+      <Modal isOpen={isOpen} variant="medium" onClose={() => onClose()} data-testid="mcp-deploy-modal">
         <ModalHeader title={modalTitle} />
         <ModalBody>
           <Spinner aria-label="Loading MCP server configuration" />
@@ -211,7 +202,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   }
 
   return (
-    <Modal isOpen={isOpen} variant="medium" onClose={onClose} data-testid="mcp-deploy-modal">
+    <Modal isOpen={isOpen} variant="medium" onClose={() => onClose()} data-testid="mcp-deploy-modal">
       <ModalHeader title={modalTitle} />
       <ModalBody>
         {crError && (
@@ -259,19 +250,21 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
             />
           </FormGroup>
 
-          <FormGroup label="Project" isRequired fieldId="mcp-deploy-project">
-            <SimpleSelect
-              options={namespaceOptions}
-              value={selectedNamespace}
-              onChange={handleNamespaceChange}
-              placeholder="Select a project"
-              isDisabled={!!existingDeployment || !namespacesLoaded || namespaces.length === 0}
-              isFullWidth
-              isScrollable
-              maxMenuHeight="300px"
-              dataTestId="mcp-deploy-project-selector"
+          {existingDeployment ? (
+            <FormGroup label="Project" isRequired fieldId="mcp-deploy-project">
+              <TextInput
+                id="mcp-deploy-project"
+                value={selectedNamespace}
+                isDisabled
+                data-testid="mcp-deploy-project-selector"
+              />
+            </FormGroup>
+          ) : (
+            <NamespaceSelectorFieldWrapper
+              selectedNamespace={selectedNamespace}
+              onSelect={handleNamespaceSelect}
             />
-          </FormGroup>
+          )}
 
           <FormGroup
             label="Configuration (YAML)"
@@ -305,48 +298,53 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
           </FormGroup>
         </Form>
 
-        {submitError && (
-          <Alert
-            variant="danger"
-            isInline
-            title="Deployment failed"
-            className="pf-v6-u-mt-md"
-            data-testid="mcp-deploy-submit-error"
-          >
-            {submitError.message}
-          </Alert>
-        )}
       </ModalBody>
       <ModalFooter>
-        <Split hasGutter className="pf-v6-u-w-100">
-          <SplitItem>
-            <Button variant="link" onClick={onClose} data-testid="mcp-deploy-close-button">
-              Close
-            </Button>
-          </SplitItem>
-          <SplitItem isFilled />
-          <SplitItem>
-            <Button
-              variant="secondary"
-              onClick={handleReset}
-              isDisabled={isSubmitting}
-              data-testid="mcp-deploy-reset-button"
-            >
-              Reset
-            </Button>
-          </SplitItem>
-          <SplitItem>
-            <Button
-              variant="primary"
-              onClick={handleDeploy}
-              isDisabled={isDeployDisabled}
-              isLoading={isSubmitting}
-              data-testid="mcp-deploy-submit-button"
-            >
-              {existingDeployment ? 'Save' : 'Deploy'}
-            </Button>
-          </SplitItem>
-        </Split>
+        <Stack hasGutter style={{ flex: 'auto' }}>
+          {submitError && (
+            <StackItem>
+              <Alert
+                variant="danger"
+                isInline
+                title="Deployment failed"
+                data-testid="mcp-deploy-submit-error"
+              >
+                {submitError.message}
+              </Alert>
+            </StackItem>
+          )}
+          <StackItem>
+            <Split hasGutter className="pf-v6-u-w-100">
+              <SplitItem>
+                <Button variant="link" onClick={() => onClose()} data-testid="mcp-deploy-close-button">
+                  Close
+                </Button>
+              </SplitItem>
+              <SplitItem isFilled />
+              <SplitItem>
+                <Button
+                  variant="secondary"
+                  onClick={handleReset}
+                  isDisabled={isSubmitting}
+                  data-testid="mcp-deploy-reset-button"
+                >
+                  Reset
+                </Button>
+              </SplitItem>
+              <SplitItem>
+                <Button
+                  variant="primary"
+                  onClick={handleDeploy}
+                  isDisabled={isDeployDisabled}
+                  isLoading={isSubmitting}
+                  data-testid="mcp-deploy-submit-button"
+                >
+                  {existingDeployment ? 'Save' : 'Deploy'}
+                </Button>
+              </SplitItem>
+            </Split>
+          </StackItem>
+        </Stack>
       </ModalFooter>
     </Modal>
   );
