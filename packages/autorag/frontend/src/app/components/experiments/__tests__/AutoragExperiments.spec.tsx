@@ -135,7 +135,7 @@ describe('AutoragExperiments', () => {
     expect(
       screen.getByRole('heading', { name: 'Create an AutoRAG optimization run' }),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent('Create run');
+    expect(screen.getByTestId('create-run-button')).toHaveTextContent('Create run');
     expect(screen.queryByTestId('autorag-runs-table')).not.toBeInTheDocument();
   });
 

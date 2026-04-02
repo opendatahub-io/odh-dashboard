@@ -26,7 +26,7 @@ const EmptyExperimentsState: React.FC<EmptyExperimentsStateProps> = ({
       imageAlt=""
       createButton={
         <Button
-          data-testid="create-experiment-button"
+          data-testid="create-run-button"
           variant="primary"
           component={(props) => <Link {...props} to={createExperimentRoute} />}
         >
