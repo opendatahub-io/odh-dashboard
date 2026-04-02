@@ -17,6 +17,7 @@ import {
   runtimeStateLabels,
 } from '#~/concepts/pipelines/kfTypes';
 import { getTimeRangeCategory, relativeTime } from '#~/utilities/time';
+import { getRunStartTime } from '#~/concepts/pipelines/content/tables/utils';
 import { StatusType } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
 import { K8sCondition, K8sDspaConditionReason } from '#~/k8sTypes.ts';
 
@@ -41,7 +42,8 @@ export const computeRunStatus = (run?: PipelineRunKF | null): RunStatusDetails =
   let details: string | undefined;
   let label: string;
   let color: LabelProps['color'];
-  const createdAt = relativeTime(Date.now(), new Date(run.created_at).getTime());
+  // Uses the run start time from state_history if available, falls back to created_at
+  const createdAt = relativeTime(Date.now(), getRunStartTime(run).getTime());
 
   switch (run.state) {
     case RuntimeStateKF.PENDING:

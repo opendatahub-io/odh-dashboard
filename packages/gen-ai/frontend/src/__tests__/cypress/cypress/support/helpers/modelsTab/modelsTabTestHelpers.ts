@@ -25,6 +25,7 @@ export interface ModelsTabTestOptions {
   namespace?: string;
   aiModels?: Partial<AAModelResponse>[];
   maasModels?: Partial<MaaSModel>[];
+  maasError?: boolean;
   lsdStatus?: 'Ready' | 'NotReady';
 }
 
@@ -37,13 +38,19 @@ export const setupModelsTabIntercepts = (options: ModelsTabTestOptions = {}): vo
   ];
   cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
 
-  // mockAAModels() returns a default model when called without args
   cy.interceptGenAi('GET /api/v1/aaa/models', mockAAModels(options.aiModels)).as('aaModels');
 
-  cy.interceptGenAi(
-    'GET /api/v1/maas/models',
-    options.maasModels ? mockMaaSModels(options.maasModels) : mockEmptyList(),
-  ).as('maasModels');
+  if (options.maasError) {
+    cy.interceptGenAi('GET /api/v1/maas/models', {
+      statusCode: 500,
+      body: { error: 'MaaS service unavailable' },
+    }).as('maasModels');
+  } else {
+    cy.interceptGenAi(
+      'GET /api/v1/maas/models',
+      options.maasModels ? mockMaaSModels(options.maasModels) : mockEmptyList(),
+    ).as('maasModels');
+  }
 
   cy.interceptGenAi('GET /api/v1/lsd/status', mockStatus(options.lsdStatus ?? 'Ready'));
 

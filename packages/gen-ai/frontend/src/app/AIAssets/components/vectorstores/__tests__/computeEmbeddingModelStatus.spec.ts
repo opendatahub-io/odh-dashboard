@@ -2,8 +2,10 @@
 import type { AIModel, LlamaModel } from '~/app/types';
 import {
   computeEmbeddingModelStatus,
+  DEFAULT_EMBEDDING_MODEL_ID,
+  DEFAULT_EMBEDDING_NORMALIZED_ID,
   EmbeddingModelStatus,
-} from '~/app/AIAssets/components/vectorstores/VectorStoreTableRow';
+} from '~/app/utilities/utils';
 
 const makeAIModel = (model_id: string, overrides: Partial<AIModel> = {}): AIModel => ({
   model_name: 'test',
@@ -110,6 +112,58 @@ const testCases: TestCase[] = [
     embeddingModel: 'nomic-embed',
     allModels: [makeAIModel('nomic-embed')],
     playgroundModels: [makeLlamaModel('nomic-embed')],
+    expected: 'registered',
+  },
+
+  // default embedding model — available even before any playground exists
+  {
+    description:
+      'returns available for the default embedding model (full ID) when absent from both lists',
+    embeddingModel: DEFAULT_EMBEDDING_MODEL_ID,
+    allModels: [],
+    playgroundModels: [],
+    expected: 'available',
+  },
+  {
+    description:
+      'returns available for the default embedding model (full ID) when other models exist but it is absent',
+    embeddingModel: DEFAULT_EMBEDDING_MODEL_ID,
+    allModels: [makeAIModel('some-other-model')],
+    playgroundModels: [makeLlamaModel('some-other-model')],
+    expected: 'available',
+  },
+  {
+    description:
+      'returns registered for the default embedding model (full ID) when it is in the LSD',
+    embeddingModel: DEFAULT_EMBEDDING_MODEL_ID,
+    allModels: [],
+    playgroundModels: [makeLlamaModel(DEFAULT_EMBEDDING_MODEL_ID)],
+    expected: 'registered',
+  },
+
+  // default embedding model stored as ProviderModelID (the form used by the vector store configmap)
+  {
+    description:
+      'returns available for the default embedding model (ProviderModelID form) when absent from both lists',
+    embeddingModel: DEFAULT_EMBEDDING_NORMALIZED_ID,
+    allModels: [],
+    playgroundModels: [],
+    expected: 'available',
+  },
+  {
+    description:
+      'returns available for the default embedding model (ProviderModelID form) when other models exist but it is absent',
+    embeddingModel: DEFAULT_EMBEDDING_NORMALIZED_ID,
+    allModels: [makeAIModel('some-other-model')],
+    playgroundModels: [makeLlamaModel('some-other-model')],
+    expected: 'available',
+  },
+  {
+    description:
+      'returns registered for the default embedding model (ProviderModelID form) when it is in the LSD',
+    embeddingModel: DEFAULT_EMBEDDING_NORMALIZED_ID,
+    allModels: [],
+    playgroundModels: [makeLlamaModel(DEFAULT_EMBEDDING_NORMALIZED_ID)],
     expected: 'registered',
   },
 ];

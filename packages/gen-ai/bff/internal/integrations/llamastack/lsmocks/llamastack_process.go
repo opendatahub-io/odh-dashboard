@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	lsHealthTimeout = 90 * time.Second
+	lsHealthTimeout = 180 * time.Second
 	lsHealthPoll    = 2 * time.Second
 	lsShutdownWait  = 5 * time.Second
 )
@@ -105,6 +105,11 @@ func SetupLlamaStack(logger *slog.Logger) (state *LlamaStackState, err error) {
 
 	cmd := exec.CommandContext(ctx, uvBin,
 		"run",
+		"--default-index", "https://pypi.org/simple/",
+		"--index", "https://test.pypi.org/simple/",
+		"--index-strategy", "unsafe-first-match",
+		"--no-build-package", "psycopg2-binary",
+		"--no-build-package", "asyncpg",
 		"--refresh-package", "llama-stack",
 		"--refresh-package", "llama-stack-api",
 		"--with", "llama-stack=="+version,

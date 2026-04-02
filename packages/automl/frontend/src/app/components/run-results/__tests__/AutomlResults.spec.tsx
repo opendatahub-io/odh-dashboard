@@ -45,7 +45,7 @@ const createMockModel = (displayName: string): AutomlModel => ({
   },
   location: {
     model_directory: `/models/${displayName}`,
-    predictor: `/models/${displayName}/predictor.pkl`,
+    predictor: `/models/${displayName}/predictor`,
     notebook: `/models/${displayName}/notebook.ipynb`,
   },
   metrics: {
@@ -184,7 +184,7 @@ describe('AutomlResults', () => {
         ...createMockModel('Test Model'),
         location: {
           model_directory: '/models/Test Model',
-          predictor: '/models/Test Model/predictor.pkl',
+          predictor: '/models/Test Model/predictor',
           notebook: '', // Missing notebook location
         },
       };

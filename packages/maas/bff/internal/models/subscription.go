@@ -2,6 +2,37 @@ package models
 
 import "time"
 
+// TokenRateLimitInfo is the rate limit shape returned by the maas-api passthrough.
+type TokenRateLimitInfo struct {
+	Limit  int64  `json:"limit"`
+	Window string `json:"window"`
+}
+
+// BillingRateInfo is the billing rate shape returned by the maas-api passthrough.
+type BillingRateInfo struct {
+	PerToken string `json:"per_token"`
+}
+
+// ModelRefInfo is a model reference with rate limits from the maas-api passthrough.
+type ModelRefInfo struct {
+	Name            string               `json:"name"`
+	Namespace       string               `json:"namespace,omitempty"`
+	TokenRateLimits []TokenRateLimitInfo `json:"token_rate_limits"`
+	BillingRate     *BillingRateInfo     `json:"billing_rate,omitempty"`
+}
+
+// SubscriptionListItem is the sanitised subscription view from the maas-api /v1/subscriptions passthrough.
+type SubscriptionListItem struct {
+	SubscriptionIDHeader    string            `json:"subscription_id_header"`
+	SubscriptionDescription string            `json:"subscription_description"`
+	DisplayName             string            `json:"display_name,omitempty"`
+	Priority                int32             `json:"priority"`
+	ModelRefs               []ModelRefInfo    `json:"model_refs"`
+	OrganizationID          string            `json:"organization_id,omitempty"`
+	CostCenter              string            `json:"cost_center,omitempty"`
+	Labels                  map[string]string `json:"labels,omitempty"`
+}
+
 // GroupReference references a Kubernetes group by name.
 type GroupReference struct {
 	Name string `json:"name"`
@@ -43,6 +74,8 @@ type TokenMetadata struct {
 type MaaSSubscription struct {
 	Name              string                 `json:"name"`
 	Namespace         string                 `json:"namespace"`
+	DisplayName       string                 `json:"displayName,omitempty"`
+	Description       string                 `json:"description,omitempty"`
 	Phase             string                 `json:"phase,omitempty"`
 	Priority          int32                  `json:"priority,omitempty"`
 	Owner             OwnerSpec              `json:"owner"`
@@ -80,11 +113,13 @@ type ModelReference struct {
 
 // MaaSModelRefSummary is the BFF representation of a MaaSModelRef CR.
 type MaaSModelRefSummary struct {
-	Name      string         `json:"name"`
-	Namespace string         `json:"namespace"`
-	ModelRef  ModelReference `json:"modelRef"`
-	Phase     string         `json:"phase,omitempty"`
-	Endpoint  string         `json:"endpoint,omitempty"`
+	Name        string         `json:"name"`
+	Namespace   string         `json:"namespace"`
+	DisplayName string         `json:"displayName,omitempty"`
+	Description string         `json:"description,omitempty"`
+	ModelRef    ModelReference `json:"modelRef"`
+	Phase       string         `json:"phase,omitempty"`
+	Endpoint    string         `json:"endpoint,omitempty"`
 }
 
 // CreateSubscriptionRequest is the request body for creating a new subscription.

@@ -1,8 +1,8 @@
 # Llama Stack Configuration
 version: "2"
-image_name: rh
+distro_name: rh
 apis:
-- agents
+- responses
 - datasetio
 - files
 - inference
@@ -51,9 +51,9 @@ providers:
       orchestrator_url: ${env.FMS_ORCHESTRATOR_URL:=http://localhost}
       ssl_cert_path: ${env.FMS_SSL_CERT_PATH:=}
       shields: {}
-  agents:
-  - provider_id: meta-reference
-    provider_type: inline::meta-reference
+  responses:
+  - provider_id: builtin
+    provider_type: inline::builtin
     config:
       persistence:
         agent_state:
@@ -62,6 +62,8 @@ providers:
         responses:
           table_name: responses
           backend: sql_default
+          max_write_queue_size: 10000
+          num_writers: 4
   eval: []
   files:
   - provider_id: meta-reference-files
@@ -98,8 +100,8 @@ providers:
       sqlite_db_path: /opt/app-root/src/.llama/distributions/rh/trace_store.db
       otel_exporter_otlp_endpoint: ${env.OTEL_EXPORTER_OTLP_ENDPOINT:=}
   tool_runtime:
-  - provider_id: rag-runtime
-    provider_type: inline::rag-runtime
+  - provider_id: file-search
+    provider_type: inline::file-search
     config: {}
   - provider_id: model-context-protocol
     provider_type: remote::model-context-protocol
@@ -153,13 +155,10 @@ registered_resources:
       provider_id: maas-vllm-inference-1
       model_type: llm
   shields: []
-  vector_dbs: []
+  vector_stores: []
   datasets: []
   scoring_fns: []
   benchmarks: []
-  tool_groups:
-    - toolgroup_id: builtin::rag
-      provider_id: rag-runtime
 external_providers_dir: /opt/app-root/.llama/providers.d
 server:
   port: 8321

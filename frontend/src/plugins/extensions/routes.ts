@@ -120,7 +120,7 @@ const extensions: RouteExtension[] = [
   {
     type: 'app.route',
     properties: {
-      path: '/ai-hub/deployments/*',
+      path: '/ai-hub/models/deployments/*',
       component: () => import('#~/pages/modelServing/ModelServingRoutes'),
     },
     flags: {
@@ -131,7 +131,10 @@ const extensions: RouteExtension[] = [
     type: 'app.route',
     properties: {
       path: '/modelServing/*',
-      component: createRedirectComponent({ from: '/modelServing/*', to: '/ai-hub/deployments/*' }),
+      component: createRedirectComponent({
+        from: '/modelServing/*',
+        to: '/ai-hub/models/deployments/*',
+      }),
     },
     flags: {
       disallowed: [SupportedArea.PLUGIN_MODEL_SERVING],

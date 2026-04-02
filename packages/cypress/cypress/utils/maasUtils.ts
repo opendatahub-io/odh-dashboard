@@ -1,10 +1,15 @@
+/* eslint-disable camelcase */
 import type { Tier, TierLimits } from '@odh-dashboard/maas/types/tier';
 import type {
   APIKey,
   CreateAPIKeyResponse,
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
-import type { MaaSSubscription } from '@odh-dashboard/maas/types/subscriptions';
+import type {
+  MaaSSubscription,
+  SubscriptionInfoResponse,
+  UserSubscription,
+} from '@odh-dashboard/maas/types/subscriptions';
 
 // Standardized tier templates - use these directly or as building blocks
 export const MOCK_TIERS: Record<'free' | 'premium' | 'enterprise', Tier> = {
@@ -102,6 +107,7 @@ export const mockCreateAPIKeyRequest = (): CreateAPIKeyRequest => {
     name: 'production-backend',
     description: 'Production API key for backend service',
     expiresIn: '168h', // 7 days in hours
+    subscription: 'premium-team-sub',
   };
 };
 
@@ -150,6 +156,42 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
   },
 ];
 
+export const mockSubscriptionListItems = (): UserSubscription[] => [
+  {
+    subscription_id_header: 'premium-team-sub',
+    subscription_description: 'Premium Team Subscription',
+    display_name: 'Premium Team',
+    priority: 10,
+    cost_center: 'engineering',
+    organization_id: 'org-123',
+    model_refs: [
+      {
+        name: 'granite-3-8b-instruct',
+        namespace: 'maas-models',
+        token_rate_limits: [{ limit: 100000, window: '24h' }],
+      },
+      {
+        name: 'flan-t5-small',
+        namespace: 'maas-models',
+        token_rate_limits: [{ limit: 200000, window: '24h' }],
+      },
+    ],
+  },
+  {
+    subscription_id_header: 'basic-team-sub',
+    subscription_description: 'Basic Team Subscription',
+    display_name: 'Basic Team',
+    priority: 1,
+    model_refs: [
+      {
+        name: 'flan-t5-small',
+        namespace: 'maas-models',
+        token_rate_limits: [{ limit: 10000, window: '24h' }],
+      },
+    ],
+  },
+];
+
 export const mockTier = ({
   name = 'free',
   displayName,
@@ -175,5 +217,34 @@ export const mockTier = ({
     level,
     groups,
     limits,
+  };
+};
+
+export const mockSubscriptionInfo = (name = 'premium-team-sub'): SubscriptionInfoResponse => {
+  const subscription = mockSubscriptions().find((s) => s.name === name) ?? mockSubscriptions()[0];
+  return {
+    subscription,
+    modelRefs: subscription.modelRefs.map((ref) => ({
+      name: ref.name,
+      namespace: ref.namespace,
+      displayName: `${ref.name} Display`,
+      modelRef: { kind: 'LLMInferenceService', name: ref.name },
+      phase: 'Ready',
+      endpoint: `https://${ref.name}.example.com`,
+    })),
+    authPolicies: [
+      {
+        name: `${name}-policy`,
+        namespace: subscription.namespace,
+        phase: 'Active',
+        modelRefs: subscription.modelRefs.map((ref) => ({
+          name: ref.name,
+          namespace: ref.namespace,
+        })),
+        subjects: {
+          groups: subscription.owner.groups,
+        },
+      },
+    ],
   };
 };
