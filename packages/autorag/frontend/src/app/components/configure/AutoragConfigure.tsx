@@ -164,7 +164,7 @@ function AutoragConfigure(): React.JSX.Element {
   const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>();
   const [isInputDataFileUploading, setIsInputDataFileUploading] = useState(false);
   const [isInputDataDropdownOpen, setIsInputDataDropdownOpen] = useState(false);
-  const inputDataSourceModeRef = useRef<'select' | 'upload'>(inputDataSourceMode);
+  const inputDataUploadSeqRef = useRef(0);
   const inputDataNativeInputRef = useRef<HTMLInputElement>(null);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
@@ -194,7 +194,6 @@ function AutoragConfigure(): React.JSX.Element {
     ],
   });
 
-  inputDataSourceModeRef.current = inputDataSourceMode;
   const showInputDataUploadDropzone = !isInputDataFileUploading && !inputDataKey.trim();
 
   const { data: allModelsData } = useLlamaStackModelsQuery(namespace ?? '', llamaStackSecretName);
@@ -251,9 +250,10 @@ function AutoragConfigure(): React.JSX.Element {
 
   // reset input data key if document input mode changes
   useEffect(() => {
+    inputDataUploadSeqRef.current += 1;
     setIsInputDataFileUploading(false);
-    setSelectedInputDataFile(undefined);
     setValue('input_data_key', '', { shouldValidate: true });
+    setSelectedInputDataFile(undefined);
   }, [inputDataSourceMode, setValue]);
 
   // ensure input and test have the same secret and bucket
@@ -268,6 +268,7 @@ function AutoragConfigure(): React.JSX.Element {
 
   // reset selected file values if input secret or bucket changes
   useEffect(() => {
+    inputDataUploadSeqRef.current += 1;
     setIsInputDataFileUploading(false);
     setValue('input_data_key', '', { shouldValidate: true });
     setSelectedInputDataFile(undefined);
@@ -307,6 +308,7 @@ function AutoragConfigure(): React.JSX.Element {
         );
         return;
       }
+      const uploadRequestId = ++inputDataUploadSeqRef.current;
       setValue('input_data_key', '', { shouldValidate: true });
       setIsInputDataDropdownOpen(false);
       setIsInputDataFileUploading(true);
@@ -318,14 +320,18 @@ function AutoragConfigure(): React.JSX.Element {
           key: file.name,
           file,
         });
-        if (inputDataSourceModeRef.current !== 'upload') {
+        if (uploadRequestId !== inputDataUploadSeqRef.current) {
           return;
         }
         setValue('input_data_key', uploadResult.key, { shouldValidate: true });
       } catch (err) {
-        notification.error('Failed to upload file', err instanceof Error ? err.message : '');
+        if (uploadRequestId === inputDataUploadSeqRef.current) {
+          notification.error('Failed to upload file', err instanceof Error ? err.message : '');
+        }
       } finally {
-        setIsInputDataFileUploading(false);
+        if (uploadRequestId === inputDataUploadSeqRef.current) {
+          setIsInputDataFileUploading(false);
+        }
       }
     },
     [inputDataBucketName, inputDataSecretName, namespace, notification, setValue, uploadFileToS3],
