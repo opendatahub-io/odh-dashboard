@@ -42,6 +42,7 @@ module.exports = merge(
     optimization: {
       minimize: true,
       minimizer: [new TerserJSPlugin(), new CssMinimizerPlugin()],
+      concatenateModules: false,
     },
     plugins: [
       new MiniCssExtractPlugin({
