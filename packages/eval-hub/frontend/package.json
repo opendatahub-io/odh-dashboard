@@ -105,7 +105,7 @@
     "@patternfly/react-table": "^6.3.1",
     "@patternfly/react-templates": "^6.3.1",
     "classnames": "^2.2.6",
-    "dompurify": "^3.2.4",
+    "dompurify": "^3.3.2",
     "lodash-es": "^4.17.15",
     "mod-arch-core": "^1.2.2",
     "react": "^18",
