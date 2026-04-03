@@ -198,8 +198,11 @@ func sanitizeURL(rawURL string) string {
 
 func normalizeTrackingURL(rawURL string) (string, error) {
 	parsed, err := url.Parse(strings.TrimSpace(rawURL))
-	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-		return "", fmt.Errorf("invalid MLflow URL")
+	if err != nil {
+		return "", fmt.Errorf("invalid MLflow URL: %w", err)
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return "", fmt.Errorf("invalid MLflow URL: missing scheme or host")
 	}
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
 		return "", fmt.Errorf("unsupported MLflow URL scheme %q", parsed.Scheme)
