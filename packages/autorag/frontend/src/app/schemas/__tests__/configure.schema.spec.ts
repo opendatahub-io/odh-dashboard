@@ -5,14 +5,14 @@ describe('Configure Schema', () => {
   const schema = createConfigureSchema();
 
   describe('Default values', () => {
-    it('should set llama_stack_vector_database_id to empty string by default', () => {
+    it('should set llama_stack_vector_io_provider_id to empty string by default', () => {
       const { defaults } = schema;
-      expect(defaults.llama_stack_vector_database_id).toBe('');
+      expect(defaults.llama_stack_vector_io_provider_id).toBe('');
     });
   });
 
   describe('Validation', () => {
-    it('should reject empty llama_stack_vector_database_id', () => {
+    it('should reject empty llama_stack_vector_io_provider_id', () => {
       const data = {
         display_name: 'Test Run',
         input_data_secret_name: 'input-secret',
@@ -22,7 +22,7 @@ describe('Configure Schema', () => {
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
         llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_database_id: '',
+        llama_stack_vector_io_provider_id: '',
         generation_models: ['gpt-4'],
         embeddings_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -35,7 +35,7 @@ describe('Configure Schema', () => {
   });
 
   describe('Transformers', () => {
-    it('should keep llama_stack_vector_database_id when set to a provider', () => {
+    it('should keep llama_stack_vector_io_provider_id when set to a provider', () => {
       const data = {
         display_name: 'Test Run',
         description: 'Test description',
@@ -46,7 +46,7 @@ describe('Configure Schema', () => {
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
         llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_database_id: 'ls_milvus',
+        llama_stack_vector_io_provider_id: 'ls_milvus',
         generation_models: ['gpt-4'],
         embeddings_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -55,7 +55,7 @@ describe('Configure Schema', () => {
 
       const result = schema.full.parse(data);
 
-      expect(result.llama_stack_vector_database_id).toBe('ls_milvus');
+      expect(result.llama_stack_vector_io_provider_id).toBe('ls_milvus');
     });
 
     it('should remove empty description', () => {
@@ -69,7 +69,7 @@ describe('Configure Schema', () => {
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
         llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_database_id: 'ls_milvus',
+        llama_stack_vector_io_provider_id: 'ls_milvus',
         generation_models: ['gpt-4'],
         embeddings_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -92,7 +92,7 @@ describe('Configure Schema', () => {
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
         llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_database_id: 'ls_milvus',
+        llama_stack_vector_io_provider_id: 'ls_milvus',
         generation_models: ['gpt-4'],
         embeddings_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
