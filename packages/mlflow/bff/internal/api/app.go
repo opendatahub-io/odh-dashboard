@@ -199,7 +199,7 @@ func sanitizeURL(rawURL string) string {
 func normalizeTrackingURL(rawURL string) (string, error) {
 	parsed, err := url.Parse(strings.TrimSpace(rawURL))
 	if err != nil {
-		return "", fmt.Errorf("invalid MLflow URL: %w", err)
+		return "", fmt.Errorf("invalid MLflow URL: %s", sanitizeURL(rawURL))
 	}
 	if parsed.Scheme == "" || parsed.Host == "" {
 		return "", fmt.Errorf("invalid MLflow URL: missing scheme or host")
@@ -218,7 +218,7 @@ func resolveMLflowURL(cfg config.EnvConfig, logger *slog.Logger) string {
 	if cfg.MLflowURL != "" {
 		normalized, err := normalizeTrackingURL(cfg.MLflowURL)
 		if err != nil {
-			logger.Warn("Configured MLflow URL is invalid, MLflow endpoints will return 503", slog.Any("error", err))
+			logger.Warn("Configured MLflow URL is invalid, MLflow endpoints will return 503", slog.String("url", sanitizeURL(cfg.MLflowURL)))
 			return ""
 		}
 		logger.Info("Using MLflow URL from configuration", slog.String("url", sanitizeURL(normalized)))
@@ -239,7 +239,7 @@ func resolveMLflowURL(cfg config.EnvConfig, logger *slog.Logger) string {
 	}
 	normalized, err := normalizeTrackingURL(discoveredURL)
 	if err != nil {
-		logger.Warn("Discovered MLflow URL is invalid, MLflow endpoints will return 503", slog.Any("error", err))
+		logger.Warn("Discovered MLflow URL is invalid, MLflow endpoints will return 503", slog.String("url", sanitizeURL(discoveredURL)))
 		return ""
 	}
 	logger.Info("Discovered MLflow URL from CR", slog.String("url", sanitizeURL(normalized)))
