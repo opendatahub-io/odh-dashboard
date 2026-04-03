@@ -45,6 +45,7 @@ import QuickStarts from './QuickStarts';
 import SessionExpiredModal from './SessionExpiredModal';
 import DevFeatureFlagsBanner from './featureFlags/DevFeatureFlagsBanner';
 import useDevFeatureFlags from './featureFlags/useDevFeatureFlags';
+import ThemeSelectorWidget from './ThemeSelectorWidget';
 
 import './App.scss';
 
@@ -195,6 +196,7 @@ const App: React.FC = () => {
                 <TelemetrySetup />
               </ErrorBoundary>
             </Page>
+            <ThemeSelectorWidget />
           </AccessReviewProvider>
         </AreaContextProvider>
       </AppContext.Provider>
