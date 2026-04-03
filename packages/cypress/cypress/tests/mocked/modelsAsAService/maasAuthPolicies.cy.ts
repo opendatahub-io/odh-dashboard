@@ -35,7 +35,7 @@ describe('MaaS Auth Policies', () => {
   });
 
   it('should display the auth policies table with correct page content', () => {
-    authPoliciesPage.findTitle().should('contain.text', 'Auth Policies');
+    authPoliciesPage.findTitle().should('contain.text', 'Policies');
     authPoliciesPage.findTable().should('exist');
     authPoliciesPage.findRows().should('have.length', 2);
     const premiumRow = authPoliciesPage.getRow('premium-team-policy');
@@ -53,7 +53,7 @@ describe('MaaS Auth Policies', () => {
       { path: { name: 'premium-team-policy' } },
       { data: { message: "MaaSAuthPolicy 'premium-team-policy' deleted successfully" } },
     ).as('deleteAuthPolicy');
-    authPoliciesPage.getRow('premium-team-policy').findKebabAction('Delete auth policy').click();
+    authPoliciesPage.getRow('premium-team-policy').findKebabAction('Delete policy').click();
     deleteAuthPolicyModal.findInput().type('premium-team-policy');
     deleteAuthPolicyModal.findSubmitButton().click();
     cy.wait('@deleteAuthPolicy').then((response) => {

@@ -3,8 +3,8 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 
 const ViewAuthPoliciesPage: React.FC = () => (
   <ApplicationsPage
-    title="View Auth Policy"
-    description="View an existing auth policy."
+    title="View Policy"
+    description="View an existing policy."
     empty={false}
     loaded
   />

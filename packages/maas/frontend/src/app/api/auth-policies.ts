@@ -7,6 +7,7 @@ import {
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
+import { isMaaSAuthPolicy } from './subscriptions';
 
 /** GET /api/v1/all-policies - List all policies */
 export const listAuthPolicies =
@@ -15,7 +16,7 @@ export const listAuthPolicies =
     handleRestFailures(
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/all-policies`, {}, opts),
     ).then((response) => {
-      if (isModArchResponse<MaaSAuthPolicy[]>(response)) {
+      if (isModArchResponse<MaaSAuthPolicy[]>(response) && response.data.every(isMaaSAuthPolicy)) {
         return response.data;
       }
       throw new Error('Invalid response format');

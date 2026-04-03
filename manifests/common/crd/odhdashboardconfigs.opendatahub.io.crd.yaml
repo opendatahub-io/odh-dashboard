@@ -111,6 +111,8 @@ spec:
                       type: boolean
                     modelAsService:
                       type: boolean
+                    maasAuthPolicies:
+                      type: boolean
                     aiAssetCustomEndpoints:
                       type: boolean
                     externalVectorStores:

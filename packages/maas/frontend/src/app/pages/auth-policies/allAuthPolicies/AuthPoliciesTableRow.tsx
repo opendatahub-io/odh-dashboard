@@ -60,11 +60,11 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
               onClick: () => onViewDetailsAuthPolicy(authPolicy.name),
             },
             {
-              title: 'Edit auth policy',
+              title: 'Edit policy',
               onClick: () => onEditAuthPolicy(authPolicy.name),
             },
             {
-              title: 'Delete auth policy',
+              title: 'Delete policy',
               onClick: () => onDeleteAuthPolicy(authPolicy),
             },
           ]}

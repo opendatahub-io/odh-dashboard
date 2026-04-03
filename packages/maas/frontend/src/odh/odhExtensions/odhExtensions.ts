@@ -45,7 +45,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     },
     properties: {
       id: 'maas-auth-policies-view',
-      title: 'Auth Policies',
+      title: 'Policies',
       href: '/maas/auth-policies',
       section: 'settings',
       path: '/maas/auth-policies/*',

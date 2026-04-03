@@ -67,7 +67,7 @@ export type MaaSModelRefSummary = {
 };
 
 export type SubjectSpec = {
-  groups: GroupReference[];
+  groups?: GroupReference[];
 };
 
 export type SubscriptionPolicyFormDataResponse = {

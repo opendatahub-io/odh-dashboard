@@ -15,7 +15,7 @@ const AllAuthPoliciesPage: React.FC = () => {
   );
   return (
     <ApplicationsPage
-      title="Auth Policies"
+      title="Policies"
       empty={loaded && !error && authPolicies.length === 0}
       emptyStatePage={<EmptyAuthPoliciesPage />}
       loaded={loaded}

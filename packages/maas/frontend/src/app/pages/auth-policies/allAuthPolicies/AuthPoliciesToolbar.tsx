@@ -16,7 +16,7 @@ const AuthPoliciesToolbar: React.FC = () => {
             data-testid="create-auth-policy-button"
             icon={<PlusIcon />}
           >
-            Create Auth Policy
+            Create Policy
           </Button>
         </ToolbarItem>
       </ToolbarContent>

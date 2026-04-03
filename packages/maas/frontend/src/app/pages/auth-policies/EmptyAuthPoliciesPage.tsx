@@ -10,16 +10,16 @@ const EmptyAuthPoliciesPage: React.FC = () => {
   return (
     <>
       <EmptyDetailsView
-        title="No Auth Policies"
-        description="To get started, create an auth policy."
-        imageAlt="create an auth policy"
+        title="No Policies"
+        description="To get started, create a policy."
+        imageAlt="create a policy"
         createButton={
           <Button
             variant="primary"
             onClick={() => navigate(`${URL_PREFIX}/auth-policies/create`)}
             data-testid="create-auth-policy-button"
           >
-            Create Auth Policy
+            Create Policy
           </Button>
         }
       />

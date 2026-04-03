@@ -11,7 +11,7 @@ export const authPoliciesColumns: SortableData<MaaSAuthPolicy>[] = [
     label: 'Groups',
     field: 'subjects.groups',
     sortable: (a: MaaSAuthPolicy, b: MaaSAuthPolicy): number =>
-      a.subjects.groups.length - b.subjects.groups.length,
+      (a.subjects.groups?.length ?? 0) - (b.subjects.groups?.length ?? 0),
   },
   {
     label: 'Models',
