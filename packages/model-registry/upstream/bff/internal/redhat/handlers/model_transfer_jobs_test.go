@@ -44,7 +44,7 @@ type fakeTransferJobsScopedClient struct {
 	jobs *batchv1.JobList
 }
 
-func (f *fakeTransferJobsScopedClient) GetAllModelTransferJobs(_ context.Context, _ string, _ string) (*batchv1.JobList, error) {
+func (f *fakeTransferJobsScopedClient) GetAllModelTransferJobs(_ context.Context, _ string, _ string, _ string) (*batchv1.JobList, error) {
 	return f.jobs, nil
 }
 
@@ -340,7 +340,7 @@ func TestProjectScopedClientCombinesJobsFromNamespaces(t *testing.T) {
 		namespaces:    []string{"ns-a", "ns-b", "ns-c"},
 	}
 
-	jobList, err := scopedClient.GetAllModelTransferJobs(context.Background(), "ignored-ns", "test-registry")
+	jobList, err := scopedClient.GetAllModelTransferJobs(context.Background(), "ignored-ns", "test-registry", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -363,7 +363,7 @@ func TestProjectScopedClientSkipsInaccessibleNamespaces(t *testing.T) {
 		namespaces:    []string{"ns-a", "ns-b"},
 	}
 
-	jobList, err := scopedClient.GetAllModelTransferJobs(context.Background(), "ignored-ns", "test-registry")
+	jobList, err := scopedClient.GetAllModelTransferJobs(context.Background(), "ignored-ns", "test-registry", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -380,7 +380,7 @@ func TestProjectScopedClientReturnsEmptyForEmptyModelRegistryID(t *testing.T) {
 		namespaces: []string{"ns-a"},
 	}
 
-	jobList, err := scopedClient.GetAllModelTransferJobs(context.Background(), "ns", "")
+	jobList, err := scopedClient.GetAllModelTransferJobs(context.Background(), "ns", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

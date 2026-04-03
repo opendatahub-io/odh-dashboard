@@ -97,7 +97,10 @@ func overrideModelTransferJobsList(app *api.App, buildDefault func() httprouter.
 		}
 
 		// Use the upstream repository for the full job conversion/enrichment logic.
-		transferJobs, err := app.Repositories().ModelRegistry.GetAllModelTransferJobs(ctx, scopedClient, namespace, modelRegistryID)
+		// Pass a non-empty jobNamespace to skip the repository's cluster-wide permission check.
+		// The projectScopedClient already scopes job listing to the user's accessible namespaces,
+		// so the upstream permission gate is unnecessary. The value is ignored by the scoped client.
+		transferJobs, err := app.Repositories().ModelRegistry.GetAllModelTransferJobs(ctx, scopedClient, namespace, modelRegistryID, "project-scoped")
 		if err != nil {
 			app.ServerError(w, r, err)
 			return
@@ -146,7 +149,7 @@ func newProjectScopedClient(original k8s.KubernetesClientInterface, bearerToken 
 
 // GetAllModelTransferJobs overrides the interface method to list jobs from the user's
 // accessible namespaces rather than requiring cluster-wide permission.
-func (c *projectScopedClient) GetAllModelTransferJobs(ctx context.Context, _ string, modelRegistryID string) (*batchv1.JobList, error) {
+func (c *projectScopedClient) GetAllModelTransferJobs(ctx context.Context, _ string, modelRegistryID string, _ string) (*batchv1.JobList, error) {
 	if modelRegistryID == "" {
 		return &batchv1.JobList{}, nil
 	}
