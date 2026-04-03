@@ -112,7 +112,7 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
             toggleProps={{
               ...(externalData?.loadError && { status: 'warning' }),
             }}
-            dataTestId="model-type-select"
+            dataTestId="gateway-select"
             isDisabled={isDisabled}
             autoSelectOnlyOption={false}
           />

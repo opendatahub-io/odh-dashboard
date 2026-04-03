@@ -42,7 +42,7 @@ describe('GatewaySelectFieldComponent', () => {
 
   const openDropdown = async () => {
     await act(async () => {
-      fireEvent.click(screen.getByTestId('model-type-select'));
+      fireEvent.click(screen.getByTestId('gateway-select'));
     });
   };
 
@@ -86,7 +86,7 @@ describe('GatewaySelectFieldComponent', () => {
         externalData: { data: gateways, loaded: true },
       });
 
-      expect(screen.getByTestId('model-type-select')).toHaveTextContent('gw-alpha | ns-1');
+      expect(screen.getByTestId('gateway-select')).toHaveTextContent('gw-alpha | ns-1');
     });
 
     it('should show placeholder when nothing is selected', () => {
@@ -94,7 +94,7 @@ describe('GatewaySelectFieldComponent', () => {
         externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
       });
 
-      expect(screen.getByTestId('model-type-select')).toHaveTextContent('Select a gateway');
+      expect(screen.getByTestId('gateway-select')).toHaveTextContent('Select a gateway');
     });
   });
 
@@ -179,7 +179,7 @@ describe('GatewaySelectFieldComponent', () => {
         },
       });
 
-      expect(screen.getByTestId('model-type-select')).toHaveClass('pf-m-warning');
+      expect(screen.getByTestId('gateway-select')).toHaveClass('pf-m-warning');
       expect(screen.getByText(/Gateway discovery failed\./)).toBeInTheDocument();
       expect(
         screen.getByText(/Ensure "model-serving-api" service is healthy and accessible\./),
