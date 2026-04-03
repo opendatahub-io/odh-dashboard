@@ -62,14 +62,14 @@ describe('Subscriptions Page', () => {
 
     const premiumRow = subscriptionsPage.getRow('premium-team-sub');
     premiumRow.findName().should('contain.text', 'premium-team-sub');
-    premiumRow.findGroups().should('contain.text', '1 Groups');
+    premiumRow.findGroups().should('contain.text', '1 Group');
     premiumRow.findModels().should('contain.text', '2 Models');
     premiumRow.findPriority().should('contain.text', '10');
 
     const basicRow = subscriptionsPage.getRow('basic-team-sub');
     basicRow.findName().should('contain.text', 'basic-team-sub');
-    basicRow.findGroups().should('contain.text', '1 Groups');
-    basicRow.findModels().should('contain.text', '1 Models');
+    basicRow.findGroups().should('contain.text', '1 Group');
+    basicRow.findModels().should('contain.text', '1 Model');
     basicRow.findPriority().should('contain.text', '0');
 
     subscriptionsPage.findFilterInput().should('exist').type('premium');
@@ -85,7 +85,7 @@ describe('Subscriptions Page', () => {
     cy.interceptOdh(
       'DELETE /maas/api/v1/subscription/:name',
       { path: { name: 'premium-team-sub' } },
-      { message: "MaaSSubscription 'premium-team-sub' deleted successfully" },
+      { data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" } },
     ).as('deleteSubscription');
 
     subscriptionsPage.getRow('premium-team-sub').findKebabAction('Delete subscription').click();
@@ -98,7 +98,7 @@ describe('Subscriptions Page', () => {
     deleteSubscriptionModal.findSubmitButton().click();
     cy.wait('@deleteSubscription').then((response) => {
       expect(response.response?.body).to.deep.equal({
-        message: "MaaSSubscription 'premium-team-sub' deleted successfully",
+        data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" },
       });
     });
     subscriptionsPage.findRows().should('have.length', 1);
@@ -114,7 +114,7 @@ describe('View Subscription Page', () => {
     cy.interceptOdh(
       'GET /maas/api/v1/subscription-info/:name',
       { path: { name: subscriptionName } },
-      mockSubscriptionInfo(subscriptionName),
+      { data: mockSubscriptionInfo(subscriptionName) },
     );
   });
 

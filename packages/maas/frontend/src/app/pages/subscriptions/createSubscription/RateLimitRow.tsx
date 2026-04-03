@@ -44,7 +44,7 @@ export const RateLimitRow: React.FC<RateLimitRowProps> = ({
 }) => {
   const [unitDropdownOpen, setUnitDropdownOpen] = React.useState(false);
 
-  // Get the display label for the selected unit (e.g., "ms" for millisecond), falling back to the raw value
+  // Get the display label for the selected unit, falling back to the raw value
   const selectedUnitLabel =
     UNIT_OPTIONS.find((opt) => opt.value === rateLimit.unit)?.label ?? rateLimit.unit;
 

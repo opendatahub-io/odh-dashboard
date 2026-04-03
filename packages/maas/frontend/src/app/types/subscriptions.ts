@@ -145,5 +145,5 @@ export type UserSubscription = {
 export type RateLimit = {
   count: number;
   time: number;
-  unit: 'day' | 'hour' | 'minute' | 'second' | 'millisecond';
+  unit: 'day' | 'hour' | 'minute' | 'second';
 };

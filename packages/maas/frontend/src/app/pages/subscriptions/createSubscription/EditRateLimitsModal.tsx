@@ -26,7 +26,7 @@ const DEFAULT_RATE_LIMIT: RateLimit = { count: 1000, time: 1, unit: 'hour' };
 const rateLimitSchema = z.object({
   count: z.number().int().min(1, 'Token count must be greater than 0'),
   time: z.number().int().min(1, 'Time value must be greater than 0'),
-  unit: z.enum(['day', 'hour', 'minute', 'second', 'millisecond']),
+  unit: z.enum(['day', 'hour', 'minute', 'second']),
 });
 
 const rateLimitsSchema = z

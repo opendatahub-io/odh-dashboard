@@ -139,15 +139,17 @@ var _ = Describe("MaaSModelRefHandlers", Ordered, func() {
 			dryRunName := fmt.Sprintf("dry-run-model-%d", GinkgoRandomSeed())
 
 			// Dry-run create should succeed
-			actual, rs, err := setupApiTest[models.MaaSModelRefSummary](
+			actual, rs, err := setupApiTest[Envelope[*models.MaaSModelRefSummary, None]](
 				http.MethodPost,
 				"/api/v1/maasmodel?dryRun=true",
-				models.CreateMaaSModelRefRequest{
-					Name:      dryRunName,
-					Namespace: "maas-models",
-					ModelRef: models.ModelReference{
-						Kind: "LLMInferenceService",
-						Name: "dry-run-llm",
+				Envelope[models.CreateMaaSModelRefRequest, None]{
+					Data: models.CreateMaaSModelRefRequest{
+						Name:      dryRunName,
+						Namespace: "maas-models",
+						ModelRef: models.ModelReference{
+							Kind: "LLMInferenceService",
+							Name: "dry-run-llm",
+						},
 					},
 				},
 				k8Factory,
@@ -155,18 +157,20 @@ var _ = Describe("MaaSModelRefHandlers", Ordered, func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusCreated))
-			Expect(actual.Name).To(Equal(dryRunName))
+			Expect(actual.Data.Name).To(Equal(dryRunName))
 
 			// A subsequent real create should also succeed, showing the dry-run did not persist
-			_, rs2, err := setupApiTest[models.MaaSModelRefSummary](
+			_, rs2, err := setupApiTest[Envelope[*models.MaaSModelRefSummary, None]](
 				http.MethodPost,
 				"/api/v1/maasmodel",
-				models.CreateMaaSModelRefRequest{
-					Name:      dryRunName,
-					Namespace: "maas-models",
-					ModelRef: models.ModelReference{
-						Kind: "LLMInferenceService",
-						Name: "dry-run-llm",
+				Envelope[models.CreateMaaSModelRefRequest, None]{
+					Data: models.CreateMaaSModelRefRequest{
+						Name:      dryRunName,
+						Namespace: "maas-models",
+						ModelRef: models.ModelReference{
+							Kind: "LLMInferenceService",
+							Name: "dry-run-llm",
+						},
 					},
 				},
 				k8Factory,

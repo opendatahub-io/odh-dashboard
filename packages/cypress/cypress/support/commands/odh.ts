@@ -1138,12 +1138,12 @@ declare global {
         ((
           type: 'DELETE /maas/api/v1/subscription/:name',
           options: { path: { name: string } },
-          response: OdhResponse<{ message: string }>,
+          response: OdhResponse<{ data: { message: string } }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/subscription-info/:name',
           options: { path: { name: string } },
-          response: OdhResponse<SubscriptionInfoResponse>,
+          response: OdhResponse<{ data: SubscriptionInfoResponse }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/subscriptions',
@@ -1156,12 +1156,12 @@ declare global {
         ((
           type: 'DELETE /maas/api/v1/maasmodel/:namespace/:name',
           options: { path: { namespace: string; name: string } },
-          response: OdhResponse<{ message: string }>,
+          response: OdhResponse<{ data: { message: string } }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'PUT /maas/api/v1/maasmodel/:namespace/:name',
           options: { path: { namespace: string; name: string } },
-          response: OdhResponse<MaaSModelRef>,
+          response: OdhResponse<{ data: MaaSModelRef }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'POST /maas/api/v1/new-subscription',
