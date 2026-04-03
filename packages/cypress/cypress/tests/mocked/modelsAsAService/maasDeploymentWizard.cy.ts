@@ -124,16 +124,18 @@ describe('MaaS Deployment Wizard', () => {
     cy.interceptOdh(
       'DELETE /maas/api/v1/maasmodel/:namespace/:name',
       { path: { namespace: 'test-project', name: 'test-llm-inference-service' } },
-      { message: 'Deleted successfully' },
+      { data: { message: 'Deleted successfully' } },
     ).as('deleteMaaSModelRef');
     cy.interceptOdh(
       'PUT /maas/api/v1/maasmodel/:namespace/:name',
       { path: { namespace: '*', name: '*' } },
-      mockMaaSModelRef({
-        name: 'test-maas-model-ref',
-        namespace: 'test-project',
-        modelRef: { name: 'test-llm-inference-service', kind: 'LLMInferenceService' },
-      }),
+      {
+        data: mockMaaSModelRef({
+          name: 'test-maas-model-ref',
+          namespace: 'test-project',
+          modelRef: { name: 'test-llm-inference-service', kind: 'LLMInferenceService' },
+        }),
+      },
     ).as('updateMaaSModelRef');
   };
 
