@@ -38,7 +38,8 @@
   },
   "dependencies": {
     "@odh-dashboard/app-config": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "dompurify": "^3.3.2"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*"
