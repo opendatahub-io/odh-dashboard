@@ -113,7 +113,11 @@ func GetSubscriptionPolicyFormDataHandler(app *App, w http.ResponseWriter, r *ht
 	}
 	formData.Subscriptions = subscriptions
 
-	if err := app.WriteJSON(w, http.StatusOK, formData, nil); err != nil {
+	response := Envelope[*models.SubscriptionFormDataResponse, None]{
+		Data: formData,
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }

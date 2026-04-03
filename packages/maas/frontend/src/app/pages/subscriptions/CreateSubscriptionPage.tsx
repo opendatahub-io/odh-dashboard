@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { useSubscriptionFormData } from '~/app/hooks/useSubscriptionFormData';
+import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
 import CreateSubscriptionForm from './createSubscription/CreateSubscriptionForm';
 
 const CreateSubscriptionPage: React.FC = () => {
-  const [formData, loaded, error] = useSubscriptionFormData();
+  const [formData, loaded, error] = useSubscriptionPolicyFormData();
 
   return (
     <ApplicationsPage

@@ -161,7 +161,7 @@ describe('View Subscription Page', () => {
 describe('Subscription Create Page', () => {
   beforeEach(() => {
     setupCommonIntercepts();
-    cy.interceptOdh('GET /maas/api/v1/new-subscription', {
+    cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
       data: mockSubscriptionFormData(),
     });
     cy.interceptOdh('POST /maas/api/v1/new-subscription', {

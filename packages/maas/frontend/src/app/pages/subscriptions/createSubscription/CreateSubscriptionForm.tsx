@@ -29,7 +29,7 @@ import { getLowestAvailablePriority } from '~/app/utilities/subscriptions';
 import { createSubscription } from '~/app/api/subscriptions';
 import {
   MaaSModelRefSummary,
-  SubscriptionFormDataResponse,
+  SubscriptionPolicyFormDataResponse,
   SubscriptionModelEntry,
   CreateSubscriptionRequest,
   TokenRateLimit,
@@ -39,7 +39,7 @@ import AddModelsModal from './AddModelsModal';
 import EditRateLimitsModal from './EditRateLimitsModal';
 
 type CreateSubscriptionFormProps = {
-  formData: SubscriptionFormDataResponse;
+  formData: SubscriptionPolicyFormDataResponse;
 };
 
 const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formData }) => {
@@ -339,6 +339,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
           <AddModelsModal
             availableModelRefs={formData.modelRefs}
             allSubscriptions={formData.subscriptions}
+            allPolicies={formData.policies}
             currentModels={models}
             onAdd={handleAddModels}
             onRemove={handleRemoveModelsByRef}

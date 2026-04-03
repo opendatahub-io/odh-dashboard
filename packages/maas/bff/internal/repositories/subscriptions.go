@@ -231,8 +231,8 @@ func (r *SubscriptionsRepository) GetFormData(ctx context.Context) (*models.Subs
 	}
 
 	return &models.SubscriptionFormDataResponse{
-		Groups:        groups,
-		ModelRefs:     modelRefs,
+		Groups:    groups,
+		ModelRefs: modelRefs,
 	}, nil
 }
 

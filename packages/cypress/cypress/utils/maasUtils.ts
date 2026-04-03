@@ -8,8 +8,9 @@ import type {
   SubscriptionInfoResponse,
   UserSubscription,
   MaaSModelRefSummary,
-  SubscriptionFormDataResponse,
+  SubscriptionPolicyFormDataResponse,
   CreateSubscriptionResponse,
+  MaaSAuthPolicy,
 } from '@odh-dashboard/maas/types/subscriptions';
 
 export const mockAPIKeys = (): APIKey[] => [
@@ -220,10 +221,11 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
   },
 ];
 
-export const mockSubscriptionFormData = (): SubscriptionFormDataResponse => ({
+export const mockSubscriptionFormData = (): SubscriptionPolicyFormDataResponse => ({
   groups: ['system:authenticated', 'premium-users', 'enterprise-users', 'beta-testers'],
   modelRefs: mockModelRefSummaries(),
   subscriptions: mockSubscriptions(),
+  policies: mockAuthPolicies(),
 });
 
 export const mockCreateSubscriptionResponse = (): CreateSubscriptionResponse => ({
@@ -254,3 +256,13 @@ export const mockCreateSubscriptionResponse = (): CreateSubscriptionResponse => 
     subjects: { groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }] },
   },
 });
+
+export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
+  {
+    name: 'test-subscription-policy',
+    namespace: 'maas-system',
+    phase: 'Active',
+    modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+    subjects: { groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }] },
+  },
+];

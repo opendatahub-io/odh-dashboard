@@ -70,10 +70,11 @@ export type SubjectSpec = {
   groups: GroupReference[];
 };
 
-export type SubscriptionFormDataResponse = {
+export type SubscriptionPolicyFormDataResponse = {
   groups: string[];
   modelRefs: MaaSModelRefSummary[];
   subscriptions: MaaSSubscription[];
+  policies: MaaSAuthPolicy[];
 };
 
 export type CreateSubscriptionRequest = {
@@ -92,6 +93,8 @@ export type CreateSubscriptionResponse = {
 };
 
 export type MaaSAuthPolicy = {
+  displayName?: string;
+  description?: string;
   name: string;
   namespace: string;
   phase?: string;

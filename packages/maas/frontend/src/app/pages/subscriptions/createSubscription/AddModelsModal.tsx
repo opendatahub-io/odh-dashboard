@@ -12,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Tbody, Td, ThProps } from '@patternfly/react-table';
 import {
+  MaaSAuthPolicy,
   MaaSModelRefSummary,
   MaaSSubscription,
   SubscriptionModelEntry,
@@ -20,6 +21,7 @@ import {
 type AddModelsModalProps = {
   availableModelRefs: MaaSModelRefSummary[];
   allSubscriptions: MaaSSubscription[];
+  allPolicies: MaaSAuthPolicy[];
   currentModels: SubscriptionModelEntry[];
   onAdd: (refs: MaaSModelRefSummary[]) => void;
   onRemove: (refs: MaaSModelRefSummary[]) => void;
@@ -33,6 +35,7 @@ const modelRefKey = (namespace: string, name: string): string => `${namespace}/$
 const AddModelsModal: React.FC<AddModelsModalProps> = ({
   availableModelRefs,
   allSubscriptions,
+  allPolicies,
   currentModels,
   onAdd,
   onRemove,
@@ -64,6 +67,19 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
     });
     return map;
   }, [allSubscriptions]);
+
+  const policiesByModel = React.useMemo(() => {
+    const map = new Map<string, string[]>();
+    allPolicies.forEach((policy) => {
+      policy.modelRefs.forEach((ref) => {
+        const key = modelRefKey(ref.namespace, ref.name);
+        const existing = map.get(key) ?? [];
+        existing.push(policy.displayName ?? policy.name);
+        map.set(key, existing);
+      });
+    });
+    return map;
+  }, [allPolicies]);
 
   const isInSubscription = (ref: MaaSModelRefSummary) => {
     const key = modelRefKey(ref.namespace, ref.name);
@@ -202,6 +218,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                   <Th sort={getSortParams('namespace')}>Project</Th>
                   <Th sort={getSortParams('modelId')}>Model ID</Th>
                   <Th>Subscriptions</Th>
+                  <Th>Policies</Th>
                   <Th screenReaderText="Actions" />
                 </Tr>
               </Thead>
@@ -210,6 +227,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                   const key = modelRefKey(ref.namespace, ref.name);
                   const inSub = isInSubscription(ref);
                   const subs = subscriptionsByModel.get(key) ?? [];
+                  const policies = policiesByModel.get(key) ?? [];
 
                   return (
                     <Tr key={key}>
@@ -231,6 +249,12 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                         ))}
                         {!inSub && subs.length === 0 && 'None'}
                       </Td>
+                      <Td dataLabel="Policies">
+                        {policies.map((policy) => (
+                          <div key={policy}>{policy}</div>
+                        ))}
+                        {policies.length === 0 && 'None'}
+                      </Td>
                       <Td isActionCell style={{ textAlign: 'center' }}>
                         <Button
                           variant={inSub ? 'secondary' : 'link'}
@@ -246,7 +270,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                 })}
                 {filteredModels.length === 0 && (
                   <Tr>
-                    <Td colSpan={5}>No models match the filter criteria.</Td>
+                    <Td colSpan={6}>No models match the filter criteria.</Td>
                   </Tr>
                 )}
               </Tbody>

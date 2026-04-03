@@ -19,7 +19,7 @@ import {
   ModelSubscriptionRef,
   OwnerSpec,
   SubjectSpec,
-  SubscriptionFormDataResponse,
+  SubscriptionPolicyFormDataResponse,
   SubscriptionInfoResponse,
   TokenRateLimit,
   UserSubscription,
@@ -131,14 +131,18 @@ const isUserSubscription = (v: unknown): v is UserSubscription =>
 const isUserSubscriptionArray = (v: unknown): v is UserSubscription[] =>
   Array.isArray(v) && v.every(isUserSubscription);
 
-const isSubscriptionFormDataResponse = (v: unknown): v is SubscriptionFormDataResponse =>
+const isSubscriptionPolicyFormDataResponse = (
+  v: unknown,
+): v is SubscriptionPolicyFormDataResponse =>
   isRecord(v) &&
   Array.isArray(v.groups) &&
   v.groups.every((g: unknown) => typeof g === 'string') &&
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isMaaSModelRefSummary) &&
   Array.isArray(v.subscriptions) &&
-  v.subscriptions.every(isMaaSSubscription);
+  v.subscriptions.every(isMaaSSubscription) &&
+  Array.isArray(v.policies) &&
+  v.policies.every(isMaaSAuthPolicy);
 
 const isCreateSubscriptionResponse = (v: unknown): v is CreateSubscriptionResponse =>
   isRecord(v) &&
@@ -199,13 +203,21 @@ export const getSubscriptionInfo =
       throw new Error('Invalid response format');
     });
 
-export const getSubscriptionFormData =
+export const getSubscriptionPolicyFormData =
   (hostPath = '') =>
-  (opts: APIOptions): Promise<SubscriptionFormDataResponse> =>
+  (opts: APIOptions): Promise<SubscriptionPolicyFormDataResponse> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/new-subscription`, {}, opts),
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/subscription-policy-form-data`,
+        {},
+        opts,
+      ),
     ).then((response) => {
-      if (isModArchResponse<unknown>(response) && isSubscriptionFormDataResponse(response.data)) {
+      if (
+        isModArchResponse<unknown>(response) &&
+        isSubscriptionPolicyFormDataResponse(response.data)
+      ) {
         return {
           ...response.data,
           subscriptions: response.data.subscriptions.map(normalizeSubscription),
