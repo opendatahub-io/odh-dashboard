@@ -302,7 +302,7 @@ const mockWorkloads = mockTrainJobs.map((job) => {
   if (jobStatus === TrainingJobState.FAILED) {
     workloadStatus = WorkloadStatusType.Failed;
   } else if (jobStatus === TrainingJobState.SUCCEEDED) {
-    workloadStatus = WorkloadStatusType.Succeeded;
+    workloadStatus = WorkloadStatusType.Complete;
   } else if (jobStatus === TrainingJobState.PENDING) {
     workloadStatus = WorkloadStatusType.Pending;
   } else if (jobStatus === TrainingJobState.PAUSED) {

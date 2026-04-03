@@ -529,7 +529,7 @@ export const AccessModeLabelMap: Record<AccessMode, string> = {
 };
 
 export enum NotebookStatusLabel {
-  Running = 'Running',
+  Ready = 'Ready',
   Starting = 'Starting',
   Stopping = 'Stopping',
   Stopped = 'Stopped',

@@ -4,11 +4,12 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   InProgressIcon,
+  OutlinedClockIcon,
+  OutlinedQuestionCircleIcon,
+  PauseCircleIcon,
+  PauseIcon,
   PendingIcon,
   PlayIcon,
-  PauseIcon,
-  OutlinedClockIcon,
-  PauseCircleIcon,
 } from '@patternfly/react-icons';
 import { AlertVariant, LabelProps } from '@patternfly/react-core';
 import { WorkloadCondition } from '@odh-dashboard/internal/k8sTypes';
@@ -73,7 +74,6 @@ export const getStatusInfo = (
       return {
         status: 'success',
         label: 'Complete',
-        color: 'green',
         IconComponent: CheckCircleIcon,
         alertTitle: 'Job Complete',
         alertVariant: AlertVariant.success,
@@ -82,7 +82,6 @@ export const getStatusInfo = (
       return {
         status: 'danger',
         label: 'Failed',
-        color: 'red',
         IconComponent: ExclamationCircleIcon,
         alertTitle: 'Job Failed',
         alertVariant: AlertVariant.danger,
@@ -132,7 +131,6 @@ export const getStatusInfo = (
     case TrainingJobState.PREEMPTED:
       return {
         label: 'Preempted',
-        color: 'orange',
         status: 'warning',
         IconComponent: ExclamationTriangleIcon,
         alertTitle: 'Job Preempted',
@@ -141,7 +139,6 @@ export const getStatusInfo = (
     case TrainingJobState.INADMISSIBLE:
       return {
         label: 'Inadmissible',
-        color: 'orange',
         status: 'warning',
         IconComponent: ExclamationTriangleIcon,
         alertTitle: 'Job Inadmissible',
@@ -156,8 +153,8 @@ export const getStatusInfo = (
     default:
       return {
         label: 'Unknown',
-        status: 'warning',
-        IconComponent: ExclamationCircleIcon,
+        color: 'grey',
+        IconComponent: OutlinedQuestionCircleIcon,
       };
   }
 };

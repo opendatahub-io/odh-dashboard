@@ -48,7 +48,7 @@ function createConfigureSchema() {
       test_data_key: z.string().min(1).default(''),
 
       llama_stack_secret_name: z.string().min(1).default(''),
-      llama_stack_vector_database_id: z.string().min(1).default(''),
+      llama_stack_vector_io_provider_id: z.string().min(1).default(''),
 
       generation_models: z.array(z.string()).min(1).default([]),
       embeddings_models: z.array(z.string()).min(1).default([]),
@@ -70,10 +70,10 @@ function createConfigureSchema() {
         // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
         // Delete vector database ID if it's empty or set to the default in-memory provider.
         // if (
-        //   data.llama_stack_vector_database_id === '' ||
-        //   data.llama_stack_vector_database_id === `ls_${DEFAULT_IN_MEMORY_PROVIDER.provider_id}`
+        //   data.llama_stack_vector_io_provider_id === '' ||
+        //   data.llama_stack_vector_io_provider_id === `ls_${DEFAULT_IN_MEMORY_PROVIDER.provider_id}`
         // ) {
-        //   delete data.llama_stack_vector_database_id;
+        //   delete data.llama_stack_vector_io_provider_id;
         // }
         return data;
       },
