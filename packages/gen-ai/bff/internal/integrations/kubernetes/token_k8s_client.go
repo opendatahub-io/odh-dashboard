@@ -1511,7 +1511,17 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 
 	// Step 5: Generate ConfigMap content first (before creating LSD)
 	configMapName := "llama-stack-config"
-	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, guardrailsReady, validatedVectorStores, maasClient, identity.Token)
+	userAuthToken := ""
+	for _, model := range installModels {
+		if model.ModelSourceType == models.ModelSourceTypeMaaS {
+			if identity.Token == "" {
+				return nil, fmt.Errorf("user auth token is required to install MaaS models")
+			}
+			userAuthToken = identity.Token
+			break
+		}
+	}
+	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, guardrailsReady, validatedVectorStores, maasClient, userAuthToken)
 	if err != nil {
 		kc.Logger.Error("failed to generate Llama Stack configuration", "error", err, "namespace", namespace)
 		return nil, fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
@@ -1698,6 +1708,9 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		}
 
 		if hasMaaSModels {
+			if userAuthToken == "" {
+				return "", fmt.Errorf("user auth token is required to list MaaS models")
+			}
 			maasModels, err := maasClient.ListModels(ctx, userAuthToken)
 			if err != nil {
 				kc.Logger.Error("failed to list MaaS models", "error", err)

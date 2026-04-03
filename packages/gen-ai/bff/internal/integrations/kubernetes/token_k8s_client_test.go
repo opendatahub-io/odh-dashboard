@@ -242,6 +242,26 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		assert.Empty(t, result)
 		assert.Contains(t, err.Error(), "not found")
 	})
+
+	t.Run("should fail when MaaS models are present but auth token is empty", func(t *testing.T) {
+		mockMaaSClient := &maasmocks.MockMaaSClient{}
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+		}
+
+		models := []models.InstallModel{
+			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
+		}
+
+		ctx := context.Background()
+
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, nil, mockMaaSClient, "")
+
+		assert.Error(t, err)
+		assert.Empty(t, result)
+		assert.Contains(t, err.Error(), "user auth token is required to list MaaS models")
+	})
 }
 
 func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
