@@ -199,9 +199,8 @@ npm run test:cypress-ci -- --spec "**/clusterSettings/**,**/storageClasses/**,**
 
 ### Cypress E2E Tests
 
-No dedicated E2E specs exist for Admin Settings pages at this time. E2E coverage of downstream
-effects (e.g., workbench creation respecting hardware profiles) lives in project/workbench E2E
-specs.
+E2E specs exist under `packages/cypress/cypress/tests/e2e/settings/` covering cluster settings,
+user management, hardware profiles, and connection types.
 
 ## Cypress Test Coverage
 
@@ -221,7 +220,7 @@ beyond the alert render; no E2E tests for any settings page.
 
 | Dependency | Type | Details |
 |-----------|------|---------|
-| `/api/config` | Backend Route | `GET` reads `OdhDashboardConfig`; `PUT` writes updated cluster settings. Handler in `backend/src/routes/api/config/`. |
+| `/api/config` | Backend Route | `GET` reads `OdhDashboardConfig`; `PATCH` writes updated cluster settings. Handler in `backend/src/routes/api/config/`. |
 | OpenShift Group API (k8s proxy) | Backend Route | `useWatchGroups` reads/patches `user.openshift.io/v1 Group` objects via the k8s proxy. |
 | `StorageClass` k8s API | Backend k8s proxy | `useStorageClasses` lists `storage.k8s.io/v1 StorageClass`; updates written as annotation patches. |
 | `HardwareProfile` CRD | Backend k8s proxy | `HardwareProfileModel` CRUD via k8s proxy; SSAR-gated on `create` verb. |

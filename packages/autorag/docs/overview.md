@@ -81,7 +81,7 @@ implemented. Validate frontend HTTP calls against this spec using the contract t
 
 ## Module Federation
 
-**Config file**: `packages/autorag/frontend/config/webpack.common.js`
+**Config file**: `packages/autorag/frontend/config/moduleFederation.js`
 
 **Remote entry name**: `autorag`
 
@@ -201,7 +201,7 @@ Validates frontend HTTP expectations against `api/openapi/autorag.yaml` using th
 ### Frontend unit tests
 
 ```bash
-npx turbo run test:unit --filter=@odh-dashboard/autorag
+cd packages/autorag/frontend && npm run test:unit
 ```
 
 ### Cypress tests

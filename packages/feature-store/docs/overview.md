@@ -178,8 +178,15 @@ cd packages/feature-store
 npm run type-check
 ```
 
-No contract tests or Cypress tests exist for this package. Integration testing relies on the
-main dashboard's end-to-end suite against a live Feast backend.
+### Cypress Tests
+
+Mocked Cypress tests exist in `packages/cypress/cypress/tests/mocked/featureStore/` (8 spec files
+covering entities, features, feature views, feature services, data sources, data sets, and metrics).
+E2E tests exist in `packages/cypress/cypress/tests/e2e/featureStore/`.
+
+```bash
+npm run test:cypress-ci -- --spec "**/featureStore/**"
+```
 
 ## Interactions
 

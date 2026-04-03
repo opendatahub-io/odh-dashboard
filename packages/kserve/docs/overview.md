@@ -121,10 +121,7 @@ Data flow for a model deployment:
 ### Run in federated mode
 
 ```bash
-# From repo root — build the kserve package in watch mode alongside model-serving
-npx turbo run dev --filter=@odh-dashboard/kserve --filter=@odh-dashboard/model-serving
-
-# In a second terminal, start the main dashboard frontend
+# From repo root — start the main dashboard which loads model-serving (and kserve) via Module Federation
 npm run dev
 ```
 
@@ -155,14 +152,14 @@ The `K_SERVE` and `K_SERVE_METRICS` `SupportedArea` values gate individual exten
 
 ### Unit Tests
 
-Unit tests cover the `useWatchDeployments` hook and supporting utilities.
+Unit tests cover the `useWatchDeployments` hook and supporting utilities. Test files live
+in `packages/kserve/src/__tests__/`. This package has `lint` and `type-check` scripts but
+no `test-unit` script wired via npm. The `watch` module is mocked via
+`jest.mock('../api/watch')` so tests run without a real cluster.
 
 ```bash
-npx turbo run test:unit --filter=@odh-dashboard/kserve
+npx turbo run type-check lint --filter=@odh-dashboard/kserve
 ```
-
-Test files live in `packages/kserve/src/__tests__/`. The `watch` module is mocked via
-`jest.mock('../api/watch')` so tests run without a real cluster.
 
 ### Cypress Tests
 

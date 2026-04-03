@@ -23,7 +23,7 @@ import { getAppConfig } from '@odh-dashboard/app-config';
 
 ```bash
 npx turbo run build --filter=@odh-dashboard/app-config
-npx turbo run test  --filter=@odh-dashboard/app-config
+npx turbo run test-unit --filter=@odh-dashboard/app-config
 ```
 
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).

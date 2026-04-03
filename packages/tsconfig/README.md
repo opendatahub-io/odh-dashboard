@@ -27,8 +27,6 @@ In your package `tsconfig.json`:
 
 ## Development
 
-```bash
-npx turbo run typecheck --filter=@odh-dashboard/tsconfig
-```
+This is a configuration-only package with no build, test, or type-check scripts.
 
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).

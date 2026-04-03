@@ -67,9 +67,12 @@ packages/eval-hub/bff/
 
 Key endpoint groups:
 
-- `/api/v1/evaluation-runs` — create, list, and retrieve evaluation runs
-- `/api/v1/metrics` — configure and query evaluation metrics
-- `/api/v1/benchmarks` — model benchmark results and comparisons
+- `/healthcheck` — liveness probe; no auth required
+- `/eval-hub/api/v1/health` — health status
+- `/eval-hub/api/v1/namespaces` — list namespaces accessible to the user
+- `/eval-hub/api/v1/user` — resolve current authenticated user
+- `/eval-hub/api/v1/evaluations/collections` — evaluation collection management
+- `/eval-hub/api/v1/evaluations/jobs` — evaluation job CRUD
 
 ## Module Federation
 
@@ -186,7 +189,7 @@ Framework: `@odh-dashboard/contract-tests`.
 ### Frontend Unit Tests
 
 ```bash
-npx turbo run test:unit --filter=@odh-dashboard/eval-hub
+cd packages/eval-hub/frontend && npm run test:unit
 ```
 
 ### Cypress Tests

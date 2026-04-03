@@ -85,7 +85,7 @@ npm run start:dev
 
 ```bash
 # Run backend unit tests
-npm run test:unit -- --testPathPattern="backend"
+npm run test-unit -- --testPathPattern="backend"
 ```
 
 Location: `backend/src/__tests__/`

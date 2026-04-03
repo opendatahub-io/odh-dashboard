@@ -77,7 +77,8 @@ backend/src/
     ├── httpUtils.ts             # proxyCall — raw HTTPS proxy with ProxyError types
     ├── directCallUtils.ts       # getDirectCallOptions — token injection for proxy calls
     ├── jwtUtils.ts              # extractUsernameFromJWT / getUsernameFromToken
-    ├── resourceUtils.ts         # ResourceWatcher, OdhDashboardConfig fetch/cache
+    ├── resourceWatcher.ts       # ResourceWatcher class (in-memory polling cache)
+    ├── resourceUtils.ts         # OdhDashboardConfig fetch/cache helpers
     ├── userUtils.ts             # getUserInfo — multi-strategy auth resolution
     ├── groupsUtils.ts           # Group API helpers (deprecated for BYO OIDC)
     ├── envUtils.ts              # Secret/ConfigMap env-var helpers
@@ -142,6 +143,7 @@ identity and admin status before invoking the handler.
 | `*` | `/api/dev-impersonate/*` | `routes/api/dev-impersonate/index.ts` | Dev-mode only (`devRoute` guard). Impersonate a different user. |
 | `GET`, `POST` | `/api/validate-isv` | `routes/api/validate-isv/index.ts` | Validates an ISV application. |
 | `*` | `/api/featurestores/*` | `routes/api/featurestores/index.ts` | Feature store (Feast) resource management. |
+| `GET` | `/api/ray-job-logs/:namespace/:name` | `routes/api/ray-job-logs/index.ts` | Fetch logs for a RayJob pod. |
 
 Static assets are served from `frontend/public/` via `@fastify/static`. The catch-all `GET /*`
 route in `routes/root.ts` renders `index.html` as an EJS template, injecting the Module Federation
@@ -281,7 +283,7 @@ exposed on `fastify.kube`:
 
 ### Resource watchers
 
-`utils/resourceUtils.ts` implements `ResourceWatcher`, which polls cluster resources on a
+`utils/resourceWatcher.ts` implements the `ResourceWatcher` class, which polls cluster resources on a
 configurable interval and caches results in memory. Watchers are started at boot via
 `initializeWatchedResources`. The following resources are watched:
 
@@ -377,10 +379,10 @@ refer to `CONTRIBUTING.md` for the relevant `kubectl port-forward` commands.
 ```bash
 # Run all backend unit tests
 cd backend
-npm run test:unit
+npm run test-unit
 
 # Run a specific test file
-npm run test:unit -- --testPathPattern="jwtUtils"
+npm run test-unit -- --testPathPattern="jwtUtils"
 ```
 
 Unit tests live in `backend/src/__tests__/`. Current coverage includes:

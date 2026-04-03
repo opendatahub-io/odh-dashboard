@@ -21,7 +21,7 @@ server at `/perses/api`. The feature is currently Tech Preview and visible to ad
 
 | Mode | How to start | Access URL |
 |------|-------------|-----------|
-| Federated | `make dev-start-federated` + run main dashboard | `http://localhost:4010` |
+| Federated | `npm run dev` from repo root (loads this package via Module Federation) | `http://localhost:4010` |
 
 This package ships no standalone server. It is always loaded as a federated extension by the
 main ODH Dashboard. A local Perses server (default port `9005`) is required for the proxy to
@@ -37,7 +37,7 @@ Not applicable.
 
 ## Module Federation
 
-**Config file**: `packages/observability/frontend/config/webpack.config.js`
+**Config file**: `packages/observability/package.json` (`module-federation` section)
 
 **Remote entry name**: `perses` (declared in `package.json` `module-federation.name`)
 
@@ -59,10 +59,7 @@ The extension declares three entries:
 - `app.route` — maps `/observe-and-monitor/dashboard/*` to `DashboardPage`
 
 ```bash
-# Start in federated mode (also requires main dashboard running)
-cd packages/observability
-make dev-start-federated
-# In a second terminal, from the repo root:
+# From repo root — start the main dashboard which loads observability via Module Federation
 npm run dev
 # Navigate to http://localhost:4010/observe-and-monitor/dashboard
 ```
@@ -128,22 +125,15 @@ because Perses components are MUI-based.
 - `observabilityDashboard` feature flag enabled in `OdhDashboardConfig`
 - Admin-level ODH user (the nav entry is gated to `ADMIN_USER`)
 
-### Environment setup
-
-```bash
-cp packages/observability/.env.local.example packages/observability/.env.local
-# Edit .env.local — set cluster API URL and Perses local service port if non-default
-```
-
 ### Start in federated mode
 
 ```bash
-cd packages/observability
-make dev-start-federated
-# In a second terminal, from the repo root:
+# From the repo root:
 npm run dev
 # Navigate to http://localhost:4010/observe-and-monitor/dashboard
 ```
+
+A local Perses server on port `9005` must be running for the proxy to resolve dashboards.
 
 ## Environment Variables
 
@@ -158,7 +148,7 @@ npm run dev
 ### Frontend unit tests
 
 ```bash
-npx turbo run test:unit --filter=@odh-dashboard/observability
+npx turbo run test-unit --filter=@odh-dashboard/observability
 ```
 
 Unit tests live alongside source files in `__tests__/` directories. Key coverage areas:

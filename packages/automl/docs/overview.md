@@ -79,7 +79,7 @@ implemented. Validate frontend HTTP calls against this spec using the contract t
 
 ## Module Federation
 
-**Config file**: `packages/automl/frontend/config/webpack.common.js`
+**Config file**: `packages/automl/frontend/config/moduleFederation.js`
 
 **Remote entry name**: `automl`
 
@@ -194,7 +194,7 @@ Validates frontend HTTP expectations against `api/openapi/automl.yaml` using the
 ### Frontend unit tests
 
 ```bash
-npx turbo run test:unit --filter=@odh-dashboard/automl
+cd packages/automl/frontend && npm run test:unit
 ```
 
 ### Cypress tests

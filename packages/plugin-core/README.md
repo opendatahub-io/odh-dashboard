@@ -23,8 +23,8 @@ import { defineExtension, useExtensions } from '@odh-dashboard/plugin-core';
 ## Development
 
 ```bash
-npx turbo run build --filter=@odh-dashboard/plugin-core
-npx turbo run test  --filter=@odh-dashboard/plugin-core
+npx turbo run test-unit --filter=@odh-dashboard/plugin-core
+npx turbo run type-check lint --filter=@odh-dashboard/plugin-core
 ```
 
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).

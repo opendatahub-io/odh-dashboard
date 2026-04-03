@@ -26,7 +26,7 @@ export default { ...base, displayName: 'my-package' };
 ## Development
 
 ```bash
-npx turbo run test --filter=@odh-dashboard/jest-config
+npx turbo run test-unit --filter=@odh-dashboard/jest-config
 ```
 
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).

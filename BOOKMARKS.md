@@ -78,7 +78,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Workbenches](frontend/docs/workbenches.md) | Notebook creation, JupyterLab, gateway-based routing (v3.0+), notebookController |
 | [Projects](frontend/docs/projects.md) | Data Science Projects hub — primary entry point for workbenches, pipelines, serving, storage, connections |
 | [Distributed Workloads](frontend/docs/distributed-workloads.md) | Kueue workload management, distributed training job monitoring |
-| [Gen AI / LLM](frontend/docs/gen-ai.md) | LLM chatbot UI, lmEval pages, gen-ai and llmd-serving package interactions |
+| [Gen AI / LLM](frontend/docs/gen-ai.md) | Host-side LLM feature flags and type definitions; actual UI lives in federated packages (gen-ai, eval-hub) |
 | [Home / Applications](frontend/docs/home-applications.md) | Application tile dashboard, enabled apps, learning center |
 | [Admin Settings](frontend/docs/admin-settings.md) | Cluster settings, group management, storage classes, hardware profiles, BYON images, connection types |
 
@@ -113,3 +113,15 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Observability](packages/observability/docs/overview.md) | Metrics, logging, tracing integration; Prometheus endpoint patterns |
 | [Feature Store](packages/feature-store/docs/overview.md) | Feature store management UI; dataset versioning |
 | [LLMD Serving](packages/llmd-serving/docs/overview.md) | LLM-dedicated serving; interactions with gen-ai frontend area |
+
+### Stubs (tooling-only packages)
+
+| Doc | Description |
+|-----|-------------|
+| [App Config](packages/app-config/README.md) | Shared runtime and build-time configuration utilities |
+| [ESLint Config](packages/eslint-config/README.md) | Shared ESLint rules and configurations |
+| [ESLint Plugin](packages/eslint-plugin/README.md) | Custom ESLint plugin rules |
+| [Jest Config](packages/jest-config/README.md) | Shared Jest test runner configurations |
+| [Plugin Core](packages/plugin-core/README.md) | Core plugin infrastructure and extension-point definitions |
+| [Plugin Template](packages/plugin-template/README.md) | Starter template for new modular packages |
+| [TSConfig](packages/tsconfig/README.md) | Shared TypeScript compiler configurations |

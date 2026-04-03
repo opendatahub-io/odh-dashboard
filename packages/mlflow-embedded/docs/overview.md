@@ -125,10 +125,12 @@ to appear.
 
 ## Testing
 
-### Frontend Unit Tests
+### Lint and Type Check
+
+This package has no unit test script. Use lint and type-check to validate:
 
 ```bash
-npx turbo run test:unit --filter=@odh-dashboard/mlflow-embedded
+npx turbo run type-check lint --filter=@odh-dashboard/mlflow-embedded
 ```
 
 ### Cypress Tests

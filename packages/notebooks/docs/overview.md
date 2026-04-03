@@ -149,11 +149,7 @@ core workbench area must be enabled for the nav items to appear.
 
 ### Frontend Unit Tests
 
-```bash
-npx turbo run test:unit --filter=@odh-dashboard/notebooks
-```
-
-### Upstream Tests
+This package has no `test-unit` script at root level. Tests are run from the upstream workspace:
 
 ```bash
 cd packages/notebooks/upstream/workspaces/frontend

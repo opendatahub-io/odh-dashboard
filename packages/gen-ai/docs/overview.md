@@ -27,8 +27,8 @@ Gen AI is the full LLM chatbot UI package in the ODH Dashboard. It provides a st
 interface, model selection, conversation history, and system prompt configuration backed by a Go
 BFF that integrates MCP (Model Context Protocol) and LSD (LLM Service Discovery) clients.
 
-> **Note**: The `frontend/docs/gen-ai.md` doc covers only the lmEval integration in the main
-> frontend. This package is the complete chatbot UI.
+> **Note**: The `frontend/docs/gen-ai.md` doc covers the host-side feature flags and type
+> definitions. This package is the complete chatbot UI.
 
 **Package path**: `packages/gen-ai/`
 
@@ -75,6 +75,7 @@ packages/gen-ai/bff/
 - `MOCK_LS_CLIENT=true` — mock the Llama Stack / LSD client (`--mock-ls-client`)
 - `MOCK_MAAS_CLIENT=true` — mock the MaaS client
 - `MOCK_MCP_CLIENT=true` — mock the MCP client (`--mock-mcp-client`)
+- `MOCK_MLFLOW_CLIENT=true` — mock the MLflow client
 
 Run `make dev-bff-mock` to enable all mocks simultaneously.
 
@@ -86,10 +87,13 @@ Run `make dev-bff-mock` to enable all mocks simultaneously.
 
 Key endpoint groups:
 
-- `/api/llama-stack/*` — proxied to `LLAMA_STACK_URL`; LLM inference and model listing
-- `/api/v1/sessions` — LLMSession CRUD; conversation history management
-- `/api/v1/models` — model discovery via LSD and MaaS integrations
-- `/api/v1/system-prompts` — system prompt configuration per session
+- `/healthcheck` — liveness probe; no auth required
+- `/gen-ai/api/v1/namespaces` — list namespaces accessible to the user
+- `/gen-ai/api/v1/code-exporter` — code export endpoints
+- `/gen-ai/api/v1/user` — resolve current authenticated user
+- `/gen-ai/api/v1/lsd/*` — LLM Service Discovery endpoints
+- `/gen-ai/api/v1/maas/*` — MaaS integration endpoints
+- `/gen-ai/api/v1/mcp/*` — MCP tool-augmented conversation endpoints
 
 ## Module Federation
 
@@ -101,12 +105,9 @@ Key endpoint groups:
 
 - `./extensions` — ODH Dashboard extension registrations for Gen AI pages
 - `./extension-points` — extension point type definitions consumed by the main dashboard
-- `./AIAssetsMaaSTab` — MaaS tab component embedded in the AI Assets section of the main
-  dashboard (`src/app/AIAssets/AIAssetsMaaSTab`)
 
 **Main dashboard registration**: The main dashboard loads `genAi@<remote>/remoteEntry.js` at
-runtime and mounts extensions into its routing tree. `AIAssetsMaaSTab` is imported directly as
-a federated component into the main dashboard's AI Assets page.
+runtime and mounts extensions into its routing tree.
 
 ```bash
 # Start in federated mode (also requires main dashboard running)
@@ -224,7 +225,7 @@ Framework: `@odh-dashboard/contract-tests`.
 ### Frontend Unit Tests
 
 ```bash
-npx turbo run test:unit --filter=@odh-dashboard/gen-ai
+cd packages/gen-ai/frontend && npm run test:unit
 ```
 
 ### Cypress Tests

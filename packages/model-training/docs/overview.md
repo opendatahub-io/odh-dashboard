@@ -21,7 +21,7 @@ via the Kubeflow Training Operator. This package is frontend-only with no BFF.
 
 | Mode | How to start | Access URL |
 |------|-------------|-----------|
-| Federated | `make dev-start-federated` + run main dashboard | `http://localhost:4010` |
+| Federated | `npm run dev` from repo root (loads this package via Module Federation) | `http://localhost:4010` |
 
 This package is frontend-only and ships no standalone server. It is always loaded as a
 federated extension by the main ODH Dashboard. Local development requires the main dashboard
@@ -37,7 +37,7 @@ Not applicable.
 
 ## Module Federation
 
-**Config file**: `packages/model-training/frontend/config/webpack.config.js`
+**Config file**: `packages/model-training/package.json` (`module-federation` section)
 
 **Remote entry name**: `plugin-model-training`
 
@@ -54,10 +54,7 @@ The extension declares three entries:
 - `app.route` — maps `/develop-train/training-jobs/*` to `ModelTrainingRoutes`
 
 ```bash
-# Start in federated mode (also requires main dashboard running)
-cd packages/model-training
-make dev-start-federated
-# Then in repo root:
+# From repo root — start the main dashboard which loads model-training via Module Federation
 npm run dev
 ```
 
@@ -76,9 +73,10 @@ packages/model-training/
 │   ├── global/
 │   │   ├── ModelTraining.tsx           # Root component; sets up context
 │   │   ├── ModelTrainingContext.tsx    # React context for jobs and cluster state
-│   │   ├── trainingJobList/            # List view, table, toolbar, modals
-│   │   └── trainingJobDetailsDrawer/   # Detail drawer with tabs (details, logs, pods, resources)
-│   └── hooks/                  # Data-fetching hooks (logs, pods, runtimes, queues, scaling)
+│   │   ├── trainingJobList/            # List view, table, toolbar, modals (TrainJob + RayJob rows)
+│   │   ├── trainingJobDetailsDrawer/   # TrainJob detail drawer with tabs
+│   │   └── rayJobDetailsDrawer/        # RayJob detail drawer, scale modal, tabs
+│   └── hooks/                  # Data-fetching hooks (logs, pods, runtimes, queues, Ray scaling)
 ├── docs/
 │   └── overview.md             # This file
 └── package.json
@@ -112,17 +110,12 @@ via `useClusterTrainingRuntime`.
 
 ### Environment setup
 
-```bash
-cp packages/model-training/.env.local.example packages/model-training/.env.local
-# Edit .env.local with your cluster API server URL and token
-```
+No `.env.local` is needed for this package.
 
 ### Start in federated mode
 
 ```bash
-cd packages/model-training
-make dev-start-federated
-# In a second terminal, from the repo root:
+# From repo root:
 npm run dev
 # Navigate to http://localhost:4010/develop-train/training-jobs
 ```
@@ -139,10 +132,11 @@ npm run dev
 ### Frontend unit tests
 
 ```bash
-npx turbo run test:unit --filter=@odh-dashboard/model-training
+npx turbo run type-check lint --filter=@odh-dashboard/model-training
 ```
 
-Unit tests live alongside source files in `__tests__/` directories. Key coverage areas:
+This package has `lint` and `type-check` scripts but no `test-unit` script wired via npm.
+Test files live alongside source files in `__tests__/` directories. Key coverage areas:
 - `api/__tests__/` — API call construction for trainJobs, events, pods, queue, workloads
 - `global/trainingJobList/__tests__/` — list utilities and status helpers
 - `global/trainingJobDetailsDrawer/__tests__/` — drawer utilities
@@ -151,7 +145,7 @@ Unit tests live alongside source files in `__tests__/` directories. Key coverage
 ### Cypress tests
 
 ```bash
-npm run test:cypress-ci -- --spec "**/model-training/**"
+npm run test:cypress-ci -- --spec "**/modelTraining/**"
 ```
 
 ## Interactions

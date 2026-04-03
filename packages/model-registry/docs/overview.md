@@ -286,10 +286,7 @@ make test
 ### Frontend unit tests
 
 ```bash
-npx turbo run test:unit --filter=@odh-dashboard/model-registry
-# Or directly:
-cd packages/model-registry/upstream/frontend
-npm test
+cd packages/model-registry/upstream/frontend && npm run test:unit
 ```
 
 ### Cypress end-to-end tests

@@ -37,8 +37,8 @@ package is production-ready and ships with a Go BFF and a React frontend.
   port 9104 with PatternFly theme. Requires the main ODH Dashboard also running.
 
 > **Note**: Kubeflow and Standalone modes both use Material UI (`STYLE_THEME=mui-theme`).
-> Federated mode switches to PatternFly (`STYLE_THEME=patternfly`). This is the only package
-> in the monorepo that uses Material UI.
+> Federated mode switches to PatternFly (`STYLE_THEME=patternfly`). Several other packages
+> (AutoML, AutoRAG, Eval Hub) also use Material UI in standalone/kubeflow modes.
 
 ## BFF Architecture
 
@@ -211,7 +211,7 @@ make test
 ### Frontend unit tests
 
 ```bash
-npx turbo run test:unit --filter=@odh-dashboard/maas
+cd packages/maas/frontend && npm run test:unit
 ```
 
 ### Cypress tests

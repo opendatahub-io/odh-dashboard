@@ -149,7 +149,7 @@ backend proxy rather than directly to the MLflow server, preserving consistent a
 
 ```bash
 cp packages/mlflow/.env.local.example packages/mlflow/.env.local
-# Edit .env.local: set MLFLOW_SERVER_URL if connecting to a real MLflow server
+# Edit .env.local: set MLFLOW_URL if connecting to a real MLflow server
 ```
 
 ### Start in standalone mode (recommended for development)
@@ -201,7 +201,7 @@ make test
 ### Frontend unit tests
 
 ```bash
-npx turbo run test:unit --filter=@odh-dashboard/mlflow
+cd packages/mlflow/frontend && npm run test:unit
 ```
 
 ### Cypress tests

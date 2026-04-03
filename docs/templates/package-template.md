@@ -154,7 +154,7 @@ Framework: `@odh-dashboard/contract-tests`. See [.claude/rules/contract-tests.md
 ### Frontend Unit Tests
 
 ```bash
-npx turbo run test:unit --filter=@odh-dashboard/[package-name]
+npx turbo run test-unit --filter=@odh-dashboard/[package-name]
 ```
 
 ### Cypress Tests

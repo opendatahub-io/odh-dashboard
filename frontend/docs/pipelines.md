@@ -179,7 +179,7 @@ To run the area in isolation with mocked API responses, use the Cypress dev serv
 
 ```bash
 cd packages/cypress
-npm run cypress:open -- --spec "**/pipelines/**"
+npm run open:mock
 ```
 
 ## Testing

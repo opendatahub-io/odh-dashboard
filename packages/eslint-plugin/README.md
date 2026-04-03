@@ -25,8 +25,7 @@ export default [
 
 ## Development
 
-```bash
-npx turbo run lint --filter=@odh-dashboard/eslint-plugin
-```
+This package has no npm scripts. It is consumed directly by `@odh-dashboard/eslint-config`
+and does not require a separate build or lint step.
 
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).

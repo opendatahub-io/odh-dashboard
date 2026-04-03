@@ -22,12 +22,12 @@ view for managing notebooks across users.
 |----------|-------|--------------------------|
 | Workbenches tab (inside a project) | `/projects/:namespace/spawner` (create) | `notebookController.enabled` in `OdhDashboardConfig` |
 | Workbenches tab (inside a project) | `/projects/:namespace` → Workbenches section | `notebookController.enabled` |
-| Notebook Controller (admin + non-admin) | `/notebookController` | `notebookController.enabled` |
-| Admin user management | `/notebookController/admin` | `notebookController.enabled` + admin role |
+| Notebook Controller (admin + non-admin) | `/notebook-controller` | `notebookController.enabled` |
+| Admin user management | `/notebook-controller` (admin tab) | `notebookController.enabled` + admin role |
 
 Users reach the Workbenches tab by selecting a Data Science Project from the left navigation and
 clicking the **Workbenches** tab in the project detail view. The standalone Notebook Controller
-(`/notebookController`) is a legacy entry point that pre-dates the Projects area; it remains for
+(`/notebook-controller`) is the current entry point (legacy `/notebookController` redirects to it); it remains for
 environments where users spawn notebooks outside a named project. The feature is gated by
 `dashboardConfig.spec.notebookController.enabled` (defaults to `true` when absent); the
 `useCheckJupyterEnabled` hook in
