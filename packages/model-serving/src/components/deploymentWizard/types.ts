@@ -233,6 +233,7 @@ export type WizardField<
       wizardState: RecursivePartial<WizardFormData['state']>,
     ) => WizardStateOverrides;
   };
+  shouldResetOnDependencyChange?: boolean;
   externalDataHook?: (dependencies?: Dependencies) => {
     data: ExternalData;
     loaded: boolean;

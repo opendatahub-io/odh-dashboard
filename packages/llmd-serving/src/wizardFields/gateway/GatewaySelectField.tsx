@@ -15,7 +15,7 @@ import {
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
 import { ProjectSectionType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ProjectSection';
 import { isLLMInferenceServiceActive } from '../../formUtils';
-import { GatewayOption, useGetGatewayOptions } from '../../api/services/GatewayDiscovery';
+import { GatewayOption, useGetGatewayOptions } from '../../api/services/gatewayDiscovery';
 
 export type GatewaySelectDependencies = {
   project: ProjectSectionType;
@@ -66,14 +66,17 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
   }, [initialValue, externalData]);
 
   const isCurrentSelectionMissing =
+    !!externalData?.loaded &&
     !!selectedGatewayKey &&
-    !externalData?.data?.some((g) => getGatewayKey(g) === selectedGatewayKey);
+    !externalData.data?.some((g) => getGatewayKey(g) === selectedGatewayKey);
 
   const options: SimpleSelectOption[] = React.useMemo(() => {
     const uniqueGateways = new Map<string, SimpleSelectOption>();
     externalData?.data?.forEach((g) => {
       const key = getGatewayKey(g);
-      uniqueGateways.set(key, { key, label: key });
+      if (key !== 'maas-default-gateway | openshift-ingress') {
+        uniqueGateways.set(key, { key, label: key });
+      }
     });
 
     if (initialMissingKey) {
@@ -118,17 +121,12 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
               <HelperText>
                 <HelperTextItem variant="warning">
                   {externalData.loadError.message}
-                  {externalData.loadError.message.charAt(
-                    externalData.loadError.message.length - 1,
-                  ) === '.'
-                    ? ''
-                    : '.'}
                   &nbsp;Ensure &quot;model-serving-api&quot; service is healthy and accessible.
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
           )}
-          {!externalData?.loadError && !externalData?.data?.length && (
+          {!externalData?.loadError && externalData?.loaded && !externalData.data?.length && (
             <FormHelperText>
               <HelperText>
                 <HelperTextItem variant="warning">
@@ -183,6 +181,7 @@ export const GatewaySelectField: GatewaySelectFieldType = {
     getInitialFieldData: (existingFieldData?: GatewaySelectFieldData): GatewaySelectFieldData =>
       existingFieldData ?? { selection: undefined },
   },
+  shouldResetOnDependencyChange: true,
   externalDataHook: useGatewayOptions,
   component: GatewaySelectFieldComponent,
   getReviewSections: getGatewayReviewSection,

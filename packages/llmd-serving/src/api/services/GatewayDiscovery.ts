@@ -19,21 +19,31 @@ type GatewayResponse = {
   gateways: GatewayOption[];
 };
 
+type ProxyErrorResponse = {
+  statusCode: number;
+  error: string;
+  message: string;
+};
+
+const isProxyErrorResponse = (
+  response: GatewayResponse | ProxyErrorResponse,
+): response is ProxyErrorResponse => 'statusCode' in response;
+
 export const getGatewayOptions = async (
   namespace: string,
   opts?: K8sAPIOptions,
 ): Promise<GatewayOption[]> => {
-  const response = await proxyGET<GatewayResponse>(
+  const response = await proxyGET<GatewayResponse | ProxyErrorResponse>(
     '/api/service/model-serving',
     '/api/v1/gateways',
     { namespace },
     opts,
   );
-  if (response instanceof Error) {
-    throw response;
+  if (isProxyErrorResponse(response)) {
+    throw new Error('Gateway discovery failed.');
   }
   if (!Array.isArray(response.gateways)) {
-    throw new Error('Invalid response from gateway discovery API');
+    throw new Error('Invalid response from gateway discovery API.');
   }
   return response.gateways;
 };
