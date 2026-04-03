@@ -97,7 +97,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | **Testing Standards**       | `testing-standards.md`        | When working across multiple test types or choosing a testing strategy          |
 | **Third-Party Theming**     | `third-party-theming.md`      | When theming external libraries (Perses, MLflow, etc.) or mapping PF tokens into non-PF component systems |
 | **Unit Tests**              | `unit-tests.md`               | When creating or modifying Jest unit tests for utilities, hooks, or components |
-| **Sub-Agents**              | `sub-agents.md`               | When delegating work to specialized personas (engineering, product, UX, docs)  |
+| **Sub-Agents**              | `sub-agents.md`               | When delegating work to specialized personas (architecture, engineering, docs) |
 
 ## Agent Skills
 
