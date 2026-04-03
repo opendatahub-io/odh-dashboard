@@ -222,7 +222,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MLFLOW_PIPELINES]: {
     featureFlags: ['mlflowPipelines', 'mlflow'],
-    requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+    requiredComponents: [DataScienceStackComponent.DS_PIPELINES, DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],

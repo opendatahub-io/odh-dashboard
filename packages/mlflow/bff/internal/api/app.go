@@ -196,10 +196,30 @@ func sanitizeURL(rawURL string) string {
 	}).String()
 }
 
+func normalizeTrackingURL(rawURL string) (string, error) {
+	parsed, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return "", fmt.Errorf("invalid MLflow URL")
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", fmt.Errorf("unsupported MLflow URL scheme %q", parsed.Scheme)
+	}
+	return (&url.URL{
+		Scheme: parsed.Scheme,
+		Host:   parsed.Host,
+		Path:   parsed.Path,
+	}).String(), nil
+}
+
 func resolveMLflowURL(cfg config.EnvConfig, logger *slog.Logger) string {
 	if cfg.MLflowURL != "" {
-		logger.Info("Using MLflow URL from configuration", slog.String("url", sanitizeURL(cfg.MLflowURL)))
-		return cfg.MLflowURL
+		normalized, err := normalizeTrackingURL(cfg.MLflowURL)
+		if err != nil {
+			logger.Warn("Configured MLflow URL is invalid, MLflow endpoints will return 503", slog.Any("error", err))
+			return ""
+		}
+		logger.Info("Using MLflow URL from configuration", slog.String("url", sanitizeURL(normalized)))
+		return normalized
 	}
 	if cfg.AuthMethod == config.AuthMethodDisabled {
 		logger.Info("Auth disabled, skipping MLflow URL discovery")
@@ -214,8 +234,13 @@ func resolveMLflowURL(cfg config.EnvConfig, logger *slog.Logger) string {
 		logger.Warn("MLflow CR auto-discovery returned empty URL, MLflow endpoints will return 503")
 		return ""
 	}
-	logger.Info("Discovered MLflow URL from CR", slog.String("url", sanitizeURL(discoveredURL)))
-	return discoveredURL
+	normalized, err := normalizeTrackingURL(discoveredURL)
+	if err != nil {
+		logger.Warn("Discovered MLflow URL is invalid, MLflow endpoints will return 503", slog.Any("error", err))
+		return ""
+	}
+	logger.Info("Discovered MLflow URL from CR", slog.String("url", sanitizeURL(normalized)))
+	return normalized
 }
 
 func newRealClientFactory(trackingURL string, rootCAs *x509.CertPool, insecureSkipVerify bool, logger *slog.Logger) mlflowpkg.MLflowClientFactory {

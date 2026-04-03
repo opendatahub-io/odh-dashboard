@@ -49,6 +49,7 @@ const RunPage: React.FC<RunPageProps> = ({
     pipeline: locationPipeline,
     version: locationVersion,
     runGroup: locationRunGroup,
+    mlflow: locationMlflow,
   } = location.state?.locationData || {};
   const { triggerType: triggerTypeString } = useGetSearchParamValues([
     PipelineRunSearchParam.TriggerType,
@@ -99,6 +100,7 @@ const RunPage: React.FC<RunPageProps> = ({
     version: locationVersion || contextPipelineVersion,
     versionToUse: versionToUseData,
     runGroup: locationRunGroup || contextExperiment?.display_name || '',
+    ...(locationMlflow ? { mlflow: locationMlflow } : {}),
   });
 
   const onValueChange = React.useCallback(
