@@ -1,11 +1,28 @@
 ---
-name: model-registry-sync-status
-description: Check whether odh-dashboard's copy of the model-registry upstream (kubeflow/model-registry) is up to date, and show any unsynced commits.
+name: upstream-sync-status
+description: Check whether odh-dashboard's copy of an upstream package is up to date, and show any unsynced commits. Pass a package name as an argument (e.g. model-registry or notebooks) or be prompted to choose.
 ---
 
-# Model Registry Sync Status
+# Upstream Sync Status
 
-Check whether `odh-dashboard`'s copy of the upstream `kubeflow/model-registry` UI code is up to date.
+Check whether `odh-dashboard`'s copy of an upstream package is up to date.
+
+## Arguments
+
+- `$ARGUMENTS` — Optional package name (e.g. `model-registry`, `notebooks`). If not provided, ask the user which package to check.
+
+## Resolving the Package
+
+Packages with upstream subtrees have a `subtree` field in their `package.json` under `packages/<name>/package.json`.
+
+1. If the user provided a package name argument, use it directly as `<package-name>`.
+2. If no argument was provided, discover all packages with a `subtree` config:
+   ```bash
+   grep -rl '"subtree"' packages/*/package.json | sed 's|packages/||;s|/package.json||'
+   ```
+   Present the list to the user and ask which package to check.
+
+Once the package is identified, all references below use `<package-name>` for the directory under `packages/` and the subtree config from `packages/<package-name>/package.json`.
 
 ## Workflow
 
@@ -34,16 +51,16 @@ Include this status in the report output (Step 5). If the local branch is behind
 
 ### Step 1: Read subtree config from GitHub
 
-Fetch `packages/model-registry/package.json` from the `main` branch of `opendatahub-io/odh-dashboard` on GitHub:
+Fetch `packages/<package-name>/package.json` from the `main` branch of `opendatahub-io/odh-dashboard` on GitHub:
 
 ```bash
-gh api "repos/opendatahub-io/odh-dashboard/contents/packages/model-registry/package.json?ref=main" --jq '.content' | base64 -d
+gh api "repos/opendatahub-io/odh-dashboard/contents/packages/<package-name>/package.json?ref=main" --jq '.content' | base64 -d
 ```
 
 Extract the `subtree` object from the JSON. It contains:
 - `repo` — the upstream GitHub repo URL (e.g. `https://github.com/kubeflow/model-registry.git`)
 - `branch` — the upstream branch to track (e.g. `main`)
-- `src` — the subdirectory in the upstream repo (e.g. `clients/ui`)
+- `src` — the subdirectory in the upstream repo (e.g. `clients/ui`; may be empty string for whole-repo syncs)
 - `commit` — the SHA of the last synced upstream commit
 
 Parse the GitHub owner/repo from the `repo` URL (strip `https://github.com/` prefix and `.git` suffix).
@@ -58,13 +75,17 @@ gh api "repos/<owner>/<repo>/compare/<commit>...<branch>" --jq '[.commits[].sha]
 
 ### Step 3: Filter to commits touching the subtree src directory
 
-For each commit SHA returned, check whether it touches files under the `src` path (e.g. `clients/ui`):
+If `src` is a non-empty string, filter commits to only those touching files under the `src` path:
+
+For each commit SHA returned, check whether it touches files under the `src` path:
 
 ```bash
 gh api "repos/<owner>/<repo>/commits/<sha>" --jq '[.files[].filename]'
 ```
 
 Keep only commits where at least one file starts with the `src` prefix.
+
+If `src` is an empty string, all commits are relevant (the entire repo is synced).
 
 ### Step 4: Get PR details for each relevant commit
 
@@ -81,17 +102,17 @@ Output a report with a title and a summary table.
 **If there are no unsynced commits:**
 
 ```
-## Model Registry Sync Status
+## <Package-Name> Sync Status
 
-odh-dashboard's copy of the model-registry upstream is up to date at commit `<short-sha>`.
+odh-dashboard's copy of the <package-name> upstream is up to date at commit `<short-sha>`.
 ```
 
 **If there are unsynced commits:**
 
 ```
-## Model Registry Sync Status
+## <Package-Name> Sync Status
 
-odh-dashboard's copy of the model-registry upstream is not up to date. There are **N commits** on `<owner>/<repo>` `<branch>` (since synced commit `<short-sha>`) that touch `<src>`:
+odh-dashboard's copy of the <package-name> upstream is not up to date. There are **N commits** on `<owner>/<repo>` `<branch>` (since synced commit `<short-sha>`) that touch `<src>`:
 
 | Commit | PR | Author | Merged | Description |
 |--------|----|--------|--------|-------------|
@@ -104,6 +125,8 @@ odh-dashboard's copy of the model-registry upstream is not up to date. There are
 - The Author column is the GitHub username of the PR author.
 - The Merged column is the merge date (YYYY-MM-DD).
 - The Description column is the first line of the commit message with the trailing `(#XXXX)` removed.
+
+If `src` is empty, omit the "that touch `<src>`" clause from the summary.
 
 **Local branch status (always shown after the upstream report):**
 
@@ -119,4 +142,4 @@ If local `main` is behind:
 
 ### Step 6: Offer to sync
 
-If there are unsynced commits, ask the user if they would like to run `/model-registry-upstream-sync` to sync the changes. If the local `main` branch is also behind `upstream/main`, remind the user that a `git pull upstream main` will be needed first (the sync skill handles this automatically).
+If there are unsynced commits, ask the user if they would like to run `/upstream-sync <package-name>` to sync the changes. If the local `main` branch is also behind `upstream/main`, remind the user that a `git pull upstream main` will be needed first (the sync skill handles this automatically).
