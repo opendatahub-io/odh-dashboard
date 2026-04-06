@@ -197,10 +197,13 @@ export const updatePipelineSettings = async (
     }
   } else if ('managedPipelines' in settings) {
     // Explicitly remove managedPipelines if undefined is passed
-    patches.push({
-      op: 'remove' as const,
-      path: '/spec/apiServer/managedPipelines',
-    });
+    const existingManagedPipelines = currentResource.spec.apiServer?.managedPipelines;
+    if (existingManagedPipelines) {
+      patches.push({
+        op: 'remove' as const,
+        path: '/spec/apiServer/managedPipelines',
+      });
+    }
   }
 
   return k8sPatchResource<DSPipelineKind>({

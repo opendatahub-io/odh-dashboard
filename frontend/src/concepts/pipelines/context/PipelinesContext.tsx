@@ -49,14 +49,7 @@ type PipelineContext = {
   getRecurringRunInformation: GetRecurringRunInformationType;
   apiState: PipelineAPIState;
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
-  managedPipelines:
-    | Record<string, unknown>
-    | {
-        instructLab?: {
-          state: 'Removed' | 'Managed';
-        };
-      }
-    | undefined;
+  managedPipelines: NonNullable<DSPipelineKind['spec']['apiServer']>['managedPipelines'];
   isStarting?: boolean;
   startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
   /** Error from loading pipeline CR or route */
@@ -212,14 +205,7 @@ type UsePipelinesAPI = PipelineAPIState & {
   refreshAllAPI: () => void;
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   refreshState: () => void;
-  managedPipelines:
-    | Record<string, unknown>
-    | {
-        instructLab?: {
-          state: 'Removed' | 'Managed';
-        };
-      }
-    | undefined;
+  managedPipelines: NonNullable<DSPipelineKind['spec']['apiServer']>['managedPipelines'];
 
   startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
 };
