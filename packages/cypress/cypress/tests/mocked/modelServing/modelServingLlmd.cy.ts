@@ -147,7 +147,7 @@ const initIntercepts = ({
   cy.interceptOdh(
     'DELETE /maas/api/v1/maasmodel/:namespace/:name',
     { path: { namespace: '*', name: '*' } },
-    { message: 'Deleted successfully' },
+    { data: { message: 'Deleted successfully' } },
   ).as('deleteMaaSModelRef');
 };
 
@@ -784,7 +784,7 @@ describe('Model Serving LLMD', () => {
       cy.interceptOdh(
         'DELETE /maas/api/v1/maasmodel/:namespace/:name',
         { path: { namespace: '*', name: '*' } },
-        { message: 'Deleted successfully' },
+        { data: { message: 'Deleted successfully' } },
       ).as('deleteMaaSModelRef');
     };
 

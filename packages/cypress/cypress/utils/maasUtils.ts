@@ -1,5 +1,3 @@
-/* eslint-disable camelcase */
-import type { Tier, TierLimits } from '@odh-dashboard/maas/types/tier';
 import type {
   APIKey,
   CreateAPIKeyResponse,
@@ -9,46 +7,11 @@ import type {
   MaaSSubscription,
   SubscriptionInfoResponse,
   UserSubscription,
+  MaaSModelRefSummary,
+  SubscriptionPolicyFormDataResponse,
+  CreateSubscriptionResponse,
+  MaaSAuthPolicy,
 } from '@odh-dashboard/maas/types/subscriptions';
-
-// Standardized tier templates - use these directly or as building blocks
-export const MOCK_TIERS: Record<'free' | 'premium' | 'enterprise', Tier> = {
-  free: {
-    name: 'free',
-    displayName: 'Free Tier',
-    description: 'Basic access with limited usage',
-    level: 1,
-    groups: ['all-users'],
-    limits: {
-      tokensPerUnit: [{ count: 10000, time: 1, unit: 'hour' }],
-      requestsPerUnit: [{ count: 100, time: 1, unit: 'minute' }],
-    },
-  },
-  premium: {
-    name: 'premium',
-    displayName: 'Premium Tier',
-    description: 'Enhanced access with higher limits',
-    level: 2,
-    groups: ['premium-users'],
-    limits: {
-      tokensPerUnit: [{ count: 50000, time: 1, unit: 'hour' }],
-      requestsPerUnit: [{ count: 500, time: 1, unit: 'minute' }],
-    },
-  },
-  enterprise: {
-    name: 'enterprise',
-    displayName: 'Enterprise Tier',
-    description: 'Unlimited enterprise access',
-    level: 3,
-    groups: ['enterprise-users'],
-    limits: {
-      tokensPerUnit: [{ count: 1000000, time: 1, unit: 'hour' }],
-      requestsPerUnit: [{ count: 10000, time: 1, unit: 'minute' }],
-    },
-  },
-};
-
-export const mockTiers = (): Tier[] => [MOCK_TIERS.free, MOCK_TIERS.premium, MOCK_TIERS.enterprise];
 
 export const mockAPIKeys = (): APIKey[] => [
   {
@@ -155,73 +118,59 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
         tokenRateLimits: [{ limit: 10000, window: '24h' }],
       },
     ],
+    priority: 0,
     creationTimestamp: '2025-02-15T08:00:00Z',
   },
 ];
 
 export const mockSubscriptionListItems = (): UserSubscription[] => [
   {
+    // eslint-disable-next-line camelcase
     subscription_id_header: 'premium-team-sub',
+    // eslint-disable-next-line camelcase
     subscription_description: 'Premium Team Subscription',
+    // eslint-disable-next-line camelcase
     display_name: 'Premium Team',
     priority: 10,
+    // eslint-disable-next-line camelcase
     cost_center: 'engineering',
+    // eslint-disable-next-line camelcase
     organization_id: 'org-123',
+    // eslint-disable-next-line camelcase
     model_refs: [
       {
         name: 'granite-3-8b-instruct',
         namespace: 'maas-models',
+        // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 100000, window: '24h' }],
       },
       {
         name: 'flan-t5-small',
         namespace: 'maas-models',
+        // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 200000, window: '24h' }],
       },
     ],
   },
   {
+    // eslint-disable-next-line camelcase
     subscription_id_header: 'basic-team-sub',
+    // eslint-disable-next-line camelcase
     subscription_description: 'Basic Team Subscription',
+    // eslint-disable-next-line camelcase
     display_name: 'Basic Team',
     priority: 1,
+    // eslint-disable-next-line camelcase
     model_refs: [
       {
         name: 'flan-t5-small',
         namespace: 'maas-models',
+        // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 10000, window: '24h' }],
       },
     ],
   },
 ];
-
-export const mockTier = ({
-  name = 'free',
-  displayName,
-  description,
-  level = 1,
-  groups = ['all-users'],
-  limits = {
-    tokensPerUnit: [{ count: 10000, time: 1, unit: 'hour' }],
-    requestsPerUnit: [{ count: 100, time: 1, unit: 'minute' }],
-  },
-}: {
-  name: string;
-  displayName?: string;
-  description?: string;
-  level?: number;
-  groups?: string[];
-  limits?: TierLimits;
-}): Tier => {
-  return {
-    name,
-    displayName: displayName ?? `${name} Tier`,
-    description: description ?? `${name} tier description`,
-    level,
-    groups,
-    limits,
-  };
-};
 
 export const mockSubscriptionInfo = (name = 'premium-team-sub'): SubscriptionInfoResponse => {
   const subscription = mockSubscriptions().find((s) => s.name === name) ?? mockSubscriptions()[0];
@@ -251,3 +200,69 @@ export const mockSubscriptionInfo = (name = 'premium-team-sub'): SubscriptionInf
     ],
   };
 };
+export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
+  {
+    name: 'granite-3-8b-instruct',
+    namespace: 'maas-models',
+    displayName: 'Granite 3 8B Instruct',
+    description: 'A large language model for instruction following',
+    modelRef: { kind: 'InferenceService', name: 'granite-3-8b-instruct' },
+    phase: 'Ready',
+    endpoint: 'https://granite-3-8b-instruct.maas-models.svc.cluster.local',
+  },
+  {
+    name: 'flan-t5-small',
+    namespace: 'maas-models',
+    displayName: 'Flan T5 Small',
+    description: 'A compact text-to-text model',
+    modelRef: { kind: 'InferenceService', name: 'flan-t5-small' },
+    phase: 'Ready',
+    endpoint: 'https://flan-t5-small.maas-models.svc.cluster.local',
+  },
+];
+
+export const mockSubscriptionFormData = (): SubscriptionPolicyFormDataResponse => ({
+  groups: ['system:authenticated', 'premium-users', 'enterprise-users', 'beta-testers'],
+  modelRefs: mockModelRefSummaries(),
+  subscriptions: mockSubscriptions(),
+  policies: mockAuthPolicies(),
+});
+
+export const mockCreateSubscriptionResponse = (): CreateSubscriptionResponse => ({
+  subscription: {
+    name: 'test-subscription',
+    displayName: 'Test Subscription',
+    description: 'A test subscription',
+    namespace: 'maas-system',
+    phase: 'Active',
+    priority: 5,
+    owner: {
+      groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }],
+    },
+    modelRefs: [
+      {
+        name: 'granite-3-8b-instruct',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 5000, window: '1h' }],
+      },
+    ],
+    creationTimestamp: '2025-03-20T10:00:00Z',
+  },
+  authPolicy: {
+    name: 'test-subscription-policy',
+    namespace: 'maas-system',
+    phase: 'Active',
+    modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+    subjects: { groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }] },
+  },
+});
+
+export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
+  {
+    name: 'test-subscription-policy',
+    namespace: 'maas-system',
+    phase: 'Active',
+    modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+    subjects: { groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }] },
+  },
+];
