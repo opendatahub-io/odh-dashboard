@@ -53,7 +53,6 @@ import {
   deploymentStrategyRolling,
   deploymentStrategyRecreate,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
-import type { TimeoutConfigFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/TimeoutField';
 import type { CreatingInferenceServiceObject } from './deployModel';
 import type { KServeDeployment } from './deployments';
 
@@ -420,57 +419,4 @@ export const applyDeploymentStrategy = (
     };
   }
   return result;
-};
-
-export const applyTimeoutConfig = (
-  inferenceService: InferenceServiceKind,
-  timeoutConfig?: TimeoutConfigFieldData,
-): InferenceServiceKind => {
-  if (!timeoutConfig) {
-    return inferenceService;
-  }
-
-  const result = structuredClone(inferenceService);
-
-  if (!result.metadata.annotations) {
-    result.metadata.annotations = {};
-  }
-
-  // Clear existing values for update scenarios
-  delete result.metadata.annotations['security.opendatahub.io/auth-proxy-type'];
-
-  // Clear existing timeout if present
-  if ('timeout' in result.spec.predictor) {
-    delete result.spec.predictor.timeout;
-  }
-
-  // Set timeout
-  if (timeoutConfig.timeout !== undefined) {
-    result.spec.predictor = {
-      ...result.spec.predictor,
-      timeout: timeoutConfig.timeout,
-    };
-  }
-
-  // Set auth-proxy-type if return401 is true
-  if (timeoutConfig.return401) {
-    result.metadata.annotations['security.opendatahub.io/auth-proxy-type'] = 'kube-rbac-proxy';
-  }
-
-  return result;
-};
-
-export const DEFAULT_TIMEOUT = 30;
-
-export const extractTimeoutConfig = (deployment: {
-  model: InferenceServiceKind;
-}): TimeoutConfigFieldData => {
-  const { timeout } = deployment.model.spec.predictor;
-  const authProxyType =
-    deployment.model.metadata.annotations?.['security.opendatahub.io/auth-proxy-type'];
-
-  return {
-    timeout: timeout ?? DEFAULT_TIMEOUT,
-    return401: authProxyType === 'kube-rbac-proxy',
-  };
 };

@@ -5,9 +5,13 @@ import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import type { WizardFormData, WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
 import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';
-import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
-import type { KServeDeployment } from '../deployments';
-import { applyTimeoutConfig, extractTimeoutConfig, DEFAULT_TIMEOUT } from '../deployUtils';
+import type { ServingRuntimeKind, TemplateKind } from '@odh-dashboard/internal/k8sTypes';
+import {
+  isServingRuntimeKind,
+  isTemplateKind,
+} from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+import { applyTimeoutConfig, extractTimeoutConfig, DEFAULT_TIMEOUT } from './timeoutApplyExtract';
+import type { KServeDeployment } from '../../deployments';
 
 export type TimeoutFieldValue = {
   timeout: number;
@@ -15,7 +19,7 @@ export type TimeoutFieldValue = {
 };
 
 export const timeoutFieldSchema = z.object({
-  timeout: z.number().min(1),
+  timeout: z.number().min(0),
   return401: z.boolean(),
 });
 
@@ -29,32 +33,43 @@ const getInitialTimeoutFieldData = (value?: TimeoutFieldValue): TimeoutFieldValu
 };
 
 /**
- * Returns true when KServe InferenceService is active (not LLM-D)
+ * Returns true when KServe InferenceService is active.
+ * Active when editing an InferenceService or when a ServingRuntime/Template is selected.
  */
 export const isKServeInferenceServiceActive = (
   wizardState: RecursivePartial<WizardFormData['state']>,
-  resources?: { model?: ModelResourceType },
 ): boolean => {
-  // Check if LLM-D is selected - if so, this field should NOT be active
-  const isLLMOptionSelected =
-    wizardState.modelServer?.data?.selection?.name === 'llmd-serving' ||
-    wizardState.modelServer?.data?.selection?.template?.kind === 'LLMInferenceServiceConfig';
-  const isLLMInferenceService = resources?.model?.kind === 'LLMInferenceService';
-
-  // Active for KServe InferenceService only (not LLM-D)
-  if (isLLMOptionSelected || isLLMInferenceService) {
+  const selection = wizardState.modelServer?.data?.selection;
+  if (!selection) {
     return false;
   }
 
-  // Check if this is a KServe deployment (InferenceService)
-  const isInferenceService = resources?.model?.kind === 'InferenceService';
-  if (isInferenceService) {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const template = selection.template as ServingRuntimeKind | TemplateKind | undefined;
+
+  if (selection.name && !template && selection.namespace) {
     return true;
   }
 
-  // For new deployments, check if a non-LLM-D server is selected
-  const hasModelServerSelected = !!wizardState.modelServer?.data?.selection;
-  return hasModelServerSelected;
+  if (!template) {
+    return false;
+  }
+
+  // Check if it's a Template containing a ServingRuntime
+  if (isTemplateKind(template)) {
+    try {
+      return isServingRuntimeKind(template.objects[0]);
+    } catch {
+      return false;
+    }
+  }
+
+  // Check if it's a direct ServingRuntime
+  try {
+    return isServingRuntimeKind(template);
+  } catch {
+    return false;
+  }
 };
 
 type TimeoutFieldProps = {
@@ -77,7 +92,7 @@ const TimeoutFieldComponent: React.FC<TimeoutFieldProps> = ({
       data-testid="timeout-field-group"
     >
       <NumberInputWrapper
-        min={1}
+        min={0}
         max={1000000}
         value={value.timeout}
         onChange={(newValue?: number) =>

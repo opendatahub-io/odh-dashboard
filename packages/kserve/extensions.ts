@@ -23,7 +23,7 @@ import {
   DataScienceStackComponent,
   SupportedArea,
 } from '@odh-dashboard/internal/concepts/areas/index';
-import type { TimeoutFieldValue } from './src/wizardFields/TimeoutField';
+import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
 import type { KServeDeployment } from './src/deployments';
 
 export const KSERVE_ID = 'kserve';
@@ -196,7 +196,8 @@ const extensions: (
     type: 'model-serving.deployment/wizard-field2',
     properties: {
       platform: KSERVE_ID,
-      field: () => import('./src/wizardFields/TimeoutField').then((m) => m.TimeoutFieldWizardField),
+      field: () =>
+        import('./src/wizardFields/timeout/TimeoutField').then((m) => m.TimeoutFieldWizardField),
     },
     flags: {
       required: [SupportedArea.K_SERVE],
@@ -207,7 +208,8 @@ const extensions: (
     properties: {
       fieldId: 'kserve/timeout',
       platform: KSERVE_ID,
-      apply: () => import('./src/wizardFields/TimeoutField').then((m) => m.applyTimeoutFieldData),
+      apply: () =>
+        import('./src/wizardFields/timeout/TimeoutField').then((m) => m.applyTimeoutFieldData),
     },
     flags: {
       required: [SupportedArea.K_SERVE],
@@ -219,7 +221,7 @@ const extensions: (
       fieldId: 'kserve/timeout',
       platform: KSERVE_ID,
       extract: () =>
-        import('./src/wizardFields/TimeoutField').then((m) => m.extractTimeoutFieldData),
+        import('./src/wizardFields/timeout/TimeoutField').then((m) => m.extractTimeoutFieldData),
     },
     flags: {
       required: [SupportedArea.K_SERVE],
