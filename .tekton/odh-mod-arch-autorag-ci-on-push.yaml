@@ -27,7 +27,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-mod-arch-autorag:v3.4.1-odh
+    value: quay.io/opendatahub/odh-mod-arch-autorag:v3.4.2-odh
   - name: dockerfile
     value: packages/autorag/Dockerfile.workspace
   - name: path-context
