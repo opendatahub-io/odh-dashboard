@@ -33,9 +33,11 @@ const AllAuthPoliciesPage: React.FC = () => {
       {deleteAuthPolicy && (
         <DeleteAuthPolicyModal
           authPolicy={deleteAuthPolicy}
-          onClose={() => {
+          onClose={(deleted?: boolean) => {
+            if (deleted) {
+              refresh();
+            }
             setDeleteAuthPolicy(undefined);
-            refresh();
           }}
         />
       )}

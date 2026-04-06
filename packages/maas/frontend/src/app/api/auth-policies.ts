@@ -9,6 +9,9 @@ import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import { isMaaSAuthPolicy } from './subscriptions';
 
+const isDeleteAuthPolicyResponse = (v: unknown): v is { message: string } =>
+  typeof v === 'object' && v !== null && 'message' in v && typeof v.message === 'string';
+
 /** GET /api/v1/all-policies - List all policies */
 export const listAuthPolicies =
   (hostPath = '') =>
@@ -25,7 +28,7 @@ export const listAuthPolicies =
 /** DELETE /api/v1/delete-policy/:name - Delete a policy */
 export const deleteAuthPolicy =
   (hostPath = '') =>
-  (opts: APIOptions, name: string): Promise<void> =>
+  (opts: APIOptions, name: string): Promise<{ message: string }> =>
     handleRestFailures(
       restDELETE(
         hostPath,
@@ -35,7 +38,10 @@ export const deleteAuthPolicy =
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<void>(response)) {
+      if (
+        isModArchResponse<{ message: string }>(response) &&
+        isDeleteAuthPolicyResponse(response.data)
+      ) {
         return response.data;
       }
       throw new Error('Invalid response format');

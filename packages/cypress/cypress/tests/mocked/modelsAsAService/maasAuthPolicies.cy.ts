@@ -1,5 +1,6 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { pageNotfound } from '../../../pages/pageNotFound';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { authPoliciesPage, deleteAuthPolicyModal } from '../../../pages/modelsAsAService';
 import { mockAuthPolicies } from '../../../utils/maasUtils';
@@ -27,6 +28,16 @@ describe('MaaS Auth Policies', () => {
     authPoliciesPage.visit();
   });
 
+  it('should not show the auth policies page when the feature flag is disabled', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({ modelAsService: true, maasAuthPolicies: false }),
+    );
+    cy.visitWithLogin('/maas/auth-policies');
+    cy.findByTestId('app-page-title').should('not.exist');
+    pageNotfound.findPage().should('exist');
+  });
+
   it('should show the empty state when there are no auth policies', () => {
     cy.interceptOdh('GET /maas/api/v1/all-policies', { data: [] });
     authPoliciesPage.visit();
@@ -37,7 +48,7 @@ describe('MaaS Auth Policies', () => {
   it('should display the auth policies table with correct page content', () => {
     authPoliciesPage.findTitle().should('contain.text', 'Policies');
     authPoliciesPage.findTable().should('exist');
-    authPoliciesPage.findRows().should('have.length', 2);
+    authPoliciesPage.findRows().should('have.length', 3);
     const premiumRow = authPoliciesPage.getRow('premium-team-policy');
     premiumRow.findName().should('contain.text', 'premium-team-policy');
     premiumRow.findGroups().should('contain.text', '1 Group');
@@ -47,6 +58,7 @@ describe('MaaS Auth Policies', () => {
     basicRow.findGroups().should('contain.text', '1 Group');
     basicRow.findModels().should('contain.text', '1 Model');
   });
+
   it('should delete an auth policy', () => {
     cy.interceptOdh(
       'DELETE /maas/api/v1/delete-policy/:name',

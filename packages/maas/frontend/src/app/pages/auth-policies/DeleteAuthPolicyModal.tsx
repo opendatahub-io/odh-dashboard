@@ -27,7 +27,7 @@ const DeleteAuthPolicyModal: React.FC<DeleteAuthPolicyModalProps> = ({ authPolic
       }}
       deleteName={authPolicy.name}
       genericLabel
-      data-testid="delete-auth-policy-modal"
+      testId="delete-auth-policy-modal"
       error={error}
     >
       <Stack hasGutter>
