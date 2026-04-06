@@ -28,7 +28,7 @@ const UPDATED_WORKER_REPLICAS = 2;
 const INITIAL_TOTAL_NODES = INITIAL_WORKER_REPLICAS + 1;
 const UPDATED_TOTAL_NODES = UPDATED_WORKER_REPLICAS + 1;
 
-describe('[RHOAIENG-56125] Verify pause, scale worker nodes, and delete RayJob', () => {
+describe('[Automation Bug: RHOAIENG-56125] Verify pause, scale worker nodes, and delete RayJob', () => {
   let testData: RayJobE2eTestData;
   let skipTest = false;
   let projectName: string;
@@ -93,6 +93,7 @@ describe('[RHOAIENG-56125] Verify pause, scale worker nodes, and delete RayJob',
             cpuQuota,
             memoryQuota,
             gpuQuota,
+            workerGroupName,
             rayImage,
             rayVersion,
           });
@@ -123,7 +124,7 @@ describe('[RHOAIENG-56125] Verify pause, scale worker nodes, and delete RayJob',
     },
     () => {
       if (skipTest) {
-        cy.log('Skipping test - RHOAI operator not available.');
+        cy.log('Skipping test - RayJob CRD not available (requires KubeRay operator).');
         return;
       }
 
@@ -190,7 +191,7 @@ describe('[RHOAIENG-56125] Verify pause, scale worker nodes, and delete RayJob',
       rayJobResourcesTab.findNodesValue().should('contain', INITIAL_TOTAL_NODES.toString());
 
       cy.step('Open Edit node count from Resources tab (inline action)');
-      cy.findByTestId('nodes-edit-button').should('be.visible').click();
+      rayJobResourcesTab.findNodesEditButton().should('be.visible').click();
 
       cy.step('Verify edit node count modal');
       editRayJobNodeCountModal.shouldBeOpen();

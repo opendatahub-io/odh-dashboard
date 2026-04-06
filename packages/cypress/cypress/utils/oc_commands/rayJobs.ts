@@ -10,6 +10,7 @@ export type RayJobResourcesConfig = {
   cpuQuota: number;
   memoryQuota: number;
   gpuQuota: number;
+  workerGroupName: string;
   rayImage: string;
   rayVersion: string;
 };
@@ -21,6 +22,7 @@ export const createRayJob = (
   namespace: string,
   rayJobName: string,
   localQueueName: string,
+  workerGroupName: string,
   rayImage: string,
   rayVersion: string,
 ): void => {
@@ -29,6 +31,7 @@ export const createRayJob = (
       namespace,
       rayJobName,
       localQueueName,
+      workerGroupName,
       rayImage,
       rayVersion,
     };
@@ -66,6 +69,7 @@ export const setupRayJobResources = (config: RayJobResourcesConfig): void => {
     cpuQuota,
     memoryQuota,
     gpuQuota,
+    workerGroupName,
     rayImage,
     rayVersion,
   } = config;
@@ -82,7 +86,7 @@ export const setupRayJobResources = (config: RayJobResourcesConfig): void => {
     gpuQuota,
   );
 
-  createRayJob(namespace, rayJobName, localQueueName, rayImage, rayVersion);
+  createRayJob(namespace, rayJobName, localQueueName, workerGroupName, rayImage, rayVersion);
 
   cy.exec(`oc get rayjob ${rayJobName} -n ${namespace}`, {
     failOnNonZeroExit: false,

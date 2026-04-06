@@ -86,7 +86,9 @@ export const deleteKueueResources = (
           `Command failed with code ${result.code}: ${result.stderr || result.stdout}`,
         );
       }
-      cy.log(`Kueue resource deletion returned non-zero (ignored): ${result.stderr}`);
+      cy.log(
+        `Kueue resource deletion returned non-zero (ignored): ${result.stderr || result.stdout}`,
+      );
     }
     return cy.wrap(result);
   });
