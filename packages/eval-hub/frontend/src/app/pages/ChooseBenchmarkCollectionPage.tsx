@@ -30,9 +30,11 @@ import {
 } from '@patternfly/react-core';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useCollections } from '~/app/hooks/useCollections';
 import { Collection } from '~/app/types';
 import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
 import { getCategoryColor } from '~/app/components/benchmarkUtils';
 
@@ -63,6 +65,12 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
 
   const handleRunCollection = React.useCallback(
     (c: Collection) => {
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
+        runType: 'collection',
+        collectionName: c.name,
+        benchmarkTypes: JSON.stringify((c.benchmarks ?? []).map((b) => b.id)),
+        countOfBenchmarks: c.benchmarks?.length ?? 0,
+      });
       const params = new URLSearchParams({
         type: 'collection',
         collectionId: c.resource.id,
