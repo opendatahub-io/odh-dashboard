@@ -88,9 +88,6 @@ export type DashboardConfig = K8sResourceCommon & {
         clusterDomains?: string[];
       };
     };
-    pipelinesConfig?: {
-      managedPipelinesImage?: string;
-    };
   };
 };
 

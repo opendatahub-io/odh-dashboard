@@ -740,21 +740,15 @@ export type DSPipelineKind = K8sResourceCommon & {
        * Managed pipelines configuration.
        *
        * CURRENT (AutoML/AutoRAG pattern):
-       * - image: Container image with pipeline bundle (e.g., quay.io/opendatahub/odh-pipelines-components:latest)
-       * - pipelines: Optional array of specific pipelines to load. If omitted, all managed pipelines from the bundle are loaded.
-       * - When set, an init container runs before the API server to compile and upload pipelines.
+       * - The UI sends an empty object {} to enable managed pipelines.
+       * - The operator injects the image and other fields.
        *
        * DEPRECATED (InstructLab pattern):
        * - instructLab.state: Legacy pattern for single InstructLab pipeline management
-       * - Use the new image-based pattern for all new implementations
+       * - Use the new pattern for all new implementations
        */
       managedPipelines?:
-        | {
-            image: string;
-            pipelines?: Array<{ name: string }>;
-            volumeSizeLimit?: string;
-            resources?: Record<string, unknown>;
-          }
+        | Record<string, unknown>
         | {
             instructLab?: {
               state: 'Removed' | 'Managed';
@@ -1361,9 +1355,6 @@ export type DashboardConfigKind = K8sResourceCommon & {
         externalProviders?: boolean;
         clusterDomains?: string[];
       };
-    };
-    pipelinesConfig?: {
-      managedPipelinesImage?: string;
     };
   };
 };

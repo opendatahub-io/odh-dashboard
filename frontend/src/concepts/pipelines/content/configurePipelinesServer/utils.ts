@@ -3,7 +3,6 @@ import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
 import { AwsKeys, PIPELINE_AWS_FIELDS } from '#~/pages/projects/dataConnections/const';
 import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
 import { EnvVariableDataEntry } from '#~/pages/projects/types';
-import { MANAGED_PIPELINES_REPO_LATEST } from '#~/concepts/pipelines/const';
 import { DSPA_SECRET_NAME, DatabaseConnectionKeys, ExternalDatabaseSecret } from './const';
 import { PipelineServerConfigType } from './types';
 
@@ -104,7 +103,6 @@ const createSecrets = (config: PipelineServerConfigType, projectName: string) =>
 export const createDSPipelineResourceSpec = (
   config: PipelineServerConfigType,
   [databaseSecret, objectStorageSecret]: SecretsResponse,
-  managedPipelinesImage?: string,
 ): DSPipelineKind['spec'] => {
   const databaseRecord = dataEntryToRecord(config.database.value);
   const awsRecord = dataEntryToRecord(config.objectStorage.newValue);
@@ -144,11 +142,7 @@ export const createDSPipelineResourceSpec = (
     apiServer: {
       enableSamplePipeline: false,
       cacheEnabled: config.enableCaching,
-      managedPipelines: config.enableManagedPipelines
-        ? {
-            image: managedPipelinesImage || MANAGED_PIPELINES_REPO_LATEST,
-          }
-        : undefined,
+      managedPipelines: config.enableManagedPipelines ? {} : undefined,
       pipelineStore: config.storeYamlInKubernetes
         ? DSPipelineAPIServerStore.KUBERNETES
         : DSPipelineAPIServerStore.DATABASE,
@@ -159,10 +153,9 @@ export const createDSPipelineResourceSpec = (
 export const configureDSPipelineResourceSpec = (
   config: PipelineServerConfigType,
   projectName: string,
-  managedPipelinesImage?: string,
 ): Promise<DSPipelineKind['spec']> =>
   createSecrets(config, projectName).then((secretsResponse) =>
-    createDSPipelineResourceSpec(config, secretsResponse, managedPipelinesImage),
+    createDSPipelineResourceSpec(config, secretsResponse),
   );
 
 export const objectStorageIsValid = (objectStorage: EnvVariableDataEntry[]): boolean =>

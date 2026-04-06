@@ -10,12 +10,7 @@ type MockResourceConfigType = {
   dspaSecretName?: string;
   pipelineStore?: DSPipelineAPIServerStore;
   cacheEnabled?: boolean;
-  managedPipelines?: {
-    image: string;
-    pipelines?: Array<{ name: string }>;
-    volumeSizeLimit?: string;
-    resources?: Record<string, unknown>;
-  };
+  managedPipelines?: Record<string, unknown>;
 };
 
 export const mockDataSciencePipelineApplicationK8sResource = ({

@@ -569,7 +569,7 @@ describe('Pipelines', () => {
         (patch: { path: string }) => patch.path === '/spec/apiServer/managedPipelines',
       );
       expect(managedPipelinesPatch?.op).to.equal('add');
-      expect(managedPipelinesPatch?.value).to.have.property('image');
+      expect(managedPipelinesPatch?.value).to.deep.equal({});
     });
 
     toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
@@ -582,9 +582,7 @@ describe('Pipelines', () => {
       DataSciencePipelineApplicationModel,
       mockDataSciencePipelineApplicationK8sResource({
         namespace: projectName,
-        managedPipelines: {
-          image: 'quay.io/opendatahub/managed-pipelines:latest',
-        },
+        managedPipelines: {},
       }),
     );
     cy.interceptK8s(
@@ -673,11 +671,11 @@ describe('Pipelines', () => {
       );
       expect(cachePatch.value).to.equal(false);
 
-      // Verify managedPipelines has image
+      // Verify managedPipelines is empty object
       const managedPipelinesPatch = interception.request.body.find(
         (patch: { path: string }) => patch.path === '/spec/apiServer/managedPipelines',
       );
-      expect(managedPipelinesPatch.value).to.have.property('image');
+      expect(managedPipelinesPatch.value).to.deep.equal({});
     });
 
     toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
@@ -690,9 +688,7 @@ describe('Pipelines', () => {
       DataSciencePipelineApplicationModel,
       mockDataSciencePipelineApplicationK8sResource({
         namespace: projectName,
-        managedPipelines: {
-          image: 'quay.io/opendatahub/managed-pipelines:latest',
-        },
+        managedPipelines: {},
       }),
     );
     cy.interceptK8s(

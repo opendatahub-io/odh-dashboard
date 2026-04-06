@@ -22,7 +22,6 @@ import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
 import { updatePipelineSettings } from '#~/api/pipelines/k8s';
 import useNotification from '#~/utilities/useNotification';
 import { useAppContext } from '#~/app/AppContext';
-import { MANAGED_PIPELINES_REPO_LATEST } from '#~/concepts/pipelines/const';
 import PipelineKubernetesStoreCheckbox from './PipelineKubernetesStoreCheckbox';
 import { MANAGE_PIPELINE_SERVER_TITLE } from './const';
 import { PipelineCachingSection } from './configurePipelinesServer/PipelineCachingSection';
@@ -51,7 +50,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   const initCachingEnabled = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled || false;
   const initManagedPipelinesEnabled =
     !!pipelineNamespaceCR?.spec.apiServer?.managedPipelines &&
-    'image' in pipelineNamespaceCR.spec.apiServer.managedPipelines;
+    !('instructLab' in pipelineNamespaceCR.spec.apiServer.managedPipelines);
 
   const isManagedPipelinesAvailable =
     dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
@@ -75,7 +74,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
     const cachingValue = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled ?? false;
     const managedPipelinesValue =
       !!pipelineNamespaceCR?.spec.apiServer?.managedPipelines &&
-      'image' in pipelineNamespaceCR.spec.apiServer.managedPipelines;
+      !('instructLab' in pipelineNamespaceCR.spec.apiServer.managedPipelines);
 
     setEnableCaching(cachingValue);
     setEnableManagedPipelines(managedPipelinesValue);
@@ -91,15 +90,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
     }
 
     if (isManagedPipelinesAvailable && enableManagedPipelines !== initManagedPipelinesEnabled) {
-      const managedPipelinesImage =
-        dashboardConfig.spec.pipelinesConfig?.managedPipelinesImage ||
-        MANAGED_PIPELINES_REPO_LATEST;
-
-      settings.managedPipelines = enableManagedPipelines
-        ? {
-            image: managedPipelinesImage,
-          }
-        : undefined;
+      settings.managedPipelines = enableManagedPipelines ? {} : undefined;
     }
 
     updatePipelineSettings(namespace, settings, pipelineNamespaceCR?.metadata.name ?? 'dspa')

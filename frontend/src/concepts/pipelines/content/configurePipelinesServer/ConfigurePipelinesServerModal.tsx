@@ -31,7 +31,6 @@ import {
   isDspaAllReady,
 } from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
 import { useAppContext } from '#~/app/AppContext';
-import { MANAGED_PIPELINES_REPO_LATEST } from '#~/concepts/pipelines/const';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { PipelineCachingSection } from './PipelineCachingSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
@@ -114,10 +113,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       objectStorage,
     };
 
-    const managedPipelinesImage =
-      dashboardConfig.spec.pipelinesConfig?.managedPipelinesImage || MANAGED_PIPELINES_REPO_LATEST;
-
-    configureDSPipelineResourceSpec(configureConfig, project.metadata.name, managedPipelinesImage)
+    configureDSPipelineResourceSpec(configureConfig, project.metadata.name)
       .then((spec) => {
         createPipelinesCR(namespace, spec)
           .then((obj: DSPipelineKind) => {

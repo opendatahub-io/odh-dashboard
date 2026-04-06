@@ -152,12 +152,7 @@ export const updatePipelineSettings = async (
   namespace: string,
   settings: {
     cacheEnabled?: boolean;
-    managedPipelines?: {
-      image: string;
-      pipelines?: Array<{ name: string }>;
-      volumeSizeLimit?: string;
-      resources?: Record<string, unknown>;
-    };
+    managedPipelines?: Record<string, unknown>;
   },
   name = 'dspa',
 ): Promise<DSPipelineKind> => {

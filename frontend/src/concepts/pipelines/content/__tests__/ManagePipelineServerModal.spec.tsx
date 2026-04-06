@@ -12,7 +12,6 @@ import { NotificationWatcherContext } from '#~/concepts/notificationWatcher/Noti
 import { SecretCategory, EnvironmentVariableType } from '#~/pages/projects/types';
 import useNotification from '#~/utilities/useNotification';
 import { useAppContext } from '#~/app/AppContext';
-import { MANAGED_PIPELINES_REPO_LATEST } from '#~/concepts/pipelines/const';
 
 // Mock dependencies
 jest.mock('#~/concepts/pipelines/context', () => ({
@@ -382,9 +381,7 @@ describe('ManagePipelineServerModal', () => {
     const pipelineWithManagedPipelines = mockDataSciencePipelineApplicationK8sResource({
       name: 'dspa',
       namespace: 'test-project',
-      managedPipelines: {
-        image: MANAGED_PIPELINES_REPO_LATEST,
-      },
+      managedPipelines: {},
     });
 
     renderModal({
@@ -442,9 +439,7 @@ describe('ManagePipelineServerModal', () => {
       expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
         'test-project',
         {
-          managedPipelines: {
-            image: MANAGED_PIPELINES_REPO_LATEST,
-          },
+          managedPipelines: {},
         },
         'dspa',
       );
@@ -469,9 +464,7 @@ describe('ManagePipelineServerModal', () => {
         'test-project',
         {
           cacheEnabled: false,
-          managedPipelines: {
-            image: MANAGED_PIPELINES_REPO_LATEST,
-          },
+          managedPipelines: {},
         },
         'dspa',
       );
@@ -482,9 +475,7 @@ describe('ManagePipelineServerModal', () => {
     const pipelineWithManagedPipelines = mockDataSciencePipelineApplicationK8sResource({
       name: 'dspa',
       namespace: 'test-project',
-      managedPipelines: {
-        image: MANAGED_PIPELINES_REPO_LATEST,
-      },
+      managedPipelines: {},
     });
 
     renderModal({
@@ -506,41 +497,6 @@ describe('ManagePipelineServerModal', () => {
         'test-project',
         {
           managedPipelines: undefined,
-        },
-        'dspa',
-      );
-    });
-  });
-
-  it('should use custom managed pipelines image from dashboard config', async () => {
-    const customImage = 'custom-registry.io/managed-pipelines:custom-tag';
-
-    mockUseAppContext.mockReturnValue({
-      dashboardConfig: mockDashboardConfig({
-        automl: true,
-        autorag: true,
-        pipelinesConfig: {
-          managedPipelinesImage: customImage,
-        },
-      }),
-    } as ReturnType<typeof useAppContext>);
-
-    renderModal();
-
-    const managedPipelinesCheckbox = screen.getByTestId('managed-pipelines-checkbox');
-
-    fireEvent.click(managedPipelinesCheckbox);
-
-    const saveButton = screen.getByRole('button', { name: 'Save' });
-    fireEvent.click(saveButton);
-
-    await waitFor(() => {
-      expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
-        'test-project',
-        {
-          managedPipelines: {
-            image: customImage,
-          },
         },
         'dspa',
       );
@@ -642,9 +598,7 @@ describe('ManagePipelineServerModal', () => {
       name: 'dspa',
       namespace: 'test-project',
       cacheEnabled: false,
-      managedPipelines: {
-        image: MANAGED_PIPELINES_REPO_LATEST,
-      },
+      managedPipelines: {},
     });
 
     rerender(
