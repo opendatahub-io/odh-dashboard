@@ -7,10 +7,12 @@ import (
 )
 
 const (
+	// AuthMethodDisabled disables authentication, useful for testing and development.
+	AuthMethodDisabled = "disabled"
+
 	// AuthMethodInternal uses the credentials of the running backend.
 	// If running inside the cluster, it uses the pod's service account.
 	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
-	// This is the default authentication method.
 	// This uses kubeflow-userid header to carry the user identity.
 	AuthMethodInternal = "internal"
 
@@ -73,16 +75,20 @@ func (d DeploymentMode) IsFederatedMode() bool {
 }
 
 type EnvConfig struct {
-	Port               int
-	MockK8Client       bool
-	MockHTTPClient     bool
-	DevMode            bool
-	DeploymentMode     DeploymentMode
-	DevModeClientPort  int
-	DevModeCatalogPort int
-	StaticAssetsDir    string
-	LogLevel           slog.Level
-	AllowedOrigins     []string
+	Port                     int
+	MockK8Client             bool
+	MockHTTPClient           bool
+	MockLSClient             bool
+	MockPipelineServerClient bool
+	MockS3Client             bool
+	PipelineServerURL        string
+	DevMode                  bool
+	DeploymentMode           DeploymentMode
+	DevModeClientPort        int
+	DevModeCatalogPort       int
+	StaticAssetsDir          string
+	LogLevel                 slog.Level
+	AllowedOrigins           []string
 	// BundlePaths is a list of filesystem paths to PEM-encoded CA bundle files.
 	// If provided, the application will attempt to load these files and add the
 	// certificates to the HTTP client's Root CAs for outbound TLS connections.
@@ -101,6 +107,18 @@ type EnvConfig struct {
 	// Optional prefix to strip from the token header value.
 	// Default is "Bearer ", can be set to empty if the token is sent without a prefix.
 	AuthTokenPrefix string
+
+	// ─── SERVICE URLS ───────────────────────────────────────────
+	// LlamaStack service URL configuration
+	// If set, overrides the automatic service discovery from LlamaStackDistribution resource
+	LlamaStackURL string
+
+	// ─── PIPELINE DISCOVERY ─────────────────────────────────────
+	// AutoRAGPipelineNamePrefix is the prefix used to identify AutoRAG managed pipelines
+	// during automatic pipeline discovery. The discovery process searches for pipelines
+	// with display names starting with this prefix (case-insensitive).
+	// Default: "autorag"
+	AutoRAGPipelineNamePrefix string
 
 	// ─── TLS ────────────────────────────────────────────────────
 	// TLS verification settings for HTTP client connections to the Client

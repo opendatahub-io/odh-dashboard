@@ -6,6 +6,11 @@ type contextKey string
 // to ensure requests are not blocked when using CORS.
 const (
 	NamespaceHeaderParameterKey contextKey = "namespace"
+	LlamaStackClientKey         contextKey = "LlamaStackClientKey"
+	PipelineServerClientKey     contextKey = "PipelineServerClientKey"
+	PipelineServerBaseURLKey    contextKey = "PipelineServerBaseURLKey"
+	DiscoveredPipelinesKey      contextKey = "DiscoveredPipelinesKey"
+	DSPAObjectStorageKey        contextKey = "DSPAObjectStorageKey"
 
 	// The following keys are used to store the user access token in the context
 	RequestIdentityKey contextKey = "requestIdentityKey"

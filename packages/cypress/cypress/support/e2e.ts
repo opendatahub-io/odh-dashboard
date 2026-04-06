@@ -23,8 +23,10 @@ import { type ModuleFederationConfig, getModuleFederationURL } from '@odh-dashbo
 import './commands';
 import '../utils/moduleFederationMock';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
+import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
 import { addCommands as webSocketsAddCommands } from './websockets';
 import { asProjectAdminUser } from '../utils/mockUsers';
+import { maskSensitiveInfo } from '../utils/maskSensitiveInfo';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const softAssert = require('soft-assert');
@@ -122,6 +124,11 @@ Cypress.on('uncaught:exception', (err) => {
 
   // Ignore 'Unexpected token :' errors from webpack-dev-server fallback in E2E tests
   if (err.message.includes("Unexpected token ':'")) {
+    return false;
+  }
+
+  // Ignore Monaco editor 'Canceled' errors thrown during editor disposal/cleanup
+  if (err.message === 'Canceled' || err.name === 'Canceled') {
     return false;
   }
 
@@ -235,22 +242,6 @@ Cypress.on('command:start', function handleCommandStart(command) {
 Cypress.on('command:end', function handleCommandEnd() {
   commandStack.pop();
 });
-
-/**
- * Masks sensitive information in command strings before logging
- * @param command - The command string to mask
- * @returns The masked command string
- */
-function maskSensitiveInfo(command: string): string {
-  let masked = command;
-  // Mask usernames in oc login commands
-  // Pattern: -u "username" or -u 'username' or -u username
-  masked = masked.replace(/-u\s+(['"]?)([^\s'"]+)\1/g, '-u $1***$1');
-  // Mask passwords in oc login commands
-  // Pattern: -p "password" or -p 'password' or -p password
-  masked = masked.replace(/-p\s+(['"]?)([^\s'"]+)\1/g, '-p $1***$1');
-  return masked;
-}
 
 Cypress.on('command:enqueued', (command) => {
   if (command.name === 'step') {
@@ -408,6 +399,7 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
     });
 
     // Default intercepts.
+    cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
     cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
     asProjectAdminUser();
   }

@@ -47,6 +47,13 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.gateway-name
+  - name: images-jobs-async-upload
+    objref:
+      kind: ConfigMap
+      name: rhoai-dashboard-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.images-jobs-async-upload
 configurations:
   - params.yaml
 replacements:

@@ -2,24 +2,15 @@ package repositories
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/kubeflow/model-registry/ui/bff/internal/constants"
 	helper "github.com/kubeflow/model-registry/ui/bff/internal/helpers"
 	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
 	"github.com/kubeflow/model-registry/ui/bff/internal/models"
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ErrModelTransferJobNotFound is returned when the model transfer job does not exist.
-var ErrModelTransferJobNotFound = errors.New("model transfer job not found")
-
-type ModelRegistryRepository struct {
-}
+type ModelRegistryRepository struct{}
 
 func NewModelRegistryRepository() *ModelRegistryRepository {
 	return &ModelRegistryRepository{}
@@ -59,20 +50,39 @@ func (m *ModelRegistryRepository) GetAllModelRegistriesWithMode(sessionCtx conte
 		return nil, fmt.Errorf("error fetching model registries: %w", err)
 	}
 
+	// Per-registry GetServiceEndpoints (no list): non-admin users typically lack list Endpoints permission. On fetch error we assume available to avoid new permission requirements upstream.
 	var registries = []models.ModelRegistryModel{}
 	for _, s := range resources {
 		serverAddress := m.ResolveServerAddress(s.ClusterIP, s.HTTPPort, s.IsHTTPS, s.ExternalAddressRest, isFederatedMode)
-		registry := models.ModelRegistryModel{
-			Name:          s.Name,
-			Description:   s.Description,
-			DisplayName:   s.DisplayName,
-			ServerAddress: serverAddress,
-			IsHTTPS:       s.IsHTTPS,
-		}
+		isAvailable := m.isRegistryAvailable(sessionCtx, client, namespace, s.Name)
+		registry := m.buildModelRegistryModel(s, serverAddress, isAvailable)
 		registries = append(registries, registry)
 	}
 
 	return registries, nil
+}
+
+// isRegistryAvailable returns true if the service's Endpoints have at least one ready address. On fetch error (e.g. Forbidden) returns true so we do not require new RBAC upstream.
+func (m *ModelRegistryRepository) isRegistryAvailable(sessionCtx context.Context, client k8s.KubernetesClientInterface, namespace, serviceName string) bool {
+	logger := helper.GetContextLogger(sessionCtx)
+	endpoints, err := client.GetServiceEndpoints(sessionCtx, namespace, serviceName)
+	if err != nil {
+		logger.Debug("assuming registry available (endpoints fetch failed, may be permission)", "serviceName", serviceName, "namespace", namespace, "error", err)
+		return true
+	}
+	return k8s.EndpointsHasReadyAddresses(endpoints)
+}
+
+// buildModelRegistryModel maps service details and availability into a ModelRegistryModel (DRY for list and get-by-name).
+func (m *ModelRegistryRepository) buildModelRegistryModel(s k8s.ServiceDetails, serverAddress string, isAvailable bool) models.ModelRegistryModel {
+	return models.ModelRegistryModel{
+		Name:          s.Name,
+		Description:   s.Description,
+		DisplayName:   s.DisplayName,
+		ServerAddress: serverAddress,
+		IsHTTPS:       s.IsHTTPS,
+		IsAvailable:   isAvailable,
+	}
 }
 
 // getSpecificServiceDetails fetches details for specific services by name
@@ -113,15 +123,10 @@ func (m *ModelRegistryRepository) GetModelRegistryWithMode(sessionCtx context.Co
 		return models.ModelRegistryModel{}, fmt.Errorf("error fetching model registry: %w", err)
 	}
 
-	modelRegistry := models.ModelRegistryModel{
-		Name:          s.Name,
-		Description:   s.Description,
-		DisplayName:   s.DisplayName,
-		ServerAddress: m.ResolveServerAddress(s.ClusterIP, s.HTTPPort, s.IsHTTPS, s.ExternalAddressRest, isFederatedMode),
-		IsHTTPS:       s.IsHTTPS,
-	}
+	isAvailable := m.isRegistryAvailable(sessionCtx, client, namespace, modelRegistryID)
+	serverAddress := m.ResolveServerAddress(s.ClusterIP, s.HTTPPort, s.IsHTTPS, s.ExternalAddressRest, isFederatedMode)
 
-	return modelRegistry, nil
+	return m.buildModelRegistryModel(s, serverAddress, isAvailable), nil
 }
 
 func (m *ModelRegistryRepository) ResolveServerAddress(clusterIP string, httpPort int32, isHTTPS bool, externalAddressRest string, isFederatedMode bool) string {
@@ -139,125 +144,4 @@ func (m *ModelRegistryRepository) ResolveServerAddress(clusterIP string, httpPor
 
 	url := fmt.Sprintf("%s://%s:%d/api/model_registry/v1alpha3", protocol, clusterIP, httpPort)
 	return url
-}
-
-// GetAllModelTransferJobs returns just one mock sample to unblock the UI work and the rest of the logic will be added in followup PR
-// TODO: Replace with actual implementation for all the methods
-func (m *ModelRegistryRepository) GetAllModelTransferJobs(ctx context.Context, client k8s.KubernetesClientInterface, namespace string) (*models.ModelTransferJobList, error) {
-	jobList, err := client.GetAllModelTransferJobs(ctx, namespace)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch model transfer jobs: %w", err)
-	}
-
-	var transferJobs []models.ModelTransferJob
-	for _, job := range jobList.Items {
-		transferJobs = append(transferJobs, convertK8sJobToModel(&job))
-	}
-
-	return &models.ModelTransferJobList{
-		Items:    transferJobs,
-		Size:     len(transferJobs),
-		PageSize: len(transferJobs),
-	}, nil
-
-}
-
-func (m *ModelRegistryRepository) CreateModelTransferJob(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, payload models.ModelTransferJob) error {
-	job := convertModelToK8sJob(payload, namespace)
-
-	err := client.CreateModelTransferJob(ctx, namespace, job)
-	if err != nil {
-		return fmt.Errorf("failed to create model transfer job: %w", err)
-	}
-	return nil
-}
-
-func (m *ModelRegistryRepository) UpdateModelTransferJob(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, jobId string, updates map[string]string) error {
-	err := client.UpdateModelTransferJob(ctx, namespace, jobId, updates)
-	if err != nil {
-		return fmt.Errorf("failed to update model transfer job %s: %w", jobId, err)
-	}
-	return nil
-}
-
-func (m *ModelRegistryRepository) DeleteModelTransferJob(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, jobName string) error {
-	err := client.DeleteModelTransferJob(ctx, namespace, jobName)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return fmt.Errorf("%w: %s", ErrModelTransferJobNotFound, jobName)
-		}
-		return fmt.Errorf("failed to delete model transfer job %s: %w", jobName, err)
-	}
-	return nil
-}
-
-// TODO: These functions convert the minimum required fields for now. Improve these to convert all the necessary fields
-func convertModelToK8sJob(payload models.ModelTransferJob, namespace string) *batchv1.Job {
-	backoffLimit := int32(3)
-
-	return &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      payload.Name,
-			Namespace: namespace,
-			Labels: map[string]string{
-				"modelregistry.kubeflow.org/job-type": "async-upload",
-				"modelregistry.kubeflow.org/job-id":   payload.Id,
-			},
-			Annotations: map[string]string{
-				"modelregistry.kubeflow.org/source-type":   string(payload.Source.Type),
-				"modelregistry.kubeflow.org/dest-type":     string(payload.Destination.Type),
-				"modelregistry.kubeflow.org/model-name":    payload.RegisteredModelName,
-				"modelregistry.kubeflow.org/upload-intent": string(payload.UploadIntent),
-			},
-		},
-		Spec: batchv1.JobSpec{
-			BackoffLimit: &backoffLimit,
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					RestartPolicy: corev1.RestartPolicyNever,
-					Containers: []corev1.Container{
-						{
-							Name:  "async-upload",
-							Image: "quay.io/opendatahub/model-registry-job-async-upload:latest",
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func convertK8sJobToModel(job *batchv1.Job) models.ModelTransferJob {
-	annotations := job.Annotations
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-	labels := job.Labels
-	if labels == nil {
-		labels = map[string]string{}
-	}
-
-	status := models.ModelTransferJobStatusPending
-	if job.Status.Succeeded > 0 {
-		status = models.ModelTransferJobStatusCompleted
-	} else if job.Status.Failed > 0 {
-		status = models.ModelTransferJobStatusFailed
-	} else if job.Status.Active > 0 {
-		status = models.ModelTransferJobStatusRunning
-	}
-
-	return models.ModelTransferJob{
-		Id:                   labels["modelregistry.kubeflow.org/job-id"],
-		Name:                 job.Name,
-		Description:          annotations["modelregistry.kubeflow.org/description"],
-		RegisteredModelName:  annotations["modelregistry.kubeflow.org/model-name"],
-		ModelVersionName:     annotations["modelregistry.kubeflow.org/version-name"],
-		RegisteredModelId:    annotations["modelregistry.kubeflow.org/registered-model-id"],
-		ModelVersionId:       annotations["modelregistry.kubeflow.org/model-version-id"],
-		ModelArtifactId:      annotations["modelregistry.kubeflow.org/model-artifact-id"],
-		Author:               annotations["modelregistry.kubeflow.org/author"],
-		Status:               status,
-		CreateTimeSinceEpoch: fmt.Sprintf("%d", job.CreationTimestamp.UnixMilli()),
-		Namespace:            job.Namespace,
-	}
 }

@@ -1,4 +1,5 @@
 import type { CommandLineResult } from '../../types';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
  * Validates environment variables in a workbench pod
@@ -31,7 +32,8 @@ export const validateWorkbenchEnvironmentVariables = (
 
       return cy.exec(validateEnvVarsCommand, { failOnNonZeroExit: false }).then((envResult) => {
         if (envResult.code !== 0) {
-          throw new Error(`Failed to validate environment variables: ${envResult.stderr}`);
+          const maskedStderr = maskSensitiveInfo(envResult.stderr);
+          throw new Error(`Failed to validate environment variables: ${maskedStderr}`);
         }
 
         // Validate each variable's value

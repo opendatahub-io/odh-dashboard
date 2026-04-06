@@ -1,9 +1,15 @@
+/* eslint-disable camelcase */
 import type { Tier, TierLimits } from '@odh-dashboard/maas/types/tier';
 import type {
   APIKey,
   CreateAPIKeyResponse,
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
+import type {
+  MaaSSubscription,
+  SubscriptionInfoResponse,
+  UserSubscription,
+} from '@odh-dashboard/maas/types/subscriptions';
 
 // Standardized tier templates - use these directly or as building blocks
 export const MOCK_TIERS: Record<'free' | 'premium' | 'enterprise', Tier> = {
@@ -52,6 +58,9 @@ export const mockAPIKeys = (): APIKey[] => [
     creationDate: '2026-01-07T11:54:34.521671447-05:00',
     expirationDate: '2026-02-06T11:54:34.521671447-05:00',
     status: 'active',
+    username: 'alice',
+    lastUsedAt: '2026-03-10T14:30:00Z',
+    subscription: 'premium-team-sub',
   },
   {
     id: 'key-dev-testing-002',
@@ -60,6 +69,9 @@ export const mockAPIKeys = (): APIKey[] => [
     creationDate: '2026-01-14T09:54:34.521671447-05:00',
     expirationDate: '2026-01-15T09:54:34.521671447-05:00',
     status: 'active',
+    username: 'bob',
+    lastUsedAt: '2026-03-09T10:15:00Z',
+    subscription: 'basic-team-sub',
   },
   {
     id: 'key-ci-pipeline-003',
@@ -67,7 +79,9 @@ export const mockAPIKeys = (): APIKey[] => [
     description: 'API key for CI/CD pipeline automation',
     creationDate: '2026-01-11T11:54:34.521671447-05:00',
     expirationDate: '2026-01-18T11:54:34.521671447-05:00',
-    status: 'active',
+    status: 'revoked',
+    username: 'carol',
+    subscription: 'premium-team-sub',
   },
   {
     id: 'key-expired-old-004',
@@ -76,18 +90,18 @@ export const mockAPIKeys = (): APIKey[] => [
     creationDate: '2025-12-15T11:54:34.521671447-05:00',
     expirationDate: '2026-01-13T11:54:34.521671447-05:00',
     status: 'expired',
+    username: 'dave',
   },
 ];
 
 export const mockCreateAPIKeyResponse = (): CreateAPIKeyResponse => {
   return {
-    token:
-      'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtYWFzLWFwaSIsInN1YiI6InRlc3QtdXNlciIsImF1ZCI6WyJtYWFzLWFwaSJdLCJleHAiOjE2NzI1NDU2MDAsIm5iZiI6MTY3MjUzMTIwMCwiaWF0IjoxNjcyNTMxMjAwfQ.mock-signature',
-    expiration: '4h',
-    expiresAt: 1769544565,
-    jti: 'mock-jti-abc123def456',
+    key: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtYWFzLWFwaSIsInN1YiI6InRlc3QtdXNlciIsImF1ZCI6WyJtYWFzLWFwaSJdLCJleHAiOjE2NzI1NDU2MDAsIm5iZiI6MTY3MjUzMTIwMCwiaWF0IjoxNjcyNTMxMjAwfQ.mock-signature',
+    keyPrefix: 'sk-oai-abc',
+    id: 'key-prod-backend-001',
+    expiresAt: '2026-01-20T11:54:34.521671447-05:00',
     name: 'production-backend',
-    description: 'Production API key for backend service',
+    createdAt: '2026-01-14T11:54:34.521671447-05:00',
   };
 };
 
@@ -95,9 +109,91 @@ export const mockCreateAPIKeyRequest = (): CreateAPIKeyRequest => {
   return {
     name: 'production-backend',
     description: 'Production API key for backend service',
-    expiration: '4h',
+    expiresIn: '168h', // 7 days in hours
+    subscription: 'premium-team-sub',
   };
 };
+
+export const mockSubscriptions = (): MaaSSubscription[] => [
+  {
+    name: 'premium-team-sub',
+    namespace: 'maas-system',
+    phase: 'Active',
+    priority: 10,
+    owner: {
+      groups: [{ name: 'premium-users' }],
+    },
+    modelRefs: [
+      {
+        name: 'granite-3-8b-instruct',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 100000, window: '24h' }],
+      },
+      {
+        name: 'flan-t5-small',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 200000, window: '24h' }],
+      },
+    ],
+    tokenMetadata: {
+      organizationId: 'org-123',
+      costCenter: 'engineering',
+    },
+    creationTimestamp: '2025-03-01T10:00:00Z',
+  },
+  {
+    name: 'basic-team-sub',
+    namespace: 'maas-system',
+    phase: 'Active',
+    owner: {
+      groups: [{ name: 'system:authenticated' }],
+    },
+    modelRefs: [
+      {
+        name: 'flan-t5-small',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 10000, window: '24h' }],
+      },
+    ],
+    creationTimestamp: '2025-02-15T08:00:00Z',
+  },
+];
+
+export const mockSubscriptionListItems = (): UserSubscription[] => [
+  {
+    subscription_id_header: 'premium-team-sub',
+    subscription_description: 'Premium Team Subscription',
+    display_name: 'Premium Team',
+    priority: 10,
+    cost_center: 'engineering',
+    organization_id: 'org-123',
+    model_refs: [
+      {
+        name: 'granite-3-8b-instruct',
+        namespace: 'maas-models',
+        token_rate_limits: [{ limit: 100000, window: '24h' }],
+      },
+      {
+        name: 'flan-t5-small',
+        namespace: 'maas-models',
+        token_rate_limits: [{ limit: 200000, window: '24h' }],
+      },
+    ],
+  },
+  {
+    subscription_id_header: 'basic-team-sub',
+    subscription_description: 'Basic Team Subscription',
+    display_name: 'Basic Team',
+    priority: 1,
+    model_refs: [
+      {
+        name: 'flan-t5-small',
+        namespace: 'maas-models',
+        token_rate_limits: [{ limit: 10000, window: '24h' }],
+      },
+    ],
+  },
+];
 
 export const mockTier = ({
   name = 'free',
@@ -124,5 +220,34 @@ export const mockTier = ({
     level,
     groups,
     limits,
+  };
+};
+
+export const mockSubscriptionInfo = (name = 'premium-team-sub'): SubscriptionInfoResponse => {
+  const subscription = mockSubscriptions().find((s) => s.name === name) ?? mockSubscriptions()[0];
+  return {
+    subscription,
+    modelRefs: subscription.modelRefs.map((ref) => ({
+      name: ref.name,
+      namespace: ref.namespace,
+      displayName: `${ref.name} Display`,
+      modelRef: { kind: 'LLMInferenceService', name: ref.name },
+      phase: 'Ready',
+      endpoint: `https://${ref.name}.example.com`,
+    })),
+    authPolicies: [
+      {
+        name: `${name}-policy`,
+        namespace: subscription.namespace,
+        phase: 'Active',
+        modelRefs: subscription.modelRefs.map((ref) => ({
+          name: ref.name,
+          namespace: ref.namespace,
+        })),
+        subjects: {
+          groups: subscription.owner.groups,
+        },
+      },
+    ],
   };
 };

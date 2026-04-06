@@ -32,7 +32,7 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
 
   return (
     <Tr>
-      <Td dataLabel="Model registry name">
+      <Td dataLabel="Model registry name" style={{ verticalAlign: 'middle' }}>
         <ResourceNameTooltip resource={mr}>
           <strong>
             {mr.metadata.annotations?.['openshift.io/display-name'] || mr.metadata.name}
@@ -42,10 +42,10 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
           <p>{mr.metadata.annotations['openshift.io/description']}</p>
         )}
       </Td>
-      <Td dataLabel="Status">
+      <Td dataLabel="Status" style={{ verticalAlign: 'middle' }}>
         <ModelRegistryTableRowStatus conditions={mr.status?.conditions} />
       </Td>
-      <Td modifier="fitContent">
+      <Td modifier="fitContent" style={{ verticalAlign: 'middle' }}>
         {filteredRoleBindings.length === 0 ? (
           <Tooltip content="You can manage permissions when the model registry becomes available.">
             <Button isAriaDisabled variant="link">
@@ -61,17 +61,17 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
           </Button>
         )}
       </Td>
-      <Td isActionCell>
+      <Td isActionCell style={{ verticalAlign: 'middle' }}>
         <ActionsColumn
           items={[
             {
-              title: 'Edit model registry',
+              title: <span data-testid="edit-model-registry-action">Edit model registry</span>,
               onClick: () => {
                 onEditRegistry(mr);
               },
             },
             {
-              title: 'Delete model registry',
+              title: <span data-testid="delete-model-registry-action">Delete model registry</span>,
               disabled: isDeploymentKubeflow,
               onClick: () => {
                 onDeleteRegistry(mr);

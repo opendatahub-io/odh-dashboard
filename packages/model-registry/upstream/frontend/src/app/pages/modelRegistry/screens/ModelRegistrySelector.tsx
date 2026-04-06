@@ -10,26 +10,26 @@ import {
   FlexItem,
   Icon,
   Popover,
-  PopoverPosition,
   Tooltip,
 } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import truncateStyles from '@patternfly/react-styles/css/components/Truncate/truncate';
-import { InfoCircleIcon, BlueprintIcon } from '@patternfly/react-icons';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import {
-  WhosMyAdministrator,
-  KubeflowDocs,
   SimpleSelect,
   InlineTruncatedClipboardCopy,
+  TypedObjectIcon,
+  ProjectObjectType,
 } from 'mod-arch-shared';
 import { useBrowserStorage } from 'mod-arch-core';
-import { useThemeContext } from 'mod-arch-kubeflow';
 import { SimpleSelectOption } from 'mod-arch-shared/dist/components/SimpleSelect';
-import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
-import { ModelRegistry } from '~/app/types';
+import {
+  ModelRegistrySelectorContext,
+  MODEL_REGISTRY_FAVORITE_STORAGE_KEY,
+} from '~/app/context/ModelRegistrySelectorContext';
+import { ModelRegistry, isRegistryUnavailable } from '~/app/types';
+import AdminHelpAction from './components/AdminHelpAction';
 import { getServerAddress } from './utils';
-
-const MODEL_REGISTRY_FAVORITE_STORAGE_KEY = 'kubeflow.dashboard.model.registry.favorite';
 
 type ModelRegistrySelectorProps = {
   modelRegistry: string;
@@ -37,6 +37,7 @@ type ModelRegistrySelectorProps = {
   primary?: boolean;
   isFullWidth?: boolean;
   hasError?: boolean;
+  children?: React.ReactNode;
 };
 
 const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
@@ -45,11 +46,11 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
   primary,
   isFullWidth,
   hasError,
+  children,
 }) => {
   const { modelRegistries, updatePreferredModelRegistry } = React.useContext(
     ModelRegistrySelectorContext,
   );
-  const { isMUITheme } = useThemeContext();
 
   const selection = modelRegistries.find((mr) => mr.name === modelRegistry);
   const [favorites, setFavorites] = useBrowserStorage<string[]>(
@@ -147,16 +148,14 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
 
   return (
     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-      <FlexItem>
-        <Icon>
-          <BlueprintIcon />
-        </Icon>
-      </FlexItem>
+      <Icon iconSize="xl" isInline>
+        <TypedObjectIcon resourceType={ProjectObjectType.registeredModels} />
+      </Icon>
       <FlexItem>
         <Bullseye>Model registry</Bullseye>
       </FlexItem>
       <FlexItem>{selector}</FlexItem>
-      {selection && (
+      {selection && !isRegistryUnavailable(selection) && (
         <FlexItem>
           <Popover
             aria-label="Model registry description popover"
@@ -188,22 +187,14 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
           </Popover>
         </FlexItem>
       )}
+      {children}
       <FlexItem align={{ default: 'alignRight' }}>
-        {isMUITheme ? (
-          <KubeflowDocs
-            buttonLabel="Need another registry?"
-            linkTestId="model-registry-help-button"
-          />
-        ) : (
-          <WhosMyAdministrator
-            buttonLabel="Need another registry?"
-            headerContent="Need another registry?"
-            leadText="To request access to a new or existing model registry, contact your administrator."
-            contentTestId="model-registry-help-content"
-            linkTestId="model-registry-help-button"
-            popoverPosition={PopoverPosition.left}
-          />
-        )}
+        <AdminHelpAction
+          buttonLabel="Need another registry?"
+          linkTestId="model-registry-help-button"
+          headerContent="Need another registry?"
+          contentTestId="model-registry-help-content"
+        />
       </FlexItem>
     </Flex>
   );

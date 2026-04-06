@@ -72,6 +72,10 @@ const SDKInitialize: React.FC<SDKInitializeProps> = ({ children }) => {
     const intervalId = setInterval(handler, 100);
     // Immediately check to prevent unecessary delays
     handler();
+
+    return () => {
+      clearInterval(intervalId);
+    };
   }, []);
 
   return (

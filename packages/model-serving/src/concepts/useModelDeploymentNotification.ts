@@ -93,7 +93,7 @@ export const useModelDeploymentNotification = (
               [
                 {
                   title: 'View deployment',
-                  onClick: () => navigate(`/ai-hub/deployments/${namespace}`),
+                  onClick: () => navigate(`/ai-hub/models/deployments/${namespace}`),
                 },
               ],
             );
@@ -145,6 +145,8 @@ export const useModelDeploymentNotification = (
     registerNotification,
     navigate,
     namespace,
+    deployment.model.metadata.name,
+    deployment.model.metadata.namespace,
     notification,
     fetchDeploymentExtension,
     fetchDeploymentExtensionLoaded,

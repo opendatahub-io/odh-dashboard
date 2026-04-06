@@ -15,9 +15,11 @@ import { AppContext } from '~/app/context/AppContext';
 import { Bullseye } from '@patternfly/react-core';
 import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
 import NotificationListener from '~/odh/components/NotificationListener';
+import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
 
 const ModelRegistryWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
+
   if (loadError) {
     return <div>Error: {loadError.message}</div>;
   }
@@ -33,14 +35,16 @@ const ModelRegistryWrapperContent: React.FC = () => {
     >
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
-          <NotificationContextProvider>
-            {/* TODO: TECH DEBT - Remove NotificationListener once midstream uses mod-arch-core NotificationContext */}
-            <NotificationListener>
-              <ModelRegistrySelectorContextProvider>
-                <ModelRegistryRoutes />
-              </ModelRegistrySelectorContextProvider>
-            </NotificationListener>
-          </NotificationContextProvider>
+          <OdhDevFeatureFlagOverridesProvider crdOverrides={{}}>
+            <NotificationContextProvider>
+              {/* TODO: TECH DEBT - Remove NotificationListener once midstream uses mod-arch-core NotificationContext */}
+              <NotificationListener>
+                <ModelRegistrySelectorContextProvider>
+                  <ModelRegistryRoutes />
+                </ModelRegistrySelectorContextProvider>
+              </NotificationListener>
+            </NotificationContextProvider>
+          </OdhDevFeatureFlagOverridesProvider>
         </BrowserStorageContextProvider>
       </ThemeProvider>
     </AppContext.Provider>

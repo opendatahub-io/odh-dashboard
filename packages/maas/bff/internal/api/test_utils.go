@@ -44,19 +44,25 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 	defer maasFakeServer.Close()
 
 	envConfig := config.EnvConfig{
-		AllowedOrigins:          []string{"*"},
-		AuthMethod:              config.AuthMethodInternal,
-		TiersConfigMapNamespace: "maas-api",
-		TiersConfigMapName:      "tier-to-group-mapping",
-		GatewayNamespace:        "openshift-ingress",
-		GatewayName:             "maas-default-gateway",
-		MockHTTPClient:          true,
-		MaasApiUrl:              maasFakeServer.URL,
+		AllowedOrigins:            []string{"*"},
+		AuthMethod:                config.AuthMethodInternal,
+		TiersConfigMapNamespace:   "maas-api",
+		TiersConfigMapName:        "tier-to-group-mapping",
+		GatewayNamespace:          "openshift-ingress",
+		GatewayName:               "maas-default-gateway",
+		MockHTTPClient:            true,
+		MaasApiUrl:                maasFakeServer.URL,
+		MaaSSubscriptionNamespace: "maas-system",
 	}
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	repos, err := repositories.NewRepositories(logger, k8Factory, envConfig)
+	// Tests use real K8s repos backed by envtest (not mocks)
+	subscriptionsRepo := repositories.NewSubscriptionsRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
+	policiesRepo := repositories.NewPoliciesRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
+	modelRefsRepo := repositories.NewMaaSModelRefsRepository(logger, k8Factory)
+
+	repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, subscriptionsRepo, policiesRepo, modelRefsRepo)
 	if err != nil {
 		return empty, nil, err
 	}

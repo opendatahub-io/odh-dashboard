@@ -7,6 +7,7 @@ import {
 } from '../../../../utils/storageClass';
 import {
   clusterStorage,
+  clusterStorageActions,
   addClusterStorageModal,
   updateClusterStorageModal,
 } from '../../../../pages/clusterStorage';
@@ -227,7 +228,8 @@ describe('Cluster Storage Access Modes Tests', () => {
       storageRow.findStorageClassColumn().should('contain.text', storageClassRWX);
 
       cy.step('Attempt to edit the cluster storage');
-      clusterStorage.getClusterStorageRow(storageName).findKebabAction('Edit storage').click();
+      clusterStorage.getClusterStorageRow(storageName).findKebab().click();
+      clusterStorageActions.findEditStorageAction().click();
 
       cy.step('Verify edit modal opens with correct title');
       updateClusterStorageModal.find().should('be.visible');

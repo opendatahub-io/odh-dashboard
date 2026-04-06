@@ -14,7 +14,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
     type: 'app.area',
     properties: {
       id: PLUGIN_MODEL_TRAINING,
-      reliantAreas: [SupportedArea.MODEL_TRAINING],
+      reliantAreas: [SupportedArea.MODEL_TRAINING, SupportedArea.RAY_JOBS],
       featureFlags: ['trainingJobs'],
     },
   },
@@ -25,7 +25,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
     },
     properties: {
       id: 'modelTraining',
-      title: 'Training jobs',
+      title: 'Jobs',
       section: 'develop-and-train',
       href: '/develop-train/training-jobs',
       path: '/develop-train/training-jobs/*',

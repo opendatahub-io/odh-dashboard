@@ -154,6 +154,10 @@ module.exports = {
                 requiredVersion: deps['react-router-dom'],
                 eager: true,
               },
+              '@patternfly/react-code-editor': {
+                singleton: true,
+                requiredVersion: deps['@patternfly/react-code-editor'],
+              },
               '@patternfly/react-core': {
                 singleton: true,
                 requiredVersion: deps['@patternfly/react-core'],
@@ -161,6 +165,11 @@ module.exports = {
               '@openshift/dynamic-plugin-sdk': {
                 singleton: true,
                 requiredVersion: deps['@openshift/dynamic-plugin-sdk'],
+                eager: true,
+              },
+              '@openshift/dynamic-plugin-sdk-utils': {
+                singleton: true,
+                requiredVersion: deps['@openshift/dynamic-plugin-sdk-utils'],
                 eager: true,
               },
               '@odh-dashboard/plugin-core': {

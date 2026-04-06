@@ -1,4 +1,5 @@
 import * as yaml from 'js-yaml';
+import { ModelLocationSelectOption } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import type { DataScienceProjectData, ModelCatalogSourceTestData } from '../../../types';
@@ -89,7 +90,9 @@ describe('Verify a model can be deployed from model catalog', () => {
 
       cy.step('Verify model location gets prefilled');
       modelServingWizard.findModelSourceStep().click();
-      modelServingWizard.findModelLocationSelect().should('contain.text', 'URI');
+      modelServingWizard
+        .findModelLocationSelect()
+        .should('contain.text', ModelLocationSelectOption.URI);
       modelDetailsPage.getModelSourceImageLocation().then((modelSourceImageLocation) => {
         modelServingWizard.findUrilocationInput().should('have.value', modelSourceImageLocation);
       });
@@ -104,7 +107,7 @@ describe('Verify a model can be deployed from model catalog', () => {
         .should('exist')
         .click();
 
-      modelServingWizard.findServingRuntimeSelectRadio().click();
+      modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findFirstServingRuntimeTemplateOption().should('exist').click();
 
       cy.step('Advanced options step');

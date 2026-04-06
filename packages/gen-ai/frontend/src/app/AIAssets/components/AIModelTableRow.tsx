@@ -1,112 +1,321 @@
 import * as React from 'react';
-import { Button, Truncate, Label, ButtonVariant } from '@patternfly/react-core';
+import {
+  Alert,
+  Button,
+  Truncate,
+  Label,
+  ButtonVariant,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
+  MenuToggle,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import { CheckCircleIcon, ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import {
+  InfoCircleIcon,
+  OutlinedQuestionCircleIcon,
+  PlusCircleIcon,
+  EllipsisVIcon,
+} from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
-import type { MaaSModel } from '~/odh/extension-points/maas';
+import {
+  AIModel,
+  ExternalVectorStoreSummary,
+  LlamaModel,
+  LlamaStackDistributionModel,
+  VectorStore,
+} from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
-import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
+import { genAiAiAssetsTabRoute, genAiChatPlaygroundRoute } from '~/app/utilities/routes';
+import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import AIModelsTableRowEndpoint from './AIModelsTableRowEndpoint';
 import AIModelsTableRowInfo from './AIModelsTableRowInfo';
+import EndpointDetailModal from './EndpointDetailModal';
 
 type AIModelTableRowProps = {
   lsdStatus: LlamaStackDistributionModel | null;
   model: AIModel;
-  aiModels: AIModel[];
-  maasModels: MaaSModel[];
+  allModels: AIModel[];
   playgroundModels: LlamaModel[];
+  onDelete?: (modelId: string) => Promise<void>;
+  showActionColumn?: boolean;
+  allCollections: ExternalVectorStoreSummary[];
+  collectionsLoaded: boolean;
+  existingCollections: VectorStore[];
 };
 
 const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   lsdStatus,
   model,
-  aiModels,
-  maasModels,
+  allModels,
   playgroundModels,
+  onDelete,
+  showActionColumn = false,
+  allCollections,
+  collectionsLoaded,
+  existingCollections,
 }) => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
+  const isVectorStoresEnabled = useAiAssetVectorStoresEnabled();
   const enabledModel = playgroundModels.find((m) => m.modelId === model.model_id);
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
+  const [isEndpointModalOpen, setIsEndpointModalOpen] = React.useState(false);
+  const [isKebabOpen, setIsKebabOpen] = React.useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
+  const assetType = model.model_source_type === 'maas' ? 'maas_model' : 'model';
+
+  const handleDelete = React.useCallback(async () => {
+    if (!onDelete) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await onDelete(model.model_id);
+      setIsDeleteModalOpen(false);
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : 'Failed to remove asset. Please try again.',
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [onDelete, model.model_id]);
 
   return (
     <>
       <Tr>
-        <Td dataLabel="Model deployment name">
-          <>
-            <TableRowTitleDescription title={<AIModelsTableRowInfo model={model} />} />
-            {/* The shared TableRowTitleDescription component only accepts a string for the description
-         * so we need to use the TruncatedText component to truncate the description
-         and take it out of the TableRowTitleDescription component */}
-            <TruncatedText maxLines={2} content={model.description} style={{ cursor: 'help' }} />
-          </>
-        </Td>
-        <Td dataLabel="Internal endpoint">
-          <AIModelsTableRowEndpoint model={model} />
-        </Td>
-        <Td dataLabel="External endpoint">
-          <AIModelsTableRowEndpoint model={model} isExternal />
+        <Td dataLabel="Model">
+          <TableRowTitleDescription title={<AIModelsTableRowInfo model={model} />} />
+          <Truncate
+            content={model.model_id}
+            className="pf-v6-u-font-family-monospace pf-v6-u-font-size-xs pf-v6-u-color-200 pf-v6-u-mt-xs"
+          />
+          {model.description && (
+            <Truncate
+              content={model.description}
+              className="pf-v6-u-font-size-xs pf-v6-u-color-200 pf-v6-u-mt-sm"
+              style={{ cursor: 'help' }}
+            />
+          )}
         </Td>
         <Td dataLabel="Use case">
-          <Truncate content={model.usecase} />
+          <TruncatedText maxLines={2} content={model.usecase} />
         </Td>
         <Td dataLabel="Status">
-          {model.status === 'Running' ? (
-            <Label color="green" icon={<CheckCircleIcon />}>
-              Active
-            </Label>
+          {(() => {
+            switch (model.status) {
+              case 'Running':
+                return (
+                  <Label status="success" variant="outline">
+                    Ready
+                  </Label>
+                );
+              case 'Stop':
+                return (
+                  <Label status="danger" variant="outline">
+                    Inactive
+                  </Label>
+                );
+              default:
+                return (
+                  <Label variant="outline" color="grey" icon={<OutlinedQuestionCircleIcon />}>
+                    Unknown
+                  </Label>
+                );
+            }
+          })()}
+        </Td>
+        <Td dataLabel="Endpoints">
+          {model.externalEndpoint || model.internalEndpoint ? (
+            <Button
+              data-testid="endpoint-view-button"
+              variant={ButtonVariant.link}
+              onClick={() => {
+                fireMiscTrackingEvent('Available Endpoints Endpoint Viewed', {
+                  modelType: model.model_type === 'embedding' ? 'embedding' : 'inference',
+                  endpointSource: model.model_source_type,
+                });
+                setIsEndpointModalOpen(true);
+              }}
+            >
+              View
+            </Button>
           ) : (
-            <Label color="red" icon={<ExclamationCircleIcon />}>
-              Inactive
+            <Label
+              icon={<InfoCircleIcon />}
+              data-testid="endpoint-not-available"
+              aria-label="Endpoint not available"
+            >
+              Not available
             </Label>
           )}
         </Td>
         <Td dataLabel="Playground">
           {enabledModel ? (
-            <Button
-              data-testid="try-playground-button"
-              variant={ButtonVariant.secondary}
-              onClick={() => {
-                fireMiscTrackingEvent('Available Endpoints Playground Launched', {
-                  assetType: 'model',
-                  assetId: model.model_id,
-                });
-                navigate(genAiChatPlaygroundRoute(namespace?.name), {
-                  state: {
-                    model: enabledModel.id,
-                  },
-                });
-              }}
-              isDisabled={model.status !== 'Running'}
-            >
-              Try in playground
-            </Button>
+            <>
+              {model.model_type === 'embedding' && isVectorStoresEnabled ? (
+                <Button
+                  data-testid="see-vector-stores-button"
+                  variant={ButtonVariant.link}
+                  onClick={() => {
+                    fireMiscTrackingEvent('Available Endpoints See Vector Stores Clicked', {
+                      modelId: model.model_id,
+                    });
+                    if (namespace?.name) {
+                      navigate(genAiAiAssetsTabRoute(namespace.name, 'vectorstores'));
+                    }
+                  }}
+                >
+                  See vector stores
+                </Button>
+              ) : (
+                <Button
+                  data-testid="try-playground-button"
+                  variant={ButtonVariant.secondary}
+                  onClick={() => {
+                    fireMiscTrackingEvent('Available Endpoints Playground Launched', {
+                      assetType,
+                      assetId: model.model_id,
+                    });
+                    navigate(genAiChatPlaygroundRoute(namespace?.name), {
+                      state: {
+                        model: enabledModel.id,
+                      },
+                    });
+                  }}
+                  // Embedding models cannot be tried in the chat playground (vector output is not supported)
+                  // Custom endpoint models are always available if they're in the list
+                  isDisabled={
+                    model.model_type === 'embedding' ||
+                    (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running')
+                  }
+                >
+                  Try in playground
+                </Button>
+              )}
+            </>
           ) : (
             <Button
               variant={ButtonVariant.link}
               icon={<PlusCircleIcon />}
               onClick={() => setIsConfigurationModalOpen(true)}
-              isDisabled={model.status !== 'Running'}
+              // Add stays enabled for embedding models (may be used in RAG configurations)
+              // Custom endpoint models are always available if they're in the list
+              isDisabled={
+                model.model_source_type !== 'custom_endpoint' && model.status !== 'Running'
+              }
             >
               Add to playground
             </Button>
           )}
         </Td>
+        {showActionColumn && (
+          <Td isActionCell>
+            {model.model_source_type === 'custom_endpoint' && onDelete && (
+              <Dropdown
+                isOpen={isKebabOpen}
+                onOpenChange={(isOpen) => setIsKebabOpen(isOpen)}
+                popperProps={{ position: 'end', preventOverflow: true }}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    aria-label={`Actions for ${model.display_name || model.model_id}`}
+                    variant="plain"
+                    onClick={() => setIsKebabOpen(!isKebabOpen)}
+                  >
+                    <EllipsisVIcon />
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem
+                    key="delete"
+                    onClick={() => {
+                      setIsKebabOpen(false);
+                      setIsDeleteModalOpen(true);
+                    }}
+                    isDanger
+                  >
+                    Remove asset
+                  </DropdownItem>
+                </DropdownList>
+              </Dropdown>
+            )}
+          </Td>
+        )}
       </Tr>
+      {isEndpointModalOpen && (
+        <EndpointDetailModal model={model} onClose={() => setIsEndpointModalOpen(false)} />
+      )}
       {isConfigurationModalOpen && (
         <ChatbotConfigurationModal
           onClose={() => setIsConfigurationModalOpen(false)}
           lsdStatus={lsdStatus}
-          aiModels={aiModels}
-          maasModels={maasModels}
+          aiModels={allModels}
           existingModels={playgroundModels}
           extraSelectedModels={[model]}
           redirectToPlayground
+          allCollections={allCollections}
+          collectionsLoaded={collectionsLoaded}
+          existingCollections={existingCollections}
         />
+      )}
+      {isDeleteModalOpen && (
+        <Modal
+          variant="small"
+          isOpen={isDeleteModalOpen}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setDeleteError(null);
+          }}
+          data-testid="delete-model-modal"
+        >
+          <ModalHeader title="Remove asset?" />
+          <ModalBody>
+            {deleteError && (
+              <Alert
+                variant="danger"
+                isInline
+                title="Error"
+                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+              >
+                {deleteError}
+              </Alert>
+            )}
+            <strong>{model.display_name}</strong> will be removed from this project&apos;s endpoints
+            list. The endpoint configuration will be deleted.
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              key="confirm"
+              variant="danger"
+              onClick={handleDelete}
+              isDisabled={isDeleting}
+              isLoading={isDeleting}
+            >
+              {isDeleting ? 'Removing...' : 'Remove'}
+            </Button>
+            <Button
+              key="cancel"
+              variant="link"
+              onClick={() => setIsDeleteModalOpen(false)}
+              isDisabled={isDeleting}
+            >
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Modal>
       )}
     </>
   );

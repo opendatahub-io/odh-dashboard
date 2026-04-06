@@ -2,10 +2,16 @@
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
 import type { Namespace, UserSettings } from 'mod-arch-core';
 import { mockModArchResponse } from 'mod-arch-core';
-import type { RoleBindingKind } from '../../../shared/types';
+import type {
+  Collection,
+  CollectionsListResponse,
+  CreateEvaluationJobResponse,
+  EvalHubHealthResponse,
+  EvaluationJob,
+  Provider,
+} from '~/app/types';
 
-const MODEL_REGISTRY_API_VERSION = 'v1';
-export { MODEL_REGISTRY_API_VERSION };
+export const CLIENT_API_VERSION = 'v1';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -37,9 +43,34 @@ declare global {
           response: ApiResponse<Namespace[]>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/:apiVersion/settings/role_bindings',
+          type: 'GET /api/:apiVersion/evalhub/health',
           options: { path: { apiVersion: string } },
-          response: ApiResponse<RoleBindingKind[]>,
+          response: ApiResponse<EvalHubHealthResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/evaluations/providers',
+          options: { path: { apiVersion: string }; query?: Record<string, string> },
+          response: ApiResponse<Provider[]>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/evaluations/collections',
+          options: { path: { apiVersion: string }; query?: Record<string, string> },
+          response: ApiResponse<CollectionsListResponse | Collection[]>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/evaluations/jobs',
+          options: { path: { apiVersion: string }; query?: Record<string, string> },
+          response: ApiResponse<EvaluationJob[]>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/evaluations/jobs/:jobId',
+          options: { path: { apiVersion: string; jobId: string } },
+          response: ApiResponse<EvaluationJob>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/:apiVersion/evaluations/jobs',
+          options: { path: { apiVersion: string }; query?: Record<string, string> },
+          response: ApiResponse<CreateEvaluationJobResponse>,
         ) => Cypress.Chainable<null>);
     }
   }
@@ -74,7 +105,7 @@ Cypress.Commands.add(
     return cy.intercept(
       {
         method,
-        pathname: `/mod-arch/${pathname}`,
+        pathname: `/eval-hub/${pathname}`,
         query: options?.query,
         ...(options?.times && { times: options.times }),
       },

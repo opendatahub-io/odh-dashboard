@@ -40,17 +40,28 @@ export type MockDashboardConfigType = {
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
-  autoRag?: boolean;
+  automl?: boolean;
+  autorag?: boolean;
   modelAsService?: boolean;
-  maasApiKeys?: boolean;
+  externalVectorStores?: boolean;
+  aiAssetCustomEndpoints?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
   hardwareProfileOrder?: string[];
   pvcSize?: string;
   mlflow?: boolean;
+  mcpCatalog?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  vLLMDeploymentOnMaaS?: boolean;
+  promptManagement?: boolean;
+  genAiStudioConfig?: {
+    aiAssetCustomEndpoints?: {
+      externalProviders?: boolean;
+      clusterDomains?: string[];
+    };
+  };
 };
 
 export const mockDashboardConfig = ({
@@ -63,9 +74,10 @@ export const mockDashboardConfig = ({
   disableBYONImageStream = false,
   disableISVBadges = false,
   genAiStudio = false,
-  autoRag = false,
+  automl = false,
+  autorag = false,
   modelAsService = true,
-  maasApiKeys = false,
+  aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
   disableHome = false,
@@ -82,6 +94,7 @@ export const mockDashboardConfig = ({
   disableTrustyBiasMetrics = false,
   disableDistributedWorkloads = false,
   disableModelCatalog = false,
+  mcpCatalog = false,
   disableModelRegistry = false,
   disableModelRegistrySecureDB = false,
   disableServingRuntimeParams = false,
@@ -95,7 +108,16 @@ export const mockDashboardConfig = ({
   observabilityDashboard = false,
   disableLLMd = false,
   deploymentWizardYAMLViewer = false,
+  externalVectorStores = false,
+  vLLMDeploymentOnMaaS = false,
+  promptManagement = false,
   hardwareProfileOrder = ['test-hardware-profile'],
+  genAiStudioConfig = {
+    aiAssetCustomEndpoints: {
+      externalProviders: false,
+      clusterDomains: [],
+    },
+  },
   modelServerSizes = [
     {
       name: 'Small',
@@ -240,14 +262,16 @@ export const mockDashboardConfig = ({
       disablePerformanceMetrics,
       disableKServe,
       genAiStudio,
-      autoRag,
+      automl,
+      autorag,
       modelAsService,
-      maasApiKeys,
+      aiAssetCustomEndpoints,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
       disableDistributedWorkloads,
       disableModelCatalog,
+      mcpCatalog,
       disableModelRegistry,
       disableModelRegistrySecureDB,
       disableServingRuntimeParams,
@@ -262,6 +286,9 @@ export const mockDashboardConfig = ({
       observabilityDashboard,
       disableLLMd,
       deploymentWizardYAMLViewer,
+      externalVectorStores,
+      vLLMDeploymentOnMaaS,
+      promptManagement,
     },
     notebookController: {
       enabled: !disableNotebookController,
@@ -276,5 +303,6 @@ export const mockDashboardConfig = ({
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],
     hardwareProfileOrder,
+    genAiStudioConfig,
   },
 });

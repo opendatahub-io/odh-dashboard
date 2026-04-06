@@ -5,12 +5,15 @@ import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import type { AIModel, LlamaModel } from '~/app/types';
-import type { MaaSModel } from '~/odh/extension-points/maas';
 import AIModelsTable from '~/app/AIAssets/components/AIModelsTable';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 jest.mock('~/app/AIAssets/hooks/useAIModelsFilter');
+jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled', () => ({
+  __esModule: true,
+  default: () => false,
+}));
 
 const mockUseAIModelsFilter = jest.mocked(useAIModelsFilter);
 
@@ -36,13 +39,13 @@ const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
     token_name: 'token',
     token: 'test-token',
   },
+  model_source_type: 'namespace',
   ...overrides,
 });
 
 describe('AIModelsTable', () => {
   const defaultProps = {
-    aiModels: [],
-    maasModels: [] as MaaSModel[],
+    models: [] as AIModel[],
     playgroundModels: [] as LlamaModel[],
     lsdStatus: null,
   };
@@ -83,7 +86,7 @@ describe('AIModelsTable', () => {
 
     render(
       <TestWrapper>
-        <AIModelsTable {...defaultProps} aiModels={models} />
+        <AIModelsTable {...defaultProps} models={models} />
       </TestWrapper>,
     );
 
@@ -107,7 +110,7 @@ describe('AIModelsTable', () => {
 
     render(
       <TestWrapper>
-        <AIModelsTable {...defaultProps} aiModels={models} />
+        <AIModelsTable {...defaultProps} models={models} />
       </TestWrapper>,
     );
 

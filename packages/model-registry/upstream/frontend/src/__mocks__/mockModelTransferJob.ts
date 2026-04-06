@@ -10,12 +10,16 @@ import {
 export const mockModelTransferJob = (partial?: Partial<ModelTransferJob>): ModelTransferJob => ({
   id: '1',
   name: 'model-transfer-job-1',
+  jobDisplayName: 'model-transfer-job-1',
+  namespace: 'test-namespace',
   description: 'Transfer job for fraud detection model',
   source: {
     type: ModelTransferJobSourceType.S3,
     bucket: 'source-bucket',
     key: 'models/fraud-detection/v1',
     region: 'us-east-1',
+    awsAccessKeyId: 'accessKeyId',
+    awsSecretAccessKey: 'secretAccessKey',
   },
   destination: {
     type: ModelTransferJobDestinationType.S3,
@@ -36,6 +40,29 @@ export const mockModelTransferJob = (partial?: Partial<ModelTransferJob>): Model
   ...partial,
 });
 
+export const mockModelTransferJobOCI = (partial?: Partial<ModelTransferJob>): ModelTransferJob => ({
+  ...mockModelTransferJob(),
+  name: 'model-transfer-job-oci-1',
+  source: {
+    type: ModelTransferJobSourceType.S3,
+    bucket: 'source-bucket',
+    key: 'models/model-v1/model.tar.gz',
+    region: 'us-east-1',
+    endpoint: 'https://s3.us-east-1.amazonaws.com',
+    awsAccessKeyId: 'accessKeyId',
+    awsSecretAccessKey: 'secretAccessKey',
+  },
+  destination: {
+    type: ModelTransferJobDestinationType.OCI,
+    uri: 'quay.io/my-org/my-model:v1.0.0',
+    registry: 'quay.io',
+    username: 'username',
+    password: 'password',
+  },
+  namespace: 'my-project-1',
+  ...partial,
+});
+
 export const mockModelTransferJobList = (
   partial?: Partial<ModelTransferJobList>,
 ): ModelTransferJobList => ({
@@ -49,11 +76,15 @@ export const mockModelTransferJobList = (
         type: ModelTransferJobSourceType.OCI,
         uri: 'quay.io/ml-models/image-classifier:v1',
         registry: 'quay.io',
+        username: 'username',
+        password: 'password',
       },
       destination: {
         type: ModelTransferJobDestinationType.OCI,
         uri: 'registry.internal.io/models/image-classifier:v1',
         registry: 'registry.internal.io',
+        username: 'username',
+        password: 'password',
       },
       uploadIntent: ModelTransferJobUploadIntent.CREATE_MODEL,
       registeredModelId: '2',

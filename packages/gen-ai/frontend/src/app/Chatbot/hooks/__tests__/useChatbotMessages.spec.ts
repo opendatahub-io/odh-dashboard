@@ -2,10 +2,9 @@
 import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { CreateResponseRequest, SimplifiedResponseData, ChatbotSourceSettings } from '~/app/types';
+import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
 import {
   mockModelId,
-  mockSourceSettings,
   mockSuccessResponse,
   mockMetrics,
   mockNamespace,
@@ -17,6 +16,11 @@ jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
+  getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
+  splitLlamaModelId: jest.fn((modelId: string) => ({
+    providerId: 'provider-id',
+    id: modelId,
+  })),
 }));
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
@@ -46,8 +50,8 @@ const setupMocks = (): void => {
   jest.clearAllMocks();
   // Ensure createResponse mock is properly reset
   mockCreateResponse.mockReset();
-  // Mock useContext to return the namespace
-  mockUseContext.mockReturnValue({ namespace: mockNamespace });
+  // Mock useContext for ChatbotContext (aiModels) and other contexts (namespace)
+  mockUseContext.mockReturnValue({ namespace: mockNamespace, aiModels: [] });
 
   // Mock useGenAiAPI to return the API object with mocked functions
   mockUseGenAiAPI.mockReturnValue({
@@ -61,22 +65,21 @@ const setupMocks = (): void => {
 // Helper to create default hook props
 const createDefaultHookProps = (overrides?: {
   modelId?: string;
-  selectedSourceSettings?: ChatbotSourceSettings | null;
   systemInstruction?: string;
   isRawUploaded?: boolean;
   isStreamingEnabled?: boolean;
   temperature?: number;
   currentVectorStoreId?: string | null;
   selectedServerIds?: string[];
+  subscription?: string;
 }) => ({
   ...defaultMcpProps,
   modelId: mockModelId,
-  selectedSourceSettings: mockSourceSettings,
   systemInstruction: '',
   isRawUploaded: true,
   isStreamingEnabled: false,
   temperature: 0.7,
-  currentVectorStoreId: null,
+  currentVectorStoreId: 'test-vector-db',
   selectedServerIds: [],
   ...overrides,
 });
@@ -97,7 +100,7 @@ describe('useChatbotMessages', () => {
         role: 'bot',
         content:
           'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-        name: 'Bot',
+        name: mockModelId,
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(result.current.scrollToBottomRef).toBeDefined();
@@ -124,11 +127,11 @@ describe('useChatbotMessages', () => {
         name: 'User',
       });
 
-      // Test bot response - only check what matters
+      // Test bot response - only check what matters (name shows selected model)
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
         content: 'This is a bot response',
-        name: 'Bot',
+        name: mockModelId,
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
@@ -202,13 +205,12 @@ describe('useChatbotMessages', () => {
       expect(mockCreateResponse).not.toHaveBeenCalled();
     });
 
-    it('should handle missing selectedSourceSettings by calling createResponse without vector_store_ids', async () => {
+    it('should call createResponse without vector_store_ids when RAG is disabled', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
       const { result } = renderHook(() =>
         useChatbotMessages(
           createDefaultHookProps({
-            selectedSourceSettings: null,
             isRawUploaded: false,
           }),
         ),
@@ -222,7 +224,7 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
         content: 'This is a bot response',
-        name: 'Bot',
+        name: mockModelId,
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).toHaveBeenCalledWith(
@@ -259,7 +261,7 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
         content: 'API Error',
-        name: 'Bot',
+        name: mockModelId,
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
@@ -295,7 +297,7 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
         content: 'API is not available',
-        name: 'Bot',
+        name: mockModelId,
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).not.toHaveBeenCalled();
@@ -315,7 +317,7 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
         content: customErrorMessage,
-        name: 'Bot',
+        name: mockModelId,
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
@@ -347,20 +349,19 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
         content: streamingErrorMessage,
-        name: 'Bot',
+        name: mockModelId,
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(result.current.isLoading).toBe(false);
       expect(result.current.isStreamingWithoutContent).toBe(false);
     });
 
-    it('should use currentVectorStoreId when RAG is enabled and selectedSourceSettings is null', async () => {
+    it('should use currentVectorStoreId when RAG is enabled', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
       const { result } = renderHook(() =>
         useChatbotMessages(
           createDefaultHookProps({
-            selectedSourceSettings: null,
             currentVectorStoreId: 'vs_current_store_123',
           }),
         ),
@@ -668,6 +669,57 @@ describe('useChatbotMessages', () => {
       expect(botMessage.metrics).toBeDefined();
       expect(botMessage.metrics?.latency_ms).toBe(1500);
       expect(botMessage.metrics?.time_to_first_token_ms).toBe(200);
+    });
+  });
+
+  describe('subscription', () => {
+    it('should include subscription in payload when provided', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ subscription: 'premium-subscription' })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello with subscription');
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: 'Hello with subscription',
+          subscription: 'premium-subscription',
+        }),
+        expect.objectContaining({
+          abortSignal: expect.any(Object),
+        }),
+      );
+    });
+
+    it('should omit subscription from payload when not provided', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello without subscription');
+      });
+
+      const payload = mockCreateResponse.mock.calls[0][0];
+      expect(payload).not.toHaveProperty('subscription');
+    });
+
+    it('should omit subscription from payload when subscription is empty string', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ subscription: '' })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello with empty subscription');
+      });
+
+      expect(mockCreateResponse.mock.calls[0][0]).not.toHaveProperty('subscription');
     });
   });
 });

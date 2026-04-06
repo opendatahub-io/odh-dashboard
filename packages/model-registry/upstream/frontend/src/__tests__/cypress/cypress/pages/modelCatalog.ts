@@ -192,6 +192,10 @@ class ModelCatalog {
     return cy.findByTestId('model-architecture');
   }
 
+  findModelType() {
+    return cy.findByTestId('model-type');
+  }
+
   // Tabs functionality
   findModelDetailsTabs() {
     return cy.findByTestId('model-details-page-tabs');
@@ -244,6 +248,10 @@ class ModelCatalog {
 
   findHardwareConfigurationTableRows() {
     return cy.get('[data-testid="hardware-configuration-table"] tbody tr');
+  }
+
+  findHardwareConfigLoadMoreButton() {
+    return cy.findByTestId('hardware-config-load-more-button');
   }
 
   findHardwareConfigurationColumn(columnName: string) {
@@ -301,6 +309,14 @@ class ModelCatalog {
     return this;
   }
 
+  closeFilterChip(filterKey: string, value: string) {
+    cy.get(`[data-testid="${filterKey}-filter-chip-${value}"]`)
+      .closest('.pf-v6-c-label')
+      .find('button')
+      .click();
+    return this;
+  }
+
   // Model card content helpers for toggle-based display
   findValidatedModelBenchmarksCount() {
     return cy.findAllByTestId('validated-model-benchmarks');
@@ -349,7 +365,9 @@ class ModelCatalog {
   }
 
   findEmptyStateResetFiltersButton() {
-    return this.findModelCatalogEmptyState().findByRole('button', { name: /Reset filters/i });
+    return this.findModelCatalogEmptyState().findByRole('button', {
+      name: /Reset all (defaults|filters)/i,
+    });
   }
 
   clickApplyFilter() {

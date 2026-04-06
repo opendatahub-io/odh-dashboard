@@ -4,13 +4,18 @@ import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from '.
 export const techPreviewFlags = {
   disableModelRegistry: true,
   genAiStudio: false,
-  autoRag: false,
+  automl: false,
+  autorag: false,
   modelAsService: false,
-  maasApiKeys: false,
+  aiAssetCustomEndpoints: false,
   mlflow: false,
+  mcpCatalog: false,
   projectRBAC: true,
   observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
+  externalVectorStores: false,
+  vLLMDeploymentOnMaaS: false,
+  promptManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -163,6 +168,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableModelCatalog'],
     reliantAreas: [SupportedArea.MODEL_REGISTRY],
   },
+  [SupportedArea.MCP_CATALOG]: {
+    featureFlags: ['mcpCatalog'],
+    reliantAreas: [SupportedArea.MODEL_REGISTRY],
+  },
   [SupportedArea.MODEL_REGISTRY]: {
     featureFlags: ['disableModelRegistry'],
     requiredComponents: [DataScienceStackComponent.MODEL_REGISTRY],
@@ -202,8 +211,13 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['trainingJobs'],
     requiredComponents: [DataScienceStackComponent.TRAINER],
   },
+  [SupportedArea.RAY_JOBS]: {
+    featureFlags: ['trainingJobs'],
+    requiredComponents: [DataScienceStackComponent.RAY],
+  },
   [SupportedArea.MLFLOW]: {
     featureFlags: ['mlflow'],
+    requiredComponents: [DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
@@ -211,6 +225,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.YAML_VIEWER]: {
     featureFlags: ['deploymentWizardYAMLViewer'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
+  },
+  [SupportedArea.VLLM_ON_MAAS]: {
+    featureFlags: ['vLLMDeploymentOnMaaS'],
   },
 };
 
@@ -227,4 +244,5 @@ export const DataScienceStackComponentMap: Record<string, string> = {
   [DataScienceStackComponent.TRUSTY_AI]: 'TrustyAI',
   [DataScienceStackComponent.WORKBENCHES]: 'Workbenches',
   [DataScienceStackComponent.TRAINER]: 'Trainer',
+  [DataScienceStackComponent.MLFLOW]: 'MLflow',
 };

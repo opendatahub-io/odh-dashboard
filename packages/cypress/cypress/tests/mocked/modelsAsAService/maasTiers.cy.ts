@@ -34,7 +34,8 @@ import {
   TemplateModel,
 } from '../../../utils/models';
 
-describe('Tiers Page', () => {
+// Tiers UI disabled - API being removed in next release
+describe.skip('Tiers Page', () => {
   beforeEach(() => {
     asProductAdminUser();
     cy.interceptOdh(
@@ -312,7 +313,8 @@ describe('Tiers Page', () => {
   });
 });
 
-describe('MaaS Deployment Wizard', () => {
+// Tiers UI disabled - API being removed in next release
+describe.skip('MaaS Deployment Wizard', () => {
   const initMaaSDeploymentIntercepts = () => {
     cy.interceptOdh(
       'GET /api/dsc/status',

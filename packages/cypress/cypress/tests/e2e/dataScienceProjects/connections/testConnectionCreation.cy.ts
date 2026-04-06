@@ -2,7 +2,11 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import type { DataScienceProjectData, AWSS3BucketDetails } from '../../../../types';
-import { connectionsPage, addConnectionModal } from '../../../../pages/connections';
+import {
+  connectionsPage,
+  connectionActions,
+  addConnectionModal,
+} from '../../../../pages/connections';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
@@ -50,7 +54,9 @@ describe('Verify Connections - Creation and Deletion', () => {
 
   it(
     'Create and Delete a Connection',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-1826', '@Dashboard', '@ci-dashboard-set-2'] },
+    {
+      tags: ['@Sanity', '@SanitySet1', '@ODS-1826', '@Dashboard', '@ci-dashboard-regression-tags'],
+    },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -72,7 +78,7 @@ describe('Verify Connections - Creation and Deletion', () => {
       addConnectionModal.findConnectionTypeDropdown().click();
       addConnectionModal.findS3CompatibleStorageOption().click();
       addConnectionModal.findConnectionNameInput().type(s3Config.NAME);
-      addConnectionModal.findConnectionDescriptionInput().type('S3 Bucket Connection');
+      addConnectionModal.findConnectionDescriptionInput().type(testData.connectionDescription);
       addConnectionModal.findAwsKeyInput().type(s3AccessKey);
       addConnectionModal.findAwsSecretKeyInput().type(s3SecretKey);
       addConnectionModal.findEndpointInput().type(s3Config.ENDPOINT);
@@ -83,8 +89,8 @@ describe('Verify Connections - Creation and Deletion', () => {
 
       // Delete the Connection and confirm that the deletion was successful
       cy.step('Delete the Connection and verify deletion');
-      connectionsPage.findKebabToggle().click();
-      connectionsPage.getConnectionRow(s3Config.NAME).findKebabAction('Delete').click();
+      connectionsPage.getConnectionRow(s3Config.NAME).findKebab().click();
+      connectionActions.findDeleteConnectionAction().click();
       deleteModal.shouldBeOpen();
       deleteModal.findInput().type(s3Config.NAME);
       deleteModal.findSubmitButton().should('be.enabled').click();

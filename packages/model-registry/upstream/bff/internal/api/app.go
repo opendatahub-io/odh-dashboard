@@ -77,12 +77,28 @@ const (
 	CatalogSourcePreviewPath                 = ModelCatalogSettingsPathPrefix + "/source_preview"
 
 	// Model Transfer Jobs
-	ModelTransferJobId       = "job_id"
-	ModelTransferJobListPath = ModelRegistryPath + "/model_transfer_jobs"
-	ModelTransferJobPath     = ModelTransferJobListPath + "/:" + ModelTransferJobId
+	ModelTransferJobName       = "job_name"
+	ModelTransferJobListPath   = ModelRegistryPath + "/model_transfer_jobs"
+	ModelTransferJobPath       = ModelTransferJobListPath + "/:" + ModelTransferJobName
+	ModelTransferJobEventsPath = ModelTransferJobPath + "/events"
+
+	// MCP server catalog
+	McpServerId                   = "server_id"
+	McpServerCatalogPathPrefix    = ApiPathPrefix + "/mcp_catalog"
+	McpServerListPath             = McpServerCatalogPathPrefix + "/mcp_servers"
+	McpServerFilterOptionListPath = McpServerCatalogPathPrefix + "/mcp_servers_filter_options"
+	McpServerPath                 = McpServerListPath + "/:" + McpServerId
+	McpServersToolListPath        = McpServerPath + "/tools"
+	MCPServerConverterPath        = McpServerPath + "/mcpserver"
 
 	// Kubernetes resource endpoints (downstream-only implementations)
 	KubernetesServicesListPath = SettingsPath + "/services"
+
+	// MCPServer deployment endpoints (downstream-only implementations)
+	McpDeploymentName         = "mcp_deployment_name"
+	McpDeploymentListPath     = ApiPathPrefix + "/mcp_deployments"
+	McpDeploymentPath         = McpDeploymentListPath + "/:" + McpDeploymentName
+	McpServerAvailabilityPath = McpServerCatalogPathPrefix + "/mcp_server_available"
 )
 
 const (
@@ -95,6 +111,15 @@ const (
 
 	// Kubernetes resource handlers - these have no upstream implementation and must be overridden downstream
 	handlerKubernetesServicesListID HandlerID = "kubernetes:services:list"
+
+	// MCPServer deployment handlers - downstream-only
+	handlerMcpDeploymentListID     HandlerID = "mcpDeployment:list"
+	handlerMcpDeploymentGetID      HandlerID = "mcpDeployment:get"
+	handlerMcpDeploymentCreateID   HandlerID = "mcpDeployment:create"
+	handlerMcpDeploymentUpdateID   HandlerID = "mcpDeployment:update"
+	handlerMcpDeploymentDeleteID   HandlerID = "mcpDeployment:delete"
+	handlerMcpServerAvailabilityID HandlerID = "mcpServer:availability"
+	handlerMCPServerConverterGetID HandlerID = "mcpServer:converter:get"
 )
 
 type App struct {
@@ -102,6 +127,7 @@ type App struct {
 	logger                  *slog.Logger
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	repositories            *repositories.Repositories
+	podNamespace            string
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Model Registry/Catalog
@@ -209,6 +235,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
 		repositories:            repositories.NewRepositories(mrClient, modelCatalogClient),
+		podNamespace:            getPodNamespace(),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 	}
@@ -223,6 +250,14 @@ func (app *App) Shutdown() error {
 	//shutdown the envtest control plane when we are in the mock mode.
 	app.logger.Info("shutting env test...")
 	return app.testEnv.Stop()
+}
+
+func getPodNamespace() string {
+	ns, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(ns))
 }
 
 func (app *App) Routes() http.Handler {
@@ -253,7 +288,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.PATCH(ModelArtifactPath, app.AttachNamespace(app.RequireAccessToMRService(app.AttachModelRegistryRESTClient(app.UpdateModelArtifactHandler))))
 
 	// Model Transfer Jobs
-	apiRouter.GET(ModelTransferJobListPath, app.AttachNamespace(app.RequireAccessToMRService(app.GetAllModelTransferJobsHandler)))
+	apiRouter.GET(ModelTransferJobListPath, app.AttachNamespace(app.RequireAccessToMRService(app.handlerWithOverride(HandlerIDModelTransferJobList, func() httprouter.Handle { return app.GetAllModelTransferJobsHandler }))))
+	apiRouter.GET(ModelTransferJobPath, app.AttachNamespace(app.RequireAccessToMRService(app.GetModelTransferJobHandler)))
+	apiRouter.GET(ModelTransferJobEventsPath, app.AttachNamespace(app.RequireAccessToMRService(app.GetModelTransferJobEventsHandler)))
 	apiRouter.POST(ModelTransferJobListPath, app.AttachNamespace(app.RequireAccessToMRService(app.CreateModelTransferJobHandler)))
 	apiRouter.PATCH(ModelTransferJobPath, app.AttachNamespace(app.RequireAccessToMRService(app.UpdateModelTransferJobHandler)))
 	apiRouter.DELETE(ModelTransferJobPath, app.AttachNamespace(app.RequireAccessToMRService(app.DeleteModelTransferJobHandler)))
@@ -268,6 +305,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(CatalogModelPerformanceArtifacts, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetCatalogModelPerformanceArtifactsHandler)))
 	// Kubernetes routes
 	apiRouter.GET(UserPath, app.UserHandler)
+	apiRouter.POST(CheckNamespaceRegistryAccessPath, app.CheckNamespaceRegistryAccessHandler)
 	apiRouter.GET(ModelRegistryListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.GetAllModelRegistriesHandler)))
 
 	// Enable these routes in all cases except Kubeflow integration mode
@@ -322,6 +360,51 @@ func (app *App) Routes() http.Handler {
 			}),
 		)
 
+		// MCPServer deployment endpoints - downstream-only implementations
+		apiRouter.GET(
+			McpDeploymentListPath,
+			app.handlerWithOverride(handlerMcpDeploymentListID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployments list"))
+			}),
+		)
+		apiRouter.GET(
+			McpDeploymentPath,
+			app.handlerWithOverride(handlerMcpDeploymentGetID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment get"))
+			}),
+		)
+		apiRouter.POST(
+			McpDeploymentListPath,
+			app.handlerWithOverride(handlerMcpDeploymentCreateID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment create"))
+			}),
+		)
+		apiRouter.PATCH(
+			McpDeploymentPath,
+			app.handlerWithOverride(handlerMcpDeploymentUpdateID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment update"))
+			}),
+		)
+		apiRouter.DELETE(
+			McpDeploymentPath,
+			app.handlerWithOverride(handlerMcpDeploymentDeleteID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment delete"))
+			}),
+		)
+		apiRouter.GET(
+			McpServerAvailabilityPath,
+			app.handlerWithOverride(handlerMcpServerAvailabilityID, func() httprouter.Handle {
+				return app.EndpointNotImplementedHandler("MCP server availability")
+			}),
+		)
+		apiRouter.GET(
+			MCPServerConverterPath,
+			app.handlerWithOverride(handlerMCPServerConverterGetID, func() httprouter.Handle {
+				return app.AttachNamespace(app.AttachModelCatalogRESTClient(
+					app.EndpointNotImplementedHandler("MCPServer converter")))
+			}),
+		)
+
 		//SettingsPath: Certificate endpoints
 		apiRouter.GET(CertificatesPath, app.AttachNamespace(app.GetCertificatesHandler))
 
@@ -345,6 +428,12 @@ func (app *App) Routes() http.Handler {
 		apiRouter.PATCH(ModelCatalogSettingsSourceConfigPath, app.AttachNamespace(app.UpdateCatalogSourceConfigHandler))
 		apiRouter.DELETE(ModelCatalogSettingsSourceConfigPath, app.AttachNamespace(app.DeleteCatalogSourceConfigHandler))
 		apiRouter.POST(CatalogSourcePreviewPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.CreateCatalogSourcePreviewHandler)))
+
+		// MCP server catalog endpoints
+		apiRouter.GET(McpServerListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetAllMcpServersHandler)))
+		apiRouter.GET(McpServerFilterOptionListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServersFiltersHandler)))
+		apiRouter.GET(McpServerPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServerHandler)))
+		apiRouter.GET(McpServersToolListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServersToolsHandler)))
 	}
 
 	// App Router

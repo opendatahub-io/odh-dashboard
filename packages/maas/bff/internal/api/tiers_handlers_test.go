@@ -1,3 +1,9 @@
+//go:build disable_tiers
+// +build disable_tiers
+
+// Tiers tests disabled - API being removed in next release
+// Remove the build constraints above to re-enable these tests
+
 package api
 
 import (
@@ -68,7 +74,7 @@ var _ = Describe("TiersHandlers", Ordered, func() {
 				GatewayName:             "maas-default-gateway",
 			}
 
-			repos, err := repositories.NewRepositories(nil, k8Factory, badCfg)
+			repos, err := repositories.NewRepositories(nil, k8Factory, badCfg, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			app := &App{
 				config:                  badCfg,

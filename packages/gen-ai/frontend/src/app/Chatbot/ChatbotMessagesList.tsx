@@ -9,6 +9,8 @@ type ChatbotMessagesListProps = {
   scrollRef: React.RefObject<HTMLDivElement>;
   isLoading: boolean;
   isStreamingWithoutContent: boolean;
+  /** Display name of the selected model (shown in loading state and message headers) */
+  modelDisplayName?: string;
 };
 
 const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
@@ -16,6 +18,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   scrollRef,
   isLoading = false,
   isStreamingWithoutContent = false,
+  modelDisplayName = 'Bot',
 }) => {
   // Show loading dots only for non-streaming requests
   // During streaming, loading dots are handled within the bot message itself
@@ -46,7 +49,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
       })}
       {showLoadingDots && (
         <Message
-          name="Bot"
+          name={modelDisplayName}
           // eslint-disable-next-line jsx-a11y/aria-role
           role="bot"
           avatar={botAvatar}

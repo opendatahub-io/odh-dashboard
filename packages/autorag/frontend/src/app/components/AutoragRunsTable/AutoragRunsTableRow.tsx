@@ -1,0 +1,73 @@
+import * as React from 'react';
+import { Label, type LabelProps } from '@patternfly/react-core';
+import { Td, Tr } from '@patternfly/react-table';
+import { Link } from 'react-router-dom';
+import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
+import type { PipelineRun } from '~/app/types';
+import { autoragResultsPathname } from '~/app/utilities/routes';
+import { autoragRunsColumns } from './columns';
+
+/** Run state values (API / display). Use lowercase for case-insensitive matching. */
+export const RUN_STATE = {
+  SUCCEEDED: 'succeeded',
+  FAILED: 'failed',
+  RUNNING: 'running',
+  PENDING: 'pending',
+  INCOMPLETE: 'incomplete',
+  COMPLETE: 'complete',
+} as const;
+
+type AutoragRunsTableRowProps = {
+  run: PipelineRun;
+  namespace: string;
+};
+
+const getStatusLabelProps = (
+  state: string | undefined,
+): { status?: LabelProps['status']; color?: LabelProps['color'] } => {
+  const s = (state ?? '').toLowerCase();
+  if (s === RUN_STATE.SUCCEEDED || s === RUN_STATE.COMPLETE || s.includes(RUN_STATE.SUCCEEDED)) {
+    return { status: 'success' };
+  }
+  if (s === RUN_STATE.FAILED || s.includes(RUN_STATE.FAILED)) {
+    return { status: 'danger' };
+  }
+  if (s === RUN_STATE.RUNNING || s.includes(RUN_STATE.RUNNING)) {
+    return { color: 'blue' };
+  }
+  if (s === RUN_STATE.PENDING || s.includes(RUN_STATE.PENDING)) {
+    return { color: 'purple' };
+  }
+  if (s === RUN_STATE.INCOMPLETE) {
+    return { status: 'warning' };
+  }
+  return { color: 'grey' };
+};
+
+const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({ run, namespace }) => (
+  <Tr>
+    <Td dataLabel={autoragRunsColumns[0].label}>
+      <Link
+        to={`${autoragResultsPathname}/${namespace}/${run.run_id}`}
+        data-testid={`run-name-${run.run_id}`}
+      >
+        {run.display_name}
+      </Link>
+    </Td>
+    <Td dataLabel={autoragRunsColumns[1].label}>{run.description ?? '—'}</Td>
+    <Td dataLabel={autoragRunsColumns[2].label}>
+      <RunStartTimestamp run={run} />
+    </Td>
+    <Td dataLabel={autoragRunsColumns[3].label}>
+      {run.state ? (
+        <Label variant="outline" isCompact {...getStatusLabelProps(run.state)}>
+          {run.state}
+        </Label>
+      ) : (
+        '—'
+      )}
+    </Td>
+  </Tr>
+);
+
+export default AutoragRunsTableRow;

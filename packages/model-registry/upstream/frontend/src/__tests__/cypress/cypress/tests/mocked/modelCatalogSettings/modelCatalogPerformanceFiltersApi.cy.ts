@@ -277,7 +277,7 @@ describe('Model Catalog Performance Filters API Behavior', () => {
         .and('not.contain.text', 'Code Fixing');
     });
 
-    it('should reset latency filter when Reset all defaults is clicked', () => {
+    it('should reset latency filter when Reset all filters is clicked', () => {
       navigateToPerformanceInsightsTab();
 
       cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.hardwareTable).should('exist');

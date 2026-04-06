@@ -101,9 +101,9 @@ func TestProviderCreationUtilities(t *testing.T) {
 	config.AddFilesProvider(provider1)
 	assert.Equal(t, 2, len(config.Providers.Files))
 
-	// default agent provider already added; adding one more
-	config.AddAgentProvider(provider1)
-	assert.Equal(t, 2, len(config.Providers.Agents))
+	// default responses provider already added; adding one more
+	config.AddResponsesProvider(provider1)
+	assert.Equal(t, 2, len(config.Providers.Responses))
 
 	// default datasetio provider already added; adding one more
 	config.AddDatasetIOProvider(provider1)
@@ -149,15 +149,13 @@ func TestNewTypes(t *testing.T) {
 	assert.Equal(t, float64(0.8), shield.Config["threshold"])
 	assert.NotNil(t, shield.Metadata)
 
-	// Test VectorDB creation
-	dbConfig := EmptyConfig()
-	dbConfig["dimension"] = 768
-	vectorDB := NewVectorDB("test-db", "Test Database", "milvus", dbConfig)
-	assert.Equal(t, "test-db", vectorDB.DBID)
-	assert.Equal(t, "Test Database", vectorDB.Name)
-	assert.Equal(t, "milvus", vectorDB.ProviderID)
-	assert.Equal(t, 768, vectorDB.Config["dimension"])
-	assert.NotNil(t, vectorDB.Metadata)
+	// Test VectorStore creation
+	vectorStore := NewVectorStore("test-db", "ibm-granite/granite-embedding-125m-english", 768)
+	assert.Equal(t, "test-db", vectorStore.VectorStoreID)
+	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", vectorStore.EmbeddingModel)
+	assert.Equal(t, 768, vectorStore.EmbeddingDimension)
+	assert.Empty(t, vectorStore.VectorStoreName)
+	assert.Nil(t, vectorStore.Metadata)
 
 	// Test Dataset creation
 	datasetConfig := EmptyConfig()
@@ -1134,7 +1132,7 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 	t.Run("should include max_tokens in model configuration when provided", func(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
 		maxTokens := 8192
-		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &maxTokens)
+		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &maxTokens, nil)
 
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
@@ -1162,7 +1160,7 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 
 	t.Run("should not include max_tokens in model configuration when not provided", func(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
-		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, nil)
+		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, nil, nil)
 
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
@@ -1188,8 +1186,8 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
 		maxTokens1 := 4096
 		maxTokens2 := 16384
-		config.AddVLLMProviderAndModel("test-provider-1", "https://test1.com/v1", 0, "test-model-1", "llm", nil, &maxTokens1)
-		config.AddVLLMProviderAndModel("test-provider-2", "https://test2.com/v1", 1, "test-model-2", "llm", nil, &maxTokens2)
+		config.AddVLLMProviderAndModel("test-provider-1", "https://test1.com/v1", 0, "test-model-1", "llm", nil, &maxTokens1, nil)
+		config.AddVLLMProviderAndModel("test-provider-2", "https://test2.com/v1", 1, "test-model-2", "llm", nil, &maxTokens2, nil)
 
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
@@ -1222,4 +1220,280 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		assert.True(t, model1Found, "Model 1 should be found")
 		assert.True(t, model2Found, "Model 2 should be found")
 	})
+}
+
+func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
+	findModel := func(config *LlamaStackConfig, modelID string) *Model {
+		for i := range config.RegisteredResources.Models {
+			if config.RegisteredResources.Models[i].ModelID == modelID {
+				return &config.RegisteredResources.Models[i]
+			}
+		}
+		return nil
+	}
+
+	t.Run("should set embedding_dimension in metadata when provided for embedding model", func(t *testing.T) {
+		cfg := NewDefaultLlamaStackConfig()
+		embDim := 1536
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", nil, nil, &embDim)
+
+		yamlStr, err := cfg.ToYAML()
+		require.NoError(t, err)
+		assert.Contains(t, yamlStr, "embedding_dimension: 1536")
+
+		var parsed LlamaStackConfig
+		require.NoError(t, parsed.FromYAML(yamlStr))
+
+		m := findModel(&parsed, "embed-model")
+		require.NotNil(t, m, "embedding model should be present")
+		assert.Equal(t, "embedding", m.ModelType)
+		require.Contains(t, m.Metadata, "embedding_dimension")
+		assert.EqualValues(t, 1536, m.Metadata["embedding_dimension"])
+	})
+
+	t.Run("should default embedding_dimension to 128 when not provided for embedding model", func(t *testing.T) {
+		cfg := NewDefaultLlamaStackConfig()
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", nil, nil, nil)
+
+		yamlStr, err := cfg.ToYAML()
+		require.NoError(t, err)
+		assert.Contains(t, yamlStr, "embedding_dimension: 128")
+
+		var parsed LlamaStackConfig
+		require.NoError(t, parsed.FromYAML(yamlStr))
+
+		m := findModel(&parsed, "embed-model")
+		require.NotNil(t, m)
+		require.Contains(t, m.Metadata, "embedding_dimension")
+		assert.EqualValues(t, 128, m.Metadata["embedding_dimension"])
+	})
+
+	t.Run("should preserve pre-existing metadata embedding_dimension when no user value provided", func(t *testing.T) {
+		cfg := NewDefaultLlamaStackConfig()
+		existingMetadata := map[string]interface{}{"embedding_dimension": 768}
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", existingMetadata, nil, nil)
+
+		yamlStr, err := cfg.ToYAML()
+		require.NoError(t, err)
+
+		var parsed LlamaStackConfig
+		require.NoError(t, parsed.FromYAML(yamlStr))
+
+		m := findModel(&parsed, "embed-model")
+		require.NotNil(t, m)
+		assert.EqualValues(t, 768, m.Metadata["embedding_dimension"])
+	})
+
+	t.Run("should override pre-existing metadata embedding_dimension with user-specified value", func(t *testing.T) {
+		cfg := NewDefaultLlamaStackConfig()
+		existingMetadata := map[string]interface{}{"embedding_dimension": 768}
+		userDim := 3072
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", existingMetadata, nil, &userDim)
+
+		yamlStr, err := cfg.ToYAML()
+		require.NoError(t, err)
+
+		var parsed LlamaStackConfig
+		require.NoError(t, parsed.FromYAML(yamlStr))
+
+		m := findModel(&parsed, "embed-model")
+		require.NotNil(t, m)
+		assert.EqualValues(t, 3072, m.Metadata["embedding_dimension"])
+	})
+
+	t.Run("should not set embedding_dimension for llm models", func(t *testing.T) {
+		cfg := NewDefaultLlamaStackConfig()
+		embDim := 1536
+		cfg.AddVLLMProviderAndModel("llm-provider", "https://llm.example.com/v1", 0, "llm-model", "llm", nil, nil, &embDim)
+
+		yamlStr, err := cfg.ToYAML()
+		require.NoError(t, err)
+
+		var parsed LlamaStackConfig
+		require.NoError(t, parsed.FromYAML(yamlStr))
+
+		m := findModel(&parsed, "llm-model")
+		require.NotNil(t, m)
+		assert.NotContains(t, m.Metadata, "embedding_dimension", "embedding_dimension should not be set for llm models")
+	})
+}
+
+func TestDefaultConfig_APIsAndProviders(t *testing.T) {
+	config := NewDefaultLlamaStackConfig()
+
+	expectedAPIs := []string{
+		"responses", "datasetio", "files", "inference",
+		"safety", "scoring", "tool_runtime", "vector_io",
+	}
+	assert.Equal(t, expectedAPIs, config.APIs)
+
+	require.Len(t, config.Providers.Responses, 1)
+	assert.Equal(t, "builtin", config.Providers.Responses[0].ProviderID)
+	assert.Equal(t, "inline::builtin", config.Providers.Responses[0].ProviderType)
+
+	require.Len(t, config.Providers.ToolRuntime, 2)
+	assert.Equal(t, "file-search", config.Providers.ToolRuntime[0].ProviderID)
+	assert.Equal(t, "inline::file-search", config.Providers.ToolRuntime[0].ProviderType)
+	assert.Equal(t, "model-context-protocol", config.Providers.ToolRuntime[1].ProviderID)
+	assert.Equal(t, "remote::model-context-protocol", config.Providers.ToolRuntime[1].ProviderType)
+
+	require.Len(t, config.Providers.VectorIO, 1)
+	assert.Equal(t, "milvus", config.Providers.VectorIO[0].ProviderID)
+	assert.Equal(t, "inline::milvus", config.Providers.VectorIO[0].ProviderType)
+
+	require.Len(t, config.Providers.Inference, 1)
+	assert.Equal(t, "sentence-transformers", config.Providers.Inference[0].ProviderID)
+	assert.Equal(t, "inline::sentence-transformers", config.Providers.Inference[0].ProviderType)
+}
+
+func TestDefaultConfig_ResponsesProviderPersistence(t *testing.T) {
+	config := NewDefaultLlamaStackConfig()
+
+	require.Len(t, config.Providers.Responses, 1)
+	persistence, ok := config.Providers.Responses[0].Config["persistence"].(map[string]interface{})
+	require.True(t, ok, "persistence should be a map")
+
+	agentState, ok := persistence["agent_state"].(map[string]interface{})
+	require.True(t, ok, "agent_state should be a map")
+	assert.Equal(t, "agents", agentState["namespace"])
+	assert.Equal(t, "kv_default", agentState["backend"])
+
+	responses, ok := persistence["responses"].(map[string]interface{})
+	require.True(t, ok, "responses should be a map")
+	assert.Equal(t, "responses", responses["table_name"])
+	assert.Equal(t, "sql_default", responses["backend"])
+	assert.Equal(t, 10000, responses["max_write_queue_size"])
+	assert.Equal(t, 4, responses["num_writers"])
+
+	t.Run("round-trip preserves persistence fields", func(t *testing.T) {
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		var parsed LlamaStackConfig
+		require.NoError(t, parsed.FromYAML(yamlStr))
+
+		require.Len(t, parsed.Providers.Responses, 1)
+		pPersistence, ok := parsed.Providers.Responses[0].Config["persistence"].(map[interface{}]interface{})
+		require.True(t, ok, "persistence should survive round-trip")
+
+		pAgentState, ok := pPersistence["agent_state"].(map[interface{}]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "agents", pAgentState["namespace"])
+		assert.Equal(t, "kv_default", pAgentState["backend"])
+
+		pResponses, ok := pPersistence["responses"].(map[interface{}]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "responses", pResponses["table_name"])
+		assert.Equal(t, "sql_default", pResponses["backend"])
+	})
+}
+
+func TestDefaultConfig_Serialization(t *testing.T) {
+	config := NewDefaultLlamaStackConfig()
+
+	t.Run("YAML contains expected keys", func(t *testing.T) {
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		assert.Contains(t, yamlStr, "distro_name: rh")
+		assert.Contains(t, yamlStr, "responses:")
+		assert.Contains(t, yamlStr, "inline::builtin")
+		assert.Contains(t, yamlStr, "inline::file-search")
+		assert.Contains(t, yamlStr, "inline::milvus")
+		assert.Contains(t, yamlStr, "default_provider_id: milvus")
+	})
+
+	t.Run("JSON contains expected keys", func(t *testing.T) {
+		jsonStr, err := config.ToJSON()
+		require.NoError(t, err)
+
+		assert.Contains(t, jsonStr, "\"responses\"")
+		assert.Contains(t, jsonStr, "inline::builtin")
+		assert.Contains(t, jsonStr, "inline::file-search")
+		assert.Contains(t, jsonStr, "inline::milvus")
+		assert.Contains(t, jsonStr, "\"default_provider_id\":\"milvus\"")
+	})
+}
+
+func TestFromYAML_ParsesResponsesProvider(t *testing.T) {
+	yamlData := loadTestData(t, "test_llama_stack_config.yaml")
+
+	var config LlamaStackConfig
+	err := config.FromYAML(yamlData)
+	require.NoError(t, err)
+
+	assert.Equal(t, "rh", config.DistroName)
+	assert.Contains(t, config.APIs, "responses")
+
+	require.Len(t, config.Providers.Responses, 1)
+	assert.Equal(t, "builtin", config.Providers.Responses[0].ProviderID)
+	assert.Equal(t, "inline::builtin", config.Providers.Responses[0].ProviderType)
+
+	require.NotEmpty(t, config.Providers.ToolRuntime)
+	assert.Equal(t, "file-search", config.Providers.ToolRuntime[0].ProviderID)
+	assert.Equal(t, "inline::file-search", config.Providers.ToolRuntime[0].ProviderType)
+}
+
+func TestFromYAML_IgnoresUnknownFields(t *testing.T) {
+	yamlWithExtras := `
+version: "2"
+distro_name: rh
+custom_extension: hello
+future_feature_flag: true
+apis:
+  - inference
+  - vector_io
+providers:
+  inference:
+    - provider_id: test-provider
+      provider_type: remote::vllm
+      config:
+        base_url: https://test.com
+registered_resources:
+  models: []
+  shields: []
+  vector_stores: []
+  datasets: []
+  scoring_fns: []
+  benchmarks: []
+  extra_resources:
+    - id: something
+      value: 42
+`
+	var config LlamaStackConfig
+	err := config.FromYAML(yamlWithExtras)
+	require.NoError(t, err)
+
+	assert.Equal(t, "2", config.Version)
+	assert.Equal(t, "rh", config.DistroName)
+	require.Len(t, config.Providers.Inference, 1)
+	assert.Equal(t, "test-provider", config.Providers.Inference[0].ProviderID)
+	assert.Equal(t, "remote::vllm", config.Providers.Inference[0].ProviderType)
+}
+
+func TestDefaultConfig_RegisteredResourcesShape(t *testing.T) {
+	config := NewDefaultLlamaStackConfig()
+
+	assert.NotNil(t, config.RegisteredResources.Models)
+	assert.NotNil(t, config.RegisteredResources.Shields)
+	assert.NotNil(t, config.RegisteredResources.VectorStores)
+	assert.NotNil(t, config.RegisteredResources.Datasets)
+	assert.NotNil(t, config.RegisteredResources.ScoringFns)
+	assert.NotNil(t, config.RegisteredResources.Benchmarks)
+
+	assert.Empty(t, config.RegisteredResources.Models)
+	assert.Empty(t, config.RegisteredResources.Shields)
+	assert.Empty(t, config.RegisteredResources.VectorStores)
+	assert.Empty(t, config.RegisteredResources.Datasets)
+	assert.Empty(t, config.RegisteredResources.ScoringFns)
+	assert.Empty(t, config.RegisteredResources.Benchmarks)
+
+	jsonStr, err := config.ToJSON()
+	require.NoError(t, err)
+	assert.Contains(t, jsonStr, "\"models\":[]")
+	assert.Contains(t, jsonStr, "\"shields\":[]")
+	assert.Contains(t, jsonStr, "\"vector_stores\":[]")
+	assert.Contains(t, jsonStr, "\"datasets\":[]")
+	assert.Contains(t, jsonStr, "\"scoring_fns\":[]")
+	assert.Contains(t, jsonStr, "\"benchmarks\":[]")
 }

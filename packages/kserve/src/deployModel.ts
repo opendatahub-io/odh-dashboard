@@ -16,9 +16,9 @@ import type { NumReplicasFieldData } from '@odh-dashboard/model-serving/componen
 import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
 import type { TokenAuthenticationFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/TokenAuthenticationField';
 import type { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
-import * as _ from 'lodash-es';
 import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
@@ -38,6 +38,8 @@ import {
   updateInferenceService,
 } from './api/inferenceService';
 import { applyModelRuntime } from './deployServer';
+import { KServeDeployment } from './deployments';
+import { KSERVE_ID } from '../extensions';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -63,7 +65,6 @@ const assembleInferenceService = (
   existingInferenceService?: InferenceServiceKind,
   dryRun?: boolean,
   secretName?: string,
-  transformData?: { metadata?: { labels?: Record<string, string> } },
 ): InferenceServiceKind => {
   const {
     project,
@@ -154,8 +155,6 @@ const assembleInferenceService = (
 
   inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy);
 
-  inferenceService = _.merge(inferenceService, transformData);
-
   return inferenceService;
 };
 
@@ -167,19 +166,27 @@ export const deployInferenceService = (
   data: CreatingInferenceServiceObject,
   existingInferenceService?: InferenceServiceKind,
   connectionSecretName?: string,
-  transformData?: { metadata?: { labels?: Record<string, string> } },
+  applyFieldData?: DeploymentAssemblyFn<KServeDeployment>,
   opts?: {
     dryRun?: boolean;
     overwrite?: boolean;
   },
 ): Promise<InferenceServiceKind> => {
-  const newInferenceService = assembleInferenceService(
+  let newInferenceService = assembleInferenceService(
     data,
     existingInferenceService,
     opts?.dryRun,
     connectionSecretName,
-    transformData,
   );
+
+  // Apply field data from wizard field extensions during assembly
+  if (applyFieldData) {
+    const assembledDeployment = applyFieldData({
+      modelServingPlatformId: KSERVE_ID,
+      model: newInferenceService,
+    });
+    newInferenceService = assembledDeployment.model;
+  }
 
   if (!existingInferenceService) {
     return createInferenceService(newInferenceService, opts);

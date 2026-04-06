@@ -695,6 +695,24 @@ go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
 ```
 
+> **Note:** `make test` automatically starts a local Llama Stack server in replay mode,
+> seeds it with test data, and tears it down after tests complete. Pre-recorded API
+> responses in `testdata/llamastack/recordings/` ensure tests are deterministic
+> without needing a real LLM provider. Always use `make test` instead of bare
+> `go test ./...` — the Makefile sets required environment variables.
+
+**Llama Stack Test Server:**
+```bash
+# Start Llama Stack locally in replay mode (for manual debugging)
+make llamastack-up
+
+# Stop the server
+make llamastack-down
+
+# Re-record fixtures against real Gemini (needs API key)
+GEMINI_API_KEY=<key> make llamastack-record
+```
+
 **What we test:**
 - Repository business logic
 - Request validation
@@ -729,6 +747,7 @@ curl -H "Authorization: Bearer FAKE_BEARER_TOKEN" \
 
 **Mock Data Locations:**
 - `internal/integrations/llamastack/lsmocks/` - Llama Stack mocks
+- `testdata/llamastack/recordings/` - Pre-recorded Llama Stack API responses (replay mode)
 - `internal/integrations/maas/maasmocks/` - MaaS mocks
 - `internal/integrations/kubernetes/k8smocks/` - K8s mocks
 - `internal/integrations/mcp/mcpmocks/` - MCP mocks
@@ -756,6 +775,14 @@ curl -i -X POST \
      -F "file=@test.pdf" \
      -F "vector_store_id=vs_123" \
      http://localhost:8080/gen-ai/api/v1/files/upload
+
+# List external vector stores (AI Assets - flat array)
+curl -i -H "Authorization: Bearer $TOKEN" \
+     "http://localhost:8080/gen-ai/api/v1/aaa/vectorstores?namespace=default"
+
+# List external vector stores (with ConfigMap metadata)
+curl -i -H "Authorization: Bearer $TOKEN" \
+     "http://localhost:8080/gen-ai/api/v1/vectorstores/external?namespace=default"
 ```
 
 **Using Swagger UI:**

@@ -138,7 +138,7 @@ func GetModelArtifactMocks() []openapi.ModelArtifact {
 		CustomProperties:         newCustomProperties(),
 		Description:              stringToPointer("This artifact can do more than you would expect"),
 		ExternalId:               stringToPointer("1000001"),
-		Uri:                      stringToPointer("http://localhost/artifacts/1"),
+		Uri:                      stringToPointer("oci://quay.io/my-org/my-model:v1.0.0"),
 		State:                    stateToPointer(openapi.ARTIFACTSTATE_LIVE),
 		Name:                     stringToPointer("Artifact One"),
 		Id:                       stringToPointer("1"),
@@ -149,6 +149,9 @@ func GetModelArtifactMocks() []openapi.ModelArtifact {
 		StoragePath:              stringToPointer("/artifacts/1"),
 		ModelFormatVersion:       stringToPointer("1.0.0"),
 		ServiceAccountName:       stringToPointer("service-1"),
+		ModelSourceKind:          stringToPointer("transfer_job"),
+		ModelSourceGroup:         stringToPointer("bella-namespace"),
+		ModelSourceName:          stringToPointer("transfer-job-001"),
 	}
 
 	artifact2 := openapi.ModelArtifact{
@@ -757,6 +760,35 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Language:    []string{"en"},
 		SourceId:    stringToPointer("huggingface"),
 		LibraryName: stringToPointer("transformers"),
+		Readme: stringToPointer(`# BERT Base Uncased
+
+BERT is a transformers model pretrained on a large corpus of English data.
+
+## Installation
+
+` + "```bash" + `
+pip install transformers torch
+` + "```" + `
+
+## Quick Start
+
+` + "```python" + `
+from transformers import BertTokenizer, BertModel
+
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+model = BertModel.from_pretrained('bert-base-uncased')
+
+text = "Replace this with your text"
+encoded = tokenizer(text, return_tensors='pt')
+output = model(**encoded)
+` + "```" + `
+
+## Using with Pipeline
+
+` + "```bash" + `
+python -c "from transformers import pipeline; nlp = pipeline('fill-mask', model='bert-base-uncased'); print(nlp('The capital of France is [MASK].'))"
+` + "```" + `
+`),
 	}
 
 	huggingFaceModel2 := models.CatalogModel{
@@ -919,6 +951,21 @@ func GetCatalogSourceMocks() []models.CatalogSource {
 			Name:    "No Performance Data Source",
 			Enabled: &enabled,
 			Labels:  []string{"No Performance"},
+			Status:  &availableStatus,
+		},
+		{
+			Id:      "custom_yaml_models",
+			Name:    "Custom yaml",
+			Enabled: &enabled,
+			Labels:  []string{},
+			Status:  &errorStatus,
+			Error:   &invalidCredentialError,
+		},
+		{
+			Id:      "hugging_face_source",
+			Name:    "Hugging face source",
+			Enabled: &enabled,
+			Labels:  []string{},
 			Status:  &availableStatus,
 		},
 	}
@@ -1672,8 +1719,8 @@ func GetFilterOptionMocks() map[string]models.FilterOption {
 		Type: FilterOptionTypeString,
 		Values: []interface{}{
 			"audio-to-text", "automatic-speech-recognition", "automatic-speech-translation",
-			"code-generation", "image-text-to-text", "image-to-text", "text-generation",
-			"text-to-text", "video-to-text",
+			"code-generation", "image-text-to-text", "image-to-text", "text-embedding",
+			"text-generation", "text-to-text", "tool-calling", "video-to-text",
 		},
 	}
 
@@ -2336,5 +2383,898 @@ func CreateCatalogSourcePreviewMockWithFilter(filterStatus string, pageSize int,
 		NextPageToken: newNextPageToken,
 		PageSize:      int32(pageSize),
 		Size:          int32(len(pagedModels)),
+	}
+}
+
+func GetMcpServerMocks() []models.McpServer {
+	trueVal := true
+	falseVal := false
+
+	prometheusMcp := models.McpServer{
+		ID:          "1",
+		Name:        "Prometheus MCP Server",
+		SourceID:    stringToPointer("community-mcp-source"),
+		Description: stringToPointer("Query Prometheus metrics and alerts directly from your agent"),
+		Provider:    stringToPointer("Prometheus Community"),
+		Version:     stringToPointer("0.9.2"),
+		License:     stringToPointer("Apache 2.0"),
+		LicenseLink: stringToPointer("https://www.apache.org/licenses/LICENSE-2.0"),
+		Tags:        []string{"metrics", "monitoring", "alerting"},
+		ToolCount:   15,
+		Transports:  []models.McpTransportType{models.McpTransportTypeHTTP},
+		DeploymentMode: func() *models.McpDeploymentMode {
+			mode := models.McpDeploymentModeLocal
+			return &mode
+		}(),
+		SecurityIndicators: &models.McpSecurityIndicator{
+			VerifiedSource: &trueVal,
+			SecureEndpoint: &trueVal,
+			SAST:           &falseVal,
+			ReadOnlyTools:  &trueVal,
+		},
+		Tools: []models.McpTool{
+			{
+				Name:        "query",
+				Description: stringToPointer("Execute PromQL queries"),
+				AccessType:  models.McpToolAccessTypeReadOnly,
+				Parameters: []models.McpToolParameter{
+					{
+						Name:        "query",
+						Type:        "string",
+						Description: stringToPointer("PromQL query expression"),
+						Required:    true,
+					},
+				},
+			},
+		},
+		Artifacts: []models.McpArtifact{
+			{
+				URI: "oci://ghcr.io/prometheus-community/prometheus-mcp:0.9.2",
+			},
+		},
+		Readme:        stringToPointer("# Prometheus MCP Server\n\nThe Prometheus MCP Server enables AI assistants to query Prometheus metrics and alerts using natural language.\n\n## Quickstart\n\n```bash\nnpx -y @prometheus-community/prometheus-mcp-server\n```\n\n## Features\n\n- Execute PromQL queries\n- Retrieve active alerts\n- Query metric metadata\n- Range queries with configurable time windows\n"),
+		SourceCode:    stringToPointer("prometheus-community/prometheus-mcp"),
+		RepositoryURL: stringToPointer("https://github.com/prometheus-community/prometheus-mcp"),
+		LastUpdated:   stringToPointer("1706745600000"),
+		RuntimeMetadata: &models.McpRuntimeMetadata{
+			DefaultPort: func() *int32 { p := int32(9090); return &p }(),
+			McpPath:     stringToPointer("/sse"),
+			DefaultArgs: []string{"--config", "/etc/prometheus/config.yaml"},
+			RequiredEnvironmentVariables: []models.McpEnvVarMetadata{
+				{Name: "PROMETHEUS_URL", Description: "Prometheus server URL", Example: stringToPointer("http://prometheus:9090")},
+			},
+			OptionalEnvironmentVariables: []models.McpEnvVarMetadata{
+				{Name: "LOG_LEVEL", Description: "Logging level", DefaultValue: stringToPointer("info")},
+			},
+			Prerequisites: &models.McpPrerequisites{
+				ServiceAccount: &models.McpServiceAccountRequirement{
+					Required:      &trueVal,
+					SuggestedName: stringToPointer("prometheus-mcp-sa"),
+					Hint:          stringToPointer("Needs prometheus-reader ClusterRole binding"),
+				},
+				Secrets: []models.McpSecretRequirement{
+					{
+						Name:        "prometheus-credentials",
+						Description: "Prometheus auth credentials",
+						Keys: []models.McpSecretKey{
+							{Key: "token", Description: "Bearer token for Prometheus API", EnvVarName: stringToPointer("PROM_TOKEN"), Required: &trueVal},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	kubernetesMcp := models.McpServer{
+		ID:          "2",
+		Name:        "Kubernetes MCP Server",
+		SourceID:    stringToPointer("community-mcp-source"),
+		Description: stringToPointer("Manage Kubernetes resources and query cluster state"),
+		Provider:    stringToPointer("CNCF"),
+		Version:     stringToPointer("1.2.0"),
+		License:     stringToPointer("Apache 2.0"),
+		LicenseLink: stringToPointer("https://www.apache.org/licenses/LICENSE-2.0"),
+		Tags:        []string{"kubernetes", "containers", "orchestration"},
+		ToolCount:   23,
+		Transports:  []models.McpTransportType{models.McpTransportTypeHTTP, models.McpTransportTypeSSE},
+		DeploymentMode: func() *models.McpDeploymentMode {
+			mode := models.McpDeploymentModeLocal
+			return &mode
+		}(),
+		SecurityIndicators: &models.McpSecurityIndicator{
+			VerifiedSource: &trueVal,
+			SecureEndpoint: &trueVal,
+			SAST:           &trueVal,
+			ReadOnlyTools:  &falseVal,
+		},
+		Artifacts: []models.McpArtifact{
+			{
+				URI: "oci://ghcr.io/cncf/kubernetes-mcp:1.2.0",
+			},
+		},
+		Readme:        stringToPointer("# Kubernetes MCP Server\n\nThe Kubernetes MCP Server allows AI Assistants to interact with Kubernetes clusters, bringing real-time cluster management directly into your development workflow.\n\n**Note:** This product is not officially supported by CNCF.\n\nIf you need help, please contact us via GitHub Issues if you have feature requests, questions, or need help.\n\n## Quickstart\n\nYou can add this MCP server to your MCP Client like VSCode, Claude, Cursor, Amazon Q, Windsurf, ChatGPT, or GitHub Copilot via the command `npx -y @cncf/kubernetes-mcp-server` (type: stdio). For more details, please refer to the configuration section below.\n\n## Use Cases\n\n- **Real-time cluster management** - Query pod, deployment, and service status\n- **Resource operations** - Create, update, and delete Kubernetes resources\n- **Health monitoring** - Check cluster health and resource utilization\n- **Namespace management** - List and manage namespaces and their contents\n- **Debugging support** - Get pod logs and events for troubleshooting\n\n## Tools\n\n| Tool | Description |\n|------|-------------|\n| `get_pods` | List pods in a namespace |\n| `get_deployments` | List deployments |\n| `get_services` | List services |\n| `get_namespaces` | List all namespaces |\n| `get_pod_logs` | Retrieve pod logs |\n| `get_events` | Get cluster events |\n| `apply_manifest` | Apply a Kubernetes manifest |\n| `delete_resource` | Delete a Kubernetes resource |\n\n## Configuration\n\n```json\n{\n  \"mcpServers\": {\n    \"kubernetes\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"@cncf/kubernetes-mcp-server\"],\n      \"env\": {\n        \"KUBECONFIG\": \"/path/to/kubeconfig\"\n      }\n    }\n  }\n}\n```\n\n## Requirements\n\n- Node.js 18+\n- Valid kubeconfig with cluster access\n- kubectl CLI (optional, for fallback operations)\n"),
+		SourceCode:    stringToPointer("cncf/kubernetes-mcp-server"),
+		RepositoryURL: stringToPointer("https://github.com/cncf/kubernetes-mcp-server"),
+		LastUpdated:   stringToPointer("1709913600000"),
+	}
+
+	elasticMcp := models.McpServer{
+		ID:          "3",
+		Name:        "Elasticsearch MCP Server",
+		SourceID:    stringToPointer("organization-mcp-source"),
+		Description: stringToPointer("Search and analyze data in Elasticsearch clusters"),
+		Provider:    stringToPointer("Elastic"),
+		Version:     stringToPointer("2.0.5"),
+		License:     stringToPointer("Elastic 2.0"),
+		Tags:        []string{"search", "analytics", "observability"},
+		ToolCount:   18,
+		Transports:  []models.McpTransportType{models.McpTransportTypeHTTP},
+		DeploymentMode: func() *models.McpDeploymentMode {
+			mode := models.McpDeploymentModeRemote
+			return &mode
+		}(),
+		SecurityIndicators: &models.McpSecurityIndicator{
+			VerifiedSource: &trueVal,
+			SecureEndpoint: &trueVal,
+		},
+		Endpoints: &models.McpEndpoints{
+			HTTP: stringToPointer("https://api.mcpservers.org/elasticsearch-mcp/v1"),
+			SSE:  stringToPointer("https://api.mcpservers.org/elasticsearch-mcp/sse"),
+		},
+	}
+
+	dynatraceMcp := models.McpServer{
+		ID:          "4",
+		Name:        "Dynatrace MCP Server",
+		SourceID:    stringToPointer("organization-mcp-source"),
+		Description: stringToPointer("Access Dynatrace observability data and perform actions"),
+		Provider:    stringToPointer("Dynatrace"),
+		Version:     stringToPointer("1.0.1"),
+		License:     stringToPointer("Apache 2.0"),
+		LicenseLink: stringToPointer("https://github.com/dynatrace-oss/dynatrace-mcp-server/blob/main/LICENSE"),
+		Tags:        []string{"observability", "monitoring", "apm"},
+		ToolCount:   15,
+		Transports:  []models.McpTransportType{models.McpTransportTypeStdio},
+		DeploymentMode: func() *models.McpDeploymentMode {
+			mode := models.McpDeploymentModeLocal
+			return &mode
+		}(),
+		SecurityIndicators: &models.McpSecurityIndicator{
+			VerifiedSource: &trueVal,
+			SecureEndpoint: &trueVal,
+			ReadOnlyTools:  &trueVal,
+		},
+		SourceCode:       stringToPointer("dynatrace-oss/dynatrace-mcp-server"),
+		RepositoryURL:    stringToPointer("https://github.com/dynatrace-oss/dynatrace-mcp-server"),
+		DocumentationURL: stringToPointer("https://github.com/dynatrace-oss/dynatrace-mcp-server/blob/main/README.md"),
+		Readme:           stringToPointer("# Dynatrace MCP Server\n\nThe local Dynatrace MCP server allows AI Assistants to interact with the Dynatrace observability platform, bringing real-time observability data directly into your development workflow.\n\n**Note:** This product is not officially supported by Dynatrace.\n\nIf you need help, please contact us via GitHub Issues if you have feature requests, questions, or need help.\n\n## Quickstart\n\nYou can add this MCP server to your MCP Client like VSCode, Claude, Cursor, Amazon Q, Windsurf, ChatGPT, or GitHub Copilot via the command `npx -y @dynatrace-oss/dynatrace-mcp-server` (type: stdio). For more details, please refer to the configuration section below.\n\nFurthermore, you need to configure the URL to a Dynatrace environment:\n\n- `DT_ENVIRONMENT` (string, e.g., https://abc12345.apps.dynatrace.com) - URL to your Dynatrace Platform (do not use Dynatrace classic URLs like abc12345.live.dynatrace.com)\n\nOnce we are done, we recommend looking into example prompts, like \"Get all details of the entity 'my-service'\" or \"Show me error logs\". Please mind that these prompts lead to executing DQL statements which may incur costs in accordance to your licence.\n\n## Use Cases\n\n- **Real-time observability** - Fetch production-level data for early detection and proactive monitoring\n- **Contextual debugging** - Fix issues with full context from monitored exceptions, logs, and anomalies\n- **Security insights** - Get detailed vulnerability analysis and security problem tracking\n- **Natural language queries** - Use AI-powered DQL generation and explanation\n- **Multi-phase incident investigation** - Systematic 4-phase approach with automated impact assessment\n\n## Tools\n\n| Tool | Description |\n|------|-------------|\n| `execute_dql` | Execute Dynatrace Query Language (DQL) queries |\n| `get_problems` | Retrieve current problems and incidents |\n| `get_service_health` | Get health status of services |\n| `get_vulnerabilities` | Retrieve security vulnerability data |\n| `create_maintenance_window` | Create a maintenance window to suppress alerts |\n"),
+		LastUpdated:      stringToPointer("1704067200000"),
+	}
+
+	grafanaMcp := models.McpServer{
+		ID:          "5",
+		Name:        "Grafana MCP Server",
+		SourceID:    stringToPointer("community-mcp-source"),
+		Description: stringToPointer("Query Grafana dashboards, data sources and annotations via natural language"),
+		Provider:    stringToPointer("Grafana Labs"),
+		Version:     stringToPointer("1.1.0"),
+		License:     stringToPointer("AGPL-3.0"),
+		LicenseLink: stringToPointer("https://www.gnu.org/licenses/agpl-3.0.html"),
+		Tags:        []string{"dashboards", "visualization", "monitoring"},
+		ToolCount:   12,
+		Transports:  []models.McpTransportType{models.McpTransportTypeHTTP},
+		DeploymentMode: func() *models.McpDeploymentMode {
+			mode := models.McpDeploymentModeRemote
+			return &mode
+		}(),
+		SecurityIndicators: &models.McpSecurityIndicator{
+			VerifiedSource: &trueVal,
+			SecureEndpoint: &trueVal,
+			ReadOnlyTools:  &trueVal,
+		},
+	}
+
+	gitMcp := models.McpServer{
+		ID:          "6",
+		Name:        "Git MCP Server",
+		SourceID:    stringToPointer("community-mcp-source"),
+		Description: stringToPointer("Interact with Git repositories, branches, commits and diffs through your agent"),
+		Provider:    stringToPointer("Git Community"),
+		Version:     stringToPointer("0.5.3"),
+		License:     stringToPointer("MIT"),
+		LicenseLink: stringToPointer("https://opensource.org/licenses/MIT"),
+		Tags:        []string{"git", "vcs", "repositories"},
+		ToolCount:   20,
+		Transports:  []models.McpTransportType{models.McpTransportTypeStdio},
+		DeploymentMode: func() *models.McpDeploymentMode {
+			mode := models.McpDeploymentModeLocal
+			return &mode
+		}(),
+		SecurityIndicators: &models.McpSecurityIndicator{
+			VerifiedSource: &trueVal,
+			SAST:           &trueVal,
+		},
+	}
+
+	postgresMcp := models.McpServer{
+		ID:          "7",
+		Name:        "PostgreSQL MCP Server",
+		SourceID:    stringToPointer("organization-mcp-source"),
+		Description: stringToPointer("Query and manage PostgreSQL databases using natural language"),
+		Provider:    stringToPointer("PostgreSQL Global Development Group"),
+		Version:     stringToPointer("1.3.0"),
+		License:     stringToPointer("PostgreSQL License"),
+		Tags:        []string{"database", "sql", "postgresql"},
+		ToolCount:   10,
+		Transports:  []models.McpTransportType{models.McpTransportTypeHTTP},
+		DeploymentMode: func() *models.McpDeploymentMode {
+			mode := models.McpDeploymentModeLocal
+			return &mode
+		}(),
+		SecurityIndicators: &models.McpSecurityIndicator{
+			VerifiedSource: &trueVal,
+			ReadOnlyTools:  &trueVal,
+		},
+	}
+
+	redisMcp := models.McpServer{
+		ID:          "8",
+		Name:        "Redis MCP Server",
+		SourceID:    stringToPointer("organization-mcp-source"),
+		Description: stringToPointer("Manage Redis key-value stores, caches and pub/sub channels"),
+		Provider:    stringToPointer("Redis Ltd"),
+		Version:     stringToPointer("0.8.1"),
+		License:     stringToPointer("BSD-3-Clause"),
+		LicenseLink: stringToPointer("https://opensource.org/licenses/BSD-3-Clause"),
+		Tags:        []string{"cache", "database", "messaging"},
+		ToolCount:   14,
+		Transports:  []models.McpTransportType{models.McpTransportTypeHTTP, models.McpTransportTypeSSE},
+		DeploymentMode: func() *models.McpDeploymentMode {
+			mode := models.McpDeploymentModeRemote
+			return &mode
+		}(),
+		SecurityIndicators: &models.McpSecurityIndicator{
+			VerifiedSource: &trueVal,
+			SecureEndpoint: &trueVal,
+			SAST:           &falseVal,
+		},
+	}
+
+	standaloneMcp := models.McpServer{
+		ID:          "9",
+		Name:        "Standalone MCP Server",
+		SourceID:    stringToPointer("standalone-mcp-source"),
+		Description: stringToPointer("MCP server with no category, available for use"),
+		Provider:    stringToPointer("Independent"),
+		Version:     stringToPointer("1.0.0"),
+		License:     stringToPointer("MIT"),
+		Tags:        []string{"standalone", "general"},
+		ToolCount:   5,
+		Transports:  []models.McpTransportType{models.McpTransportTypeStdio},
+		DeploymentMode: func() *models.McpDeploymentMode {
+			mode := models.McpDeploymentModeLocal
+			return &mode
+		}(),
+		SecurityIndicators: &models.McpSecurityIndicator{
+			VerifiedSource: &falseVal,
+			SecureEndpoint: &trueVal,
+		},
+	}
+
+	allBases := []models.McpServer{prometheusMcp, kubernetesMcp, grafanaMcp, gitMcp, elasticMcp, dynatraceMcp, postgresMcp, redisMcp, standaloneMcp}
+
+	var all []models.McpServer
+	nextID := len(allBases) + 1
+	suffixes := []string{"-1", "-2", "-3"}
+
+	for _, base := range allBases {
+		for _, suffix := range suffixes {
+			s := base
+			s.Name = base.Name + suffix
+			if suffix != "-1" {
+				s.ID = fmt.Sprintf("%d", nextID)
+				nextID++
+			}
+			all = append(all, s)
+		}
+	}
+
+	return all
+}
+
+func GetMcpServerListMock() models.McpServerList {
+	allMcpServers := GetMcpServerMocks()
+
+	return models.McpServerList{
+		Items:         allMcpServers,
+		Size:          int32(len(allMcpServers)),
+		PageSize:      int32(10),
+		NextPageToken: "",
+	}
+}
+
+func GetMcpToolWithServerMocks() []models.McpToolWithServer {
+	trueVal := true
+	falseVal := false
+
+	queryTool := models.McpToolWithServer{
+		ServerID: "prometheus-mcp",
+		Tool: models.McpTool{
+			Name:        "query",
+			Description: stringToPointer("Execute PromQL queries against the Prometheus time-series database"),
+			AccessType:  models.McpToolAccessTypeReadOnly,
+			Parameters: []models.McpToolParameter{
+				{
+					Name:        "query",
+					Type:        "string",
+					Description: stringToPointer("PromQL query expression"),
+					Required:    true,
+				},
+				{
+					Name:        "time",
+					Type:        "string",
+					Description: stringToPointer("Evaluation timestamp (ISO format)"),
+					Required:    false,
+				},
+				{
+					Name:        "timeout",
+					Type:        "string",
+					Description: stringToPointer("Evaluation timeout duration"),
+					Required:    false,
+				},
+			},
+			Revoked: &falseVal,
+		},
+	}
+
+	getAlertsTool := models.McpToolWithServer{
+		ServerID: "prometheus-mcp",
+		Tool: models.McpTool{
+			Name:        "get_alerts",
+			Description: stringToPointer("Retrieve current problems and incidents"),
+			AccessType:  models.McpToolAccessTypeReadOnly,
+			Parameters:  []models.McpToolParameter{},
+			Revoked:     &falseVal,
+		},
+	}
+
+	getPodsTool := models.McpToolWithServer{
+		ServerID: "kubernetes-mcp",
+		Tool: models.McpTool{
+			Name:        "get_pods",
+			Description: stringToPointer("List pods in a namespace"),
+			AccessType:  models.McpToolAccessTypeReadOnly,
+			Parameters: []models.McpToolParameter{
+				{
+					Name:        "namespace",
+					Type:        "string",
+					Description: stringToPointer("Kubernetes namespace"),
+					Required:    true,
+				},
+				{
+					Name:        "label_selector",
+					Type:        "string",
+					Description: stringToPointer("Label selector to filter pods"),
+					Required:    false,
+				},
+			},
+			Revoked: &falseVal,
+		},
+	}
+
+	createMaintenanceWindow := models.McpToolWithServer{
+		ServerID: "prometheus-mcp",
+		Tool: models.McpTool{
+			Name:        "create_maintenance_window",
+			Description: stringToPointer("Create a maintenance window to suppress alerts"),
+			AccessType:  models.McpToolAccessTypeReadWrite,
+			Parameters: []models.McpToolParameter{
+				{
+					Name:        "name",
+					Type:        "string",
+					Description: stringToPointer("Maintenance window name"),
+					Required:    true,
+				},
+				{
+					Name:        "start_time",
+					Type:        "string",
+					Description: stringToPointer("Start time (ISO format)"),
+					Required:    true,
+				},
+				{
+					Name:        "end_time",
+					Type:        "string",
+					Description: stringToPointer("End time (ISO format)"),
+					Required:    true,
+				},
+				{
+					Name:        "entity_ids",
+					Type:        "array",
+					Description: stringToPointer("Entity IDs to include in maintenance"),
+					Required:    false,
+				},
+				{
+					Name:        "description",
+					Type:        "string",
+					Description: stringToPointer("Maintenance window description"),
+					Required:    false,
+				},
+			},
+			Revoked: &falseVal,
+		},
+	}
+
+	executeDql := models.McpToolWithServer{
+		ServerID: "prometheus-mcp",
+		Tool: models.McpTool{
+			Name:        "execute_dql",
+			Description: stringToPointer("Execute Dynatrace Query Language (DQL) queries"),
+			AccessType:  models.McpToolAccessTypeReadOnly,
+			Parameters: []models.McpToolParameter{
+				{
+					Name:        "query",
+					Type:        "string",
+					Description: stringToPointer("DQL query string"),
+					Required:    true,
+				},
+				{
+					Name:        "max_results",
+					Type:        "integer",
+					Description: stringToPointer("Maximum number of results to return"),
+					Required:    false,
+				},
+			},
+			Revoked: &falseVal,
+		},
+	}
+
+	getServiceHealth := models.McpToolWithServer{
+		ServerID: "prometheus-mcp",
+		Tool: models.McpTool{
+			Name:        "get_service_health",
+			Description: stringToPointer("Get health status of services"),
+			AccessType:  models.McpToolAccessTypeReadOnly,
+			Parameters: []models.McpToolParameter{
+				{
+					Name:        "service_id",
+					Type:        "string",
+					Description: stringToPointer("Service identifier"),
+					Required:    false,
+				},
+			},
+			Revoked: &falseVal,
+		},
+	}
+
+	getVulnerabilities := models.McpToolWithServer{
+		ServerID: "prometheus-mcp",
+		Tool: models.McpTool{
+			Name:        "get_vulnerabilities",
+			Description: stringToPointer("Retrieve security vulnerability data"),
+			AccessType:  models.McpToolAccessTypeReadOnly,
+			Parameters: []models.McpToolParameter{
+				{
+					Name:        "severity",
+					Type:        "string",
+					Description: stringToPointer("Filter by severity level (critical, high, medium, low)"),
+					Required:    false,
+				},
+				{
+					Name:        "status",
+					Type:        "string",
+					Description: stringToPointer("Filter by vulnerability status (open, resolved, suppressed)"),
+					Required:    false,
+				},
+			},
+			Revoked: &falseVal,
+		},
+	}
+
+	deployModel := models.McpToolWithServer{
+		ServerID: "kubernetes-mcp",
+		Tool: models.McpTool{
+			Name:        "deploy_model",
+			Description: stringToPointer("Deploy a machine learning model to a Kubernetes cluster"),
+			AccessType:  models.McpToolAccessTypeExecute,
+			Parameters: []models.McpToolParameter{
+				{
+					Name:        "model_name",
+					Type:        "string",
+					Description: stringToPointer("Name of the model to deploy"),
+					Required:    true,
+				},
+				{
+					Name:        "namespace",
+					Type:        "string",
+					Description: stringToPointer("Target Kubernetes namespace"),
+					Required:    true,
+				},
+				{
+					Name:        "replicas",
+					Type:        "integer",
+					Description: stringToPointer("Number of replicas"),
+					Required:    false,
+				},
+				{
+					Name:        "image",
+					Type:        "string",
+					Description: stringToPointer("Container image URI for the model server"),
+					Required:    true,
+				},
+			},
+			Revoked: &falseVal,
+		},
+	}
+
+	queryRange := models.McpToolWithServer{
+		ServerID: "prometheus-mcp",
+		Tool: models.McpTool{
+			Name:        "query_range",
+			Description: stringToPointer("Execute a PromQL range query over a time window"),
+			AccessType:  models.McpToolAccessTypeReadOnly,
+			Parameters: []models.McpToolParameter{
+				{
+					Name:        "query",
+					Type:        "string",
+					Description: stringToPointer("PromQL query expression"),
+					Required:    true,
+				},
+				{
+					Name:        "start",
+					Type:        "string",
+					Description: stringToPointer("Start timestamp (ISO format)"),
+					Required:    true,
+				},
+				{
+					Name:        "end",
+					Type:        "string",
+					Description: stringToPointer("End timestamp (ISO format)"),
+					Required:    true,
+				},
+				{
+					Name:        "step",
+					Type:        "string",
+					Description: stringToPointer("Query resolution step width (e.g. 15s, 1m, 5m)"),
+					Required:    false,
+				},
+			},
+			Revoked: &falseVal,
+		},
+	}
+
+	getMetricMetadata := models.McpToolWithServer{
+		ServerID: "prometheus-mcp",
+		Tool: models.McpTool{
+			Name:        "get_metric_metadata",
+			Description: stringToPointer("Retrieve metadata about a specific Prometheus metric"),
+			AccessType:  models.McpToolAccessTypeReadOnly,
+			Parameters: []models.McpToolParameter{
+				{
+					Name:        "metric",
+					Type:        "string",
+					Description: stringToPointer("Metric name"),
+					Required:    true,
+				},
+			},
+			Revoked: &falseVal,
+		},
+	}
+
+	listTargets := models.McpToolWithServer{
+		ServerID: "prometheus-mcp",
+		Tool: models.McpTool{
+			Name:        "list_targets",
+			Description: stringToPointer("List all active and dropped scrape targets"),
+			AccessType:  models.McpToolAccessTypeReadOnly,
+			Parameters: []models.McpToolParameter{
+				{
+					Name:        "state",
+					Type:        "string",
+					Description: stringToPointer("Filter by target state (active, dropped, any)"),
+					Required:    false,
+				},
+			},
+			Revoked: &falseVal,
+		},
+	}
+
+	deleteAlertSilence := models.McpToolWithServer{
+		ServerID: "prometheus-mcp",
+		Tool: models.McpTool{
+			Name:        "delete_alert_silence",
+			Description: stringToPointer("Delete an alert silence by ID"),
+			AccessType:  models.McpToolAccessTypeExecute,
+			Parameters: []models.McpToolParameter{
+				{
+					Name:        "silence_id",
+					Type:        "string",
+					Description: stringToPointer("ID of the silence to delete"),
+					Required:    true,
+				},
+			},
+			Revoked: &falseVal,
+		},
+	}
+
+	legacyExport := models.McpToolWithServer{
+		ServerID: "prometheus-mcp",
+		Tool: models.McpTool{
+			Name:          "legacy_export",
+			Description:   stringToPointer("Export metrics in legacy format (deprecated)"),
+			AccessType:    models.McpToolAccessTypeReadOnly,
+			Parameters:    []models.McpToolParameter{},
+			Revoked:       &trueVal,
+			RevokedReason: stringToPointer("This tool has been deprecated in favor of the new metrics API."),
+		},
+	}
+
+	return []models.McpToolWithServer{
+		createMaintenanceWindow,
+		executeDql,
+		getAlertsTool,
+		getServiceHealth,
+		getVulnerabilities,
+		queryTool,
+		queryRange,
+		getMetricMetadata,
+		listTargets,
+		deleteAlertSilence,
+		getPodsTool,
+		deployModel,
+		legacyExport,
+	}
+}
+
+func GetMcpToolListMock() models.McpToolList {
+	tools := GetMcpToolWithServerMocks()
+
+	return models.McpToolList{
+		Items:         tools,
+		NextPageToken: "",
+		PageSize:      25,
+		Size:          int32(len(tools)),
+	}
+}
+
+func GetMcpFilterOptionMocks() map[string]models.FilterOption {
+	mcpFilters := make(map[string]models.FilterOption)
+
+	mcpFilters["provider"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"Anthropic",
+			"CNCF",
+			"Dynatrace",
+			"Elastic",
+			"Google",
+			"OpenAI",
+			"Prometheus Community",
+			"Red Hat",
+		},
+	}
+
+	mcpFilters["license"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"Apache 2.0",
+			"Elastic 2.0",
+			"MIT",
+		},
+	}
+
+	mcpFilters["tags"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"ai",
+			"alerting",
+			"analytics",
+			"anthropic",
+			"assistants",
+			"cloud",
+			"containers",
+			"kubernetes",
+			"metrics",
+			"monitoring",
+			"observability",
+			"openshift",
+			"orchestration",
+			"remote",
+			"search",
+		},
+	}
+
+	mcpFilters["transports"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"http",
+			"sse",
+			"stdio",
+		},
+	}
+
+	mcpFilters["deploymentMode"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"local",
+			"remote",
+		},
+	}
+
+	mcpFilters["securityIndicators"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"Verified source",
+			"Secure endpoint",
+			"SAST",
+			"Read only tools",
+		},
+	}
+
+	return mcpFilters
+}
+
+func GetMcpNamedQueriesMocks() map[string]map[string]models.FieldFilter {
+	namedQueries := make(map[string]map[string]models.FieldFilter)
+
+	// Secure servers query
+	namedQueries["secure_servers"] = map[string]models.FieldFilter{
+		"verifiedSource": {
+			Operator: "=",
+			Value:    true,
+		},
+		"secureEndpoint": {
+			Operator: "=",
+			Value:    true,
+		},
+	}
+
+	// Local only deployment
+	namedQueries["local_only"] = map[string]models.FieldFilter{
+		"deploymentMode": {
+			Operator: "=",
+			Value:    "local",
+		},
+	}
+
+	// Read-only tools
+	namedQueries["read_only_servers"] = map[string]models.FieldFilter{
+		"readOnlyTools": {
+			Operator: "=",
+			Value:    true,
+		},
+	}
+
+	return namedQueries
+}
+
+func GetMcpFilterOptionsListMock() models.FilterOptionsList {
+	mcpFilters := GetMcpFilterOptionMocks()
+	mcpNamedQueries := GetMcpNamedQueriesMocks()
+
+	return models.FilterOptionsList{
+		Filters:      &mcpFilters,
+		NamedQueries: &mcpNamedQueries,
+	}
+}
+
+func GetMcpServerCatalogSourceMocks() []models.CatalogSource {
+	enabled := true
+	disabledBool := false
+	availableStatus := "available"
+
+	return []models.CatalogSource{
+		{
+			Id:      "community-mcp-source",
+			Name:    "Community MCP Servers",
+			Enabled: &enabled,
+			Status:  &availableStatus,
+			Labels:  []string{"community_mcp_servers"},
+		},
+		{
+			Id:      "organization-mcp-source",
+			Name:    "Organization MCP Servers",
+			Enabled: &enabled,
+			Status:  &availableStatus,
+			Labels:  []string{"organization_mcp_servers"},
+		},
+		{
+			Id:      "standalone-mcp-source",
+			Name:    "Other MCP Servers",
+			Enabled: &enabled,
+			Status:  &availableStatus,
+			Labels:  []string{},
+		},
+		{
+			Id:      "disabled-mcp-source",
+			Name:    "Disabled MCP source",
+			Enabled: &disabledBool,
+			Status:  &availableStatus,
+			Labels:  []string{"disabled_servers"},
+		},
+	}
+}
+
+func GetMcpServerCatalogSourceListMock() models.CatalogSourceList {
+	allSources := GetMcpServerCatalogSourceMocks()
+
+	return models.CatalogSourceList{
+		Items:         allSources,
+		Size:          int32(len(allSources)),
+		PageSize:      int32(10),
+		NextPageToken: "",
+	}
+}
+
+func GetMcpServerCatalogLabelListMock() models.CatalogLabelList {
+	communityName := "community_mcp_servers"
+	communityDisplay := "Community MCP Servers"
+	communityDesc := "Community contributed MCP servers from various sources."
+
+	orgName := "organization_mcp_servers"
+	orgDisplay := "Organization MCP Servers"
+	orgDesc := "MCP servers provided and maintained by your organization."
+
+	labels := []models.CatalogLabel{
+		{
+			Name:        &communityName,
+			DisplayName: &communityDisplay,
+			Description: &communityDesc,
+		},
+		{
+			Name:        &orgName,
+			DisplayName: &orgDisplay,
+			Description: &orgDesc,
+		},
+	}
+
+	return models.CatalogLabelList{
+		Items:         labels,
+		Size:          int32(len(labels)),
+		PageSize:      int32(10),
+		NextPageToken: "",
+	}
+}
+
+func GetMcpDeploymentMocks() []models.McpDeployment {
+	return []models.McpDeployment{
+		{
+			Name:              "kubernetes-mcp",
+			DisplayName:       "Kubernetes MCP Server",
+			Namespace:         "mcp-servers",
+			UID:               "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+			CreationTimestamp: "2026-03-10T14:30:00Z",
+			Image:             "quay.io/mcp-servers/kubernetes:1.0.0",
+			Phase:             models.McpDeploymentPhaseRunning,
+			Conditions: []models.McpDeploymentCondition{
+				{Type: "Available", Status: "True", LastTransitionTime: "2026-03-10T14:32:00Z", Reason: "DeploymentAvailable"},
+				{Type: "Progressing", Status: "True", LastTransitionTime: "2026-03-10T14:31:00Z", Reason: "NewReplicaSetAvailable"},
+			},
+		},
+		{
+			Name:              "slack-mcp",
+			DisplayName:       "Slack MCP Server",
+			Namespace:         "mcp-servers",
+			UID:               "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+			CreationTimestamp: "2026-03-14T11:00:00Z",
+			Image:             "quay.io/mcp-servers/slack:0.5.0",
+			Phase:             models.McpDeploymentPhasePending,
+			Conditions: []models.McpDeploymentCondition{
+				{Type: "Available", Status: "False", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "MinimumReplicasUnavailable"},
+				{Type: "Progressing", Status: "True", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "ReplicaSetUpdated"},
+			},
+		},
+		{
+			Name:              "jira-mcp",
+			DisplayName:       "Jira MCP Server",
+			Namespace:         "mcp-servers",
+			UID:               "c3d4e5f6-a7b8-9012-cdef-123456789012",
+			CreationTimestamp: "2026-03-08T16:45:00Z",
+			Image:             "quay.io/mcp-servers/jira:1.2.0",
+			Phase:             models.McpDeploymentPhaseFailed,
+			Conditions: []models.McpDeploymentCondition{
+				{Type: "Available", Status: "False", LastTransitionTime: "2026-03-08T16:50:00Z", Reason: "MinimumReplicasUnavailable"},
+				{Type: "Progressing", Status: "False", LastTransitionTime: "2026-03-08T16:55:00Z", Reason: "ProgressDeadlineExceeded"},
+			},
+		},
 	}
 }

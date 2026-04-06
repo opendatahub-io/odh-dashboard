@@ -2,7 +2,6 @@
 import * as React from 'react';
 import { EmptyState, EmptyStateVariant, Spinner, Content } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useNavigate } from 'react-router-dom';
 import {
   fireMiscTrackingEvent,
   fireSimpleTrackingEvent,
@@ -10,13 +9,24 @@ import {
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import { isLlamaModelEnabled } from '~/app/utilities';
+import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
+import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
+import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
-import CompareChatModal from '~/app/Chatbot/components/CompareChatModal';
+import ChatModal from '~/app/Chatbot/components/ChatModal';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
-import { useChatbotConfigStore, selectConfigIds, DEFAULT_CONFIG_ID } from './store';
+import {
+  useChatbotConfigStore,
+  selectConfigIds,
+  selectSelectedModel,
+  DEFAULT_CONFIG_ID,
+} from './store';
+import { usePlaygroundStore } from './store/usePlaygroundStore';
+import PromptManagementModal from './components/promptManagementModal';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const {
@@ -32,16 +42,19 @@ const ChatbotMain: React.FunctionComponent = () => {
     models,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
-
-  const navigate = useNavigate();
+  const { data: bffConfig } = useFetchBFFConfig();
+  const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
+  const [existingCollections] = useFetchVectorStores();
 
   const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
   const [configurationModalOpen, setConfigurationModalOpen] = React.useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
   const [isNewChatModalOpen, setIsNewChatModalOpen] = React.useState(false);
   const [isCompareChatModalOpen, setIsCompareChatModalOpen] = React.useState(false);
+  const { isPromptManagementModalOpen } = usePlaygroundStore();
   // Track which pane's settings are active in compare mode
   const [activePaneConfigId, setActivePaneConfigId] = React.useState<string>(DEFAULT_CONFIG_ID);
+  const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(true);
 
   // Ref to clear all chat messages (will be set by ChatbotPlayground)
   const clearAllMessagesRef = React.useRef<(() => void) | null>(null);
@@ -49,6 +62,8 @@ const ChatbotMain: React.FunctionComponent = () => {
   // Derive compare mode from Zustand store (configIds.length > 1)
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
+  const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
+  const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
   // Check if there are any models available (either AI assets or MaaS models)
   const hasModels = aiModels.length > 0 || maasModels.length > 0;
@@ -74,6 +89,14 @@ const ChatbotMain: React.FunctionComponent = () => {
     useChatbotConfigStore.getState().duplicateConfiguration(firstConfigId);
     fireSimpleTrackingEvent('Playground Compare Mode Entered');
   }, []);
+
+  // Check if there are any models in the project or if no model is selected
+  const hasNoModels = models.length === 0;
+  const isSelectedModelDisabled = selectedModel
+    ? !isLlamaModelEnabled(selectedModel, aiModels, maasModels, bffConfig?.isCustomLSD ?? false)
+    : false;
+
+  const hasNoModelsOrSelectedModelDisabled = hasNoModels || isSelectedModelDisabled;
 
   return (
     <>
@@ -111,9 +134,7 @@ const ChatbotMain: React.FunctionComponent = () => {
                   Go to <b>Model deployments</b>
                 </>
               }
-              handleActionButtonClick={() => {
-                navigate(`/ai-hub/deployments/${namespace?.name}`);
-              }}
+              actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
             />
           ) : (
             <ChatbotEmptyState
@@ -131,36 +152,80 @@ const ChatbotMain: React.FunctionComponent = () => {
         }
         loadError={lsdStatusError || aiModelsError}
         headerAction={
-          <ChatbotHeaderActions
-            onViewCode={() => {
-              setIsViewCodeModalOpen(true);
-              fireSimpleTrackingEvent('Playground View Code Selected');
-            }}
-            onConfigurePlayground={() => setConfigurationModalOpen(true)}
-            onDeletePlayground={() => setDeleteModalOpen(true)}
-            onNewChat={() => {
-              setIsNewChatModalOpen(true);
-              fireSimpleTrackingEvent('Playground New Chat Selected');
-            }}
-            onCompareChat={() => {
-              setIsCompareChatModalOpen(true);
-              fireSimpleTrackingEvent('Playground Compare Chat Selected');
-            }}
-            isCompareMode={isCompareMode}
-          />
+          hasNoModelsOrSelectedModelDisabled ? undefined : (
+            <ChatbotHeaderActions
+              onViewCode={() => {
+                setIsViewCodeModalOpen(true);
+                fireSimpleTrackingEvent('Playground View Code Selected');
+              }}
+              onConfigurePlayground={() => setConfigurationModalOpen(true)}
+              onDeletePlayground={() => setDeleteModalOpen(true)}
+              onNewChat={() => {
+                setIsNewChatModalOpen(true);
+                fireSimpleTrackingEvent('Playground New Chat Selected');
+              }}
+              onCompareChat={() => {
+                setIsCompareChatModalOpen(true);
+                fireSimpleTrackingEvent('Playground Compare Chat Selected');
+              }}
+              onSettingsClick={() => setIsDrawerExpanded((prev) => !prev)}
+              isSettingsOpen={isDrawerExpanded}
+              isCompareMode={isCompareMode}
+            />
+          )
         }
       >
         {lsdStatus?.phase === 'Ready' ? (
-          <ChatbotPlayground
-            isViewCodeModalOpen={isViewCodeModalOpen}
-            setIsViewCodeModalOpen={setIsViewCodeModalOpen}
-            isNewChatModalOpen={isNewChatModalOpen}
-            setIsNewChatModalOpen={setIsNewChatModalOpen}
-            activePaneConfigId={activePaneConfigId}
-            setActivePaneConfigId={setActivePaneConfigId}
-            onClosePane={handleClosePane}
-            clearAllMessagesRef={clearAllMessagesRef}
-          />
+          hasNoModelsOrSelectedModelDisabled ? (
+            <ChatbotEmptyState
+              title="You need at least one model"
+              data-testid="no-models-empty-state"
+              description={
+                <Content
+                  style={{
+                    textAlign: 'left',
+                  }}
+                >
+                  <Content component="p">
+                    Looks like your project is missing at least one model to use the playground.
+                    <br />
+                    Follow the steps below to deploy and make a model available.
+                  </Content>
+                  <Content component="ol">
+                    <Content component="li">
+                      Go to your <b>Model Deployments </b> page and identify an LLM model
+                    </Content>
+                    <Content component="li">
+                      Select <b>&apos;Edit&apos;</b> to update your deployment
+                    </Content>
+                    <Content component="li">
+                      Check the box:{' '}
+                      <b>&apos;Make this deployment available as an AI asset&apos;</b>
+                    </Content>
+                  </Content>
+                </Content>
+              }
+              actionButtonText={
+                <>
+                  Go to <b>Model deployments</b>
+                </>
+              }
+              actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
+            />
+          ) : (
+            <ChatbotPlayground
+              isViewCodeModalOpen={isViewCodeModalOpen}
+              setIsViewCodeModalOpen={setIsViewCodeModalOpen}
+              isNewChatModalOpen={isNewChatModalOpen}
+              setIsNewChatModalOpen={setIsNewChatModalOpen}
+              activePaneConfigId={activePaneConfigId}
+              setActivePaneConfigId={setActivePaneConfigId}
+              onClosePane={handleClosePane}
+              clearAllMessagesRef={clearAllMessagesRef}
+              isDrawerExpanded={isDrawerExpanded}
+              setIsDrawerExpanded={setIsDrawerExpanded}
+            />
+          )
         ) : lsdStatus?.phase === 'Failed' ? (
           <EmptyState
             headingLevel="h4"
@@ -182,6 +247,9 @@ const ChatbotMain: React.FunctionComponent = () => {
           lsdStatus={lsdStatus}
           existingModels={models}
           maasModels={maasModels}
+          allCollections={allCollections}
+          collectionsLoaded={collectionsLoaded}
+          existingCollections={existingCollections}
         />
       )}
       {deleteModalOpen && (
@@ -191,11 +259,13 @@ const ChatbotMain: React.FunctionComponent = () => {
           }}
         />
       )}
-      <CompareChatModal
+      <ChatModal
         isOpen={isCompareChatModalOpen}
         onClose={() => setIsCompareChatModalOpen(false)}
         onConfirm={handleCompareConfirm}
+        variant="compare"
       />
+      {isPromptManagementModalOpen && <PromptManagementModal />}
     </>
   );
 };

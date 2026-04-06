@@ -5,6 +5,7 @@ import type { RoleRef } from '#~/concepts/permissions/types';
 import type { ClusterRoleKind, RoleKind } from '#~/k8sTypes';
 import { AssignmentStatus } from '#~/pages/projects/projectPermissions/types';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { fireSimpleTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 export type ManageRolesRow = {
   roleRef: RoleRef;
@@ -29,28 +30,27 @@ export const manageRolesColumns: SortableData<ManageRolesRow>[] = [
     sortable: false,
     info: {
       popover: (
-        <Content>
-          <Content component={ContentVariants.p}>
-            Roles with different labels come from different intentions. The meanings of each label
-            are defined as follows:
+        <Content component={ContentVariants.ul}>
+          <Content component={ContentVariants.li}>
+            <strong>AI roles</strong> are intended for use in, and can be assigned from,{' '}
+            {ODH_PRODUCT_NAME}.
           </Content>
-          <Content component={ContentVariants.ul}>
-            <Content component={ContentVariants.li}>
-              <strong>AI roles</strong> are intended for use in, and can be assigned from,{' '}
-              {ODH_PRODUCT_NAME}.
-            </Content>
-            <Content component={ContentVariants.li}>
-              <strong>OpenShift default roles</strong> are OOTB OpenShift roles that can be assigned
-              from OpenShift or {ODH_PRODUCT_NAME}.
-            </Content>
-            <Content component={ContentVariants.li}>
-              <strong>OpenShift custom roles</strong> are admin-created roles that can only be
-              assigned from OpenShift.
-            </Content>
+          <Content component={ContentVariants.li}>
+            <strong>OpenShift default roles</strong> are OOTB OpenShift roles that can be assigned
+            from OpenShift or {ODH_PRODUCT_NAME}.
+          </Content>
+          <Content component={ContentVariants.li}>
+            <strong>OpenShift custom roles</strong> are admin-created roles that can only be
+            assigned from OpenShift.
           </Content>
         </Content>
       ),
       ariaLabel: 'Role type help',
+      popoverProps: {
+        onShown: (): void => {
+          fireSimpleTrackingEvent('RBAC Help Reviewed');
+        },
+      },
     },
   },
   {
@@ -60,22 +60,28 @@ export const manageRolesColumns: SortableData<ManageRolesRow>[] = [
     sortable: (a, b) => (a.statusLabel ?? '').localeCompare(b.statusLabel ?? ''),
     info: {
       popover: (
-        <Content>
-          <Content component={ContentVariants.p}>A role can have three possible statuses:</Content>
-          <Content component={ContentVariants.ul}>
-            <Content component={ContentVariants.li}>
-              <strong>Assigned:</strong> The role is applied to the user or group.
-            </Content>
-            <Content component={ContentVariants.li}>
-              <strong>Assigning:</strong> The role will be applied when changes are saved.
-            </Content>
-            <Content component={ContentVariants.li}>
-              <strong>Unassigning:</strong> The role will be revoked when changes are saved.
-            </Content>
+        <Content component={ContentVariants.ul}>
+          <Content component={ContentVariants.li}>
+            <strong>Assigned:</strong> The role is applied to the user or group.
+          </Content>
+          <Content component={ContentVariants.li}>
+            <strong>Assigning:</strong> The role will be applied when changes are saved.
+          </Content>
+          <Content component={ContentVariants.li}>
+            <strong>Unassigning:</strong> The role will be revoked when changes are saved.
           </Content>
         </Content>
       ),
       ariaLabel: 'Assignment status help',
+      popoverProps: {
+        onShown: (): void => {
+          fireSimpleTrackingEvent('RBAC Help Reviewed');
+        },
+      },
     },
   },
 ];
+
+export const ASSIGNMENT_STATUS_COLUMN_INDEX = manageRolesColumns.findIndex(
+  ({ field }) => field === 'status',
+);

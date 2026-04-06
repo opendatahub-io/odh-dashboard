@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Validate module federation ports
+        run: npm run validate:ports
+
       - name: Check for uncommitted changes
         run: git diff --exit-code
 
@@ -216,10 +219,11 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.25'
           cache-dependency-path: |
             packages/model-registry/upstream/bff/go.sum
             packages/gen-ai/bff/go.sum
+            packages/mlflow/bff/go.sum
       - name: Restore cache
         uses: actions/cache/restore@v4
         with:
@@ -287,7 +291,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Build for cypress
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        run: npm run cypress:server:build:coverage
+        run: npm run cypress:server:build:coverage -- --concurrency=4
 
   Cypress-Mock-Tests:
     needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups]

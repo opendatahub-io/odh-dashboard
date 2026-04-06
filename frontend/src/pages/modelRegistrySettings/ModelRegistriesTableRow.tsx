@@ -1,11 +1,12 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { useNavigate } from 'react-router-dom';
 import { Button, Flex, FlexItem, Label, Popover, Tooltip } from '@patternfly/react-core';
 import { BellIcon, InfoCircleIcon } from '@patternfly/react-icons';
 import { ModelRegistryKind, RoleBindingKind } from '#~/k8sTypes';
 import { FetchStateObject } from '#~/utilities/useFetch';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
+import TruncatedText from '#~/components/TruncatedText';
 import { filterRoleBindingSubjects } from '#~/concepts/roleBinding/utils';
 import { RoleBindingPermissionsRBType } from '#~/concepts/roleBinding/types';
 import { ModelRegistryTableRowStatus } from './ModelRegistryTableRowStatus';
@@ -23,7 +24,6 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
   onEditRegistry,
   onDeleteRegistry,
 }) => {
-  const navigate = useNavigate();
   const filteredRoleBindings = roleBindings.data.filter(
     (rb) =>
       rb.metadata.labels?.['app.kubernetes.io/name'] ===
@@ -59,7 +59,7 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
                       className="pf-v6-u-mr-sm"
                       color="var(--pf-t--global--icon--color--status--info--default)"
                     />
-                    No project permission
+                    No project permissions
                   </>
                 }
                 bodyContent={
@@ -67,7 +67,7 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
                     To enable model storage and allow access from workbenches, you must grant access
                     to at least one project.
                     <br />
-                    Click <strong>Manage permissions</strong> and add the relevant projects in the{' '}
+                    Click <strong>Manage permissions</strong> and add the relevant projects on the{' '}
                     <strong>Projects</strong> tab.
                   </>
                 }
@@ -78,14 +78,17 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
                   data-testid="mr-no-project-permission-label"
                   isClickable
                 >
-                  No project permission
+                  No project permissions
                 </Label>
               </Popover>
             </FlexItem>
           )}
         </Flex>
         {mr.metadata.annotations?.['openshift.io/description'] && (
-          <p>{mr.metadata.annotations['openshift.io/description']}</p>
+          <TruncatedText
+            maxLines={2}
+            content={mr.metadata.annotations['openshift.io/description']}
+          />
         )}
       </Td>
       <Td dataLabel="Status">
@@ -101,11 +104,12 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
         ) : (
           <Button
             variant="link"
-            onClick={() =>
-              navigate(
-                `/settings/model-resources-operations/model-registry/permissions/${mr.metadata.name}`,
-              )
-            }
+            component={(props: React.ComponentProps<'a'>) => (
+              <Link
+                {...props}
+                to={`/settings/model-resources-operations/model-registry/permissions/${mr.metadata.name}`}
+              />
+            )}
           >
             Manage permissions
           </Button>
@@ -115,13 +119,13 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
         <ActionsColumn
           items={[
             {
-              title: 'Edit model registry',
+              title: <span data-testid="edit-model-registry-action">Edit model registry</span>,
               onClick: () => {
                 onEditRegistry(mr);
               },
             },
             {
-              title: 'Delete model registry',
+              title: <span data-testid="delete-model-registry-action">Delete model registry</span>,
               onClick: () => {
                 onDeleteRegistry(mr);
               },

@@ -65,7 +65,7 @@ class ModelRegistrySettings {
 
   private findHeading() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('AI registry settings');
+    cy.findByTestId('app-page-title').contains('Model registry settings');
   }
 
   findPageTitle() {
@@ -74,7 +74,7 @@ class ModelRegistrySettings {
 
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'AI registry settings',
+      name: 'Model registry settings',
       rootSection: 'Settings',
       subSection: 'Model resources and operations',
     });
@@ -222,6 +222,14 @@ class ModelRegistrySettings {
   selectDatabaseType(type: DatabaseType) {
     this.findDatabaseTypeDropdown().click();
     this.findDatabaseTypeOption(type).click();
+  }
+
+  findEditRegistryAction() {
+    return cy.findByTestId('edit-model-registry-action');
+  }
+
+  findDeleteRegistryAction() {
+    return cy.findByTestId('delete-model-registry-action');
   }
 }
 

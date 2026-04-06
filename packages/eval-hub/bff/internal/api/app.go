@@ -10,6 +10,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
+	ehmocks "github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub/ehmocks"
 	k8s "github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes/k8mocks"
 	"k8s.io/client-go/kubernetes"
@@ -24,23 +26,31 @@ import (
 )
 
 const (
-	Version         = "1.0.0"
-	PathPrefix      = "/eval-hub"
-	ApiPathPrefix   = "/api/v1"
-	HealthCheckPath = "/healthcheck"
-	UserPath        = ApiPathPrefix + "/user"
-	NamespacePath   = ApiPathPrefix + "/namespaces"
+	Version                  = "1.0.0"
+	PathPrefix               = "/eval-hub"
+	ApiPathPrefix            = "/api/v1"
+	HealthCheckPath          = "/healthcheck"
+	HealthPath               = ApiPathPrefix + "/health"
+	UserPath                 = ApiPathPrefix + "/user"
+	NamespacePath            = ApiPathPrefix + "/namespaces"
+	EvaluationJobsPath       = ApiPathPrefix + "/evaluations/jobs"
+	EvaluationJobByIDPath    = ApiPathPrefix + "/evaluations/jobs/:id"
+	CollectionsPath          = ApiPathPrefix + "/evaluations/collections"
+	ProvidersPath            = ApiPathPrefix + "/evaluations/providers"
+	EvalHubCRStatusPath      = ApiPathPrefix + "/evalhub/status"
+	EvalHubServiceHealthPath = ApiPathPrefix + "/evalhub/health"
 )
 
 type App struct {
 	config                  config.EnvConfig
 	logger                  *slog.Logger
 	kubernetesClientFactory k8s.KubernetesClientFactory
+	evalHubClientFactory    evalhub.EvalHubClientFactory
 	repositories            *repositories.Repositories
-	//used only on mocked k8s client
-	testEnv *envtest.Environment
-	// rootCAs used for outbound TLS connections to Client Service
-	rootCAs *x509.CertPool
+	testEnv                 *envtest.Environment
+	rootCAs                 *x509.CertPool
+	openAPI                 *OpenAPIHandler
+	dashboardNamespace      string
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -109,13 +119,38 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	dashboardNamespace, err := helper.GetCurrentNamespace()
+	if err != nil {
+		logger.Warn("Failed to detect dashboard namespace, using default",
+			slog.Any("error", err), slog.String("default", "opendatahub"))
+		dashboardNamespace = "opendatahub"
+	}
+	logger.Info("Detected dashboard namespace", slog.String("namespace", dashboardNamespace))
+
+	var ehFactory evalhub.EvalHubClientFactory
+	if cfg.MockEvalHubClient {
+		ehFactory = ehmocks.NewMockClientFactory()
+		logger.Info("Using mock EvalHub client")
+	} else {
+		ehFactory = evalhub.NewRealClientFactory()
+	}
+
+	var openAPIHandler *OpenAPIHandler
+	openAPIHandler, err = NewOpenAPIHandler(logger)
+	if err != nil {
+		logger.Warn("Failed to load OpenAPI spec, Swagger UI will be unavailable", slog.Any("error", err))
+	}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
+		evalHubClientFactory:    ehFactory,
 		repositories:            repositories.NewRepositories(),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
+		openAPI:                 openAPIHandler,
+		dashboardNamespace:      dashboardNamespace,
 	}
 	return app, nil
 }
@@ -140,6 +175,26 @@ func (app *App) Routes() http.Handler {
 	// Minimal Kubernetes-backed starter endpoints
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
+
+	// EvalHub endpoints
+	// Middleware chain: AttachNamespace → RequireAccessToService → AttachEvalHubClient → handler
+	// AttachNamespace reads ?namespace= from the query and injects it into context.
+	// RequireAccessToService performs a SubjectAccessReview to verify the user can list EvalHub CRs.
+	// AttachEvalHubClient resolves the EvalHub service URL (env override or CR auto-discovery).
+	apiRouter.GET(EvaluationJobsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.EvaluationJobsHandler))))
+	apiRouter.POST(EvaluationJobsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CreateEvaluationJobHandler))))
+	apiRouter.GET(EvaluationJobByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobHandler))))
+	apiRouter.DELETE(EvaluationJobByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CancelEvaluationJobHandler))))
+	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
+	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
+
+	// EvalHub CR status endpoint (reads CR directly, does not need the EvalHub REST client)
+	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.RequireAccessToService(app.EvalHubCRStatusHandler)))
+
+	// EvalHub service health endpoint: performs per-request CR discovery in the dashboard
+	// namespace (no ?namespace= needed) and pings the EvalHub service if a URL is found.
+	// Returns a three-state response: "healthy", "service-unreachable", or "cr-not-found".
+	apiRouter.GET(EvalHubServiceHealthPath, app.EvalHubServiceHealthHandler)
 
 	// App Router
 	appMux := http.NewServeMux()
@@ -166,16 +221,25 @@ func (app *App) Routes() http.Handler {
 		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
 	})
 
-	// Create a mux for the healthcheck endpoint
-	healthcheckMux := http.NewServeMux()
-	healthcheckRouter := httprouter.New()
-	healthcheckRouter.GET(HealthCheckPath, app.HealthcheckHandler)
-	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
+	// Unprotected health endpoints (no auth required)
+	healthRouter := httprouter.New()
+	healthRouter.GET(HealthCheckPath, app.HealthcheckHandler)
+	healthRouter.GET(HealthPath, app.HealthHandler)
+	healthHandler := app.RecoverPanic(app.EnableTelemetry(healthRouter))
 
-	// Combines the healthcheck endpoint with the rest of the routes
-	// Apply middleware to appMux which contains the API routes
 	combinedMux := http.NewServeMux()
-	combinedMux.Handle(HealthCheckPath, healthcheckMux)
+	combinedMux.Handle(HealthCheckPath, healthHandler)
+	combinedMux.Handle(HealthPath, healthHandler)
+	combinedMux.Handle(PathPrefix+HealthPath, http.StripPrefix(PathPrefix, healthHandler))
+
+	// OpenAPI / Swagger UI routes (unprotected)
+	if app.openAPI != nil {
+		combinedMux.HandleFunc(OpenAPIPath, app.openAPI.HandleOpenAPIRedirectWrapper)
+		combinedMux.HandleFunc(OpenAPIJSONPath, app.openAPI.HandleOpenAPIJSONWrapper)
+		combinedMux.HandleFunc(OpenAPIYAMLPath, app.openAPI.HandleOpenAPIYAMLWrapper)
+		combinedMux.HandleFunc(SwaggerUIPath, app.openAPI.HandleSwaggerUIWrapper)
+	}
+
 	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
 
 	return combinedMux

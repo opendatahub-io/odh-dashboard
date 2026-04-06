@@ -92,7 +92,7 @@ const RunPage: React.FC<RunPageProps> = ({
     nameDesc: duplicateRun
       ? {
           name: `Duplicate of ${duplicateRun.display_name}`,
-          description: duplicateRun.description,
+          description: duplicateRun.description ?? '',
         }
       : locationNameDesc || { name: '', description: '' },
     runType: runTypeData,

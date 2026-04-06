@@ -2,13 +2,18 @@
 import * as React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { CreateResponseRequest, SimplifiedResponseData, ChatbotSourceSettings } from '~/app/types';
+import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
+  getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
+  splitLlamaModelId: jest.fn((modelId: string) => ({
+    providerId: 'provider-id',
+    id: modelId,
+  })),
 }));
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
@@ -35,13 +40,6 @@ const mockCreateResponse = jest.fn<
 
 // Test constants
 const mockModelId = 'test-model-id';
-const mockSourceSettings: ChatbotSourceSettings = {
-  vectorStore: 'test-vector-db',
-  embeddingModel: 'test-embedding-model',
-  maxChunkLength: 500,
-  delimiter: '\n\n',
-  chunkOverlap: 50,
-};
 
 const mockSuccessResponse: SimplifiedResponseData = {
   id: 'resp-123',
@@ -65,8 +63,8 @@ const setupMocks = (): void => {
   jest.clearAllMocks();
   // Ensure createResponse mock is properly reset
   mockCreateResponse.mockReset();
-  // Mock useContext to return the namespace
-  mockUseContext.mockReturnValue({ namespace: mockNamespace });
+  // Mock useContext for ChatbotContext (aiModels) and other contexts (namespace)
+  mockUseContext.mockReturnValue({ namespace: mockNamespace, aiModels: [] });
 
   // Mock useGenAiAPI to return the API object with mocked functions
   mockUseGenAiAPI.mockReturnValue({
@@ -80,7 +78,6 @@ const setupMocks = (): void => {
 // Helper to create default hook props
 const createDefaultHookProps = (overrides?: {
   modelId?: string;
-  selectedSourceSettings?: ChatbotSourceSettings | null;
   systemInstruction?: string;
   isRawUploaded?: boolean;
   isStreamingEnabled?: boolean;
@@ -90,12 +87,11 @@ const createDefaultHookProps = (overrides?: {
 }) => ({
   ...defaultMcpProps,
   modelId: mockModelId,
-  selectedSourceSettings: mockSourceSettings,
   systemInstruction: '',
   isRawUploaded: true,
   isStreamingEnabled: false,
   temperature: 0.7,
-  currentVectorStoreId: null,
+  currentVectorStoreId: 'test-vector-db',
   selectedServerIds: [],
   ...overrides,
 });
@@ -451,7 +447,7 @@ describe('useChatbotMessages - controls', () => {
         role: 'bot',
         content:
           'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-        name: 'Bot',
+        name: mockModelId,
       });
     });
 

@@ -1,5 +1,8 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../utils/e2eUsers';
-import { modelRegistryPermissions } from '../../../pages/modelRegistryPermissions';
+import {
+  modelRegistryPermissions,
+  permissionActions,
+} from '../../../pages/modelRegistryPermissions';
 import { retryableBefore, retryableBeforeEach } from '../../../utils/retryableHooks';
 import { isBYOIDCCluster, skipSuiteIfBYOIDC } from '../../../utils/skipUtils';
 import {
@@ -112,11 +115,11 @@ describe('Verify model registry permissions can be managed', () => {
       tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4', '@NonConcurrent'],
     },
     () => {
-      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.step('Log into the application as non-admin');
+      cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify contributor user can access model registry');
-      cy.url({ timeout: 30000 }).should('include', `/ai-hub/registry/${registryName}`);
+      cy.url({ timeout: 30000 }).should('include', `/ai-hub/models/registry/${registryName}`);
       cy.contains(registryName, { timeout: 30000 }).should('be.visible');
     },
   );
@@ -141,8 +144,9 @@ describe('Verify model registry permissions can be managed', () => {
         .getUsersContent()
         .getUserTable()
         .getTableRow(LDAP_CONTRIBUTOR_USER.USERNAME)
-        .findKebabAction('Delete')
+        .findKebab()
         .click();
+      permissionActions.findDeletePermissionAction().click();
 
       cy.step('Verify contributor user was removed');
       cy.contains(LDAP_CONTRIBUTOR_USER.USERNAME, { timeout: 10000 }).should('not.exist');
@@ -155,8 +159,8 @@ describe('Verify model registry permissions can be managed', () => {
       tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4', '@NonConcurrent'],
     },
     () => {
-      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.step('Log into the application as non-admin');
+      cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify contributor user sees request access message');
       cy.contains('Request access to model registries', { timeout: 30000 }).should('be.visible');
@@ -206,11 +210,11 @@ describe('Verify model registry permissions can be managed', () => {
       tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4', '@NonConcurrent'],
     },
     () => {
-      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.step('Log into the application as non-admin');
+      cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify user can access model registry through group membership');
-      cy.url({ timeout: 30000 }).should('include', `/ai-hub/registry/${registryName}`);
+      cy.url({ timeout: 30000 }).should('include', `/ai-hub/models/registry/${registryName}`);
       cy.contains(registryName, { timeout: 30000 }).should('be.visible');
     },
   );
@@ -235,8 +239,9 @@ describe('Verify model registry permissions can be managed', () => {
         .getUsersContent()
         .getGroupTable()
         .getTableRow(testData.rhodsUsersGroup)
-        .findKebabAction('Delete')
+        .findKebab()
         .click();
+      permissionActions.findDeletePermissionAction().click();
 
       cy.step('Verify rhods-users group was removed');
       cy.contains(testData.rhodsUsersGroup, { timeout: 10000 }).should('not.exist');
@@ -249,8 +254,8 @@ describe('Verify model registry permissions can be managed', () => {
       tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4', '@NonConcurrent'],
     },
     () => {
-      cy.step(`Log into the application with ${LDAP_CONTRIBUTOR_USER.USERNAME}`);
-      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.step('Log into the application as non-admin');
+      cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify user sees request access message after group removal');
       cy.contains('Request access to model registries', { timeout: 10000 }).should('be.visible');
@@ -300,8 +305,9 @@ describe('Verify model registry permissions can be managed', () => {
         .getProjectsContent()
         .getProjectTable()
         .getTableRow(testProjectName)
-        .findKebabAction('Delete')
+        .findKebab()
         .click();
+      permissionActions.findDeletePermissionAction().click();
 
       cy.step('Verify created project was deleted from registry permissions');
       cy.contains(testProjectName, { timeout: 10000 }).should('not.exist');

@@ -1,5 +1,6 @@
 import { applyOpenShiftYaml, waitForPodReady } from '../oc_commands/baseCommands';
 import { AWS_BUCKETS } from '../s3Buckets';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
  * Creates Feature Store custom resource by applying a YAML template.
@@ -71,8 +72,9 @@ export const createRouteAndGetUrl = (
 
         return cy.exec(createCommand, { failOnNonZeroExit: false }).then((createResult) => {
           if (createResult.code !== 0) {
-            cy.log(`ERROR creating route: ${createResult.stderr}`);
-            throw new Error(`Failed to create route: ${createResult.stderr}`);
+            const maskedStderr = maskSensitiveInfo(createResult.stderr);
+            cy.log(`ERROR creating route: ${maskedStderr}`);
+            throw new Error(`Failed to create route: ${maskedStderr}`);
           }
 
           cy.log(`Created route:\n${createResult.stdout}`);
@@ -82,8 +84,9 @@ export const createRouteAndGetUrl = (
 
           return cy.exec(getCommand, { failOnNonZeroExit: false }).then((getResult) => {
             if (getResult.code !== 0 || !getResult.stdout.trim()) {
-              cy.log(`Failed to get route host: ${getResult.stderr}`);
-              throw new Error(`Failed to get route host: ${getResult.stderr}`);
+              const maskedStderr = maskSensitiveInfo(getResult.stderr);
+              cy.log(`Failed to get route host: ${maskedStderr}`);
+              throw new Error(`Failed to get route host: ${maskedStderr}`);
             }
 
             const host = getResult.stdout.trim();

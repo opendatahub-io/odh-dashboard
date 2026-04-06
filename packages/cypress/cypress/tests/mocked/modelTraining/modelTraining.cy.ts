@@ -1,7 +1,12 @@
 /* eslint-disable camelcase */
 import { mockTrainJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
+import { mockRayJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockRayJobK8sResource';
 import { createMockEventsForTrainJob } from '@odh-dashboard/model-training/__mocks__/mockEventK8sResource';
-import { TrainingJobState } from '@odh-dashboard/model-training/types';
+import {
+  TrainingJobState,
+  RayJobDeploymentStatus,
+  RayJobStatusValue,
+} from '@odh-dashboard/model-training/types';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
@@ -15,6 +20,7 @@ import {
   ClusterQueueModel,
   EventModel,
   LocalQueueModel,
+  RayJobModel,
   TrainJobModel,
   WorkloadModel,
 } from '@odh-dashboard/internal/api/models';
@@ -153,6 +159,23 @@ const mockTrainJobs = mockTrainJobK8sResourceList([
   },
 ]);
 
+const mockRayJobs = mockRayJobK8sResourceList([
+  {
+    name: 'ray-data-processing',
+    namespace: projectName,
+    jobStatus: RayJobStatusValue.RUNNING,
+    jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
+    entrypoint: 'python process_data.py',
+  },
+  {
+    name: 'ray-completed-job',
+    namespace: projectName,
+    jobStatus: RayJobStatusValue.SUCCEEDED,
+    jobDeploymentStatus: RayJobDeploymentStatus.COMPLETE,
+    succeeded: 1,
+  },
+]);
+
 const mockLocalQueues = [
   mockLocalQueueK8sResource({
     name: 'training-queue',
@@ -279,7 +302,7 @@ const mockWorkloads = mockTrainJobs.map((job) => {
   if (jobStatus === TrainingJobState.FAILED) {
     workloadStatus = WorkloadStatusType.Failed;
   } else if (jobStatus === TrainingJobState.SUCCEEDED) {
-    workloadStatus = WorkloadStatusType.Succeeded;
+    workloadStatus = WorkloadStatusType.Complete;
   } else if (jobStatus === TrainingJobState.PENDING) {
     workloadStatus = WorkloadStatusType.Pending;
   } else if (jobStatus === TrainingJobState.PAUSED) {
@@ -443,6 +466,14 @@ const initIntercepts = ({ isEmpty = false }: { isEmpty?: boolean } = {}) => {
 
   cy.interceptK8sList(
     {
+      model: RayJobModel,
+      ns: projectName,
+    },
+    mockK8sResourceList(isEmpty ? [] : mockRayJobs),
+  );
+
+  cy.interceptK8sList(
+    {
       model: LocalQueueModel,
       ns: projectName,
     },
@@ -548,12 +579,13 @@ describe('Model Training Feature Availability', () => {
     modelTrainingGlobal.shouldNotFoundPage();
   });
 
-  it('Exists if Training Operator is installed and feature flag is enabled', () => {
+  it('Exists if only Trainer is installed and feature flag is enabled', () => {
     cy.interceptOdh(
       'GET /api/dsc/status',
       mockDscStatus({
         components: {
           [DataScienceStackComponent.TRAINER]: { managementState: 'Managed' },
+          [DataScienceStackComponent.RAY]: { managementState: 'Removed' },
         },
       }),
     );
@@ -591,6 +623,82 @@ describe('Model Training Feature Availability', () => {
     modelTrainingGlobal.visit(projectName);
     modelTrainingGlobal.findNavItem().should('exist');
   });
+
+  it('Exists if only Ray is installed and feature flag is enabled', () => {
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.RAY]: { managementState: 'Managed' },
+          [DataScienceStackComponent.TRAINER]: { managementState: 'Removed' },
+        },
+      }),
+    );
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        trainingJobs: true,
+      }),
+    );
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([
+        mockProjectK8sResource({
+          k8sName: projectName,
+          displayName: projectDisplayName,
+          enableKueue: true,
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      {
+        model: RayJobModel,
+        ns: projectName,
+      },
+      mockK8sResourceList([]),
+    );
+    cy.interceptK8sList(
+      {
+        model: LocalQueueModel,
+        ns: projectName,
+      },
+      mockK8sResourceList([]),
+    );
+
+    modelTrainingGlobal.visit(projectName);
+    modelTrainingGlobal.findNavItem().should('exist');
+  });
+
+  it('Does not exist if neither Trainer nor Ray is installed', () => {
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.TRAINER]: { managementState: 'Removed' },
+          [DataScienceStackComponent.RAY]: { managementState: 'Removed' },
+        },
+      }),
+    );
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        trainingJobs: true,
+      }),
+    );
+    cy.interceptK8sList(
+      ProjectModel,
+      mockK8sResourceList([
+        mockProjectK8sResource({
+          k8sName: projectName,
+          displayName: projectDisplayName,
+        }),
+      ]),
+    );
+
+    modelTrainingGlobal.visit(projectName, false);
+    modelTrainingGlobal.findNavItem().should('not.exist');
+    modelTrainingGlobal.shouldNotFoundPage();
+  });
 });
 
 describe('Model Training', () => {
@@ -610,17 +718,32 @@ describe('Model Training', () => {
     imageClassificationRow.findProject().should('contain', projectDisplayName);
     imageClassificationRow.findNodes().should('contain', '4');
     imageClassificationRow.findClusterQueue().should('contain', 'test-cluster-queue');
+    imageClassificationRow.findType().should('contain', 'TrainJob');
+    imageClassificationRow.findRayCluster().should('contain', '-');
     imageClassificationRow.findStatus().should('contain', TrainingJobState.RUNNING);
   });
 
-  it('should show empty state when no training jobs exist', () => {
+  it('should show empty state when no jobs exist', () => {
     initIntercepts({ isEmpty: true });
     modelTrainingGlobal.visit(projectName);
 
-    modelTrainingGlobal.findEmptyState().should('contain', 'No training jobs');
+    modelTrainingGlobal.findEmptyState().should('contain', 'No jobs');
     modelTrainingGlobal
       .findEmptyStateDescription()
-      .should('contain', 'No training jobs have been found in this project.');
+      .should('contain', 'No TrainJobs or RayJobs have been found in this project.');
+  });
+
+  it('should display RayJobs alongside TrainJobs in the table', () => {
+    initIntercepts();
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.findTable().should('be.visible');
+
+    const trainJobRow = trainingJobTable.getTableRow('image-classification-job');
+    trainJobRow.findTrainingJobName().should('contain', 'image-classification-job');
+
+    const rayJobRow = trainingJobTable.getTableRow('ray-data-processing');
+    rayJobRow.findTrainingJobName().should('contain', 'ray-data-processing');
   });
 
   describe('Training Job Details Drawer', () => {
@@ -645,12 +768,12 @@ describe('Model Training', () => {
 
       trainingJobDetailsDrawer.shouldBeOpen();
 
-      trainingJobDetailsDrawer.findTab('Training job details').should('exist');
+      trainingJobDetailsDrawer.findTab('Details').should('exist');
       trainingJobDetailsDrawer.findTab('Resources').should('exist');
       trainingJobDetailsDrawer.findTab('Pods').should('exist');
       trainingJobDetailsDrawer.findTab('Logs').should('exist');
 
-      trainingJobDetailsDrawer.selectTab('Training job details');
+      trainingJobDetailsDrawer.selectTab('Details');
       trainingJobDetailsDrawer.findActiveTabContent().should('contain', 'Job progress');
 
       trainingJobDetailsDrawer.selectTab('Resources');
@@ -720,7 +843,7 @@ describe('Model Training', () => {
       row.findNameLink().click();
 
       trainingJobDetailsDrawer.shouldBeOpen();
-      trainingJobDetailsDrawer.selectTab('Training job details');
+      trainingJobDetailsDrawer.selectTab('Details');
 
       // Verify all sections are present
       trainingJobDetailsTab.findProgressSection().should('exist');
@@ -735,7 +858,7 @@ describe('Model Training', () => {
       row.findNameLink().click();
 
       trainingJobDetailsDrawer.shouldBeOpen();
-      trainingJobDetailsDrawer.selectTab('Training job details');
+      trainingJobDetailsDrawer.selectTab('Details');
 
       // Check progress section
       trainingJobDetailsTab.findProgressSection().should('contain', 'Job progress');
@@ -752,7 +875,7 @@ describe('Model Training', () => {
       row.findNameLink().click();
 
       trainingJobDetailsDrawer.shouldBeOpen();
-      trainingJobDetailsDrawer.selectTab('Training job details');
+      trainingJobDetailsDrawer.selectTab('Details');
 
       // Check metrics section
       trainingJobDetailsTab.findMetricsSection().should('contain', 'Metrics');
@@ -831,7 +954,7 @@ describe('Model Training', () => {
       const firstRow = trainingJobTable.getTableRow('early-job');
       firstRow.findNameLink().click();
       trainingJobDetailsDrawer.shouldBeOpen();
-      trainingJobDetailsDrawer.selectTab('Training job details');
+      trainingJobDetailsDrawer.selectTab('Details');
 
       trainingJobDetailsTab.findEstimatedTimeRemainingValue().should('contain', '1 hour');
       trainingJobDetailsTab.findStepsValue().should('contain', '100 / 1000');

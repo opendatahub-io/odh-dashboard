@@ -11,11 +11,17 @@ import type {
   ClusterStorageAccessModesTestData,
   OOTBConnectionTypesData,
   WBTolerationsTestData,
+  ModifyHardwareProfileTestData,
   WBImagesTestData,
   DeployOCIModelData,
   ModelTolerationsTestData,
   ManageRegistryPermissionsTestData,
   ModelRegistryTestData,
+  PipelineTestData,
+  TiersTestData,
+  ResourcesFiltersTestData,
+  WorkloadMetricsTestData,
+  KueueWorkbenchTestData,
 } from '../types';
 
 // Load fixture function that returns DataScienceProjectData
@@ -104,6 +110,15 @@ export const loadWBTolerationsFixture = (
     return data;
   });
 
+export const loadModifyHardwareProfileFixture = (
+  fixturePath: string,
+): Cypress.Chainable<ModifyHardwareProfileTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as ModifyHardwareProfileTestData;
+
+    return data;
+  });
+
 export const loadWBImagesFixture = (fixturePath: string): Cypress.Chainable<WBImagesTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBImagesTestData;
@@ -143,6 +158,47 @@ export const loadModelRegistryFixture = (
 ): Cypress.Chainable<ModelRegistryTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ModelRegistryTestData;
+
+    return data;
+  });
+
+export const loadPipelineFixture = (fixturePath: string): Cypress.Chainable<PipelineTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as PipelineTestData;
+
+    return data;
+  });
+
+export const loadTiersFixture = (fixturePath: string): Cypress.Chainable<TiersTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as TiersTestData;
+
+    return data;
+  });
+
+export const loadResourcesFiltersFixture = (
+  fixturePath: string,
+): Cypress.Chainable<ResourcesFiltersTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as ResourcesFiltersTestData;
+
+    return data;
+  });
+
+export const loadWorkloadMetricsFixture = (
+  fixturePath: string,
+): Cypress.Chainable<WorkloadMetricsTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as WorkloadMetricsTestData;
+
+    return data;
+  });
+
+export const loadKueueWorkbenchFixture = (
+  fixturePath: string,
+): Cypress.Chainable<KueueWorkbenchTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as KueueWorkbenchTestData;
 
     return data;
   });

@@ -145,9 +145,15 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       extractHardwareProfileConfig: () =>
-        import('./src/hardware').then((m) => m.extractHardwareProfileConfig),
+        import('./src/hardware').then((m) => (deployment) => ({
+          data: m.extractHardwareProfileConfig(deployment),
+        })),
+      extractModelType: () => import('./src/deployUtils').then((m) => m.extractModelType),
       extractModelFormat: () => import('./src/modelFormat').then((m) => m.extractKServeModelFormat),
-      extractReplicas: () => import('./src/hardware').then((m) => m.extractReplicas),
+      extractReplicas: () =>
+        import('./src/hardware').then((m) => (deployment) => ({
+          data: m.extractReplicas(deployment),
+        })),
       extractRuntimeArgs: () => import('./src/hardware').then((m) => m.extractRuntimeArgs),
       extractEnvironmentVariables: () =>
         import('./src/hardware').then((m) => m.extractEnvironmentVariables),

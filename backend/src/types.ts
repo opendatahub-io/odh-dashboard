@@ -51,13 +51,18 @@ export type DashboardConfig = K8sResourceCommon & {
       disableFeatureStore: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
-      autoRag: boolean;
+      automl: boolean;
+      autorag: boolean;
       modelAsService: boolean;
       mlflow: boolean;
+      mcpCatalog: boolean;
+      aiAssetCustomEndpoints: boolean;
       disableLLMd: boolean;
       projectRBAC: boolean;
-      maasApiKeys: boolean;
       deploymentWizardYAMLViewer: boolean;
+      externalVectorStores: boolean;
+      vLLMDeploymentOnMaaS: boolean;
+      promptManagement: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {
@@ -76,6 +81,12 @@ export type DashboardConfig = K8sResourceCommon & {
     modelServing?: {
       deploymentStrategy?: string;
       isLLMdDefault?: boolean;
+    };
+    genAiStudioConfig?: {
+      aiAssetCustomEndpoints?: {
+        externalProviders?: boolean;
+        clusterDomains?: string[];
+      };
     };
   };
 };
@@ -442,15 +453,13 @@ export type Notebook = K8sResourceCommon & {
     annotations?: Partial<{
       'kubeflow-resource-stopped': string; // datestamp of stop (if omitted, it is running)
       'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
+      'opendatahub.io/user': string; // translated username -- see translateUsername
       'opendatahub.io/username': string; // the untranslated username behind the notebook
 
       // TODO: Can we get this from the data in the Notebook??
       'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
       'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
       'notebooks.opendatahub.io/last-image-version-git-commit-selection': string; // the build commit of the last image they selected
-    }>;
-    labels: Partial<{
-      'opendatahub.io/user': string; // translated username -- see translateUsername
     }>;
   };
   spec: {
@@ -1000,10 +1009,17 @@ export type DataScienceClusterList = {
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];
   phase?: string;
+  monitoring?: {
+    namespace?: string;
+  };
 };
 
 export type DataScienceClusterInitializationKind = K8sResourceCommon & {
-  spec: unknown; // we should never need to look into this
+  spec: {
+    monitoring?: {
+      namespace?: string;
+    };
+  };
   status: DataScienceClusterInitializationKindStatus;
 };
 

@@ -15,7 +15,6 @@ import (
 type LlamaStackConfig struct {
 	Version             string              `json:"version" yaml:"version"`
 	DistroName          string              `json:"distro_name" yaml:"distro_name"`
-	ImageName           string              `json:"image_name,omitempty" yaml:"image_name,omitempty"` // Deprecated: Use DistroName (backward compatibility)
 	APIs                []string            `json:"apis" yaml:"apis"`
 	Providers           Providers           `json:"providers" yaml:"providers"`
 	MetadataStore       MetadataStore       `json:"metadata_store" yaml:"metadata_store"`
@@ -40,7 +39,7 @@ type VectorStoreModelReference struct {
 type Providers struct {
 	Inference   []Provider `json:"inference" yaml:"inference"`
 	VectorIO    []Provider `json:"vector_io" yaml:"vector_io"`
-	Agents      []Provider `json:"agents" yaml:"agents"`
+	Responses   []Provider `json:"responses" yaml:"responses"`
 	Eval        []Provider `json:"eval" yaml:"eval"`
 	Files       []Provider `json:"files" yaml:"files"`
 	DatasetIO   []Provider `json:"datasetio" yaml:"datasetio"`
@@ -62,13 +61,12 @@ type MetadataStore struct {
 }
 
 type RegisteredResources struct {
-	Models     []Model     `json:"models" yaml:"models"`
-	Shields    []Shield    `json:"shields" yaml:"shields"`
-	VectorDBs  []VectorDB  `json:"vector_dbs" yaml:"vector_dbs"`
-	Datasets   []Dataset   `json:"datasets" yaml:"datasets"`
-	ScoringFns []ScoringFn `json:"scoring_fns" yaml:"scoring_fns"`
-	Benchmarks []Benchmark `json:"benchmarks" yaml:"benchmarks"`
-	ToolGroups []ToolGroup `json:"tool_groups" yaml:"tool_groups"`
+	Models       []Model       `json:"models" yaml:"models"`
+	Shields      []Shield      `json:"shields" yaml:"shields"`
+	VectorStores []VectorStore `json:"vector_stores" yaml:"vector_stores"`
+	Datasets     []Dataset     `json:"datasets" yaml:"datasets"`
+	ScoringFns   []ScoringFn   `json:"scoring_fns" yaml:"scoring_fns"`
+	Benchmarks   []Benchmark   `json:"benchmarks" yaml:"benchmarks"`
 }
 
 type Storage struct {
@@ -83,11 +81,6 @@ type Model struct {
 	ModelType       string                 `json:"model_type" yaml:"model_type"`
 	MaxTokens       *int                   `json:"max_tokens,omitempty" yaml:"max_tokens,omitempty"` // Optional per-model token limit
 	Metadata        map[string]interface{} `json:"metadata" yaml:"metadata"`
-}
-
-type ToolGroup struct {
-	ToolGroupID string `json:"toolgroup_id" yaml:"toolgroup_id"`
-	ProviderID  string `json:"provider_id" yaml:"provider_id"`
 }
 
 type Server struct {
@@ -157,23 +150,13 @@ func (c *LlamaStackConfig) EnsureStorageField() {
 	}
 }
 
-// EnsureDistroField normalizes the deprecated ImageName field into DistroName
-// to ensure backward compatibility when deserializing older configs.
-// When DistroName is empty and ImageName is non-empty, DistroName is set to ImageName.
-// TODO: This can be removed when Gen AI Studio GAs, as all configs will use DistroName.
-func (c *LlamaStackConfig) EnsureDistroField() {
-	if c.DistroName == "" && c.ImageName != "" {
-		c.DistroName = c.ImageName
-	}
-}
-
 // NewDefaultLlamaStackConfig creates a new instance of LlamaStackConfig with default values
 func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 	return &LlamaStackConfig{
 		Version:    "2",
 		DistroName: "rh",
 		APIs: []string{
-			"agents", "datasetio", "files", "inference",
+			"responses", "datasetio", "files", "inference",
 			"safety", "scoring", "tool_runtime", "vector_io",
 		},
 		Providers: Providers{
@@ -187,16 +170,18 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 					},
 				}),
 			},
-			Agents: []Provider{
-				NewProvider("meta-reference", "inline::meta-reference", map[string]interface{}{
+			Responses: []Provider{
+				NewProvider("builtin", "inline::builtin", map[string]interface{}{
 					"persistence": map[string]interface{}{
 						"agent_state": map[string]interface{}{
 							"namespace": "agents",
 							"backend":   "kv_default",
 						},
 						"responses": map[string]interface{}{
-							"table_name": "responses",
-							"backend":    "sql_default",
+							"table_name":           "responses",
+							"backend":              "sql_default",
+							"max_write_queue_size": 10000,
+							"num_writers":          4,
 						},
 					},
 				}),
@@ -223,24 +208,18 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 				NewProvider("llm-as-judge", "inline::llm-as-judge", EmptyConfig()),
 			},
 			ToolRuntime: []Provider{
-				NewProvider("rag-runtime", "inline::rag-runtime", EmptyConfig()),
+				NewProvider("file-search", "inline::file-search", EmptyConfig()),
 				NewProvider("model-context-protocol", "remote::model-context-protocol", EmptyConfig()),
 			},
 		},
 		RegisteredResources: RegisteredResources{
 			// Ensure these serialize as `[]` (not `null`) when no values exist.
-			Models:     []Model{},
-			Shields:    []Shield{},
-			VectorDBs:  []VectorDB{},
-			Datasets:   []Dataset{},
-			ScoringFns: []ScoringFn{},
-			Benchmarks: []Benchmark{},
-			ToolGroups: []ToolGroup{
-				{
-					ToolGroupID: "builtin::rag",
-					ProviderID:  "rag-runtime",
-				},
-			},
+			Models:       []Model{},
+			Shields:      []Shield{},
+			VectorStores: []VectorStore{},
+			Datasets:     []Dataset{},
+			ScoringFns:   []ScoringFn{},
+			Benchmarks:   []Benchmark{},
 		},
 		MetadataStore: MetadataStore{
 			Type:   "sqlite",
@@ -312,7 +291,6 @@ func (c *LlamaStackConfig) FromYAML(data string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse YAML: failed to unmarshal YAML into config: %w", err)
 	}
-	c.EnsureDistroField()
 	return nil
 }
 
@@ -331,7 +309,6 @@ func (c *LlamaStackConfig) FromJSON(data string) error {
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal JSON into config: %w", err)
 	}
-	c.EnsureDistroField()
 	return nil
 }
 
@@ -351,7 +328,7 @@ func NewEmbeddingModel(modelID, providerID, providerModelID string, embeddingDim
 		ModelID:         modelID,
 		ProviderID:      providerID,
 		ProviderModelID: providerModelID,
-		ModelType:       "embedding",
+		ModelType:       string(models.ModelTypeEmbedding),
 		Metadata: map[string]interface{}{
 			"embedding_dimension": embeddingDimension,
 		},
@@ -363,7 +340,7 @@ func NewLLMModel(modelID, providerID string, displayName string) Model {
 	return Model{
 		ModelID:    modelID,
 		ProviderID: providerID,
-		ModelType:  "llm",
+		ModelType:  string(models.ModelTypeLLM),
 		Metadata: map[string]interface{}{
 			"display_name": displayName,
 		},
@@ -429,7 +406,7 @@ func NewVLLMProvider(providerID string, url string) Provider {
 
 // AddVLLMProviderAndModel adds a vLLM provider and its corresponding model to the config
 // This is a helper for building LlamaStack configurations with vLLM providers
-func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int) {
+func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int, embeddingDimension *int) {
 	// Create provider config
 	providerConfig := EmptyConfig()
 	providerConfig["base_url"] = endpointURL
@@ -444,8 +421,18 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 	// Add model
 	var model Model
 	if metadata == nil {
-		// For MaaS models or when no metadata is provided
-		model = NewLLMModel(modelID, providerID, modelID)
+		if modelType == "embedding" {
+			// Embedding model with no pre-existing metadata
+			model = Model{
+				ModelID:    modelID,
+				ProviderID: providerID,
+				ModelType:  "embedding",
+				Metadata:   map[string]interface{}{"display_name": modelID},
+			}
+		} else {
+			// Default to LLM model (handles MaaS models and general case)
+			model = NewLLMModel(modelID, providerID, modelID)
+		}
 	} else {
 		// For regular models with metadata
 		model = NewModel(modelID, providerID, modelType, metadata)
@@ -454,6 +441,84 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 	// Set per-model max_tokens if provided
 	if maxTokens != nil {
 		model.MaxTokens = maxTokens
+	}
+
+	// Set embedding_dimension for embedding models (only meaningful for embedding models)
+	if model.ModelType == "embedding" {
+		if model.Metadata == nil {
+			model.Metadata = make(map[string]interface{})
+		}
+		if embeddingDimension != nil {
+			// User-specified value takes precedence
+			model.Metadata["embedding_dimension"] = *embeddingDimension
+		} else if _, alreadySet := model.Metadata["embedding_dimension"]; !alreadySet {
+			// Default to 128 if not specified by the user or the model metadata
+			model.Metadata["embedding_dimension"] = 128
+		}
+	}
+
+	c.AddModel(model)
+}
+
+// AddCustomEndpointProviderAndModel adds a custom endpoint model provider and its corresponding model to the config
+// This is a helper for building LlamaStack configurations with custom endpoint model providers.
+// The API token/secret is NOT included in the config - it will be fetched at runtime from the ConfigMap secret reference.
+// providerType must be the value stored in the gen-ai-aa-custom-model-endpoints ConfigMap (e.g. "remote::openai" or "remote::passthrough").
+// isClusterLocal should be true for in-cluster service URLs (*.svc.cluster.local); this disables TLS verification
+// since cluster services typically use self-signed certificates.
+func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpointURL string, index int, modelID, modelType, providerType string, metadata map[string]interface{}, maxTokens *int, embeddingDimension *int, isClusterLocal bool) {
+	// Create provider config - minimal config for external models
+	// Full configuration (including secrets) is managed via the gen-ai-aa-custom-model-endpoints ConfigMap
+	providerConfig := EmptyConfig()
+	providerConfig["base_url"] = endpointURL
+	// Note: api_token and max_tokens are NOT added here - managed via ConfigMap
+
+	if isClusterLocal {
+		providerConfig["network"] = map[string]interface{}{
+			"tls": map[string]interface{}{
+				"verify": false,
+			},
+		}
+	}
+
+	provider := NewProvider(providerID, providerType, providerConfig)
+	c.AddInferenceProvider(provider)
+
+	// Add model
+	var model Model
+	if metadata == nil {
+		if modelType == "embedding" {
+			// Embedding model with no pre-existing metadata
+			model = Model{
+				ModelID:    modelID,
+				ProviderID: providerID,
+				ModelType:  "embedding",
+				Metadata:   map[string]interface{}{"display_name": modelID},
+			}
+		} else {
+			model = NewLLMModel(modelID, providerID, modelID)
+		}
+	} else {
+		model = NewModel(modelID, providerID, modelType, metadata)
+	}
+
+	// Set per-model max_tokens if provided
+	if maxTokens != nil {
+		model.MaxTokens = maxTokens
+	}
+
+	// Set embedding_dimension for embedding models (only meaningful for embedding models)
+	if model.ModelType == "embedding" {
+		if model.Metadata == nil {
+			model.Metadata = make(map[string]interface{})
+		}
+		if embeddingDimension != nil {
+			// User-specified value takes precedence
+			model.Metadata["embedding_dimension"] = *embeddingDimension
+		} else if _, alreadySet := model.Metadata["embedding_dimension"]; !alreadySet {
+			// Default to 128 if not specified by the user or the model metadata
+			model.Metadata["embedding_dimension"] = 128
+		}
 	}
 
 	c.AddModel(model)
@@ -469,9 +534,9 @@ func (c *LlamaStackConfig) AddVectorIOProvider(provider Provider) {
 	c.Providers.VectorIO = append(c.Providers.VectorIO, provider)
 }
 
-// AddAgentProvider adds a new agent provider to the config
-func (c *LlamaStackConfig) AddAgentProvider(provider Provider) {
-	c.Providers.Agents = append(c.Providers.Agents, provider)
+// AddResponsesProvider adds a new responses provider to the config
+func (c *LlamaStackConfig) AddResponsesProvider(provider Provider) {
+	c.Providers.Responses = append(c.Providers.Responses, provider)
 }
 
 // AddDatasetIOProvider adds a new dataset IO provider to the config
@@ -502,6 +567,11 @@ func (c *LlamaStackConfig) AddSafetyProvider(provider Provider) {
 // RegisterShield adds a shield to the registered resources
 func (c *LlamaStackConfig) RegisterShield(shield Shield) {
 	c.RegisteredResources.Shields = append(c.RegisteredResources.Shields, shield)
+}
+
+// RegisterVectorStore adds a vector store to the registered resources.
+func (c *LlamaStackConfig) RegisterVectorStore(store VectorStore) {
+	c.RegisteredResources.VectorStores = append(c.RegisteredResources.VectorStores, store)
 }
 
 // GetModelProviderInfo extracts model provider information for a given model ID
@@ -590,13 +660,15 @@ type Shield struct {
 	Metadata   map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
-// VectorDB represents a vector database configuration
-type VectorDB struct {
-	DBID       string                 `json:"db_id" yaml:"db_id"`
-	Name       string                 `json:"name" yaml:"name"`
-	ProviderID string                 `json:"provider_id" yaml:"provider_id"`
-	Config     map[string]interface{} `json:"config" yaml:"config"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+// VectorStore represents a vector store configuration in registered_resources
+type VectorStore struct {
+	VectorStoreID         string                 `json:"vector_store_id" yaml:"vector_store_id"`
+	EmbeddingModel        string                 `json:"embedding_model" yaml:"embedding_model"`
+	EmbeddingDimension    int                    `json:"embedding_dimension" yaml:"embedding_dimension"`
+	ProviderID            string                 `json:"provider_id,omitempty" yaml:"provider_id,omitempty"`
+	ProviderVectorStoreID string                 `json:"provider_vector_store_id,omitempty" yaml:"provider_vector_store_id,omitempty"`
+	VectorStoreName       string                 `json:"vector_store_name,omitempty" yaml:"vector_store_name,omitempty"`
+	Metadata              map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
 // Dataset represents a dataset configuration
@@ -639,14 +711,12 @@ func NewShield(shieldID, shieldType, providerID string, config map[string]interf
 	}
 }
 
-// NewVectorDB creates a new VectorDB instance
-func NewVectorDB(dbID, name, providerID string, config map[string]interface{}) VectorDB {
-	return VectorDB{
-		DBID:       dbID,
-		Name:       name,
-		ProviderID: providerID,
-		Config:     config,
-		Metadata:   EmptyConfig(),
+// NewVectorStore creates a new VectorStore instance
+func NewVectorStore(vectorStoreID, embeddingModel string, embeddingDimension int) VectorStore {
+	return VectorStore{
+		VectorStoreID:      vectorStoreID,
+		EmbeddingModel:     embeddingModel,
+		EmbeddingDimension: embeddingDimension,
 	}
 }
 

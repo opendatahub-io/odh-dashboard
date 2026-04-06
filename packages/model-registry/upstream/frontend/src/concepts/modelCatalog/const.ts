@@ -166,8 +166,10 @@ export enum ModelCatalogTask {
   AUDIO_TO_TEXT = 'audio-to-text',
   IMAGE_TEXT_TO_TEXT = 'image-text-to-text',
   IMAGE_TO_TEXT = 'image-to-text',
+  TEXT_EMBEDDING = 'text-embedding',
   TEXT_GENERATION = 'text-generation',
   TEXT_TO_TEXT = 'text-to-text',
+  TOOL_CALLING = 'tool-calling',
   VIDEO_TO_TEXT = 'video-to-text',
 }
 
@@ -175,8 +177,10 @@ export const MODEL_CATALOG_TASK_NAME_MAPPING = {
   [ModelCatalogTask.AUDIO_TO_TEXT]: 'Audio-to-text',
   [ModelCatalogTask.IMAGE_TEXT_TO_TEXT]: 'Image-text-to-text',
   [ModelCatalogTask.IMAGE_TO_TEXT]: 'Image-to-text',
+  [ModelCatalogTask.TEXT_EMBEDDING]: 'Text embedding',
   [ModelCatalogTask.TEXT_GENERATION]: 'Text generation',
   [ModelCatalogTask.TEXT_TO_TEXT]: 'Text-to-text',
+  [ModelCatalogTask.TOOL_CALLING]: 'Tool calling',
   [ModelCatalogTask.VIDEO_TO_TEXT]: 'Video-to-text',
 };
 
@@ -184,8 +188,10 @@ export const MODEL_CATALOG_TASK_DESCRIPTION = {
   [ModelCatalogTask.AUDIO_TO_TEXT]: 'Audio transcription and speech recognition models',
   [ModelCatalogTask.IMAGE_TEXT_TO_TEXT]: 'Multimodal models that process both images and text',
   [ModelCatalogTask.IMAGE_TO_TEXT]: 'Image captioning and visual understanding models',
+  [ModelCatalogTask.TEXT_EMBEDDING]: 'Models that convert text into vector embeddings',
   [ModelCatalogTask.TEXT_GENERATION]: 'Large language models for text generation',
   [ModelCatalogTask.TEXT_TO_TEXT]: 'Text transformation and translation models',
+  [ModelCatalogTask.TOOL_CALLING]: 'Models optimized for function/tool calling',
   [ModelCatalogTask.VIDEO_TO_TEXT]: 'Video analysis and description models',
 };
 
@@ -250,6 +256,13 @@ export enum CatalogModelCustomPropertyKey {
   TENSOR_TYPE = 'tensor_type',
   SIZE = 'size',
   ARCHITECTURE = 'architecture',
+  MODEL_TYPE = 'model_type',
+}
+
+export enum ModelType {
+  GENERATIVE = 'generative',
+  PREDICTIVE = 'predictive',
+  UNKNOWN = 'unknown',
 }
 
 export enum ModelCatalogLicense {
@@ -611,6 +624,14 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
     string
   >),
 };
+
+export const MODEL_CATALOG_FILTER_CHIP_PREFIXES = {
+  WORKLOAD_TYPE: 'Workload type:',
+  MAX_RPS: 'Max RPS:',
+  LATENCY_METRIC: 'Metric:',
+  LATENCY_PERCENTILE: 'Percentile:',
+  LATENCY_THRESHOLD: 'Under',
+} as const;
 
 export enum ModelDetailsTab {
   OVERVIEW = 'overview',

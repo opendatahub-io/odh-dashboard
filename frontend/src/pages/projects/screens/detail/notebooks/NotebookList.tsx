@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, Popover, Tooltip } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import {
@@ -18,6 +18,7 @@ import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
 import { useAccessReview } from '#~/api/useAccessReview';
 import { NotebookModel } from '#~/api/models/kubeflow';
+import useKueueNotebookAlerts from '#~/pages/projects/notebook/useKueueNotebookAlerts';
 import NotebookTable from './NotebookTable';
 
 const NotebookList: React.FC = () => {
@@ -29,9 +30,11 @@ const NotebookList: React.FC = () => {
       error: notebooksError,
       refresh: refreshNotebooks,
     },
+    kueueStatusByNotebookName,
+    isKueueLoaded,
   } = React.useContext(ProjectDetailsContext);
-  const navigate = useNavigate();
   const projectName = currentProject.metadata.name;
+  const createWorkbenchHref = `/projects/${projectName}/spawner`;
   const isNotebooksEmpty = notebooks.length === 0;
 
   useRefreshInterval(FAST_POLL_INTERVAL, () =>
@@ -45,6 +48,8 @@ const NotebookList: React.FC = () => {
       .filter((notebookState) => !notebookState.isStarting && !notebookState.isStopping)
       .forEach((notebookState) => notebookState.refresh()),
   );
+
+  useKueueNotebookAlerts(notebooks, kueueStatusByNotebookName, isKueueLoaded);
 
   const { isKueueDisabled } = useKueueConfiguration(currentProject);
 
@@ -69,7 +74,7 @@ const NotebookList: React.FC = () => {
         <Tooltip content={createDisabledTooltip}>
           <Button
             key={`action-${ProjectSectionID.WORKBENCHES}`}
-            onClick={() => navigate(`/projects/${projectName}/spawner`)}
+            component="button"
             data-testid="create-workbench-button"
             variant="primary"
             isAriaDisabled
@@ -82,7 +87,9 @@ const NotebookList: React.FC = () => {
     return (
       <Button
         key={`action-${ProjectSectionID.WORKBENCHES}`}
-        onClick={() => navigate(`/projects/${projectName}/spawner`)}
+        component={(props: React.ComponentProps<'a'>) => (
+          <Link {...props} to={createWorkbenchHref} />
+        )}
         data-testid="create-workbench-button"
         variant="primary"
       >

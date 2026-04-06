@@ -1,5 +1,5 @@
 import React from 'react';
-import { Form, FormSection } from '@patternfly/react-core';
+import { Form, FormSection, Spinner } from '@patternfly/react-core';
 import K8sNameDescriptionField from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import ProjectSection from '../fields/ProjectSection';
@@ -7,16 +7,26 @@ import { ModelServingHardwareProfileSection } from '../fields/ModelServingHardwa
 import { ModelFormatField } from '../fields/ModelFormatField';
 import { NumReplicasField } from '../fields/NumReplicasField';
 import ModelServerTemplateSelectField from '../fields/ModelServerTemplateSelectField';
+import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
+import { ExternalDataMap } from '../ExternalDataLoader';
 
 type ModelDeploymentStepProps = {
   projectName?: string;
   wizardState: UseModelDeploymentWizardState;
+  externalData?: ExternalDataMap;
 };
 
 export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   projectName,
   wizardState,
+  externalData,
 }) => {
+  const vLLMDeploymentOnMaaS = wizardState.fields.some((field) => field.id === 'modelServer');
+
+  if (!wizardState.loaded.modelDeploymentLoaded) {
+    return <Spinner data-testid="spinner" />;
+  }
+
   return (
     <Form>
       <FormSection title="Model deployment">
@@ -43,11 +53,19 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
             isEditing={wizardState.initialData?.isEditing}
           />
         )}
-        <ModelServerTemplateSelectField
-          modelServerState={wizardState.state.modelServer}
-          hardwareProfile={wizardState.state.hardwareProfileConfig.formData.selectedProfile}
-          isEditing={wizardState.initialData?.isEditing && !!wizardState.initialData.modelServer}
-        />
+        {vLLMDeploymentOnMaaS ? (
+          <GenericFieldRenderer
+            fieldId="modelServer"
+            wizardState={wizardState}
+            externalData={externalData}
+            isEditing={wizardState.initialData?.isEditing}
+          />
+        ) : (
+          <ModelServerTemplateSelectField
+            modelServerState={wizardState.state.modelServer}
+            isEditing={wizardState.initialData?.isEditing && !!wizardState.initialData.modelServer}
+          />
+        )}
         <NumReplicasField replicaState={wizardState.state.numReplicas} />
       </FormSection>
     </Form>

@@ -2,14 +2,14 @@ import * as React from 'react';
 import { NotReadyError } from 'mod-arch-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import type { MaaSTokenResponse } from '~/odh/extension-points/maas';
+import { MaaSTokenRequest, MaaSTokenResponse } from '~/app/types';
 import { useGenAiAPI } from './useGenAiAPI';
 
 type UseGenerateMaaSTokenReturn = {
   isGenerating: boolean;
   tokenData: MaaSTokenResponse | null;
   error: string | null;
-  generateToken: (expiration?: string) => Promise<void>;
+  generateToken: (expiration?: string, subscription?: string) => Promise<void>;
   resetToken: () => void;
 };
 
@@ -18,11 +18,9 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
   const [tokenData, setTokenData] = React.useState<MaaSTokenResponse | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const { api, apiAvailable } = useGenAiAPI();
-  // TODO: Uncomment when extension is ready to be used
-  // const generateMaaSTokenExtension = useExtensions(isGenerateMaaSTokenExtension);
 
   const generateToken = React.useCallback(
-    async (expiration?: string) => {
+    async (expiration?: string, subscription?: string) => {
       setIsGenerating(true);
       setError(null);
       setTokenData(null);
@@ -30,14 +28,16 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
         setIsGenerating(false);
         throw new NotReadyError('API not yet available');
       }
-      // if (generateMaaSTokenExtension.length === 0) {
-      //   throw new Error('Generate MaaS token extension not found');
-      // }
 
       try {
-        // const extensionFn = generateMaaSTokenExtension[0].properties.generateMaaSToken;
-        // const response = await extensionFn().then((fn) => fn(expiration ? { expiration } : {}));
-        const response = await api.generateMaaSToken(expiration ? { expiration } : {});
+        const request: MaaSTokenRequest = {};
+        if (expiration) {
+          request.expiresIn = expiration;
+        }
+        if (subscription) {
+          request.subscription = subscription;
+        }
+        const response = await api.generateMaaSToken(request);
         setTokenData(response);
         try {
           fireFormTrackingEvent('Available Endpoints MaaS Token Generated', {

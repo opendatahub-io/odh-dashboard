@@ -21,5 +21,10 @@ export const getClusterInitialization = async (
     throw createCustomError('DSCI Unavailable', 'Unable to get status', 404);
   }
 
-  return result.status;
+  const monitoringNamespace = result.spec.monitoring?.namespace;
+
+  return {
+    ...result.status,
+    ...(monitoringNamespace != null && { monitoring: { namespace: monitoringNamespace } }),
+  };
 };

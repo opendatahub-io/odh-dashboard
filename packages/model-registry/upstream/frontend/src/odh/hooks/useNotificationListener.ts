@@ -17,39 +17,43 @@ const NOTIFICATION_BRIDGE_EVENT = 'odh-notification-bridge';
 
 export const useNotificationListener = (): void => {
   const { notifications } = useContext(NotificationContext);
-  const lastNotificationIdRef = useRef<number | undefined>();
+  // Relies on mod-arch-core's NotificationContext reducer preserving object references for existing notifications
+  const bridgedRef = useRef<WeakSet<object>>(new WeakSet());
 
   useEffect(() => {
-    if (notifications.length > 0) {
-      const lastNotification = notifications[notifications.length - 1];
-      
-      // Only dispatch event for new notifications we haven't seen before
-      if (
-        lastNotification.id !== undefined &&
-        lastNotification.id !== lastNotificationIdRef.current &&
-        !lastNotification.hidden
-      ) {
-        lastNotificationIdRef.current = lastNotification.id;
-        
-        try {
-          const messageStr =
-            typeof lastNotification.message === 'string' ? lastNotification.message : undefined;
-
-          // Dispatch a custom event that the midstream can listen to
-          const event = new CustomEvent(NOTIFICATION_BRIDGE_EVENT, {
-            detail: {
-              status: lastNotification.status,
-              title: lastNotification.title,
-              message: messageStr,
-              timestamp: lastNotification.timestamp?.toISOString() || new Date().toISOString(),
-            },
-          });
-          
-          window.dispatchEvent(event);
-        } catch (error) {
-          console.error('[NotificationBridge] Failed to dispatch notification:', error);
-        }
+    notifications.forEach((notification) => {
+      if (bridgedRef.current.has(notification)) {
+        return;
       }
-    }
+      bridgedRef.current.add(notification);
+
+      if (notification.hidden || typeof notification.title !== 'string') {
+        return;
+      }
+
+      try {
+        const messageStr =
+          typeof notification.messageText === 'string'
+            ? notification.messageText
+            : typeof notification.message === 'string'
+              ? notification.message
+              : undefined;
+
+        const detail: Record<string, unknown> = {
+          status: notification.status,
+          title: notification.title,
+          message: messageStr,
+          timestamp: notification.timestamp?.toISOString() || new Date().toISOString(),
+          ...(notification.linkUrl && notification.linkLabel && {
+            linkUrl: notification.linkUrl,
+            linkLabel: notification.linkLabel,
+          }),
+        };
+
+        window.dispatchEvent(new CustomEvent(NOTIFICATION_BRIDGE_EVENT, { detail }));
+      } catch (error) {
+        console.error('[NotificationBridge] Failed to dispatch notification:', error);
+      }
+    });
   }, [notifications]);
 };

@@ -1,9 +1,7 @@
 {
   "name": "autorag-ui",
   "version": "1.0.0",
-  "description": "An user interface for AutoRAG projects",
-  "repository": "https://github.com/opendatahub-io/mod-arch-library.git",
-  "homepage": "https://github.com/opendatahub-io/mod-arch-library",
+  "description": "A user interface for AutoRAG",
   "license": "Apache-2.0",
   "private": true,
   "engines": {
@@ -26,6 +24,8 @@
     "test:jest": "jest",
     "test:unit": "npm run test:jest -- --silent",
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx ./src ./*.js --fix && prettier --write ./*.js ./*.cjs ./*.md ../*.md",
+    "lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src ./*.js",
+    "lint:fix": "eslint --ext .js,.ts,.jsx,.tsx ./src ./*.js --fix",
     "test:lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src ./*.js && prettier --check ./*.js ./*.cjs ./*.md ../*.md",
     "test:type-check": "tsc --noEmit",
     "cypress:open": "cypress open --project src/__tests__/cypress",
@@ -34,7 +34,10 @@
     "cypress:run:mock": "CY_MOCK=1 npm run cypress:run -- ",
     "cypress:server:build": "DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=standalone npm run build",
     "cypress:server": "serve ./public-cypress -p 9001 -s -L",
-    "start:default": "STYLE_THEME=patternfly-theme npm run start:dev"
+    "start:default": "STYLE_THEME=patternfly-theme npm run start:dev",
+    "playground": "run-p playground:*",
+    "playground:fileexplorer": "webpack serve --config ./src/app/components/common/FileExplorer/webpack.playground.ts",
+    "playground:s3fileexplorer": "webpack serve --config ./src/app/components/common/S3FileExplorer/webpack.playground.ts"
   },
   "devDependencies": {
     "@module-federation/enhanced": "^0.21.4",
@@ -48,7 +51,6 @@
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "14.6.1",
     "@types/jest": "^30.0.0",
-    "@types/lodash-es": "^4.17.8",
     "@types/react-dom": "^18.3.1",
     "@types/showdown": "^2.0.3",
     "copy-webpack-plugin": "^13.0.0",
@@ -95,21 +97,31 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@hookform/resolvers": "^5.2.2",
     "@patternfly/patternfly": "^6.3.1",
+    "@patternfly/react-charts": "^8.4.0",
     "@patternfly/react-core": "^6.3.1",
     "@patternfly/react-icons": "^6.3.1",
     "@patternfly/react-styles": "^6.3.1",
     "@patternfly/react-table": "^6.3.1",
     "@patternfly/react-templates": "^6.3.1",
+    "@patternfly/react-tokens": "^6.4.0",
+    "@patternfly/react-topology": "^6.4.0",
+    "@tanstack/react-query": "^5.90.20",
     "classnames": "^2.2.6",
+    "echarts": "^5.6.0",
     "dompurify": "^3.2.4",
-    "lodash-es": "^4.17.15",
+    "es-toolkit": "^1.44.0",
     "mod-arch-core": "^1.2.2",
+    "mod-arch-shared": "^1.5.0",
     "react": "^18",
     "react-dom": "^18",
+    "react-hook-form": "^7.71.1",
     "react-router": "^7.5.2",
     "react-router-dom": "^7.6.1",
-    "showdown": "^2.1.0"
+    "showdown": "^2.1.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.10"
   },
   "optionalDependencies": {
     "@babel/preset-env": "^7.26.9",

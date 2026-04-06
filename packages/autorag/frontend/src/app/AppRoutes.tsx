@@ -1,14 +1,20 @@
+import { NotFound } from 'mod-arch-shared';
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import NotFound from '@odh-dashboard/internal/pages/NotFound';
-import MainPage from './pages/MainPage';
+import AutoragConfigurePage from './pages/AutoragConfigurePage';
+import AutoragExperimentsPage from './pages/AutoragExperimentsPage';
+import AutoragResultsPage from './pages/AutoragResultsPage';
 
-const AppRoutes: React.FC = () => (
-  <Routes>
-    <Route path="/" element={<Navigate to="/main-view" replace />} />
-    <Route path="/main-view/*" element={<MainPage />} />
-    <Route path="*" element={<NotFound />} />
-  </Routes>
-);
+function AppRoutes(): React.JSX.Element {
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="experiments" replace />} />
+      <Route path="/experiments/:namespace?" element={<AutoragExperimentsPage />} />
+      <Route path="/configure/:namespace" element={<AutoragConfigurePage />} />
+      <Route path="/results/:namespace/:runId" element={<AutoragResultsPage />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
 
 export default AppRoutes;

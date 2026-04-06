@@ -54,6 +54,7 @@ export const mockModelServingPlatform = ({
     id,
     manage: {
       namespaceApplicationCase,
+      priority: 0,
       projectRequirements: enabledProjectMetadata,
     },
     enableCardText: {
@@ -135,7 +136,7 @@ export const mockDeploymentWizardState = (
           setProjectName: jest.fn(),
         },
         modelType: {
-          data: ServingRuntimeModelType.GENERATIVE,
+          data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false },
           setData: jest.fn(),
         },
         modelLocationData: {
@@ -195,6 +196,7 @@ export const mockDeploymentWizardState = (
           data: undefined,
           setData: jest.fn(),
           shouldAutoCheck: false,
+          isDisabled: false,
         },
         runtimeArgs: {
           data: undefined,
@@ -229,6 +231,7 @@ export const mockDeploymentWizardState = (
           setData: jest.fn(),
           isVisible: true,
         },
+        canCreateRoleBindings: true,
       },
       loaded: {
         modelSourceLoaded: true,

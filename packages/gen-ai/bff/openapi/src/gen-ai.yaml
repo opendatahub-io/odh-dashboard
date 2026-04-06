@@ -290,9 +290,9 @@ paths:
             example:
               models:
                 - model_name: 'llama-3-2-3b-instruct'
-                  is_maas_model: false
+                  model_source_type: 'namespace'
                 - model_name: 'granite-embedding-125m'
-                  is_maas_model: false
+                  model_source_type: 'maas'
       responses:
         '200':
           $ref: '#/components/responses/LlamaStackDistributionInstallResponse'
@@ -380,6 +380,198 @@ paths:
       summary: List AI Available Assets Models
       description: Gets a list of all available AI Available Assets models from Kubernetes InferenceServices.
 
+  /gen-ai/api/v1/models/external:
+    summary: Manage external model endpoints
+    description: >-
+      Register and manage OpenAI-compatible external model endpoints for use in Gen AI Studio.
+      Creates a ConfigMap entry and Kubernetes Secret for secure API key storage.
+      Supports custom endpoints, including public external APIs and cluster-local URLs.
+      Requires namespace parameter for proper multi-tenant isolation.
+    post:
+      tags:
+        - ExternalModels
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace where the external model will be registered
+          required: true
+          schema:
+            type: string
+            example: 'llm'
+      requestBody:
+        required: true
+        description: External model configuration
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExternalModelRequest'
+            example:
+              model_id: 'gpt-4o'
+              model_display_name: 'GPT-4 Optimized'
+              base_url: 'https://api.openai.com/v1'
+              secret_value: 'sk-your-api-key-here'
+              use_cases: 'Classification, Text Generation'
+              model_type: 'llm'
+      responses:
+        '201':
+          $ref: '#/components/responses/ExternalModelCreatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied - user does not have permission to create models in this namespace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: createExternalModel
+    delete:
+      summary: Delete an external model endpoint
+      description: >-
+        Deletes an external model endpoint by removing its entry from the ConfigMap and deleting its associated Secret.
+        This operation permanently removes the external model registration.
+        Requires namespace parameter for proper multi-tenant isolation.
+      tags:
+        - ExternalModels
+      security:
+        - Bearer: []
+      parameters:
+        - name: model_id
+          in: query
+          description: Model ID to delete (supports slashes, e.g. 'openai/gpt-4o' or 'ollama/llama3.2:3b')
+          required: true
+          schema:
+            type: string
+            example: 'gpt-4o'
+        - name: namespace
+          in: query
+          description: Kubernetes namespace where the external model is registered
+          required: true
+          schema:
+            type: string
+            example: 'llm'
+      responses:
+        '204':
+          description: External model successfully deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied - user does not have permission to delete models in this namespace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: External model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: deleteExternalModel
+
+  /gen-ai/api/v1/models/external/verify:
+    summary: Verify external model endpoint
+    description: >-
+      Verifies that an external model endpoint is accessible, properly authenticated, and OpenAI-compatible.
+      Tests the connection by sending a minimal request to the endpoint and validating the response format.
+      This is a stateless operation that does not create any resources.
+    post:
+      tags:
+        - ExternalModels
+      security:
+        - Bearer: []
+      requestBody:
+        required: true
+        description: External model verification request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyExternalModelRequest'
+            example:
+              model_id: 'gpt-4o'
+              base_url: 'https://api.openai.com/v1'
+              secret_value: 'sk-test-key'
+              model_type: 'llm'
+      responses:
+        '200':
+          description: External model verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/VerifyExternalModelResponse'
+              example:
+                data:
+                  success: true
+                  message: 'External model verified successfully'
+                  response_time_ms: 523
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid credentials - API key is incorrect or unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'UNAUTHORIZED'
+                      message:
+                        type: string
+                        example: 'API key is invalid or unauthorized'
+        '408':
+          description: Request timeout - endpoint did not respond in time
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'TIMEOUT'
+                      message:
+                        type: string
+                        example: 'Request timed out connecting to external model'
+        '503':
+          description: Connection failed - could not reach the endpoint
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'CONNECTION_FAILED'
+                      message:
+                        type: string
+                        example: 'Request to https://api.example.com/v1/chat/completions returned HTTP 404. The endpoint may not exist or the base URL may be incorrect.'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: verifyExternalModel
+      summary: Verify External Model
+      description: Tests external model endpoint connectivity, authentication, and OpenAI compatibility.
+
   # =============================================================================
   # MODEL AS A SERVICE (MAAS) ENDPOINTS
   # =============================================================================
@@ -437,7 +629,7 @@ paths:
                           example: true
                         url:
                           type: string
-                          example: 'http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local'
+                          example: 'https://llama-2-7b-chat.apps.example.openshift.com/v1'
                         display_name:
                           type: string
                           description: Human-readable display name for the model
@@ -450,6 +642,26 @@ paths:
                           type: string
                           description: Primary use cases for the model
                           example: 'Chat, Question answering'
+                        model_type:
+                          type: string
+                          description: Type of the model
+                          enum:
+                            - llm
+                            - embedding
+                          example: 'llm'
+                        subscriptions:
+                          type: array
+                          description: >-
+                            Subscriptions that provide access to this model.
+                            Each entry's name field is passed as the subscription field when minting ephemeral API keys for inference.
+                          items:
+                            $ref: '#/components/schemas/SubscriptionInfo'
+                          example:
+                            - name: basic-subscription
+                              displayName: Basic Tier
+                            - name: premium-subscription
+                              displayName: Premium Tier
+                              description: Premium subscription with higher rate limits
                       required:
                         - id
                         - object
@@ -471,10 +683,11 @@ paths:
       description: Gets a list of all available models from MaaS service.
 
   /gen-ai/api/v1/maas/tokens:
-    summary: Manage MaaS authentication tokens
+    summary: Manage MaaS ephemeral API keys
     description: >-
-      Issue new ephemeral tokens and revoke existing tokens for MaaS service authentication.
-      Tokens are JWT-based with configurable TTL (time-to-live).
+      Issue new ephemeral API keys and revoke existing tokens for MaaS service authentication.
+      All keys created through Gen AI Studio are ephemeral (short-lived, max 1h TTL)
+      and are excluded from the MaaS API key list by default.
       Requires namespace parameter for proper multi-tenant isolation.
     post:
       tags:
@@ -489,8 +702,11 @@ paths:
           schema:
             type: string
             example: 'default'
-      summary: Issue New Token
-      description: Create a new ephemeral token with specified TTL for API authentication.
+      summary: Issue Ephemeral API Key
+      description: >-
+        Create an ephemeral API key for MaaS authentication. The BFF always
+        creates ephemeral keys (max 1h TTL), which are excluded from the
+        MaaS API key list by default.
       requestBody:
         required: false
         content:
@@ -498,34 +714,58 @@ paths:
             schema:
               type: object
               properties:
-                expiration:
+                name:
                   type: string
-                  description: Token time-to-live in Go duration format. Supports ns, us, ms, s, m, h units.
-                  default: '4h'
-                  example: '2h'
-                  pattern: '^[0-9]+(ns|us|ms|s|m|h)$'
+                  description: Optional name for the key. If omitted, the MaaS service assigns a name automatically.
+                description:
+                  type: string
+                  description: Optional description for the key.
+                expiresIn:
+                  type: string
+                  description: Expiration duration (e.g., "30m", "1h"). Defaults to 1h, max 1h for ephemeral keys.
+                  default: '1h'
+                  example: '1h'
+                  pattern: '^[0-9]+(m|h)$'
+                ephemeral:
+                  type: boolean
+                  description: Always set to true by the BFF. Callers cannot override this value. Ephemeral keys have a 1h max TTL and are hidden from the API key list.
+                  readOnly: true
+                  default: true
+                subscription:
+                  type: string
+                  description: >-
+                    Optional MaaS subscription name to bind the ephemeral API key to.
+                    When provided, the key is scoped to this subscription.
+                    When omitted, the user's highest-priority accessible subscription is used by MaaS.
+                  example: 'premium-subscription'
             example:
-              expiration: '4h'
+              expiresIn: '1h'
+              subscription: 'premium-subscription'
       responses:
         '201':
-          description: Token created successfully
+          description: Ephemeral API key created successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  token:
-                    type: string
-                    description: Generated JWT token
-                    example: 'maas-token-placeholder-12345'
-                  expiresAt:
-                    type: integer
-                    format: int64
-                    description: Token expiration timestamp as Unix timestamp
-                    example: 1735406400
-                required:
-                  - token
-                  - expiresAt
+                  data:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        description: Generated API key (shown only once)
+                        example: 'sk-oai-...'
+                      expiresAt:
+                        type: string
+                        description: Key expiration timestamp in RFC3339 format
+                        example: '2026-03-23T15:00:00Z'
+                    required:
+                      - key
+              example:
+                data:
+                  key: 'sk-oai-...'
+                  expiresAt: '2026-03-23T15:00:00Z'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1470,6 +1710,78 @@ paths:
       summary: Get MCP Server Status by URL
       description: Gets the connection status of the MCP server specified by URL.
 
+  /gen-ai/api/v1/aaa/vectorstores:
+    get:
+      tags:
+        - AIAssets
+      operationId: listAAVectorStores
+      summary: List External Vector Stores from AI Available Assets
+      description: >-
+        Lists external vector stores configured in the gen-ai-aa-vector-stores ConfigMap.
+        Returns a flat array of vector store summaries with embedding model availability.
+        Sensitive fields (credentials, TLS secrets, provider config) are stripped.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/AAVectorStoresResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied to ConfigMap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ConfigMap not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /gen-ai/api/v1/vectorstores/external:
+    get:
+      tags:
+        - VectorStores
+      operationId: listExternalVectorStores
+      summary: List External Vector Stores with ConfigMap Metadata
+      description: >-
+        Lists external vector stores with full operational metadata including
+        ConfigMap source info and total count. Used by the vector stores management page.
+        Sensitive fields (credentials, TLS secrets, provider config) are stripped.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/ExternalVectorStoresListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied to ConfigMap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ConfigMap not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /gen-ai/api/v1/aaa/mcps:
     get:
       tags:
@@ -1811,6 +2123,147 @@ components:
           example: 'llama_stack'
           description: Model owner/provider
 
+    SubscriptionInfo:
+      type: object
+      description: Metadata about a subscription that provides access to a model
+      properties:
+        name:
+          type: string
+          description: >-
+            Subscription name. Passed as the subscription field when minting
+            ephemeral API keys for inference via POST /v1/api-keys.
+          example: 'premium-subscription'
+        displayName:
+          type: string
+          description: Human-readable display name for UI rendering
+          example: 'Premium Tier'
+        description:
+          type: string
+          description: Subscription description
+          example: 'Premium subscription with higher rate limits'
+      required:
+        - name
+
+    # External Model Request Schema
+    ExternalModelRequest:
+      type: object
+      required:
+        - model_id
+        - model_display_name
+        - base_url
+        - model_type
+      properties:
+        model_id:
+          type: string
+          example: 'gpt-4o'
+          description: Unique identifier for the model from the OpenAI-compatible provider
+        model_display_name:
+          type: string
+          example: 'GPT-4 Optimized'
+          description: Human-readable display name for the model
+        base_url:
+          type: string
+          example: 'https://api.openai.com/v1'
+          description: Base URL of the OpenAI-compatible model endpoint
+        secret_value:
+          type: string
+          example: 'sk-your-api-key-here'
+          description: API key or authentication token for the model endpoint
+        use_cases:
+          type: string
+          example: 'Classification, Text Generation'
+          description: Optional use cases or capabilities of the model
+        model_type:
+          type: string
+          enum:
+            - 'llm'
+            - 'embedding'
+          example: 'llm'
+          description: Type of model (LLM or embedding)
+        embedding_dimension:
+          type: integer
+          example: 1536
+          description: Output vector size for embedding models (required for embedding models)
+
+    # Verify External Model Request Schema
+    # Uses oneOf to enforce conditional requirements based on model_type
+    VerifyExternalModelRequest:
+      oneOf:
+        # LLM model verification request
+        - type: object
+          required:
+            - model_id
+            - base_url
+            - model_type
+          properties:
+            model_id:
+              type: string
+              example: 'gpt-4o'
+              description: Model identifier to test
+            base_url:
+              type: string
+              example: 'https://api.openai.com/v1'
+              description: Base URL of the API endpoint
+            secret_value:
+              type: string
+              example: 'sk-test-key'
+              description: API key or authentication token
+            model_type:
+              type: string
+              enum:
+                - 'llm'
+              description: Type of model to verify (LLM models use /chat/completions endpoint)
+        # Embedding model verification request
+        - type: object
+          required:
+            - model_id
+            - base_url
+            - model_type
+            - embedding_dimension
+          properties:
+            model_id:
+              type: string
+              example: 'text-embedding-3-small'
+              description: Model identifier to test
+            base_url:
+              type: string
+              example: 'https://api.openai.com/v1'
+              description: Base URL of the API endpoint
+            secret_value:
+              type: string
+              example: 'sk-test-key'
+              description: API key or authentication token
+            model_type:
+              type: string
+              enum:
+                - 'embedding'
+              description: Type of model to verify (embedding models use /embeddings endpoint)
+            embedding_dimension:
+              type: integer
+              minimum: 1
+              example: 1536
+              description: Output vector size for embedding models (must be positive integer)
+
+    # Verify External Model Response Schema
+    VerifyExternalModelResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: true
+          description: Whether verification succeeded
+        message:
+          type: string
+          example: 'External model verified successfully'
+          description: Human-readable verification result message
+        response_time_ms:
+          type: integer
+          example: 523
+          description: Time taken for verification request in milliseconds
+
     # AI Assets Model Schema
     AAModel:
       type: object
@@ -1822,6 +2275,7 @@ components:
         - version
         - endpoints
         - status
+        - model_source_type
       properties:
         model_name:
           type: string
@@ -1843,6 +2297,28 @@ components:
           type: string
           example: 'v2025.1'
           description: Version of the model
+        model_source_type:
+          type: string
+          enum:
+            - namespace
+            - custom_endpoint
+            - maas
+          example: 'namespace'
+          description: >-
+            Source type of the model:
+            'namespace' for models in user's namespace (InferenceService/LLMInferenceService),
+            'custom_endpoint' for external model endpoints (user-provided URL),
+            'maas' for Models as a Service
+        model_type:
+          type: string
+          enum:
+            - llm
+            - embedding
+          example: 'llm'
+          description: >-
+            Type of the model:
+            'llm' for large language models,
+            'embedding' for embedding models
         description:
           type: string
           nullable: true
@@ -1864,6 +2340,10 @@ components:
           enum: ['Running', 'Stop']
           example: 'Running'
           description: Current status of the model (Running or Stop)
+        display_name:
+          type: string
+          example: 'Llama 3.2 3B Instruct'
+          description: Human-readable display name for the model
         sa_token:
           $ref: '#/components/schemas/SAToken'
 
@@ -2473,6 +2953,22 @@ components:
 
             **Note**: Cannot be used together with `chat_context`. Use either manual conversation history
             via `chat_context` or automatic conversation threading via `previous_response_id`.
+        model_source_type:
+          type: string
+          enum:
+            - namespace
+            - custom_endpoint
+            - maas
+          example: 'custom_endpoint'
+          description: Source type of the model. Required when using custom_endpoint models.
+        subscription:
+          type: string
+          example: 'premium-subscription'
+          description: >-
+            Optional MaaS subscription name to bind when generating an ephemeral API key for MaaS model inference.
+            When provided, the subscription is forwarded to the MaaS /v1/api-keys endpoint.
+            When omitted, the user's highest-priority accessible subscription is used by MaaS.
+            Only relevant for MaaS models (model IDs with "maas-" prefix); ignored for other model types.
 
     # Clean Response Schema - Preserves LlamaStack Structure
     ResponseData:
@@ -3044,9 +3540,9 @@ components:
           description: List of models to include in the LSD installation
           example:
             - model_name: 'llama-3-2-3b-instruct'
-              is_maas_model: false
+              model_source_type: 'namespace'
             - model_name: 'facebook/opt-125m'
-              is_maas_model: true
+              model_source_type: 'maas'
           minItems: 1
         enable_guardrails:
           type: boolean
@@ -3056,31 +3552,93 @@ components:
             Output shields include content-moderation and pii.
           example: true
           default: false
+        vector_stores:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstallVectorStore'
+          description: |
+            Optional list of external vector stores to register with the LSD installation.
+            Each entry references a vector store defined in the gen-ai-aa-vector-stores ConfigMap
+            by its ID. The BFF resolves provider configuration and credentials from the ConfigMap
+            and injects them into the LSD spec.
+          example:
+            - vector_store_id: 'vs_bff00001-0000-0000-0000-000000000001'
+
+    InstallVectorStore:
+      type: object
+      required:
+        - vector_store_id
+      properties:
+        vector_store_id:
+          type: string
+          description: |
+            ID of the vector store to register, as defined in the registered_resources.vector_stores
+            section of the gen-ai-aa-vector-stores ConfigMap.
+          example: 'vs_bff00001-0000-0000-0000-000000000001'
 
     InstallModel:
       type: object
       required:
         - model_name
-        - is_maas_model
+        - model_source_type
       properties:
         model_name:
           type: string
           description: |
             Name of the model to install. For MaaS models, this must be the exact MaaS model ID
-            (e.g., 'facebook/opt-125m'). For regular models, this is the Kubernetes resource name.
+            (e.g., 'facebook/opt-125m'). For namespace models, this is the Kubernetes resource name.
+            For external models, this is the model identifier from the external provider.
           example: 'llama-3-2-3b-instruct'
-        is_maas_model:
-          type: boolean
-          description: Whether this is a MaaS (Model as a Service) model
-          example: false
+        model_source_type:
+          type: string
+          enum:
+            - namespace
+            - custom_endpoint
+            - maas
+          description: |
+            Source type of the model (required):
+            - namespace: Model deployed in the same Kubernetes namespace
+            - custom_endpoint: External model endpoint (user-provided URL)
+            - maas: Model from Model as a Service (MaaS) platform
+          example: 'namespace'
+        model_type:
+          type: string
+          enum:
+            - llm
+            - embedding
+          default: 'llm'
+          description: |
+            Optional type of the model. Defaults to llm if not specified.
+            - llm: Inference / language model
+            - embedding: Embedding model
+          example: 'llm'
         max_tokens:
           type: integer
           description: |
             Optional maximum token limit for this model's context window.
             Must be between 128 and 128,000 tokens. If not specified, a default value will be used.
+            Only applicable when model_type is llm.
           minimum: 128
           maximum: 128000
           example: 8192
+        embedding_dimension:
+          type: integer
+          default: 128
+          description: |
+            Optional embedding vector size for this model.
+            Must be between 128 and 3,072,000. If not specified, the server applies a default of 128.
+            Only applicable when model_type is embedding.
+          minimum: 128
+          maximum: 3072000
+          example: 1536
+        is_cluster_local:
+          type: boolean
+          example: true
+          description: >
+            Whether the custom endpoint is a Kubernetes in-cluster service (*.svc.cluster.local).
+            When true, LlamaStack will disable TLS verification for this provider since cluster
+            services typically use self-signed certificates. Only relevant when model_source_type
+            is custom_endpoint.
 
     LlamaStackDistributionInstallModel:
       type: object
@@ -3451,7 +4009,7 @@ components:
           example: 2
           description: Total number of MCP servers in the ConfigMap
         config_map_info:
-          $ref: '#/components/schemas/MCPConfigMapInfo'
+          $ref: '#/components/schemas/ConfigMapInfo'
           description: Metadata about the source ConfigMap
 
     MCPServerSummary:
@@ -3493,7 +4051,7 @@ components:
           example: 'healthy'
           description: Server status based on ConfigMap data only (no MCP calls made)
 
-    MCPConfigMapInfo:
+    ConfigMapInfo:
       type: object
       required:
         - name
@@ -3502,17 +4060,77 @@ components:
       properties:
         name:
           type: string
-          example: 'gen-ai-aa-mcp-servers-e'
-          description: Name of the ConfigMap containing MCP server configurations
+          example: 'gen-ai-aa-vector-stores'
+          description: Name of the source ConfigMap
         namespace:
           type: string
-          example: 'mcp-servers'
+          example: 'llama-stack'
           description: Kubernetes namespace containing the ConfigMap
         last_updated:
           type: string
           format: date-time
           example: '2024-01-15T10:30:00Z'
           description: ISO 8601 timestamp when the ConfigMap was last updated
+
+    ExternalVectorStoreSummary:
+      type: object
+      required:
+        - vector_store_id
+        - vector_store_name
+        - provider_id
+        - provider_type
+        - embedding_model
+        - embedding_dimension
+      properties:
+        vector_store_id:
+          type: string
+          example: 'vs_282695f8-7e3e-48da-abac-d81a0aa225a4'
+          description: Unique identifier of the vector store collection
+        vector_store_name:
+          type: string
+          example: 'Product Docs RAG Store'
+          description: Human-readable name of the vector store
+        provider_id:
+          type: string
+          example: 'pgvector-provider-1'
+          description: Provider ID from the providers section of the ConfigMap
+        provider_type:
+          type: string
+          example: 'remote::pgvector'
+          description: Vector store provider type resolved from the providers section (e.g., remote::pgvector, remote::qdrant, remote::milvus)
+        embedding_model:
+          type: string
+          example: 'ibm-granite/granite-embedding-125m-english'
+          description: Embedding model identifier used for ingestion
+        embedding_dimension:
+          type: integer
+          example: 768
+          description: Embedding vector dimension
+        description:
+          type: string
+          example: 'Vector store for product documentation'
+          description: Description of the vector store purpose
+
+
+    ExternalVectorStoresListData:
+      type: object
+      required:
+        - vector_stores
+        - total_count
+        - config_map_info
+      properties:
+        vector_stores:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExternalVectorStoreSummary'
+          description: Array of external vector store summaries
+        total_count:
+          type: integer
+          example: 3
+          description: Total number of external vector stores
+        config_map_info:
+          $ref: '#/components/schemas/ConfigMapInfo'
+          description: Metadata about the source ConfigMap
 
     MCPServerStatus:
       type: object
@@ -3626,6 +4244,100 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/AAModelsData'
+
+    ExternalModelCreatedResponse:
+      description: External model created successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/AAModel'
+          example:
+            data:
+              model_name: 'gpt-4o'
+              model_id: 'gpt-4o'
+              serving_runtime: 'remote::openai'
+              api_protocol: 'REST'
+              version: ''
+              model_source_type: 'custom_endpoint'
+              model_type: 'llm'
+              usecase: 'Classification, Text Generation'
+              description: ''
+              endpoints:
+                - 'https://api.openai.com/v1'
+              status: 'Running'
+              display_name: 'GPT-4 Optimized'
+              sa_token:
+                name: ''
+                token_name: ''
+                token: ''
+
+    AAVectorStoresResponse:
+      description: List of external vector stores as a flat array
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExternalVectorStoreSummary'
+          example:
+            data:
+              - vector_store_id: 'vs_282695f8-7e3e-48da-abac-d81a0aa225a4'
+                vector_store_name: 'Product Docs RAG Store'
+                provider_id: 'pgvector-provider-1'
+                provider_type: 'remote::pgvector'
+                embedding_model: 'ibm-granite/granite-embedding-125m-english'
+                embedding_dimension: 768
+                description: 'Vector store for product documentation'
+
+    ExternalVectorStoresListResponse:
+      description: List of external vector stores with ConfigMap metadata
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/ExternalVectorStoresListData'
+          examples:
+            success_response:
+              summary: Successful External Vector Stores List
+              value:
+                data:
+                  vector_stores:
+                    - vector_store_id: 'vs_282695f8-7e3e-48da-abac-d81a0aa225a4'
+                      vector_store_name: 'Product Docs RAG Store'
+                      provider_id: 'pgvector-provider-1'
+                      provider_type: 'remote::pgvector'
+                      embedding_model: 'ibm-granite/granite-embedding-125m-english'
+                      embedding_dimension: 768
+                      description: 'Vector store for product documentation'
+                  total_count: 1
+                  config_map_info:
+                    name: 'gen-ai-aa-vector-stores'
+                    namespace: 'llama-stack'
+                    last_updated: '2026-02-19T07:32:38Z'
+            empty_response:
+              summary: Empty ConfigMap
+              value:
+                data:
+                  vector_stores: []
+                  total_count: 0
+                  config_map_info:
+                    name: 'gen-ai-aa-vector-stores'
+                    namespace: 'llama-stack'
+                    last_updated: '2026-02-19T07:32:38Z'
 
     VectorStoresResponse:
       description: List of vector stores with pagination support

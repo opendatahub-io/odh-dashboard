@@ -23,7 +23,8 @@ import type {
   InitialWizardFormData,
   WizardField,
 } from '../src/components/deploymentWizard/types';
-import type { ModelServerOption } from '../src/components/deploymentWizard/fields/ModelServerTemplateSelectField';
+import type { ModelTypeFieldData } from '../src/components/deploymentWizard/fields/ModelTypeSelectField';
+import type { ModelServerSelectFieldData } from '../src/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 
 export type DeploymentStatus = {
   state: ModelDeploymentState;
@@ -60,6 +61,9 @@ export type ModelResourceType = K8sResourceCommon & {
   };
 };
 
+/**
+ * `server` is more of a template / config resource, not a server
+ */
 export type Deployment<
   ModelResource extends ModelResourceType = ModelResourceType,
   ServerResource extends ServerResourceType = ServerResourceType,
@@ -79,7 +83,7 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
     id: D['modelServingPlatformId'];
     manage: {
       namespaceApplicationCase: NamespaceApplicationCase;
-      priority?: number; // larger numbers are higher priority
+      priority: number | 0; // larger numbers are higher priority
       default?: boolean; // if true, this platform will be the default if no other has priority
       projectRequirements: {
         annotations?: {
@@ -148,16 +152,21 @@ export const isModelServingPlatformWatchDeployments = <D extends Deployment = De
 ): extension is ModelServingPlatformWatchDeploymentsExtension<D> =>
   extension.type === 'model-serving.platform/watch-deployments';
 
+export type ExtractionResult<T> = {
+  data: T;
+  error?: string;
+};
+
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/form-data',
   {
     platform: D['modelServingPlatformId'];
     hardwareProfilePaths: CodeRef<CrPathConfig>;
     extractHardwareProfileConfig: CodeRef<
-      (deployment: D) => Parameters<typeof useHardwareProfileConfig> | null
+      (deployment: D) => ExtractionResult<Parameters<typeof useHardwareProfileConfig> | null>
     >;
     extractModelFormat?: CodeRef<(deployment: D) => SupportedModelFormats | null>;
-    extractReplicas: CodeRef<(deployment: D) => number | null>;
+    extractReplicas: CodeRef<(deployment: D) => ExtractionResult<number | null>>;
     extractRuntimeArgs: CodeRef<(deployment: D) => { enabled: boolean; args: string[] } | null>;
     extractEnvironmentVariables: CodeRef<
       (deployment: D) => { enabled: boolean; variables: { name: string; value: string }[] } | null
@@ -169,9 +178,11 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractDeploymentStrategy?: CodeRef<
       (deployment: D) => WizardFormData['state']['deploymentStrategy']['data'] | null
     >;
+    extractModelType?: CodeRef<(deployment: D) => ModelTypeFieldData | null>;
     extractModelServerTemplate: CodeRef<
-      (deployment: D, dashboardNamespace?: string) => ModelServerOption | null
+      (deployment: D, dashboardNamespace?: string) => { data: ModelServerSelectFieldData } | null
     >;
+    validateExtraction?: CodeRef<(deployment: D) => string[]>;
   }
 >;
 export const isModelServingDeploymentFormDataExtension = <D extends Deployment = Deployment>(
@@ -234,11 +245,15 @@ export const isModelServingMetricsExtension = <D extends Deployment = Deployment
   extension: Extension,
 ): extension is ModelServingMetricsExtension<D> => extension.type === 'model-serving.metrics';
 
-export type DeployedModelServingDetails<D extends Deployment = Deployment> = Extension<
+export type DeployedModelServingDetails<
+  D extends Deployment = Deployment,
+  Data = unknown,
+> = Extension<
   'model-serving.deployed-model/serving-runtime',
   {
     platform: D['modelServingPlatformId'];
-    ServingDetailsComponent: ComponentCodeRef<{ deployment: D }>;
+    dataHook?: CodeRef<() => Data>;
+    ServingDetailsComponent: ComponentCodeRef<{ deployment: D; data?: Data }>;
   }
 >;
 
@@ -281,19 +296,31 @@ export const isModelServingPlatformFetchDeploymentStatus = <D extends Deployment
  * This is used by WizardFieldApplyExtension to apply field-specific data to deployments.
  */
 export type DeploymentAssemblyFn<D extends Deployment = Deployment> = (deployment: D) => D;
+export type DeploymentAssemblyResources<D extends Deployment = Deployment> = {
+  model?: D['model'];
+  server?: D['server'];
+};
 
 export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/deploy',
   {
     platform: D['modelServingPlatformId'];
-    isActive: CodeRef<(wizardData: WizardFormData['state']) => boolean> | true;
-    priority?: number;
+    isActive:
+      | CodeRef<
+          (
+            wizardData: WizardFormData['state'],
+            resources?: DeploymentAssemblyResources<D>,
+          ) => boolean
+        >
+      | true;
+    priority: number | 0;
     supportsOverwrite?: boolean;
     deploy: CodeRef<
       (
         wizardData: WizardFormData['state'],
         projectName: string,
         existingDeployment?: D,
+        modelResource?: D['model'],
         serverResource?: D['server'],
         serverResourceTemplateName?: string,
         dryRun?: boolean,
@@ -305,10 +332,30 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
     >;
   }
 >;
-
 export const isModelServingDeploy = <D extends Deployment = Deployment>(
   extension: Extension,
 ): extension is ModelServingDeploy<D> => extension.type === 'model-serving.deployment/deploy';
+
+export type AssembleModelResourceFn<D extends Deployment = Deployment> = (
+  wizardData: WizardFormData,
+  existingDeployment?: D,
+  applyFieldData?: DeploymentAssemblyFn<D>,
+  connectionSecretName?: string, // todo remove
+) => D;
+
+export type AssembleModelResourceExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/assemble-model-resource',
+  {
+    platform: D['modelServingPlatformId'];
+    isActive: CodeRef<(wizardData: WizardFormData['state']) => boolean> | true;
+    priority: number | 0;
+    assemble: CodeRef<AssembleModelResourceFn<D>>;
+  }
+>;
+export const isAssembleModelResourceExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is AssembleModelResourceExtension<D> =>
+  extension.type === 'model-serving.deployment/assemble-model-resource';
 
 // Deployment Wizard Fields
 export type DeploymentWizardFieldExtension<D extends Deployment = Deployment> = Extension<
@@ -416,3 +463,50 @@ export const isWizardFieldExtractorExtension = <T = unknown, D extends Deploymen
   extension: Extension,
 ): extension is WizardFieldExtractorExtension<T, D> =>
   extension.type === 'model-serving.deployment/wizard-field-extractor';
+
+/**
+ * Extension for performing dry-run validation of side-effect resources before a deployment is saved.
+ * This runs before the inference service is created, in the same phase as other dry runs,
+ * allowing extensions to validate that their associated resources can be created without conflicts.
+ * Unlike post-deploy, errors thrown here propagate and block the deployment.
+ *
+ * The `fieldId` links this to a specific WizardField2Extension so it is only
+ * executed when that field is active.
+ */
+export type WizardFieldDeploymentFunctionsExtension<
+  T = unknown,
+  D extends Deployment = Deployment,
+> = Extension<
+  'model-serving.deployment/wizard-field-deployment-functions',
+  {
+    /** The ID of the WizardField this deployment functions extension is associated with */
+    fieldId: string;
+    /** The platform this deployment functions extension applies to (e.g., 'llmd-serving') */
+    platform: D['modelServingPlatformId'];
+    /**
+     * Async function that dry-runs before the deployment is saved. Throw to block the deployment.
+     * @param fieldData - The current data from the associated wizard field
+     * @param wizardState - The full wizard form state for context (includes project name, etc.)
+     * @param modelResource - The assembled model resource (not yet created, may lack uid/namespace)
+     * @param existingDeployment - The deployment before editing, or undefined for a create
+     */
+    preDeploy: CodeRef<
+      (
+        fieldData: T,
+        wizardState: WizardFormData['state'],
+        deployment: D,
+        existingDeployment?: D,
+      ) => Promise<D>
+    >;
+    postDeploy: CodeRef<
+      (fieldData: T, deployedModel: D['model'], existingDeployment?: D) => Promise<void>
+    >;
+  }
+>;
+export const isWizardFieldDeploymentFunctionsExtension = <
+  T = unknown,
+  D extends Deployment = Deployment,
+>(
+  extension: Extension,
+): extension is WizardFieldDeploymentFunctionsExtension<T, D> =>
+  extension.type === 'model-serving.deployment/wizard-field-deployment-functions';

@@ -36,7 +36,7 @@ const ExperimentPipelineRuns: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
           <BreadcrumbItem>
             <Truncate content={experiment?.display_name || 'Loading...'} />
           </BreadcrumbItem>
-          {isExperimentArchived && <Label>Archived</Label>}
+          {isExperimentArchived && <Label variant="outline">Archived</Label>}
         </PipelineContextBreadcrumb>
       }
     >

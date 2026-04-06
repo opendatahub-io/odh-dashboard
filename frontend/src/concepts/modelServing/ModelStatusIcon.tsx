@@ -1,12 +1,11 @@
 import React from 'react';
 import { Icon, Label, LabelProps, Popover } from '@patternfly/react-core';
 import {
+  CheckCircleIcon,
   ExclamationCircleIcon,
   InProgressIcon,
   OffIcon,
   OutlinedQuestionCircleIcon,
-  PlayIcon,
-  SyncAltIcon,
 } from '@patternfly/react-icons';
 import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
 import { ToggleState } from '#~/components/StateActionToggle';
@@ -51,7 +50,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
       return {
         label: 'Stopping',
         color: 'grey',
-        icon: <SyncAltIcon className="odh-u-spin" />,
+        icon: <InProgressIcon className="odh-u-spin" />,
         message: 'Model deployment is stopping.',
       };
     }
@@ -72,12 +71,18 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
     // Only check the state if not stopped
     switch (state) {
       case ModelDeploymentState.LOADED:
+        return {
+          label: 'Ready',
+          status: 'success',
+          icon: <CheckCircleIcon />,
+          message: 'Model deployment is active.',
+        };
       case ModelDeploymentState.STANDBY:
         return {
-          label: 'Started',
-          status: 'success',
-          icon: <PlayIcon />,
-          message: 'Model deployment is active.',
+          label: 'Starting',
+          color: 'blue',
+          icon: <InProgressIcon className="odh-u-spin" />,
+          message: 'Model deployment is starting.',
         };
       case ModelDeploymentState.FAILED_TO_LOAD:
         return {

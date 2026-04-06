@@ -13,6 +13,7 @@ type Repositories struct {
 	MaaSModels             *MaaSModelsRepository
 	AAModels               *AAModelsRepository
 	VectorStores           *VectorStoresRepository
+	ExternalVectorStores   *ExternalVectorStoresRepository
 	Files                  *FilesRepository
 	Responses              *ResponsesRepository
 	Template               *TemplateRepository
@@ -21,6 +22,7 @@ type Repositories struct {
 	MCPClient              *MCPClientRepository
 	Guardrails             *GuardrailsRepository
 	MLflowPrompts          *MLflowPromptsRepository
+	ExternalModels         *ExternalModelsRepository
 }
 
 // NewRepositories creates domain-specific repositories.
@@ -31,6 +33,7 @@ func NewRepositories() *Repositories {
 		MaaSModels:             NewMaaSModelsRepository(),
 		AAModels:               NewAAModelsRepository(),
 		VectorStores:           NewVectorStoresRepository(),
+		ExternalVectorStores:   NewExternalVectorStoresRepository(nil),
 		Files:                  NewFilesRepository(),
 		Responses:              NewResponsesRepository(),
 		Template:               NewTemplateRepository(),
@@ -39,6 +42,7 @@ func NewRepositories() *Repositories {
 		MCPClient:              nil, // Will be initialized separately with MCP client factory
 		Guardrails:             NewGuardrailsRepository(),
 		MLflowPrompts:          NewMLflowPromptsRepository(),
+		ExternalModels:         NewExternalModelsRepository(),
 	}
 }
 
@@ -46,5 +50,6 @@ func NewRepositories() *Repositories {
 func NewRepositoriesWithMCP(mcpClientFactory mcp.MCPClientFactory, logger *slog.Logger) *Repositories {
 	repos := NewRepositories()
 	repos.MCPClient = NewMCPClientRepository(mcpClientFactory, logger)
+	repos.ExternalVectorStores = NewExternalVectorStoresRepository(logger)
 	return repos
 }

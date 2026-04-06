@@ -12,7 +12,7 @@
     "cypress:server:build": "cd upstream/frontend && cross-env DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd upstream/frontend && serve ./public-cypress -p 9100 -s -L",
-    "cypress:server:dev": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
+    "cypress:server:dev": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 PROXY_PORT=4000 npm run start:dev",
     "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9100",
     "start:dev": "cd upstream && cross-env PORT=9100 make dev-start-federated",
     "start:dev:ext": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
@@ -23,7 +23,7 @@
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "981ff5a6e2f931d84209fa0a4b9579caee9b414f"
+    "commit": "a9ea1b1c59ec802aa0c7718ee5845d96ecc6bfe9"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -44,6 +44,16 @@
       "name": "odh-dashboard",
       "port": 8043
     }
+  },
+  "e2eCiTags": [
+    "@ModelRegistryCI"
+  ],
+  "bffConfig": {
+    "enabled": true,
+    "port": 4000,
+    "healthEndpoint": "/healthcheck",
+    "startCommand": "make -C upstream dev-bff-e2e-mock",
+    "startCommandCluster": "make -C upstream dev-bff-e2e-cluster"
   },
   "exports": {
     "./extensions": "./extensions.ts",

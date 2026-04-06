@@ -62,6 +62,12 @@ func FilterPageValues(values url.Values) url.Values {
 	if v := values.Get("filterStatus"); v != "" {
 		result.Set("filterStatus", v)
 	}
+	if v := values.Get("assetType"); v != "" {
+		result.Set("assetType", v)
+	}
+	if v := values.Get("includeTools"); v != "" {
+		result.Set("includeTools", v)
+	}
 
 	return result
 }

@@ -15,13 +15,7 @@ import {
   createRoleIfMissing,
   createRoleBindingIfMissing,
 } from '@odh-dashboard/kserve/deployUtils';
-import { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
 import { LLMInferenceServiceKind } from '../types';
-import { LLMD_SERVING_ID } from '../../extensions/extensions';
-
-export const isLLMdDeployActive = (wizardData: WizardFormData['state']): boolean => {
-  return wizardData.modelServer.data?.name === LLMD_SERVING_ID;
-};
 
 export const generateRoleLLMInferenceService = (
   roleName: string,

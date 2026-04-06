@@ -14,3 +14,8 @@ export const genAiChatPlaygroundRoute = (namespace?: string): string =>
   !namespace ? chatPlaygroundRootPath : `${chatPlaygroundRootPath}/${namespace}`;
 export const genAiAiAssetsRoute = (namespace?: string): string =>
   !namespace ? aiAssetsRootPath : `${aiAssetsRootPath}/${namespace}`;
+
+export const genAiAiAssetsTabRoute = (namespace: string, tab: string): string =>
+  `${aiAssetsRootPath}/${namespace}/${tab}`;
+
+export const maasTokensPath = '/maas/tokens';

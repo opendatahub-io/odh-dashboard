@@ -9,8 +9,11 @@ type ThemeAwareFormGroupWrapperProps = {
   label: string;
   fieldId: string;
   isRequired?: boolean;
-  helperTextNode?: React.ReactNode; // The pre-rendered HelperText component or null
+  descriptionTextNode?: React.ReactNode; // Always-visible help text
+  helperTextNode?: React.ReactNode; // Error-only helper text
   className?: string; // Optional className for the outer FormGroup
+  labelHelp?: React.ReactElement;
+  'data-testid'?: string;
 };
 
 const ThemeAwareFormGroupWrapper: React.FC<ThemeAwareFormGroupWrapperProps> = ({
@@ -18,8 +21,11 @@ const ThemeAwareFormGroupWrapper: React.FC<ThemeAwareFormGroupWrapperProps> = ({
   label,
   fieldId,
   isRequired,
+  descriptionTextNode,
   helperTextNode,
   className,
+  labelHelp,
+  'data-testid': dataTestId,
 }) => {
   const { isMUITheme } = useThemeContext();
   const hasError = !!helperTextNode; // Determine error state based on helper text presence
@@ -29,11 +35,14 @@ const ThemeAwareFormGroupWrapper: React.FC<ThemeAwareFormGroupWrapperProps> = ({
     // Helper text is rendered *after* the FormGroup wrapper
     return (
       <>
+        {descriptionTextNode}
         <FormGroup
           className={`${className || ''} ${hasError ? 'pf-m-error' : ''}`.trim()} // Apply className and error state class
           label={label}
           isRequired={isRequired}
           fieldId={fieldId}
+          labelHelp={labelHelp}
+          data-testid={dataTestId}
         >
           <FormFieldset component={children} field={label} />
         </FormGroup>
@@ -50,7 +59,10 @@ const ThemeAwareFormGroupWrapper: React.FC<ThemeAwareFormGroupWrapperProps> = ({
         label={label}
         isRequired={isRequired}
         fieldId={fieldId}
+        labelHelp={labelHelp}
+        data-testid={dataTestId}
       >
+        {descriptionTextNode}
         {children}
         {helperTextNode}
       </FormGroup>

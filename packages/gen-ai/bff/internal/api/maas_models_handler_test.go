@@ -4,38 +4,49 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMaaSModelsHandler(t *testing.T) {
-	// Create test app with mock client
+func newMaaSModelsTestApp(t *testing.T) *App {
+	t.Helper()
 	maasClientFactory := maasmocks.NewMockClientFactory()
-	app := App{
-		config: config.EnvConfig{
-			Port: 4000,
-		},
-		maasClientFactory: maasClientFactory,
-		repositories:      repositories.NewRepositories(),
+	return &App{
+		logger:                  slog.Default(),
+		maasClientFactory:       maasClientFactory,
+		kubernetesClientFactory: k8smocks.NewMockTokenClientFactory(),
+		repositories:            repositories.NewRepositories(),
+		memoryStore:             cache.NewMemoryStore(),
 	}
+}
+
+func newMaaSModelsTestCtx(app *App, r *http.Request) *http.Request {
+	maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
+	ctx := context.WithValue(r.Context(), constants.MaaSClientKey, maasClient)
+	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
+	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "token_mock"})
+	return r.WithContext(ctx)
+}
+
+func TestMaaSModelsHandler(t *testing.T) {
+	app := newMaaSModelsTestApp(t)
 
 	t.Run("should return all models successfully", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
 		assert.NoError(t, err)
-
-		// Simulate AttachMaaSClient middleware: create client and add to context
-		maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
-		ctx := context.WithValue(req.Context(), constants.MaaSClientKey, maasClient)
-		req = req.WithContext(ctx)
+		req = newMaaSModelsTestCtx(app, req)
 
 		app.MaaSModelsHandler(rr, req, nil)
 
@@ -49,9 +60,9 @@ func TestMaaSModelsHandler(t *testing.T) {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Verify mock returns 4 models
+		// Verify mock returns 5 models
 		assert.Equal(t, "list", response.Object)
-		assert.Len(t, response.Data, 4)
+		assert.Len(t, response.Data, 5)
 
 		// Verify the structure of returned models
 		firstModel := response.Data[0]
@@ -59,7 +70,7 @@ func TestMaaSModelsHandler(t *testing.T) {
 		assert.Equal(t, "model", firstModel.Object)
 		assert.Equal(t, "model-namespace", firstModel.OwnedBy)
 		assert.True(t, firstModel.Ready)
-		assert.Equal(t, "http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local", firstModel.URL)
+		assert.Equal(t, "https://llama-2-7b-chat.apps.example.openshift.com/v1", firstModel.URL)
 		assert.NotZero(t, firstModel.Created)
 	})
 
@@ -67,11 +78,7 @@ func TestMaaSModelsHandler(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
 		assert.NoError(t, err)
-
-		// Simulate AttachMaaSClient middleware
-		maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
-		ctx := context.WithValue(req.Context(), constants.MaaSClientKey, maasClient)
-		req = req.WithContext(ctx)
+		req = newMaaSModelsTestCtx(app, req)
 
 		app.MaaSModelsHandler(rr, req, nil)
 
@@ -93,7 +100,6 @@ func TestMaaSModelsHandler(t *testing.T) {
 			assert.NotEmpty(t, model.OwnedBy)
 			assert.NotEmpty(t, model.URL)
 			assert.NotZero(t, model.Created)
-			// Ready can be true or false, but should be set
 		}
 	})
 
@@ -101,11 +107,7 @@ func TestMaaSModelsHandler(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
 		assert.NoError(t, err)
-
-		// Simulate AttachMaaSClient middleware
-		maasClient := app.maasClientFactory.CreateClient("", "token_mock", false, nil)
-		ctx := context.WithValue(req.Context(), constants.MaaSClientKey, maasClient)
-		req = req.WithContext(ctx)
+		req = newMaaSModelsTestCtx(app, req)
 
 		app.MaaSModelsHandler(rr, req, nil)
 
@@ -130,8 +132,107 @@ func TestMaaSModelsHandler(t *testing.T) {
 			}
 		}
 
-		// Based on our mock data, we should have both ready and not-ready models
 		assert.Greater(t, readyModels, 0, "Should have at least one ready model")
 		assert.Greater(t, notReadyModels, 0, "Should have at least one not-ready model")
 	})
+}
+
+func TestMaaSModelsHandler_MissingNamespace(t *testing.T) {
+	app := newMaaSModelsTestApp(t)
+
+	rr := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
+	assert.NoError(t, err)
+
+	app.MaaSModelsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestMaaSModelsHandler_MissingIdentity(t *testing.T) {
+	app := newMaaSModelsTestApp(t)
+
+	rr := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
+	assert.NoError(t, err)
+
+	ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "test-namespace")
+	req = req.WithContext(ctx)
+
+	app.MaaSModelsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
+func TestMaaSModelsHandler_EmptyToken(t *testing.T) {
+	app := newMaaSModelsTestApp(t)
+
+	rr := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
+	assert.NoError(t, err)
+
+	ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "test-namespace")
+	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: ""})
+	req = req.WithContext(ctx)
+
+	app.MaaSModelsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
+func TestMaaSModelsHandler_ForwardsUserToken(t *testing.T) {
+	app := newMaaSModelsTestApp(t)
+
+	rr := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
+	assert.NoError(t, err)
+
+	mockClient := maasmocks.NewMockMaaSClient()
+	ctx := context.WithValue(req.Context(), constants.MaaSClientKey, mockClient)
+	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
+	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "my-oidc-token"})
+	req = req.WithContext(ctx)
+
+	app.MaaSModelsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "my-oidc-token", mockClient.LastAuthToken,
+		"handler must forward identity.Token to ListModels")
+}
+
+func TestMaaSModelsHandler_IncludesSubscriptions(t *testing.T) {
+	app := newMaaSModelsTestApp(t)
+
+	rr := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
+	assert.NoError(t, err)
+	req = newMaaSModelsTestCtx(app, req)
+
+	app.MaaSModelsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	defer rr.Result().Body.Close()
+	body, err := io.ReadAll(rr.Result().Body)
+	assert.NoError(t, err)
+
+	var response models.MaaSModelsResponse
+	err = json.Unmarshal(body, &response)
+	assert.NoError(t, err)
+
+	// First model (llama-2-7b-chat) should have 2 subscriptions
+	firstModel := response.Data[0]
+	assert.Equal(t, "llama-2-7b-chat", firstModel.ID)
+	assert.NotNil(t, firstModel.Subscriptions)
+	assert.Len(t, firstModel.Subscriptions, 2)
+	assert.Equal(t, "basic-subscription", firstModel.Subscriptions[0].Name)
+	assert.Equal(t, "Basic Tier", firstModel.Subscriptions[0].DisplayName)
+	assert.Equal(t, "premium-subscription", firstModel.Subscriptions[1].Name)
+	assert.Equal(t, "Premium Tier", firstModel.Subscriptions[1].DisplayName)
+	assert.Equal(t, "Premium subscription with higher rate limits", firstModel.Subscriptions[1].Description)
+
+	// Second model (llama-2-13b-chat) should have 1 subscription
+	secondModel := response.Data[1]
+	assert.Len(t, secondModel.Subscriptions, 1)
+	assert.Equal(t, "premium-subscription", secondModel.Subscriptions[0].Name)
 }

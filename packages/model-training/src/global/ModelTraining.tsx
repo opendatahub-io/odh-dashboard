@@ -17,65 +17,103 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ModelTrainingContext } from './ModelTrainingContext';
 import ModelTrainingLoading from './ModelTrainingLoading';
 import TrainingJobDetailsDrawer from './trainingJobDetailsDrawer/TrainingJobDetailsDrawer';
-import TrainingJobListView from './trainingJobList/TrainingJobListView';
-import DeleteTrainingJobModal from './trainingJobList/DeleteTrainingJobModal';
-import { useTrainingJobStatuses } from './trainingJobList/hooks/useTrainingJobStatuses';
+import RayJobDetailsDrawer from './rayJobDetailsDrawer/RayJobDetailsDrawer';
+import JobsListView from './trainingJobList/JobsListView';
+import DeleteJobModal from './trainingJobList/DeleteJobModal';
+import { useJobStatuses } from './trainingJobList/hooks/useJobStatuses';
+import { getUnifiedJobNodeCount } from './trainingJobList/utils';
 import ModelTrainingProjectSelector from '../components/ModelTrainingProjectSelector';
-import { TrainJobKind } from '../k8sTypes';
-import { TrainingJobState } from '../types';
+import { RayClusterKind } from '../k8sTypes';
+import { JobDisplayState, UnifiedJobKind, isTrainJob, isRayJob } from '../types';
+import { useRayClusters } from '../api';
 
-const title = 'Training jobs';
+const title = 'Jobs';
 const description =
-  'Monitor the progress of model training jobs and manage distributed training workloads.';
+  'View and manage the progress of self-terminating jobs such as TrainJobs and RayJobs.';
 
 const ModelTraining = (): React.ReactElement => {
   const navigate = useNavigate();
-  const { trainJobs, project, preferredProject, projects } = React.useContext(ModelTrainingContext);
+  const { trainJobs, rayJobs, project, preferredProject, projects } =
+    React.useContext(ModelTrainingContext);
   const [trainJobData, trainJobLoaded, trainJobLoadError] = trainJobs;
-  const [selectedJob, setSelectedJob] = React.useState<TrainJobKind | undefined>(undefined);
-  const [deleteTrainingJob, setDeleteTrainingJob] = useState<TrainJobKind | undefined>(undefined);
+  const [rayJobData, rayJobLoaded, rayJobLoadError] = rayJobs;
+  const [selectedJob, setSelectedJob] = React.useState<UnifiedJobKind | undefined>(undefined);
+  const [jobToDelete, setJobToDelete] = useState<UnifiedJobKind | undefined>(undefined);
   const [togglingJobId, setTogglingJobId] = useState<string | undefined>(undefined);
   const drawerRef = useRef<HTMLDivElement>(undefined);
 
-  // Manage job statuses at this level so they can be shared with drawer and list
-  const { jobStatuses, updateJobStatus } = useTrainingJobStatuses(trainJobData);
+  const allJobs: UnifiedJobKind[] = React.useMemo(
+    () => [...trainJobData, ...rayJobData],
+    [trainJobData, rayJobData],
+  );
+  const allJobsLoaded = trainJobLoaded && rayJobLoaded;
+  const allJobsLoadError = trainJobLoadError || rayJobLoadError;
 
-  const handleSelectJob = React.useCallback((job: TrainJobKind) => {
-    setSelectedJob((prev) => (prev?.metadata.uid === job.metadata.uid ? undefined : job));
+  const hasWorkspaceRayJobs = React.useMemo(
+    () =>
+      rayJobData.some(
+        (job) => !job.spec.rayClusterSpec && job.spec.clusterSelector?.['ray.io/cluster'],
+      ),
+    [rayJobData],
+  );
+
+  const [rayClusterData] = useRayClusters(
+    hasWorkspaceRayJobs ? project?.metadata.name ?? '' : null,
+  );
+
+  const nodeCountMap = React.useMemo(() => {
+    const rayClustersMap = hasWorkspaceRayJobs
+      ? new Map<string, RayClusterKind>(
+          rayClusterData.map((cluster) => [cluster.metadata.name, cluster]),
+        )
+      : undefined;
+
+    const map = new Map<string, number>();
+    for (const job of allJobs) {
+      const jobId = job.metadata.uid || job.metadata.name;
+      map.set(jobId, getUnifiedJobNodeCount(job, rayClustersMap));
+    }
+    return map;
+  }, [allJobs, hasWorkspaceRayJobs, rayClusterData]);
+
+  const { jobStatuses, isLoading: isLoadingStatus, updateJobStatus } = useJobStatuses(allJobs);
+
+  const handleSelectJob = React.useCallback((job: UnifiedJobKind) => {
+    const jobId = job.metadata.uid || job.metadata.name;
+    setSelectedJob((prev) =>
+      (prev?.metadata.uid || prev?.metadata.name) === jobId ? undefined : job,
+    );
   }, []);
 
   const handleStatusUpdate = React.useCallback(
-    (jobId: string, newStatus: TrainingJobState) => {
+    (jobId: string, newStatus: JobDisplayState) => {
       updateJobStatus(jobId, newStatus);
     },
     [updateJobStatus],
   );
 
-  const handleDelete = React.useCallback(
-    (job: TrainJobKind) => {
-      setDeleteTrainingJob(job);
-      // Close drawer if the deleted job is currently selected
-      if (selectedJob?.metadata.uid === job.metadata.uid) {
-        setSelectedJob(undefined);
-      }
-    },
-    [selectedJob],
-  );
+  const handleDelete = React.useCallback((job: UnifiedJobKind) => {
+    setJobToDelete(job);
+  }, []);
 
-  // Close drawer when project changes
   React.useEffect(() => {
     setSelectedJob(undefined);
   }, [project?.metadata.name]);
 
-  // Sync selectedJob with the latest data from trainJobData when it updates
   React.useEffect(() => {
     if (selectedJob) {
-      const updatedJob = trainJobData.find((job) => job.metadata.uid === selectedJob.metadata.uid);
-      if (updatedJob && updatedJob !== selectedJob) {
+      const dataSource = isTrainJob(selectedJob) ? trainJobData : rayJobData;
+      const selectedId = selectedJob.metadata.uid || selectedJob.metadata.name;
+      const updatedJob = dataSource.find(
+        (job) => (job.metadata.uid || job.metadata.name) === selectedId,
+      );
+      if (!updatedJob) {
+        setSelectedJob(undefined);
+      } else if (updatedJob !== selectedJob) {
         setSelectedJob(updatedJob);
       }
     }
-  }, [trainJobData, selectedJob]);
+  }, [trainJobData, rayJobData, selectedJob]);
 
   const isDrawerExpanded = !!selectedJob;
   const selectedJobDisplayName = selectedJob ? getDisplayNameFromK8sResource(selectedJob) : '';
@@ -86,19 +124,35 @@ const ModelTraining = (): React.ReactElement => {
     <EmptyState
       headingLevel="h6"
       icon={SearchIcon}
-      titleText="No training jobs"
+      titleText="No jobs"
       variant={EmptyStateVariant.lg}
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        No training jobs have been found in this project.
+        No TrainJobs or RayJobs have been found in this project.
       </EmptyStateBody>
     </EmptyState>
   );
 
-  const panelContent = (
+  const selectedTrainJob = selectedJob && isTrainJob(selectedJob) ? selectedJob : undefined;
+  const selectedRayJob = selectedJob && isRayJob(selectedJob) ? selectedJob : undefined;
+
+  const selectedJobNodeCount = selectedJobId ? nodeCountMap.get(selectedJobId) ?? 0 : 0;
+
+  const panelContent = selectedRayJob ? (
+    <RayJobDetailsDrawer
+      job={selectedRayJob}
+      displayName={selectedJobDisplayName}
+      nodeCount={selectedJobNodeCount}
+      jobStatus={selectedJobStatus}
+      onClose={() => setSelectedJob(undefined)}
+      onDelete={handleDelete}
+      onStatusUpdate={handleStatusUpdate}
+      onTogglingChange={(isToggling) => setTogglingJobId(isToggling ? selectedJobId : undefined)}
+    />
+  ) : (
     <TrainingJobDetailsDrawer
-      job={selectedJob}
+      job={selectedTrainJob}
       displayName={selectedJobDisplayName}
       jobStatus={selectedJobStatus}
       onClose={() => setSelectedJob(undefined)}
@@ -117,14 +171,14 @@ const ModelTraining = (): React.ReactElement => {
       <DrawerContent panelContent={panelContent}>
         <DrawerContentBody>
           <ApplicationsPage
-            empty={trainJobData.length === 0}
+            empty={allJobs.length === 0}
             emptyStatePage={emptyState}
             title={
               <TitleWithIcon title={title} objectType={ProjectObjectType.modelCustomization} />
             }
             description={description}
-            loadError={trainJobLoadError}
-            loaded={trainJobLoaded}
+            loadError={allJobsLoadError}
+            loaded={allJobsLoaded}
             headerContent={
               <ModelTrainingProjectSelector
                 getRedirectPath={(ns: string) => `/develop-train/training-jobs/${ns}`}
@@ -135,7 +189,7 @@ const ModelTraining = (): React.ReactElement => {
               project ? undefined : (
                 <ModelTrainingLoading
                   title="Loading"
-                  description="Retrieving training jobs from all projects in the cluster. This can take a few minutes."
+                  description="Retrieving jobs from all projects in the cluster. This can take a few minutes."
                   onCancel={() => {
                     const redirectProject = preferredProject ?? projects?.[0];
                     if (redirectProject) {
@@ -146,21 +200,29 @@ const ModelTraining = (): React.ReactElement => {
               )
             }
           >
-            <TrainingJobListView
-              trainingJobs={trainJobData}
+            <JobsListView
+              jobs={allJobs}
               jobStatuses={jobStatuses}
+              isLoadingStatus={isLoadingStatus}
+              nodeCountMap={nodeCountMap}
               onStatusUpdate={handleStatusUpdate}
               onSelectJob={handleSelectJob}
+              onDelete={handleDelete}
               togglingJobId={togglingJobId}
             />
           </ApplicationsPage>
         </DrawerContentBody>
       </DrawerContent>
 
-      {deleteTrainingJob && (
-        <DeleteTrainingJobModal
-          trainingJob={deleteTrainingJob}
-          onClose={() => setDeleteTrainingJob(undefined)}
+      {jobToDelete && (
+        <DeleteJobModal
+          job={jobToDelete}
+          onClose={(deleted) => {
+            setJobToDelete(undefined);
+            if (deleted && selectedJob && selectedJob.metadata.uid === jobToDelete.metadata.uid) {
+              setSelectedJob(undefined);
+            }
+          }}
         />
       )}
     </Drawer>

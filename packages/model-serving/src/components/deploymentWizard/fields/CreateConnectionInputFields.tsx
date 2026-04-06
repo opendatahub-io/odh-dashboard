@@ -1,5 +1,5 @@
 import React from 'react';
-import { Checkbox, Popover, Flex, FlexItem, Form, Alert } from '@patternfly/react-core';
+import { Alert, Checkbox, Flex, FlexItem, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
@@ -27,29 +27,41 @@ export const useCreateConnectionData = (
   existingData?: CreateConnectionData,
   modelLocationData?: ModelLocationData,
 ): CreateConnectionDataField => {
-  const [createConnectionData, setCreateConnectionData] = React.useState<CreateConnectionData>(
-    existingData ?? { saveConnection: true },
+  const [createConnectionData, setCreateConnectionData] = React.useState<CreateConnectionData>(() =>
+    existingData ? { ...existingData, nameDesc: existingData.nameDesc } : {},
   );
 
-  const connectionData = React.useMemo(() => {
-    if (
-      modelLocationData?.type === ModelLocationType.EXISTING ||
-      modelLocationData?.type === ModelLocationType.PVC
-    ) {
-      return {
-        ...createConnectionData,
-        saveConnection: false,
-      };
+  // Tracks the user's explicit checkbox choice. Undefined means the user hasn't touched it
+  const [userSaveConnection, setUserSaveConnection] = React.useState<boolean | undefined>(
+    existingData?.saveConnection,
+  );
+
+  const defaultSaveConnection =
+    modelLocationData?.type !== ModelLocationType.EXISTING &&
+    modelLocationData?.type !== ModelLocationType.PVC &&
+    !(
+      modelLocationData?.type === ModelLocationType.NEW &&
+      !!modelLocationData.connection &&
+      isGeneratedSecretName(modelLocationData.connection)
+    );
+
+  const saveConnection = userSaveConnection ?? defaultSaveConnection;
+
+  const connectionData = React.useMemo(
+    () => ({ ...createConnectionData, saveConnection }),
+    [createConnectionData, saveConnection],
+  );
+
+  const setData = React.useCallback((data: CreateConnectionData) => {
+    if (data.saveConnection !== undefined) {
+      setUserSaveConnection(data.saveConnection);
     }
-    return {
-      ...createConnectionData,
-      saveConnection: createConnectionData.saveConnection,
-    };
-  }, [modelLocationData?.type, createConnectionData]);
+    setCreateConnectionData(data);
+  }, []);
 
   return {
     data: connectionData,
-    setData: setCreateConnectionData,
+    setData,
     projectName,
   };
 };
@@ -75,6 +87,7 @@ type CreateConnectionInputFieldsProps = {
   setCreateConnectionData: (data: CreateConnectionData) => void;
   projectName?: string;
   modelLocationData: ModelLocationData | undefined;
+  setModelLocationData?: (data: ModelLocationData | undefined) => void;
 };
 
 export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsProps> = ({
@@ -82,6 +95,7 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
   setCreateConnectionData,
   projectName,
   modelLocationData,
+  setModelLocationData,
 }) => {
   const internalNameDesc = React.useMemo(() => {
     const isGeneratedSecret = isGeneratedSecretName(createConnectionData.nameDesc?.name || '');
@@ -111,7 +125,7 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
   const resetNameDesc = React.useCallback(
     (checked: boolean) => {
       setCreateConnectionData({
-        nameDesc: undefined,
+        ...createConnectionData,
         saveConnection: checked,
       });
       setKserveNameDesc('name', '');
@@ -123,93 +137,100 @@ export const CreateConnectionInputFields: React.FC<CreateConnectionInputFieldsPr
   return (
     <>
       {showK8sNameDescriptionField && !createConnectionData.hideFields && (
-        <Form maxWidth="450px">
-          <Flex>
-            <FlexItem>
-              <Checkbox
-                id="save-connection-checkbox"
-                data-testid="save-connection-checkbox"
-                label="Create a connection to this location"
-                isChecked={createConnectionData.saveConnection}
-                onChange={(_ev, checked) => {
-                  setCreateConnectionData({
-                    ...createConnectionData,
-                    nameDesc: undefined,
-                    saveConnection: checked,
-                  });
-                  resetNameDesc(checked);
+        <Stack hasGutter style={{ maxWidth: '450px' }}>
+          <StackItem>
+            <Flex>
+              <FlexItem>
+                <Checkbox
+                  id="save-connection-checkbox"
+                  data-testid="save-connection-checkbox"
+                  label="Create a connection to this location"
+                  isChecked={createConnectionData.saveConnection}
+                  onChange={(_ev, checked) => {
+                    resetNameDesc(checked);
+                  }}
+                />
+              </FlexItem>
+              <FlexItem>
+                <Popover
+                  aria-label="Save connection popover"
+                  bodyContent={
+                    <>
+                      Connections securely store the configuration parameters and credentials of
+                      external data sources and services as environment variables so they can be
+                      easily reused in the future.
+                      <br />
+                      <br />
+                      If you choose to create a connection to this model location, it will be
+                      created in the <strong>{projectName}</strong> project.
+                    </>
+                  }
+                >
+                  <DashboardPopupIconButton
+                    icon={<OutlinedQuestionCircleIcon />}
+                    aria-label="Save connection popover"
+                  />
+                </Popover>
+              </FlexItem>
+            </Flex>
+          </StackItem>
+          {createConnectionData.saveConnection && (
+            <StackItem>
+              <K8sNameDescriptionField
+                dataTestId="save-connection-name-desc"
+                data={kServeNameDesc}
+                onDataChange={(key, value) => {
+                  if (key === 'name') {
+                    // Translate the name to a k8s name
+                    const k8sValue = translateDisplayNameForK8s(value);
+                    const nextNameDesc = {
+                      name: value,
+                      description: kServeNameDesc.description,
+                      k8sName: {
+                        value: k8sValue,
+                        state: {
+                          ...kServeNameDesc.k8sName.state,
+                          touched: false,
+                        },
+                      },
+                    };
+                    setKserveNameDesc('name', value);
+                    setKserveNameDesc('k8sName', k8sValue);
+                    setCreateConnectionData({
+                      ...createConnectionData,
+                      nameDesc: nextNameDesc,
+                    });
+                    if (modelLocationData && setModelLocationData) {
+                      setModelLocationData({
+                        ...modelLocationData,
+                        connection: k8sValue || undefined,
+                      });
+                    }
+                  } else if (key === 'description') {
+                    const nextNameDesc = {
+                      ...kServeNameDesc,
+                      description: value,
+                    };
+                    setKserveNameDesc('description', value);
+                    setCreateConnectionData({
+                      ...createConnectionData,
+                      nameDesc: nextNameDesc,
+                    });
+                  }
                 }}
               />
-            </FlexItem>
-            <FlexItem>
-              <Popover
-                aria-label="Save connection popover"
-                bodyContent={
-                  <>
-                    Connections securely store the configuration parameters and credentials of
-                    external data sources and services as environment variables so they can be
-                    easily reused in the future.
-                    <br />
-                    <br />
-                    If you choose to create a connection to this model location, it will be created
-                    in the <strong>{projectName}</strong> project.
-                  </>
-                }
-              >
-                <DashboardPopupIconButton
-                  icon={<OutlinedQuestionCircleIcon />}
-                  aria-label="Save connection popover"
-                />
-              </Popover>
-            </FlexItem>
-          </Flex>
-          {createConnectionData.saveConnection && (
-            <K8sNameDescriptionField
-              dataTestId="save-connection-name-desc"
-              data={kServeNameDesc}
-              onDataChange={(key, value) => {
-                if (key === 'name') {
-                  // Translate the name to a k8s name
-                  const k8sValue = translateDisplayNameForK8s(value);
-                  const nextNameDesc = {
-                    name: value,
-                    description: kServeNameDesc.description,
-                    k8sName: {
-                      value: k8sValue,
-                      state: {
-                        ...kServeNameDesc.k8sName.state,
-                        touched: false,
-                      },
-                    },
-                  };
-                  setKserveNameDesc('name', value);
-                  setKserveNameDesc('k8sName', k8sValue);
-                  setCreateConnectionData({
-                    ...createConnectionData,
-                    nameDesc: nextNameDesc,
-                  });
-                } else if (key === 'description') {
-                  const nextNameDesc = {
-                    ...kServeNameDesc,
-                    description: value,
-                  };
-                  setKserveNameDesc('description', value);
-                  setCreateConnectionData({
-                    ...createConnectionData,
-                    nameDesc: nextNameDesc,
-                  });
-                }
-              }}
-            />
+            </StackItem>
           )}
           {!createConnectionData.saveConnection && (
-            <Alert title="Location information will not be saved" variant="warning">
-              You have elected not to create a connection to this location. Creating a connection
-              makes deploying to this location in the future easier by securely storing its
-              configuration parameters and credentials.
-            </Alert>
+            <StackItem>
+              <Alert title="Location information will not be saved" variant="warning">
+                You have elected not to create a connection to this location. Creating a connection
+                makes deploying to this location in the future easier by securely storing its
+                configuration parameters and credentials.
+              </Alert>
+            </StackItem>
           )}
-        </Form>
+        </Stack>
       )}
     </>
   );

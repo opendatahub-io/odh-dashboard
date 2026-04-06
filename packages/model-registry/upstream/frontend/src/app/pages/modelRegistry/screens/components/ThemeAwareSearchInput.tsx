@@ -6,7 +6,6 @@ import FormFieldset from '~/app/pages/modelRegistry/screens/components/FormField
 type ThemeAwareSearchInputProps = Omit<SearchInputProps, 'onChange' | 'onClear'> & {
   onChange: (value: string) => void; // Simplified onChange signature
   onClear?: () => void; // Simplified optional onClear signature
-  fieldLabel?: string; // Additional prop for MUI FormFieldset label
   'data-testid'?: string;
   onClick?: () => void;
 };
@@ -15,7 +14,6 @@ const ThemeAwareSearchInput: React.FC<ThemeAwareSearchInputProps> = ({
   value,
   onChange,
   onClear,
-  fieldLabel,
   placeholder,
   isDisabled,
   className,
@@ -32,7 +30,7 @@ const ThemeAwareSearchInput: React.FC<ThemeAwareSearchInputProps> = ({
     return (
       <FormFieldset
         className={className}
-        field={fieldLabel}
+        fieldsetStyle={{ insetBlockStart: '0' }}
         component={
           <TextInput
             value={value}
@@ -41,7 +39,11 @@ const ThemeAwareSearchInput: React.FC<ThemeAwareSearchInputProps> = ({
             isDisabled={isDisabled}
             aria-label={ariaLabel}
             data-testid={dataTestId}
-            style={style}
+            style={{
+              ...style,
+              paddingBlockStart: 'var(--pf-t--global--spacer--control--vertical--default)',
+              paddingBlockEnd: 'var(--pf-t--global--spacer--control--vertical--default)',
+            }}
             onClick={onClick}
             placeholder={placeholder}
           />

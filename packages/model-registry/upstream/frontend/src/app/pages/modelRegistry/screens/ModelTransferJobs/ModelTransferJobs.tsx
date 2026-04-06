@@ -1,5 +1,5 @@
 import React from 'react';
-import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
+import { Alert, Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link, useParams } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { ModelTransferJob } from '~/app/types';
@@ -12,6 +12,8 @@ import {
 import ModelRegistrySelectorNavigator from '~/app/pages/modelRegistry/screens/ModelRegistrySelectorNavigator';
 import DeleteModal from '~/app/shared/components/DeleteModal';
 import ModelTransferJobsListView from './ModelTransferJobsListView';
+import RetryJobModal from './RetryJobModal';
+import JobNamespaceInput from './JobNamespaceInput';
 
 type ModelTransferJobsProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,
@@ -20,11 +22,49 @@ type ModelTransferJobsProps = Omit<
 
 const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) => {
   const { modelRegistry } = useParams<{ modelRegistry: string }>();
-  const [jobs, jobsLoaded, jobsLoadError, refetchJobs] = useModelTransferJobs();
+  const [jobNamespace, setJobNamespace] = React.useState<string | undefined>();
+  const [jobs, jobsLoaded, jobsLoadError, refetchJobs] = useModelTransferJobs(jobNamespace);
+
+  // TODO: Replace this string matching with proper error code detection once mod-arch-core's
+  // handleRestFailures is updated to preserve the HTTP status code from BFF error responses.
+  // Currently handleRestFailures discards the error code and only keeps the message string.
+  const isForbidden = jobsLoadError?.message.toLowerCase().includes('forbidden') ?? false;
+  const isInitialForbidden = isForbidden && !jobNamespace;
+  const isNamespaceForbidden = isForbidden && !!jobNamespace;
+  const needsNamespaceInput = isForbidden || !!jobNamespace;
   const { api, apiAvailable } = useModelRegistryAPI();
   const [jobToDelete, setJobToDelete] = React.useState<ModelTransferJob | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error | undefined>();
+  const [jobToRetry, setJobToRetry] = React.useState<ModelTransferJob | null>(null);
+
+  const onRetryTransferJob = React.useCallback(
+    async (newJobName: string, newJobDisplayName: string, deleteOldJob: boolean) => {
+      if (!jobToRetry?.name || !apiAvailable) {
+        return;
+      }
+      await api.updateModelTransferJob(
+        {},
+        jobToRetry.name,
+        {
+          name: newJobName,
+          namespace: jobToRetry.namespace,
+          jobDisplayName: newJobDisplayName,
+        },
+        { deleteOldJob: deleteOldJob.toString() },
+      );
+      await refetchJobs();
+    },
+    [api, apiAvailable, jobToRetry, refetchJobs],
+  );
+
+  const onRequestRetry = React.useCallback((job: ModelTransferJob) => {
+    setJobToRetry(job);
+  }, []);
+
+  const onCloseRetryModal = React.useCallback(() => {
+    setJobToRetry(null);
+  }, []);
 
   const onDeleteTransferJob = React.useCallback(async () => {
     if (!jobToDelete?.name || !apiAvailable) {
@@ -33,7 +73,7 @@ const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) =
     setIsDeleting(true);
     setDeleteError(undefined);
     try {
-      await api.deleteModelTransferJob({}, jobToDelete.name);
+      await api.deleteModelTransferJob({}, jobToDelete.name, jobToDelete.namespace);
       setJobToDelete(null);
       await refetchJobs();
     } catch (e) {
@@ -45,7 +85,6 @@ const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) =
 
   const onRequestDelete = React.useCallback((job: ModelTransferJob) => {
     setJobToDelete(job);
-    setDeleteError(undefined);
   }, []);
 
   const onCloseDeleteModal = React.useCallback(() => {
@@ -68,16 +107,42 @@ const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) =
       }
       title="Model transfer jobs"
       description="Monitor the status of model transfer jobs. Model transfer jobs are created when you choose to store model artifacts at registration time. When a job is complete, the registered model version appears in the specified model registry."
-      loadError={jobsLoadError}
-      loaded={jobsLoaded}
+      loadError={isForbidden ? undefined : jobsLoadError}
+      loaded={isForbidden || jobsLoaded}
       provideChildrenPadding
       headerContent={
         <ModelRegistrySelectorNavigator
           getRedirectPath={(modelRegistryName) => modelTransferJobsUrl(modelRegistryName)}
-        />
+        >
+          {needsNamespaceInput && (
+            <JobNamespaceInput value={jobNamespace ?? ''} onChange={setJobNamespace} />
+          )}
+        </ModelRegistrySelectorNavigator>
       }
     >
-      <ModelTransferJobsListView jobs={jobs.items} onRequestDelete={onRequestDelete} />
+      {isInitialForbidden && (
+        <Alert
+          variant="info"
+          isInline
+          title="You do not have permission to list transfer jobs across all namespaces. Enter a namespace above to view transfer jobs in that namespace."
+          data-testid="initial-forbidden-alert"
+        />
+      )}
+      {isNamespaceForbidden && (
+        <Alert
+          variant="warning"
+          isInline
+          title={`You do not have permission to list jobs in namespace "${jobNamespace}". Try a different namespace.`}
+          data-testid="namespace-forbidden-alert"
+        />
+      )}
+      {!isForbidden && jobsLoaded && (
+        <ModelTransferJobsListView
+          jobs={jobs.items}
+          onRequestDelete={onRequestDelete}
+          onRequestRetry={onRequestRetry}
+        />
+      )}
       {jobToDelete && (
         <DeleteModal
           title="Delete model transfer job?"
@@ -91,6 +156,9 @@ const ModelTransferJobs: React.FC<ModelTransferJobsProps> = ({ ...pageProps }) =
           The <strong>{jobToDelete.name}</strong> model transfer job will be deleted, but the
           storage location of the model will not be affected.
         </DeleteModal>
+      )}
+      {jobToRetry && (
+        <RetryJobModal job={jobToRetry} onClose={onCloseRetryModal} onRetry={onRetryTransferJob} />
       )}
     </ApplicationsPage>
   );

@@ -8,6 +8,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/config"
+	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 	k8s "github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/eval-hub/bff/internal/repositories"
 )
@@ -71,4 +72,9 @@ func (app *App) KubernetesClientFactory() k8s.KubernetesClientFactory { //nolint
 // This allows downstream extensions to access the repositories.
 func (app *App) Repositories() *repositories.Repositories { //nolint:unused
 	return app.repositories
+}
+
+// EvalHubClientFactory returns the EvalHub client factory.
+func (app *App) EvalHubClientFactory() evalhub.EvalHubClientFactory { //nolint:unused
+	return app.evalHubClientFactory
 }

@@ -29,15 +29,11 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow/mlflowmocks"
-	"github.com/opendatahub-io/gen-ai/internal/repositories"
-	"github.com/opendatahub-io/gen-ai/internal/services"
+	"github.com/opendatahub-io/gen-ai/internal/testutil"
 )
 
 // Package-level test infrastructure - initialized once, shared by all tests.
@@ -99,18 +95,21 @@ func TestAPIHandlers(t *testing.T) {
 
 // SharedTestContext holds common test infrastructure for HTTP tests
 type SharedTestContext struct {
-	App         *App
-	Server      *httptest.Server
-	HTTPClient  *http.Client
-	BaseURL     string
-	Logger      *slog.Logger
-	mlflowState *mlflowmocks.MLflowState
+	App             *App
+	Server          *httptest.Server
+	HTTPClient      *http.Client
+	BaseURL         string
+	Logger          *slog.Logger
+	mlflowState     *mlflowmocks.MLflowState
+	llamaStackState *lsmocks.LlamaStackState
 }
 
 var testCtx *SharedTestContext
 
 // BeforeSuite sets up test infrastructure (envtest and HTTP server) for all Ginkgo tests.
 var _ = BeforeSuite(func() {
+	testutil.ConfigureProductionEnvFromTest()
+
 	By("Setting up envtest environment")
 
 	logf.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -204,28 +203,7 @@ var _ = BeforeSuite(func() {
 	openAPIHandler, err := NewOpenAPIHandler(logger)
 	Expect(err).NotTo(HaveOccurred())
 
-	memStore := cache.NewMemoryStore()
-	fileUploadJobTracker := services.NewFileUploadJobTracker(memStore, logger)
-
-	mcpFactory := mcpmocks.NewMockedMCPClientFactory(cfg, logger)
-	// Create app manually to avoid NewApp() starting a second envtest instance
-	app := &App{
-		config:                  cfg,
-		logger:                  logger,
-		repositories:            repositories.NewRepositoriesWithMCP(mcpFactory, logger),
-		openAPI:                 openAPIHandler,
-		kubernetesClientFactory: k8sFactory,
-		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-		maasClientFactory:       maasmocks.NewMockClientFactory(),
-		mcpClientFactory:        mcpFactory,
-		mlflowClientFactory:     mlflowmocks.NewMockClientFactory(),
-		dashboardNamespace:      "opendatahub",
-		memoryStore:             memStore,
-		rootCAs:                 nil,
-		clusterDomain:           "",
-		fileUploadJobTracker:    fileUploadJobTracker,
-		testEnvState:            nil,
-	}
+	app := NewTestApp(cfg, logger, k8sFactory, WithOpenAPIHandler(openAPIHandler))
 
 	err = os.Chdir(originalWd)
 	Expect(err).NotTo(HaveOccurred())
@@ -239,6 +217,21 @@ var _ = BeforeSuite(func() {
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
 	}
+
+	// Start Llama Stack as a child process (SetupLlamaStack also seeds test data)
+	By("Starting LlamaStack")
+	lsState, lsErr := lsmocks.SetupLlamaStack(logger)
+	Expect(lsErr).NotTo(HaveOccurred())
+	Expect(lsState).NotTo(BeNil())
+	Expect(lsState.Seed).NotTo(BeNil(), "SeedData must return a SeedResult")
+	DeferCleanup(func() {
+		By("stopping LlamaStack server")
+		lsmocks.CleanupLlamaStackState(
+			lsState,
+			func(format string, args ...any) { GinkgoWriter.Printf("ERROR: "+format+"\n", args...) },
+			func(format string, args ...any) { GinkgoWriter.Printf(format+"\n", args...) },
+		)
+	})
 
 	// Start MLflow as a child process (SetupMLflow also seeds sample prompts)
 	By("Starting MLflow")
@@ -256,12 +249,13 @@ var _ = BeforeSuite(func() {
 	})
 
 	testCtx = &SharedTestContext{
-		App:         app,
-		Server:      server,
-		HTTPClient:  httpClient,
-		BaseURL:     server.URL,
-		Logger:      logger,
-		mlflowState: mlflowState,
+		App:             app,
+		Server:          server,
+		HTTPClient:      httpClient,
+		BaseURL:         server.URL,
+		Logger:          logger,
+		mlflowState:     mlflowState,
+		llamaStackState: lsState,
 	}
 
 	By("HTTP test environment setup complete")

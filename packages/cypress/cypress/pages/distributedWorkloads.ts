@@ -29,6 +29,10 @@ class GlobalDistributedWorkloads {
     return cy.findByTestId('app-page-title').should('have.text', 'Workload metrics');
   }
 
+  findPageDescription() {
+    return cy.findByTestId('app-page-description');
+  }
+
   findRefreshIntervalSelectToggle() {
     return cy.get('#metrics-toolbar-refresh-interval-select-toggle');
   }
@@ -56,10 +60,7 @@ class GlobalDistributedWorkloads {
   selectProjectByName(name: string) {
     this.findProjectSelect().click();
     cy.findByTestId('project-selector-search').fill(name);
-    cy.findByTestId('project-selector-menuList')
-      .contains('button', name)
-      .should('be.visible')
-      .click();
+    cy.findByTestId('project-selector-menuList').contains('a', name).should('be.visible').click();
   }
 
   private wait() {
@@ -75,6 +76,18 @@ class ProjectMetricsTab extends GlobalDistributedWorkloads {
 
   navigateProjectMetricsPage() {
     return this.findProjectMetricsButton().click();
+  }
+
+  findRequestedResourcesSection() {
+    return cy.findByTestId('dw-requested-resources');
+  }
+
+  findTopConsumingWorkloadsSection() {
+    return cy.findByTestId('dw-top-consuming-workloads');
+  }
+
+  findWorkloadResourceMetricsSection() {
+    return cy.findByTestId('dw-workload-resource-metrics');
   }
 
   verifyChartLegend(legendSelector: string, expectedText: string) {
@@ -111,6 +124,14 @@ class DistributedWorkloadStatusTab extends GlobalDistributedWorkloads {
 
   navigateDistributedWorkloadStatusPage() {
     return this.findDistributedWorkloadStatusButton().click();
+  }
+
+  findStatusOverviewSection() {
+    return cy.findByTestId('dw-status-overview-card');
+  }
+
+  findWorkloadsTableSection() {
+    return cy.findByTestId('dw-workloads-table-card');
   }
 }
 

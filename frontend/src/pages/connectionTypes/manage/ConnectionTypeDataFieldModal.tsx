@@ -9,14 +9,10 @@ import {
   Popover,
   TextArea,
   TextInput,
-  Modal,
-  ModalBody,
-  ModalHeader,
-  ModalFooter,
   Alert,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import ContentModal from '#~/components/modals/ContentModal';
 import {
   ConnectionTypeDataField,
   connectionTypeDataFields,
@@ -101,22 +97,34 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
   } as ConnectionTypeDataField;
 
   const handleSubmit = () => {
-    if (isValid) {
+    if (isValid && canSubmit) {
       onSubmit(prepareFieldForSave(newField));
       onClose();
     }
   };
 
   return (
-    <Modal
-      isOpen
-      variant="medium"
+    <ContentModal
+      title={isEdit ? 'Edit field' : 'Add field'}
       onClose={onClose}
-      data-testid="archive-model-version-modal"
-      elementToFocus="#name"
-    >
-      <ModalHeader title={isEdit ? 'Edit field' : 'Add field'} />
-      <ModalBody>
+      variant="medium"
+      dataTestId="connection-type-data-field-modal"
+      buttonActions={[
+        {
+          label: isEdit ? 'Save' : 'Add',
+          onClick: handleSubmit,
+          variant: 'primary',
+          dataTestId: 'modal-submit-button',
+          isDisabled: !canSubmit || !isValid,
+        },
+        {
+          label: 'Cancel',
+          onClick: onClose,
+          variant: 'link',
+          dataTestId: 'modal-cancel-button',
+        },
+      ]}
+      contents={
         <Form>
           <FormGroup fieldId="name" label="Name" isRequired>
             <TextInput
@@ -190,7 +198,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
                   _ ), or ( . )
                 </HelperTextItem>
                 {!isEnvVarValid && (
-                  <Alert variant={'warning'} title="Invalid character" isPlain isInline></Alert>
+                  <Alert variant="warning" title="Invalid character" isPlain isInline />
                 )}
               </HelperText>
               {isEnvVarConflict ? (
@@ -201,7 +209,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
                   isPlain
                   title={`${envVar} already exists within this connection type. Use a unique environment
                     variable name.`}
-                ></Alert>
+                />
               ) : showEnvVarError && isEnvVarValid ? (
                 <Alert
                   variant="warning"
@@ -210,7 +218,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
                     compatibility. The connection type will no longer appear as an option for model
                     serving."
                   data-testid="envvar-compatibility-warning"
-                ></Alert>
+                />
               ) : undefined}
             </FormHelperText>
           </FormGroup>
@@ -264,16 +272,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             />
           </FormGroup>
         </Form>
-      </ModalBody>
-      <ModalFooter>
-        <DashboardModalFooter
-          onCancel={onClose}
-          onSubmit={handleSubmit}
-          submitLabel={isEdit ? 'Save' : 'Add'}
-          isSubmitDisabled={!canSubmit || !isValid}
-          alertTitle="Error"
-        />
-      </ModalFooter>
-    </Modal>
+      }
+    />
   );
 };

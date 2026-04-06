@@ -91,6 +91,35 @@ func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 	}, nil
 }
 
+// CanListJobsClusterWide checks whether the user can list batch/v1 Jobs across all namespaces.
+func (kc *TokenKubernetesClient) CanListJobsClusterWide(ctx context.Context, _ *RequestIdentity) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:     "list",
+				Group:    "batch",
+				Resource: "jobs",
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("self-SAR failed for cluster-wide job list", "error", err)
+		return false, err
+	}
+
+	if !resp.Status.Allowed {
+		kc.Logger.Info("user cannot list jobs cluster-wide")
+		return false, nil
+	}
+
+	return true, nil
+}
+
 // RequestIdentity is unused because the token already represents the user identity.
 func (kc *TokenKubernetesClient) CanListServicesInNamespace(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -199,6 +228,10 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 	}
 
 	return true, nil
+}
+
+func (kc *TokenKubernetesClient) CanNamespaceAccessRegistry(ctx context.Context, _ *RequestIdentity, jobNamespace, registryName, registryNamespace string) (bool, error) {
+	return CanNamespaceAccessRegistry(ctx, kc.Client, kc.Logger, jobNamespace, registryName, registryNamespace)
 }
 
 // RequestIdentity is unused because the token already represents the user identity.

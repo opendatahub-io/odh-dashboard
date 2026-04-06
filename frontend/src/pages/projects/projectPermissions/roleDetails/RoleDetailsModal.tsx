@@ -1,14 +1,5 @@
 import * as React from 'react';
-import {
-  Flex,
-  FlexItem,
-  Modal,
-  ModalBody,
-  ModalHeader,
-  Tab,
-  Tabs,
-  TabTitleText,
-} from '@patternfly/react-core';
+import { Flex, FlexItem, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import {
   getRoleByRef,
@@ -16,24 +7,22 @@ import {
   getRoleDisplayName,
 } from '#~/concepts/permissions/utils';
 import type { RoleRef } from '#~/concepts/permissions/types';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import ContentModal from '#~/components/modals/ContentModal';
 import RoleLabel from '#~/pages/projects/projectPermissions/components/RoleLabel';
+import { getRoleTypeForTracking } from '#~/pages/projects/projectPermissions/trackingUtils';
 import RoleDetailsModalDetailsTab from './RoleDetailsModalDetailsTab';
 import RoleDetailsModalAssigneesTab from './RoleDetailsModalAssigneesTab';
 
 type RoleDetailsModalProps = {
   roleRef: RoleRef;
   onClose: () => void;
-  showAssigneesTab?: boolean;
 };
 
 type TabKey = 'details' | 'assignees';
 const isTabKey = (key: unknown): key is TabKey => key === 'details' || key === 'assignees';
 
-const RoleDetailsModal: React.FC<RoleDetailsModalProps> = ({
-  roleRef,
-  onClose,
-  showAssigneesTab = true,
-}) => {
+const RoleDetailsModal: React.FC<RoleDetailsModalProps> = ({ roleRef, onClose }) => {
   const { roles, clusterRoles } = usePermissionsContext();
 
   const role = React.useMemo(
@@ -48,50 +37,46 @@ const RoleDetailsModal: React.FC<RoleDetailsModalProps> = ({
   }, [roleRef.kind, roleRef.name]);
 
   return (
-    <Modal
-      isOpen
+    <ContentModal
       variant="large"
       onClose={onClose}
-      aria-label="Role details modal"
-      data-testid="role-details-modal"
-    >
-      <ModalHeader
-        title={
-          <Flex
-            spaceItems={{ default: 'spaceItemsSm' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-          >
-            <FlexItem>{getRoleDisplayName(roleRef, role)}</FlexItem>
-            <FlexItem>
-              <RoleLabel roleRef={roleRef} role={role} />
-            </FlexItem>
-          </Flex>
-        }
-        description={getRoleDescription(roleRef, role)}
-      />
-      <ModalBody>
-        {showAssigneesTab ? (
-          <Tabs
-            activeKey={activeTabKey}
-            onSelect={(_e, key) => {
-              if (isTabKey(key)) {
-                setActiveTabKey(key);
+      dataTestId="role-details-modal"
+      title={
+        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+          <FlexItem>{getRoleDisplayName(roleRef, role)}</FlexItem>
+          <FlexItem>
+            <RoleLabel roleRef={roleRef} role={role} />
+          </FlexItem>
+        </Flex>
+      }
+      description={getRoleDescription(roleRef, role)}
+      contents={
+        <Tabs
+          activeKey={activeTabKey}
+          onSelect={(_e, key) => {
+            if (isTabKey(key)) {
+              if (key === 'assignees') {
+                /* eslint-disable camelcase */
+                fireMiscTrackingEvent('RBAC Role Assignees Clicked', {
+                  role_type: getRoleTypeForTracking(roleRef, role),
+                  cluster_role: roleRef.kind === 'ClusterRole',
+                });
+                /* eslint-enable camelcase */
               }
-            }}
-            aria-label="Role details tabs"
-          >
-            <Tab eventKey="details" title={<TabTitleText>Role details</TabTitleText>}>
-              <RoleDetailsModalDetailsTab roleRef={roleRef} role={role} />
-            </Tab>
-            <Tab eventKey="assignees" title={<TabTitleText>Assignees</TabTitleText>}>
-              <RoleDetailsModalAssigneesTab roleRef={roleRef} />
-            </Tab>
-          </Tabs>
-        ) : (
-          <RoleDetailsModalDetailsTab roleRef={roleRef} role={role} />
-        )}
-      </ModalBody>
-    </Modal>
+              setActiveTabKey(key);
+            }
+          }}
+          aria-label="Role details tabs"
+        >
+          <Tab eventKey="details" title={<TabTitleText>Role details</TabTitleText>}>
+            <RoleDetailsModalDetailsTab roleRef={roleRef} role={role} />
+          </Tab>
+          <Tab eventKey="assignees" title={<TabTitleText>Assignees</TabTitleText>}>
+            <RoleDetailsModalAssigneesTab roleRef={roleRef} />
+          </Tab>
+        </Tabs>
+      }
+    />
   );
 };
 

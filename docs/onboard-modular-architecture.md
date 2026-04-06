@@ -22,24 +22,22 @@ cd packages
 Start a new modular architecture project using the installer. Replace `<your-module-name>` with the desired name for your module.
 
 ```bash
-npx mod-arch-installer <your-module-name> --flavor default
+npx mod-arch-installer -n <your-module-name>
 ```
 
-### 3. Adapt the Module Name
+### 3. Configure the Port
 
-After initialization, you need to update the generated code to match your specific module name. Search for occurrences of `mod-arch` and `modArch` in your new package and replace them with your module's identifier.
+Each module needs a **unique** local dev port so that multiple federated modules can run simultaneously. To see which ports are already in use, run the validation script:
 
-Key files to check:
+```bash
+npm run validate:ports
+```
 
-- `package.json`
-- `frontend/src/odh/extensions.ts` (or similar entry point to change the nav)
-- `frontend/config/moduleFederation.js`
+This prints a complete list of all current port assignments, sourced directly from the workspace `package.json` files and `federation-configmap.yaml`.
 
-In BFF you can do a replace-all searching for `mod-arch` and will change the package name.
+> **Convention**: Frontend federation ports use the 9100–9399 range. BFF ports use the 4000–4099 range. Pick the next available number in the appropriate range.
 
-### 4. Configure the Port
-
-By default, the modular architecture component runs on port `9103`. If you need to use a different port or want to ensure it doesn't conflict with other modules:
+Pick an unused port and update both `Makefile` and `package.json`:
 
 1. **Update `Makefile`**:
    Open `packages/<your-module-name>/Makefile` and find the `dev-frontend-federated` target. Update the `PORT` variable:
@@ -60,7 +58,16 @@ By default, the modular architecture component runs on port `9103`. If you need 
    }
    ```
 
-### 5. Add Feature Flag
+3. **Validate uniqueness**:
+   Run the port validation script to confirm there are no conflicts:
+
+   ```bash
+   node scripts/validate-module-ports.js
+   ```
+
+   This check also runs automatically in CI and the pre-commit hook.
+
+### 4. Add Feature Flag
 
 To enable your module in the main dashboard, you need to add a feature flag.
 
@@ -75,7 +82,7 @@ To enable your module in the main dashboard, you need to add a feature flag.
    } satisfies Partial<DashboardCommonConfig>;
    ```
 
-### 6. Run the Application
+### 5. Run the Application
 
 Now that your project is configured, you can run the entire stack (backend, frontend, and your new module).
 

@@ -1,2 +1,5 @@
 # testProjectAdminPermissions.cy.ts Test Data #
-projectPermissionResourceName: "cypress-user-perm-test" 
+projectPermissionResourceName: "cypress-user-perm-test"
+adminRoleName: "Admin"
+userSubjectKind: "user"
+groupSubjectKind: "group"

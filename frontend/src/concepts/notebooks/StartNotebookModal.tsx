@@ -1,3 +1,4 @@
+/* eslint-disable @odh-dashboard/no-restricted-imports */
 import * as React from 'react';
 import {
   Alert,
@@ -48,11 +49,16 @@ import { getAllConsumedResources } from '#~/utilities/clusterQueueUtils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { getClusterQueueNameFromLocalQueues } from '#~/pages/hardwareProfiles/utils';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
+import {
+  KUEUE_STATUSES_OVERRIDE_WORKBENCH,
+  type KueueWorkloadStatusWithMessage,
+} from '#~/concepts/kueue/types';
+import { getHumanReadableKueueMessage } from '#~/concepts/kueue/messageUtils';
+import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import NotebookStatusLabel from './NotebookStatusLabel';
 import './StartNotebookModal.scss';
 
-const KUEUE_QUEUE_LABEL = 'kueue.x-k8s.io/queue-name';
 const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';
 const RESOURCES_TAB = 'Resources';
@@ -73,6 +79,7 @@ type StartNotebookModalProps = {
   isStopping: boolean;
   notebookStatus: NotebookStatus | null;
   events: EventKind[];
+  kueueStatus?: KueueWorkloadStatusWithMessage | null;
   onClose?: () => void;
   buttons: React.ReactNode;
 };
@@ -90,6 +97,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   isStarting,
   isRunning,
   isStopping,
+  kueueStatus: kueueStatusProp,
   onClose,
   buttons,
 }) => {
@@ -101,6 +109,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const { currentProject: project, localQueues } = React.useContext(ProjectDetailsContext);
   const { isProjectKueueEnabled, isKueueFeatureEnabled } = useKueueConfiguration(project);
   const showResourcesTab = Boolean(isKueueFeatureEnabled && isProjectKueueEnabled);
+  const kueueStatus = kueueStatusProp;
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
 
   React.useEffect(() => {
@@ -154,7 +163,14 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   }, [isRunning, isStarting, notebookStatus]);
 
   const renderLastUpdate = () => {
-    if (isRunning || isStopped || (spawnStatus?.status !== AlertVariant.danger && !inProgress)) {
+    const showKueueMessage =
+      kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status);
+    const showKueueStatusWhenStopped = isStopped && showKueueMessage;
+    if (
+      isRunning ||
+      (isStopped && !showKueueMessage) ||
+      (spawnStatus?.status !== AlertVariant.danger && !inProgress && !showKueueStatusWhenStopped)
+    ) {
       return null;
     }
 
@@ -170,13 +186,17 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         color = RegularColor.var;
     }
 
-    const title =
+    const kueueTitle = showKueueMessage
+      ? getHumanReadableKueueMessage(kueueStatus.status, kueueStatus.message, kueueStatus.queueName)
+      : null;
+    const workbenchTitle =
       notebookStatus?.currentEvent ||
       (isStarting
         ? 'Waiting for server request to start...'
         : isStopping
         ? 'Shutting down the server...'
         : 'Creating resources...');
+    const title = kueueTitle ?? workbenchTitle;
 
     return (
       <StackItem>
@@ -401,6 +421,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
                 isStopping={isStopping}
                 isRunning={isRunning}
                 notebookStatus={notebookStatus}
+                kueueStatus={kueueStatus}
               />
             </FlexItem>
           </Flex>

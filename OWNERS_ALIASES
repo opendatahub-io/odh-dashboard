@@ -9,7 +9,6 @@ aliases:
     - emilys314
     - DaoDaoNoCode
     - antowaddle
-    - manosnoam
     - FedeAlonso
     - Griffin-Sullivan
     - YuliaKrimerman
@@ -100,6 +99,7 @@ aliases:
   platform-reviewers:
     - christianvogt
     - jenny-s51
+    - liday-rh
     - lucferbux
     - rsun19
 
@@ -107,13 +107,11 @@ aliases:
   quality-e2e-testing-approvers:
     - antowaddle
     - FedeAlonso
-    - manosnoam
     - sridarna
   quality-e2e-testing-reviewers:
     - ConorOM1
     - antowaddle
     - FedeAlonso
-    - manosnoam
     - sridarna
 
   # Workbenches (formerly Notebooks)
@@ -189,6 +187,8 @@ aliases:
   autorag-approvers:
     - nickmazzi
     - chrjones-rh
+    - GAUNSD
+    - NickGagan
   autorag-reviewers:
     - nickmazzi
     - chrjones-rh
@@ -198,7 +198,25 @@ aliases:
     - jefho-rh
     - MatthewAThompson
     - jkyaw
+    - NickGagan
 
+  # AutoML
+  automl-approvers:
+    - nickmazzi
+    - chrjones-rh
+    - GAUNSD
+    - NickGagan
+  automl-reviewers:
+    - nickmazzi
+    - chrjones-rh
+    - srtanish1992
+    - daniduong
+    - GAUNSD
+    - jefho-rh
+    - MatthewAThompson
+    - jkyaw
+    - NickGagan
+  
   # Eval Hub
   eval-hub-approvers:
     - ikeola13
@@ -209,3 +227,15 @@ aliases:
     - ikeola13
     - pnaik1
     - ederign
+
+  # MLflow
+  mlflow-approvers:
+    - caponetto
+    - DaoDaoNoCode
+    - Gkrumbach07
+    - nananosirova
+  mlflow-reviewers:
+    - caponetto
+    - DaoDaoNoCode
+    - Gkrumbach07
+    - nananosirova

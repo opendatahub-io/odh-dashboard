@@ -4,9 +4,8 @@ import { MessageProps, ToolResponseProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
-import { getId } from '~/app/utilities/utils';
+import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilities/utils';
 import {
-  ChatbotSourceSettings,
   ChatMessageRole,
   CreateResponseRequest,
   GuardrailModelConfig,
@@ -24,6 +23,7 @@ import {
   ToolResponseCardBody,
 } from '~/app/Chatbot/ChatbotMessagesToolResponse';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
 
 // Extended message type that includes metrics data for display
 export type ChatbotMessageProps = MessageProps & {
@@ -41,11 +41,12 @@ export interface UseChatbotMessagesReturn {
   scrollToBottomRef: React.RefObject<HTMLDivElement>;
   /** Metrics from the last bot response (latency, tokens, TTFT) */
   lastResponseMetrics: ResponseMetrics | null;
+  /** Display name of the selected model (for showing in message headers) */
+  modelDisplayName: string;
 }
 
 interface UseChatbotMessagesProps {
   modelId: string;
-  selectedSourceSettings: ChatbotSourceSettings | null;
   systemInstruction: string;
   isRawUploaded: boolean;
   username?: string;
@@ -62,11 +63,12 @@ interface UseChatbotMessagesProps {
   // Guardrails configuration
   guardrailsConfig?: GuardrailsConfig;
   guardrailModelConfigs?: GuardrailModelConfig[];
+  // MaaS subscription name for API key generation
+  subscription?: string;
 }
 
 const useChatbotMessages = ({
   modelId,
-  selectedSourceSettings,
   systemInstruction,
   isRawUploaded,
   username,
@@ -81,6 +83,7 @@ const useChatbotMessages = ({
   namespace,
   guardrailsConfig,
   guardrailModelConfigs = [],
+  subscription,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -95,6 +98,12 @@ const useChatbotMessages = ({
   const isStoppingStreamRef = React.useRef<boolean>(false);
   const isClearingRef = React.useRef<boolean>(false);
   const { api, apiAvailable } = useGenAiAPI();
+  const { aiModels } = React.useContext(ChatbotContext);
+
+  const modelDisplayName = React.useMemo(
+    () => (modelId ? getLlamaModelDisplayName(modelId, aiModels) || modelId : 'Bot'),
+    [modelId, aiModels],
+  );
 
   const getSelectedServersForAPICallback = React.useCallback(
     () =>
@@ -156,6 +165,15 @@ const useChatbotMessages = ({
     [],
   );
 
+  // Update initial message name with the initially selected model (runs once on mount)
+  React.useEffect(() => {
+    setMessages((prev) =>
+      prev.length === 1 && prev[0].role === 'bot' && prev[0].name !== modelDisplayName
+        ? [{ ...prev[0], name: modelDisplayName }]
+        : prev,
+    );
+  }, [modelDisplayName]);
+
   // Auto-scroll to bottom when messages change
   React.useEffect(() => {
     if (scrollToBottomRef.current) {
@@ -216,8 +234,8 @@ const useChatbotMessages = ({
       abortControllerRef.current = null;
     }
 
-    // Reset everything to initial state
-    setMessages([initialBotMessage()]);
+    // Reset everything to initial state (use model display name for consistency)
+    setMessages([{ ...initialBotMessage(), name: modelDisplayName }]);
     setIsMessageSendButtonDisabled(false);
     setIsLoading(false);
     setIsStreamingWithoutContent(false);
@@ -229,7 +247,7 @@ const useChatbotMessages = ({
     setTimeout(() => {
       isClearingRef.current = false;
     }, 0);
-  }, []);
+  }, [modelDisplayName]);
 
   const handleMessageSend = async (message: string) => {
     const userMessage: MessageProps = {
@@ -259,18 +277,20 @@ const useChatbotMessages = ({
 
       const selectedMcpServers = getSelectedServersForAPICallback();
 
-      // Determine vector store ID to use for RAG
-      const vectorStoreIdToUse = selectedSourceSettings?.vectorStore || currentVectorStoreId;
-
       // Get guardrail shield IDs based on user configuration
       const guardrailShieldIds = getGuardrailShieldIds();
+
+      // Find the selected model to get its model_source_type
+      // Strip provider prefix from LlamaStack model ID (e.g., "endpoint-1/gpt-4o" → "gpt-4o")
+      const { id: baseModelId } = splitLlamaModelId(modelId);
+      const selectedModel = aiModels.find((model) => model.model_id === baseModelId);
 
       const responsesPayload: CreateResponseRequest = {
         input: message,
         model: modelId,
         ...(isRawUploaded &&
-          vectorStoreIdToUse && {
-            vector_store_ids: [vectorStoreIdToUse],
+          currentVectorStoreId && {
+            vector_store_ids: [currentVectorStoreId],
           }),
         chat_context: messages
           .map((msg) => ({
@@ -284,6 +304,10 @@ const useChatbotMessages = ({
         temperature,
         ...(selectedMcpServers.length > 0 && { mcp_servers: selectedMcpServers }),
         ...guardrailShieldIds,
+        ...(selectedModel?.model_source_type && {
+          model_source_type: selectedModel.model_source_type,
+        }),
+        ...(subscription && { subscription }),
       };
 
       fireMiscTrackingEvent('Playground Query Submitted', {
@@ -306,7 +330,7 @@ const useChatbotMessages = ({
           id: botMessageId,
           role: 'bot',
           content: '',
-          name: 'Bot',
+          name: modelDisplayName,
           avatar: botAvatar,
           isLoading: true, // Show loading dots until first content
           timestamp: new Date().toLocaleString(),
@@ -465,7 +489,7 @@ const useChatbotMessages = ({
           id: getId(),
           role: 'bot',
           content: response.content || 'No response received',
-          name: 'Bot',
+          name: modelDisplayName,
           avatar: botAvatar,
           timestamp: new Date().toLocaleString(),
           ...(toolResponse && { toolResponse }),
@@ -526,7 +550,7 @@ const useChatbotMessages = ({
           id: getId(),
           role: 'bot',
           content: wasUserStopped ? '*You stopped this message*' : errorMessage,
-          name: 'Bot',
+          name: modelDisplayName,
           avatar: botAvatar,
           timestamp: new Date().toLocaleString(),
         };
@@ -551,6 +575,7 @@ const useChatbotMessages = ({
     clearConversation,
     scrollToBottomRef,
     lastResponseMetrics,
+    modelDisplayName,
   };
 };
 

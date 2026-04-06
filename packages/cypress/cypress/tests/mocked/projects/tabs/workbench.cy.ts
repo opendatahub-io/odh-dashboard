@@ -24,10 +24,12 @@ import { mock200Status, mock404Error } from '@odh-dashboard/internal/__mocks__/m
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import type { HardwareProfileKind, NotebookKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/internal/types';
-import type { EnvironmentFromVariable } from '@odh-dashboard/internal/pages/projects/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { SpawnerPageSectionID } from '@odh-dashboard/internal/pages/projects/screens/spawner/types';
-import { AccessMode } from '@odh-dashboard/internal/pages/storageClasses/storageEnums.ts';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
+import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
+import { AccessMode } from '../../../../types';
 import {
   ConfigMapModel,
   ClusterQueueModel,
@@ -42,6 +44,7 @@ import {
   StorageClassModel,
   HardwareProfileModel,
   LocalQueueModel,
+  WorkloadModel,
 } from '../../../../utils/models';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 import { be } from '../../../../utils/should';
@@ -61,10 +64,12 @@ import { hardwareProfileSection } from '../../../../pages/components/HardwarePro
 
 const configYamlPath = './cypress/fixtures/resources/yaml/mock-upload-configmap.yaml';
 
+type MockNotebookConfig = Parameters<typeof mockNotebookK8sResource>[0];
+
 type HandlersProps = {
   isEmpty?: boolean;
   mockPodList?: PodKind[];
-  envFrom?: EnvironmentFromVariable[];
+  envFrom?: MockNotebookConfig['envFrom'];
   disableProjectScoped?: boolean;
   notebooks?: NotebookKind[];
   hardwareProfiles?: {
@@ -565,12 +570,60 @@ const initKueueEnabledForStatusModal = () => {
   );
 };
 
+const initKueueWorkloadStatus = (workloadStatus: WorkloadStatusType) => {
+  initIntercepts({ notebooks: [notebookWithKueueQueue] });
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({ disableKueue: false, disableProjectScoped: true }),
+  );
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      components: {
+        [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
+        [DataScienceStackComponent.KUEUE]: { managementState: 'Unmanaged' },
+      },
+    }),
+  );
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList([mockProjectK8sResource({ enableKueue: true })]),
+  );
+  cy.interceptK8s(ProjectModel, mockProjectK8sResource({ enableKueue: true }));
+  cy.interceptK8sList(
+    { model: LocalQueueModel, ns: 'test-project' },
+    mockK8sResourceList([
+      mockLocalQueueK8sResource({ name: 'test-queue', namespace: 'test-project' }),
+    ]),
+  );
+  cy.interceptK8s(
+    { model: ClusterQueueModel, name: 'test-cluster-queue' },
+    mockClusterQueueK8sResource({ name: 'test-cluster-queue' }),
+  );
+  const workload = mockWorkloadK8sResource({
+    k8sName: 'workload-test-notebook',
+    namespace: 'test-project',
+    ownerName: 'test-notebook',
+    mockStatus: workloadStatus,
+  });
+  if (workload.metadata) {
+    workload.metadata.labels = {
+      ...workload.metadata.labels,
+      'kueue.x-k8s.io/job-name': 'test-notebook',
+    };
+  }
+  cy.interceptK8sList(
+    { model: WorkloadModel, ns: 'test-project' },
+    mockK8sResourceList([workload]),
+  );
+};
+
 describe('Workbench page', () => {
   it('Empty state', () => {
     initIntercepts({ isEmpty: true });
     workbenchPage.visit('test-project');
     workbenchPage.findEmptyState().should('exist');
-    workbenchPage.findCreateButton().should('be.enabled');
+    workbenchPage.findCreateButton().should('not.have.attr', 'aria-disabled', 'true');
   });
 
   it('Cancel button', () => {
@@ -732,7 +785,7 @@ describe('Workbench page', () => {
     const projectScopedNotebookImage = createSpawnerPage.getProjectScopedNotebookImages();
     projectScopedNotebookImage
       .find()
-      .findByRole('menuitem', { name: 'Project-scoped test image', hidden: true })
+      .findByRole('menuitem', { name: /^Project-scoped test image/, hidden: true })
       .click();
     createSpawnerPage.findProjectScopedLabel().should('exist');
     hardwareProfileSection.findHardwareProfileSearchSelector().should('exist').click();
@@ -744,7 +797,7 @@ describe('Workbench page', () => {
     const globalScopedNotebookImage = createSpawnerPage.getGlobalScopedNotebookImages();
     globalScopedNotebookImage
       .find()
-      .findByRole('menuitem', { name: 'Test Image', hidden: true })
+      .findByRole('menuitem', { name: /^Test Image/, hidden: true })
       .click();
     createSpawnerPage.findGlobalScopedLabel().should('exist');
   });
@@ -825,11 +878,11 @@ describe('Workbench page', () => {
             app: 'wb-1234',
             'opendatahub.io/dashboard': 'true',
             'opendatahub.io/odh-managed': 'true',
-            'opendatahub.io/user': 'test-2duser',
           },
           annotations: {
             'openshift.io/display-name': '1234',
             'openshift.io/description': 'test-description',
+            'opendatahub.io/user': 'test-2duser',
             'opendatahub.io/hardware-profile-name': 'small-profile',
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
           },
@@ -963,6 +1016,75 @@ describe('Workbench page', () => {
     cy.contains('Latest image version');
   });
 
+  it('Shows migration required label and popover for unmigrated workbenches', () => {
+    initIntercepts({
+      notebooks: [
+        mockNotebookK8sResource({
+          name: 'test-notebook',
+          displayName: 'Unmigrated Notebook',
+          injectAuth: null,
+          lastImageSelection: 'test-imagestream:1.2',
+          opts: {
+            metadata: {
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+              },
+            },
+          },
+        }),
+        mockNotebookK8sResource({
+          name: 'migrated-notebook',
+          displayName: 'Migrated Notebook',
+          lastImageSelection: 'test-imagestream:1.2',
+          opts: {
+            metadata: {
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+              },
+            },
+          },
+        }),
+      ],
+    });
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([
+        mockPVCK8sResource({ name: 'test-notebook' }),
+        mockPVCK8sResource({ name: 'migrated-notebook' }),
+      ]),
+    );
+    workbenchPage.visit('test-project');
+
+    const unmigratedRow = workbenchPage.getNotebookRow('Unmigrated Notebook');
+    unmigratedRow.findMigrationRequiredLabel().should('have.text', 'Migration required').click();
+    unmigratedRow.findMigrationRequiredPopoverTitle().should('have.text', 'Migration required');
+    unmigratedRow
+      .findMigrationRequiredPopover()
+      .should(
+        'contain.text',
+        'To prevent access issues, migrate this workbench by editing the workbench description and saving.',
+      )
+      .and(
+        'contain.text',
+        'Alternatively, delete this workbench and create a new one using the same cluster storage to preserve user data.',
+      )
+      .and(
+        'contain.text',
+        'Note: Once migrated, the old URL will no longer work. Access the new URL by clicking on the name link.',
+      );
+
+    workbenchPage
+      .getNotebookRow('Migrated Notebook')
+      .findMigrationRequiredLabel()
+      .should('not.exist');
+  });
+
   it('Shows popover with version details', () => {
     initIntercepts({});
     cy.interceptK8sList(
@@ -1072,7 +1194,7 @@ describe('Workbench page', () => {
     notebookRow.find().findByText('Test Image').should('exist');
     notebookRow.findProjectScopedLabel().should('exist');
     notebookRow.shouldHaveHardwareProfile('Small');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
   });
 
@@ -1211,7 +1333,7 @@ describe('Workbench page', () => {
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
     notebookRow.shouldHaveNotebookImageName('Test Image');
     notebookRow.shouldHaveHardwareProfile('Small');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
 
     //Name sorting
@@ -1653,7 +1775,7 @@ describe('Workbench page', () => {
     const projectScopedNotebookImage = editSpawnerPage.getProjectScopedNotebookImages();
     projectScopedNotebookImage
       .find()
-      .findByRole('menuitem', { name: 'Project scoped test image', hidden: true })
+      .findByRole('menuitem', { name: /^Project scoped test image/, hidden: true })
       .click();
 
     cy.findAllByTestId('project-scoped-label').should('have.length', 2);
@@ -1902,7 +2024,7 @@ describe('Workbench page', () => {
     initIntercepts({});
     notFoundSpawnerPage.visit('updated-notebook');
     notFoundSpawnerPage.shouldHaveErrorMessageTitle('Unable to edit workbench');
-    notFoundSpawnerPage.findReturnToPage().should('be.enabled');
+    notFoundSpawnerPage.findReturnToPage().should('have.attr', 'href').and('not.be.empty');
     notFoundSpawnerPage.findReturnToPage().click();
     verifyRelativeURL('/projects/test-project');
   });
@@ -2433,11 +2555,11 @@ describe('Workbench page', () => {
     );
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findHaveNotebookStatusText().click();
 
     workbenchStatusModal.find().should('be.visible');
-    workbenchStatusModal.getNotebookStatus('Running');
+    workbenchStatusModal.getNotebookStatus('Ready');
 
     workbenchStatusModal.findProgressTab().should('be.visible').click();
     workbenchStatusModal.findProgressSteps().should('exist');
@@ -2452,7 +2574,7 @@ describe('Workbench page', () => {
     initKueueEnabledForStatusModal();
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findHaveNotebookStatusText().click();
 
     workbenchStatusModal.find().should('be.visible');
@@ -2465,7 +2587,7 @@ describe('Workbench page', () => {
     initKueueEnabledForStatusModal();
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findHaveNotebookStatusText().click();
 
     workbenchStatusModal.find().should('be.visible');
@@ -2475,5 +2597,58 @@ describe('Workbench page', () => {
     workbenchStatusModal.findQueueValue().should('contain.text', 'test-cluster-queue');
     workbenchStatusModal.findQuotasSection().should('be.visible');
     workbenchStatusModal.findQuotaSourceValue().should('be.visible');
+  });
+
+  describe('Kueue workbench status', () => {
+    it('displays Queued when workload has QuotaReserved=False (pending)', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Pending);
+      workbenchPage.visit('test-project');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHaveNotebookStatusText()
+        .should('have.text', 'Queued');
+    });
+
+    it('displays human-readable subtitle for Queued status', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Pending);
+      workbenchPage.visit('test-project');
+      workbenchPage.getNotebookRow('Test Notebook').find().should('contain.text', 'Waiting for');
+    });
+
+    it('displays Failed when workload has Finished with failed reason', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Failed);
+      workbenchPage.visit('test-project');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHaveNotebookStatusText()
+        .should('have.text', 'Failed');
+    });
+
+    it('displays Preempted when workload has Evicted condition', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Evicted);
+      workbenchPage.visit('test-project');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHaveNotebookStatusText()
+        .should('have.text', 'Preempted');
+    });
+
+    it('displays human-readable subtitle for Preempted status', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Evicted);
+      workbenchPage.visit('test-project');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .find()
+        .should('contain.text', 'Paused by a higher-priority job');
+    });
+
+    it('displays Inadmissible when workload is inadmissible', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Inadmissible);
+      workbenchPage.visit('test-project');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHaveNotebookStatusText()
+        .should('have.text', 'Inadmissible');
+    });
   });
 });

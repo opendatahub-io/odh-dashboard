@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { ToolbarGroup } from '@patternfly/react-core';
+import { Button, ToolbarGroup } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ProjectObjectType, typedEmptyImage } from 'mod-arch-shared';
 import { ModelVersion, RegisteredModel } from '~/app/types';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import {
+  modelTransferJobsUrl,
   registeredModelArchiveUrl,
   registerModelUrl,
 } from '~/app/pages/modelRegistry/screens/routeUtils';
@@ -77,6 +78,15 @@ const RegisteredModelListViewContent: React.FC<RegisteredModelListViewProps> = (
         secondaryActionOnClick={() => {
           navigate(registeredModelArchiveUrl(preferredModelRegistry?.name));
         }}
+        customAction={
+          <Button
+            data-testid="empty-model-registry-transfer-jobs-action"
+            variant="link"
+            onClick={() => navigate(modelTransferJobsUrl(preferredModelRegistry?.name))}
+          >
+            View model transfer jobs
+          </Button>
+        }
       />
     );
   }
@@ -95,7 +105,6 @@ const RegisteredModelListViewContent: React.FC<RegisteredModelListViewProps> = (
           [ModelRegistryFilterOptions.keyword]: ({ onChange, ...props }) => (
             <ThemeAwareSearchInput
               {...props}
-              fieldLabel="Filter by name, description or label"
               placeholder="Filter by name, description or label"
               className="toolbar-fieldset-wrapper"
               style={{ minWidth: '270px' }}
@@ -105,7 +114,6 @@ const RegisteredModelListViewContent: React.FC<RegisteredModelListViewProps> = (
           [ModelRegistryFilterOptions.owner]: ({ onChange, ...props }) => (
             <ThemeAwareSearchInput
               {...props}
-              fieldLabel="Filter by owner"
               placeholder="Filter by owner"
               className="toolbar-fieldset-wrapper"
               style={{ minWidth: '270px' }}

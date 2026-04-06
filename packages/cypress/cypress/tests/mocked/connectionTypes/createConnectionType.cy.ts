@@ -96,6 +96,28 @@ describe('create', () => {
     createConnectionTypePage.findFooterError().should('contain.text', 'returned error message');
   });
 
+  it('Shows user-friendly error message when connection type name already exists', () => {
+    cy.interceptOdh('POST /api/connection-types', {
+      success: false,
+      error: 'Unable to add connection type: configmaps "existing-name" already exists.',
+    });
+    const categorySection = createConnectionTypePage.getCategorySection();
+    createConnectionTypePage.visitCreatePage();
+
+    createConnectionTypePage.findConnectionTypeName().type('existing-name');
+    categorySection.findCategoryTable();
+    categorySection.findMultiGroupSelectButton('Object-storage').click();
+    createConnectionTypePage.findSubmitButton().should('be.enabled').click();
+
+    createConnectionTypePage
+      .findFooterError()
+      .should(
+        'contain.text',
+        'A connection type with this name already exists. Please choose a different name.',
+      );
+    createConnectionTypePage.findFooterError().should('not.contain.text', 'configmaps');
+  });
+
   it('redirect from v2 to v3 route', () => {
     cy.visitWithLogin('/connectionTypes/create');
     cy.findAllByText('Create connection type').should('exist');

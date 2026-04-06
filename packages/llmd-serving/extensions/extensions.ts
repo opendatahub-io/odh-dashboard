@@ -7,24 +7,33 @@ import type {
   ModelServingDeleteModal,
   ModelServingDeploymentTransformExtension,
   ModelServingStartStopAction,
+  AssembleModelResourceExtension,
+  WizardField2Extension,
 } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
-import type { LLMdDeployment } from '../src/types';
+import type { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import type { LLMdDeployment, LLMInferenceServiceConfigKind } from '../src/types';
+import type {
+  LLMConfigOptionsData,
+  LLMConfigOptionsFieldValue,
+} from '../src/wizardFields/LlmConfigOptionsField';
 
 export const LLMD_SERVING_ID = 'llmd-serving';
 
 const extensions: (
   | AreaExtension
   | ModelServingPlatformWatchDeploymentsExtension<LLMdDeployment>
-  | DeployedModelServingDetails<LLMdDeployment>
+  | DeployedModelServingDetails<LLMdDeployment, FetchStateObject<LLMInferenceServiceConfigKind[]>>
   | ModelServingDeploymentFormDataExtension<LLMdDeployment>
   | ModelServingDeleteModal<LLMdDeployment>
   | ModelServingDeploy<LLMdDeployment>
+  | AssembleModelResourceExtension<LLMdDeployment>
   | DeploymentWizardFieldExtension<LLMdDeployment>
   | ModelServingDeploymentTransformExtension<LLMdDeployment>
   | ModelServingStartStopAction<LLMdDeployment>
+  | WizardField2Extension<LLMConfigOptionsFieldValue, LLMConfigOptionsData, LLMdDeployment>
 )[] = [
   {
     type: 'app.area',
@@ -49,7 +58,12 @@ const extensions: (
     type: 'model-serving.deployed-model/serving-runtime',
     properties: {
       platform: LLMD_SERVING_ID,
-      ServingDetailsComponent: () => import('../src/components/servingRuntime'),
+      dataHook: () =>
+        import('../src/components/ServingDetails').then((m) => m.useServingDetailsData),
+      ServingDetailsComponent: () =>
+        import('../src/components/ServingDetails').then((m) => ({
+          default: m.default,
+        })),
     },
     flags: {
       required: [LLMD_SERVING_ID],
@@ -61,6 +75,7 @@ const extensions: (
       platform: LLMD_SERVING_ID,
       extractHardwareProfileConfig: () =>
         import('../src/deployments/hardware').then((m) => m.extractHardwareProfileConfig),
+      extractModelType: () => import('../src/deployments/model').then((m) => m.extractModelType),
       extractModelFormat: () =>
         import('../src/deployments/model').then((m) => m.extractModelFormat),
       extractReplicas: () => import('../src/deployments/hardware').then((m) => m.extractReplicas),
@@ -78,6 +93,8 @@ const extensions: (
         import('../src/deployments/hardware').then(
           (m) => m.LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
         ),
+      validateExtraction: () =>
+        import('../src/deployments/validateExtraction').then((m) => m.validateExtraction),
     },
     flags: {
       required: [LLMD_SERVING_ID],
@@ -101,8 +118,20 @@ const extensions: (
       platform: LLMD_SERVING_ID,
       priority: 100,
       supportsOverwrite: true,
-      isActive: () => import('../src/deployments/deployUtils').then((m) => m.isLLMdDeployActive),
+      isActive: () => import('../src/formUtils').then((m) => m.isLLMInferenceServiceActive),
       deploy: () => import('../src/deployments/deploy').then((m) => m.deployLLMdDeployment),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
+  },
+  {
+    type: 'model-serving.deployment/assemble-model-resource',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      priority: 100,
+      isActive: () => import('../src/formUtils').then((m) => m.isLLMInferenceServiceActive),
+      assemble: () => import('../src/deployments/deploy').then((m) => m.assembleLLMdDeployment),
     },
     flags: {
       required: [LLMD_SERVING_ID],
@@ -160,6 +189,19 @@ const extensions: (
     },
     flags: {
       required: [LLMD_SERVING_ID],
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field2',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/LlmConfigOptionsField').then(
+          (m) => m.LLMConfigOptionsFieldWizardField,
+        ),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID, SupportedArea.VLLM_ON_MAAS],
     },
   },
   {

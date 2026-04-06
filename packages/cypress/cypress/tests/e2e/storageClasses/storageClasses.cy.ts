@@ -1,4 +1,3 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
   AccessMode,
   StorageProvisioner,
@@ -14,6 +13,7 @@ import {
   storageClassesPage,
   storageClassesTable,
   storageClassEditModal,
+  storageClassActions,
 } from '../../../pages/storageClasses';
 import { ensureOpenshiftDefaultStorageClass } from '../../../utils/oc_commands/storageClass';
 import { retryableBefore, wasSetupPerformed } from '../../../utils/retryableHooks';
@@ -75,7 +75,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
 
   it(
     'An admin user can enable a disabled Storage Class',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@StorageClassesCI'] },
     () => {
       cy.step('Navigate to Storage Classes view');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -112,7 +112,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
 
   it(
     'An admin user can disable an enabled Storage Class',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@StorageClassesCI'] },
     () => {
       cy.step('Navigate to Storage Classes view');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -144,7 +144,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
 
   it(
     'An admin user can set an enabled Storage Class as the default one',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@StorageClassesCI'] },
     () => {
       cy.step('Navigate to Storage Classes view');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -172,7 +172,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
 
   it(
     'An admin user can edit the access mode of a storage class',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@StorageClassesCI'] },
     () => {
       cy.step('Navigate to Storage Classes view');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -185,7 +185,8 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
       scAccessModeRow.shouldContainAccessModeLabels(['RWO']);
 
       cy.step('Navigate to edit SC');
-      storageClassesTable.getRowByConfigName(scAccessModeName1).findKebabAction('Edit').click();
+      storageClassesTable.getRowByConfigName(scAccessModeName1).findKebab().click();
+      storageClassActions.findEditStorageClassAction().click();
 
       cy.step('Check initial access mode checkboxes state');
       storageClassEditModal
@@ -196,7 +197,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
       storageClassEditModal.findAccessModeCheckbox(AccessMode.ROX).should('not.be.checked');
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWOP)
-        .should('be.disabled')
+        .should('be.enabled')
         .and('not.be.checked');
 
       cy.step('Change access modes - enable ReadWriteMany and ReadOnlyMany');
@@ -219,7 +220,8 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
       });
 
       cy.step('Check that an alert shows up when unchecking RWX');
-      storageClassesTable.getRowByConfigName(scAccessModeName1).findKebabAction('Edit').click();
+      storageClassesTable.getRowByConfigName(scAccessModeName1).findKebab().click();
+      storageClassActions.findEditStorageClassAction().click();
       storageClassEditModal.findAccessModeCheckbox(AccessMode.RWX).click(); // uncheck
       storageClassEditModal.findAccessModeAlert().should('be.visible');
       storageClassEditModal.findAccessModeCheckbox(AccessMode.RWX).click(); // re-check

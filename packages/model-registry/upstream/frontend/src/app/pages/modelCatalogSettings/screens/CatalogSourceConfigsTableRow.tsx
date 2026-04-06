@@ -10,7 +10,6 @@ import {
 } from '~/concepts/modelCatalogSettings/const';
 import { hasSourceFilters, getOrganizationDisplay } from '~/concepts/modelCatalogSettings/utils';
 import DeleteModal from '~/app/shared/components/DeleteModal';
-import { useNotification } from '~/app/hooks/useNotification';
 import CatalogSourceStatus from '~/app/pages/modelCatalogSettings/components/CatalogSourceStatus';
 
 type CatalogSourceConfigsTableRowProps = {
@@ -27,7 +26,6 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
   onToggleUpdate,
 }) => {
   const navigate = useNavigate();
-  const notification = useNotification();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error | undefined>();
@@ -49,7 +47,6 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
   };
 
   const handleDeleteClick = () => {
-    setDeleteError(undefined);
     setIsDeleteModalOpen(true);
   };
 
@@ -60,7 +57,6 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
     try {
       await onDeleteSource(catalogSourceConfig.id);
       setIsDeleteModalOpen(false);
-      notification.success(`${catalogSourceConfig.name} deleted successfully`);
     } catch (error) {
       setDeleteError(error instanceof Error ? error : new Error('Failed to delete source'));
     } finally {
@@ -71,6 +67,7 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
   const handleCloseDeleteModal = () => {
     if (!isDeleting) {
       setIsDeleteModalOpen(false);
+      setDeleteError(undefined);
     }
   };
 
@@ -79,17 +76,17 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
   return (
     <>
       <Tr>
-        <Td dataLabel="Name">
+        <Td dataLabel="Name" style={{ verticalAlign: 'middle' }}>
           <span data-testid={`source-name-${catalogSourceConfig.id}`}>
             {catalogSourceConfig.name}
           </span>
         </Td>
-        <Td dataLabel="Organization">
+        <Td dataLabel="Organization" style={{ verticalAlign: 'middle' }}>
           <span data-testid={`source-organization-${catalogSourceConfig.id}`}>
             {organizationValue}
           </span>
         </Td>
-        <Td dataLabel="Model visibility">
+        <Td dataLabel="Model visibility" style={{ verticalAlign: 'middle' }}>
           {hasFilters ? (
             <Label
               color={ModelVisibilityBadgeColor.FILTERED}
@@ -101,17 +98,18 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
             <Label
               color={ModelVisibilityBadgeColor.UNFILTERED}
               data-testid={`model-visibility-unfiltered-${catalogSourceConfig.id}`}
+              variant="outline"
             >
               All models
             </Label>
           )}
         </Td>
-        <Td dataLabel="Source type">
+        <Td dataLabel="Source type" style={{ verticalAlign: 'middle' }}>
           <span data-testid={`source-type-${catalogSourceConfig.id}`}>
             {CATALOG_SOURCE_TYPE_LABELS[catalogSourceConfig.type]}
           </span>
         </Td>
-        <Td dataLabel="Enable">
+        <Td dataLabel="Enable" style={{ verticalAlign: 'middle' }}>
           <Switch
             data-testid={`enable-toggle-${catalogSourceConfig.id}`}
             id={`enable-toggle-${catalogSourceConfig.id}`}
@@ -121,10 +119,10 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
             onChange={(_event, checked) => handleEnableToggle(checked)}
           />
         </Td>
-        <Td dataLabel="Validation status">
+        <Td dataLabel="Validation status" style={{ verticalAlign: 'middle' }}>
           <CatalogSourceStatus catalogSourceConfig={catalogSourceConfig} />
         </Td>
-        <Td dataLabel="Actions">
+        <Td dataLabel="Actions" style={{ verticalAlign: 'middle' }}>
           <Button
             variant="link"
             onClick={handleManageSource}
@@ -133,7 +131,7 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
             Manage source
           </Button>
         </Td>
-        <Td isActionCell>
+        <Td isActionCell style={{ verticalAlign: 'middle' }}>
           {!isDefault && (
             <ActionsColumn
               items={[

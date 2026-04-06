@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import FilterToolbar from '#~/components/FilterToolbar';
 import {
   HardwareProfileEnableType,
@@ -17,15 +17,12 @@ import { HardwareProfileFeatureVisibilityTitles } from './manage/const';
 type HardwareProfilesToolbarProps = {
   filterData: HardwareProfileFilterDataType;
   onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
-  showCreateButton?: boolean;
 };
 
 const HardwareProfilesToolbar: React.FC<HardwareProfilesToolbarProps> = ({
   filterData,
   onFilterUpdate,
 }) => {
-  const navigate = useNavigate();
-
   return (
     <FilterToolbar<keyof typeof hardwareProfileFilterOptions>
       data-testid="hardware-profiles-table-toolbar"
@@ -79,7 +76,9 @@ const HardwareProfilesToolbar: React.FC<HardwareProfilesToolbarProps> = ({
             <ToolbarItem>
               <Button
                 data-testid="create-hardware-profile"
-                onClick={() => navigate('/settings/environment-setup/hardware-profiles/create')}
+                component={(props: React.ComponentProps<'a'>) => (
+                  <Link {...props} to="/settings/environment-setup/hardware-profiles/create" />
+                )}
               >
                 Create hardware profile
               </Button>
