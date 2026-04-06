@@ -20,11 +20,10 @@ type ModalEntry = {
   props: Record<string, unknown>;
 };
 
-let modalIdCounter = 0;
-
 const AppActionsProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const modalIdCounter = React.useRef(0);
   const [modals, setModals] = React.useState<ModalEntry[]>([]);
 
   const removeModal = React.useCallback((id: string) => {
@@ -83,7 +82,7 @@ const AppActionsProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
 
   const openModal: AppActions['openModal'] = React.useCallback(
     (Component, props) => {
-      const id = String(++modalIdCounter);
+      const id = String(++modalIdCounter.current);
       const entry: ModalEntry = { id, Component, props: props ?? {} };
       setModals((prev) => [...prev, entry]);
       return {
@@ -95,7 +94,7 @@ const AppActionsProvider: React.FC<React.PropsWithChildren> = ({ children }) => 
 
   const appActions: AppActions = React.useMemo(
     () => ({
-      navigate,
+      navigate: (path, options) => navigate(path, options),
       notification,
       openModal,
     }),

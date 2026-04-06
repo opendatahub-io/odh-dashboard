@@ -548,12 +548,12 @@ Extensions frequently need to perform app-level side effects — navigating to a
 
 | Action | Signature | Purpose |
 |--------|-----------|---------|
-| `navigate` | `(path: string) => void` | Navigate to an in-app route |
+| `navigate` | `(path, options?) => void` | Navigate to an in-app route (options: `{ state?, replace? }`) |
 | `notification.success` | `(title, message?, actions?) => void` | Show a success toast |
 | `notification.error` | `(title, message?, actions?) => void` | Show an error toast |
 | `notification.info` | `(title, message?, actions?) => void` | Show an info toast |
 | `notification.warning` | `(title, message?, actions?) => void` | Show a warning toast |
-| `openModal` | `(component, props?) => ModalRef` | Open a lazily loaded modal component |
+| `openModal` | `(component, props?) => ModalRef` | Open a modal component |
 
 ### Using in React Code (Extensions & Host)
 
@@ -581,44 +581,76 @@ const MyExtensionComponent: React.FC = () => {
 
 ### Using in Extension Functions (Non-React)
 
-Pass the `AppActions` instance as a parameter to extension callback functions. The host component that invokes the function obtains `AppActions` via `useAppActions()` and forwards it:
+Pass the `AppActions` instance as a parameter to extension callback functions. The host
+component obtains `AppActions` via `useAppActions()` and forwards it when calling the
+extension's `CodeRef` function. The extension registers a lazy import in its extensions
+array, and the implementation is a plain function in a separate file.
+
+#### Example: extension-contributed row actions
+
+> **Note**: The `ModelRegistryRowAction` extension point below is a **hypothetical future example**
+> shown to illustrate the pattern. It is not implemented in the codebase today.
+
+A model registry table row could define an extension point that lets other packages contribute row actions. The extension function is plain — no hooks, no context — and receives `AppActions` from the host:
 
 ```typescript
-// Extension point definition
-export type KebabActionExtension = Extension<
-  'my-plugin.resource/kebab-action',
+// 1. Extension point definition (model-registry)
+type ModelRegistryRowAction = Extension<
+  'model-registry.registered-model/row-action',
   {
-    label: string;
-    action: CodeRef<(resource: MyResource, actions: AppActions) => void | Promise<void>>;
+    platform: string;
+    title: string;
+    onClick: CodeRef<(model: RegisteredModel, actions: AppActions) => void>;
+    isDisabled?: CodeRef<(model: RegisteredModel) => boolean>;
   }
 >;
 ```
 
 ```typescript
-// Extension implementation
-export const deleteAction = (resource: MyResource, actions: AppActions): void => {
-  actions.openModal(
-    () => import('./DeleteConfirmModal'),
-    { resourceName: resource.metadata.name },
-  );
+// 2. Extension registration (another-package/extensions.ts) — CodeRef lazy import
+const extensions: Extension[] = [
+  {
+    type: 'model-registry.registered-model/row-action',
+    properties: {
+      platform: 'my-platform',
+      title: 'Export to catalog',
+      onClick: () => import('./src/actions').then((m) => m.exportAction),
+    },
+  },
+];
+```
+
+```typescript
+// 3. Extension implementation (another-package/src/actions.ts) — plain function, no React
+export const exportAction = async (
+  model: RegisteredModel,
+  actions: AppActions,
+): Promise<void> => {
+  await exportModel(model);
+  actions.notification.success('Model exported', `${model.name} was exported to the catalog.`);
+  actions.navigate('/catalog');
 };
 ```
 
 ```tsx
-// Host component that executes the action
-const { notification, navigate, openModal } = useAppActions();
-const appActions = useAppActions();
-const [resolvedActions] = useResolvedExtensions(isKebabActionExtension);
+// 4. Host wiring (RegisteredModelTableRow.tsx)
+const actions = useAppActions();
+const [rowActionExtensions] = useResolvedExtensions(isModelRegistryRowAction);
 
-const menuItems = resolvedActions.map((ext) => ({
-  label: ext.properties.label,
-  onClick: () => ext.properties.action(resource, appActions),
+const extensionActions: IAction[] = rowActionExtensions.map((ext) => ({
+  title: ext.properties.title,
+  onClick: () => ext.properties.onClick(rm, actions),
 }));
+
+// Merge with hardcoded actions
+<ActionsColumn items={[...baseActions, ...extensionActions]} />
 ```
+
+Without `AppActions`, the extension's `onClick` function could not navigate or show a toast — it has no access to React Router or Redux. The host bridges this gap by passing `AppActions` as a parameter.
 
 ### Opening Modals
 
-The `openModal` function lazily loads a React component and renders it. The component receives an `onClose` callback plus any additional props:
+`openModal` accepts a React component and renders it. The host injects `onClose` (which unmounts the modal); if the caller also passes `onClose`, both run when the modal closes:
 
 ```tsx
 // ConfirmDeleteModal.tsx (extension-owned component)
@@ -641,19 +673,35 @@ export default ConfirmDeleteModal;
 ```
 
 ```typescript
-// Opening from an extension function
-const ref = actions.openModal(
-  () => import('./ConfirmDeleteModal'),
-  { resourceName: 'my-model' },
-);
+import ConfirmDeleteModal from './ConfirmDeleteModal';
 
-// Programmatic close (optional)
-ref.close();
+// Opening from an extension function
+actions.openModal(ConfirmDeleteModal, { resourceName: 'my-model' });
+```
+
+#### Closing modals
+
+When the modal component calls `onClose`, the provider automatically unmounts it. If the
+caller also passes `onClose` in props, both run — the provider cleans up first, then the
+caller's callback fires with any arguments the modal passed (e.g. a confirmation boolean).
+
+Some modals have actions (like `onSubmit` or `buttonActions`) that don't call `onClose`
+internally. In these cases, use the `ModalRef` returned by `openModal` to close
+programmatically:
+
+```typescript
+const ref = actions.openModal(ConnectionModal, {
+  type: locationType,
+  onSubmit: (connection) => {
+    fillForm(connection);
+    ref.close();
+  },
+});
 ```
 
 ### Design Guidelines
 
 1. **Keep actions simple** — `AppActions` is intentionally a thin interface. Complex workflows should still live in dedicated extension components.
 2. **Prefer `AppActions` over custom event bridges** — instead of dispatching custom DOM events for cross-boundary communication, pass `AppActions` through the extension function contract.
-3. **Type your modal props** — although `openModal` accepts `Record<string, unknown>` for props, the modal component itself should define a precise props type for safety.
+3. **Type your modal props** — `openModal` infers required props from the component type, so define a precise props interface on the modal component.
 4. **Use `useAppActions` in React, pass explicitly in functions** — React code should use the hook; plain functions should receive `AppActions` as a parameter from the calling component.

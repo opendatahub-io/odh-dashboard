@@ -25,6 +25,12 @@ const TestConsumer: React.FC = () => {
       <button data-testid="navigate" onClick={() => actions.navigate('/test-path')}>
         Navigate
       </button>
+      <button
+        data-testid="navigate-options"
+        onClick={() => actions.navigate('/other', { state: { from: 'test' }, replace: true })}
+      >
+        Navigate with options
+      </button>
       <button data-testid="notify-success" onClick={() => actions.notification.success('Done')}>
         Success
       </button>
@@ -42,9 +48,7 @@ const TestConsumer: React.FC = () => {
       </button>
       <button
         data-testid="open-modal"
-        onClick={() =>
-          actions.openModal(MockModal, { title: 'Test Modal' })
-        }
+        onClick={() => actions.openModal(MockModal, { title: 'Test Modal' })}
       >
         Open Modal
       </button>
@@ -74,10 +78,25 @@ describe('AppActionsProvider', () => {
     );
 
     fireEvent.click(screen.getByTestId('navigate'));
-    expect(mockNavigate).toHaveBeenCalledWith('/test-path');
+    expect(mockNavigate).toHaveBeenCalledWith('/test-path', undefined);
   });
 
-  it('should provide notification actions', () => {
+  it('should pass options to navigate', () => {
+    render(
+      <AppActionsProvider>
+        <TestConsumer />
+      </AppActionsProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('navigate-options'));
+    expect(mockNavigate).toHaveBeenCalledWith('/other', {
+      state: { from: 'test' },
+      replace: true,
+    });
+  });
+
+  it('should dispatch success notification with correct payload', () => {
+    const { addNotification } = jest.requireMock('#~/redux/actions/actions');
     render(
       <AppActionsProvider>
         <TestConsumer />
@@ -85,19 +104,43 @@ describe('AppActionsProvider', () => {
     );
 
     fireEvent.click(screen.getByTestId('notify-success'));
-    expect(mockDispatch).toHaveBeenCalled();
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'success', title: 'Done' }),
+    );
+  });
 
-    mockDispatch.mockClear();
+  it('should dispatch error notification with message', () => {
+    const { addNotification } = jest.requireMock('#~/redux/actions/actions');
+    render(
+      <AppActionsProvider>
+        <TestConsumer />
+      </AppActionsProvider>,
+    );
+
     fireEvent.click(screen.getByTestId('notify-error'));
-    expect(mockDispatch).toHaveBeenCalled();
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'danger', title: 'Failed', message: 'Details' }),
+    );
+  });
 
-    mockDispatch.mockClear();
+  it('should dispatch info and warning notifications', () => {
+    const { addNotification } = jest.requireMock('#~/redux/actions/actions');
+    render(
+      <AppActionsProvider>
+        <TestConsumer />
+      </AppActionsProvider>,
+    );
+
     fireEvent.click(screen.getByTestId('notify-info'));
-    expect(mockDispatch).toHaveBeenCalled();
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'info', title: 'Info' }),
+    );
 
-    mockDispatch.mockClear();
+    addNotification.mockClear();
     fireEvent.click(screen.getByTestId('notify-warning'));
-    expect(mockDispatch).toHaveBeenCalled();
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'warning', title: 'Warn' }),
+    );
   });
 
   it('should open and close a modal', async () => {

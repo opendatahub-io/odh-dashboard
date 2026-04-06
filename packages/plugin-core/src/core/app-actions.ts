@@ -1,11 +1,6 @@
 import * as React from 'react';
 
 /**
- * Notification severity levels for toast notifications.
- */
-export type AppNotificationStatus = 'success' | 'error' | 'info' | 'warning';
-
-/**
  * A clickable action rendered within a toast notification.
  */
 export type AppNotificationAction = {
@@ -44,7 +39,10 @@ export type ModalRef = {
  */
 export type AppActions = {
   /** Navigate to an in-app route. */
-  navigate: (path: string) => void;
+  navigate: (
+    path: string,
+    options?: { state?: Record<string, unknown>; replace?: boolean },
+  ) => void;
 
   /** Dispatch a toast notification. */
   notification: AppNotificationActions;
