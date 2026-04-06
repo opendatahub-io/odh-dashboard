@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
@@ -32,6 +33,10 @@ type S3Credentials struct {
 // Use errors.Is to classify CreateClient / NewRealS3Client failures.
 var ErrEndpointValidation = errors.New("endpoint validation failed")
 
+// ErrObjectAlreadyExists is returned by UploadObject when the object key already exists.
+// Uploads use S3 conditional create (If-None-Match: *): 412 Precondition Failed or 409 ConditionalRequestConflict.
+var ErrObjectAlreadyExists = errors.New("s3 object already exists at key")
+
 // ListObjectsOptions contains parameters for listing S3 objects.
 type ListObjectsOptions struct {
 	Path   string // Denotes the current "folder" we should be searching in
@@ -45,6 +50,7 @@ type S3ClientInterface interface {
 	GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error)
 	UploadObject(ctx context.Context, bucket, key string, body io.Reader, contentType string) error
 	ListObjects(ctx context.Context, bucket string, options ListObjectsOptions) (*models.S3ListObjectsResponse, error)
+	ObjectExists(ctx context.Context, bucket, key string) (bool, error)
 }
 
 // RealS3Client implements S3ClientInterface using the AWS SDK.
@@ -119,6 +125,7 @@ func (c *RealS3Client) GetObject(ctx context.Context, bucket, key string) (io.Re
 
 // UploadObject uploads an object to S3 using the transfer manager (same client/endpoint config as GetObject).
 // Body is read until EOF and uploaded to the given bucket and key. contentType is optional (defaults to application/octet-stream).
+// Returns ErrObjectAlreadyExists when S3 reports a conditional write conflict.
 func (c *RealS3Client) UploadObject(ctx context.Context, bucket, key string, body io.Reader, contentType string) error {
 	transferClient := transfermanager.New(c.s3Client)
 
@@ -127,14 +134,29 @@ func (c *RealS3Client) UploadObject(ctx context.Context, bucket, key string, bod
 		Key:         aws.String(key),
 		Body:        body,
 		ContentType: aws.String(contentType),
+		IfNoneMatch: aws.String("*"),
 	}, func(o *transfermanager.Options) {
 		o.Concurrency = c.options.Concurrency
 		o.PartSizeBytes = c.options.PartSizeBytes
 	})
 	if err != nil {
+		if isS3ConditionalCreateConflict(err) {
+			return ErrObjectAlreadyExists
+		}
 		return fmt.Errorf("error uploading object to S3: %w", err)
 	}
 	return nil
+}
+
+func isS3ConditionalCreateConflict(err error) bool {
+	var codedError interface{ ErrorCode() string }
+	if errors.As(err, &codedError) {
+		switch codedError.ErrorCode() {
+		case "PreconditionFailed", "ConditionalRequestConflict":
+			return true
+		}
+	}
+	return false
 }
 
 // ListObjects retrieves a listing of objects from S3.
@@ -195,6 +217,33 @@ func (c *RealS3Client) ListObjects(ctx context.Context, bucket string, options L
 	}
 
 	return result, nil
+}
+
+// ObjectExists checks whether an object key already exists in the given bucket.
+func (c *RealS3Client) ObjectExists(ctx context.Context, bucket, key string) (bool, error) {
+	_, err := c.s3Client.HeadObject(ctx, &awss3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err == nil {
+		return true, nil
+	}
+
+	var notFound *types.NotFound
+	var noSuchKey *types.NoSuchKey
+	if errors.As(err, &notFound) || errors.As(err, &noSuchKey) {
+		return false, nil
+	}
+
+	var codedError interface{ ErrorCode() string }
+	if errors.As(err, &codedError) {
+		switch codedError.ErrorCode() {
+		case "NotFound", "NoSuchKey", "404":
+			return false, nil
+		}
+	}
+
+	return false, fmt.Errorf("error checking object existence in S3: %w", err)
 }
 
 // validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.

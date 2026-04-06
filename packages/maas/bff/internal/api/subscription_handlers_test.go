@@ -237,10 +237,12 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			Expect(actual.Subscription.Priority).To(Equal(int32(5)))
 			Expect(actual.Subscription.TokenMetadata).NotTo(BeNil())
 			Expect(actual.Subscription.TokenMetadata.OrganizationID).To(Equal("org-456"))
-
-			// Should have the model ref summary
+			Expect(actual.Subscription.DisplayName).To(BeAssignableToTypeOf(""))
+			Expect(actual.Subscription.Description).To(BeAssignableToTypeOf(""))
 			Expect(actual.ModelRefs).To(HaveLen(1))
 			Expect(actual.ModelRefs[0].Name).To(Equal("granite-3-8b-instruct"))
+			Expect(actual.ModelRefs[0].DisplayName).To(BeAssignableToTypeOf(""))
+			Expect(actual.ModelRefs[0].Description).To(BeAssignableToTypeOf(""))
 
 			// Auth policies may be empty if not created with the subscription
 			Expect(actual.AuthPolicies).NotTo(BeNil())
@@ -267,11 +269,11 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 		})
 	})
 
-	var _ = Describe("GetSubscriptionFormDataHandler", Ordered, func() {
+	var _ = Describe("GetSubscriptionPolicyFormDataHandler", Ordered, func() {
 		It("returns 200 with groups and model refs", func() {
 			actual, rs, err := setupApiTest[models.SubscriptionFormDataResponse](
 				http.MethodGet,
-				"/api/v1/new-subscription",
+				"/api/v1/subscription-policy-form-data",
 				nil,
 				k8Factory,
 				identity,
@@ -451,4 +453,5 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			Expect(rr.Code).To(Equal(http.StatusBadRequest))
 		})
 	})
+
 })

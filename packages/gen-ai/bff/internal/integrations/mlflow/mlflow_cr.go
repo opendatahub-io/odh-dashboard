@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // MLflow CRD constants for Kubernetes CR auto-discovery.
@@ -32,6 +33,47 @@ var MLflowGVR = schema.GroupVersionResource{
 
 const crDiscoveryTimeout = 10 * time.Second
 
+// fetchMLflowCR retrieves the single cluster-scoped MLflow CR using the in-cluster
+// Kubernetes client, falling back to the local kubeconfig for local development.
+// Returns an error if zero or multiple CRs are found.
+func fetchMLflowCR() (*unstructured.Unstructured, error) {
+	restCfg, err := rest.InClusterConfig()
+	if err != nil {
+		// Not running in-cluster (local dev) — fall back to local kubeconfig
+		loadedCfg, loadErr := clientcmd.NewDefaultClientConfigLoadingRules().Load()
+		if loadErr != nil {
+			return nil, fmt.Errorf("failed to get cluster config (in-cluster and kubeconfig both failed): %w", loadErr)
+		}
+		restCfg, err = clientcmd.NewDefaultClientConfig(*loadedCfg, &clientcmd.ConfigOverrides{}).ClientConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to build kubeconfig client config: %w", err)
+		}
+	}
+
+	dynClient, err := dynamic.NewForConfig(restCfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), crDiscoveryTimeout)
+	defer cancel()
+
+	list, err := dynClient.Resource(MLflowGVR).List(ctx, metav1.ListOptions{Limit: 2})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list MLflow CRs: %w", err)
+	}
+
+	if len(list.Items) == 0 {
+		return nil, fmt.Errorf("no MLflow CR found in the cluster")
+	}
+
+	if len(list.Items) > 1 || list.GetContinue() != "" {
+		return nil, fmt.Errorf("multiple MLflow CRs found; set MLFLOW_URL explicitly or narrow discovery criteria")
+	}
+
+	return &list.Items[0], nil
+}
+
 // DiscoverMLflowURL attempts to find the MLflow tracking URL by listing
 // cluster-scoped MLflow CRs and reading status.address.url. Returns the
 // in-cluster service URL when exactly one MLflow CR exists, or an error if
@@ -44,33 +86,49 @@ const crDiscoveryTimeout = 10 * time.Second
 // mlflows.mlflow.opendatahub.io at the cluster scope for auto-discovery
 // to succeed.
 func DiscoverMLflowURL() (string, error) {
-	restCfg, err := rest.InClusterConfig()
+	cr, err := fetchMLflowCR()
 	if err != nil {
-		return "", fmt.Errorf("failed to get in-cluster config: %w", err)
+		return "", err
 	}
+	return parseAddressURL(cr)
+}
 
-	dynClient, err := dynamic.NewForConfig(restCfg)
+// DiscoverMLflowExternalURL attempts to find the external MLflow URL by reading
+// status.url from the cluster-scoped MLflow CR. This is the public-facing URL
+// suitable for use in generated client code.
+func DiscoverMLflowExternalURL() (string, error) {
+	cr, err := fetchMLflowCR()
 	if err != nil {
-		return "", fmt.Errorf("failed to create dynamic client: %w", err)
+		return "", err
+	}
+	return parseExternalURL(cr)
+}
+
+// parseExternalURL extracts status.url from an unstructured MLflow CR.
+func parseExternalURL(item *unstructured.Unstructured) (string, error) {
+	status, ok := item.Object["status"].(map[string]any)
+	if !ok {
+		return "", fmt.Errorf("MLflow CR %q has no status field", item.GetName())
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), crDiscoveryTimeout)
-	defer cancel()
-
-	list, err := dynClient.Resource(MLflowGVR).List(ctx, metav1.ListOptions{Limit: 2})
-	if err != nil {
-		return "", fmt.Errorf("failed to list MLflow CRs: %w", err)
+	externalURL, ok := status["url"].(string)
+	if !ok {
+		return "", fmt.Errorf("MLflow CR %q has no status.url field", item.GetName())
+	}
+	externalURL = strings.TrimSpace(externalURL)
+	if externalURL == "" {
+		return "", fmt.Errorf("MLflow CR %q has empty status.url", item.GetName())
 	}
 
-	if len(list.Items) == 0 {
-		return "", fmt.Errorf("no MLflow CR found in the cluster")
+	parsed, err := url.ParseRequestURI(externalURL)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return "", fmt.Errorf("MLflow CR %q has invalid status.url", item.GetName())
+	}
+	if parsed.User != nil {
+		return "", fmt.Errorf("MLflow CR %q status.url must not include credentials", item.GetName())
 	}
 
-	if len(list.Items) > 1 || list.GetContinue() != "" {
-		return "", fmt.Errorf("multiple MLflow CRs found; set MLFLOW_URL explicitly or narrow discovery criteria")
-	}
-
-	return parseAddressURL(&list.Items[0])
+	return externalURL, nil
 }
 
 // parseAddressURL extracts status.address.url from an unstructured MLflow CR.

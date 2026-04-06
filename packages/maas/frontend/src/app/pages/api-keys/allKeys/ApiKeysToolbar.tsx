@@ -16,7 +16,7 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon, PlusIcon } from '@patternfly/react-icons';
 import { APIKey, APIKeyStatus, ApiKeyFilterDataType, STATUS_OPTIONS } from '~/app/types/api-key';
-import ApiKeysActions from '../ApiKeysActions';
+import ApiKeysActions from '~/app/pages/api-keys/ApiKeysActions';
 
 type ApiKeysToolbarProps = {
   setIsModalOpen: (isOpen: boolean) => void;
@@ -27,9 +27,9 @@ type ApiKeysToolbarProps = {
   onStatusToggle: (status: APIKeyStatus) => void;
   onStatusClear: (status: APIKeyStatus) => void;
   activeApiKeys: APIKey[];
+  isMaasAdmin: boolean;
   refresh: () => void;
   onClearFilters: () => void;
-  isMaasAdmin: boolean;
 };
 
 const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
@@ -41,9 +41,9 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
   onStatusToggle,
   onStatusClear,
   activeApiKeys,
+  isMaasAdmin,
   refresh,
   onClearFilters,
-  isMaasAdmin,
 }) => {
   const [isStatusSelectOpen, setIsStatusSelectOpen] = React.useState(false);
 
@@ -154,7 +154,11 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
               >
                 Create API key
               </Button>
-              <ApiKeysActions apiKeyCount={activeApiKeys.length} onRefresh={refresh} />
+              <ApiKeysActions
+                apiKeyCount={activeApiKeys.length}
+                isMaasAdmin={isMaasAdmin}
+                onRefresh={refresh}
+              />
             </>
           </ToolbarItem>
         </ToolbarGroup>

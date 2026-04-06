@@ -11,7 +11,7 @@ import {
   StackItem,
   Content,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useDimensions from 'react-cool-dimensions';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import ManageProjectModal from '#~/pages/projects/screens/projects/ManageProjectModal';
@@ -122,10 +122,9 @@ const ProjectsSection: React.FC = () => {
             <FlexItem>
               <Button
                 data-testid="goto-projects-link"
-                // Should not use component="a" due to no href
                 variant="link"
                 isInline
-                onClick={() => navigate('/projects')}
+                component={(props: React.ComponentProps<'a'>) => <Link {...props} to="/projects" />}
               >
                 Go to <b>Projects</b>
               </Button>

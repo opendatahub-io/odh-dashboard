@@ -68,10 +68,39 @@ func (a *accessDeniedS3Client) ListObjects(_ context.Context, _ string, _ s3int.
 	return nil, &accessDeniedError{}
 }
 
+type keyCollisionS3Client struct {
+	s3mocks.MockS3Client
+	existingKeys map[string]bool
+	uploadedKey  string
+}
+
+func newKeyCollisionS3Client(existingKeys ...string) *keyCollisionS3Client {
+	existing := make(map[string]bool, len(existingKeys))
+	for _, key := range existingKeys {
+		existing[key] = true
+	}
+	return &keyCollisionS3Client{existingKeys: existing}
+}
+
+func (c *keyCollisionS3Client) ObjectExists(_ context.Context, _ string, key string) (bool, error) {
+	return c.existingKeys[key], nil
+}
+
+func (c *keyCollisionS3Client) UploadObject(_ context.Context, _ string, key string, body io.Reader, _ string) error {
+	if c.existingKeys[key] {
+		return s3int.ErrObjectAlreadyExists
+	}
+	c.uploadedKey = key
+	c.existingKeys[key] = true
+	_, err := io.Copy(io.Discard, body)
+	return err
+}
+
 // s3HandlerTestAppOptions configures test-only App fields (e.g. PostS3FileHandler upload caps).
 type s3HandlerTestAppOptions struct {
-	S3PostMaxFilePartBytes    int64
-	S3PostMaxRequestBodyBytes int64
+	S3PostMaxFilePartBytes     int64
+	S3PostMaxRequestBodyBytes  int64
+	S3PostMaxCollisionAttempts int
 }
 
 // newS3HandlerTestApp creates a lightweight App wired with K8s and S3 mock factories,
@@ -92,6 +121,7 @@ func newS3HandlerTestApp(
 	if opts != nil {
 		app.s3PostMaxFilePartBytes = opts.S3PostMaxFilePartBytes
 		app.s3PostMaxRequestBodyBytes = opts.S3PostMaxRequestBodyBytes
+		app.s3PostMaxCollisionAttempts = opts.S3PostMaxCollisionAttempts
 	}
 	return app
 }
@@ -1210,19 +1240,13 @@ func TestPostS3FileHandler_FilePartExceedsMaxBytes_Returns413(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	var buf bytes.Buffer
-	mw := multipart.NewWriter(&buf)
-	part, err := mw.CreateFormFile("file", "blob.bin")
-	assert.NoError(t, err)
-	_, err = part.Write(filePayload)
-	assert.NoError(t, err)
-	assert.NoError(t, mw.Close())
+	body, contentType := buildMultipartFileUpload(t, "file", "blob.bin", filePayload)
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodPost,
 		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.bin",
-		&buf,
-		mw.FormDataContentType(),
+		body,
+		contentType,
 		factory,
 		s3mocks.NewMockClientFactory(),
 		identity,
@@ -1258,19 +1282,13 @@ func TestPostS3FileHandler_FilePartUnderMaxBytes_Created(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	var buf bytes.Buffer
-	mw := multipart.NewWriter(&buf)
-	part, err := mw.CreateFormFile("file", "small.bin")
-	assert.NoError(t, err)
-	_, err = part.Write(filePayload)
-	assert.NoError(t, err)
-	assert.NoError(t, mw.Close())
+	body, contentType := buildMultipartFileUpload(t, "file", "small.bin", filePayload)
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodPost,
 		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=small.bin",
-		&buf,
-		mw.FormDataContentType(),
+		body,
+		contentType,
 		factory,
 		s3mocks.NewMockClientFactory(),
 		identity,
@@ -1280,6 +1298,139 @@ func TestPostS3FileHandler_FilePartUnderMaxBytes_Created(t *testing.T) {
 	res := rr.Result()
 	defer res.Body.Close()
 	assert.Equal(t, http.StatusCreated, res.StatusCode)
+}
+
+func TestPostS3FileHandler_ResolvesCollidingKeyWithNumericSuffix(t *testing.T) {
+	t.Parallel()
+	secret := validS3Secret("aws-secret-1", "test-namespace")
+	k8sClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: k8sClient}
+	collisionClient := newKeyCollisionS3Client("file.pdf")
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(collisionClient)
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	body, contentType := buildMultipartFileUpload(t, "file", "file.pdf", []byte("content"))
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		body,
+		contentType,
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+	assert.Equal(t, "file-1.pdf", collisionClient.uploadedKey)
+
+	var responseBody map[string]any
+	err := json.Unmarshal(rr.Body.Bytes(), &responseBody)
+	assert.NoError(t, err)
+	assert.Equal(t, true, responseBody["uploaded"])
+	assert.Equal(t, "file-1.pdf", responseBody["key"])
+}
+
+func TestPostS3FileHandler_ResolvesCollidingNumericSuffix(t *testing.T) {
+	t.Parallel()
+	secret := validS3Secret("aws-secret-1", "test-namespace")
+	k8sClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: k8sClient}
+	collisionClient := newKeyCollisionS3Client("file-5.pdf")
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(collisionClient)
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	body, contentType := buildMultipartFileUpload(t, "file", "file-5.pdf", []byte("content"))
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file-5.pdf",
+		body,
+		contentType,
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+	assert.Equal(t, "file-6.pdf", collisionClient.uploadedKey)
+}
+
+func TestResolveNonCollidingS3Key_PreservesDirectoryPrefix(t *testing.T) {
+	t.Parallel()
+	client := newKeyCollisionS3Client("folder/sub/file.pdf", "folder/sub/file-1.pdf")
+	key, err := resolveNonCollidingS3Key(context.Background(), client, "my-bucket", "folder/sub/file.pdf", 10)
+	assert.NoError(t, err)
+	assert.Equal(t, "folder/sub/file-2.pdf", key)
+}
+
+// headRaceS3Client simulates HeadObject showing a free key while PutObject hits a conditional conflict (concurrent writer).
+type headRaceS3Client struct{ s3mocks.MockS3Client }
+
+func (headRaceS3Client) ObjectExists(context.Context, string, string) (bool, error) {
+	return false, nil
+}
+
+func (headRaceS3Client) UploadObject(context.Context, string, string, io.Reader, string) error {
+	return s3int.ErrObjectAlreadyExists
+}
+
+func TestPostS3FileHandler_PutConflictAfterHeadReturns409(t *testing.T) {
+	t.Parallel()
+	secret := validS3Secret("aws-secret-1", "test-namespace")
+	k8sClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: k8sClient}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&headRaceS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	body, contentType := buildMultipartFileUpload(t, "file", "race.pdf", []byte("content"))
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=race.pdf",
+		body,
+		contentType,
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusConflict, res.StatusCode)
+	var env ErrorEnvelope
+	err := json.Unmarshal(rr.Body.Bytes(), &env)
+	assert.NoError(t, err)
+	assert.NotNil(t, env.Error)
+	assert.Equal(t, "409", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "upload conflict")
+}
+
+func buildMultipartFileUpload(t *testing.T, fieldName, fileName string, contents []byte) (*bytes.Buffer, string) {
+	t.Helper()
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	part, err := writer.CreateFormFile(fieldName, fileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = part.Write(contents); err != nil {
+		t.Fatal(err)
+	}
+	if err = writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return &buf, writer.FormDataContentType()
 }
 
 // TestPostS3FileHandler_TotalRequestBodyExceedsCap_Returns413 ensures the body-wide MaxBytesReader

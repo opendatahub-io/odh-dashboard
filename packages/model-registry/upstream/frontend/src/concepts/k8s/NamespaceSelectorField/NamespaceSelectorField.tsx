@@ -44,6 +44,9 @@ export type NamespaceSelectorFieldProps = {
   hasAccess?: boolean | undefined;
   isLoading?: boolean;
   error?: Error | undefined;
+  cannotCheck?: boolean;
+  registryName?: string;
+  selectorOnly?: boolean;
 };
 
 const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
@@ -52,6 +55,9 @@ const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
   hasAccess,
   isLoading,
   error,
+  cannotCheck,
+  registryName,
+  selectorOnly,
 }) => {
   const labelHelpRef = useRef<HTMLSpanElement>(null);
   const [namespaces, namespacesLoaded, namespacesLoadError] = useNamespaces();
@@ -126,7 +132,7 @@ const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
         onChange={handleChange}
         placeholder="Select a namespace"
         isDisabled={namespaces.length === 0}
-        isFullWidth
+        isFullWidth={!selectorOnly}
         isScrollable
         maxMenuHeight="300px"
         dataTestId="form-namespace-selector"
@@ -190,6 +196,18 @@ const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
           </Popover>
         </Alert>
       )}
+      {selectedNamespace && !isLoading && cannotCheck && (
+        <Alert
+          isInline
+          variant="info"
+          title="Cannot check registry access with your permissions"
+          data-testid="namespace-registry-cannot-check-alert"
+          className="pf-v6-u-mt-sm"
+        >
+          Make sure this namespace has access to the {registryName} registry before proceeding, or
+          the model storage job will fail.
+        </Alert>
+      )}
       {error && (
         <Alert
           isInline
@@ -203,6 +221,10 @@ const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
       )}
     </>
   );
+
+  if (selectorOnly) {
+    return namespaceInputElement;
+  }
 
   return (
     <ThemeAwareFormGroupWrapper

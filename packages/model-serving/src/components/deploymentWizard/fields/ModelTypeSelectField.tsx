@@ -96,7 +96,8 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
         <Checkbox
           id="legacy-mode-checkbox"
           data-testid="legacy-mode-checkbox"
-          label="Deploy this model in legacy mode using a serving runtime and inference server"
+          label={<span className="pf-v6-c-form__label-text">Use legacy deployment method</span>}
+          description="Deploy this model using a serving runtime and inference server. This deployment method does not support MaaS."
           isChecked={modelType.legacyVLLM}
           onChange={(_e, checked) => setModelType?.({ ...modelType, legacyVLLM: checked })}
           isDisabled={isEditing || isDisabled}

@@ -1,6 +1,7 @@
 import { useQueries } from '@tanstack/react-query';
 import React from 'react';
-import { useS3ListFilesQuery, fetchS3File, fetchS3Files } from '~/app/hooks/queries';
+import { useS3ListFilesQuery, fetchS3File } from '~/app/hooks/queries';
+import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
 import { isTabularRun, getOptimizedMetricForTask } from '~/app/utilities/utils';
@@ -76,11 +77,18 @@ export function useAutomlResults(
         const path = `${prefixObj.prefix}model_artifact`;
         return {
           queryKey: ['s3Files', namespace, path],
-          queryFn: async () => {
+          queryFn: async ({ signal }) => {
             if (!namespace) {
               throw new Error('namespace is required');
             }
-            return fetchS3Files(namespace, path);
+            return getS3Files(
+              '',
+              { signal },
+              {
+                namespace,
+                path,
+              },
+            );
           },
           enabled: Boolean(namespace && s3Files?.common_prefixes),
           retry: false,
@@ -226,7 +234,9 @@ export function useAutomlResults(
         },
         location: {
           model_directory: directory,
-          predictor: `${directory}predictor/predictor.pkl`,
+          // Points to the predictor folder (not the pkl file) — used as the artifact URI
+          // when registering the model in Model Registry.
+          predictor: `${directory}predictor`,
           notebook: `${directory}notebooks/automl_predictor_notebook.ipynb`,
         },
         metrics: {

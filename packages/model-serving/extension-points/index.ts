@@ -463,3 +463,50 @@ export const isWizardFieldExtractorExtension = <T = unknown, D extends Deploymen
   extension: Extension,
 ): extension is WizardFieldExtractorExtension<T, D> =>
   extension.type === 'model-serving.deployment/wizard-field-extractor';
+
+/**
+ * Extension for performing dry-run validation of side-effect resources before a deployment is saved.
+ * This runs before the inference service is created, in the same phase as other dry runs,
+ * allowing extensions to validate that their associated resources can be created without conflicts.
+ * Unlike post-deploy, errors thrown here propagate and block the deployment.
+ *
+ * The `fieldId` links this to a specific WizardField2Extension so it is only
+ * executed when that field is active.
+ */
+export type WizardFieldDeploymentFunctionsExtension<
+  T = unknown,
+  D extends Deployment = Deployment,
+> = Extension<
+  'model-serving.deployment/wizard-field-deployment-functions',
+  {
+    /** The ID of the WizardField this deployment functions extension is associated with */
+    fieldId: string;
+    /** The platform this deployment functions extension applies to (e.g., 'llmd-serving') */
+    platform: D['modelServingPlatformId'];
+    /**
+     * Async function that dry-runs before the deployment is saved. Throw to block the deployment.
+     * @param fieldData - The current data from the associated wizard field
+     * @param wizardState - The full wizard form state for context (includes project name, etc.)
+     * @param modelResource - The assembled model resource (not yet created, may lack uid/namespace)
+     * @param existingDeployment - The deployment before editing, or undefined for a create
+     */
+    preDeploy: CodeRef<
+      (
+        fieldData: T,
+        wizardState: WizardFormData['state'],
+        deployment: D,
+        existingDeployment?: D,
+      ) => Promise<D>
+    >;
+    postDeploy: CodeRef<
+      (fieldData: T, deployedModel: D['model'], existingDeployment?: D) => Promise<void>
+    >;
+  }
+>;
+export const isWizardFieldDeploymentFunctionsExtension = <
+  T = unknown,
+  D extends Deployment = Deployment,
+>(
+  extension: Extension,
+): extension is WizardFieldDeploymentFunctionsExtension<T, D> =>
+  extension.type === 'model-serving.deployment/wizard-field-deployment-functions';

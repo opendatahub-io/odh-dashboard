@@ -64,7 +64,7 @@ export enum ModelStateLabel {
   STOPPED = 'Stopped',
   STOPPING = 'Stopping',
   STARTING = 'Starting',
-  STARTED = 'Started',
+  READY = 'Ready',
   RUNNING = 'Running',
   FAILED_TO_LOAD = 'Failed to load',
 }

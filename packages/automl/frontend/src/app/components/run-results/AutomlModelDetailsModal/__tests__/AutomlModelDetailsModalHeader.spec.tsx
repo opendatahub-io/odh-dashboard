@@ -4,7 +4,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
-import AutomlModelDetailsModalHeader from '../AutomlModelDetailsModalHeader';
+import AutomlModelDetailsModalHeader from '~/app/components/run-results/AutomlModelDetailsModal/AutomlModelDetailsModalHeader';
 
 const buildModel = (
   name: string,
@@ -13,7 +13,7 @@ const buildModel = (
 ): AutomlModel => ({
   display_name: name,
   model_config: { eval_metric: evalMetric },
-  location: { model_directory: '/', predictor: '/p.pkl', notebook: '/n.ipynb' },
+  location: { model_directory: '/', predictor: '/predictor', notebook: '/n.ipynb' },
   metrics: { test_data: metrics },
 });
 

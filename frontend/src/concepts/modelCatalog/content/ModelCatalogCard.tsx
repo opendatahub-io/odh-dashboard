@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   Button,
   Card,
@@ -17,10 +18,9 @@ import {
   StackItem,
   Truncate,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
 import { CatalogModel } from '#~/concepts/modelCatalog/types';
 import { getCatalogModelDetailsRouteFromModel } from '#~/routes/modelCatalog/catalogModelDetails';
-import { getTagFromModel } from '#~/pages/modelCatalog/utils';
+import { getTagFromModel } from '#~/concepts/modelCatalog/utils';
 import { RhUiTagIcon } from '#~/images/icons';
 import { ModelCatalogLabels } from '#~/concepts/modelCatalog/content/ModelCatalogLabels';
 import TruncatedText from '#~/components/TruncatedText';
@@ -30,7 +30,7 @@ export const ModelCatalogCard: React.FC<{
   source: string;
   truncate?: boolean;
 }> = ({ model, source, truncate = false }) => {
-  const navigate = useNavigate();
+  const modelDetailsHref = getCatalogModelDetailsRouteFromModel(model, source);
   return (
     <Card isFullHeight data-testid="model-catalog-card">
       <CardHeader>
@@ -55,31 +55,50 @@ export const ModelCatalogCard: React.FC<{
       <CardBody>
         <Stack hasGutter>
           <StackItem isFilled>
-            <Button
-              data-testid="model-catalog-detail-link"
-              variant="link"
-              isInline
-              component="a"
-              onClick={() => {
-                navigate(getCatalogModelDetailsRouteFromModel(model, source) || '#');
-              }}
-              style={{
-                fontSize: 'var(--pf-t--global--font--size--body--default)',
-                fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-              }}
-            >
-              {truncate ? (
-                <Truncate
-                  data-testid="model-catalog-card-name"
-                  content={model.name}
-                  position="middle"
-                  tooltipPosition="top"
-                  style={{ textDecoration: 'underline' }}
-                />
-              ) : (
-                <span>{model.name}</span>
-              )}
-            </Button>
+            {modelDetailsHref ? (
+              <Button
+                data-testid="model-catalog-detail-link"
+                variant="link"
+                isInline
+                component={(props: React.ComponentProps<'a'>) => (
+                  <Link {...props} to={modelDetailsHref} />
+                )}
+                style={{
+                  fontSize: 'var(--pf-t--global--font--size--body--default)',
+                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                }}
+              >
+                {truncate ? (
+                  <Truncate
+                    data-testid="model-catalog-card-name"
+                    content={model.name}
+                    position="middle"
+                    tooltipPosition="top"
+                  />
+                ) : (
+                  <span>{model.name}</span>
+                )}
+              </Button>
+            ) : (
+              <span
+                data-testid="model-catalog-detail-link"
+                style={{
+                  fontSize: 'var(--pf-t--global--font--size--body--default)',
+                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                }}
+              >
+                {truncate ? (
+                  <Truncate
+                    data-testid="model-catalog-card-name"
+                    content={model.name}
+                    position="middle"
+                    tooltipPosition="top"
+                  />
+                ) : (
+                  model.name
+                )}
+              </span>
+            )}
             <Split hasGutter>
               <SplitItem>
                 <Icon isInline>

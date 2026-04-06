@@ -5,17 +5,16 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"os/signal"
-	"strings"
-	"syscall"
-
-	"github.com/opendatahub-io/automl-library/bff/internal/api"
-	"github.com/opendatahub-io/automl-library/bff/internal/config"
-
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 	"time"
+
+	"github.com/opendatahub-io/automl-library/bff/internal/api"
+	"github.com/opendatahub-io/automl-library/bff/internal/config"
 )
 
 func main() {

@@ -25,6 +25,19 @@ jest.mock('~/app/hooks/useEvalHubHealth', () => ({
   default: () => mockUseEvalHubHealth(),
 }));
 
+const mockUseUser = jest.fn<{ clusterAdmin: boolean }, []>();
+
+jest.mock('~/app/hooks/useUser', () => ({
+  __esModule: true,
+  default: () => mockUseUser(),
+}));
+
+jest.mock('@odh-dashboard/internal/components/WhosMyAdministrator', () => {
+  const WhosMyAdministrator = () => <div data-testid="whos-my-administrator" />;
+  WhosMyAdministrator.displayName = 'WhosMyAdministrator';
+  return WhosMyAdministrator;
+});
+
 jest.mock('mod-arch-core', () => ({
   useNamespaceSelector: jest.fn().mockReturnValue({
     namespaces: [{ name: 'test-project' }],
@@ -78,6 +91,7 @@ describe('EvaluationsPage', () => {
     jest.clearAllMocks();
     mockUseEvalHubHealth.mockReturnValue({ isHealthy: true, loaded: true, error: undefined });
     mockUseEvaluationJobs.mockReturnValue([[], true, undefined, mockRefresh]);
+    mockUseUser.mockReturnValue({ clusterAdmin: true });
   });
 
   it('should render the page with correct title and description', () => {
@@ -96,18 +110,61 @@ describe('EvaluationsPage', () => {
       mockUseEvalHubHealth.mockReturnValue({ isHealthy: false, loaded: true, error: undefined });
     });
 
-    it('should show the unavailable empty state', () => {
-      renderPage('test-project');
-      expect(screen.getByTestId('evalhub-unavailable-empty-state')).toBeInTheDocument();
+    describe('when user is a cluster admin', () => {
+      beforeEach(() => {
+        mockUseUser.mockReturnValue({ clusterAdmin: true });
+      });
+
+      it('should show the admin unavailable empty state', () => {
+        renderPage('test-project');
+        expect(screen.getByTestId('evalhub-unavailable-empty-state')).toBeInTheDocument();
+      });
+
+      it('should display the correct admin unavailable message', () => {
+        renderPage('test-project');
+        expect(
+          screen.getByText(
+            /To use evaluations, enable the evaluation service using the TrustyAI Operator/,
+          ),
+        ).toBeInTheDocument();
+      });
     });
 
-    it('should display the correct unavailable message', () => {
+    describe('when user is not a cluster admin', () => {
+      beforeEach(() => {
+        mockUseUser.mockReturnValue({ clusterAdmin: false });
+      });
+
+      it('should show the non-admin empty state', () => {
+        renderPage('test-project');
+        expect(screen.getByTestId('evalhub-nonadmin-empty-state')).toBeInTheDocument();
+      });
+
+      it('should display the correct non-admin message', () => {
+        renderPage('test-project');
+        expect(
+          screen.getByText(
+            /To use this service, request that your administrator enable evaluations for this cluster/,
+          ),
+        ).toBeInTheDocument();
+      });
+
+      it('should show the Who is my administrator link', () => {
+        renderPage('test-project');
+        expect(screen.getByTestId('whos-my-administrator')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('when the health check fails with a real error', () => {
+    it('should not show the unavailable empty state', () => {
+      mockUseEvalHubHealth.mockReturnValue({
+        isHealthy: false,
+        loaded: true,
+        error: new Error('Network Error'),
+      });
       renderPage('test-project');
-      expect(
-        screen.getByText(
-          /To use evaluations, enable the evaluation service using the TrustyAI Operator/,
-        ),
-      ).toBeInTheDocument();
+      expect(screen.queryByTestId('evalhub-unavailable-empty-state')).not.toBeInTheDocument();
     });
   });
 

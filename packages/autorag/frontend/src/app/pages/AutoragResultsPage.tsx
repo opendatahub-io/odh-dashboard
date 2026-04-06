@@ -1,8 +1,9 @@
 import { Breadcrumb, BreadcrumbItem, Skeleton } from '@patternfly/react-core';
 import { useNamespaceSelector } from 'mod-arch-core';
-import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
+import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useParams } from 'react-router';
+import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
@@ -40,6 +41,7 @@ function AutoragResultsPage(): React.JSX.Element {
     isLoading: patternsLoading,
     isError: patternsError,
     error: patternsLoadError,
+    ragPatternsBasePath,
   } = useAutoragResults(runId, namespace, pipelineRun);
 
   const contextValue = React.useMemo(
@@ -49,13 +51,21 @@ function AutoragResultsPage(): React.JSX.Element {
         patterns,
         pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
         patternsLoading,
+        ragPatternsBasePath,
       }),
-    [pipelineRun, patterns, pipelineRunPending, pipelineRunFetching, patternsLoading],
+    [
+      pipelineRun,
+      patterns,
+      pipelineRunPending,
+      pipelineRunFetching,
+      patternsLoading,
+      ragPatternsBasePath,
+    ],
   );
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title="AutoRAG" objectType={ProjectObjectType.pipelineExperiment} />}
+      title={<AutoragHeader />}
       subtext={
         <h2 className="pf-v6-u-mt-sm">
           {pipelineRun ? `"${pipelineRun.display_name}" results` : <Skeleton width="300px" />}

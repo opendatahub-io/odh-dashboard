@@ -13,7 +13,9 @@ export const techPreviewFlags = {
   projectRBAC: true,
   observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
+  externalVectorStores: false,
   vLLMDeploymentOnMaaS: false,
+  promptManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -215,6 +217,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MLFLOW]: {
     featureFlags: ['mlflow'],
+    requiredComponents: [DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
@@ -241,4 +244,5 @@ export const DataScienceStackComponentMap: Record<string, string> = {
   [DataScienceStackComponent.TRUSTY_AI]: 'TrustyAI',
   [DataScienceStackComponent.WORKBENCHES]: 'Workbenches',
   [DataScienceStackComponent.TRAINER]: 'Trainer',
+  [DataScienceStackComponent.MLFLOW]: 'MLflow',
 };
