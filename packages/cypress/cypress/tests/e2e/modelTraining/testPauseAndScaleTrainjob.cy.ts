@@ -29,7 +29,7 @@ import type { TrainJobTestData } from '../../../types';
 const INITIAL_NODE_COUNT = 1;
 const UPDATED_NODE_COUNT = 2;
 
-describe('[Automation Bug: RHOAIENG-52544] Verify Pause, Scale Node Count, and Resume Training Job', () => {
+describe('Verify Pause, Scale Node Count, and Resume Training Job', () => {
   let testData: TrainJobTestData;
   let skipTest = false;
   let projectName: string;
@@ -122,7 +122,7 @@ describe('[Automation Bug: RHOAIENG-52544] Verify Pause, Scale Node Count, and R
   it(
     'Should pause running job, update node count, resume, and complete training',
     {
-      tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@Maintain'],
+      tags: ['@Sanity', '@SanitySet1', '@ModelTraining'],
     },
     () => {
       if (skipTest) {
@@ -150,12 +150,16 @@ describe('[Automation Bug: RHOAIENG-52544] Verify Pause, Scale Node Count, and R
         .contains(TrainingJobState.RUNNING, { timeout: 120000 })
         .should('be.visible');
 
-      cy.step('Wait for training job to make some progress before pausing');
+      cy.step('Wait for training job to reach at least 30% progress before pausing');
       trainingJobTable
         .getTableRow(trainJobName)
         .findStatusProgressBar()
         .should('be.visible')
-        .contains('27%', { timeout: 60000 });
+        .contains(/\d+%/, { timeout: 60000 })
+        .should(($el) => {
+          const percentage = Number($el.text().match(/(\d+)%/)?.[1] ?? 0);
+          expect(percentage, 'progress should be at least 30%').to.be.at.least(30);
+        });
 
       cy.step('Click on the training job status to open modal');
       trainingJobTable.getTableRow(trainJobName).findStatus().click();
