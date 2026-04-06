@@ -46,7 +46,7 @@ const ManagedPipelinesSettingsSection: React.FC<ManagedPipelinesSettingsSectionP
       id="managed-pipelines-checkbox"
       data-testid="managed-pipelines-checkbox"
       name="managed-pipelines-checkbox"
-      label="AutoML and AutoRAG pipelines"
+      label="Enable AutoML and AutoRAG pipelines"
       isChecked={isChecked}
       onChange={onChange}
       description="The AutoML and AutoRAG pipelines contain the steps and instructions for automated model training and RAG pattern experimentation."
