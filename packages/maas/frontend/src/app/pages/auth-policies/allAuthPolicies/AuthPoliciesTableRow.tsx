@@ -13,6 +13,11 @@ type AuthPoliciesTableRowProps = {
   setDeleteAuthPolicy: (authPolicy: MaaSAuthPolicy) => void;
 };
 
+const labelHelper = (count: number, singular: string, plural: string) => {
+  const label = `${count.toString()} ${count === 1 ? singular : plural}`;
+  return <Label color="grey">{label}</Label>;
+};
+
 const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   authPolicy,
   columns,
@@ -39,18 +44,15 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         <TableRowTitleDescription
           title={
             <Link to={`${URL_PREFIX}/auth-policies/view/${policyNameSegment(authPolicy.name)}`}>
-              {authPolicy.name}
+              {authPolicy.displayName ?? authPolicy.name}
             </Link>
           }
+          description={authPolicy.description ?? ''}
           truncateDescriptionLines={2}
         />
       </Td>
-      <Td dataLabel={columns[1].label}>
-        <Label color="grey">{`${groupsCount.toString()} ${groupsCount === 1 ? 'Group' : 'Groups'}`}</Label>
-      </Td>
-      <Td dataLabel={columns[2].label}>
-        <Label color="grey">{`${modelsCount.toString()} ${modelsCount === 1 ? 'Model' : 'Models'}`}</Label>
-      </Td>
+      <Td dataLabel={columns[1].label}>{labelHelper(groupsCount, 'Group', 'Groups')}</Td>
+      <Td dataLabel={columns[2].label}>{labelHelper(modelsCount, 'Model', 'Models')}</Td>
       <Td isActionCell>
         <ActionsColumn
           data-testid="auth-policy-actions"
