@@ -16,5 +16,6 @@ export const BFF_API_VERSION = 'v1';
 export const MANDATORY_NAMESPACE = process.env.MANDATORY_NAMESPACE || undefined;
 export const COMPANY_URI = process.env.COMPANY_URI || 'oci://kubeflow.io';
 export const MOCK_API_ENABLED = process.env.MOCK_API_ENABLED === 'true';
+export const SHOW_PRE_GA_BANNER = process.env.SHOW_PRE_GA_BANNER === 'true';
 
 export const CONTENT_TYPE_KEY = 'Content-Type';

@@ -12,6 +12,7 @@ import { NotebookContextProvider } from '~/app/context/NotebookContext';
 import ToastNotifications from '~/app/standalone/ToastNotifications';
 import NavBar from '~/app/standalone/NavBar';
 import NavSidebar from '~/app/standalone/NavSidebar';
+import PreGABanner from '~/app/standalone/PreGABanner';
 
 const App: React.FC = () => {
   const { config } = useModularArchContext();
@@ -43,6 +44,7 @@ const App: React.FC = () => {
                   isManagedSidebar={isStandalone}
                   sidebar={isStandalone ? <NavSidebar /> : <PageSidebar isSidebarOpen={false} />}
                 >
+                  <PreGABanner />
                   <AppRoutes />
                   <ToastNotifications />
                 </Page>
