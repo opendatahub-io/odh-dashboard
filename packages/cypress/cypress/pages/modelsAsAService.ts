@@ -941,6 +941,80 @@ class ViewSubscriptionPage {
   }
 }
 
+class AuthPoliciesPage {
+  visit(): void {
+    cy.visitWithLogin('/maas/auth-policies');
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('auth-policies-table');
+  }
+
+  findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().find('tbody tr');
+  }
+
+  findCreateAuthPolicyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-auth-policy-button');
+  }
+
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('auth-policy-actions');
+  }
+
+  getRow(name: string): AuthPolicyTableRow {
+    return new AuthPolicyTableRow(() =>
+      this.findTable().find('tbody tr').contains('td', name).parents('tr'),
+    );
+  }
+
+  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-state-title');
+  }
+}
+
+class AuthPolicyTableRow extends TableRow {
+  findName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Name"]');
+  }
+
+  findGroups(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Groups"]');
+  }
+
+  findModels(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Models"]');
+  }
+
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-testid="auth-policy-actions"]');
+  }
+}
+
+class DeleteAuthPolicyModal extends DeleteModal {
+  constructor() {
+    super('Delete Auth Policy?');
+  }
+
+  findInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText('Delete modal input');
+  }
+
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: /Delete/, hidden: true });
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
@@ -958,3 +1032,5 @@ export const viewSubscriptionPage = new ViewSubscriptionPage();
 export const createSubscriptionPage = new CreateSubscriptionPage();
 export const addModelsToSubscriptionModal = new AddModelsToSubscriptionModal();
 export const editRateLimitsModal = new EditRateLimitsModal();
+export const authPoliciesPage = new AuthPoliciesPage();
+export const deleteAuthPolicyModal = new DeleteAuthPolicyModal();

@@ -21,6 +21,7 @@ import {
   SubjectSpec,
   SubscriptionPolicyFormDataResponse,
   SubscriptionInfoResponse,
+  TokenMetadata,
   TokenRateLimit,
   UserSubscription,
   ModelRefInfo,
@@ -81,14 +82,18 @@ const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
   (v.phase === undefined || typeof v.phase === 'string') &&
   (v.endpoint === undefined || typeof v.endpoint === 'string');
 
-const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
+const isTokenMetadata = (v: unknown): v is TokenMetadata =>
+  isRecord(v) && typeof v.organizationId === 'string' && typeof v.costCenter === 'string';
+
+export const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
   isRecord(v) &&
   typeof v.name === 'string' &&
   typeof v.namespace === 'string' &&
   (v.phase === undefined || typeof v.phase === 'string') &&
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isModelRef) &&
-  isSubjectSpec(v.subjects);
+  isSubjectSpec(v.subjects) &&
+  (v.meteringMetadata === undefined || isTokenMetadata(v.meteringMetadata));
 
 /** Coerce null tokenRateLimits (Go nil slice → JSON null) to empty arrays. */
 const normalizeSubscription = (sub: MaaSSubscription): MaaSSubscription => ({

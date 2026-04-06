@@ -102,6 +102,7 @@ import type {
   UserSubscription,
   CreateSubscriptionResponse,
   SubscriptionPolicyFormDataResponse,
+  MaaSAuthPolicy,
 } from '@odh-dashboard/maas/types/subscriptions';
 import type { MaaSModelRef } from '@odh-dashboard/maas/types/maas-model';
 
@@ -1170,6 +1171,15 @@ declare global {
         ((
           type: 'GET /maas/api/v1/subscription-policy-form-data',
           response: OdhResponse<{ data: SubscriptionPolicyFormDataResponse }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/all-policies',
+          response: OdhResponse<{ data: MaaSAuthPolicy[] }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/delete-policy/:name',
+          options: { path: { name: string } },
+          response: OdhResponse<{ data: { message: string } }>,
         ) => Cypress.Chainable<null>);
     }
   }
