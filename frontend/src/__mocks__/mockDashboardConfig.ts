@@ -1,7 +1,6 @@
 import { DashboardConfigKind, KnownLabels } from '#~/k8sTypes';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import { NotebookSize } from '#~/types';
-import { MANAGED_PIPELINES_REPO_LATEST } from '#~/concepts/pipelines/const';
 
 export type MockDashboardConfigType = {
   disableInfo?: boolean;
@@ -66,9 +65,6 @@ export type MockDashboardConfigType = {
       clusterDomains?: string[];
     };
   };
-  pipelinesConfig?: {
-    managedPipelinesImage?: string;
-  };
 };
 
 export const mockDashboardConfig = ({
@@ -127,9 +123,6 @@ export const mockDashboardConfig = ({
       externalProviders: false,
       clusterDomains: [],
     },
-  },
-  pipelinesConfig = {
-    managedPipelinesImage: MANAGED_PIPELINES_REPO_LATEST,
   },
   modelServerSizes = [
     {
@@ -320,6 +313,5 @@ export const mockDashboardConfig = ({
     templateDisablement: ['test-model'],
     hardwareProfileOrder,
     genAiStudioConfig,
-    pipelinesConfig,
   },
 });
