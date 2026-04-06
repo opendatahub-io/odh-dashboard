@@ -1,6 +1,9 @@
 import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
-import { applyTimeoutConfig, extractTimeoutConfig } from '../deployUtils';
+import {
+  applyTimeoutConfig,
+  extractTimeoutConfig,
+} from '../wizardFields/timeout/timeoutApplyExtract';
 
 describe('applyTimeoutConfig', () => {
   let mockInferenceService: InferenceServiceKind;
