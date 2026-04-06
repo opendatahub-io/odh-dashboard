@@ -270,3 +270,47 @@ if enable_frontend:
         resource_deps=["workspaces-backend"],
         labels=["frontend"],
     )
+
+# ============================================================================
+# Istio Gateway Resources
+# ============================================================================
+# Apply the gateway namespace, TLS certificate, and Istio Gateway resources.
+# These are prerequisites for the VirtualServices created by backend/frontend overlays.
+# Note: Istio itself (istiod, ingress gateway) is installed by the Makefile before Tilt starts.
+
+istio_gateway_path = os.path.join(tilt_root, "manifests/istio-gateway")
+k8s_yaml(
+    kustomize(istio_gateway_path, kustomize_bin=kustomize_bin),
+    allow_duplicates=True,
+)
+
+# TODO: determine if we can capture these objects
+#       without hardcoding names here
+# Manage k8s_yaml resources
+# - Apply Tilt-specific grouping/labels
+k8s_resource(
+    objects=[
+        "selfsigned-issuer:clusterissuer",
+        "gateway-tls:certificate",
+        "kubeflow-gateway:gateway",
+    ],
+    new_name="istio-gateway",
+    pod_readiness="ignore",
+    labels=["istio"],
+)
+
+# Port-forward the Istio ingress gateway for local access to production-like routing.
+# Uses local_resource because the ingress gateway is installed by istioctl (not managed by Tilt),
+# and extra_pod_selectors doesn't support port-forwarding on object-only resources.
+gateway_links = [link("https://localhost:8443/workspaces/api/v1/swagger/index.html", "API (Backend)")]
+if enable_frontend:
+    gateway_links.insert(0, link("https://localhost:8443/workspaces/", "Dashboard (Frontend)"))
+
+
+local_resource(
+    "istio-ingressgateway",
+    serve_cmd="kubectl port-forward -n istio-system svc/istio-ingressgateway 8443:443",
+    resource_deps=["istio-gateway", "workspaces-frontend" if enable_frontend else "workspaces-backend"],
+    links=gateway_links,
+    labels=["istio"],
+)
