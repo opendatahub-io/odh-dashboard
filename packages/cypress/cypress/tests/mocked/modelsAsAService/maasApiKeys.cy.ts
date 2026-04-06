@@ -474,10 +474,10 @@ describe('API Keys Page', () => {
     createApiKeyModal.findSubscriptionModelsTable().should('be.visible');
     createApiKeyModal
       .findSubscriptionModelRateLimit('granite-3-8b-instruct')
-      .should('contain.text', '100,000 / 24h');
+      .should('contain.text', '100,000 / 24 hours');
     createApiKeyModal
       .findSubscriptionModelRateLimit('flan-t5-small')
-      .should('contain.text', '200,000 / 24h');
+      .should('contain.text', '200,000 / 24 hours');
 
     createApiKeyModal.findSubmitButton().should('be.disabled');
 

@@ -1151,7 +1151,7 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'POST /maas/api/v1/maasmodel',
-          response: OdhResponse<MaaSModelRef>,
+          response: OdhResponse<{ data: MaaSModelRef }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'DELETE /maas/api/v1/maasmodel/:namespace/:name',

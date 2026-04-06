@@ -223,12 +223,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
   return (
     <PageSection hasBodyWrapper={false}>
       <Form maxWidth="750px">
-        {submitError && (
-          <Alert variant="danger" isInline title="Failed to create subscription">
-            {submitError}
-          </Alert>
-        )}
-
         <K8sNameDescriptionField
           data={nameDescData}
           onDataChange={onNameDescChange}
@@ -248,7 +242,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
           }
         >
           <MultiSelection
-            ariaLabel="Select groups"
+            ariaLabel="Select groups or type to add a new group"
             value={selectedGroups}
             setValue={(newValue) => {
               setGroupsTouched(true);
@@ -257,7 +251,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
             toggleTestId="subscription-groups"
             isCreatable
             createOptionMessage={(value) => `Add group "${value}"`}
-            placeholder="Select groups"
+            placeholder="Select groups or type to add a new group"
             selectionRequired={groupsTouched}
             noSelectedOptionsMessage="One or more groups must be selected"
           />
@@ -277,13 +271,19 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
             data-testid="subscription-priority"
             value={priority == null || Number.isNaN(priority) ? '' : priority}
             min={0}
+            max={2147483647}
             onMinus={() =>
               setPriority(
                 Math.max(0, (priority == null || Number.isNaN(priority) ? 0 : priority) - 1),
               )
             }
             onPlus={() =>
-              setPriority((priority == null || Number.isNaN(priority) ? 0 : priority) + 1)
+              setPriority(
+                Math.min(
+                  2147483647,
+                  (priority == null || Number.isNaN(priority) ? 0 : priority) + 1,
+                ),
+              )
             }
             onChange={(event: React.FormEvent<HTMLInputElement>) => {
               const inputValue = event.currentTarget.value;
@@ -292,7 +292,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
               } else {
                 const parsed = parseInt(inputValue, 10);
                 if (!Number.isNaN(parsed)) {
-                  setPriority(Math.max(0, parsed));
+                  setPriority(Math.min(2147483647, Math.max(0, parsed)));
                 }
               }
             }}
@@ -401,6 +401,12 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
             onChange={(_event, checked) => setCreateAuthPolicy(checked)}
           />
         </FormGroup>
+
+        {submitError && (
+          <Alert variant="danger" isInline title="Failed to create subscription">
+            {submitError}
+          </Alert>
+        )}
 
         <ActionGroup>
           <Button

@@ -24,8 +24,16 @@ type EditRateLimitsModalProps = {
 const DEFAULT_RATE_LIMIT: RateLimit = { count: 1000, time: 1, unit: 'hour' };
 
 const rateLimitSchema = z.object({
-  count: z.number().int().min(1, 'Token count must be greater than 0'),
-  time: z.number().int().min(1, 'Time value must be greater than 0'),
+  count: z
+    .number()
+    .int()
+    .min(1, 'Token count must be greater than 0')
+    .max(Number.MAX_SAFE_INTEGER, 'Token count exceeds maximum allowed value'),
+  time: z
+    .number()
+    .int()
+    .min(1, 'Time value must be greater than 0')
+    .max(Number.MAX_SAFE_INTEGER, 'Time value exceeds maximum allowed value'),
   unit: z.enum(['day', 'hour', 'minute', 'second']),
 });
 
