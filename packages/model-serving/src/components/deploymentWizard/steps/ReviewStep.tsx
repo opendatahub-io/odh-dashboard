@@ -17,7 +17,13 @@ import {
   isConnectionTypeDataField,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
-import { ModelLocationType, ModelTypeLabel, WizardReviewSection, WizardStepTitle } from '../types';
+import {
+  ModelLocationType,
+  ModelTypeLabel,
+  WizardReviewSection,
+  WizardStepTitle,
+  resolveFieldValue,
+} from '../types';
 import { deploymentStrategyRecreate } from '../fields/DeploymentStrategyField';
 import { ExternalDataMap } from '../ExternalDataLoader';
 import { isWizardStepTitle } from '../utils';
@@ -65,7 +71,7 @@ const getStatusSections = (
           key: 'modelType',
           label: 'Model type',
           comp: (state) =>
-            state.modelType.data === ServingRuntimeModelType.PREDICTIVE
+            state.modelType.data?.type === ServingRuntimeModelType.PREDICTIVE
               ? ModelTypeLabel.PREDICTIVE
               : ModelTypeLabel.GENERATIVE,
         },
@@ -247,7 +253,7 @@ const getStatusSections = (
         {
           key: 'modelServer',
           label: 'Serving runtime',
-          comp: (state) => state.modelServer.data?.label || 'Auto-selected',
+          comp: (state) => state.modelServer.data?.selection?.label || 'Auto-selected',
         },
         {
           key: 'numReplicas',
@@ -368,7 +374,7 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
       if (!field.getReviewSections) {
         return [];
       }
-      const value = wizardState.state[field.id];
+      const value = resolveFieldValue(field, wizardState.state);
       const fieldExternalData = externalData?.[field.id];
       return field.getReviewSections(value, wizardState.state, fieldExternalData?.data);
     });

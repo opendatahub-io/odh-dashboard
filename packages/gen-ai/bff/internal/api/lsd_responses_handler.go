@@ -15,7 +15,6 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -144,6 +143,8 @@ type CreateResponseRequest struct {
 	Store              *bool                `json:"store,omitempty"`                // Store response for later retrieval (default true)
 	InputShieldID      string               `json:"input_shield_id,omitempty"`      // Shield ID for input moderation (e.g., "trustyai_input")
 	OutputShieldID     string               `json:"output_shield_id,omitempty"`     // Shield ID for output moderation (e.g., "trustyai_output")
+	ModelSourceType    string               `json:"model_source_type,omitempty"`    // Source type: "namespace", "custom_endpoint", "maas"
+	Subscription       string               `json:"subscription,omitempty"`         // MaaS subscription name for API key generation
 }
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
@@ -259,6 +260,8 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	createRequest.Subscription = strings.TrimSpace(createRequest.Subscription)
+
 	// Convert chat context format
 	var chatContext []llamastack.ChatContextMessage
 	for _, msg := range createRequest.ChatContext {
@@ -361,8 +364,13 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	// Retrieve and inject provider data for custom headers (MaaS or LLMInferenceService)
-	providerData := app.getProviderData(ctx, createRequest.Model)
+	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
+	providerData, err := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription, createRequest.VectorStoreIDs)
+	if err != nil {
+		app.logger.Error("Failed to resolve provider credentials", "model", createRequest.Model, "error", err)
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to resolve provider credentials: %w", err))
+		return
+	}
 
 	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
@@ -411,15 +419,6 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 	// Create streaming response
 	stream, err := app.repositories.Responses.CreateResponseStream(ctx, params)
 	if err != nil {
-		// Check if this is a mock streaming error - delegate to mock client
-		if _, ok := err.(*lsmocks.MockStreamError); ok {
-			if client, clientErr := app.repositories.Responses.GetClient(r.Context()); clientErr == nil {
-				if mockClient, ok := client.(*lsmocks.MockLlamaStackClient); ok {
-					mockClient.HandleMockStreaming(ctx, w, flusher, params)
-					return
-				}
-			}
-		}
 		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
@@ -695,14 +694,74 @@ func (app *App) validatePreviousResponse(ctx context.Context, responseID string)
 	return nil
 }
 
-// getProviderData retrieves provider data (auth tokens) for models
-func (app *App) getProviderData(ctx context.Context, modelID string) map[string]interface{} {
-	// Try MaaS first
-	if maasData := app.getMaaSProviderData(ctx, modelID); maasData != nil {
-		return maasData
+// getProviderData retrieves provider data (auth tokens) for models.
+// If vectorStoreIDs is non-empty, it also checks for a custom-endpoint embedding model
+// backing one of those stores and injects its URL and secret. Returns an error if the
+// passthrough embedding lookup fails so the handler can fail closed.
+func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string, subscription string, vectorStoreIDs []string) (map[string]interface{}, error) {
+	var providerData map[string]interface{}
+
+	if modelSourceType == string(models.ModelSourceTypeCustomEndpoint) {
+		// Inference custom endpoints are always remote::openai
+		if apiKey := app.getCustomEndpointSecret(ctx, modelID); apiKey != "" {
+			providerData = map[string]interface{}{"openai_api_key": apiKey}
+		}
+	} else if maasData := app.getMaaSProviderData(ctx, modelID, subscription); maasData != nil {
+		providerData = maasData
+	} else {
+		providerData = app.getUserJWTProviderData(ctx, modelID)
 	}
-	// Then try user JWT for InferenceService and LLMInferenceService
-	return app.getUserJWTProviderData(ctx, modelID)
+
+	// Inject passthrough_url and passthrough_api_key for custom-endpoint embedding models used by vector stores
+	passthroughURL, passthroughKey, err := app.getPassthroughEmbeddingSecret(ctx, vectorStoreIDs)
+	if err != nil {
+		return nil, err
+	}
+	if passthroughURL != "" || passthroughKey != "" {
+		if providerData == nil {
+			providerData = make(map[string]interface{})
+		}
+		providerData["passthrough_url"] = passthroughURL
+		providerData["passthrough_api_key"] = passthroughKey
+	}
+
+	return providerData, nil
+}
+
+// getPassthroughEmbeddingSecret delegates to ExternalModelsRepository to find the first
+// vector store in vectorStoreIDs that uses a custom-endpoint (remote::passthrough) embedding
+// model and returns its base URL and API key. Returns an error on ConfigMap or Secret
+// read failures so the caller can fail closed rather than proceed with bogus credentials.
+func (app *App) getPassthroughEmbeddingSecret(ctx context.Context, vectorStoreIDs []string) (string, string, error) {
+	if len(vectorStoreIDs) == 0 {
+		return "", "", nil
+	}
+
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		return "", "", nil
+	}
+
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return "", "", nil
+	}
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get Kubernetes client: %w", err)
+	}
+
+	info, err := app.repositories.ExternalModels.GetPassthroughEmbeddingProviderInfo(k8sClient, ctx, identity, namespace, vectorStoreIDs)
+	if err != nil {
+		return "", "", err
+	}
+	if info == nil {
+		return "", "", nil
+	}
+
+	app.logger.Debug("Resolved passthrough embedding provider info", "url", info.BaseURL)
+	return info.BaseURL, info.APIKey, nil
 }
 
 // getUserJWTProviderData retrieves user JWT token for InferenceService and LLMInferenceService models
@@ -719,7 +778,7 @@ func (app *App) getUserJWTProviderData(ctx context.Context, modelID string) map[
 }
 
 // getMaaSProviderData retrieves and caches MaaS tokens for MaaS models
-func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[string]interface{} {
+func (app *App) getMaaSProviderData(ctx context.Context, modelID string, subscription string) map[string]interface{} {
 	// Early return if context doesn't have required data
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
@@ -744,10 +803,10 @@ func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[str
 		return nil
 	}
 
-	app.logger.Debug("Detected MaaS model", "model", modelID)
+	app.logger.Debug("Detected MaaS model", "model", modelID, "subscription", subscription)
 
 	// Get or generate MaaS token
-	token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID)
+	token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID, subscription)
 	if token == "" {
 		return nil
 	}
@@ -759,8 +818,9 @@ func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[str
 	}
 }
 
-// getMaaSTokenForModel retrieves a MaaS token from cache or generates a new one
-func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.KubernetesClientInterface, identity *integrations.RequestIdentity, namespace, modelID string) string {
+// getMaaSTokenForModel retrieves a MaaS token from cache or generates a new one.
+// subscription is the optional MaaSSubscription name to bind the ephemeral key to.
+func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.KubernetesClientInterface, identity *integrations.RequestIdentity, namespace, modelID, subscription string) string {
 	// Get username for cache key
 	username, err := k8sClient.GetUser(ctx, identity)
 	if err != nil || username == "" {
@@ -768,11 +828,17 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 		return ""
 	}
 
+	// Build cache key that incorporates subscription so different subscriptions get separate tokens
+	cacheKey := modelID
+	if subscription != "" {
+		cacheKey = modelID + "|" + subscription
+	}
+
 	// Check cache first
-	if cachedValue, found := app.memoryStore.Get(namespace, username, constants.CacheAccessTokensCategory, modelID); found {
+	if cachedValue, found := app.memoryStore.Get(namespace, username, constants.CacheAccessTokensCategory, cacheKey); found {
 		// Safe type assertion to prevent panic
 		if token, ok := cachedValue.(string); ok {
-			app.logger.Debug("Using cached MaaS token", "model", modelID, "namespace", namespace)
+			app.logger.Debug("Using cached MaaS token", "model", modelID, "namespace", namespace, "subscription", subscription)
 			return token
 		}
 		// Unexpected type in cache - log warning and continue to generate new token
@@ -780,22 +846,129 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 	}
 
 	// Cache miss - generate new token
-	app.logger.Debug("No MaaS token found in cache: requesting new token", "model", modelID, "namespace", namespace)
+	app.logger.Debug("No MaaS token found in cache: requesting new token", "model", modelID, "namespace", namespace, "subscription", subscription)
 
 	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, models.MaaSTokenRequest{
-		TTL: constants.MaaSTokenTTLString,
+		ExpiresIn:    constants.MaaSTokenTTLString,
+		Subscription: subscription,
 	})
 	if err != nil {
-		app.logger.Warn("Failed to issue MaaS token", "model", modelID, "error", err)
+		app.logger.Warn("Failed to issue MaaS API key", "model", modelID, "error", err)
 		return ""
 	}
 
-	// Cache the new token
-	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, modelID, tokenResponse.Token, constants.MaaSTokenTTLDuration); err != nil {
-		app.logger.Warn("Failed to cache MaaS token", "model", modelID, "error", err)
-	} else {
-		app.logger.Debug("Cached new MaaS token", "model", modelID, "namespace", namespace, "expiresAt", tokenResponse.ExpiresAt)
+	// Compute cache TTL from the key's actual expiry, with a safety buffer
+	cacheTTL := constants.MaaSTokenTTLDuration
+	ttlSource := "default"
+	if tokenResponse.ExpiresAt != "" {
+		if expiresAt, parseErr := time.Parse(time.RFC3339, tokenResponse.ExpiresAt); parseErr == nil {
+			const safetyBuffer = 30 * time.Second
+			computed := time.Until(expiresAt) - safetyBuffer
+			if computed > 0 && computed <= 24*time.Hour {
+				cacheTTL = computed
+				ttlSource = "expiresAt"
+			}
+		}
 	}
 
-	return tokenResponse.Token
+	// Cache the new API key
+	app.logger.Debug("Caching MaaS API key", "model", modelID, "namespace", namespace, "subscription", subscription, "ttl", cacheTTL, "ttlSource", ttlSource, "expiresAt", tokenResponse.ExpiresAt)
+	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, cacheKey, tokenResponse.Key, cacheTTL); err != nil {
+		app.logger.Warn("Failed to cache MaaS API key", "model", modelID, "error", err)
+	}
+
+	return tokenResponse.Key
+}
+
+// getCustomEndpointSecret retrieves the raw API key for a provider-qualified custom endpoint
+// model ID (e.g. "endpoint-1/meta-llama/Llama-3.1-8B"). Returns "" when the secret cannot
+// be resolved so the caller can skip injection.
+func (app *App) getCustomEndpointSecret(ctx context.Context, modelID string) string {
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		return ""
+	}
+
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return ""
+	}
+
+	// Model ID must be provider-qualified to prevent ambiguity when multiple providers expose same model_id
+	if !strings.Contains(modelID, "/") {
+		app.logger.Warn("Custom endpoint model ID must be provider-qualified (provider/model)", "model", modelID)
+		return ""
+	}
+
+	// Split on FIRST slash only (model IDs can contain slashes like "meta-llama/Llama-3.1-8B")
+	parts := strings.SplitN(modelID, "/", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		app.logger.Warn("Invalid custom endpoint model ID format", "model", modelID)
+		return ""
+	}
+
+	providerPrefix := parts[0]
+	actualModelID := parts[1]
+	app.logger.Debug("Parsed provider-qualified model ID", "original", modelID, "provider", providerPrefix, "modelID", actualModelID)
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.logger.Warn("Failed to get Kubernetes client for custom endpoint", "model", modelID, "error", err)
+		return ""
+	}
+
+	externalModelsConfig, err := k8sClient.GetExternalModelsConfig(ctx, namespace)
+	if err != nil {
+		app.logger.Warn("Failed to get external models ConfigMap", "model", modelID, "namespace", namespace, "error", err)
+		return ""
+	}
+
+	// Match BOTH ProviderID and ModelID to prevent returning the wrong key
+	var foundModel *models.RegisteredModel
+	for i := range externalModelsConfig.RegisteredResources.Models {
+		m := &externalModelsConfig.RegisteredResources.Models[i]
+		if m.ProviderID == providerPrefix && m.ModelID == actualModelID {
+			foundModel = m
+			break
+		}
+	}
+	if foundModel == nil {
+		app.logger.Warn("Custom endpoint model not found in ConfigMap", "provider", providerPrefix, "model", actualModelID, "namespace", namespace)
+		return ""
+	}
+
+	var foundProvider *models.InferenceProvider
+	for i := range externalModelsConfig.Providers.Inference {
+		if externalModelsConfig.Providers.Inference[i].ProviderID == foundModel.ProviderID {
+			foundProvider = &externalModelsConfig.Providers.Inference[i]
+			break
+		}
+	}
+	if foundProvider == nil {
+		app.logger.Warn("Provider not found for custom endpoint model", "model", actualModelID, "providerID", foundModel.ProviderID, "namespace", namespace)
+		return ""
+	}
+
+	apiKey := app.fetchSecretFromProvider(ctx, k8sClient, identity, namespace, foundProvider, actualModelID)
+	app.logger.Debug("Resolved custom endpoint secret", "model", modelID, "actualModelID", actualModelID, "provider", foundProvider.ProviderID)
+	return apiKey
+}
+
+// fetchSecretFromProvider reads the API key referenced by a provider's SecretRef,
+// defaulting to "fake" when no secret is configured or the fetch fails.
+func (app *App) fetchSecretFromProvider(ctx context.Context, k8sClient k8s.KubernetesClientInterface, identity *integrations.RequestIdentity, namespace string, provider *models.InferenceProvider, logModelID string) string {
+	secretName := provider.Config.CustomGenAI.APIKey.SecretRef.Name
+	secretKey := provider.Config.CustomGenAI.APIKey.SecretRef.Key
+	if secretName == "" || secretKey == "" {
+		return "fake"
+	}
+	val, err := k8sClient.GetSecretValue(ctx, identity, namespace, secretName, secretKey)
+	if err != nil {
+		app.logger.Warn("Failed to get secret for custom endpoint model", "model", logModelID, "secretName", secretName, "error", err)
+		return "fake"
+	}
+	if val == "" {
+		return "fake"
+	}
+	return val
 }

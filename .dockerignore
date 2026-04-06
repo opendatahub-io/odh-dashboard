@@ -11,6 +11,7 @@ tests/
 **/__mocks__/
 **/__tests__/
 scripts/
+!scripts/prepare-production-manifest.js
 manifests/
 
 # Local .env images

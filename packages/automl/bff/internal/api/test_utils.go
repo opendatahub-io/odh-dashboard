@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,11 +16,12 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes/k8mocks"
 	psmocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
+	s3mocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3/s3mocks"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 )
 
 // setupApiTest is a minimal helper to exercise remaining handlers (user, namespaces, healthcheck)
-func setupApiTest[T any](method, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, identity *kubernetes.RequestIdentity) (T, *http.Response, error) {
+func setupApiTest[T any](method, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, identity *kubernetes.RequestIdentity) (T, *http.Response, error) { //nolint:unused
 	var empty T
 	var reqBody io.Reader
 	if body != nil {
@@ -42,8 +44,17 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
 	}
 
-	logger := slog.Default()
-	app := &App{config: config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal}, kubernetesClientFactory: k8Factory, repositories: repositories.NewRepositories(logger)}
+	// Create a test logger that discards output
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+
+	app := &App{
+		config:                      config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, MockPipelineServerClient: true},
+		logger:                      logger,
+		kubernetesClientFactory:     k8Factory,
+		pipelineServerClientFactory: psmocks.NewMockClientFactory(),
+		s3ClientFactory:             s3mocks.NewMockClientFactory(),
+		repositories:                repositories.NewRepositories(logger),
+	}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 	req = req.WithContext(ctx)
@@ -102,5 +113,53 @@ func newTestApp(t *testing.T) *App {
 	// Create a mock Pipeline Server client factory
 	psFactory := psmocks.NewMockClientFactory()
 
-	return NewTestApp(cfg, logger, k8sFactory, psFactory, nil)
+	return NewTestApp(cfg, logger, k8sFactory, psFactory, s3mocks.NewMockClientFactory(), nil)
+}
+
+// setupApiTestPostMultipart builds a POST request with multipart/form-data containing a file part
+// and serves it through the app. Returns the response. Caller should close res.Body.
+func setupApiTestPostMultipart(
+	url string,
+	fileContent []byte,
+	fileName string,
+	k8Factory kubernetes.KubernetesClientFactory,
+	identity *kubernetes.RequestIdentity,
+) (*http.Response, error) {
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+	part, err := w.CreateFormFile("file", fileName)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := part.Write(fileContent); err != nil {
+		return nil, err
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, &buf)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	if identity != nil && identity.UserID != "" {
+		req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
+	}
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+	app := &App{
+		config:                      config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, MockPipelineServerClient: true},
+		logger:                      logger,
+		kubernetesClientFactory:     k8Factory,
+		pipelineServerClientFactory: psmocks.NewMockClientFactory(),
+		s3ClientFactory:             s3mocks.NewMockClientFactory(),
+		repositories:                repositories.NewRepositories(logger),
+	}
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rr, req)
+	return rr.Result(), nil
 }

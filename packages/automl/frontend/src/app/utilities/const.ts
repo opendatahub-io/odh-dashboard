@@ -11,6 +11,7 @@ const LOGO_LIGHT = process.env.LOGO || 'logo-light-theme.svg';
 const MANDATORY_NAMESPACE = process.env.MANDATORY_NAMESPACE || undefined;
 const URL_PREFIX = '/automl';
 const BFF_API_VERSION = 'v1';
+const DEFAULT_PAGE_SIZE = 20;
 const COMPANY_URI = process.env.COMPANY_URI || 'oci://odh.io';
 
 export {
@@ -23,6 +24,7 @@ export {
   URL_PREFIX,
   DEPLOYMENT_MODE,
   BFF_API_VERSION,
+  DEFAULT_PAGE_SIZE,
   MANDATORY_NAMESPACE,
   COMPANY_URI,
 };
@@ -32,3 +34,16 @@ export const FindAdministratorOptions = [
   'Someone in your IT department or help desk',
   'A project manager or developer',
 ];
+
+// Task types
+export const TASK_TYPE_BINARY = 'binary';
+export const TASK_TYPE_MULTICLASS = 'multiclass';
+export const TASK_TYPE_REGRESSION = 'regression';
+export const TASK_TYPE_TIMESERIES = 'timeseries';
+
+export const AUTOML_OPTIMIZED_METRIC_BY_TASK = {
+  [TASK_TYPE_BINARY]: 'accuracy',
+  [TASK_TYPE_MULTICLASS]: 'accuracy',
+  [TASK_TYPE_REGRESSION]: 'r2',
+  [TASK_TYPE_TIMESERIES]: 'mase',
+};

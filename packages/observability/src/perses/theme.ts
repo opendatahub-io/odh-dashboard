@@ -394,8 +394,8 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
             '&[aria-label*="query view" i]': {
               display: 'none',
             },
-            // Hide Export CSV button
-            '&[aria-label="Export time series data as CSV"]': {
+            // Hide panel notices (eg warning: PromQL info: metric might not be a counter, name does not end in _total/_sum/_count/_bucket: "...")
+            '&[aria-label="panel notices"]': {
               display: 'none',
             },
           },
@@ -407,8 +407,7 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
 
 export const usePatternFlyTheme = (): { muiTheme: Theme; chartsTheme: PersesChartsTheme } => {
   const { theme: contextTheme } = useThemeContext();
-  const isDark = contextTheme === 'dark';
-  const theme: PatternFlyTheme = isDark ? 'dark' : 'light';
+  const theme: PatternFlyTheme = contextTheme === 'dark' ? 'dark' : 'light';
 
   return React.useMemo(() => {
     const muiTheme = getTheme(theme, {
@@ -419,7 +418,7 @@ export const usePatternFlyTheme = (): { muiTheme: Theme; chartsTheme: PersesChar
     });
 
     // PatternFly default text color as hex (ECharts does not resolve CSS variables)
-    const defaultTextColor = isDark ? t_color_white.value : t_color_gray_95.value;
+    const defaultTextColor = theme === 'dark' ? t_color_white.value : t_color_gray_95.value;
 
     const chartsTheme: PersesChartsTheme = generateChartsTheme(muiTheme, {
       echartsTheme: {
@@ -435,5 +434,5 @@ export const usePatternFlyTheme = (): { muiTheme: Theme; chartsTheme: PersesChar
     });
 
     return { muiTheme, chartsTheme };
-  }, [theme, isDark]);
+  }, [theme]);
 };

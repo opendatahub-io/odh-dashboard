@@ -153,6 +153,39 @@ func (kc *SharedClientLogic) GetServiceDetailsByName(sessionCtx context.Context,
 	return *details, nil
 }
 
+// GetServiceEndpoints returns the Endpoints for a service. Used to detect registry availability. Callers should treat fetch errors (e.g. Forbidden) as "assume available" to avoid new permission requirements upstream.
+//
+//nolint:staticcheck // intentionally using deprecated corev1.Endpoints for RBAC compatibility; see tech debt ticket for EndpointSlice migration
+func (kc *SharedClientLogic) GetServiceEndpoints(ctx context.Context, namespace, serviceName string) (*corev1.Endpoints, error) {
+	if namespace == "" || serviceName == "" {
+		return nil, fmt.Errorf("namespace and serviceName cannot be empty")
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	endpoints, err := kc.Client.CoreV1().Endpoints(namespace).Get(ctx, serviceName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get endpoints for service %q in namespace %q: %w", serviceName, namespace, err)
+	}
+	return endpoints, nil
+}
+
+// EndpointsHasReadyAddresses returns true if the Endpoints resource has at least one subset with ready addresses.
+//
+//nolint:staticcheck // intentionally using deprecated corev1.Endpoints for RBAC compatibility; see tech debt ticket for EndpointSlice migration
+func EndpointsHasReadyAddresses(endpoints *corev1.Endpoints) bool {
+	if endpoints == nil {
+		return false
+	}
+	for _, subset := range endpoints.Subsets {
+		if len(subset.Addresses) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (kc *SharedClientLogic) BearerToken() (string, error) {
 	// Token is retained for follow-up calls; do not log it.
 	return kc.Token.Raw(), nil
@@ -329,10 +362,13 @@ func (kc *SharedClientLogic) UpdateCatalogSourceConfig(
 	return nil
 }
 
+// GetAllModelTransferJobs lists model transfer jobs. If jobNamespace is non-empty,
+// jobs are listed only in that namespace. Otherwise jobs are listed across all namespaces.
 func (kc *SharedClientLogic) GetAllModelTransferJobs(
 	ctx context.Context,
 	namespace string,
 	modelRegistryID string,
+	jobNamespace string,
 ) (*batchv1.JobList, error) {
 	if namespace == "" {
 		return &batchv1.JobList{}, fmt.Errorf("namespace cannot be empty")
@@ -346,13 +382,19 @@ func (kc *SharedClientLogic) GetAllModelTransferJobs(
 
 	labelSelector := "modelregistry.kubeflow.org/job-type=async-upload,modelregistry.kubeflow.org/model-registry-name=" + modelRegistryID
 
-	modelTransferJobList, err := kc.Client.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{
+	targetNamespace := metav1.NamespaceAll
+	if jobNamespace != "" {
+		targetNamespace = jobNamespace
+	}
+
+	modelTransferJobList, err := kc.Client.BatchV1().Jobs(targetNamespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 
 	if err != nil {
 		sessionLogger.Error("failed to fetch list of model transfer job",
 			"namespace", namespace,
+			"jobNamespace", jobNamespace,
 			"error", err,
 		)
 		return &batchv1.JobList{}, fmt.Errorf("failed to list model transfer job: %w", err)

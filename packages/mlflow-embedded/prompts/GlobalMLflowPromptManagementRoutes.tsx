@@ -20,7 +20,7 @@ const GlobalMLflowPromptManagementRoutes: React.FC = () => (
           title={
             <TitleWithIcon
               title={PROMPT_MANAGEMENT_PAGE_TITLE}
-              objectType={ProjectObjectType.pipelineExperiment}
+              objectType={ProjectObjectType.promptManagement}
             />
           }
           getRedirectPath={mlflowPromptManagementBaseRoute}

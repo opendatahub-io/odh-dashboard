@@ -8,12 +8,14 @@ export enum KueueWorkloadStatus {
   Inadmissible = 'Inadmissible',
   Running = 'Running',
   Admitted = 'Admitted',
-  Succeeded = 'Succeeded',
+  Complete = 'Complete',
 }
 
 export type KueueWorkloadStatusWithMessage = {
   status: KueueWorkloadStatus;
   message?: string;
+  timestamp?: string;
+  queueName?: string;
 };
 
 export type KueueStatusInfo = {
@@ -33,5 +35,5 @@ export const KUEUE_STATUSES_OVERRIDE_WORKBENCH: KueueWorkloadStatus[] = [
   KueueWorkloadStatus.Inadmissible,
   KueueWorkloadStatus.Failed,
   KueueWorkloadStatus.Preempted,
-  KueueWorkloadStatus.Succeeded,
+  KueueWorkloadStatus.Complete,
 ];

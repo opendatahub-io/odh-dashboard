@@ -9,3 +9,5 @@ varReference:
     kind: OdhDashboardConfig
   - path: spec/parentRefs/name
     kind: HTTPRoute
+  - path: data
+    kind: ConfigMap

@@ -377,7 +377,7 @@ func SetupMock(mockK8sClient client.Client, ctx context.Context) error {
 	}
 
 	// mock-test namespaces matching GetNamespaces mock, with vector stores only
-	for _, ns := range []string{"mock-test-namespace-1", "mock-test-namespace-2", "mock-test-namespace-3", "mock-test-namespace-4"} {
+	for _, ns := range []string{"mock-test-namespace-1", "mock-test-namespace-2", "mock-test-namespace-3", "mock-test-namespace-4", "empty-test-namespace"} {
 		if err := createNamespace(mockK8sClient, ctx, ns); err != nil {
 			return fmt.Errorf("failed to create %s namespace: %w", ns, err)
 		}
@@ -417,7 +417,7 @@ func createVectorStoresConfigMap(k8sClient client.Client, ctx context.Context, n
 			Namespace: namespace,
 		},
 		Data: map[string]string{
-			"stores.yaml": vectorStoresFixture,
+			"config.yaml": vectorStoresFixture,
 		},
 	}
 	return k8sClient.Create(ctx, cm)
@@ -431,9 +431,10 @@ func createLlamaStackConfigMap(k8sClient client.Client, ctx context.Context, nam
 		},
 		Data: map[string]string{
 			"config.yaml": `version: "2"
-image_name: rh
+distro_name: rh
 apis:
 - inference
+- responses
 - vector_io
 providers:
   inference:
@@ -445,6 +446,19 @@ providers:
     provider_type: inline::milvus
     config:
       db_path: /opt/app-root/src/.llama/distributions/rh/milvus.db
+  responses:
+  - provider_id: builtin
+    provider_type: inline::builtin
+    config:
+      persistence:
+        agent_state:
+          namespace: agents
+          backend: kv_default
+        responses:
+          table_name: responses
+          backend: sql_default
+          max_write_queue_size: 10000
+          num_writers: 4
 registered_resources:
   models:
     - metadata:
@@ -458,13 +472,10 @@ registered_resources:
       provider_id: vllm-inference-1
       model_type: llm
   shields: []
-  vector_dbs: []
+  vector_stores: []
   datasets: []
   scoring_fns: []
   benchmarks: []
-  tool_groups:
-    - toolgroup_id: builtin::rag
-      provider_id: rag-runtime
 server:
   port: 8321`,
 		},

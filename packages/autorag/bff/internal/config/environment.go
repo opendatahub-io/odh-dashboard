@@ -80,6 +80,7 @@ type EnvConfig struct {
 	MockHTTPClient           bool
 	MockLSClient             bool
 	MockPipelineServerClient bool
+	MockS3Client             bool
 	PipelineServerURL        string
 	DevMode                  bool
 	DeploymentMode           DeploymentMode
@@ -111,6 +112,13 @@ type EnvConfig struct {
 	// LlamaStack service URL configuration
 	// If set, overrides the automatic service discovery from LlamaStackDistribution resource
 	LlamaStackURL string
+
+	// ─── PIPELINE DISCOVERY ─────────────────────────────────────
+	// AutoRAGPipelineNamePrefix is the prefix used to identify AutoRAG managed pipelines
+	// during automatic pipeline discovery. The discovery process searches for pipelines
+	// with display names starting with this prefix (case-insensitive).
+	// Default: "autorag"
+	AutoRAGPipelineNamePrefix string
 
 	// ─── TLS ────────────────────────────────────────────────────
 	// TLS verification settings for HTTP client connections to the Client

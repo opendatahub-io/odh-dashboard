@@ -16,10 +16,12 @@ import {
   selectNotebookImageWithBackendFallback,
   getImageStreamDisplayName,
 } from '../../../../utils/oc_commands/imageStreams';
+import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
 
 describe('Workbenches - status tests', () => {
   let projectName: string;
   let projectDescription: string;
+  let notebookImage: string;
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
@@ -28,6 +30,7 @@ describe('Workbenches - status tests', () => {
       .then((fixtureData: WBStatusTestData) => {
         projectName = `${fixtureData.wbStatusTestNamespace}-${uuid}`;
         projectDescription = fixtureData.wbStatusTestDescription;
+        notebookImage = fixtureData.notebookImage;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -54,7 +57,7 @@ describe('Workbenches - status tests', () => {
       tags: ['@Sanity', '@SanitySet2', '@ODS-1970', '@Dashboard', '@Workbenches', '@WorkbenchesCI'],
     },
     () => {
-      const workbenchName = projectName.replace('dsp-', '');
+      const workbenchName = deriveWorkbenchName(projectName);
       let selectedImageStream: string;
 
       // Authentication and navigation
@@ -75,7 +78,7 @@ describe('Workbenches - status tests', () => {
       createSpawnerPage.getDescriptionInput().type(projectDescription);
 
       // Select notebook image with fallback
-      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+      selectNotebookImageWithBackendFallback(notebookImage, createSpawnerPage).then(
         (imageStreamName) => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream: ${selectedImageStream}`);
@@ -86,7 +89,7 @@ describe('Workbenches - status tests', () => {
           cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
           const notebookRow = workbenchPage.getNotebookRow(workbenchName);
           notebookRow.findNotebookDescription(projectDescription);
-          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
 
           // Use dynamic image name verification based on what was actually selected
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {
@@ -97,7 +100,7 @@ describe('Workbenches - status tests', () => {
               'Click on Running status, validate the Running status and navigate to the Progress tab',
             );
             notebookRow.findHaveNotebookStatusText().click();
-            workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Running);
+            workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Ready);
 
             // Click on the Events log and validate that successful list messages display.
             cy.step('Navigate to Events Tab and verify successful event messages are displayed');

@@ -3,6 +3,7 @@ import { NotebookStatusLabel } from '../../../../types';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import {
   workbenchPage,
+  workbenchActions,
   createSpawnerPage,
   notebookConfirmModal,
   notebookDeleteModal,
@@ -18,10 +19,12 @@ import {
   selectNotebookImageWithBackendFallback,
   getImageStreamDisplayName,
 } from '../../../../utils/oc_commands/imageStreams';
+import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
 
-describe('[Product Bug: RHOAIENG-52179] Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
+describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
   let controlSuiteTestNamespace: string;
   let controlSuiteTestDescription: string;
+  let notebookImage: string;
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
@@ -30,6 +33,7 @@ describe('[Product Bug: RHOAIENG-52179] Start, Stop, Launch and Delete a Workben
       .then((fixtureData: WBControlSuiteTestData) => {
         controlSuiteTestNamespace = `${fixtureData.controlSuiteTestNamespace}-${uuid}`;
         controlSuiteTestDescription = fixtureData.controlSuiteTestDescription;
+        notebookImage = fixtureData.notebookImage;
 
         if (!controlSuiteTestNamespace) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -64,11 +68,10 @@ describe('[Product Bug: RHOAIENG-52179] Start, Stop, Launch and Delete a Workben
         '@Dashboard',
         '@Workbenches',
         '@WorkbenchesCI',
-        '@Bug',
       ],
     },
     () => {
-      const workbenchName = controlSuiteTestNamespace.replace('dsp-', '');
+      const workbenchName = deriveWorkbenchName(controlSuiteTestNamespace);
       let selectedImageStream: string;
 
       // Authentication and navigation
@@ -89,7 +92,7 @@ describe('[Product Bug: RHOAIENG-52179] Start, Stop, Launch and Delete a Workben
       createSpawnerPage.getDescriptionInput().type(controlSuiteTestDescription);
 
       // Select notebook image with fallback
-      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+      selectNotebookImageWithBackendFallback(notebookImage, createSpawnerPage).then(
         (imageStreamName) => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream: ${selectedImageStream}`);
@@ -100,7 +103,7 @@ describe('[Product Bug: RHOAIENG-52179] Start, Stop, Launch and Delete a Workben
           cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
           const notebookRow = workbenchPage.getNotebookRow(workbenchName);
           notebookRow.findNotebookDescription(controlSuiteTestDescription);
-          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
 
           // Use the dynamic image name verification based on what was actually selected
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {
@@ -115,16 +118,16 @@ describe('[Product Bug: RHOAIENG-52179] Start, Stop, Launch and Delete a Workben
             // Restart workbench and confirm initiation
             cy.step('Restart workbench and validate it starts successfully');
             notebookRow.findNotebookStopToggle().click();
-            notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
+            notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
 
             // Delete workbench
             cy.step('Delete workbench and confirm deleteion');
             notebookRow.findKebab().click();
-            notebookRow.findKebabAction('Delete workbench').click();
+            workbenchActions.findDeleteWorkbenchAction().click();
             notebookDeleteModal.findDeleteModal().click();
             notebookDeleteModal.findDeleteModal().type(workbenchName);
             notebookDeleteModal.findDeleteWorkbenchButton().click();
-            workbenchPage.findEmptyState().should('exist');
+            workbenchPage.findEmptyState(30000).should('exist');
           });
         },
       );
@@ -143,11 +146,10 @@ describe('[Product Bug: RHOAIENG-52179] Start, Stop, Launch and Delete a Workben
         '@Dashboard',
         '@Workbenches',
         '@WorkbenchesCI',
-        '@Bug',
       ],
     },
     () => {
-      const workbenchName = controlSuiteTestNamespace.replace('dsp-', 'secondwb-');
+      const workbenchName = deriveWorkbenchName(controlSuiteTestNamespace, 'secondwb-');
       let selectedImageStream: string;
 
       // Authentication and navigation
@@ -167,7 +169,7 @@ describe('[Product Bug: RHOAIENG-52179] Start, Stop, Launch and Delete a Workben
       createSpawnerPage.getDescriptionInput().type(controlSuiteTestDescription);
 
       // Select notebook image with fallback
-      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+      selectNotebookImageWithBackendFallback(notebookImage, createSpawnerPage).then(
         (imageStreamName) => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream: ${selectedImageStream}`);
@@ -186,7 +188,7 @@ describe('[Product Bug: RHOAIENG-52179] Start, Stop, Launch and Delete a Workben
           // Start the Workbench and validate it has started successfully
           cy.step('Restart the workbench and confirm the workbench has started successfully');
           workbenchStatusModal.findStartWorkbenchFooterButton().click();
-          workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Running, 120000);
+          workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Ready, 120000);
         },
       );
     },

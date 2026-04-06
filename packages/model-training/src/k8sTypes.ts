@@ -177,6 +177,17 @@ export interface RayClusterStatusInfo {
   }>;
 }
 
+export type RayClusterKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+    uid?: string;
+    labels?: Record<string, string | undefined>;
+  };
+  spec: RayClusterSpec;
+  status?: RayClusterStatusInfo;
+};
+
 export type RayJobKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -255,5 +266,32 @@ export type ClusterTrainingRuntimeKind = K8sResourceCommon & {
         }>;
       };
     };
+  };
+};
+
+export type GatewayResource = K8sResourceCommon & {
+  spec?: {
+    listeners?: Array<{
+      hostname?: string;
+      [key: string]: unknown;
+    }>;
+  };
+};
+
+export type HTTPRouteResource = K8sResourceCommon & {
+  spec?: {
+    rules?: Array<{
+      filters?: Array<{
+        requestRedirect?: {
+          path?: {
+            replaceFullPath?: string;
+            [key: string]: unknown;
+          };
+          [key: string]: unknown;
+        };
+        [key: string]: unknown;
+      }>;
+      [key: string]: unknown;
+    }>;
   };
 };

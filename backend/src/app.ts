@@ -41,14 +41,22 @@ export const initializeApp = async (
     includeViewExtension: true,
   });
 
+  const shouldIgnoreAutoloadPath = (filePath: string): boolean =>
+    /(^|[\\/])__tests__([\\/]|$)/.test(filePath) ||
+    /\.(spec|test)\.(ts|js|cjs|mjs)$/.test(filePath);
+
   fastify.register(fastifyAutoload, {
     dir: path.join(__dirname, 'plugins'),
     options: Object.assign({}, opts),
+    ignorePattern: /^__tests__$|\.(spec|test)\.(ts|js|cjs|mjs)$/,
+    ignoreFilter: shouldIgnoreAutoloadPath,
   });
 
   fastify.register(fastifyAutoload, {
     dir: path.join(__dirname, 'routes'),
     options: Object.assign({}, opts),
+    ignorePattern: /^__tests__$|\.(spec|test)\.(ts|js|cjs|mjs)$/,
+    ignoreFilter: shouldIgnoreAutoloadPath,
   });
 
   fastify.register(fastifyAccepts);

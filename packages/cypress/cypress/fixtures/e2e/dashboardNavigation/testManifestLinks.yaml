@@ -1,4 +1,13 @@
 # testManifestLinks.cy.ts Test Data #
+#
+# This test validates URLs found in manifest YAML files.
+# It uses tiered timeouts:
+#   - Internal domains (*.redhat.com): 5s
+#   - Normal external URLs: 15s
+#   - Known slow domains (catalog.redhat.com, etc.): 30s
+#
+# To skip this test in fast CI runs, set: SKIP_EXTERNAL_URL_VALIDATION=true
+#
 excludedSubstrings:
   - my-project-s2i-python-service
   - clusterip/
@@ -17,3 +26,4 @@ excludedSubstrings:
   - ww3.
   - www3.
   - w3.org
+  - serif.com

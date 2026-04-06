@@ -5,6 +5,7 @@
   "version": "0.0.0",
   "scripts": {
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix",
     "test-unit": "jest --silent",
     "test-unit-coverage": "jest --silent --coverage",
@@ -21,6 +22,7 @@
     ],
     "./types/form-data": "./src/components/deploymentWizard/types.ts",
     "./concepts/auth": "./src/concepts/auth.ts",
+    "./concepts/useModelServingClusterSettings": "./src/concepts/useModelServingClusterSettings.tsx",
     "./utils": "./src/concepts/utils.ts"
   },
   "dependencies": {

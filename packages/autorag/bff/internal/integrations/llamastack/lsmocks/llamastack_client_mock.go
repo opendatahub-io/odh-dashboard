@@ -6,6 +6,7 @@ import (
 
 	"github.com/openai/openai-go/v2"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
 // MockLlamaStackClient provides a mock implementation of the LlamaStackClientInterface for testing
@@ -37,14 +38,25 @@ func (m *MockLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, 
 	}, nil
 }
 
+// ListProviders returns mock provider data matching LlamaStack's /v1/providers response format.
+func (m *MockLlamaStackClient) ListProviders(ctx context.Context) ([]models.LlamaStackProvider, error) {
+	return []models.LlamaStackProvider{
+		{API: "vector_io", ProviderID: "milvus", ProviderType: "remote::milvus"},
+		{API: "vector_io", ProviderID: "faiss", ProviderType: "inline::faiss"},
+		{API: "inference", ProviderID: "ollama", ProviderType: "remote::ollama"},
+	}, nil
+}
+
 // createMockModel creates an openai.Model with LlamaStack native format in RawJSON
 func createMockModel(identifier, modelType, providerID, providerResourceID string) openai.Model {
 	// Create LlamaStack native format as JSON string
 	nativeModel := map[string]interface{}{
-		"identifier":           identifier,
-		"model_type":           modelType,
-		"provider_id":          providerID,
-		"provider_resource_id": providerResourceID,
+		"id": identifier,
+		"custom_metadata": map[string]interface{}{
+			"model_type":           modelType,
+			"provider_id":          providerID,
+			"provider_resource_id": providerResourceID,
+		},
 	}
 
 	// Marshal to JSON bytes

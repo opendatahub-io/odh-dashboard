@@ -82,6 +82,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       startNotebookData.image.imageStream?.metadata.namespace === projectName);
 
   const { username } = useUser();
+  const workbenchesHref = `/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`;
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
     const {
@@ -113,7 +114,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     refreshNotebooks();
     refreshConnections();
 
-    navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
+    navigate(workbenchesHref);
   };
   const handleError = (e: K8sStatusError) => {
     fireFormTrackingEvent('Workbench Created', {
@@ -263,13 +264,15 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
           <Alert
             isInline
             variant="danger"
-            title="Error creating workbench"
+            title={editNotebook ? 'Error updating workbench' : 'Error creating workbench'}
+            data-testid="spawner-error-alert"
             actionLinks={
               // If this is a 409 conflict error on the notebook (not PVC or Secret or ConfigMap)
               error.statusObject.code === 409 &&
               error.statusObject.details?.kind === 'notebooks' ? (
                 <>
                   <AlertActionLink
+                    data-testid="force-update-button"
                     onClick={() =>
                       updateNotebookPromise(false)
                         .then((notebook) => {
@@ -313,7 +316,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
                 fireFormTrackingEvent(`Workbench ${editNotebook ? 'Updated' : 'Created'}`, {
                   outcome: TrackingOutcome.cancel,
                 });
-                navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
+                navigate(workbenchesHref);
               }}
             >
               Cancel

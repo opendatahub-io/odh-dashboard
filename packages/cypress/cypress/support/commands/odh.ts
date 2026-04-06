@@ -91,7 +91,18 @@ import type { NimServingResponse } from '@odh-dashboard/internal/__mocks__/mockN
 import type { BuildMockPipelinveVersionsType } from '@odh-dashboard/internal/__mocks__';
 import type { ArtifactStorage } from '@odh-dashboard/internal/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import type { APIKey, CreateAPIKeyResponse } from '@odh-dashboard/maas/types/api-key';
+import type {
+  APIKey,
+  APIKeyListResponse,
+  BulkRevokeResponse,
+  CreateAPIKeyResponse,
+} from '@odh-dashboard/maas/types/api-key';
+import type {
+  MaaSSubscription,
+  SubscriptionInfoResponse,
+  UserSubscription,
+} from '@odh-dashboard/maas/types/subscriptions';
+import type { MaaSModelRef } from '@odh-dashboard/maas/types/maas-model';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -1109,16 +1120,65 @@ declare global {
           response: { data: OdhResponse<Tier> },
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /maas/api/v1/api-keys',
-          response: { data: OdhResponse<APIKey[]> },
+          type: 'POST /maas/api/v1/api-keys/search',
+          response: { data: OdhResponse<APIKeyListResponse> },
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'DELETE /maas/api/v1/api-keys',
-          response: { data: null },
+          type: 'POST /maas/api/v1/api-keys/bulk-revoke',
+          response: { data: OdhResponse<BulkRevokeResponse> },
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'POST /maas/api/v1/api-key',
+          type: 'DELETE /maas/api/v1/api-keys/:id',
+          options: { path: { id: string } },
+          response: { data: OdhResponse<APIKey> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /maas/api/v1/api-keys',
           response: { data: OdhResponse<CreateAPIKeyResponse> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/is-maas-admin',
+          response: OdhResponse<{ data: { allowed: boolean } }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/user',
+          response: OdhResponse<{ data: { userId: string; clusterAdmin: boolean } }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/namespaces',
+          response: OdhResponse<{ data: { metadata: { name: string } }[] }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/all-subscriptions',
+          response: OdhResponse<{ data: MaaSSubscription[] }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/subscription/:name',
+          options: { path: { name: string } },
+          response: OdhResponse<{ message: string }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/subscription-info/:name',
+          options: { path: { name: string } },
+          response: OdhResponse<SubscriptionInfoResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/subscriptions',
+          response: { data: UserSubscription[] },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /maas/api/v1/maasmodel',
+          response: OdhResponse<MaaSModelRef>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/maasmodel/:namespace/:name',
+          options: { path: { namespace: string; name: string } },
+          response: OdhResponse<{ message: string }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PUT /maas/api/v1/maasmodel/:namespace/:name',
+          options: { path: { namespace: string; name: string } },
+          response: OdhResponse<MaaSModelRef>,
         ) => Cypress.Chainable<null>);
     }
   }

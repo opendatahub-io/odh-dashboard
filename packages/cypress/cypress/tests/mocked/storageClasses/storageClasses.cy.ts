@@ -594,7 +594,7 @@ describe('Storage classes', () => {
         .and('be.checked');
     });
 
-    it('should keep unsupported access modes disabled even when the config has extra keys', () => {
+    it('should show access modes as enabled when the config has extra keys', () => {
       const config = {
         accessModeSettings: {
           [AccessMode.RWO]: true,
@@ -604,11 +604,7 @@ describe('Storage classes', () => {
           AnyKey: true,
         },
       };
-      const manilaStorageClass = {
-        ...openshiftDefaultStorageClass,
-        provisioner: 'manila.csi.openstack.org',
-      };
-      const storageClass = buildMockStorageClass(manilaStorageClass, config);
+      const storageClass = buildMockStorageClass(openshiftDefaultStorageClass, config);
       storageClassesPage.mockGetStorageClasses([storageClass]);
       storageClassesPage.visit();
       storageClassesTable
@@ -633,19 +629,15 @@ describe('Storage classes', () => {
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWOP)
-        .should('be.disabled')
+        .should('be.enabled')
         .and('be.checked');
     });
 
-    it('should keep unsupported access modes disabled with empty access mode settings', () => {
+    it('should show access mode checkboxes with empty access mode settings', () => {
       const config = {
         accessModeSettings: {},
       };
-      const manilaStorageClass = {
-        ...openshiftDefaultStorageClass,
-        provisioner: 'manila.csi.openstack.org',
-      };
-      const storageClass = buildMockStorageClass(manilaStorageClass, config);
+      const storageClass = buildMockStorageClass(openshiftDefaultStorageClass, config);
       storageClassesPage.mockGetStorageClasses([storageClass]);
       storageClassesPage.visit();
       storageClassesTable
@@ -670,7 +662,7 @@ describe('Storage classes', () => {
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWOP)
-        .should('be.disabled')
+        .should('be.enabled')
         .and('not.be.checked');
     });
 

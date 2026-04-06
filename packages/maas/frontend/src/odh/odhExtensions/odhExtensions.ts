@@ -5,7 +5,6 @@ import {
 } from '@odh-dashboard/plugin-core/extension-points';
 
 export const MODEL_AS_SERVICE_ID = 'modelAsService';
-export const MAAS_API_KEYS_ID = 'maasApiKeys';
 
 export type ODHExtensions = NavExtension | RouteExtension | AreaExtension;
 const ADMIN_USER = 'ADMIN_USER';
@@ -19,31 +18,34 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     },
   },
   {
-    type: 'app.area',
-    properties: {
-      id: MAAS_API_KEYS_ID,
-      reliantAreas: [MODEL_AS_SERVICE_ID],
-      featureFlags: ['maasApiKeys'],
-    },
-  },
-  {
     type: 'app.navigation/href',
     flags: {
       required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
     },
     properties: {
-      id: 'maas-tiers-view',
-      title: 'Tiers',
-      href: '/maas/tiers',
+      id: 'maas-subscriptions-view',
+      title: 'Subscriptions',
+      href: '/maas/subscriptions',
       section: 'settings',
-      path: '/maas/tiers/*',
-      label: 'Tech Preview',
+      path: '/maas/subscriptions/*',
+    },
+  },
+  {
+    type: 'app.navigation/section',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID],
+    },
+    properties: {
+      id: 'gen-ai-studio',
+      title: 'Gen AI studio',
+      group: '4_gen_ai_studio',
+      iconRef: () => import('./GenAiStudioNavIcon'),
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [MAAS_API_KEYS_ID],
+      required: [MODEL_AS_SERVICE_ID],
     },
     properties: {
       id: 'maas-tokens-view',
@@ -51,7 +53,6 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
       href: '/maas/tokens',
       section: 'gen-ai-studio',
       path: '/maas/tokens/*',
-      label: 'Tech Preview',
     },
   },
   {
@@ -60,18 +61,28 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
       required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
     },
     properties: {
-      path: '/maas/tiers/*',
+      path: '/maas/subscriptions/*',
       component: () => import('./MaaSWrapper'),
     },
   },
   {
     type: 'app.route',
     flags: {
-      required: [MAAS_API_KEYS_ID],
+      required: [MODEL_AS_SERVICE_ID],
     },
     properties: {
       path: '/maas/tokens/*',
       component: () => import('./MaaSWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID],
+    },
+    properties: {
+      path: '/maas',
+      component: () => import('./MaaSRedirect'),
     },
   },
 ];

@@ -33,6 +33,7 @@ import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAle
 import ViewCodeModal from './components/ViewCodeModal';
 import ChatModal from './components/ChatModal';
 import ChatbotPane from './ChatbotPane';
+import CloseChatCompareModal from './components/CloseChatCompareModal';
 import {
   useChatbotConfigStore,
   selectSelectedModel,
@@ -49,24 +50,26 @@ interface ComparePaneWrapperProps {
   configId: string;
   displayLabel: string;
   onModelChange: (model: string) => void;
-  onSettingsClick: () => void;
   onClose: () => void;
   children: React.ReactNode;
   /** Metrics from the last response (latency, tokens, TTFT) */
   metrics?: ResponseMetrics | null;
   /** Whether a response is currently being generated */
   isLoading?: boolean;
+  isSettingsOpen?: boolean;
+  isActiveConfig?: boolean;
 }
 
 const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   configId,
   displayLabel,
   onModelChange,
-  onSettingsClick,
   onClose,
   children,
   metrics,
   isLoading,
+  isSettingsOpen,
+  isActiveConfig,
 }) => {
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
 
@@ -76,10 +79,11 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
       displayLabel={displayLabel}
       selectedModel={selectedModel}
       onModelChange={onModelChange}
-      onSettingsClick={onSettingsClick}
       onClose={onClose}
       metrics={metrics}
       isLoading={isLoading}
+      isSettingsOpen={isSettingsOpen}
+      isActiveConfig={isActiveConfig}
     >
       {children}
     </ChatbotPane>
@@ -95,6 +99,8 @@ type ChatbotPlaygroundProps = {
   setActivePaneConfigId?: (configId: string) => void;
   onClosePane?: (configId: string) => void;
   clearAllMessagesRef?: React.MutableRefObject<(() => void) | null>;
+  isDrawerExpanded?: boolean;
+  setIsDrawerExpanded?: (expanded: boolean) => void;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -106,6 +112,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   setActivePaneConfigId,
   onClosePane,
   clearAllMessagesRef,
+  isDrawerExpanded: isDrawerExpandedProp,
+  setIsDrawerExpanded: setIsDrawerExpandedProp,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
@@ -152,8 +160,11 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     useMCPServerStatuses(mcpServers, mcpServersLoaded);
   const [mcpServerTokens, setMcpServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());
 
-  // UI state
-  const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(true);
+  // UI state — can be controlled externally (e.g. from header Settings button)
+  const [isDrawerExpandedInternal, setIsDrawerExpandedInternal] = React.useState(true);
+  const [pendingCloseConfigId, setPendingCloseConfigId] = React.useState<string | null>(null);
+  const isDrawerExpanded = isDrawerExpandedProp ?? isDrawerExpandedInternal;
+  const setIsDrawerExpanded = setIsDrawerExpandedProp ?? setIsDrawerExpandedInternal;
 
   // Custom hooks
   const alertManagement = useAlertManagement();
@@ -230,14 +241,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     [],
   );
 
-  const handlePaneSettingsClick = React.useCallback(
-    (configId: string) => {
-      setActivePaneConfigId?.(configId);
-      setIsDrawerExpanded(true);
-    },
-    [setActivePaneConfigId],
-  );
-
   const handleSendMessage = React.useCallback(
     (message: string) => {
       messageHooksRef.current.forEach((hook) => hook.handleMessageSend(message));
@@ -263,19 +266,25 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     [sourceManagement, alertManagement],
   );
 
+  const openSettingsToTab = location.state?.openSettingsToTab;
+
   // Effects
   React.useEffect(() => {
+    const preSelectMcp = openSettingsToTab !== 'mcp' ? mcpServersFromRoute : [];
     useChatbotConfigStore.getState().resetConfiguration({
-      selectedMcpServerIds: mcpServersFromRoute,
+      selectedMcpServerIds: preSelectMcp,
     });
     return () => {
       useChatbotConfigStore.getState().resetConfiguration();
     };
-  }, [mcpServersFromRoute, selectedAAModel]);
+  }, [mcpServersFromRoute, selectedAAModel, openSettingsToTab]);
 
   React.useEffect(() => {
     const shouldClear = Boolean(
-      location.state?.mcpServers || location.state?.model || location.state?.mcpServerStatuses,
+      location.state?.mcpServers ||
+        location.state?.model ||
+        location.state?.mcpServerStatuses ||
+        location.state?.openSettingsToTab,
     );
     if (shouldClear) {
       const timeoutId = setTimeout(() => window.history.replaceState({}, ''), 100);
@@ -385,11 +394,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     ),
   };
 
-  // Settings panel header label
-  const settingsHeaderLabel = isCompareMode
-    ? `Configure - ${configIds.indexOf(activePaneConfigId) + 1}`
-    : 'Configure';
-
   // Render chatbot content for a config
   const renderChatbotContent = (configId: string) => (
     <Chatbot
@@ -407,7 +411,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           key={`${configId}-chatbot-instance`}
           configId={configId}
           username={username}
-          selectedSourceSettings={sourceManagement.selectedSourceSettings}
           currentVectorStoreId={fileManagement.currentVectorStoreId}
           mcpServers={mcpServers}
           mcpServerStatuses={mcpServerStatuses}
@@ -452,14 +455,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       />
 
       {/* Main layout */}
-      <Drawer isExpanded={isDrawerExpanded} isInline={!isCompareMode} position="left">
+      <Drawer isExpanded={isDrawerExpanded} isInline position="left">
         <Divider />
         <DrawerContent
           panelContent={
             <ChatbotSettingsPanel
-              key={`settings-panel-${activePaneConfigId}`}
               configId={activePaneConfigId}
-              headerLabel={settingsHeaderLabel}
               alerts={alerts}
               sourceManagement={sourceManagement}
               fileManagement={fileManagement}
@@ -473,8 +474,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               guardrailModels={guardrailModelNames}
               guardrailModelsLoaded={guardrailModelsLoaded}
               onCloseClick={() => setIsDrawerExpanded(false)}
+              onActiveConfigChange={setActivePaneConfigId}
               guardrailModelsError={guardrailModelsError}
-              isOverlay={isCompareMode}
+              defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
             />
           }
         >
@@ -485,7 +487,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 <ChatbotPaneHeader
                   selectedModel={primarySelectedModel || ''}
                   onModelChange={setSelectedModel}
-                  onSettingsClick={() => setIsDrawerExpanded(!isDrawerExpanded)}
                   metrics={metricsStates.get(primaryConfigId)}
                   isLoading={loadingStates.get(primaryConfigId)}
                   hasDivider
@@ -513,10 +514,11 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                           configId={configId}
                           displayLabel={getConfigDisplayLabel(index)}
                           onModelChange={handleModelChange(configId)}
-                          onSettingsClick={() => handlePaneSettingsClick(configId)}
-                          onClose={() => onClosePane?.(configId)}
+                          onClose={() => setPendingCloseConfigId(configId)}
                           metrics={metricsStates.get(configId)}
                           isLoading={loadingStates.get(configId)}
+                          isSettingsOpen={isDrawerExpanded}
+                          isActiveConfig={isDrawerExpanded && configId === activePaneConfigId}
                         >
                           {renderChatbotContent(configId)}
                         </ComparePaneWrapper>
@@ -547,6 +549,17 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
+
+      {pendingCloseConfigId && (
+        <CloseChatCompareModal
+          chatLabel={getConfigDisplayLabel(configIds.indexOf(pendingCloseConfigId))}
+          onConfirm={() => {
+            onClosePane?.(pendingCloseConfigId);
+            setPendingCloseConfigId(null);
+          }}
+          onCancel={() => setPendingCloseConfigId(null)}
+        />
+      )}
     </>
   );
 };

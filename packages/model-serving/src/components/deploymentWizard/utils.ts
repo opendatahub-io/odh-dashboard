@@ -1,8 +1,5 @@
-import {
-  MetadataAnnotation,
-  ServingRuntimeKind,
-  type SecretKind,
-} from '@odh-dashboard/internal/k8sTypes';
+import { MetadataAnnotation, type SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import { getGeneratedSecretName } from '@odh-dashboard/internal/api/index';
 import {
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
@@ -17,7 +14,6 @@ import {
   Connection,
   ConnectionTypeConfigMapObj,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import { isValidModelType, type ModelTypeFieldData } from './fields/ModelTypeSelectField';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
 import {
   ModelLocationType,
@@ -39,19 +35,7 @@ import type {
 import { isDeploymentAuthEnabled } from '../../concepts/auth';
 
 export const getDeploymentWizardRoute = (): string => {
-  return '/ai-hub/deployments/deploy';
-};
-
-export const getModelTypeFromDeployment = (
-  deployment: Deployment,
-): ModelTypeFieldData | undefined => {
-  if (
-    deployment.model.metadata.annotations?.['opendatahub.io/model-type'] &&
-    isValidModelType(deployment.model.metadata.annotations['opendatahub.io/model-type'])
-  ) {
-    return deployment.model.metadata.annotations['opendatahub.io/model-type'];
-  }
-  return undefined;
+  return '/ai-hub/models/deployments/deploy';
 };
 
 export const isExistingModelLocation = (data?: ModelLocationData): data is ModelLocationData => {
@@ -89,26 +73,38 @@ export const deployModel = async (
   deployMethod?: DeployExtension,
   existingDeployment?: Deployment,
   modelResource?: Deployment['model'],
-  serverResource?: ServingRuntimeKind,
+  serverResource?: Deployment['server'],
   serverResourceTemplateName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
   applyFieldData?: DeploymentAssemblyFn,
-): Promise<void> => {
+  runPreDeploy?: (deployment: Deployment, existingDeployment?: Deployment) => Promise<Deployment>,
+  runPostDeploy?: (
+    deployedModel: Deployment['model'],
+    existingDeployment?: Deployment,
+  ) => Promise<void>,
+): Promise<Deployment> => {
   const projectName = wizardState.project.projectName || modelResource?.metadata.namespace;
   if (!projectName) {
     throw new Error('Project is required');
   }
+  let modelResourceWithNamespace = modelResource;
+  if (modelResource && !modelResource.metadata.namespace) {
+    // Use the project user came from if they didn't specify one in yaml edit
+    modelResourceWithNamespace = structuredClone(modelResource);
+    modelResourceWithNamespace.metadata.namespace = projectName;
+  }
+
   if (!deployMethod) {
     throw new Error('Deploy method is required. Model serving platform could be missing.');
   }
 
   // If connection name doesn't exist yet, it will fail the dry run
-  const dryRunModelResource = structuredClone(modelResource);
+  const dryRunModelResource = structuredClone(modelResourceWithNamespace);
   delete dryRunModelResource?.metadata.annotations?.[MetadataAnnotation.ConnectionName];
 
   // Dry runs
-  const [dryRunSecret] = await Promise.all([
+  await Promise.all([
     handleConnectionCreation(
       wizardState.createConnectionData.data,
       projectName,
@@ -135,50 +131,66 @@ export const deployModel = async (
         ]
       : []),
   ]);
-
-  // The secret name is calculated in handleConnectionCreation dryRun
-  // so ensure we're sending the correct name into the real deploy and secret creation methods
-  const realSecretName = dryRunSecret?.metadata.name ?? secretName;
+  if (runPreDeploy && modelResource) {
+    await runPreDeploy(
+      {
+        modelServingPlatformId: deployMethod.platform,
+        model: modelResource,
+        server: serverResource,
+      },
+      existingDeployment,
+    );
+  }
 
   // Create secret
   const newSecret = await handleConnectionCreation(
     wizardState.createConnectionData.data,
     projectName,
     wizardState.modelLocationData.data,
-    realSecretName,
+    secretName,
     false,
     wizardState.modelLocationData.selectedConnection,
   );
+
   // newSecret.metadata.name is the name of the secret created during secret creation,
-  // use realSecretName as a fallback (should be the same)
-  const actualSecretName = newSecret?.metadata.name ?? realSecretName;
+  const createdSecretName = newSecret?.metadata.name ?? secretName ?? getGeneratedSecretName();
 
   // Create deployment
+  const modelResourceWithConnection = structuredClone(modelResourceWithNamespace);
+  if (modelResourceWithConnection?.metadata.annotations) {
+    modelResourceWithConnection.metadata.annotations[MetadataAnnotation.ConnectionName] =
+      createdSecretName;
+  }
   const deploymentResult = await deployMethod.deploy(
     wizardState,
     projectName,
     existingDeployment,
-    modelResource,
+    modelResourceWithNamespace,
     serverResource,
     serverResourceTemplateName,
     false,
-    actualSecretName,
+    createdSecretName,
     overwrite,
     initialWizardData,
     applyFieldData,
   );
 
   // Potentially skip this if YAML is used and model location is set directly in the YAML
-  if (newSecret && actualSecretName && wizardState.modelLocationData.data) {
+  if (newSecret && createdSecretName && wizardState.modelLocationData.data) {
     await handleSecretOwnerReferencePatch(
       wizardState.createConnectionData.data,
       deploymentResult.model,
       wizardState.modelLocationData.data,
-      actualSecretName,
+      createdSecretName,
       deploymentResult.model.metadata.uid ?? '',
       false,
     );
   }
+  if (runPostDeploy) {
+    await runPostDeploy(deploymentResult.model, existingDeployment);
+  }
+
+  return deploymentResult;
 };
 
 export const resolveConnectionType = (

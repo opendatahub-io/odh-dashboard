@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,11 +34,11 @@ func newLSDHandlerTestApp(t *testing.T) *App {
 }
 
 // newHandlerTestRequest creates a GET request with the LlamaStack client already injected into
-// context, simulating what AttachLlamaStackClient middleware does in production.
+// context, simulating what AttachLlamaStackClientFromSecret middleware does in production.
 func newHandlerTestRequest(t *testing.T, app *App) (*httptest.ResponseRecorder, *http.Request) {
 	t.Helper()
 	rr := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models?namespace=test-namespace", nil)
+	req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models?namespace=test-namespace&secretName=test-secret", nil)
 	assert.NoError(t, err)
 
 	llamaStackClient := app.llamaStackClientFactory.CreateClient("http://test", "token", false, nil, "/v1")
@@ -63,11 +64,13 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		defer rr.Result().Body.Close()
 		assert.NoError(t, json.Unmarshal(body, &response))
 
-		// Verify response contains models array
-		assert.Contains(t, response, "models")
+		// Verify response contains data envelope with models array
+		assert.Contains(t, response, "data")
+		data := response["data"].(map[string]interface{})
+		assert.Contains(t, data, "models")
 
 		// Verify models array contains all models (7 total from mock)
-		models := response["models"].([]interface{})
+		models := data["models"].([]interface{})
 		assert.Len(t, models, 7, "Should return all 7 models")
 	})
 
@@ -83,7 +86,8 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		defer rr.Result().Body.Close()
 		assert.NoError(t, json.Unmarshal(body, &response))
 
-		models := response["models"].([]interface{})
+		data := response["data"].(map[string]interface{})
+		models := data["models"].([]interface{})
 
 		// Verify first model has stable public API structure
 		firstModel := models[0].(map[string]interface{})
@@ -115,7 +119,8 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		defer rr.Result().Body.Close()
 		assert.NoError(t, json.Unmarshal(body, &response))
 
-		assert.Len(t, response["models"].([]interface{}), 0, "Should return empty models array")
+		data := response["data"].(map[string]interface{})
+		assert.Len(t, data["models"].([]interface{}), 0, "Should return empty models array")
 	})
 }
 
@@ -205,6 +210,10 @@ func (m *mockErrorClient) ListModels(ctx context.Context) ([]openai.Model, error
 	return nil, assert.AnError
 }
 
+func (m *mockErrorClient) ListProviders(ctx context.Context) ([]models.LlamaStackProvider, error) {
+	return nil, assert.AnError
+}
+
 // mockEmptyClient is a mock client that returns an empty models list
 type mockEmptyClient struct{}
 
@@ -214,11 +223,19 @@ func (m *mockEmptyClient) ListModels(ctx context.Context) ([]openai.Model, error
 	return []openai.Model{}, nil
 }
 
+func (m *mockEmptyClient) ListProviders(ctx context.Context) ([]models.LlamaStackProvider, error) {
+	return []models.LlamaStackProvider{}, nil
+}
+
 // mockLlamaStackErrClient is a mock client that returns a typed LlamaStackError (connection failure)
 type mockLlamaStackErrClient struct{}
 
 var _ ls.LlamaStackClientInterface = (*mockLlamaStackErrClient)(nil)
 
 func (m *mockLlamaStackErrClient) ListModels(ctx context.Context) ([]openai.Model, error) {
+	return nil, ls.NewConnectionError("mock: could not reach LlamaStack server")
+}
+
+func (m *mockLlamaStackErrClient) ListProviders(ctx context.Context) ([]models.LlamaStackProvider, error) {
 	return nil, ls.NewConnectionError("mock: could not reach LlamaStack server")
 }

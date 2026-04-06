@@ -2,6 +2,8 @@ import React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { useDeployMethod } from './useDeployMethod';
+import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
+import { useWizardFieldPostDeploy } from './useWizardFieldPostDeploy';
 import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidation';
 import { useWizardFieldApply } from '../useWizardFieldApply';
 import { deployModel } from '../utils';
@@ -33,12 +35,15 @@ export const useModelDeploymentSubmit = (
   clearSubmitError: () => void;
 } => {
   const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
-  const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(formState);
+  const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(
+    formState,
+    initialWizardData?.navSourceMetadata,
+  );
+  const { runPreDeploy, preDeployExtensionsLoaded } = useWizardFieldPreDeploy(formState);
+  const { runPostDeploy, postDeployExtensionsLoaded } = useWizardFieldPostDeploy(formState);
 
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
-
-  const currentProjectName = formState.project.projectName ?? undefined;
 
   const onSave = React.useCallback(
     async (overwrite?: boolean) => {
@@ -52,19 +57,28 @@ export const useModelDeploymentSubmit = (
         if (viewMode === 'yaml-edit' && yamlError) {
           throw yamlError;
         }
-        if (viewMode === 'yaml-edit' && resources.model?.kind !== 'LLMInferenceService') {
-          throw new Error('Invalid YAML: Kind must be LLMInferenceService');
+        if (
+          viewMode === 'yaml-edit' &&
+          (resources.model?.kind !== 'LLMInferenceService' ||
+            resources.model.apiVersion !== 'serving.kserve.io/v1alpha1')
+        ) {
+          throw new Error(
+            'Invalid YAML: Kind must be LLMInferenceService and apiVersion must be serving.kserve.io/v1alpha1',
+          );
         }
-        if (!deployMethodLoaded || !deployMethod || !applyExtensionsLoaded) {
+        if (
+          !deployMethodLoaded ||
+          !deployMethod ||
+          !applyExtensionsLoaded ||
+          !preDeployExtensionsLoaded ||
+          !postDeployExtensionsLoaded
+        ) {
           throw new Error(
             'Deploy method or extensions not loaded or could not be inferred from resources',
           );
         }
-        if (!currentProjectName) {
-          throw new Error('Select a project before deploying.');
-        }
 
-        const serverResourceTemplateName = formState.modelServer.data?.name;
+        const serverResourceTemplateName = formState.modelServer.data?.selection?.name;
         const allModelServerTemplates = formState.modelFormatState.templatesFilteredForModelType;
         const serverResource = serverResourceTemplateName
           ? getServingRuntimeFromTemplate(
@@ -80,11 +94,13 @@ export const useModelDeploymentSubmit = (
           deployMethod.properties,
           existingDeployment,
           resources.model,
-          serverResource,
+          resources.server ?? serverResource,
           serverResourceTemplateName,
           overwrite,
           initialWizardData,
           applyFieldData,
+          runPreDeploy,
+          runPostDeploy,
         );
         exitWizardOnSubmit();
       } catch (error) {
@@ -99,13 +115,16 @@ export const useModelDeploymentSubmit = (
       deployMethodLoaded,
       deployMethod,
       applyExtensionsLoaded,
-      currentProjectName,
+      preDeployExtensionsLoaded,
+      postDeployExtensionsLoaded,
       formState,
-      resources.model,
+      resources,
       connectionSecretName,
       existingDeployment,
       initialWizardData,
       applyFieldData,
+      runPreDeploy,
+      runPostDeploy,
       exitWizardOnSubmit,
       yamlError,
     ],

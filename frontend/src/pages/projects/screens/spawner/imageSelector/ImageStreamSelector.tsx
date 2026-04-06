@@ -44,12 +44,16 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   const [searchImageStreamName, setSearchImageStreamName] = React.useState('');
 
   const filteredCurrentImageStreams =
-    currentProjectStreams?.filter((imageStream) =>
+    currentProjectStreams
+      ?.toSorted(compareImageStreamOrder)
+      .filter((imageStream) =>
+        imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
+      ) || [];
+  const filteredImageStreams = imageStreams
+    .toSorted(compareImageStreamOrder)
+    .filter((imageStream) =>
       imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
-    ) || [];
-  const filteredImageStreams = imageStreams.filter((imageStream) =>
-    imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
-  );
+    );
 
   const renderMenuItem = (
     imageStream: ImageStreamKind,
@@ -65,6 +69,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
       }
       onClick={() => onImageStreamSelect(imageStream)}
       icon={<ProjectScopedIcon isProject={scope === 'project'} alt="" />}
+      description={getRelatedVersionDescription(imageStream)}
     >
       <ImageStreamDropdownLabel
         displayName={getImageStreamDisplayName(imageStream)}

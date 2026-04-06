@@ -1,6 +1,7 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import type { PipelineRun } from '~/app/types';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable/index';
 
@@ -68,14 +69,17 @@ describe('AutoragRunsTable', () => {
 
   it('should render table with runs', () => {
     render(
-      <AutoragRunsTable
-        runs={mockRuns}
-        totalSize={defaultPaginationProps.totalSize}
-        page={defaultPaginationProps.page}
-        pageSize={defaultPaginationProps.pageSize}
-        onPageChange={defaultPaginationProps.onPageChange}
-        onPerPageChange={defaultPaginationProps.onPerPageChange}
-      />,
+      <MemoryRouter>
+        <AutoragRunsTable
+          runs={mockRuns}
+          namespace="test-ns"
+          totalSize={defaultPaginationProps.totalSize}
+          page={defaultPaginationProps.page}
+          pageSize={defaultPaginationProps.pageSize}
+          onPageChange={defaultPaginationProps.onPageChange}
+          onPerPageChange={defaultPaginationProps.onPerPageChange}
+        />
+      </MemoryRouter>,
     );
 
     expect(screen.getByTestId('autorag-runs-table')).toBeInTheDocument();
@@ -83,14 +87,17 @@ describe('AutoragRunsTable', () => {
 
   it('should render run names', () => {
     render(
-      <AutoragRunsTable
-        runs={mockRuns}
-        totalSize={defaultPaginationProps.totalSize}
-        page={defaultPaginationProps.page}
-        pageSize={defaultPaginationProps.pageSize}
-        onPageChange={defaultPaginationProps.onPageChange}
-        onPerPageChange={defaultPaginationProps.onPerPageChange}
-      />,
+      <MemoryRouter>
+        <AutoragRunsTable
+          runs={mockRuns}
+          namespace="test-ns"
+          totalSize={defaultPaginationProps.totalSize}
+          page={defaultPaginationProps.page}
+          pageSize={defaultPaginationProps.pageSize}
+          onPageChange={defaultPaginationProps.onPageChange}
+          onPerPageChange={defaultPaginationProps.onPerPageChange}
+        />
+      </MemoryRouter>,
     );
 
     expect(screen.getByTestId('run-name-r1')).toHaveTextContent('Run One');
@@ -101,6 +108,7 @@ describe('AutoragRunsTable', () => {
     render(
       <AutoragRunsTable
         runs={[]}
+        namespace="test-ns"
         totalSize={0}
         page={1}
         pageSize={20}
@@ -114,20 +122,27 @@ describe('AutoragRunsTable', () => {
     expect(screen.getByTestId('empty-view')).toHaveTextContent('Empty');
   });
 
-  it('should render Started column with relative time', () => {
+  it('should render Started column with timestamps', () => {
     render(
-      <AutoragRunsTable
-        runs={mockRuns}
-        totalSize={defaultPaginationProps.totalSize}
-        page={defaultPaginationProps.page}
-        pageSize={defaultPaginationProps.pageSize}
-        onPageChange={defaultPaginationProps.onPageChange}
-        onPerPageChange={defaultPaginationProps.onPerPageChange}
-      />,
+      <MemoryRouter>
+        <AutoragRunsTable
+          runs={mockRuns}
+          namespace="test-ns"
+          totalSize={defaultPaginationProps.totalSize}
+          page={defaultPaginationProps.page}
+          pageSize={defaultPaginationProps.pageSize}
+          onPageChange={defaultPaginationProps.onPageChange}
+          onPerPageChange={defaultPaginationProps.onPerPageChange}
+        />
+      </MemoryRouter>,
     );
 
-    // The mock relativeTime function returns '1 day ago'
-    const relativeTimeElements = screen.getAllByText('1 day ago');
-    expect(relativeTimeElements.length).toBeGreaterThan(0);
+    // Verify timestamps are rendered with correct datetime attributes
+    const timestamps = screen.getAllByRole('time');
+    expect(timestamps).toHaveLength(2);
+
+    // Verify the datetime attributes match the mock data
+    expect(timestamps[0]).toHaveAttribute('datetime', '2025-01-17T00:00:00.000Z');
+    expect(timestamps[1]).toHaveAttribute('datetime', '2025-01-16T00:00:00.000Z');
   });
 });

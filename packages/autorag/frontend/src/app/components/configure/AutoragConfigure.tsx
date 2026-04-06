@@ -1,48 +1,143 @@
-import {
-  Button,
-  Card,
-  CardHeader,
-  CardBody,
-  CardTitle,
-  Grid,
-  GridItem,
-  Label,
-  Panel,
-  PanelMain,
-  PanelMainBody,
-  PanelFooter,
-  Split,
-  SplitItem,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
-import React, { useEffect, useRef, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router';
-import { Controller, FormProvider, useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
   isConnectionType,
   isConnectionTypeDataField,
   S3ConnectionTypeKeys,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import createConfigureSchema from '~/app/schemas/configure.schema';
-import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
-import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
-import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
-import { SecretListItem } from '~/app/types';
-import FileExplorer from '~/app/components/common/FileExplorer/FileExplorer.tsx';
-import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  CardTitle,
+  Content,
+  Divider,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
+  EmptyState,
+  EmptyStateBody,
+  Flex,
+  FlexItem,
+  FormHelperText,
+  Grid,
+  GridItem,
+  HelperText,
+  HelperTextItem,
+  List,
+  ListItem,
+  MenuToggle,
+  MultipleFileUpload,
+  MultipleFileUploadMain,
+  NumberInput,
+  Popover,
+  Select,
+  SelectList,
+  SelectOption,
+  Spinner,
+  Split,
+  SplitItem,
+  Stack,
+  StackItem,
+  ToggleGroup,
+  ToggleGroupItem,
+  Tooltip,
+  type DropEvent,
+} from '@patternfly/react-core';
+import {
+  CubesIcon,
+  EllipsisVIcon,
+  InfoCircleIcon,
+  TimesIcon,
+  UploadIcon,
+} from '@patternfly/react-icons';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { findKey } from 'es-toolkit';
+import { DashboardPopupIconButton } from 'mod-arch-shared';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
+import { Navigate, useParams } from 'react-router';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
+import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
+import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
+import type { File as S3File } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import { useS3FileUploadMutation } from '~/app/hooks/mutations';
+import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
+import { useNotification } from '~/app/hooks/useNotification';
+import {
+  ConfigureSchema,
+  MAX_RAG_PATTERNS,
+  MIN_RAG_PATTERNS,
+  RAG_METRIC_ANSWER_CORRECTNESS,
+  RAG_METRIC_CONTEXT_CORRECTNESS,
+  RAG_METRIC_FAITHFULNESS,
+} from '~/app/schemas/configure.schema';
+import { SecretListItem } from '~/app/types';
+import { autoragExperimentsPathname } from '~/app/utilities/routes';
+import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
+import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
+import './AutoragConfigure.css';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
 
-const configureSchema = createConfigureSchema();
+/** MIME types and extensions for the knowledge document upload dropzone (react-dropzone `accept` format). */
+const INPUT_DATA_FILE_ACCEPT: Record<string, string[]> = {
+  'application/pdf': ['.pdf'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+  'text/markdown': ['.md', '.markdown'],
+  'text/html': ['.html', '.htm'],
+  'text/plain': ['.txt'],
+};
+
+const INPUT_DATA_UPLOAD_NATIVE_ACCEPT = [
+  ...new Set(Object.values(INPUT_DATA_FILE_ACCEPT).flat()),
+].join(',');
+
+/** Matches MultipleFileUpload dropzone `maxSize` (1 GiB). */
+const INPUT_DATA_UPLOAD_MAX_BYTES = 1024 * 1024 * 1024;
+
+/** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
+function isAllowedInputDataUploadFile(file: File): boolean {
+  const dot = file.name.lastIndexOf('.');
+  const ext = dot === -1 ? '' : file.name.slice(dot).toLowerCase();
+  if (ext) {
+    for (const allowed of Object.values(INPUT_DATA_FILE_ACCEPT).flat()) {
+      if (allowed.toLowerCase() === ext) {
+        return true;
+      }
+    }
+  }
+  return Boolean(file.type && file.type in INPUT_DATA_FILE_ACCEPT);
+}
+
+const OPTIMIZATION_METRICS: {
+  value: ConfigureSchema['optimization_metric'];
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: RAG_METRIC_FAITHFULNESS,
+    label: 'Answer faithfulness',
+    description: 'How factually grounded the answer is in the retrieved context.',
+  },
+  {
+    value: RAG_METRIC_ANSWER_CORRECTNESS,
+    label: 'Answer correctness',
+    description: 'How correct the generated answer is compared to the ground truth.',
+  },
+  {
+    value: RAG_METRIC_CONTEXT_CORRECTNESS,
+    label: 'Context correctness',
+    description: 'How precisely the retrieval step identifies relevant chunks.',
+  },
+];
 
 function AutoragConfigure(): React.JSX.Element {
-  const navigate = useNavigate();
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
   const autoragConnectionTypes = React.useMemo(
@@ -57,41 +152,63 @@ function AutoragConfigure(): React.JSX.Element {
     [allConnectionTypes],
   );
   const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
-  const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
+
+  const [fileExplorerMode, setFileExplorerMode] = useState<false | 'input_data' | 'test_data'>(
+    false,
+  );
+
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
+  const [isMetricSelectOpen, setIsMetricSelectOpen] = useState(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
+  const [inputDataSourceMode, setInputDataSourceMode] = useState<'select' | 'upload'>('select');
+  const [isInputDataFileUploading, setIsInputDataFileUploading] = useState(false);
+  const [isInputDataDropdownOpen, setIsInputDataDropdownOpen] = useState(false);
+  const inputDataNativeInputRef = useRef<HTMLInputElement>(null);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
-  const { data: allModelsData } = useLlamaStackModelsQuery();
 
-  const form = useForm({
-    mode: 'onChange',
-    resolver: zodResolver(configureSchema),
-    defaultValues: configureSchema.parse({}),
+  const notification = useNotification();
+  const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>();
+
+  const form = useFormContext<ConfigureSchema>();
+  const { getValues, reset, setValue, formState } = form;
+  const { isSubmitting } = formState;
+
+  const [
+    llamaStackSecretName,
+    inputDataSecretName,
+    inputDataBucketName,
+    testDataSecretName,
+    testDataBucketName,
+    inputDataKey,
+  ] = useWatch({
+    control: form.control,
+    name: [
+      'llama_stack_secret_name',
+      'input_data_secret_name',
+      'input_data_bucket_name',
+      'test_data_secret_name',
+      'test_data_bucket_name',
+      'input_data_key',
+    ],
   });
-  const {
-    control,
-    setValue,
-    watch,
-    formState: { isSubmitting: formIsSubmitting, isValid: formIsValid },
-  } = form;
 
-  const inputDataSecretName = watch('input_data_secret_name');
-  const optimizationMetric = watch('optimization_metric');
-  const generationModels = watch('generation_models') ?? [];
-  const embeddingModels = watch('embeddings_models') ?? [];
+  const showInputDataUploadDropzone = !isInputDataFileUploading && !inputDataKey.trim();
 
-  const canSelectDocs = Boolean(inputDataSecretName);
-  // && Boolean(watch('input_data_bucket_name')); // Add condition when we have bucket selection
-  const hasFiles = canSelectDocs; // && Boolean(watch('input_data_key')) && Boolean(watch('test_data_key')); // Enable condition when completed
-  const formDisabled = !formIsValid || formIsSubmitting;
+  const { data: allModelsData } = useLlamaStackModelsQuery(namespace ?? '', llamaStackSecretName);
+  const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
+
+  // Reset modelsInitialized when the LlamaStack secret changes so models re-populate
+  useEffect(() => {
+    modelsInitialized.current = false;
+  }, [llamaStackSecretName]);
 
   useEffect(() => {
-    //Initialize available generation and embedding models into the form data
+    // Initialize available generation and embedding models into the form data
     if (allModelsData?.models && !modelsInitialized.current) {
       modelsInitialized.current = true;
-      form.reset({
-        ...form.getValues(),
+      reset({
+        ...getValues(),
         // eslint-disable-next-line camelcase
         generation_models: allModelsData.models
           .filter((model) => model.type === 'llm')
@@ -104,207 +221,678 @@ function AutoragConfigure(): React.JSX.Element {
           .toSorted((a, b) => a.localeCompare(b)),
       });
     }
-  }, [allModelsData, form]);
+  }, [allModelsData, getValues, reset]);
+
+  // set bucket from selected secret
+  useEffect(() => {
+    // reset bucket if secret is removed
+    if (!selectedSecret) {
+      setValue('input_data_bucket_name', '', { shouldValidate: true });
+      return;
+    }
+
+    const bucketKey = findKey(
+      selectedSecret.data,
+      (value, key) => key.toLowerCase() === 'aws_s3_bucket',
+    );
+    setValue('input_data_bucket_name', bucketKey ? selectedSecret.data[bucketKey] : '', {
+      shouldValidate: true,
+    });
+  }, [selectedSecret, setValue]);
+
+  // reset bucket if secret is removed
+  useEffect(() => {
+    if (inputDataSecretName === '') {
+      setValue('input_data_bucket_name', '', { shouldValidate: true });
+    }
+  }, [inputDataSecretName, setValue]);
+
+  // reset input data key if document input mode changes
+  useEffect(() => {
+    setIsInputDataFileUploading(false);
+    setValue('input_data_key', '', { shouldValidate: true });
+  }, [inputDataSourceMode, setValue]);
+
+  // ensure input and test have the same secret and bucket
+  useEffect(() => {
+    if (inputDataSecretName !== testDataSecretName) {
+      setValue('test_data_secret_name', inputDataSecretName, { shouldValidate: true });
+    }
+    if (inputDataBucketName !== testDataBucketName) {
+      setValue('test_data_bucket_name', inputDataBucketName, { shouldValidate: true });
+    }
+  }, [inputDataBucketName, inputDataSecretName, setValue, testDataBucketName, testDataSecretName]);
+
+  // reset selected file values if input secret or bucket changes
+  useEffect(() => {
+    setIsInputDataFileUploading(false);
+    setValue('input_data_key', '', { shouldValidate: true });
+    setSelectedInputDataFile(undefined);
+  }, [inputDataSecretName, inputDataBucketName, setValue]);
+
+  // reset selected file values if test secret or bucket changes
+  useEffect(() => {
+    setValue('test_data_key', '', { shouldValidate: true });
+    setSelectedInputDataFile(undefined);
+  }, [testDataSecretName, testDataBucketName, setValue]);
 
   const openExperimentSettings = () => {
     // Snapshot current form values as the "default" so reset() can revert to them
-    form.reset({ ...form.getValues() });
+    reset({ ...getValues() });
     setIsExperimentSettingsOpen(true);
   };
 
-  const saveExperimentSettingsChanges = () => {
-    // TODO: add form update logic once ready
-    setIsExperimentSettingsOpen(false);
-  };
+  const clearInputDataUpload = useCallback(() => {
+    setIsInputDataFileUploading(false);
+    setIsInputDataDropdownOpen(false);
+    setValue('input_data_key', '', { shouldValidate: true });
+  }, [setValue]);
+
+  const uploadInputDataFile = useCallback(
+    async (file?: File) => {
+      if (!file || !namespace) {
+        return;
+      }
+      if (file.size > INPUT_DATA_UPLOAD_MAX_BYTES) {
+        notification.error('File too large', 'File size must be 1 GiB or less.');
+        return;
+      }
+      if (!isAllowedInputDataUploadFile(file)) {
+        notification.error(
+          'Invalid file type',
+          'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
+        );
+        return;
+      }
+      setValue('input_data_key', '', { shouldValidate: true });
+      setIsInputDataDropdownOpen(false);
+      setIsInputDataFileUploading(true);
+      try {
+        const uploadResult = await uploadFileToS3({
+          namespace,
+          secretName: inputDataSecretName,
+          bucket: inputDataBucketName,
+          key: file.name,
+          file,
+        });
+        setValue('input_data_key', uploadResult.key, { shouldValidate: true });
+      } catch (err) {
+        notification.error('Failed to upload file', err instanceof Error ? err.message : '');
+      } finally {
+        setIsInputDataFileUploading(false);
+      }
+    },
+    [inputDataBucketName, inputDataSecretName, namespace, notification, setValue, uploadFileToS3],
+  );
+
+  const openInputDataReplaceFileDialog = useCallback(() => {
+    setIsInputDataDropdownOpen(false);
+    inputDataNativeInputRef.current?.click();
+  }, []);
 
   if (!namespace) {
     return <Navigate to={autoragExperimentsPathname} replace />;
   }
 
   return (
-    <FormProvider {...form}>
-      <Panel isScrollable={false}>
-        <PanelMain tabIndex={0}>
-          <PanelMainBody>
-            <Grid hasGutter>
-              <GridItem span={4}>
-                <Card className="pf-v6-u-h-100">
-                  <CardTitle>Documents</CardTitle>
-                  <CardBody>
-                    <Stack>
-                      <StackItem className="pf-v6-u-font-size-sm pf-v6-u-mb-sm">
-                        Select or add an S3 connection to upload files or browse existing files.
-                      </StackItem>
+    <>
+      <Grid className="pf-v6-u-h-100" hasGutter>
+        <GridItem span={4}>
+          <Card className="pf-v6-u-p-xs" isFullHeight>
+            <div style={{ overflow: 'auto' }}>
+              <CardHeader>
+                <Content component="h3">Knowledge setup</Content>
+                <Content component="p">
+                  Select or upload documents to serve as the source of truth for retrieval, and
+                  determine how they should be indexed.
+                </Content>
+              </CardHeader>
+              <CardBody>
+                <Stack hasGutter>
+                  <StackItem>
+                    <ConfigureFormGroup
+                      label="S3 connection"
+                      description="Select the S3 connection that contains your desired documents, or add a new connection."
+                    >
+                      <Split hasGutter isWrappable>
+                        <SplitItem style={{ width: '10rem' }} isFilled>
+                          {Boolean(namespace) && (
+                            <Controller
+                              control={form.control}
+                              name="input_data_secret_name"
+                              render={({ field: { onChange } }) => (
+                                <SecretSelector
+                                  namespace={String(namespace)}
+                                  type="storage"
+                                  additionalRequiredKeys={AUTORAG_REQUIRED_KEYS}
+                                  value={selectedSecret?.uuid}
+                                  onChange={(secret) => {
+                                    if (!secret) {
+                                      setSelectedSecret(undefined);
+                                      onChange('');
+                                      return;
+                                    }
+
+                                    const requiredKeys =
+                                      AUTORAG_REQUIRED_KEYS[secret.type ?? ''] ?? [];
+                                    const availableKeys = Object.keys(secret.data);
+                                    const invalid =
+                                      getMissingRequiredKeys(requiredKeys, availableKeys).length >
+                                      0;
+                                    setSelectedSecret({ ...secret, invalid });
+                                    onChange(invalid ? '' : secret.name);
+                                  }}
+                                  onRefreshReady={(refresh) => {
+                                    secretsRefreshRef.current = refresh;
+                                  }}
+                                  placeholder="Select connection"
+                                  toggleWidth="16rem"
+                                  dataTestId="aws-secret-selector"
+                                />
+                              )}
+                            />
+                          )}
+                        </SplitItem>
+                        <SplitItem>
+                          <Button
+                            key="add-new-connection"
+                            variant="tertiary"
+                            onClick={() => setIsConnectionModalOpen(true)}
+                          >
+                            Add new connection
+                          </Button>
+                        </SplitItem>
+                      </Split>
+                    </ConfigureFormGroup>
+                  </StackItem>
+                  {Boolean(inputDataSecretName) && (
+                    <>
                       <StackItem>
-                        <Split
-                          style={{
-                            display: 'flex',
-                            alignItems: 'flex-end',
-                          }}
-                        >
-                          <SplitItem isFilled data-temp-placeholder style={{ marginRight: '1rem' }}>
-                            {Boolean(namespace) && (
-                              <Controller
-                                control={control}
-                                name="input_data_secret_name"
-                                render={({ field: { onChange } }) => (
-                                  <SecretSelector
-                                    namespace={String(namespace)}
-                                    type="storage"
-                                    additionalRequiredKeys={AUTORAG_REQUIRED_KEYS}
-                                    value={selectedSecret?.uuid}
-                                    onChange={(secret) => {
-                                      setSelectedSecret(secret);
-                                      onChange(secret?.invalid ? undefined : secret?.name);
-                                    }}
-                                    onRefreshReady={(refresh) => {
-                                      secretsRefreshRef.current = refresh;
-                                    }}
-                                    label="S3 connection"
-                                    placeholder="Select connection"
-                                    toggleWidth="16rem"
-                                    dataTestId="aws-secret-selector"
-                                  />
-                                )}
-                              />
-                            )}
-                          </SplitItem>
-                          <SplitItem>
-                            <Button
-                              key="add-new-connection"
-                              variant="secondary"
-                              onClick={() => setIsConnectionModalOpen(true)}
-                            >
-                              Add new connection
-                            </Button>
-                          </SplitItem>
-                        </Split>
+                        <Divider />
                       </StackItem>
-                      {Boolean(selectedSecret?.uuid) && (
+                      <StackItem className="pf-v6-u-mt-sm">
+                        <ToggleGroup
+                          aria-label="Choose how to add documents"
+                          className="autoragConfigureToggleGroupFullWidth pf-v6-u-mb-md"
+                        >
+                          <ToggleGroupItem
+                            text="Select file or folder"
+                            buttonId="document-input-select"
+                            isSelected={inputDataSourceMode === 'select'}
+                            onChange={() => setInputDataSourceMode('select')}
+                          />
+                          <ToggleGroupItem
+                            text="Upload file"
+                            buttonId="document-input-upload"
+                            isSelected={inputDataSourceMode === 'upload'}
+                            onChange={() => setInputDataSourceMode('upload')}
+                          />
+                        </ToggleGroup>
+                      </StackItem>
+
+                      {inputDataSourceMode === 'select' && (
                         <>
-                          <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                            Selected connection
+                          <StackItem className="pf-v6-u-mb-sm">
+                            <Content component="h4">Select file or folder</Content>
                           </StackItem>
                           <StackItem>
-                            <Label
-                              onClose={() => {
-                                setSelectedSecret(undefined);
-                                setValue('input_data_secret_name', undefined);
-                              }}
-                              closeBtnAriaLabel="Clear selected connection"
-                            >
-                              {selectedSecret?.name}
-                            </Label>
-                          </StackItem>
-
-                          <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                            Selected files
+                            <Content component="small">
+                              Select one file or folder from this bucket to use as the knowledge for
+                              your experiment.
+                            </Content>
                           </StackItem>
                           <StackItem>
                             <Button
                               key="select-files"
                               variant="secondary"
-                              onClick={() => setIsFileExplorerOpen(true)}
-                              isDisabled={!canSelectDocs || formIsSubmitting}
+                              onClick={() => setFileExplorerMode('input_data')}
+                              isDisabled={!selectedSecret || selectedSecret.invalid || isSubmitting}
                             >
-                              Select files
+                              Browse bucket
                             </Button>
                           </StackItem>
                         </>
                       )}
-                    </Stack>
-                  </CardBody>
-                </Card>
-              </GridItem>
-              <GridItem span={8}>
-                <Card className="pf-v6-u-h-100">
-                  <CardTitle>Configure details</CardTitle>
-                  <CardBody>
-                    <Stack>
-                      <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm">
-                        Where would you like to index your documents?
-                      </StackItem>
-                      <StackItem data-temp-placeholder>Vector index dropdown</StackItem>
 
-                      <StackItem className="pf-v6-u-font-weight-bold pf-v6-u-font-size-sm pf-v6-u-mb-sm pf-v6-u-mt-md">
-                        Add the data source you would like to use for evaluation.{' '}
-                        <span className="pf-v6-u-text-color-required">*</span>
-                      </StackItem>
-                      <StackItem data-temp-placeholder>
-                        Evaluation data source upload component
-                      </StackItem>
+                      {inputDataSourceMode === 'upload' && (
+                        <>
+                          <StackItem>
+                            <Content component="h4">Upload file</Content>
+                          </StackItem>
+                          <StackItem>
+                            <Content component="small" id="input-data-upload-description">
+                              Drop a file here or browse to select a file.
+                            </Content>
+                          </StackItem>
+                          <StackItem>
+                            <input
+                              ref={inputDataNativeInputRef}
+                              type="file"
+                              hidden
+                              accept={INPUT_DATA_UPLOAD_NATIVE_ACCEPT}
+                              aria-hidden
+                              tabIndex={-1}
+                              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                                const input = event.currentTarget;
+                                const file = input.files?.[0];
+                                input.value = '';
+                                if (!file) {
+                                  return;
+                                }
+                                void uploadInputDataFile(file);
+                              }}
+                            />
+                            {showInputDataUploadDropzone && (
+                              <MultipleFileUpload
+                                aria-describedby="input-data-upload-description"
+                                onFileDrop={(_event: DropEvent, droppedFiles: File[]) => {
+                                  const [file] = droppedFiles;
+                                  void uploadInputDataFile(file);
+                                }}
+                                dropzoneProps={{
+                                  accept: INPUT_DATA_FILE_ACCEPT,
+                                  disabled: isSubmitting || isInputDataFileUploading,
+                                  maxFiles: 1,
+                                  maxSize: INPUT_DATA_UPLOAD_MAX_BYTES,
+                                  multiple: false,
+                                }}
+                              >
+                                <MultipleFileUploadMain
+                                  titleIcon={<UploadIcon />}
+                                  titleText="Drag and drop files here"
+                                  titleTextSeparator="or"
+                                  infoText="Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text"
+                                  browseButtonText="Upload"
+                                />
+                              </MultipleFileUpload>
+                            )}
+                            {!showInputDataUploadDropzone && (
+                              <Table
+                                aria-label="Knowledge document upload"
+                                borders
+                                variant="compact"
+                                className="pf-v6-u-w-100"
+                              >
+                                <Thead>
+                                  <Tr>
+                                    <Th>File</Th>
+                                    <Th aria-label="Actions" />
+                                  </Tr>
+                                </Thead>
+                                <Tbody>
+                                  <Tr>
+                                    <Td dataLabel="File">
+                                      <Split hasGutter>
+                                        {isInputDataFileUploading && (
+                                          <SplitItem>
+                                            <Spinner
+                                              size="md"
+                                              aria-label="Uploading file"
+                                              data-testid="input-data-upload-spinner"
+                                            />
+                                          </SplitItem>
+                                        )}
+                                        <SplitItem isFilled>
+                                          {isInputDataFileUploading ? 'Uploading…' : inputDataKey}
+                                        </SplitItem>
+                                      </Split>
+                                    </Td>
+                                    <Td isActionCell modifier="fitContent">
+                                      <Dropdown
+                                        isOpen={isInputDataDropdownOpen}
+                                        onOpenChange={setIsInputDataDropdownOpen}
+                                        shouldFocusToggleOnSelect
+                                        toggle={(toggleRef) => (
+                                          <MenuToggle
+                                            ref={toggleRef}
+                                            variant="plain"
+                                            aria-label="Uploaded file actions"
+                                            icon={<EllipsisVIcon />}
+                                            onClick={() =>
+                                              setIsInputDataDropdownOpen(!isInputDataDropdownOpen)
+                                            }
+                                            isExpanded={isInputDataDropdownOpen}
+                                            isDisabled={isSubmitting || isInputDataFileUploading}
+                                          />
+                                        )}
+                                        popperProps={{ position: 'end', preventOverflow: true }}
+                                      >
+                                        <DropdownList>
+                                          <DropdownItem key="remove" onClick={clearInputDataUpload}>
+                                            Remove
+                                          </DropdownItem>
+                                          <DropdownItem
+                                            key="replace"
+                                            onClick={openInputDataReplaceFileDialog}
+                                          >
+                                            Replace
+                                          </DropdownItem>
+                                        </DropdownList>
+                                      </Dropdown>
+                                    </Td>
+                                  </Tr>
+                                </Tbody>
+                              </Table>
+                            )}
+                          </StackItem>
+                        </>
+                      )}
+                    </>
+                  )}
+                  {selectedInputDataFile && (
+                    <StackItem>
+                      <Table aria-label="Selected input data file" variant="compact">
+                        <Thead>
+                          <Tr>
+                            <Th>Name</Th>
+                            <Th>Type</Th>
+                            <Th />
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          <Tr>
+                            <Td dataLabel="Name">{selectedInputDataFile.name}</Td>
+                            <Td dataLabel="Type">{selectedInputDataFile.type}</Td>
+                            <Td isActionCell>
+                              <Tooltip content="Remove selection">
+                                <Button
+                                  size="sm"
+                                  variant="plain"
+                                  aria-label="Remove selection"
+                                  icon={<TimesIcon />}
+                                  onClick={() => {
+                                    setSelectedInputDataFile(undefined);
+                                    setValue('input_data_key', '', { shouldValidate: true });
+                                  }}
+                                />
+                              </Tooltip>
+                            </Td>
+                          </Tr>
+                        </Tbody>
+                      </Table>
+                    </StackItem>
+                  )}
+                </Stack>
+              </CardBody>
+            </div>
+          </Card>
+        </GridItem>
+        <GridItem span={8}>
+          <Card className="pf-v6-u-p-xs" isFullHeight>
+            <div style={{ overflow: 'auto' }}>
+              <CardHeader>
+                <Content component="h3">Configure details</Content>
+              </CardHeader>
+              <CardBody>
+                {!inputDataSecretName ? (
+                  <EmptyState
+                    variant="xs"
+                    titleText="Select an S3 connection or upload a file to get started"
+                    headingLevel="h4"
+                    icon={CubesIcon}
+                  >
+                    <EmptyStateBody>
+                      In order to configure details and run an experiment, add a document or
+                      connection in the widget on the left.
+                    </EmptyStateBody>
+                  </EmptyState>
+                ) : (
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapXl' }}>
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Vector I/O provider"
+                        description="Specify the location for storing the vector index used to retrieve your documents."
+                      >
+                        <AutoragVectorStoreSelector />
+                      </ConfigureFormGroup>
+                    </FlexItem>
 
-                      <Grid hasGutter className="pf-v6-u-mt-md">
-                        <GridItem span={6}>
-                          <Card className="pf-v6-u-h-100">
-                            <CardHeader
-                              hasWrap
-                              actions={{
-                                actions: [
-                                  <Button
-                                    key="edit-optimization-metric"
-                                    variant="secondary"
-                                    onClick={openExperimentSettings}
-                                    isDisabled={!hasFiles || formIsSubmitting}
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Evaluation dataset"
+                        description={
+                          <>
+                            <span>
+                              Select the evaluation dataset that will be used to measure the quality
+                              of the generated responses. Must adhere to the{' '}
+                            </span>
+                            <Button variant="link" isInline component="span" onClick={() => null}>
+                              evaluation dataset template
+                            </Button>
+                            <span>.</span>
+                          </>
+                        }
+                      >
+                        <AutoragEvaluationSelect />
+                      </ConfigureFormGroup>
+                    </FlexItem>
+
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Optimization metric"
+                        labelHelp={{
+                          header: 'Optimization metric',
+                          position: 'bottom',
+                          body: (
+                            <Stack hasGutter>
+                              {OPTIMIZATION_METRICS.map((metric) => (
+                                <StackItem key={metric.value}>
+                                  <Content component="p">
+                                    <strong>{metric.label}:</strong>
+                                    <br />
+                                    {metric.description}
+                                  </Content>
+                                </StackItem>
+                              ))}
+                            </Stack>
+                          ),
+                        }}
+                        description="The metric used to compare configurations and identify the best result."
+                      >
+                        <Controller
+                          control={form.control}
+                          name="optimization_metric"
+                          render={({ field }) => {
+                            const selected = OPTIMIZATION_METRICS.find(
+                              (m) => m.value === field.value,
+                            );
+                            return (
+                              <Select
+                                isOpen={isMetricSelectOpen}
+                                selected={field.value}
+                                onSelect={(_e, val) => {
+                                  if (typeof val === 'string') {
+                                    field.onChange(val);
+                                  }
+                                  setIsMetricSelectOpen(false);
+                                }}
+                                onOpenChange={setIsMetricSelectOpen}
+                                toggle={(toggleRef) => (
+                                  <MenuToggle
+                                    ref={toggleRef}
+                                    onClick={() => setIsMetricSelectOpen((prev) => !prev)}
+                                    isExpanded={isMetricSelectOpen}
+                                    data-testid="optimization-metric-select"
                                   >
-                                    Edit
-                                  </Button>,
-                                ],
-                              }}
-                            >
-                              <CardTitle>Optimization metric</CardTitle>
-                            </CardHeader>
-                            <CardBody className="pf-v6-u-mb-sm">{optimizationMetric}</CardBody>
-                          </Card>
-                        </GridItem>
-                        <GridItem span={6}>
-                          <Card className="pf-v6-u-h-100">
-                            <CardHeader
-                              hasWrap
-                              actions={{
-                                actions: [
-                                  <Button
-                                    key="edit-considered-models"
-                                    variant="secondary"
-                                    onClick={openExperimentSettings}
-                                    isDisabled={!hasFiles || formIsSubmitting}
-                                  >
-                                    Edit
-                                  </Button>,
-                                ],
-                              }}
-                            >
-                              <CardTitle>Models to consider</CardTitle>
-                            </CardHeader>
-                            <CardBody>
-                              <strong>Foundation models:</strong>&nbsp;
-                              {generationModels.length || 'None'}
-                              <br />
-                              <strong>Embedding models:</strong>&nbsp;
-                              {embeddingModels.length || 'None'}
-                            </CardBody>
-                          </Card>
-                        </GridItem>
-                      </Grid>
-                    </Stack>
-                  </CardBody>
-                </Card>
-              </GridItem>
-            </Grid>
-          </PanelMainBody>
-        </PanelMain>
-        <PanelFooter>
-          <Button
-            variant="primary"
-            isDisabled={formDisabled}
-            onClick={() => {
-              navigate(`${autoragResultsPathname}/FAKE_RUN_ID`);
-            }}
-          >
-            Run experiment
-          </Button>
-        </PanelFooter>
-      </Panel>
+                                    {selected?.label ?? ''}
+                                  </MenuToggle>
+                                )}
+                                shouldFocusToggleOnSelect
+                                data-testid="optimization-metric-select-list"
+                              >
+                                <SelectList>
+                                  {OPTIMIZATION_METRICS.map((metric) => (
+                                    <SelectOption
+                                      key={metric.value}
+                                      value={metric.value}
+                                      data-testid={`metric-option-${metric.value}`}
+                                    >
+                                      {metric.label}
+                                    </SelectOption>
+                                  ))}
+                                </SelectList>
+                              </Select>
+                            );
+                          }}
+                        />
+                      </ConfigureFormGroup>
+                    </FlexItem>
+
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Maximum RAG patterns"
+                        description="Specify the maximum number of RAG patterns to evaluate."
+                      >
+                        <Controller
+                          control={form.control}
+                          name="optimization_max_rag_patterns"
+                          render={({ field, fieldState }) => (
+                            <>
+                              <NumberInput
+                                id="max-rag-patterns"
+                                aria-label="Maximum RAG patterns"
+                                value={field.value}
+                                min={MIN_RAG_PATTERNS}
+                                max={MAX_RAG_PATTERNS}
+                                validated={fieldState.error ? 'error' : 'default'}
+                                onMinus={() => field.onChange(field.value - 1)}
+                                onPlus={() => field.onChange(field.value + 1)}
+                                onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                                  const val = parseInt(event.currentTarget.value, 10);
+                                  if (!Number.isNaN(val)) {
+                                    field.onChange(val);
+                                  }
+                                }}
+                                data-testid="max-rag-patterns-input"
+                              />
+                              {fieldState.error && (
+                                <FormHelperText>
+                                  <HelperText>
+                                    <HelperTextItem variant="error">
+                                      {fieldState.error.message}
+                                    </HelperTextItem>
+                                  </HelperText>
+                                </FormHelperText>
+                              )}
+                            </>
+                          )}
+                        />
+                      </ConfigureFormGroup>
+                    </FlexItem>
+
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Model configuration"
+                        description="Select models to determine how documents are retrieved and which models generate responses."
+                      >
+                        <Card>
+                          <CardHeader
+                            hasWrap
+                            actions={{
+                              actions: [
+                                <Watch
+                                  key="edit-experiment-settings"
+                                  control={form.control}
+                                  name="input_data_key"
+                                  render={(inputDataKeyValue) => (
+                                    <Button
+                                      variant="secondary"
+                                      onClick={openExperimentSettings}
+                                      isDisabled={
+                                        !inputDataBucketName ||
+                                        !inputDataKeyValue ||
+                                        form.formState.isSubmitting
+                                      }
+                                    >
+                                      Edit
+                                    </Button>
+                                  )}
+                                />,
+                              ],
+                            }}
+                          >
+                            <CardTitle>Selected models</CardTitle>
+                          </CardHeader>
+                          <CardBody>
+                            <Stack hasGutter>
+                              <StackItem>
+                                <Watch
+                                  control={form.control}
+                                  name="generation_models"
+                                  render={(generationModels) => (
+                                    <Flex
+                                      alignItems={{ default: 'alignItemsCenter' }}
+                                      spacer={{ default: 'spacerNone' }}
+                                      gap={{ default: 'gapSm' }}
+                                    >
+                                      <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
+                                      {!!generationModels.length && (
+                                        <Popover
+                                          bodyContent={
+                                            <List>
+                                              {generationModels.map((model) => (
+                                                <ListItem key={`generation-${model}`}>
+                                                  {model}
+                                                </ListItem>
+                                              ))}
+                                            </List>
+                                          }
+                                        >
+                                          <DashboardPopupIconButton
+                                            icon={<InfoCircleIcon />}
+                                            hasNoPadding
+                                          />
+                                        </Popover>
+                                      )}
+                                    </Flex>
+                                  )}
+                                />
+                              </StackItem>
+                              <StackItem>
+                                <Watch
+                                  control={form.control}
+                                  name="embeddings_models"
+                                  render={(embeddingModels) => (
+                                    <Flex
+                                      alignItems={{ default: 'alignItemsCenter' }}
+                                      spacer={{ default: 'spacerNone' }}
+                                      gap={{ default: 'gapSm' }}
+                                    >
+                                      <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
+                                      {!!embeddingModels.length && (
+                                        <Popover
+                                          bodyContent={
+                                            <List>
+                                              {embeddingModels.map((model) => (
+                                                <ListItem key={`embedding-${model}`}>
+                                                  {model}
+                                                </ListItem>
+                                              ))}
+                                            </List>
+                                          }
+                                        >
+                                          <DashboardPopupIconButton
+                                            icon={<InfoCircleIcon />}
+                                            hasNoPadding
+                                          />
+                                        </Popover>
+                                      )}
+                                    </Flex>
+                                  )}
+                                />
+                              </StackItem>
+                            </Stack>
+                          </CardBody>
+                        </Card>
+                      </ConfigureFormGroup>
+                    </FlexItem>
+                  </Flex>
+                )}
+              </CardBody>
+            </div>
+          </Card>
+        </GridItem>
+      </Grid>
 
       {isConnectionModalOpen && (
         <AutoragConnectionModal
@@ -321,37 +909,49 @@ function AutoragConfigure(): React.JSX.Element {
             const list = await refresh();
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
-              const requiredKeys = AUTORAG_REQUIRED_KEYS[secret.type] ?? [];
-              const availableKeys = Object.keys(connection.stringData ?? {});
+              const requiredKeys = AUTORAG_REQUIRED_KEYS[secret.type ?? ''] ?? [];
+              const availableKeys = Object.keys(secret.data);
               const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
-              setSelectedSecret({
-                ...secret,
-                invalid,
+              setSelectedSecret({ ...secret, invalid });
+              setValue('input_data_secret_name', invalid ? '' : secret.name, {
+                shouldValidate: true,
               });
-              setValue('input_data_secret_name', invalid ? undefined : secret.name);
             }
           }}
         />
       )}
-      <FileExplorer
-        id="AutoRagConfigure-FileExplorer"
-        isOpen={isFileExplorerOpen}
-        onClose={() => setIsFileExplorerOpen(false)}
-        onSelect={(files) => null /* eslint-disable-line @typescript-eslint/no-unused-vars */}
+      <S3FileExplorer
+        id="AutoRagConfigure-S3FileExplorer"
+        namespace={namespace}
+        s3Secret={selectedSecret}
+        isOpen={Boolean(fileExplorerMode)}
+        onClose={() => setFileExplorerMode(false)}
+        onSelectFiles={(files) => {
+          if (files.length > 0) {
+            const file = files[0];
+            const filePath = file.path.replace(/^\//, '');
+            if (fileExplorerMode === 'input_data') {
+              setValue('input_data_key', filePath, { shouldValidate: true });
+              setSelectedInputDataFile(file);
+            }
+            if (fileExplorerMode === 'test_data') {
+              setValue('test_data_key', filePath, { shouldValidate: true });
+            }
+          }
+        }}
+        selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
+        unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
       />
       <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}
         onClose={() => {
-          form.reset();
           setIsExperimentSettingsOpen(false);
         }}
         revertChanges={() => {
-          form.reset();
-          setIsExperimentSettingsOpen(false);
+          reset();
         }}
-        saveChanges={saveExperimentSettingsChanges}
       />
-    </FormProvider>
+    </>
   );
 }
 

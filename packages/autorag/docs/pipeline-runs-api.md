@@ -2,7 +2,12 @@
 
 ## Overview
 
-The Pipeline Runs API allows querying Kubeflow Pipeline runs from an auto-discovered Pipeline Server, with support for filtering by pipeline version ID. The Pipeline Server (DSPipelineApplication) is automatically discovered in the specified namespace. This endpoint is designed for AutoRAG to track and manage experiment runs associated with RAG optimization workflows.
+The Pipeline Runs API allows querying and creating Kubeflow Pipeline runs with automatic pipeline discovery. Both the Pipeline Server (DSPipelineApplication) and the AutoRAG managed pipeline are automatically discovered in the specified namespace. This endpoint is designed for AutoRAG to track and manage experiment runs associated with RAG optimization workflows.
+
+**Key Features:**
+- **Auto-Discovery**: Automatically discovers both the Pipeline Server and the AutoRAG managed pipeline
+- **Discovery-only Filtering**: GET requests always filter to the discovered AutoRAG pipeline version
+- **Automatic Injection**: POST requests automatically inject discovered pipeline IDs, eliminating manual configuration
 
 **API Compatibility:** The response format matches the [Kubeflow Pipelines v2beta1 API](https://www.kubeflow.org/docs/components/pipelines/reference/api/kubeflow-pipeline-api-spec/) structure, ensuring consistency with upstream Kubeflow and making it easier to reference official documentation.
 
@@ -36,33 +41,23 @@ The endpoint enforces RBAC authorization checks to verify that the authenticated
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed. The first ready DSPipelineApplication in this namespace will be auto-discovered. |
-| `pipelineVersionId` | query string | No | ID of the pipeline version to filter runs by |
-| `pageSize` | query integer | No | Number of results per page (default: 20) |
+| `pageSize` | query integer | No | Number of results per page (default: 20, max: 100) |
 | `nextPageToken` | query string | No | Token for retrieving the next page of results |
 
 ## Request Examples
 
 ### Basic Request
 
-Get all pipeline runs from the auto-discovered Pipeline Server in a namespace:
+Get all pipeline runs from the auto-discovered AutoRAG pipeline in a namespace:
 
 ```bash
 curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace" \
   -H "Authorization: Bearer <your-token>"
 ```
 
-### Filter by Pipeline Version ID
-
-Get pipeline runs for a specific pipeline version:
-
-```bash
-curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&pipelineVersionId=22e57c06-030f-4c63-900d-0a808d577899" \
-  -H "Authorization: Bearer <your-token>"
-```
-
 ### With Pagination
 
-Get a specific page of results:
+Get the next page of results:
 
 ```bash
 curl -X GET "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace&pageSize=10&nextPageToken=eyJwYWdlIjoyfQ==" \
@@ -94,7 +89,7 @@ The endpoint returns a JSON response with the following structure:
         "experiment_id": "1858af57-f990-4aee-a03e-c93bdfd02eb3",
         "pipeline_version_reference": {
           "pipeline_id": "9e3940d5-b275-4b64-be10-b914cd06c58e",
-          "pipeline_version_id": "22e57c06-030f-4c63-900d-0a808d577899"
+          "pipeline_version_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
         },
         "state": "SUCCEEDED",
         "storage_state": "AVAILABLE",
@@ -246,6 +241,22 @@ GET /api/v1/pipeline-runs/{runId}
 | `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
 | `runId` | path parameter | Yes | Unique identifier of the pipeline run to retrieve |
 
+### Security & Filtering
+
+This endpoint automatically discovers the AutoRAG managed pipeline in the namespace and validates that the requested run belongs to it. This ensures:
+
+- **Namespace isolation**: Users can only access runs from the AutoRAG pipeline in their namespace
+- **Pipeline filtering**: Runs from other pipelines in the same namespace are not accessible
+- **Automatic discovery**: No need to manually specify pipeline IDs
+
+**Behavior:**
+- Returns the run if it exists and belongs to the discovered AutoRAG pipeline
+- Returns `404 Not Found` if:
+  - The run does not exist, OR
+  - The run belongs to a different pipeline (not the AutoRAG pipeline)
+- Returns `500 Internal Server Error` if:
+  - No AutoRAG managed pipeline is found in the namespace
+
 ### Request Example
 
 ```bash
@@ -266,7 +277,7 @@ Returns a single PipelineRun object with full details including task execution i
     "experiment_id": "1858af57-f990-4aee-a03e-c93bdfd02eb3",
     "pipeline_version_reference": {
       "pipeline_id": "9e3940d5-b275-4b64-be10-b914cd06c58e",
-      "pipeline_version_id": "22e57c06-030f-4c63-900d-0a808d577899"
+      "pipeline_version_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
     },
     "state": "SUCCEEDED",
     "storage_state": "AVAILABLE",
@@ -367,11 +378,14 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 | `embeddings_models` | string[] | No | List of embedding model identifiers |
 | `generation_models` | string[] | No | List of generation model identifiers |
 | `optimization_metric` | string | No | Metric to optimize: `faithfulness` (default), `answer_correctness`, or `context_correctness` |
-| `llama_stack_vector_database_id` | string | No | Vector database identifier as registered in llama-stack (e.g. llama-stack Milvus) |
+| `llama_stack_vector_io_provider_id` | string | No | Vector I/O provider identifier as registered in llama-stack (e.g. llama-stack Milvus) |
 
 **Notes:**
 - Unknown JSON fields are rejected (strict decoding)
-- `pipeline_id` and `pipeline_version_id` are currently hardcoded constants; a future pipeline discovery endpoint will provide dynamic values
+- `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF - no manual configuration needed
+- The BFF discovers the AutoRAG managed pipeline by searching for pipelines with names starting with "autorag" (case-insensitive)
+- Discovery results are cached for 5 minutes per namespace to reduce API calls
+- If no AutoRAG pipeline is found, the request returns a 500 error
 - `experiment_id` is not passed — KFP assigns one automatically (defaults to "Default" experiment)
 
 ### Request Example
@@ -407,7 +421,7 @@ Returns `200 OK` with the created pipeline run:
     "experiment_id": "8c51d49e-9e6b-4d62-827c-63d58edb9374",
     "pipeline_version_reference": {
       "pipeline_id": "9e3940d5-b275-4b64-be10-b914cd06c58e",
-      "pipeline_version_id": "22e57c06-030f-4c63-900d-0a808d577899"
+      "pipeline_version_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
     },
     "runtime_config": {
       "parameters": {
@@ -438,15 +452,44 @@ Returns `200 OK` with the created pipeline run:
 | `500 Internal Server Error` | KFP client failure or internal error |
 | `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
-## Pipeline Filtering
+#### Example Validation Errors
 
-The API allows filtering pipeline runs by pipeline version ID, which enables you to retrieve runs for a specific pipeline version.
+**Missing required fields:**
+```json
+{
+  "error": {
+    "code": "400",
+    "message": "missing required fields: display_name, test_data_secret_name, llama_stack_secret_name"
+  }
+}
+```
 
-### Filtering by Pipeline Version ID
+**Invalid optimization_metric value:**
+```json
+{
+  "error": {
+    "code": "400",
+    "message": "invalid optimization_metric \"custom\": must be one of faithfulness, answer_correctness, context_correctness"
+  }
+}
+```
 
-When you provide a `pipelineVersionId` parameter, the API filters runs to only include those associated with that specific pipeline version. If no filter is provided, all runs from the auto-discovered Pipeline Server are returned.
+## Pipeline Discovery
 
-**Note:** Filtering by pipeline ID (without version) is not supported by the Kubeflow Pipelines v2beta1 API. You must specify the pipeline version ID to filter runs.
+The API always filters runs to the auto-discovered AutoRAG managed pipeline:
+
+1. Discovers the AutoRAG managed pipeline in the namespace (cached for 5 minutes)
+2. Filters runs to show only those from the discovered AutoRAG pipeline version
+3. Returns a 500 error if no AutoRAG pipeline is found
+
+This ensures users see only AutoRAG-related runs and prevents accidentally displaying unrelated pipeline runs from the namespace.
+
+**Pipeline Discovery Details:**
+- The BFF searches for pipelines with display names starting with a configurable prefix (default: "autorag", case-insensitive)
+- The prefix can be customized via the `AUTORAG_PIPELINE_NAME_PREFIX` environment variable or `--autorag-pipeline-name-prefix` flag
+- Uses the most recently created version of the discovered pipeline
+- Discovery results are cached for 5 minutes per namespace
+- Future versions will use pipeline metadata/attributes for more robust identification
 
 ## Error Responses
 
@@ -497,9 +540,20 @@ Returned when:
 ### 500 Internal Server Error
 
 Returned when:
+- No AutoRAG pipeline found in namespace
 - Internal processing error occurs
 - Unable to communicate with Kubernetes API
 - Unable to communicate with Pipeline Server API
+
+**Example response (no AutoRAG pipeline):**
+```json
+{
+  "error": {
+    "code": "500",
+    "message": "no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed"
+  }
+}
+```
 
 ### 503 Service Unavailable
 
@@ -600,16 +654,11 @@ The AutoRAG frontend can use these endpoints to:
 
 ```javascript
 // List pipeline runs with optional filtering
-async function fetchPipelineRuns(namespace, pipelineVersionId, token) {
+async function fetchPipelineRuns(namespace, token) {
   const params = new URLSearchParams({
     namespace,
     pageSize: "20"
   });
-
-  // Add pipeline version ID filter if provided
-  if (pipelineVersionId) {
-    params.append("pipelineVersionId", pipelineVersionId);
-  }
 
   const response = await fetch(`/api/v1/pipeline-runs?${params}`, {
     headers: {
@@ -728,8 +777,8 @@ If you receive this error:
 ### No Runs Returned
 
 If the endpoint returns an empty array:
-1. Check that runs exist for the specified pipeline version ID (if filtering)
-2. Verify the pipeline version exists in the Pipeline Server
+1. Check that runs exist for the auto-discovered AutoRAG pipeline version
+2. Verify the AutoRAG pipeline and its versions exist in the Pipeline Server
 3. Check the Pipeline Server API directly for runs
 
 ### Connection Errors

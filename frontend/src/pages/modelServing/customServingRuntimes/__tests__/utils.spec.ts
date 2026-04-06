@@ -147,4 +147,11 @@ describe('findTemplateByName', () => {
     const templates = [template1, template2];
     expect(findTemplateByName(templates, 'ovms')).toBe(undefined);
   });
+  it('should match by Template.metadata.name when it differs from objects[0].metadata.name', () => {
+    const template = mockServingRuntimeTemplateK8sResource({ name: 'kserve-vllm' });
+    template.objects[0].metadata.name = 'vllm-runtime';
+    const templates = [template];
+    expect(findTemplateByName(templates, 'kserve-vllm')).toBe(template);
+    expect(findTemplateByName(templates, 'vllm-runtime')).toBe(template);
+  });
 });

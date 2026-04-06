@@ -1,0 +1,98 @@
+import type { PipelineRun } from '~/app/types';
+
+/**
+ * Extracts HTTP status from Error.message when handleRestFailures (mod-arch-core)
+ * has flattened AxiosError to a plain Error, so 403/404/503 branches can still run.
+ * @param error - The error object to parse
+ * @returns The HTTP status code, or undefined if not found
+ */
+export function parseErrorStatus(error: Error): number | undefined {
+  const match =
+    error.message.match(/\bstatus\s+code\s+(\d{3})\b/i) ??
+    error.message.match(/\bstatus[:\s]+(\d{3})\b/i) ??
+    error.message.match(/\b(403|404|503)\b/);
+  if (match) {
+    const code = parseInt(match[1], 10);
+    return code >= 100 && code < 600 ? code : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Gets the optimized metric for AutoRAG from pipeline parameters.
+ * @param pipelineRun - The pipeline run object containing parameters
+ * @returns The optimized metric name from parameters, or 'faithfulness' as default
+ */
+export function getOptimizedMetricForRAG(pipelineRun?: PipelineRun): string {
+  const parameters = pipelineRun?.runtime_config?.parameters;
+  if (parameters && 'optimization_metric' in parameters) {
+    const metric = parameters.optimization_metric;
+    if (typeof metric === 'string') {
+      return metric;
+    }
+  }
+  return 'faithfulness';
+}
+
+export function sanitizeFilename(str: string): string {
+  return (
+    str
+      // eslint-disable-next-line no-control-regex
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
+      .replace(/_{2,}/g, '_')
+      .replace(/^[.\s]+|[.\s]+$/g, '')
+      .trim() || 'unknown'
+  );
+}
+
+export function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Format metric key names for display (e.g. "answer_correctness" -> "Answer Correctness").
+ */
+export function formatMetricName(metricKey: string): string {
+  /* eslint-disable camelcase */
+  const specialCases: Record<string, string> = {
+    faithfulness: 'Faithfulness',
+    answer_correctness: 'Answer Correctness',
+    context_correctness: 'Context Correctness',
+    answer_relevancy: 'Answer Relevancy',
+    context_precision: 'Context Precision',
+    context_recall: 'Context Recall',
+  };
+  /* eslint-enable camelcase */
+
+  if (specialCases[metricKey]) {
+    return specialCases[metricKey];
+  }
+
+  return metricKey
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/**
+ * Format metric values for display.
+ * Uses scientific notation for non-zero values that would round to 0.000.
+ */
+export function formatMetricValue(value: number | string): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  // If the value would round to 0.000 but is actually non-zero, use scientific notation
+  const fixed = value.toFixed(3);
+  if ((fixed === '0.000' || fixed === '-0.000') && value !== 0) {
+    return value.toExponential(3);
+  }
+  return fixed;
+}

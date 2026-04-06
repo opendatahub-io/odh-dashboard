@@ -237,15 +237,37 @@ export const patchModelArtifact =
 
 export const getListModelTransferJobs =
   (hostPath: string, queryParams: Record<string, unknown> = {}) =>
-  (opts: APIOptions): Promise<ModelTransferJobList> =>
-    handleRestFailures(restGET(hostPath, `/model_transfer_jobs`, queryParams, opts)).then(
-      (response) => {
-        if (isModArchResponse<ModelTransferJobList>(response)) {
-          return response.data;
-        }
-        throw new Error('Invalid response format');
-      },
-    );
+  (opts: APIOptions, jobNamespace?: string): Promise<ModelTransferJobList> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `/model_transfer_jobs`,
+        jobNamespace ? { ...queryParams, jobNamespace } : queryParams,
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<ModelTransferJobList>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getModelTransferJobByName =
+  (hostPath: string, queryParams: Record<string, unknown> = {}) =>
+  (opts: APIOptions, namespace: string, jobName: string): Promise<ModelTransferJob> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `/model_transfer_jobs/${encodeURIComponent(jobName)}`,
+        { ...queryParams, jobNamespace: namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<ModelTransferJob>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
 
 export const createModelTransferJob =
   (hostPath: string, queryParams: Record<string, unknown> = {}) =>
@@ -263,14 +285,14 @@ export const updateModelTransferJob =
   (hostPath: string, queryParams: Record<string, unknown> = {}) =>
   (
     opts: APIOptions,
-    jobId: string,
+    jobName: string,
     data: Partial<ModelTransferJob>,
     additionalQueryParams?: Record<string, unknown>,
   ): Promise<ModelTransferJob> =>
     handleRestFailures(
       restPATCH(
         hostPath,
-        `/model_transfer_jobs/${jobId}`,
+        `/model_transfer_jobs/${jobName}`,
         assembleModArchBody(data),
         { ...queryParams, ...additionalQueryParams },
         opts,
@@ -284,13 +306,13 @@ export const updateModelTransferJob =
 
 export const deleteModelTransferJob =
   (hostPath: string, queryParams: Record<string, unknown> = {}) =>
-  (opts: APIOptions, jobName: string): Promise<void> =>
+  (opts: APIOptions, jobName: string, jobNamespace: string): Promise<void> =>
     handleRestFailures(
       restDELETE(
         hostPath,
         `/model_transfer_jobs/${encodeURIComponent(jobName)}`,
         {},
-        queryParams,
+        { ...queryParams, jobNamespace },
         opts,
       ),
     );

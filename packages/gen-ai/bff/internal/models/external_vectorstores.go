@@ -1,54 +1,83 @@
 package models
 
-// ExternalVectorStoresDocument is the top-level structure for the stores.yaml ConfigMap data.
+// ExternalVectorStoresDocument is the top-level structure of the gen-ai-aa-vector-stores ConfigMap data.
+// It uses the two-section format: providers define connection details, registered_resources define stores.
 type ExternalVectorStoresDocument struct {
-	Version      int                         `json:"version" yaml:"version"`
-	VectorStores []ExternalVectorStoreConfig `json:"vectorStores" yaml:"vectorStores"`
+	Providers           ProvidersSection           `yaml:"providers"`
+	RegisteredResources RegisteredResourcesSection `yaml:"registered_resources"`
 }
 
-// ExternalVectorStoreConfig represents a single external vector store entry.
-type ExternalVectorStoreConfig struct {
-	Name             string                 `json:"name" yaml:"name"`
-	DisplayName      string                 `json:"displayName,omitempty" yaml:"displayName,omitempty"`
-	ProviderType     string                 `json:"provider_type" yaml:"provider_type"`
-	Collection       string                 `json:"collection" yaml:"collection"`
-	Config           map[string]interface{} `json:"config" yaml:"config"`
-	CredentialSecret *SecretKeyRef          `json:"credentialSecret,omitempty" yaml:"credentialSecret,omitempty"`
-	TLSSecretRef     *SecretKeyRef          `json:"tlsSecretRef,omitempty" yaml:"tlsSecretRef,omitempty"`
-	Embedding        EmbeddingConfig        `json:"embedding" yaml:"embedding"`
-	Description      string                 `json:"description,omitempty" yaml:"description,omitempty"`
-	Owner            string                 `json:"owner,omitempty" yaml:"owner,omitempty"`
-	Domain           string                 `json:"domain,omitempty" yaml:"domain,omitempty"`
+// ProvidersSection holds the list of vector IO providers.
+type ProvidersSection struct {
+	VectorIO []VectorIOProvider `yaml:"vector_io"`
 }
 
 // SecretKeyRef references a specific key within a Kubernetes Secret.
 type SecretKeyRef struct {
-	Name string `json:"name" yaml:"name"`
-	Key  string `json:"key" yaml:"key"`
+	Name string `yaml:"name"`
+	Key  string `yaml:"key"`
 }
 
-// EmbeddingConfig specifies the embedding model used for ingestion.
-// Queries must use the same model to produce correct results.
-type EmbeddingConfig struct {
-	ModelID   string `json:"model_id" yaml:"model_id"`
-	Dimension int    `json:"dimension" yaml:"dimension"`
+// CustomGenAICredentials holds the credential secret references for a provider.
+type CustomGenAICredentials struct {
+	SecretRefs []SecretKeyRef `yaml:"secretRefs,omitempty"`
 }
 
-// ExternalVectorStoreSummary represents a single external vector store for frontend display.
-// Sensitive fields (credentialSecret, tlsSecretRef, config) are stripped.
+// CustomGenAIConfig holds BFF-only metadata stored under custom_gen_ai in the provider config.
+// It is stripped before the config is forwarded to LlamaStack.
+type CustomGenAIConfig struct {
+	Credentials *CustomGenAICredentials `yaml:"credentials,omitempty"`
+}
+
+// VectorIOProviderConfig holds a vector IO provider's connection config.
+// CustomGenAI is BFF-only metadata; all other fields are passed through to LlamaStack as-is.
+type VectorIOProviderConfig struct {
+	CustomGenAI *CustomGenAIConfig     `yaml:"custom_gen_ai,omitempty"`
+	Extra       map[string]interface{} `yaml:",inline"`
+}
+
+// VectorIOProvider describes a single vector database provider.
+type VectorIOProvider struct {
+	ProviderID   string                 `yaml:"provider_id"`
+	ProviderType string                 `yaml:"provider_type"`
+	Config       VectorIOProviderConfig `yaml:"config,omitempty"`
+}
+
+// RegisteredResourcesSection holds the list of registered vector store collections.
+type RegisteredResourcesSection struct {
+	VectorStores []RegisteredVectorStore `yaml:"vector_stores"`
+}
+
+// VectorStoreMetadata holds optional descriptive metadata for a registered vector store.
+type VectorStoreMetadata struct {
+	Description string `yaml:"description,omitempty"`
+}
+
+// RegisteredVectorStore represents a single registered vector store collection entry.
+type RegisteredVectorStore struct {
+	ProviderID            string              `yaml:"provider_id"`
+	VectorStoreID         string              `yaml:"vector_store_id"`
+	EmbeddingModel        string              `yaml:"embedding_model"`
+	EmbeddingDimension    int                 `yaml:"embedding_dimension"`
+	VectorStoreName       string              `yaml:"vector_store_name,omitempty"`
+	ProviderVectorStoreID string              `yaml:"provider_vector_store_id,omitempty"`
+	Metadata              VectorStoreMetadata `yaml:"metadata,omitempty"`
+}
+
+// ExternalVectorStoreSummary is the frontend-safe summary of a single vector store.
+// Sensitive fields (provider connection config, credential secret references) are not included.
+// Embedding model status (not_available / available / registered) is computed client-side.
 type ExternalVectorStoreSummary struct {
-	Name                    string          `json:"name"`
-	DisplayName             string          `json:"displayName,omitempty"`
-	ProviderType            string          `json:"provider_type"`
-	Collection              string          `json:"collection"`
-	Description             string          `json:"description,omitempty"`
-	Owner                   string          `json:"owner,omitempty"`
-	Domain                  string          `json:"domain,omitempty"`
-	Embedding               EmbeddingConfig `json:"embedding"`
-	EmbeddingModelAvailable bool            `json:"embedding_model_available"`
+	VectorStoreID      string `json:"vector_store_id"`
+	VectorStoreName    string `json:"vector_store_name"`
+	ProviderID         string `json:"provider_id"`
+	ProviderType       string `json:"provider_type"`
+	EmbeddingModel     string `json:"embedding_model"`
+	EmbeddingDimension int    `json:"embedding_dimension"`
+	Description        string `json:"description,omitempty"`
 }
 
-// ExternalVectorStoresListData is the data payload for the list response
+// ExternalVectorStoresListData is the data payload for the list response.
 type ExternalVectorStoresListData struct {
 	VectorStores  []ExternalVectorStoreSummary `json:"vector_stores"`
 	TotalCount    int                          `json:"total_count"`

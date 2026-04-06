@@ -55,14 +55,28 @@ dev-bff-mock-debug: ## Run BFF with all mocks and Delve debugger on port 2345
 dev-start-mock: ## Run frontend and bff (all mocks) in development mode
 	make -j 2 dev-bff-mock dev-frontend
 
+############ E2E Test Targets ############
+# These targets are used by the GitHub Actions e2e workflow to start BFFs
+# Port is configurable via E2E_BFF_PORT environment variable for parallel runner support
+
+E2E_BFF_PORT ?= 8080
+
+.PHONY: dev-bff-e2e-mock
+dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true AUTH_TOKEN=FAKE_BEARER_TOKEN LLAMA_STACK_URL="" MAAS_URL="" MLFLOW_URL="" DISTRIBUTION_NAME="rh-dev"
+
+.PHONY: dev-bff-e2e-cluster
+dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=false MOCK_K8S_CLIENT=false MOCK_MAAS_CLIENT=false MOCK_MCP_CLIENT=false MOCK_MLFLOW_CLIENT=false AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" LLAMA_STACK_URL="" MAAS_URL="" MLFLOW_URL="" DISTRIBUTION_NAME="rh-dev"
+
 .PHONY: dev-start-mock-debug
 dev-start-mock-debug: ## Run frontend and bff (all mocks) with Delve debugger (VSCode: F5 → "Attach to BFF")
 	make -j 2 dev-bff-mock-debug dev-frontend
 
 .PHONY: dev-portforward
 dev-portforward: ## Start port-forwarding in separate terminals
-	@echo "Starting port-forward for maas-api..."
-	@oc port-forward -n ${MAAS_NAMESPACE} svc/maas-api 8081:8080 &
+	@echo "Starting port-forward for maas-api on port $${MAAS_LOCAL_PORT:-8081}..."
+	@oc port-forward -n ${MAAS_NAMESPACE} svc/maas-api $${MAAS_LOCAL_PORT:-8081}:$${MAAS_SERVICE_PORT:-8080} &
 	@sleep 1
 	@echo "Starting port-forward for lsd-genai-playground-service..."
 	@oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/lsd-genai-playground-service 8321:8321 &

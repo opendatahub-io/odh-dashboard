@@ -24,7 +24,7 @@ const uuid = generateTestUUID();
 
 // TODO: Update this to check for model readiness once vLLM CPU works: https://issues.redhat.com/browse/RHAIRFE-28
 // and make it RHOAI-specific, unless the vLLM CPU image works on ODH at that time
-describe('[Product Bug: RHOAIENG-51944] Verify a model can be deployed from model catalog', () => {
+describe('Verify a model can be deployed from model catalog', () => {
   retryableBefore(() => {
     // Load source fixture and ensure model catalog source is enabled
     return cy
@@ -60,7 +60,7 @@ describe('[Product Bug: RHOAIENG-51944] Verify a model can be deployed from mode
   });
   it(
     'Verify a model can be deployed from model catalog',
-    { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3', '@Bug'] },
+    { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3'] },
     () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       // Enable model catalog
@@ -107,7 +107,7 @@ describe('[Product Bug: RHOAIENG-51944] Verify a model can be deployed from mode
         .should('exist')
         .click();
 
-      modelServingWizard.findServingRuntimeSelectRadio().click();
+      modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findFirstServingRuntimeTemplateOption().should('exist').click();
 
       cy.step('Advanced options step');

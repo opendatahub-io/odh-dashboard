@@ -170,6 +170,34 @@ describe('Model Registry core', () => {
     modelRegistry.navigate();
     modelRegistry.findModelRegistryEmptyState().should('exist');
   });
+
+  it('Shows unavailable state when selected registry has isAvailable false', () => {
+    const unavailableRegistryName = 'unavailable-registry-example';
+    initIntercepts({
+      modelRegistries: [
+        mockModelRegistry({
+          name: unavailableRegistryName,
+          displayName: 'Unavailable Registry Example',
+          isAvailable: false,
+        }),
+      ],
+    });
+
+    modelRegistry.visit();
+    modelRegistry.navigate();
+    // Navigate to the unavailable registry (app would redirect to first registry; we go there directly)
+    cy.visit(`/model-registry/${unavailableRegistryName}`);
+
+    modelRegistry.findUnavailableModelRegistryState().should('exist');
+    cy.contains('Model registry unavailable').should('be.visible');
+    cy.contains('The Unavailable Registry Example registry is currently unavailable').should(
+      'be.visible',
+    );
+    cy.findByTestId('whos-my-admin-link').should('exist');
+    // View details button should not be present when registry is unavailable
+    modelRegistry.findViewDetailsButton().should('not.exist');
+  });
+
   it('No registered models in the selected Model Registry', () => {
     initIntercepts({
       registeredModels: [],
@@ -200,6 +228,19 @@ describe('Model Registry core', () => {
     //     'To request access to a new or existing model registry, contact your administrator.',
     //   )
     //   .should('exist');
+  });
+
+  it('Empty state shows transfer jobs link', () => {
+    initIntercepts({
+      registeredModels: [],
+    });
+
+    modelRegistry.visit();
+    modelRegistry.navigate();
+    modelRegistry.shouldregisteredModelsEmpty();
+    modelRegistry.findEmptyStateTransferJobsButton().should('exist');
+    modelRegistry.findEmptyStateTransferJobsButton().click();
+    verifyRelativeURL('/model-registry/modelregistry-sample/model-transfer-jobs');
   });
 
   describe('Registered model table', () => {

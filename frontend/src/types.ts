@@ -391,14 +391,12 @@ export type Notebook = K8sResourceCommon & {
     annotations?: Partial<{
       'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running)
       'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
+      'opendatahub.io/user': string; // translated username -- see translateUsername
       'opendatahub.io/username': string; // the untranslated username behind the notebook
       'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
       'notebooks.opendatahub.io/last-size-selection': string; // the last notebook size they selected
       'opendatahub.io/accelerator-name': string | undefined;
       'notebooks.opendatahub.io/last-image-version-git-commit-selection': string; // the build commit of the last image they selected
-    }>;
-    labels?: Partial<{
-      'opendatahub.io/user': string; // translated username -- see translateUsername
     }>;
   };
   spec: {
@@ -695,11 +693,11 @@ export enum ProgressionStep {
   NOTEBOOK_CONTAINER_CREATED = 'NOTEBOOK_CONTAINER_CREATED',
   NOTEBOOK_CONTAINER_PROBLEM = 'NOTEBOOK_CONTAINER_PROBLEM',
   NOTEBOOK_CONTAINER_STARTED = 'NOTEBOOK_CONTAINER_STARTED',
-  PULLING_OAUTH = 'PULLING_OAUTH',
-  OAUTH_PULLED = 'OAUTH_PULLED',
-  OAUTH_CONTAINER_CREATED = 'OAUTH_CONTAINER_CREATED',
-  OAUTH_CONTAINER_PROBLEM = 'OAUTH_CONTAINER_PROBLEM',
-  OAUTH_CONTAINER_STARTED = 'OAUTH_CONTAINER_STARTED',
+  PULLING_AUTH_PROXY = 'PULLING_AUTH_PROXY',
+  AUTH_PROXY_PULLED = 'AUTH_PROXY_PULLED',
+  AUTH_PROXY_CONTAINER_CREATED = 'AUTH_PROXY_CONTAINER_CREATED',
+  AUTH_PROXY_CONTAINER_PROBLEM = 'AUTH_PROXY_CONTAINER_PROBLEM',
+  AUTH_PROXY_CONTAINER_STARTED = 'AUTH_PROXY_CONTAINER_STARTED',
   WORKBENCH_STARTED = 'WORKBENCH_STARTED',
 }
 
@@ -715,11 +713,11 @@ export const ProgressionStepTitles: Record<ProgressionStep, string> = {
   [ProgressionStep.NOTEBOOK_CONTAINER_CREATED]: 'Workbench container created',
   [ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM]: 'There was a problem with the workbench',
   [ProgressionStep.NOTEBOOK_CONTAINER_STARTED]: 'Workbench container started',
-  [ProgressionStep.PULLING_OAUTH]: 'Pulling oauth proxy',
-  [ProgressionStep.OAUTH_PULLED]: 'Oauth proxy pulled',
-  [ProgressionStep.OAUTH_CONTAINER_CREATED]: 'Oauth proxy container created',
-  [ProgressionStep.OAUTH_CONTAINER_PROBLEM]: 'There was a problem with Oauth',
-  [ProgressionStep.OAUTH_CONTAINER_STARTED]: 'Oauth proxy container started',
+  [ProgressionStep.PULLING_AUTH_PROXY]: 'Pulling auth proxy',
+  [ProgressionStep.AUTH_PROXY_PULLED]: 'Auth proxy pulled',
+  [ProgressionStep.AUTH_PROXY_CONTAINER_CREATED]: 'Auth proxy container created',
+  [ProgressionStep.AUTH_PROXY_CONTAINER_PROBLEM]: 'There was a problem with auth proxy',
+  [ProgressionStep.AUTH_PROXY_CONTAINER_STARTED]: 'Auth proxy container started',
   [ProgressionStep.WORKBENCH_STARTED]: 'Workbench started',
 };
 
@@ -729,10 +727,10 @@ export const AssociatedSteps: { [key in ProgressionStep]?: ProgressionStep[] } =
     ProgressionStep.PULLING_NOTEBOOK_IMAGE,
     ProgressionStep.NOTEBOOK_IMAGE_PULLED,
   ],
-  [ProgressionStep.OAUTH_CONTAINER_STARTED]: [
-    ProgressionStep.PULLING_OAUTH,
-    ProgressionStep.OAUTH_PULLED,
-    ProgressionStep.OAUTH_CONTAINER_CREATED,
+  [ProgressionStep.AUTH_PROXY_CONTAINER_STARTED]: [
+    ProgressionStep.PULLING_AUTH_PROXY,
+    ProgressionStep.AUTH_PROXY_PULLED,
+    ProgressionStep.AUTH_PROXY_CONTAINER_CREATED,
   ],
   [ProgressionStep.POD_ASSIGNED]: [ProgressionStep.POD_CREATED],
   [ProgressionStep.WORKBENCH_STARTED]: Object.values(ProgressionStep),
@@ -741,7 +739,7 @@ export const AssociatedSteps: { [key in ProgressionStep]?: ProgressionStep[] } =
 export const OptionalSteps: ProgressionStep[] = [
   ProgressionStep.POD_PROBLEM,
   ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM,
-  ProgressionStep.OAUTH_CONTAINER_PROBLEM,
+  ProgressionStep.AUTH_PROXY_CONTAINER_PROBLEM,
   ProgressionStep.PVC_ATTACHED,
 ];
 

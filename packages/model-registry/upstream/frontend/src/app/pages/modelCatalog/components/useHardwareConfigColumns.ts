@@ -1,9 +1,6 @@
 import * as React from 'react';
+import { useManageColumns, UseManageColumnsResult } from 'mod-arch-shared';
 import { CatalogPerformanceMetricsArtifact } from '~/app/modelCatalogTypes';
-import {
-  useManageColumns,
-  UseManageColumnsResult,
-} from '~/app/shared/components/manageColumns/useManageColumns';
 import {
   LatencyMetric,
   LatencyMetricFieldName,
@@ -21,14 +18,14 @@ import {
 } from './HardwareConfigurationTableColumns';
 
 /** Controlled sort props for the Table component */
-export interface ControlledTableSortProps {
+export type ControlledTableSortProps = {
   sortIndex: number;
   sortDirection: 'asc' | 'desc';
   onSortIndexChange: (index: number) => void;
   onSortDirectionChange: (direction: 'asc' | 'desc') => void;
-}
+};
 
-interface UseHardwareConfigColumnsResult {
+type UseHardwareConfigColumnsResult = {
   /** Final columns to render in the table (sticky + visible managed columns) */
   columns: HardwareConfigColumn[];
   /** Result from useManageColumns hook, to be passed directly to ManageColumnsModal */
@@ -37,8 +34,8 @@ interface UseHardwareConfigColumnsResult {
    * Lifted sort state.
    * Simplified by reusing the interface we'll use for the Table assertion.
    */
-  sortState: ControlledTableSortProps;
-}
+  sortState: ControlledTableSortProps & { sortColumnField: string | null };
+};
 
 /**
  * Check if a column field is a latency column (TTFT, E2E, ITL - not TPS)
@@ -134,23 +131,6 @@ export const useHardwareConfigColumns = (
     setSortDirection('asc');
   }, [activeLatencyField, manageColumnsResult, stickyColumns, manageableColumns]);
 
-  // Ensure sort is set correctly when columns are ready (handles initial mount case)
-  React.useEffect(() => {
-    if (!activeLatencyField || columns.length === 0) {
-      return;
-    }
-
-    const parsed = parseLatencyFilterKey(activeLatencyField);
-    const activePropertyKey = parsed.propertyKey;
-
-    // Only update if the column exists and sort isn't already set correctly
-    const columnExists = columns.some((col) => col.field === activePropertyKey);
-    if (columnExists && (sortColumnField !== activePropertyKey || sortDirection !== 'asc')) {
-      setSortColumnField(activePropertyKey);
-      setSortDirection('asc');
-    }
-  }, [activeLatencyField, columns, sortColumnField, sortDirection]);
-
   const sortState = React.useMemo(() => {
     const sortIndex =
       sortColumnField !== null ? columns.findIndex((col) => col.field === sortColumnField) : -1;
@@ -165,8 +145,9 @@ export const useHardwareConfigColumns = (
     };
 
     return {
-      sortIndex: sortIndex >= 0 ? sortIndex : 0,
+      sortIndex,
       sortDirection,
+      sortColumnField,
       onSortIndexChange,
       onSortDirectionChange: setSortDirection,
     };

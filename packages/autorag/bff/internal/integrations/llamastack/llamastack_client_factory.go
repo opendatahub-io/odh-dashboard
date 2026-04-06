@@ -5,11 +5,13 @@ import (
 	"crypto/x509"
 
 	"github.com/openai/openai-go/v2"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
 // LlamaStackClientInterface defines the interface for LlamaStack client operations
 type LlamaStackClientInterface interface {
 	ListModels(ctx context.Context) ([]openai.Model, error)
+	ListProviders(ctx context.Context) ([]models.LlamaStackProvider, error)
 }
 
 // LlamaStackClientFactory interface for creating LlamaStack clients

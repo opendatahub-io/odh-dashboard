@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ModelRegistry from './screens/ModelRegistry';
 import OdhModelRegistryCoreLoader from '~/odh/components/OdhModelRegistryCoreLoader';
-import { modelRegistryUrl } from './screens/routeUtils';
+
 import RegisteredModelsArchive from './screens/RegisteredModelsArchive/RegisteredModelsArchive';
 import { ModelVersionsTab } from './screens/ModelVersions/const';
 import ModelVersions from './screens/ModelVersions/ModelVersions';
@@ -15,7 +15,6 @@ import RegisteredModelsArchiveDetails from './screens/RegisteredModelsArchive/Re
 import RegisterModel from './screens/RegisterModel/RegisterModel';
 import RegisterVersion from './screens/RegisterModel/RegisterVersion';
 import ModelTransferJobs from './screens/ModelTransferJobs/ModelTransferJobs';
-import { TempDevFeature, useTempDevFeatureAvailable } from '~/app/hooks/useTempDevFeatureAvailable';
 import { generateVersionDetailsTabExtensionRoutes } from '~/odh/VersionDetailsTabExtensionRoutes';
 import { generateDetailsTabExtensionRoutes } from '~/odh/DetailsTabExtensionRoutes';
 import { useExtensions } from '@odh-dashboard/plugin-core';
@@ -27,21 +26,18 @@ import {
 const ModelRegistryRoutes: React.FC = () => {
   const tabExtensions = useExtensions(isModelRegistryVersionDetailsTabExtension);
   const detailsTabExtensions = useExtensions(isModelRegistryDetailsTabExtension);
-  const isModelTransferJobsAvailable = useTempDevFeatureAvailable(TempDevFeature.RegistryStorage);
   return (
     <Routes>
       <Route
         path={'/:modelRegistry?/*'}
         element={
           <OdhModelRegistryCoreLoader
-            getInvalidRedirectPath={(modelRegistry) => modelRegistryUrl(modelRegistry)}
+            getInvalidRedirectPath={(modelRegistry) => `./${modelRegistry}`}
           />
         }
       >
         <Route index element={<ModelRegistry empty={false} />} />
-        {isModelTransferJobsAvailable && (
-          <Route path="model-transfer-jobs" element={<ModelTransferJobs empty={false} />} />
-        )}
+        <Route path="model-transfer-jobs" element={<ModelTransferJobs empty={false} />} />
         <Route path="registered-models/:registeredModelId">
           <Route index element={<Navigate to={ModelVersionsTab.OVERVIEW} replace />} />
 

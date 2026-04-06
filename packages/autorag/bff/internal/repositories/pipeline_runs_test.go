@@ -10,13 +10,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	testPipelineID        = "test-pipeline-id"
+	testPipelineVersionID = "test-version-id"
+)
+
 func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	repo := NewPipelineRunsRepository()
 	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 	ctx := context.Background()
 
 	t.Run("should retrieve pipeline runs successfully", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "", constants.PipelineTypeAutoRAG)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -25,25 +30,38 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	})
 
 	t.Run("should handle pipeline version ID filtering", func(t *testing.T) {
-		pipelineVersionID := "22e57c06-030f-4c63-900d-0a808d577899"
+		ids := psmocks.DeriveMockIDs("test-namespace")
+		pipelineVersionID := ids.LatestVersionID
 
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineVersionID, 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineVersionID, 20, "", constants.PipelineTypeAutoRAG)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
-		// Mock now filters by pipeline version ID - 2 runs have this version ID
-		assert.Len(t, runsData.Runs, 2)
+		assert.Len(t, runsData.Runs, 3)
+
+		// Verify the filter was forwarded to the pipeline server
+		assert.NotNil(t, mockClient.LastListRunsParams, "GetPipelineRuns should have called ListRuns")
+		assert.Contains(t, mockClient.LastListRunsParams.Filter, pipelineVersionID,
+			"filter sent to pipeline server should include the requested pipelineVersionID")
+
+		// Verify every returned run belongs to the requested pipeline version
+		for _, run := range runsData.Runs {
+			if assert.NotNil(t, run.PipelineVersionReference, "run should have a PipelineVersionReference") {
+				assert.Equal(t, pipelineVersionID, run.PipelineVersionReference.PipelineVersionID,
+					"run %s has unexpected PipelineVersionID", run.RunID)
+			}
+		}
 	})
 
 	t.Run("should handle pagination parameters", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 10, "page-token-123")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 10, "page-token-123", constants.PipelineTypeAutoRAG)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
 	})
 
 	t.Run("should transform Kubeflow format to stable API format", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "", constants.PipelineTypeAutoRAG)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -72,6 +90,9 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 				assert.NotEmpty(t, run.StateHistory[0].UpdateTime)
 				assert.NotEmpty(t, run.StateHistory[0].State)
 			}
+
+			// Verify pipeline_type is set from the pipelineType parameter
+			assert.Equal(t, constants.PipelineTypeAutoRAG, run.PipelineType)
 		}
 	})
 }
@@ -123,11 +144,11 @@ func newValidCreateRequest() models.CreateAutoRAGRunRequest {
 func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("should map all required parameters correctly", func(t *testing.T) {
 		req := newValidCreateRequest()
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		assert.Equal(t, "test-run", result.DisplayName)
-		assert.Equal(t, constants.AutoRAGPipelineID, result.PipelineVersionReference.PipelineID)
-		assert.Equal(t, constants.AutoRAGPipelineVersionID, result.PipelineVersionReference.PipelineVersionID)
+		assert.Equal(t, testPipelineID, result.PipelineVersionReference.PipelineID)
+		assert.Equal(t, testPipelineVersionID, result.PipelineVersionReference.PipelineVersionID)
 
 		params := result.RuntimeConfig.Parameters
 		assert.Equal(t, "minio-secret", params["test_data_secret_name"])
@@ -141,7 +162,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 
 	t.Run("should default optimization_metric to faithfulness", func(t *testing.T) {
 		req := newValidCreateRequest()
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		assert.Equal(t, constants.DefaultOptimizationMetric, result.RuntimeConfig.Parameters["optimization_metric"])
 	})
@@ -149,7 +170,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("should use provided optimization_metric", func(t *testing.T) {
 		req := newValidCreateRequest()
 		req.OptimizationMetric = "answer_correctness"
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		assert.Equal(t, "answer_correctness", result.RuntimeConfig.Parameters["optimization_metric"])
 	})
@@ -157,14 +178,14 @@ func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("should include embeddings_models when provided", func(t *testing.T) {
 		req := newValidCreateRequest()
 		req.EmbeddingsModels = []string{"model-a", "model-b"}
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		assert.Equal(t, []string{"model-a", "model-b"}, result.RuntimeConfig.Parameters["embeddings_models"])
 	})
 
 	t.Run("should omit embeddings_models when empty", func(t *testing.T) {
 		req := newValidCreateRequest()
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		_, exists := result.RuntimeConfig.Parameters["embeddings_models"]
 		assert.False(t, exists)
@@ -173,39 +194,56 @@ func TestBuildKFPRunRequest(t *testing.T) {
 	t.Run("should include generation_models when provided", func(t *testing.T) {
 		req := newValidCreateRequest()
 		req.GenerationModels = []string{"gen-1"}
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		assert.Equal(t, []string{"gen-1"}, result.RuntimeConfig.Parameters["generation_models"])
 	})
 
 	t.Run("should omit generation_models when empty", func(t *testing.T) {
 		req := newValidCreateRequest()
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		_, exists := result.RuntimeConfig.Parameters["generation_models"]
 		assert.False(t, exists)
 	})
 
-	t.Run("should include llama_stack_vector_database_id when provided", func(t *testing.T) {
+	t.Run("should include llama_stack_vector_io_provider_id when provided", func(t *testing.T) {
 		req := newValidCreateRequest()
-		req.LlamaStackVectorDatabaseID = "milvus-db"
-		result := BuildKFPRunRequest(req)
+		req.LlamaStackVectorIOProviderID = "milvus-db"
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
-		assert.Equal(t, "milvus-db", result.RuntimeConfig.Parameters["llama_stack_vector_database_id"])
+		assert.Equal(t, "milvus-db", result.RuntimeConfig.Parameters["llama_stack_vector_io_provider_id"])
 	})
 
-	t.Run("should omit llama_stack_vector_database_id when empty", func(t *testing.T) {
+	t.Run("should omit llama_stack_vector_io_provider_id when empty", func(t *testing.T) {
 		req := newValidCreateRequest()
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
-		_, exists := result.RuntimeConfig.Parameters["llama_stack_vector_database_id"]
+		_, exists := result.RuntimeConfig.Parameters["llama_stack_vector_io_provider_id"]
+		assert.False(t, exists)
+	})
+
+	t.Run("should include optimization_max_rag_patterns when provided", func(t *testing.T) {
+		req := newValidCreateRequest()
+		maxPatterns := 12
+		req.OptimizationMaxRagPatterns = &maxPatterns
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
+
+		assert.Equal(t, 12, result.RuntimeConfig.Parameters["optimization_max_rag_patterns"])
+	})
+
+	t.Run("should omit optimization_max_rag_patterns when nil", func(t *testing.T) {
+		req := newValidCreateRequest()
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
+
+		_, exists := result.RuntimeConfig.Parameters["optimization_max_rag_patterns"]
 		assert.False(t, exists)
 	})
 
 	t.Run("should pass description to KFP request", func(t *testing.T) {
 		req := newValidCreateRequest()
 		req.Description = "my description"
-		result := BuildKFPRunRequest(req)
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
 		assert.Equal(t, "my description", result.Description)
 	})
@@ -257,5 +295,41 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		req.OptimizationMetric = ""
 		err := ValidateCreateAutoRAGRunRequest(req)
 		assert.NoError(t, err)
+	})
+
+	t.Run("should allow nil optimization_max_rag_patterns", func(t *testing.T) {
+		req := newValidCreateRequest()
+		req.OptimizationMaxRagPatterns = nil
+		err := ValidateCreateAutoRAGRunRequest(req)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should accept valid optimization_max_rag_patterns", func(t *testing.T) {
+		for _, value := range []int{4, 8, 12, 20} {
+			req := newValidCreateRequest()
+			req.OptimizationMaxRagPatterns = &value
+			err := ValidateCreateAutoRAGRunRequest(req)
+			assert.NoError(t, err, "value %d should be valid", value)
+		}
+	})
+
+	t.Run("should reject optimization_max_rag_patterns below minimum", func(t *testing.T) {
+		req := newValidCreateRequest()
+		value := 3
+		req.OptimizationMaxRagPatterns = &value
+		err := ValidateCreateAutoRAGRunRequest(req)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "optimization_max_rag_patterns")
+		assert.Contains(t, err.Error(), "at least 4")
+	})
+
+	t.Run("should reject optimization_max_rag_patterns above maximum", func(t *testing.T) {
+		req := newValidCreateRequest()
+		value := 21
+		req.OptimizationMaxRagPatterns = &value
+		err := ValidateCreateAutoRAGRunRequest(req)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "optimization_max_rag_patterns")
+		assert.Contains(t, err.Error(), "at most 20")
 	})
 }

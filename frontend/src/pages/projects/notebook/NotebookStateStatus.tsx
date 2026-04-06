@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Button, Flex, FlexItem } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import {
   t_global_text_color_regular as RegularColor,
   t_global_text_color_status_danger_default as DangerColor,
   t_global_text_color_status_warning_default as WarningColor,
 } from '@patternfly/react-tokens';
-import { useNavigate } from 'react-router-dom';
 import { EventStatus, NotebookStatus } from '#~/types';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
@@ -15,6 +15,7 @@ import {
   KUEUE_STATUSES_OVERRIDE_WORKBENCH,
   type KueueWorkloadStatusWithMessage,
 } from '#~/concepts/kueue/types';
+import { getHumanReadableKueueMessage } from '#~/concepts/kueue/messageUtils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
 import { NotebookState } from './types';
@@ -55,11 +56,18 @@ export const getStatusSubtitle = ({
   notebookStatus,
   kueueStatus,
 }: GetStatusSubtitleParams): string | null => {
+  if (notebookStatus?.currentStatus === EventStatus.ERROR) {
+    return notebookStatus.currentEvent || null;
+  }
   if (isStopping) {
     return null;
   }
   if (kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status)) {
-    return kueueStatus.message?.trim() || kueueStatus.status;
+    return getHumanReadableKueueMessage(
+      kueueStatus.status,
+      kueueStatus.message,
+      kueueStatus.queueName,
+    );
   }
   if (isStarting) {
     return notebookStatus?.currentEvent || 'Waiting for server request to start...';
@@ -73,10 +81,13 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   startNotebook,
   isVertical = true,
 }) => {
-  const navigate = useNavigate();
   const { kueueStatusByNotebookName } = React.useContext(ProjectDetailsContext);
   const { notebook, isStarting, isRunning, isStopping, runningPodUid } = notebookState;
   const kueueStatus = kueueStatusByNotebookName[notebook.metadata.name] ?? null;
+  const editWorkbenchHref =
+    notebook.metadata.namespace && notebook.metadata.name
+      ? `/projects/${notebook.metadata.namespace}/spawner/${notebook.metadata.name}`
+      : undefined;
   const [unstableNotebookStatus, events] = useNotebookStatus(
     isStarting,
     notebook,
@@ -158,13 +169,14 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
                 data-id="edit-workbench"
                 key="edit"
                 variant="link"
-                onClick={() => {
-                  if (notebook.metadata.namespace && notebook.metadata.name) {
-                    navigate(
-                      `/projects/${notebook.metadata.namespace}/spawner/${notebook.metadata.name}`,
-                    );
-                  }
-                }}
+                component={
+                  editWorkbenchHref
+                    ? (props: React.ComponentProps<'a'>) => (
+                        <Link {...props} to={editWorkbenchHref} />
+                      )
+                    : 'button'
+                }
+                isAriaDisabled={!notebook.metadata.namespace || !notebook.metadata.name}
               >
                 Edit workbench
               </Button>

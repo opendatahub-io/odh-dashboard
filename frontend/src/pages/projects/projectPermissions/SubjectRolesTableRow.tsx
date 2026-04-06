@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { Split, SplitItem, Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
+import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { formatDateForLocalTooltip, relativeTime } from '#~/utilities/time';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { SubjectRoleRow } from './types';
-import RoleLabel from './components/RoleLabel';
 import RoleDetailsLink from './components/RoleDetailsLink';
 
 type SubjectRolesTableRowProps = {
@@ -24,7 +24,17 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
     : undefined;
 
   const actionItems = [
-    { title: 'Manage permissions', onClick: onManageRoles },
+    {
+      title: 'Manage permissions',
+      onClick: () => {
+        /* eslint-disable camelcase */
+        fireMiscTrackingEvent('RBAC Role Management Opened', {
+          manage_permissions_button: 'table row',
+        });
+        /* eslint-enable camelcase */
+        onManageRoles();
+      },
+    },
     { title: 'Unassign', onClick: onRemove },
   ];
 
@@ -41,14 +51,7 @@ const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
           paddingInlineStart: 'var(--pf-v6-c-table--cell--Padding--base)',
         }}
       >
-        <Split hasGutter>
-          <SplitItem>
-            <RoleDetailsLink roleRef={row.roleRef} role={row.role} />
-          </SplitItem>
-          <SplitItem>
-            <RoleLabel roleRef={row.roleRef} role={row.role} isCompact />
-          </SplitItem>
-        </Split>
+        <RoleDetailsLink roleRef={row.roleRef} role={row.role} />
       </Td>
       <Td dataLabel="Date created">
         {createdDate ? (

@@ -98,7 +98,7 @@ describe('Workbenches - tolerations tests', () => {
       cy.step(`Wait for workbench ${testData.workbenchName} to display a "Running" status`);
       const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
       notebookRow.findNotebookDescription(projectDescription);
-      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
+      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the newly added toleration');
@@ -172,7 +172,7 @@ describe('Workbenches - tolerations tests', () => {
       cy.step(`Restart workbench ${testData.workbenchName} and validate it has been started`);
       const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
       notebookRow.findNotebookStopToggle().click();
-      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
+      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
       cy.reload();
 
       // Validate that the toleration applied earlier still displays in the pod

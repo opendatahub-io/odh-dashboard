@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Validate module federation ports
+        run: npm run validate:ports
+
       - name: Check for uncommitted changes
         run: git diff --exit-code
 
@@ -216,7 +219,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.25'
           cache-dependency-path: |
             packages/model-registry/upstream/bff/go.sum
             packages/gen-ai/bff/go.sum

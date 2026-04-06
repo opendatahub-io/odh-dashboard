@@ -43,6 +43,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   const { localQueues } = React.useContext(ProjectDetailsContext);
   const clusterQueueName = React.useMemo(
     () => getClusterQueueNameFromLocalQueues(localQueueName, localQueues),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [localQueueName, localQueues.data, localQueues.loaded],
   );
 

@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -70,8 +72,32 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 			fmt.Sprintf("1.29.3-%s-%s", runtime.GOOS, runtime.GOARCH))
 	}
 
+	// Fix for #2136: Configure ControlPlane to bind to 127.0.0.1 instead of
+	// platform-specific addresses (e.g., 192.168.127.254 on macOS) which don't
+	// exist inside Docker containers.
+	//
+	// Pre-allocate a free port on 127.0.0.1 and pass it as a real port number.
+	// envtest treats Port:"0" as a literal string (not auto-select), which causes
+	// kube-apiserver to reject it with "--secure-port 0 must be between 1 and 65535".
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to allocate free port on 127.0.0.1: %w", err)
+	}
+	freePort := ln.Addr().(*net.TCPAddr).Port
+	ln.Close()
+
 	testEnv := &envtest.Environment{
 		BinaryAssetsDirectory: binaryAssetsDir,
+		ControlPlane: envtest.ControlPlane{
+			APIServer: &envtest.APIServer{
+				SecureServing: envtest.SecureServing{
+					ListenAddr: envtest.ListenAddr{
+						Address: "127.0.0.1",
+						Port:    strconv.Itoa(freePort),
+					},
+				},
+			},
+		},
 	}
 
 	cfg, err := testEnv.Start()
@@ -125,7 +151,15 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	err = createEndpoints(mockK8sClient, ctx, "kubeflow", "model-registry", true)
+	if err != nil {
+		return err
+	}
 	err = createService(mockK8sClient, ctx, "model-registry-one", "kubeflow", "Model Registry One", "Model Registry One description", "10.0.0.11", "model-registry")
+	if err != nil {
+		return err
+	}
+	err = createEndpoints(mockK8sClient, ctx, "kubeflow", "model-registry-one", false)
 	if err != nil {
 		return err
 	}
@@ -569,9 +603,9 @@ func createNamespaceDefaultSARegistryAccessRBAC(k8sClient kubernetes.Interface, 
 		},
 		Subjects: []rbacv1.Subject{
 			{
-				Kind:      "ServiceAccount",
-				Name:      "default",
-				Namespace: namespace,
+				Kind:     "Group",
+				Name:     "system:serviceaccounts:" + namespace,
+				APIGroup: "rbac.authorization.k8s.io",
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
@@ -596,9 +630,9 @@ func createCrossNamespaceRegistryAccessBinding(k8sClient kubernetes.Interface, c
 		},
 		Subjects: []rbacv1.Subject{
 			{
-				Kind:      "ServiceAccount",
-				Name:      "default",
-				Namespace: jobNamespace,
+				Kind:     "Group",
+				Name:     "system:serviceaccounts:" + jobNamespace,
+				APIGroup: "rbac.authorization.k8s.io",
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
@@ -717,6 +751,26 @@ func createService(k8sClient kubernetes.Interface, ctx context.Context, name str
 	return nil
 }
 
+// createEndpoints creates an Endpoints resource for a service so that EndpointsHasReadyAddresses returns hasReady.
+//
+//nolint:staticcheck // intentionally using deprecated corev1.Endpoints for RBAC compatibility; see tech debt ticket for EndpointSlice migration
+func createEndpoints(k8sClient kubernetes.Interface, ctx context.Context, namespace, serviceName string, hasReady bool) error {
+	ep := &corev1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceName,
+			Namespace: namespace,
+		},
+		Subsets: nil,
+	}
+	if hasReady {
+		ep.Subsets = []corev1.EndpointSubset{
+			{Addresses: []corev1.EndpointAddress{{IP: "10.0.0.1"}}},
+		}
+	}
+	_, err := k8sClient.CoreV1().Endpoints(namespace).Create(ctx, ep, metav1.CreateOptions{})
+	return err
+}
+
 func createModelCatalogService(k8sClient kubernetes.Interface, ctx context.Context, name, namespace, clusterIP string) error {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -814,10 +868,9 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 		},
 		Type: corev1.SecretTypeDockerConfigJson,
 		StringData: map[string]string{
-			".dockerconfigjson": `{"auths":{"quay.io":{"auth":"bW9jazptb2Nr","email":"test@example.com"}}}`,
+			".dockerconfigjson": `{"auths":{"quay.io":{"auth":"bW9jazptb2Nr"}}}`,
 			"username":          "",
 			"password":          "",
-			"email":             "",
 			"registry":          "",
 		},
 	}
@@ -839,6 +892,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 				"modelregistry.kubeflow.org/model-registry-name": registryName,
 			},
 			Annotations: map[string]string{
+				"modelregistry.kubeflow.org/display-name":        "Transfer job 001",
 				"modelregistry.kubeflow.org/registered-model-id": "1",
 				"modelregistry.kubeflow.org/model-name":          "Model One",
 				"modelregistry.kubeflow.org/model-version-id":    "1",
@@ -927,7 +981,10 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 	}
 
 	createdJob1.Status = batchv1.JobStatus{
-		Active: 1,
+		Failed: 1,
+		Conditions: []batchv1.JobCondition{
+			{Type: batchv1.JobFailed, Status: corev1.ConditionTrue, Message: "Simulated failure for testing retry"},
+		},
 	}
 	_, err = k8sClient.BatchV1().Jobs(namespace).UpdateStatus(ctx, createdJob1, metav1.UpdateOptions{})
 	if err != nil {
@@ -967,6 +1024,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 				"modelregistry.kubeflow.org/model-registry-name": registryName,
 			},
 			Annotations: map[string]string{
+				"modelregistry.kubeflow.org/display-name":        "Transfer job 002",
 				"modelregistry.kubeflow.org/registered-model-id": "2",
 				"modelregistry.kubeflow.org/model-name":          "Model Two",
 				"modelregistry.kubeflow.org/model-version-id":    "3",
@@ -1043,6 +1101,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 				"modelregistry.kubeflow.org/model-registry-name": registryName,
 			},
 			Annotations: map[string]string{
+				"modelregistry.kubeflow.org/display-name":        "Transfer job 003",
 				"modelregistry.kubeflow.org/registered-model-id": "1",
 				"modelregistry.kubeflow.org/model-name":          "Model One",
 				"modelregistry.kubeflow.org/model-version-id":    "2",
@@ -1085,6 +1144,44 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 	_, err = k8sClient.BatchV1().Jobs(namespace).UpdateStatus(ctx, createdJob3, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update job3 status: %w", err)
+	}
+
+	job4 := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "transfer-job-004",
+			Namespace: namespace,
+			Labels: map[string]string{
+				"modelregistry.kubeflow.org/job-type":            "async-upload",
+				"modelregistry.kubeflow.org/job-id":              "004",
+				"modelregistry.kubeflow.org/model-registry-name": registryName,
+			},
+			Annotations: map[string]string{
+				"modelregistry.kubeflow.org/display-name":   "Transfer job 004",
+				"modelregistry.kubeflow.org/configmap-name": "transfer-job-001-config",
+				"modelregistry.kubeflow.org/dest-secret":    "transfer-job-001-dest-secret",
+				"modelregistry.kubeflow.org/source-secret":  "transfer-job-001-source-secret",
+			},
+		},
+		Spec: batchv1.JobSpec{
+			BackoffLimit: &backoffLimit,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+					Containers: []corev1.Container{
+						{Name: "async-upload", Image: "ghcr.io/kubeflow/model-registry/job/async-upload:latest"},
+					},
+				},
+			},
+		},
+	}
+	createdJob4, err := k8sClient.BatchV1().Jobs(namespace).Create(ctx, job4, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create job4: %w", err)
+	}
+	createdJob4.Status = batchv1.JobStatus{Active: 1}
+	_, err = k8sClient.BatchV1().Jobs(namespace).UpdateStatus(ctx, createdJob4, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update job4 status: %w", err)
 	}
 
 	return nil

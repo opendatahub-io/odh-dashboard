@@ -24,6 +24,7 @@ import { Table, Thead, Tr, Th, Tbody, ThProps } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { getEvaluationName, getBenchmarkName } from '~/app/utilities/evaluationUtils';
+import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import EvaluationsTableRow from './EvaluationsTableRow';
 
 const DEFAULT_PER_PAGE = 20;
@@ -65,12 +66,16 @@ const getSortableValue = (job: EvaluationJob, columnIndex: number): string | num
   }
 };
 
-const getFilterValue = (job: EvaluationJob, filterType: FilterOption): string => {
+const getFilterValue = (
+  job: EvaluationJob,
+  filterType: FilterOption,
+  collectionNames: Record<string, string>,
+): string => {
   switch (filterType) {
     case 'name':
       return getEvaluationName(job).toLowerCase();
     case 'evaluation':
-      return getBenchmarkName(job).toLowerCase();
+      return getBenchmarkName(job, collectionNames).toLowerCase();
     case 'evaluated':
       return job.model.name.toLowerCase();
     default:
@@ -82,6 +87,8 @@ type EvaluationsTableProps = {
   evaluations: EvaluationJob[];
   loaded: boolean;
   namespace?: string;
+  collectionNameMap: CollectionNameMap;
+  collectionsLoaded: boolean;
   onRefresh: () => void;
 };
 
@@ -89,6 +96,8 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   evaluations,
   loaded,
   namespace,
+  collectionNameMap,
+  collectionsLoaded,
   onRefresh,
 }) => {
   const navigate = useNavigate();
@@ -108,9 +117,11 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
         if (!filterValue) {
           return true;
         }
-        return getFilterValue(job, activeFilter).includes(filterValue.toLowerCase());
+        return getFilterValue(job, activeFilter, collectionNameMap).includes(
+          filterValue.toLowerCase(),
+        );
       }),
-    [evaluations, filterValue, activeFilter],
+    [evaluations, filterValue, activeFilter, collectionNameMap],
   );
 
   const sortedEvaluations = React.useMemo(() => {
@@ -193,8 +204,12 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                     <SelectOption value="name" data-testid="filter-option-name">
                       Evaluation name
                     </SelectOption>
-                    <SelectOption value="evaluation" data-testid="filter-option-evaluation">
-                      Evaluation
+                    <SelectOption
+                      value="evaluation"
+                      isDisabled={!collectionsLoaded}
+                      data-testid="filter-option-evaluation"
+                    >
+                      {collectionsLoaded ? 'Evaluation' : 'Evaluation (loading…)'}
                     </SelectOption>
                     <SelectOption value="evaluated" data-testid="filter-option-evaluated">
                       Evaluated
@@ -310,6 +325,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 job={job}
                 rowIndex={rowIndex}
                 namespace={namespace ?? ''}
+                collectionNameMap={collectionNameMap}
                 onActionComplete={onRefresh}
               />
             ))}

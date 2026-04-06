@@ -4,9 +4,8 @@ import { MessageProps, ToolResponseProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
-import { getId, getLlamaModelDisplayName } from '~/app/utilities/utils';
+import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilities/utils';
 import {
-  ChatbotSourceSettings,
   ChatMessageRole,
   CreateResponseRequest,
   GuardrailModelConfig,
@@ -48,7 +47,6 @@ export interface UseChatbotMessagesReturn {
 
 interface UseChatbotMessagesProps {
   modelId: string;
-  selectedSourceSettings: ChatbotSourceSettings | null;
   systemInstruction: string;
   isRawUploaded: boolean;
   username?: string;
@@ -65,11 +63,12 @@ interface UseChatbotMessagesProps {
   // Guardrails configuration
   guardrailsConfig?: GuardrailsConfig;
   guardrailModelConfigs?: GuardrailModelConfig[];
+  // MaaS subscription name for API key generation
+  subscription?: string;
 }
 
 const useChatbotMessages = ({
   modelId,
-  selectedSourceSettings,
   systemInstruction,
   isRawUploaded,
   username,
@@ -84,6 +83,7 @@ const useChatbotMessages = ({
   namespace,
   guardrailsConfig,
   guardrailModelConfigs = [],
+  subscription,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -277,18 +277,20 @@ const useChatbotMessages = ({
 
       const selectedMcpServers = getSelectedServersForAPICallback();
 
-      // Determine vector store ID to use for RAG
-      const vectorStoreIdToUse = selectedSourceSettings?.vectorStore || currentVectorStoreId;
-
       // Get guardrail shield IDs based on user configuration
       const guardrailShieldIds = getGuardrailShieldIds();
+
+      // Find the selected model to get its model_source_type
+      // Strip provider prefix from LlamaStack model ID (e.g., "endpoint-1/gpt-4o" → "gpt-4o")
+      const { id: baseModelId } = splitLlamaModelId(modelId);
+      const selectedModel = aiModels.find((model) => model.model_id === baseModelId);
 
       const responsesPayload: CreateResponseRequest = {
         input: message,
         model: modelId,
         ...(isRawUploaded &&
-          vectorStoreIdToUse && {
-            vector_store_ids: [vectorStoreIdToUse],
+          currentVectorStoreId && {
+            vector_store_ids: [currentVectorStoreId],
           }),
         chat_context: messages
           .map((msg) => ({
@@ -302,6 +304,10 @@ const useChatbotMessages = ({
         temperature,
         ...(selectedMcpServers.length > 0 && { mcp_servers: selectedMcpServers }),
         ...guardrailShieldIds,
+        ...(selectedModel?.model_source_type && {
+          model_source_type: selectedModel.model_source_type,
+        }),
+        ...(subscription && { subscription }),
       };
 
       fireMiscTrackingEvent('Playground Query Submitted', {

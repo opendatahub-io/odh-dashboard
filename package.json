@@ -55,7 +55,9 @@
     "commit:skip-lint-hook": "SKIP_LINT_HOOK=true git commit",
     "commit:force-lint-hook": "FORCE_LINT_HOOK=true git commit",
     "prepare": "husky",
+    "validate:ports": "node scripts/validate-module-ports.js",
     "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
     "type-check": "turbo run type-check",
     "test-unit": "turbo run test-unit",
     "test-unit-coverage": "turbo run test-unit-coverage && node scripts/unit-test-coverage-aggregator.js",
@@ -98,10 +100,10 @@
       "react-router-dom": "^7.6.2",
       "react": "^18.2.0",
       "react-dom": "^18.2.0",
-      "@patternfly/react-core": "^6.4.0",
+      "@patternfly/react-core": "^6.4.1",
       "@patternfly/react-icons": "^6.4.0",
       "@patternfly/react-styles": "^6.4.0",
-      "@patternfly/react-table": "^6.4.0",
+      "@patternfly/react-table": "^6.4.1",
       "@patternfly/react-virtualized-extension": "^6.2.0"
     },
     "@patternfly/react-topology": {

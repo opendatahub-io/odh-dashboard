@@ -26,17 +26,19 @@ import (
 )
 
 const (
-	Version               = "1.0.0"
-	PathPrefix            = "/eval-hub"
-	ApiPathPrefix         = "/api/v1"
-	HealthCheckPath       = "/healthcheck"
-	HealthPath            = ApiPathPrefix + "/health"
-	UserPath              = ApiPathPrefix + "/user"
-	NamespacePath         = ApiPathPrefix + "/namespaces"
-	EvaluationJobsPath    = ApiPathPrefix + "/evaluations/jobs"
-	EvaluationJobByIDPath = ApiPathPrefix + "/evaluations/jobs/:id"
-	CollectionsPath       = ApiPathPrefix + "/evaluations/collections"
-	ProvidersPath         = ApiPathPrefix + "/evaluations/providers"
+	Version                  = "1.0.0"
+	PathPrefix               = "/eval-hub"
+	ApiPathPrefix            = "/api/v1"
+	HealthCheckPath          = "/healthcheck"
+	HealthPath               = ApiPathPrefix + "/health"
+	UserPath                 = ApiPathPrefix + "/user"
+	NamespacePath            = ApiPathPrefix + "/namespaces"
+	EvaluationJobsPath       = ApiPathPrefix + "/evaluations/jobs"
+	EvaluationJobByIDPath    = ApiPathPrefix + "/evaluations/jobs/:id"
+	CollectionsPath          = ApiPathPrefix + "/evaluations/collections"
+	ProvidersPath            = ApiPathPrefix + "/evaluations/providers"
+	EvalHubCRStatusPath      = ApiPathPrefix + "/evalhub/status"
+	EvalHubServiceHealthPath = ApiPathPrefix + "/evalhub/health"
 )
 
 type App struct {
@@ -48,6 +50,7 @@ type App struct {
 	testEnv                 *envtest.Environment
 	rootCAs                 *x509.CertPool
 	openAPI                 *OpenAPIHandler
+	dashboardNamespace      string
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -116,6 +119,14 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	dashboardNamespace, err := helper.GetCurrentNamespace()
+	if err != nil {
+		logger.Warn("Failed to detect dashboard namespace, using default",
+			slog.Any("error", err), slog.String("default", "opendatahub"))
+		dashboardNamespace = "opendatahub"
+	}
+	logger.Info("Detected dashboard namespace", slog.String("namespace", dashboardNamespace))
+
 	var ehFactory evalhub.EvalHubClientFactory
 	if cfg.MockEvalHubClient {
 		ehFactory = ehmocks.NewMockClientFactory()
@@ -139,6 +150,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		openAPI:                 openAPIHandler,
+		dashboardNamespace:      dashboardNamespace,
 	}
 	return app, nil
 }
@@ -170,9 +182,19 @@ func (app *App) Routes() http.Handler {
 	// RequireAccessToService performs a SubjectAccessReview to verify the user can list EvalHub CRs.
 	// AttachEvalHubClient resolves the EvalHub service URL (env override or CR auto-discovery).
 	apiRouter.GET(EvaluationJobsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.EvaluationJobsHandler))))
+	apiRouter.POST(EvaluationJobsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CreateEvaluationJobHandler))))
+	apiRouter.GET(EvaluationJobByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobHandler))))
 	apiRouter.DELETE(EvaluationJobByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CancelEvaluationJobHandler))))
 	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
+
+	// EvalHub CR status endpoint (reads CR directly, does not need the EvalHub REST client)
+	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.RequireAccessToService(app.EvalHubCRStatusHandler)))
+
+	// EvalHub service health endpoint: performs per-request CR discovery in the dashboard
+	// namespace (no ?namespace= needed) and pings the EvalHub service if a URL is found.
+	// Returns a three-state response: "healthy", "service-unreachable", or "cr-not-found".
+	apiRouter.GET(EvalHubServiceHealthPath, app.EvalHubServiceHealthHandler)
 
 	// App Router
 	appMux := http.NewServeMux()

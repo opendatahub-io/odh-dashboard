@@ -1,14 +1,8 @@
 import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { CreateResponseRequest, SimplifiedResponseData, ChatbotSourceSettings } from '~/app/types';
-import {
-  mockModelId,
-  mockSourceSettings,
-  mockSuccessResponse,
-  mockNamespace,
-  defaultMcpProps,
-} from './consts';
+import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
+import { mockModelId, mockSuccessResponse, mockNamespace, defaultMcpProps } from './consts';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
@@ -16,6 +10,10 @@ jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
   getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
+  splitLlamaModelId: jest.fn((modelId: string) => ({
+    providerId: 'provider-id',
+    id: modelId,
+  })),
 }));
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
@@ -60,7 +58,6 @@ const setupMocks = (): void => {
 // Helper to create default hook props
 const createDefaultHookProps = (overrides?: {
   modelId?: string;
-  selectedSourceSettings?: ChatbotSourceSettings | null;
   systemInstruction?: string;
   isRawUploaded?: boolean;
   isStreamingEnabled?: boolean;
@@ -70,12 +67,11 @@ const createDefaultHookProps = (overrides?: {
 }) => ({
   ...defaultMcpProps,
   modelId: mockModelId,
-  selectedSourceSettings: mockSourceSettings,
   systemInstruction: '',
   isRawUploaded: true,
   isStreamingEnabled: false,
   temperature: 0.7,
-  currentVectorStoreId: null,
+  currentVectorStoreId: 'test-vector-db',
   selectedServerIds: [],
   ...overrides,
 });

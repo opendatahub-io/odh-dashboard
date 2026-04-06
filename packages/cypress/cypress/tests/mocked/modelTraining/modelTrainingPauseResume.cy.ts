@@ -103,7 +103,7 @@ const mockWorkloads = mockTrainJobs.map((job) => {
   if (jobStatus === TrainingJobState.FAILED) {
     workloadStatus = WorkloadStatusType.Failed;
   } else if (jobStatus === TrainingJobState.SUCCEEDED) {
-    workloadStatus = WorkloadStatusType.Succeeded;
+    workloadStatus = WorkloadStatusType.Complete;
   } else if (jobStatus === TrainingJobState.PAUSED) {
     workloadStatus = WorkloadStatusType.Running;
     workloadSpec = { active: false };
@@ -384,8 +384,8 @@ describe('Model Training Pause/Resume', () => {
       row.findStatus().click();
 
       trainingJobStatusModal.shouldBeOpen();
-      trainingJobStatusModal.findPauseResumeButton().should('be.visible');
-      trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause job');
+      trainingJobStatusModal.findPauseJobButton().should('be.visible');
+      trainingJobStatusModal.findPauseJobButton().should('contain', 'Pause job');
     });
 
     it('should display "Resume job" button for paused jobs', () => {
@@ -396,8 +396,8 @@ describe('Model Training Pause/Resume', () => {
       row.findStatus().click();
 
       trainingJobStatusModal.shouldBeOpen();
-      trainingJobStatusModal.findPauseResumeButton().should('be.visible');
-      trainingJobStatusModal.findPauseResumeButton().should('contain', 'Resume job');
+      trainingJobStatusModal.findResumeJobButton().should('be.visible');
+      trainingJobStatusModal.findResumeJobButton().should('contain', 'Resume job');
     });
 
     it('should not show pause/resume button for completed jobs', () => {
@@ -408,7 +408,7 @@ describe('Model Training Pause/Resume', () => {
       row.findStatus().click();
 
       trainingJobStatusModal.shouldBeOpen();
-      trainingJobStatusModal.findPauseResumeButton().should('not.exist');
+      trainingJobStatusModal.findPauseJobButton().should('not.exist');
     });
 
     it('should not show pause/resume button for failed jobs', () => {
@@ -419,7 +419,7 @@ describe('Model Training Pause/Resume', () => {
       row.findStatus().click();
 
       trainingJobStatusModal.shouldBeOpen();
-      trainingJobStatusModal.findPauseResumeButton().should('not.exist');
+      trainingJobStatusModal.findPauseJobButton().should('not.exist');
     });
 
     it('should close status modal and open pause modal when clicking Pause', () => {
@@ -430,7 +430,7 @@ describe('Model Training Pause/Resume', () => {
       row.findStatus().click();
 
       trainingJobStatusModal.shouldBeOpen();
-      trainingJobStatusModal.findPauseResumeButton().click();
+      trainingJobStatusModal.findPauseJobButton().click();
 
       trainingJobStatusModal.shouldBeOpen(false);
       pauseTrainingJobModal.shouldBeOpen();

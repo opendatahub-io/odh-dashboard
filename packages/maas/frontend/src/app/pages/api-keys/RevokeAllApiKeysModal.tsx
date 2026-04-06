@@ -2,8 +2,11 @@ import * as React from 'react';
 import {
   Alert,
   Button,
-  Flex,
-  FlexItem,
+  Form,
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   Modal,
   ModalBody,
   ModalFooter,
@@ -12,33 +15,33 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import { deleteAllApiKeys } from '~/app/api/api-keys';
+import { bulkRevokeApiKeys } from '~/app/api/api-keys';
+import useUser from '~/app/hooks/useUser';
 
 type RevokeAllApiKeysModalProps = {
   onClose: (revoked: boolean) => void;
-  apiKeyCount: number;
 };
 
-const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, apiKeyCount }) => {
+const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose }) => {
+  const { userId } = useUser();
   const [revoking, setRevoking] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [value, setValue] = React.useState('');
 
-  const confirmationWord = 'revoke';
-  const isConfirmed = value.trim() === confirmationWord;
+  const isConfirmed = value.trim() === userId;
 
   const handleRevoke = React.useCallback(async () => {
     setRevoking(true);
     setError(undefined);
 
     try {
-      await deleteAllApiKeys()({});
+      await bulkRevokeApiKeys()({}, userId);
       onClose(true);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to revoke API keys'));
       setRevoking(false);
     }
-  }, [onClose]);
+  }, [onClose, userId]);
 
   const onBeforeClose = (revoked: boolean) => {
     if (revoked) {
@@ -52,37 +55,48 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, 
     <Modal
       isOpen
       onClose={() => onBeforeClose(false)}
-      variant="small"
+      variant="medium"
       data-testid="revoke-all-api-keys-modal"
     >
-      <ModalHeader title="Revoke all API keys?" titleIconVariant="warning" />
+      <ModalHeader title="Revoke all your active keys?" titleIconVariant="warning" />
       <ModalBody>
         <Stack hasGutter>
           <StackItem>
-            This action cannot be undone. Revoking all API keys will immediately remove endpoint
-            access to any applications currently using them. This will revoke {apiKeyCount}{' '}
-            {apiKeyCount === 1 ? 'key' : 'keys'}.
+            All of your active API keys will be permanently invalidated. Applications or services
+            using these keys will immediately lose access.
           </StackItem>
 
           <StackItem>
-            <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-              <FlexItem>
-                Type <strong>{confirmationWord}</strong> to confirm:
-              </FlexItem>
+            Revoked keys will remain visible with a Revoked status but can no longer be used for
+            authentication.
+          </StackItem>
 
-              <TextInput
-                id="revoke-confirmation-input"
-                data-testid="revoke-confirmation-input"
-                aria-label="Revoke confirmation input"
-                value={value}
-                onChange={(_e, newValue) => setValue(newValue)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && isConfirmed && !revoking) {
-                    handleRevoke();
-                  }
-                }}
-              />
-            </Flex>
+          <StackItem>
+            <Form>
+              <FormGroup
+                label={<>Type &quot;{userId}&quot; to confirm</>}
+                isRequired
+                fieldId="revoke-confirmation-input"
+              >
+                <TextInput
+                  id="revoke-confirmation-input"
+                  data-testid="revoke-confirmation-input"
+                  aria-label="Type your username to confirm"
+                  value={value}
+                  onChange={(_e, newValue) => setValue(newValue)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && isConfirmed && !revoking) {
+                      handleRevoke();
+                    }
+                  }}
+                />
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem>Type your username exactly to confirm</HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              </FormGroup>
+            </Form>
           </StackItem>
 
           {error && (
@@ -108,7 +122,7 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, 
           onClick={() => onBeforeClose(true)}
           data-testid="revoke-keys-button"
         >
-          Revoke keys
+          Permanently revoke all keys
         </Button>
         <Button
           key="cancel-button"

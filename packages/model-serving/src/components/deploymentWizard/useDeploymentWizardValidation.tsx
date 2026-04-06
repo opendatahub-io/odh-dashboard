@@ -4,26 +4,20 @@ import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormVa
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
 import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concepts/hardwareProfiles/validationUtils';
-import type { WizardField, WizardFormData } from './types';
+import { resolveFieldValue, type WizardField, type WizardFormData } from './types';
 import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSourceStep';
 import { externalRouteFieldSchema } from './fields/ExternalRouteField';
 import { tokenAuthenticationFieldSchema } from './fields/TokenAuthenticationField';
-import { numReplicasFieldSchema, type NumReplicasFieldData } from './fields/NumReplicasField';
+import { numReplicasFieldSchema } from './fields/NumReplicasField';
 import { runtimeArgsFieldSchema } from './fields/RuntimeArgsField';
 import { environmentVariablesFieldSchema } from './fields/EnvironmentVariablesField';
-import {
-  ModelServerSelectFieldData,
-  modelServerSelectFieldSchema,
-} from './fields/ModelServerTemplateSelectField';
-import { modelFormatFieldSchema, type ModelFormatFieldData } from './fields/ModelFormatField';
+import { modelServerSelectFieldSchema } from './fields/ModelServerTemplateSelectField';
+import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import { isValidProjectName } from './fields/ProjectSection';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
   hardwareProfile: ReturnType<typeof useValidation>;
-  numReplicas: ReturnType<typeof useZodFormValidation<NumReplicasFieldData>>;
-  modelServer: ReturnType<typeof useZodFormValidation<ModelServerSelectFieldData>>;
-  modelFormat: ReturnType<typeof useZodFormValidation<ModelFormatFieldData>>;
   isModelSourceStepValid: boolean;
   isModelDeploymentStepValid: boolean;
   isAdvancedSettingsStepValid: boolean;
@@ -50,24 +44,33 @@ export const useModelDeploymentWizardValidation = (
   );
 
   // Step 2: Model Deployment
+  const step2Fields = fields.filter((field) => field.step === 'modelDeployment');
+
   const hardwareProfileValidation = useValidation(
     state.hardwareProfileConfig.formData,
     hardwareProfileValidationSchema,
   );
-
-  const modelServerValidation = useZodFormValidation(
-    state.modelServer.data,
-    modelServerSelectFieldSchema,
-  );
-
-  const modelFormatValidation = useZodFormValidation(
-    state.modelFormatState.modelFormat,
-    modelFormatFieldSchema,
-  );
-
-  const numReplicasValidation = useZodFormValidation(
-    state.numReplicas.data,
-    numReplicasFieldSchema,
+  const modelDeploymentStepValidation = useZodFormValidation(
+    {
+      modelServer: state.modelServer.data,
+      modelFormatState: state.modelFormatState.modelFormat,
+      numReplicas: state.numReplicas.data,
+      ...step2Fields.reduce<Record<string, unknown>>((acc, field) => {
+        acc[field.id] = state[field.id];
+        return acc;
+      }, {}),
+    },
+    z.object({
+      modelServer: modelServerSelectFieldSchema,
+      modelFormatState: modelFormatFieldSchema,
+      numReplicas: numReplicasFieldSchema,
+      ...step2Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
+        if (field.reducerFunctions.validationSchema) {
+          acc[field.id] = field.reducerFunctions.validationSchema;
+        }
+        return acc;
+      }, {}),
+    }),
   );
 
   // Step 3: Advanced Options
@@ -79,7 +82,7 @@ export const useModelDeploymentWizardValidation = (
       runtimeArgs: state.runtimeArgs.data,
       environmentVariables: state.environmentVariables.data,
       ...step3Fields.reduce<Record<string, unknown>>((acc, field) => {
-        acc[field.id] = state[field.id];
+        acc[field.id] = resolveFieldValue(field, state);
         return acc;
       }, {}),
     },
@@ -106,10 +109,7 @@ export const useModelDeploymentWizardValidation = (
     ) &&
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
     Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&
-    numReplicasValidation.getFieldValidation(undefined, true).length === 0 &&
-    modelServerValidation.getFieldValidation(undefined, true).length === 0 &&
-    (!state.modelFormatState.isVisible ||
-      modelFormatValidation.getFieldValidation(undefined, true).length === 0);
+    modelDeploymentStepValidation.getFieldValidation(undefined, true).length === 0;
   const isAdvancedSettingsStepValid =
     advancedOptionsValidation.getFieldValidation(undefined, true).length === 0;
 
@@ -120,9 +120,7 @@ export const useModelDeploymentWizardValidation = (
     () => ({
       modelSource: modelSourceStepValidation,
       hardwareProfile: hardwareProfileValidation,
-      modelServer: modelServerValidation,
-      modelFormat: modelFormatValidation,
-      numReplicas: numReplicasValidation,
+      modelDeploymentStepValidation,
       isModelSourceStepValid,
       isModelDeploymentStepValid,
       isAdvancedSettingsStepValid,
@@ -131,9 +129,7 @@ export const useModelDeploymentWizardValidation = (
     [
       modelSourceStepValidation,
       hardwareProfileValidation,
-      modelServerValidation,
-      modelFormatValidation,
-      numReplicasValidation,
+      modelDeploymentStepValidation,
       isModelSourceStepValid,
       isModelDeploymentStepValid,
       isAdvancedSettingsStepValid,

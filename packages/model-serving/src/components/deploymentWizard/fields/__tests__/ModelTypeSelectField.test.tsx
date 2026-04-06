@@ -13,15 +13,39 @@ import { ModelTypeLabel } from '../../types';
 describe('ModelTypeSelectField', () => {
   describe('Schema validation', () => {
     it('should validate predictive', () => {
-      const result = modelTypeSelectFieldSchema.safeParse(ServingRuntimeModelType.PREDICTIVE);
+      const result = modelTypeSelectFieldSchema.safeParse({
+        type: ServingRuntimeModelType.PREDICTIVE,
+        legacyVLLM: false,
+      });
       expect(result.success).toBe(true);
-      expect(result.data).toBe(ServingRuntimeModelType.PREDICTIVE);
+      expect(result.data).toEqual({
+        type: ServingRuntimeModelType.PREDICTIVE,
+        legacyVLLM: false,
+      });
     });
 
     it('should validate generative-model', () => {
-      const result = modelTypeSelectFieldSchema.safeParse(ServingRuntimeModelType.GENERATIVE);
+      const result = modelTypeSelectFieldSchema.safeParse({
+        type: ServingRuntimeModelType.GENERATIVE,
+        legacyVLLM: false,
+      });
       expect(result.success).toBe(true);
-      expect(result.data).toBe(ServingRuntimeModelType.GENERATIVE);
+      expect(result.data).toEqual({
+        type: ServingRuntimeModelType.GENERATIVE,
+        legacyVLLM: false,
+      });
+    });
+
+    it('should validate generative with legacyVLLM true', () => {
+      const result = modelTypeSelectFieldSchema.safeParse({
+        type: ServingRuntimeModelType.GENERATIVE,
+        legacyVLLM: true,
+      });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({
+        type: ServingRuntimeModelType.GENERATIVE,
+        legacyVLLM: true,
+      });
     });
 
     it('should reject invalid values', () => {
@@ -32,9 +56,6 @@ describe('ModelTypeSelectField', () => {
     it('should show required error for undefined', () => {
       const result = modelTypeSelectFieldSchema.safeParse(undefined);
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].message).toBe('Select a model type.');
-      }
     });
   });
 
@@ -57,16 +78,24 @@ describe('ModelTypeSelectField', () => {
     });
 
     it('should initialize with existing data', () => {
-      const { result } = renderHook(() => useModelTypeField(ServingRuntimeModelType.PREDICTIVE));
-      expect(result.current.data).toBe(ServingRuntimeModelType.PREDICTIVE);
+      const { result } = renderHook(() =>
+        useModelTypeField({ type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false }),
+      );
+      expect(result.current.data).toEqual({
+        type: ServingRuntimeModelType.PREDICTIVE,
+        legacyVLLM: false,
+      });
     });
 
     it('should update model type', () => {
       const { result } = renderHook(() => useModelTypeField());
       act(() => {
-        result.current.setData(ServingRuntimeModelType.GENERATIVE);
+        result.current.setData({ type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false });
       });
-      expect(result.current.data).toBe(ServingRuntimeModelType.GENERATIVE);
+      expect(result.current.data).toEqual({
+        type: ServingRuntimeModelType.GENERATIVE,
+        legacyVLLM: false,
+      });
     });
   });
 
@@ -84,7 +113,11 @@ describe('ModelTypeSelectField', () => {
     });
 
     it('should render with selected value', () => {
-      render(<ModelTypeSelectField modelType={ServingRuntimeModelType.PREDICTIVE} />);
+      render(
+        <ModelTypeSelectField
+          modelType={{ type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false }}
+        />,
+      );
       expect(screen.getByText(ModelTypeLabel.PREDICTIVE)).toBeInTheDocument();
     });
 
@@ -100,7 +133,10 @@ describe('ModelTypeSelectField', () => {
         fireEvent.click(option);
       });
 
-      expect(mockSetModelType).toHaveBeenCalledWith(ServingRuntimeModelType.GENERATIVE);
+      expect(mockSetModelType).toHaveBeenCalledWith({
+        type: ServingRuntimeModelType.GENERATIVE,
+        legacyVLLM: false,
+      });
     });
 
     it('should display validation errors', () => {

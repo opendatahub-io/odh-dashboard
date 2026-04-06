@@ -13,6 +13,8 @@ import {
   Tab,
   TabTitleText,
   Title,
+  ToggleGroup,
+  ToggleGroupItem,
   Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
@@ -23,7 +25,9 @@ import {
   selectStreamingEnabled,
   selectSelectedMcpServerIds,
   selectSelectedModel,
+  selectSelectedSubscription,
   selectRagEnabled,
+  selectConfigIds,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
@@ -41,8 +45,6 @@ import {
 
 interface ChatbotSettingsPanelProps {
   configId?: string;
-  /** Header label for the drawer (e.g., "Configure - 1" in compare mode) */
-  headerLabel?: string;
   alerts: {
     uploadSuccessAlert: React.ReactElement | undefined;
     deleteSuccessAlert: React.ReactElement | undefined;
@@ -61,9 +63,11 @@ interface ChatbotSettingsPanelProps {
   guardrailModels?: string[];
   guardrailModelsLoaded?: boolean;
   onCloseClick?: () => void;
+  onActiveConfigChange?: (configId: string) => void;
   guardrailModelsError?: Error;
   /** Whether the drawer is in overlay mode (compare mode) - affects background styling */
   isOverlay?: boolean;
+  defaultActiveTabKey?: string | number;
 }
 
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
@@ -72,7 +76,6 @@ const AUTO_CLOSE_WIDTH_THRESHOLD = 150;
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
   configId = DEFAULT_CONFIG_ID,
-  headerLabel = 'Configure',
   alerts,
   sourceManagement,
   fileManagement,
@@ -86,19 +89,24 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   guardrailModels = [],
   guardrailModelsLoaded = false,
   onCloseClick,
+  onActiveConfigChange,
   guardrailModelsError,
   isOverlay = false,
+  defaultActiveTabKey,
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
 
-  // Consume store directly using configId
+  const configIds = useChatbotConfigStore(selectConfigIds);
+
+  // Consume store directly using configId (controlled by parent)
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const temperature = useChatbotConfigStore(selectTemperature(configId));
   const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+  const selectedSubscription = useChatbotConfigStore(selectSelectedSubscription(configId));
   const isRagEnabled = useChatbotConfigStore(selectRagEnabled(configId));
 
   // Get updater functions from store
@@ -106,6 +114,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const updateTemperature = useChatbotConfigStore((state) => state.updateTemperature);
   const updateStreamingEnabled = useChatbotConfigStore((state) => state.updateStreamingEnabled);
   const updateSelectedModel = useChatbotConfigStore((state) => state.updateSelectedModel);
+  const updateSelectedSubscription = useChatbotConfigStore(
+    (state) => state.updateSelectedSubscription,
+  );
 
   // Create callback handlers that include configId
   const handleSystemInstructionChange = React.useCallback(
@@ -136,6 +147,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     [configId, updateSelectedModel],
   );
 
+  const handleSubscriptionChange = React.useCallback(
+    (subscription: string) => {
+      updateSelectedSubscription(configId, subscription);
+    },
+    [configId, updateSelectedSubscription],
+  );
+
   // Panel width state with session storage persistence
   const [panelWidth, setPanelWidth] = React.useState<string>(() => {
     const storedWidth = sessionStorage.getItem(SETTINGS_PANEL_WIDTH);
@@ -144,6 +162,17 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
 
   // Key to force DrawerPanelContent remount when auto-closing, so it resets to defaultSize
   const [panelSizeKey, setPanelSizeKey] = React.useState(0);
+
+  // Key to force Tabs remount when panel width changes so overflow arrows recalculate.
+  // This is safe because:
+  // 1. All tab content state is stored in useChatbotConfigStore (controlled components)
+  // 2. No async operations in tab content that would be canceled
+  // 3. Remount is debounced (300ms after resize ends) to avoid performance issues
+  // 4. PatternFly Tabs doesn't auto-recalculate overflow on container resize
+  const [tabsKey, setTabsKey] = React.useState(0);
+
+  // Debounce timeout for Tabs remount
+  const resizeEndTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const handlePanelResize = (
     _event: MouseEvent | TouchEvent | React.KeyboardEvent<Element>,
@@ -159,10 +188,28 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     const newWidth = `${width}px`;
     setPanelWidth(newWidth);
     sessionStorage.setItem(SETTINGS_PANEL_WIDTH, newWidth);
+
+    // Debounce Tabs remount: only remount after resize ends (300ms after last resize event)
+    if (resizeEndTimeoutRef.current) {
+      clearTimeout(resizeEndTimeoutRef.current);
+    }
+    resizeEndTimeoutRef.current = setTimeout(() => {
+      setTabsKey((k) => k + 1);
+    }, 300);
   };
 
+  // Cleanup resize debounce timeout on unmount
+  React.useEffect(
+    () => () => {
+      if (resizeEndTimeoutRef.current) {
+        clearTimeout(resizeEndTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
   // Tab state
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
+  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(defaultActiveTabKey ?? 0);
   const handleTabClick = (
     _event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
     tabIndex: string | number,
@@ -187,15 +234,33 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       style={panelStyle}
     >
       <DrawerHead>
-        <Title headingLevel="h2" data-testid="chatbot-settings-panel-header">
-          {headerLabel}
-        </Title>
+        {configIds.length === 1 ? (
+          <Title headingLevel="h2" data-testid="chatbot-settings-panel-header">
+            Configure
+          </Title>
+        ) : (
+          <ToggleGroup
+            aria-label="Chat configuration selector"
+            data-testid="chatbot-config-switcher"
+          >
+            {configIds.map((id, index) => (
+              <ToggleGroupItem
+                key={id}
+                text={`Chat ${index + 1}`}
+                isSelected={id === configId}
+                onChange={() => onActiveConfigChange?.(id)}
+                data-testid={`chatbot-config-tab-${index + 1}`}
+              />
+            ))}
+          </ToggleGroup>
+        )}
         <DrawerActions>
           <DrawerCloseButton onClick={() => onCloseClick?.()} aria-label="Close settings panel" />
         </DrawerActions>
       </DrawerHead>
       <DrawerPanelBody>
         <Tabs
+          key={tabsKey}
           activeKey={activeTabKey}
           onSelect={handleTabClick}
           aria-label="Chatbot settings page tabs"
@@ -214,6 +279,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               onStreamingToggle={handleStreamingToggle}
               selectedModel={selectedModel}
               onModelChange={handleModelChange}
+              selectedSubscription={selectedSubscription}
+              onSubscriptionChange={handleSubscriptionChange}
             />
           </Tab>
 

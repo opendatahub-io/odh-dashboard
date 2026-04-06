@@ -98,76 +98,14 @@ func (kc *TokenKubernetesClient) RESTConfig() *rest.Config { //nolint:unused
 	return kc.restConfig
 }
 
-// RequestIdentity is unused because the token already represents the user identity.
-func (kc *TokenKubernetesClient) CanListServicesInNamespace(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	for _, verb := range []string{"get", "list"} {
-		sar := &authv1.SelfSubjectAccessReview{
-			Spec: authv1.SelfSubjectAccessReviewSpec{
-				ResourceAttributes: &authv1.ResourceAttributes{
-					Verb:      verb,
-					Resource:  "services",
-					Namespace: namespace,
-				},
-			},
-		}
-
-		resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
-		if err != nil {
-			kc.Logger.Error("self-SAR failed", "namespace", namespace, "verb", verb, "error", err)
-			return false, err
-		}
-
-		if !resp.Status.Allowed {
-			kc.Logger.Error("self-SAR denied", "namespace", namespace, "verb", verb)
-			return false, nil
-		}
-	}
-
-	return true, nil
-}
-
-// RequestIdentity is unused because the token already represents the user identity.
-func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context, _ *RequestIdentity, namespace, serviceName string) (bool, error) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	sar := &authv1.SelfSubjectAccessReview{
-		Spec: authv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &authv1.ResourceAttributes{
-				Verb:      "get",
-				Resource:  "services",
-				Namespace: namespace,
-				Name:      serviceName,
-			},
-		},
-	}
-
-	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
-	if err != nil {
-		kc.Logger.Error("self-SAR failed", "service", serviceName, "namespace", namespace, "error", err)
-		return false, err
-	}
-	if !resp.Status.Allowed {
-		kc.Logger.Error("self-SAR denied", "service", serviceName, "namespace", namespace)
-		return false, nil
-	}
-
-	return true, nil
-}
-
-// RequestIdentity is unused because the token already represents the user identity.
-// This endpoint is used only on dev mode that is why is safe to ignore permissions errors
 func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestIdentity) ([]corev1.Namespace, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	nsList, err := kc.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		kc.Logger.Error("user is not allowed to list namespaces or failed to list namespaces")
-		return []corev1.Namespace{}, fmt.Errorf("failed to list namespaces: %w", err)
+		kc.Logger.Error("failed to list namespaces", "error", err)
+		return nil, fmt.Errorf("failed to list namespaces: %w", err)
 	}
 
 	return nsList.Items, nil

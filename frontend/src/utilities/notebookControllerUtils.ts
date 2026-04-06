@@ -102,22 +102,27 @@ export const getNotebookControllerUserState = (
   notebook: Notebook | null,
   loggedInUser: string,
 ): NotebookControllerUserState | null => {
-  if (!notebook?.metadata.annotations || !notebook.metadata.labels) {
+  if (!notebook) {
     return null;
   }
+
+  const annotations = notebook.metadata.annotations ?? {};
 
   const {
     'notebooks.kubeflow.org/last-activity': lastActivity,
     'notebooks.opendatahub.io/last-image-selection': lastSelectedImage = '',
     'notebooks.opendatahub.io/last-size-selection': lastSelectedSize = '',
     'opendatahub.io/username': annotationUser = '',
-  } = notebook.metadata.annotations;
+    'opendatahub.io/user': annotationTranslatedUser = '',
+  } = annotations;
 
   let user = annotationUser;
   if (!annotationUser) {
     // Need to always have user -- if we don't, check if the current user is viable to translate to it
-    const notebookLabelUser = notebook.metadata.labels['opendatahub.io/user'];
-    if (usernameTranslate(loggedInUser) === notebookLabelUser) {
+    // Check annotation first, then fall back to label for backward compatibility with older workbenches
+    const translatedUser =
+      annotationTranslatedUser || notebook.metadata.labels?.['opendatahub.io/user'];
+    if (usernameTranslate(loggedInUser) === translatedUser) {
       user = loggedInUser;
     } else {
       /* eslint-disable-next-line no-console */
@@ -227,7 +232,7 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
         resolve(workbenchPath);
       }
     });
-  }, [workbenchNamespace, routeName, currentUserNotebookLink]);
+  }, [routeName, currentUserNotebookLink, workbenchPath]);
 };
 
 export const getEventTimestamp = (event: EventKind): string =>
@@ -302,49 +307,53 @@ export const getNotebookEventStatus = (
 ): NotebookProgressStep => {
   const timestamp = new Date(getEventTimestamp(event)).getTime();
 
-  // For Oauth-related events
-  if (event.message.includes('oauth-proxy') || event.message.includes('ose-oauth-proxy')) {
+  const isAuthProxyEvent =
+    event.message.includes('oauth-proxy') ||
+    event.message.includes('ose-oauth-proxy') ||
+    event.message.includes('kube-rbac-proxy');
+
+  if (isAuthProxyEvent) {
     switch (event.reason) {
       case 'Pulling':
         return {
-          step: ProgressionStep.PULLING_OAUTH,
+          step: ProgressionStep.PULLING_AUTH_PROXY,
           status: EventStatus.SUCCESS,
           timestamp,
         };
       case 'Pulled':
         return {
-          step: ProgressionStep.OAUTH_PULLED,
+          step: ProgressionStep.AUTH_PROXY_PULLED,
           status: EventStatus.SUCCESS,
           timestamp,
         };
       case 'Created':
         return {
-          step: ProgressionStep.OAUTH_CONTAINER_CREATED,
+          step: ProgressionStep.AUTH_PROXY_CONTAINER_CREATED,
           status: EventStatus.SUCCESS,
           timestamp,
         };
       case 'Started':
         return {
-          step: ProgressionStep.OAUTH_CONTAINER_STARTED,
+          step: ProgressionStep.AUTH_PROXY_CONTAINER_STARTED,
           status: EventStatus.SUCCESS,
           timestamp,
         };
       case 'Killing':
         return {
-          step: ProgressionStep.OAUTH_CONTAINER_STARTED,
+          step: ProgressionStep.AUTH_PROXY_CONTAINER_STARTED,
           status: EventStatus.WARNING,
           timestamp,
         };
       default:
         if (event.type === 'Warning') {
           return {
-            step: ProgressionStep.OAUTH_CONTAINER_CREATED,
+            step: ProgressionStep.AUTH_PROXY_CONTAINER_CREATED,
             status: EventStatus.WARNING,
             timestamp,
           };
         }
         return {
-          step: ProgressionStep.OAUTH_CONTAINER_PROBLEM,
+          step: ProgressionStep.AUTH_PROXY_CONTAINER_PROBLEM,
           status: EventStatus.WARNING,
           timestamp,
         };
@@ -553,10 +562,10 @@ export const useNotebookProgress = (
     }
   });
 
-  // If the container is started and the server is running, mark the server started step complete
+  // If the auth proxy container is started and the server is running, mark the server started step complete
   if (
     isRunning &&
-    progressSteps.find((p) => p.step === ProgressionStep.OAUTH_CONTAINER_STARTED)?.status ===
+    progressSteps.find((p) => p.step === ProgressionStep.AUTH_PROXY_CONTAINER_STARTED)?.status ===
       EventStatus.SUCCESS
   ) {
     const startedStep = progressSteps.find((p) => p.step === ProgressionStep.WORKBENCH_STARTED);

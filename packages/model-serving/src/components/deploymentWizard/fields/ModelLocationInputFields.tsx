@@ -367,7 +367,6 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
             connectionType={selectedConnectionType}
             setModelLocationData={setModelLocationData}
             modelLocationData={modelLocationData}
-            connections={connections}
           />
         ) : null}
       </>

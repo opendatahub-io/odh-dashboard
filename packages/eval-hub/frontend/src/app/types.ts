@@ -29,6 +29,51 @@ export type NamespaceKind = {
 };
 
 // ---------------------------------------------------------------------------
+// EvalHub health response type matching the BFF response shape
+// ---------------------------------------------------------------------------
+
+/**
+ * The three states the /evalhub/health endpoint can report.
+ *
+ * - "healthy"             — CR found in dashboard namespace, service responded.
+ * - "service-unreachable" — CR found (URL known) but service did not respond.
+ * - "cr-not-found"        — No EvalHub CR in the dashboard namespace; operator not configured.
+ */
+export type EvalHubHealthStatus = 'healthy' | 'service-unreachable' | 'cr-not-found';
+
+export type EvalHubHealthResponse = {
+  status: EvalHubHealthStatus;
+  available: boolean;
+};
+
+// ---------------------------------------------------------------------------
+// EvalHub CR status types matching the BFF response shape
+// ---------------------------------------------------------------------------
+
+export type EvalHubCRPhase = 'Initializing' | 'Ready' | 'Failed' | 'Pending' | 'Unknown';
+
+export type EvalHubCondition = {
+  type: string;
+  status: string;
+  lastTransitionTime?: string;
+  reason?: string;
+  message?: string;
+};
+
+export type EvalHubCRStatus = {
+  name: string;
+  namespace: string;
+  phase: EvalHubCRPhase;
+  ready: string;
+  url?: string;
+  activeProviders?: string[];
+  conditions?: EvalHubCondition[];
+  lastUpdateTime?: string;
+  readyReplicas: number;
+  replicas: number;
+};
+
+// ---------------------------------------------------------------------------
 // EvalHub evaluation job types matching the BFF response shape
 // ---------------------------------------------------------------------------
 
@@ -145,6 +190,7 @@ type JobBenchmark = {
 
 type JobCollection = {
   id: string;
+  benchmarks?: JobBenchmark[];
 };
 
 type ExperimentTag = {
@@ -184,7 +230,7 @@ export type EvaluationJob = {
   tags?: string[];
   model: JobModel;
   pass_criteria?: JobPassCriteria;
-  benchmarks: JobBenchmark[];
+  benchmarks?: JobBenchmark[] | null;
   collection?: JobCollection;
   experiment?: JobExperiment;
   custom?: Record<string, unknown>;
@@ -247,11 +293,28 @@ export type CollectionBenchmark = {
 export type Collection = {
   resource: CollectionResource;
   name: string;
+  category?: string;
   description?: string;
   tags?: string[];
   custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
   benchmarks?: CollectionBenchmark[];
+};
+
+export type ListCollectionsParams = {
+  namespace?: string;
+  limit?: number;
+  offset?: number;
+  name?: string;
+  category?: string | null;
+  tags?: string[];
+  scope?: string;
+};
+
+export type CollectionsListResponse = {
+  items: Collection[];
+  total_count?: number;
+  limit?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -288,6 +351,8 @@ export type ProviderBenchmark = {
   primary_score?: ProviderBenchmarkScore;
   pass_criteria?: ProviderBenchmarkPassCriteria;
 };
+
+export type FlatBenchmark = ProviderBenchmark & { providerId: string; providerName: string };
 
 export type ProviderEnvVar = {
   name: string;
@@ -328,3 +393,29 @@ export type ProvidersResponse = {
   items: Provider[];
   total_count?: number;
 };
+
+// ---------------------------------------------------------------------------
+// Create Evaluation Job request / response
+// ---------------------------------------------------------------------------
+
+export type CreateEvaluationJobRequest = {
+  name: string;
+  description?: string;
+  tags?: string[];
+  model: {
+    url: string;
+    name: string;
+    parameters?: Record<string, unknown>;
+    auth?: {
+      secret_ref?: string;
+    };
+  };
+  pass_criteria?: JobPassCriteria;
+  benchmarks?: JobBenchmark[];
+  collection?: JobCollection;
+  experiment?: JobExperiment;
+  custom?: Record<string, unknown>;
+  exports?: JobExports;
+};
+
+export type CreateEvaluationJobResponse = EvaluationJob;

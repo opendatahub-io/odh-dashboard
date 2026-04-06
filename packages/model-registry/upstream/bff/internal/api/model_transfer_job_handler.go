@@ -36,8 +36,15 @@ func (app *App) GetAllModelTransferJobsHandler(w http.ResponseWriter, r *http.Re
 		app.badRequestResponse(w, r, fmt.Errorf("model registry name is required"))
 		return
 	}
-	transferJobs, err := app.repositories.ModelRegistry.GetAllModelTransferJobs(ctx, client, namespace, modelRegistryID)
+
+	jobNamespace := r.URL.Query().Get("jobNamespace")
+
+	transferJobs, err := app.repositories.ModelRegistry.GetAllModelTransferJobs(ctx, client, namespace, modelRegistryID, jobNamespace)
 	if err != nil {
+		if errors.Is(err, repositories.ErrForbidden) {
+			app.forbiddenResponse(w, r, err.Error())
+			return
+		}
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -73,13 +80,18 @@ func (app *App) GetModelTransferJobHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	jobNamespace, err := getRequiredJobNamespace(r)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
 	modelRegistryID := ps.ByName(ModelRegistryId)
 	if modelRegistryID == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("model registry name is required"))
 		return
 	}
 
-	modelTransferJob, err := app.repositories.ModelRegistry.GetModelTransferJob(ctx, client, namespace, jobName, modelRegistryID)
+	modelTransferJob, err := app.repositories.ModelRegistry.GetModelTransferJob(ctx, client, jobNamespace, jobName, modelRegistryID)
 
 	if err != nil {
 		if errors.Is(err, repositories.ErrJobNotFound) {
@@ -137,7 +149,7 @@ func (app *App) CreateModelTransferJobHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	newJob, err := app.repositories.ModelRegistry.CreateModelTransferJob(ctx, client, namespace, payload, modelRegistryID)
+	newJob, err := app.repositories.ModelRegistry.CreateModelTransferJob(ctx, client, namespace, payload, modelRegistryID, app.config.DeploymentMode.IsFederatedMode(), app.podNamespace)
 	if err != nil {
 		if errors.Is(err, repositories.ErrJobValidationFailed) {
 			app.badRequestResponse(w, r, err)
@@ -200,7 +212,7 @@ func (app *App) UpdateModelTransferJobHandler(w http.ResponseWriter, r *http.Req
 	deleteOldJob := r.URL.Query().Get("deleteOldJob") == "true"
 
 	updatedJob, err := app.repositories.ModelRegistry.UpdateModelTransferJob(
-		ctx, client, namespace, jobName, payload, deleteOldJob, modelRegistryID)
+		ctx, client, namespace, jobName, payload, deleteOldJob, modelRegistryID, app.config.DeploymentMode.IsFederatedMode(), app.podNamespace)
 	if err != nil {
 		if errors.Is(err, repositories.ErrJobNotFound) {
 			app.notFoundResponse(w, r)
@@ -246,13 +258,19 @@ func (app *App) DeleteModelTransferJobHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	jobNamespace, err := getRequiredJobNamespace(r)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
 	modelRegistryID := ps.ByName(ModelRegistryId)
 	if modelRegistryID == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("model registry name is required"))
 		return
 	}
 
-	deletedJob, err := app.repositories.ModelRegistry.DeleteModelTransferJob(ctx, client, namespace, jobName, modelRegistryID)
+	deletedJob, err := app.repositories.ModelRegistry.DeleteModelTransferJob(ctx, client, jobNamespace, jobName, modelRegistryID)
 	if err != nil {
 		if errors.Is(err, repositories.ErrJobNotFound) {
 			app.notFoundResponse(w, r)
@@ -297,9 +315,9 @@ func (app *App) GetModelTransferJobEventsHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	jobNamespace := r.URL.Query().Get("jobNamespace")
-	if jobNamespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("jobNamespace query parameter is required"))
+	jobNamespace, err := getRequiredJobNamespace(r)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -322,4 +340,12 @@ func (app *App) GetModelTransferJobEventsHandler(w http.ResponseWriter, r *http.
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+}
+
+func getRequiredJobNamespace(r *http.Request) (string, error) {
+	jobNamespace := r.URL.Query().Get("jobNamespace")
+	if jobNamespace == "" {
+		return "", fmt.Errorf("missing required query parameter: jobNamespace")
+	}
+	return jobNamespace, nil
 }

@@ -70,7 +70,7 @@ describe('ModelSourceStep', () => {
   describe('Schema validation', () => {
     it('should validate complete data', () => {
       const validData: ModelSourceStepData = {
-        modelType: ServingRuntimeModelType.PREDICTIVE,
+        modelType: { type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false },
         modelLocationData: {
           type: ModelLocationType.PVC,
           fieldValues: {
@@ -130,6 +130,37 @@ describe('ModelSourceStep', () => {
       expect(screen.getByTestId('save-connection-checkbox')).toBeChecked();
     });
 
+    it('should render only the parent form element for the model source step', () => {
+      const { container } = render(
+        <ModelSourceStepContent
+          wizardState={mockDeploymentWizardState({
+            state: {
+              project: {
+                projectName: 'test-project',
+              },
+              createConnectionData: {
+                data: {
+                  saveConnection: true,
+                  nameDesc: mockK8sNameDescriptionFieldData(),
+                },
+              },
+              modelLocationData: {
+                isLoadingSecretData: false,
+                data: {
+                  type: ModelLocationType.NEW,
+                  fieldValues: { URI: 'uri://test' },
+                  additionalFields: {},
+                },
+              },
+            },
+          })}
+          validation={mockValidation}
+        />,
+      );
+
+      expect(container.querySelectorAll('form')).toHaveLength(1);
+    });
+
     it('should render with selected model type and model location', () => {
       const wizardDataWithSelection = mockDeploymentWizardState({
         state: {
@@ -137,7 +168,7 @@ describe('ModelSourceStep', () => {
             projectName: 'test-project',
           },
           modelType: {
-            data: ServingRuntimeModelType.GENERATIVE,
+            data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false },
           },
           createConnectionData: {
             data: {

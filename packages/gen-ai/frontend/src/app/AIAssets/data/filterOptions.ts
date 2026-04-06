@@ -1,17 +1,21 @@
 export enum AssetsFilterOptions {
   NAME = 'name',
-  KEYWORD = 'keyword',
   USE_CASE = 'useCase',
+  STATUS = 'status',
 }
 
 export enum AssetsFilterColors {
   NAME = 'blue',
-  KEYWORD = 'green',
   USE_CASE = 'purple',
+  STATUS = 'orange',
 }
 
-export const assetsFilterOptions = {
+export const assetsFilterOptions: Record<string, string> = {
   [AssetsFilterOptions.NAME]: 'Name',
-  [AssetsFilterOptions.KEYWORD]: 'Keyword',
   [AssetsFilterOptions.USE_CASE]: 'Use Case',
+  [AssetsFilterOptions.STATUS]: 'Status',
+};
+
+export const assetsFilterSelectOptions: Partial<Record<AssetsFilterOptions, string[]>> = {
+  [AssetsFilterOptions.STATUS]: ['Active', 'Inactive'],
 };
