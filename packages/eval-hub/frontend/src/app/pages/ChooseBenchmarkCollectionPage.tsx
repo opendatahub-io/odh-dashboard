@@ -130,6 +130,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                   variant="warning"
                   isInline
                   title="Not all collections are shown"
+                  data-testid="collections-truncation-alert"
                   style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
                 >
                   This namespace has more benchmark suites than the display limit. Contact your
@@ -145,6 +146,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                       onChange={(_, value) => setNameFilter(value)}
                       onClear={() => setNameFilter('')}
                       style={{ width: '220px' }}
+                      data-testid="collections-name-filter"
                     />
                   </ToolbarItem>
                   <ToolbarItem>
@@ -154,6 +156,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                       onSelect={handleCategorySelect}
                       onOpenChange={setIsCategoryOpen}
                       toggle={categoryToggle}
+                      data-testid="collections-category-select"
                     >
                       <SelectList>
                         {categoryFilter && <SelectOption value="">All categories</SelectOption>}
@@ -188,7 +191,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                   <Spinner />
                 </Bullseye>
               ) : collections.length === 0 ? (
-                <Bullseye>
+                <Bullseye data-testid="collections-empty-state">
                   <Content component="p">
                     {nameFilter || categoryFilter
                       ? 'No collections match the current filters.'
@@ -196,7 +199,11 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                   </Content>
                 </Bullseye>
               ) : (
-                <Gallery hasGutter minWidths={{ default: '280px' }}>
+                <Gallery
+                  hasGutter
+                  minWidths={{ default: '280px' }}
+                  data-testid="collections-gallery"
+                >
                   {collections.map((collection) => {
                     const benchmarkCount = collection.benchmarks?.length ?? 0;
                     const isSelected = selectedCollection?.resource.id === collection.resource.id;

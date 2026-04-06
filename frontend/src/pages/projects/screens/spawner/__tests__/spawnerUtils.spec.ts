@@ -1,5 +1,6 @@
 import {
   getExistingVersionsForImageStream,
+  getRelatedVersionDescription,
   checkVersionRecommended,
   getVersion,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
@@ -66,6 +67,76 @@ describe('getExistingVersionsForImageStream', () => {
     const result = getExistingVersionsForImageStream(imageStream);
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({ name: 'should-be-included' });
+  });
+});
+
+describe('getRelatedVersionDescription', () => {
+  it('should return undefined when there are no versions', () => {
+    const imageStream = mockImageStreamK8sResource({
+      opts: { spec: { tags: [] }, status: { tags: [] } },
+    });
+    expect(getRelatedVersionDescription(imageStream)).toBeUndefined();
+  });
+
+  it('should return software string for a single version', () => {
+    const imageStream = mockImageStreamK8sResource({});
+    expect(getRelatedVersionDescription(imageStream)).toBe('Python v3.8');
+  });
+
+  it('should return software string for the recommended version when multiple versions exist', () => {
+    const imageStream = mockImageStreamK8sResource({
+      opts: {
+        spec: {
+          tags: [
+            {
+              name: '2023.1',
+              annotations: {
+                [IMAGE_ANNOTATIONS.SOFTWARE]: '[{"name":"Python","version":"v3.8"}]',
+              },
+            },
+            {
+              name: '2024.2',
+              annotations: {
+                [IMAGE_ANNOTATIONS.SOFTWARE]:
+                  '[{"name":"Python","version":"v3.9"},{"name":"CUDA","version":"v11.8"}]',
+                [IMAGE_ANNOTATIONS.RECOMMENDED]: 'true',
+              },
+            },
+          ],
+        },
+        status: {
+          tags: [{ tag: '2023.1' }, { tag: '2024.2' }],
+        },
+      },
+    });
+    expect(getRelatedVersionDescription(imageStream)).toBe('Python v3.9, CUDA v11.8');
+  });
+
+  it('should return software string for the latest version when none is recommended', () => {
+    const imageStream = mockImageStreamK8sResource({
+      opts: {
+        spec: {
+          tags: [
+            {
+              name: '2023.1',
+              annotations: {
+                [IMAGE_ANNOTATIONS.SOFTWARE]: '[{"name":"Python","version":"v3.8"}]',
+              },
+            },
+            {
+              name: '2024.2',
+              annotations: {
+                [IMAGE_ANNOTATIONS.SOFTWARE]: '[{"name":"Python","version":"v3.9"}]',
+              },
+            },
+          ],
+        },
+        status: {
+          tags: [{ tag: '2023.1' }, { tag: '2024.2' }],
+        },
+      },
+    });
+    expect(getRelatedVersionDescription(imageStream)).toBe('Python v3.9');
   });
 });
 

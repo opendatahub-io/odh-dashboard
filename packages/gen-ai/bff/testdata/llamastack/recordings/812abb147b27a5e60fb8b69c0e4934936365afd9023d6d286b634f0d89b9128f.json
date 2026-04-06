@@ -1,0 +1,268 @@
+{
+  "test_id": "bff/testdata/llamastack/test.py::record",
+  "request": {
+    "method": "POST",
+    "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "models/gemini-2.5-flash",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hello"
+        },
+        {
+          "role": "assistant",
+          "content": "Hi there! How can I help you?"
+        },
+        {
+          "role": "user",
+          "content": "Tell me about AI"
+        },
+        {
+          "role": "user",
+          "content": "Continue the conversation"
+        }
+      ],
+      "stream": true,
+      "stream_options": {
+        "include_usage": true
+      }
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "models/gemini-2.5-flash",
+    "provider_metadata": {
+      "openai_sdk_version": "2.6.1"
+    }
+  },
+  "response": {
+    "body": [
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-812abb147b27",
+          "choices": [
+            {
+              "delta": {
+                "content": "AI, or **Artificial Intelligence**, is a broad field of computer science",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 14,
+            "prompt_tokens": 21,
+            "total_tokens": 231,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-812abb147b27",
+          "choices": [
+            {
+              "delta": {
+                "content": " dedicated to creating machines that can perform tasks that typically require human intelligence.\n\nEssentially, it's about enabling computers to:\n*   **Learn** from data (like recognizing patterns).\n*   **Understand** human language (like",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 62,
+            "prompt_tokens": 21,
+            "total_tokens": 279,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-812abb147b27",
+          "choices": [
+            {
+              "delta": {
+                "content": " I'm doing now!).\n*   **Perceive** their environment (like self-driving cars \"seeing\" the road).\n*   **Solve problems** and make decisions.\n*   **Perform complex actions** (",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 110,
+            "prompt_tokens": 21,
+            "total_tokens": 327,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-812abb147b27",
+          "choices": [
+            {
+              "delta": {
+                "content": "like robots in manufacturing).\n\nIt encompasses many sub-fields, with **Machine Learning (ML)** and **Deep Learning (DL)** being particularly prominent right now. ML involves algorithms that allow systems to learn from data without being explicitly programmed for",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 158,
+            "prompt_tokens": 21,
+            "total_tokens": 375,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-812abb147b27",
+          "choices": [
+            {
+              "delta": {
+                "content": " every single scenario, while DL uses neural networks inspired by the human brain to process vast amounts of data and find intricate patterns.\n\n**Common examples of AI in our daily lives include:**\n*   Voice assistants (Siri, Alexa,",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 206,
+            "prompt_tokens": 21,
+            "total_tokens": 423,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-812abb147b27",
+          "choices": [
+            {
+              "delta": {
+                "content": " Google Assistant)\n*   Recommendation engines (Netflix, Amazon, Spotify)\n*   Spam filters in your email\n*   Facial recognition on your phone\n*   Medical diagnosis and drug discovery\n*   Fraud detection in banking\n\nIt",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 256,
+            "prompt_tokens": 21,
+            "total_tokens": 473,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-812abb147b27",
+          "choices": [
+            {
+              "delta": {
+                "content": "'s a rapidly evolving field with the potential to transform nearly every industry.\n\nWhat aspects of AI are you most curious about? Or perhaps you have a specific application in mind?",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": "stop",
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 292,
+            "prompt_tokens": 21,
+            "total_tokens": 509,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      }
+    ],
+    "is_streaming": true
+  },
+  "id_normalization_mapping": {}
+}

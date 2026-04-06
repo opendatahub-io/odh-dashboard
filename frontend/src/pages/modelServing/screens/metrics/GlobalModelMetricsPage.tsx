@@ -11,7 +11,7 @@ const GlobalModelMetricsPage: React.FC = () => {
     <MetricsPage
       title={`${modelDisplayName} metrics`}
       breadcrumbItems={[
-        { label: 'Deployments', link: '/ai-hub/deployments' },
+        { label: 'Deployments', link: '/ai-hub/models/deployments' },
         {
           label: modelDisplayName,
           isActive: true,

@@ -529,7 +529,7 @@ export const AccessModeLabelMap: Record<AccessMode, string> = {
 };
 
 export enum NotebookStatusLabel {
-  Running = 'Running',
+  Ready = 'Ready',
   Starting = 'Starting',
   Stopping = 'Stopping',
   Stopped = 'Stopped',
@@ -608,7 +608,7 @@ export type PipelineTestData = {
   pipelineDescription: string;
   runName: string;
   runDescription: string;
-  experimentName: string;
+  runGroupName: string;
   dspaSecretName: string;
   pipelineUrl: string;
 };

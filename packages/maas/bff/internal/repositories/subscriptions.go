@@ -15,6 +15,11 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
+const (
+	displayNameAnnotation = "openshift.io/display-name"
+	descriptionAnnotation = "openshift.io/description"
+)
+
 // SubscriptionsRepository handles subscription operations via the Kubernetes API.
 type SubscriptionsRepository struct {
 	logger     *slog.Logger
@@ -120,6 +125,8 @@ func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, reques
 		policyObj := buildAuthPolicyUnstructured(
 			policyName,
 			r.namespace,
+			"",
+			"",
 			modelRefs,
 			request.Owner.Groups,
 			request.TokenMetadata,
@@ -335,6 +342,10 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		Namespace: obj.GetNamespace(),
 	}
 
+	annotations := obj.GetAnnotations()
+	sub.DisplayName = annotations[displayNameAnnotation]
+	sub.Description = annotations[descriptionAnnotation]
+
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	sub.Phase = phase
 
@@ -433,6 +444,10 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 		Namespace: obj.GetNamespace(),
 	}
 
+	annotations := obj.GetAnnotations()
+	policy.DisplayName = annotations[displayNameAnnotation]
+	policy.Description = annotations[descriptionAnnotation]
+
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	policy.Phase = phase
 
@@ -489,6 +504,9 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) (*mode
 		Name:      obj.GetName(),
 		Namespace: obj.GetNamespace(),
 	}
+	annotations := obj.GetAnnotations()
+	summary.DisplayName = annotations[displayNameAnnotation]
+	summary.Description = annotations[descriptionAnnotation]
 
 	kind, _, _ := unstructured.NestedString(content, "spec", "modelRef", "kind")
 	name, _, _ := unstructured.NestedString(content, "spec", "modelRef", "name")
@@ -526,12 +544,23 @@ func buildSubscriptionUnstructured(name, namespace string, owner models.OwnerSpe
 	return obj
 }
 
-func buildAuthPolicyUnstructured(name, namespace string, modelRefs []models.ModelRef, groups []models.GroupReference, tokenMetadata *models.TokenMetadata) *unstructured.Unstructured {
+func buildAuthPolicyUnstructured(name, namespace, displayName, description string, modelRefs []models.ModelRef, groups []models.GroupReference, tokenMetadata *models.TokenMetadata) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetAPIVersion("maas.opendatahub.io/v1alpha1")
 	obj.SetKind("MaaSAuthPolicy")
 	obj.SetName(name)
 	obj.SetNamespace(namespace)
+
+	annotations := make(map[string]string)
+	if displayName != "" {
+		annotations[displayNameAnnotation] = displayName
+	}
+	if description != "" {
+		annotations[descriptionAnnotation] = description
+	}
+	if len(annotations) > 0 {
+		obj.SetAnnotations(annotations)
+	}
 
 	mrList := make([]interface{}, len(modelRefs))
 	for i, mr := range modelRefs {

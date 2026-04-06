@@ -84,7 +84,10 @@ describe('useS3GetFileSchemaQuery', () => {
     );
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/v1/s3/file/schema?'));
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/s3/file/schema?'),
+        expect.anything(),
+      );
     });
 
     const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];

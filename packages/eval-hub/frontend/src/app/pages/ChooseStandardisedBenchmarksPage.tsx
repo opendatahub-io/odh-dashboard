@@ -239,7 +239,10 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                   <StackItem isFilled>
                     {paginatedBenchmarks.length === 0 ? (
                       <Bullseye>
-                        <EmptyState variant={EmptyStateVariant.sm}>
+                        <EmptyState
+                          variant={EmptyStateVariant.sm}
+                          data-testid="benchmarks-empty-state"
+                        >
                           <Title headingLevel="h2" size="lg">
                             No benchmarks found
                           </Title>
@@ -249,14 +252,22 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                               : 'No benchmarks are currently available.'}
                           </EmptyStateBody>
                           {hasActiveFilters && (
-                            <Button variant="link" onClick={onClearFilters}>
+                            <Button
+                              variant="link"
+                              onClick={onClearFilters}
+                              data-testid="benchmarks-clear-filters"
+                            >
                               Clear all filters
                             </Button>
                           )}
                         </EmptyState>
                       </Bullseye>
                     ) : (
-                      <Gallery hasGutter minWidths={{ default: '280px' }}>
+                      <Gallery
+                        hasGutter
+                        minWidths={{ default: '280px' }}
+                        data-testid="benchmarks-gallery"
+                      >
                         {paginatedBenchmarks.map((benchmark) => (
                           <BenchmarkCard
                             key={`${benchmark.providerId}-${benchmark.id}`}

@@ -1,0 +1,128 @@
+{
+  "test_id": "bff/testdata/llamastack/test.py::record",
+  "request": {
+    "method": "POST",
+    "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "models/gemini-2.5-flash",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hello from MaaS"
+        }
+      ],
+      "stream": true,
+      "stream_options": {
+        "include_usage": true
+      }
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "models/gemini-2.5-flash",
+    "provider_metadata": {
+      "openai_sdk_version": "2.6.1"
+    }
+  },
+  "response": {
+    "body": [
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-6f8b8da77adb",
+          "choices": [
+            {
+              "delta": {
+                "content": "Well hello there, MaaS! Great",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 8,
+            "prompt_tokens": 5,
+            "total_tokens": 717,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-6f8b8da77adb",
+          "choices": [
+            {
+              "delta": {
+                "content": " to hear from the world of Mobility as a Service.\n\nThat's a fascinating and increasingly vital field, integrating various transport options to make urban living more efficient and sustainable.\n\nWhat's on your mind today, or is there anything",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 56,
+            "prompt_tokens": 5,
+            "total_tokens": 765,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-6f8b8da77adb",
+          "choices": [
+            {
+              "delta": {
+                "content": " specific about MaaS you'd like to discuss?",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": "stop",
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 67,
+            "prompt_tokens": 5,
+            "total_tokens": 776,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      }
+    ],
+    "is_streaming": true
+  },
+  "id_normalization_mapping": {}
+}

@@ -510,6 +510,7 @@ apis:
 - datasetio
 - files
 - inference
+- responses
 - safety
 - scoring
 - telemetry
@@ -537,6 +538,19 @@ providers:
         backend: kv_default
 ` + safetySection + `
   eval: []
+  responses:
+  - provider_id: builtin
+    provider_type: inline::builtin
+    config:
+      persistence:
+        agent_state:
+          namespace: agents
+          backend: kv_default
+        responses:
+          table_name: responses
+          backend: sql_default
+          max_write_queue_size: 10000
+          num_writers: 4
   files:
   - provider_id: meta-reference-files
     provider_type: inline::localfs
@@ -568,8 +582,8 @@ providers:
       sqlite_db_path: /opt/app-root/src/.llama/distributions/rh/trace_store.db
       otel_exporter_otlp_endpoint: ${env.OTEL_EXPORTER_OTLP_ENDPOINT:=}
   tool_runtime:
-  - provider_id: rag-runtime
-    provider_type: inline::rag-runtime
+  - provider_id: file-search
+    provider_type: inline::file-search
     config: {}
   - provider_id: model-context-protocol
     provider_type: remote::model-context-protocol
@@ -614,9 +628,6 @@ registered_resources:
   datasets: []
   scoring_fns: []
   benchmarks: []
-  tool_groups:
-    - toolgroup_id: builtin::rag
-      provider_id: rag-runtime
 server:
   port: 8321`,
 		},

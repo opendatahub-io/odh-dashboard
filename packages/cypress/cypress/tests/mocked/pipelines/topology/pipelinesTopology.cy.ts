@@ -171,6 +171,16 @@ const initIntercepts = () => {
     },
     buildMockExperimentKF({ experiment_id: 'test-experiment' }),
   );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
+    {
+      path: { namespace: projectId, serviceName: 'dspa' },
+    },
+    {
+      experiments: [buildMockExperimentKF({ experiment_id: 'test-experiment' })],
+      total_size: 1,
+    },
+  );
   cy.interceptK8s(
     PodModel,
     mockPipelinePodK8sResource({
@@ -491,12 +501,12 @@ describe('Pipeline topology', () => {
       pipelineRunDetails
         .findDetailItem('Started')
         .findValue()
-        .contains('Friday, March 15, 2024 at 5:59:35 PM UTC');
+        .contains('Friday, March 15, 2024 at 5:59:36 PM UTC');
       pipelineRunDetails
         .findDetailItem('Finished')
         .findValue()
         .contains('Friday, March 15, 2024 at 6:00:25 PM UTC');
-      pipelineRunDetails.findDetailItem('Duration').findValue().contains('50 seconds');
+      pipelineRunDetails.findDetailItem('Duration').findValue().contains('49 seconds');
     });
 
     it('Test pipeline triggered run tab parameters', () => {

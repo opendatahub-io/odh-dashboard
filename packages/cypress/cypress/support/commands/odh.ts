@@ -97,7 +97,12 @@ import type {
   BulkRevokeResponse,
   CreateAPIKeyResponse,
 } from '@odh-dashboard/maas/types/api-key';
-import type { MaaSSubscription } from '@odh-dashboard/maas/types/subscriptions';
+import type {
+  MaaSSubscription,
+  SubscriptionInfoResponse,
+  UserSubscription,
+} from '@odh-dashboard/maas/types/subscriptions';
+import type { MaaSModelRef } from '@odh-dashboard/maas/types/maas-model';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -1151,6 +1156,29 @@ declare global {
           type: 'DELETE /maas/api/v1/subscription/:name',
           options: { path: { name: string } },
           response: OdhResponse<{ message: string }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/subscription-info/:name',
+          options: { path: { name: string } },
+          response: OdhResponse<SubscriptionInfoResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/subscriptions',
+          response: { data: UserSubscription[] },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /maas/api/v1/maasmodel',
+          response: OdhResponse<MaaSModelRef>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/maasmodel/:namespace/:name',
+          options: { path: { namespace: string; name: string } },
+          response: OdhResponse<{ message: string }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PUT /maas/api/v1/maasmodel/:namespace/:name',
+          options: { path: { namespace: string; name: string } },
+          response: OdhResponse<MaaSModelRef>,
         ) => Cypress.Chainable<null>);
     }
   }

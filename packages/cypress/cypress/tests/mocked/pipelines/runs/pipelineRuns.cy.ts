@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import startCase from 'lodash-es/startCase';
 import {
+  PluginStateKF,
   RuntimeStateKF,
   runtimeStateLabels,
   StorageStateKF,
@@ -8,6 +9,7 @@ import {
 import {
   mockK8sResourceList,
   mockProjectK8sResource,
+  mockDashboardConfig,
   buildMockRunKF,
   buildMockPipelineVersions,
   buildMockPipelineVersion,
@@ -328,6 +330,41 @@ describe('Pipeline runs', () => {
         activeRunsTable.getRowByName('Test active run 1').find().should('exist');
       });
 
+      it('displays the retry start time instead of created_at for a retried run', () => {
+        const retriedRun = buildMockRunKF({
+          display_name: 'Retried run',
+          run_id: 'retried-run-1',
+          pipeline_version_reference: {
+            pipeline_id: pipelineId,
+            pipeline_version_id: 'test-version-1',
+          },
+          experiment_id: 'test-experiment-1',
+          created_at: '2024-01-01T00:00:00Z',
+          scheduled_at: '2024-01-01T00:00:00Z',
+          finished_at: '2024-01-02T11:00:00Z',
+          state: RuntimeStateKF.SUCCEEDED,
+          state_history: [
+            { update_time: '2024-01-01T00:00:01Z', state: 'PENDING' },
+            { update_time: '2024-01-01T00:00:05Z', state: 'RUNNING' },
+            { update_time: '2024-01-01T01:00:00Z', state: 'FAILED' },
+            { update_time: '2024-01-02T10:00:00Z', state: 'PENDING' },
+            { update_time: '2024-01-02T10:00:05Z', state: 'RUNNING' },
+            { update_time: '2024-01-02T11:00:00Z', state: 'SUCCEEDED' },
+          ],
+        });
+
+        activeRunsTable.mockGetActiveRuns([retriedRun], projectName);
+        pipelineRunsGlobal.visit(projectName, 'active');
+
+        activeRunsTable
+          .getRowByName('Retried run')
+          .find()
+          .find('[data-label=Started]')
+          .find('time')
+          .should('have.attr', 'datetime')
+          .and('include', '2024-01-02');
+      });
+
       it('archive a single run', () => {
         pipelineRunsGlobal.visit(projectName, 'active');
         const [runToArchive] = mockActiveRuns;
@@ -406,6 +443,53 @@ describe('Pipeline runs', () => {
             `/develop-train/pipelines/runs/${projectName}/runs/${mockActiveRuns[0].run_id}`,
           );
         });
+
+        it('navigate to MLflow experiment details from active run row', () => {
+          cy.interceptOdh(
+            'GET /api/config',
+            mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
+          );
+          const runWithMlflow = buildMockRunKF({
+            display_name: 'Run with mlflow',
+            run_id: 'run-with-mlflow',
+            plugins_output: {
+              mlflow: {
+                entries: {
+                  experiment_name: { value: 'MLflow experiment 1' },
+                  experiment_id: { value: 'mlflow-exp-1' },
+                },
+                state: PluginStateKF.PLUGIN_SUCCEEDED,
+              },
+            },
+          });
+          activeRunsTable.mockGetActiveRuns([runWithMlflow], projectName);
+
+          pipelineRunsGlobal.visit(projectName, 'active');
+          activeRunsTable
+            .findMlflowExperimentLink(runWithMlflow.display_name)
+            .should('have.attr', 'href')
+            .and('include', '/develop-train/mlflow/experiments/mlflow-exp-1')
+            .and('include', `workspace=${projectName}`);
+        });
+      });
+
+      describe('MLflow column visibility', () => {
+        it('hides the MLflow experiment column when MLflow is disabled', () => {
+          pipelineRunsGlobal.visit(projectName, 'active');
+
+          activeRunsTable.find().find('thead th').should('not.contain', 'MLflow experiment');
+        });
+
+        it('shows the MLflow experiment column when MLflow is enabled', () => {
+          cy.interceptOdh(
+            'GET /api/config',
+            mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
+          );
+          activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
+          pipelineRunsGlobal.visit(projectName, 'active');
+
+          activeRunsTable.find().find('thead th').should('contain', 'MLflow experiment');
+        });
       });
 
       describe('Table filter', () => {
@@ -434,7 +518,7 @@ describe('Pipeline runs', () => {
           activeRunsTable.getRowByName('Test active run 1').find().should('exist');
         });
 
-        it('filter by experiment', () => {
+        it('filter by run group', () => {
           pipelineRunsGlobal.visit(projectName, 'active');
 
           // Mock initial list of experiments
@@ -443,10 +527,10 @@ describe('Pipeline runs', () => {
           // Verify initial run rows exist
           activeRunsTable.findRows().should('have.length', 3);
 
-          // Select the "Experiment" filter, enter a value to filter by
+          // Select the "Run group" filter, enter a value to filter by
           pipelineRunsGlobal
             .findActiveRunsToolbar()
-            .within(() => pipelineRunsGlobal.selectFilterByName('Experiment'));
+            .within(() => pipelineRunsGlobal.selectFilterByName('Run group'));
 
           // Mock runs (filtered by selected experiment)
           activeRunsTable.mockGetActiveRuns(
@@ -454,13 +538,52 @@ describe('Pipeline runs', () => {
             projectName,
           );
 
-          // Select an experiment to filter by
-          pipelineRunFilterBar.selectExperimentByName('Test Experiment 1');
+          // Type a run group name to filter by
+          pipelineRunFilterBar.findRunGroupInput().type('Test Experiment 1');
 
           // Verify only rows with selected experiment exist
           activeRunsTable.findRows().should('have.length', 2);
           activeRunsTable.getRowByName('Test active run 1').find().should('exist');
           activeRunsTable.getRowByName('Test active run 3').find().should('exist');
+        });
+
+        it('filter by MLflow experiment', () => {
+          cy.interceptOdh(
+            'GET /api/config',
+            mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
+          );
+          const runsWithMlflow = [
+            buildMockRunKF({
+              display_name: 'Run with mlflow first',
+              run_id: 'run-mlflow-first',
+              experiment_id: 'test-experiment-1',
+              plugins_input: {
+                mlflow: { experiment_name: 'unique-target' },
+              },
+            }),
+            buildMockRunKF({
+              display_name: 'Run with mlflow second',
+              run_id: 'run-mlflow-second',
+              experiment_id: 'test-experiment-1',
+              plugins_input: {
+                mlflow: { experiment_name: 'other-exp' },
+              },
+            }),
+            buildMockRunKF({
+              display_name: 'Run without mlflow',
+              run_id: 'run-no-mlflow',
+              experiment_id: 'test-experiment-1',
+            }),
+          ];
+          activeRunsTable.mockGetActiveRuns(runsWithMlflow, projectName);
+
+          cy.visitWithLogin(
+            `/develop-train/pipelines/runs/${projectName}/runs/active?mlflow_experiment=unique-target`,
+          );
+          cy.findByTestId('app-page-title').contains('Runs');
+
+          activeRunsTable.findRows().should('have.length', 1);
+          activeRunsTable.getRowByName('Run with mlflow first').find().should('exist');
         });
 
         it('filter by created after', () => {
@@ -680,17 +803,17 @@ describe('Pipeline runs', () => {
           archivedRunsTable.getRowByName('Test archived run 1').find().should('exist');
         });
 
-        it('filter by experiment', () => {
+        it('filter by run group', () => {
           // Mock initial list of experiments
           pipelineRunFilterBar.mockExperiments(mockExperiments, projectName);
 
           // Verify initial run rows exist
           archivedRunsTable.findRows().should('have.length', 2);
 
-          // Select the "Experiment" filter, enter a value to filter by
+          // Select the "Run group" filter, enter a value to filter by
           pipelineRunsGlobal
             .findArchivedRunsToolbar()
-            .within(() => pipelineRunsGlobal.selectFilterByName('Experiment'));
+            .within(() => pipelineRunsGlobal.selectFilterByName('Run group'));
 
           // Mock runs (filtered by selected experiment)
           archivedRunsTable.mockGetArchivedRuns(
@@ -698,8 +821,8 @@ describe('Pipeline runs', () => {
             projectName,
           );
 
-          // Select an experiment to filter by
-          pipelineRunFilterBar.selectExperimentByName('Test Experiment 1');
+          // Type a run group name to filter by
+          pipelineRunFilterBar.findRunGroupInput().type('Test Experiment 1');
 
           // Verify only rows with selected experiment exist
           archivedRunsTable.findRows().should('have.length', 1);

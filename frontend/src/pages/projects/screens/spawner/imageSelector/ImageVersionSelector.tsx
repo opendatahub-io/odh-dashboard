@@ -75,7 +75,8 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
                 <Label
                   data-testid="notebook-image-availability"
                   isCompact
-                  color="green"
+                  variant="outline"
+                  status="success"
                   icon={<CheckCircleIcon />}
                 >
                   Latest

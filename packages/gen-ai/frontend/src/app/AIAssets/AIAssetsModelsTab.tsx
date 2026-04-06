@@ -1,5 +1,14 @@
 import * as React from 'react';
-import { Bullseye, Content, ContentVariants, Spinner, Button, Alert } from '@patternfly/react-core';
+import {
+  Alert,
+  AlertActionCloseButton,
+  Bullseye,
+  Button,
+  Content,
+  ContentVariants,
+  Spinner,
+} from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
@@ -13,7 +22,7 @@ import useAiAssetCustomEndpointsEnabled from '~/app/hooks/useAiAssetCustomEndpoi
 
 const AIAssetsModelsTab: React.FC = () => {
   const { namespace } = React.useContext(GenAiContext);
-  const { data: playgroundModels } = useFetchLlamaModels();
+  const { data: playgroundModels } = useFetchLlamaModels(undefined, true);
 
   const { models, loaded, aiError, maasError, refresh } = useMergedModels();
   const { data: lsdStatus } = useFetchLSDStatus();
@@ -22,6 +31,7 @@ const AIAssetsModelsTab: React.FC = () => {
 
   // Modal state
   const [isCreateEndpointModalOpen, setIsCreateEndpointModalOpen] = React.useState(false);
+  const [isWarningDismissed, setIsWarningDismissed] = React.useState(false);
 
   // Submit handler for creating external endpoint
   const handleCreateExternalEndpoint = React.useCallback(
@@ -122,7 +132,12 @@ const AIAssetsModelsTab: React.FC = () => {
       actionButtonText="Deploy a model"
       actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
       secondaryActionButtonText="Create endpoint"
-      handleSecondaryActionButtonClick={() => setIsCreateEndpointModalOpen(true)}
+      handleSecondaryActionButtonClick={() => {
+        fireMiscTrackingEvent('Available Endpoints Create Endpoint Clicked', {
+          source: 'empty_state',
+        });
+        setIsCreateEndpointModalOpen(true);
+      }}
     />
   ) : (
     <ModelsEmptyState
@@ -157,11 +172,13 @@ const AIAssetsModelsTab: React.FC = () => {
 
   return (
     <>
-      {warnings.length > 0 && (
+      {warnings.length > 0 && !isWarningDismissed && (
         <Alert
           variant="warning"
           isInline
           title="Some models may be unavailable"
+          actionClose={<AlertActionCloseButton onClose={() => setIsWarningDismissed(true)} />}
+          data-testid="models-tab-warning-alert"
           style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
         >
           {warnings.join(' ')} Only models from available sources are shown.
@@ -185,7 +202,12 @@ const AIAssetsModelsTab: React.FC = () => {
             isExternalModelsEnabled ? (
               <Button
                 variant="primary"
-                onClick={() => setIsCreateEndpointModalOpen(true)}
+                onClick={() => {
+                  fireMiscTrackingEvent('Available Endpoints Create Endpoint Clicked', {
+                    source: 'toolbar',
+                  });
+                  setIsCreateEndpointModalOpen(true);
+                }}
                 data-testid="create-endpoint-button"
               >
                 Create endpoint

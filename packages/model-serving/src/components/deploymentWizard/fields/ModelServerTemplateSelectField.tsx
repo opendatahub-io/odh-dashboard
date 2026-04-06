@@ -379,7 +379,13 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
           <Radio
             data-testid="model-server-auto-select-radio"
             name="horizontal-inline-radio"
-            label={`Auto-select the best ${label.toLocaleLowerCase()} for my model based on model type, model format, and hardware profile`}
+            label={
+              <>
+                <span className="pf-v6-c-form__label-text">Automatic selection:</span> Automatically
+                select the best resource for my model based on model type, model format and hardware
+                profile.
+              </>
+            }
             id="horizontal-inline-radio-01"
             isChecked={data?.autoSelect}
             isDisabled={!data?.suggestion}
@@ -399,7 +405,12 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
           <Radio
             data-testid="model-server-manual-select-radio"
             name="horizontal-inline-radio"
-            label={`Select from a list of ${label.toLocaleLowerCase()}s, including custom ones`}
+            label={
+              <>
+                <span className="pf-v6-c-form__label-text">Manual selection:</span> Manually select
+                a resource from a list of preconfigured and custom options.
+              </>
+            }
             id="horizontal-inline-radio-02"
             isChecked={!data?.autoSelect}
             onChange={() => setData({ ...data, autoSelect: false, selection: undefined })}
