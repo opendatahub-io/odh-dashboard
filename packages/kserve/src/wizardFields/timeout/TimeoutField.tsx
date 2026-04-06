@@ -5,13 +5,12 @@ import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import type { WizardFormData, WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
 import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';
-import type { ServingRuntimeKind, TemplateKind } from '@odh-dashboard/internal/k8sTypes';
 import {
   isServingRuntimeKind,
   isTemplateKind,
 } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
-import { applyTimeoutConfig, extractTimeoutConfig, DEFAULT_TIMEOUT } from './timeoutApplyExtract';
-import type { KServeDeployment } from '../../deployments';
+import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { DEFAULT_TIMEOUT } from './timeoutApplyExtract';
 
 export type TimeoutFieldValue = {
   timeout: number;
@@ -33,6 +32,15 @@ const getInitialTimeoutFieldData = (value?: TimeoutFieldValue): TimeoutFieldValu
 };
 
 /**
+ * Type guard to check if a value is a K8sResourceCommon (has apiVersion and kind).
+ */
+const isK8sResourceCommon = (resource: unknown): resource is K8sResourceCommon =>
+  typeof resource === 'object' &&
+  resource !== null &&
+  'apiVersion' in resource &&
+  'kind' in resource;
+
+/**
  * Returns true when KServe InferenceService is active.
  * Active when editing an InferenceService or when a ServingRuntime/Template is selected.
  */
@@ -44,15 +52,11 @@ export const isKServeInferenceServiceActive = (
     return false;
   }
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const template = selection.template as ServingRuntimeKind | TemplateKind | undefined;
+  const { template } = selection;
 
-  if (selection.name && !template && selection.namespace) {
-    return true;
-  }
-
-  if (!template) {
-    return false;
+  if (!template || !isK8sResourceCommon(template)) {
+    // Edit mode: has name and namespace but no template
+    return !!(selection.name && selection.namespace);
   }
 
   // Check if it's a Template containing a ServingRuntime
@@ -159,32 +163,4 @@ export const TimeoutFieldWizardField: TimeoutFieldType = {
       ],
     },
   ],
-};
-
-/**
- * Apply timeout field data to a KServe deployment during assembly
- */
-export const applyTimeoutFieldData = (
-  deployment: KServeDeployment,
-  fieldData: TimeoutFieldValue,
-): KServeDeployment => {
-  const updatedModel = applyTimeoutConfig(deployment.model, {
-    timeout: fieldData.timeout,
-    return401: fieldData.return401,
-  });
-  return {
-    ...deployment,
-    model: updatedModel,
-  };
-};
-
-/**
- * Extract timeout field data from an existing KServe deployment
- */
-export const extractTimeoutFieldData = (deployment: KServeDeployment): TimeoutFieldValue => {
-  const config = extractTimeoutConfig(deployment);
-  return {
-    timeout: config.timeout ?? DEFAULT_TIMEOUT,
-    return401: config.return401 ?? false,
-  };
 };

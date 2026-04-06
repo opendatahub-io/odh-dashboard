@@ -209,7 +209,9 @@ const extensions: (
       fieldId: 'kserve/timeout',
       platform: KSERVE_ID,
       apply: () =>
-        import('./src/wizardFields/timeout/TimeoutField').then((m) => m.applyTimeoutFieldData),
+        import('./src/wizardFields/timeout/timeoutApplyExtract').then(
+          (m) => m.applyTimeoutFieldData,
+        ),
     },
     flags: {
       required: [SupportedArea.K_SERVE],
@@ -221,7 +223,9 @@ const extensions: (
       fieldId: 'kserve/timeout',
       platform: KSERVE_ID,
       extract: () =>
-        import('./src/wizardFields/timeout/TimeoutField').then((m) => m.extractTimeoutFieldData),
+        import('./src/wizardFields/timeout/timeoutApplyExtract').then(
+          (m) => m.extractTimeoutFieldData,
+        ),
     },
     flags: {
       required: [SupportedArea.K_SERVE],

@@ -1,4 +1,6 @@
 import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
+import { TimeoutFieldValue } from './TimeoutField';
+import { KServeDeployment } from '../../deployments';
 
 export type TimeoutConfigFieldData = {
   timeout?: number;
@@ -21,16 +23,10 @@ export const applyTimeoutConfig = (
     result.metadata.annotations = {};
   }
 
-  // Clear existing values for update scenarios
+  // Clear existing auth-proxy-type for update scenarios
   delete result.metadata.annotations['security.opendatahub.io/auth-proxy-type'];
 
-  // Clear existing timeout if present (predictor may not exist during initial assembly)
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (result.spec.predictor && 'timeout' in result.spec.predictor) {
-    delete result.spec.predictor.timeout;
-  }
-
-  // Set timeout
+  // Set timeout (spread will overwrite any existing timeout value)
   if (timeoutConfig.timeout !== undefined) {
     result.spec.predictor = {
       ...result.spec.predictor,
@@ -56,5 +52,33 @@ export const extractTimeoutConfig = (deployment: {
   return {
     timeout: timeout ?? DEFAULT_TIMEOUT,
     return401: authProxyType === 'kube-rbac-proxy',
+  };
+};
+
+/**
+ * Apply timeout field data to a KServe deployment during assembly
+ */
+export const applyTimeoutFieldData = (
+  deployment: KServeDeployment,
+  fieldData: TimeoutFieldValue,
+): KServeDeployment => {
+  const updatedModel = applyTimeoutConfig(deployment.model, {
+    timeout: fieldData.timeout,
+    return401: fieldData.return401,
+  });
+  return {
+    ...deployment,
+    model: updatedModel,
+  };
+};
+
+/**
+ * Extract timeout field data from an existing KServe deployment
+ */
+export const extractTimeoutFieldData = (deployment: KServeDeployment): TimeoutFieldValue => {
+  const config = extractTimeoutConfig(deployment);
+  return {
+    timeout: config.timeout ?? DEFAULT_TIMEOUT,
+    return401: config.return401 ?? false,
   };
 };

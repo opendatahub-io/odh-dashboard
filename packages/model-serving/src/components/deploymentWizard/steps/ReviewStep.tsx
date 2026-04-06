@@ -374,6 +374,10 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
       if (!field.getReviewSections) {
         return [];
       }
+      // Skip inactive fields - they don't have data in the form state
+      if (!field.isActive(wizardState.state)) {
+        return [];
+      }
       const value = resolveFieldValue(field, wizardState.state);
       const fieldExternalData = externalData?.[field.id];
       return field.getReviewSections(value, wizardState.state, fieldExternalData?.data);
