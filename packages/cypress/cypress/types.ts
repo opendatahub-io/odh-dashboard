@@ -608,7 +608,7 @@ export type PipelineTestData = {
   pipelineDescription: string;
   runName: string;
   runDescription: string;
-  experimentName: string;
+  runGroupName: string;
   dspaSecretName: string;
   pipelineUrl: string;
 };
