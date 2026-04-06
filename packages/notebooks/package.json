@@ -17,7 +17,7 @@
     "branch": "notebooks-v2",
     "src": "",
     "target": "upstream",
-    "commit": "23e631b9a3d051f2f68dbf36ff8c17ff8c216253"
+    "commit": "2f97431e53e6571ccf23d0b7ce325961b6a9e9a3"
   },
   "module-federation": {
     "name": "notebooks",
