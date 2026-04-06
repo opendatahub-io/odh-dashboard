@@ -30,7 +30,7 @@ export const formatBytes = (bytes: number): string => {
 /** Maps an S3ListObjectsResponse to FileExplorer-compatible items. */
 export const mapResultToItems = (
   result: S3ListObjectsResponse,
-  selectableExtensions?: string[],
+  options?: { allowFolderSelection?: boolean; selectableExtensions?: string[] },
 ): Files => {
   const items: Files = [];
 
@@ -44,6 +44,7 @@ export const mapResultToItems = (
         name,
         path: prefixPath,
         type: 'folder',
+        selectable: options?.allowFolderSelection,
         items: 0,
         ...(isRoot && { hidden: true }),
         details: {
@@ -58,14 +59,27 @@ export const mapResultToItems = (
     for (const obj of result.contents) {
       // Mark root folder markers as hidden
       if (obj.key === '/' || obj.key === '') {
-        items.push({ name: '/', path: '/', type: 'folder', items: 0, hidden: true });
+        items.push({
+          name: '/',
+          path: '/',
+          type: 'folder',
+          selectable: options?.allowFolderSelection,
+          items: 0,
+          hidden: true,
+        });
         continue;
       }
       // Skip keys that end with / (folder markers)
       if (obj.key.endsWith('/')) {
         const dirPath = `/${obj.key.replace(/\/$/, '')}`;
         const name = dirPath.split('/').filter(Boolean).pop() ?? dirPath;
-        items.push({ name, path: dirPath, type: 'folder', items: 0 });
+        items.push({
+          name,
+          path: dirPath,
+          type: 'folder',
+          selectable: options?.allowFolderSelection,
+          items: 0,
+        });
         continue;
       }
 
@@ -83,8 +97,8 @@ export const mapResultToItems = (
         type: fileTypeToRender,
         size: sizeToRender,
         selectable:
-          !selectableExtensions ||
-          selectableExtensions.some((se) => se.toLowerCase() === ext.toLowerCase()),
+          !options?.selectableExtensions ||
+          options.selectableExtensions.some((se) => se.toLowerCase() === ext.toLowerCase()),
         forceShowAsSelected: false,
         details: {
           ...(obj.last_modified && {
@@ -148,6 +162,9 @@ interface S3FileExplorerProps {
   /** The S3 bucket name to browse. When omitted, the bucket is resolved from the connection secret itself. */
   bucket?: string;
 
+  /** Prevent folders from being selected */
+  allowFolderSelection?: boolean;
+
   /** When provided, only files with these extensions are selectable. Case-insensitive. Example: ["json", "html"] */
   selectableExtensions?: string[];
 
@@ -162,6 +179,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   namespace,
   s3Secret,
   bucket = '',
+  allowFolderSelection = true,
   selectableExtensions,
   unselectableReason,
 }) => {
@@ -191,6 +209,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const continuationTokensRef = useRef<Map<number, string>>(new Map());
   const lastResultRef = useRef<S3ListObjectsResponse | null>(null);
   const fetchIdRef = useRef(0);
+  const allowFolderSelectionRef = useRef(allowFolderSelection);
+  allowFolderSelectionRef.current = allowFolderSelection;
   const selectableExtensionsRef = useRef(selectableExtensions);
   selectableExtensionsRef.current = selectableExtensions;
 
@@ -259,7 +279,10 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
             return;
           }
           lastResultRef.current = result;
-          const items = mapResultToItems(result, selectableExtensionsRef.current);
+          const items = mapResultToItems(result, {
+            allowFolderSelection: allowFolderSelectionRef.current,
+            selectableExtensions: selectableExtensionsRef.current,
+          });
           setFilesToRender(items);
           setHasNextPage(!!result.next_continuation_token);
           setFetchError(null);

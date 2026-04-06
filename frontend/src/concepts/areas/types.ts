@@ -94,6 +94,7 @@ export enum SupportedArea {
 
   /* MLflow */
   MLFLOW = 'mlflow',
+  MLFLOW_PIPELINES = 'mlflow-pipelines',
 
   /* Project RBAC Settings */
   PROJECT_RBAC_SETTINGS = 'project-rbac-settings',

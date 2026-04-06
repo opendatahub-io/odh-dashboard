@@ -207,19 +207,19 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		assert.False(t, exists)
 	})
 
-	t.Run("should include llama_stack_vector_database_id when provided", func(t *testing.T) {
+	t.Run("should include llama_stack_vector_io_provider_id when provided", func(t *testing.T) {
 		req := newValidCreateRequest()
-		req.LlamaStackVectorDatabaseID = "milvus-db"
+		req.LlamaStackVectorIOProviderID = "milvus-db"
 		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
-		assert.Equal(t, "milvus-db", result.RuntimeConfig.Parameters["llama_stack_vector_database_id"])
+		assert.Equal(t, "milvus-db", result.RuntimeConfig.Parameters["llama_stack_vector_io_provider_id"])
 	})
 
-	t.Run("should omit llama_stack_vector_database_id when empty", func(t *testing.T) {
+	t.Run("should omit llama_stack_vector_io_provider_id when empty", func(t *testing.T) {
 		req := newValidCreateRequest()
 		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
-		_, exists := result.RuntimeConfig.Parameters["llama_stack_vector_database_id"]
+		_, exists := result.RuntimeConfig.Parameters["llama_stack_vector_io_provider_id"]
 		assert.False(t, exists)
 	})
 

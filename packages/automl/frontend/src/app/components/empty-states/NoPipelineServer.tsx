@@ -1,6 +1,13 @@
-import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
-import { ServerIcon } from '@patternfly/react-icons';
+/**
+ * Empty State A — no compatible pipeline server and/or managed AutoML pipelines unavailable.
+ * Directs users to the Pipelines page to configure DSPA and enable AutoML / AutoRAG pipelines.
+ */
+import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
+import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
+import { pipelinesBaseRoute } from '@odh-dashboard/internal/routes/pipelines/global';
+import { Button } from '@patternfly/react-core';
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 
 type NoPipelineServerProps = {
   namespace?: string;
@@ -8,26 +15,22 @@ type NoPipelineServerProps = {
 
 function NoPipelineServer({ namespace }: NoPipelineServerProps): React.JSX.Element {
   return (
-    <EmptyState
-      titleText="No Pipeline Server in this namespace"
-      headingLevel="h4"
-      icon={ServerIcon}
-    >
-      <EmptyStateBody>
-        {namespace ? (
-          <>
-            No Data Science Pipelines (DSPipelineApplication) was found in namespace{' '}
-            <strong>{namespace}</strong>. Install Data Science Pipelines in your project to use
-            AutoML experiments, or select a different project.
-          </>
-        ) : (
-          <>
-            No Data Science Pipelines (DSPipelineApplication) was found. Install Data Science
-            Pipelines in your project to use AutoML experiments.
-          </>
-        )}
-      </EmptyStateBody>
-    </EmptyState>
+    <EmptyDetailsView
+      title="Configure a compatible pipeline server"
+      description="To use AutoML, you need access to a pipeline server with AutoML and AutoRAG enabled. Create or edit a pipeline server on the Pipelines page."
+      iconImage={typedEmptyImage(ProjectObjectType.pipeline, 'MissingModel')}
+      imageAlt=""
+      createButton={
+        <Button
+          variant="link"
+          isInline
+          data-testid="go-to-pipelines-link"
+          component={(props) => <Link {...props} to={pipelinesBaseRoute(namespace)} />}
+        >
+          Go to Pipelines
+        </Button>
+      }
+    />
   );
 }
 

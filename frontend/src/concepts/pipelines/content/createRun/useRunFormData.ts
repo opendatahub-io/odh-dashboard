@@ -2,6 +2,7 @@ import * as React from 'react';
 import useGenericObjectState, { GenericObjectState } from '#~/utilities/useGenericObjectState';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import {
+  MlflowExperimentMode,
   PipelineVersionToUse,
   RunDateTime,
   RunFormData,
@@ -11,11 +12,9 @@ import {
 } from '#~/concepts/pipelines/content/createRun/types';
 import {
   DateTimeKF,
-  ExperimentKF,
   PipelineRecurringRunKF,
   PipelineRunKF,
   RuntimeConfigParameters,
-  StorageStateKF,
 } from '#~/concepts/pipelines/kfTypes';
 
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
@@ -27,7 +26,11 @@ import {
 } from '#~/concepts/pipelines/content/createRun/const';
 import { convertDateToTimeString, convertSecondsToPeriodicTime } from '#~/utilities/time';
 import { isPipelineRecurringRun } from '#~/concepts/pipelines/content/utils';
-import { getInputDefinitionParams } from '#~/concepts/pipelines/content/createRun/utils';
+import {
+  getDefaultMlflowFormData,
+  getInputDefinitionParams,
+} from '#~/concepts/pipelines/content/createRun/utils';
+import { getMlflowExperimentNameFromRun } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import usePipelineVersionById from '#~/concepts/pipelines/apiHooks/usePipelineVersionById';
 import usePipelineById from '#~/concepts/pipelines/apiHooks/usePipelineById';
 import useExperimentById from '#~/concepts/pipelines/apiHooks/useExperimentById';
@@ -96,27 +99,6 @@ const useUpdateRunType = (
   }, [setFunction, initialData]);
 };
 
-const useUpdateExperimentFormData = (
-  formState: GenericObjectState<RunFormData>,
-  experiment: ExperimentKF | null | undefined,
-) => {
-  const [formData, setFormValue] = formState;
-
-  React.useEffect(() => {
-    if (formData.experiment) {
-      if (formData.experiment.storage_state === StorageStateKF.ARCHIVED) {
-        setFormValue('experiment', null);
-      }
-    } else if (experiment) {
-      if (experiment.storage_state === StorageStateKF.ARCHIVED) {
-        setFormValue('experiment', null);
-      } else {
-        setFormValue('experiment', experiment);
-      }
-    }
-  }, [formData.experiment, setFormValue, experiment, formData.runType.type]);
-};
-
 const useUpdateDuplicateData = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
   initialData?: PipelineRunKF | PipelineRecurringRunKF | null,
@@ -135,10 +117,22 @@ const useUpdateDuplicateData = (
     if (!initialData) {
       return;
     }
-    setFunction('experiment', duplicateExperiment);
+    setFunction('runGroup', duplicateExperiment?.display_name ?? '');
     setFunction('pipeline', duplicateRunPipeline);
     setFunction('version', duplicateRunPipelineVersion);
     setFunction('versionToUse', PipelineVersionToUse.PROVIDED);
+
+    const mlflowExperimentName = getMlflowExperimentNameFromRun(initialData);
+    setFunction(
+      'mlflow',
+      mlflowExperimentName
+        ? {
+            isExperimentTrackingEnabled: true,
+            mode: MlflowExperimentMode.EXISTING,
+            existingExperimentName: mlflowExperimentName,
+          }
+        : getDefaultMlflowFormData(),
+    );
   }, [
     setFunction,
     initialData,
@@ -153,7 +147,7 @@ const useRunFormData = (
   initialFormData?: Partial<RunFormData>,
 ): GenericObjectState<RunFormData> => {
   const { project } = usePipelinesAPI();
-  const { pipeline, version, experiment, nameDesc, versionToUse } = initialFormData || {};
+  const { pipeline, version, runGroup, nameDesc, versionToUse, mlflow } = initialFormData || {};
 
   const formState = useGenericObjectState<RunFormData>(() => ({
     project,
@@ -161,7 +155,8 @@ const useRunFormData = (
     pipeline: pipeline ?? null,
     version: version ?? null,
     versionToUse: versionToUse ?? PipelineVersionToUse.LATEST,
-    experiment: experiment ?? null,
+    runGroup: runGroup ?? '',
+    mlflow: mlflow ?? getDefaultMlflowFormData(),
     runType: { type: RunTypeOption.ONE_TRIGGER },
     params: {}, // Start with empty params
     ...initialFormData,
@@ -187,7 +182,6 @@ const useRunFormData = (
     }
   }, [formData.version, run, setFormValue]);
 
-  useUpdateExperimentFormData(formState, experiment);
   useUpdateRunType(setFormValue, run);
   useUpdateDuplicateData(setFormValue, run);
 

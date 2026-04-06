@@ -1167,7 +1167,7 @@ export type AccessReviewResourceAttributes = {
   /** Plural resource name, omit for all */
   resource?: string;
   /** TODO: Not a full list, could be expanded, "" means none */
-  subresource?: '' | 'spec' | 'status';
+  subresource?: '' | 'api' | 'spec' | 'status';
   /** Must provide the verb you are trying to do; '*' means all verbs */
   verb: '*' | K8sVerb;
   /** A resource name, omit when not interested in a specific resource */
@@ -1320,6 +1320,7 @@ export type DashboardCommonConfig = {
   modelAsService?: boolean;
   aiAssetCustomEndpoints?: boolean;
   mlflow?: boolean;
+  mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;

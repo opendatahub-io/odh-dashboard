@@ -217,11 +217,15 @@ class ChatbotPage {
     });
   }
 
-  // RAG Section (inside Knowledge tab)
+  // Knowledge / RAG Section (inside Knowledge tab)
+  // When the ai-asset-vector-stores flag is ON the title testId is "knowledge-section-title";
+  // when the flag is OFF it falls back to "rag-section-title".
   findRAGSection(): Cypress.Chainable<JQuery<HTMLElement>> {
-    // Click Knowledge tab first to show RAG section
     this.clickKnowledgeTab();
-    return cy.findByTestId('rag-section-title').parent();
+    return cy
+      .get('[data-testid="rag-section-title"], [data-testid="knowledge-section-title"]')
+      .first()
+      .parent();
   }
 
   findRAGToggle(): Cypress.Chainable<JQuery<HTMLElement>> {

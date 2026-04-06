@@ -85,6 +85,11 @@ export type PipelineRunDetails = {
   task_details?: PipelineRunTaskDetail[];
 };
 
+export type PipelineRunStateHistoryEntry = {
+  update_time: string;
+  state?: string;
+};
+
 export type PipelineRun = {
   run_id: string;
   display_name: string;
@@ -101,6 +106,7 @@ export type PipelineRun = {
   scheduled_at?: string;
   finished_at?: string;
   error?: PipelineRunError;
+  state_history?: PipelineRunStateHistoryEntry[];
   run_details?: PipelineRunDetails;
 };
 
@@ -162,3 +168,36 @@ export type FeatureImportanceData = {
 };
 
 export type ConfusionMatrixData = Partial<Record<string, Partial<Record<string, number>>>>;
+
+/* eslint-disable camelcase */
+export type ModelRegistry = {
+  id: string;
+  name: string;
+  display_name: string;
+  description?: string;
+  is_ready: boolean;
+  server_url: string;
+  external_url?: string;
+};
+
+export type ModelRegistriesResponse = {
+  model_registries: ModelRegistry[];
+};
+
+export type RegisterModelResponse = {
+  registered_model_id: string;
+  model_artifact: Record<string, unknown>;
+};
+
+export type RegisterModelRequest = {
+  s3_path: string;
+  model_name: string;
+  model_description?: string;
+  version_name: string;
+  version_description?: string;
+  artifact_name?: string;
+  artifact_description?: string;
+  model_format_name?: string;
+  model_format_version?: string;
+};
+/* eslint-enable camelcase */

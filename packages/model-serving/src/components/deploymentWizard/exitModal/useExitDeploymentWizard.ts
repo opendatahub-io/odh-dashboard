@@ -31,11 +31,11 @@ export const useExitDeploymentWizard = ({
   }, []);
 
   const exitWizardOnCancel = React.useCallback(() => {
-    navigate(cancelReturnRoute ?? returnRoute ?? '/ai-hub/deployments');
+    navigate(cancelReturnRoute ?? returnRoute ?? '/ai-hub/models/deployments');
   }, [navigate, cancelReturnRoute, returnRoute]);
 
   const exitWizardOnSubmit = React.useCallback(() => {
-    navigate(returnRoute ?? '/ai-hub/deployments');
+    navigate(returnRoute ?? '/ai-hub/models/deployments');
   }, [navigate, returnRoute]);
 
   const handleExitConfirm = React.useCallback(() => {

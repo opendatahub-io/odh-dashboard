@@ -13,7 +13,7 @@ const buildModel = (
 ): AutomlModel => ({
   display_name: name,
   model_config: { eval_metric: evalMetric },
-  location: { model_directory: '/', predictor: '/p.pkl', notebook: '/n.ipynb' },
+  location: { model_directory: '/', predictor: '/predictor', notebook: '/n.ipynb' },
   metrics: { test_data: metrics },
 });
 

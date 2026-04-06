@@ -59,7 +59,7 @@ const ProjectSection: React.FC<ProjectSectionType> = ({
       <HelperText>
         <HelperTextItem>{projectLabel}</HelperTextItem>
       </HelperText>
-      <TextInput value={projectName} isDisabled data-testid="project-name" />
+      <TextInput id="project-name" value={projectName} isDisabled data-testid="project-name" />
     </FormGroup>
   );
 };

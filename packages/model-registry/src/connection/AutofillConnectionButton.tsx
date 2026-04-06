@@ -1,13 +1,13 @@
 import React from 'react';
 import { Button } from '@patternfly/react-core';
 import { OptimizeIcon } from '@patternfly/react-icons';
-import { ConnectionModal } from '@odh-dashboard/internal/pages/modelRegistry/screens/RegisterModel/ConnectionModal';
+import { ConnectionModal } from '@odh-dashboard/internal/concepts/modelRegistry/content/ConnectionModal';
 import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { convertObjectStorageSecretData } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import {
   RegistrationCommonFormData,
   ModelLocationType,
-} from '@odh-dashboard/internal/pages/modelRegistry/screens/RegisterModel/useRegisterModelData';
+} from '@odh-dashboard/internal/concepts/modelRegistry/types';
 
 const AutofillConnectionButton: React.FC<{
   modelLocationType: ModelLocationType;

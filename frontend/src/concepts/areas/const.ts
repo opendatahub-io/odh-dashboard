@@ -9,6 +9,7 @@ export const techPreviewFlags = {
   modelAsService: false,
   aiAssetCustomEndpoints: false,
   mlflow: false,
+  mlflowPipelines: false,
   mcpCatalog: false,
   projectRBAC: true,
   observabilityDashboard: false,
@@ -218,6 +219,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MLFLOW]: {
     featureFlags: ['mlflow'],
     requiredComponents: [DataScienceStackComponent.MLFLOW],
+  },
+  [SupportedArea.MLFLOW_PIPELINES]: {
+    featureFlags: ['mlflowPipelines', 'mlflow'],
+    requiredComponents: [DataScienceStackComponent.DS_PIPELINES, DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],

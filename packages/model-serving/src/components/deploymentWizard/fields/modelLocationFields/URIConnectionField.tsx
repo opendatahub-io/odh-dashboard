@@ -12,10 +12,7 @@ import {
   UriField,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import DefaultValueTextRenderer from '@odh-dashboard/internal/concepts/connectionTypes/fields/DefaultValueTextRenderer';
-import {
-  trimInputOnBlur,
-  trimInputOnPaste,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import { trimInputOnBlur, trimInputOnPaste } from '@odh-dashboard/internal/utilities/trimInput';
 import { FieldMode } from '@odh-dashboard/internal/concepts/connectionTypes/fields/types';
 
 const validateUrl = (url?: string) => {
@@ -81,7 +78,7 @@ const UriFormField: React.FC<FieldProps<UriField>> = ({
           const nextValue = e.currentTarget.value.trim();
           setIsValid(validateUrl(nextValue));
         }}
-        onPaste={(e) => trimInputOnPaste(value, onChange)(e)}
+        onPaste={trimInputOnPaste(onChange)}
       />
       {!isValid && (
         <FormHelperText>

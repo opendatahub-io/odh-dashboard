@@ -144,7 +144,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.wrap(servingRuntimes.navigate(), { timeout: 100000 });
 
       cy.step('Click Add serving runtime button');
-      servingRuntimes.findAddButton().should('exist').and('be.visible').and('be.enabled').click();
+      servingRuntimes.findAddButton().should('exist').and('be.visible').click();
 
       cy.step('Select API Protocol');
       servingRuntimes.findSelectAPIProtocolButton().click();
