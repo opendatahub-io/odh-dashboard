@@ -556,7 +556,7 @@ describe('Playground - MCP Servers', () => {
             mcpToolsModal.find().should('not.exist');
 
             cy.step('Re-open to verify all tools remain selected');
-            serverRow.findToolsButton().click();
+            playgroundPage.mcpTab.getServerRow(serverName, serverUrl).findToolsButton().click();
             mcpToolsModal.find().should('be.visible');
             mcpToolsModal
               .find()
