@@ -477,7 +477,9 @@ function AutomlConfigure(): React.JSX.Element {
                                 </Thead>
                                 <Tbody>
                                   <Tr>
-                                    <Td dataLabel="Name">{selectedTrainingDataFile.name}</Td>
+                                    <Td dataLabel="Name">
+                                      <Truncate content={selectedTrainingDataFile.name} />
+                                    </Td>
                                     <Td dataLabel="Type">{selectedTrainingDataFile.type}</Td>
                                     <Td isActionCell>
                                       <Tooltip content="Remove selection">
