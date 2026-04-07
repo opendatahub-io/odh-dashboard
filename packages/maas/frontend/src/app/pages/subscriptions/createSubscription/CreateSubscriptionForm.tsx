@@ -27,12 +27,10 @@ import { APIOptions } from 'mod-arch-core';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { getLowestAvailablePriority } from '~/app/utilities/subscriptions';
 import { createSubscription } from '~/app/api/subscriptions';
+import { useSubscriptionModels } from '~/app/hooks/useSubscriptionModels';
 import {
-  MaaSModelRefSummary,
   SubscriptionPolicyFormDataResponse,
-  SubscriptionModelEntry,
   CreateSubscriptionRequest,
-  TokenRateLimit,
 } from '~/app/types/subscriptions';
 import SubscriptionModelsSection from '~/app/pages/subscriptions/viewSubscription/SubscriptionModelsSection';
 import AddModelsModal from './AddModelsModal';
@@ -50,13 +48,25 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
   const [groupsTouched, setGroupsTouched] = React.useState(false);
   const [priority, setPriority] = React.useState<number | undefined>(undefined);
   const [priorityInitialized, setPriorityInitialized] = React.useState(false);
-  const [models, setModels] = React.useState<SubscriptionModelEntry[]>([]);
   const [createAuthPolicy, setCreateAuthPolicy] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isAddModelsModalOpen, setIsAddModelsModalOpen] = React.useState(false);
-  const [editLimitsTarget, setEditLimitsTarget] = React.useState<number | null>(null);
-  const [rateLimitsTouched, setRateLimitsTouched] = React.useState<Set<number>>(new Set());
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+
+  const {
+    models,
+    isAddModelsModalOpen,
+    setIsAddModelsModalOpen,
+    editLimitsTarget,
+    setEditLimitsTarget,
+    editingModel,
+    rateLimitErrorIndices,
+    allModelsHaveRateLimits,
+    handleAddModels,
+    handleRemoveModel,
+    handleRemoveModelsByRef,
+    handleSaveRateLimits,
+    handleCloseRateLimitsModal,
+  } = useSubscriptionModels();
 
   React.useEffect(() => {
     if (formData.groups.length > 0 && selectedGroups.length === 0) {
@@ -98,21 +108,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
 
   const isPriorityValid = priority != null && !Number.isNaN(priority);
 
-  const allModelsHaveRateLimits = models.every((m) => m.tokenRateLimits.length > 0);
-
-  const rateLimitErrorIndices = React.useMemo(
-    () =>
-      new Set(
-        models.reduce<number[]>((acc, m, i) => {
-          if (rateLimitsTouched.has(i) && m.tokenRateLimits.length === 0) {
-            acc.push(i);
-          }
-          return acc;
-        }, []),
-      ),
-    [models, rateLimitsTouched],
-  );
-
   const canSubmit =
     isNameDescValid &&
     selectedGroupNames.length > 0 &&
@@ -121,70 +116,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
     isPriorityValid &&
     !isSubmitting &&
     !priorityValidationError;
-
-  const handleAddModels = (selectedRefs: MaaSModelRefSummary[]) => {
-    const existingKeys = new Set(
-      models.map((m) => `${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`),
-    );
-    const newEntries: SubscriptionModelEntry[] = selectedRefs
-      .filter((ref) => !existingKeys.has(`${ref.namespace}/${ref.name}`))
-      .map((ref) => ({
-        modelRefSummary: ref,
-        tokenRateLimits: [],
-      }));
-    setModels((prev) => [...prev, ...newEntries]);
-  };
-
-  const handleRemoveModel = (index: number) => {
-    setModels((prev) => prev.filter((_, i) => i !== index));
-    setRateLimitsTouched((prev) => {
-      const next = new Set<number>();
-      prev.forEach((i) => {
-        if (i < index) {
-          next.add(i);
-        } else if (i > index) {
-          next.add(i - 1);
-        }
-      });
-      return next;
-    });
-  };
-
-  const handleRemoveModelsByRef = (refs: MaaSModelRefSummary[]) => {
-    const keysToRemove = new Set(refs.map((r) => `${r.namespace}/${r.name}`));
-    const removedIndices = new Set<number>();
-    models.forEach((m, i) => {
-      if (keysToRemove.has(`${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`)) {
-        removedIndices.add(i);
-      }
-    });
-    setModels((prev) => prev.filter((_, i) => !removedIndices.has(i)));
-    setRateLimitsTouched((prev) => {
-      const next = new Set<number>();
-      let offset = 0;
-      for (let i = 0; i < models.length; i++) {
-        if (removedIndices.has(i)) {
-          offset++;
-        } else if (prev.has(i)) {
-          next.add(i - offset);
-        }
-      }
-      return next;
-    });
-  };
-
-  const handleSaveRateLimits = (rateLimits: TokenRateLimit[]) => {
-    if (editLimitsTarget == null) {
-      return;
-    }
-    setModels((prev) =>
-      prev.map((entry, i) =>
-        i === editLimitsTarget ? { ...entry, tokenRateLimits: rateLimits } : entry,
-      ),
-    );
-  };
-
-  const editingModel = editLimitsTarget != null ? models[editLimitsTarget] : null;
 
   const handleSubmit = async () => {
     if (!isPriorityValid) {
@@ -354,10 +285,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
             }
             rateLimits={editingModel.tokenRateLimits}
             onSave={handleSaveRateLimits}
-            onClose={() => {
-              setRateLimitsTouched((prev) => new Set(prev).add(editLimitsTarget));
-              setEditLimitsTarget(null);
-            }}
+            onClose={handleCloseRateLimitsModal}
           />
         )}
 
