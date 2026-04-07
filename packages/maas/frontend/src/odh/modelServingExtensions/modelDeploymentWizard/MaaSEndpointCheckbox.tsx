@@ -18,7 +18,7 @@ const getInitialMaaSFieldData = (value?: MaaSFieldValue): MaaSFieldValue =>
 
 type MaaSFieldProps = {
   id: string;
-  value: MaaSFieldValue;
+  value?: MaaSFieldValue;
   onChange: (value: MaaSFieldValue) => void;
   isDisabled?: boolean;
 };
@@ -48,7 +48,7 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }
               </Flex>
             </>
           }
-          isChecked={value.isChecked}
+          isChecked={value?.isChecked}
           isDisabled={isDisabled}
           onChange={handleCheckboxChange}
         />
@@ -57,7 +57,7 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }
   );
 };
 
-type MaaSFieldType = WizardField<MaaSFieldValue, undefined>;
+export type MaaSFieldType = WizardField<MaaSFieldValue>;
 
 export const MaaSEndpointFieldWizardField: MaaSFieldType = {
   id: 'maas/save-as-maas-checkbox',

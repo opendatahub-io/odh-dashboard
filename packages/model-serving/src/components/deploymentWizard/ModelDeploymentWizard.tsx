@@ -140,7 +140,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       >
         <ExternalDataLoader
           fields={wizardFormData.fields}
-          initialData={existingData}
+          formState={wizardFormData.state}
           setExternalData={setExternalData}
           dispatch={wizardFormData.dispatch}
         />
