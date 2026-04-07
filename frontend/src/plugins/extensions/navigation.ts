@@ -71,34 +71,6 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       objectType: 'model-catalog',
     },
   },
-  // This is being replaced by the upstream extension for model registry and will be removed along with the old MR UI code as part of https://issues.redhat.com/browse/RHOAIENG-34088
-  // {
-  //   type: 'app.navigation/href',
-  //   flags: {
-  //     required: [SupportedArea.MODEL_REGISTRY],
-  //   },
-  //   properties: {
-  //     id: 'modelRegistry',
-  //     title: 'Registry',
-  //     href: '/modelRegistry',
-  //     section: 'ai-hub',
-  //     path: '/modelRegistry/*',
-  //   },
-  // },
-  // This is being replaced by the upstream extension for model catalog and will be removed along with the old MR UI code as part of https://issues.redhat.com/browse/RHOAIENG-34088
-  // {
-  //   type: 'app.navigation/href',
-  //   flags: {
-  //     required: [SupportedArea.MODEL_CATALOG],
-  //   },
-  //   properties: {
-  //     id: 'modelCatalog',
-  //     title: 'Catalog',
-  //     href: '/modelCatalog',
-  //     section: 'ai-hub',
-  //     path: '/modelCatalog/*',
-  //   },
-  // },
   {
     type: 'app.navigation/section',
     properties: {
@@ -383,7 +355,7 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
     },
     properties: {
       id: 'settings-model-registry',
-      title: 'AI registry settings',
+      title: 'Model registry settings',
       href: '/settings/model-resources-operations/model-registry',
       section: 'settings-model-resources-and-operations',
       path: '/settings/model-resources-operations/model-registry/*',

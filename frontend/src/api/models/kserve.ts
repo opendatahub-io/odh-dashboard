@@ -27,3 +27,10 @@ export const LLMInferenceServiceConfigModel: K8sModelCommon = {
   kind: 'LLMInferenceServiceConfig',
   plural: 'llminferenceserviceconfigs',
 };
+
+export const MaaSModelRefResourceModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'maas.opendatahub.io',
+  kind: 'MaaSModelRef',
+  plural: 'maasmodelrefs',
+};

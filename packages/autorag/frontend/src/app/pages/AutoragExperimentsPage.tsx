@@ -70,7 +70,7 @@ function AutoragExperimentsPage(): React.JSX.Element {
               }
             }}
           >
-            Create RAG optimization run
+            Create AutoRAG optimization run
           </Button>
         </FlexItem>
       ) : null}

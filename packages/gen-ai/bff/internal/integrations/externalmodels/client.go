@@ -242,8 +242,8 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to marshal chat request: %v", err))
 		}
 	} else {
-		// Embeddings test - send minimal request to validate endpoint compatibility
-		endpoint = "/embeddings"
+		// Embeddings test - send minimal request to validate endpoint compatibility - LLS appends the /v1 here
+		endpoint = "/v1/embeddings"
 		embeddingReq := embeddingRequest{
 			Model:      modelID,
 			Input:      "test",

@@ -181,6 +181,7 @@ type TestDataRef = {
 type JobBenchmark = {
   id: string;
   provider_id?: string;
+  benchmark_index?: number;
   weight?: number;
   primary_score?: JobPrimaryScore;
   pass_criteria?: JobPassCriteria;
@@ -283,6 +284,7 @@ export type CollectionPassCriteria = {
 
 export type CollectionBenchmark = {
   id: string;
+  url?: string;
   provider_id?: string;
   weight?: number;
   primary_score?: CollectionPrimaryScore;
@@ -341,6 +343,7 @@ export type ProviderBenchmarkPassCriteria = {
 
 export type ProviderBenchmark = {
   id: string;
+  url?: string;
   name: string;
   description?: string;
   category?: string;

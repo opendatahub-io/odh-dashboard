@@ -2,7 +2,6 @@ import { Collection, CreateEvaluationJobRequest, FlatBenchmark } from '~/app/typ
 
 type BuildEvaluationRequestParams = {
   evaluationName: string;
-  description: string;
   inputMode: 'inference' | 'prerecorded';
   benchmark: FlatBenchmark | undefined;
   collection: Collection | undefined;
@@ -21,7 +20,6 @@ const TOP_LEVEL_KEYS = new Set(['experiment', 'tags', 'custom', 'exports', 'pass
 
 const buildEvaluationRequest = ({
   evaluationName,
-  description,
   inputMode,
   benchmark,
   collection,
@@ -104,7 +102,6 @@ const buildEvaluationRequest = ({
 
   return {
     name: evaluationName.trim(),
-    ...(description.trim() ? { description: description.trim() } : {}),
     model: {
       url: resolvedUrl,
       name: resolvedModelName,

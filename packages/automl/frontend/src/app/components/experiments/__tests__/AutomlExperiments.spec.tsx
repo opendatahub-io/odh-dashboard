@@ -133,7 +133,7 @@ describe('AutomlExperiments', () => {
     expect(
       screen.getByRole('heading', { name: 'Create an AutoML optimization run' }),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent('Create experiment');
+    expect(screen.getByTestId('create-run-button')).toHaveTextContent('Create run');
     expect(screen.queryByTestId('automl-runs-table')).not.toBeInTheDocument();
   });
 

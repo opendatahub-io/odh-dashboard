@@ -16,6 +16,7 @@ type BillingRateInfo struct {
 // ModelRefInfo is a model reference with rate limits from the maas-api passthrough.
 type ModelRefInfo struct {
 	Name            string               `json:"name"`
+	DisplayName     string               `json:"display_name,omitempty"`
 	Namespace       string               `json:"namespace,omitempty"`
 	TokenRateLimits []TokenRateLimitInfo `json:"token_rate_limits"`
 	BillingRate     *BillingRateInfo     `json:"billing_rate,omitempty"`
@@ -56,11 +57,10 @@ type BillingRate struct {
 
 // ModelSubscriptionRef references a model with rate limits within a subscription.
 type ModelSubscriptionRef struct {
-	Name              string           `json:"name"`
-	Namespace         string           `json:"namespace"`
-	TokenRateLimits   []TokenRateLimit `json:"tokenRateLimits,omitempty"`
-	TokenRateLimitRef *string          `json:"tokenRateLimitRef,omitempty"`
-	BillingRate       *BillingRate     `json:"billingRate,omitempty"`
+	Name            string           `json:"name"`
+	Namespace       string           `json:"namespace"`
+	TokenRateLimits []TokenRateLimit `json:"tokenRateLimits"`
+	BillingRate     *BillingRate     `json:"billingRate,omitempty"`
 }
 
 // TokenMetadata contains metadata for token usage attribution and metering.
@@ -73,11 +73,11 @@ type TokenMetadata struct {
 // MaaSSubscription is the BFF representation of a MaaSSubscription CR.
 type MaaSSubscription struct {
 	Name              string                 `json:"name"`
-	Namespace         string                 `json:"namespace"`
 	DisplayName       string                 `json:"displayName,omitempty"`
 	Description       string                 `json:"description,omitempty"`
+	Namespace         string                 `json:"namespace"`
 	Phase             string                 `json:"phase,omitempty"`
-	Priority          int32                  `json:"priority,omitempty"`
+	Priority          int32                  `json:"priority"`
 	Owner             OwnerSpec              `json:"owner"`
 	ModelRefs         []ModelSubscriptionRef `json:"modelRefs"`
 	TokenMetadata     *TokenMetadata         `json:"tokenMetadata,omitempty"`
@@ -99,6 +99,8 @@ type ModelRef struct {
 type MaaSAuthPolicy struct {
 	Name             string         `json:"name"`
 	Namespace        string         `json:"namespace"`
+	DisplayName      string         `json:"displayName,omitempty"`
+	Description      string         `json:"description,omitempty"`
 	Phase            string         `json:"phase,omitempty"`
 	ModelRefs        []ModelRef     `json:"modelRefs"`
 	Subjects         SubjectSpec    `json:"subjects"`
@@ -125,6 +127,8 @@ type MaaSModelRefSummary struct {
 // CreateSubscriptionRequest is the request body for creating a new subscription.
 type CreateSubscriptionRequest struct {
 	Name             string                 `json:"name"`
+	DisplayName      string                 `json:"displayName,omitempty"`
+	Description      string                 `json:"description,omitempty"`
 	Owner            OwnerSpec              `json:"owner"`
 	ModelRefs        []ModelSubscriptionRef `json:"modelRefs"`
 	TokenMetadata    *TokenMetadata         `json:"tokenMetadata,omitempty"`
@@ -134,6 +138,8 @@ type CreateSubscriptionRequest struct {
 
 // UpdateSubscriptionRequest is the request body for updating a subscription.
 type UpdateSubscriptionRequest struct {
+	DisplayName   string                 `json:"displayName,omitempty"`
+	Description   string                 `json:"description,omitempty"`
 	Owner         OwnerSpec              `json:"owner"`
 	ModelRefs     []ModelSubscriptionRef `json:"modelRefs"`
 	TokenMetadata *TokenMetadata         `json:"tokenMetadata,omitempty"`
@@ -153,8 +159,10 @@ type SubscriptionInfoResponse struct {
 	AuthPolicies []MaaSAuthPolicy      `json:"authPolicies"`
 }
 
-// SubscriptionFormDataResponse contains data for the subscription creation form.
+// SubscriptionFormDataResponse contains data for the subscription and policy creation forms.
 type SubscriptionFormDataResponse struct {
-	Groups    []string              `json:"groups"`
-	ModelRefs []MaaSModelRefSummary `json:"modelRefs"`
+	Groups        []string              `json:"groups"`
+	ModelRefs     []MaaSModelRefSummary `json:"modelRefs"`
+	Policies      []MaaSAuthPolicy      `json:"policies"`
+	Subscriptions []MaaSSubscription    `json:"subscriptions"`
 }
