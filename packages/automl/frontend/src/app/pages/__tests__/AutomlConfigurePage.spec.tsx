@@ -295,14 +295,20 @@ describe('AutomlConfigurePage', () => {
       renderWithProviders(<AutomlConfigurePage />);
       const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
       expect(cancelLink).toBeInTheDocument();
-      expect(cancelLink).toHaveAttribute('href', '/develop-train/automl/experiments');
+      expect(cancelLink).toHaveAttribute(
+        'href',
+        '/develop-train/automl/experiments/test-namespace',
+      );
     });
 
     it('should have correct href for Cancel link', async () => {
       renderWithProviders(<AutomlConfigurePage />);
 
       const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
-      expect(cancelLink).toHaveAttribute('href', '/develop-train/automl/experiments');
+      expect(cancelLink).toHaveAttribute(
+        'href',
+        '/develop-train/automl/experiments/test-namespace',
+      );
     });
   });
 
