@@ -1,0 +1,8 @@
+.automlConfigureToggleGroupFullWidth .pf-v6-c-toggle-group__item {
+  flex: 1 0 0;
+}
+
+.automlConfigureToggleGroupFullWidth .pf-v6-c-toggle-group__button {
+  width: 100%;
+  justify-content: center;
+}

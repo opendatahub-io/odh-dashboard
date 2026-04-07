@@ -13,6 +13,10 @@ import {
   CardHeader,
   CardTitle,
   Content,
+  Divider,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
   EmptyState,
   EmptyStateBody,
   FormHelperText,
@@ -21,26 +25,36 @@ import {
   GridItem,
   HelperText,
   HelperTextItem,
+  MenuToggle,
+  MultipleFileUpload,
+  MultipleFileUploadMain,
   NumberInput,
   Split,
   SplitItem,
+  Spinner,
   Stack,
   StackItem,
+  ToggleGroup,
+  ToggleGroupItem,
   Tooltip,
+  Truncate,
+  type DropEvent,
 } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { CubesIcon, TimesIcon } from '@patternfly/react-icons';
+import { CubesIcon, EllipsisVIcon, TimesIcon, UploadIcon } from '@patternfly/react-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { findKey } from 'es-toolkit';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
-import type { File } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import type { File as S3ExplorerFile } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
+import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema, MAX_TOP_N, MIN_TOP_N } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 import {
@@ -53,6 +67,7 @@ import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import ConfigureTabularForm from './ConfigureTabularForm';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
+import './AutomlConfigure.css';
 
 const PREDICTION_TYPES: {
   value: ConfigureSchema['task_type'];
@@ -87,6 +102,32 @@ const PREDICTION_TYPES: {
 
 const AUTOML_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
 
+/** MIME types and extensions for the training CSV upload dropzone (react-dropzone `accept` format). */
+const TRAINING_DATA_FILE_ACCEPT: Record<string, string[]> = {
+  'text/csv': ['.csv'],
+};
+
+const TRAINING_DATA_UPLOAD_NATIVE_ACCEPT = [
+  ...new Set(Object.values(TRAINING_DATA_FILE_ACCEPT).flat()),
+].join(',');
+
+/** Matches MultipleFileUpload dropzone `maxSize` (1 GiB). */
+const TRAINING_DATA_UPLOAD_MAX_BYTES = 1024 * 1024 * 1024;
+
+/** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
+function isAllowedTrainingDataUploadFile(file: File): boolean {
+  const dot = file.name.lastIndexOf('.');
+  const ext = dot === -1 ? '' : file.name.slice(dot).toLowerCase();
+  if (ext) {
+    for (const allowed of Object.values(TRAINING_DATA_FILE_ACCEPT).flat()) {
+      if (allowed.toLowerCase() === ext) {
+        return true;
+      }
+    }
+  }
+  return Boolean(file.type && file.type in TRAINING_DATA_FILE_ACCEPT);
+}
+
 function AutomlConfigure(): React.JSX.Element {
   const { namespace } = useParams();
   const queryClient = useQueryClient();
@@ -106,10 +147,22 @@ function AutomlConfigure(): React.JSX.Element {
   const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
+  const [trainingDataSourceMode, setTrainingDataSourceMode] = useState<'select' | 'upload'>(
+    'select',
+  );
+  const [selectedTrainingDataFile, setSelectedTrainingDataFile] = useState<
+    S3ExplorerFile | undefined
+  >();
+  const [isTrainingDataFileUploading, setIsTrainingDataFileUploading] = useState(false);
+  const [isTrainingDataUploadDropdownOpen, setIsTrainingDataUploadDropdownOpen] = useState(false);
+  const trainingDataUploadSeqRef = useRef(0);
+  const trainingDataNativeInputRef = useRef<HTMLInputElement>(null);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const previousFileKeyRef = useRef<string | undefined>();
 
-  const [selectedTrainingDataFile, setSelectedTrainingDataFile] = useState<File | undefined>();
+  const notification = useNotification();
+
+  const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
 
   const form = useFormContext<ConfigureSchema>();
 
@@ -128,6 +181,7 @@ function AutomlConfigure(): React.JSX.Element {
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);
+  const showTrainingDataUploadDropzone = !isTrainingDataFileUploading && !trainDataFileKey.trim();
 
   const canSelectLearningType = isFileSelected;
   // && Boolean(watch('train_data_bucket_name')); // Add condition when we have bucket selection
@@ -163,9 +217,19 @@ function AutomlConfigure(): React.JSX.Element {
 
   // reset selected file values if secret or bucket changes
   useEffect(() => {
+    trainingDataUploadSeqRef.current += 1;
+    setIsTrainingDataFileUploading(false);
     setValue('train_data_file_key', '', { shouldValidate: true });
     setSelectedTrainingDataFile(undefined);
   }, [trainDataSecretName, trainDataBucketName, setValue]);
+
+  // reset training data key when select vs upload mode changes
+  useEffect(() => {
+    trainingDataUploadSeqRef.current += 1;
+    setIsTrainingDataFileUploading(false);
+    setValue('train_data_file_key', '', { shouldValidate: true });
+    setSelectedTrainingDataFile(undefined);
+  }, [trainingDataSourceMode, setValue]);
 
   // reset all column-related form fields when file selection changes
   useEffect(() => {
@@ -215,6 +279,59 @@ function AutomlConfigure(): React.JSX.Element {
       }
     }
   }, [taskType, getValues, setValue]);
+
+  const clearTrainingDataUpload = useCallback(() => {
+    setIsTrainingDataFileUploading(false);
+    setIsTrainingDataUploadDropdownOpen(false);
+    setValue('train_data_file_key', '', { shouldValidate: true });
+  }, [setValue]);
+
+  const uploadTrainingDataFile = useCallback(
+    async (file?: File) => {
+      if (!file || !namespace) {
+        return;
+      }
+      if (file.size > TRAINING_DATA_UPLOAD_MAX_BYTES) {
+        notification.error('File too large', 'File size must be 1 GiB or less.');
+        return;
+      }
+      if (!isAllowedTrainingDataUploadFile(file)) {
+        notification.error('Invalid file type', 'File type must be CSV.');
+        return;
+      }
+      const uploadRequestId = ++trainingDataUploadSeqRef.current;
+      setValue('train_data_file_key', '', { shouldValidate: true });
+      setIsTrainingDataUploadDropdownOpen(false);
+      setIsTrainingDataFileUploading(true);
+      try {
+        const uploadResult = await uploadFileToS3({
+          namespace,
+          secretName: trainDataSecretName,
+          bucket: trainDataBucketName,
+          key: file.name,
+          file,
+        });
+        if (uploadRequestId !== trainingDataUploadSeqRef.current) {
+          return;
+        }
+        setValue('train_data_file_key', uploadResult.key, { shouldValidate: true });
+      } catch (err) {
+        if (uploadRequestId === trainingDataUploadSeqRef.current) {
+          notification.error('Failed to upload file', err instanceof Error ? err.message : '');
+        }
+      } finally {
+        if (uploadRequestId === trainingDataUploadSeqRef.current) {
+          setIsTrainingDataFileUploading(false);
+        }
+      }
+    },
+    [namespace, notification, setValue, trainDataBucketName, trainDataSecretName, uploadFileToS3],
+  );
+
+  const openTrainingDataReplaceFileDialog = useCallback(() => {
+    setIsTrainingDataUploadDropdownOpen(false);
+    trainingDataNativeInputRef.current?.click();
+  }, []);
 
   if (!namespace) {
     return <Navigate to={automlExperimentsPathname} replace />;
@@ -302,53 +419,229 @@ function AutomlConfigure(): React.JSX.Element {
                   )}
                   {Boolean(trainDataSecretName) && (
                     <>
-                      <StackItem className="pf-v6-u-font-size-md pf-v6-u-mb-sm pf-v6-u-mt-md">
-                        Selected files
-                      </StackItem>
                       <StackItem>
-                        <Button
-                          key="select-files"
-                          variant="secondary"
-                          onClick={() => setIsFileExplorerOpen(true)}
-                          isDisabled={!canSelectFiles}
-                        >
-                          Select files
-                        </Button>
+                        <Divider />
                       </StackItem>
-                    </>
-                  )}
-                  {selectedTrainingDataFile && (
-                    <StackItem>
-                      <Table aria-label="Selected training data file" variant="compact">
-                        <Thead>
-                          <Tr>
-                            <Th>Name</Th>
-                            <Th>Type</Th>
-                            <Th />
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          <Tr>
-                            <Td dataLabel="Name">{selectedTrainingDataFile.name}</Td>
-                            <Td dataLabel="Type">{selectedTrainingDataFile.type}</Td>
-                            <Td isActionCell>
-                              <Tooltip content="Remove selection">
-                                <Button
-                                  size="sm"
-                                  variant="plain"
-                                  aria-label="Remove selection"
-                                  icon={<TimesIcon />}
-                                  onClick={() => {
-                                    setSelectedTrainingDataFile(undefined);
-                                    setValue('train_data_file_key', '', { shouldValidate: true });
-                                  }}
+                      <StackItem className="pf-v6-u-mt-sm">
+                        <ToggleGroup
+                          aria-label="Choose how to add training data"
+                          className="automlConfigureToggleGroupFullWidth pf-v6-u-mb-md"
+                        >
+                          <ToggleGroupItem
+                            text="Select file from bucket"
+                            buttonId="training-data-input-select"
+                            data-testid="training-data-source-select-toggle"
+                            isSelected={trainingDataSourceMode === 'select'}
+                            onChange={() => setTrainingDataSourceMode('select')}
+                          />
+                          <ToggleGroupItem
+                            text="Upload file"
+                            buttonId="training-data-input-upload"
+                            data-testid="training-data-source-upload-toggle"
+                            isSelected={trainingDataSourceMode === 'upload'}
+                            onChange={() => setTrainingDataSourceMode('upload')}
+                          />
+                        </ToggleGroup>
+                      </StackItem>
+
+                      {trainingDataSourceMode === 'select' && (
+                        <>
+                          <StackItem>
+                            <Content component="h4">Select file from bucket</Content>
+                          </StackItem>
+                          <StackItem>
+                            <Content component="small">
+                              Select one CSV file from this bucket to use as training data for your
+                              experiment.
+                            </Content>
+                          </StackItem>
+                          <StackItem>
+                            <Button
+                              key="browse-bucket"
+                              variant="secondary"
+                              onClick={() => setIsFileExplorerOpen(true)}
+                              isDisabled={!canSelectFiles || formIsSubmitting}
+                            >
+                              Browse bucket
+                            </Button>
+                          </StackItem>
+                          {selectedTrainingDataFile && (
+                            <StackItem>
+                              <Table aria-label="Selected training data file" variant="compact">
+                                <Thead>
+                                  <Tr>
+                                    <Th>Name</Th>
+                                    <Th>Type</Th>
+                                    <Th />
+                                  </Tr>
+                                </Thead>
+                                <Tbody>
+                                  <Tr>
+                                    <Td dataLabel="Name">
+                                      <Truncate content={selectedTrainingDataFile.name} />
+                                    </Td>
+                                    <Td dataLabel="Type">{selectedTrainingDataFile.type}</Td>
+                                    <Td isActionCell>
+                                      <Tooltip content="Remove selection">
+                                        <Button
+                                          size="sm"
+                                          variant="plain"
+                                          aria-label="Remove selection"
+                                          icon={<TimesIcon />}
+                                          onClick={() => {
+                                            setSelectedTrainingDataFile(undefined);
+                                            setValue('train_data_file_key', '', {
+                                              shouldValidate: true,
+                                            });
+                                          }}
+                                        />
+                                      </Tooltip>
+                                    </Td>
+                                  </Tr>
+                                </Tbody>
+                              </Table>
+                            </StackItem>
+                          )}
+                        </>
+                      )}
+
+                      {trainingDataSourceMode === 'upload' && (
+                        <>
+                          <StackItem>
+                            <Content component="h4">Upload file</Content>
+                          </StackItem>
+                          <StackItem>
+                            <Content component="small" id="training-data-upload-description">
+                              Drop a file here or browse to select a file.
+                            </Content>
+                          </StackItem>
+                          <StackItem>
+                            <input
+                              ref={trainingDataNativeInputRef}
+                              type="file"
+                              hidden
+                              accept={TRAINING_DATA_UPLOAD_NATIVE_ACCEPT}
+                              aria-hidden
+                              tabIndex={-1}
+                              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                                const input = event.currentTarget;
+                                const file = input.files?.[0];
+                                input.value = '';
+                                if (!file) {
+                                  return;
+                                }
+                                void uploadTrainingDataFile(file);
+                              }}
+                            />
+                            {showTrainingDataUploadDropzone && (
+                              <MultipleFileUpload
+                                aria-describedby="training-data-upload-description"
+                                onFileDrop={(_event: DropEvent, droppedFiles: File[]) => {
+                                  const [file] = droppedFiles;
+                                  void uploadTrainingDataFile(file);
+                                }}
+                                dropzoneProps={{
+                                  accept: TRAINING_DATA_FILE_ACCEPT,
+                                  disabled: formIsSubmitting || isTrainingDataFileUploading,
+                                  maxFiles: 1,
+                                  maxSize: TRAINING_DATA_UPLOAD_MAX_BYTES,
+                                  multiple: false,
+                                }}
+                              >
+                                <MultipleFileUploadMain
+                                  titleIcon={<UploadIcon />}
+                                  titleText="Drag and drop files here"
+                                  titleTextSeparator="or"
+                                  infoText="Accepted file types: CSV"
+                                  browseButtonText="Upload"
                                 />
-                              </Tooltip>
-                            </Td>
-                          </Tr>
-                        </Tbody>
-                      </Table>
-                    </StackItem>
+                              </MultipleFileUpload>
+                            )}
+                            {!showTrainingDataUploadDropzone && (
+                              <Table
+                                aria-label="Training data file upload"
+                                borders
+                                variant="compact"
+                                className="pf-v6-u-w-100"
+                              >
+                                <Thead>
+                                  <Tr>
+                                    <Th>File</Th>
+                                    <Th aria-label="Actions" />
+                                  </Tr>
+                                </Thead>
+                                <Tbody>
+                                  <Tr>
+                                    <Td dataLabel="File">
+                                      <Split hasGutter>
+                                        {isTrainingDataFileUploading && (
+                                          <SplitItem>
+                                            <Spinner
+                                              size="md"
+                                              aria-label="Uploading file"
+                                              data-testid="training-data-upload-spinner"
+                                            />
+                                          </SplitItem>
+                                        )}
+                                        <SplitItem isFilled>
+                                          {isTrainingDataFileUploading ? (
+                                            'Uploading…'
+                                          ) : (
+                                            <Truncate content={trainDataFileKey} />
+                                          )}
+                                        </SplitItem>
+                                      </Split>
+                                    </Td>
+                                    <Td isActionCell modifier="fitContent">
+                                      <Dropdown
+                                        isOpen={isTrainingDataUploadDropdownOpen}
+                                        onOpenChange={setIsTrainingDataUploadDropdownOpen}
+                                        shouldFocusToggleOnSelect
+                                        toggle={(toggleRef) => (
+                                          <MenuToggle
+                                            ref={toggleRef}
+                                            variant="plain"
+                                            aria-label="Uploaded file actions"
+                                            icon={<EllipsisVIcon />}
+                                            onClick={() =>
+                                              setIsTrainingDataUploadDropdownOpen(
+                                                !isTrainingDataUploadDropdownOpen,
+                                              )
+                                            }
+                                            isExpanded={isTrainingDataUploadDropdownOpen}
+                                            isDisabled={
+                                              formIsSubmitting || isTrainingDataFileUploading
+                                            }
+                                          />
+                                        )}
+                                        popperProps={{ position: 'end', preventOverflow: true }}
+                                      >
+                                        <DropdownList>
+                                          <DropdownItem
+                                            key="remove"
+                                            data-testid="training-data-upload-remove"
+                                            onClick={clearTrainingDataUpload}
+                                          >
+                                            Remove
+                                          </DropdownItem>
+                                          <DropdownItem
+                                            key="replace"
+                                            data-testid="training-data-upload-replace"
+                                            onClick={openTrainingDataReplaceFileDialog}
+                                          >
+                                            Replace
+                                          </DropdownItem>
+                                        </DropdownList>
+                                      </Dropdown>
+                                    </Td>
+                                  </Tr>
+                                </Tbody>
+                              </Table>
+                            )}
+                          </StackItem>
+                        </>
+                      )}
+                    </>
                   )}
                 </Stack>
               </CardBody>
