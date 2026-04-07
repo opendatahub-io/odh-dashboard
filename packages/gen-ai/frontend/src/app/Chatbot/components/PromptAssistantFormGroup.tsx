@@ -14,6 +14,12 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
+import {
+  useChatbotConfigStore,
+  selectActivePrompt,
+  selectDirtyPrompt,
+  DEFAULT_CONFIG_ID,
+} from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
@@ -21,6 +27,7 @@ import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 
 type PromptAssistantFormGroupProps = {
+  configId?: string;
   systemInstruction: string;
   onSystemInstructionChange: (value: string) => void;
 };
@@ -39,23 +46,22 @@ const RESET_CONFIRMATION_CONFIG = {
 };
 
 export default function PromptAssistantFormGroup({
+  configId = DEFAULT_CONFIG_ID,
   systemInstruction,
   onSystemInstructionChange,
 }: PromptAssistantFormGroupProps): React.ReactNode {
-  const {
-    activePrompt,
-    dirtyPrompt,
-    setDirtyPrompt,
-    resetDirtyPrompt,
-    clearPromptState,
-    openModal,
-  } = usePlaygroundStore();
+  const { openModal } = usePlaygroundStore();
+  const activePrompt = useChatbotConfigStore(selectActivePrompt(configId));
+  const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
+  const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
+  const resetDirtyPrompt = useChatbotConfigStore((state) => state.resetDirtyPrompt);
+  const clearPromptState = useChatbotConfigStore((state) => state.clearPromptState);
   const [editMode, setEditMode] = React.useState(true);
   const activeTemplate =
     activePrompt?.template ??
     activePrompt?.messages?.find((m) => m.role === 'system')?.content ??
     '';
-  const isEdited = usePromptEdited();
+  const isEdited = usePromptEdited(configId);
 
   useSafeBrowserUnloadBlocker(isEdited);
   const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
@@ -67,19 +73,19 @@ export default function PromptAssistantFormGroup({
   function handleTextChange(value: string) {
     onSystemInstructionChange(value);
     if (dirtyPrompt) {
-      setDirtyPrompt({ ...dirtyPrompt, template: value });
+      updateDirtyPrompt(configId, { ...dirtyPrompt, template: value });
     }
   }
 
   function handleRevert() {
-    resetDirtyPrompt();
+    resetDirtyPrompt(configId);
     onSystemInstructionChange(activeTemplate || DEFAULT_SYSTEM_INSTRUCTIONS);
     setEditMode(false);
   }
 
   function handleNewPrompt() {
     const promptStub = { ...buildPromptStub(), template: DEFAULT_SYSTEM_INSTRUCTIONS };
-    clearPromptState(promptStub);
+    clearPromptState(configId, promptStub);
     onSystemInstructionChange(promptStub.template);
     setEditMode(true);
   }
@@ -92,7 +98,8 @@ export default function PromptAssistantFormGroup({
     const mode = activePrompt ? 'edit' : 'create';
     // eslint-disable-next-line camelcase -- MLflow API uses snake_case
     newPrompt.commit_message = '';
-    openModal(mode, newPrompt);
+    updateDirtyPrompt(configId, newPrompt);
+    openModal(mode, configId, newPrompt);
   }
 
   function buildPromptStub(): MLflowPromptVersion {
