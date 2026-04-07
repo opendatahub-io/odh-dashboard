@@ -1103,7 +1103,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 />
               </FlexItem>
               {allowedSearchCharactersLabel && (
-                <FlexItem>
+                <FlexItem data-testid="file-explorer-search-chars-info">
                   <Tooltip
                     content={<div>{allowedSearchCharactersLabel}</div>}
                     {...(showCharWarning ? { isVisible: true } : {})}
