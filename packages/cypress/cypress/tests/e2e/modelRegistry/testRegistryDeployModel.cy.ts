@@ -219,7 +219,7 @@ describe('Verify models can be deployed from model registry', () => {
       modelRegistry.visitWithRegistry(registryName);
       cy.contains('1 deployment', { timeout: 30000 }).should('be.visible').click();
       cy.contains(modelName).should('be.visible');
-      cy.contains(ModelStateLabel.STARTED).should('be.visible');
+      cy.contains(ModelStateLabel.READY).should('be.visible');
     },
   );
 });
