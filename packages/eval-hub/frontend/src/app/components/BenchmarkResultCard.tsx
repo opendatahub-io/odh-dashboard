@@ -15,6 +15,7 @@ import { getBenchmarkDisplayName } from '~/app/utilities/evaluationUtils';
 
 type BenchmarkResultCardProps = {
   benchmarkId: string;
+  benchmarkIndex?: number;
   job: EvaluationJob;
   isSelected?: boolean;
   onClick?: () => void;
@@ -22,27 +23,33 @@ type BenchmarkResultCardProps = {
 
 const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
   benchmarkId,
+  benchmarkIndex,
   job,
   isSelected,
   onClick,
 }) => {
-  const result = job.results.benchmarks?.find((b) => b.id === benchmarkId);
+  const result = job.results.benchmarks?.find(
+    (b) =>
+      b.id === benchmarkId &&
+      (benchmarkIndex === undefined || b.benchmark_index === benchmarkIndex),
+  );
   const passStatus = result?.test?.pass;
+  const cardKey = benchmarkIndex !== undefined ? `${benchmarkId}-${benchmarkIndex}` : benchmarkId;
 
   return (
     <Card
       isSelectable={!!onClick}
       isSelected={isSelected}
       isCompact
-      data-testid={`benchmark-result-card-${benchmarkId}`}
+      data-testid={`benchmark-result-card-${cardKey}`}
       style={{ minWidth: 200 }}
     >
       <CardHeader
         selectableActions={
           onClick
             ? {
-                selectableActionId: `benchmark-select-${benchmarkId}`,
-                selectableActionAriaLabelledby: `benchmark-label-${benchmarkId}`,
+                selectableActionId: `benchmark-select-${cardKey}`,
+                selectableActionAriaLabelledby: `benchmark-label-${cardKey}`,
                 name: 'benchmark-selection',
                 variant: 'single',
                 isChecked: isSelected,
@@ -51,7 +58,7 @@ const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
             : undefined
         }
       >
-        <CardTitle id={`benchmark-label-${benchmarkId}`}>
+        <CardTitle id={`benchmark-label-${cardKey}`}>
           <Flex direction={{ default: 'column' }} gap={{ default: 'gapXs' }}>
             <FlexItem>
               <Content component="p" style={{ fontWeight: 600, fontSize: '0.875rem' }}>

@@ -181,6 +181,7 @@ type TestDataRef = {
 type JobBenchmark = {
   id: string;
   provider_id?: string;
+  benchmark_index?: number;
   weight?: number;
   primary_score?: JobPrimaryScore;
   pass_criteria?: JobPassCriteria;
