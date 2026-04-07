@@ -108,10 +108,13 @@ describe('API Keys Page', () => {
   });
 
   it('should display all API keys when the status filter is cleared', () => {
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys()));
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
+      'clearAllFilters',
+    );
     apiKeysPage.findRows().should('have.length', 2); // active keys show on page load
 
     apiKeysPage.clearAllFilters();
+    cy.wait('@clearAllFilters');
 
     const oldServiceKeyRow = apiKeysPage.getRow('old-service-key');
     oldServiceKeyRow.findStatus().should('contain.text', 'Expired');
