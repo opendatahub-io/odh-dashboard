@@ -564,7 +564,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       onPerPageSelect={handlePerPageSelect}
       onPrimary={onSelectFiles}
       allowedSearchCharacters={/[^/]/}
-      allowedSearchCharactersLabel="Search cannot contain '/' characters"
+      allowedSearchCharactersLabel="Searches are case-sensitive and must match the beginning of the term. Slashes (/) are automatically removed."
     />
   );
 };
