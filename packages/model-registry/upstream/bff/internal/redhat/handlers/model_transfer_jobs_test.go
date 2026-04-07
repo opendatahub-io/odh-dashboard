@@ -434,6 +434,43 @@ func (f *fakeJobClient) List(_ context.Context, opts metav1.ListOptions) (*batch
 	return &batchv1.JobList{Items: filtered}, nil
 }
 
+// --- Test for filterSystemNamespaces ---
+
+func TestFilterSystemNamespaces(t *testing.T) {
+	input := []string{
+		"my-project",
+		"openshift",
+		"openshift-monitoring",
+		"openshift-operators",
+		"kube-system",
+		"kube-public",
+		"default",
+		"system",
+		"opendatahub",
+		"user-ns-a",
+		"user-ns-b",
+	}
+
+	result := filterSystemNamespaces(input)
+
+	expected := []string{"my-project", "user-ns-a", "user-ns-b"}
+	if len(result) != len(expected) {
+		t.Fatalf("expected %d namespaces, got %d: %v", len(expected), len(result), result)
+	}
+	for i, ns := range expected {
+		if result[i] != ns {
+			t.Fatalf("expected namespace %d to be '%s', got '%s'", i, ns, result[i])
+		}
+	}
+}
+
+func TestFilterSystemNamespacesEmpty(t *testing.T) {
+	result := filterSystemNamespaces([]string{})
+	if len(result) != 0 {
+		t.Fatalf("expected 0 namespaces, got %d", len(result))
+	}
+}
+
 // matchesLabelSelector does a simplified label selector match (comma-separated key=value pairs).
 func matchesLabelSelector(labels map[string]string, selector string) bool {
 	for _, part := range strings.Split(selector, ",") {

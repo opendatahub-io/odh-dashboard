@@ -249,5 +249,28 @@ func listOpenShiftProjects(ctx context.Context, bearerToken string) ([]string, e
 			namespaces = append(namespaces, p.Metadata.Name)
 		}
 	}
-	return namespaces, nil
+	return filterSystemNamespaces(namespaces), nil
+}
+
+// filterSystemNamespaces removes system namespaces that will never contain model transfer jobs.
+// This matches the filtering in packages/gen-ai/bff/internal/repositories/namespace.go.
+func filterSystemNamespaces(namespaces []string) []string {
+	excludedExact := map[string]bool{
+		"default":     true,
+		"system":      true,
+		"openshift":   true,
+		"opendatahub": true,
+	}
+
+	filtered := make([]string, 0, len(namespaces))
+	for _, ns := range namespaces {
+		if strings.HasPrefix(ns, "openshift-") || strings.HasPrefix(ns, "kube-") {
+			continue
+		}
+		if excludedExact[ns] {
+			continue
+		}
+		filtered = append(filtered, ns)
+	}
+	return filtered
 }
