@@ -287,7 +287,7 @@ var _ = Describe("PolicyHandlers", Ordered, func() {
 		})
 
 		It("returns 200 with groups, model refs, policies, and subscriptions", func() {
-			actual, rs, err := setupApiTest[models.SubscriptionFormDataResponse](
+			envelope, rs, err := setupApiTest[Envelope[models.SubscriptionFormDataResponse, None]](
 				http.MethodGet,
 				"/api/v1/subscription-policy-form-data",
 				nil,
@@ -296,6 +296,7 @@ var _ = Describe("PolicyHandlers", Ordered, func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			actual := envelope.Data
 
 			// Model refs
 			Expect(len(actual.ModelRefs)).To(BeNumerically(">=", 2))

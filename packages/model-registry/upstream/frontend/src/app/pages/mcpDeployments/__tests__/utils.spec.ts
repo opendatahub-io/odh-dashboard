@@ -47,6 +47,17 @@ describe('getConnectionUrl', () => {
       expect(getConnectionUrl(deployment)).toBeUndefined();
     },
   );
+
+  it.each([McpDeploymentPhase.PENDING, McpDeploymentPhase.FAILED])(
+    'should return undefined for %s deployment even with address',
+    (phase) => {
+      const deployment = createMockDeployment({
+        phase,
+        address: { url: 'https://stale-url.example.com:8080' },
+      });
+      expect(getConnectionUrl(deployment)).toBeUndefined();
+    },
+  );
 });
 
 describe('getStatusInfo', () => {

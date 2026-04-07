@@ -147,7 +147,7 @@ const initIntercepts = ({
   cy.interceptOdh(
     'DELETE /maas/api/v1/maasmodel/:namespace/:name',
     { path: { namespace: '*', name: '*' } },
-    { message: 'Deleted successfully' },
+    { data: { message: 'Deleted successfully' } },
   ).as('deleteMaaSModelRef');
 };
 
@@ -189,7 +189,7 @@ describe('Model Serving LLMD', () => {
         .findByTestId('api-protocol-label')
         .should('have.text', 'REST');
       row.findLastDeployed().should('have.text', '17 Mar 2023');
-      row.findStatusLabel('Started');
+      row.findStatusLabel('Ready');
 
       // expanded section of the row
       row.findToggleButton('llmd-serving').click();
@@ -784,7 +784,7 @@ describe('Model Serving LLMD', () => {
       cy.interceptOdh(
         'DELETE /maas/api/v1/maasmodel/:namespace/:name',
         { path: { namespace: '*', name: '*' } },
-        { message: 'Deleted successfully' },
+        { data: { message: 'Deleted successfully' } },
       ).as('deleteMaaSModelRef');
     };
 

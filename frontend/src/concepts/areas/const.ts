@@ -7,8 +7,10 @@ export const techPreviewFlags = {
   automl: false,
   autorag: false,
   modelAsService: false,
+  maasAuthPolicies: false,
   aiAssetCustomEndpoints: false,
   mlflow: false,
+  mlflowPipelines: false,
   mcpCatalog: false,
   projectRBAC: true,
   observabilityDashboard: false,
@@ -219,6 +221,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['mlflow'],
     requiredComponents: [DataScienceStackComponent.MLFLOW],
   },
+  [SupportedArea.MLFLOW_PIPELINES]: {
+    featureFlags: ['mlflowPipelines', 'mlflow'],
+    requiredComponents: [DataScienceStackComponent.DS_PIPELINES, DataScienceStackComponent.MLFLOW],
+  },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
   },
@@ -228,6 +234,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.VLLM_ON_MAAS]: {
     featureFlags: ['vLLMDeploymentOnMaaS'],
+  },
+  [SupportedArea.MAAS_AUTH_POLICIES]: {
+    featureFlags: ['maasAuthPolicies'],
   },
 };
 

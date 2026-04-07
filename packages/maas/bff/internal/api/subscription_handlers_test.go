@@ -20,31 +20,33 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 		It("returns 201 and the created subscription with auth policy", func() {
 			subName := fmt.Sprintf("test-sub-%d", GinkgoRandomSeed())
 
-			actual, rs, err := setupApiTest[models.CreateSubscriptionResponse](
+			actual, rs, err := setupApiTest[Envelope[*models.CreateSubscriptionResponse, None]](
 				http.MethodPost,
 				"/api/v1/new-subscription",
-				models.CreateSubscriptionRequest{
-					Name: subName,
-					Owner: models.OwnerSpec{
-						Groups: []models.GroupReference{
-							{Name: "premium-users"},
-						},
-					},
-					ModelRefs: []models.ModelSubscriptionRef{
-						{
-							Name:      "granite-3-8b-instruct",
-							Namespace: "maas-models",
-							TokenRateLimits: []models.TokenRateLimit{
-								{Limit: 100000, Window: "24h"},
+				Envelope[models.CreateSubscriptionRequest, None]{
+					Data: models.CreateSubscriptionRequest{
+						Name: subName,
+						Owner: models.OwnerSpec{
+							Groups: []models.GroupReference{
+								{Name: "premium-users"},
 							},
 						},
+						ModelRefs: []models.ModelSubscriptionRef{
+							{
+								Name:      "granite-3-8b-instruct",
+								Namespace: "maas-models",
+								TokenRateLimits: []models.TokenRateLimit{
+									{Limit: 100000, Window: "24h"},
+								},
+							},
+						},
+						TokenMetadata: &models.TokenMetadata{
+							OrganizationID: "org-123",
+							CostCenter:     "engineering",
+						},
+						Priority:         10,
+						CreateAuthPolicy: true,
 					},
-					TokenMetadata: &models.TokenMetadata{
-						OrganizationID: "org-123",
-						CostCenter:     "engineering",
-					},
-					Priority:         10,
-					CreateAuthPolicy: true,
 				},
 				k8Factory,
 				identity,
@@ -52,42 +54,44 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusCreated))
-			Expect(actual.Subscription.Name).To(Equal(subName))
-			Expect(actual.Subscription.Namespace).To(Equal("maas-system"))
-			Expect(actual.Subscription.Priority).To(Equal(int32(10)))
-			Expect(actual.Subscription.Owner.Groups).To(HaveLen(1))
-			Expect(actual.Subscription.Owner.Groups[0].Name).To(Equal("premium-users"))
-			Expect(actual.Subscription.ModelRefs).To(HaveLen(1))
-			Expect(actual.Subscription.ModelRefs[0].Name).To(Equal("granite-3-8b-instruct"))
-			Expect(actual.Subscription.ModelRefs[0].TokenRateLimits).To(HaveLen(1))
-			Expect(actual.Subscription.ModelRefs[0].TokenRateLimits[0].Limit).To(Equal(int64(100000)))
-			Expect(actual.Subscription.TokenMetadata).NotTo(BeNil())
-			Expect(actual.Subscription.TokenMetadata.OrganizationID).To(Equal("org-123"))
+			Expect(actual.Data.Subscription.Name).To(Equal(subName))
+			Expect(actual.Data.Subscription.Namespace).To(Equal("maas-system"))
+			Expect(actual.Data.Subscription.Priority).To(Equal(int32(10)))
+			Expect(actual.Data.Subscription.Owner.Groups).To(HaveLen(1))
+			Expect(actual.Data.Subscription.Owner.Groups[0].Name).To(Equal("premium-users"))
+			Expect(actual.Data.Subscription.ModelRefs).To(HaveLen(1))
+			Expect(actual.Data.Subscription.ModelRefs[0].Name).To(Equal("granite-3-8b-instruct"))
+			Expect(actual.Data.Subscription.ModelRefs[0].TokenRateLimits).To(HaveLen(1))
+			Expect(actual.Data.Subscription.ModelRefs[0].TokenRateLimits[0].Limit).To(Equal(int64(100000)))
+			Expect(actual.Data.Subscription.TokenMetadata).NotTo(BeNil())
+			Expect(actual.Data.Subscription.TokenMetadata.OrganizationID).To(Equal("org-123"))
 
 			// Auth policy should also be created
-			Expect(actual.AuthPolicy).NotTo(BeNil())
-			Expect(actual.AuthPolicy.Name).To(Equal(subName + "-policy"))
-			Expect(actual.AuthPolicy.Namespace).To(Equal("maas-system"))
-			Expect(actual.AuthPolicy.ModelRefs).To(HaveLen(1))
-			Expect(actual.AuthPolicy.ModelRefs[0].Name).To(Equal("granite-3-8b-instruct"))
-			Expect(actual.AuthPolicy.Subjects.Groups).To(HaveLen(1))
-			Expect(actual.AuthPolicy.Subjects.Groups[0].Name).To(Equal("premium-users"))
+			Expect(actual.Data.AuthPolicy).NotTo(BeNil())
+			Expect(actual.Data.AuthPolicy.Name).To(Equal(subName + "-policy"))
+			Expect(actual.Data.AuthPolicy.Namespace).To(Equal("maas-system"))
+			Expect(actual.Data.AuthPolicy.ModelRefs).To(HaveLen(1))
+			Expect(actual.Data.AuthPolicy.ModelRefs[0].Name).To(Equal("granite-3-8b-instruct"))
+			Expect(actual.Data.AuthPolicy.Subjects.Groups).To(HaveLen(1))
+			Expect(actual.Data.AuthPolicy.Subjects.Groups[0].Name).To(Equal("premium-users"))
 		})
 
 		It("returns 409 when subscription already exists", func() {
 			subName := fmt.Sprintf("dup-sub-%d", GinkgoRandomSeed())
 
 			// Create first
-			_, rs1, err := setupApiTest[models.CreateSubscriptionResponse](
+			_, rs1, err := setupApiTest[Envelope[*models.CreateSubscriptionResponse, None]](
 				http.MethodPost,
 				"/api/v1/new-subscription",
-				models.CreateSubscriptionRequest{
-					Name: subName,
-					Owner: models.OwnerSpec{
-						Groups: []models.GroupReference{{Name: "users"}},
-					},
-					ModelRefs: []models.ModelSubscriptionRef{
-						{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+				Envelope[models.CreateSubscriptionRequest, None]{
+					Data: models.CreateSubscriptionRequest{
+						Name: subName,
+						Owner: models.OwnerSpec{
+							Groups: []models.GroupReference{{Name: "users"}},
+						},
+						ModelRefs: []models.ModelSubscriptionRef{
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
+						},
 					},
 				},
 				k8Factory,
@@ -100,13 +104,15 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			_, rs2, err := setupApiTest[map[string]interface{}](
 				http.MethodPost,
 				"/api/v1/new-subscription",
-				models.CreateSubscriptionRequest{
-					Name: subName,
-					Owner: models.OwnerSpec{
-						Groups: []models.GroupReference{{Name: "users"}},
-					},
-					ModelRefs: []models.ModelSubscriptionRef{
-						{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+				Envelope[models.CreateSubscriptionRequest, None]{
+					Data: models.CreateSubscriptionRequest{
+						Name: subName,
+						Owner: models.OwnerSpec{
+							Groups: []models.GroupReference{{Name: "users"}},
+						},
+						ModelRefs: []models.ModelSubscriptionRef{
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
+						},
 					},
 				},
 				k8Factory,
@@ -120,10 +126,12 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			_, rs, err := setupApiTest[map[string]interface{}](
 				http.MethodPost,
 				"/api/v1/new-subscription",
-				models.CreateSubscriptionRequest{
-					Name: "",
-					ModelRefs: []models.ModelSubscriptionRef{
-						{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+				Envelope[models.CreateSubscriptionRequest, None]{
+					Data: models.CreateSubscriptionRequest{
+						Name: "",
+						ModelRefs: []models.ModelSubscriptionRef{
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+						},
 					},
 				},
 				k8Factory,
@@ -137,9 +145,11 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			_, rs, err := setupApiTest[map[string]interface{}](
 				http.MethodPost,
 				"/api/v1/new-subscription",
-				models.CreateSubscriptionRequest{
-					Name:      "no-models-sub",
-					ModelRefs: []models.ModelSubscriptionRef{},
+				Envelope[models.CreateSubscriptionRequest, None]{
+					Data: models.CreateSubscriptionRequest{
+						Name:      "no-models-sub",
+						ModelRefs: []models.ModelSubscriptionRef{},
+					},
 				},
 				k8Factory,
 				identity,
@@ -152,16 +162,18 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 	var _ = Describe("ListSubscriptionsHandler", Ordered, func() {
 		BeforeAll(func() {
 			// Seed a subscription for listing
-			_, rs, err := setupApiTest[models.CreateSubscriptionResponse](
+			_, rs, err := setupApiTest[Envelope[*models.CreateSubscriptionResponse, None]](
 				http.MethodPost,
 				"/api/v1/new-subscription",
-				models.CreateSubscriptionRequest{
-					Name: "list-test-sub",
-					Owner: models.OwnerSpec{
-						Groups: []models.GroupReference{{Name: "users"}},
-					},
-					ModelRefs: []models.ModelSubscriptionRef{
-						{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+				Envelope[models.CreateSubscriptionRequest, None]{
+					Data: models.CreateSubscriptionRequest{
+						Name: "list-test-sub",
+						Owner: models.OwnerSpec{
+							Groups: []models.GroupReference{{Name: "users"}},
+						},
+						ModelRefs: []models.ModelSubscriptionRef{
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
+						},
 					},
 				},
 				k8Factory,
@@ -199,21 +211,23 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 
 	var _ = Describe("GetSubscriptionInfoHandler", Ordered, func() {
 		BeforeAll(func() {
-			_, rs, err := setupApiTest[models.CreateSubscriptionResponse](
+			_, rs, err := setupApiTest[Envelope[*models.CreateSubscriptionResponse, None]](
 				http.MethodPost,
 				"/api/v1/new-subscription",
-				models.CreateSubscriptionRequest{
-					Name: "info-test-sub",
-					Owner: models.OwnerSpec{
-						Groups: []models.GroupReference{{Name: "premium-users"}},
+				Envelope[models.CreateSubscriptionRequest, None]{
+					Data: models.CreateSubscriptionRequest{
+						Name: "info-test-sub",
+						Owner: models.OwnerSpec{
+							Groups: []models.GroupReference{{Name: "premium-users"}},
+						},
+						ModelRefs: []models.ModelSubscriptionRef{
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
+						},
+						TokenMetadata: &models.TokenMetadata{
+							OrganizationID: "org-456",
+						},
+						Priority: 5,
 					},
-					ModelRefs: []models.ModelSubscriptionRef{
-						{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
-					},
-					TokenMetadata: &models.TokenMetadata{
-						OrganizationID: "org-456",
-					},
-					Priority: 5,
 				},
 				k8Factory,
 				identity,
@@ -223,7 +237,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 		})
 
 		It("returns 200 with subscription info, model refs, and auth policies", func() {
-			actual, rs, err := setupApiTest[models.SubscriptionInfoResponse](
+			actual, rs, err := setupApiTest[Envelope[models.SubscriptionInfoResponse, None]](
 				http.MethodGet,
 				"/api/v1/subscription-info/info-test-sub",
 				nil,
@@ -232,20 +246,20 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusOK))
-			Expect(actual.Subscription.Name).To(Equal("info-test-sub"))
-			Expect(actual.Subscription.Namespace).To(Equal("maas-system"))
-			Expect(actual.Subscription.Priority).To(Equal(int32(5)))
-			Expect(actual.Subscription.TokenMetadata).NotTo(BeNil())
-			Expect(actual.Subscription.TokenMetadata.OrganizationID).To(Equal("org-456"))
-			Expect(actual.Subscription.DisplayName).To(BeAssignableToTypeOf(""))
-			Expect(actual.Subscription.Description).To(BeAssignableToTypeOf(""))
-			Expect(actual.ModelRefs).To(HaveLen(1))
-			Expect(actual.ModelRefs[0].Name).To(Equal("granite-3-8b-instruct"))
-			Expect(actual.ModelRefs[0].DisplayName).To(BeAssignableToTypeOf(""))
-			Expect(actual.ModelRefs[0].Description).To(BeAssignableToTypeOf(""))
+			Expect(actual.Data.Subscription.Name).To(Equal("info-test-sub"))
+			Expect(actual.Data.Subscription.Namespace).To(Equal("maas-system"))
+			Expect(actual.Data.Subscription.Priority).To(Equal(int32(5)))
+			Expect(actual.Data.Subscription.TokenMetadata).NotTo(BeNil())
+			Expect(actual.Data.Subscription.TokenMetadata.OrganizationID).To(Equal("org-456"))
+			Expect(actual.Data.Subscription.DisplayName).To(BeAssignableToTypeOf(""))
+			Expect(actual.Data.Subscription.Description).To(BeAssignableToTypeOf(""))
+			Expect(actual.Data.ModelRefs).To(HaveLen(1))
+			Expect(actual.Data.ModelRefs[0].Name).To(Equal("granite-3-8b-instruct"))
+			Expect(actual.Data.ModelRefs[0].DisplayName).To(BeAssignableToTypeOf(""))
+			Expect(actual.Data.ModelRefs[0].Description).To(BeAssignableToTypeOf(""))
 
 			// Auth policies may be empty if not created with the subscription
-			Expect(actual.AuthPolicies).NotTo(BeNil())
+			Expect(actual.Data.AuthPolicies).NotTo(BeNil())
 		})
 
 		It("returns 404 for non-existent subscription", func() {
@@ -271,7 +285,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 
 	var _ = Describe("GetSubscriptionPolicyFormDataHandler", Ordered, func() {
 		It("returns 200 with groups and model refs", func() {
-			actual, rs, err := setupApiTest[models.SubscriptionFormDataResponse](
+			envelope, rs, err := setupApiTest[Envelope[models.SubscriptionFormDataResponse, None]](
 				http.MethodGet,
 				"/api/v1/subscription-policy-form-data",
 				nil,
@@ -280,6 +294,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			actual := envelope.Data
 
 			// Should have at least the model refs seeded in test env
 			Expect(len(actual.ModelRefs)).To(BeNumerically(">=", 2))
@@ -291,23 +306,29 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 
 			// Groups fallback to system:authenticated since envtest doesn't have user.openshift.io
 			Expect(actual.Groups).To(ContainElement("system:authenticated"))
+
+			// Should include all existing subscriptions on the cluster
+			Expect(actual.Subscriptions).NotTo(BeNil())
+			Expect(len(actual.Subscriptions)).To(BeNumerically(">", 0))
 		})
 	})
 
 	var _ = Describe("UpdateSubscriptionHandler", Ordered, func() {
 		BeforeAll(func() {
-			_, rs, err := setupApiTest[models.CreateSubscriptionResponse](
+			_, rs, err := setupApiTest[Envelope[*models.CreateSubscriptionResponse, None]](
 				http.MethodPost,
 				"/api/v1/new-subscription",
-				models.CreateSubscriptionRequest{
-					Name: "update-test-sub",
-					Owner: models.OwnerSpec{
-						Groups: []models.GroupReference{{Name: "users"}},
+				Envelope[models.CreateSubscriptionRequest, None]{
+					Data: models.CreateSubscriptionRequest{
+						Name: "update-test-sub",
+						Owner: models.OwnerSpec{
+							Groups: []models.GroupReference{{Name: "users"}},
+						},
+						ModelRefs: []models.ModelSubscriptionRef{
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
+						},
+						Priority: 1,
 					},
-					ModelRefs: []models.ModelSubscriptionRef{
-						{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
-					},
-					Priority: 1,
 				},
 				k8Factory,
 				identity,
@@ -317,21 +338,23 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 		})
 
 		It("returns 200 and the updated subscription", func() {
-			actual, rs, err := setupApiTest[models.CreateSubscriptionResponse](
+			actual, rs, err := setupApiTest[Envelope[*models.CreateSubscriptionResponse, None]](
 				http.MethodPut,
 				"/api/v1/update-subscription/update-test-sub",
-				models.UpdateSubscriptionRequest{
-					Owner: models.OwnerSpec{
-						Groups: []models.GroupReference{{Name: "premium-users"}},
+				Envelope[models.UpdateSubscriptionRequest, None]{
+					Data: models.UpdateSubscriptionRequest{
+						Owner: models.OwnerSpec{
+							Groups: []models.GroupReference{{Name: "premium-users"}},
+						},
+						ModelRefs: []models.ModelSubscriptionRef{
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 2000, Window: "1h"}}},
+							{Name: "flan-t5-small", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 500, Window: "1m"}}},
+						},
+						TokenMetadata: &models.TokenMetadata{
+							OrganizationID: "updated-org",
+						},
+						Priority: 20,
 					},
-					ModelRefs: []models.ModelSubscriptionRef{
-						{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
-						{Name: "flan-t5-small", Namespace: "maas-models"},
-					},
-					TokenMetadata: &models.TokenMetadata{
-						OrganizationID: "updated-org",
-					},
-					Priority: 20,
 				},
 				k8Factory,
 				identity,
@@ -339,28 +362,30 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusOK))
-			Expect(actual.Subscription.Name).To(Equal("update-test-sub"))
-			Expect(actual.Subscription.Priority).To(Equal(int32(20)))
-			Expect(actual.Subscription.Owner.Groups).To(HaveLen(1))
-			Expect(actual.Subscription.Owner.Groups[0].Name).To(Equal("premium-users"))
-			Expect(actual.Subscription.ModelRefs).To(HaveLen(2))
-			Expect(actual.Subscription.TokenMetadata).NotTo(BeNil())
-			Expect(actual.Subscription.TokenMetadata.OrganizationID).To(Equal("updated-org"))
+			Expect(actual.Data.Subscription.Name).To(Equal("update-test-sub"))
+			Expect(actual.Data.Subscription.Priority).To(Equal(int32(20)))
+			Expect(actual.Data.Subscription.Owner.Groups).To(HaveLen(1))
+			Expect(actual.Data.Subscription.Owner.Groups[0].Name).To(Equal("premium-users"))
+			Expect(actual.Data.Subscription.ModelRefs).To(HaveLen(2))
+			Expect(actual.Data.Subscription.TokenMetadata).NotTo(BeNil())
+			Expect(actual.Data.Subscription.TokenMetadata.OrganizationID).To(Equal("updated-org"))
 
 			// Auth policy is not managed during update
-			Expect(actual.AuthPolicy).To(BeNil())
+			Expect(actual.Data.AuthPolicy).To(BeNil())
 		})
 
 		It("returns 404 for non-existent subscription", func() {
 			_, rs, err := setupApiTest[map[string]interface{}](
 				http.MethodPut,
 				"/api/v1/update-subscription/non-existent-sub",
-				models.UpdateSubscriptionRequest{
-					Owner: models.OwnerSpec{
-						Groups: []models.GroupReference{{Name: "users"}},
-					},
-					ModelRefs: []models.ModelSubscriptionRef{
-						{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+				Envelope[models.UpdateSubscriptionRequest, None]{
+					Data: models.UpdateSubscriptionRequest{
+						Owner: models.OwnerSpec{
+							Groups: []models.GroupReference{{Name: "users"}},
+						},
+						ModelRefs: []models.ModelSubscriptionRef{
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
+						},
 					},
 				},
 				k8Factory,
@@ -374,11 +399,13 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			_, rs, err := setupApiTest[map[string]interface{}](
 				http.MethodPut,
 				"/api/v1/update-subscription/update-test-sub",
-				models.UpdateSubscriptionRequest{
-					Owner: models.OwnerSpec{
-						Groups: []models.GroupReference{{Name: "users"}},
+				Envelope[models.UpdateSubscriptionRequest, None]{
+					Data: models.UpdateSubscriptionRequest{
+						Owner: models.OwnerSpec{
+							Groups: []models.GroupReference{{Name: "users"}},
+						},
+						ModelRefs: []models.ModelSubscriptionRef{},
 					},
-					ModelRefs: []models.ModelSubscriptionRef{},
 				},
 				k8Factory,
 				identity,
@@ -390,16 +417,18 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 
 	var _ = Describe("DeleteSubscriptionHandler", Ordered, func() {
 		BeforeAll(func() {
-			_, rs, err := setupApiTest[models.CreateSubscriptionResponse](
+			_, rs, err := setupApiTest[Envelope[*models.CreateSubscriptionResponse, None]](
 				http.MethodPost,
 				"/api/v1/new-subscription",
-				models.CreateSubscriptionRequest{
-					Name: "delete-test-sub",
-					Owner: models.OwnerSpec{
-						Groups: []models.GroupReference{{Name: "users"}},
-					},
-					ModelRefs: []models.ModelSubscriptionRef{
-						{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+				Envelope[models.CreateSubscriptionRequest, None]{
+					Data: models.CreateSubscriptionRequest{
+						Name: "delete-test-sub",
+						Owner: models.OwnerSpec{
+							Groups: []models.GroupReference{{Name: "users"}},
+						},
+						ModelRefs: []models.ModelSubscriptionRef{
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
+						},
 					},
 				},
 				k8Factory,
@@ -410,7 +439,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 		})
 
 		It("returns 200 and deletes the subscription", func() {
-			actual, rs, err := setupApiTest[map[string]string](
+			_, rs, err := setupApiTest[Envelope[None, None]](
 				http.MethodDelete,
 				"/api/v1/subscription/delete-test-sub",
 				nil,
@@ -419,7 +448,6 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusOK))
-			Expect(actual["message"]).To(ContainSubstring("deleted successfully"))
 
 			// Verify it's gone
 			_, rs2, err := setupApiTest[map[string]interface{}](

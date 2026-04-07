@@ -5,9 +5,10 @@ import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';
 
 const getStatusLabel = () => screen.getByTestId('notebook-status-text').textContent;
+const getStatusLabelElement = () => screen.getByTestId('notebook-status-text');
 
 describe('NotebookStatusLabel', () => {
-  it('should show Failed when notebook has error status', () => {
+  it('should show Failed with danger status when notebook has error status', () => {
     render(
       <NotebookStatusLabel
         isStarting={false}
@@ -22,6 +23,7 @@ describe('NotebookStatusLabel', () => {
       />,
     );
     expect(getStatusLabel()).toBe('Failed');
+    expect(getStatusLabelElement()).toHaveClass('pf-m-danger');
   });
 
   it('should show Queued when isStarting and kueueStatus is Queued (kueue status takes precedence)', () => {
@@ -36,11 +38,12 @@ describe('NotebookStatusLabel', () => {
     expect(getStatusLabel()).toBe('Queued');
   });
 
-  it('should show Starting when isStarting and kueueStatus is null', () => {
+  it('should show Starting with blue color when isStarting and kueueStatus is null', () => {
     render(
       <NotebookStatusLabel isStarting isStopping={false} isRunning={false} kueueStatus={null} />,
     );
     expect(getStatusLabel()).toBe('Starting');
+    expect(getStatusLabelElement()).toHaveClass('pf-m-blue');
   });
 
   it('should show Starting when isStarting and kueueStatus is Running (Running not in override list)', () => {
@@ -65,15 +68,17 @@ describe('NotebookStatusLabel', () => {
       />,
     );
     expect(getStatusLabel()).toBe('Stopping');
+    expect(getStatusLabelElement()).not.toHaveClass('pf-m-success');
+    expect(getStatusLabelElement()).not.toHaveClass('pf-m-danger');
   });
 
-  it('should show Stopping when isStopping even if kueueStatus is Succeeded', () => {
+  it('should show Stopping when isStopping even if kueueStatus is Complete', () => {
     render(
       <NotebookStatusLabel
         isStarting={false}
         isStopping
         isRunning={false}
-        kueueStatus={{ status: KueueWorkloadStatus.Succeeded }}
+        kueueStatus={{ status: KueueWorkloadStatus.Complete }}
       />,
     );
     expect(getStatusLabel()).toBe('Stopping');
@@ -91,26 +96,28 @@ describe('NotebookStatusLabel', () => {
     expect(getStatusLabel()).toBe('Queued');
   });
 
-  it('should show Complete when not starting or stopping and kueueStatus is Succeeded', () => {
+  it('should show Complete with success status when kueueStatus is Complete', () => {
     render(
       <NotebookStatusLabel
         isStarting={false}
         isStopping={false}
         isRunning={false}
-        kueueStatus={{ status: KueueWorkloadStatus.Succeeded }}
+        kueueStatus={{ status: KueueWorkloadStatus.Complete }}
       />,
     );
     expect(getStatusLabel()).toBe('Complete');
+    expect(getStatusLabelElement()).toHaveClass('pf-m-success');
   });
 
-  it('should show Running when isRunning and no kueue override', () => {
+  it('should show Ready with success status when isRunning and no kueue override', () => {
     render(
       <NotebookStatusLabel isStarting={false} isStopping={false} isRunning kueueStatus={null} />,
     );
-    expect(getStatusLabel()).toBe('Running');
+    expect(getStatusLabel()).toBe('Ready');
+    expect(getStatusLabelElement()).toHaveClass('pf-m-success');
   });
 
-  it('should show Stopped when not starting, stopping, or running and no kueue status', () => {
+  it('should show Stopped with no semantic status when not starting, stopping, or running', () => {
     render(
       <NotebookStatusLabel
         isStarting={false}
@@ -120,5 +127,28 @@ describe('NotebookStatusLabel', () => {
       />,
     );
     expect(getStatusLabel()).toBe('Stopped');
+    expect(getStatusLabelElement()).not.toHaveClass('pf-m-success');
+    expect(getStatusLabelElement()).not.toHaveClass('pf-m-danger');
+    expect(getStatusLabelElement()).not.toHaveClass('pf-m-info');
+  });
+
+  it('should use outline variant when onClick is not provided', () => {
+    render(
+      <NotebookStatusLabel isStarting={false} isStopping={false} isRunning kueueStatus={null} />,
+    );
+    expect(getStatusLabelElement()).toHaveClass('pf-m-outline');
+  });
+
+  it('should use filled variant when onClick is provided', () => {
+    render(
+      <NotebookStatusLabel
+        isStarting={false}
+        isStopping={false}
+        isRunning
+        kueueStatus={null}
+        onClick={jest.fn()}
+      />,
+    );
+    expect(getStatusLabelElement()).not.toHaveClass('pf-m-outline');
   });
 });

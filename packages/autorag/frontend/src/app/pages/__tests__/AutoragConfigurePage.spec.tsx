@@ -104,7 +104,7 @@ jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
   const MockVectorStoreSelector = () => {
     const { setValue } = useFormContext();
     ReactMock.useEffect(() => {
-      setValue('llama_stack_vector_database_id', 'ls_milvus', { shouldValidate: true });
+      setValue('llama_stack_vector_io_provider_id', 'ls_milvus', { shouldValidate: true });
     }, [setValue]);
     return ReactMock.createElement(
       'div',
