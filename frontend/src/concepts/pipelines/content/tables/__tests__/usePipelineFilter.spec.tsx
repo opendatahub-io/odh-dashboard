@@ -22,8 +22,9 @@ describe('usePipelineFilter', () => {
       [FilterOptions.NAME]: '',
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: '',
-      [FilterOptions.EXPERIMENT]: undefined,
+      [FilterOptions.RUN_GROUP]: '',
       [FilterOptions.PIPELINE_VERSION]: undefined,
+      [FilterOptions.MLFLOW_EXPERIMENT]: '',
     });
 
     act(() => {
@@ -33,8 +34,9 @@ describe('usePipelineFilter', () => {
       [FilterOptions.NAME]: 'test',
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: '',
-      [FilterOptions.EXPERIMENT]: undefined,
+      [FilterOptions.RUN_GROUP]: '',
       [FilterOptions.PIPELINE_VERSION]: undefined,
+      [FilterOptions.MLFLOW_EXPERIMENT]: '',
     });
 
     act(() => {
@@ -44,8 +46,9 @@ describe('usePipelineFilter', () => {
       [FilterOptions.NAME]: '',
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: '',
-      [FilterOptions.EXPERIMENT]: undefined,
+      [FilterOptions.RUN_GROUP]: '',
       [FilterOptions.PIPELINE_VERSION]: undefined,
+      [FilterOptions.MLFLOW_EXPERIMENT]: '',
     });
   });
 
@@ -150,8 +153,9 @@ describe('usePipelineFilterSearchParams', () => {
       [FilterOptions.NAME]: 'test',
       [FilterOptions.CREATED_AT]: '2024-11-21',
       [FilterOptions.STATUS]: 'success',
-      [FilterOptions.EXPERIMENT]: 'test-experiment',
+      [FilterOptions.RUN_GROUP]: 'test-experiment',
       [FilterOptions.PIPELINE_VERSION]: 'test-version',
+      [FilterOptions.MLFLOW_EXPERIMENT]: '',
     });
   });
 
@@ -197,14 +201,12 @@ describe('usePipelineFilterSearchParams', () => {
       [FilterOptions.NAME]: 'test',
       [FilterOptions.CREATED_AT]: '2024-11-21',
       [FilterOptions.STATUS]: 'success',
-      [FilterOptions.EXPERIMENT]: {
-        label: 'Test Experiment',
-        value: 'test-experiment',
-      },
+      [FilterOptions.RUN_GROUP]: 'Test Experiment',
       [FilterOptions.PIPELINE_VERSION]: {
         label: 'Test Version',
         value: 'test-version',
       },
+      [FilterOptions.MLFLOW_EXPERIMENT]: '',
     });
   });
 
@@ -220,8 +222,9 @@ describe('usePipelineFilterSearchParams', () => {
       [FilterOptions.NAME]: '',
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: '',
-      [FilterOptions.EXPERIMENT]: undefined,
+      [FilterOptions.RUN_GROUP]: '',
       [FilterOptions.PIPELINE_VERSION]: undefined,
+      [FilterOptions.MLFLOW_EXPERIMENT]: '',
     });
   });
 
@@ -290,6 +293,33 @@ describe('usePipelineFilterSearchParams', () => {
     expect(currentSearch).toBe('');
   });
 
+  it('should remove legacy experiment param when run group filter is updated', () => {
+    const setFilterMock = jest.fn();
+    let currentSearch = '';
+    window.history.pushState({}, '', '/?experiment=legacy-exp');
+
+    const { result } = renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
+      wrapper: ({ children }) => (
+        <MemoryRouter initialEntries={['/?experiment=legacy-exp']}>
+          {children}
+          <LocationDisplay
+            setSearch={(search) => {
+              currentSearch = search;
+            }}
+          />
+        </MemoryRouter>
+      ),
+    });
+
+    act(() => {
+      result.current.onFilterUpdate(FilterOptions.RUN_GROUP, 'new-exp');
+    });
+
+    const params = new URLSearchParams(currentSearch);
+    expect(params.get('experiment')).toBeNull();
+    expect(params.get(FilterOptions.RUN_GROUP)).toBe('new-exp');
+  });
+
   it('should preserve other URL params when updating filters', () => {
     const setFilterMock = jest.fn();
     let currentSearch = '';
@@ -319,5 +349,162 @@ describe('usePipelineFilterSearchParams', () => {
     });
 
     expect(currentSearch).toBe('?otherParam=value&name=test');
+  });
+
+  describe('run group predicate resolution', () => {
+    const experimentAlpha = buildMockExperimentKF({
+      experiment_id: 'exp-alpha',
+      display_name: 'Alpha Test',
+    });
+    const experimentBeta = buildMockExperimentKF({
+      experiment_id: 'exp-beta',
+      display_name: 'Beta Test',
+    });
+    const experimentGamma = buildMockExperimentKF({
+      experiment_id: 'exp-gamma',
+      display_name: 'Gamma',
+    });
+
+    const versionsContextValue = { versions: [] as never[], loaded: true };
+    const experimentsContextValue = {
+      experiments: [experimentAlpha, experimentBeta, experimentGamma],
+      loaded: true,
+    };
+
+    const wrapperWithExperiments = (url: string) => {
+      const Wrapper = ({ children }: { children: React.ReactNode }) => (
+        <PipelineRunVersionsContext.Provider value={versionsContextValue}>
+          <PipelineRunExperimentsContext.Provider value={experimentsContextValue}>
+            <MemoryRouter initialEntries={[url]}>{children}</MemoryRouter>
+          </PipelineRunExperimentsContext.Provider>
+        </PipelineRunVersionsContext.Provider>
+      );
+      return Wrapper;
+    };
+
+    it('should produce IN predicate when run group matches a single experiment', () => {
+      const setFilterMock = jest.fn();
+      renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
+        wrapper: wrapperWithExperiments('/?run_group=Gamma'),
+      });
+
+      jest.runAllTimers();
+
+      expect(setFilterMock).toHaveBeenLastCalledWith({
+        predicates: expect.arrayContaining([
+          {
+            key: 'experiment_id',
+            operation: PipelinesFilterOp.IN,
+            string_values: { values: ['exp-gamma'] },
+          },
+        ]),
+      });
+    });
+
+    it('should produce IN predicate when run group matches multiple experiments', () => {
+      const setFilterMock = jest.fn();
+      renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
+        wrapper: wrapperWithExperiments('/?run_group=Test'),
+      });
+
+      jest.runAllTimers();
+
+      expect(setFilterMock).toHaveBeenLastCalledWith({
+        predicates: expect.arrayContaining([
+          {
+            key: 'experiment_id',
+            operation: PipelinesFilterOp.IN,
+            // eslint-disable-next-line camelcase
+            string_values: {
+              values: expect.arrayContaining(['exp-alpha', 'exp-beta']),
+            },
+          },
+        ]),
+      });
+    });
+
+    it('should produce empty IN predicate when run group matches no experiments', () => {
+      const setFilterMock = jest.fn();
+      renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
+        wrapper: wrapperWithExperiments('/?run_group=NoMatch'),
+      });
+
+      jest.runAllTimers();
+
+      expect(setFilterMock).toHaveBeenLastCalledWith({
+        predicates: expect.arrayContaining([
+          {
+            key: 'experiment_id',
+            operation: PipelinesFilterOp.IN,
+            string_values: { values: [] },
+          },
+        ]),
+      });
+    });
+
+    it('should use exact experiment ID for legacy ?experiment= deep links', () => {
+      const setFilterMock = jest.fn();
+      renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
+        wrapper: wrapperWithExperiments('/?experiment=exp-alpha'),
+      });
+
+      jest.runAllTimers();
+
+      expect(setFilterMock).toHaveBeenLastCalledWith({
+        predicates: expect.arrayContaining([
+          {
+            key: 'experiment_id',
+            operation: PipelinesFilterOp.EQUALS,
+            string_value: 'exp-alpha',
+          },
+        ]),
+      });
+    });
+
+    it('should preserve exact legacy experiment ID before experiments load', () => {
+      const setFilterMock = jest.fn();
+      const wrapperWithLoadingExperiments = ({ children }: { children: React.ReactNode }) => (
+        <PipelineRunVersionsContext.Provider value={versionsContextValue}>
+          <PipelineRunExperimentsContext.Provider value={{ experiments: [], loaded: false }}>
+            <MemoryRouter initialEntries={['/?experiment=exp-alpha']}>{children}</MemoryRouter>
+          </PipelineRunExperimentsContext.Provider>
+        </PipelineRunVersionsContext.Provider>
+      );
+
+      renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
+        wrapper: wrapperWithLoadingExperiments,
+      });
+
+      jest.runAllTimers();
+
+      expect(setFilterMock).toHaveBeenLastCalledWith({
+        predicates: expect.arrayContaining([
+          {
+            key: 'experiment_id',
+            operation: PipelinesFilterOp.EQUALS,
+            string_value: 'exp-alpha',
+          },
+        ]),
+      });
+    });
+  });
+
+  it('should ignore mlflow experiment URL param when feature is unavailable', () => {
+    const setFilterMock = jest.fn();
+    const { result } = renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
+      wrapper: ({ children }: { children: React.ReactNode }) => (
+        <MemoryRouter initialEntries={['/?mlflow_experiment=my-mlflow-exp']}>
+          {children}
+        </MemoryRouter>
+      ),
+    });
+
+    jest.runAllTimers();
+
+    expect(result.current.filterData[FilterOptions.MLFLOW_EXPERIMENT]).toBe('');
+
+    const lastCall = setFilterMock.mock.calls[setFilterMock.mock.calls.length - 1][0];
+    const predicateKeys = (lastCall?.predicates ?? []).map((p: { key: string }) => p.key);
+    expect(predicateKeys).not.toContain('mlflow_experiment');
   });
 });
