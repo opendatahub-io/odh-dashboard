@@ -40,19 +40,19 @@ class McpDeploymentDeleteModal {
   }
 
   findInput() {
-    return this.find().findByTestId('delete-modal-input');
+    return cy.findByTestId('delete-modal-input');
   }
 
   findSubmitButton() {
-    return this.find().findByTestId('delete-modal-submit-button');
+    return cy.findByTestId('delete-modal-submit-button');
   }
 
   findCancelButton() {
-    return this.find().findByTestId('delete-modal-cancel-button');
+    return cy.findByTestId('delete-modal-cancel-button');
   }
 
   findErrorAlert() {
-    return this.find().findByTestId('delete-modal-error-message-alert');
+    return cy.findByTestId('delete-modal-error-message-alert');
   }
 
   shouldBeVisible() {
