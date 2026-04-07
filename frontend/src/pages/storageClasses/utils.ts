@@ -163,8 +163,6 @@ export const isValidConfigValue = (
       return typeof value === 'boolean';
     case 'lastModified':
       return typeof value === 'string' && isValidDate(new Date(value));
-    case 'accessModeSettings':
-      return typeof value === 'object' && value !== null;
     default:
       return false;
   }
@@ -173,6 +171,12 @@ export const isValidConfigValue = (
 export const isValidAccessModeSettings = (
   value: string | boolean | undefined | AccessModeSettings | null,
 ): boolean => {
+  // undefined means the field was never set (pre-access-mode configs) — not corrupted
+  // Fix for RHOAIENG-51965
+  if (value === undefined) {
+    return true;
+  }
+
   if (typeof value !== 'object' || value === null) {
     return false;
   }

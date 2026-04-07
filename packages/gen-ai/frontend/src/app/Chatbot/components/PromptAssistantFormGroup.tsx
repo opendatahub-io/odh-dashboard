@@ -12,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
 import {
@@ -181,14 +182,33 @@ export default function PromptAssistantFormGroup({
             <Flex>
               <Button
                 variant="primary"
-                isDisabled={editMode}
-                onClick={() => setEditMode(!editMode)}
+                onClick={() => {
+                  setEditMode(true);
+                  fireMiscTrackingEvent('Playground Prompt Edit Selected', {
+                    source: 'button',
+                  });
+                }}
               >
                 Edit
               </Button>
               <Button
                 variant="link"
-                onClick={() => confirm(handleNewPrompt, RESET_CONFIRMATION_CONFIG)}
+                isDisabled={!isEdited && !activePrompt}
+                onClick={() =>
+                  confirm(handleNewPrompt, {
+                    ...RESET_CONFIRMATION_CONFIG,
+                    onConfirmTracking: () =>
+                      fireMiscTrackingEvent('Playground Prompt Cleared', {
+                        outcome: 'submit',
+                        hadLoadedPrompt: !!activePrompt,
+                      }),
+                    onCancelTracking: () =>
+                      fireMiscTrackingEvent('Playground Prompt Cleared', {
+                        outcome: 'cancel',
+                        hadLoadedPrompt: !!activePrompt,
+                      }),
+                  })
+                }
               >
                 Reset
               </Button>
@@ -199,18 +219,50 @@ export default function PromptAssistantFormGroup({
               <Button variant="primary" isDisabled={!isEdited} onClick={handleSaveClicked}>
                 Save
               </Button>
-              <Button
-                variant="link"
-                isDisabled={!isEdited}
-                onClick={() =>
-                  confirm(
-                    handleRevert,
-                    activePrompt ? CONFIRMATION_CONFIG : RESET_CONFIRMATION_CONFIG,
-                  )
-                }
-              >
-                Revert
-              </Button>
+              {activePrompt ? (
+                <Button
+                  variant="link"
+                  isDisabled={!isEdited}
+                  onClick={() =>
+                    confirm(handleRevert, {
+                      ...CONFIRMATION_CONFIG,
+                      onConfirmTracking: () =>
+                        fireMiscTrackingEvent('Playground Prompt Reverted', {
+                          outcome: 'submit',
+                        }),
+                      onCancelTracking: () =>
+                        fireMiscTrackingEvent('Playground Prompt Reverted', {
+                          outcome: 'cancel',
+                        }),
+                    })
+                  }
+                >
+                  Revert
+                </Button>
+              ) : (
+                <Button
+                  variant="link"
+                  isDisabled={!isEdited}
+                  onClick={() =>
+                    confirm(handleNewPrompt, {
+                      ...RESET_CONFIRMATION_CONFIG,
+                      forceConfirm: true,
+                      onConfirmTracking: () =>
+                        fireMiscTrackingEvent('Playground Prompt Cleared', {
+                          outcome: 'submit',
+                          hadLoadedPrompt: false,
+                        }),
+                      onCancelTracking: () =>
+                        fireMiscTrackingEvent('Playground Prompt Cleared', {
+                          outcome: 'cancel',
+                          hadLoadedPrompt: false,
+                        }),
+                    })
+                  }
+                >
+                  Reset
+                </Button>
+              )}
             </Flex>
           )}
         </Stack>

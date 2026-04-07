@@ -52,6 +52,8 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
+  INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
+  INFERENCE_SERVICE_NAME_REGEX,
   isK8sNameDescriptionDataValid,
   LimitNameResourceType,
 } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
@@ -128,6 +130,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
     initialData: editInfo?.inferenceServiceEditInfo,
     limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+    regexp: INFERENCE_SERVICE_NAME_REGEX,
+    invalidCharsMessage: INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
   });
 
   const [connection, setConnection] = React.useState<Connection>();

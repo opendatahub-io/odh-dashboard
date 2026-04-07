@@ -17,7 +17,7 @@ const mockPattern: AutoragPattern = {
   max_combinations: 20,
   duration_seconds: 120,
   settings: {
-    vector_store: { datasource_type: 'ls_milvus', collection_name: 'collection0' },
+    vector_store: { datasource_type: 'milvus', collection_name: 'collection0' },
     chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
     embedding: {
       model_id: 'mock-embed-a',
@@ -230,7 +230,7 @@ describe('PatternDetailsModal', () => {
       await user.click(screen.getByTestId('tab-vector_store'));
 
       expect(screen.getByText('Datasource Type')).toBeInTheDocument();
-      expect(screen.getByText('ls_milvus')).toBeInTheDocument();
+      expect(screen.getByText('milvus')).toBeInTheDocument();
       expect(screen.getByText('Collection Name')).toBeInTheDocument();
       expect(screen.getByText('collection0')).toBeInTheDocument();
     });
