@@ -208,6 +208,11 @@ export type GenericFieldProps = {
 
 export type WizardStateOverrides = {
   tokenAuthentication?: { isDisabled?: boolean };
+  'llmd-serving/gateway'?: {
+    isDisabled?: boolean;
+    selection?: { name: string; namespace?: string };
+    hiddenOptions?: { name: string; namespace?: string }[];
+  };
 };
 
 export type WizardField<
