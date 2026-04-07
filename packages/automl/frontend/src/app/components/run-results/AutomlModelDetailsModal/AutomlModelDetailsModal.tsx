@@ -49,7 +49,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   const { models: modelsRecord, parameters, pipelineRun } = useAutomlResultsContext();
   const models = Object.values(modelsRecord);
   const taskType = parameters?.task_type ?? TASK_TYPE_TIMESERIES;
-  const evalMetric = getOptimizedMetricForTask(taskType) ?? 'accuracy';
+  const evalMetric = getOptimizedMetricForTask(taskType);
   const createdAt = pipelineRun?.created_at;
 
   const [selectedModelName, setSelectedModelName] = React.useState(modelName);

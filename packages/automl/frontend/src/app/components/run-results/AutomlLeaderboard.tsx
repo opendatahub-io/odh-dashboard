@@ -68,7 +68,7 @@ function AutomlLeaderboard({
     pipelineRun?.state === RuntimeStateKF.CANCELING;
 
   // Determine the optimized metric
-  const optimizedMetric = getOptimizedMetricForTask(taskType) ?? 'accuracy';
+  const optimizedMetric = getOptimizedMetricForTask(taskType);
 
   // Extract all unique metric keys across all models
   const metricKeys = React.useMemo(() => {

@@ -1,6 +1,6 @@
 import { useQueries } from '@tanstack/react-query';
 import React from 'react';
-import { useS3ListFilesQuery, fetchS3File } from '~/app/hooks/queries';
+import { useS3ListFilesQuery, fetchS3Json, AutomlModelSchema } from '~/app/hooks/queries';
 import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
@@ -161,32 +161,20 @@ export function useAutomlResults(
             throw new Error('namespace is required');
           }
 
-          const blob = await fetchS3File(namespace, modelJsonPath, { signal });
-          const text = await blob.text();
-
-          let parsed: unknown;
-          try {
-            parsed = JSON.parse(text);
-          } catch {
-            throw new Error(`Failed to parse model.json at ${modelJsonPath}: invalid JSON`);
-          }
-
-          // Validate that parsed data is a non-null object
-          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-            throw new Error(
-              `Invalid model.json structure in ${modelJsonPath}: expected object, got ${typeof parsed}`,
-            );
-          }
-
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- validated above
-          const model = parsed as AutomlModel;
+          const validated = await fetchS3Json(namespace, modelJsonPath, {
+            signal,
+            schema: AutomlModelSchema,
+          });
 
           // Rewrite relative location paths to absolute S3 paths
-          model.location = {
-            // eslint-disable-next-line camelcase
-            model_directory: directory,
-            predictor: `${directory}${model.location.predictor}`,
-            notebook: `${directory}${model.location.notebook}`,
+          const model: AutomlModel = {
+            ...validated,
+            location: {
+              // eslint-disable-next-line camelcase
+              model_directory: directory,
+              predictor: `${directory}${validated.location.predictor}`,
+              notebook: `${directory}${validated.location.notebook}`,
+            },
           };
 
           return { name, model };

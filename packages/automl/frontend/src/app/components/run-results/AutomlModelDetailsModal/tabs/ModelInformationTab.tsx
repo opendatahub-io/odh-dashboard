@@ -19,7 +19,7 @@ const HIDDEN_KEYS = new Set([
 
 const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, createdAt }) => {
   const paramEntries = Object.entries(parameters ?? {}).filter(([key]) => !HIDDEN_KEYS.has(key));
-  const evalMetric = getOptimizedMetricForTask(taskType) ?? 'accuracy';
+  const evalMetric = getOptimizedMetricForTask(taskType);
 
   return (
     <>

@@ -110,9 +110,9 @@ describe('getOptimizedMetricForTask', () => {
     expect(getOptimizedMetricForTask('timeseries')).toBe('mase');
   });
 
-  it('should return undefined for unknown task types', () => {
-    expect(getOptimizedMetricForTask('unknown')).toBeUndefined();
-    expect(getOptimizedMetricForTask('')).toBeUndefined();
+  it('should return Unknown metric for unknown task types', () => {
+    expect(getOptimizedMetricForTask('unknown')).toBe('Unknown metric');
+    expect(getOptimizedMetricForTask('')).toBe('Unknown metric');
   });
 });
 

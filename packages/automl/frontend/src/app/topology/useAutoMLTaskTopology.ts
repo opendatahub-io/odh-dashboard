@@ -9,8 +9,8 @@ const TASK_DISPLAY_NAMES: Record<string, string> = {
   'timeseries-data-loader': 'Input data loader',
   'models-selection': 'Model selection',
   'timeseries-models-selection': 'Model selection',
-  'for-loop-1': 'Model generation', // removed for 3.4
-  'autogluon-models-training': 'Model generation',
+  'for-loop-1': 'Model generation', // used in timeseries
+  'autogluon-models-training': 'Model generation', // used in tabular
   'leaderboard-evaluation': 'Leaderboard evaluation',
 };
 

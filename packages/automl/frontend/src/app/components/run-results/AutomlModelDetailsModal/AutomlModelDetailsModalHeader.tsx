@@ -28,7 +28,13 @@ function getOptimizedMetric(
   model: AutomlModel,
   evalMetric: string,
 ): { name: string; value: number } | undefined {
-  const metrics = model.metrics.test_data;
+  // Runtime guard: model.json from the BFF may omit metrics or test_data
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const metrics = model.metrics?.test_data;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!metrics || typeof metrics !== 'object') {
+    return undefined;
+  }
 
   // Case-insensitive metric lookup
   const metricKey = Object.keys(metrics).find(
