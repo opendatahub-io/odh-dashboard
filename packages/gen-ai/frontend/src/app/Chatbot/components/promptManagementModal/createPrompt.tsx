@@ -66,10 +66,15 @@ export default function CreatePrompt({
       const trackingEvent = isEditMode
         ? 'Playground Prompt Version Saved'
         : 'Playground Prompt Saved';
+      const editedFromLatest =
+        latestVersion != null && dirtyPrompt?.version != null
+          ? dirtyPrompt.version === latestVersion
+          : undefined;
       fireMiscTrackingEvent(trackingEvent, {
         outcome: 'submit',
         success: true,
         ...(isEditMode && nextVersion != null ? { versionNumber: nextVersion } : {}),
+        ...(isEditMode && editedFromLatest != null ? { editedFromLatest } : {}),
       });
     },
     onError: (error) => {
@@ -83,11 +88,16 @@ export default function CreatePrompt({
       const trackingEvent = isEditMode
         ? 'Playground Prompt Version Saved'
         : 'Playground Prompt Saved';
+      const editedFromLatest =
+        latestVersion != null && dirtyPrompt?.version != null
+          ? dirtyPrompt.version === latestVersion
+          : undefined;
       fireMiscTrackingEvent(trackingEvent, {
         outcome: 'submit',
         success: false,
         error: errorMessage,
         ...(isEditMode && nextVersion != null ? { versionNumber: nextVersion } : {}),
+        ...(isEditMode && editedFromLatest != null ? { editedFromLatest } : {}),
       });
     },
   });
