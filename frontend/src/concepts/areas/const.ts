@@ -203,7 +203,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.LM_EVAL]: {
     featureFlags: ['disableLMEval'],
-    reliantAreas: [SupportedArea.MODEL_REGISTRY, SupportedArea.MODEL_SERVING],
+    requiredComponents: [DataScienceStackComponent.TRUSTY_AI],
   },
   [SupportedArea.FEATURE_STORE]: {
     featureFlags: ['disableFeatureStore'],
