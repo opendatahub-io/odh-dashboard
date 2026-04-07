@@ -14,7 +14,11 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Collection } from '~/app/types';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { toSafeExternalUrl } from './benchmarkUtils';
 
 type CollectionDrawerPanelProps = {
   collection: Collection | undefined;
@@ -77,17 +81,44 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                 <StackItem>
                   <Content component="h4">Benchmarks</Content>
                 </StackItem>
-                {collection.benchmarks.map((b) => (
-                  <StackItem key={`${b.provider_id ?? 'unknown'}-${b.id}`}>
-                    <Panel variant="bordered">
-                      <PanelMain>
-                        <PanelMainBody>
-                          <Content component="p">{b.id}</Content>
-                        </PanelMainBody>
-                      </PanelMain>
-                    </Panel>
-                  </StackItem>
-                ))}
+                {collection.benchmarks.map((b) => {
+                  const safeUrl = toSafeExternalUrl(b.url);
+                  return (
+                    <StackItem key={`${b.provider_id ?? 'unknown'}-${b.id}`}>
+                      <Panel variant="bordered">
+                        <PanelMain>
+                          <PanelMainBody>
+                            <Content component="p">
+                              {safeUrl ? (
+                                <Button
+                                  variant="link"
+                                  isInline
+                                  component="a"
+                                  href={safeUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  icon={<ExternalLinkAltIcon />}
+                                  iconPosition="end"
+                                  onClick={() =>
+                                    fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
+                                      url: safeUrl,
+                                      benchmarkId: b.id,
+                                      surface: 'collection_drawer',
+                                    })
+                                  }
+                                >
+                                  {b.id}
+                                </Button>
+                              ) : (
+                                b.id
+                              )}
+                            </Content>
+                          </PanelMainBody>
+                        </PanelMain>
+                      </Panel>
+                    </StackItem>
+                  );
+                })}
               </Stack>
             </StackItem>
           )}

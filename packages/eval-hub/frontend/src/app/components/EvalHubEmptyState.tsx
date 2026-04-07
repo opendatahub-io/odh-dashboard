@@ -9,6 +9,8 @@ import {
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
+import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const EvalHubEmptyState: React.FC = () => {
   const navigate = useNavigate();
@@ -30,7 +32,10 @@ const EvalHubEmptyState: React.FC = () => {
           <Button
             variant="primary"
             data-testid="create-evaluation-button"
-            onClick={() => navigate('create')}
+            onClick={() => {
+              fireSimpleTrackingEvent(EVAL_HUB_EVENTS.START_EVALUATION_SELECTED);
+              navigate('create');
+            }}
           >
             Create new evaluation
           </Button>

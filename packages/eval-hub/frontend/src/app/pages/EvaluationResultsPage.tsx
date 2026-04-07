@@ -20,6 +20,7 @@ import {
 } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import { evaluationsBaseRoute } from '~/app/routes';
@@ -36,6 +37,7 @@ import {
 import BenchmarkResultCard from '~/app/components/BenchmarkResultCard';
 import BenchmarkResultDetails from '~/app/components/BenchmarkResultDetails';
 import InlineHelpIcon from '~/app/components/InlineHelpIcon';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 interface MlflowRunTabsProps {
   experimentId: string;
@@ -230,7 +232,14 @@ const EvaluationResultsPage: React.FC = () => {
                     benchmarkId={id}
                     job={job}
                     isSelected={selectedBenchmarkId === id}
-                    onClick={() => setSelectedBenchmarkId(id)}
+                    onClick={() => {
+                      setSelectedBenchmarkId(id);
+                      fireMiscTrackingEvent(EVAL_HUB_EVENTS.RESULT_BENCHMARK_CARD_SELECTED, {
+                        benchmarkId: id,
+                        evaluationName,
+                        collectionName: job.collection?.id,
+                      });
+                    }}
                   />
                 ))}
               </Gallery>

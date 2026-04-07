@@ -22,3 +22,15 @@ export const getCategoryColor = (category?: string): CategoryColor => {
 };
 
 export const VISIBLE_METRICS_COUNT = 3;
+
+export const toSafeExternalUrl = (raw?: string): string | undefined => {
+  if (!raw) {
+    return undefined;
+  }
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? raw : undefined;
+  } catch {
+    return undefined;
+  }
+};
