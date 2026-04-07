@@ -54,7 +54,7 @@ const ServingRuntimeVersionStatus: React.FC<ServingRuntimeVersionStatusProps> = 
       >
         <Label
           data-testid="serving-runtime-version-status-label"
-          color={isOutdated ? 'yellow' : 'green'}
+          status={isOutdated ? 'warning' : 'success'}
           icon={isOutdated ? <ExclamationTriangleIcon /> : <CheckCircleIcon />}
           isCompact
         >

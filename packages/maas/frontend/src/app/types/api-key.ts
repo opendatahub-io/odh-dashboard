@@ -10,12 +10,19 @@ export type APIKey = {
   expirationDate?: string;
   status: APIKeyStatus;
   lastUsedAt?: string;
+  subscription?: string;
+};
+
+export type SubscriptionDetail = {
+  displayName?: string;
+  models: string[];
 };
 
 export type APIKeyListResponse = {
   object: string;
   data: APIKey[];
   has_more: boolean;
+  subscriptionDetails?: Record<string, SubscriptionDetail>;
 };
 
 export type APIKeySearchRequest = {

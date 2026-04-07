@@ -43,8 +43,8 @@ const AutoragVectorStoreSelector: React.FC = () => {
     control,
   } = useFormContext<ConfigureSchema>();
 
-  const { field } = useController<ConfigureSchema, 'llama_stack_vector_database_id'>({
-    name: 'llama_stack_vector_database_id',
+  const { field } = useController<ConfigureSchema, 'llama_stack_vector_io_provider_id'>({
+    name: 'llama_stack_vector_io_provider_id',
   });
 
   const llamaStackSecretName = useWatch({ control, name: 'llama_stack_secret_name' });
@@ -61,7 +61,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
 
   useEffect(() => {
     if (isError) {
-      notification.error('Failed to load vector store providers');
+      notification.error('Failed to load vector I/O providers');
     }
   }, [isError, notification]);
 
@@ -89,7 +89,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
 
   return (
     <Select
-      aria-label="Vector store selector"
+      aria-label="Vector I/O provider selector"
       isOpen={isOpen}
       onOpenChange={setIsOpen}
       onSelect={(_e, selectedProviderId) => {
@@ -107,10 +107,10 @@ const AutoragVectorStoreSelector: React.FC = () => {
           data-testid="vector-store-select-toggle"
         >
           {noProviders
-            ? 'No vector store providers available'
+            ? 'No vector I/O providers available'
             : selectedProvider
               ? formatProviderDisplayName(selectedProvider)
-              : 'Select vector store'}
+              : 'Select vector I/O provider'}
         </MenuToggle>
       )}
     >

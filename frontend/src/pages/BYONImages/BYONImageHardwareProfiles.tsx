@@ -69,7 +69,6 @@ const BYONImageHardwareProfiles: React.FC<BYONImageHardwareProfilesProps> = ({
           >
             <Label
               color="blue"
-              variant="outline"
               render={({ className, content }) => (
                 <Link
                   to={`/settings/environment-setup/workbench-images/hardware-profile/create?${new URLSearchParams(

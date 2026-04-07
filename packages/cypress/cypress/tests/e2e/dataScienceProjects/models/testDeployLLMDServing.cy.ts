@@ -172,7 +172,7 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Verify the model Row');
       const llmdRow = modelServingGlobal.getDeploymentRow(modelName);
-      llmdRow.findStatusLabel(ModelStateLabel.STARTED).should('exist');
+      llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');
       llmdRow.findServingRuntime().should('have.text', servingRuntime);
       llmdRow.findKebab().click();
       inferenceServiceActions.findDeleteInferenceServiceAction().click();
@@ -219,7 +219,7 @@ describe('A user can deploy an LLMD model', () => {
       checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
 
       cy.step('Verify the model Row');
-      llmdRow.findStatusLabel(ModelStateLabel.STARTED).should('exist');
+      llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');
       llmdRow.findKebab().click();
       inferenceServiceActions.findEditInferenceServiceAction().click();
       modelServingWizard.findYAMLEditFallbackAlert().should('exist');

@@ -23,7 +23,7 @@ export type AutoragExperimentsListStatus = {
 type AutoragExperimentsProps = {
   /**
    * Fired when list loading / emptiness changes so the host page can tune chrome (e.g. hide the
-   * header "Create RAG optimization run" action while the centered empty state is shown).
+   * header "Create AutoRAG optimization run" action while the centered empty state is shown).
    */
   onExperimentsListStatus?: (status: AutoragExperimentsListStatus) => void;
 };

@@ -103,7 +103,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
           cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
           const notebookRow = workbenchPage.getNotebookRow(workbenchName);
           notebookRow.findNotebookDescription(controlSuiteTestDescription);
-          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
 
           // Use the dynamic image name verification based on what was actually selected
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {
@@ -118,7 +118,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
             // Restart workbench and confirm initiation
             cy.step('Restart workbench and validate it starts successfully');
             notebookRow.findNotebookStopToggle().click();
-            notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
+            notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
 
             // Delete workbench
             cy.step('Delete workbench and confirm deleteion');
@@ -188,7 +188,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
           // Start the Workbench and validate it has started successfully
           cy.step('Restart the workbench and confirm the workbench has started successfully');
           workbenchStatusModal.findStartWorkbenchFooterButton().click();
-          workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Running, 120000);
+          workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Ready, 120000);
         },
       );
     },

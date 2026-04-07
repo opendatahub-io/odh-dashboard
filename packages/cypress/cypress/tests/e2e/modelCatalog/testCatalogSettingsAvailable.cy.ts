@@ -2,15 +2,15 @@ import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../uti
 import { modelCatalogSettings } from '../../../pages/modelCatalogSettings';
 import { pageNotfound } from '../../../pages/pageNotFound';
 
-describe('Verify AI Catalog Settings Access Control', () => {
+describe('Verify Model Catalog Settings Access Control', () => {
   it(
-    'Admin user can access AI catalog settings',
+    'Admin user can access Model catalog settings',
     { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
     () => {
       cy.step('Log into the application as admin with aiCatalogSettings flag enabled');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      cy.step('Navigate to AI catalog settings');
+      cy.step('Navigate to Model catalog settings');
       modelCatalogSettings.navigate();
 
       cy.step('Verify add source button is visible');
@@ -19,16 +19,16 @@ describe('Verify AI Catalog Settings Access Control', () => {
   );
 
   it(
-    'Non-admin user cannot access AI catalog settings',
+    'Non-admin user cannot access Model catalog settings',
     { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
     () => {
       cy.step('Log into the application as non-admin user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
-      cy.step('Verify AI catalog settings nav item is not visible for non-admin');
+      cy.step('Verify Model catalog settings nav item is not visible for non-admin');
       modelCatalogSettings.findNavItem().should('not.exist');
 
-      cy.step('Attempt to navigate to AI catalog settings directly');
+      cy.step('Attempt to navigate to Model catalog settings directly');
       modelCatalogSettings.visitExpectDenied();
 
       cy.step('Verify page not found is displayed');

@@ -230,6 +230,8 @@ export type ClipboardCopyTrackingProperties = {
   assetId?: string;
   copyTarget?: 'endpoint' | 'service_token';
   endpointType?: 'external' | 'internal' | 'maas_route';
+  modelType?: 'inference' | 'embedding';
+  endpointSource?: 'custom_endpoint' | 'namespace' | 'maas';
 };
 
 /**

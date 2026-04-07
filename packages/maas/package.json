@@ -44,7 +44,9 @@
   "exports": {
     "./types/tier": "./frontend/src/app/types/tier.ts",
     "./types/api-key": "./frontend/src/app/types/api-key.ts",
-    "./types/subscriptions": "./frontend/src/app/types/subscriptions.ts"
+    "./types/subscriptions": "./frontend/src/app/types/subscriptions.ts",
+    "./types/maas-model": "./frontend/src/app/types/maas-model.ts",
+    "./types/auth-policies": "./frontend/src/app/types/auth-policies.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",

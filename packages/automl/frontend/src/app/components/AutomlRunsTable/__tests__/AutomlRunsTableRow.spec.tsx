@@ -32,18 +32,18 @@ describe('getStatusLabelProps', () => {
     expect(getStatusLabelProps('CUSTOM_FAILED')).toEqual({ status: 'danger' });
   });
 
-  it('should return info status for RUNNING', () => {
-    expect(getStatusLabelProps('RUNNING')).toEqual({ status: 'info' });
-    expect(getStatusLabelProps('running')).toEqual({ status: 'info' });
+  it('should return blue color for RUNNING', () => {
+    expect(getStatusLabelProps('RUNNING')).toEqual({ color: 'blue' });
+    expect(getStatusLabelProps('running')).toEqual({ color: 'blue' });
   });
 
-  it('should return info status when state includes running', () => {
-    expect(getStatusLabelProps('STILL_RUNNING')).toEqual({ status: 'info' });
+  it('should return blue color when state includes running', () => {
+    expect(getStatusLabelProps('STILL_RUNNING')).toEqual({ color: 'blue' });
   });
 
-  it('should return warning status for PENDING', () => {
-    expect(getStatusLabelProps('PENDING')).toEqual({ status: 'warning' });
-    expect(getStatusLabelProps('pending')).toEqual({ status: 'warning' });
+  it('should return purple color for PENDING', () => {
+    expect(getStatusLabelProps('PENDING')).toEqual({ color: 'purple' });
+    expect(getStatusLabelProps('pending')).toEqual({ color: 'purple' });
   });
 
   it('should return warning status for INCOMPLETE', () => {
@@ -51,16 +51,17 @@ describe('getStatusLabelProps', () => {
     expect(getStatusLabelProps('incomplete')).toEqual({ status: 'warning' });
   });
 
-  it('should return warning status when state includes pending', () => {
-    expect(getStatusLabelProps('AWAITING_PENDING')).toEqual({ status: 'warning' });
+  it('should return purple color when state includes pending', () => {
+    expect(getStatusLabelProps('AWAITING_PENDING')).toEqual({ color: 'purple' });
   });
 
-  it('should return warning status for PAUSED', () => {
-    expect(getStatusLabelProps('PAUSED')).toEqual({ status: 'warning' });
+  it('should return grey color for PAUSED', () => {
+    expect(getStatusLabelProps('PAUSED')).toEqual({ color: 'grey' });
   });
 
-  it('should return grey color for SKIPPED', () => {
-    expect(getStatusLabelProps('SKIPPED')).toEqual({ color: 'grey' });
+  it('should return success status for SKIPPED', () => {
+    expect(getStatusLabelProps('SKIPPED')).toEqual({ status: 'success' });
+    expect(getStatusLabelProps('skipped')).toEqual({ status: 'success' });
   });
 
   it('should return grey color for CANCELLED', () => {
