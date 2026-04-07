@@ -467,6 +467,23 @@ describe('AutomlConfigure', () => {
         expect(screen.getByTestId('task-type-card-multiclass')).toHaveClass('pf-m-selected');
         expect(screen.getByTestId('task-type-card-binary')).not.toHaveClass('pf-m-selected');
       });
+
+      it('should reset prediction type when the selected file is removed', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectPredictionType('binary');
+        expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
+
+        // Remove the selected file
+        fireEvent.click(screen.getByRole('button', { name: 'Remove selection' }));
+
+        // Prediction type should be deselected
+        TASK_TYPES.forEach((type) => {
+          expect(screen.getByTestId(`task-type-card-${type}`)).not.toHaveClass('pf-m-selected');
+        });
+        // Column forms should be hidden
+        expect(screen.queryByText('Label column')).not.toBeInTheDocument();
+      });
     });
 
     describe('Column selector based on prediction type', () => {

@@ -65,6 +65,23 @@ describe('createConfigureSchema', () => {
       expect(result.success).toBe(true);
     });
 
+    it('should not require label_column when task_type is empty', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+      });
+      // Should fail because task_type is invalid (empty), NOT because label_column is missing
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('task_type');
+        expect(paths).not.toContain('label_column');
+      }
+    });
+
     it('should reject invalid task_type values', () => {
       const result = schema.full.safeParse({
         ...schema.defaults,

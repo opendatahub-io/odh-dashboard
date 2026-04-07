@@ -49,7 +49,10 @@ function createConfigureSchema() {
       // Validate tabular-specific required fields
       (data) => {
         const issues: z.core.$ZodRawIssue[] = [];
-        if (data.task_type !== TASK_TYPE_TIMESERIES) {
+        if (
+          data.task_type !== TASK_TYPE_TIMESERIES &&
+          TABULAR_TASK_TYPES.some((t) => t === data.task_type)
+        ) {
           if (!data.label_column || data.label_column.trim() === '') {
             issues.push({
               code: 'custom',
