@@ -35,6 +35,9 @@ jest.mock('~/app/hooks/mutations', () => ({
   useCreatePipelineRunMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
   })),
+  useS3FileUploadMutation: jest.fn(() => ({
+    mutateAsync: jest.fn().mockResolvedValue({ uploaded: true, key: 'data.csv' }),
+  })),
 }));
 
 jest.mock('~/app/hooks/queries', () => ({
@@ -440,8 +443,8 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      // Select files to populate train_data_file_key
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      // Browse bucket to populate train_data_file_key
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       // FileExplorer should open
@@ -494,7 +497,7 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
@@ -545,7 +548,7 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
@@ -597,7 +600,7 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
