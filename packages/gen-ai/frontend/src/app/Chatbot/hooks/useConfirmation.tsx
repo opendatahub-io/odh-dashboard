@@ -1,11 +1,17 @@
 import * as React from 'react';
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
 
-type ConfirmationConfig = {
+type ConfirmationDisplayConfig = {
   title?: string;
   message?: string;
   confirmLabel?: string;
   cancelLabel?: string;
+};
+
+type ConfirmationConfig = ConfirmationDisplayConfig & {
+  onConfirmTracking?: () => void;
+  onCancelTracking?: () => void;
+  forceConfirm?: boolean;
 };
 
 type UseConfirmationReturn = {
@@ -13,7 +19,7 @@ type UseConfirmationReturn = {
   modal: React.ReactNode;
 };
 
-const DEFAULT_CONFIG: Required<ConfirmationConfig> = {
+const DEFAULT_CONFIG: Required<ConfirmationDisplayConfig> = {
   title: 'Discard unsaved changes?',
   message: 'You have unsaved changes that will be lost. Do you want to continue?',
   confirmLabel: 'Discard',
@@ -22,16 +28,25 @@ const DEFAULT_CONFIG: Required<ConfirmationConfig> = {
 
 export function useConfirmation(hasUnsavedChanges: boolean): UseConfirmationReturn {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [config, setConfig] = React.useState<Required<ConfirmationConfig>>(DEFAULT_CONFIG);
+  const [config, setConfig] = React.useState<Required<ConfirmationDisplayConfig>>(DEFAULT_CONFIG);
   const pendingActionRef = React.useRef<(() => void) | null>(null);
+  const trackingRef = React.useRef<{
+    onConfirmTracking?: () => void;
+    onCancelTracking?: () => void;
+  }>({});
 
   const confirm = React.useCallback(
     (onConfirm: () => void, customConfig?: ConfirmationConfig) => {
-      if (!hasUnsavedChanges) {
+      if (!hasUnsavedChanges && !customConfig?.forceConfirm) {
         onConfirm();
+        customConfig?.onConfirmTracking?.();
         return;
       }
       pendingActionRef.current = onConfirm;
+      trackingRef.current = {
+        onConfirmTracking: customConfig?.onConfirmTracking,
+        onCancelTracking: customConfig?.onCancelTracking,
+      };
       setConfig({ ...DEFAULT_CONFIG, ...customConfig });
       setIsOpen(true);
     },
@@ -42,11 +57,15 @@ export function useConfirmation(hasUnsavedChanges: boolean): UseConfirmationRetu
     setIsOpen(false);
     pendingActionRef.current?.();
     pendingActionRef.current = null;
+    trackingRef.current.onConfirmTracking?.();
+    trackingRef.current = {};
   }, []);
 
   const handleCancel = React.useCallback(() => {
     setIsOpen(false);
     pendingActionRef.current = null;
+    trackingRef.current.onCancelTracking?.();
+    trackingRef.current = {};
   }, []);
 
   const modal = (

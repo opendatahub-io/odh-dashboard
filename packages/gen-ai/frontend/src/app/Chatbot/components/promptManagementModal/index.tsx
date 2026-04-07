@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
@@ -29,11 +30,22 @@ export default function PromptManagementModal(): React.ReactNode {
   };
   const displayText = displayTextLookup[modalMode];
 
-  function handleClose() {
-    if (modalMode === 'create' || modalMode === 'edit') {
-      // Restore the dirty prompt snapshot on cancel
-      updateDirtyPrompt(configId, dirtyPromptSnapshot);
-    }
+  function handleCloseSave() {
+    // Restore the dirty prompt snapshot on cancel
+    updateDirtyPrompt(configId, dirtyPromptSnapshot);
+    const trackingEvent =
+      modalMode === 'create' ? 'Playground Prompt Saved' : 'Playground Prompt Version Saved';
+    fireMiscTrackingEvent(trackingEvent, {
+      outcome: 'cancel',
+    });
+    closeModal();
+  }
+
+  function handleCloseLoad() {
+    fireMiscTrackingEvent('Playground Prompt Loaded', {
+      isSample: false,
+      outcome: 'cancel',
+    });
     closeModal();
   }
 
@@ -43,19 +55,23 @@ export default function PromptManagementModal(): React.ReactNode {
       prompt.template ?? prompt.messages?.find((m) => m.role === 'system')?.content ?? '';
     updateSystemInstruction(configId, instruction);
     closeModal();
+    fireMiscTrackingEvent('Playground Prompt Loaded', {
+      isSample: false,
+      outcome: 'success',
+    });
   }
 
   return (
     <>
       {modalMode === 'allPrompts' && (
         <PromptTable
-          onClose={handleClose}
+          onClose={handleCloseLoad}
           onClickLoad={handleClickLoad}
           displayText={displayText}
         />
       )}
       {(modalMode === 'create' || modalMode === 'edit') && (
-        <CreatePrompt configId={configId} displayText={displayText} onClose={handleClose} />
+        <CreatePrompt configId={configId} displayText={displayText} onClose={handleCloseSave} />
       )}
     </>
   );
