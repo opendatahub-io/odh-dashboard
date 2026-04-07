@@ -7,6 +7,7 @@ import { handleSubmit } from '#~/concepts/pipelines/content/createRun/submitUtil
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { isRunSchedule } from '#~/concepts/pipelines/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   FormTrackingEventProperties,
   TrackingOutcome,
@@ -20,12 +21,13 @@ type RunPageFooterProps = {
 const eventName = 'Pipeline Run Triggered';
 const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
   const { api } = usePipelinesAPI();
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
   const runType = data.runType.type;
   const navigate = useNavigate();
   const [isSubmitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
 
-  const canSubmit = isFilledRunFormData(data);
+  const canSubmit = isFilledRunFormData(data, isMlflowAvailable);
 
   return (
     <Stack hasGutter>
@@ -56,7 +58,7 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
                   properties.scheduleType = data.runType.data.triggerType;
                 }
 
-                handleSubmit(data, api)
+                handleSubmit(data, api, isMlflowAvailable)
                   .then((resource) => {
                     fireFormTrackingEvent(eventName, properties);
                     const detailsPath = isRunSchedule(resource)

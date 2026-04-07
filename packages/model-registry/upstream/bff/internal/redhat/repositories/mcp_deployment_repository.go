@@ -425,6 +425,8 @@ func buildMcpDeploymentPatch(req models.McpDeploymentUpdateRequest) (map[string]
 }
 
 // parseSpecYAML unmarshals the frontend YAML into McpSpecBody.
+// Accepts direct keys (config/runtime at top level) as the primary format,
+// with backwards-compatible support for a "spec:" wrapper.
 func parseSpecYAML(rawYAML string) (*models.McpSpecBody, error) {
 	var generic map[string]interface{}
 	if err := yaml.Unmarshal([]byte(rawYAML), &generic); err != nil {
@@ -434,6 +436,15 @@ func parseSpecYAML(rawYAML string) (*models.McpSpecBody, error) {
 	jsonBytes, err := json.Marshal(generic)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert YAML to JSON: %w", err)
+	}
+
+	var direct models.McpSpecBody
+	if err := json.Unmarshal(jsonBytes, &direct); err != nil {
+		return nil, fmt.Errorf("failed to parse spec: %w", err)
+	}
+
+	if direct.Config != nil || direct.Runtime != nil {
+		return &direct, nil
 	}
 
 	var wrapper struct {
@@ -447,24 +458,11 @@ func parseSpecYAML(rawYAML string) (*models.McpSpecBody, error) {
 		return &wrapper.Spec, nil
 	}
 
-	var direct models.McpSpecBody
-	if err := json.Unmarshal(jsonBytes, &direct); err != nil {
-		return nil, fmt.Errorf("failed to parse spec: %w", err)
-	}
-
-	if direct.Config == nil && direct.Runtime == nil {
-		return nil, fmt.Errorf("YAML must contain config or runtime under spec")
-	}
-
-	return &direct, nil
+	return nil, fmt.Errorf("YAML must contain config or runtime")
 }
 
 func marshalSpecToYAML(spec models.McpSpecBody) string {
-	wrapper := struct {
-		Spec models.McpSpecBody `json:"spec"`
-	}{Spec: spec}
-
-	jsonBytes, err := json.Marshal(wrapper)
+	jsonBytes, err := json.Marshal(spec)
 	if err != nil {
 		return ""
 	}

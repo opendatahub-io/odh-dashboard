@@ -1,17 +1,39 @@
 ---
-name: model-registry-upstream-sync
-description: Sync upstream changes from kubeflow/model-registry and open a PR. Assist user with conflicts and document their nature in the PR. Optionally pass a PR URL to do a temporary test sync.
+name: upstream-sync
+description: Sync upstream changes for a package and open a PR. Pass a package name as the first argument (e.g. model-registry or notebooks) or be prompted to choose. Optionally pass a PR URL to do a temporary test sync.
 ---
 
-# Model Registry Sync
+# Upstream Sync
 
-Sync upstream changes from kubeflow/model-registry and open a PR.
+Sync upstream changes for a package and open a PR.
 
 This command orchestrates the entire sync process: branch creation, running the update-subtree script, resolving conflicts, running tests, and opening a PR.
 
+## Arguments
+
+- `$ARGUMENTS` — Optional. Can be:
+  - A package name (e.g. `model-registry`, `notebooks`) — runs a normal sync for that package
+  - A package name followed by a PR URL (e.g. `model-registry https://github.com/kubeflow/model-registry/pull/1234`) — runs a PR test sync
+  - A PR URL alone (e.g. `https://github.com/kubeflow/model-registry/pull/1234`) — infers the package from the URL's repo
+  - Empty — prompts the user to choose a package
+
+## Resolving the Package
+
+Packages with upstream subtrees have a `subtree` field in their `package.json` under `packages/<name>/package.json`.
+
+1. If the user provided a package name argument, use it directly as `<package-name>`.
+2. If the user provided only a PR URL, infer the package by matching the URL's GitHub owner/repo against the `subtree.repo` field in each package's `package.json`.
+3. If no argument was provided, discover all packages with a `subtree` config:
+   ```bash
+   grep -rl '"subtree"' packages/*/package.json | sed 's|packages/||;s|/package.json||'
+   ```
+   Present the list to the user and ask which package to sync.
+
+Once the package is identified, read `packages/<package-name>/package.json` to get the `subtree` config. Extract the upstream GitHub `<owner>/<repo>` from the `subtree.repo` URL.
+
 ## PR Test Mode
 
-If the user passes a PR URL as an argument (e.g. `/model-registry-upstream-sync https://github.com/kubeflow/model-registry/pull/1234`), this is a **temporary test sync** to validate an upstream PR's changes in odh-dashboard before the upstream PR merges. The differences from a normal sync are noted inline below with **[PR Test Mode]** markers.
+If the user passes a PR URL as an argument (e.g. `/upstream-sync model-registry https://github.com/kubeflow/model-registry/pull/1234`), this is a **temporary test sync** to validate an upstream PR's changes in odh-dashboard before the upstream PR merges. The differences from a normal sync are noted inline below with **[PR Test Mode]** markers.
 
 ## Workflow
 
@@ -22,7 +44,7 @@ First, check the current branch state:
 1. Run `git branch --show-current` to get the current branch name
 2. Run `git status` to check for uncommitted changes or unresolved conflicts
 
-**If on an `mr-sync-*` or `tmp-sync-pr-*` branch:**
+**If on a `<pkg>-sync-*` or `tmp-sync-pr-*` branch:**
 - Continue with the existing branch (supports resuming a sync in progress)
 - If there are unresolved conflicts (files in "Unmerged paths"), proceed to Phase 3
 - If there are staged changes ready to continue, proceed to Phase 2 with `--continue`
@@ -31,7 +53,7 @@ First, check the current branch state:
 - Ensure working directory is clean (no uncommitted changes)
 - Run `git pull` to ensure main is up to date before starting the sync
 - **[PR Test Mode]** Generate branch name: `tmp-sync-pr-<number>` (extract the PR number from the URL)
-- **[Normal Mode]** Generate branch name: `mr-sync-YYYY-MM-DD` (use today's date)
+- **[Normal Mode]** Generate branch name: `<pkg>-sync-YYYY-MM-DD` (use today's date; `<pkg>` is a short prefix like `mr` for model-registry, `nb` for notebooks, etc.)
 - Check if this branch already exists with `git branch --list <branch-name>`
   - If it exists, ask user if they want to create `<branch-name>-2` (or find next available suffix)
 - Create and switch to the branch: `git checkout -b <branch-name>`
@@ -41,20 +63,20 @@ First, check the current branch state:
 
 ### Phase 2: Run Sync Script
 
-Run the update-subtree script from the `packages/model-registry` directory:
+Run the update-subtree script from the `packages/<package-name>` directory:
 
 ```bash
-cd packages/model-registry && npm run update-subtree
+cd packages/<package-name> && npm run update-subtree
 ```
 
 **[PR Test Mode]** Pass the `--pr` flag with the PR URL:
 ```bash
-cd packages/model-registry && npm run update-subtree -- --pr=<pr-url>
+cd packages/<package-name> && npm run update-subtree -- --pr=<pr-url>
 ```
 
 Or if continuing after conflict resolution:
 ```bash
-cd packages/model-registry && npm run update-subtree -- --continue
+cd packages/<package-name> && npm run update-subtree -- --continue
 ```
 
 Parse the output to detect:
@@ -83,19 +105,25 @@ When conflicts are detected:
 
 4. **After resolution**:
    - Stage the resolved files: `git add <file1> <file2> ...`
-   - Continue the sync: `cd packages/model-registry && npm run update-subtree -- --continue`
+   - Continue the sync: `cd packages/<package-name> && npm run update-subtree -- --continue`
    - Repeat this phase if more conflicts are encountered
 
 ### Phase 4: Run Tests
 
-After the sync completes successfully, run tests:
+After the sync completes successfully, run tests. Check which test scripts are available in the package's upstream frontend:
 
 ```bash
-cd packages/model-registry/upstream/frontend && npm run test:unit
+cd packages/<package-name>/upstream/frontend && cat package.json | grep -E '"test:|"type-check'
+```
+
+Run whichever of these are available:
+
+```bash
+cd packages/<package-name>/upstream/frontend && npm run test:unit
 ```
 
 ```bash
-cd packages/model-registry/upstream/frontend && npm run test:type-check
+cd packages/<package-name>/upstream/frontend && npm run test:type-check
 ```
 
 Report results to the user. If there are failures, let the user decide how to proceed.
@@ -111,11 +139,11 @@ Ask the user if they're ready to open a PR. If not, exit gracefully.
    git log main..HEAD --oneline
    ```
 
-2. Extract PR numbers from commit messages - look for patterns like `(#XXXX)` in messages that contain "Update @odh-dashboard/model-registry:"
+2. Extract PR numbers from commit messages - look for patterns like `(#XXXX)` in messages that contain "Update @odh-dashboard/<package-name>:"
 
 3. Filter to only include commits with actual file changes (exclude commits that say "tracking" or "no file changes")
 
-4. Get the upstream commit SHA from the latest sync commit or from `packages/model-registry/package.json`
+4. Get the upstream commit SHA from the latest sync commit or from `packages/<package-name>/package.json`
 
 **Build PR content:**
 
@@ -123,12 +151,12 @@ First, read the PR template at `.github/pull_request_template.md` to get the cur
 
 **[Normal Mode]** Title format:
 ```
-Sync from kubeflow/model-registry <7-char-sha>
+Sync from <owner>/<repo> <7-char-sha>
 ```
 
 **[PR Test Mode]** Title format:
 ```
-[DO NOT MERGE] Test sync for kubeflow/model-registry#<pr-number>
+[DO NOT MERGE] Test sync for <owner>/<repo>#<pr-number>
 ```
 
 Body sections (following the PR template structure):
@@ -139,7 +167,7 @@ Body sections (following the PR template structure):
 
 **This is a temporary test sync and should not be merged.**
 
-This PR syncs the changes from [kubeflow/model-registry#<pr-number>](https://github.com/kubeflow/model-registry/pull/<pr-number>) into odh-dashboard so they can be tested before the upstream PR merges. The branch is available for local testing or CI validation.
+This PR syncs the changes from [<owner>/<repo>#<pr-number>](https://github.com/<owner>/<repo>/pull/<pr-number>) into odh-dashboard so they can be tested before the upstream PR merges. The branch is available for local testing or CI validation.
 ```
 
 Then include the "Conflicts Resolved" subsection (if any), "How Has This Been Tested?", "Test Impact", and "Request review criteria" sections as normal.
@@ -149,15 +177,15 @@ Then include the "Conflicts Resolved" subsection (if any), "How Has This Been Te
 ## Description
 
 Sync to pull in changes from:
-* https://github.com/kubeflow/model-registry/pull/<PR1>
-* https://github.com/kubeflow/model-registry/pull/<PR2>
+* https://github.com/<owner>/<repo>/pull/<PR1>
+* https://github.com/<owner>/<repo>/pull/<PR2>
 ...
 
 ### Conflicts Resolved
 
 The following conflicts were resolved during this sync:
 
-**[#<PR> - <title>](https://github.com/kubeflow/model-registry/pull/<PR>)**
+**[#<PR> - <title>](https://github.com/<owner>/<repo>/pull/<PR>)**
 - `<file path>`
 - `<file path>`
 
@@ -172,18 +200,9 @@ The following conflicts were resolved during this sync:
 ```markdown
 ## How Has This Been Tested?
 
-Tested by running backend, frontend and the federated MR package separately as described below, verifying existing behavior in the files this diff touches, and verifying the incoming changes.
+Tested by running the federated <package-name> package locally, verifying existing behavior in the files this diff touches, and verifying the incoming changes.
 
-Also ran unit tests: `npm run test:unit`
-and ran type check: `npm run test:type-check`
-(both in `packages/model-registry/upstream/frontend`)
-
-Process to run everything locally this way:
-* Create `.env.development.local` and copy the contents of `.env.development` to it. Change the backend port to 4020 to avoid conflicts with the upstream running.
-* `oc login` to a cluster with ODH installed
-* Run both `frontend` and `backend` folders with `npm run start:dev` after running `npm install` on odh-dashboard root repository
-* Before continuing, install [kubectl](https://kubernetes.io/docs/tasks/tools/) and [golang](https://go.dev/doc/install)
-* With these two terminal tabs open, open a third terminal tab, go to `packages/model-registry/upstream` and run `make dev-install-dependencies` followed by `PORT=9100 make dev-start-federated INSECURE_SKIP_VERIFY=true`
+Also ran available test scripts in `packages/<package-name>/upstream/frontend`.
 ```
 
 **Test Impact section:**

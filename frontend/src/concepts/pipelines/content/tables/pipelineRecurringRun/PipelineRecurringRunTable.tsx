@@ -7,12 +7,19 @@ import DeletePipelineRunsModal from '#~/concepts/pipelines/content/DeletePipelin
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
 import { PipelinesFilter } from '#~/concepts/pipelines/types';
-import { usePipelineFilterSearchParams } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import {
+  FilterOptions,
+  getDataValue,
+  usePipelineFilterSearchParams,
+} from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 import SimpleMenuActions from '#~/components/SimpleMenuActions';
 import { pipelineRecurringRunColumns } from '#~/concepts/pipelines/content/tables/columns';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import { filterByMlflowExperiment } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import useMlflowExperiments from '#~/concepts/mlflow/useMlflowExperiments';
 import PipelineRecurringRunTableRow from './PipelineRecurringRunTableRow';
 import PipelineRecurringRunTableToolbar from './PipelineRecurringRunTableToolbar';
 
@@ -44,27 +51,34 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
   setFilter,
   ...tableProps
 }) => {
-  const { refreshAllAPI } = usePipelinesAPI();
+  const { namespace, refreshAllAPI } = usePipelinesAPI();
   const { experiment } = React.useContext(ExperimentContext);
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
+  const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
+    workspace: isMlflowAvailable ? namespace : '',
+  });
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
+
+  const mlflowFilter = getDataValue(filterToolbarProps.filterData[FilterOptions.MLFLOW_EXPERIMENT]);
+  const filteredRecurringRuns = React.useMemo(
+    () => filterByMlflowExperiment(recurringRuns, mlflowFilter),
+    [recurringRuns, mlflowFilter],
+  );
+  const effectiveTotalSize = mlflowFilter ? filteredRecurringRuns.length : totalSize;
+
   const {
     selections,
     tableProps: checkboxTableProps,
     toggleSelection,
     isSelected,
     // eslint-disable-next-line camelcase
-  } = useCheckboxTable(recurringRuns.map(({ recurring_run_id }) => recurring_run_id));
+  } = useCheckboxTable(filteredRecurringRuns.map(({ recurring_run_id }) => recurring_run_id));
   const [deleteResources, setDeleteResources] = React.useState<PipelineRecurringRunKF[]>([]);
 
-  const getColumns = () => {
-    let columns = pipelineRecurringRunColumns;
-
-    if (experiment) {
-      columns = columns.filter((column) => column.field !== 'experiment');
-    }
-
-    return columns;
-  };
+  const allColumns = pipelineRecurringRunColumns(isMlflowAvailable);
+  const columns = experiment
+    ? allColumns.filter((column) => column.field !== 'run_group')
+    : allColumns;
 
   return (
     <>
@@ -79,9 +93,9 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
           }
         }}
         onPerPageSelect={(_, newSize) => setPageSize(newSize)}
-        itemCount={totalSize}
-        data={recurringRuns}
-        columns={getColumns()}
+        itemCount={effectiveTotalSize}
+        data={filteredRecurringRuns}
+        columns={columns}
         enablePagination="compact"
         emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
         onClearFilters={onClearFilters}
@@ -100,7 +114,7 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
                       setDeleteResources(
                         selections
                           .map<PipelineRecurringRunKF | undefined>((selection) =>
-                            recurringRuns.find(
+                            filteredRecurringRuns.find(
                               // eslint-disable-next-line camelcase
                               ({ recurring_run_id }) => recurring_run_id === selection,
                             ),
@@ -122,10 +136,15 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
             onToggleCheck={() => toggleSelection(recurringRun.recurring_run_id)}
             onDelete={() => setDeleteResources([recurringRun])}
             recurringRun={recurringRun}
+            mlflow={{
+              isAvailable: isMlflowAvailable,
+              experiments: mlflowExperiments,
+              loaded: mlflowExperimentsLoaded,
+            }}
           />
         )}
         variant={TableVariant.compact}
-        getColumnSort={getTableColumnSort({ columns: pipelineRecurringRunColumns, ...tableProps })}
+        getColumnSort={getTableColumnSort({ columns, ...tableProps })}
         data-testid="schedules-table"
       />
 

@@ -83,7 +83,7 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
                 component={ContentVariants.dt}
                 style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
               >
-                Serving runtime
+                Deployment resource
               </Content>
               <Content
                 component={ContentVariants.dd}

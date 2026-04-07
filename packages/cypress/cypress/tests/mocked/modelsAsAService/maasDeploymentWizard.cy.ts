@@ -111,29 +111,30 @@ describe('MaaS Deployment Wizard', () => {
     cy.intercept('PUT', '**/llminferenceservices/test-llm-inference-service*', (req) => {
       req.reply({ statusCode: 200, body: req.body });
     }).as('updateLLMInferenceService');
-    cy.interceptOdh(
-      'POST /maas/api/v1/maasmodel',
-      mockMaaSModelRef({
+    cy.interceptOdh('POST /maas/api/v1/maasmodel', {
+      data: mockMaaSModelRef({
         name: 'test-maas-model-ref',
         namespace: 'test-project',
         modelRef: { name: 'test-llm-inference-service', kind: 'LLMInferenceService' },
         displayName: 'Test LLM Inference Service',
         description: 'Test LLM Inference Service Description',
       }),
-    ).as('createMaaSModelRef');
+    }).as('createMaaSModelRef');
     cy.interceptOdh(
       'DELETE /maas/api/v1/maasmodel/:namespace/:name',
       { path: { namespace: 'test-project', name: 'test-llm-inference-service' } },
-      { message: 'Deleted successfully' },
+      { data: { message: 'Deleted successfully' } },
     ).as('deleteMaaSModelRef');
     cy.interceptOdh(
       'PUT /maas/api/v1/maasmodel/:namespace/:name',
       { path: { namespace: '*', name: '*' } },
-      mockMaaSModelRef({
-        name: 'test-maas-model-ref',
-        namespace: 'test-project',
-        modelRef: { name: 'test-llm-inference-service', kind: 'LLMInferenceService' },
-      }),
+      {
+        data: mockMaaSModelRef({
+          name: 'test-maas-model-ref',
+          namespace: 'test-project',
+          modelRef: { name: 'test-llm-inference-service', kind: 'LLMInferenceService' },
+        }),
+      },
     ).as('updateMaaSModelRef');
   };
 

@@ -5,27 +5,31 @@ import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
 import SystemPromptFormGroup from '~/app/Chatbot/components/SystemInstructionFormGroup';
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
+import { useChatbotConfigStore, selectDirtyPrompt, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 import { PROMPT_MANAGEMENT } from '~/odh/extensions';
 
 interface PromptTabContentProps {
+  configId?: string;
   systemInstruction: string;
   onSystemInstructionChange: (value: string) => void;
 }
 
 function PromptTabContent({
+  configId = DEFAULT_CONFIG_ID,
   systemInstruction,
   onSystemInstructionChange,
 }: PromptTabContentProps): React.ReactNode {
   const { openModal } = usePlaygroundStore();
+  const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
+  const isEdited = usePromptEdited(configId);
   const [promptManagementEnabled] = useFeatureFlag(PROMPT_MANAGEMENT);
-  const isEdited = usePromptEdited();
   const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
 
   function handleLoadPromptClick() {
-    confirm(() => openModal('allPrompts'), {
+    confirm(() => openModal('allPrompts', configId, dirtyPrompt), {
       title: 'Load a different prompt?',
       message: 'Your current prompt has unsaved changes that will be lost.',
       confirmLabel: 'Load',
@@ -63,6 +67,7 @@ function PromptTabContent({
           {promptManagementEnabled && (
             <FormGroup fieldId="prompt-instructions" data-testid="prompt-instructions-section">
               <PromptAssistantFormGroup
+                configId={configId}
                 systemInstruction={systemInstruction}
                 onSystemInstructionChange={onSystemInstructionChange}
               />

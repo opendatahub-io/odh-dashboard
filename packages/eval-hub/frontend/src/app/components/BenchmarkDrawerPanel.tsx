@@ -13,8 +13,11 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { FlatBenchmark } from '~/app/types';
-import { getCategoryColor } from './benchmarkUtils';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
 
 type BenchmarkDrawerPanelProps = {
   benchmark: FlatBenchmark | undefined;
@@ -32,6 +35,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
   }
 
   const color = getCategoryColor(benchmark.category);
+  const safeBenchmarkUrl = toSafeExternalUrl(benchmark.url);
 
   return (
     <DrawerPanelContent isResizable minSize="400px" data-testid="benchmark-drawer-panel">
@@ -55,7 +59,29 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
                 color: 'var(--pf-t--global--text--color--subtle)',
               }}
             >
-              {benchmark.id}
+              {safeBenchmarkUrl ? (
+                <Button
+                  variant="link"
+                  isInline
+                  component="a"
+                  href={safeBenchmarkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  icon={<ExternalLinkAltIcon />}
+                  iconPosition="end"
+                  onClick={() =>
+                    fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
+                      url: safeBenchmarkUrl,
+                      benchmarkId: benchmark.id,
+                      surface: 'benchmark_drawer',
+                    })
+                  }
+                >
+                  {benchmark.id}
+                </Button>
+              ) : (
+                benchmark.id
+              )}
             </Content>
           </StackItem>
         </Stack>

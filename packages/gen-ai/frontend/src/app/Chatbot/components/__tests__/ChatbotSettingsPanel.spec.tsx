@@ -173,7 +173,8 @@ jest.mock('@openshift/dynamic-plugin-sdk', () => ({
 
 jest.mock('~/app/Chatbot/store/usePlaygroundStore', () => ({
   usePlaygroundStore: jest.fn(() => ({
-    setIsPromptManagementModalOpen: jest.fn(),
+    openModal: jest.fn(),
+    closeModal: jest.fn(),
   })),
 }));
 

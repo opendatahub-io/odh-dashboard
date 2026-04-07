@@ -10,7 +10,9 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { EvaluationJob } from '~/app/types';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { EvaluationJob, EvaluationJobState } from '~/app/types';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
   formatDate,
   getAllBenchmarkNames,
@@ -31,7 +33,7 @@ type EvaluationsTableRowProps = {
   onActionComplete: () => void;
 };
 
-const IN_PROGRESS_STATES = new Set(['running', 'pending']);
+const IN_PROGRESS_STATES = new Set(['running', 'pending', 'stopping']);
 
 type ConfirmAction = 'stop' | 'delete' | null;
 
@@ -59,6 +61,61 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
     }
   }, [isInProgress]);
 
+  // Snapshot latest job data in a ref so the completion-tracking effect can
+  // read current values without being re-triggered by them.
+  const completionTrackingDataRef = React.useRef({
+    evaluationName,
+    benchmarkTypes: JSON.stringify(allBenchmarkNames),
+    createdAt: job.resource.created_at,
+    updatedAt: job.resource.updated_at,
+    errorMessage: job.status.message?.message,
+  });
+  completionTrackingDataRef.current = {
+    evaluationName,
+    benchmarkTypes: JSON.stringify(allBenchmarkNames),
+    createdAt: job.resource.created_at,
+    updatedAt: job.resource.updated_at,
+    errorMessage: job.status.message?.message,
+  };
+
+  const prevStateRef = React.useRef<EvaluationJobState>(job.status.state);
+
+  React.useEffect(() => {
+    const prevState = prevStateRef.current;
+    const currentState = job.status.state;
+    prevStateRef.current = currentState;
+
+    if (IN_PROGRESS_STATES.has(prevState) && !IN_PROGRESS_STATES.has(currentState)) {
+      const {
+        evaluationName: evalName,
+        benchmarkTypes,
+        createdAt,
+        updatedAt,
+        errorMessage,
+      } = completionTrackingDataRef.current;
+
+      const durationMs =
+        createdAt && updatedAt
+          ? new Date(updatedAt).getTime() - new Date(createdAt).getTime()
+          : undefined;
+
+      const runOutcome: 'completed' | 'failed' | 'cancelled' =
+        currentState === 'completed'
+          ? 'completed'
+          : currentState === 'cancelled' || currentState === 'stopped'
+            ? 'cancelled'
+            : 'failed';
+
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_COMPLETED, {
+        evaluationName: evalName,
+        runOutcome,
+        durationMs,
+        benchmarkTypes,
+        error: errorMessage,
+      });
+    }
+  }, [job.status.state]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleConfirm = async () => {
     if (!namespace) {
       setActionError('Namespace is required to perform this action');
@@ -76,6 +133,12 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
         setIsStopping(true);
       }
       await apiCall({});
+      if (!isStop) {
+        fireMiscTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_DELETED, {
+          evaluationName,
+          previousState: job.status.state,
+        });
+      }
       setConfirmAction(null);
       onActionComplete();
     } catch (e) {
