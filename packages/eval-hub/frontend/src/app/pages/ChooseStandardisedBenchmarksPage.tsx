@@ -140,7 +140,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
   const hasActiveFilters = Object.values(filterData).some((v) => v && String(v).trim());
 
   return (
-    <Drawer isExpanded={!!selectedBenchmark} isInline>
+    <Drawer isExpanded={!!selectedBenchmark}>
       <DrawerContent
         panelContent={
           <BenchmarkDrawerPanel

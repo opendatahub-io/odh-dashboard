@@ -7,7 +7,7 @@ import {
   EmptyStateFooter,
   EmptyStateVariant,
 } from '@patternfly/react-core';
-import { CubesIcon } from '@patternfly/react-icons';
+import { SearchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
@@ -18,7 +18,7 @@ const EvalHubEmptyState: React.FC = () => {
   return (
     <EmptyState
       headingLevel="h2"
-      icon={CubesIcon}
+      icon={SearchIcon}
       titleText="No existing evaluation runs"
       variant={EmptyStateVariant.lg}
       data-testid="eval-hub-empty-state"

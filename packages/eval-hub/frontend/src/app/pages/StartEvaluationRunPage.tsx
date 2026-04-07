@@ -12,7 +12,6 @@ import {
   FormGroup,
   FormHelperText,
   FormSection,
-  TextArea,
   HelperText,
   HelperTextItem,
   PageSection,
@@ -83,7 +82,7 @@ const StartEvaluationRunPage: React.FC = () => {
       hour12: true,
     }),
   );
-  const [description, setDescription] = React.useState('');
+
   const [inputMode, setInputMode] = React.useState<InputMode>('inference');
 
   const [modelName, setModelName] = React.useState('');
@@ -237,7 +236,6 @@ const StartEvaluationRunPage: React.FC = () => {
 
     const request = buildEvaluationRequest({
       evaluationName,
-      description,
       inputMode,
       benchmark,
       collection,
@@ -469,16 +467,6 @@ const StartEvaluationRunPage: React.FC = () => {
             )}
           </FormGroup>
 
-          <FormGroup label="Description" fieldId="description">
-            <TextArea
-              id="description"
-              data-testid="description-input"
-              resizeOrientation="vertical"
-              value={description}
-              onChange={(_e, val) => setDescription(val)}
-            />
-          </FormGroup>
-
           <FormSection title="Source">
             <Radio
               id="input-inference"
@@ -491,17 +479,7 @@ const StartEvaluationRunPage: React.FC = () => {
 
             {inputMode === 'inference' && (
               <>
-                <FormGroup
-                  label="Model or agent name"
-                  isRequired
-                  fieldId="model-name"
-                  labelHelp={
-                    <LabelHelpPopover
-                      ariaLabel="More info for model name"
-                      content="This should match the resource name that was created when the model or app was deployed."
-                    />
-                  }
-                >
+                <FormGroup label="Model or agent name" isRequired fieldId="model-name">
                   <TextInput
                     id="model-name"
                     data-testid="model-name-input"
