@@ -298,7 +298,7 @@ module.exports = (env) => ({
     }),
     new webpack.DefinePlugin({
       __COMMIT_HASH__: JSON.stringify(COMMIT_HASH_DIRECT),
-      __PACKAGE_VERSIONS__: JSON.stringify(getPluginPackageVersions()),
+      __PACKAGE_VERSIONS__: JSON.stringify(env === 'development' ? getPluginPackageVersions() : []),
     }),
     env === 'development' || MF_DEV
       ? new webpack.EnvironmentPlugin({
