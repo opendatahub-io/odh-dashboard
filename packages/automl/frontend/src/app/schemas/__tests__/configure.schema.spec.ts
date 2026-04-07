@@ -5,7 +5,7 @@ import {
   TASK_TYPE_REGRESSION,
   TASK_TYPE_TIMESERIES,
 } from '~/app/utilities/const';
-import { createConfigureSchema, TASK_TYPES } from '../configure.schema';
+import { createConfigureSchema, TASK_TYPES } from '~/app/schemas/configure.schema';
 
 describe('createConfigureSchema', () => {
   const schema = createConfigureSchema();
