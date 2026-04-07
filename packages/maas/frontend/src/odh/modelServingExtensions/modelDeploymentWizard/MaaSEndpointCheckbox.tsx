@@ -1,8 +1,12 @@
 import React from 'react';
 import { Checkbox, Stack, StackItem, Flex, FlexItem, Label } from '@patternfly/react-core';
 import { z } from 'zod';
-import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
+import type {
+  WizardField,
+  WizardStateOverrides,
+} from '@odh-dashboard/model-serving/types/form-data';
 import { isLLMInferenceServiceActive } from '@odh-dashboard/llmd-serving/formUtils';
+import { MAAS_DEFAULT_GATEWAY } from './maasDeploymentTransformer';
 
 export type MaaSFieldValue = {
   isChecked: boolean;
@@ -69,9 +73,16 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
     setFieldData: setMaaSFieldData,
     getInitialFieldData: getInitialMaaSFieldData,
     validationSchema: maasFieldSchema,
-    getFieldOverrides: (fieldValue) => ({
-      tokenAuthentication: { isDisabled: fieldValue.isChecked },
-    }),
+    getFieldOverrides: (fieldValue) => {
+      const overrides: WizardStateOverrides = {};
+      if (fieldValue.isChecked) {
+        overrides.tokenAuthentication = { isDisabled: true };
+        overrides['llmd-serving/gateway'] = { isDisabled: true, selection: MAAS_DEFAULT_GATEWAY };
+      } else {
+        overrides['llmd-serving/gateway'] = { hiddenOptions: [MAAS_DEFAULT_GATEWAY] };
+      }
+      return overrides;
+    },
   },
   component: MaaSField,
   getReviewSections: (value) => [

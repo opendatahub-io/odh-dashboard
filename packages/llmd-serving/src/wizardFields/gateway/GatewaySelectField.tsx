@@ -26,11 +26,12 @@ export const useGatewayOptions = (
 ): { data: GatewayOption[]; loaded: boolean; loadError?: Error } => {
   const project = dependencies?.project;
   const { data: gatewayOptions, loaded, error } = useGetGatewayOptions(project?.projectName);
-  return { data: gatewayOptions, loaded, loadError: error };
+  return { data: gatewayOptions, loaded: loaded || !!error, loadError: error };
 };
 
 export type GatewaySelectFieldData = {
   selection: GatewayOption | undefined;
+  hiddenOptions?: GatewayOption[];
 };
 
 export type GatewaySelectFieldType = WizardField<
@@ -48,6 +49,7 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
   externalData,
   isDisabled,
 }) => {
+  const hiddenOptions = value?.hiddenOptions;
   const selection = value?.selection;
 
   const selectedGatewayKey = React.useMemo(
@@ -62,8 +64,11 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
       return undefined;
     }
     const key = initialValue.selection && getGatewayKey(initialValue.selection);
+    if (hiddenOptions?.some((h) => getGatewayKey(h) === key)) {
+      return undefined;
+    }
     return key && externalData.data?.some((g) => getGatewayKey(g) === key) ? undefined : key;
-  }, [initialValue, externalData]);
+  }, [initialValue, externalData, hiddenOptions]);
 
   const isCurrentSelectionMissing =
     !!externalData?.loaded &&
@@ -72,18 +77,20 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
 
   const options: SimpleSelectOption[] = React.useMemo(() => {
     const uniqueGateways = new Map<string, SimpleSelectOption>();
-    externalData?.data?.forEach((g) => {
+    for (const g of externalData?.data ?? []) {
       const key = getGatewayKey(g);
-      if (key !== 'maas-default-gateway | openshift-ingress') {
-        uniqueGateways.set(key, { key, label: key });
+      if (hiddenOptions?.some((h) => getGatewayKey(h) === key)) {
+        continue;
       }
-    });
+
+      uniqueGateways.set(key, { key, label: key });
+    }
 
     if (initialMissingKey) {
       uniqueGateways.set(initialMissingKey, { key: initialMissingKey, label: initialMissingKey });
     }
     return Array.from(uniqueGateways.values());
-  }, [externalData, initialMissingKey]);
+  }, [externalData, initialMissingKey, hiddenOptions]);
 
   return (
     <FormGroup fieldId="gateway-select" label="Gateway Selection">
@@ -110,13 +117,13 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
             placeholder="Select a gateway"
             value={selectedGatewayKey ?? undefined}
             toggleProps={{
-              ...(externalData?.loadError && { status: 'warning' }),
+              ...(!isDisabled && externalData?.loadError && { status: 'warning' }),
             }}
             dataTestId="gateway-select"
             isDisabled={isDisabled}
             autoSelectOnlyOption={false}
           />
-          {externalData?.loadError && (
+          {!isDisabled && externalData?.loadError && (
             <FormHelperText>
               <HelperText>
                 <HelperTextItem variant="warning">
@@ -126,7 +133,7 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
               </HelperText>
             </FormHelperText>
           )}
-          {!externalData?.loadError && externalData?.loaded && !externalData.data?.length && (
+          {!isDisabled && !externalData?.loadError && externalData?.loaded && !options.length && (
             <FormHelperText>
               <HelperText>
                 <HelperTextItem variant="warning">
@@ -135,7 +142,7 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
               </HelperText>
             </FormHelperText>
           )}
-          {!externalData?.loadError && isCurrentSelectionMissing && (
+          {!isDisabled && !externalData?.loadError && isCurrentSelectionMissing && (
             <FormHelperText>
               <HelperText>
                 <HelperTextItem variant="warning">
