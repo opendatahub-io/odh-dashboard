@@ -95,6 +95,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   );
 
   const messagesHook = useChatbotMessages({
+    configId,
     modelId: selectedModel,
     systemInstruction,
     isRawUploaded: isRagEnabled,

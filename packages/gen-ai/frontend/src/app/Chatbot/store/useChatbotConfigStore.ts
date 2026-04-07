@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
 import { MLflowPromptVersion } from '~/app/types';
+import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 import { deepCopyPrompt } from './utils';
 import {
   ChatbotConfigStore,
@@ -498,6 +499,26 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
 
       // Utility
       getConfiguration: (id: string) => get().configurations[id],
+      getPromptSourceType(id: string) {
+        const config = get().configurations[id];
+        let instructionSource = '';
+        if (config) {
+          const { activePrompt, systemInstruction } = config;
+          const activeTemplate =
+            activePrompt?.template ||
+            activePrompt?.messages?.find((m) => m.role === 'system')?.content ||
+            '';
+
+          if (activeTemplate === systemInstruction) {
+            instructionSource = 'managed';
+          } else if (systemInstruction === DEFAULT_SYSTEM_INSTRUCTIONS) {
+            instructionSource = 'default';
+          } else if (activeTemplate !== systemInstruction) {
+            instructionSource = 'unsaved';
+          }
+        }
+        return instructionSource;
+      },
     })),
     {
       name: 'ChatbotConfigStore',
