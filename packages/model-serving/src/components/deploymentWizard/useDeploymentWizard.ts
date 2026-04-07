@@ -211,8 +211,12 @@ export const useModelDeploymentWizard = (
         isDisabled: tokenAuthDisabled,
         ...(tokenAuthDisabled ? { data: [] } : {}),
       },
+      'llmd-serving/gateway': {
+        ...(state['llmd-serving/gateway'] ?? {}),
+        ...computedOverrides['llmd-serving/gateway'],
+      },
     }),
-    [state, tokenAuthDisabled],
+    [state, tokenAuthDisabled, computedOverrides],
   );
 
   return {

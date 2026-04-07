@@ -203,10 +203,16 @@ export type DeploymentWizardFieldBase<ID extends DeploymentWizardFieldId | strin
 
 export type GenericFieldProps = {
   isEditing?: boolean;
+  isDisabled?: boolean;
 };
 
 export type WizardStateOverrides = {
   tokenAuthentication?: { isDisabled?: boolean };
+  'llmd-serving/gateway'?: {
+    isDisabled?: boolean;
+    selection?: { name: string; namespace?: string };
+    hiddenOptions?: { name: string; namespace?: string }[];
+  };
 };
 
 export type WizardField<
@@ -232,7 +238,8 @@ export type WizardField<
       wizardState: RecursivePartial<WizardFormData['state']>,
     ) => WizardStateOverrides;
   };
-  externalDataHook?: (initialData?: InitialWizardFormData) => {
+  shouldResetOnDependencyChange?: boolean;
+  externalDataHook?: (dependencies?: Dependencies) => {
     data: ExternalData;
     loaded: boolean;
     loadError?: Error;
@@ -240,11 +247,11 @@ export type WizardField<
   component: React.FC<
     {
       id: string;
-      value: FieldData;
+      value?: FieldData;
+      initialValue?: FieldData;
       onChange: (value: FieldData) => void;
       externalData?: { data: ExternalData; loaded: boolean; loadError?: Error };
       dependencies?: Dependencies;
-      isDisabled?: boolean;
     } & GenericFieldProps
   >;
   getReviewSections?: (
@@ -254,8 +261,11 @@ export type WizardField<
   ) => WizardReviewSection[];
 };
 
-export const resolveFieldValue = (field: WizardField, state: WizardFormData['state']): unknown => {
-  const storedValue: unknown = state[field.id];
+export const resolveFieldValue = (
+  field: WizardField,
+  state: WizardFormData['state'],
+): unknown | undefined => {
+  const storedValue: unknown = field.id in state ? state[field.id] : undefined;
   if (storedValue == null) {
     return undefined;
   }
