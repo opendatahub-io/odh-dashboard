@@ -1,6 +1,24 @@
 import { createTrainingKueueResources } from './trainingJobs';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
+/** Kubernetes DNS label (used for oc resource/namespace arguments). */
+const assertK8sName = (value: string, field: string): string => {
+  if (!/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(value)) {
+    throw new Error(`Invalid ${field}: ${value}`);
+  }
+  return value;
+};
+
+/** Single-quote for safe inclusion in sh -c / cy.exec shell strings. */
+const shQuote = (value: string): string => `'${value.replace(/'/g, `'\\''`)}'`;
+
+const assertRayJobTempPath = (path: string): string => {
+  if (!/^\/tmp\/ray-job-e2e-\d+\.yaml$/.test(path)) {
+    throw new Error(`Invalid RayJob apply temp path: ${path}`);
+  }
+  return path;
+};
+
 export type RayJobResourcesConfig = {
   namespace: string;
   rayJobName: string;
@@ -26,12 +44,17 @@ export const createRayJob = (
   rayImage: string,
   rayVersion: string,
 ): void => {
+  const ns = assertK8sName(namespace, 'namespace');
+  const rj = assertK8sName(rayJobName, 'rayJobName');
+  const lq = assertK8sName(localQueueName, 'localQueueName');
+  const wg = assertK8sName(workerGroupName, 'workerGroupName');
+
   cy.fixture('resources/yaml/ray-job-e2e.yaml').then((yamlTemplate: string) => {
     const variables: Record<string, string> = {
-      namespace,
-      rayJobName,
-      localQueueName,
-      workerGroupName,
+      namespace: ns,
+      rayJobName: rj,
+      localQueueName: lq,
+      workerGroupName: wg,
       rayImage,
       rayVersion,
     };
@@ -41,13 +64,13 @@ export const createRayJob = (
       yamlContent = yamlContent.replace(regex, variables[key]);
     });
 
-    cy.log(`Creating RayJob ${rayJobName} in namespace: ${namespace}`);
+    cy.log(`Creating RayJob ${rj} in namespace: ${ns}`);
 
-    const tempFile = `/tmp/ray-job-e2e-${Date.now()}.yaml`;
+    const tempFile = assertRayJobTempPath(`/tmp/ray-job-e2e-${Date.now()}.yaml`);
     cy.writeFile(tempFile, yamlContent);
-    cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: false, timeout: 60000 }).then(
+    cy.exec(`oc apply -f ${shQuote(tempFile)}`, { failOnNonZeroExit: false, timeout: 60000 }).then(
       (result) => {
-        cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false }).then(() => {
+        cy.exec(`rm -f ${shQuote(tempFile)}`, { failOnNonZeroExit: false }).then(() => {
           if (result.code !== 0) {
             const maskedStderr = maskSensitiveInfo(result.stderr);
             throw new Error(`Failed to create RayJob: ${maskedStderr}`);
@@ -88,15 +111,18 @@ export const setupRayJobResources = (config: RayJobResourcesConfig): void => {
 
   createRayJob(namespace, rayJobName, localQueueName, workerGroupName, rayImage, rayVersion);
 
-  cy.exec(`oc get rayjob ${rayJobName} -n ${namespace}`, {
+  const ns = assertK8sName(namespace, 'namespace');
+  const rj = assertK8sName(rayJobName, 'rayJobName');
+
+  cy.exec(`oc get rayjob ${rj} -n ${ns}`, {
     failOnNonZeroExit: false,
     timeout: 30000,
   }).then((result) => {
     if (result.code !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
-      throw new Error(`RayJob ${rayJobName} was not created: ${maskedStderr}`);
+      throw new Error(`RayJob ${rj} was not created: ${maskedStderr}`);
     }
-    cy.log(`RayJob ${rayJobName} exists - setup complete`);
+    cy.log(`RayJob ${rj} exists - setup complete`);
   });
 };
 
@@ -106,10 +132,13 @@ export const setupRayJobResources = (config: RayJobResourcesConfig): void => {
 export const getRayJobWorkerReplicas = (
   rayJobName: string,
   namespace: string,
-): Cypress.Chainable<number> =>
-  cy
+): Cypress.Chainable<number> => {
+  const ns = assertK8sName(namespace, 'namespace');
+  const rj = assertK8sName(rayJobName, 'rayJobName');
+
+  return cy
     .exec(
-      `oc get rayjob ${rayJobName} -n ${namespace} -o jsonpath='{.spec.rayClusterSpec.workerGroupSpecs[0].replicas}'`,
+      `oc get rayjob ${rj} -n ${ns} -o jsonpath='{.spec.rayClusterSpec.workerGroupSpecs[0].replicas}'`,
       { failOnNonZeroExit: false, timeout: 30000 },
     )
     .then((result) => {
@@ -123,14 +152,27 @@ export const getRayJobWorkerReplicas = (
       }
       return n;
     });
+};
 
 export const verifyRayJobDeleted = (rayJobName: string, namespace: string): void => {
-  cy.log(`Verifying RayJob ${rayJobName} is deleted from namespace ${namespace}`);
+  const ns = assertK8sName(namespace, 'namespace');
+  const rj = assertK8sName(rayJobName, 'rayJobName');
 
-  cy.exec(`oc get rayjob ${rayJobName} -n ${namespace}`, { failOnNonZeroExit: false }).then(
-    (result) => {
-      expect(result.code).to.not.equal(0);
-      cy.log('RayJob successfully deleted');
-    },
-  );
+  cy.log(`Verifying RayJob ${rj} is deleted from namespace ${ns}`);
+
+  cy.exec(`oc wait --for=delete rayjob/${rj} -n ${ns} --timeout=120s`, {
+    failOnNonZeroExit: false,
+    timeout: 130000,
+  }).then((waitResult) => {
+    if (waitResult.code !== 0) {
+      const masked = maskSensitiveInfo(waitResult.stderr || waitResult.stdout);
+      throw new Error(`Timed out waiting for RayJob deletion: ${masked}`);
+    }
+  });
+
+  cy.exec(`oc get rayjob ${rj} -n ${ns}`, { failOnNonZeroExit: false }).then((result) => {
+    const out = `${result.stderr}\n${result.stdout}`;
+    expect(out).to.match(/not found/i);
+    cy.log('RayJob successfully deleted');
+  });
 };

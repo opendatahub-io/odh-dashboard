@@ -1,4 +1,5 @@
 import yaml from 'js-yaml';
+import { RayJobState } from '@odh-dashboard/model-training/types';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../../utils/projectChecker';
@@ -28,7 +29,7 @@ const UPDATED_WORKER_REPLICAS = 2;
 const INITIAL_TOTAL_NODES = INITIAL_WORKER_REPLICAS + 1;
 const UPDATED_TOTAL_NODES = UPDATED_WORKER_REPLICAS + 1;
 
-describe('[Automation Bug: RHOAIENG-56125] Verify pause, scale worker nodes, and delete RayJob', () => {
+describe('[RHOAIENG-56125] Verify pause, scale worker nodes, and delete RayJob', () => {
   let testData: RayJobE2eTestData;
   let skipTest = false;
   let projectName: string;
@@ -107,25 +108,34 @@ describe('[Automation Bug: RHOAIENG-56125] Verify pause, scale worker nodes, and
       return;
     }
 
-    cy.step('Delete project');
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    if (projectName) {
+      cy.step('Delete project');
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    } else {
+      cy.log('Skipping project delete: projectName was not initialized');
+    }
 
-    cy.step('Delete Kueue resources');
-    deleteKueueResources(localQueueName, clusterQueueName, flavorName, projectName, {
-      wait: false,
-      ignoreNotFound: true,
-    });
+    if (projectName && localQueueName && clusterQueueName && flavorName) {
+      cy.step('Delete Kueue resources');
+      deleteKueueResources(localQueueName, clusterQueueName, flavorName, projectName, {
+        wait: false,
+        ignoreNotFound: true,
+      });
+    } else {
+      cy.log(
+        'Skipping Kueue cleanup: missing one of projectName, localQueueName, clusterQueueName, flavorName',
+      );
+    }
   });
 
   it(
     'Should pause running RayJob, scale worker count, and delete the job',
     {
-      tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@Maintain', '@RayJob'],
+      tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@RayJob'],
     },
-    () => {
+    function verifyRayJobPauseScaleAndDelete() {
       if (skipTest) {
-        cy.log('Skipping test - RayJob CRD not available (requires KubeRay operator).');
-        return;
+        this.skip();
       }
 
       cy.step('Log into the application');
@@ -148,7 +158,7 @@ describe('[Automation Bug: RHOAIENG-56125] Verify pause, scale worker nodes, and
       trainingJobTable
         .getTableRow(rayJobName)
         .findStatus()
-        .contains('Running', { timeout: 300000 })
+        .contains(RayJobState.RUNNING, { timeout: 300000 })
         .should('be.visible');
 
       cy.step('Open Ray job status modal');
@@ -174,7 +184,7 @@ describe('[Automation Bug: RHOAIENG-56125] Verify pause, scale worker nodes, and
       trainingJobTable
         .getTableRow(rayJobName)
         .findStatus()
-        .contains('Paused', { timeout: 120000 })
+        .contains(RayJobState.PAUSED, { timeout: 120000 })
         .should('be.visible');
 
       cy.step('Open RayJob details drawer');
