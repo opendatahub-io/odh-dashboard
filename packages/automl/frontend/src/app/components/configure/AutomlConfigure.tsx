@@ -41,7 +41,7 @@ import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplore
 import type { File } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
-import { ConfigureSchema, MAX_TOP_N, MIN_TOP_N } from '~/app/schemas/configure.schema';
+import { ConfigureSchema, MAX_TOP_N, MIN_TOP_N, TASK_TYPES } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 import {
   TASK_TYPE_BINARY,
@@ -124,6 +124,7 @@ function AutomlConfigure(): React.JSX.Element {
     control: form.control,
     name: ['train_data_secret_name', 'train_data_bucket_name', 'train_data_file_key', 'task_type'],
   });
+  const isTaskTypeSelected = TASK_TYPES.includes(taskType);
   const isTimeseries = taskType === TASK_TYPE_TIMESERIES;
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
@@ -167,9 +168,16 @@ function AutomlConfigure(): React.JSX.Element {
     setSelectedTrainingDataFile(undefined);
   }, [trainDataSecretName, trainDataBucketName, setValue]);
 
-  // reset all column-related form fields when file selection changes
+  // reset prediction type and column-related form fields when file selection changes
   useEffect(() => {
-    if (trainDataFileKey && trainDataFileKey !== previousFileKeyRef.current) {
+    const fileChangedOrRemoved =
+      (trainDataFileKey && trainDataFileKey !== previousFileKeyRef.current) ||
+      (!trainDataFileKey && previousFileKeyRef.current);
+    if (fileChangedOrRemoved) {
+      // Reset task type form fields
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- intentionally invalid value to clear selection
+      setValue('task_type', '' as never, { shouldValidate: true });
+
       // Reset tabular form fields
       setValue('label_column', '', { shouldValidate: true });
 
@@ -417,7 +425,7 @@ function AutomlConfigure(): React.JSX.Element {
                       </ConfigureFormGroup>
                     </StackItem>
 
-                    {isTimeseries ? (
+                    {isTaskTypeSelected && isTimeseries ? (
                       <ConfigureTimeseriesForm
                         columns={columns}
                         isLoadingColumns={isLoadingColumns}
@@ -426,7 +434,7 @@ function AutomlConfigure(): React.JSX.Element {
                         isFileSelected={isFileSelected}
                         formIsSubmitting={formIsSubmitting}
                       />
-                    ) : (
+                    ) : isTaskTypeSelected ? (
                       <ConfigureTabularForm
                         columns={columns}
                         isLoadingColumns={isLoadingColumns}
@@ -435,7 +443,7 @@ function AutomlConfigure(): React.JSX.Element {
                         isFileSelected={isFileSelected}
                         formIsSubmitting={formIsSubmitting}
                       />
-                    )}
+                    ) : null}
 
                     <StackItem>
                       <ConfigureFormGroup
