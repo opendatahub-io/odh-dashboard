@@ -261,17 +261,19 @@ describe('computeRankMap', () => {
     });
   });
 
-  it('should fall back to accuracy for unknown task types', () => {
+  it('should assign insertion-order ranking for unknown task types', () => {
     const models = {
       ModelA: buildModel(0.7),
       ModelB: buildModel(0.85),
     };
 
+    // Unknown task types map to 'Unknown metric', which no model has,
+    // so all models tie and receive insertion-order ranking.
     const rankMap = computeRankMap(models, 'unknown');
 
     expect(rankMap).toEqual({
-      ModelB: 1,
-      ModelA: 2,
+      ModelA: 1,
+      ModelB: 2,
     });
   });
 });

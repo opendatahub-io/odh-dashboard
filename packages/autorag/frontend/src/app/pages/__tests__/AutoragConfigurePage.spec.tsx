@@ -7,6 +7,12 @@ import React from 'react';
 import { BrowserRouter } from 'react-router';
 import AutoragConfigurePage from '~/app/pages/AutoragConfigurePage';
 
+// Truncate relies on DOM measurement APIs (scrollWidth) unavailable in JSDOM.
+jest.mock('@patternfly/react-core', () => ({
+  ...jest.requireActual('@patternfly/react-core'),
+  Truncate: ({ content }: { content: string }) => <span>{content}</span>,
+}));
+
 const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
 const mockMutateAsync = jest.fn();
