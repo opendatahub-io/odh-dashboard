@@ -291,18 +291,14 @@ describe('AutomlConfigurePage', () => {
   });
 
   describe('Create step - Cancel button', () => {
-    it('should render Cancel link', async () => {
+    it('should render Cancel link with correct href', async () => {
       renderWithProviders(<AutomlConfigurePage />);
       const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
       expect(cancelLink).toBeInTheDocument();
-      expect(cancelLink).toHaveAttribute('href', '/develop-train/automl/experiments');
-    });
-
-    it('should have correct href for Cancel link', async () => {
-      renderWithProviders(<AutomlConfigurePage />);
-
-      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
-      expect(cancelLink).toHaveAttribute('href', '/develop-train/automl/experiments');
+      expect(cancelLink).toHaveAttribute(
+        'href',
+        '/develop-train/automl/experiments/test-namespace',
+      );
     });
   });
 
