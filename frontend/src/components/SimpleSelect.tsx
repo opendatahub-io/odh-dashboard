@@ -52,6 +52,7 @@ type SimpleSelectProps = {
   dataTestId?: string;
   previewDescription?: boolean;
   isSkeleton?: boolean;
+  autoSelectOnlyOption?: boolean;
 } & Omit<
   React.ComponentProps<typeof Select>,
   'isOpen' | 'toggle' | 'dropdownItems' | 'onChange' | 'selected'
@@ -72,6 +73,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   previewDescription = true,
   popperProps,
   isSkeleton,
+  autoSelectOnlyOption = true,
   ...props
 }) => {
   const [open, setOpen] = React.useState(false);
@@ -97,12 +99,12 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
     totalOptions.length === 1 ? totalOptions[0].optionKey || totalOptions[0].key : null;
   // If there is only one option, call the onChange function
   React.useEffect(() => {
-    if (singleOptionKey && !isSkeleton) {
+    if (singleOptionKey && !isSkeleton && autoSelectOnlyOption) {
       onChange(totalOptions[0].key, false);
     }
     // We don't want the callback function to be a dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [singleOptionKey, isSkeleton]);
+  }, [singleOptionKey, isSkeleton, autoSelectOnlyOption]);
 
   if (isSkeleton) {
     return <Skeleton style={{ minWidth: 100 }} />;
@@ -133,7 +135,11 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
             onClick={() => setOpen(!open)}
             icon={icon}
             isExpanded={open}
-            isDisabled={totalOptions.length <= 1 || isDisabled}
+            isDisabled={
+              totalOptions.length === 0 ||
+              (totalOptions.length === 1 && autoSelectOnlyOption) ||
+              isDisabled
+            }
             isFullWidth={isFullWidth}
             {...toggleProps}
           >

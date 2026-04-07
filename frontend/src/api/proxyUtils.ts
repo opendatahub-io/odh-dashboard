@@ -89,6 +89,17 @@ const callProxyJSON = <T>(
   });
 };
 
+/**
+ * NOTE: This can return a:
+ * ```json
+ * {
+ *   "statusCode": 400,
+ *   "error": "Bad Request",
+ *   "message": "Invalid request"
+ * }
+ * ```
+ * TODO: fix this type
+ */
 export const proxyGET = <T>(
   host: string,
   path: string,

@@ -34,7 +34,10 @@ import {
 } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
-import { initMockModelAuthIntercepts } from '../../../utils/modelServingUtils';
+import {
+  initMockGatewayIntercepts,
+  initMockModelAuthIntercepts,
+} from '../../../utils/modelServingUtils';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -668,6 +671,188 @@ describe('Model Serving LLMD', () => {
 
       cy.wait('@stopLLMInferenceService2');
       cy.get('@stopLLMInferenceService2.all').should('have.length', 1);
+    });
+
+    it('should create an LLMD deployment with a gateway selection', () => {
+      initIntercepts({});
+
+      // Enable the gateway-dev flag by overriding the config intercept
+      const config = mockDashboardConfig({
+        disableNIMModelServing: true,
+        disableKServe: false,
+        genAiStudio: true,
+        modelAsService: true,
+        disableLLMd: false,
+      });
+      cy.intercept('GET', '/api/config', {
+        body: {
+          ...config,
+          spec: {
+            ...config.spec,
+            dashboardConfig: {
+              ...config.spec.dashboardConfig,
+              'gateway-dev': true,
+            },
+          },
+        },
+      });
+
+      initMockGatewayIntercepts({
+        gateways: [
+          { name: 'test-gateway', namespace: 'gateway-ns', listener: 'http', status: 'Ready' },
+          { name: 'other-gateway', namespace: 'gateway-ns-2', listener: 'http', status: 'Ready' },
+        ],
+      });
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      // Step 1: Model source
+      modelServingWizard
+        .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+        .should('exist')
+        .click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findLocationPathInput().should('exist').type('test-model/');
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 2: Model deployment
+      modelServingWizard.findModelDeploymentNameInput().type('test-gateway-model');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+        .should('exist')
+        .click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 3: Advanced Options — gateway select should be visible
+      modelServingWizard.findGatewaySelect().should('exist');
+      modelServingWizard.findGatewaySelectOption('test-gateway | gateway-ns').click();
+
+      // Disable token auth to simplify (avoid needing auth resource intercepts)
+      modelServingWizard.findTokenAuthenticationCheckbox().click();
+
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 4: Summary — submit
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.spec.router.gateway).to.containSubset({
+          refs: [{ name: 'test-gateway', namespace: 'gateway-ns' }],
+        });
+      });
+
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+        expect(interception.request.body.spec.router.gateway).to.containSubset({
+          refs: [{ name: 'test-gateway', namespace: 'gateway-ns' }],
+        });
+      });
+
+      cy.get('@createLLMInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2);
+      });
+    });
+
+    it('should edit an LLMD deployment and show pre-populated gateway', () => {
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'test-gw-model',
+            displayName: 'Gateway Test Model',
+            replicas: 1,
+            modelType: ServingRuntimeModelType.GENERATIVE,
+            gatewayRefs: [{ name: 'existing-gw', namespace: 'gw-ns' }],
+          }),
+        ],
+      });
+
+      // Enable the gateway-dev flag
+      const config = mockDashboardConfig({
+        disableNIMModelServing: true,
+        disableKServe: false,
+        genAiStudio: true,
+        modelAsService: true,
+        disableLLMd: false,
+      });
+      cy.intercept('GET', '/api/config', {
+        body: {
+          ...config,
+          spec: {
+            ...config.spec,
+            dashboardConfig: {
+              ...config.spec.dashboardConfig,
+              'gateway-dev': true,
+            },
+          },
+        },
+      });
+
+      initMockGatewayIntercepts({
+        gateways: [
+          { name: 'existing-gw', namespace: 'gw-ns', listener: 'http', status: 'Ready' },
+          { name: 'new-gateway', namespace: 'gw-ns-2', listener: 'http', status: 'Ready' },
+        ],
+      });
+
+      // Force the serving runtime list for editing
+      cy.interceptK8sList(
+        TemplateModel,
+        mockK8sResourceList([
+          mockServingRuntimeTemplateK8sResource({
+            name: 'llmd-serving',
+            displayName: 'Distributed inference with llm-d',
+            modelTypes: [ServingRuntimeModelType.GENERATIVE],
+          }),
+        ]),
+      );
+
+      cy.intercept('PUT', '**/llminferenceservices/test-gw-model*', (req) => {
+        req.reply({ statusCode: 200, body: req.body });
+      }).as('updateLLMInferenceService');
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.getModelRow('Gateway Test Model').findKebabAction('Edit').click();
+
+      // Step 1: Model source — switch to URI
+      modelServingWizardEdit.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizardEdit.findUrilocationInput().clear().type('hf://updated-uri');
+      modelServingWizardEdit.findSaveConnectionCheckbox().click();
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 2: Model deployment — select a compatible hardware profile for the deployment's resources
+      hardwareProfileSection.selectProfile(
+        'Large Profile Compatible CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+      );
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 3: Advanced Options — verify gateway is pre-populated with existing value
+      modelServingWizardEdit.findGatewaySelect().should('contain.text', 'existing-gw | gw-ns');
+
+      // Change to a different gateway
+      modelServingWizardEdit.findGatewaySelectOption('new-gateway | gw-ns-2').click();
+
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 4: Summary — submit
+      modelServingWizardEdit.findSubmitButton().should('be.enabled').click();
+
+      cy.wait('@updateLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.spec.router.gateway).to.containSubset({
+          refs: [{ name: 'new-gateway', namespace: 'gw-ns-2' }],
+        });
+      });
+
+      cy.wait('@updateLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@updateLLMInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2);
+      });
     });
   });
 

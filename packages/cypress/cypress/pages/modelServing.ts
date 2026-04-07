@@ -1303,6 +1303,14 @@ class ModelServingWizard extends Wizard {
     return cy.findByRole('button', { name: 'Discard' });
   }
 
+  findGatewaySelect() {
+    return cy.findByTestId('gateway-select');
+  }
+
+  findGatewaySelectOption(name: string) {
+    return this.findGatewaySelect().findSelectOption(name);
+  }
+
   findDeploymentStrategySection() {
     return cy.findByTestId('deployment-strategy-section');
   }

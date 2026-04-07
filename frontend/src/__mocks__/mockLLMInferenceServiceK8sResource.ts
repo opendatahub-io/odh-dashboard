@@ -24,6 +24,7 @@ type MockLLMInferenceServiceConfigType = {
   description?: string;
   isMaaS?: boolean;
   secretName?: string;
+  gatewayRefs?: { name: string; namespace: string }[];
 };
 
 export const mockLLMInferenceServiceK8sResource = ({
@@ -44,6 +45,7 @@ export const mockLLMInferenceServiceK8sResource = ({
   description,
   isMaaS = false,
   secretName,
+  gatewayRefs,
 }: MockLLMInferenceServiceConfigType): LLMInferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'LLMInferenceService',
@@ -77,7 +79,9 @@ export const mockLLMInferenceServiceK8sResource = ({
     replicas,
     router: {
       gateway: {
-        ...(isMaaS
+        ...(gatewayRefs
+          ? { refs: gatewayRefs }
+          : isMaaS
           ? { refs: [{ name: 'maas-default-gateway', namespace: 'openshift-ingress' }] }
           : {}),
       },
