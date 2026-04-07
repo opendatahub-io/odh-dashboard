@@ -389,7 +389,6 @@ function AutomlConfigure(): React.JSX.Element {
                                   isSelectable
                                   isDisabled={!canSelectLearningType}
                                   isSelected={field.value === type.value}
-                                  onClick={() => field.onChange(type.value)}
                                   data-testid={`task-type-card-${type.value}`}
                                 >
                                   <CardHeader
