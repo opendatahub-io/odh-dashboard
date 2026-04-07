@@ -11,7 +11,6 @@ import { mockRouteK8sResource } from '@odh-dashboard/internal/__mocks__/mockRout
 import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { buildMockRecurringRunKF } from '@odh-dashboard/internal/__mocks__/mockRecurringRunKF';
 import { mockPodLogs } from '@odh-dashboard/internal/__mocks__/mockPodLogs';
-import { mockCancelledGoogleRpcStatus } from '@odh-dashboard/internal/__mocks__/mockGoogleRpcStatusKF';
 import { buildMockRunKF } from '@odh-dashboard/internal/__mocks__/mockRunKF';
 import { mockPipelinePodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPipelinePodK8sResource';
 import { buildMockExperimentKF, buildMockPipeline } from '@odh-dashboard/internal/__mocks__';
@@ -450,9 +449,15 @@ describe('Pipeline topology', () => {
         cy.interceptOdh(
           'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
           { path: { namespace: projectId, serviceName: 'dspa', runId: `${failedRunId}:retry` } },
-          {
-            statusCode: 500,
-            body: mockCancelledGoogleRpcStatus({ message: 'Internal server error' }),
+          (req) => {
+            req.reply({
+              statusCode: 200,
+              body: {
+                error: 'Internal server error',
+                code: 500,
+                message: 'Internal server error',
+              },
+            });
           },
         );
         pipelineRunDetails.visit(projectId, failedRunId);
