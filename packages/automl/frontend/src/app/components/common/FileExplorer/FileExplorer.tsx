@@ -59,7 +59,7 @@ import {
   type IAction,
 } from '@patternfly/react-table';
 import { EllipsisVIcon, InfoCircleIcon, OutlinedEyeIcon, TimesIcon } from '@patternfly/react-icons';
-import React, { type ReactNode, useCallback, useId, useRef, useState } from 'react';
+import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
 
 // TODO [ Gustavo ] This file is ~1,130 lines containing 6+ components, types, helpers, and globals.
 // Consider splitting into:
@@ -932,6 +932,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showCharWarning, setShowCharWarning] = useState(false);
   const charWarningTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(charWarningTimerRef.current), []);
 
   const resetState = () => {
     setSelectedFiles([]);
