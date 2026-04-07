@@ -1,8 +1,9 @@
 /* eslint-disable camelcase */
 
 /**
- * MCP Server mock that matches the real API structure (MCPServerFromAPI)
+ * MCP Server mock that matches the real API structure (MCPServerSummary from OpenAPI)
  * Note: Does NOT include 'id' field - that's added by transformMCPServerData in the frontend
+ * API response wraps servers in { data: { servers: [...], total_count, config_map_info } }
  */
 export type MCPServerMock = {
   name: string;
@@ -20,9 +21,11 @@ export type MCPConfigMapInfo = {
 };
 
 export type MCPServersResponse = {
-  servers: MCPServerMock[];
-  total_count: number;
-  config_map_info: MCPConfigMapInfo;
+  data: {
+    servers: MCPServerMock[];
+    total_count: number;
+    config_map_info: MCPConfigMapInfo;
+  };
 };
 
 export const mockMCPServer = ({
@@ -62,12 +65,14 @@ export const mockMCPServers = (
   ];
 
   return {
-    servers: serverList,
-    total_count: serverList.length,
-    config_map_info: {
-      name: 'mcp-servers',
-      namespace,
-      last_updated: lastUpdated,
+    data: {
+      servers: serverList,
+      total_count: serverList.length,
+      config_map_info: {
+        name: 'mcp-servers',
+        namespace,
+        last_updated: lastUpdated,
+      },
     },
   };
 };
