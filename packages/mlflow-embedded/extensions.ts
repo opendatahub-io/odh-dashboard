@@ -21,7 +21,6 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
     type: 'app.area',
     properties: {
       id: 'mlflow-embedded',
-      featureFlags: ['mlflow'],
     },
   },
   {
@@ -35,7 +34,6 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
       href: '/develop-train/mlflow/experiments',
       section: 'develop-and-train',
       path: '/develop-train/mlflow/experiments/*',
-      label: 'Tech Preview',
     },
   },
   {
@@ -60,7 +58,6 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
       section: 'gen-ai-studio',
       path: globPromptManagementAll,
       group: '6_prompt_management',
-      label: 'Tech Preview',
     },
   },
   {
