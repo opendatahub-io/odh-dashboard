@@ -175,6 +175,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	// Initialize MLflow client factory
+	//
+	// TODO(mlflow-url-discovery): Refactor this three-way logic once MLflow URL discovery is resolved.
+	// Currently MLFLOW_URL must be set via env var. The UnavailableClientFactory fallback exists
+	// because production deployments don't have MLFLOW_URL configured yet (would break nightlies).
+	// Once we have a real URL strategy (operator ServiceURL, convention, or deployment config),
+	// this should be simplified — likely removing the UnavailableClientFactory path entirely.
+	// See ADR-0014 for full analysis of the discovery problem.
 	var mlflowFactory mlflowpkg.MLflowClientFactory
 	var mlflowState *mlflowmocks.MLflowState
 	if cfg.MockMLflowClient {
@@ -183,15 +190,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			logger.Warn("MLflow mock server not available, MLflow endpoints will fail on request", "error", err)
 		}
 		mlflowFactory = mlflowmocks.NewMockClientFactory()
+	} else if cfg.MLflowURL != "" {
+		logger.Info("Using real MLflow client factory", "url", cfg.MLflowURL)
+		mlflowFactory = mlflowpkg.NewRealClientFactory(cfg.MLflowURL, rootCAs, cfg.InsecureSkipVerify)
 	} else {
-		mlflowURL := resolveMLflowURL(cfg, logger)
-		if mlflowURL != "" {
-			logger.Info("Using real MLflow client factory", "url", mlflowURL)
-			mlflowFactory = mlflowpkg.NewRealClientFactory(mlflowURL, rootCAs, cfg.InsecureSkipVerify)
-		} else {
-			logger.Warn("MLflow URL not configured and auto-discovery failed, MLflow endpoints will return 503")
-			mlflowFactory = mlflowpkg.NewUnavailableClientFactory()
-		}
+		logger.Warn("MLflow URL not configured, MLflow endpoints will return 503")
+		mlflowFactory = mlflowpkg.NewUnavailableClientFactory()
 	}
 
 	// Initialize shared memory store for caching (10 minute cleanup interval)
@@ -232,25 +236,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		mlflowState:             mlflowState,
 	}
 	return app, nil
-}
-
-// resolveMLflowURL returns the MLflow tracking URL from config or auto-discovery.
-// Priority: 1) MLFLOW_URL env var, 2) MLflow CR status.address.url discovery.
-// Returns empty string if neither is available (graceful degradation).
-func resolveMLflowURL(cfg config.EnvConfig, logger *slog.Logger) string {
-	if cfg.MLflowURL != "" {
-		return cfg.MLflowURL
-	}
-
-	discoveredURL, err := mlflowpkg.DiscoverMLflowURL()
-	if err != nil {
-		logger.Debug("MLflow CR auto-discovery failed", slog.Any("error", err))
-		return ""
-	}
-	if discoveredURL != "" {
-		logger.Info("Discovered MLflow URL from CR", slog.String("url", discoveredURL))
-	}
-	return discoveredURL
 }
 
 func (app *App) Shutdown() error {
@@ -323,7 +308,7 @@ func (app *App) Routes() http.Handler {
 	// Files (LlamaStack)
 	apiRouter.GET(constants.FilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListFilesHandler))))
 	apiRouter.POST(constants.FilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler))))
-	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackFileUploadStatusHandler)))
+	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.LlamaStackFileUploadStatusHandler))
 	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteFileHandler))))
 
 	// Vector Store Files (LlamaStack)
@@ -332,47 +317,47 @@ func (app *App) Routes() http.Handler {
 	apiRouter.DELETE(constants.VectorStoreFilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreFileHandler))))
 
 	// Code Exporter (Template-only)
-	apiRouter.POST(constants.CodeExporterPath, app.AttachNamespace(app.RequireAccessToService(app.CodeExporterHandler)))
+	apiRouter.POST(constants.CodeExporterPath, app.AttachNamespace(app.CodeExporterHandler))
 
 	// Kubernetes routes
 
 	// AI Assets Models (Kubernetes)
-	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.ModelsAAHandler)))
-	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateExternalModelHandler)))
-	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteExternalModelHandler)))
+	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.ModelsAAHandler))
+	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.CreateExternalModelHandler))
+	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.DeleteExternalModelHandler))
 
 	// External model verification (requires namespace for authorization)
-	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyExternalModelHandler)))
+	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.VerifyExternalModelHandler))
 
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
-	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.GetNamespaceHandler))
+	apiRouter.GET(constants.NamespacesPath, app.GetNamespaceHandler)
 
 	// Identity
-	apiRouter.GET(constants.UserPath, app.RequireAccessToService(app.GetCurrentUserHandler))
+	apiRouter.GET(constants.UserPath, app.GetCurrentUserHandler)
 
 	// BFF Configuration endpoint
-	apiRouter.GET(constants.ConfigPath, app.RequireAccessToService(app.BFFConfigHandler))
+	apiRouter.GET(constants.ConfigPath, app.BFFConfigHandler)
 
 	// Llama Stack Distribution status endpoint
-	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionStatusHandler)))
+	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.AttachNamespace(app.LlamaStackDistributionStatusHandler))
 
 	// Llama Stack Distribution install endpoint
 	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.AttachMaaSClient(app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionInstallHandler))))
 
 	// Llama Stack Distribution delete endpoint
-	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionDeleteHandler)))
+	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.AttachNamespace(app.LlamaStackDistributionDeleteHandler))
 
 	// LSD Safety Config endpoint - returns configured guardrail models and shields
-	apiRouter.GET(constants.LSDSafetyPath, app.AttachNamespace(app.RequireAccessToService(app.LSDSafetyConfigHandler)))
+	apiRouter.GET(constants.LSDSafetyPath, app.AttachNamespace(app.LSDSafetyConfigHandler))
 
 	// MCP Client endpoints
-	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.RequireAccessToService(app.MCPToolsHandler)))
-	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.RequireAccessToService(app.MCPStatusHandler)))
-	apiRouter.GET(constants.MCPServersListPath, app.AttachNamespace(app.RequireAccessToService(app.MCPListHandler)))
+	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.MCPToolsHandler))
+	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.MCPStatusHandler))
+	apiRouter.GET(constants.MCPServersListPath, app.AttachNamespace(app.MCPListHandler))
 
 	// External Vector Stores
-	apiRouter.GET(constants.VectorStoresAAPath, app.AttachNamespace(app.RequireAccessToService(app.VectorStoresAAHandler)))
-	apiRouter.GET(constants.ExternalVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.ExternalVectorStoresListHandler)))
+	apiRouter.GET(constants.VectorStoresAAPath, app.AttachNamespace(app.VectorStoresAAHandler))
+	apiRouter.GET(constants.ExternalVectorStoresPath, app.AttachNamespace(app.ExternalVectorStoresListHandler))
 
 	// MaaS API routes
 

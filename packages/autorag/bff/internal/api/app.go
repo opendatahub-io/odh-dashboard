@@ -16,32 +16,28 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack/lsmocks"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	psmocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
-	s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
-	s3mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3/s3mocks"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 
 	"github.com/julienschmidt/httprouter"
 )
 
 const (
-	Version             = "1.0.0"
-	PathPrefix          = "/autorag"
-	ApiPathPrefix       = "/api/v1"
-	HealthCheckPath     = "/healthcheck"
-	UserPath            = ApiPathPrefix + "/user"
-	NamespacePath       = ApiPathPrefix + "/namespaces"
-	SecretsPath         = ApiPathPrefix + "/secrets"
-	S3FilePath          = ApiPathPrefix + "/s3/file"
-	S3FilesPath         = ApiPathPrefix + "/s3/files"
-	LSDModelsPath       = ApiPathPrefix + "/lsd/models"
-	LSDVectorStoresPath = ApiPathPrefix + "/lsd/vector-stores"
-	PipelineRunsPath    = ApiPathPrefix + "/pipeline-runs"
+	Version          = "1.0.0"
+	PathPrefix       = "/autorag"
+	ApiPathPrefix    = "/api/v1"
+	HealthCheckPath  = "/healthcheck"
+	UserPath         = ApiPathPrefix + "/user"
+	NamespacePath    = ApiPathPrefix + "/namespaces"
+	SecretsPath      = ApiPathPrefix + "/secrets"
+	S3FilePath       = ApiPathPrefix + "/s3/file"
+	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
 )
 
 type App struct {
@@ -50,7 +46,6 @@ type App struct {
 	kubernetesClientFactory     k8s.KubernetesClientFactory
 	llamaStackClientFactory     ls.LlamaStackClientFactory
 	pipelineServerClientFactory ps.PipelineServerClientFactory
-	s3ClientFactory             s3int.S3ClientFactory
 	repositories                *repositories.Repositories
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
@@ -144,24 +139,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		pipelineServerClientFactory = ps.NewRealClientFactory()
 	}
 
-	// Initialize S3 client factory
-	var s3ClientFactory s3int.S3ClientFactory
-	if cfg.MockS3Client {
-		logger.Info("Using mock S3 client factory")
-		s3ClientFactory = s3mocks.NewMockClientFactory()
-	} else {
-		logger.Info("Using real S3 client factory")
-		s3ClientOptions := s3int.S3ClientOptions{DevMode: cfg.DevMode}
-		s3ClientFactory = s3int.NewRealClientFactory(s3ClientOptions)
-	}
-
 	app := &App{
 		config:                      cfg,
 		logger:                      logger,
 		kubernetesClientFactory:     k8sFactory,
 		llamaStackClientFactory:     llamaStackClientFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
-		s3ClientFactory:             s3ClientFactory,
 		repositories:                repositories.NewRepositories(logger),
 		testEnv:                     testEnv,
 		rootCAs:                     rootCAs,
@@ -179,21 +162,6 @@ func (app *App) Shutdown() error {
 	return app.testEnv.Stop()
 }
 
-// attachPipelineClientIfNeeded is a best-effort shim for the S3 file route.
-// When the caller supplies an explicit secretName query parameter the handler
-// can resolve S3 credentials directly, so DSPA discovery is skipped and next
-// is called immediately. Otherwise the full AttachPipelineServerClient
-// middleware runs as normal.
-func (app *App) attachPipelineClientIfNeeded(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		if strings.TrimSpace(r.URL.Query().Get("secretName")) != "" {
-			next(w, r, ps)
-			return
-		}
-		app.AttachPipelineServerClient(next)(w, r, ps)
-	}
-}
-
 func (app *App) Routes() http.Handler {
 	// Router for /api/v1/*
 	apiRouter := httprouter.New()
@@ -202,20 +170,17 @@ func (app *App) Routes() http.Handler {
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	// Minimal Kubernetes-backed starter endpoints
-	apiRouter.GET(UserPath, app.RequireAccessToService(app.UserHandler))
-	apiRouter.GET(NamespacePath, app.RequireAccessToService(app.GetNamespacesHandler))
+	apiRouter.GET(UserPath, app.UserHandler)
+	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 
 	// Secrets
-	apiRouter.GET(SecretsPath, app.AttachNamespace(app.RequireAccessToService(app.GetSecretsHandler)))
+	apiRouter.GET(SecretsPath, app.AttachNamespace(app.GetSecretsHandler))
 
-	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
-	// secretName (the handler resolves credentials directly in that case).
-	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.attachPipelineClientIfNeeded(app.GetS3FileHandler))))
-	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToService(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler))))
+	// S3 operations
+	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FileHandler)))
 
-	// LLamaStack
-	apiRouter.GET(LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackModelsHandler))))
-	apiRouter.GET(LSDVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackVectorStoresHandler))))
+	// LSD Models
+	apiRouter.GET(constants.LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackModelsHandler))))
 
 	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunHandler)))))
