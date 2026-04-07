@@ -15,6 +15,12 @@ type UseAutomlResultsReturn = {
 
 /**
  * Custom hook to fetch and process AutoML model results from S3.
+ * Models are outputted into the following directory structure
+ *      Tabular:     autogluon-tabular-training-pipeline/xxx/autogluon-models-training/yyy/models_artifact/WeightedEnsemble_L5_FULL
+ *      Time series: autogluon-timeseries-training-pipeline/xxx/timeseries-models-full-refit/yyy/model_artifact/WeightedEnsemble_L5_FULL
+ * where xxx is the kubeflow pipeline run_id and yyy is a nondeterministic ID.
+ * The directory variables used to generate these paths in this file are as follows:
+ *      ${rootDir}/xxx/${modelGenerationDir}/yyy/${modelArtifactsDirectory}/${modelName}
  *
  * ## Testing Strategy
  *
@@ -57,10 +63,13 @@ export function useAutomlResults(
   const rootDir = isTabular
     ? `autogluon-tabular-training-pipeline`
     : 'autogluon-timeseries-training-pipeline';
-  const modelGenerationDir = isTabular ? 'autogluon-models-training' : 'timeseries-models-training';
+  const modelGenerationDir = isTabular
+    ? 'autogluon-models-training'
+    : 'timeseries-models-full-refit';
   const generatedModelsPath = shouldFetchS3Files
     ? `${rootDir}/${runId}/${modelGenerationDir}`
     : undefined;
+
   const {
     data: s3Files,
     isLoading: isS3Loading,
@@ -68,11 +77,12 @@ export function useAutomlResults(
   } = useS3ListFilesQuery(namespace, generatedModelsPath);
 
   // Step 2: Fetch model artifact directories from each common prefix
+  const modelArtifactsDirectory = isTabular ? 'models_artifact' : 'model_artifact';
   const modelArtifactQueries = useQueries({
     queries: (s3Files?.common_prefixes ?? [])
       .filter((prefixObj) => typeof prefixObj.prefix === 'string' && prefixObj.prefix.length > 0)
       .map((prefixObj) => {
-        const path = `${prefixObj.prefix}models_artifact`;
+        const path = `${prefixObj.prefix}${modelArtifactsDirectory}`;
         return {
           queryKey: ['s3Files', namespace, path],
           queryFn: async ({ signal }) => {
@@ -112,7 +122,7 @@ export function useAutomlResults(
             (prefixObj) => typeof prefixObj.prefix === 'string' && prefixObj.prefix.length > 0,
           )
           .map((prefixObj) => {
-            // Extract model name from prefix like "...model_artifact/WeightedEnsemble_L5_FULL/"
+            // Extract model name from prefix like ".../${modelArtifactsDirectory}/WeightedEnsemble_L5_FULL/"
             const { prefix } = prefixObj;
             const parts = prefix.split('/').filter(Boolean);
             if (parts.length === 0) {
