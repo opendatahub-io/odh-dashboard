@@ -274,7 +274,7 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
     startEvaluationRunPage.findExperimentModeExisting().should('be.checked');
     startEvaluationRunPage.findExperimentModeNew().click();
     startEvaluationRunPage.findNewExperimentNameInput().should('exist');
-    startEvaluationRunPage.findNewExperimentNameInput().type('My New Experiment');
+    startEvaluationRunPage.findNewExperimentNameInput().clear().type('My New Experiment');
     startEvaluationRunPage.findNewExperimentNameInput().should('have.value', 'My New Experiment');
   });
 });
