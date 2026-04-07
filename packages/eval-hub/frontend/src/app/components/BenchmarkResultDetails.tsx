@@ -16,18 +16,29 @@ import { getBenchmarkDisplayName, getJobBenchmarks } from '~/app/utilities/evalu
 
 type BenchmarkResultDetailsProps = {
   benchmarkId: string;
+  benchmarkIndex: number;
   job: EvaluationJob;
 };
 
-const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({ benchmarkId, job }) => {
-  const result = job.results.benchmarks?.find((b) => b.id === benchmarkId);
-  const benchmarkConfig = getJobBenchmarks(job).find((b) => b.id === benchmarkId);
+const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
+  benchmarkId,
+  benchmarkIndex,
+  job,
+}) => {
+  const result = job.results.benchmarks?.find(
+    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
+  );
+  const benchmarkConfig = getJobBenchmarks(job).find(
+    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
+  );
 
   if (!result) {
     return null;
   }
 
-  const benchmarkStatus = job.status.benchmarks?.find((b) => b.id === benchmarkId);
+  const benchmarkStatus = job.status.benchmarks?.find(
+    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
+  );
   const passStatus =
     result.test?.pass ??
     (benchmarkStatus?.status == null ? null : benchmarkStatus.status === 'completed');
@@ -38,7 +49,7 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({ benchma
   const providerLabel = result.provider_id ?? benchmarkConfig?.provider_id;
 
   return (
-    <div data-testid={`benchmark-details-${benchmarkId}`}>
+    <div data-testid={`benchmark-details-${benchmarkId}-${benchmarkIndex}`}>
       <Flex
         alignItems={{ default: 'alignItemsCenter' }}
         gap={{ default: 'gapSm' }}
@@ -59,7 +70,7 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({ benchma
                   <TimesCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
                 )
               }
-              data-testid={`details-pass-label-${benchmarkId}`}
+              data-testid={`details-pass-label-${benchmarkId}-${benchmarkIndex}`}
             >
               {passStatus ? 'Pass' : 'Fail'}
             </Label>
