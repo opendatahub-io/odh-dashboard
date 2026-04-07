@@ -119,6 +119,8 @@ spec:
                       type: boolean
                     mlflow:
                       type: boolean
+                    mcpCatalog:
+                      type: boolean
                     projectRBAC:
                       type: boolean
                     trainingJobs:
