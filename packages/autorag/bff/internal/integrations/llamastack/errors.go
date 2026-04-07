@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-
-	"github.com/openai/openai-go/v2"
 )
 
 // LlamaStackError represents LlamaStack-specific errors
@@ -59,11 +57,10 @@ func NewNotFoundError(message string) *LlamaStackError {
 	return NewLlamaStackError(ErrCodeNotFound, message, 404)
 }
 
-// wrapClientError wraps errors from the llamastack OpenAI client into our LlamaStackError type for consistent error handling.
-// Network errors (connection refused, timeout) are wrapped as ConnectionError.
-// API errors (openai.Error) are wrapped with appropriate error codes based on status.
-// This ensures all errors can be handled uniformly by handleLlamaStackClientError.
-// The operation parameter should be the function name that failed (e.g. "ListModels", "CreateResponse").
+// wrapClientError wraps Go errors from httpClient.Do() into our LlamaStackError type.
+// It handles network-level errors (connection refused, timeout, DNS failures).
+// For HTTP status code errors, use mapHTTPStatusToError instead.
+// The operation parameter should be the function name that failed (e.g. "ListModels", "ListProviders").
 func wrapClientError(err error, operation string) *LlamaStackError {
 	if err == nil {
 		return nil
@@ -76,34 +73,25 @@ func wrapClientError(err error, operation string) *LlamaStackError {
 		return NewConnectionError(message)
 	}
 
-	// Check for API-level errors (status codes from LlamaStack service)
-	var apiErr *openai.Error
-	if errors.As(err, &apiErr) {
-		llamastackErrorMsg := apiErr.Message
-		if llamastackErrorMsg == "" {
-			// if the error message is empty, fall back to the full error string
-			llamastackErrorMsg = apiErr.Error()
-		}
-
-		// Prefix message with operation context for clarity
-		message := fmt.Sprintf("LlamaStack error on operation %s: %s", operation, llamastackErrorMsg)
-
-		// Map openai.Error to LlamaStackError based on status code
-		switch apiErr.StatusCode {
-		case http.StatusBadRequest:
-			return NewInvalidRequestError(message)
-		case http.StatusUnauthorized:
-			return NewUnauthorizedError(message)
-		case http.StatusNotFound:
-			return NewNotFoundError(message)
-		case http.StatusServiceUnavailable, http.StatusGatewayTimeout, http.StatusRequestTimeout:
-			return NewServerUnavailableError(message)
-		default:
-			// For other API errors, return as internal error with original message
-			return NewLlamaStackError(ErrCodeInternalError, message, apiErr.StatusCode)
-		}
-	}
-
 	// For other unknown errors, wrap as internal error
 	return NewLlamaStackError(ErrCodeInternalError, fmt.Sprintf("unexpected error on operation %s: %s", operation, err.Error()), http.StatusInternalServerError)
+}
+
+// mapHTTPStatusToError maps a non-200 HTTP status code from LlamaStack into a typed LlamaStackError.
+// The resource parameter describes what was being accessed (e.g. "models", "providers") for error messages.
+func mapHTTPStatusToError(statusCode int, body []byte, resource string) *LlamaStackError {
+	switch statusCode {
+	case http.StatusBadRequest:
+		return NewInvalidRequestError(fmt.Sprintf("invalid request to LlamaStack %s: %s", resource, string(body)))
+	case http.StatusUnauthorized:
+		return NewUnauthorizedError(fmt.Sprintf("unauthorized to access LlamaStack %s", resource))
+	case http.StatusNotFound:
+		return NewNotFoundError(fmt.Sprintf("LlamaStack %s not found — ensure LlamaStack version supports /v1/%s", resource, resource))
+	case http.StatusRequestTimeout, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+		return NewServerUnavailableError(fmt.Sprintf("LlamaStack service unavailable while listing %s", resource))
+	default:
+		return NewLlamaStackError(ErrCodeInternalError,
+			fmt.Sprintf("unexpected status %d from LlamaStack %s: %s", statusCode, resource, string(body)),
+			statusCode)
+	}
 }
