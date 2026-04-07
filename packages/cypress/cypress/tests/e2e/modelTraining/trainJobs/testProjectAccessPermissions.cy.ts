@@ -1,20 +1,20 @@
 import yaml from 'js-yaml';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
-import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../utils/e2eUsers';
-import { addUserToProject, deleteOpenShiftProject } from '../../../utils/oc_commands/project';
-import { createCleanProject } from '../../../utils/projectChecker';
+import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
+import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { createCleanProject } from '../../../../utils/projectChecker';
 import {
   createTrainJob,
   createTrainingKueueResources,
   createTrainingRuntime,
   deleteTrainingRuntime,
-} from '../../../utils/oc_commands/trainingJobs';
-import { deleteKueueResources } from '../../../utils/oc_commands/distributedWorkloads';
-import { modelTrainingGlobal, trainingJobTable } from '../../../pages/modelTraining';
-import { retryableBefore } from '../../../utils/retryableHooks';
-import { generateTestUUID } from '../../../utils/uuidGenerator';
-import { getCustomResource } from '../../../utils/oc_commands/customResources';
-import type { TrainJobTestData } from '../../../types';
+} from '../../../../utils/oc_commands/trainingJobs';
+import { deleteKueueResources } from '../../../../utils/oc_commands/distributedWorkloads';
+import { modelTrainingGlobal, trainingJobTable } from '../../../../pages/modelTraining';
+import { retryableBefore } from '../../../../utils/retryableHooks';
+import { generateTestUUID } from '../../../../utils/uuidGenerator';
+import { getCustomResource } from '../../../../utils/oc_commands/customResources';
+import type { TrainJobTestData } from '../../../../types';
 
 describe('Verify project access for user types in Training Jobs', () => {
   let testData: TrainJobTestData;
@@ -57,7 +57,7 @@ describe('Verify project access for user types in Training Jobs', () => {
       }
 
       // Load test data from fixture
-      cy.fixture('e2e/modelTraining/testTrainjobProgression.yaml', 'utf8')
+      cy.fixture('e2e/modelTraining/trainJobs/testTrainjobProgression.yaml', 'utf8')
         .then((yamlContent: string) => {
           testData = yaml.load(yamlContent) as TrainJobTestData;
 

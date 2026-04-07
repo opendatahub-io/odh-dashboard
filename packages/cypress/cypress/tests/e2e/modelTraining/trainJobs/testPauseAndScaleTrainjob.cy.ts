@@ -1,15 +1,15 @@
 import yaml from 'js-yaml';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
-import { createCleanProject } from '../../../utils/projectChecker';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
+import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { createCleanProject } from '../../../../utils/projectChecker';
 import {
   deleteTrainingRuntime,
   getTrainJobNumNodes,
   setupTrainingResources,
   verifyTrainJobDeleted,
-} from '../../../utils/oc_commands/trainingJobs';
-import { deleteKueueResources } from '../../../utils/oc_commands/distributedWorkloads';
+} from '../../../../utils/oc_commands/trainingJobs';
+import { deleteKueueResources } from '../../../../utils/oc_commands/distributedWorkloads';
 import {
   modelTrainingGlobal,
   pauseTrainingJobModal,
@@ -18,12 +18,12 @@ import {
   trainingJobResourcesTab,
   trainingJobStatusModal,
   trainingJobTable,
-} from '../../../pages/modelTraining';
-import { retryableBefore } from '../../../utils/retryableHooks';
-import { generateTestUUID } from '../../../utils/uuidGenerator';
-import { deleteModal } from '../../../pages/components/DeleteModal';
-import { getCustomResource } from '../../../utils/oc_commands/customResources';
-import type { TrainJobTestData } from '../../../types';
+} from '../../../../pages/modelTraining';
+import { retryableBefore } from '../../../../utils/retryableHooks';
+import { generateTestUUID } from '../../../../utils/uuidGenerator';
+import { deleteModal } from '../../../../pages/components/DeleteModal';
+import { getCustomResource } from '../../../../utils/oc_commands/customResources';
+import type { TrainJobTestData } from '../../../../types';
 
 // Node count constants - initial is defined in train-job.yaml, updated is the target after scaling
 const INITIAL_NODE_COUNT = 1;
@@ -62,7 +62,7 @@ describe('Verify Pause, Scale Node Count, and Resume Training Job', () => {
       }
 
       // Load test data from fixture (reusing existing fixture)
-      cy.fixture('e2e/modelTraining/testTrainjobProgression.yaml', 'utf8')
+      cy.fixture('e2e/modelTraining/trainJobs/testTrainjobProgression.yaml', 'utf8')
         .then((yamlContent: string) => {
           testData = yaml.load(yamlContent) as TrainJobTestData;
 
