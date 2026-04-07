@@ -25,9 +25,11 @@ import {
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useProviders } from '~/app/hooks/useProviders';
 import { FlatBenchmark } from '~/app/types';
 import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import BenchmarkDrawerPanel from '~/app/components/BenchmarkDrawerPanel';
 import BenchmarkCard from '~/app/components/BenchmarkCard';
 import {
@@ -44,6 +46,11 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
 
   const handleRunBenchmark = React.useCallback(
     (b: FlatBenchmark) => {
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
+        runType: 'single',
+        benchmarkTypes: JSON.stringify([b.id]),
+        countOfBenchmarks: 1,
+      });
       const params = new URLSearchParams({
         type: 'benchmark',
         providerId: b.providerId,
@@ -133,7 +140,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
   const hasActiveFilters = Object.values(filterData).some((v) => v && String(v).trim());
 
   return (
-    <Drawer isExpanded={!!selectedBenchmark} isInline>
+    <Drawer isExpanded={!!selectedBenchmark}>
       <DrawerContent
         panelContent={
           <BenchmarkDrawerPanel
@@ -239,7 +246,10 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                   <StackItem isFilled>
                     {paginatedBenchmarks.length === 0 ? (
                       <Bullseye>
-                        <EmptyState variant={EmptyStateVariant.sm}>
+                        <EmptyState
+                          variant={EmptyStateVariant.sm}
+                          data-testid="benchmarks-empty-state"
+                        >
                           <Title headingLevel="h2" size="lg">
                             No benchmarks found
                           </Title>
@@ -249,14 +259,22 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                               : 'No benchmarks are currently available.'}
                           </EmptyStateBody>
                           {hasActiveFilters && (
-                            <Button variant="link" onClick={onClearFilters}>
+                            <Button
+                              variant="link"
+                              onClick={onClearFilters}
+                              data-testid="benchmarks-clear-filters"
+                            >
                               Clear all filters
                             </Button>
                           )}
                         </EmptyState>
                       </Bullseye>
                     ) : (
-                      <Gallery hasGutter minWidths={{ default: '280px' }}>
+                      <Gallery
+                        hasGutter
+                        minWidths={{ default: '280px' }}
+                        data-testid="benchmarks-gallery"
+                      >
                         {paginatedBenchmarks.map((benchmark) => (
                           <BenchmarkCard
                             key={`${benchmark.providerId}-${benchmark.id}`}

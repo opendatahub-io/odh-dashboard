@@ -1,4 +1,5 @@
 import type { DashboardResource } from '@perses-dev/core';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/internal/k8sTypes';
 import { isClusterDetailsVariable } from './variables';
 
 export const BASE_PATH = '/observe-and-monitor/dashboard';
@@ -6,6 +7,49 @@ export const DASHBOARD_QUERY_PARAM = 'dashboard';
 
 const PERSES_DASHBOARD_PREFIX = 'dashboard-';
 const PERSES_DASHBOARD_ADMIN_SUFFIX = '-admin';
+
+/**
+ * SelfSubjectAccessReview attributes matching Thanos querier `kube-rbac-proxy-web` (port 9091) —
+ * SAR on the platform Prometheus API.
+ *
+ * `cluster-monitoring-view` grants both `namespaces` **get** and
+ * `prometheuses/api` **get|create|update** with **resourceNames: [k8s]** (`monitoring.coreos.com`).
+ * The proxy secret encodes the latter; use **get** on `prometheuses/api` / `k8s` in
+ * `openshift-monitoring` (not the separate `namespaces` rule).
+ */
+export const THANOS_QUERIER_NON_TENANCY_ACCESS: AccessReviewResourceAttributes = {
+  group: 'monitoring.coreos.com',
+  resource: 'prometheuses',
+  subresource: 'api',
+  verb: 'get',
+  namespace: 'openshift-monitoring',
+  name: 'k8s',
+};
+
+/**
+ * Perses dashboards backed by the Thanos querier non-tenancy path (cluster-wide metrics).
+ * Gated by {@link THANOS_QUERIER_NON_TENANCY_ACCESS}.
+ */
+export const THANOS_NON_TENANCY_GATED_DASHBOARD_NAMES: ReadonlySet<string> = new Set([
+  'dashboard-0-cluster-admin',
+  'dashboard-1-model',
+]);
+
+/**
+ * Removes dashboards that require Thanos non-tenancy / cluster-monitoring-equivalent access
+ * when the user fails the corresponding RBAC check.
+ */
+export const filterDashboardsByThanosNonTenancyAccess = (
+  dashboards: DashboardResource[],
+  canAccessThanosNonTenancy: boolean,
+): DashboardResource[] => {
+  if (canAccessThanosNonTenancy) {
+    return dashboards;
+  }
+  return dashboards.filter(
+    ({ metadata: { name } }) => !THANOS_NON_TENANCY_GATED_DASHBOARD_NAMES.has(name),
+  );
+};
 
 /**
  * Filters and sorts dashboards according to user admin status.

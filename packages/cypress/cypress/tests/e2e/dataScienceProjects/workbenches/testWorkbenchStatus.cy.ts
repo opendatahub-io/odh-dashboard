@@ -89,7 +89,7 @@ describe('Workbenches - status tests', () => {
           cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
           const notebookRow = workbenchPage.getNotebookRow(workbenchName);
           notebookRow.findNotebookDescription(projectDescription);
-          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
 
           // Use dynamic image name verification based on what was actually selected
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {
@@ -100,7 +100,7 @@ describe('Workbenches - status tests', () => {
               'Click on Running status, validate the Running status and navigate to the Progress tab',
             );
             notebookRow.findHaveNotebookStatusText().click();
-            workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Running);
+            workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Ready);
 
             // Click on the Events log and validate that successful list messages display.
             cy.step('Navigate to Events Tab and verify successful event messages are displayed');

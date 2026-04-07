@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
+import { MLflowPromptVersion } from '~/app/types';
+import { deepCopyPrompt } from './utils';
 import {
   ChatbotConfigStore,
   ChatbotConfiguration,
@@ -205,6 +207,8 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           knowledgeMode: sourceConfig.knowledgeMode,
           selectedVectorStoreId: sourceConfig.selectedVectorStoreId,
           selectedSubscription: sourceConfig.selectedSubscription,
+          activePrompt: deepCopyPrompt(sourceConfig.activePrompt),
+          dirtyPrompt: deepCopyPrompt(sourceConfig.dirtyPrompt),
         };
 
         set(
@@ -418,6 +422,60 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
             config.guardrailModelOutputEnabled = value;
           }
         });
+      },
+
+      updateActivePrompt: (id: string, prompt: MLflowPromptVersion | null) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.activePrompt = deepCopyPrompt(prompt);
+              config.dirtyPrompt = deepCopyPrompt(prompt);
+            }
+          },
+          false,
+          'updateActivePrompt',
+        );
+      },
+
+      updateDirtyPrompt: (id: string, prompt: MLflowPromptVersion | null) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.dirtyPrompt = deepCopyPrompt(prompt);
+            }
+          },
+          false,
+          'updateDirtyPrompt',
+        );
+      },
+
+      resetDirtyPrompt: (id: string) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.dirtyPrompt = deepCopyPrompt(config.activePrompt);
+            }
+          },
+          false,
+          'resetDirtyPrompt',
+        );
+      },
+
+      clearPromptState: (id: string, newDirtyPrompt: MLflowPromptVersion | null) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.activePrompt = null;
+              config.dirtyPrompt = deepCopyPrompt(newDirtyPrompt);
+            }
+          },
+          false,
+          'clearPromptState',
+        );
       },
 
       // Configuration management

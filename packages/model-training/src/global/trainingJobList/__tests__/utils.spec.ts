@@ -66,7 +66,6 @@ describe('getStatusInfo', () => {
     const result = getStatusInfo(TrainingJobState.SUCCEEDED);
     expect(result.label).toBe('Complete');
     expect(result.status).toBe('success');
-    expect(result.color).toBe('green');
     expect(result.alertTitle).toBe('Job Complete');
     expect(result.alertVariant).toBeDefined();
   });
@@ -75,7 +74,6 @@ describe('getStatusInfo', () => {
     const result = getStatusInfo(TrainingJobState.FAILED);
     expect(result.label).toBe('Failed');
     expect(result.status).toBe('danger');
-    expect(result.color).toBe('red');
     expect(result.alertTitle).toBe('Job Failed');
     expect(result.alertVariant).toBeDefined();
   });
@@ -103,7 +101,6 @@ describe('getStatusInfo', () => {
     const result = getStatusInfo(TrainingJobState.INADMISSIBLE);
     expect(result.label).toBe('Inadmissible');
     expect(result.status).toBe('warning');
-    expect(result.color).toBe('orange');
     expect(result.alertTitle).toBe('Job Inadmissible');
   });
 
@@ -111,7 +108,6 @@ describe('getStatusInfo', () => {
     const result = getStatusInfo(TrainingJobState.PREEMPTED);
     expect(result.label).toBe('Preempted');
     expect(result.status).toBe('warning');
-    expect(result.color).toBe('orange');
     expect(result.alertTitle).toBe('Job Preempted');
   });
 
@@ -130,7 +126,7 @@ describe('getStatusInfo', () => {
   it('should return correct info for UNKNOWN status', () => {
     const result = getStatusInfo(TrainingJobState.UNKNOWN);
     expect(result.label).toBe('Unknown');
-    expect(result.status).toBe('warning');
+    expect(result.color).toBe('grey');
   });
 });
 

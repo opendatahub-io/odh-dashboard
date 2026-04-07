@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
@@ -17,7 +18,6 @@ import (
 func attachSubscriptionHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.GET(constants.SubscriptionListPath, handlerWithApp(app, ListSubscriptionsHandler))
 	apiRouter.GET(constants.SubscriptionInfoPath, handlerWithApp(app, GetSubscriptionInfoHandler))
-	apiRouter.GET(constants.SubscriptionFormDataPath, handlerWithApp(app, GetSubscriptionFormDataHandler))
 	apiRouter.POST(constants.SubscriptionCreatePath, handlerWithApp(app, CreateSubscriptionHandler))
 	apiRouter.PUT(constants.SubscriptionUpdatePath, handlerWithApp(app, UpdateSubscriptionHandler))
 	apiRouter.DELETE(constants.SubscriptionDeletePath, handlerWithApp(app, DeleteSubscriptionHandler))
@@ -55,11 +55,11 @@ func GetSubscriptionInfoHandler(app *App, w http.ResponseWriter, r *http.Request
 
 	subscription, err := app.repositories.Subscriptions.GetSubscription(ctx, name)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-	if subscription == nil {
-		app.notFoundResponse(w, r)
+		if k8sErrors.IsNotFound(err) {
+			app.notFoundResponse(w, r)
+		} else {
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 
@@ -75,10 +75,12 @@ func GetSubscriptionInfoHandler(app *App, w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	response := models.SubscriptionInfoResponse{
-		Subscription: *subscription,
-		ModelRefs:    modelRefSummaries,
-		AuthPolicies: authPolicies,
+	response := Envelope[models.SubscriptionInfoResponse, None]{
+		Data: models.SubscriptionInfoResponse{
+			Subscription: *subscription,
+			ModelRefs:    modelRefSummaries,
+			AuthPolicies: authPolicies,
+		},
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
@@ -86,9 +88,9 @@ func GetSubscriptionInfoHandler(app *App, w http.ResponseWriter, r *http.Request
 	}
 }
 
-// GetSubscriptionFormDataHandler handles GET /api/v1/new-subscription
-// K8s calls: GET /k8s/v1/groups, GET /k8s/v1/maasmodelref
-func GetSubscriptionFormDataHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+// GetSubscriptionPolicyFormDataHandler handles GET /api/v1/subscription-policy-form-data
+// K8s calls: GET /k8s/v1/groups, GET /k8s/v1/maasmodelref, GET /k8s/v1/maasauthpolicy, GET /k8s/v1/maassubscription
+func GetSubscriptionPolicyFormDataHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
 	formData, err := app.repositories.Subscriptions.GetFormData(ctx)
@@ -97,7 +99,25 @@ func GetSubscriptionFormDataHandler(app *App, w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if err := app.WriteJSON(w, http.StatusOK, formData, nil); err != nil {
+	policies, err := app.repositories.Policies.ListPolicies(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	formData.Policies = policies
+
+	subscriptions, err := app.repositories.Subscriptions.ListSubscriptions(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	formData.Subscriptions = subscriptions
+
+	response := Envelope[*models.SubscriptionFormDataResponse, None]{
+		Data: formData,
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
@@ -107,24 +127,30 @@ func GetSubscriptionFormDataHandler(app *App, w http.ResponseWriter, r *http.Req
 func CreateSubscriptionHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	var request models.CreateSubscriptionRequest
+	var request Envelope[models.CreateSubscriptionRequest, None]
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	if strings.TrimSpace(request.Name) == "" {
+	if strings.TrimSpace(request.Data.Name) == "" {
 		app.badRequestResponse(w, r, errors.New("name is required"))
 		return
 	}
-	if len(request.ModelRefs) == 0 {
+	if len(request.Data.ModelRefs) == 0 {
 		app.badRequestResponse(w, r, errors.New("at least one modelRef is required"))
 		return
 	}
+	for _, ref := range request.Data.ModelRefs {
+		if len(ref.TokenRateLimits) == 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("modelRef %q requires at least one tokenRateLimit", ref.Name))
+			return
+		}
+	}
 
-	response, err := app.repositories.Subscriptions.CreateSubscription(ctx, request)
+	result, err := app.repositories.Subscriptions.CreateSubscription(ctx, request.Data)
 	if err != nil {
-		if strings.Contains(err.Error(), "already exists") {
+		if k8sErrors.IsAlreadyExists(err) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusConflict,
 				Error:      ErrorPayload{Code: "409", Message: err.Error()},
@@ -133,6 +159,10 @@ func CreateSubscriptionHandler(app *App, w http.ResponseWriter, r *http.Request,
 			app.serverErrorResponse(w, r, err)
 		}
 		return
+	}
+
+	response := Envelope[*models.CreateSubscriptionResponse, None]{
+		Data: result,
 	}
 
 	if err := app.WriteJSON(w, http.StatusCreated, response, nil); err != nil {
@@ -150,28 +180,38 @@ func UpdateSubscriptionHandler(app *App, w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	var request models.UpdateSubscriptionRequest
+	var request Envelope[models.UpdateSubscriptionRequest, None]
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	if len(request.ModelRefs) == 0 {
+	if len(request.Data.ModelRefs) == 0 {
 		app.badRequestResponse(w, r, errors.New("at least one modelRef is required"))
 		return
 	}
+	for _, ref := range request.Data.ModelRefs {
+		if len(ref.TokenRateLimits) == 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("modelRef %q requires at least one tokenRateLimit", ref.Name))
+			return
+		}
+	}
 
-	response, err := app.repositories.Subscriptions.UpdateSubscription(ctx, name, request)
+	result, err := app.repositories.Subscriptions.UpdateSubscription(ctx, name, request.Data)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		if k8sErrors.IsNotFound(err) {
+			app.errorResponse(w, r, &HTTPError{
+				StatusCode: http.StatusNotFound,
+				Error:      ErrorPayload{Code: "404", Message: fmt.Sprintf("MaaSSubscription '%s' not found", name)},
+			})
+		} else {
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
-	if response == nil {
-		app.errorResponse(w, r, &HTTPError{
-			StatusCode: http.StatusNotFound,
-			Error:      ErrorPayload{Code: "404", Message: fmt.Sprintf("MaaSSubscription '%s' not found", name)},
-		})
-		return
+
+	response := Envelope[*models.CreateSubscriptionResponse, None]{
+		Data: result,
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
@@ -190,7 +230,7 @@ func DeleteSubscriptionHandler(app *App, w http.ResponseWriter, r *http.Request,
 	}
 
 	if err := app.repositories.Subscriptions.DeleteSubscription(ctx, name); err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if k8sErrors.IsNotFound(err) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusNotFound,
 				Error:      ErrorPayload{Code: "404", Message: err.Error()},
@@ -201,8 +241,8 @@ func DeleteSubscriptionHandler(app *App, w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	response := map[string]string{
-		"message": fmt.Sprintf("MaaSSubscription '%s' deleted successfully", name),
+	response := Envelope[None, None]{
+		Data: nil,
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {

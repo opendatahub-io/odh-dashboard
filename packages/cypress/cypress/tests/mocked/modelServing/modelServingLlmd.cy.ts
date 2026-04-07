@@ -51,6 +51,7 @@ import {
   modelServingWizard,
   modelServingWizardEdit,
 } from '../../../pages/modelServing';
+import { projectDetailsOverviewTab } from '../../../pages/projects';
 
 const initIntercepts = ({
   llmInferenceServices = [],
@@ -143,6 +144,12 @@ const initIntercepts = ({
       body: mockLLMInferenceServiceK8sResource({ name: 'test-llmd-model' }),
     },
   ).as('createLLMInferenceService');
+  // MaaS is enabled so we need to intercept this for edit scenarios
+  cy.interceptOdh(
+    'DELETE /maas/api/v1/maasmodel/:namespace/:name',
+    { path: { namespace: '*', name: '*' } },
+    { data: { message: 'Deleted successfully' } },
+  ).as('deleteMaaSModelRef');
 };
 
 describe('Model Serving LLMD', () => {
@@ -183,7 +190,7 @@ describe('Model Serving LLMD', () => {
         .findByTestId('api-protocol-label')
         .should('have.text', 'REST');
       row.findLastDeployed().should('have.text', '17 Mar 2023');
-      row.findStatusLabel('Started');
+      row.findStatusLabel('Ready');
 
       // expanded section of the row
       row.findToggleButton('llmd-serving').click();
@@ -342,6 +349,30 @@ describe('Model Serving LLMD', () => {
       // Verify LLMD deployment is displayed even with error status
       modelServingGlobal.getModelRow('Error LLMD Model').should('exist');
       modelServingGlobal.getModelRow('Error LLMD Model').should('be.visible');
+    });
+
+    it('should display LLMD serving runtime details on the project overview tab', () => {
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'facebook-opt-125m-single',
+            namespace: 'test-project',
+            displayName: 'Facebook OPT 125M',
+            modelName: 'facebook/opt-125m',
+            modelUri: 'hf://facebook/opt-125m',
+            isReady: true,
+          }),
+        ],
+      });
+
+      projectDetailsOverviewTab.visit('test-project');
+
+      projectDetailsOverviewTab
+        .findDeployedModelCard('facebook-opt-125m-single')
+        .should('be.visible');
+      projectDetailsOverviewTab
+        .findCardServingRuntime('facebook-opt-125m-single')
+        .should('contain.text', 'Distributed inference with llm-d');
     });
   });
 
@@ -774,6 +805,12 @@ describe('Model Serving LLMD', () => {
       cy.intercept('PUT', '**/llminferenceserviceconfigs/test-vllm-gpu*', (req) => {
         req.reply({ statusCode: 200, body: req.body });
       }).as('updateLLMInferenceServiceConfig');
+      // MaaS is enabled so we need to intercept this for edit scenarios
+      cy.interceptOdh(
+        'DELETE /maas/api/v1/maasmodel/:namespace/:name',
+        { path: { namespace: '*', name: '*' } },
+        { data: { message: 'Deleted successfully' } },
+      ).as('deleteMaaSModelRef');
     };
 
     it('should display serving runtime name and version, then pre-fill when editing', () => {
@@ -1077,6 +1114,21 @@ describe('Model Serving LLMD', () => {
 
       cy.wait('@deleteLLMInferenceService');
       cy.get('@deleteLLMInferenceServiceConfig.all').should('have.length', 0);
+    });
+
+    it('should display vLLM serving runtime details on the project overview tab', () => {
+      initVLLMOnMaaSIntercepts();
+
+      projectDetailsOverviewTab.visit('test-project');
+
+      projectDetailsOverviewTab.findDeployedModelCard('test-vllm-gpu').should('be.visible');
+      projectDetailsOverviewTab
+        .findCardServingRuntime('test-vllm-gpu')
+        .should('contain.text', 'vLLM on GPU LLMInferenceServiceConfig');
+      projectDetailsOverviewTab
+        .findCardServingRuntime('test-vllm-gpu')
+        .findByTestId('serving-runtime-version-label')
+        .should('contain.text', 'v0.8.2');
     });
   });
 });

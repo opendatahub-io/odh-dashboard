@@ -32,7 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello there! It's great to hear from you.\n\nWhen you say \"MaaS\", are you referring to:\n*   **Metal as a Service** (for provisioning bare",
+                "content": "Well hello there, MaaS! Great",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -49,9 +49,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 38,
+            "completion_tokens": 8,
             "prompt_tokens": 5,
-            "total_tokens": 806,
+            "total_tokens": 717,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -64,7 +64,7 @@
           "choices": [
             {
               "delta": {
-                "content": "-metal servers, like Canonical's MaaS)?\n*   Or **Mobility as a Service** (for integrated transportation solutions)?\n\nEither way, welcome! What can I help you with today or what's on your mind",
+                "content": " to hear from the world of Mobility as a Service.\n\nThat's a fascinating and increasingly vital field, integrating various transport options to make urban living more efficient and sustainable.\n\nWhat's on your mind today, or is there anything",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -81,9 +81,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 86,
+            "completion_tokens": 56,
             "prompt_tokens": 5,
-            "total_tokens": 854,
+            "total_tokens": 765,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -96,7 +96,7 @@
           "choices": [
             {
               "delta": {
-                "content": " regarding MaaS?",
+                "content": " specific about MaaS you'd like to discuss?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -113,9 +113,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 90,
+            "completion_tokens": 67,
             "prompt_tokens": 5,
-            "total_tokens": 858,
+            "total_tokens": 776,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

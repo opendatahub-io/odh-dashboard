@@ -103,8 +103,8 @@ describe('getSubscriptionInfo', () => {
     expect(result.authPolicies).toHaveLength(0);
   });
 
-  it('should accept subscription.modelRefs without tokenRateLimits (real API case)', async () => {
-    const noTokenLimits: SubscriptionInfoResponse = {
+  it('should reject subscription.modelRefs without tokenRateLimits', async () => {
+    const noTokenLimits = {
       ...validSubscriptionInfoResponse,
       subscription: {
         ...validSubscriptionInfoResponse.subscription,
@@ -113,8 +113,9 @@ describe('getSubscriptionInfo', () => {
     };
     mockRestGET.mockResolvedValue(noTokenLimits);
 
-    const result = await getSubscriptionInfo('test-sub')({} as never);
-    expect(result.subscription.modelRefs[0].tokenRateLimits).toBeUndefined();
+    await expect(getSubscriptionInfo('test-sub')({} as never)).rejects.toThrow(
+      'Invalid response format',
+    );
   });
 
   it('should accept displayName and description on subscription when present', async () => {

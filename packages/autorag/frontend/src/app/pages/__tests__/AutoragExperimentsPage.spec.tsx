@@ -116,7 +116,9 @@ describe('AutoragExperimentsPage', () => {
     mockListStatusReport = { loaded: true, hasExperiments: true };
     renderPage('/experiments/test-ns');
     expect(screen.getByTestId('autorag-header-create-run-button')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create RAG optimization run' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Create AutoRAG optimization run' }),
+    ).toBeInTheDocument();
   });
 
   it('does not show header create run button when namespace is invalid (empty application state)', () => {

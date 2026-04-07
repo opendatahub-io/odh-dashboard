@@ -111,11 +111,15 @@ spec:
                       type: boolean
                     modelAsService:
                       type: boolean
+                    maasAuthPolicies:
+                      type: boolean
                     aiAssetCustomEndpoints:
                       type: boolean
                     externalVectorStores:
                       type: boolean
                     mlflow:
+                      type: boolean
+                    mcpCatalog:
                       type: boolean
                     projectRBAC:
                       type: boolean

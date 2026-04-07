@@ -98,12 +98,59 @@ func SearchAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ ht
 		return
 	}
 
+	enrichAPIKeysWithSubscriptionDetails(app, r, response)
+
 	responseEnvelope := Envelope[*models.APIKeyListResponse, None]{
 		Data: response,
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, responseEnvelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// enrichAPIKeysWithSubscriptionDetails fetches subscription data from the MaaS API
+// and populates SubscriptionDetails on the response with model names per subscription.
+func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *models.APIKeyListResponse) {
+	subNames := make(map[string]struct{})
+	for _, key := range response.Data {
+		if key.SubscriptionName != "" {
+			subNames[key.SubscriptionName] = struct{}{}
+		}
+	}
+
+	if len(subNames) == 0 {
+		return
+	}
+
+	subscriptions, err := app.repositories.APIKeys.ListSubscriptionsForApiKeys(r.Context())
+	if err != nil {
+		app.logger.Warn("Failed to fetch subscriptions for API key enrichment", "error", err)
+		return
+	}
+
+	details := make(map[string]models.SubscriptionDetail, len(subNames))
+	for _, sub := range subscriptions {
+		if _, needed := subNames[sub.SubscriptionIDHeader]; !needed {
+			continue
+		}
+		modelNames := make([]string, len(sub.ModelRefs))
+		for i, ref := range sub.ModelRefs {
+			if ref.DisplayName != "" {
+				modelNames[i] = ref.DisplayName
+			} else {
+				modelNames[i] = ref.Name
+			}
+		}
+		displayName := sub.DisplayName
+		if displayName == "" {
+			displayName = sub.SubscriptionIDHeader
+		}
+		details[sub.SubscriptionIDHeader] = models.SubscriptionDetail{DisplayName: displayName, Models: modelNames}
+	}
+
+	if len(details) > 0 {
+		response.SubscriptionDetails = details
 	}
 }
 

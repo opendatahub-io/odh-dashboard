@@ -85,6 +85,7 @@ export const blankDashboardCR: DashboardConfig = {
       autorag: false,
       modelAsService: false,
       aiAssetCustomEndpoints: false,
+      maasAuthPolicies: false,
       disableFineTuning: true,
       disableKueue: true,
       disableLMEval: true,

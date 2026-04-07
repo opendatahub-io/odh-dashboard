@@ -32,7 +32,39 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello! I'm an AI, so I don't experience feelings, but I am functioning perfectly and ready to assist you.\n\nHow are you doing today?",
+                "content": "Hello! I'm an AI, so I don't experience feelings, but I'm functioning perfectly and ready to assist you.\n\nHow are you doing today? Or, how",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 38,
+            "prompt_tokens": 7,
+            "total_tokens": 370,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-db3dff136caf",
+          "choices": [
+            {
+              "delta": {
+                "content": " can I help you?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -49,9 +81,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 34,
+            "completion_tokens": 43,
             "prompt_tokens": 7,
-            "total_tokens": 67,
+            "total_tokens": 375,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

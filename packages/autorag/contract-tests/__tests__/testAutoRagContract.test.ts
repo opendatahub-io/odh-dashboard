@@ -1157,7 +1157,7 @@ describe('AutoRAG API Contract Tests', () => {
           optimization_metric: 'answer_correctness',
           embeddings_models: ['model-a', 'model-b'],
           generation_models: ['gen-model-1'],
-          llama_stack_vector_database_id: 'vectordb-123',
+          llama_stack_vector_io_provider_id: 'vectordb-123',
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
