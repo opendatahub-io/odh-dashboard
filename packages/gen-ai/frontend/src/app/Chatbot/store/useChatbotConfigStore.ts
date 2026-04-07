@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
 import { MLflowPromptVersion } from '~/app/types';
+import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 import { deepCopyPrompt } from './utils';
 import {
   ChatbotConfigStore,
