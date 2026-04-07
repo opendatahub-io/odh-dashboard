@@ -12,7 +12,6 @@ import {
   FormGroup,
   FormHelperText,
   FormSection,
-  TextArea,
   HelperText,
   HelperTextItem,
   PageSection,
@@ -34,7 +33,13 @@ import {
   useMlflowExperiments,
   type MlflowExperiment,
 } from '@odh-dashboard/internal/concepts/mlflow';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { createEvaluationJob } from '~/app/api/k8s';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import getErrorTitle from '~/app/utils/getErrorTitle';
 import {
@@ -77,7 +82,7 @@ const StartEvaluationRunPage: React.FC = () => {
       hour12: true,
     }),
   );
-  const [description, setDescription] = React.useState('');
+
   const [inputMode, setInputMode] = React.useState<InputMode>('inference');
 
   const [modelName, setModelName] = React.useState('');
@@ -117,6 +122,7 @@ const StartEvaluationRunPage: React.FC = () => {
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const abortControllerRef = React.useRef<AbortController | null>(null);
+  const experimentManuallyChangedRef = React.useRef(false);
 
   React.useEffect(
     () => () => {
@@ -230,7 +236,6 @@ const StartEvaluationRunPage: React.FC = () => {
 
     const request = buildEvaluationRequest({
       evaluationName,
-      description,
       inputMode,
       benchmark,
       collection,
@@ -245,11 +250,53 @@ const StartEvaluationRunPage: React.FC = () => {
       experimentTags: undefined,
     });
 
+    fireMiscTrackingEvent(EVAL_HUB_EVENTS.MLFLOW_EXPERIMENT_SELECTED, {
+      experimentSelection: isNewExperiment
+        ? 'new'
+        : !experimentManuallyChangedRef.current &&
+            selectedExperiment?.name === DEFAULT_EXPERIMENT_NAME
+          ? 'default'
+          : 'existing',
+      experimentName,
+    });
+
+    // Snapshot form state now so both success and error paths share the same properties.
+    const runTrackingProps = {
+      source: 'evaluations_page',
+      evaluationName: evaluationName.trim(),
+      sourceType:
+        inputMode === 'inference'
+          ? ('inference_endpoint' as const)
+          : ('pre_recorded_responses' as const),
+      modelName: inputMode === 'inference' ? modelName.trim() : undefined,
+      endpointOrigin: (() => {
+        if (inputMode !== 'inference') {
+          return undefined;
+        }
+        try {
+          return new URL(endpointUrl.trim()).origin;
+        } catch {
+          return undefined;
+        }
+      })(),
+      hasAPIKey: inputMode === 'inference' ? apiKeySecretRef.trim() !== '' : false,
+      sourceName: inputMode === 'prerecorded' ? sourceName.trim() : undefined,
+      hasDatasetURL: inputMode === 'prerecorded' ? datasetUrl.trim() !== '' : false,
+      hasAccessToken: inputMode === 'prerecorded' ? accessToken.trim() !== '' : false,
+      hasAdditionalArguments: showAdditionalArgs && additionalArgs.trim() !== '',
+      countOfAdditionalArguments: Object.keys(parsedArgs).length,
+    };
+
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     try {
       await createEvaluationJob('', namespace ?? '', request)({ signal: controller.signal });
+      fireFormTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
+        ...runTrackingProps,
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
       notification.success(
         'Evaluation started',
         `Evaluation "${evaluationName}" has been started.`,
@@ -260,6 +307,12 @@ const StartEvaluationRunPage: React.FC = () => {
         return;
       }
       const message = e instanceof Error ? e.message : 'An unknown error occurred.';
+      fireFormTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
+        ...runTrackingProps,
+        outcome: TrackingOutcome.submit,
+        success: false,
+        errorName: e instanceof Error ? e.name : 'UnknownError',
+      });
       notification.error(getErrorTitle(e, 'Failed to start evaluation'), message);
     } finally {
       setIsSubmitting(false);
@@ -368,6 +421,7 @@ const StartEvaluationRunPage: React.FC = () => {
               onChange={() => {
                 setExperimentMode('existing');
                 setNewExperimentName('');
+                experimentManuallyChangedRef.current = true;
               }}
             />
 
@@ -377,7 +431,10 @@ const StartEvaluationRunPage: React.FC = () => {
                   workspace={namespace}
                   filter={EXPERIMENT_FILTER}
                   selection={selectedExperiment?.name}
-                  onSelect={setSelectedExperiment}
+                  onSelect={(exp) => {
+                    setSelectedExperiment(exp);
+                    experimentManuallyChangedRef.current = true;
+                  }}
                 />
               </div>
             )}
@@ -392,6 +449,7 @@ const StartEvaluationRunPage: React.FC = () => {
                 onChange={() => {
                   setExperimentMode('new');
                   setSelectedExperiment(undefined);
+                  experimentManuallyChangedRef.current = true;
                 }}
               />
             </div>
@@ -409,16 +467,6 @@ const StartEvaluationRunPage: React.FC = () => {
             )}
           </FormGroup>
 
-          <FormGroup label="Description" fieldId="description">
-            <TextArea
-              id="description"
-              data-testid="description-input"
-              resizeOrientation="vertical"
-              value={description}
-              onChange={(_e, val) => setDescription(val)}
-            />
-          </FormGroup>
-
           <FormSection title="Source">
             <Radio
               id="input-inference"
@@ -431,17 +479,7 @@ const StartEvaluationRunPage: React.FC = () => {
 
             {inputMode === 'inference' && (
               <>
-                <FormGroup
-                  label="Model or agent name"
-                  isRequired
-                  fieldId="model-name"
-                  labelHelp={
-                    <LabelHelpPopover
-                      ariaLabel="More info for model name"
-                      content="This should match the resource name that was created when the model or app was deployed."
-                    />
-                  }
-                >
+                <FormGroup label="Model or agent name" isRequired fieldId="model-name">
                   <TextInput
                     id="model-name"
                     data-testid="model-name-input"
@@ -601,7 +639,20 @@ const StartEvaluationRunPage: React.FC = () => {
             <Button
               variant="link"
               data-testid="start-evaluation-cancel"
-              onClick={() => navigate(evaluationsBaseRoute(namespace))}
+              onClick={() => {
+                fireFormTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
+                  source: 'evaluations_page',
+                  evaluationName: evaluationName.trim(),
+                  sourceType:
+                    inputMode === 'inference'
+                      ? ('inference_endpoint' as const)
+                      : ('pre_recorded_responses' as const),
+                  hasAPIKey: inputMode === 'inference' ? apiKeySecretRef.trim() !== '' : false,
+                  hasAdditionalArguments: showAdditionalArgs && additionalArgs.trim() !== '',
+                  outcome: TrackingOutcome.cancel,
+                });
+                navigate(evaluationsBaseRoute(namespace));
+              }}
             >
               Cancel
             </Button>

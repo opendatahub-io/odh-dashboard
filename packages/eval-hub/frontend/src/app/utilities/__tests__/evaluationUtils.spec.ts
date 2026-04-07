@@ -4,6 +4,7 @@ import {
   getBenchmarkName,
   getAllBenchmarkNames,
   getBenchmarkResultScore,
+  getJobBenchmarks,
   getResultScore,
   formatDate,
 } from '~/app/utilities/evaluationUtils';
@@ -49,6 +50,21 @@ describe('getBenchmarkName', () => {
   });
 
   /* eslint-disable camelcase */
+  it('should return collection id even when results.benchmarks is populated', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-collection' });
+    job.results.benchmarks = [{ id: 'arc_easy', provider_id: 'lm_evaluation_harness' }];
+    expect(getBenchmarkName(job)).toBe('my-collection');
+  });
+  /* eslint-enable camelcase */
+
+  it('should return collection name from map when collectionNameMap is provided', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-collection' });
+    expect(getBenchmarkName(job, { 'my-collection': 'My Collection Name' })).toBe(
+      'My Collection Name',
+    );
+  });
+
+  /* eslint-disable camelcase */
   it('should show +N more when there are multiple benchmarks', () => {
     const job = mockEvaluationJob({ benchmarkId: 'arc_easy' });
     job.benchmarks = [
@@ -86,6 +102,62 @@ describe('getAllBenchmarkNames', () => {
     const job = mockEvaluationJob();
     job.benchmarks = null;
     expect(getAllBenchmarkNames(job)).toEqual([]);
+  });
+});
+
+describe('getJobBenchmarks', () => {
+  /* eslint-disable camelcase */
+  it('should return job.benchmarks when present', () => {
+    const job = mockEvaluationJob({ benchmarkId: 'arc_easy' });
+    expect(getJobBenchmarks(job)).toEqual([
+      { id: 'arc_easy', provider_id: 'lm_evaluation_harness' },
+    ]);
+  });
+
+  it('should fall back to results.benchmarks for collection-only jobs', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-collection' });
+    job.results.benchmarks = [
+      { id: 'arc_easy', provider_id: 'lm_evaluation_harness', benchmark_index: 0 },
+      { id: 'arc_easy', provider_id: 'lm_evaluation_harness', benchmark_index: 1 },
+    ];
+    const benchmarks = getJobBenchmarks(job);
+    expect(benchmarks).toHaveLength(2);
+    expect(benchmarks[0]).toEqual({
+      id: 'arc_easy',
+      provider_id: 'lm_evaluation_harness',
+      benchmark_index: 0,
+    });
+    expect(benchmarks[1]).toEqual({
+      id: 'arc_easy',
+      provider_id: 'lm_evaluation_harness',
+      benchmark_index: 1,
+    });
+  });
+
+  it('should preserve benchmark_index from results.benchmarks so mlflow run linking works', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-collection' });
+    job.results.benchmarks = [
+      {
+        id: 'arc_easy',
+        benchmark_index: 0,
+        mlflow_run_id: 'run-0',
+      },
+      {
+        id: 'arc_easy',
+        benchmark_index: 1,
+        mlflow_run_id: 'run-1',
+      },
+    ];
+    const benchmarks = getJobBenchmarks(job);
+    expect(benchmarks[0].benchmark_index).toBe(0);
+    expect(benchmarks[1].benchmark_index).toBe(1);
+  });
+  /* eslint-enable camelcase */
+
+  it('should return empty array when no benchmark source is available', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-collection' });
+    job.results.benchmarks = [];
+    expect(getJobBenchmarks(job)).toEqual([]);
   });
 });
 

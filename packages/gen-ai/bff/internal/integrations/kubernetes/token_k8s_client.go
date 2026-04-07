@@ -1511,7 +1511,17 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 
 	// Step 5: Generate ConfigMap content first (before creating LSD)
 	configMapName := "llama-stack-config"
-	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, guardrailsReady, validatedVectorStores, maasClient)
+	userAuthToken := ""
+	for _, model := range installModels {
+		if model.ModelSourceType == models.ModelSourceTypeMaaS {
+			if identity.Token == "" {
+				return nil, fmt.Errorf("user auth token is required to install MaaS models")
+			}
+			userAuthToken = identity.Token
+			break
+		}
+	}
+	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, guardrailsReady, validatedVectorStores, maasClient, userAuthToken)
 	if err != nil {
 		kc.Logger.Error("failed to generate Llama Stack configuration", "error", err, "namespace", namespace)
 		return nil, fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
@@ -1681,7 +1691,7 @@ func buildEmbeddingModelLookup(ms []Model) map[string]string {
 }
 
 // generateLlamaStackConfig generates the Llama Stack configuration YAML
-func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, enableGuardrails bool, vectorStores []ValidatedVectorStore, maasClient maas.MaaSClientInterface) (string, error) {
+func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, enableGuardrails bool, vectorStores []ValidatedVectorStore, maasClient maas.MaaSClientInterface, userAuthToken string) (string, error) {
 	// Create a new config to build
 	config := NewDefaultLlamaStackConfig()
 
@@ -1698,14 +1708,10 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		}
 
 		if hasMaaSModels {
-			// Obtain a MaaS API key to authenticate the ListModels request
-			apiKeyResp, err := maasClient.IssueToken(ctx, models.MaaSTokenRequest{})
-			if err != nil {
-				kc.Logger.Error("failed to obtain MaaS API key for model listing", "error", err)
-				return "", fmt.Errorf("failed to obtain MaaS API key: %w", err)
+			if userAuthToken == "" {
+				return "", fmt.Errorf("user auth token is required to list MaaS models")
 			}
-			// Get all MaaS models once
-			maasModels, err := maasClient.ListModels(ctx, apiKeyResp.Key)
+			maasModels, err := maasClient.ListModels(ctx, userAuthToken)
 			if err != nil {
 				kc.Logger.Error("failed to list MaaS models", "error", err)
 				return "", fmt.Errorf("failed to list MaaS models: %w", err)

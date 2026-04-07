@@ -323,9 +323,9 @@ describe('AutoragConfigurePage', () => {
       expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
     });
 
-    it('should display "Create AutoRAG experiment" subtitle in create step', async () => {
+    it('should display "Create AutoRAG optimization run" subtitle in create step', async () => {
       renderWithProviders(<AutoragConfigurePage />);
-      expect(await screen.findByText('Create RAG optimization run')).toBeInTheDocument();
+      expect(await screen.findByText('Create AutoRAG optimization run')).toBeInTheDocument();
     });
 
     it('should display description text in create step', async () => {

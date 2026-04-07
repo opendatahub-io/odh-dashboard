@@ -4,13 +4,35 @@ import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 export const getEvaluationName = (job: EvaluationJob): string =>
   job.name || job.resource.tenant || job.resource.id;
 
-export const getJobBenchmarks = (job: EvaluationJob): NonNullable<EvaluationJob['benchmarks']> =>
-  job.benchmarks ?? job.collection?.benchmarks ?? [];
+export const getJobBenchmarks = (job: EvaluationJob): NonNullable<EvaluationJob['benchmarks']> => {
+  if (job.benchmarks?.length) {
+    return job.benchmarks;
+  }
+  if (job.collection?.benchmarks?.length) {
+    return job.collection.benchmarks;
+  }
+  // When a job was submitted via collection ID only (no inline benchmark list),
+  // fall back to results.benchmarks which carries benchmark_index and mlflow_run_id,
+  // ensuring per-benchmark selection and MLflow run linking work correctly.
+  if (job.results.benchmarks?.length) {
+    /* eslint-disable camelcase */
+    return job.results.benchmarks.map((b) => ({
+      id: b.id,
+      provider_id: b.provider_id,
+      benchmark_index: b.benchmark_index,
+    }));
+    /* eslint-enable camelcase */
+  }
+  return [];
+};
 
 export const getBenchmarkName = (
   job: EvaluationJob,
   collectionNameMap?: CollectionNameMap,
 ): string => {
+  if (job.collection?.id) {
+    return collectionNameMap?.[job.collection.id] ?? job.collection.id;
+  }
   const benchmarks = getJobBenchmarks(job);
   if (benchmarks.length > 0) {
     const first = benchmarks[0].id;
@@ -18,9 +40,6 @@ export const getBenchmarkName = (
       return first;
     }
     return `${first} +${benchmarks.length - 1} more`;
-  }
-  if (job.collection?.id) {
-    return collectionNameMap?.[job.collection.id] ?? job.collection.id;
   }
   return '-';
 };
@@ -56,8 +75,16 @@ export const getResultScore = (job: EvaluationJob): string => {
   return '-';
 };
 
-export const getBenchmarkResultScore = (job: EvaluationJob, benchmarkId: string): string => {
-  const benchmark = job.results.benchmarks?.find((b) => b.id === benchmarkId);
+export const getBenchmarkResultScore = (
+  job: EvaluationJob,
+  benchmarkId: string,
+  benchmarkIndex?: number,
+): string => {
+  const benchmark = job.results.benchmarks?.find(
+    (b) =>
+      b.id === benchmarkId &&
+      (benchmarkIndex === undefined || b.benchmark_index === benchmarkIndex),
+  );
   if (!benchmark) {
     return '-';
   }
