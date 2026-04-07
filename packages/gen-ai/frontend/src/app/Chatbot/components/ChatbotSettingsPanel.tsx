@@ -13,6 +13,8 @@ import {
   Tab,
   TabTitleText,
   Title,
+  ToggleGroup,
+  ToggleGroupItem,
   Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
@@ -25,6 +27,7 @@ import {
   selectSelectedModel,
   selectSelectedSubscription,
   selectRagEnabled,
+  selectConfigIds,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
@@ -42,8 +45,6 @@ import {
 
 interface ChatbotSettingsPanelProps {
   configId?: string;
-  /** Header label for the drawer (e.g., "Configure - 1" in compare mode) */
-  headerLabel?: string;
   alerts: {
     uploadSuccessAlert: React.ReactElement | undefined;
     deleteSuccessAlert: React.ReactElement | undefined;
@@ -62,6 +63,7 @@ interface ChatbotSettingsPanelProps {
   guardrailModels?: string[];
   guardrailModelsLoaded?: boolean;
   onCloseClick?: () => void;
+  onActiveConfigChange?: (configId: string) => void;
   guardrailModelsError?: Error;
   /** Whether the drawer is in overlay mode (compare mode) - affects background styling */
   isOverlay?: boolean;
@@ -74,7 +76,6 @@ const AUTO_CLOSE_WIDTH_THRESHOLD = 150;
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
   configId = DEFAULT_CONFIG_ID,
-  headerLabel = 'Configure',
   alerts,
   sourceManagement,
   fileManagement,
@@ -88,6 +89,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   guardrailModels = [],
   guardrailModelsLoaded = false,
   onCloseClick,
+  onActiveConfigChange,
   guardrailModelsError,
   isOverlay = false,
   defaultActiveTabKey,
@@ -96,7 +98,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
 
-  // Consume store directly using configId
+  const configIds = useChatbotConfigStore(selectConfigIds);
+
+  // Consume store directly using configId (controlled by parent)
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const temperature = useChatbotConfigStore(selectTemperature(configId));
   const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
@@ -230,9 +234,26 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       style={panelStyle}
     >
       <DrawerHead>
-        <Title headingLevel="h2" data-testid="chatbot-settings-panel-header">
-          {headerLabel}
-        </Title>
+        {configIds.length === 1 ? (
+          <Title headingLevel="h2" data-testid="chatbot-settings-panel-header">
+            Configure
+          </Title>
+        ) : (
+          <ToggleGroup
+            aria-label="Chat configuration selector"
+            data-testid="chatbot-config-switcher"
+          >
+            {configIds.map((id, index) => (
+              <ToggleGroupItem
+                key={id}
+                text={`Chat ${index + 1}`}
+                isSelected={id === configId}
+                onChange={() => onActiveConfigChange?.(id)}
+                data-testid={`chatbot-config-tab-${index + 1}`}
+              />
+            ))}
+          </ToggleGroup>
+        )}
         <DrawerActions>
           <DrawerCloseButton onClick={() => onCloseClick?.()} aria-label="Close settings panel" />
         </DrawerActions>
@@ -269,6 +290,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             data-testid="chatbot-settings-page-tab-prompt"
           >
             <PromptTabContent
+              configId={configId}
               systemInstruction={systemInstruction}
               onSystemInstructionChange={handleSystemInstructionChange}
             />

@@ -1,10 +1,13 @@
-import { useChatbotConfigStore, selectSystemInstruction } from '~/app/Chatbot/store';
-import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
+import {
+  useChatbotConfigStore,
+  selectSystemInstruction,
+  selectActivePrompt,
+} from '~/app/Chatbot/store';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 
-export function usePromptEdited(): boolean {
-  const systemInstruction = useChatbotConfigStore(selectSystemInstruction('default'));
-  const { activePrompt } = usePlaygroundStore();
+export function usePromptEdited(configId: string): boolean {
+  const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
+  const activePrompt = useChatbotConfigStore(selectActivePrompt(configId));
 
   const activeTemplate =
     activePrompt?.template ??

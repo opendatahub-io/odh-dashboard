@@ -134,6 +134,7 @@ const mockModelsWithSmallValues: Record<string, AutomlModel> = {
 // Helper to create mock parameters that match ConfigureSchema
 const createMockParameters = (taskType: string) => {
   const base = {
+    display_name: 'test-run',
     task_type: taskType as 'binary' | 'multiclass' | 'regression' | 'timeseries',
     train_data_secret_name: 'test-secret',
     train_data_bucket_name: 'test-bucket',
@@ -790,8 +791,8 @@ describe('AutomlLeaderboard component', () => {
       const modelLink = screen.getByTestId('model-link-1');
       fireEvent.click(modelLink);
 
-      // XGBoost is rank 1 (highest accuracy)
-      expect(mockOnViewDetails).toHaveBeenCalledWith('XGBoost', 1);
+      // XGBoost is rank 1 (highest accuracy) — callback receives the map key, not display name
+      expect(mockOnViewDetails).toHaveBeenCalledWith('model-3', 1);
       expect(mockOnViewDetails).toHaveBeenCalledTimes(1);
     });
 
@@ -813,8 +814,8 @@ describe('AutomlLeaderboard component', () => {
       const viewDetailsAction = screen.getByText('View details');
       fireEvent.click(viewDetailsAction);
 
-      // XGBoost is rank 1 (highest accuracy)
-      expect(mockOnViewDetails).toHaveBeenCalledWith('XGBoost', 1);
+      // XGBoost is rank 1 — callback receives the map key
+      expect(mockOnViewDetails).toHaveBeenCalledWith('model-3', 1);
       expect(mockOnViewDetails).toHaveBeenCalledTimes(1);
     });
 
@@ -836,8 +837,8 @@ describe('AutomlLeaderboard component', () => {
       const saveNotebookAction = screen.getByText('Save notebook');
       fireEvent.click(saveNotebookAction);
 
-      // XGBoost is rank 1 (highest accuracy)
-      expect(mockOnClickSaveNotebook).toHaveBeenCalledWith('XGBoost');
+      // XGBoost is rank 1 — callback receives the map key
+      expect(mockOnClickSaveNotebook).toHaveBeenCalledWith('model-3');
       expect(mockOnClickSaveNotebook).toHaveBeenCalledTimes(1);
     });
 

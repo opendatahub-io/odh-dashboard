@@ -43,17 +43,21 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  maasAuthPolicies?: boolean;
+  externalVectorStores?: boolean;
   aiAssetCustomEndpoints?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
   hardwareProfileOrder?: string[];
   pvcSize?: string;
   mlflow?: boolean;
+  mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
+  promptManagement?: boolean;
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -64,6 +68,7 @@ export type MockDashboardConfigType = {
 
 export const mockDashboardConfig = ({
   mlflow = false,
+  mlflowPipelines = false,
   projectRBAC = false,
   disableInfo = false,
   disableSupport = false,
@@ -75,6 +80,7 @@ export const mockDashboardConfig = ({
   automl = false,
   autorag = false,
   modelAsService = true,
+  maasAuthPolicies = false,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -106,7 +112,9 @@ export const mockDashboardConfig = ({
   observabilityDashboard = false,
   disableLLMd = false,
   deploymentWizardYAMLViewer = false,
+  externalVectorStores = false,
   vLLMDeploymentOnMaaS = false,
+  promptManagement = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
@@ -237,6 +245,7 @@ export const mockDashboardConfig = ({
   spec: {
     dashboardConfig: {
       mlflow,
+      mlflowPipelines,
       projectRBAC,
       enablement: true,
       disableInfo,
@@ -262,6 +271,7 @@ export const mockDashboardConfig = ({
       autorag,
       modelAsService,
       aiAssetCustomEndpoints,
+      maasAuthPolicies,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
@@ -282,7 +292,9 @@ export const mockDashboardConfig = ({
       observabilityDashboard,
       disableLLMd,
       deploymentWizardYAMLViewer,
+      externalVectorStores,
       vLLMDeploymentOnMaaS,
+      promptManagement,
     },
     notebookController: {
       enabled: !disableNotebookController,

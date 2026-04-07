@@ -1,5 +1,6 @@
 import {
   ActionsColumn,
+  InnerScrollContainer,
   Table,
   Tbody,
   Td,
@@ -23,7 +24,11 @@ import React from 'react';
 import { useParams } from 'react-router';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
-import { getOptimizedMetricForRAG, formatMetricValue } from '~/app/utilities/utils';
+import {
+  getOptimizedMetricForRAG,
+  formatMetricName,
+  formatMetricValue,
+} from '~/app/utilities/utils';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
 import './AutoragLeaderboard.scss';
@@ -44,31 +49,6 @@ type LeaderboardEntry = {
   generationModelId: string;
 };
 
-// Helper function to format metric names for display
-const formatMetricName = (metricKey: string): string => {
-  // Special cases for RAG metrics
-  /* eslint-disable camelcase */
-  const specialCases: Record<string, string> = {
-    faithfulness: 'Faithfulness',
-    answer_correctness: 'Answer Correctness',
-    context_correctness: 'Context Correctness',
-    answer_relevancy: 'Answer Relevancy',
-    context_precision: 'Context Precision',
-    context_recall: 'Context Recall',
-  };
-  /* eslint-enable camelcase */
-
-  if (specialCases[metricKey]) {
-    return specialCases[metricKey];
-  }
-
-  // Convert snake_case to Title Case
-  return metricKey
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
-
 // Helper function to extract the last segment of a model ID
 const getModelIdShortName = (modelId: string): string => {
   // Don't try to extract a short name from N/A or other non-model-ID values
@@ -79,7 +59,15 @@ const getModelIdShortName = (modelId: string): string => {
   return segments[segments.length - 1] || modelId;
 };
 
-function AutoragLeaderboard(): React.JSX.Element | null {
+type AutoragLeaderboardProps = {
+  onViewDetails?: (patternName: string) => void;
+  onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
+};
+
+function AutoragLeaderboard({
+  onViewDetails,
+  onSaveNotebook,
+}: AutoragLeaderboardProps): React.JSX.Element | null {
   const { namespace } = useParams<{ namespace: string }>();
   const { patterns, patternsLoading, pipelineRun, pipelineRunLoading } = useAutoragResultsContext();
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
@@ -317,11 +305,8 @@ function AutoragLeaderboard(): React.JSX.Element | null {
     [activeSortIndex, activeSortDirection, handleSort],
   );
 
-  // Handler for viewing pattern details
   const handleViewDetails = (patternName: string) => {
-    // TODO: Implement view details
-    // eslint-disable-next-line no-console
-    console.log('View details for pattern:', patternName);
+    onViewDetails?.(patternName);
   };
 
   // Show empty state when pipeline is still running
@@ -384,19 +369,33 @@ function AutoragLeaderboard(): React.JSX.Element | null {
   }
 
   return (
-    <div className="autorag-leaderboard-wrapper">
+    <InnerScrollContainer>
       <Table
         aria-label="AutoRAG Pattern Leaderboard"
         variant="compact"
         data-testid="leaderboard-table"
         className="autorag-leaderboard"
+        isStickyHeader
       >
         <Thead>
           <Tr>
-            <Th sort={getSortParams(0)} data-testid="rank-header">
+            <Th
+              sort={getSortParams(0)}
+              data-testid="rank-header"
+              isStickyColumn
+              stickyMinWidth="80px"
+              stickyLeftOffset="0"
+            >
               Rank
             </Th>
-            <Th sort={getSortParams(1)} data-testid="pattern-name-header">
+            <Th
+              sort={getSortParams(1)}
+              data-testid="pattern-name-header"
+              isStickyColumn
+              hasRightBorder
+              stickyMinWidth="150px"
+              stickyLeftOffset="80px"
+            >
               Pattern name
             </Th>
             {metricKeys.map((metricKey, index) => (
@@ -461,13 +460,25 @@ function AutoragLeaderboard(): React.JSX.Element | null {
             >
               Generation model ID
             </Th>
-            <Th screenReaderText="Actions" />
+            <Th
+              screenReaderText="Actions"
+              isStickyColumn
+              hasLeftBorder
+              stickyMinWidth="80px"
+              stickyRightOffset="0"
+            />
           </Tr>
         </Thead>
         <Tbody>
           {data.map((entry) => (
             <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
-              <Td dataLabel="Rank" data-testid={`rank-${entry.rank}`}>
+              <Td
+                dataLabel="Rank"
+                data-testid={`rank-${entry.rank}`}
+                isStickyColumn
+                stickyMinWidth="80px"
+                stickyLeftOffset="0"
+              >
                 {entry.rank === 1 ? (
                   <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
                     {entry.rank}
@@ -476,7 +487,14 @@ function AutoragLeaderboard(): React.JSX.Element | null {
                   entry.rank
                 )}
               </Td>
-              <Td dataLabel="Pattern" data-testid={`pattern-name-${entry.rank}`}>
+              <Td
+                dataLabel="Pattern"
+                data-testid={`pattern-name-${entry.rank}`}
+                isStickyColumn
+                hasRightBorder
+                stickyMinWidth="150px"
+                stickyLeftOffset="80px"
+              >
                 <Button
                   variant="link"
                   isInline
@@ -540,7 +558,13 @@ function AutoragLeaderboard(): React.JSX.Element | null {
                   <span>{getModelIdShortName(entry.generationModelId)}</span>
                 </Tooltip>
               </Td>
-              <Td isActionCell>
+              <Td
+                isActionCell
+                isStickyColumn
+                hasLeftBorder
+                stickyMinWidth="80px"
+                stickyRightOffset="0"
+              >
                 <ActionsColumn
                   items={[
                     {
@@ -548,10 +572,12 @@ function AutoragLeaderboard(): React.JSX.Element | null {
                       onClick: () => handleViewDetails(entry.pattern),
                     },
                     {
-                      title: 'Save notebook',
-                      onClick: () => {
-                        // TODO: Implement save notebook
-                      },
+                      title: 'Save as indexing notebook',
+                      onClick: () => onSaveNotebook?.(entry.pattern, 'indexing'),
+                    },
+                    {
+                      title: 'Save as inference notebook',
+                      onClick: () => onSaveNotebook?.(entry.pattern, 'inference'),
                     },
                   ]}
                 />
@@ -560,7 +586,7 @@ function AutoragLeaderboard(): React.JSX.Element | null {
           ))}
         </Tbody>
       </Table>
-    </div>
+    </InnerScrollContainer>
   );
 }
 

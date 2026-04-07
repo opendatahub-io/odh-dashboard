@@ -1,12 +1,13 @@
 import * as React from 'react';
 import {
+  AngleDoubleRightIcon,
   BanIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   InProgressIcon,
+  OutlinedQuestionCircleIcon,
+  PauseCircleIcon,
   PendingIcon,
-  QuestionCircleIcon,
-  SyncAltIcon,
 } from '@patternfly/react-icons';
 import { Icon, LabelProps } from '@patternfly/react-core';
 import {
@@ -17,6 +18,7 @@ import {
   runtimeStateLabels,
 } from '#~/concepts/pipelines/kfTypes';
 import { getTimeRangeCategory, relativeTime } from '#~/utilities/time';
+import { getRunStartTime } from '#~/concepts/pipelines/content/tables/utils';
 import { StatusType } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
 import { K8sCondition, K8sDspaConditionReason } from '#~/k8sTypes.ts';
 
@@ -24,30 +26,33 @@ export type RunStatusDetails = {
   icon: React.ReactNode;
   label: PipelineRunKF['state'] | string;
   color?: LabelProps['color'];
+  labelStatus?: LabelProps['status'];
   status?: React.ComponentProps<typeof Icon>['status'];
   details?: string;
   createdAt?: string;
 };
 
-const UNKNOWN_ICON = <QuestionCircleIcon />;
-const UNKNOWN_STATUS = 'warning';
+const UNKNOWN_ICON = <OutlinedQuestionCircleIcon />;
 
 export const computeRunStatus = (run?: PipelineRunKF | null): RunStatusDetails => {
   if (!run) {
-    return { icon: UNKNOWN_ICON, status: UNKNOWN_STATUS, label: '-' };
+    return { icon: UNKNOWN_ICON, color: 'grey', label: '-' };
   }
   let icon: React.ReactNode;
   let status: React.ComponentProps<typeof Icon>['status'];
+  let labelStatus: LabelProps['status'];
   let details: string | undefined;
   let label: string;
   let color: LabelProps['color'];
-  const createdAt = relativeTime(Date.now(), new Date(run.created_at).getTime());
+  // Uses the run start time from state_history if available, falls back to created_at
+  const createdAt = relativeTime(Date.now(), getRunStartTime(run).getTime());
 
   switch (run.state) {
     case RuntimeStateKF.PENDING:
     case RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED:
     case undefined:
       icon = <PendingIcon />;
+      color = 'purple';
       label = runtimeStateLabels[RuntimeStateKF.PENDING];
       break;
     case RuntimeStateKF.RUNNING:
@@ -56,43 +61,47 @@ export const computeRunStatus = (run?: PipelineRunKF | null): RunStatusDetails =
       label = runtimeStateLabels[RuntimeStateKF.RUNNING];
       break;
     case RuntimeStateKF.SKIPPED:
-      icon = <CheckCircleIcon />;
+      icon = <AngleDoubleRightIcon />;
+      status = 'success';
+      labelStatus = 'success';
       label = runtimeStateLabels[RuntimeStateKF.SKIPPED];
       break;
     case RuntimeStateKF.SUCCEEDED:
       icon = <CheckCircleIcon />;
       status = 'success';
-      color = 'green';
+      labelStatus = 'success';
       label = runtimeStateLabels[RuntimeStateKF.SUCCEEDED];
       break;
     case RuntimeStateKF.FAILED:
       icon = <ExclamationCircleIcon />;
       status = 'danger';
-      color = 'red';
+      labelStatus = 'danger';
       label = runtimeStateLabels[RuntimeStateKF.FAILED];
       details = run.error?.message;
       break;
     case RuntimeStateKF.CANCELING:
-      icon = <SyncAltIcon />;
+      icon = <InProgressIcon />;
+      color = 'grey';
       label = runtimeStateLabels[RuntimeStateKF.CANCELING];
       break;
     case RuntimeStateKF.CANCELED:
       icon = <BanIcon />;
-      color = 'orangered';
+      color = 'grey';
       label = runtimeStateLabels[RuntimeStateKF.CANCELED];
       break;
     case RuntimeStateKF.PAUSED:
-      icon = <BanIcon />;
+      icon = <PauseCircleIcon />;
+      color = 'grey';
       label = runtimeStateLabels[RuntimeStateKF.PAUSED];
       break;
     default:
       icon = UNKNOWN_ICON;
-      status = UNKNOWN_STATUS;
+      color = 'grey';
       label = run.state;
       details = run.state;
   }
 
-  return { icon, label, color, status, details, createdAt };
+  return { icon, label, color, labelStatus, status, details, createdAt };
 };
 
 export const getPipelineAndVersionDeleteString = (

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ModelRegistry from './screens/ModelRegistry';
 import OdhModelRegistryCoreLoader from '~/odh/components/OdhModelRegistryCoreLoader';
-import { modelRegistryUrl } from './screens/routeUtils';
+
 import RegisteredModelsArchive from './screens/RegisteredModelsArchive/RegisteredModelsArchive';
 import { ModelVersionsTab } from './screens/ModelVersions/const';
 import ModelVersions from './screens/ModelVersions/ModelVersions';
@@ -32,7 +32,7 @@ const ModelRegistryRoutes: React.FC = () => {
         path={'/:modelRegistry?/*'}
         element={
           <OdhModelRegistryCoreLoader
-            getInvalidRedirectPath={(modelRegistry) => modelRegistryUrl(modelRegistry)}
+            getInvalidRedirectPath={(modelRegistry) => `./${modelRegistry}`}
           />
         }
       >

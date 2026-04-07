@@ -1,6 +1,9 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
-import type { MaaSFieldValue } from '../MaaSEndpointCheckbox';
-import { applyMaaSEndpointData, extractMaaSEndpointData } from '../maasDeploymentTransformer';
+import type { MaaSFieldValue } from '~/odh/modelServingExtensions/modelDeploymentWizard/MaaSEndpointCheckbox';
+import {
+  applyMaaSEndpointData,
+  extractMaaSEndpointData,
+} from '~/odh/modelServingExtensions/modelDeploymentWizard/maasDeploymentTransformer';
 
 const MAAS_DEFAULT_GATEWAY = {
   name: 'maas-default-gateway',

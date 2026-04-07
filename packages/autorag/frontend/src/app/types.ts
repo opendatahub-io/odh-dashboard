@@ -84,6 +84,11 @@ export type PipelineRunDetails = {
   task_details?: PipelineRunTaskDetail[];
 };
 
+export type PipelineRunStateHistoryEntry = {
+  update_time: string;
+  state?: string;
+};
+
 export type PipelineRun = {
   run_id: string;
   display_name: string;
@@ -101,6 +106,7 @@ export type PipelineRun = {
   finished_at?: string;
   error?: PipelineRunError;
   run_details?: PipelineRunDetails;
+  state_history?: PipelineRunStateHistoryEntry[];
 };
 
 export type LlamaStackModelType = 'llm' | 'embedding';
@@ -116,15 +122,13 @@ export type LlamaStackModelsResponse = {
   models: LlamaStackModel[];
 };
 
-export type LlamaStackVectorStore = {
-  id: string;
-  name: string;
-  status: string;
-  provider: string;
+export type LlamaStackVectorStoreProvider = {
+  provider_id: string;
+  provider_type: string;
 };
 
-export type LlamaStackVectorStoresResponse = {
-  vector_stores: LlamaStackVectorStore[];
+export type LlamaStackVectorStoreProvidersResponse = {
+  vector_store_providers: LlamaStackVectorStoreProvider[];
 };
 
 export type SecretListItem = {
@@ -159,4 +163,9 @@ export type S3ListObjectsResponse = {
   name?: string;
   next_continuation_token?: string;
   prefix?: string;
+};
+
+export type Envelope<M, D> = {
+  metadata: M;
+  data: D;
 };

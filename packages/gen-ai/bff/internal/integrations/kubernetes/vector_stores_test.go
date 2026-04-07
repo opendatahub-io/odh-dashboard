@@ -498,7 +498,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			CredSecretRef:  &models.SecretKeyRef{Name: "pg-secret", Key: "password"},
 		}
 
-		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil)
+		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil, "")
 		require.NoError(t, err)
 
 		var cfg LlamaStackConfig
@@ -547,7 +547,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			CredSecretRef:  &models.SecretKeyRef{Name: "milvus-creds", Key: "token"},
 		}
 
-		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil)
+		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil, "")
 		require.NoError(t, err)
 
 		var cfg LlamaStackConfig
@@ -587,7 +587,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			CredSecretRef:  &models.SecretKeyRef{Name: "qdrant-creds", Key: "api_key"},
 		}
 
-		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil)
+		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil, "")
 		require.NoError(t, err)
 
 		var cfg LlamaStackConfig
@@ -629,7 +629,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			},
 		}
 
-		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil)
+		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil, "")
 		require.NoError(t, err)
 
 		// Verify the custom namespace is preserved in the output
@@ -653,7 +653,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			},
 		}
 
-		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil)
+		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil, "")
 		require.NoError(t, err)
 
 		var cfg LlamaStackConfig
@@ -688,7 +688,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 		}
 
 		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false,
-			[]ValidatedVectorStore{makeVS("vs-a"), makeVS("vs-b")}, nil)
+			[]ValidatedVectorStore{makeVS("vs-a"), makeVS("vs-b")}, nil, "")
 		require.NoError(t, err)
 
 		var cfg LlamaStackConfig
@@ -720,7 +720,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			},
 		}
 
-		_, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil)
+		_, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil, "")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "milvus")
 		assert.Contains(t, err.Error(), "conflicts")
@@ -740,7 +740,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			},
 		}
 
-		_, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil)
+		_, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, false, []ValidatedVectorStore{vs}, nil, "")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "nonexistent-embedding-model")
 	})

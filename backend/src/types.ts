@@ -54,13 +54,16 @@ export type DashboardConfig = K8sResourceCommon & {
       automl: boolean;
       autorag: boolean;
       modelAsService: boolean;
+      maasAuthPolicies: boolean;
       mlflow: boolean;
       mcpCatalog: boolean;
       aiAssetCustomEndpoints: boolean;
       disableLLMd: boolean;
       projectRBAC: boolean;
       deploymentWizardYAMLViewer: boolean;
+      externalVectorStores: boolean;
       vLLMDeploymentOnMaaS: boolean;
+      promptManagement: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {

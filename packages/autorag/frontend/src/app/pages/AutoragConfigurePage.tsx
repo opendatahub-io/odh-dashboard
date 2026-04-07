@@ -13,14 +13,15 @@ import {
 } from '@patternfly/react-core';
 import classNames from 'classnames';
 import { useNamespaceSelector } from 'mod-arch-core';
-import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
+import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
+import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
-import { usePipelineRunsMutation } from '~/app/hooks/mutations';
+import { useCreatePipelineRunMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
@@ -45,7 +46,7 @@ function AutoragConfigurePage(): React.JSX.Element {
 
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
 
-  const pipelineRunsMutation = usePipelineRunsMutation(namespace ?? '');
+  const pipelineRunsMutation = useCreatePipelineRunMutation(namespace ?? '');
 
   const form = useForm({
     mode: 'onChange',
@@ -63,16 +64,22 @@ function AutoragConfigurePage(): React.JSX.Element {
   const createActions = (
     <>
       <ActionListItem>
-        <Button type="submit" variant="primary" isDisabled={!displayName || !llamaStackSecretName}>
+        <Button
+          type="submit"
+          variant="primary"
+          isDisabled={
+            !configureSchema.base.shape.display_name.safeParse(displayName).success ||
+            !configureSchema.base.shape.llama_stack_secret_name.safeParse(llamaStackSecretName)
+              .success
+          }
+        >
           Next
         </Button>
       </ActionListItem>
       <ActionListItem>
         <Button
+          component={(props) => <Link {...props} to={autoragExperimentsPathname} />}
           variant="link"
-          onClick={() => {
-            navigate(autoragExperimentsPathname);
-          }}
         >
           Cancel
         </Button>
@@ -87,6 +94,8 @@ function AutoragConfigurePage(): React.JSX.Element {
           type="submit"
           variant="primary"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
+          isLoading={form.formState.isSubmitting}
+          spinnerAriaValueText="Submitting"
         >
           Run experiment
         </Button>
@@ -94,6 +103,7 @@ function AutoragConfigurePage(): React.JSX.Element {
       <ActionListItem>
         <Button
           variant="link"
+          isDisabled={form.formState.isSubmitting}
           onClick={() => {
             setStep('create');
           }}
@@ -106,16 +116,19 @@ function AutoragConfigurePage(): React.JSX.Element {
 
   return (
     <ApplicationsPage
-      title={<TitleWithIcon title="AutoRAG" objectType={ProjectObjectType.pipelineExperiment} />}
+      title={<AutoragHeader />}
       subtext={
         <h2 className="pf-v6-u-mt-sm">
-          {step === 'create' ? 'Create AutoRAG experiment' : `"${displayName}" configurations`}
+          {step === 'create'
+            ? 'Create AutoRAG optimization run'
+            : `"${displayName}" configurations`}
         </h2>
       }
       description={
         step === 'create' && (
           <Content>
-            Automatically configure and optimize your Retrieval-Augmented Generation workflows.
+            Automatically test and tune retrieval, indexing, and model settings to improve
+            Retrieval-Augmented Generation (RAG) response quality.
           </Content>
         )
       }
@@ -137,7 +150,7 @@ function AutoragConfigurePage(): React.JSX.Element {
       <FormProvider {...form}>
         <Stack
           component="form"
-          className="pf-v6-u-h-100"
+          className={classNames('pf-v6-u-h-0', 'pf-v6-u-flex-fill')}
           hasGutter
           noValidate
           onSubmit={(event) => {
@@ -166,7 +179,7 @@ function AutoragConfigurePage(): React.JSX.Element {
             )();
           }}
         >
-          <StackItem isFilled>
+          <StackItem className="pf-v6-u-h-0" isFilled>
             <PageSection
               className={classNames(
                 'pf-v6-c-form',

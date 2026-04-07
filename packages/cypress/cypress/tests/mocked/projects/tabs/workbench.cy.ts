@@ -623,7 +623,7 @@ describe('Workbench page', () => {
     initIntercepts({ isEmpty: true });
     workbenchPage.visit('test-project');
     workbenchPage.findEmptyState().should('exist');
-    workbenchPage.findCreateButton().should('be.enabled');
+    workbenchPage.findCreateButton().should('not.have.attr', 'aria-disabled', 'true');
   });
 
   it('Cancel button', () => {
@@ -785,7 +785,7 @@ describe('Workbench page', () => {
     const projectScopedNotebookImage = createSpawnerPage.getProjectScopedNotebookImages();
     projectScopedNotebookImage
       .find()
-      .findByRole('menuitem', { name: 'Project-scoped test image', hidden: true })
+      .findByRole('menuitem', { name: /^Project-scoped test image/, hidden: true })
       .click();
     createSpawnerPage.findProjectScopedLabel().should('exist');
     hardwareProfileSection.findHardwareProfileSearchSelector().should('exist').click();
@@ -797,7 +797,7 @@ describe('Workbench page', () => {
     const globalScopedNotebookImage = createSpawnerPage.getGlobalScopedNotebookImages();
     globalScopedNotebookImage
       .find()
-      .findByRole('menuitem', { name: 'Test Image', hidden: true })
+      .findByRole('menuitem', { name: /^Test Image/, hidden: true })
       .click();
     createSpawnerPage.findGlobalScopedLabel().should('exist');
   });
@@ -1194,7 +1194,7 @@ describe('Workbench page', () => {
     notebookRow.find().findByText('Test Image').should('exist');
     notebookRow.findProjectScopedLabel().should('exist');
     notebookRow.shouldHaveHardwareProfile('Small');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
   });
 
@@ -1333,7 +1333,7 @@ describe('Workbench page', () => {
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
     notebookRow.shouldHaveNotebookImageName('Test Image');
     notebookRow.shouldHaveHardwareProfile('Small');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
 
     //Name sorting
@@ -1775,7 +1775,7 @@ describe('Workbench page', () => {
     const projectScopedNotebookImage = editSpawnerPage.getProjectScopedNotebookImages();
     projectScopedNotebookImage
       .find()
-      .findByRole('menuitem', { name: 'Project scoped test image', hidden: true })
+      .findByRole('menuitem', { name: /^Project scoped test image/, hidden: true })
       .click();
 
     cy.findAllByTestId('project-scoped-label').should('have.length', 2);
@@ -2024,7 +2024,7 @@ describe('Workbench page', () => {
     initIntercepts({});
     notFoundSpawnerPage.visit('updated-notebook');
     notFoundSpawnerPage.shouldHaveErrorMessageTitle('Unable to edit workbench');
-    notFoundSpawnerPage.findReturnToPage().should('be.enabled');
+    notFoundSpawnerPage.findReturnToPage().should('have.attr', 'href').and('not.be.empty');
     notFoundSpawnerPage.findReturnToPage().click();
     verifyRelativeURL('/projects/test-project');
   });
@@ -2555,11 +2555,11 @@ describe('Workbench page', () => {
     );
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findHaveNotebookStatusText().click();
 
     workbenchStatusModal.find().should('be.visible');
-    workbenchStatusModal.getNotebookStatus('Running');
+    workbenchStatusModal.getNotebookStatus('Ready');
 
     workbenchStatusModal.findProgressTab().should('be.visible').click();
     workbenchStatusModal.findProgressSteps().should('exist');
@@ -2574,7 +2574,7 @@ describe('Workbench page', () => {
     initKueueEnabledForStatusModal();
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findHaveNotebookStatusText().click();
 
     workbenchStatusModal.find().should('be.visible');
@@ -2587,7 +2587,7 @@ describe('Workbench page', () => {
     initKueueEnabledForStatusModal();
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findHaveNotebookStatusText().click();
 
     workbenchStatusModal.find().should('be.visible');

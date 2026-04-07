@@ -10,12 +10,19 @@ export type APIKey = {
   expirationDate?: string;
   status: APIKeyStatus;
   lastUsedAt?: string;
+  subscription?: string;
+};
+
+export type SubscriptionDetail = {
+  displayName?: string;
+  models: string[];
 };
 
 export type APIKeyListResponse = {
   object: string;
   data: APIKey[];
   has_more: boolean;
+  subscriptionDetails?: Record<string, SubscriptionDetail>;
 };
 
 export type APIKeySearchRequest = {
@@ -51,6 +58,7 @@ export type CreateAPIKeyRequest = {
   name: string;
   description?: string;
   expiresIn?: string;
+  subscription: string;
 };
 
 export const STATUS_OPTIONS: APIKeyStatus[] = ['active', 'expired', 'revoked'];

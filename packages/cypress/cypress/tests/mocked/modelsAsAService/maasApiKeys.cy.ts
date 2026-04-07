@@ -1,22 +1,44 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
-import type { APIKey } from '@odh-dashboard/maas/types/api-key';
-import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
+import type { APIKey, SubscriptionDetail } from '@odh-dashboard/maas/types/api-key';
 import {
+  asClusterAdminUser,
+  asProductAdminUser,
+  asProjectAdminUser,
+} from '../../../utils/mockUsers';
+import {
+  adminBulkRevokeAPIKeyModal,
   apiKeysPage,
   bulkRevokeAPIKeyModal,
   revokeAPIKeyModal,
   copyApiKeyModal,
   createApiKeyModal,
+  subscriptionPopover,
 } from '../../../pages/modelsAsAService';
-import { mockAPIKeys, mockCreateAPIKeyResponse } from '../../../utils/maasUtils';
+import {
+  mockAPIKeys,
+  mockCreateAPIKeyResponse,
+  mockSubscriptionListItems,
+} from '../../../utils/maasUtils';
 
-const mockSearchResponse = (keys: APIKey[]) => ({
+const mockSubscriptionDetails: Record<string, SubscriptionDetail> = {
+  'premium-team-sub': {
+    displayName: 'Premium Team',
+    models: ['granite-3-8b-instruct', 'flan-t5-small'],
+  },
+  'basic-team-sub': { displayName: 'Basic Team', models: ['flan-t5-small'] },
+};
+
+const mockSearchResponse = (
+  keys: APIKey[],
+  subscriptionDetails?: Record<string, SubscriptionDetail>,
+) => ({
   data: {
     object: 'list',
     data: keys,
     // eslint-disable-next-line camelcase
     has_more: false,
+    subscriptionDetails,
   },
 });
 
@@ -44,9 +66,13 @@ describe('API Keys Page', () => {
         },
       }),
     );
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
-      'initialSearch',
-    );
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse(mockAPIKeys(), mockSubscriptionDetails),
+    ).as('initialSearch');
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: mockSubscriptionListItems(),
+    }).as('getSubscriptions');
     apiKeysPage.visit();
     cy.wait('@initialSearch');
   });
@@ -69,6 +95,28 @@ describe('API Keys Page', () => {
     ciPipelineRow.findStatus().should('contain.text', 'Revoked');
     ciPipelineRow.findCreationDate().should('contain.text', 'Jan 11, 2026');
     ciPipelineRow.findExpirationDate().should('contain.text', 'Jan 18, 2026');
+  });
+
+  it('should display the subscription column with display names', () => {
+    apiKeysPage.findTable().contains('th', 'Subscription').should('exist');
+
+    const prodRow = apiKeysPage.getRow('production-backend');
+    prodRow.findSubscription().should('contain.text', 'Premium Team');
+
+    const devRow = apiKeysPage.getRow('development-testing');
+    devRow.findSubscription().should('contain.text', 'Basic Team');
+
+    const expiredRow = apiKeysPage.getRow('old-service-key');
+    expiredRow.findSubscription().should('contain.text', '—');
+  });
+
+  it('should show subscription popover with model names on click', () => {
+    const prodRow = apiKeysPage.getRow('production-backend');
+    prodRow.findSubscriptionPopoverButton().click();
+
+    subscriptionPopover.findModelCount().should('contain.text', '2 models');
+    subscriptionPopover.findModelName('granite-3-8b-instruct').should('be.visible');
+    subscriptionPopover.findModelName('flan-t5-small').should('be.visible');
   });
 
   it('should filter api keys by username', () => {
@@ -232,6 +280,9 @@ describe('API Keys Page', () => {
   });
 
   it('should revoke all my API keys', () => {
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
+    apiKeysPage.visit();
+
     apiKeysPage.findTitle().should('contain.text', 'API Keys');
     apiKeysPage.findActionsToggle().click();
     apiKeysPage.findRevokeAllAPIKeysAction().click();
@@ -250,7 +301,7 @@ describe('API Keys Page', () => {
       },
     }).as('deleteAllApiKeys');
 
-    revokeAPIKeyModal.findRevokeAllButton().click();
+    bulkRevokeAPIKeyModal.findRevokeButton().click();
 
     cy.wait('@deleteAllApiKeys').then((interception) => {
       expect(interception.response?.statusCode).to.eq(200);
@@ -296,8 +347,11 @@ describe('API Keys Page', () => {
 
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
+    cy.wait('@getSubscriptions');
     createApiKeyModal.findExpirationToggle().should('contain.text', '30 days');
     createApiKeyModal.findSubmitButton().should('be.disabled');
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
     createApiKeyModal.findNameInput().type('production-backend');
     createApiKeyModal.findDescriptionInput().type('Production API key for backend service');
     createApiKeyModal.findSubmitButton().should('be.enabled');
@@ -337,9 +391,12 @@ describe('API Keys Page', () => {
 
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
+    cy.wait('@getSubscriptions');
     createApiKeyModal.findExpirationToggle().click();
     createApiKeyModal.findExpirationOption('custom').click();
     createApiKeyModal.findCustomDaysInput().type('45');
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
     createApiKeyModal.findNameInput().type('my-key');
     createApiKeyModal.findSubmitButton().should('be.enabled');
     createApiKeyModal.findSubmitButton().click();
@@ -376,6 +433,9 @@ describe('API Keys Page', () => {
 
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
+    cy.wait('@getSubscriptions');
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
     createApiKeyModal.findNameInput().type('production-backend');
     createApiKeyModal.findSubmitButton().click();
 
@@ -389,5 +449,168 @@ describe('API Keys Page', () => {
         'Requested expiration exceeds maximum allowed (90 days). Select a shorter duration and try again.',
       );
     createApiKeyModal.findSubmitButton().should('be.enabled');
+  });
+
+  it('should handle subscription selection and submit an API key with the selected subscription', () => {
+    cy.interceptOdh('POST /maas/api/v1/api-keys', {
+      data: mockCreateAPIKeyResponse(),
+    }).as('createApiKey');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    cy.wait('@getSubscriptions');
+
+    createApiKeyModal.findSubscriptionToggle().should('contain.text', 'Select a subscription');
+    createApiKeyModal.findSubmitButton().should('be.disabled');
+
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal
+      .findSubscriptionOption('premium-team-sub')
+      .should('contain.text', 'Premium Team')
+      .and('contain.text', '2 models');
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
+    createApiKeyModal.findSubscriptionCostCenterDetails().should('be.visible');
+    createApiKeyModal.findSubscriptionCostCenter().should('contain.text', 'engineering');
+    createApiKeyModal.findSubscriptionModelsTable().should('be.visible');
+    createApiKeyModal
+      .findSubscriptionModelRateLimit('granite-3-8b-instruct')
+      .should('contain.text', '100,000 / 24 hours');
+    createApiKeyModal
+      .findSubscriptionModelRateLimit('flan-t5-small')
+      .should('contain.text', '200,000 / 24 hours');
+
+    createApiKeyModal.findSubmitButton().should('be.disabled');
+
+    createApiKeyModal.findNameInput().type('production-backend');
+    createApiKeyModal.findSubmitButton().should('be.enabled');
+
+    createApiKeyModal.findSubmitButton().click();
+    cy.wait('@createApiKey').then((interception) => {
+      expect(interception.request.body?.data).to.include({ subscription: 'premium-team-sub' });
+    });
+  });
+
+  it('should show a warning and block submission when no subscriptions are available', () => {
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', { data: [] }).as('emptySubscriptions');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    cy.wait('@emptySubscriptions');
+
+    createApiKeyModal.findNoSubscriptionsAlert().should('be.visible');
+    createApiKeyModal.findNameInput().type('my-key');
+    createApiKeyModal.findSubmitButton().should('be.disabled');
+  });
+
+  it('should show an error alert when subscriptions fail to load', () => {
+    cy.intercept('GET', '/maas/api/v1/subscriptions', {
+      statusCode: 500,
+      body: { error: { code: '500', message: 'Internal Server Error' } },
+    }).as('failedSubscriptions');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    cy.wait('@failedSubscriptions');
+
+    createApiKeyModal.findSubscriptionsErrorAlert().should('be.visible');
+    createApiKeyModal.findSubmitButton().should('be.disabled');
+  });
+});
+
+describe('API Keys Page (Admin)', () => {
+  beforeEach(() => {
+    asProductAdminUser();
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        modelAsService: true,
+      }),
+    );
+
+    cy.interceptOdh('GET /maas/api/v1/user', {
+      data: { userId: 'admin-user', clusterAdmin: true },
+    });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
+    cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
+
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+        },
+      }),
+    );
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
+      'initialSearch',
+    );
+    apiKeysPage.visit();
+    cy.wait('@initialSearch');
+  });
+
+  it('should show admin revoke action label', () => {
+    apiKeysPage.findActionsToggle().click();
+    apiKeysPage
+      .findRevokeAllAPIKeysAction()
+      .should('contain.text', 'Revoke all keys for a single user');
+    apiKeysPage.findRevokeAllAPIKeysAction().should('not.be.disabled');
+  });
+
+  it('should open admin revoke modal, search a user, and revoke their keys', () => {
+    const aliceKeys = mockAPIKeys().filter((k) => k.username === 'alice');
+
+    apiKeysPage.findActionsToggle().click();
+    apiKeysPage.findRevokeAllAPIKeysAction().click();
+
+    adminBulkRevokeAPIKeyModal.shouldBeOpen();
+    adminBulkRevokeAPIKeyModal.findRevokeButton().should('be.disabled');
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(aliceKeys)).as(
+      'searchUserKeys',
+    );
+
+    adminBulkRevokeAPIKeyModal.findUsernameInput().type('alice');
+    adminBulkRevokeAPIKeyModal.findSearchButton().click();
+
+    cy.wait('@searchUserKeys').then((interception) => {
+      expect(interception.request.body.data.filters.username).to.eq('alice');
+    });
+
+    adminBulkRevokeAPIKeyModal.findKeysFoundHeading().should('exist');
+    adminBulkRevokeAPIKeyModal.findRevokeButton().should('be.enabled');
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/bulk-revoke', {
+      data: {
+        revokedCount: 1,
+        message: 'All API keys revoked for alice',
+      },
+    }).as('bulkRevokeKeys');
+
+    adminBulkRevokeAPIKeyModal.findRevokeButton().click();
+
+    cy.wait('@bulkRevokeKeys').then((interception) => {
+      expect(interception.request.body.data.username).to.eq('alice');
+    });
+  });
+
+  it('should show no keys alert when searched user has no active keys', () => {
+    const revokedKeys = mockAPIKeys().filter((k) => k.status === 'revoked');
+
+    apiKeysPage.findActionsToggle().click();
+    apiKeysPage.findRevokeAllAPIKeysAction().click();
+
+    adminBulkRevokeAPIKeyModal.shouldBeOpen();
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(revokedKeys)).as(
+      'searchNoActiveKeys',
+    );
+
+    adminBulkRevokeAPIKeyModal.findUsernameInput().type('carol');
+    adminBulkRevokeAPIKeyModal.findSearchButton().click();
+
+    cy.wait('@searchNoActiveKeys');
+
+    adminBulkRevokeAPIKeyModal.findNoKeysAlert().should('exist');
+    adminBulkRevokeAPIKeyModal.findRevokeButton().should('be.disabled');
   });
 });

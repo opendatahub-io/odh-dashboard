@@ -1,5 +1,6 @@
 import {
   ActionsColumn,
+  InnerScrollContainer,
   Table,
   Tbody,
   Td,
@@ -33,7 +34,8 @@ import './AutomlLeaderboard.scss';
 
 type LeaderboardEntry = {
   rank: number;
-  model: string;
+  modelKey: string;
+  displayName: string;
   metrics: Record<string, number | string>;
   optimizedMetricValue: number | string;
 };
@@ -41,11 +43,13 @@ type LeaderboardEntry = {
 type AutomlLeaderboardProps = {
   onViewDetails?: (modelName: string, rank: number) => void;
   onClickSaveNotebook?: (modelName: string) => void;
+  onRegisterModel?: (modelName: string) => void;
 };
 
 function AutomlLeaderboard({
   onViewDetails,
   onClickSaveNotebook,
+  onRegisterModel,
 }: AutomlLeaderboardProps): React.JSX.Element | null {
   const { namespace } = useParams<{ namespace: string }>();
   const { models, parameters, modelsLoading, pipelineRun, pipelineRunLoading } =
@@ -142,7 +146,8 @@ function AutomlLeaderboard({
 
       return {
         rank: 0, // Will be assigned after sorting by optimized metric initially
-        model: model.display_name || modelName,
+        modelKey: modelName,
+        displayName: model.display_name || modelName,
         metrics,
         optimizedMetricValue,
       };
@@ -192,7 +197,7 @@ function AutomlLeaderboard({
     if (activeSortIndex === 1) {
       // Sort by model name
       return rankedEntries.toSorted((a, b) => {
-        const comparison = a.model.localeCompare(b.model);
+        const comparison = a.displayName.localeCompare(b.displayName);
         return activeSortDirection === 'asc' ? comparison : -comparison;
       });
     }
@@ -315,19 +320,33 @@ function AutomlLeaderboard({
   }
 
   return (
-    <div className="automl-leaderboard-wrapper">
+    <InnerScrollContainer>
       <Table
         aria-label="AutoML Model Leaderboard"
         variant="compact"
         data-testid="leaderboard-table"
         className="automl-leaderboard"
+        isStickyHeader
       >
         <Thead>
           <Tr>
-            <Th sort={getSortParams(0)} data-testid="rank-header">
+            <Th
+              sort={getSortParams(0)}
+              data-testid="rank-header"
+              isStickyColumn
+              stickyMinWidth="80px"
+              stickyLeftOffset="0"
+            >
               Rank
             </Th>
-            <Th sort={getSortParams(1)} data-testid="model-name-header">
+            <Th
+              sort={getSortParams(1)}
+              data-testid="model-name-header"
+              isStickyColumn
+              hasRightBorder
+              stickyMinWidth="150px"
+              stickyLeftOffset="80px"
+            >
               Model name
             </Th>
             {metricKeys.map((metricKey, index) => (
@@ -344,13 +363,25 @@ function AutomlLeaderboard({
                 )}
               </Th>
             ))}
-            <Th screenReaderText="Actions" />
+            <Th
+              screenReaderText="Actions"
+              isStickyColumn
+              hasLeftBorder
+              stickyMinWidth="80px"
+              stickyRightOffset="0"
+            />
           </Tr>
         </Thead>
         <Tbody>
           {data.map((entry) => (
             <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
-              <Td dataLabel="Rank" data-testid={`rank-${entry.rank}`}>
+              <Td
+                dataLabel="Rank"
+                data-testid={`rank-${entry.rank}`}
+                isStickyColumn
+                stickyMinWidth="80px"
+                stickyLeftOffset="0"
+              >
                 {entry.rank === 1 ? (
                   <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
                     {entry.rank}
@@ -359,14 +390,21 @@ function AutomlLeaderboard({
                   entry.rank
                 )}
               </Td>
-              <Td dataLabel="Model" data-testid={`model-name-${entry.rank}`}>
+              <Td
+                dataLabel="Model"
+                data-testid={`model-name-${entry.rank}`}
+                isStickyColumn
+                hasRightBorder
+                stickyMinWidth="150px"
+                stickyLeftOffset="80px"
+              >
                 <Button
                   variant="link"
                   isInline
-                  onClick={() => handleViewDetails(entry.model, entry.rank)}
+                  onClick={() => handleViewDetails(entry.modelKey, entry.rank)}
                   data-testid={`model-link-${entry.rank}`}
                 >
-                  {entry.model}
+                  {entry.displayName}
                 </Button>
               </Td>
               {metricKeys.map((metricKey) => (
@@ -380,25 +418,29 @@ function AutomlLeaderboard({
                   </Tooltip>
                 </Td>
               ))}
-              <Td isActionCell>
+              <Td
+                isActionCell
+                isStickyColumn
+                hasLeftBorder
+                stickyMinWidth="80px"
+                stickyRightOffset="0"
+              >
                 <ActionsColumn
                   items={[
                     {
                       title: 'View details',
-                      onClick: () => handleViewDetails(entry.model, entry.rank),
+                      onClick: () => handleViewDetails(entry.modelKey, entry.rank),
                     },
                     {
                       title: 'Register model',
                       onClick: () => {
-                        // TODO: Implement register model
+                        onRegisterModel?.(entry.modelKey);
                       },
                     },
                     {
                       title: 'Save notebook',
                       onClick: () => {
-                        if (onClickSaveNotebook) {
-                          onClickSaveNotebook(entry.model);
-                        }
+                        onClickSaveNotebook?.(entry.modelKey);
                       },
                     },
                   ]}
@@ -408,7 +450,7 @@ function AutomlLeaderboard({
           ))}
         </Tbody>
       </Table>
-    </div>
+    </InnerScrollContainer>
   );
 }
 

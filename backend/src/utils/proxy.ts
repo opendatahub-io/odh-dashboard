@@ -66,6 +66,10 @@ export const checkRequestLimitExceeded = (
 export const proxyService =
   <K extends K8sResourceCommon = never>(
     model: { apiGroup: string; apiVersion: string; plural: string; kind: string } | null,
+    /**
+     * @param service.namespace - If omitted, use namespace from request url param `:namespace`
+     * @param service.name - If omitted, use name from request url param `:name`
+     */
     service: EitherNotBoth<
       {
         addressAnnotation?: ServiceAddressAnnotation;
@@ -73,6 +77,7 @@ export const proxyService =
         prefix?: string;
         suffix?: string;
         namespace?: string | ((fastify: KubeFastifyInstance) => string);
+        name?: string;
       },
       {
         constructUrl: (resource: K) => string;
@@ -88,7 +93,7 @@ export const proxyService =
   async (fastify: KubeFastifyInstance): Promise<void> =>
     fastify.register(httpProxy, {
       upstream: '',
-      prefix: service.namespace ? ':name' : '/:namespace/:name',
+      prefix: `${!service.namespace ? '/:namespace' : ''}${!service.name ? '/:name' : ''}`,
       rewritePrefix: '',
       replyOptions: {
         // preHandler must set the `upstream` param
@@ -103,7 +108,7 @@ export const proxyService =
         const serviceNamespace =
           typeof service.namespace === 'function' ? service.namespace(fastify) : service.namespace;
         const namespace = serviceNamespace ?? getParam(request, 'namespace');
-        const name = getParam(request, 'name');
+        const name = service.name ?? getParam(request, 'name');
         const serviceName = `${service.prefix ?? ''}${name}${service.suffix ?? ''}`;
         const scheme = tls ? 'https' : 'http';
         const kc = fastify.kube.config;

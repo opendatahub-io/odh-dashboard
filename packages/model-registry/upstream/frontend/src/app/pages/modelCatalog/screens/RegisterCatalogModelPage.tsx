@@ -44,6 +44,7 @@ const RegisterCatalogModelPageInner: React.FC = () => {
 
   return (
     <ApplicationsPage
+
       title={`Register ${getModelName(model?.name || '') || ''} model`}
       description="Create and register the first version of a new model."
       breadcrumb={

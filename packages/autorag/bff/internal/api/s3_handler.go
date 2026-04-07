@@ -8,6 +8,8 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"path"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -23,6 +25,8 @@ import (
 )
 
 type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
+
+var trailingNumberPattern = regexp.MustCompile(`^(.*)-(\d+)$`)
 
 // resolvedS3 holds a ready-to-use S3 client and the resolved bucket name.
 type resolvedS3 struct {
@@ -232,9 +236,20 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	}
 }
 
+const defaultS3PostMaxCollisionAttempts = 10
+
+func (app *App) effectivePostS3CollisionAttempts() int {
+	if app != nil && app.s3PostMaxCollisionAttempts > 0 {
+		return app.s3PostMaxCollisionAttempts
+	}
+	return defaultS3PostMaxCollisionAttempts
+}
+
 // PostS3FileHandler uploads a file to S3 storage using credentials from a Kubernetes secret.
 // Query parameters: namespace, secretName, key (required); bucket (optional, uses AWS_S3_BUCKET from secret if not provided).
 // Request body: multipart/form-data with a file part named "file". Streams the file to S3 without buffering.
+// Candidate keys are chosen via HeadObject; the file is streamed to S3 once with If-None-Match (no full-file buffer).
+// If HeadObject and PUT disagree (concurrent writer), the handler returns 409 Conflict without retrying.
 //
 // Note: namespace is provided via the AttachNamespace middleware
 func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -263,6 +278,11 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 
 	ctx := r.Context()
 	bucket := s3.bucket
+	resolvedKey, err := resolveNonCollidingS3Key(ctx, s3.client, bucket, key, app.effectivePostS3CollisionAttempts())
+	if err != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("error resolving S3 key for upload: %w", err))
+		return
+	}
 
 	maxUploadSize := app.s3PostMaxTotalBodyBytes()
 	// Cap the entire request body so chunked/unknown-length clients cannot force the multipart
@@ -331,23 +351,100 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 	limitedFile := http.MaxBytesReader(nil, filePart, maxFilePartBytes)
 	// MaxBytesReader.Close forwards to Part.Close, which drains the rest of the file part.
 	defer limitedFile.Close()
-	if err := s3.client.UploadObject(ctx, bucket, key, limitedFile, contentType); err != nil {
+	if err := s3.client.UploadObject(ctx, bucket, resolvedKey, limitedFile, contentType); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
 			app.payloadTooLargeResponse(w, r, "file exceeds maximum size of 1 GiB")
 			return
 		}
+		if errors.Is(err, s3int.ErrObjectAlreadyExists) {
+			app.conflictResponse(w, r, fmt.Sprintf("object key %q already exists in S3 (upload conflict); retry with a different key", resolvedKey))
+			return
+		}
 		var accessDenied interface{ ErrorCode() string }
 		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
-			app.forbiddenResponse(w, r, fmt.Sprintf("access denied uploading to S3 '%s/%s'", bucket, key))
+			app.forbiddenResponse(w, r, fmt.Sprintf("access denied uploading to S3 '%s/%s'", bucket, resolvedKey))
 			return
 		}
 		app.serverErrorResponse(w, r, fmt.Errorf("error uploading file to S3: %w", err))
 		return
 	}
 
-	body := map[string]bool{"uploaded": true}
+	body := map[string]any{
+		"uploaded": true,
+		"key":      resolvedKey,
+	}
 	_ = app.WriteJSON(w, http.StatusCreated, body, nil)
+}
+
+// resolveNonCollidingS3Key picks a candidate object key using HeadObject only (no upload body read).
+// When the requested key exists, it tries name-1, name-2, … up to maxSuffixAttempts times.
+func resolveNonCollidingS3Key(
+	ctx context.Context,
+	client s3int.S3ClientInterface,
+	bucket string,
+	requestedKey string,
+	maxCollisionAttempts int,
+) (string, error) {
+	exists, err := client.ObjectExists(ctx, bucket, requestedKey)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		return requestedKey, nil
+	}
+
+	dir, name := splitS3ObjectPath(requestedKey)
+	stem, ext := splitNameAndExtension(name)
+	stemBase, nextIndex := splitStemAndNextIndex(stem)
+
+	for range maxCollisionAttempts {
+		candidateName := fmt.Sprintf("%s-%d%s", stemBase, nextIndex, ext)
+		candidateKey := dir + candidateName
+
+		candidateExists, checkErr := client.ObjectExists(ctx, bucket, candidateKey)
+		if checkErr != nil {
+			return "", checkErr
+		}
+		if !candidateExists {
+			return candidateKey, nil
+		}
+		nextIndex++
+	}
+	return "", fmt.Errorf("failed to resolve non-colliding S3 key after %d attempts", maxCollisionAttempts)
+}
+
+func splitS3ObjectPath(key string) (dir string, name string) {
+	lastSlashIndex := strings.LastIndex(key, "/")
+	if lastSlashIndex == -1 {
+		return "", key
+	}
+	return key[:lastSlashIndex+1], key[lastSlashIndex+1:]
+}
+
+func splitNameAndExtension(fileName string) (stem string, ext string) {
+	ext = path.Ext(fileName)
+	if ext == "" {
+		return fileName, ""
+	}
+	stem = strings.TrimSuffix(fileName, ext)
+	if stem == "" {
+		return fileName, ""
+	}
+	return stem, ext
+}
+
+func splitStemAndNextIndex(stem string) (base string, nextIndex int) {
+	match := trailingNumberPattern.FindStringSubmatch(stem)
+	if len(match) != 3 {
+		return stem, 1
+	}
+
+	parsedIndex, err := strconv.Atoi(match[2])
+	if err != nil {
+		return stem, 1
+	}
+	return match[1], parsedIndex + 1
 }
 
 // rejectDeclaredOversizedS3Post returns 413 when Content-Length is set and exceeds

@@ -37,7 +37,7 @@ type IsMaasAdminResult = {
 };
 
 const isIsMaasAdminResult = (v: unknown): v is IsMaasAdminResult =>
-  !!v && typeof v === 'object' && typeof (v as Record<string, unknown>).allowed === 'boolean';
+  !!v && typeof v === 'object' && 'allowed' in v && typeof v.allowed === 'boolean';
 
 export const getIsMaasAdmin =
   (hostPath = '') =>
