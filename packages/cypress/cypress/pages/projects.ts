@@ -401,6 +401,14 @@ class ProjectDetailsOverviewTab extends ProjectDetails {
   findSelectPlatformButton(name: string) {
     return cy.findByTestId(`${name}-select-button`);
   }
+
+  findDeployedModelCard(modelName: string) {
+    return cy.findByTestId(`deployed-model-card-${modelName}`);
+  }
+
+  findCardServingRuntime(modelName: string) {
+    return this.findDeployedModelCard(modelName).findByTestId('overview-card-serving-runtime');
+  }
 }
 
 class KserveTableRow extends TableRow {

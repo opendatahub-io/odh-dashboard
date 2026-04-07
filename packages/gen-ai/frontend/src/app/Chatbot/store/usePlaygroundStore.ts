@@ -2,118 +2,72 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
 import { MLflowPromptVersion } from '~/app/types';
+import { deepCopyPrompt } from './utils';
 
 interface PlaygroundState {
   isPromptManagementModalOpen: boolean;
-  activePrompt: MLflowPromptVersion | null;
   modalMode: 'allPrompts' | 'create' | 'edit';
-  dirtyPrompt: MLflowPromptVersion | null;
+  modalConfigId: string | null;
   dirtyPromptSnapshot: MLflowPromptVersion | null;
 }
 
 interface PlaygroundActions {
-  setIsPromptManagementModalOpen: (isOpen: boolean) => void;
-  setActivePrompt: (prompt: MLflowPromptVersion | null) => void;
-  setDirtyPrompt: (prompt: MLflowPromptVersion | null) => void;
-  resetDirtyPrompt: () => void;
-  clearPromptState: (newDirtyPrompt: MLflowPromptVersion | null) => void;
-  openModal: (mode: 'allPrompts' | 'create' | 'edit', prompt?: MLflowPromptVersion) => void;
-  restoreDirtyPromptSnapshot: () => void;
+  openModal: (
+    mode: 'allPrompts' | 'create' | 'edit',
+    configId: string,
+    dirtyPromptToSnapshot: MLflowPromptVersion | null,
+  ) => void;
+  closeModal: () => void;
 }
 
 type PlaygroundStore = PlaygroundState & PlaygroundActions;
 
 const initialState: PlaygroundState = {
   isPromptManagementModalOpen: false,
-  activePrompt: null,
   modalMode: 'allPrompts',
-  dirtyPrompt: null,
+  modalConfigId: null,
   dirtyPromptSnapshot: null,
 };
 
 export const usePlaygroundStore = create<PlaygroundStore>()(
   devtools(
-    /* eslint-disable no-param-reassign */
     immer((set) => ({
+      /* eslint-disable no-param-reassign */
       ...initialState,
 
-      setActivePrompt: (prompt: MLflowPromptVersion | null) => {
+      openModal: (
+        mode: 'allPrompts' | 'create' | 'edit',
+        configId: string,
+        dirtyPromptToSnapshot: MLflowPromptVersion | null,
+      ) => {
         set(
           (state) => {
-            state.activePrompt = prompt;
-            state.dirtyPrompt = prompt ? { ...prompt } : null;
+            state.dirtyPromptSnapshot = deepCopyPrompt(dirtyPromptToSnapshot);
+            state.modalMode = mode;
+            state.modalConfigId = configId;
+            state.isPromptManagementModalOpen = true;
           },
           false,
-          'setActivePrompt',
+          'openModal',
         );
       },
 
-      setIsPromptManagementModalOpen: (isOpen: boolean) => {
+      closeModal: () => {
         set(
           (state) => {
-            state.isPromptManagementModalOpen = isOpen;
-          },
-          false,
-          'setIsPromptManagementModalOpen',
-        );
-      },
-
-      openModal: (mode: 'allPrompts' | 'create' | 'edit', prompt?: MLflowPromptVersion) => {
-        set((state) => {
-          state.dirtyPromptSnapshot = state.dirtyPrompt ? { ...state.dirtyPrompt } : null;
-          state.modalMode = mode;
-          state.isPromptManagementModalOpen = true;
-          if (prompt) {
-            state.dirtyPrompt = prompt;
-          }
-        });
-      },
-
-      restoreDirtyPromptSnapshot: () => {
-        set(
-          (state) => {
-            state.dirtyPrompt = state.dirtyPromptSnapshot;
+            state.isPromptManagementModalOpen = false;
+            state.modalConfigId = null;
             state.dirtyPromptSnapshot = null;
+            state.modalMode = 'allPrompts';
           },
           false,
-          'restoreDirtyPromptSnapshot',
+          'closeModal',
         );
       },
-
-      setDirtyPrompt: (prompt: MLflowPromptVersion | null) => {
-        set(
-          (state) => {
-            state.dirtyPrompt = prompt;
-          },
-          false,
-          'setDirtyPrompt',
-        );
-      },
-
-      resetDirtyPrompt: () => {
-        set(
-          (state) => {
-            state.dirtyPrompt = state.activePrompt ? { ...state.activePrompt } : null;
-          },
-          false,
-          'resetDirtyPrompt',
-        );
-      },
-
-      clearPromptState: (newDirtyPrompt: MLflowPromptVersion | null) => {
-        set(
-          (state) => {
-            state.activePrompt = null;
-            state.dirtyPrompt = newDirtyPrompt;
-          },
-          false,
-          'clearPromptState',
-        );
-      },
+      /* eslint-enable no-param-reassign */
     })),
     {
       name: 'PlaygroundStore',
     },
   ),
-  /* eslint-enable no-param-reassign */
 );

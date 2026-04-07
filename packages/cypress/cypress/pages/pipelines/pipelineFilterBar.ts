@@ -11,8 +11,12 @@ class PipelineRunFilterBar extends PipelineFilterBar {
     return cy.findByTestId('search-for-run-name');
   }
 
-  findExperimentSelect() {
-    return cy.findByTestId('experiment-toggle-button');
+  findRunGroupInput() {
+    return cy.findByTestId('search-for-run-group-name');
+  }
+
+  findMlflowExperimentSelect() {
+    return cy.findByTestId('mlflow-experiment-selector-toggle');
   }
 
   findPipelineVersionSelect() {
@@ -59,12 +63,6 @@ class PipelineRunFilterBar extends PipelineFilterBar {
   selectPipelineVersionByName(name: string) {
     this.findPipelineVersionSelect().click();
     cy.findByTestId('pipeline-version-selector-table-list').find('td').contains(name).click();
-    return this;
-  }
-
-  selectExperimentByName(name: string) {
-    this.findExperimentSelect().click();
-    cy.findByTestId('experiment-selector-table-list').find('td').contains(name).click();
     return this;
   }
 
