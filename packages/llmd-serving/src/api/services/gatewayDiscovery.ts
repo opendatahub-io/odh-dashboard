@@ -15,6 +15,19 @@ export type GatewayOption = {
   description?: string;
 };
 
+export const isGatewayOption = (value: unknown): value is GatewayOption => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  if (!('name' in value) || typeof value.name !== 'string') {
+    return false;
+  }
+  if (!('namespace' in value) || typeof value.namespace !== 'string') {
+    return false;
+  }
+  return true;
+};
+
 type GatewayResponse = {
   gateways: GatewayOption[];
 };
@@ -43,6 +56,9 @@ export const getGatewayOptions = async (
     throw new Error('Gateway discovery failed.');
   }
   if (!Array.isArray(response.gateways)) {
+    throw new Error('Invalid response from gateway discovery API.');
+  }
+  if (!response.gateways.every(isGatewayOption)) {
     throw new Error('Invalid response from gateway discovery API.');
   }
   return response.gateways;

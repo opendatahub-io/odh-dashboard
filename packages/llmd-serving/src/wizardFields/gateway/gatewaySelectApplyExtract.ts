@@ -1,5 +1,6 @@
 import { GatewaySelectFieldData } from './GatewaySelectField';
 import { LLMdDeployment } from '../../types';
+import { isGatewayOption } from '../../api/services/gatewayDiscovery';
 
 /**
  * Applies gateway selection to an LLMInferenceService deployment.
@@ -43,7 +44,7 @@ export const extractGatewaySelectData = (
   const refs = deployment.model.spec.router?.gateway?.refs;
   const ref = refs && refs.length > 0 ? refs[0] : undefined;
 
-  if (!ref || !ref.name || !ref.namespace) {
+  if (!isGatewayOption(ref)) {
     return undefined;
   }
 
