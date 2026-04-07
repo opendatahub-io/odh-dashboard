@@ -107,7 +107,7 @@
     "@patternfly/react-topology": "^6.4.0",
     "@tanstack/react-query": "^5.90.20",
     "classnames": "^2.2.6",
-    "dompurify": "^3.2.4",
+    "dompurify": "^3.3.3",
     "es-toolkit": "^1.44.0",
     "lodash-es": "^4.17.15",
     "mod-arch-core": "^1.2.2",

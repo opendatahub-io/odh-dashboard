@@ -24,6 +24,7 @@ import {
 } from '~/app/Chatbot/ChatbotMessagesToolResponse';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { useChatbotConfigStore } from '~/app/Chatbot/store';
 
 // Extended message type that includes metrics data for display
 export type ChatbotMessageProps = MessageProps & {
@@ -46,6 +47,7 @@ export interface UseChatbotMessagesReturn {
 }
 
 interface UseChatbotMessagesProps {
+  configId: string;
   modelId: string;
   systemInstruction: string;
   isRawUploaded: boolean;
@@ -68,6 +70,7 @@ interface UseChatbotMessagesProps {
 }
 
 const useChatbotMessages = ({
+  configId,
   modelId,
   systemInstruction,
   isRawUploaded,
@@ -314,6 +317,7 @@ const useChatbotMessages = ({
         isRag: isRawUploaded,
         countofMCP: selectedMcpServers.length,
         isStreaming: isStreamingEnabled,
+        promptSource: useChatbotConfigStore.getState().getPromptSourceType(configId),
       });
 
       if (!apiAvailable) {

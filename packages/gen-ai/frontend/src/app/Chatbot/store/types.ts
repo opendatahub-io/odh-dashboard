@@ -116,6 +116,7 @@ export interface ChatbotConfigStoreActions {
 
   // Utility
   getConfiguration: (id: string) => ChatbotConfiguration | undefined;
+  getPromptSourceType: (id: string) => string;
 }
 
 /**
