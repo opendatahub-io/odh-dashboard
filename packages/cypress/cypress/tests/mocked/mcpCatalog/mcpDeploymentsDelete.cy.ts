@@ -93,8 +93,9 @@ describe('MCP server deployment delete', () => {
 
   it('should show an inline error when deletion fails and keep the modal open', () => {
     cy.intercept('DELETE', `${MCP_DEPLOYMENTS_BFF}/kubernetes-mcp*`, {
-      forceNetworkError: true,
-    } as never).as('deleteMcpDeploymentFailed');
+      statusCode: 500,
+      body: { error: 'Internal server error' },
+    }).as('deleteMcpDeploymentFailed');
 
     mcpDeploymentsPage.visit();
 
