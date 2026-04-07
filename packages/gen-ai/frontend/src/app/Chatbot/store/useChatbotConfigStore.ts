@@ -504,8 +504,8 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         if (config) {
           const { activePrompt, systemInstruction } = config;
           const activeTemplate =
-            activePrompt?.template ??
-            activePrompt?.messages?.find((m) => m.role === 'system')?.content ??
+            activePrompt?.template ||
+            activePrompt?.messages?.find((m) => m.role === 'system')?.content ||
             '';
 
           if (activeTemplate === systemInstruction) {
