@@ -5,7 +5,7 @@ const basePattern = {
   max_combinations: 20,
   duration_seconds: 0,
   settings: {
-    vector_store: { datasource_type: 'ls_milvus', collection_name: 'collection0' },
+    vector_store: { datasource_type: 'milvus', collection_name: 'collection0' },
     chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
     embedding: {
       model_id: 'mock-embed-a',

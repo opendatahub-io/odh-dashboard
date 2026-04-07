@@ -46,7 +46,7 @@ describe('Configure Schema', () => {
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
         llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_io_provider_id: 'ls_milvus',
+        llama_stack_vector_io_provider_id: 'milvus',
         generation_models: ['gpt-4'],
         embeddings_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -55,7 +55,7 @@ describe('Configure Schema', () => {
 
       const result = schema.full.parse(data);
 
-      expect(result.llama_stack_vector_io_provider_id).toBe('ls_milvus');
+      expect(result.llama_stack_vector_io_provider_id).toBe('milvus');
     });
 
     it('should remove empty description', () => {
@@ -69,7 +69,7 @@ describe('Configure Schema', () => {
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
         llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_io_provider_id: 'ls_milvus',
+        llama_stack_vector_io_provider_id: 'milvus',
         generation_models: ['gpt-4'],
         embeddings_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -92,7 +92,7 @@ describe('Configure Schema', () => {
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
         llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_io_provider_id: 'ls_milvus',
+        llama_stack_vector_io_provider_id: 'milvus',
         generation_models: ['gpt-4'],
         embeddings_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,

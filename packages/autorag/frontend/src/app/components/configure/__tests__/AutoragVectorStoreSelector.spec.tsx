@@ -191,7 +191,7 @@ describe('AutoragVectorStoreSelector', () => {
       });
     });
 
-    it('should update field value to ls_{provider_id} when selecting a provider', async () => {
+    it('should update field value to provider_id when selecting a provider', async () => {
       let formValues: unknown;
       const onFormChange = (values: unknown) => {
         formValues = values;
@@ -206,7 +206,7 @@ describe('AutoragVectorStoreSelector', () => {
       // Wait for field value to update
       await waitFor(() => {
         expect(formValues).toMatchObject({
-          llama_stack_vector_io_provider_id: 'ls_milvus', // eslint-disable-line camelcase
+          llama_stack_vector_io_provider_id: 'milvus', // eslint-disable-line camelcase
         });
       });
 
@@ -216,7 +216,7 @@ describe('AutoragVectorStoreSelector', () => {
       );
     });
 
-    it('should display provider with new ls_{provider_id} format', () => {
+    it('should display provider with provider_id format', () => {
       renderWithProviders(<AutoragVectorStoreSelector />);
 
       fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
