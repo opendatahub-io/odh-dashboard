@@ -43,15 +43,21 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
         <Stack hasGutter>
           {benchmark.category && (
             <StackItem>
-              <Label color={color} isCompact>
-                {benchmark.category}
-              </Label>
+              <Label color={color}>{benchmark.category}</Label>
             </StackItem>
           )}
           <StackItem>
-            <Title headingLevel="h2" size="xl">
-              {benchmark.name}
-            </Title>
+            <Title headingLevel="h2">{benchmark.name}</Title>
+          </StackItem>
+        </Stack>
+        <DrawerActions>
+          <DrawerCloseButton onClick={onClose} />
+        </DrawerActions>
+      </DrawerHead>
+
+      <DrawerPanelBody style={{ flex: 1, overflowY: 'auto' }}>
+        <Stack hasGutter>
+          <StackItem>
             <Content
               component="p"
               style={{
@@ -84,14 +90,6 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
               )}
             </Content>
           </StackItem>
-        </Stack>
-        <DrawerActions>
-          <DrawerCloseButton onClick={onClose} />
-        </DrawerActions>
-      </DrawerHead>
-
-      <DrawerPanelBody style={{ flex: 1, overflowY: 'auto' }}>
-        <Stack hasGutter>
           {benchmark.description && (
             <StackItem>
               <Content component="p">{benchmark.description}</Content>
@@ -102,7 +100,12 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
             <StackItem>
               <Stack hasGutter>
                 <StackItem>
-                  <Content component="h4">Metrics evaluated</Content>
+                  <Content
+                    component="p"
+                    style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+                  >
+                    Metrics evaluated
+                  </Content>
                 </StackItem>
                 <StackItem>
                   <LabelGroup numLabels={benchmark.metrics.length} isCompact>
@@ -119,21 +122,36 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
 
           {benchmark.primary_score && (
             <StackItem>
-              <Content component="h4">Primary scorer metric</Content>
+              <Content
+                component="p"
+                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+              >
+                Primary scorer metric
+              </Content>
               <Content component="p">{benchmark.primary_score.metric}</Content>
             </StackItem>
           )}
 
           {benchmark.pass_criteria && (
             <StackItem>
-              <Content component="h4">Benchmark threshold</Content>
+              <Content
+                component="p"
+                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+              >
+                Benchmark threshold
+              </Content>
               <Content component="p">{benchmark.pass_criteria.threshold}</Content>
             </StackItem>
           )}
 
           {benchmark.providerName && (
             <StackItem>
-              <Content component="h4">Evaluation framework</Content>
+              <Content
+                component="p"
+                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+              >
+                Evaluation framework
+              </Content>
               <Content component="p">{benchmark.providerName}</Content>
             </StackItem>
           )}
