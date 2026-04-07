@@ -43,8 +43,8 @@ const AutoragVectorStoreSelector: React.FC = () => {
     control,
   } = useFormContext<ConfigureSchema>();
 
-  const { field } = useController<ConfigureSchema, 'llama_stack_vector_database_id'>({
-    name: 'llama_stack_vector_database_id',
+  const { field } = useController<ConfigureSchema, 'llama_stack_vector_io_provider_id'>({
+    name: 'llama_stack_vector_io_provider_id',
   });
 
   const llamaStackSecretName = useWatch({ control, name: 'llama_stack_secret_name' });
@@ -61,7 +61,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
 
   useEffect(() => {
     if (isError) {
-      notification.error('Failed to load vector store providers');
+      notification.error('Failed to load vector I/O providers');
     }
   }, [isError, notification]);
 
@@ -70,13 +70,13 @@ const AutoragVectorStoreSelector: React.FC = () => {
   // const providers = [DEFAULT_IN_MEMORY_PROVIDER, ...apiProviders];
   const apiProviders = providersData?.vector_store_providers ?? [];
   const providers = apiProviders;
-  const selectedProvider = providers.find((p) => `ls_${p.provider_id}` === field.value);
+  const selectedProvider = providers.find((p) => p.provider_id === field.value);
 
   // Clear stale selection when the provider list changes and no longer includes
   // the previously selected provider (e.g., LlamaStack secret was changed or
   // providers became empty).
   useEffect(() => {
-    if (field.value && !providers.some((p) => `ls_${p.provider_id}` === field.value)) {
+    if (field.value && !providers.some((p) => p.provider_id === field.value)) {
       field.onChange('');
     }
   }, [providers, field]);
@@ -89,12 +89,12 @@ const AutoragVectorStoreSelector: React.FC = () => {
 
   return (
     <Select
-      aria-label="Vector store selector"
+      aria-label="Vector I/O provider selector"
       isOpen={isOpen}
       onOpenChange={setIsOpen}
       onSelect={(_e, selectedProviderId) => {
         const provider = providers.find((p) => p.provider_id === selectedProviderId);
-        field.onChange(provider ? `ls_${provider.provider_id}` : '');
+        field.onChange(provider ? provider.provider_id : '');
         setIsOpen(false);
       }}
       selected={selectedProvider?.provider_id}
@@ -107,10 +107,10 @@ const AutoragVectorStoreSelector: React.FC = () => {
           data-testid="vector-store-select-toggle"
         >
           {noProviders
-            ? 'No vector store providers available'
+            ? 'No vector I/O providers available'
             : selectedProvider
               ? formatProviderDisplayName(selectedProvider)
-              : 'Select vector store'}
+              : 'Select vector I/O provider'}
         </MenuToggle>
       )}
     >

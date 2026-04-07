@@ -246,3 +246,65 @@ curl -H "kubeflow-userid: user@example.com" \
   -H "Authorization: Bearer $(oc whoami -t)" \
   "http://localhost:4003/api/v1/s3/file?namespace=<namespace>&secretName=<secret>&bucket=<bucket>&key=<key>"
 ```
+
+### Federated development with a live cluster
+
+To run the AutoML module as a federated micro-frontend against the main ODH Dashboard with a real pipeline server, you need three things running:
+
+1. A port-forward to the KFP pipeline server in your cluster
+2. The AutoML BFF + frontend in federated mode
+3. The main ODH Dashboard
+
+#### 1. Port-forward the pipeline server
+
+```shell
+# Find your pipeline server service
+oc get svc -n <namespace> | grep ds-pipeline
+
+# Port-forward (8443 is the kube-rbac-proxy HTTPS port)
+oc port-forward -n <namespace> svc/ds-pipeline-dspa 8443:8443
+```
+
+#### 2. Start AutoML in federated mode with the pipeline server URL
+
+From the `packages/automl/` directory:
+
+```shell
+PIPELINE_SERVER_URL=https://localhost:8443 make dev-start-federated
+```
+
+This starts both the BFF (port 4003) and the frontend webpack dev server (port 9108) in federated mode. The BFF connects to your port-forwarded pipeline server and uses your cluster credentials for RBAC.
+
+**Pipeline name prefixes:** The BFF discovers AutoML pipelines by matching display names that start with configurable prefixes. AutoML has two pipeline types with separate prefixes:
+
+| Pipeline type | Env var | Default |
+|---|---|---|
+| Tabular (classification + regression) | `AUTOML_TABULAR_PIPELINE_NAME_PREFIX` | `automl-tabular` |
+| Time series | `AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX` | `automl-timeseries` |
+
+If your pipelines use different naming conventions, override them:
+
+```shell
+PIPELINE_SERVER_URL=https://localhost:8443 \
+  AUTOML_TABULAR_PIPELINE_NAME_PREFIX=my-tabular \
+  AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX=my-timeseries \
+  make dev-start-federated
+```
+
+#### 3. Start the main ODH Dashboard
+
+In a separate terminal, from the repo root:
+
+```shell
+npm run dev
+```
+
+Then access the dashboard at **http://localhost:4010** and navigate to the AutoML section.
+
+#### Mock mode (no cluster required)
+
+If you don't have a cluster available, you can run with fully mocked backends:
+
+```shell
+make dev-start
+```

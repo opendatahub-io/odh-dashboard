@@ -4,7 +4,7 @@ import type {
   NamespaceSelectorExtension,
 } from '@mf/modelRegistry/extension-points';
 
-const CATALOG_SETTINGS_PAGE_TITLE = 'AI catalog settings';
+const CATALOG_SETTINGS_PAGE_TITLE = 'Model catalog settings';
 const CATALOG_SETTINGS_URL = '/settings/model-resources-operations/model-catalog';
 
 type ModelCatalogBannerExtension = Extension<
