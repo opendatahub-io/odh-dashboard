@@ -197,7 +197,6 @@ export default function PromptAssistantFormGroup({
                 onClick={() =>
                   confirm(handleNewPrompt, {
                     ...RESET_CONFIRMATION_CONFIG,
-                    forceConfirm: true,
                     onConfirmTracking: () =>
                       fireMiscTrackingEvent('Playground Prompt Cleared', {
                         outcome: 'submit',
