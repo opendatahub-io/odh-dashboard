@@ -51,6 +51,7 @@ import {
   modelServingWizard,
   modelServingWizardEdit,
 } from '../../../pages/modelServing';
+import { projectDetailsOverviewTab } from '../../../pages/projects';
 
 const initIntercepts = ({
   llmInferenceServices = [],
@@ -348,6 +349,30 @@ describe('Model Serving LLMD', () => {
       // Verify LLMD deployment is displayed even with error status
       modelServingGlobal.getModelRow('Error LLMD Model').should('exist');
       modelServingGlobal.getModelRow('Error LLMD Model').should('be.visible');
+    });
+
+    it('should display LLMD serving runtime details on the project overview tab', () => {
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'facebook-opt-125m-single',
+            namespace: 'test-project',
+            displayName: 'Facebook OPT 125M',
+            modelName: 'facebook/opt-125m',
+            modelUri: 'hf://facebook/opt-125m',
+            isReady: true,
+          }),
+        ],
+      });
+
+      projectDetailsOverviewTab.visit('test-project');
+
+      projectDetailsOverviewTab
+        .findDeployedModelCard('facebook-opt-125m-single')
+        .should('be.visible');
+      projectDetailsOverviewTab
+        .findCardServingRuntime('facebook-opt-125m-single')
+        .should('contain.text', 'Distributed inference with llm-d');
     });
   });
 
@@ -1089,6 +1114,21 @@ describe('Model Serving LLMD', () => {
 
       cy.wait('@deleteLLMInferenceService');
       cy.get('@deleteLLMInferenceServiceConfig.all').should('have.length', 0);
+    });
+
+    it('should display vLLM serving runtime details on the project overview tab', () => {
+      initVLLMOnMaaSIntercepts();
+
+      projectDetailsOverviewTab.visit('test-project');
+
+      projectDetailsOverviewTab.findDeployedModelCard('test-vllm-gpu').should('be.visible');
+      projectDetailsOverviewTab
+        .findCardServingRuntime('test-vllm-gpu')
+        .should('contain.text', 'vLLM on GPU LLMInferenceServiceConfig');
+      projectDetailsOverviewTab
+        .findCardServingRuntime('test-vllm-gpu')
+        .findByTestId('serving-runtime-version-label')
+        .should('contain.text', 'v0.8.2');
     });
   });
 });

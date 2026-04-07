@@ -3,7 +3,10 @@ import { SortableData, Table } from '@odh-dashboard/internal/components/table/in
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { DeploymentRow } from './row/DeploymentsTableRow';
-import { PlatformExtensionDataLoader } from '../../concepts/extensionHelpers/PlatformExtensionDataLoader';
+import {
+  isDataHook,
+  PlatformExtensionDataLoader,
+} from '../../concepts/extensionHelpers/PlatformExtensionDataLoader';
 import { usePlatformExtensionDataMap } from '../../concepts/extensionHelpers/usePlatformExtensionDataMap';
 import { deploymentNameSort, deploymentLastDeployedSort } from '../../concepts/deploymentUtils';
 import {
@@ -12,8 +15,6 @@ import {
   type DeploymentsTableColumn,
 } from '../../../extension-points';
 import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
-
-const isDataHook = (value: unknown): value is () => unknown => typeof value === 'function';
 
 const expandedInfoColumn: SortableData<Deployment> = {
   field: 'expand',
@@ -96,13 +97,9 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
     return allColumns.findIndex((column) => column.field === 'lastDeployed');
   }, [allColumns]);
 
-  const platformIds = React.useMemo(
-    () => [...new Set(deployments.map((d) => d.modelServingPlatformId))],
-    [deployments],
-  );
   const { extensionDataMap, onLoad } = usePlatformExtensionDataMap(
     isDeployedModelServingDetails,
-    platformIds,
+    deployments,
   );
 
   return (

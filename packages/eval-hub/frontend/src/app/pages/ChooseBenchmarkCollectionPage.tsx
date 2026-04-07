@@ -101,7 +101,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
   );
 
   return (
-    <Drawer isExpanded={!!selectedCollection} isInline>
+    <Drawer isExpanded={!!selectedCollection}>
       <DrawerContent
         panelContent={
           <CollectionDrawerPanel
