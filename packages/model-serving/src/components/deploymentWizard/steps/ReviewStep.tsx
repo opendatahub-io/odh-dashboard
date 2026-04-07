@@ -379,6 +379,10 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
         return [];
       }
       const value = resolveFieldValue(field, wizardState.state);
+      // Skip if field value is not available (field may be active but data not yet initialized)
+      if (value === undefined || value === null) {
+        return [];
+      }
       const fieldExternalData = externalData?.[field.id];
       return field.getReviewSections(value, wizardState.state, fieldExternalData?.data);
     });
