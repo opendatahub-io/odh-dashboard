@@ -2,7 +2,6 @@ import { DashboardCommonConfig } from '#~/k8sTypes';
 import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from './types';
 
 export const techPreviewFlags = {
-  disableModelRegistry: true,
   genAiStudio: false,
   automl: false,
   autorag: false,
@@ -67,6 +66,7 @@ export const advancedAIMLFlags = {
   disablePipelines: false,
   disableDistributedWorkloads: false,
   disableModelCatalog: false,
+  disableModelRegistry: false,
   disableModelRegistrySecureDB: false,
   disableFeatureStore: false,
   disableFineTuning: true,
