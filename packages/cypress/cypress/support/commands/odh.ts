@@ -1169,6 +1169,11 @@ declare global {
           response: OdhResponse<{ data: CreateSubscriptionResponse }>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'PUT /maas/api/v1/update-subscription/:name',
+          options: { path: { name: string } },
+          response: OdhResponse<{ data: CreateSubscriptionResponse }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /maas/api/v1/subscription-policy-form-data',
           response: OdhResponse<{ data: SubscriptionPolicyFormDataResponse }>,
         ) => Cypress.Chainable<null>) &
