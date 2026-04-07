@@ -2,6 +2,8 @@ import React from 'react';
 import {
   setupDefaults,
   handleUpdateLogic,
+  INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
+  INFERENCE_SERVICE_NAME_REGEX,
   LimitNameResourceType,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
@@ -101,6 +103,8 @@ export const useExtractFormDataFromRegistry = (
     // This ensures the k8s name is properly generated from the display name
     const baseK8sNameDesc = setupDefaults({
       limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+      regexp: INFERENCE_SERVICE_NAME_REGEX,
+      invalidCharsMessage: INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
     });
     const k8sNameDesc = handleUpdateLogic(baseK8sNameDesc)('name', prefillInfo.modelName);
 
