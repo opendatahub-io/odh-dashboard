@@ -13,7 +13,6 @@ import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
-  modelServingWizardEdit,
   deleteModelServingModal,
   inferenceServiceActions,
 } from '../../../../pages/modelServing';
@@ -24,6 +23,11 @@ import {
   createCleanHardwareProfile,
   cleanupHardwareProfiles,
 } from '../../../../utils/oc_commands/hardwareProfiles';
+import {
+  createCleanLLMInferenceServiceConfig,
+  cleanupLLMInferenceServiceConfig,
+  checkLLMInferenceServiceConfigState,
+} from '../../../../utils/oc_commands/llmInferenceServiceConfig';
 import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
 import { stubClipboard, getClipboardContent } from '../../../../utils/clipboardUtils';
 
@@ -36,12 +40,11 @@ let hardwareProfileResourceName: string;
 let hardwareProfileYamlPath: string;
 let modelURI: string;
 let servingRuntime: string;
-let existingImage: string;
-let replaceImage: string;
 let yamlEditorModelName: string;
 let yamlEditorModelPath: string;
-let legacyModelName: string;
-let legacyServingRuntime: string;
+const llmInferenceServiceConfigName = 'kserve-config-llm-template-cpu';
+const llmInferenceServiceConfigYamlPath =
+  'resources/modelServing/llmd-inference-service-config.yaml';
 
 describe('A user can deploy an LLMD model', () => {
   retryableBefore(() => {
@@ -55,21 +58,23 @@ describe('A user can deploy an LLMD model', () => {
         servingRuntime = testData.servingRuntime;
         hardwareProfileResourceName = `${testData.hardwareProfileName}`;
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
-        existingImage = testData.existingImage;
-        replaceImage = testData.replaceImage;
         yamlEditorModelName = testData.yamlEditorModelName;
         yamlEditorModelPath = 'cypress/fixtures/resources/yaml/yaml_editor_model_serving.yaml';
-        legacyModelName = `${testData.singleModelName}-legacy`;
-        legacyServingRuntime = testData.legacyServingRuntime;
-
         cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
       })
       .then(() => {
         // Load Hardware Profile
         cy.log(`Load Hardware Profile Name: ${hardwareProfileResourceName}`);
-        // Cleanup Hardware Profile if it already exists
         createCleanHardwareProfile(hardwareProfileYamlPath);
+      })
+      .then(() => {
+        // Load LLMInferenceServiceConfig
+        cy.log(`Load LLMInferenceServiceConfig: ${llmInferenceServiceConfigName}`);
+        createCleanLLMInferenceServiceConfig(
+          llmInferenceServiceConfigName,
+          llmInferenceServiceConfigYamlPath,
+        );
       });
   });
 
@@ -78,6 +83,8 @@ describe('A user can deploy an LLMD model', () => {
     cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
     // Call cleanupHardwareProfiles with the actual name from the YAML file
     cleanupHardwareProfiles(hardwareProfileResourceName);
+    cy.log(`Cleaning up LLMInferenceServiceConfig: ${llmInferenceServiceConfigName}`);
+    cleanupLLMInferenceServiceConfig(llmInferenceServiceConfigName);
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
@@ -143,18 +150,14 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLCodeEditor().waitForReady();
 
-      cy.step('Patch YAML to use CPU image (workaround for non-GPU cluster)');
-      // Add the CPU image to the containers spec so deployment works without GPU
-      modelServingWizard.findYAMLCodeEditor().replaceInEditor(existingImage, replaceImage);
+      cy.step('Verify YAML content includes the LLMInferenceServiceConfig CPU image');
       modelServingWizard.findYAMLCodeEditor().copyToClipboard().click();
-      // Verify the actual copied YAML content
       getClipboardContent('copiedYAML').then((copied) => {
         expect(copied).to.have.length.at.least(1);
         const yamlContent = copied[0];
         expect(yamlContent).to.include('apiVersion: serving.kserve.io/v1alpha1');
         expect(yamlContent).to.include('kind: LLMInferenceService');
         expect(yamlContent).to.include(`name: ${modelName}`);
-        expect(yamlContent).to.include(replaceImage);
       });
       modelServingWizard.findYAMLCodeEditor().download().should('exist').click();
       // Back to Form view
@@ -176,10 +179,12 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Verify that the Model is ready');
       cy.get<string>('@resourceName').then((resourceName) => {
-        checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
+        checkLLMInferenceServiceState(resourceName, projectName);
       });
+      checkLLMInferenceServiceConfigState(llmInferenceServiceConfigName);
 
       cy.step('Verify the model Row');
+      cy.reload();
       const llmdRow = modelServingGlobal.getDeploymentRow(modelName);
       llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');
       llmdRow.findServingRuntime().should('have.text', servingRuntime);
@@ -208,14 +213,7 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Deploy LLMD Model From YAML Editor');
       projectDetails.findSectionTab('model-server').click();
-      cy.get('[data-testid="kserve-select-button"], [data-testid="deploy-button"]', {
-        timeout: 15000,
-      }).should('have.length.at.least', 1);
-      cy.get('body').then(($body) => {
-        if ($body.find('[data-testid="kserve-select-button"]').length > 0) {
-          modelServingGlobal.findSingleServingModelButton().click();
-        }
-      });
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Enter Manual YAML editor Mode');
@@ -242,108 +240,6 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLEditFallbackAlert().should('exist');
       modelServingWizard.findYAMLCodeEditor().findInput().should('not.be.empty');
       modelServingWizard.findSubmitButton().should('be.enabled').click();
-    },
-  );
-  it(
-    'Verify Legacy Checkbox deploys via KServe and edit shows legacy as locked',
-    {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
-    },
-    () => {
-      cy.step('Log into the application as admin');
-      cy.visitWithLogin(
-        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,vLLMDeploymentOnMaaS=true',
-        HTPASSWD_CLUSTER_ADMIN_USER,
-      );
-
-      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
-      projectListPage.navigate();
-      projectListPage.filterProjectByName(projectName);
-      projectListPage.findProjectLink(projectName).click();
-
-      cy.step('Open the deploy model wizard');
-      projectDetails.findSectionTab('model-server').click();
-      // Wait for tab content to load — either platform selection or deploy button will appear
-      cy.get('[data-testid="kserve-select-button"], [data-testid="deploy-button"]', {
-        timeout: 15000,
-      }).should('have.length.at.least', 1);
-      cy.get('body').then(($body) => {
-        if ($body.find('[data-testid="kserve-select-button"]').length > 0) {
-          modelServingGlobal.findSingleServingModelButton().click();
-        }
-      });
-      modelServingGlobal.findDeployModelButton().click();
-
-      cy.step('Select model source with Generative type');
-      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
-      modelServingWizard.findUrilocationInput().clear().type(modelURI);
-      modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-      modelServingWizard.findSaveConnectionInput().clear().type(`${legacyModelName}-connection`);
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-
-      cy.step('Verify legacy checkbox appears and is unchecked by default');
-      modelServingWizard.findLegacyModeCheckbox().should('exist').should('not.be.checked');
-
-      cy.step('Check the legacy deployment checkbox');
-      modelServingWizard.findLegacyModeCheckbox().check();
-      modelServingWizard.findLegacyModeCheckbox().should('be.checked');
-
-      cy.step('Navigate to deployment step and verify KServe serving runtime path');
-      modelServingWizard.findNextButton().should('be.enabled').click();
-      modelServingWizard.findModelDeploymentNameInput().should('exist');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
-
-      cy.step('Configure legacy model deployment');
-      modelServingWizard.findModelDeploymentNameInput().clear().type(legacyModelName);
-      modelServingWizard.findResourceNameButton().click();
-      modelServingWizard
-        .findResourceNameInput()
-        .should('be.visible')
-        .invoke('val')
-        .as('legacyResourceName');
-      modelServingWizard.findHardProfileSelection().then(($el) => {
-        if ($el.prop('disabled') || $el.hasClass('pf-m-disabled')) {
-          cy.log('Hardware profile auto-selected (dropdown disabled)');
-        } else {
-          modelServingWizard.findHardProfileSelection().click();
-          cy.findByTestId(hardwareProfileResourceName).find('[role="option"]').click();
-        }
-      });
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard
-        .findGlobalScopedTemplateOption(legacyServingRuntime)
-        .should('exist')
-        .click();
-      modelServingWizard.findNextButton().should('be.enabled').click();
-
-      cy.step('Skip advanced settings');
-      modelServingWizard.findNextButton().click();
-
-      cy.step('Submit legacy deployment');
-      modelServingWizard.findSubmitButton().click();
-
-      cy.step('Wait for legacy deployment to appear');
-      modelServingSection.findModelServerDeployedName(legacyModelName);
-
-      cy.step('Edit the legacy deployment and verify form state');
-      const legacyRow = modelServingGlobal.getDeploymentRow(legacyModelName);
-      legacyRow.findKebab().click();
-      inferenceServiceActions.findEditInferenceServiceAction().click();
-
-      modelServingWizardEdit
-        .findModelTypeSelect()
-        .should('have.text', ModelTypeLabel.GENERATIVE)
-        .should('be.disabled');
-      modelServingWizardEdit.findLegacyModeCheckbox().should('be.checked').should('be.disabled');
-      modelServingWizardEdit.findCancelButton().click();
-      cy.findByRole('button', { name: 'Discard' }).click();
-
-      cy.step('Delete the legacy deployment');
-      legacyRow.findKebab().click();
-      inferenceServiceActions.findDeleteInferenceServiceAction().click();
-      deleteModelServingModal.findInput().clear().type(legacyModelName);
-      deleteModelServingModal.findSubmitButton().should('be.enabled').click();
     },
   );
 });

@@ -295,7 +295,9 @@ export type DataScienceProjectData = {
   userSubjectKind: string;
   groupSubjectKind: string;
   yamlEditorModelName: string;
-  legacyServingRuntime: string;
+  legacyServingRuntime?: string;
+  legacyModelLocationURI?: string;
+  legacyHardwareProfileName?: string;
 };
 
 export type NotebookImageData = {
