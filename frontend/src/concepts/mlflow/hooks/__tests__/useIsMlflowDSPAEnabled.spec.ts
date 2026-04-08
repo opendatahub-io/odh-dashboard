@@ -66,6 +66,25 @@ describe('useIsMlflowDSPAEnabled', () => {
     expect(renderResult.result.current).toStrictEqual({ enabled: false, loaded: true });
   });
 
+  it('should return enabled=false, loaded=true when pipelines server is not compatible', () => {
+    mockUsePipelinesAPI.mockReturnValue({
+      ...basePipelinesAPI,
+      pipelinesServer: {
+        initializing: false,
+        installed: true,
+        compatible: false,
+        timedOut: false,
+        name: 'dspa',
+        crStatus: undefined,
+        isStarting: false,
+      },
+      mlflowIntegrationMode: undefined,
+    });
+
+    const renderResult = testHook(useIsMlflowDSPAEnabled)();
+    expect(renderResult.result.current).toStrictEqual({ enabled: false, loaded: true });
+  });
+
   it('should return enabled=true when integrationMode is undefined (omitted)', () => {
     mockUsePipelinesAPI.mockReturnValue({
       ...basePipelinesAPI,

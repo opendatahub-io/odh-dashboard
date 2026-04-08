@@ -4,6 +4,7 @@ import { MLflowStatus } from '#~/concepts/mlflow/hooks/useMLflowStatus';
 
 jest.useFakeTimers();
 
+const STATUS_ENDPOINT = '/_bff/mlflow/api/v1/status';
 const POLL_INTERVAL = 30000;
 
 const actualReact = jest.requireActual('react');
@@ -113,7 +114,7 @@ describe('useMLflowStatus', () => {
     testHook(useMLflowStatus)(true);
 
     await waitFor(() => {
-      expect(mockAxiosGet).toHaveBeenCalledWith('/_bff/mlflow/api/v1/status');
+      expect(mockAxiosGet).toHaveBeenCalledWith(STATUS_ENDPOINT);
     });
   });
 

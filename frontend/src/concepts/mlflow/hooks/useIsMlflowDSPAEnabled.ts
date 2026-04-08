@@ -12,7 +12,7 @@ type MlflowDSPAState = {
  * `enabled` checks `spec.mlflow.integrationMode`:
  * - `undefined` (omitted) or `AUTODETECT` → true
  * - Any other value (including `DISABLED` or unknown future values) → false
- * - No DSPA installed → false
+ * - No DSPA installed or incompatible version → false
  *
  * `loaded` is `false` while the DSPA CR is still being fetched, allowing
  * consumers to distinguish "still loading" from "DSPA not installed".
@@ -24,7 +24,7 @@ const useIsMlflowDSPAEnabled = (): MlflowDSPAState => {
     return { enabled: false, loaded: false };
   }
 
-  if (!pipelinesServer.installed) {
+  if (!pipelinesServer.installed || !pipelinesServer.compatible) {
     return { enabled: false, loaded: true };
   }
 

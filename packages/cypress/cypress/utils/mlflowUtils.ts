@@ -13,7 +13,7 @@ export const interceptMlflowStatus = (configured = true): void => {
 
 export const interceptDSPAMlflowIntegration = (
   namespace: string,
-  mlflowIntegrationMode: DSPAMlflowIntegrationMode,
+  mlflowIntegrationMode?: DSPAMlflowIntegrationMode,
 ): void => {
   cy.interceptK8sList(
     DataSciencePipelineApplicationModel,

@@ -107,6 +107,7 @@ describe('Manage runs', () => {
       initIntercepts({
         mlflow: { enabled: true, pipelinesIntegration: true, bffConfigured: true },
       });
+      interceptDSPAMlflowIntegration(projectName);
       manageRunsPage.visit(experimentId, projectName, initialRunIds);
 
       manageRunsTable.findColumnHeaders().should('contain', 'MLflow experiment');

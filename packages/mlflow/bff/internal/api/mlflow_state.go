@@ -96,7 +96,7 @@ func sanitizeURL(rawURL string) string {
 func normalizeTrackingURL(rawURL string) (string, error) {
 	parsed, err := url.Parse(strings.TrimSpace(rawURL))
 	if err != nil {
-		return "", fmt.Errorf("invalid MLflow URL: %s", sanitizeURL(rawURL))
+		return "", fmt.Errorf("invalid MLflow URL %s: %w", sanitizeURL(rawURL), err)
 	}
 	if parsed.Scheme == "" || parsed.Host == "" {
 		return "", fmt.Errorf("invalid MLflow URL: missing scheme or host")
