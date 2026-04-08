@@ -26,7 +26,6 @@ import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 import { type UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
 import type { ExternalDataMap } from '../ExternalDataLoader';
-import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 
 export const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
