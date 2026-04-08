@@ -15,6 +15,7 @@ import React from 'react';
 
 type CodeSnippetModalProps = {
   id: string;
+  variant?: 'small' | 'default' | 'medium' | 'large';
   title: string;
   description?: string;
   code: string;
@@ -26,6 +27,7 @@ type CodeSnippetModalProps = {
 
 const CodeSnippetModal: React.FC<CodeSnippetModalProps> = ({
   id,
+  variant,
   title,
   description,
   code,
@@ -55,7 +57,7 @@ const CodeSnippetModal: React.FC<CodeSnippetModalProps> = ({
     <Modal
       aria-labelledby={modalHeaderLabelId}
       aria-describedby={modalBodyId}
-      variant="small"
+      variant={variant}
       isOpen={isOpen}
       onClose={onClose}
     >

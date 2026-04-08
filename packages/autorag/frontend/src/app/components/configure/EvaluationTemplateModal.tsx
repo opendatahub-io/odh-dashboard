@@ -28,6 +28,7 @@ type EvaluationTemplateModalProps = {
 const EvaluationTemplateModal: React.FC<EvaluationTemplateModalProps> = ({ isOpen, onClose }) => (
   <CodeSnippetModal
     id="evaluation-template"
+    variant="small"
     title="Evaluation data template"
     description="Use this JSON template to create an evaluation dataset. Each entry should include a question, the correct answer, and names of the documents that contain the answer."
     code={EVALUATION_TEMPLATE}
