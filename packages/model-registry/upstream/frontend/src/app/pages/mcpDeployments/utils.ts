@@ -22,13 +22,13 @@ export const getStatusInfo = (phase: McpDeploymentPhase): McpDeploymentStatusInf
       return {
         label: 'Available',
         status: 'success',
-        tooltip: 'This MCP server is running and available for connections.',
+        tooltip: 'The pod and its containers are healthy and running.',
       };
     case McpDeploymentPhase.FAILED:
       return {
         label: 'Unavailable',
         status: 'danger',
-        tooltip: 'This MCP server has failed and is not available.',
+        tooltip: 'At least 1 container in the pod failed.',
       };
     case McpDeploymentPhase.PENDING:
       return {

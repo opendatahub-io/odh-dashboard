@@ -10,31 +10,40 @@ type McpDeploymentsTableRowProps = {
   deployment: McpDeployment;
   onDeleteClick: (deployment: McpDeployment) => void;
   onEditClick: (deployment: McpDeployment) => void;
+  onPublishClick: (deployment: McpDeployment) => void;
 };
 
 const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
   deployment,
   onDeleteClick,
   onEditClick,
+  onPublishClick,
 }) => {
-  const actions: IAction[] = [
-    {
-      title: 'Edit',
-      onClick: () => onEditClick(deployment),
-    },
-    {
-      title: 'Delete',
-      onClick: () => onDeleteClick(deployment),
-    },
-  ];
+  const actions: IAction[] = React.useMemo(
+    () => [
+      {
+        title: 'Edit',
+        onClick: () => onEditClick(deployment),
+      },
+      {
+        title: 'Publish as AI asset',
+        onClick: () => onPublishClick(deployment),
+      },
+      {
+        title: 'Delete',
+        onClick: () => onDeleteClick(deployment),
+      },
+    ],
+    [deployment, onDeleteClick, onEditClick, onPublishClick],
+  );
 
   return (
     <Tr data-testid={`mcp-deployment-row-${deployment.name}`}>
-      <Td dataLabel="Server" data-testid="mcp-deployment-server">
-        <Truncate content={deployment.serverName || '-'} />
-      </Td>
       <Td dataLabel="Name" data-testid="mcp-deployment-name">
         <Truncate content={getDeploymentDisplayName(deployment)} />
+      </Td>
+      <Td dataLabel="MCP server" data-testid="mcp-deployment-server">
+        <Truncate content={deployment.serverName || '-'} />
       </Td>
       <Td dataLabel="Created" data-testid="mcp-deployment-created">
         <Timestamp
