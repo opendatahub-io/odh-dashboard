@@ -270,8 +270,10 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step('Navigate to Gen AI Playground');
       genAiPlayground.navigate(projectName);
 
+      cy.step('Wait for models to be available in playground');
+      genAiPlayground.waitForCreatePlaygroundEmptyState(projectName);
+
       cy.step('Click Create playground button');
-      genAiPlayground.findCreatePlaygroundEmptyState().should('be.visible');
       genAiPlayground.findCreatePlaygroundButton().should('be.visible').click();
 
       cy.step('Ensure model is selected in the configuration table');

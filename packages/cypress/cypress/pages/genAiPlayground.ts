@@ -12,8 +12,39 @@ class GenAiPlayground {
     return cy.findByTestId('create-playground-empty-state');
   }
 
+  /**
+   * Poll until the "Create your playground" empty state appears.
+   * The AAA models endpoint may take time to reflect a newly deployed model,
+   * so we reload the page until the correct empty state is rendered.
+   */
+  waitForCreatePlaygroundEmptyState(
+    projectName: string,
+    { maxAttempts = 12, pollIntervalMs = 10000 } = {},
+  ) {
+    const check = (attempt = 1): void => {
+      cy.log(`Attempt ${attempt}/${maxAttempts} - Waiting for models to be available...`);
+      cy.get('body').then(($body) => {
+        if ($body.find('[data-testid="create-playground-empty-state"]').length > 0) {
+          cy.log('Models available — "Create your playground" state found.');
+          return;
+        }
+        if (attempt >= maxAttempts) {
+          throw new Error(
+            `"Create your playground" empty state not found after ${maxAttempts} attempts. ` +
+              'The deployed model may not have been registered as an AI asset endpoint.',
+          );
+        }
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        cy.wait(pollIntervalMs);
+        this.navigate(projectName);
+        check(attempt + 1);
+      });
+    };
+    check();
+  }
+
   findCreatePlaygroundButton() {
-    return cy.findByTestId('empty-state-action-button');
+    return this.findCreatePlaygroundEmptyState().findByTestId('empty-state-action-button');
   }
 
   findConfigurationTable() {
