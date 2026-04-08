@@ -192,7 +192,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   }, [priority, subscriptionsForConflictCheck]);
 
   const priorityValidationError = conflictingSubscription
-    ? `Priority ${conflictingSubscription.priority ?? 0} is already used by ${conflictingSubscription.displayName || conflictingSubscription.name}. The next available priority is ${getLowestAvailablePriority(formData.subscriptions, (conflictingSubscription.priority ?? 0) + 1)}.`
+    ? `Priority ${conflictingSubscription.priority ?? 0} is already used by ${conflictingSubscription.displayName || conflictingSubscription.name}. The next available priority is ${getLowestAvailablePriority(subscriptionsForConflictCheck, (conflictingSubscription.priority ?? 0) + 1)}.`
     : undefined;
 
   const isPriorityValid = priority != null && !Number.isNaN(priority);
