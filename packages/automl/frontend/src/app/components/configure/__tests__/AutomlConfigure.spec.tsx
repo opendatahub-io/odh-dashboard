@@ -574,7 +574,7 @@ describe('AutomlConfigure', () => {
     /** Select a secret and a file so prediction type tiles become enabled */
     const selectSecretAndFile = () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Select files' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
     };
 
