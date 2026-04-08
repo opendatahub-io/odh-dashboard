@@ -39,7 +39,6 @@ export function useConfirmation(hasUnsavedChanges: boolean): UseConfirmationRetu
     (onConfirm: () => void, customConfig?: ConfirmationConfig) => {
       if (!hasUnsavedChanges && !customConfig?.forceConfirm) {
         onConfirm();
-        customConfig?.onConfirmTracking?.();
         return;
       }
       pendingActionRef.current = onConfirm;
