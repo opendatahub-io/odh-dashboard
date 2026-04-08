@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
@@ -447,6 +447,11 @@ describe('AutomlConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
+      // Select a prediction type (required before label column appears)
+      const binaryRadio = document.getElementById('task-type-binary');
+      expect(binaryRadio).not.toBeNull();
+      fireEvent.click(binaryRadio!);
+
       // Select a label column
       const labelColumnSelect = await screen.findByTestId('label_column-select');
       await user.click(labelColumnSelect);
@@ -499,6 +504,11 @@ describe('AutomlConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
+      // Select a prediction type (required before label column appears)
+      const binaryRadio = document.getElementById('task-type-binary');
+      expect(binaryRadio).not.toBeNull();
+      fireEvent.click(binaryRadio!);
+
       // Select a label column
       const labelColumnSelect = await screen.findByTestId('label_column-select');
       await user.click(labelColumnSelect);
@@ -549,6 +559,11 @@ describe('AutomlConfigurePage', () => {
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
+
+      // Select a prediction type (required before label column appears)
+      const binaryRadio = document.getElementById('task-type-binary');
+      expect(binaryRadio).not.toBeNull();
+      fireEvent.click(binaryRadio!);
 
       // Select a label column
       const labelColumnSelect = await screen.findByTestId('label_column-select');
@@ -601,6 +616,11 @@ describe('AutomlConfigurePage', () => {
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
+
+      // Select a prediction type (required before label column appears)
+      const binaryRadio = document.getElementById('task-type-binary');
+      expect(binaryRadio).not.toBeNull();
+      fireEvent.click(binaryRadio!);
 
       // Select a label column
       const labelColumnSelect = await screen.findByTestId('label_column-select');
