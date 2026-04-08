@@ -52,14 +52,14 @@ func hashUUID(input string) string {
 }
 
 // defaultPipelineNamePrefix is the prefix used when PipelineNamePrefix is not set.
-const defaultPipelineNamePrefix = "autorag"
+const defaultPipelineNamePrefix = "documents-rag-optimization-pipeline"
 
 // MockPipelineServerClient provides mock data for development
 type MockPipelineServerClient struct {
 	// Namespace determines which mock data set to return (default: 5 runs, bella: empty, bento: 30 runs)
 	Namespace string
 	// PipelineNamePrefix is the prefix used to construct the AutoRAG pipeline's DisplayName in
-	// ListPipelines (e.g. "autorag" → "autorag-pipeline").  Defaults to "autorag" when empty,
+	// ListPipelines.  Defaults to "documents-rag-optimization-pipeline" when empty,
 	// matching the default discovery prefix in discoverOnePipeline.  Tests that exercise
 	// non-default discovery prefixes can set this field to match the prefix they pass.
 	// Ignored when PipelineNames is set.
@@ -77,11 +77,23 @@ type MockPipelineServerClient struct {
 // pipelineDisplayName returns the DisplayName used for the AutoRAG pipeline fixture,
 // falling back to the default prefix when PipelineNamePrefix is not set.
 func (m *MockPipelineServerClient) pipelineDisplayName() string {
-	prefix := m.PipelineNamePrefix
-	if prefix == "" {
-		prefix = defaultPipelineNamePrefix
+	if m.PipelineNamePrefix != "" {
+		return m.PipelineNamePrefix
 	}
-	return prefix + "-pipeline"
+	return defaultPipelineNamePrefix
+}
+
+// UploadPipeline returns a mock pipeline for the upload endpoint.
+// It also adds the name to PipelineNames so ListPipelineVersions can return versions for it.
+func (m *MockPipelineServerClient) UploadPipeline(_ context.Context, name string, _ string, _ []byte) (*models.KFPipeline, error) {
+	m.PipelineNames = append(m.PipelineNames, name)
+	ids := DeriveMockIDsFromName(m.Namespace, name)
+	return &models.KFPipeline{
+		PipelineID:  ids.PipelineID,
+		DisplayName: name,
+		Namespace:   m.Namespace,
+		CreatedAt:   "2026-04-08T12:00:00Z",
+	}, nil
 }
 
 // NewMockPipelineServerClient creates a new mock pipeline server client.
@@ -588,6 +600,7 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 				Description: "Managed AutoRAG pipeline",
 				CreatedAt:   "2026-02-20T10:00:00Z",
 				Namespace:   m.Namespace,
+				Tags:        map[string]string{"autox": "true"},
 			})
 		}
 		return &models.KFPipelinesResponse{
@@ -606,6 +619,7 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 				Description: "Managed AutoRAG pipeline for optimizing retrieval strategies",
 				CreatedAt:   "2026-02-20T10:00:00Z",
 				Namespace:   m.Namespace,
+				Tags:        map[string]string{"autox": "true"},
 			},
 			{
 				PipelineID:  hashUUID("other-pipeline:" + m.Namespace),

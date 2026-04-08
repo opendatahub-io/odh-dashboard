@@ -41,18 +41,16 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		return
 	}
 
-	// Get all discovered pipelines from context
-	discoveredPipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
-	if !ok {
-		app.serverErrorResponseWithMessage(w, r,
-			fmt.Errorf("discovered pipelines missing from context"),
-			"internal error: discovered pipelines context key has wrong type - check middleware configuration")
-		return
-	}
+	// Get all discovered pipelines from context — may be empty if no pipelines exist yet
+	discoveredPipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
 	if len(discoveredPipelines) == 0 {
-		app.serverErrorResponseWithMessage(w, r,
-			fmt.Errorf("no AutoML pipelines found in namespace"),
-			"no AutoML pipelines found in namespace - ensure managed AutoML pipelines are deployed")
+		// No pipelines discovered — return empty runs list.
+		// Pipelines will be auto-created when the user submits their first experiment.
+		if err := app.WriteJSON(w, http.StatusOK, PipelineRunsEnvelope{
+			Data: &models.PipelineRunsData{Runs: []models.PipelineRun{}},
+		}, nil); err != nil {
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 

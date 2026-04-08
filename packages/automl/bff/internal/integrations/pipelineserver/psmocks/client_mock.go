@@ -70,9 +70,9 @@ type MockPipelineServerClient struct {
 	// Namespace determines which mock data set to return (default: 5 runs, bella: empty, bento: 30 runs)
 	Namespace string
 	// PipelineNamePrefix is the prefix used to construct the AutoML pipeline's DisplayName in
-	// ListPipelines (e.g. "automl" → "automl-pipeline").  Defaults to "automl" when empty,
-	// matching the default discovery prefix in discoverOnePipeline.  Tests that exercise
-	// non-default discovery prefixes can set this field to match the prefix they pass.
+	// ListPipelines.  Defaults to "automl" when empty, matching the default discovery prefix
+	// in discoverOnePipeline.  Tests that exercise non-default discovery prefixes can set
+	// this field to match the prefix they pass.
 	// Ignored when PipelineNames is set.
 	PipelineNamePrefix string
 	// PipelineNames, when non-empty, overrides PipelineNamePrefix: ListPipelines returns one
@@ -88,11 +88,23 @@ type MockPipelineServerClient struct {
 // pipelineDisplayName returns the DisplayName used for the AutoML pipeline fixture,
 // falling back to the default prefix when PipelineNamePrefix is not set.
 func (m *MockPipelineServerClient) pipelineDisplayName() string {
-	prefix := m.PipelineNamePrefix
-	if prefix == "" {
-		prefix = defaultPipelineNamePrefix
+	if m.PipelineNamePrefix != "" {
+		return m.PipelineNamePrefix
 	}
-	return prefix + "-pipeline"
+	return defaultPipelineNamePrefix
+}
+
+// UploadPipeline returns a mock pipeline for the upload endpoint.
+// It also adds the name to PipelineNames so ListPipelineVersions can return versions for it.
+func (m *MockPipelineServerClient) UploadPipeline(_ context.Context, name string, _ string, _ []byte) (*models.KFPipeline, error) {
+	m.PipelineNames = append(m.PipelineNames, name)
+	ids := DeriveMockIDsFromName(m.Namespace, name)
+	return &models.KFPipeline{
+		PipelineID:  ids.PipelineID,
+		DisplayName: name,
+		Namespace:   m.Namespace,
+		CreatedAt:   "2026-04-08T12:00:00Z",
+	}, nil
 }
 
 // NewMockPipelineServerClient creates a new mock pipeline server client.
@@ -596,6 +608,7 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 				Description: "Managed AutoML pipeline",
 				CreatedAt:   "2026-02-20T10:00:00Z",
 				Namespace:   m.Namespace,
+				Tags:        map[string]string{"autox": "true"},
 			})
 		}
 		return &models.KFPipelinesResponse{
@@ -608,24 +621,26 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 	ids := DeriveMockIDs(m.Namespace)
 
 	// In namespace mode (mock:// URL), return both AutoML pipeline types so the discovery
-	// middleware can match "automl-timeseries" and "automl-tabular" prefixes.
+	// middleware can match "autogluon-timeseries-training-pipeline" and "autogluon-tabular-training-pipeline" prefixes.
 	if m.Namespace != "" {
 		tabIDs := DeriveTabularMockIDs(m.Namespace)
 		return &models.KFPipelinesResponse{
 			Pipelines: []models.KFPipeline{
 				{
 					PipelineID:  ids.PipelineID,
-					DisplayName: "automl-timeseries-pipeline",
+					DisplayName: "autogluon-timeseries-training-pipeline",
 					Description: "Managed AutoML time-series pipeline",
 					CreatedAt:   "2026-02-20T10:00:00Z",
 					Namespace:   m.Namespace,
+					Tags:        map[string]string{"autox": "true"},
 				},
 				{
 					PipelineID:  tabIDs.PipelineID,
-					DisplayName: "automl-tabular-pipeline",
+					DisplayName: "autogluon-tabular-training-pipeline",
 					Description: "Managed AutoML tabular pipeline",
 					CreatedAt:   "2026-02-20T10:00:00Z",
 					Namespace:   m.Namespace,
+					Tags:        map[string]string{"autox": "true"},
 				},
 			},
 			TotalSize:     2,
@@ -643,6 +658,7 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 				Description: "Managed AutoML pipeline for optimization",
 				CreatedAt:   "2026-02-20T10:00:00Z",
 				Namespace:   m.Namespace,
+				Tags:        map[string]string{"autox": "true"},
 			},
 			{
 				PipelineID:  hashUUID("other-pipeline:" + m.Namespace),

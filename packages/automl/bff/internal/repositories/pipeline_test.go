@@ -28,7 +28,7 @@ func TestDiscoverNamedPipelines(t *testing.T) {
 		discovered := pipelines["automl"]
 		assert.Equal(t, ids.PipelineID, discovered.PipelineID)
 		assert.Equal(t, ids.LatestVersionID, discovered.PipelineVersionID)
-		assert.Equal(t, "automl-pipeline", discovered.PipelineName)
+		assert.Equal(t, "automl", discovered.PipelineName)
 		assert.Equal(t, namespace, discovered.Namespace)
 	})
 
@@ -41,7 +41,7 @@ func TestDiscoverNamedPipelines(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Contains(t, pipelines, "automl")
-		assert.Equal(t, "automl-pipeline", pipelines["automl"].PipelineName)
+		assert.Equal(t, "automl", pipelines["automl"].PipelineName)
 	})
 
 	t.Run("should be case-insensitive when matching prefix", func(t *testing.T) {
@@ -53,7 +53,7 @@ func TestDiscoverNamedPipelines(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Contains(t, pipelines, "automl")
-		assert.Equal(t, "automl-pipeline", pipelines["automl"].PipelineName)
+		assert.Equal(t, "automl", pipelines["automl"].PipelineName)
 	})
 
 	t.Run("should return error when namespace is empty", func(t *testing.T) {
@@ -163,14 +163,14 @@ func TestDiscoverNamedPipelines(t *testing.T) {
 	t.Run("should discover two named pipelines (timeseries and tabular)", func(t *testing.T) {
 		namespace := "test-ns-10"
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
-		mockClient.PipelineNames = []string{"automl-timeseries-pipeline", "automl-tabular-pipeline"}
+		mockClient.PipelineNames = []string{"autogluon-timeseries-training-pipeline", "autogluon-tabular-training-pipeline"}
 
-		tsIDs := psmocks.DeriveMockIDsFromName(mockClient.Namespace, "automl-timeseries-pipeline")
-		clsIDs := psmocks.DeriveMockIDsFromName(mockClient.Namespace, "automl-tabular-pipeline")
+		tsIDs := psmocks.DeriveMockIDsFromName(mockClient.Namespace, "autogluon-timeseries-training-pipeline")
+		clsIDs := psmocks.DeriveMockIDsFromName(mockClient.Namespace, "autogluon-tabular-training-pipeline")
 
 		definitions := map[string]string{
-			"timeseries": "automl-timeseries",
-			"tabular":    "automl-tabular",
+			"timeseries": "autogluon-timeseries-training-pipeline",
+			"tabular":    "autogluon-tabular-training-pipeline",
 		}
 		pipelines, err := repo.DiscoverNamedPipelines(mockClient, ctx, namespace, "http://mock-ps", definitions)
 
@@ -414,5 +414,66 @@ func TestBuildPipelineNameFilter(t *testing.T) {
 	t.Run("should produce valid JSON", func(t *testing.T) {
 		result := buildPipelineNameFilter("automl")
 		assert.JSONEq(t, `{"predicates":[{"key":"display_name","operation":"IS_SUBSTRING","string_value":"automl"}]}`, result)
+	})
+}
+
+func TestEnsurePipeline(t *testing.T) {
+	repo := NewPipelineRepository()
+	ctx := context.Background()
+
+	t.Run("should return existing pipeline when discovery succeeds", func(t *testing.T) {
+		namespace := "test-ns-ensure-1"
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		ids := psmocks.DeriveMockIDs(mockClient.Namespace)
+
+		def := PipelineDefinition{
+			NamePrefix:   "automl",
+			YAMLFilename: "autogluon-tabular-training-pipeline.yaml",
+		}
+
+		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, discovered)
+		assert.Equal(t, ids.PipelineID, discovered.PipelineID)
+	})
+
+	t.Run("should create pipeline when discovery returns soft miss", func(t *testing.T) {
+		namespace := "test-ns-ensure-2"
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		mockClient.PipelineNames = []string{"unrelated-pipeline"}
+
+		def := PipelineDefinition{
+			NamePrefix:   "autogluon-tabular-training-pipeline",
+			YAMLFilename: "autogluon-tabular-training-pipeline.yaml",
+		}
+
+		// Clear cache to avoid stale entries
+		repo.InvalidateCache("http://mock-ps", namespace)
+
+		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, discovered)
+		assert.Equal(t, "autogluon-tabular-training-pipeline", discovered.PipelineName)
+	})
+
+	t.Run("should return error when no YAML filename is provided and pipeline not found", func(t *testing.T) {
+		namespace := "test-ns-ensure-3"
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		mockClient.PipelineNames = []string{"unrelated-pipeline"}
+
+		def := PipelineDefinition{
+			NamePrefix:   "nonexistent",
+			YAMLFilename: "", // No YAML available
+		}
+
+		repo.InvalidateCache("http://mock-ps", namespace)
+
+		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
+
+		assert.Error(t, err)
+		assert.Nil(t, discovered)
+		assert.Contains(t, err.Error(), "no YAML available")
 	})
 }

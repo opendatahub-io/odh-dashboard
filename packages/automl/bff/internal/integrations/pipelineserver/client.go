@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"time"
@@ -37,6 +38,7 @@ type PipelineServerClientInterface interface {
 	ListPipelines(ctx context.Context, filter string) (*models.KFPipelinesResponse, error)
 	ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error)
 	GetPipelineVersion(ctx context.Context, pipelineID, versionID string) (*models.KFPipelineVersion, error)
+	UploadPipeline(ctx context.Context, name string, fileName string, fileContent []byte) (*models.KFPipeline, error)
 }
 
 // maxPipelineErrorBodySize limits the size of error response bodies to prevent memory exhaustion.
@@ -418,4 +420,68 @@ func (c *RealPipelineServerClient) CreateRun(ctx context.Context, request models
 	}
 
 	return &runResponse, nil
+}
+
+// UploadPipeline uploads a pipeline YAML via the KFP v2beta1 /pipelines/upload
+// multipart endpoint, creating both the pipeline and its first version in one call.
+func (c *RealPipelineServerClient) UploadPipeline(ctx context.Context, name string, fileName string, fileContent []byte) (*models.KFPipeline, error) {
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	// Use a generic filename for the multipart upload — the pipeline name is
+	// controlled by the name/display_name query params, not the filename.
+	part, err := writer.CreateFormFile("uploadfile", "uploadedFile.yaml")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create form file: %w", err)
+	}
+	if _, err := part.Write(fileContent); err != nil {
+		return nil, fmt.Errorf("failed to write file content: %w", err)
+	}
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	// Pass name and display_name as query params (matches how the dashboard UI uploads)
+	queryParams := url.Values{}
+	queryParams.Set("name", name)
+	queryParams.Set("display_name", name)
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/upload?%s", c.baseURL, queryParams.Encode())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, &buf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		respBody, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+
+		errorMsg := string(respBody)
+		if len(respBody) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return nil, &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    errorMsg,
+		}
+	}
+
+	var pipeline models.KFPipeline
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&pipeline); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &pipeline, nil
 }
