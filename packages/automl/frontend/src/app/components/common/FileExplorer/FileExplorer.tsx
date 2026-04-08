@@ -396,17 +396,13 @@ const FilesTable: React.FC<FilesTableProps> = ({
                 const actions: IAction[] = [
                   {
                     title: defaults.labels.tableActionViewDetails,
-                    onClick: (event) => {
-                      event.stopPropagation();
-                      onViewDetails(file);
-                    },
+                    onClick: () => onViewDetails(file),
                   },
                 ];
                 if (isSelected) {
                   actions.push({
                     title: defaults.labels.tableActionRemoveSelection,
-                    onClick: (event) => {
-                      event.stopPropagation();
+                    onClick: () => {
                       setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path));
                       onSelectFile?.(file, false);
                     },
@@ -436,13 +432,19 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   <Tr
                     key={file.path}
                     data-testid={`file-explorer-row-${sanitizeId(file.path)}`}
-                    isSelectable={!isUnselectable}
+                    isSelectable={!isUnselectable && !isSelected}
                     isRowSelected={isSelected}
-                    isClickable={!isUnselectable}
-                    onClick={() => {
-                      if (!isUnselectable) {
-                        onSelect(null, true);
+                    isClickable={!isUnselectable && !isSelected}
+                    onClick={(event) => {
+                      const clickedInteractiveDescendant =
+                        event.target instanceof Element &&
+                        event.target.closest('a, button, input, label');
+
+                      if (isUnselectable || clickedInteractiveDescendant) {
+                        return;
                       }
+
+                      onSelect(event, true);
                     }}
                   >
                     <Td
@@ -497,12 +499,9 @@ const FilesTable: React.FC<FilesTableProps> = ({
                       <ActionsColumn
                         actionsToggle={({ toggleRef, onToggle, isOpen, isDisabled }) => (
                           <MenuToggle
-                            aria-label="Kebab toggle"
+                            aria-label={`${file.name} actions`}
                             ref={toggleRef}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onToggle(event);
-                            }}
+                            onClick={(event) => onToggle(event)}
                             isExpanded={isOpen}
                             isDisabled={isDisabled}
                             variant="plain"
