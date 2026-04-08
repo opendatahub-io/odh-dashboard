@@ -25,7 +25,7 @@ jobs:
         run: |
           echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ env.NODE_MODULES_CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
       - name: Node.js modules cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: modules-cache
         with:
           path: |
@@ -55,14 +55,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Restore cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             ~/.cache/Cypress
             **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Cache turbo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             **/.turbo
@@ -82,14 +82,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Restore cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             ~/.cache/Cypress
             **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Cache turbo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             **/.turbo
@@ -109,14 +109,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Restore cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             ~/.cache/Cypress
             **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Cache turbo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             **/.turbo
@@ -145,7 +145,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Restore cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             ~/.cache/Cypress
@@ -225,7 +225,7 @@ jobs:
             packages/gen-ai/bff/go.sum
             packages/mlflow/bff/go.sum
       - name: Restore cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             ~/.cache/Cypress
@@ -269,7 +269,7 @@ jobs:
         run: |
           echo "cypress-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}" >> $GITHUB_OUTPUT
       - name: Cypress build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: cypress-build-cache
         with:
           lookup-only: true
@@ -278,7 +278,7 @@ jobs:
           key: ${{ steps.key.outputs.cypress-cache-key }}
       - name: Restore cache
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             ~/.cache/Cypress
@@ -307,14 +307,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Restore cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             ~/.cache/Cypress
             **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Restore Cypress build cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             **/public-cypress
