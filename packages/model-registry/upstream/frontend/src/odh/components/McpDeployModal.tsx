@@ -193,7 +193,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   if (!existingDeployment && !crLoaded && !crError) {
     return (
       <Modal isOpen={isOpen} variant="medium" onClose={() => onClose()} data-testid="mcp-deploy-modal">
-        <ModalHeader title={modalTitle} />
+        <ModalHeader title={modalTitle} data-testid="mcp-deploy-modal-title" />
         <ModalBody>
           <Spinner aria-label="Loading MCP server configuration" />
         </ModalBody>
@@ -203,7 +203,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} variant="medium" onClose={() => onClose()} data-testid="mcp-deploy-modal">
-      <ModalHeader title={modalTitle} />
+      <ModalHeader title={modalTitle} data-testid="mcp-deploy-modal-title" />
       <ModalBody>
         {crError && (
           <Alert
