@@ -32,8 +32,14 @@ const loadFreshModule = () => {
 };
 
 describe('useMLflowStatus', () => {
+  beforeEach(() => {
+    jest.spyOn(console, 'warn').mockImplementation();
+    jest.spyOn(console, 'info').mockImplementation();
+  });
+
   afterEach(() => {
     jest.clearAllTimers();
+    jest.restoreAllMocks();
   });
 
   it('should return configured:false and loaded:true when shouldFetch is false', () => {
