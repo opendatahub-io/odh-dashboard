@@ -58,6 +58,40 @@ const EvaluationsPage: React.FC = () => {
       }
       loaded={healthLoaded && (!isHealthy || loaded)}
       loadError={isHealthy ? error : healthError}
+      loadErrorPage={
+        <PageSection hasBodyWrapper={false} isFilled>
+          {clusterAdmin ? (
+            <EmptyState
+              headingLevel="h4"
+              icon={CogIcon}
+              titleText="Evaluations unavailable"
+              variant={EmptyStateVariant.lg}
+              data-testid="evalhub-load-error-admin-empty-state"
+            >
+              <EmptyStateBody>
+                EvalHub custom resources are currently unavailable. To use evaluations, complete the
+                EvalHub custom resources configuration.
+              </EmptyStateBody>
+            </EmptyState>
+          ) : (
+            <EmptyState
+              headingLevel="h4"
+              icon={SupportIcon}
+              titleText="Evaluations unavailable"
+              variant={EmptyStateVariant.lg}
+              data-testid="evalhub-load-error-nonadmin-empty-state"
+            >
+              <EmptyStateBody>
+                Evaluations are unavailable due to an incomplete configuration. To use this feature,
+                contact your administrator.
+              </EmptyStateBody>
+              <EmptyStateFooter>
+                <WhosMyAdministrator />
+              </EmptyStateFooter>
+            </EmptyState>
+          )}
+        </PageSection>
+      }
       empty={healthLoaded && !isHealthy && !healthError}
       emptyStatePage={
         <PageSection hasBodyWrapper={false} isFilled>
