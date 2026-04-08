@@ -25,7 +25,12 @@ import './AutoragInputParametersPanel.scss';
 const MODEL_KEYS = new Set(['generation_models', 'embeddings_models']);
 
 /** Keys excluded from the drawer because they are already shown elsewhere on the page. */
-const EXCLUDED_KEYS = new Set(['display_name']);
+const EXCLUDED_KEYS = new Set([
+  'display_name',
+  //   Via UI these keys are hardcoded to match the input data, so we can suppress them
+  'test_data_secret_name',
+  'test_data_bucket_name',
+]);
 
 /**
  * Ordered parameter definitions with human-readable labels.
@@ -35,14 +40,12 @@ const EXCLUDED_KEYS = new Set(['display_name']);
 /* eslint-disable camelcase */
 const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'description', label: 'Description' },
+  { key: 'llama_stack_secret_name', label: 'Llama Stack instance' },
   { key: 'input_data_secret_name', label: 'S3 connection' },
-  { key: 'input_data_bucket_name', label: 'Bucket selection' },
-  { key: 'input_data_key', label: 'Selected files' },
-  { key: 'test_data_secret_name', label: 'Test data connection' },
-  { key: 'test_data_bucket_name', label: 'Test data bucket' },
+  { key: 'input_data_bucket_name', label: 'S3 connection bucket' },
+  { key: 'input_data_key', label: 'Selected files and folders' },
+  { key: 'llama_stack_vector_io_provider_id', label: 'Vector I/O provider' },
   { key: 'test_data_key', label: 'Evaluation dataset' },
-  { key: 'llama_stack_secret_name', label: 'LlamaStack secret' },
-  { key: 'llama_stack_vector_io_provider_id', label: 'Index' },
   { key: 'optimization_metric', label: 'Optimization metric' },
   { key: 'optimization_max_rag_patterns', label: 'Maximum RAG patterns' },
 ];

@@ -63,26 +63,29 @@ describe('AutoragInputParametersPanel', () => {
 
   it('should render parameter labels from the label map', () => {
     renderPanel();
+    expect(screen.getByText('Llama Stack instance')).toBeInTheDocument();
     expect(screen.getByText('S3 connection')).toBeInTheDocument();
-    expect(screen.getByText('Bucket selection')).toBeInTheDocument();
-    expect(screen.getByText('Selected files')).toBeInTheDocument();
+    expect(screen.getByText('S3 connection bucket')).toBeInTheDocument();
+    expect(screen.getByText('Selected files and folders')).toBeInTheDocument();
+    expect(screen.getByText('Vector I/O provider')).toBeInTheDocument();
     expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
-    expect(screen.getByText('Index')).toBeInTheDocument();
     expect(screen.getByText('Optimization metric')).toBeInTheDocument();
     expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
   });
 
   it('should render parameter values', () => {
     renderPanel();
-    expect(screen.getAllByText('s3-connection')).toHaveLength(2);
-    expect(screen.getAllByText('my-bucket')).toHaveLength(2);
+    expect(screen.getByText('s3-connection')).toBeInTheDocument();
+    expect(screen.getByText('my-bucket')).toBeInTheDocument();
     expect(screen.getByText('data.pdf')).toBeInTheDocument();
     expect(screen.getByText('8')).toBeInTheDocument();
   });
 
-  it('should exclude display_name from the drawer', () => {
+  it('should exclude display_name, test_data_secret_name, and test_data_bucket_name from the drawer', () => {
     renderPanel();
     expect(screen.queryByText('Display name')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test data connection')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test data bucket')).not.toBeInTheDocument();
   });
 
   it('should filter out empty string values', () => {
@@ -151,12 +154,18 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         optimization_metric: 'faithfulness',
         input_data_secret_name: 's3-connection',
+        llama_stack_secret_name: 'ls-secret',
         description: 'A test run',
       } as Partial<ConfigureSchema>,
     });
     const terms = screen.getAllByRole('term');
     const labels = terms.map((el) => el.textContent);
-    expect(labels).toEqual(['Description', 'S3 connection', 'Optimization metric']);
+    expect(labels).toEqual([
+      'Description',
+      'Llama Stack instance',
+      'S3 connection',
+      'Optimization metric',
+    ]);
   });
 
   it('should format boolean values as strings', () => {
