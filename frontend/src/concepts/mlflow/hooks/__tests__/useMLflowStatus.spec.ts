@@ -1,6 +1,6 @@
 import { waitFor } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { MLflowStatus } from '#~/concepts/mlflow/hooks/useMLflowStatus';
+import type { MLflowStatus } from '#~/concepts/mlflow/hooks/useMLflowStatus';
 
 jest.useFakeTimers();
 
