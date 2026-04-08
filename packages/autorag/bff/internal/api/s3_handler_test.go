@@ -1215,7 +1215,7 @@ func TestPostS3FileHandler_NamespaceNotFound(t *testing.T) {
 }
 
 // TestPostS3FileHandler_FilePartExceedsMaxBytes_Returns413 uses a small max + upload stub so we do not
-// send ~1 GiB in tests (same MaxBytesReader behavior as production’s 1 GiB cap).
+// send ~32 MiB in tests (same MaxBytesReader behavior as production’s 32 MiB cap).
 func TestPostS3FileHandler_FilePartExceedsMaxBytes_Returns413(t *testing.T) {
 	t.Parallel()
 	const testMax int64 = 64

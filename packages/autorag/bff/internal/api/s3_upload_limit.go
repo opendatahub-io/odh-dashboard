@@ -2,8 +2,8 @@ package api
 
 import "net/http"
 
-// s3MaxUploadFileBytes is the maximum allowed size for the uploaded file (1 GiB).
-const s3MaxUploadFileBytes int64 = 1 << 30
+// s3MaxUploadFileBytes is the maximum allowed size for the uploaded file (32 MiB).
+const s3MaxUploadFileBytes int64 = 32 << 20
 
 // s3MultipartMaxEnvelopeBytes is headroom for multipart boundaries and non-file form fields.
 const s3MultipartMaxEnvelopeBytes int64 = 64 << 20 // 64 MiB
