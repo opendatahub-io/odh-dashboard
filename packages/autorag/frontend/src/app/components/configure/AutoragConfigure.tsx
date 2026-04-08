@@ -100,8 +100,8 @@ const INPUT_DATA_UPLOAD_NATIVE_ACCEPT = [
   ...new Set(Object.values(INPUT_DATA_FILE_ACCEPT).flat()),
 ].join(',');
 
-/** Matches MultipleFileUpload dropzone `maxSize` (1 GiB). */
-const INPUT_DATA_UPLOAD_MAX_BYTES = 1024 * 1024 * 1024;
+/** Matches MultipleFileUpload dropzone `maxSize` (32 MiB). */
+const INPUT_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
 
 /** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
 function isAllowedInputDataUploadFile(file: File): boolean {
@@ -301,7 +301,7 @@ function AutoragConfigure(): React.JSX.Element {
         return;
       }
       if (file.size > INPUT_DATA_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', 'File size must be 1 GiB or less.');
+        notification.error('File too large', 'File size must be 32 MiB or less.');
         return;
       }
       if (!isAllowedInputDataUploadFile(file)) {

@@ -8,6 +8,9 @@ import { URL_PREFIX } from '~/app/utilities/const';
 
 const queryClient = new QueryClient({
   defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
     mutations: {
       gcTime: Infinity,
     },
