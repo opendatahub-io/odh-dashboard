@@ -10,3 +10,6 @@ resources:
   - agentic-starter-kits-autogen-tutorial.yaml
   - agentic-starter-kits-langflow-tutorial.yaml
   - agentic-starter-kits-memory-tutorial.yaml
+  - agentic-starter-kits-a2a-tutorial.yaml
+  - agentic-starter-kits-google-adk-tutorial.yaml
+  - agentic-starter-kits-hitl-tutorial.yaml

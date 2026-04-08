@@ -27,8 +27,8 @@ spec:
     # Agentic Starter Kits
 
     Reference implementations for building AI agents on OpenShift AI using
-    Llama Stack. Includes four ready-to-deploy agent patterns covering
-    common agentic architectures.
+    Llama Stack. Ready-to-deploy agent patterns covering common agentic
+    architectures across multiple frameworks.
 
     ## Available Agents
 
@@ -40,6 +40,9 @@ spec:
 
     - **LangGraph ReAct + DB Memory** -- ReAct agent with PostgreSQL-backed
     conversation memory and FIFO sliding window
+
+    - **LangGraph Human-in-the-Loop** -- Agent that pauses for human
+    approval before running sensitive tools
 
     - **LlamaIndex WebSearch Agent** -- Event-driven agent with web search
     tool integration
@@ -54,6 +57,12 @@ spec:
     - **Langflow Tool-Calling Agent** -- Visual flow-based agent with
     weather, air quality, and NPS tools
 
+    - **Google ADK 2.0 Agent** -- Agent using Google Agent Development Kit
+    with LiteLLM routing to Llama Stack
+
+    - **A2A LangGraph + CrewAI** -- Agent-to-Agent example with CrewAI
+    specialist and LangGraph orchestrator
+
     ## Getting Started
 
     1. Clone the repository from GitHub.
@@ -66,5 +75,6 @@ spec:
     Each agent exposes a FastAPI server with `/chat` and `/health` endpoints.
   description: >-
     Production-ready agent templates for OpenShift AI featuring LangGraph,
-    LlamaIndex, CrewAI, AutoGen, Langflow, and vanilla Python patterns.
+    LlamaIndex, CrewAI, AutoGen, Langflow, Google ADK, A2A, and vanilla
+    Python patterns.
   category: AI agents
