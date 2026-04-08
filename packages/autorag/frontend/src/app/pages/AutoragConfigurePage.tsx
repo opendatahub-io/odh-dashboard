@@ -99,7 +99,7 @@ function AutoragConfigurePage(): React.JSX.Element {
           isLoading={form.formState.isSubmitting}
           spinnerAriaValueText="Submitting"
         >
-          Run experiment
+          Create optimization run
         </Button>
       </ActionListItem>
       <ActionListItem>
