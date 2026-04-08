@@ -79,8 +79,7 @@ const TASK_ID = '22ab3456-7890-cdef-1234-567890abcdef';
 
 const mockModels: Record<string, AutomlModel> = {
   CatBoost_BAG_L2_FULL: {
-    display_name: 'CatBoost_BAG_L2_FULL',
-    model_config: { eval_metric: 'accuracy' },
+    name: 'CatBoost_BAG_L2_FULL',
     location: buildLocation(
       'autogluon-tabular-training-pipeline',
       RUN_ID,
@@ -99,8 +98,7 @@ const mockModels: Record<string, AutomlModel> = {
     },
   },
   RandomForest_BAG_L1_FULL: {
-    display_name: 'RandomForest_BAG_L1_FULL',
-    model_config: { eval_metric: 'accuracy' },
+    name: 'RandomForest_BAG_L1_FULL',
     location: buildLocation(
       'autogluon-tabular-training-pipeline',
       RUN_ID,
@@ -119,8 +117,7 @@ const mockModels: Record<string, AutomlModel> = {
     },
   },
   NeuralNet_BAG_L1_FULL: {
-    display_name: 'NeuralNet_BAG_L1_FULL',
-    model_config: { eval_metric: 'accuracy' },
+    name: 'NeuralNet_BAG_L1_FULL',
     location: buildLocation(
       'autogluon-tabular-training-pipeline',
       RUN_ID,
@@ -209,8 +206,7 @@ const buildTimeseriesLocation = (
 
 const mockTimeseriesModels: Record<string, AutomlModel> = {
   TemporalFusionTransformer: {
-    display_name: 'TemporalFusionTransformer',
-    model_config: { eval_metric: 'mase' },
+    name: 'TemporalFusionTransformer',
     location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'TemporalFusionTransformer'),
     metrics: {
       test_data: {
@@ -223,8 +219,7 @@ const mockTimeseriesModels: Record<string, AutomlModel> = {
     },
   },
   DeepAR: {
-    display_name: 'DeepAR',
-    model_config: { eval_metric: 'mase' },
+    name: 'DeepAR',
     location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'DeepAR'),
     metrics: {
       test_data: {
@@ -237,8 +232,7 @@ const mockTimeseriesModels: Record<string, AutomlModel> = {
     },
   },
   AutoETS: {
-    display_name: 'AutoETS',
-    model_config: { eval_metric: 'mase' },
+    name: 'AutoETS',
     location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'AutoETS'),
     metrics: {
       test_data: {

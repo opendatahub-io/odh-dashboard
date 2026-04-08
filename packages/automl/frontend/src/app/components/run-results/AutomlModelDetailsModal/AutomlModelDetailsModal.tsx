@@ -13,7 +13,7 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
-import { computeRankMap } from '~/app/utilities/utils';
+import { computeRankMap, getOptimizedMetricForTask } from '~/app/utilities/utils';
 import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import { useModelEvaluationArtifactsQuery } from '~/app/hooks/queries';
 import { getVisibleTabs, type TabDefinition } from './tabConfig';
@@ -49,6 +49,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   const { models: modelsRecord, parameters, pipelineRun } = useAutomlResultsContext();
   const models = Object.values(modelsRecord);
   const taskType = parameters?.task_type ?? TASK_TYPE_TIMESERIES;
+  const evalMetric = getOptimizedMetricForTask(taskType);
   const createdAt = pipelineRun?.created_at;
 
   const [selectedModelName, setSelectedModelName] = React.useState(modelName);
@@ -133,6 +134,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
             currentModelName={selectedModelName}
             rank={rank}
             rankMap={rankMap}
+            evalMetric={evalMetric}
             onSelectModel={(name) => setSelectedModelName(name)}
             onDownload={() => setIsPrinting(true)}
             onSaveNotebook={
@@ -221,9 +223,9 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                   data-testid={`print-page-${tab.key}`}
                 >
                   <div className="automl-print-header">
-                    <h1>{model.display_name}</h1>
+                    <h1>{model.name}</h1>
                     <p>
-                      Rank: {rank} | {model.model_config.eval_metric}
+                      Rank: {rank} | {evalMetric}
                     </p>
                   </div>
                   <Title headingLevel="h2">{tab.label}</Title>

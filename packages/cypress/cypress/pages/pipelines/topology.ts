@@ -401,6 +401,16 @@ class PipelineRunDetails extends RunDetails {
   findErrorState(id: string) {
     return cy.findByTestId(id);
   }
+
+  mockRetryRun(runId: string, namespace: string) {
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+      { path: { namespace, serviceName: 'dspa', runId: `${runId}:retry` } },
+      (req) => {
+        req.reply({ body: {} });
+      },
+    );
+  }
 }
 
 export const pipelineDetails = new PipelineDetails();

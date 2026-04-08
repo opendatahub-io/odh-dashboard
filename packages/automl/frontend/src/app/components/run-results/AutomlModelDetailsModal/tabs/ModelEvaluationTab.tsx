@@ -17,6 +17,7 @@ function formatMetricValue(key: string, value: unknown): string {
 }
 
 const ModelEvaluationTab: React.FC<TabContentProps> = ({ model }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: test_data may be missing in malformed model.json
   const metrics = model.metrics.test_data ?? {};
   const entries = Object.entries(metrics);
 

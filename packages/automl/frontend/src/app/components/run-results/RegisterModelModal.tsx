@@ -49,7 +49,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
 
   const model = models[modelName];
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record<string,T> can be undefined at runtime
-  const displayName = model?.display_name || modelName;
+  const displayName = model?.name || modelName;
 
   // Default description from pipeline run context
   const defaultDescription = pipelineRun?.display_name

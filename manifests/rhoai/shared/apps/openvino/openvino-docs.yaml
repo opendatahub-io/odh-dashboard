@@ -9,6 +9,6 @@ spec:
   appName: openvino
   type: how-to
   description: |-
-    Learn how to deploy optimized models with the OpenVINO Model Server using OpenVINO custom resources.
-  url: https://github.com/openvinotoolkit/operator
+    Learn how to deploy optimized models with the OpenVINO Model Server on Kubernetes using KServe.
+  url: https://github.com/openvinotoolkit/model_server/blob/main/docs/deploying_server_kubernetes.md
   durationMinutes: 10
