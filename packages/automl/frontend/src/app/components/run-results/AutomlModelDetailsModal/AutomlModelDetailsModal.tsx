@@ -85,26 +85,14 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
 
   const [isPrinting, setIsPrinting] = React.useState(false);
 
-  // Mount print container, wait for render, then trigger print
   React.useEffect(() => {
     if (!isPrinting) {
       return;
     }
     const handleAfterPrint = () => setIsPrinting(false);
     window.addEventListener('afterprint', handleAfterPrint);
-    // Double rAF ensures the print-only container is painted before
-    // triggering print — single rAF fires before paint in Safari/Firefox.
-    let innerFrameId: number | undefined;
-    const outerFrameId = requestAnimationFrame(() => {
-      innerFrameId = requestAnimationFrame(() => {
-        window.print();
-      });
-    });
+    window.print();
     return () => {
-      cancelAnimationFrame(outerFrameId);
-      if (innerFrameId !== undefined) {
-        cancelAnimationFrame(innerFrameId);
-      }
       window.removeEventListener('afterprint', handleAfterPrint);
     };
   }, [isPrinting]);
@@ -213,7 +201,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
           own header since CSS cannot repeat arbitrary headers. */}
       {isPrinting &&
         ReactDOM.createPortal(
-          <div className="automl-model-details-print-only" data-testid="print-container">
+          <div className="odh-autox-print-only" data-testid="print-container">
             {visibleTabs.map((tab, index) => {
               const TabComponent = tab.component;
               return (

@@ -35,7 +35,7 @@ export const getBenchmarkName = (
   }
   const benchmarks = getJobBenchmarks(job);
   if (benchmarks.length > 0) {
-    const first = benchmarks[0].id;
+    const first = getBenchmarkDisplayName(benchmarks[0].id);
     if (benchmarks.length === 1) {
       return first;
     }

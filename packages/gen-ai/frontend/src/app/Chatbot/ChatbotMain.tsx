@@ -75,7 +75,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     useChatbotConfigStore.getState().removeConfiguration(configIdToClose);
     // Set active pane to the remaining config (or default if somehow none remain)
     setActivePaneConfigId(remainingConfigId || DEFAULT_CONFIG_ID);
-    fireSimpleTrackingEvent('Playground Compare Mode Exited');
+    fireMiscTrackingEvent('Playground Compare Mode Exited', { success: true });
   }, []);
 
   // Handle compare chat confirmation - clears messages and enters compare mode
@@ -87,7 +87,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     // Enter compare mode by duplicating the first config
     const firstConfigId = useChatbotConfigStore.getState().configIds[0] || DEFAULT_CONFIG_ID;
     useChatbotConfigStore.getState().duplicateConfiguration(firstConfigId);
-    fireSimpleTrackingEvent('Playground Compare Mode Entered');
+    fireMiscTrackingEvent('Playground Compare Mode Entered', { success: true });
   }, []);
 
   // Check if there are any models in the project or if no model is selected
@@ -166,7 +166,6 @@ const ChatbotMain: React.FunctionComponent = () => {
               }}
               onCompareChat={() => {
                 setIsCompareChatModalOpen(true);
-                fireSimpleTrackingEvent('Playground Compare Chat Selected');
               }}
               onSettingsClick={() => setIsDrawerExpanded((prev) => !prev)}
               isSettingsOpen={isDrawerExpanded}
