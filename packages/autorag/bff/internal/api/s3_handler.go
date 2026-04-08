@@ -28,8 +28,6 @@ type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
 
 var trailingNumberPattern = regexp.MustCompile(`^(.*)-(\d+)$`)
 
-const s3PayloadTooLargeMsg = "request body exceeds maximum upload size (32 MiB plus allowance for multipart framing)"
-
 // resolvedS3 holds a ready-to-use S3 client and the resolved bucket name.
 type resolvedS3 struct {
 	client s3int.S3ClientInterface
@@ -356,7 +354,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 	if err := s3.client.UploadObject(ctx, bucket, resolvedKey, limitedFile, contentType); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			app.payloadTooLargeResponse(w, r, "file exceeds maximum size of 32 MiB")
+			app.payloadTooLargeResponse(w, r, s3FilePartTooLargeMsg)
 			return
 		}
 		if errors.Is(err, s3int.ErrObjectAlreadyExists) {
