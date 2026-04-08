@@ -238,7 +238,7 @@ func TestGetMockDSPipelineApplications(t *testing.T) {
 		assert.True(t, isDSPAReady(&dspa))
 	})
 
-	t.Run("should have first DSPA ready with both APIServerReady and Ready True", func(t *testing.T) {
+	t.Run("should have first DSPA ready with Ready condition True", func(t *testing.T) {
 		namespace := "test-namespace"
 		dspas := getMockDSPipelineApplications(namespace)
 

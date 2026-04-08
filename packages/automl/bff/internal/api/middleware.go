@@ -837,7 +837,8 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 }
 
 // discoverReadyDSPA discovers the first ready DSPipelineApplication in a namespace.
-// Returns the first DSPA with both APIServerReady and Ready conditions True, or nil if none are ready.
+// Returns the first DSPA for which isDSPAReady reports the aggregate Ready condition is True,
+// or nil if none are ready.
 func (app *App) discoverReadyDSPA(
 	ctx context.Context,
 	client k8s.KubernetesClientInterface,
