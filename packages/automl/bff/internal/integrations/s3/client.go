@@ -301,7 +301,8 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 			contentType := strings.ToLower(*result.ContentType)
 			if !strings.Contains(contentType, "csv") &&
 				!strings.Contains(contentType, "text/plain") &&
-				!strings.Contains(contentType, "application/vnd.ms-excel") {
+				!strings.Contains(contentType, "application/vnd.ms-excel") &&
+				!strings.Contains(contentType, "application/octet-stream") {
 				slog.Warn("CSV file has unexpected content type", "key", key, "contentType", contentType)
 			}
 		}
@@ -329,7 +330,7 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 		accumulated.Write(chunkData)
 		bytesFetched += len(chunkData)
 
-		csvReader := csv.NewReader(bytes.NewReader(accumulated.Bytes()))
+		csvReader := csv.NewReader(bytes.NewReader(normalizeLineEndings(accumulated.Bytes())))
 		csvReader.TrimLeadingSpace = true
 		csvReader.LazyQuotes = true
 
@@ -358,7 +359,7 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 		}
 	}
 
-	data := accumulated.Bytes()
+	data := normalizeLineEndings(accumulated.Bytes())
 
 	if !utf8.Valid(data) {
 		return CSVSchemaResult{}, fmt.Errorf("file does not appear to be a valid text/CSV file (invalid UTF-8)")
@@ -505,6 +506,20 @@ func (c *RealS3Client) validateIPAddress(ip net.IP) error {
 // ---------------------------------------------------------------------------
 // CSV helper functions
 // ---------------------------------------------------------------------------
+
+// normalizeLineEndings converts bare \r (old Mac-style) line endings to \n
+// so that Go's csv.Reader can parse them. \r\n pairs are left intact.
+func normalizeLineEndings(data []byte) []byte {
+	// Fast path: if there are no \r bytes, nothing to do.
+	if !bytes.ContainsRune(data, '\r') {
+		return data
+	}
+	// First collapse \r\n → \n, then convert any remaining bare \r → \n.
+	// Order matters: doing \r\n first prevents double-converting to \n\n.
+	out := bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
+	out = bytes.ReplaceAll(out, []byte("\r"), []byte("\n"))
+	return out
+}
 
 func inferColumnType(rows [][]string, colIndex int) string {
 	if len(rows) == 0 {

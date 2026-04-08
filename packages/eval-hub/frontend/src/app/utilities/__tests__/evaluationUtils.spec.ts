@@ -27,7 +27,7 @@ describe('getEvaluationName', () => {
 });
 
 describe('getBenchmarkName', () => {
-  it('should return the first benchmark id', () => {
+  it('should return the display name of the first benchmark', () => {
     const job = mockEvaluationJob({ benchmarkId: 'MMLU Finance' });
     expect(getBenchmarkName(job)).toBe('MMLU Finance');
   });
@@ -71,7 +71,7 @@ describe('getBenchmarkName', () => {
       { id: 'arc_easy', provider_id: 'lm_evaluation_harness' },
       { id: 'hellaswag_ar', provider_id: 'lm_evaluation_harness' },
     ];
-    expect(getBenchmarkName(job)).toBe('arc_easy +1 more');
+    expect(getBenchmarkName(job)).toBe('Arc Easy +1 more');
   });
 
   it('should show +N more for three benchmarks', () => {
@@ -81,7 +81,7 @@ describe('getBenchmarkName', () => {
       { id: 'hellaswag_ar', provider_id: 'lm_evaluation_harness' },
       { id: 'mmlu', provider_id: 'lighteval' },
     ];
-    expect(getBenchmarkName(job)).toBe('arc_easy +2 more');
+    expect(getBenchmarkName(job)).toBe('Arc Easy +2 more');
   });
   /* eslint-enable camelcase */
 });

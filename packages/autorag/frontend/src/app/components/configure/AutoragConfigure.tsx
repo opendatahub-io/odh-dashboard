@@ -81,6 +81,7 @@ import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
+import EvaluationTemplateModal from './EvaluationTemplateModal';
 import './AutoragConfigure.css';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
@@ -99,8 +100,8 @@ const INPUT_DATA_UPLOAD_NATIVE_ACCEPT = [
   ...new Set(Object.values(INPUT_DATA_FILE_ACCEPT).flat()),
 ].join(',');
 
-/** Matches MultipleFileUpload dropzone `maxSize` (1 GiB). */
-const INPUT_DATA_UPLOAD_MAX_BYTES = 1024 * 1024 * 1024;
+/** Matches MultipleFileUpload dropzone `maxSize` (32 MiB). */
+const INPUT_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
 
 /** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
 function isAllowedInputDataUploadFile(file: File): boolean {
@@ -160,6 +161,7 @@ function AutoragConfigure(): React.JSX.Element {
 
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [isMetricSelectOpen, setIsMetricSelectOpen] = useState(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
   const [inputDataSourceMode, setInputDataSourceMode] = useState<'select' | 'upload'>('select');
   const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>();
@@ -299,7 +301,7 @@ function AutoragConfigure(): React.JSX.Element {
         return;
       }
       if (file.size > INPUT_DATA_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', 'File size must be 1 GiB or less.');
+        notification.error('File too large', 'File size must be 32 MiB or less.');
         return;
       }
       if (!isAllowedInputDataUploadFile(file)) {
@@ -677,7 +679,11 @@ function AutoragConfigure(): React.JSX.Element {
                               Select the evaluation dataset that will be used to measure the quality
                               of the generated responses. Must adhere to the{' '}
                             </span>
-                            <Button variant="link" isInline component="span" onClick={() => null}>
+                            <Button
+                              variant="link"
+                              isInline
+                              onClick={() => setIsTemplateModalOpen(true)}
+                            >
                               evaluation dataset template
                             </Button>
                             <span>.</span>
@@ -963,6 +969,9 @@ function AutoragConfigure(): React.JSX.Element {
         selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
         unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
       />
+      {isTemplateModalOpen && (
+        <EvaluationTemplateModal onClose={() => setIsTemplateModalOpen(false)} />
+      )}
       <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}
         onClose={() => {

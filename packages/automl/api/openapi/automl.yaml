@@ -373,7 +373,7 @@ paths:
 
         Only CSV uploads are allowed: Content-Type `text/csv`, or `application/octet-stream` (or empty)
         when the part filename ends with `.csv`. The body is size-limited (declared Content-Length
-        and total multipart size caps; file part max 1 GiB). Rejects with 413 when limits are exceeded.
+        and total multipart size caps; file part max 32 MiB). Rejects with 413 when limits are exceeded.
 
         On success, returns JSON with `uploaded: true` and the resolved `key` (which may differ
         from the requested key if a collision was avoided by probing existing keys).
@@ -1723,7 +1723,7 @@ components:
                     example: "413"
                   message:
                     type: string
-                    example: "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)"
+                    example: "request body exceeds maximum upload size (32 MiB plus allowance for multipart framing)"
 
     Unauthorized:
       description: Unauthorized
