@@ -86,6 +86,16 @@ describe('AutomlInputParametersPanel', () => {
     expect(screen.queryByText('Description')).not.toBeInTheDocument();
   });
 
+  it('should filter out empty array values', () => {
+    renderPanel({
+      parameters: {
+        task_type: 'timeseries',
+        known_covariates_names: [],
+      } as Partial<ConfigureSchema>,
+    });
+    expect(screen.queryByText('Known covariates')).not.toBeInTheDocument();
+  });
+
   it('should format task type with human-readable label', () => {
     renderPanel();
     expect(screen.getByText('Binary classification')).toBeInTheDocument();

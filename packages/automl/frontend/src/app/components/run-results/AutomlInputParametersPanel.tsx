@@ -95,6 +95,10 @@ const formatValue = (key: string, value: unknown): React.ReactNode => {
   return JSON.stringify(value);
 };
 
+/** Returns true if a value is considered empty and should be hidden from the panel. */
+const isEmptyValue = (value: unknown): boolean =>
+  value == null || value === '' || (Array.isArray(value) && value.length === 0);
+
 type AutomlInputParametersPanelProps = {
   onClose: () => void;
   parameters?: Partial<ConfigureSchema>;
@@ -121,12 +125,12 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
     // Build entries in the display order defined by PANEL_PARAMETERS, skipping empty values
     // and keys that don't apply to the current task type
     const knownEntries: [string, unknown][] = ORDERED_KEYS.filter(
-      (key) => valueByKey.has(key) && valueByKey.get(key) !== '' && !hiddenKeys.has(key),
+      (key) => valueByKey.has(key) && !isEmptyValue(valueByKey.get(key)) && !hiddenKeys.has(key),
     ).map((key) => [key, valueByKey.get(key)]);
 
     // Append any unexpected keys (e.g. new API fields) at the end
     const unknownEntries = allEntries.filter(
-      ([key, value]) => !knownKeySet.has(key) && value !== '',
+      ([key, value]) => !knownKeySet.has(key) && !isEmptyValue(value),
     );
     return [...knownEntries, ...unknownEntries];
   }, [parameters]);
