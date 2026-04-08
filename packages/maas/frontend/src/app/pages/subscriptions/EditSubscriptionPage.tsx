@@ -5,7 +5,7 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
 import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
-import EditSubscriptionForm from './editSubscription/EditSubscriptionForm';
+import CreateSubscriptionForm from './createSubscription/CreateSubscriptionForm';
 
 const EditSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
@@ -48,7 +48,7 @@ const EditSubscriptionPage: React.FC = () => {
       errorMessage="Unable to load subscription details."
     >
       {subscriptionInfo && (
-        <EditSubscriptionForm formData={formData} subscriptionInfo={subscriptionInfo} />
+        <CreateSubscriptionForm formData={formData} subscriptionInfo={subscriptionInfo} />
       )}
     </ApplicationsPage>
   );
