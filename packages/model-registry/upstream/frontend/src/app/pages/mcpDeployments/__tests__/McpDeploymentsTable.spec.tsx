@@ -4,7 +4,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
-import McpDeploymentsTable from '../McpDeploymentsTable';
+import McpDeploymentsTable from '~/app/pages/mcpDeployments/McpDeploymentsTable';
 
 const mockDeployments: McpDeployment[] = [
   {

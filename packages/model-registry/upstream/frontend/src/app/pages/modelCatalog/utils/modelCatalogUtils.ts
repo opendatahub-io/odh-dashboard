@@ -180,8 +180,7 @@ export const isModelValidated = (model: CatalogModel): boolean => {
 };
 
 // Utility function to check if a model is from Red Hat
-export const isRedHatModel = (model: CatalogModel): boolean =>
-  model.provider === 'Red Hat';
+export const isRedHatModel = (model: CatalogModel): boolean => model.provider === 'Red Hat';
 
 export const shouldShowValidatedInsights = (
   model: CatalogModel,
