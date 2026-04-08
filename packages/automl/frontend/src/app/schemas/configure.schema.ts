@@ -24,7 +24,8 @@ function createConfigureSchema() {
       // Common fields
       display_name: z.string().trim().min(1).default(''),
       description: z.string().trim().default('').optional(),
-      task_type: z.enum(TASK_TYPES).default(TASK_TYPE_BINARY),
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- intentionally invalid default; validated on submit
+      task_type: z.enum(TASK_TYPES).default('' as never),
       train_data_secret_name: z.string().min(1).default(''),
       train_data_bucket_name: z.string().min(1).default(''),
       train_data_file_key: z.string().min(1).default(''),
@@ -48,7 +49,10 @@ function createConfigureSchema() {
       // Validate tabular-specific required fields
       (data) => {
         const issues: z.core.$ZodRawIssue[] = [];
-        if (data.task_type !== TASK_TYPE_TIMESERIES) {
+        if (
+          data.task_type !== TASK_TYPE_TIMESERIES &&
+          TABULAR_TASK_TYPES.some((t) => t === data.task_type)
+        ) {
           if (!data.label_column || data.label_column.trim() === '') {
             issues.push({
               code: 'custom',
