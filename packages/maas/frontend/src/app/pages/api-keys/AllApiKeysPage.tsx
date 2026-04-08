@@ -156,6 +156,7 @@ const AllApiKeysPage: React.FC = () => {
             onSort={onSort}
             onClearFilters={onClearFilters}
             isFetching={isFetching}
+            isMaasAdmin={isMaasAdmin}
             toolbarContent={
               <ApiKeysToolbar
                 isMaasAdmin={isMaasAdmin}
