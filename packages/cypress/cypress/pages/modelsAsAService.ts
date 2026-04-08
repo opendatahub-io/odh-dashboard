@@ -808,6 +808,7 @@ class CreateSubscriptionPage {
   typeCustomGroup(name: string): void {
     this.findGroupsSelect().find('input').type(name);
     cy.findByRole('option', { name: `Add group "${name}"` }).click();
+    this.findGroupsSelect().click();
   }
 
   findAddModelsButton(): Cypress.Chainable<JQuery<HTMLElement>> {

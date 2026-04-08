@@ -282,7 +282,7 @@ describe('Edit Subscription Page', () => {
     editSubscriptionPage.visit(subscriptionName);
     editSubscriptionPage.findTitle().should('contain.text', 'Edit subscription');
 
-    editSubscriptionPage.findNameInput().should('have.value', '');
+    editSubscriptionPage.findNameInput().should('have.value', 'basic-team-sub');
     editSubscriptionPage.findPriorityInput().should('have.value', '0');
     editSubscriptionPage.findGroupsSelect().should('contain.text', 'system:authenticated');
     editSubscriptionPage.findModelsTable().should('contain.text', 'flan-t5-small');
