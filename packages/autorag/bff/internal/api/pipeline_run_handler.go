@@ -63,6 +63,20 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
+	// Validate request body before any side effects
+	var req models.CreateAutoRAGRunRequest
+	decoder := json.NewDecoder(io.LimitReader(r.Body, maxRequestBodyBytes))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid request body: %w", err))
+		return
+	}
+	var extra interface{}
+	if err := decoder.Decode(&extra); err != io.EOF {
+		app.badRequestResponse(w, r, fmt.Errorf("request body must contain only a single JSON object"))
+		return
+	}
+
 	// Get discovered pipeline from context
 	discoveredPipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
 	var discovered *repositories.DiscoveredPipeline
@@ -87,19 +101,6 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 				"failed to create AutoRAG pipeline in namespace")
 			return
 		}
-	}
-
-	var req models.CreateAutoRAGRunRequest
-	decoder := json.NewDecoder(io.LimitReader(r.Body, maxRequestBodyBytes))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&req); err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid request body: %w", err))
-		return
-	}
-	var extra interface{}
-	if err := decoder.Decode(&extra); err != io.EOF {
-		app.badRequestResponse(w, r, fmt.Errorf("request body must contain only a single JSON object"))
-		return
 	}
 
 	runResponse, err := app.repositories.PipelineRuns.CreatePipelineRun(

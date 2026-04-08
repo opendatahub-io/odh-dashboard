@@ -143,7 +143,8 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 		}
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Empty(t, response.Data.Runs)
+		assert.NotNil(t, response.Data.Runs)
+		assert.Len(t, response.Data.Runs, 0)
 	})
 
 }

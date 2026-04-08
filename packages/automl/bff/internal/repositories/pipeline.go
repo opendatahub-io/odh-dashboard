@@ -340,8 +340,14 @@ func (r *PipelineRepository) EnsurePipeline(
 	pipelineServerBaseURL string,
 	def PipelineDefinition,
 ) (*DiscoveredPipeline, error) {
+	// Normalize name prefix — use default if empty
+	namePrefix := def.NamePrefix
+	if namePrefix == "" {
+		namePrefix = defaultPipelineNamePrefix
+	}
+
 	// Try discovery first
-	discovered, err := r.discoverOnePipeline(client, ctx, namespace, def.NamePrefix)
+	discovered, err := r.discoverOnePipeline(client, ctx, namespace, namePrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -351,17 +357,17 @@ func (r *PipelineRepository) EnsurePipeline(
 
 	// Soft miss — create the pipeline
 	if def.YAMLFilename == "" {
-		return nil, fmt.Errorf("no pipeline %q found and no YAML available for auto-creation", def.NamePrefix)
+		return nil, fmt.Errorf("no pipeline %q found and no YAML available for auto-creation", namePrefix)
 	}
 
 	// Serialize creation per key to prevent duplicate pipelines from concurrent requests
-	createKey := fmt.Sprintf("%s:%s", namespace, def.NamePrefix)
+	createKey := fmt.Sprintf("%s:%s:%s", pipelineServerBaseURL, namespace, namePrefix)
 	r.inFlightMu.Lock()
 	if _, ok := r.inFlight[createKey]; ok {
 		r.inFlightMu.Unlock()
 		// Another goroutine is creating this pipeline — wait briefly and retry discovery
 		time.Sleep(2 * time.Second)
-		return r.discoverOnePipeline(client, ctx, namespace, def.NamePrefix)
+		return r.discoverOnePipeline(client, ctx, namespace, namePrefix)
 	}
 	r.inFlight[createKey] = struct{}{}
 	r.inFlightMu.Unlock()
@@ -372,7 +378,7 @@ func (r *PipelineRepository) EnsurePipeline(
 	}()
 
 	// Double-check after acquiring the lock — another request may have created it
-	discovered, err = r.discoverOnePipeline(client, ctx, namespace, def.NamePrefix)
+	discovered, err = r.discoverOnePipeline(client, ctx, namespace, namePrefix)
 	if err != nil {
 		return nil, err
 	}

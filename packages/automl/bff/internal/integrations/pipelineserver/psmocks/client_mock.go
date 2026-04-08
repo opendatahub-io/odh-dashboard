@@ -608,7 +608,7 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 				Description: "Managed AutoML pipeline",
 				CreatedAt:   "2026-02-20T10:00:00Z",
 				Namespace:   m.Namespace,
-				Tags:        map[string]string{"autox": "true"},
+
 			})
 		}
 		return &models.KFPipelinesResponse{
@@ -632,7 +632,7 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 					Description: "Managed AutoML time-series pipeline",
 					CreatedAt:   "2026-02-20T10:00:00Z",
 					Namespace:   m.Namespace,
-					Tags:        map[string]string{"autox": "true"},
+	
 				},
 				{
 					PipelineID:  tabIDs.PipelineID,
@@ -640,7 +640,7 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 					Description: "Managed AutoML tabular pipeline",
 					CreatedAt:   "2026-02-20T10:00:00Z",
 					Namespace:   m.Namespace,
-					Tags:        map[string]string{"autox": "true"},
+	
 				},
 			},
 			TotalSize:     2,
@@ -658,7 +658,7 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 				Description: "Managed AutoML pipeline for optimization",
 				CreatedAt:   "2026-02-20T10:00:00Z",
 				Namespace:   m.Namespace,
-				Tags:        map[string]string{"autox": "true"},
+
 			},
 			{
 				PipelineID:  hashUUID("other-pipeline:" + m.Namespace),

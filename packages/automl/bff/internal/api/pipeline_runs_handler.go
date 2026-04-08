@@ -42,7 +42,11 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	}
 
 	// Get all discovered pipelines from context — may be empty if no pipelines exist yet
-	discoveredPipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	discoveredPipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
+		return
+	}
 	if len(discoveredPipelines) == 0 {
 		// No pipelines discovered — return empty runs list.
 		// Pipelines will be auto-created when the user submits their first experiment.

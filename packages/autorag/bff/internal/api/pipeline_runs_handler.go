@@ -41,7 +41,11 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	}
 
 	// Get discovered AutoRAG pipeline — may be nil if no pipeline exists yet
-	pipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	pipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
+		return
+	}
 	discovered := pipelines["autorag"]
 	if discovered == nil {
 		// No pipeline discovered — return empty runs list.
@@ -129,7 +133,11 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 	}
 
 	// Get discovered pipeline from context — may be nil if no pipeline exists yet
-	discoveredPipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	discoveredPipelines, ok2 := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok2 {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
+		return
+	}
 	discovered := discoveredPipelines["autorag"]
 
 	// Get run ID from URL path parameter
