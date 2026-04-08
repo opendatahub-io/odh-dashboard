@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { CreateResponseRequest, SimplifiedResponseData, ChatbotSourceSettings } from '~/app/types';
+import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
@@ -40,13 +40,6 @@ const mockCreateResponse = jest.fn<
 
 // Test constants
 const mockModelId = 'test-model-id';
-const mockSourceSettings: ChatbotSourceSettings = {
-  vectorStore: 'test-vector-db',
-  embeddingModel: 'test-embedding-model',
-  maxChunkLength: 500,
-  delimiter: '\n\n',
-  chunkOverlap: 50,
-};
 
 const mockSuccessResponse: SimplifiedResponseData = {
   id: 'resp-123',
@@ -84,8 +77,8 @@ const setupMocks = (): void => {
 
 // Helper to create default hook props
 const createDefaultHookProps = (overrides?: {
+  configId?: string;
   modelId?: string;
-  selectedSourceSettings?: ChatbotSourceSettings | null;
   systemInstruction?: string;
   isRawUploaded?: boolean;
   isStreamingEnabled?: boolean;
@@ -94,13 +87,13 @@ const createDefaultHookProps = (overrides?: {
   selectedServerIds?: string[];
 }) => ({
   ...defaultMcpProps,
+  configId: 'default',
   modelId: mockModelId,
-  selectedSourceSettings: mockSourceSettings,
   systemInstruction: '',
   isRawUploaded: true,
   isStreamingEnabled: false,
   temperature: 0.7,
-  currentVectorStoreId: null,
+  currentVectorStoreId: 'test-vector-db',
   selectedServerIds: [],
   ...overrides,
 });

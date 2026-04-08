@@ -9,7 +9,7 @@ const extensions: (NavExtension | RouteExtension)[] = [
     },
     properties: {
       id: 'eval-hub',
-      title: 'Evaluations (Federated Mode)',
+      title: 'Evaluations',
       href: '/evaluation',
       section: 'develop-and-train',
       path: '/evaluation/*',

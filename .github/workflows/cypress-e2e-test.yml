@@ -857,7 +857,11 @@ jobs:
           find ${{ github.workspace }}/packages/cypress/results -type d -empty -delete 2>/dev/null || true
           find ${{ github.workspace }}/packages/cypress/screenshots -type d -empty -delete 2>/dev/null || true
           find ${{ github.workspace }}/packages/cypress/videos -type d -empty -delete 2>/dev/null || true
-          
+
+          # Fix read-only envtest binaries and directories from previous BFF runs
+          # (setup-envtest downloads k8s binaries with 0555 permissions, which blocks actions/checkout cleanup)
+          chmod -R u+w ${{ github.workspace }}/packages/*/bff/bin ${{ github.workspace }}/packages/*/upstream/bff/bin 2>/dev/null || true
+
           echo "✅ Cleanup complete (non-critical, continued on any errors)"
 
       - name: Checkout code
@@ -1093,7 +1097,7 @@ jobs:
           echo "🚀 Starting webpack dev server on port ${WEBPACK_PORT} ($CLUSTER_NAME)..."
 
           # Start webpack with explicit dashboard host (ensures correct proxy target for all tests)
-          cd frontend && env ODH_DASHBOARD_HOST=${DASHBOARD_HOST} ODH_PORT=${WEBPACK_PORT} npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
+          cd frontend && env ODH_DASHBOARD_HOST=${DASHBOARD_HOST} ODH_PORT=${WEBPACK_PORT} ODH_TOKEN_REFRESH=true npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           echo "$SERVER_PID" > "$PORT_INFO_DIR/port-${WEBPACK_PORT}.pid"
@@ -1109,6 +1113,23 @@ jobs:
               grep -v "Logged in as user:" | \
               grep -v "Using project:" || true
           fi
+
+      - name: Install make for BFF builds
+        if: needs.get-test-tags.outputs.bff_packages != '[]'
+        run: |
+          if ! command -v make &> /dev/null; then
+            echo "📦 Installing make..."
+            sudo dnf install -y make 2>/dev/null || sudo yum install -y make 2>/dev/null || sudo apt-get install -y make 2>/dev/null
+          else
+            echo "✅ make already available: $(make --version | head -1)"
+          fi
+
+      - name: Setup Go for BFF builds
+        if: needs.get-test-tags.outputs.bff_packages != '[]'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: false
 
       - name: Start BFF Services
         if: needs.get-test-tags.outputs.bff_packages != '[]'
@@ -1396,6 +1417,9 @@ jobs:
           else
             echo "✅ Cleaned up $BFF_KILLED_COUNT BFF process(es) for run_id: ${{ github.run_id }}"
           fi
+
+          # Fix read-only envtest binaries and directories so next checkout can clean the workspace
+          chmod -R u+w ${{ github.workspace }}/packages/*/bff/bin ${{ github.workspace }}/packages/*/upstream/bff/bin 2>/dev/null || true
 
       - name: Stop Cypress Servers
         run: |

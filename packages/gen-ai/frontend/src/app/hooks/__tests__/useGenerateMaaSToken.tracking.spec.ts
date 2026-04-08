@@ -79,6 +79,42 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       });
     });
 
+    it('should pass subscription to API when provided', async () => {
+      mockGenerateMaaSToken.mockResolvedValue({ key: 'token-123' });
+      const { result } = renderHook(() => useGenerateMaaSToken());
+
+      await result.current.generateToken(undefined, 'premium-sub');
+
+      await waitFor(() => {
+        expect(mockGenerateMaaSToken).toHaveBeenCalledWith({ subscription: 'premium-sub' });
+      });
+    });
+
+    it('should pass both expiration and subscription to API when provided', async () => {
+      mockGenerateMaaSToken.mockResolvedValue({ key: 'token-456' });
+      const { result } = renderHook(() => useGenerateMaaSToken());
+
+      await result.current.generateToken('2025-06-30', 'basic-sub');
+
+      await waitFor(() => {
+        expect(mockGenerateMaaSToken).toHaveBeenCalledWith({
+          expiresIn: '2025-06-30',
+          subscription: 'basic-sub',
+        });
+      });
+    });
+
+    it('should not include subscription in API call when not provided', async () => {
+      mockGenerateMaaSToken.mockResolvedValue({ key: 'token-789' });
+      const { result } = renderHook(() => useGenerateMaaSToken());
+
+      await result.current.generateToken();
+
+      await waitFor(() => {
+        expect(mockGenerateMaaSToken).toHaveBeenCalledWith({});
+      });
+    });
+
     it('should call tracking exactly once per generation', async () => {
       const mockResponse = {
         key: 'token-abc',

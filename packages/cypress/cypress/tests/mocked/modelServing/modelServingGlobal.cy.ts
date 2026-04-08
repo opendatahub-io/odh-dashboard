@@ -93,16 +93,16 @@ const initIntercepts = ({
     }),
   );
 
-  // Mock hardware profiles
+  // Mock hardware profiles — use distinct aliases so cy.wait() can target each one
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'test-project' },
     mockK8sResourceList(mockProjectScopedHardwareProfiles),
-  ).as('hardwareProfiles');
+  ).as('projectHardwareProfiles');
 
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
     mockK8sResourceList(mockGlobalScopedHardwareProfiles),
-  ).as('hardwareProfiles');
+  ).as('globalHardwareProfiles');
 
   cy.interceptK8sList(
     TemplateModel,
@@ -598,8 +598,8 @@ describe('Model Serving Global', () => {
 
       it('root', () => {
         cy.visitWithLogin('/modelServing');
-        cy.findByTestId('app-page-title').contains('Deployments');
-        cy.url().should('include', '/ai-hub/deployments');
+        cy.findByTestId('app-tab-page-title').contains('Models');
+        cy.url().should('include', '/ai-hub/models/deployments');
       });
 
       it('metrics', () => {
@@ -607,7 +607,7 @@ describe('Model Serving Global', () => {
         cy.findByTestId('app-page-title').contains('Test Inference Service metrics');
         cy.url().should(
           'include',
-          '/ai-hub/deployments/test-project/metrics/test-inference-service',
+          '/ai-hub/models/deployments/test-project/metrics/test-inference-service',
         );
       });
 
@@ -616,7 +616,7 @@ describe('Model Serving Global', () => {
         cy.findByTestId('app-page-title').contains('Test Inference Service metrics');
         cy.url().should(
           'include',
-          '/ai-hub/deployments/test-project/metrics/test-inference-service/performance',
+          '/ai-hub/models/deployments/test-project/metrics/test-inference-service/performance',
         );
       });
     });

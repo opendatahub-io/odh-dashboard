@@ -33,38 +33,36 @@ import { IdentifierResourceType } from '@odh-dashboard/internal/types';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
 import { useProfileIdentifiers } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
-import { K8sResourceIdentifier } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
 import { useModelServingClusterSettings } from '../../../concepts/useModelServingClusterSettings';
 import { useWizardFieldFromExtension } from '../dynamicFormUtils';
 import { isModelServerTemplateField } from '../types';
 
-export type ModelServerOption = {
-  name: string;
-  label?: string;
-  namespace?: string;
-  scope?: string;
-  template?: TemplateKind | K8sResourceIdentifier;
-  version?: string;
-  compatibleWithHardwareProfile?: boolean;
-};
-
-export type ModelServerSelectFieldData = {
-  selection?: ModelServerOption | null;
-  autoSelect?: boolean;
-  suggestion?: ModelServerOption | null;
-};
-
 // Schema
-export const modelServerSelectFieldSchema = z.custom<ModelServerSelectFieldData>((val: unknown) => {
-  return z
-    .object({
-      selection: z.custom<ModelServerOption>(),
-      autoSelect: z.boolean().optional(),
-      suggestion: z.custom<ModelServerOption>().optional(),
-    })
-    .safeParse(val).success;
+const ModelServerOptionSchema = z.object({
+  name: z.string(),
+  label: z.string().optional(),
+  namespace: z.string().optional(),
+  scope: z.string().optional(),
+  template: z.custom<TemplateKind | K8sResourceCommon>().optional(),
+  version: z.string().optional(),
+  compatibleWithHardwareProfile: z.boolean().optional(),
 });
+export type ModelServerOption = z.infer<typeof ModelServerOptionSchema>;
+
+export const modelServerSelectFieldSchema = z.object({
+  selection: ModelServerOptionSchema,
+  autoSelect: z.boolean().optional(),
+  suggestion: ModelServerOptionSchema.optional(),
+});
+
+// Form state allows `selection` to be undefined (nothing chosen yet)
+export type ModelServerSelectFieldData = {
+  selection?: ModelServerOption;
+  autoSelect?: boolean;
+  suggestion?: ModelServerOption;
+};
 
 // utils
 
@@ -84,7 +82,7 @@ export type ModelServerSelectField = {
 };
 
 export const useModelServerSelectField = (
-  existingData?: ModelServerSelectFieldData,
+  existingData?: { data: ModelServerSelectFieldData },
   modelServerTemplates?: TemplateKind[], // this is already filtered on 'generative' or 'predictive' model type
   modelFormat?: SupportedModelFormats,
   modelType?: ModelTypeFieldData,
@@ -99,14 +97,14 @@ export const useModelServerSelectField = (
 
   const [modelServerState, setModelServerState] = React.useState<
     Omit<ModelServerSelectFieldData, 'suggestion'> | undefined
-  >(existingData);
+  >(existingData?.data);
 
   const profileIdentifiers = useProfileIdentifiers(hardwareProfile);
 
   const previousModelType = React.useRef(modelType);
   React.useEffect(() => {
     if (previousModelType.current !== modelType) {
-      setModelServerState(existingData);
+      setModelServerState(existingData?.data);
       previousModelType.current = modelType;
     }
   }, [modelType, existingData, setModelServerState]);
@@ -149,7 +147,7 @@ export const useModelServerSelectField = (
         template: suggestedTemplate,
       };
     }
-    return null;
+    return undefined;
     // We want dependencies to be specific to the values being used. If something else inside hardwareProfile changes, then it will recompute.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -231,11 +229,13 @@ const OptionDropdownLabel: React.FC<{ option: ModelServerOption }> = ({ option }
 type ModelServerTemplateSelectFieldProps = {
   modelServerState: ModelServerSelectField;
   isEditing?: boolean;
+  label?: string;
 };
 
 const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldProps> = ({
   modelServerState,
   isEditing,
+  label = 'Deployment resource',
 }) => {
   const { data, setData, options } = modelServerState;
   const [searchServer, setSearchServer] = React.useState('');
@@ -291,7 +291,7 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
       option.label?.toLocaleLowerCase().includes(searchServer.toLocaleLowerCase()),
   );
 
-  const servingRuntimeDropdown = React.useCallback(
+  const templateDropdown = React.useCallback(
     (isDisabled?: boolean) => {
       return (
         <ProjectScopedSearchDropdown
@@ -330,12 +330,12 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
           }
           projectGroupLabel={
             <ProjectScopedGroupLabel isProject>
-              Project-scoped serving runtimes
+              Project-scoped {label.toLocaleLowerCase()}s
             </ProjectScopedGroupLabel>
           }
           globalGroupLabel={
             <ProjectScopedGroupLabel isProject={false}>
-              Global serving runtimes
+              Global {label.toLocaleLowerCase()}s
             </ProjectScopedGroupLabel>
           }
           dataTestId="serving-runtime-template-selection"
@@ -353,17 +353,18 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
       setSearchServer,
       selectedTemplate,
       isEditing,
+      label,
     ],
   );
 
   return (
     <FormGroup
-      label="Serving runtime"
+      label={label}
       fieldId="serving-runtime-template-selection"
       isRequired
       labelHelp={
         options.filter((option) => option.scope === 'project').length > 0 ? (
-          <ProjectScopedPopover title="Serving runtime" item="serving runtimes" />
+          <ProjectScopedPopover title={label} item={`${label.toLocaleLowerCase()}s`} />
         ) : undefined
       }
       role={isEditing ? 'radiogroup' : undefined}
@@ -371,32 +372,49 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
     >
       {isEditing ? (
         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-          {servingRuntimeDropdown(isEditing)}
+          {templateDropdown(isEditing)}
         </Flex>
       ) : (
         <>
           <Radio
+            data-testid="model-server-auto-select-radio"
             name="horizontal-inline-radio"
-            label="Auto-select the best runtime for my model based on model type, model format, and hardware profile"
+            label={
+              <>
+                <span className="pf-v6-c-form__label-text">Automatic selection:</span> Automatically
+                select the best resource for my model based on model type, model format and hardware
+                profile.
+              </>
+            }
             id="horizontal-inline-radio-01"
             isChecked={data?.autoSelect}
             isDisabled={!data?.suggestion}
             onChange={() => setData({ ...data, autoSelect: true, selection: data?.suggestion })}
             body={
               data?.autoSelect && data.suggestion ? (
-                <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <Flex
+                  gap={{ default: 'gapSm' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  data-testid="model-server-auto-select-suggestion"
+                >
                   <OptionDropdownLabel option={data.suggestion} />
                 </Flex>
               ) : null
             }
           />
           <Radio
+            data-testid="model-server-manual-select-radio"
             name="horizontal-inline-radio"
-            label="Select from a list of serving runtimes, including custom ones"
+            label={
+              <>
+                <span className="pf-v6-c-form__label-text">Manual selection:</span> Manually select
+                a resource from a list of preconfigured and custom options.
+              </>
+            }
             id="horizontal-inline-radio-02"
             isChecked={!data?.autoSelect}
-            onChange={() => setData({ ...data, autoSelect: false, selection: null })}
-            body={data?.autoSelect ? null : servingRuntimeDropdown()}
+            onChange={() => setData({ ...data, autoSelect: false, selection: undefined })}
+            body={data?.autoSelect ? null : templateDropdown()}
           />
         </>
       )}

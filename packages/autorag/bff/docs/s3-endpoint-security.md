@@ -9,8 +9,9 @@ The AutoRAG BFF implements comprehensive Server-Side Request Forgery (SSRF) prot
 The following API endpoints use S3 credentials and are protected:
 
 - **GET** `/api/v1/s3/file` - Download files from S3
+- **POST** `/api/v1/s3/file` - Upload files to S3
 
-This endpoint retrieves S3 credentials from Kubernetes secrets and validates the `AWS_S3_ENDPOINT` value before use.
+These endpoints retrieve S3 credentials from Kubernetes secrets and validate the `AWS_S3_ENDPOINT` value before use.
 
 ## Security Validations
 
@@ -95,7 +96,7 @@ When a hostname is provided (not an IP address), the endpoint validator:
 1. **Resolves the hostname** to its IP addresses using `net.LookupIP`
 2. **Validates all resolved IPs** against the blocked ranges
 3. **Rejects unresolvable hostnames by default** to prevent DNS rebinding/TOCTOU attacks
-4. **Revalidates on every request** to prevent DNS rebinding attacks
+4. **Runs each time a real client is constructed** (today, each inbound S3 API call builds a new client), so hostname resolution and IP checks are fresh for that request
 
 **Example**:
 ```
@@ -134,18 +135,17 @@ Warning: Unable to resolve S3 endpoint hostname, allowing it to proceed (ALLOW_U
 
 ⚠️ **Security Warning**: This should only be used in non-production environments. Production deployments should use resolvable hostnames or direct IP addresses.
 
-#### Revalidation at Connection Time
+#### When the endpoint is checked (real client)
 
-To protect against DNS rebinding attacks where a hostname's IP address changes between credential validation and the actual S3 connection, the endpoint is **revalidated on every S3 operation**:
+SSRF checks run in the **S3 integration layer** when a **real** AWS SDK client is constructed (`NewRealS3Client` in `internal/integrations/s3/client.go`), not inside the repository that reads secrets.
 
-- The `GetS3Credentials` function validates the endpoint when credentials are first retrieved
-- The `GetS3Object` function revalidates the endpoint immediately before establishing the S3 connection
+Handlers fetch credentials from Kubernetes (via `repositories/s3.go`), then call `S3ClientFactory.CreateClient(creds)`. For the real factory, that construction runs `validateAndNormalizeEndpoint` **once per request** (the BFF currently builds a new client per request). Operations such as `GetObject` / `UploadObject` / `ListObjects` use the already-configured endpoint on that client.
 
-This ensures that even if a hostname's DNS record is changed maliciously between these two operations, the blocked IP ranges are checked again at connection time, preventing TOCTOU vulnerabilities.
+The mock S3 client factory (`internal/integrations/s3/s3mocks`) does not perform these checks and is intended for development/tests only.
 
 ### Mock S3 Client Production Guard
 
-The mock S3 client (`MockS3Repository`) intentionally skips SSRF validation for testing purposes. To prevent accidental use in production:
+The mock S3 client (`MockS3Client` / mock factory) intentionally skips SSRF validation for testing purposes. To prevent accidental use in production:
 
 **Production Guard**: The server validates during startup that `MockS3Client` can only be enabled when running in development mode (`-dev-mode` flag). Attempting to enable `MockS3Client` without `-dev-mode` will cause the server to abort with an error:
 
@@ -159,53 +159,50 @@ This ensures that SSRF protections cannot be bypassed in production deployments,
 
 ### Validation Function
 
-The validation is implemented in `internal/repositories/s3.go`:
+Endpoint SSRF validation lives in **`internal/integrations/s3/client.go`** on `RealS3Client`:
 
 ```go
 // validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
-// It ensures the URL uses HTTPS, is properly formatted, and does not target private IP ranges.
+// It ensures the URL uses HTTPS, is properly formatted, and does not target blocked IP ranges.
 // Returns the normalized URL string or an error if validation fails.
-func validateAndNormalizeEndpoint(endpoint string) (string, error)
+func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, error)
 
-// validateIPAddress checks if an IP address is in a blocked range (private or link-local).
-// Returns an error if the IP is blocked, nil otherwise.
-func validateIPAddress(ip net.IP) error
+// validateIPAddress checks if an IP address is in a blocked range (private, loopback, link-local, etc.).
+func (c *RealS3Client) validateIPAddress(ip net.IP) error
 ```
 
-### Where Validation Occurs
+These are invoked from **`NewRealS3Client`** when the real **`S3ClientFactory`** creates a client. Wrapped failures use **`ErrEndpointValidation`** (`endpoint validation failed: ...`) so HTTP handlers can return **400 Bad Request** for bad endpoints.
 
-The validation is applied at multiple points for defense in depth:
+### Credential extraction (no SSRF validation)
 
-1. **`GetS3Credentials()`** in `s3.go`
-   - Called when retrieving credentials from Kubernetes secrets
-   - Validates and normalizes the `AWS_S3_ENDPOINT` value
-   - Returns error if endpoint is invalid
+**`internal/repositories/s3.go`** only **reads** the Kubernetes secret and fills `S3Credentials` (including raw `AWS_S3_ENDPOINT`). It checks that required keys are **non-empty**; it does **not** run the SSRF / URL rules above. DSPA-based credential assembly (`GetS3CredentialsFromDSPA`) is also in this file.
 
-2. **`GetS3Object()`** in `s3.go`
-   - Revalidates the endpoint before each S3 download operation
-   - Protects against DNS rebinding attacks
-   - Returns error if endpoint validation fails
+### Where validation occurs (summary)
 
-3. **`GetS3Credentials()`** in `s3_mock.go`
-   - Mock implementation skips SSRF validation
-   - Stores endpoint as-is for test fixtures
-   - Tests can verify validation in the real implementation
+| Layer | File | Role |
+|-------|------|------|
+| Repository | `repositories/s3.go` | Load secret fields; required-field presence only |
+| S3 client | `integrations/s3/client.go` | `NewRealS3Client` → `validateAndNormalizeEndpoint` (SSRF protection) |
+| Handlers | `api/s3_handler.go` | Resolve credentials, `CreateClient`, then S3 operations |
+| Mock | `integrations/s3/s3mocks` | No SSRF validation; dev/test only |
 
-### Error Handling
+### Error handling
 
-When validation fails, the error is wrapped with context:
+**Missing or empty required secret keys** (repository), e.g.:
 
-**At secret retrieval**:
 ```
-secret '<secret-name>' has invalid AWS_S3_ENDPOINT: <validation-error>
+secret '<secret-name>' missing required field: AWS_S3_ENDPOINT
 ```
 
-**At per-request validation**:
+(Same pattern for `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`.)
+
+**Invalid endpoint URL / SSRF rejection** (real client construction):
+
 ```
 endpoint validation failed: <validation-error>
 ```
 
-This provides clear feedback about which secret has an invalid endpoint and what the specific validation failure is. Per-request validation ensures endpoints are revalidated even if DNS records change after initial secret validation.
+Handlers treat `ErrEndpointValidation` as a client configuration error (**400**), not a generic server failure.
 
 ## Secret Requirements
 
@@ -281,10 +278,11 @@ The validation implements multiple layers of protection:
 
 ## Testing
 
-Comprehensive tests verify the SSRF protection:
+SSRF rules are covered by unit tests on the validator and by API tests:
 
 ```bash
-go test -v ./internal/api -run TestS3Repository_GetS3Credentials
+go test -v ./internal/integrations/s3/ -run TestValidateAndNormalizeEndpoint
+go test -v ./internal/api -run 'S3|PostS3'
 ```
 
 ### Test Coverage
@@ -296,7 +294,7 @@ go test -v ./internal/api -run TestS3Repository_GetS3Credentials
 - ✅ Invalid URL format rejection
 - ✅ Valid HTTPS URL acceptance
 
-All tests are located in `internal/api/s3_handler_test.go`.
+Validator tests live in **`internal/integrations/s3/client_test.go`**. HTTP status and handler behaviour (including **400** for `ErrEndpointValidation`) are covered in **`internal/api/s3_handler_test.go`**.
 
 ## Troubleshooting
 

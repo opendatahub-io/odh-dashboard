@@ -9,6 +9,7 @@ jest.mock('#~/utilities/axios', () => ({
 }));
 
 const mockAxios = jest.mocked(axios.get);
+const EXPECTED_EXPERIMENTS_ENDPOINT = '/_bff/mlflow/api/v1/experiments';
 
 const mockExperiments: MlflowExperiment[] = [
   {
@@ -52,7 +53,9 @@ describe('useMlflowExperiments', () => {
     });
 
     expect(mockAxios).toHaveBeenCalledTimes(1);
-    expect(mockAxios).toHaveBeenCalledWith('/mlflow/api/v1/experiments?workspace=test-ns-giulio');
+    expect(mockAxios).toHaveBeenCalledWith(
+      `${EXPECTED_EXPERIMENTS_ENDPOINT}?workspace=test-ns-giulio`,
+    );
     expect(renderResult.result.current.data).toEqual(mockExperiments);
     expect(renderResult.result.current.error).toBeUndefined();
   });
@@ -103,7 +106,7 @@ describe('useMlflowExperiments', () => {
     await waitFor(() => {
       expect(renderResult.result.current.loaded).toBe(true);
     });
-    expect(mockAxios).toHaveBeenCalledWith('/mlflow/api/v1/experiments?workspace=ns-1');
+    expect(mockAxios).toHaveBeenCalledWith(`${EXPECTED_EXPERIMENTS_ENDPOINT}?workspace=ns-1`);
 
     mockAxios.mockResolvedValue({
       data: { data: { experiments: [] } },
@@ -112,7 +115,7 @@ describe('useMlflowExperiments', () => {
     renderResult.rerender({ workspace: 'ns-2' });
 
     await waitFor(() => {
-      expect(mockAxios).toHaveBeenLastCalledWith('/mlflow/api/v1/experiments?workspace=ns-2');
+      expect(mockAxios).toHaveBeenLastCalledWith(`${EXPECTED_EXPERIMENTS_ENDPOINT}?workspace=ns-2`);
       expect(renderResult.result.current.loaded).toBe(true);
     });
     expect(renderResult.result.current.data).toEqual([]);

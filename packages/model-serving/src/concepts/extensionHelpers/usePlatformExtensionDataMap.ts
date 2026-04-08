@@ -2,6 +2,7 @@ import React from 'react';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import type { ExtensionPredicate, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import type { PlatformExtension } from '../extensionUtils';
+import { Deployment } from '../../../extension-points';
 
 export type ExtensionDataEntry<TExtension extends PlatformExtension> = {
   data: unknown;
@@ -31,8 +32,12 @@ type UsePlatformExtensionDataMapResult<TExtension extends PlatformExtension> = {
  */
 export const usePlatformExtensionDataMap = <TExtension extends PlatformExtension>(
   predicate: ExtensionPredicate<TExtension>,
-  platformIds: string[],
+  deployments?: Deployment[],
 ): UsePlatformExtensionDataMapResult<TExtension> => {
+  const platformIds: string[] = React.useMemo(
+    () => (deployments ? [...new Set(deployments.map((d) => d.modelServingPlatformId))] : []),
+    [deployments],
+  );
   const extensions = useExtensions(predicate);
   const [platformData, setPlatformData] = React.useState<Record<string, unknown>>({});
 

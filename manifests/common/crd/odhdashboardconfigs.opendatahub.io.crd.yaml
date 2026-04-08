@@ -111,9 +111,15 @@ spec:
                       type: boolean
                     modelAsService:
                       type: boolean
+                    maasAuthPolicies:
+                      type: boolean
                     aiAssetCustomEndpoints:
                       type: boolean
+                    externalVectorStores:
+                      type: boolean
                     mlflow:
+                      type: boolean
+                    mcpCatalog:
                       type: boolean
                     projectRBAC:
                       type: boolean
@@ -124,6 +130,8 @@ spec:
                     disableLLMd:
                       type: boolean
                     deploymentWizardYAMLViewer:
+                      type: boolean
+                    promptManagement:
                       type: boolean
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'

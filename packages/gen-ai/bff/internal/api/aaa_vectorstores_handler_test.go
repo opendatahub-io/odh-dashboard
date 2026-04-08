@@ -71,7 +71,7 @@ var _ = Describe("VectorStoresAAHandler", func() {
 		err = json.Unmarshal(body, &response)
 		require.NoError(t, err)
 
-		assert.Len(t, response.Data, 3, "Should return 3 vector stores from the ConfigMap")
+		assert.Len(t, response.Data, 4, "Should return 4 vector stores from the ConfigMap")
 
 		for _, store := range response.Data {
 			assert.NotEmpty(t, store.VectorStoreID, "Store should have a vector_store_id")
@@ -108,7 +108,7 @@ var _ = Describe("VectorStoresAAHandler", func() {
 		err = json.Unmarshal(body, &response)
 		require.NoError(t, err)
 
-		assert.Len(t, response.Data, 3, "mock-test-namespace-1 should have the same 3 vector stores from its ConfigMap")
+		assert.Len(t, response.Data, 4, "mock-test-namespace-1 should have the same 4 vector stores from its ConfigMap")
 	})
 
 	It("should not include ConfigMap metadata in the response", func() {
@@ -192,6 +192,35 @@ var _ = Describe("VectorStoresAAHandler", func() {
 		errorInfo, ok := errorData["error"].(map[string]interface{})
 		require.True(t, ok, "Response should have error field")
 		assert.Contains(t, errorInfo["message"], "namespace parameter is required")
+	})
+
+	It("should return 200 with empty list when the vector stores ConfigMap does not exist", func() {
+		t := GinkgoT()
+		rr := httptest.NewRecorder()
+
+		// opendatahub namespace exists but has no gen-ai-aa-vector-stores ConfigMap
+		req, err := http.NewRequest("GET", "/gen-ai/api/v1/aaa/vectorstores?namespace=opendatahub", nil)
+		require.NoError(t, err)
+
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "opendatahub")
+		req = req.WithContext(ctx)
+
+		app.VectorStoresAAHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		require.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		var response VectorStoresAAEnvelope
+		err = json.Unmarshal(body, &response)
+		require.NoError(t, err)
+
+		assert.Empty(t, response.Data, "Should return empty list when ConfigMap is absent")
 	})
 
 	It("should return 400 when request identity is missing", func() {

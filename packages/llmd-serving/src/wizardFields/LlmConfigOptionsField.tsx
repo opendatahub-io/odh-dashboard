@@ -1,10 +1,9 @@
 import React from 'react';
-import type {
-  ModelServerSelectFieldData,
-  WizardField,
-} from '@odh-dashboard/model-serving/types/form-data';
+import { z } from 'zod';
+import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import ModelServerTemplateSelectField, {
   ModelServerOption,
+  ModelServerSelectFieldData,
   modelServerSelectFieldSchema,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
@@ -15,7 +14,7 @@ import { useModelServingClusterSettings } from '@odh-dashboard/model-serving/con
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 import { LLMInferenceServiceConfigKind } from '../types';
 import { LLMD_OPTION } from '../deployments/server';
-import { isLLMInferenceServiceActive } from '../deployments/deployUtils';
+import { isGenerativeNonLegacy } from '../formUtils';
 
 // External data hook
 
@@ -24,7 +23,7 @@ export type LLMConfigOptionsData = {
   isLlmdSuggested: boolean;
 };
 
-const useLLMConfigOptions = (): {
+export const useLLMConfigOptions = (): {
   data: LLMConfigOptionsData;
   loaded: boolean;
   loadError?: Error;
@@ -43,17 +42,25 @@ const useLLMConfigOptions = (): {
     error,
   } = useFetchLLMInferenceServiceConfigs(dashboardNamespace);
 
+  const llmEnabledConfigs = React.useMemo(
+    () =>
+      llmInferenceServiceConfigs.filter(
+        (config) => config.metadata.annotations?.['opendatahub.io/disabled'] !== 'true',
+      ),
+    [llmInferenceServiceConfigs],
+  );
+
   return React.useMemo(
     () => ({
       data: {
-        configs: llmInferenceServiceConfigs,
+        configs: llmEnabledConfigs,
         isLlmdSuggested: isLLMdDefault,
       },
       loaded: modelServingClusterSettingsLoaded && loaded,
       loadError: modelServingClusterSettingsError || error,
     }),
     [
-      llmInferenceServiceConfigs,
+      llmEnabledConfigs,
       loaded,
       error,
       isLLMdDefault,
@@ -97,12 +104,10 @@ const getOptions = (
 };
 
 export type LLMConfigOptionsFieldValue = {
-  selection?: ModelServerOption | null;
-  autoSelect?: boolean;
-  suggestion?: ModelServerOption | null;
+  data?: ModelServerSelectFieldData;
 };
 
-type LLMConfigOptionsFieldType = WizardField<
+export type LLMConfigOptionsFieldType = WizardField<
   LLMConfigOptionsFieldValue,
   LLMConfigOptionsData,
   { hardwareProfile?: HardwareProfileKind }
@@ -122,9 +127,10 @@ const LLMConfigOptionsField: LLMConfigOptionsFieldType['component'] = ({
 
   return (
     <ModelServerTemplateSelectField
+      label="Deployment resource"
       modelServerState={{
-        data: value,
-        setData: (data: ModelServerSelectFieldData) => onChange(data ?? {}),
+        data: value?.data,
+        setData: (data: ModelServerSelectFieldData) => onChange({ data }),
         options,
       }}
       isEditing={isEditing}
@@ -136,7 +142,7 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
   id: 'modelServer',
   step: 'modelDeployment',
   type: 'replacement',
-  isActive: isLLMInferenceServiceActive,
+  isActive: isGenerativeNonLegacy,
   reducerFunctions: {
     resolveDependencies: (formData) => ({
       hardwareProfile: formData.hardwareProfileConfig.formData.selectedProfile,
@@ -155,9 +161,11 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
 
       if (externalData?.isLlmdSuggested) {
         return {
-          selection: LLMD_OPTION,
-          autoSelect: true,
-          suggestion: LLMD_OPTION,
+          data: {
+            selection: LLMD_OPTION,
+            autoSelect: true,
+            suggestion: LLMD_OPTION,
+          },
         };
       }
       // if there is only one matching hardware profile, select it
@@ -166,20 +174,26 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
       );
       if (matchingHardwareProfileOption.length === 1) {
         return {
-          selection: matchingHardwareProfileOption[0],
-          autoSelect: true,
-          suggestion: matchingHardwareProfileOption[0],
+          data: {
+            selection: matchingHardwareProfileOption[0],
+            autoSelect: true,
+            suggestion: matchingHardwareProfileOption[0],
+          },
         };
       }
       // if there is only one option, select it
       if (options.length === 1) {
         return {
-          selection: options[0],
+          data: {
+            selection: options[0],
+          },
         };
       }
-      return { selection: null, autoSelect: false, suggestion: null };
+      return { data: { autoSelect: false } };
     },
-    validationSchema: modelServerSelectFieldSchema,
+    validationSchema: z.object({
+      data: modelServerSelectFieldSchema,
+    }),
   },
   component: LLMConfigOptionsField,
   externalDataHook: useLLMConfigOptions,

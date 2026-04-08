@@ -2,7 +2,6 @@
 import * as React from 'react';
 import { EmptyState, EmptyStateVariant, Spinner, Content } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useNavigate } from 'react-router-dom';
 import {
   fireMiscTrackingEvent,
   fireSimpleTrackingEvent,
@@ -12,6 +11,8 @@ import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { isLlamaModelEnabled } from '~/app/utilities';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
+import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
+import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import ChatModal from '~/app/Chatbot/components/ChatModal';
@@ -42,8 +43,8 @@ const ChatbotMain: React.FunctionComponent = () => {
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
   const { data: bffConfig } = useFetchBFFConfig();
-
-  const navigate = useNavigate();
+  const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
+  const [existingCollections] = useFetchVectorStores();
 
   const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
   const [configurationModalOpen, setConfigurationModalOpen] = React.useState(false);
@@ -53,6 +54,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   const { isPromptManagementModalOpen } = usePlaygroundStore();
   // Track which pane's settings are active in compare mode
   const [activePaneConfigId, setActivePaneConfigId] = React.useState<string>(DEFAULT_CONFIG_ID);
+  const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(true);
 
   // Ref to clear all chat messages (will be set by ChatbotPlayground)
   const clearAllMessagesRef = React.useRef<(() => void) | null>(null);
@@ -73,7 +75,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     useChatbotConfigStore.getState().removeConfiguration(configIdToClose);
     // Set active pane to the remaining config (or default if somehow none remain)
     setActivePaneConfigId(remainingConfigId || DEFAULT_CONFIG_ID);
-    fireSimpleTrackingEvent('Playground Compare Mode Exited');
+    fireMiscTrackingEvent('Playground Compare Mode Exited', { success: true });
   }, []);
 
   // Handle compare chat confirmation - clears messages and enters compare mode
@@ -85,7 +87,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     // Enter compare mode by duplicating the first config
     const firstConfigId = useChatbotConfigStore.getState().configIds[0] || DEFAULT_CONFIG_ID;
     useChatbotConfigStore.getState().duplicateConfiguration(firstConfigId);
-    fireSimpleTrackingEvent('Playground Compare Mode Entered');
+    fireMiscTrackingEvent('Playground Compare Mode Entered', { success: true });
   }, []);
 
   // Check if there are any models in the project or if no model is selected
@@ -132,12 +134,11 @@ const ChatbotMain: React.FunctionComponent = () => {
                   Go to <b>Model deployments</b>
                 </>
               }
-              handleActionButtonClick={() => {
-                navigate(`/ai-hub/deployments/${namespace?.name}`);
-              }}
+              actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
             />
           ) : (
             <ChatbotEmptyState
+              data-testid="create-playground-empty-state"
               title="Create your playground"
               description="Create a playground to interact with and test available generative models in this project."
               actionButtonText="Create playground"
@@ -166,8 +167,9 @@ const ChatbotMain: React.FunctionComponent = () => {
               }}
               onCompareChat={() => {
                 setIsCompareChatModalOpen(true);
-                fireSimpleTrackingEvent('Playground Compare Chat Selected');
               }}
+              onSettingsClick={() => setIsDrawerExpanded((prev) => !prev)}
+              isSettingsOpen={isDrawerExpanded}
               isCompareMode={isCompareMode}
             />
           )
@@ -208,9 +210,7 @@ const ChatbotMain: React.FunctionComponent = () => {
                   Go to <b>Model deployments</b>
                 </>
               }
-              handleActionButtonClick={() => {
-                navigate(`/ai-hub/deployments/${namespace?.name}`);
-              }}
+              actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
             />
           ) : (
             <ChatbotPlayground
@@ -222,6 +222,8 @@ const ChatbotMain: React.FunctionComponent = () => {
               setActivePaneConfigId={setActivePaneConfigId}
               onClosePane={handleClosePane}
               clearAllMessagesRef={clearAllMessagesRef}
+              isDrawerExpanded={isDrawerExpanded}
+              setIsDrawerExpanded={setIsDrawerExpanded}
             />
           )
         ) : lsdStatus?.phase === 'Failed' ? (
@@ -245,6 +247,9 @@ const ChatbotMain: React.FunctionComponent = () => {
           lsdStatus={lsdStatus}
           existingModels={models}
           maasModels={maasModels}
+          allCollections={allCollections}
+          collectionsLoaded={collectionsLoaded}
+          existingCollections={existingCollections}
         />
       )}
       {deleteModalOpen && (

@@ -2,7 +2,14 @@
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
 import type { Namespace, UserSettings } from 'mod-arch-core';
 import { mockModArchResponse } from 'mod-arch-core';
-import type { EvaluationJob } from '~/app/types';
+import type {
+  Collection,
+  CollectionsListResponse,
+  CreateEvaluationJobResponse,
+  EvalHubHealthResponse,
+  EvaluationJob,
+  Provider,
+} from '~/app/types';
 
 export const CLIENT_API_VERSION = 'v1';
 
@@ -36,6 +43,21 @@ declare global {
           response: ApiResponse<Namespace[]>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'GET /api/:apiVersion/evalhub/health',
+          options: { path: { apiVersion: string } },
+          response: ApiResponse<EvalHubHealthResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/evaluations/providers',
+          options: { path: { apiVersion: string }; query?: Record<string, string> },
+          response: ApiResponse<Provider[]>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/evaluations/collections',
+          options: { path: { apiVersion: string }; query?: Record<string, string> },
+          response: ApiResponse<CollectionsListResponse | Collection[]>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /api/:apiVersion/evaluations/jobs',
           options: { path: { apiVersion: string }; query?: Record<string, string> },
           response: ApiResponse<EvaluationJob[]>,
@@ -44,6 +66,11 @@ declare global {
           type: 'GET /api/:apiVersion/evaluations/jobs/:jobId',
           options: { path: { apiVersion: string; jobId: string } },
           response: ApiResponse<EvaluationJob>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/:apiVersion/evaluations/jobs',
+          options: { path: { apiVersion: string }; query?: Record<string, string> },
+          response: ApiResponse<CreateEvaluationJobResponse>,
         ) => Cypress.Chainable<null>);
     }
   }

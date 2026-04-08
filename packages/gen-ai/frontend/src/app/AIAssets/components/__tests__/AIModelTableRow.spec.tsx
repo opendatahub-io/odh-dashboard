@@ -59,6 +59,11 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
+jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled', () => ({
+  __esModule: true,
+  default: () => false,
+}));
+
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <MemoryRouter>
     <GenAiContext.Provider value={mockGenAiContextValue}>
@@ -104,6 +109,9 @@ describe('AIModelTableRow', () => {
     lsdStatus: null,
     allModels: [] as AIModel[],
     playgroundModels: [] as LlamaModel[],
+    allCollections: [],
+    collectionsLoaded: true,
+    existingCollections: [],
   };
 
   beforeEach(() => {

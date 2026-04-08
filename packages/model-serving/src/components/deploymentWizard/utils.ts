@@ -1,8 +1,4 @@
-import {
-  MetadataAnnotation,
-  ServingRuntimeKind,
-  type SecretKind,
-} from '@odh-dashboard/internal/k8sTypes';
+import { MetadataAnnotation, type SecretKind } from '@odh-dashboard/internal/k8sTypes';
 import { getGeneratedSecretName } from '@odh-dashboard/internal/api/index';
 import {
   getDisplayNameFromK8sResource,
@@ -39,7 +35,7 @@ import type {
 import { isDeploymentAuthEnabled } from '../../concepts/auth';
 
 export const getDeploymentWizardRoute = (): string => {
-  return '/ai-hub/deployments/deploy';
+  return '/ai-hub/models/deployments/deploy';
 };
 
 export const isExistingModelLocation = (data?: ModelLocationData): data is ModelLocationData => {
@@ -77,12 +73,17 @@ export const deployModel = async (
   deployMethod?: DeployExtension,
   existingDeployment?: Deployment,
   modelResource?: Deployment['model'],
-  serverResource?: ServingRuntimeKind,
+  serverResource?: Deployment['server'],
   serverResourceTemplateName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
   applyFieldData?: DeploymentAssemblyFn,
-): Promise<void> => {
+  runPreDeploy?: (deployment: Deployment, existingDeployment?: Deployment) => Promise<Deployment>,
+  runPostDeploy?: (
+    deployedModel: Deployment['model'],
+    existingDeployment?: Deployment,
+  ) => Promise<void>,
+): Promise<Deployment> => {
   const projectName = wizardState.project.projectName || modelResource?.metadata.namespace;
   if (!projectName) {
     throw new Error('Project is required');
@@ -130,6 +131,16 @@ export const deployModel = async (
         ]
       : []),
   ]);
+  if (runPreDeploy && modelResource) {
+    await runPreDeploy(
+      {
+        modelServingPlatformId: deployMethod.platform,
+        model: modelResource,
+        server: serverResource,
+      },
+      existingDeployment,
+    );
+  }
 
   // Create secret
   const newSecret = await handleConnectionCreation(
@@ -154,7 +165,7 @@ export const deployModel = async (
     wizardState,
     projectName,
     existingDeployment,
-    modelResourceWithNamespace,
+    modelResourceWithConnection,
     serverResource,
     serverResourceTemplateName,
     false,
@@ -175,6 +186,11 @@ export const deployModel = async (
       false,
     );
   }
+  if (runPostDeploy) {
+    await runPostDeploy(deploymentResult.model, existingDeployment);
+  }
+
+  return deploymentResult;
 };
 
 export const resolveConnectionType = (

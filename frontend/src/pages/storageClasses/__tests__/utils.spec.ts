@@ -53,8 +53,11 @@ describe('isValidAccessModeSettings', () => {
     expect(isValidAccessModeSettings(value)).toBe(true);
   });
 
+  it('returns true if accessModeSettings is undefined (pre-access-mode configs)', () => {
+    expect(isValidAccessModeSettings(undefined)).toBe(true);
+  });
+
   it('returns false if value is not an object', () => {
-    expect(isValidAccessModeSettings(undefined)).toBe(false);
     expect(isValidAccessModeSettings(true)).toBe(false);
     expect(isValidAccessModeSettings('')).toBe(false);
     expect(isValidAccessModeSettings('random string')).toBe(false);

@@ -1,13 +1,6 @@
 /* eslint-disable camelcase -- BFF API uses snake_case for total_size, next_page_token */
-import {
-  APIOptions,
-  handleRestFailures,
-  isModArchResponse,
-  restGET,
-  restCREATE,
-} from 'mod-arch-core';
+import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import type { PipelineRun } from '~/app/types';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { BFF_API_VERSION, DEFAULT_PAGE_SIZE, URL_PREFIX } from '~/app/utilities/const';
 
 /** Response shape from BFF pipeline-runs API. Exported for hooks/tables that need pagination. */
@@ -70,36 +63,22 @@ export async function getPipelineRunsFromBFF(
   throw new Error('Invalid response format');
 }
 
-export type CreatePipelineRunParams = {
-  namespace: string;
-  data: ConfigureSchema;
-};
-
-/**
- * Creates a new pipeline run via the AutoML BFF API.
- * @see packages/automl/docs/pipeline-runs-api.md
- */
-export async function createPipelineRun(
+export async function getPipelineRunFromBFF(
   hostPath: string,
-  params: CreatePipelineRunParams,
+  runId: string,
+  namespace: string,
   opts?: APIOptions,
 ): Promise<PipelineRun> {
-  const { namespace, data } = params;
-
-  const queryParams: Record<string, string> = {
-    namespace,
-  };
+  const queryParams: Record<string, string> = { namespace };
 
   const response = await handleRestFailures(
-    restCREATE(
+    restGET(
       hostPath,
-      `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs`,
-      data,
+      `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(runId)}`,
       queryParams,
       opts ?? {},
     ),
   );
-
   if (isModArchResponse<PipelineRun>(response)) {
     return response.data;
   }

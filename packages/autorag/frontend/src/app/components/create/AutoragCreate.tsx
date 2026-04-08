@@ -1,9 +1,16 @@
-import { FormGroup, TextArea, TextInput } from '@patternfly/react-core';
+import {
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  TextArea,
+  TextInput,
+} from '@patternfly/react-core';
 import React, { useEffect } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router';
+import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
-import SecretSelector, { SecretSelection } from '../common/SecretSelector';
 
 function AutoragCreate(): React.JSX.Element {
   const { namespace } = useParams();
@@ -28,9 +35,22 @@ function AutoragCreate(): React.JSX.Element {
       <Controller
         control={form.control}
         name="display_name"
-        render={({ field }) => (
+        render={({ field, fieldState }) => (
           <FormGroup fieldId={field.name} label="Name" isRequired>
-            <TextInput {...field} id={field.name} type="text" isRequired />
+            <TextInput
+              {...field}
+              id={field.name}
+              type="text"
+              isRequired
+              validated={fieldState.invalid ? 'error' : undefined}
+            />
+            {fieldState.error && (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem variant="error">{fieldState.error.message}</HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            )}
           </FormGroup>
         )}
       />

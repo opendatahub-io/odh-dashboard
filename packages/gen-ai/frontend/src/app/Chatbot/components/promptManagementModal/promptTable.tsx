@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Button,
+  Content,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
@@ -18,6 +23,7 @@ import {
   debounce,
   LabelGroup,
   Label,
+  Title,
 } from '@patternfly/react-core';
 import { SearchIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, InnerScrollContainer } from '@patternfly/react-table';
@@ -28,9 +34,14 @@ import PromptDrawer from './promptDrawer';
 type PromptTableProps = {
   onClickLoad: (prompt: MLflowPromptVersion) => void;
   onClose: () => void;
+  displayText: { title: string; description: string };
 };
 
-export default function PromptTable({ onClickLoad, onClose }: PromptTableProps): React.ReactNode {
+export default function PromptTable({
+  onClickLoad,
+  onClose,
+  displayText,
+}: PromptTableProps): React.ReactNode {
   const [perPage, setPerPage] = useState(10);
   const [activePage, setActivePage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<MLflowPrompt | null>(null);
@@ -61,6 +72,8 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
     error,
   } = usePromptVersions(selectedRow?.name ?? null);
   const thisPage = rows.slice((activePage - 1) * perPage, activePage * perPage);
+  const isDrawerOpen = selectedRow !== null || isLoadingDetails;
+
   useEffect(() => {
     if (selectedPromptVersions.length > 0 && selectedVersion === null) {
       setSelectedVersion(selectedPromptVersions[0].version);
@@ -89,35 +102,37 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
 
   function buildFooter() {
     return (
-      <Flex
-        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        style={{ width: '100%', paddingTop: 'var(--pf-t--global--spacer--md)' }}
-      >
-        <Flex rowGap={{ default: 'rowGapXs' }}>
-          <Button
-            variant="primary"
-            disabled={selectedVersion === null || isLoadingDetails}
-            onClick={() => {
-              const prompt = selectedPromptVersions.find((v) => v.version === selectedVersion);
-              if (prompt) {
-                onClickLoad(prompt);
-              }
-            }}
-          >
-            {isLoadingDetails ? (
-              <>
-                <Spinner size="sm" aria-label="Loading prompt details" /> Loading...
-              </>
-            ) : (
-              'Load in Playground'
-            )}
-          </Button>
-          <Button variant="link" onClick={onClose}>
-            Cancel
-          </Button>
+      <ModalFooter>
+        <Flex
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          style={{ width: '100%', paddingTop: 'var(--pf-t--global--spacer--md)' }}
+        >
+          <Flex rowGap={{ default: 'rowGapXs' }}>
+            <Button
+              variant="primary"
+              disabled={selectedVersion === null || isLoadingDetails}
+              onClick={() => {
+                const prompt = selectedPromptVersions.find((v) => v.version === selectedVersion);
+                if (prompt) {
+                  onClickLoad(prompt);
+                }
+              }}
+            >
+              {isLoadingDetails ? (
+                <>
+                  <Spinner size="sm" aria-label="Loading prompt details" /> Loading...
+                </>
+              ) : (
+                'Load in Playground'
+              )}
+            </Button>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </Flex>
+          {!isDrawerOpen && renderPagination('bottom', false)}
         </Flex>
-        {selectedVersion === null && renderPagination('bottom', false)}
-      </Flex>
+      </ModalFooter>
     );
   }
 
@@ -145,9 +160,7 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
     );
   }
 
-  const columns = selectedVersion
-    ? ['Name', 'Version']
-    : ['Name', 'Version', 'Last Modified', 'Tags'];
+  const columns = isDrawerOpen ? ['Name', 'Version'] : ['Name', 'Version', 'Last Modified', 'Tags'];
 
   function handleRowClick(row: MLflowPrompt) {
     if (selectedRow?.name !== row.name) {
@@ -179,16 +192,16 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
     </Toolbar>
   );
 
+  let tableContent = null;
+
   if (isLoadingList || isFetchingNextPage) {
-    return (
+    tableContent = (
       <Flex justifyContent={{ default: 'justifyContentCenter' }} style={{ minHeight: '400px' }}>
         <Spinner aria-label="Loading prompts" />
       </Flex>
     );
-  }
-
-  if (listError) {
-    return (
+  } else if (listError) {
+    tableContent = (
       <EmptyState
         titleText="Unable to load prompts"
         icon={ExclamationCircleIcon}
@@ -198,26 +211,23 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
         <EmptyStateBody>{listError.message}</EmptyStateBody>
       </EmptyState>
     );
-  }
-
-  if (thisPage.length === 0) {
-    return (
-      <>
-        {tableToolbar}
-        <EmptyState
-          titleText="No prompts found"
-          icon={SearchIcon}
-          headingLevel="h4"
-          variant={EmptyStateVariant.sm}
-        >
-          <EmptyStateBody>No saved prompts are available in this project.</EmptyStateBody>
-        </EmptyState>
-      </>
+  } else if (thisPage.length === 0) {
+    tableContent = (
+      <EmptyState
+        titleText="No prompts found"
+        icon={SearchIcon}
+        headingLevel="h4"
+        variant={EmptyStateVariant.sm}
+      >
+        <EmptyStateBody>No saved prompts are available in this project.</EmptyStateBody>
+      </EmptyState>
     );
+  } else {
+    tableContent = buildBody();
   }
 
-  return (
-    <>
+  function buildBody() {
+    return (
       <PromptDrawer
         isLoadingDetails={isLoadingDetails}
         selectedPromptVersions={selectedPromptVersions}
@@ -226,8 +236,7 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
         onClose={handleClearSelectedRow}
       >
         <PageSection isFilled aria-label="Paginated table data" style={{ minHeight: '400px' }}>
-          {tableToolbar}
-          <InnerScrollContainer style={{ maxHeight: '400px' }}>
+          <InnerScrollContainer>
             <Table variant="compact" aria-label="Paginated Table">
               <Thead>
                 <Tr>
@@ -253,7 +262,7 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
                       </div>
                     </Td>
                     <Td dataLabel={columns[1]}>{row.latest_version}</Td>
-                    {!selectedVersion && (
+                    {!isDrawerOpen && (
                       <>
                         <Td dataLabel={columns[2]}>
                           <Timestamp
@@ -277,7 +286,20 @@ export default function PromptTable({ onClickLoad, onClose }: PromptTableProps):
           </InnerScrollContainer>
         </PageSection>
       </PromptDrawer>
+    );
+  }
+
+  return (
+    <Modal isOpen variant="large" onClose={onClose}>
+      <ModalHeader>
+        <Title headingLevel="h1">{displayText.title}</Title>
+        <Content component="p" className="pf-v6-u-text-color-subtle">
+          {displayText.description}
+        </Content>
+        {tableToolbar}
+      </ModalHeader>
+      <ModalBody style={{ height: '40vh', overflow: 'auto' }}>{tableContent}</ModalBody>
       {buildFooter()}
-    </>
+    </Modal>
   );
 }

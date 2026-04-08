@@ -36,6 +36,22 @@ func (app *App) NotFound(w http.ResponseWriter, r *http.Request) {
 	app.notFoundResponse(w, r)
 }
 
+// Forbidden exposes the internal forbidden helper for extensions.
+func (app *App) Forbidden(w http.ResponseWriter, r *http.Request, message string) {
+	if app == nil {
+		return
+	}
+	app.forbiddenResponse(w, r, message)
+}
+
+// Conflict exposes the internal conflict helper for extensions.
+func (app *App) Conflict(w http.ResponseWriter, r *http.Request, message string) {
+	if app == nil {
+		return
+	}
+	app.conflictResponse(w, r, message)
+}
+
 // NotImplemented writes a standard placeholder response for unimplemented endpoints.
 func (app *App) NotImplemented(w http.ResponseWriter, r *http.Request, feature string) {
 	app.serverErrorResponse(w, r, fmt.Errorf("%s is not implemented", feature))

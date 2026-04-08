@@ -74,6 +74,7 @@ export const useFormToResourcesTransformer = (
     return {
       resources: {
         model: deployment.model,
+        ...(deployment.server ? { server: deployment.server } : {}),
       },
       loaded,
       errors,

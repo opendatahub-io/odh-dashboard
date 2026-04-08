@@ -213,7 +213,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       cy.step('Navigate to the Cluster Settings');
-      clusterSettings.visit(false);
+      cy.visitWithLogin('/settings/cluster/general', LDAP_CONTRIBUTOR_USER);
 
       pageNotfound.findPage().should('exist');
 
@@ -261,7 +261,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
       servingRuntimes.visit();
       servingRuntimes.findAppTitle().should('exist');
 
-      cy.step('Access Settings -> Model resources and operations -> AI registry settings');
+      cy.step('Access Settings -> Model resources and operations -> Model registry settings');
       modelRegistrySettings.visit();
       modelRegistrySettings.findPageTitle().should('contain', testData.aiRegistryPageTitle);
 

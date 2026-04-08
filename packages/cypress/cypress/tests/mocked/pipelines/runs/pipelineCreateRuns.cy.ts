@@ -13,6 +13,7 @@ import {
   buildMockPipelineVersion,
   buildMockRecurringRunKF,
   buildMockExperimentKF,
+  mockDashboardConfig,
   mockArgoWorkflowPipelineVersion,
 } from '@odh-dashboard/internal/__mocks__';
 import { getCorePipelineSpec } from '@odh-dashboard/internal/concepts/pipelines/getCorePipelineSpec';
@@ -127,6 +128,250 @@ describe('Pipeline create runs', () => {
   });
 
   describe('Runs', () => {
+    describe('MLflow integration', () => {
+      beforeEach(() => {
+        cy.interceptOdh(
+          'GET /api/config',
+          mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
+        );
+        pipelineRunsGlobal.visit(projectName);
+
+        createRunPage.mockGetExperiments(projectName, mockExperiments);
+        createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+        createRunPage.mockGetPipelineVersions(
+          projectName,
+          [mockPipelineVersion],
+          mockPipelineVersion.pipeline_id,
+        );
+        createRunPage.mockGetMlflowExperiments(projectName, [
+          { id: 'mlflow-exp-1', name: 'MLflow experiment 1' },
+        ]);
+
+        pipelineRunsGlobal.findCreateRunButton().click();
+        createRunPage.find();
+      });
+
+      it('creates an active run with MLflow plugin payload', () => {
+        const createRunParams = {
+          display_name: 'Run with mlflow',
+          description: 'Run with mlflow description',
+          run_id: 'run-with-mlflow-id',
+          runtime_config: {
+            parameters: {
+              min_max_scaler: false,
+              neighbors: 2,
+              standard_scaler: 'yes',
+            },
+          },
+        } satisfies Partial<PipelineRunKF>;
+
+        createRunPage.fillName(createRunParams.display_name);
+        createRunPage.fillDescription(createRunParams.description);
+        createRunPage.fillRunGroup('Test experiment 1');
+        createRunPage.pipelineSelect.findToggleButton().click();
+        createRunPage.selectPipelineByName('Test pipeline');
+        createRunPage.mlflowExperimentSelect.findToggleButton().click();
+        createRunPage.selectMlflowExperimentByName('MLflow experiment 1');
+
+        fillDefaultMlflowRunParams();
+
+        createRunPage
+          .mockCreateRun(projectName, mockPipelineVersion, createRunParams)
+          .as('createRunWithMlflow');
+        createRunPage.submit();
+
+        cy.wait('@createRunWithMlflow').then((interception) => {
+          expect(interception.request.body).to.eql({
+            display_name: 'Run with mlflow',
+            description: 'Run with mlflow description',
+            pipeline_version_reference: {
+              pipeline_id: 'test-pipeline',
+              pipeline_version_id: 'test-pipeline-version',
+            },
+            runtime_config: {
+              parameters: {
+                min_max_scaler: false,
+                neighbors: 2,
+                standard_scaler: 'yes',
+              },
+            },
+            service_account: '',
+            experiment_id: 'experiment-1',
+            plugins_input: {
+              mlflow: {
+                experiment_name: 'MLflow experiment 1',
+              },
+            },
+          });
+        });
+      });
+
+      it('keeps submit disabled when MLflow existing mode has no selected experiment', () => {
+        createRunPage.fillName('Run with missing mlflow selection');
+        createRunPage.fillRunGroup('Test experiment 1');
+        createRunPage.pipelineSelect.findToggleButton().click();
+        createRunPage.selectPipelineByName('Test pipeline');
+
+        fillDefaultMlflowRunParams();
+
+        createRunPage.findSubmitButton().should('be.disabled');
+      });
+
+      it('keeps submit disabled when switching to new MLflow mode with empty name', () => {
+        createRunPage.fillName('Run with empty new mlflow experiment');
+        createRunPage.fillRunGroup('Test experiment 1');
+        createRunPage.pipelineSelect.findToggleButton().click();
+        createRunPage.selectPipelineByName('Test pipeline');
+        createRunPage.mlflowExperimentSelect.findToggleButton().click();
+        createRunPage.selectMlflowExperimentByName('MLflow experiment 1');
+
+        fillDefaultMlflowRunParams();
+
+        createRunPage.findSubmitButton().should('be.enabled');
+
+        createRunPage.findMlflowNewRadio().click();
+        createRunPage.findMlflowNewExperimentNameInput().type('   ');
+        createRunPage.findSubmitButton().should('be.disabled');
+      });
+
+      it('creates a run with MLflow tracking disabled and disabled flag in plugins_input', () => {
+        const createRunParams = {
+          display_name: 'Run without mlflow',
+          description: '',
+          run_id: 'run-no-mlflow-id',
+          runtime_config: {
+            parameters: {
+              min_max_scaler: false,
+              neighbors: 2,
+              standard_scaler: 'yes',
+            },
+          },
+        } satisfies Partial<PipelineRunKF>;
+
+        createRunPage.fillName(createRunParams.display_name);
+        createRunPage.fillRunGroup('Test experiment 1');
+        createRunPage.pipelineSelect.findToggleButton().click();
+        createRunPage.selectPipelineByName('Test pipeline');
+
+        createRunPage.findMlflowExperimentTrackingToggle().should('be.visible');
+        createRunPage.findMlflowExperimentTrackingToggle().click();
+
+        fillDefaultMlflowRunParams();
+
+        createRunPage
+          .mockCreateRun(projectName, mockPipelineVersion, createRunParams)
+          .as('createRunNoMlflow');
+        createRunPage.submit();
+
+        cy.wait('@createRunNoMlflow').then((interception) => {
+          expect(interception.request.body).to.eql({
+            display_name: 'Run without mlflow',
+            description: '',
+            pipeline_version_reference: {
+              pipeline_id: 'test-pipeline',
+              pipeline_version_id: 'test-pipeline-version',
+            },
+            runtime_config: {
+              parameters: {
+                min_max_scaler: false,
+                neighbors: 2,
+                standard_scaler: 'yes',
+              },
+            },
+            service_account: '',
+            experiment_id: 'experiment-1',
+            plugins_input: {
+              mlflow: {
+                disabled: true,
+              },
+            },
+          });
+        });
+      });
+
+      it('creates a run with a new MLflow experiment name', () => {
+        const createRunParams = {
+          display_name: 'Run with new mlflow experiment',
+          description: '',
+          run_id: 'run-new-mlflow-id',
+          runtime_config: {
+            parameters: {
+              min_max_scaler: false,
+              neighbors: 2,
+              standard_scaler: 'yes',
+            },
+          },
+        } satisfies Partial<PipelineRunKF>;
+
+        createRunPage.fillName(createRunParams.display_name);
+        createRunPage.fillRunGroup('Test experiment 1');
+        createRunPage.pipelineSelect.findToggleButton().click();
+        createRunPage.selectPipelineByName('Test pipeline');
+
+        createRunPage.findMlflowNewRadio().click();
+        createRunPage.findMlflowNewExperimentNameInput().type('My brand new experiment');
+
+        fillDefaultMlflowRunParams();
+
+        createRunPage
+          .mockCreateRun(projectName, mockPipelineVersion, createRunParams)
+          .as('createRunNewMlflow');
+        createRunPage.submit();
+
+        cy.wait('@createRunNewMlflow').then((interception) => {
+          expect(interception.request.body).to.eql({
+            display_name: 'Run with new mlflow experiment',
+            description: '',
+            pipeline_version_reference: {
+              pipeline_id: 'test-pipeline',
+              pipeline_version_id: 'test-pipeline-version',
+            },
+            runtime_config: {
+              parameters: {
+                min_max_scaler: false,
+                neighbors: 2,
+                standard_scaler: 'yes',
+              },
+            },
+            service_account: '',
+            experiment_id: 'experiment-1',
+            plugins_input: {
+              mlflow: {
+                experiment_name: 'My brand new experiment',
+              },
+            },
+          });
+        });
+      });
+    });
+
+    it('keeps submit disabled when run group is empty', () => {
+      pipelineRunsGlobal.visit(projectName);
+
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+      createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+      createRunPage.mockGetPipelineVersions(
+        projectName,
+        [mockPipelineVersion],
+        mockPipelineVersion.pipeline_id,
+      );
+
+      pipelineRunsGlobal.findCreateRunButton().click();
+      createRunPage.find();
+
+      createRunPage.fillName('Run with empty run group');
+      createRunPage.pipelineSelect.findToggleButton().click();
+      createRunPage.selectPipelineByName('Test pipeline');
+
+      const paramsSection = createRunPage.getParamsSection();
+      paramsSection.findParamById('radio-min_max_scaler-false').click();
+      paramsSection.fillParamInputById('neighbors', '2');
+      paramsSection.fillParamInputById('standard_scaler', 'yes');
+
+      createRunPage.findRunGroupInput().should('have.value', '');
+      createRunPage.findSubmitButton().should('be.disabled');
+    });
+
     it('switches to scheduled runs from triggered', () => {
       pipelineRunsGlobal.visit(projectName);
 
@@ -206,11 +451,8 @@ describe('Pipeline create runs', () => {
       cy.findByTestId('duplicate-name-help-text').should('be.visible');
       createRunPage.fillName('New run');
       createRunPage.fillDescription(veryLongDesc);
-      createRunPage.experimentSelect
-        .findToggleButton()
-        .should('contain.text', 'Select an experiment');
-      createRunPage.experimentSelect.findToggleButton().should('not.be.disabled').click();
-      createRunPage.selectExperimentByName('Test experiment 1');
+      createRunPage.findRunGroupInput().should('have.value', '');
+      createRunPage.fillRunGroup('Test experiment 1');
       createRunPage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
       createRunPage.selectPipelineByName('Test pipeline');
       createRunPage.pipelineVersionSelect.findToggleButton().should('not.be.disabled');
@@ -281,9 +523,7 @@ describe('Pipeline create runs', () => {
       );
 
       // Verify pre-populated values & submit
-      duplicateRunPage.experimentSelect
-        .findToggleButton()
-        .should('have.text', mockExperiment.display_name);
+      duplicateRunPage.findRunGroupInput().should('have.value', mockExperiment.display_name);
       duplicateRunPage.pipelineSelect
         .findToggleButton()
         .should('have.text', mockPipeline.display_name);
@@ -307,6 +547,7 @@ describe('Pipeline create runs', () => {
       cy.wait('@duplicateRun').then((interception) => {
         expect(interception.request.body).to.eql({
           display_name: 'Duplicate of Test run',
+          description: '',
           pipeline_version_reference: {
             pipeline_id: 'test-pipeline',
             pipeline_version_id: 'test-pipeline-version',
@@ -410,8 +651,7 @@ describe('Pipeline create runs', () => {
 
       // Fill required fields
       createRunPage.fillName('New run');
-      createRunPage.experimentSelect.findToggleButton().click();
-      createRunPage.selectExperimentByName('Test experiment 1');
+      createRunPage.fillRunGroup('Test experiment 1');
       createRunPage.pipelineSelect.findToggleButton().click();
       createRunPage.selectPipelineByName('Test pipeline');
 
@@ -530,8 +770,7 @@ describe('Pipeline create runs', () => {
 
       // Fill out the form with all input parameters
       createRunPage.fillName('New run');
-      createRunPage.experimentSelect.findToggleButton().should('not.be.disabled').click();
-      createRunPage.selectExperimentByName('Test experiment 1');
+      createRunPage.fillRunGroup('Test experiment 1');
       createRunPage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
       createRunPage.selectPipelineByName('Test pipeline');
       createRunPage.pipelineVersionSelect.findToggleButton().should('not.be.disabled');
@@ -622,8 +861,7 @@ describe('Pipeline create runs', () => {
 
       // Fill required fields
       createRunPage.fillName('New run with new version');
-      createRunPage.experimentSelect.findToggleButton().click();
-      createRunPage.selectExperimentByName('Test experiment 1');
+      createRunPage.fillRunGroup('Test experiment 1');
       createRunPage.pipelineSelect.findToggleButton().click();
       createRunPage.selectPipelineByName('Test pipeline');
 
@@ -676,9 +914,9 @@ describe('Pipeline create runs', () => {
       );
     });
 
-    it('shows and opens the create new experiment button in the experiment dropdown', () => {
+    it('shows the run group input instead of the experiment dropdown', () => {
       pipelineRunsGlobal.visit(projectName);
-      // Mock experiments for the dropdown
+      // Mock experiments for run group validation
       createRunPage.mockGetExperiments(projectName, mockExperiments);
       createRunPage.mockGetPipelines(projectName, [mockPipeline]);
       createRunPage.mockGetPipelineVersions(
@@ -691,16 +929,7 @@ describe('Pipeline create runs', () => {
       pipelineRunsGlobal.findCreateRunButton().click();
       createRunPage.find();
 
-      // Open the experiment selector dropdown
-      createRunPage.experimentSelect.findToggleButton().should('not.be.disabled').click();
-
-      // The button should be visible in the dropdown
-      cy.findByRole('button', { name: /create new experiment/i })
-        .should('be.visible')
-        .click();
-
-      // The create experiment modal should open
-      cy.findByRole('dialog', { name: /create experiment/i }).should('be.visible');
+      createRunPage.findRunGroupInput().should('be.visible').and('have.value', '');
     });
   });
 
@@ -728,12 +957,8 @@ describe('Pipeline create runs', () => {
 
     it('creates a schedule', () => {
       createScheduleRunCommonTest();
-      // Default is archived, so it should not pre-select the default
-      createSchedulePage.experimentSelect
-        .findToggleButton()
-        .should('contain.text', 'Select an experiment');
-      createSchedulePage.experimentSelect.findToggleButton().should('not.be.disabled').click();
-      createSchedulePage.selectExperimentByName('Test experiment 1');
+      createSchedulePage.findRunGroupInput().should('have.value', '');
+      createSchedulePage.fillRunGroup('Test experiment 1');
       createSchedulePage
         .mockCreateRecurringRun(projectName, mockPipelineVersion, createRecurringRunParams)
         .as('createSchedule');
@@ -766,11 +991,67 @@ describe('Pipeline create runs', () => {
       );
     });
 
+    it('creates a schedule with MLflow plugin payload', () => {
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
+      );
+      pipelineRunsGlobal.visit(projectName);
+      pipelineRunsGlobal.findSchedulesTab().click();
+
+      createSchedulePage.mockGetExperiments(projectName, mockExperiments);
+      createSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
+      createSchedulePage.mockGetPipelineVersions(
+        projectName,
+        [mockPipelineVersion],
+        mockPipelineVersion.pipeline_id,
+      );
+      createSchedulePage.mockGetMlflowExperiments(projectName, [
+        { id: 'mlflow-exp-1', name: 'MLflow experiment 1' },
+      ]);
+
+      pipelineRunsGlobal.findScheduleRunButton().click();
+      createSchedulePage.find();
+
+      createSchedulePage.fillName('Schedule with mlflow');
+      createSchedulePage.fillDescription('Schedule with mlflow desc');
+      createSchedulePage.fillRunGroup('Test experiment 1');
+      createSchedulePage.pipelineSelect.findToggleButton().click();
+      createSchedulePage.selectPipelineByName('Test pipeline');
+      createSchedulePage.findUseFixedVersionRadio().click();
+      createSchedulePage.pipelineVersionSelect.findToggleButton().should('not.be.disabled');
+
+      createSchedulePage.mlflowExperimentSelect.findToggleButton().click();
+      createSchedulePage.selectMlflowExperimentByName('MLflow experiment 1');
+
+      const paramsSection = createSchedulePage.getParamsSection();
+      paramsSection.findParamById('radio-min_max_scaler-false').click();
+      paramsSection.fillParamInputById('neighbors', '1');
+      paramsSection.fillParamInputById('standard_scaler', 'no');
+
+      createSchedulePage
+        .mockCreateRecurringRun(projectName, mockPipelineVersion, {
+          ...createRecurringRunParams,
+          display_name: 'Schedule with mlflow',
+          description: 'Schedule with mlflow desc',
+        })
+        .as('createScheduleWithMlflow');
+      createSchedulePage.submit();
+
+      cy.wait('@createScheduleWithMlflow').then((interception) => {
+        expect(interception.request.body).to.have.property('plugins_input');
+        expect(interception.request.body.plugins_input).to.eql({
+          mlflow: {
+            experiment_name: 'MLflow experiment 1',
+          },
+        });
+      });
+    });
+
     it('creates a schedule with trigger type cron without whitespace', () => {
       // Fill out the form with a schedule and submit
       createScheduleRunCommonTest();
-      createSchedulePage.experimentSelect.findToggleButton().should('not.be.disabled').click();
-      createSchedulePage.selectExperimentByName('Test experiment 1');
+      createSchedulePage.fillRunGroup('Test experiment 1');
       createSchedulePage.findScheduledRunTypeSelector().findSelectOption('Cron').click();
       createSchedulePage.findScheduledRunCron().fill('@every 5m');
       createSchedulePage
@@ -806,8 +1087,7 @@ describe('Pipeline create runs', () => {
 
     it('creates a schedule with trigger type cron with whitespace', () => {
       createScheduleRunCommonTest();
-      createSchedulePage.experimentSelect.findToggleButton().should('not.be.disabled').click();
-      createSchedulePage.selectExperimentByName('Test experiment 1');
+      createSchedulePage.fillRunGroup('Test experiment 1');
       createSchedulePage.findScheduledRunTypeSelector().findSelectOption('Cron').click();
       createSchedulePage.findScheduledRunCron().fill('@every 5m ');
       createSchedulePage
@@ -870,9 +1150,7 @@ describe('Pipeline create runs', () => {
       );
 
       // Verify pre-populated values & submit
-      duplicateSchedulePage.experimentSelect
-        .findToggleButton()
-        .should('have.text', mockExperiment.display_name);
+      duplicateSchedulePage.findRunGroupInput().should('have.value', mockExperiment.display_name);
       duplicateSchedulePage.pipelineSelect
         .findToggleButton()
         .should('have.text', mockPipeline.display_name);
@@ -892,6 +1170,7 @@ describe('Pipeline create runs', () => {
       cy.wait('@duplicateSchedule').then((interception) => {
         expect(interception.request.body).to.eql({
           display_name: 'Duplicate of Test recurring run',
+          description: '',
           pipeline_version_reference: {
             pipeline_id: 'test-pipeline',
             pipeline_version_id: 'test-pipeline-version',
@@ -925,7 +1204,10 @@ describe('Pipeline create runs', () => {
       const mockExperiment = { ...mockExperiments[0], storage_state: StorageStateKF.ARCHIVED };
 
       // Mock experiments, pipelines & versions for form select dropdowns
-      duplicateSchedulePage.mockGetExperiments(projectName, mockExperiments);
+      duplicateSchedulePage.mockGetExperiments(projectName, [
+        mockExperiment,
+        ...mockExperiments.slice(1),
+      ]);
       duplicateSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
       duplicateSchedulePage.mockGetPipelineVersions(
         projectName,
@@ -948,10 +1230,8 @@ describe('Pipeline create runs', () => {
         `/develop-train/experiments/${projectName}/experiment-1/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
       );
 
-      // Verify pre-populated values & submit
-      duplicateSchedulePage.experimentSelect
-        .findToggleButton()
-        .should('have.text', 'Select an experiment');
+      // Verify pre-populated values
+      duplicateSchedulePage.findRunGroupInput().should('have.value', mockExperiment.display_name);
     });
 
     it('shows cron & periodic fields', () => {
@@ -1104,8 +1384,7 @@ describe('Pipeline create runs', () => {
 
       createRunPage.find();
 
-      createRunPage.experimentSelect.findToggleButton().should('not.be.disabled').click();
-      createRunPage.selectExperimentByName(mockExperiments[0].display_name);
+      createRunPage.fillRunGroup(mockExperiments[0].display_name);
 
       createRunPage.fillName(createRunParams.display_name);
       createRunPage.fillDescription(createRunParams.description);
@@ -1177,8 +1456,7 @@ describe('Pipeline create runs', () => {
 
       createRunPage.find();
 
-      createRunPage.experimentSelect.findToggleButton().should('not.be.disabled').click();
-      createRunPage.selectExperimentByName(mockExperiments[0].display_name);
+      createRunPage.fillRunGroup(mockExperiments[0].display_name);
 
       createRunPage.fillName(createRunParams.display_name);
       createRunPage.fillDescription(createRunParams.description);
@@ -1327,4 +1605,11 @@ const createScheduleRunCommonTest = () => {
   paramsSection.findParamById('radio-min_max_scaler-false').click();
   paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));
   paramsSection.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
+};
+
+const fillDefaultMlflowRunParams = () => {
+  const paramsSection = createRunPage.getParamsSection();
+  paramsSection.findParamById('radio-min_max_scaler-false').click();
+  paramsSection.fillParamInputById('neighbors', '2');
+  paramsSection.fillParamInputById('standard_scaler', 'yes');
 };

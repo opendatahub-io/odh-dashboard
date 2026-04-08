@@ -1,21 +1,14 @@
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type {
   ModelAvailabilityField,
   WizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
-import { MAAS_TIERS_ANNOTATION, type LLMdDeployment, type LLMInferenceServiceKind } from '../types';
-import { LLMD_OPTION } from '../deployments/server';
+import { type LLMdDeployment, type LLMInferenceServiceKind } from '../types';
+import { isLLMInferenceServiceActive } from '../formUtils';
 
 export const modelAvailabilityField: ModelAvailabilityField = {
   id: 'modelAvailability',
   type: 'modifier',
-  isActive: (wizardFormData) => {
-    return (
-      wizardFormData.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE &&
-      !wizardFormData.modelType.data.legacyVLLM &&
-      wizardFormData.modelServer?.data?.selection?.name === LLMD_OPTION.name
-    );
-  },
+  isActive: isLLMInferenceServiceActive,
   // MaaS checkbox is now provided by the maas package via WizardField2Extension
   showSaveAsMaaS: false,
 };
@@ -25,9 +18,6 @@ export const extractModelAvailabilityData = (
 ): WizardFormData['state']['modelAvailability']['data'] => {
   return {
     saveAsAiAsset: deployment.model.metadata.labels?.['opendatahub.io/genai-asset'] === 'true',
-    // Note: MaaS data is now extracted by the maas package's WizardFieldExtractorExtension
-    // This field is kept for backwards compatibility but may be undefined
-    saveAsMaaS: !!deployment.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION],
     useCase: deployment.model.metadata.annotations?.['opendatahub.io/genai-use-case'],
   };
 };

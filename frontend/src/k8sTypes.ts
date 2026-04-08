@@ -120,6 +120,7 @@ type ImageStreamSpecTagAnnotations = Partial<{
 export type NotebookAnnotations = Partial<{
   'kubeflow-resource-stopped': string | null; // datestamp of stop (if omitted, it is running),  `odh-notebook-controller-lock` is set when first creating the notebook to avoid race conditions, it's a fake stop
   'notebooks.kubeflow.org/last-activity': string; // datestamp of last use
+  'opendatahub.io/user': string; // translated username -- see translateUsername
   'opendatahub.io/username': string; // the untranslated username behind the notebook
   'notebooks.opendatahub.io/last-image-selection': string; // the last image they selected
   'opendatahub.io/image-display-name': string; // the display name of the image
@@ -383,9 +384,6 @@ export type NotebookKind = K8sResourceCommon & {
     annotations?: DisplayNameAnnotations & NotebookAnnotations;
     name: string;
     namespace: string;
-    labels?: Partial<{
-      'opendatahub.io/user': string; // translated username -- see translateUsername
-    }>;
   };
   spec: {
     template: {
@@ -1152,7 +1150,7 @@ export type AccessReviewResourceAttributes = {
   /** Plural resource name, omit for all */
   resource?: string;
   /** TODO: Not a full list, could be expanded, "" means none */
-  subresource?: '' | 'spec' | 'status';
+  subresource?: '' | 'api' | 'spec' | 'status';
   /** Must provide the verb you are trying to do; '*' means all verbs */
   verb: '*' | K8sVerb;
   /** A resource name, omit when not interested in a specific resource */
@@ -1205,7 +1203,6 @@ export type ServiceKind = K8sResourceCommon & {
     name: string;
     namespace: string;
     labels?: Partial<{
-      'opendatahub.io/user': string;
       component: string;
     }>;
   };
@@ -1304,14 +1301,18 @@ export type DashboardCommonConfig = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  maasAuthPolicies?: boolean;
   aiAssetCustomEndpoints?: boolean;
   mlflow?: boolean;
+  mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  externalVectorStores?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
+  promptManagement?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition

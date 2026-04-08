@@ -242,8 +242,8 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipeline
 	}
 	params["optimization_metric"] = metric
 
-	if req.LlamaStackVectorDatabaseID != "" {
-		params["llama_stack_vector_database_id"] = req.LlamaStackVectorDatabaseID
+	if req.LlamaStackVectorIOProviderID != "" {
+		params["llama_stack_vector_io_provider_id"] = req.LlamaStackVectorIOProviderID
 	}
 
 	if req.OptimizationMaxRagPatterns != nil {

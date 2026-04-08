@@ -2,7 +2,7 @@ import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { ServingRuntimeModel } from '@odh-dashboard/internal/api/index';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { ServingRuntimeKind, type InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
-import type { ModelServerSelectFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField.js';
+import type { ModelServerSelectFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import type { KServeDeployment } from './deployments';
 
@@ -68,25 +68,29 @@ export const applyModelRuntime = (
 export const extractModelServerTemplate = (
   KServeDeployment: KServeDeployment,
   dashboardNamespace?: string,
-): ModelServerSelectFieldData | null => {
+): { data: ModelServerSelectFieldData } | null => {
   const templateDisplayName =
     KServeDeployment.server?.metadata.annotations?.['opendatahub.io/template-display-name'];
   const displayName = KServeDeployment.server?.metadata.annotations?.['openshift.io/display-name'];
   const label = templateDisplayName ?? displayName;
   return KServeDeployment.server
     ? {
-        selection: {
-          name:
-            KServeDeployment.server.metadata.annotations?.['opendatahub.io/template-name'] ?? '',
-          namespace:
-            KServeDeployment.server.metadata.annotations?.[
-              'opendatahub.io/serving-runtime-scope'
-            ] === 'global'
-              ? dashboardNamespace
-              : KServeDeployment.server.metadata.namespace,
-          scope:
-            KServeDeployment.server.metadata.annotations?.['opendatahub.io/serving-runtime-scope'],
-          label,
+        data: {
+          selection: {
+            name:
+              KServeDeployment.server.metadata.annotations?.['opendatahub.io/template-name'] ?? '',
+            namespace:
+              KServeDeployment.server.metadata.annotations?.[
+                'opendatahub.io/serving-runtime-scope'
+              ] === 'global'
+                ? dashboardNamespace
+                : KServeDeployment.server.metadata.namespace,
+            scope:
+              KServeDeployment.server.metadata.annotations?.[
+                'opendatahub.io/serving-runtime-scope'
+              ],
+            label,
+          },
         },
       }
     : null;

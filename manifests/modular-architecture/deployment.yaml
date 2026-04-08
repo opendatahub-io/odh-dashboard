@@ -34,11 +34,11 @@
       failureThreshold: 3
     resources:
       limits:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 300m
+        memory: 512Mi
       requests:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 300m
+        memory: 512Mi
     ports:
       - containerPort: 8043
         name: mr-ui
@@ -107,11 +107,11 @@
       failureThreshold: 3
     resources:
       limits:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 300m
+        memory: 512Mi
       requests:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 300m
+        memory: 512Mi
     ports:
       - containerPort: 8143
         name: gen-ai-ui
@@ -180,11 +180,11 @@
       failureThreshold: 3
     resources:
       limits:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 300m
+        memory: 512Mi
       requests:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 300m
+        memory: 512Mi
     ports:
       - containerPort: 8243
         name: maas-ui
@@ -257,11 +257,11 @@
       failureThreshold: 3
     resources:
       limits:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 300m
+        memory: 512Mi
       requests:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 300m
+        memory: 512Mi
     ports:
       - containerPort: 8343
         name: mlflow-ui
@@ -328,11 +328,11 @@
       failureThreshold: 3
     resources:
       limits:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 300m
+        memory: 512Mi
       requests:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 300m
+        memory: 512Mi
     ports:
       - containerPort: 8543
         name: eval-hub-ui
@@ -399,11 +399,11 @@
       failureThreshold: 3
     resources:
       limits:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 300m
+        memory: 512Mi
       requests:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 300m
+        memory: 512Mi
     ports:
       - containerPort: 8643
         name: automl-ui
@@ -469,11 +469,11 @@
       failureThreshold: 3
     resources:
       limits:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 300m
+        memory: 512Mi
       requests:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 300m
+        memory: 512Mi
     ports:
       - containerPort: 8743
         name: autorag-ui

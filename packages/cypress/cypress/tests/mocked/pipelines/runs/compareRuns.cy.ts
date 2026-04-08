@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import { PluginStateKF } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import {
   buildMockExperimentKF,
   mockDashboardConfig,
@@ -164,6 +165,76 @@ describe('Compare runs', () => {
     verifyRelativeURL(
       `/develop-train/experiments/${projectName}/${mockExperiment.experiment_id}/compare-runs?compareRuns=invalid_run_id,${mockRun.run_id}`,
     );
+  });
+
+  describe('MLflow column visibility', () => {
+    it('hides the MLflow experiment column when MLflow is disabled', () => {
+      compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
+        mockRun.run_id,
+        mockRun2.run_id,
+      ]);
+      cy.wait('@validRun');
+
+      compareRunsListTable.find().find('thead th').should('not.contain', 'MLflow experiment');
+    });
+
+    it('shows the MLflow experiment column when MLflow is enabled', () => {
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
+      );
+      compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
+        mockRun.run_id,
+        mockRun2.run_id,
+      ]);
+      cy.wait('@validRun');
+
+      compareRunsListTable.find().find('thead th').should('contain', 'MLflow experiment');
+    });
+
+    it('shows the MLflow experiment link in the run list when MLflow is enabled', () => {
+      const mockRunWithMlflow = buildMockRunKF({
+        display_name: 'Run with MLflow',
+        run_id: 'run-mlflow',
+        pipeline_version_reference: {
+          pipeline_id: initialMockPipeline.pipeline_id,
+          pipeline_version_id: initialMockPipelineVersion.pipeline_version_id,
+        },
+        experiment_id: mockExperiment.experiment_id,
+        plugins_output: {
+          mlflow: {
+            entries: {
+              experiment_name: { value: 'My MLflow Exp' },
+              experiment_id: { value: 'mlflow-exp-id' },
+            },
+            state: PluginStateKF.PLUGIN_SUCCEEDED,
+          },
+        },
+      });
+
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
+      );
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+        {
+          path: { namespace: projectName, serviceName: 'dspa', runId: mockRunWithMlflow.run_id },
+        },
+        mockRunWithMlflow,
+      );
+
+      compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
+        mockRunWithMlflow.run_id,
+      ]);
+
+      compareRunsListTable
+        .findRowByName('Run with MLflow')
+        .findByTestId('mlflow-experiment-link')
+        .should('have.text', 'My MLflow Exp')
+        .and('have.attr', 'href')
+        .and('include', '/develop-train/mlflow/experiments/mlflow-exp-id');
+    });
   });
 
   describe('Parameters', () => {
@@ -449,7 +520,7 @@ describe('Compare runs', () => {
       cy.visitWithLogin(
         `/experiments/${projectName}/${mockExperiment.experiment_id}/compareRuns?compareRuns=${mockRun.run_id},${mockRun2.run_id}`,
       );
-      cy.findByRole('button', { name: 'Manage runs' }).should('exist');
+      cy.findByRole('link', { name: 'Manage runs' }).should('exist');
       cy.url().should(
         'include',
         `/develop-train/experiments/${projectName}/${mockExperiment.experiment_id}/compare-runs?compareRuns=${mockRun.run_id},${mockRun2.run_id}`,
@@ -471,7 +542,7 @@ describe('Compare runs', () => {
       cy.visitWithLogin(
         `/pipelineRuns/${projectName}/compareRuns?compareRuns=${mockRun.run_id},${mockRun2.run_id}`,
       );
-      cy.findByRole('button', { name: 'Manage runs' }).should('exist');
+      cy.findByRole('link', { name: 'Manage runs' }).should('exist');
       cy.url().should(
         'include',
         `/develop-train/pipelines/runs/${projectName}/compare-runs?compareRuns=${mockRun.run_id},${mockRun2.run_id}`,

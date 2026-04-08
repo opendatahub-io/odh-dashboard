@@ -1,18 +1,18 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import createConfigureSchema, { getDefaultValues } from '~/app/schemas/configure.schema';
 import AutomlExperimentSettings from '~/app/components/configure/AutomlExperimentSettings';
+import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
 const configureSchema = createConfigureSchema();
 
 const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const form = useForm({
     mode: 'onChange',
-    resolver: zodResolver(configureSchema),
-    defaultValues: getDefaultValues(),
+    resolver: zodResolver(configureSchema.full),
+    defaultValues: configureSchema.defaults,
   });
   return <FormProvider {...form}>{children}</FormProvider>;
 };
