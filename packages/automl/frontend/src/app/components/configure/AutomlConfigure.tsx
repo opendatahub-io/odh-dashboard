@@ -663,7 +663,7 @@ function AutomlConfigure(): React.JSX.Element {
                 <Content component="h3">Configure details</Content>
               </CardHeader>
               <CardBody>
-                {!trainDataSecretName ? (
+                {!trainDataFileKey ? (
                   <EmptyState
                     variant="xs"
                     titleText="Select an S3 connection or upload a file to get started"
