@@ -7,6 +7,7 @@ import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies
 import type {
   MaaSSubscription,
   SubscriptionInfoResponse,
+  PolicyInfoResponse,
   UserSubscription,
   MaaSModelRefSummary,
   SubscriptionPolicyFormDataResponse,
@@ -328,3 +329,24 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
     },
   },
 ];
+
+export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {
+  const policy = mockAuthPolicies().find((p) => p.name === name) ?? mockAuthPolicies()[0];
+  return {
+    policy: {
+      ...policy,
+      displayName: `${name} Display`,
+      description: `Description for ${name}`,
+      creationTimestamp: '2025-03-01T10:00:00Z',
+    },
+    modelRefs: policy.modelRefs.map((ref) => ({
+      name: ref.name,
+      namespace: ref.namespace,
+      displayName: `${ref.name} Display`,
+      description: `Description for ${ref.name}`,
+      modelRef: { kind: 'LLMInferenceService', name: ref.name },
+      phase: 'Ready' as const,
+      endpoint: `https://${ref.name}.example.com`,
+    })),
+  };
+};
