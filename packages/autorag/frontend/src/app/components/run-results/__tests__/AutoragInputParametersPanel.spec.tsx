@@ -139,6 +139,45 @@ describe('AutoragInputParametersPanel', () => {
     expect(screen.getByText('new-value')).toBeInTheDocument();
   });
 
+  it('should render empty description list when parameters is undefined', () => {
+    renderPanel({ parameters: undefined });
+    expect(screen.getByText('Run details')).toBeInTheDocument();
+    expect(screen.queryByText('S3 connection')).not.toBeInTheDocument();
+    expect(screen.queryByText('Model configuration')).not.toBeInTheDocument();
+  });
+
+  it('should display parameters in the defined order', () => {
+    renderPanel({
+      parameters: {
+        optimization_metric: 'faithfulness',
+        input_data_secret_name: 's3-connection',
+        description: 'A test run',
+      } as Partial<ConfigureSchema>,
+    });
+    const terms = screen.getAllByRole('term');
+    const labels = terms.map((el) => el.textContent);
+    expect(labels).toEqual(['Description', 'S3 connection', 'Optimization metric']);
+  });
+
+  it('should format boolean values as strings', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        some_flag: true,
+      } as Partial<ConfigureSchema>,
+    });
+    expect(screen.getByText('true')).toBeInTheDocument();
+  });
+
+  it('should format array values as comma-separated strings', () => {
+    renderPanel({
+      parameters: {
+        some_list: ['alpha', 'beta', 'gamma'],
+      } as Partial<ConfigureSchema>,
+    });
+    expect(screen.getByText('alpha, beta, gamma')).toBeInTheDocument();
+  });
+
   it('should render dividers between entries', () => {
     const { container } = renderPanel();
     const dividers = container.querySelectorAll('.pf-v6-c-divider');

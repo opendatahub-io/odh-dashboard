@@ -98,6 +98,7 @@ function AutoragResultsPage(): React.JSX.Element {
                 variant="link"
                 icon={<OpenDrawerRightIcon />}
                 onClick={() => setIsDrawerOpen((prev) => !prev)}
+                aria-expanded={isDrawerOpen}
                 data-testid="run-details-button"
               >
                 Run details
