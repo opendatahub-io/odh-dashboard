@@ -969,10 +969,9 @@ function AutoragConfigure(): React.JSX.Element {
         selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
         unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
       />
-      <EvaluationTemplateModal
-        isOpen={isTemplateModalOpen}
-        onClose={() => setIsTemplateModalOpen(false)}
-      />
+      {isTemplateModalOpen && (
+        <EvaluationTemplateModal onClose={() => setIsTemplateModalOpen(false)} />
+      )}
       <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}
         onClose={() => {

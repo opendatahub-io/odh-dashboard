@@ -11,7 +11,7 @@ import {
   ModalHeader,
 } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
-import React from 'react';
+import React, { useState } from 'react';
 
 type CodeSnippetModalProps = {
   id: string;
@@ -21,7 +21,6 @@ type CodeSnippetModalProps = {
   code: string;
   downloadText?: string;
   downloadFileName: string;
-  isOpen: boolean;
   onClose: () => void;
 };
 
@@ -33,9 +32,10 @@ const CodeSnippetModal: React.FC<CodeSnippetModalProps> = ({
   code,
   downloadText = 'Download',
   downloadFileName,
-  isOpen,
   onClose,
 }) => {
+  const [copied, setCopied] = useState(false);
+
   const handleDownload = () => {
     const blob = new Blob([code], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -58,7 +58,7 @@ const CodeSnippetModal: React.FC<CodeSnippetModalProps> = ({
       aria-labelledby={modalHeaderLabelId}
       aria-describedby={modalBodyId}
       variant={variant}
-      isOpen={isOpen}
+      isOpen
       onClose={onClose}
     >
       <ModalHeader title={title} labelId={modalHeaderLabelId} description={description} />
@@ -85,11 +85,19 @@ const CodeSnippetModal: React.FC<CodeSnippetModalProps> = ({
                   id={`${id}-copy-button`}
                   aria-label="Copy to clipboard"
                   variant="plain"
+                  exitDelay={600}
                   onClick={async () => {
-                    navigator.clipboard.writeText(code);
+                    try {
+                      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                      await navigator.clipboard?.writeText(code);
+                      setCopied(true);
+                    } catch {
+                      // copy failed
+                    }
                   }}
+                  onTooltipHidden={() => setCopied(false)}
                 >
-                  Copy to clipboard
+                  {copied ? 'Copied!' : 'Copy to clipboard'}
                 </ClipboardCopyButton>
               </CodeBlockAction>
             }
