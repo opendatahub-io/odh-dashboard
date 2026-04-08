@@ -34,8 +34,6 @@ describe('MCP Server Deploy from Catalog', () => {
         clusterRoleBindingName = `${testData.clusterRoleBindingName}-${uuid}`;
         expectedDeploymentStatus = testData.expectedDeploymentStatus;
         mcpServerId = testData.mcpServerId;
-
-        return deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
       })
       .then(() => createOpenShiftProject(projectName))
       .then(() =>
