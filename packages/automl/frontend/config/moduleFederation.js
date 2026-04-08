@@ -1,9 +1,11 @@
-const path = require('path');
 const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
+const workspaceDeps = require('@odh-dashboard/automl/package.json').dependencies;
 const deps = require('../package.json').dependencies;
 
-const { getOdhDashboardShared } = require(
-  path.resolve(__dirname, '..', '..', '..', '..', 'config', 'odhDashboardShared'),
+const odhDashboardShared = Object.fromEntries(
+  Object.keys(workspaceDeps)
+    .filter((name) => name.startsWith('@odh-dashboard/'))
+    .map((name) => [name, { singleton: true, requiredVersion: '*' }]),
 );
 
 const moduleFederationConfig = {
@@ -24,7 +26,7 @@ const moduleFederationConfig = {
     '@openshift/dynamic-plugin-sdk-utils': {
       singleton: true,
     },
-    ...getOdhDashboardShared(),
+    ...odhDashboardShared,
   },
   exposes: {
     './extensions': './src/odh/extensions',
