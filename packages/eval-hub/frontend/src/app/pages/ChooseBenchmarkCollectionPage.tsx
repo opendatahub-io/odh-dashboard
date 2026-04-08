@@ -93,6 +93,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
   const categoryToggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle
       ref={toggleRef}
+      data-testid="collections-category-toggle"
       onClick={() => setIsCategoryOpen((prev) => !prev)}
       isExpanded={isCategoryOpen}
     >

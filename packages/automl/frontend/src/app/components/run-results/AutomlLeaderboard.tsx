@@ -1,5 +1,6 @@
 import {
   ActionsColumn,
+  InnerScrollContainer,
   Table,
   Tbody,
   Td,
@@ -68,7 +69,7 @@ function AutomlLeaderboard({
     pipelineRun?.state === RuntimeStateKF.CANCELING;
 
   // Determine the optimized metric
-  const optimizedMetric = getOptimizedMetricForTask(taskType) ?? 'accuracy';
+  const optimizedMetric = getOptimizedMetricForTask(taskType);
 
   // Extract all unique metric keys across all models
   const metricKeys = React.useMemo(() => {
@@ -122,16 +123,6 @@ function AutomlLeaderboard({
         if (typeof value === 'number' && Number.isFinite(value)) {
           return value;
         }
-        if (typeof value === 'string') {
-          // Trim whitespace and treat empty strings as invalid
-          const trimmed = value.trim();
-          if (trimmed === '') {
-            return 'N/A';
-          }
-          // Strict validation: ensure the entire string is a valid number
-          const parsed = Number(trimmed);
-          return Number.isFinite(parsed) ? parsed : 'N/A';
-        }
         return 'N/A';
       };
 
@@ -146,7 +137,7 @@ function AutomlLeaderboard({
       return {
         rank: 0, // Will be assigned after sorting by optimized metric initially
         modelKey: modelName,
-        displayName: model.display_name || modelName,
+        displayName: model.name || modelName,
         metrics,
         optimizedMetricValue,
       };
@@ -319,19 +310,33 @@ function AutomlLeaderboard({
   }
 
   return (
-    <div className="automl-leaderboard-wrapper">
+    <InnerScrollContainer>
       <Table
         aria-label="AutoML Model Leaderboard"
         variant="compact"
         data-testid="leaderboard-table"
         className="automl-leaderboard"
+        isStickyHeader
       >
         <Thead>
           <Tr>
-            <Th sort={getSortParams(0)} data-testid="rank-header">
+            <Th
+              sort={getSortParams(0)}
+              data-testid="rank-header"
+              isStickyColumn
+              stickyMinWidth="80px"
+              stickyLeftOffset="0"
+            >
               Rank
             </Th>
-            <Th sort={getSortParams(1)} data-testid="model-name-header">
+            <Th
+              sort={getSortParams(1)}
+              data-testid="model-name-header"
+              isStickyColumn
+              hasRightBorder
+              stickyMinWidth="150px"
+              stickyLeftOffset="80px"
+            >
               Model name
             </Th>
             {metricKeys.map((metricKey, index) => (
@@ -348,13 +353,25 @@ function AutomlLeaderboard({
                 )}
               </Th>
             ))}
-            <Th screenReaderText="Actions" />
+            <Th
+              screenReaderText="Actions"
+              isStickyColumn
+              hasLeftBorder
+              stickyMinWidth="80px"
+              stickyRightOffset="0"
+            />
           </Tr>
         </Thead>
         <Tbody>
           {data.map((entry) => (
             <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
-              <Td dataLabel="Rank" data-testid={`rank-${entry.rank}`}>
+              <Td
+                dataLabel="Rank"
+                data-testid={`rank-${entry.rank}`}
+                isStickyColumn
+                stickyMinWidth="80px"
+                stickyLeftOffset="0"
+              >
                 {entry.rank === 1 ? (
                   <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
                     {entry.rank}
@@ -363,7 +380,14 @@ function AutomlLeaderboard({
                   entry.rank
                 )}
               </Td>
-              <Td dataLabel="Model" data-testid={`model-name-${entry.rank}`}>
+              <Td
+                dataLabel="Model"
+                data-testid={`model-name-${entry.rank}`}
+                isStickyColumn
+                hasRightBorder
+                stickyMinWidth="150px"
+                stickyLeftOffset="80px"
+              >
                 <Button
                   variant="link"
                   isInline
@@ -384,7 +408,13 @@ function AutomlLeaderboard({
                   </Tooltip>
                 </Td>
               ))}
-              <Td isActionCell>
+              <Td
+                isActionCell
+                isStickyColumn
+                hasLeftBorder
+                stickyMinWidth="80px"
+                stickyRightOffset="0"
+              >
                 <ActionsColumn
                   items={[
                     {
@@ -410,7 +440,7 @@ function AutomlLeaderboard({
           ))}
         </Tbody>
       </Table>
-    </div>
+    </InnerScrollContainer>
   );
 }
 

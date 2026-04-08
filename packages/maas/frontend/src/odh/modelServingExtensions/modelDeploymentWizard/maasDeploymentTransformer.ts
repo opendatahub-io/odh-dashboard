@@ -1,7 +1,7 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
 import type { MaaSFieldValue } from './MaaSEndpointCheckbox';
 
-const MAAS_DEFAULT_GATEWAY = {
+export const MAAS_DEFAULT_GATEWAY = {
   name: 'maas-default-gateway',
   namespace: 'openshift-ingress',
 };
