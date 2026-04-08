@@ -91,7 +91,7 @@ function AutomlConfigurePage(): React.JSX.Element {
           variant="primary"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
         >
-          Create AutoML optimization run
+          Create run
         </Button>
       </ActionListItem>
       <ActionListItem>

@@ -343,10 +343,8 @@ describe('AutomlConfigurePage', () => {
       expect(await screen.findByText('My Experiment')).toBeInTheDocument();
     });
 
-    it('should render "Create AutoML optimization run" button', async () => {
-      expect(
-        await screen.findByRole('button', { name: 'Create AutoML optimization run' }),
-      ).toBeInTheDocument();
+    it('should render "Create run" button', async () => {
+      expect(await screen.findByRole('button', { name: 'Create run' })).toBeInTheDocument();
     });
 
     it('should render "Back" button', async () => {
@@ -419,8 +417,8 @@ describe('AutomlConfigurePage', () => {
     });
   });
 
-  describe('Configure step - Create AutoML optimization run', () => {
-    it('should call mutateAsync when Create AutoML optimization run button is clicked with valid form', async () => {
+  describe('Configure step - Create run', () => {
+    it('should call mutateAsync when Create run button is clicked with valid form', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
 
@@ -464,7 +462,7 @@ describe('AutomlConfigurePage', () => {
 
       // Wait for form to be valid and Run button to be enabled
       const runButton = await screen.findByRole('button', {
-        name: 'Create AutoML optimization run',
+        name: 'Create run',
       });
       await waitFor(
         () => {
@@ -473,7 +471,7 @@ describe('AutomlConfigurePage', () => {
         { timeout: 3000 },
       );
 
-      // Click Create AutoML optimization run button
+      // Click Create run button
       await user.click(runButton);
 
       await waitFor(() => {
@@ -520,9 +518,9 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Create AutoML optimization run button
+      // Click Create run button
       const runButton = await screen.findByRole('button', {
-        name: 'Create AutoML optimization run',
+        name: 'Create run',
       });
       await waitFor(
         () => {
@@ -578,9 +576,9 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Create AutoML optimization run button
+      // Click Create run button
       const runButton = await screen.findByRole('button', {
-        name: 'Create AutoML optimization run',
+        name: 'Create run',
       });
       await waitFor(
         () => {
@@ -637,9 +635,9 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Create AutoML optimization run button
+      // Click Create run button
       const runButton = await screen.findByRole('button', {
-        name: 'Create AutoML optimization run',
+        name: 'Create run',
       });
       await waitFor(
         () => {
