@@ -396,24 +396,54 @@ const FilesTable: React.FC<FilesTableProps> = ({
                 const actions: IAction[] = [
                   {
                     title: defaults.labels.tableActionViewDetails,
-                    onClick: () => onViewDetails(file),
+                    onClick: (event) => {
+                      event.stopPropagation();
+                      onViewDetails(file);
+                    },
                   },
                 ];
                 if (isSelected) {
                   actions.push({
                     title: defaults.labels.tableActionRemoveSelection,
-                    onClick: () => {
+                    onClick: (event) => {
+                      event.stopPropagation();
                       setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path));
                       onSelectFile?.(file, false);
                     },
                   });
                 }
 
+                const onSelect = (_event: unknown, isSelecting: boolean) => {
+                  if (selection === 'radio') {
+                    setSelectedFiles(isSelecting ? [file] : []);
+                  } else {
+                    const current = Array.isArray(selectedFiles) ? selectedFiles : [];
+                    if (isSelecting) {
+                      if (!current.some((f) => f.path === file.path)) {
+                        setSelectedFiles([...current, file]);
+                      }
+                    } else {
+                      setSelectedFiles(current.filter((f) => f.path !== file.path));
+                    }
+                  }
+                  if (isSelecting) {
+                    onViewDetails(file);
+                  }
+                  onSelectFile?.(file, isSelecting);
+                };
+
                 return (
                   <Tr
                     key={file.path}
                     data-testid={`file-explorer-row-${sanitizeId(file.path)}`}
+                    isSelectable={!isUnselectable}
                     isRowSelected={isSelected}
+                    isClickable={!isUnselectable}
+                    onClick={() => {
+                      if (!isUnselectable) {
+                        onSelect(null, true);
+                      }
+                    }}
                   >
                     <Td
                       width={columns.select.width}
@@ -426,24 +456,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                       }
                       select={{
                         rowIndex,
-                        onSelect: (_event, isSelecting) => {
-                          if (selection === 'radio') {
-                            setSelectedFiles(isSelecting ? [file] : []);
-                          } else {
-                            const current = Array.isArray(selectedFiles) ? selectedFiles : [];
-                            if (isSelecting) {
-                              if (!current.some((f) => f.path === file.path)) {
-                                setSelectedFiles([...current, file]);
-                              }
-                            } else {
-                              setSelectedFiles(current.filter((f) => f.path !== file.path));
-                            }
-                          }
-                          if (isSelecting) {
-                            onViewDetails(file);
-                          }
-                          onSelectFile?.(file, isSelecting);
-                        },
+                        onSelect,
                         isSelected: Boolean(isSelected || file.forceShowAsSelected),
                         isDisabled: isUnselectable,
                         variant: selection,
@@ -481,7 +494,23 @@ const FilesTable: React.FC<FilesTableProps> = ({
                       {isFolder(file) ? defaults.labels.folderType : file.type}
                     </Td>
                     <Td width={columns.actions.width} isActionCell>
-                      <ActionsColumn items={actions} />
+                      <ActionsColumn
+                        actionsToggle={({ toggleRef, onToggle, isOpen, isDisabled }) => (
+                          <MenuToggle
+                            aria-label="Kebab toggle"
+                            ref={toggleRef}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onToggle(event);
+                            }}
+                            isExpanded={isOpen}
+                            isDisabled={isDisabled}
+                            variant="plain"
+                            icon={<EllipsisVIcon />}
+                          />
+                        )}
+                        items={actions}
+                      />
                     </Td>
                   </Tr>
                 );
