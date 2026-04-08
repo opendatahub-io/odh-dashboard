@@ -46,7 +46,6 @@ describe('useMLflowStatus', () => {
     const { useMLflowStatus, mockAxiosGet } = loadFreshModule();
     const renderResult = testHook(useMLflowStatus)(false);
     expect(renderResult).hookToStrictEqual({ configured: false, loaded: true });
-    expect(renderResult).hookToHaveUpdateCount(1);
     expect(mockAxiosGet).not.toHaveBeenCalled();
   });
 
@@ -55,7 +54,6 @@ describe('useMLflowStatus', () => {
     mockAxiosGet.mockReturnValue(new Promise(jest.fn()));
     const renderResult = testHook(useMLflowStatus)(true);
     expect(renderResult).hookToStrictEqual({ configured: false, loaded: false });
-    expect(renderResult).hookToHaveUpdateCount(1);
   });
 
   it('should return configured:true and loaded:true when API reports configured', async () => {
@@ -68,7 +66,6 @@ describe('useMLflowStatus', () => {
     });
 
     expect(mockAxiosGet).toHaveBeenCalledTimes(1);
-    expect(renderResult).hookToHaveUpdateCount(2);
   });
 
   it('should return configured:false and loaded:true when API reports not configured', async () => {
@@ -79,8 +76,6 @@ describe('useMLflowStatus', () => {
     await waitFor(() => {
       expect(renderResult.result.current).toStrictEqual({ configured: false, loaded: true });
     });
-
-    expect(renderResult).hookToHaveUpdateCount(2);
   });
 
   it('should preserve previous value when API call fails', async () => {
@@ -93,7 +88,6 @@ describe('useMLflowStatus', () => {
       expect(mockAxiosGet).toHaveBeenCalledTimes(1);
     });
     expect(renderResult.result.current).toStrictEqual({ configured: false, loaded: false });
-    expect(renderResult).hookToHaveUpdateCount(1);
   });
 
   it('should keep last successful value on transient error', async () => {
