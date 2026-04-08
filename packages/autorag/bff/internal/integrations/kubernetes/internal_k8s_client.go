@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -98,9 +99,10 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 			return nil, fmt.Errorf("failed to list namespaces: %w", err)
 		}
 		// Service account cannot list namespaces (e.g. local dev without cluster-admin).
-		// Fall back to the OpenShift Projects API which returns only accessible projects.
+		// Fall back to the OpenShift Projects API with impersonation so the API server
+		// enforces the caller's permissions, not the service account's.
 		kc.Logger.Debug("cluster-wide namespace list forbidden, falling back to OpenShift Projects API", "error", err)
-		return kc.getNamespacesViaProjectsAPI(ctx)
+		return kc.getNamespacesViaProjectsAPI(ctx, identity)
 	}
 
 	// Worker pool for parallel SAR processing
@@ -204,13 +206,25 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 }
 
 // getNamespacesViaProjectsAPI uses the OpenShift Projects API to list namespaces
-// accessible to the current user. This is used as a fallback when the service account
-// cannot list namespaces cluster-wide.
-func (kc *InternalKubernetesClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]corev1.Namespace, error) {
-	dynClient, err := dynamic.NewForConfig(kc.RestConfig)
+// accessible to the caller. An impersonated rest.Config is created from the caller's
+// identity so the API server enforces authorization for the user, not the service account.
+func (kc *InternalKubernetesClient) getNamespacesViaProjectsAPI(ctx context.Context, identity *RequestIdentity) ([]corev1.Namespace, error) {
+	impersonatedConfig := rest.CopyConfig(kc.RestConfig)
+	impersonatedConfig.Impersonate = rest.ImpersonationConfig{
+		UserName: identity.UserID,
+		Groups:   append([]string(nil), identity.Groups...),
+	}
+
+	dynClient, err := dynamic.NewForConfig(impersonatedConfig)
 	if err != nil {
 		kc.Logger.Error("failed to create dynamic client for Projects API", "error", err)
 		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	typedClient, err := kubernetes.NewForConfig(impersonatedConfig)
+	if err != nil {
+		kc.Logger.Error("failed to create typed client for namespace details", "error", err)
+		return nil, fmt.Errorf("failed to create typed client: %w", err)
 	}
 
 	projectGVR := schema.GroupVersionResource{
@@ -229,7 +243,7 @@ func (kc *InternalKubernetesClient) getNamespacesViaProjectsAPI(ctx context.Cont
 	for _, project := range projectList.Items {
 		projectName := project.GetName()
 
-		ns, err := kc.Client.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
+		ns, err := typedClient.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
 		if err != nil {
 			kc.Logger.Warn("failed to get namespace details", "namespace", projectName, "error", err)
 			namespaces = append(namespaces, corev1.Namespace{
