@@ -75,6 +75,7 @@ import {
   RAG_METRIC_CONTEXT_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
 } from '~/app/schemas/configure.schema';
+import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
@@ -124,17 +125,17 @@ const OPTIMIZATION_METRICS: {
 }[] = [
   {
     value: RAG_METRIC_FAITHFULNESS,
-    label: 'Answer faithfulness',
+    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_FAITHFULNESS],
     description: 'How factually grounded the answer is in the retrieved context.',
   },
   {
     value: RAG_METRIC_ANSWER_CORRECTNESS,
-    label: 'Answer correctness',
+    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_ANSWER_CORRECTNESS],
     description: 'How correct the generated answer is compared to the ground truth.',
   },
   {
     value: RAG_METRIC_CONTEXT_CORRECTNESS,
-    label: 'Context correctness',
+    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_CONTEXT_CORRECTNESS],
     description: 'How precisely the retrieval step identifies relevant chunks.',
   },
 ];
