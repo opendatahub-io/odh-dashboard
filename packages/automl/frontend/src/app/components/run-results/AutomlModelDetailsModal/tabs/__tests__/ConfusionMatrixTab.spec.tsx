@@ -7,8 +7,7 @@ import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import ConfusionMatrixTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/ConfusionMatrixTab';
 
 const baseModel: AutomlModel = {
-  display_name: 'TestModel',
-  model_config: { eval_metric: 'accuracy' },
+  name: 'TestModel',
   location: { model_directory: '/', predictor: '/predictor', notebook: '/n.ipynb' },
   metrics: { test_data: { accuracy: 0.8 } },
 };

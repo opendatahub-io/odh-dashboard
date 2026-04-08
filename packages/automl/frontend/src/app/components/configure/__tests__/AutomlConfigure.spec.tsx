@@ -8,8 +8,11 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
+import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+
+const mockNotificationError = jest.fn();
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -18,6 +21,39 @@ jest.mock('react-router', () => ({
 }));
 
 jest.mock('~/app/hooks/queries');
+
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => ({
+    error: mockNotificationError,
+    success: jest.fn(),
+  }),
+}));
+
+jest.mock('~/app/hooks/mutations', () => {
+  const mockS3MutateAsync = jest
+    .fn()
+    .mockResolvedValue({ uploaded: true, key: 'uploaded-key.csv' });
+  const stableS3UploadMutation = {
+    mutateAsync: mockS3MutateAsync,
+    isPending: false,
+    reset: jest.fn(),
+    variables: undefined as { file: File } | undefined,
+  };
+  return {
+    ...jest.requireActual<typeof import('~/app/hooks/mutations')>('~/app/hooks/mutations'),
+    useS3FileUploadMutation: jest.fn(() => stableS3UploadMutation),
+  };
+});
+
+function getMockS3MutateAsync(): jest.Mock {
+  const result = jest.mocked(useS3FileUploadMutation).mock.results[0]?.value as
+    | { mutateAsync: jest.Mock }
+    | undefined;
+  if (!result?.mutateAsync) {
+    throw new Error('useS3FileUploadMutation was not called; render AutomlConfigure first');
+  }
+  return result.mutateAsync;
+}
 
 // Mock S3FileExplorer component
 jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer', () => ({
@@ -46,77 +82,89 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer', () => ({
     ) : null,
 }));
 
-// Mock SecretSelector component
-jest.mock('~/app/components/common/SecretSelector', () => ({
-  __esModule: true,
-  default: ({
-    onChange,
-    value,
-    dataTestId,
-  }: {
-    onChange: (
-      secret:
-        | {
-            uuid: string;
-            name: string;
-            data: Record<string, string>;
-            type?: string;
-            invalid?: boolean;
+// Mock SecretSelector — maps UUID to label like the real selector
+jest.mock('~/app/components/common/SecretSelector', () => {
+  const MOCK_UUID_TO_DISPLAY_LABEL: Record<string, string> = {
+    'secret-1': 'Test Secret 1',
+    'secret-2': 'Test Secret 2',
+    'secret-3': 'Invalid Secret',
+  };
+
+  return {
+    __esModule: true,
+    default: ({
+      onChange,
+      value,
+      dataTestId,
+    }: {
+      onChange: (
+        secret:
+          | {
+              uuid: string;
+              name: string;
+              data: Record<string, string>;
+              type?: string;
+              invalid?: boolean;
+            }
+          | undefined,
+      ) => void;
+      value?: string;
+      dataTestId?: string;
+    }) => (
+      <div data-testid={dataTestId}>
+        <button
+          data-testid={`${dataTestId}-select-secret-1`}
+          onClick={() =>
+            onChange({
+              uuid: 'secret-1',
+              name: 'Test Secret 1',
+              // eslint-disable-next-line camelcase
+              data: { aws_s3_bucket: 'test-bucket-1' },
+              type: 's3',
+              invalid: false,
+            })
           }
-        | undefined,
-    ) => void;
-    value?: string;
-    dataTestId?: string;
-  }) => (
-    <div data-testid={dataTestId}>
-      <button
-        data-testid={`${dataTestId}-select-secret-1`}
-        onClick={() =>
-          onChange({
-            uuid: 'secret-1',
-            name: 'Test Secret 1',
-            // eslint-disable-next-line camelcase
-            data: { aws_s3_bucket: 'test-bucket-1' },
-            type: 's3',
-            invalid: false,
-          })
-        }
-      >
-        Select Secret 1
-      </button>
-      <button
-        data-testid={`${dataTestId}-select-secret-2`}
-        onClick={() =>
-          onChange({
-            uuid: 'secret-2',
-            name: 'Test Secret 2',
-            // eslint-disable-next-line camelcase
-            data: { aws_s3_bucket: 'test-bucket-2' },
-            type: 's3',
-            invalid: false,
-          })
-        }
-      >
-        Select Secret 2
-      </button>
-      <button
-        data-testid={`${dataTestId}-select-invalid-secret`}
-        onClick={() =>
-          onChange({
-            uuid: 'secret-3',
-            name: 'Invalid Secret',
-            data: {},
-            type: 's3',
-            invalid: true,
-          })
-        }
-      >
-        Select Invalid Secret
-      </button>
-      {value && <div data-testid={`${dataTestId}-value`}>{value}</div>}
-    </div>
-  ),
-}));
+        >
+          Select Secret 1
+        </button>
+        <button
+          data-testid={`${dataTestId}-select-secret-2`}
+          onClick={() =>
+            onChange({
+              uuid: 'secret-2',
+              name: 'Test Secret 2',
+              // eslint-disable-next-line camelcase
+              data: { aws_s3_bucket: 'test-bucket-2' },
+              type: 's3',
+              invalid: false,
+            })
+          }
+        >
+          Select Secret 2
+        </button>
+        <button
+          data-testid={`${dataTestId}-select-invalid-secret`}
+          onClick={() =>
+            onChange({
+              uuid: 'secret-3',
+              name: 'Invalid Secret',
+              data: {},
+              type: 's3',
+              invalid: true,
+            })
+          }
+        >
+          Select Invalid Secret
+        </button>
+        {value && (
+          <div data-testid={`${dataTestId}-value`}>
+            {MOCK_UUID_TO_DISPLAY_LABEL[value] ?? value}
+          </div>
+        )}
+      </div>
+    ),
+  };
+});
 
 jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
   useWatchConnectionTypes: () => [[]],
@@ -187,6 +235,7 @@ const renderComponent = (defaultValues?: Partial<typeof configureSchema.defaults
 describe('AutomlConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockNotificationError.mockClear();
     mockuseS3GetFileSchemaQuery.mockReturnValue({
       data: MOCK_COLUMNS,
       isLoading: false,
@@ -196,6 +245,12 @@ describe('AutomlConfigure', () => {
   });
 
   describe('initial state - no secret selected', () => {
+    it('should NOT show training data source toggle when no secret is selected', () => {
+      renderComponent();
+
+      expect(screen.queryByRole('button', { name: 'Upload file' })).not.toBeInTheDocument();
+    });
+
     it('should display an empty state when no secret is selected', () => {
       renderComponent();
 
@@ -209,40 +264,129 @@ describe('AutomlConfigure', () => {
       ).toBeInTheDocument();
     });
 
-    it('should NOT display the "Selected files" section when no secret is selected', () => {
+    it('should NOT display the "Browse bucket" button when no secret is selected', () => {
       renderComponent();
 
-      expect(screen.queryByText('Selected files')).not.toBeInTheDocument();
-    });
-
-    it('should NOT display the "Select files" button when no secret is selected', () => {
-      renderComponent();
-
-      expect(screen.queryByText('Select files')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
     });
   });
 
   describe('secret selection', () => {
-    it('should display "Selected files" section when a secret is selected', () => {
+    it('should show training data source toggle when a secret is selected', () => {
       renderComponent();
 
-      // Select a secret
-      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
-      fireEvent.click(selectButton);
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
 
-      // Verify the "Selected files" section appears
-      expect(screen.getByText('Selected files')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Upload file' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Select file from bucket' })).toBeInTheDocument();
     });
 
-    it('should display the "Select files" button when a secret is selected', () => {
+    it('should display the "Browse bucket" button when a secret is selected', () => {
       renderComponent();
 
-      // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
       fireEvent.click(selectButton);
 
-      // Verify the "Select files" button appears
-      expect(screen.getByText('Select files')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
+    });
+
+    it('should show selected-files UI when "Select file from bucket" is selected (default)', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      expect(screen.getByRole('heading', { name: 'Select file from bucket' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Drop a file here or browse to select a file/),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should show upload dropzone when "Upload file" is selected', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      expect(
+        screen.queryByRole('heading', { name: 'Select file from bucket' }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
+      expect(screen.getByText(/Drop a file here or browse to select a file/)).toBeInTheDocument();
+    });
+
+    it('should not upload an oversized file and should show a notification', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const largeFile = new File(['x'], 'big.csv', { type: 'text/csv' });
+      Object.defineProperty(largeFile, 'size', { value: 1024 * 1024 * 1024 + 1 });
+
+      getMockS3MutateAsync().mockClear();
+      fireEvent.change(fileInput!, { target: { files: [largeFile] } });
+
+      expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'File too large',
+        'File size must be 1 GiB or less.',
+      );
+    });
+
+    it('should not upload a disallowed file type and should show a notification', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+      getMockS3MutateAsync().mockClear();
+      fireEvent.change(fileInput!, { target: { files: [badFile] } });
+
+      expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Invalid file type',
+        'File type must be CSV.',
+      );
+    });
+
+    it('should upload an allowed file from the native file input', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
+      getMockS3MutateAsync().mockClear();
+      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+
+      await waitFor(() => {
+        expect(getMockS3MutateAsync()).toHaveBeenCalledWith(
+          expect.objectContaining({
+            namespace: 'test-namespace',
+            secretName: 'Test Secret 1',
+            bucket: 'test-bucket-1',
+            key: 'training.csv',
+            file: goodFile,
+          }),
+        );
+      });
+      expect(mockNotificationError).not.toHaveBeenCalled();
+    });
+
+    it('should show the newly selected secret name when switching secrets', () => {
+      renderComponent();
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-2'));
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 2');
     });
 
     it('should extract bucket name from secret data when a secret is selected', () => {
@@ -252,16 +396,15 @@ describe('AutomlConfigure', () => {
       const selectButton1 = screen.getByTestId('aws-secret-selector-select-secret-1');
       fireEvent.click(selectButton1);
 
-      // The bucket extraction logic should have run (AutomlConfigure.tsx:151-156)
-      // This is verified indirectly by the component functioning correctly
-      expect(screen.getByText('Select files')).toBeInTheDocument();
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
+      expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
 
       // Select second secret with different bucket data
       const selectButton2 = screen.getByTestId('aws-secret-selector-select-secret-2');
       fireEvent.click(selectButton2);
 
-      // The bucket should be updated for the new secret
-      expect(screen.getByText('Select files')).toBeInTheDocument();
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 2');
+      expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
     });
 
     it('should display the "Configure details" fields when a secret is selected', () => {
@@ -293,7 +436,7 @@ describe('AutomlConfigure', () => {
     it('should NOT display the selected file table when no file is selected', () => {
       renderComponent();
 
-      // Select a secret so the "Select files" button appears
+      // Select a secret so the "Browse bucket" button appears
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
 
       expect(
@@ -308,7 +451,7 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
 
       // Open file explorer and select a file
-      fireEvent.click(screen.getByRole('button', { name: 'Select files' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
       // Verify the table appears with correct content
@@ -323,7 +466,7 @@ describe('AutomlConfigure', () => {
 
       // Select a secret and a file
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Select files' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
       // Verify the table is shown
@@ -337,19 +480,58 @@ describe('AutomlConfigure', () => {
         screen.queryByRole('grid', { name: 'Selected training data file' }),
       ).not.toBeInTheDocument();
     });
+
+    it('after S3 select then switch to upload, should only show the upload table (not both tables)', async () => {
+      renderComponent();
+      getMockS3MutateAsync().mockClear();
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      expect(screen.getByRole('grid', { name: 'Selected training data file' })).toBeInTheDocument();
+      expect(
+        screen.queryByRole('grid', { name: 'Training data file upload' }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      expect(
+        screen.queryByRole('grid', { name: 'Selected training data file' }),
+      ).not.toBeInTheDocument();
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+      const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
+      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+
+      await waitFor(() => {
+        expect(getMockS3MutateAsync()).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('grid', { name: 'Selected training data file' }),
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole('grid', { name: 'Training data file upload' })).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('uploaded-key.csv')).toBeInTheDocument();
+      expect(screen.queryByText('data.csv')).not.toBeInTheDocument();
+    });
   });
 
   describe('invalid secret selection', () => {
-    it('should disable "Select files" button when selected secret is invalid', () => {
+    it('should NOT display "Browse bucket" when selected secret is invalid', () => {
       renderComponent();
 
       // Select an invalid secret
       const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
       fireEvent.click(selectInvalidButton);
 
-      // Verify the "Select files" button does not exist
-      const selectFilesButton = screen.queryByRole('button', { name: 'Select files' });
-      expect(selectFilesButton).not.toBeInTheDocument();
+      // Verify the "Browse bucket" button does not exist
+      const browseButton = screen.queryByRole('button', { name: 'Browse bucket' });
+      expect(browseButton).not.toBeInTheDocument();
     });
 
     it('should display an empty state when an invalid secret is selected', () => {
@@ -368,16 +550,15 @@ describe('AutomlConfigure', () => {
       ).toBeInTheDocument();
     });
 
-    it('should enable "Select files" button when selected secret is valid', () => {
+    it('should enable "Browse bucket" button when selected secret is valid', () => {
       renderComponent();
 
       // Select a valid secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
       fireEvent.click(selectButton);
 
-      // Verify the "Select files" button is enabled
-      const selectFilesButton = screen.getByRole('button', { name: 'Select files' });
-      expect(selectFilesButton).toBeEnabled();
+      const browseButton = screen.getByRole('button', { name: 'Browse bucket' });
+      expect(browseButton).toBeEnabled();
     });
   });
 

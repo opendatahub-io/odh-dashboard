@@ -6,19 +6,14 @@ import userEvent from '@testing-library/user-event';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import AutomlModelDetailsModalHeader from '~/app/components/run-results/AutomlModelDetailsModal/AutomlModelDetailsModalHeader';
 
-const buildModel = (
-  name: string,
-  evalMetric: string,
-  metrics: Record<string, unknown>,
-): AutomlModel => ({
-  display_name: name,
-  model_config: { eval_metric: evalMetric },
+const buildModel = (modelName: string, metrics: Record<string, number>): AutomlModel => ({
+  name: modelName,
   location: { model_directory: '/', predictor: '/predictor', notebook: '/n.ipynb' },
   metrics: { test_data: metrics },
 });
 
-const modelA = buildModel('CatBoost', 'accuracy', { accuracy: 0.658 });
-const modelB = buildModel('RandomForest', 'accuracy', { accuracy: 0.632 });
+const modelA = buildModel('CatBoost', { accuracy: 0.658 });
+const modelB = buildModel('RandomForest', { accuracy: 0.632 });
 
 describe('AutomlModelDetailsModalHeader', () => {
   const defaultProps = {
@@ -26,6 +21,7 @@ describe('AutomlModelDetailsModalHeader', () => {
     currentModelName: 'CatBoost',
     rank: 1,
     rankMap: { CatBoost: 1, RandomForest: 2 },
+    evalMetric: 'accuracy',
     onSelectModel: jest.fn(),
     onDownload: jest.fn(),
     onSaveNotebook: jest.fn(),
@@ -52,10 +48,11 @@ describe('AutomlModelDetailsModalHeader', () => {
   });
 
   it('should display raw value for non-error metrics like r2', () => {
-    const negativeModel = buildModel('Model', 'r2', { r2: -0.123 });
+    const negativeModel = buildModel('Model', { r2: -0.123 });
     render(
       <AutomlModelDetailsModalHeader
         {...defaultProps}
+        evalMetric="r2"
         models={[negativeModel]}
         currentModelName="Model"
       />,
@@ -64,10 +61,11 @@ describe('AutomlModelDetailsModalHeader', () => {
   });
 
   it('should use absolute value for error metrics like mase', () => {
-    const errorModel = buildModel('Model', 'mase', { mase: -0.082 });
+    const errorModel = buildModel('Model', { mase: -0.082 });
     render(
       <AutomlModelDetailsModalHeader
         {...defaultProps}
+        evalMetric="mase"
         models={[errorModel]}
         currentModelName="Model"
       />,
@@ -76,10 +74,11 @@ describe('AutomlModelDetailsModalHeader', () => {
   });
 
   it('should display N/A when eval_metric is missing from test_data', () => {
-    const noMetricModel = buildModel('Model', 'f1', { accuracy: 0.9 });
+    const noMetricModel = buildModel('Model', { accuracy: 0.9 });
     render(
       <AutomlModelDetailsModalHeader
         {...defaultProps}
+        evalMetric="f1"
         models={[noMetricModel]}
         currentModelName="Model"
       />,
@@ -90,7 +89,7 @@ describe('AutomlModelDetailsModalHeader', () => {
 
   it('should render dropdown models sorted by rank', async () => {
     const user = userEvent.setup();
-    const modelC = buildModel('Worst', 'accuracy', { accuracy: 0.5 });
+    const modelC = buildModel('Worst', { accuracy: 0.5 });
     const models = [modelC, modelA, modelB]; // unsorted order
     render(
       <AutomlModelDetailsModalHeader

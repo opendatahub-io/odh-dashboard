@@ -5,21 +5,16 @@ import type { PipelineRun } from '~/app/types';
 
 const configureSchema = createConfigureSchema();
 
-// Based on the artifact schema from Model artitfact metadata.
-// See https://github.com/LukaszCmielowski/pipelines-components/blob/rhoai_automl/pipelines/training/automl/autogluon_tabular_training_pipeline/README.md#model-artifact-metadata
+// Schema matches the model.json file outputted in each model directory.
 export type AutomlModel = {
-  display_name: string;
-  model_config: {
-    eval_metric: string;
-    // time_limit: number;
-  };
+  name: string;
   location: {
     model_directory: string;
     predictor: string;
     notebook: string;
   };
   metrics: {
-    test_data?: Record<string, unknown>;
+    test_data: Record<string, number>;
   };
 };
 

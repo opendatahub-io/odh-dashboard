@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Button, Form, FormGroup } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
 import SystemPromptFormGroup from '~/app/Chatbot/components/SystemInstructionFormGroup';
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
@@ -33,6 +34,14 @@ function PromptTabContent({
       title: 'Load a different prompt?',
       message: 'Your current prompt has unsaved changes that will be lost.',
       confirmLabel: 'Load',
+      onConfirmTracking: () =>
+        fireMiscTrackingEvent('Playground Prompt Load Interrupted', {
+          outcome: 'submit',
+        }),
+      onCancelTracking: () =>
+        fireMiscTrackingEvent('Playground Prompt Load Interrupted', {
+          outcome: 'cancel',
+        }),
     });
   }
 

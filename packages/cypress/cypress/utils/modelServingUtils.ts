@@ -428,3 +428,16 @@ export const initMockConnectionSecretIntercepts = ({
     },
   ).as('patchConnectionSecret');
 };
+
+type GatewayMock = {
+  name: string;
+  namespace: string;
+  listener?: string;
+  status?: string;
+};
+
+export const initMockGatewayIntercepts = ({ gateways }: { gateways: GatewayMock[] }): void => {
+  cy.intercept('GET', '/api/service/model-serving/api/v1/gateways*', {
+    body: { gateways },
+  }).as('getGateways');
+};

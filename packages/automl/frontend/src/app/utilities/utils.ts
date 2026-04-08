@@ -97,9 +97,9 @@ export function toNumericMetric(value: unknown): number {
 /**
  * Gets the optimized metric for a given task type.
  * @param taskType - The task type to get the metric for
- * @returns The optimized metric name, or undefined if not found
+ * @returns The optimized metric name, or 'Unknown metric' if no mapping exists
  */
-export function getOptimizedMetricForTask(taskType: string): string | undefined {
+export function getOptimizedMetricForTask(taskType: string): string {
   switch (taskType) {
     case TASK_TYPE_BINARY:
     case TASK_TYPE_MULTICLASS:
@@ -109,7 +109,7 @@ export function getOptimizedMetricForTask(taskType: string): string | undefined 
     case TASK_TYPE_TIMESERIES:
       return 'mase';
     default:
-      return undefined;
+      return 'Unknown metric';
   }
 }
 
@@ -133,7 +133,7 @@ export function computeRankMap(
   models: Record<string, { metrics: { test_data?: Record<string, unknown> } }>,
   taskType: string,
 ): Record<string, number> {
-  const optimizedMetric = getOptimizedMetricForTask(taskType) ?? 'accuracy';
+  const optimizedMetric = getOptimizedMetricForTask(taskType);
   const useAbs = isErrorMetric(optimizedMetric);
 
   // Use worst-case for missing metrics so they sort last

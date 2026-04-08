@@ -7,8 +7,7 @@ import type { MockAutomlParameters } from '~/app/mocks/mockAutomlResultsContext'
 import ModelInformationTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/ModelInformationTab';
 
 const baseModel: AutomlModel = {
-  display_name: 'TestModel',
-  model_config: { eval_metric: 'accuracy' },
+  name: 'TestModel',
   location: { model_directory: '/', predictor: '/predictor', notebook: '/n.ipynb' },
   metrics: { test_data: { accuracy: 0.8 } },
 };
@@ -49,7 +48,7 @@ describe('ModelInformationTab', () => {
     expect(screen.queryByText('Train Data File Key')).not.toBeInTheDocument();
   });
 
-  it('should render the evaluation metric from model config', () => {
+  it('should render the evaluation metric derived from task type', () => {
     render(<ModelInformationTab {...defaultProps} />);
 
     expect(screen.getByText('Evaluation metric')).toBeInTheDocument();

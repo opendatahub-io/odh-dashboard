@@ -43,6 +43,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
   Tooltip,
+  Truncate,
   type DropEvent,
 } from '@patternfly/react-core';
 import {
@@ -475,7 +476,9 @@ function AutoragConfigure(): React.JSX.Element {
                                 </Thead>
                                 <Tbody>
                                   <Tr>
-                                    <Td dataLabel="Name">{selectedInputDataFile.name}</Td>
+                                    <Td dataLabel="Name">
+                                      <Truncate content={selectedInputDataFile.name} />
+                                    </Td>
                                     <Td dataLabel="Type">{selectedInputDataFile.type}</Td>
                                     <Td isActionCell>
                                       <Tooltip content="Remove selection">
@@ -580,7 +583,11 @@ function AutoragConfigure(): React.JSX.Element {
                                           </SplitItem>
                                         )}
                                         <SplitItem isFilled>
-                                          {isInputDataFileUploading ? 'Uploading…' : inputDataKey}
+                                          {isInputDataFileUploading ? (
+                                            'Uploading…'
+                                          ) : (
+                                            <Truncate content={inputDataKey} />
+                                          )}
                                         </SplitItem>
                                       </Split>
                                     </Td>
