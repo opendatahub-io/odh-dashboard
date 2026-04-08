@@ -27,7 +27,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW],
+      required: [SupportedArea.MLFLOW],
     },
     properties: {
       id: 'experiments-mlflow',
@@ -41,7 +41,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW],
+      required: [SupportedArea.MLFLOW],
     },
     properties: {
       path: '/develop-train/mlflow/*',
