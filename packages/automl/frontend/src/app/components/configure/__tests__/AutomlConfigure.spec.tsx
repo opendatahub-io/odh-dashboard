@@ -330,7 +330,7 @@ describe('AutomlConfigure', () => {
       expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
       expect(mockNotificationError).toHaveBeenCalledWith(
         'File too large',
-        'File size must be 1 GiB or less.',
+        'File size must be 32 MiB or less.',
       );
     });
 
