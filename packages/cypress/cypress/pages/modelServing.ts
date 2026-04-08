@@ -93,9 +93,10 @@ class ModelServingGlobal {
 
   selectSingleServingModelButtonIfExists() {
     this.shouldBeEmpty();
+    cy.findByTestId('empty-state-title').should('be.visible');
     cy.get('body').then(($body) => {
       if ($body.find('[data-testid="kserve-select-button"]').length > 0) {
-        this.findSingleServingModelButton().click();
+        this.findSingleServingModelButton().should('be.visible').click();
       }
     });
   }
