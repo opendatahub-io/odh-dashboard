@@ -22,6 +22,13 @@ type EditRateLimitsModalProps = {
 };
 
 const DEFAULT_RATE_LIMIT: RateLimit = { count: 1000, time: 1, unit: 'hour' };
+const MAX_FIVE_DIGIT_VALUE = 99_999;
+
+const exceedsFiveDigitLimit = (n: number): boolean =>
+  !Number.isNaN(n) && Math.trunc(Math.abs(n)) > MAX_FIVE_DIGIT_VALUE;
+
+const rateLimitExceedsMaxDigits = (limit: RateLimit): boolean =>
+  exceedsFiveDigitLimit(limit.count) || exceedsFiveDigitLimit(limit.time);
 
 const rateLimitSchema = z.object({
   count: z
@@ -57,6 +64,12 @@ const getTimeError = (limit: RateLimit): string | undefined => {
   return result.success ? undefined : result.error.issues[0].message;
 };
 
+const getCountDigitError = (limit: RateLimit): string | undefined =>
+  exceedsFiveDigitLimit(limit.count) ? 'Token count exceeds maximum allowed value' : undefined;
+
+const getTimeDigitError = (limit: RateLimit): string | undefined =>
+  exceedsFiveDigitLimit(limit.time) ? 'Time value exceeds maximum allowed value' : undefined;
+
 const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
   modelName,
   rateLimits,
@@ -71,7 +84,8 @@ const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
   const usedUnits = localLimits.map((l) => l.unit);
   const availableUnits = UNIT_OPTIONS.map((opt) => opt.value).filter((u) => !usedUnits.includes(u));
   const validation = rateLimitsSchema.safeParse(localLimits);
-  const canSave = validation.success;
+  const hasDigitLimitError = localLimits.some(rateLimitExceedsMaxDigits);
+  const canSave = validation.success && !hasDigitLimitError;
 
   const handleRowChange = (index: number, updated: RateLimit) => {
     setLocalLimits((prev) => prev.map((item, i) => (i === index ? updated : item)));
@@ -116,6 +130,8 @@ const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
                 availableUnits={availableUnits}
                 countError={submitted ? getCountError(limit) : undefined}
                 timeError={submitted ? getTimeError(limit) : undefined}
+                countDigitError={getCountDigitError(limit)}
+                timeDigitError={getTimeDigitError(limit)}
               />
             </StackItem>
           ))}
@@ -137,7 +153,7 @@ const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
         <Button
           variant="primary"
           onClick={handleSave}
-          isDisabled={submitted && !canSave}
+          isDisabled={hasDigitLimitError || (submitted && !canSave)}
           data-testid="save-rate-limits"
         >
           Save

@@ -15,7 +15,7 @@ import {
   StackItem,
   ValidatedOptions,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon, MinusCircleIcon } from '@patternfly/react-icons';
+import { MinusCircleIcon } from '@patternfly/react-icons';
 import { RateLimit } from '~/app/types/subscriptions';
 import { UNIT_OPTIONS } from '~/app/utilities/rateLimits';
 
@@ -28,6 +28,8 @@ export type RateLimitRowProps = {
   availableUnits: RateLimit['unit'][];
   countError?: string;
   timeError?: string;
+  countDigitError?: string;
+  timeDigitError?: string;
 };
 
 const COUNT_STEP = 1000;
@@ -41,6 +43,8 @@ export const RateLimitRow: React.FC<RateLimitRowProps> = ({
   availableUnits,
   countError,
   timeError,
+  countDigitError,
+  timeDigitError,
 }) => {
   const [unitDropdownOpen, setUnitDropdownOpen] = React.useState(false);
 
@@ -53,8 +57,10 @@ export const RateLimitRow: React.FC<RateLimitRowProps> = ({
     (opt) => availableUnits.includes(opt.value) || opt.value === rateLimit.unit,
   );
 
-  const hasCountError = countError != null;
-  const hasTimeError = timeError != null;
+  const countMessage = countDigitError ?? countError;
+  const timeMessage = timeDigitError ?? timeError;
+  const hasCountError = countMessage != null;
+  const hasTimeError = timeMessage != null;
 
   return (
     <Stack hasGutter>
@@ -62,7 +68,7 @@ export const RateLimitRow: React.FC<RateLimitRowProps> = ({
         <Split hasGutter>
           <SplitItem>
             <NumberInput
-              validated={hasCountError ? ValidatedOptions.error : ValidatedOptions.default}
+              validated={countMessage != null ? ValidatedOptions.error : ValidatedOptions.default}
               id={`${id}-count`}
               data-testid={`${id}-count`}
               value={Number.isNaN(rateLimit.count) ? '' : rateLimit.count}
@@ -99,7 +105,7 @@ export const RateLimitRow: React.FC<RateLimitRowProps> = ({
           <SplitItem style={{ alignSelf: 'center' }}>tokens per</SplitItem>
           <SplitItem>
             <NumberInput
-              validated={hasTimeError ? ValidatedOptions.error : ValidatedOptions.default}
+              validated={timeMessage != null ? ValidatedOptions.error : ValidatedOptions.default}
               id={`${id}-time`}
               data-testid={`${id}-time`}
               value={Number.isNaN(rateLimit.time) ? '' : rateLimit.time}
@@ -175,17 +181,14 @@ export const RateLimitRow: React.FC<RateLimitRowProps> = ({
           )}
         </Split>
       </StackItem>
-      {(hasCountError || hasTimeError) && (
-        <StackItem>
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
-                {countError || timeError}
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        </StackItem>
-      )}
+      <StackItem>
+        <FormHelperText data-testid={`${id}-helper-text`}>
+          <HelperText>
+            {hasCountError && <HelperTextItem variant="error">{countMessage}</HelperTextItem>}
+            {hasTimeError && <HelperTextItem variant="error">{timeMessage}</HelperTextItem>}
+          </HelperText>
+        </FormHelperText>
+      </StackItem>
     </Stack>
   );
 };
