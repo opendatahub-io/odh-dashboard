@@ -4,3 +4,4 @@ serviceAccountName: mcp-viewer
 clusterRoleBindingName: mcp-viewer-binding
 configMapName: openshift-mcp-server-config
 expectedDeploymentStatus: Available
+mcpServerId: "2"

@@ -21,6 +21,7 @@ describe('MCP Server Deploy from Catalog', () => {
   let deploymentName: string;
   let clusterRoleBindingName: string;
   let expectedDeploymentStatus: string;
+  let mcpServerId: string;
   const uuid = generateTestUUID();
 
   retryableBefore(() =>
@@ -32,6 +33,7 @@ describe('MCP Server Deploy from Catalog', () => {
         deploymentName = `${testData.deploymentName}-${uuid}`;
         clusterRoleBindingName = `${testData.clusterRoleBindingName}-${uuid}`;
         expectedDeploymentStatus = testData.expectedDeploymentStatus;
+        mcpServerId = testData.mcpServerId;
 
         return deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
       })
@@ -63,8 +65,8 @@ describe('MCP Server Deploy from Catalog', () => {
       cy.step('Verify MCP catalog cards are visible');
       mcpCatalogPage.findMcpCatalogCards().should('have.length.at.least', 1);
 
-      cy.step('Open the details page for MCP server with ID 2');
-      mcpCatalogPage.findCardDetailsLink('2').should('be.visible').click();
+      cy.step(`Open the details page for MCP server with ID ${mcpServerId}`);
+      mcpCatalogPage.findCardDetailsLink(mcpServerId).should('be.visible').click();
 
       cy.step('Wait for the Deploy button to appear and click it');
       mcpServerDetailsPage.findDeployButton().should('be.visible');
@@ -87,7 +89,7 @@ describe('MCP Server Deploy from Catalog', () => {
       mcpDeployModal.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify redirect to MCP deployments page after deploy');
-      cy.location('pathname').should('include', '/ai-hub/mcp-servers/deployments');
+      mcpDeploymentsPage.findProjectSelectorToggle().should('be.visible');
 
       cy.step('Select the test project in the deployments page project selector');
       mcpDeploymentsPage.selectProject(projectName);

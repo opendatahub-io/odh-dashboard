@@ -12,7 +12,7 @@ class McpCatalogPage {
   }
 
   findMcpCatalogCards() {
-    return cy.get('[data-testid^="mcp-catalog-card-"]');
+    return cy.findAllByTestId(/^mcp-catalog-card-\d+$/);
   }
 
   findCardDetailsLink(serverId: string) {
@@ -85,6 +85,7 @@ class McpDeploymentsPage {
   }
 
   selectProject(name: string) {
+    cy.location('pathname').should('include', 'mcp-servers/deployments');
     this.findProjectSelectorToggle().click();
     this.findProjectSelectorOption(name).click();
   }
@@ -94,13 +95,11 @@ class McpDeploymentsPage {
   }
 
   findDeploymentByName(name: string) {
-    return cy.contains('[data-testid="mcp-deployment-name"]', name, { timeout: 30000 });
+    return cy.findByTestId(`mcp-deployment-row-${name}`, { timeout: 30000 });
   }
 
   findDeploymentStatusLabelByName(name: string) {
-    return this.findDeploymentByName(name)
-      .closest('tr')
-      .findByTestId('mcp-deployment-status-label');
+    return this.findDeploymentByName(name).findByTestId('mcp-deployment-status-label');
   }
 }
 
