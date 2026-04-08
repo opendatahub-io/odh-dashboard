@@ -560,7 +560,7 @@ function AutomlConfigure(): React.JSX.Element {
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText="Accepted file types: CSV"
+                                  infoText="Accepted file types: CSV. Maximum file size: 32 MiB"
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>
