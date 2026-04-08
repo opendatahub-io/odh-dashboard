@@ -1,7 +1,7 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import CodeSnippetModal from '../CodeSnippetModal';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
+import CodeSnippetModal from '~/app/components/common/CodeSnippetModal';
 
 describe('CodeSnippetModal', () => {
   const mockOnClose = jest.fn();
