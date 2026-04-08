@@ -422,6 +422,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       const { message } = fetchError;
       const secretNameToRender = <strong>{secretName ?? 'unknown'}</strong>;
 
+      // TODO [ Gustavo ] Generally weak error handling: Add CommonErrorHandling strategy to AutoX BFF+UI
+
       if (message.includes('bucket is required')) {
         return {
           isEmpty: true,
@@ -561,6 +563,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       onSetPage={handleSetPage}
       onPerPageSelect={handlePerPageSelect}
       onPrimary={onSelectFiles}
+      allowedSearchCharacters={/[^/]/}
+      allowedSearchCharactersLabel="Searches are case-sensitive and must match the beginning of the term. Slashes (/) are automatically removed."
     />
   );
 };

@@ -42,6 +42,7 @@ import {
   type PaginationProps,
   SearchInput,
   Skeleton,
+  Tooltip,
   Truncate,
 } from '@patternfly/react-core';
 import {
@@ -57,8 +58,8 @@ import {
   ActionsColumn,
   type IAction,
 } from '@patternfly/react-table';
-import { EllipsisVIcon, OutlinedEyeIcon, TimesIcon } from '@patternfly/react-icons';
-import React, { type ReactNode, useCallback, useId, useState } from 'react';
+import { EllipsisVIcon, InfoCircleIcon, OutlinedEyeIcon, TimesIcon } from '@patternfly/react-icons';
+import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
 
 // TODO [ Gustavo ] This file is ~1,130 lines containing 6+ components, types, helpers, and globals.
 // Consider splitting into:
@@ -883,6 +884,12 @@ interface FileExplorerProps {
 
   /** Callback fired when the primary action button is clicked, passing the selected files. */
   onPrimary: (files: Files) => void;
+
+  /** A regex pattern describing the allowed characters in the search input. Characters not matching this pattern are stripped. */
+  allowedSearchCharacters?: RegExp;
+
+  /** A label displayed below the search input describing the allowed characters (e.g., "Only alphanumeric characters and hyphens are allowed"). */
+  allowedSearchCharactersLabel?: string;
 }
 const FileExplorer: React.FC<FileExplorerProps> = ({
   id,
@@ -911,6 +918,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onSetPage,
   onPerPageSelect,
   onPrimary,
+  allowedSearchCharacters,
+  allowedSearchCharactersLabel,
 }) => {
   const generatedId = useId();
   const rootId = id ?? generatedId;
@@ -921,6 +930,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   // Revisit when: a child component needs to pass props through to its own children,
   // or the FileExplorer prop list exceeds ~15-20 props. Currently manageable at 1 level deep.
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showCharWarning, setShowCharWarning] = useState(false);
+  const charWarningTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(charWarningTimerRef.current), []);
 
   const resetState = () => {
     setSelectedFiles([]);
@@ -990,10 +1002,23 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
   const handleSearchChange = useCallback(
     (_event: React.SyntheticEvent, value: string) => {
-      setSearchQuery(value);
-      onSearch?.(value);
+      if (allowedSearchCharacters != null) {
+        const sanitized = Array.from(value)
+          .filter((ch) => allowedSearchCharacters.test(ch))
+          .join('');
+        if (sanitized.length !== value.length) {
+          clearTimeout(charWarningTimerRef.current);
+          setShowCharWarning(true);
+          charWarningTimerRef.current = setTimeout(() => setShowCharWarning(false), 2000);
+        }
+        setSearchQuery(sanitized);
+        onSearch?.(sanitized);
+      } else {
+        setSearchQuery(value);
+        onSearch?.(value);
+      }
     },
-    [onSearch],
+    [onSearch, allowedSearchCharacters],
   );
 
   const handleSearchClear = useCallback(() => {
@@ -1056,13 +1081,13 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               loading={loading}
             />
           </FlexItem>
-          <FlexItem>
-            <Flex alignItems={{ default: 'alignItemsCenter' }}>
-              <FlexItem grow={{ default: 'grow' }}>
+          {/* Inline-Style antipattern: A strange bug in the Flex rendering of SearchInput + Tooltip(allowed chars) + Pagination causes extra height to be added to this flex item. Forcing the height to 37 (height of all items) fixes the issue for now. */}
+          <FlexItem style={{ height: '37px' }}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }}>
+              <FlexItem className="pf-v6-u-w-50">
                 <SearchInput
                   searchInputId={`${rootId}-FileExplorer-search-input`}
                   data-testid="file-explorer-search"
-                  className="pf-v6-u-w-50"
                   aria-label={defaults.labels.searchAriaLabel}
                   placeholder={defaults.labels.searchPlaceholder(
                     folders && folders.length > 0
@@ -1078,7 +1103,17 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   isDisabled={isEmpty}
                 />
               </FlexItem>
-              <FlexItem>
+              {allowedSearchCharactersLabel && (
+                <FlexItem data-testid="file-explorer-search-chars-info">
+                  <Tooltip
+                    content={<div>{allowedSearchCharactersLabel}</div>}
+                    {...(showCharWarning ? { isVisible: true } : {})}
+                  >
+                    <InfoCircleIcon />
+                  </Tooltip>
+                </FlexItem>
+              )}
+              <FlexItem align={{ default: 'alignRight' }}>
                 <Pagination
                   data-testid="file-explorer-pagination"
                   widgetId={`${rootId}-FileExplorer-table-pagination`}
@@ -1094,7 +1129,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               </FlexItem>
             </Flex>
           </FlexItem>
-          <FlexItem>
+          <FlexItem grow={{ default: 'grow' }}>
             <Grid hasGutter>
               <GridItem
                 span={shouldRenderDetails.panel ? 8 : 12}

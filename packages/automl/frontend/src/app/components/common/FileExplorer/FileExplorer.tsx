@@ -42,6 +42,7 @@ import {
   type PaginationProps,
   SearchInput,
   Skeleton,
+  Tooltip,
   Truncate,
 } from '@patternfly/react-core';
 import {
@@ -57,8 +58,17 @@ import {
   ActionsColumn,
   type IAction,
 } from '@patternfly/react-table';
-import { EllipsisVIcon, OutlinedEyeIcon, TimesIcon } from '@patternfly/react-icons';
-import React, { type ReactNode, useCallback, useId, useState } from 'react';
+import { EllipsisVIcon, InfoCircleIcon, OutlinedEyeIcon, TimesIcon } from '@patternfly/react-icons';
+import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
+
+// TODO [ Gustavo ] This file is ~1,130 lines containing 6+ components, types, helpers, and globals.
+// Consider splitting into:
+//   - FileExplorer.types.ts (Source, File, Folder, FileExplorerEmptyStateConfig, Column)
+//   - FileExplorer.utils.ts (shouldDetailsPanelRender, sanitizeId, defaults, constants)
+//   - components/FilesTable.tsx
+//   - components/PathBreadcrumbs.tsx
+//   - components/DetailsPanel.tsx (includes FileDetails, SelectedFilesDataList)
+//   - components/SourceSelector.tsx
 
 // Types ---------------------------------------------------------------------->
 
@@ -246,9 +256,7 @@ const SourceSelector: React.FC<SourceSelectorProps> = ({ sources, source, onSele
       <FlexItem>{defaults.labels.sourceSelector}:</FlexItem>
       {sources.map((s) => (
         <FlexItem key={s.name}>
-          <Label onClick={() => onSelectSource(s)} style={{ cursor: 'pointer' }}>
-            {sourceLabel(s)}
-          </Label>
+          <Label onClick={() => onSelectSource(s)}>{sourceLabel(s)}</Label>
         </FlexItem>
       ))}
     </Flex>
@@ -651,8 +659,8 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
 
   return (
     <DataList
-      data-testid="file-explorer-selected-files"
       aria-label={defaults.labels.detailsPanelTitleFiles}
+      data-testid="file-explorer-selected-files"
       isCompact
       onSelectDataListItem={emptyHandler}
       onSelectableRowChange={emptyHandler}
@@ -747,9 +755,9 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
         actions={{
           actions: [
             <Button
-              data-testid="file-explorer-close-details-btn"
               variant="plain"
               aria-label="Close details"
+              data-testid="file-explorer-close-details-btn"
               key="close"
               icon={<TimesIcon />}
               onClick={() => onClearDetails()}
@@ -789,7 +797,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
   const shouldRender = shouldDetailsPanelRender({ filesToView, selectedFiles });
 
   return (
-    <Card data-testid="file-explorer-details-panel" isFullHeight isCompact>
+    <Card isFullHeight isCompact data-testid="file-explorer-details-panel">
       {shouldRender.details && detailsSubCard}
       {shouldRender.details && shouldRender.selected && <Divider />}
       {shouldRender.selected && selectedFilesSubCard}
@@ -876,6 +884,12 @@ interface FileExplorerProps {
 
   /** Callback fired when the primary action button is clicked, passing the selected files. */
   onPrimary: (files: Files) => void;
+
+  /** A regex pattern describing the allowed characters in the search input. Characters not matching this pattern are stripped. */
+  allowedSearchCharacters?: RegExp;
+
+  /** A label displayed below the search input describing the allowed characters (e.g., "Only alphanumeric characters and hyphens are allowed"). */
+  allowedSearchCharactersLabel?: string;
 }
 const FileExplorer: React.FC<FileExplorerProps> = ({
   id,
@@ -904,6 +918,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onSetPage,
   onPerPageSelect,
   onPrimary,
+  allowedSearchCharacters,
+  allowedSearchCharactersLabel,
 }) => {
   const generatedId = useId();
   const rootId = id ?? generatedId;
@@ -914,6 +930,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   // Revisit when: a child component needs to pass props through to its own children,
   // or the FileExplorer prop list exceeds ~15-20 props. Currently manageable at 1 level deep.
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showCharWarning, setShowCharWarning] = useState(false);
+  const charWarningTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(charWarningTimerRef.current), []);
 
   const resetState = () => {
     setSelectedFiles([]);
@@ -983,10 +1002,23 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
   const handleSearchChange = useCallback(
     (_event: React.SyntheticEvent, value: string) => {
-      setSearchQuery(value);
-      onSearch?.(value);
+      if (allowedSearchCharacters != null) {
+        const sanitized = Array.from(value)
+          .filter((ch) => allowedSearchCharacters.test(ch))
+          .join('');
+        if (sanitized.length !== value.length) {
+          clearTimeout(charWarningTimerRef.current);
+          setShowCharWarning(true);
+          charWarningTimerRef.current = setTimeout(() => setShowCharWarning(false), 2000);
+        }
+        setSearchQuery(sanitized);
+        onSearch?.(sanitized);
+      } else {
+        setSearchQuery(value);
+        onSearch?.(value);
+      }
     },
-    [onSearch],
+    [onSearch, allowedSearchCharacters],
   );
 
   const handleSearchClear = useCallback(() => {
@@ -1049,13 +1081,13 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               loading={loading}
             />
           </FlexItem>
-          <FlexItem>
-            <Flex alignItems={{ default: 'alignItemsCenter' }}>
-              <FlexItem grow={{ default: 'grow' }}>
+          {/* Inline-Style antipattern: A strange bug in the Flex rendering of SearchInput + Tooltip(allowed chars) + Pagination causes extra height to be added to this flex item. Forcing the height to 37 (height of all items) fixes the issue for now. */}
+          <FlexItem style={{ height: '37px' }}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }}>
+              <FlexItem className="pf-v6-u-w-50">
                 <SearchInput
-                  data-testid="file-explorer-search"
                   searchInputId={`${rootId}-FileExplorer-search-input`}
-                  className="pf-v6-u-w-50"
+                  data-testid="file-explorer-search"
                   aria-label={defaults.labels.searchAriaLabel}
                   placeholder={defaults.labels.searchPlaceholder(
                     folders && folders.length > 0
@@ -1071,7 +1103,17 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   isDisabled={isEmpty}
                 />
               </FlexItem>
-              <FlexItem>
+              {allowedSearchCharactersLabel && (
+                <FlexItem data-testid="file-explorer-search-chars-info">
+                  <Tooltip
+                    content={<div>{allowedSearchCharactersLabel}</div>}
+                    {...(showCharWarning ? { isVisible: true } : {})}
+                  >
+                    <InfoCircleIcon />
+                  </Tooltip>
+                </FlexItem>
+              )}
+              <FlexItem align={{ default: 'alignRight' }}>
                 <Pagination
                   data-testid="file-explorer-pagination"
                   widgetId={`${rootId}-FileExplorer-table-pagination`}
@@ -1087,7 +1129,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               </FlexItem>
             </Flex>
           </FlexItem>
-          <FlexItem>
+          <FlexItem grow={{ default: 'grow' }}>
             <Grid hasGutter>
               <GridItem
                 span={shouldRenderDetails.panel ? 8 : 12}
@@ -1126,8 +1168,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       </ModalBody>
       <ModalFooter>
         <Button
-          data-testid="file-explorer-select-btn"
           key="select-files"
+          data-testid="file-explorer-select-btn"
           variant="primary"
           isDisabled={loading || isEmpty}
           onClick={(_event) => {
@@ -1139,8 +1181,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           {defaults.labels.modalPrimaryCTA}
         </Button>
         <Button
-          data-testid="file-explorer-cancel-btn"
           key="cancel"
+          data-testid="file-explorer-cancel-btn"
           variant="link"
           onClick={(e) => {
             onClose(e);
