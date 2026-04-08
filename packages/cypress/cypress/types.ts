@@ -363,7 +363,6 @@ export type HardwareProfilesData = {
   projectDescription: string;
   workbenchName: string;
   hardwareProfileDeploymentSize: string;
-  workbenchRunningStatus: string;
   notebookImageName: string;
   editWorkbenchAction: string;
   settingsHardwareProfilesUrl: string;

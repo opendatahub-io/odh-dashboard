@@ -192,6 +192,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
   // Validation
   const isFormValid =
     modelId.trim() !== '' &&
+    displayName.trim() !== '' &&
     endpointUrl.trim() !== '' &&
     !modelIdConflict &&
     !displayNameConflict &&
@@ -277,7 +278,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     try {
       const request: ExternalModelRequest = {
         model_id: modelId.trim(),
-        model_display_name: displayName.trim() || modelId.trim(),
+        model_display_name: displayName.trim(),
         base_url: endpointUrl.trim(),
         secret_value: token.trim(),
         model_type: modelType,
@@ -472,20 +473,21 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
 
           <FormGroup
             label="Display name"
+            isRequired
             fieldId="display-name"
             labelHelp={
               <FieldGroupHelpLabelIcon
                 content={
                   <p>
-                    An optional friendly name shown in tables and selectors instead of the verbatim
-                    model ID. For example, you might name it Our GPT-4o or Team Llama. If left
-                    blank, the model ID will be used.
+                    A friendly name shown in tables and selectors instead of the verbatim model ID.
+                    For example, you might name it Our GPT-4o or Team Llama.
                   </p>
                 }
               />
             }
           >
             <TextInput
+              isRequired
               type="text"
               id="display-name"
               name="display-name"
@@ -493,7 +495,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               onChange={(_event, value) => setDisplayName(value)}
               onBlur={() => setTouched({ ...touched, displayName: true })}
               validated={
-                (touched.displayName || !displayName.trim()) && displayNameConflict
+                touched.displayName && (!displayName.trim() || displayNameConflict)
                   ? 'error'
                   : 'default'
               }
@@ -509,14 +511,16 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               <HelperText>
                 <HelperTextItem
                   variant={
-                    (touched.displayName || !displayName.trim()) && displayNameConflict
+                    touched.displayName && (!displayName.trim() || displayNameConflict)
                       ? 'error'
                       : 'default'
                   }
                 >
-                  {(touched.displayName || !displayName.trim()) && displayNameConflict
-                    ? `Display name "${displayName.trim()}" is already in use.`
-                    : 'Optional. A friendly display name for this model.'}
+                  {touched.displayName && !displayName.trim()
+                    ? 'Display name is required.'
+                    : touched.displayName && displayNameConflict
+                      ? `Display name "${displayName.trim()}" is already in use.`
+                      : 'A friendly display name for this model.'}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>

@@ -81,6 +81,7 @@ import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
+import EvaluationTemplateModal from './EvaluationTemplateModal';
 import './AutoragConfigure.css';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
@@ -160,6 +161,7 @@ function AutoragConfigure(): React.JSX.Element {
 
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [isMetricSelectOpen, setIsMetricSelectOpen] = useState(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
   const [inputDataSourceMode, setInputDataSourceMode] = useState<'select' | 'upload'>('select');
   const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>();
@@ -677,7 +679,11 @@ function AutoragConfigure(): React.JSX.Element {
                               Select the evaluation dataset that will be used to measure the quality
                               of the generated responses. Must adhere to the{' '}
                             </span>
-                            <Button variant="link" isInline component="span" onClick={() => null}>
+                            <Button
+                              variant="link"
+                              isInline
+                              onClick={() => setIsTemplateModalOpen(true)}
+                            >
                               evaluation dataset template
                             </Button>
                             <span>.</span>
@@ -963,6 +969,9 @@ function AutoragConfigure(): React.JSX.Element {
         selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
         unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
       />
+      {isTemplateModalOpen && (
+        <EvaluationTemplateModal onClose={() => setIsTemplateModalOpen(false)} />
+      )}
       <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}
         onClose={() => {
