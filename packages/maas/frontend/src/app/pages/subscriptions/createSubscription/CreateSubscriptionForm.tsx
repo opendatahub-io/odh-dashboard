@@ -270,19 +270,16 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
             id="subscription-priority"
             data-testid="subscription-priority"
             value={priority == null || Number.isNaN(priority) ? '' : priority}
-            min={0}
-            max={2147483647}
+            min={-1000000}
+            max={1000000}
             onMinus={() =>
               setPriority(
-                Math.max(0, (priority == null || Number.isNaN(priority) ? 0 : priority) - 1),
+                Math.max(-1000000, (priority == null || Number.isNaN(priority) ? 0 : priority) - 1),
               )
             }
             onPlus={() =>
               setPriority(
-                Math.min(
-                  2147483647,
-                  (priority == null || Number.isNaN(priority) ? 0 : priority) + 1,
-                ),
+                Math.min(1000000, (priority == null || Number.isNaN(priority) ? 0 : priority) + 1),
               )
             }
             onChange={(event: React.FormEvent<HTMLInputElement>) => {
@@ -292,7 +289,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
               } else {
                 const parsed = parseInt(inputValue, 10);
                 if (!Number.isNaN(parsed)) {
-                  setPriority(Math.min(2147483647, Math.max(0, parsed)));
+                  setPriority(Math.min(1000000, Math.max(-1000000, parsed)));
                 }
               }
             }}
