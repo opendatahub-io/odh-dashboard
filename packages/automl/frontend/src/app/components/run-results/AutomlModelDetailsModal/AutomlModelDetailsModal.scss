@@ -159,18 +159,18 @@
 
 /* Model information description list */
 /* Print-only container: hidden on screen, visible when printing */
-.automl-model-details-print-only {
+.odh-autox-print-only {
   display: none;
 }
 
 @media print {
   /* Hide everything except the portalled print container */
-  body > *:not(.automl-model-details-print-only) {
+  body > *:not(.odh-autox-print-only) {
     display: none !important;
   }
 
   /* Show the print container */
-  .automl-model-details-print-only {
+  .odh-autox-print-only {
     display: block !important;
   }
 
