@@ -138,6 +138,7 @@ const ChatbotMain: React.FunctionComponent = () => {
             />
           ) : (
             <ChatbotEmptyState
+              data-testid="create-playground-empty-state"
               title="Create your playground"
               description="Create a playground to interact with and test available generative models in this project."
               actionButtonText="Create playground"
