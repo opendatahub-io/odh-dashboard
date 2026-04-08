@@ -1,0 +1,6 @@
+projectName: mcp-server-deploy-test
+deploymentName: mcp-deploy-test
+serviceAccountName: mcp-viewer
+clusterRoleBindingName: mcp-viewer-binding
+configMapName: openshift-mcp-server-config
+expectedDeploymentStatus: Available
