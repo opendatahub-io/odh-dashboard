@@ -6,10 +6,9 @@ import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import ModelEvaluationTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/ModelEvaluationTab';
 
 const buildModel = (metrics: Record<string, unknown>): AutomlModel => ({
-  display_name: 'TestModel',
-  model_config: { eval_metric: 'accuracy' },
+  name: 'TestModel',
   location: { model_directory: '/', predictor: '/predictor', notebook: '/n.ipynb' },
-  metrics: { test_data: metrics },
+  metrics: { test_data: metrics as Record<string, number> },
 });
 
 const defaultProps = {

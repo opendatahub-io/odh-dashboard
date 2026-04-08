@@ -1,7 +1,7 @@
 /* eslint-disable camelcase -- mock data uses snake_case keys */
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import {
@@ -352,8 +352,7 @@ describe('AutomlModelDetailsModal', () => {
         'automl-print-page--first',
       );
 
-      // Wait for the deferred window.print() (double-rAF)
-      await waitFor(() => expect(printSpy).toHaveBeenCalled());
+      expect(printSpy).toHaveBeenCalledTimes(1);
     } finally {
       printSpy.mockRestore();
     }

@@ -64,6 +64,14 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
     },
   },
   {
+    type: 'app.area',
+    properties: {
+      id: MODEL_AS_SERVICE_CAMEL,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [MODEL_AS_SERVICE_CAMEL],
+    },
+  },
+  {
     type: 'app.navigation/section',
     flags: {
       required: [PLUGIN_GEN_AI],

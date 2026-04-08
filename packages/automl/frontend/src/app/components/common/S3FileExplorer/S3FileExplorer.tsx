@@ -187,6 +187,13 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   // State -------------------------------------------------------------------->
 
+  // TODO [ Gustavo ] From self-review:
+  //  This component manages 10+ useState + 7 useRef + multiple useEffect + useMemo + useCallback.
+  //  Consider using useReducer to consolidate the related state (filesToRender, foldersToRender, fetchError,
+  //  loadingToRender, hasNextPage, pageToRender, perPageToRender, currentPath, searchQuery, selectedFolder)
+  //  into a single reducer. This would make state transitions more predictable and easier to reason about,
+  //  especially the "reset" transitions that currently require touching 10+ setState calls.
+  //  This should be done once S3FileExplorer finds a common home.
   const [filesToRender, setFilesToRender] = useState<Files>([]);
   const [foldersToRender, setFoldersToRender] = useState<Folder[]>([]);
   const sourceToRender: Source | undefined = useMemo(
@@ -556,6 +563,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       onSetPage={handleSetPage}
       onPerPageSelect={handlePerPageSelect}
       onPrimary={onSelectFiles}
+      allowedSearchCharacters={/[^/]/}
+      allowedSearchCharactersLabel="Searches are case-sensitive and must match the beginning of the term. Slashes (/) are automatically removed."
     />
   );
 };

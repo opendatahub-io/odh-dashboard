@@ -133,9 +133,9 @@ describe('AutoragExperiments', () => {
 
     expect(screen.getByTestId('empty-experiments-state')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Create a RAG optimization run' }),
+      screen.getByRole('heading', { name: 'Create an AutoRAG optimization run' }),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent('Create experiment');
+    expect(screen.getByTestId('create-run-button')).toHaveTextContent('Create run');
     expect(screen.queryByTestId('autorag-runs-table')).not.toBeInTheDocument();
   });
 
@@ -261,6 +261,6 @@ describe('AutoragExperiments', () => {
 
     renderAutorag(<AutoragExperiments />);
 
-    expect(screen.getByText('Pipeline Server is not ready')).toBeInTheDocument();
+    expect(screen.getByText('There is a problem with the pipeline server')).toBeInTheDocument();
   });
 });

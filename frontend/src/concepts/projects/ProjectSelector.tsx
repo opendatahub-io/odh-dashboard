@@ -57,6 +57,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
     : invalidDropdownPlaceholder ?? placeholder ?? namespace;
 
   const visibleNamespaces = namespaces.filter(bySearchText);
+  const allProjectsHref = selectAllProjects ? getSelectionHref?.('') : undefined;
 
   const toggleLabel = namespaces.length === 0 ? 'No projects' : selectionDisplayName;
 
@@ -81,7 +82,13 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
             <MenuItem
               key="all-projects"
               isSelected={namespace === ''}
+              component={
+                allProjectsHref
+                  ? (props: React.ComponentProps<'a'>) => <Link {...props} to={allProjectsHref} />
+                  : undefined
+              }
               onClick={() => {
+                setSearchText('');
                 onSelection('');
               }}
             >

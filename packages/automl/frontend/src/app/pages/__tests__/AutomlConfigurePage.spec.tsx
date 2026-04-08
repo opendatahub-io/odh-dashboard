@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
@@ -34,6 +34,9 @@ jest.mock('mod-arch-core', () => ({
 jest.mock('~/app/hooks/mutations', () => ({
   useCreatePipelineRunMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
+  })),
+  useS3FileUploadMutation: jest.fn(() => ({
+    mutateAsync: jest.fn().mockResolvedValue({ uploaded: true, key: 'data.csv' }),
   })),
 }));
 
@@ -291,18 +294,14 @@ describe('AutomlConfigurePage', () => {
   });
 
   describe('Create step - Cancel button', () => {
-    it('should render Cancel link', async () => {
+    it('should render Cancel link with correct href', async () => {
       renderWithProviders(<AutomlConfigurePage />);
       const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
       expect(cancelLink).toBeInTheDocument();
-      expect(cancelLink).toHaveAttribute('href', '/develop-train/automl/experiments');
-    });
-
-    it('should have correct href for Cancel link', async () => {
-      renderWithProviders(<AutomlConfigurePage />);
-
-      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
-      expect(cancelLink).toHaveAttribute('href', '/develop-train/automl/experiments');
+      expect(cancelLink).toHaveAttribute(
+        'href',
+        '/develop-train/automl/experiments/test-namespace',
+      );
     });
   });
 
@@ -440,13 +439,18 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      // Select files to populate train_data_file_key
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      // Browse bucket to populate train_data_file_key
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       // FileExplorer should open
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
+
+      // Select a prediction type (required before label column appears)
+      const binaryRadio = document.getElementById('task-type-binary');
+      expect(binaryRadio).not.toBeNull();
+      fireEvent.click(binaryRadio!);
 
       // Select a label column
       const labelColumnSelect = await screen.findByTestId('label_column-select');
@@ -494,11 +498,16 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
+
+      // Select a prediction type (required before label column appears)
+      const binaryRadio = document.getElementById('task-type-binary');
+      expect(binaryRadio).not.toBeNull();
+      fireEvent.click(binaryRadio!);
 
       // Select a label column
       const labelColumnSelect = await screen.findByTestId('label_column-select');
@@ -545,11 +554,16 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
+
+      // Select a prediction type (required before label column appears)
+      const binaryRadio = document.getElementById('task-type-binary');
+      expect(binaryRadio).not.toBeNull();
+      fireEvent.click(binaryRadio!);
 
       // Select a label column
       const labelColumnSelect = await screen.findByTestId('label_column-select');
@@ -597,11 +611,16 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
+
+      // Select a prediction type (required before label column appears)
+      const binaryRadio = document.getElementById('task-type-binary');
+      expect(binaryRadio).not.toBeNull();
+      fireEvent.click(binaryRadio!);
 
       // Select a label column
       const labelColumnSelect = await screen.findByTestId('label_column-select');

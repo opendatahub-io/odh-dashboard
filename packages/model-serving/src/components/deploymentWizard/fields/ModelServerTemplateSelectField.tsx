@@ -235,7 +235,7 @@ type ModelServerTemplateSelectFieldProps = {
 const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldProps> = ({
   modelServerState,
   isEditing,
-  label = 'Serving runtime',
+  label = 'Deployment resource',
 }) => {
   const { data, setData, options } = modelServerState;
   const [searchServer, setSearchServer] = React.useState('');

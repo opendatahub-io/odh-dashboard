@@ -52,15 +52,6 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
         >
           {benchmark.name}
         </Button>
-        <Content
-          component="p"
-          style={{
-            color: 'var(--pf-t--global--text--color--subtle)',
-            marginTop: 'var(--pf-t--global--spacer--xs)',
-          }}
-        >
-          {benchmark.id}
-        </Content>
       </CardTitle>
 
       <CardBody>

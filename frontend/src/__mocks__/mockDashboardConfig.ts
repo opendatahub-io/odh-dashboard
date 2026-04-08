@@ -43,6 +43,7 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  maasAuthPolicies?: boolean;
   externalVectorStores?: boolean;
   aiAssetCustomEndpoints?: boolean;
   trainingJobs?: boolean;
@@ -50,6 +51,7 @@ export type MockDashboardConfigType = {
   hardwareProfileOrder?: string[];
   pvcSize?: string;
   mlflow?: boolean;
+  mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
@@ -66,6 +68,7 @@ export type MockDashboardConfigType = {
 
 export const mockDashboardConfig = ({
   mlflow = false,
+  mlflowPipelines = false,
   projectRBAC = false,
   disableInfo = false,
   disableSupport = false,
@@ -77,6 +80,7 @@ export const mockDashboardConfig = ({
   automl = false,
   autorag = false,
   modelAsService = true,
+  maasAuthPolicies = false,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -241,6 +245,7 @@ export const mockDashboardConfig = ({
   spec: {
     dashboardConfig: {
       mlflow,
+      mlflowPipelines,
       projectRBAC,
       enablement: true,
       disableInfo,
@@ -266,6 +271,7 @@ export const mockDashboardConfig = ({
       autorag,
       modelAsService,
       aiAssetCustomEndpoints,
+      maasAuthPolicies,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,

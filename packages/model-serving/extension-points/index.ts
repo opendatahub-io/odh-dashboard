@@ -172,7 +172,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
       (deployment: D) => { enabled: boolean; variables: { name: string; value: string }[] } | null
     >;
     extractModelAvailabilityData: CodeRef<
-      (deployment: D) => { saveAsAiAsset: boolean; saveAsMaaS?: boolean; useCase?: string } | null
+      (deployment: D) => { saveAsAiAsset: boolean; useCase?: string } | null
     >;
     extractModelLocationData: CodeRef<(deployment: D) => ModelLocationData | null>;
     extractDeploymentStrategy?: CodeRef<
@@ -372,23 +372,21 @@ export const isDeploymentWizardFieldExtension = <D extends Deployment = Deployme
 
 // TODO in same jira update name to WizardFieldExtension
 export type WizardField2Extension<
-  FieldData = unknown,
-  ExternalData = unknown,
+  WizardFieldType = WizardField,
   D extends Deployment = Deployment,
 > = Extension<
   'model-serving.deployment/wizard-field2',
   {
     platform?: D['modelServingPlatformId'];
-    field: CodeRef<WizardField<FieldData, ExternalData>>;
+    field: CodeRef<WizardFieldType>;
   }
 >;
 export const isWizardField2Extension = <
-  FieldData = unknown,
-  ExternalData = unknown,
+  WizardFieldType = WizardField,
   D extends Deployment = Deployment,
 >(
   extension: Extension,
-): extension is WizardField2Extension<FieldData, ExternalData, D> =>
+): extension is WizardField2Extension<WizardFieldType, D> =>
   extension.type === 'model-serving.deployment/wizard-field2';
 
 export type ModelServingDeploymentTransformExtension<D extends Deployment = Deployment> = Extension<

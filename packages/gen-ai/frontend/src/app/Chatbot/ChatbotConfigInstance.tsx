@@ -17,6 +17,7 @@ import {
   selectRagEnabled,
   selectKnowledgeMode,
   selectSelectedVectorStoreId,
+  selectActivePrompt,
 } from './store';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { sampleWelcomePrompts } from './const';
@@ -33,6 +34,8 @@ interface ChatbotConfigInstanceProps {
   welcomeDescription?: string;
   onMessagesHookReady?: (hook: UseChatbotMessagesReturn) => void;
   guardrailModelConfigs?: GuardrailModelConfig[];
+  configIndex?: number;
+  isCompareMode?: boolean;
 }
 
 export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
@@ -47,6 +50,8 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   welcomeDescription = 'Welcome to the playground',
   onMessagesHookReady,
   guardrailModelConfigs = [],
+  configIndex,
+  isCompareMode,
 }) => {
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const temperature = useChatbotConfigStore(selectTemperature(configId));
@@ -67,6 +72,9 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   React.useEffect(() => {
     updateSelectedVectorStoreId(configId, knowledgeMode === 'inline' ? currentVectorStoreId : null);
   }, [knowledgeMode, currentVectorStoreId, configId, updateSelectedVectorStoreId]);
+
+  // Prompt state from store (for analytics)
+  const activePrompt = useChatbotConfigStore(selectActivePrompt(configId));
 
   // Guardrails configuration from store
   const guardrail = useChatbotConfigStore(selectGuardrail(configId));
@@ -95,6 +103,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   );
 
   const messagesHook = useChatbotMessages({
+    configId,
     modelId: selectedModel,
     systemInstruction,
     isRawUploaded: isRagEnabled,
@@ -111,6 +120,11 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     guardrailsConfig,
     guardrailModelConfigs,
     subscription: selectedSubscription,
+    configIndex,
+    isCompareMode,
+    isGuardrailEnabled: Boolean(guardrail),
+    promptVersion: activePrompt?.version ?? 0,
+    promptName: activePrompt?.name ?? '',
   });
 
   // Expose the messages hook to parent and update when it changes

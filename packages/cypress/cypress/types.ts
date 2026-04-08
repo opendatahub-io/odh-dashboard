@@ -608,7 +608,7 @@ export type PipelineTestData = {
   pipelineDescription: string;
   runName: string;
   runDescription: string;
-  experimentName: string;
+  runGroupName: string;
   dspaSecretName: string;
   pipelineUrl: string;
 };
@@ -635,4 +635,16 @@ export type TiersTestData = {
   tierDeploymentOption: string;
   groupsCount: number;
   limits: string;
+};
+
+export type PromptManagementPromptData = {
+  name: string;
+  versionLabel: string;
+  template: string;
+  commitMessage: string;
+};
+
+export type PromptManagementTestData = {
+  projectName: string;
+  prompts: PromptManagementPromptData[];
 };

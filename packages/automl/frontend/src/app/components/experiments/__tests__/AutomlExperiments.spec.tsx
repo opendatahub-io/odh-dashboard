@@ -133,7 +133,7 @@ describe('AutomlExperiments', () => {
     expect(
       screen.getByRole('heading', { name: 'Create an AutoML optimization run' }),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent('Create experiment');
+    expect(screen.getByTestId('create-run-button')).toHaveTextContent('Create run');
     expect(screen.queryByTestId('automl-runs-table')).not.toBeInTheDocument();
   });
 
@@ -246,6 +246,6 @@ describe('AutomlExperiments', () => {
 
     renderAutoml(<AutomlExperiments />);
 
-    expect(screen.getByText('Pipeline Server is not ready')).toBeInTheDocument();
+    expect(screen.getByText('There is a problem with the pipeline server')).toBeInTheDocument();
   });
 });

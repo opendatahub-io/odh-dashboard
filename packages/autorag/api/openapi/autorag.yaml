@@ -1107,8 +1107,8 @@ components:
           description: Metric to optimize (defaults to faithfulness)
         llama_stack_vector_io_provider_id:
           type: string
-          description: Pipeline vector store type derived from the selected LlamaStack provider (e.g. ls_milvus)
-          example: ls_milvus
+          description: Pipeline vector store provider ID from the selected LlamaStack provider (e.g. milvus)
+          example: milvus
         optimization_max_rag_patterns:
           type: integer
           minimum: 4

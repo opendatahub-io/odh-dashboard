@@ -418,6 +418,18 @@ class APIKeysPage {
     return cy.findByRole('menuitem', { name: new RegExp(status, 'i') });
   }
 
+  findStatusFilterOptionCheckbox(status: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findStatusFilterOption(status).findByRole('checkbox');
+  }
+
+  findToolbar(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-keys-toolbar');
+  }
+
+  clearAllFilters() {
+    this.findToolbar().contains('button', 'Clear all filters').click();
+  }
+
   findColumnSortButton(columnLabel: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findTable().find('thead').contains('th', columnLabel).findByRole('button');
   }
@@ -735,6 +747,145 @@ class SubscriptionTableRow extends TableRow {
   findModels(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Models"]');
   }
+
+  findPriority(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Priority"]');
+  }
+}
+
+class CreateSubscriptionPage {
+  visit(): void {
+    cy.visitWithLogin('/maas/subscriptions/create');
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findDisplayNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-name-desc-name');
+  }
+
+  findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-name-desc-description');
+  }
+
+  findPriorityInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-priority').find('input[type="number"]');
+  }
+
+  findPriorityPlusButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-priority').findByRole('button', { name: 'Plus' });
+  }
+
+  findPriorityMinusButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-priority').findByRole('button', { name: 'Minus' });
+  }
+
+  findPriorityValidationError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId('subscription-priority')
+      .parents('.pf-v6-c-form__group')
+      .find('.pf-v6-c-helper-text__item');
+  }
+
+  findGroupsSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-groups');
+  }
+
+  selectGroup(name: string): void {
+    this.findGroupsSelect().click();
+    cy.findByRole('option', { name }).click();
+    this.findGroupsSelect().click();
+  }
+
+  typeCustomGroup(name: string): void {
+    this.findGroupsSelect().find('input').type(name);
+    cy.findByRole('option', { name: `Add group "${name}"` }).click();
+  }
+
+  findAddModelsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-models-button');
+  }
+
+  findModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-models-table');
+  }
+
+  findAuthPolicyCheckbox(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-create-auth-policy');
+  }
+
+  findCreateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-subscription-button');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('cancel-subscription-button');
+  }
+}
+
+class AddModelsToSubscriptionModal extends Modal {
+  constructor() {
+    super('Add models to subscription');
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-models-modal');
+  }
+
+  findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('add-models-filter');
+  }
+
+  findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('add-models-table');
+  }
+
+  findToggleModelButton(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`toggle-model-${modelName}`);
+  }
+
+  findConfirmButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('confirm-add-models');
+  }
+}
+
+class EditRateLimitsModal extends Modal {
+  constructor() {
+    super(/Edit token limits/);
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('dialog', { name: /Edit token limits/ });
+  }
+
+  findCountInput(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`edit-token-limit-${index}-count`).find('input[type="number"]');
+  }
+
+  findTimeInput(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`edit-token-limit-${index}-time`).find('input[type="number"]');
+  }
+
+  findUnitDropdown(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`edit-token-limit-${index}-unit`);
+  }
+
+  selectUnit(index: number, unit: string): void {
+    this.findUnitDropdown(index).click();
+    cy.findByRole('menuitem', { name: unit }).click();
+  }
+
+  findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('save-rate-limits');
+  }
 }
 
 class DeleteSubscriptionModal extends DeleteModal {
@@ -802,6 +953,80 @@ class ViewSubscriptionPage {
   }
 }
 
+class AuthPoliciesPage {
+  visit(): void {
+    cy.visitWithLogin('/maas/auth-policies');
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('auth-policies-table');
+  }
+
+  findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().find('tbody tr');
+  }
+
+  findCreateAuthPolicyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-auth-policy-button');
+  }
+
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('auth-policy-actions');
+  }
+
+  getRow(name: string): AuthPolicyTableRow {
+    return new AuthPolicyTableRow(() =>
+      this.findTable().find('tbody tr').contains('td', name).parents('tr'),
+    );
+  }
+
+  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-state-title');
+  }
+}
+
+class AuthPolicyTableRow extends TableRow {
+  findName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Name"]');
+  }
+
+  findGroups(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Groups"]');
+  }
+
+  findModels(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Models"]');
+  }
+
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-testid="auth-policy-actions"]');
+  }
+}
+
+class DeleteAuthPolicyModal extends DeleteModal {
+  constructor() {
+    super('Delete Auth Policy?');
+  }
+
+  findInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText('Delete modal input');
+  }
+
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: /Delete/, hidden: true });
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
@@ -816,3 +1041,8 @@ export const copyApiKeyModal = new CopyApiKeyModal();
 export const subscriptionsPage = new SubscriptionsPage();
 export const deleteSubscriptionModal = new DeleteSubscriptionModal();
 export const viewSubscriptionPage = new ViewSubscriptionPage();
+export const createSubscriptionPage = new CreateSubscriptionPage();
+export const addModelsToSubscriptionModal = new AddModelsToSubscriptionModal();
+export const editRateLimitsModal = new EditRateLimitsModal();
+export const authPoliciesPage = new AuthPoliciesPage();
+export const deleteAuthPolicyModal = new DeleteAuthPolicyModal();

@@ -635,7 +635,7 @@ mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);
 
 class ModelServingRow extends TableRow {
   shouldHaveServingRuntime(servingRuntime: string) {
-    this.find().find('[data-label="Serving runtime"]').contains(servingRuntime);
+    this.find().find('[data-label="Deployment resource"]').contains(servingRuntime);
     return this;
   }
 
@@ -672,7 +672,7 @@ class ModelServingRow extends TableRow {
   }
 
   findServingRuntime() {
-    return this.find().find(`[data-label="Serving runtime"]`);
+    return this.find().find(`[data-label="Deployment resource"]`);
   }
 
   findServiceRuntime() {
@@ -1301,6 +1301,14 @@ class ModelServingWizard extends Wizard {
 
   findDiscardButton() {
     return cy.findByRole('button', { name: 'Discard' });
+  }
+
+  findGatewaySelect() {
+    return cy.findByTestId('gateway-select');
+  }
+
+  findGatewaySelectOption(name: string) {
+    return this.findGatewaySelect().findSelectOption(name);
   }
 
   findDeploymentStrategySection() {

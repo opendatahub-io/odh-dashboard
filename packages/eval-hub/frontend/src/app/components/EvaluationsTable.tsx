@@ -22,7 +22,9 @@ import {
 import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, ThProps } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
+import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EvaluationJob } from '~/app/types';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { getEvaluationName, getBenchmarkName } from '~/app/utilities/evaluationUtils';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import EvaluationsTableRow from './EvaluationsTableRow';
@@ -234,7 +236,10 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               <Button
                 variant="primary"
                 data-testid="create-evaluation-button"
-                onClick={() => navigate('create')}
+                onClick={() => {
+                  fireSimpleTrackingEvent(EVAL_HUB_EVENTS.START_EVALUATION_SELECTED);
+                  navigate('create');
+                }}
               >
                 New evaluation
               </Button>
@@ -290,7 +295,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               <Th
                 modifier="nowrap"
                 info={{
-                  tooltip:
+                  popover:
                     'The benchmark collection or individual benchmark used for this evaluation',
                 }}
               >
@@ -299,7 +304,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               <Th
                 modifier="nowrap"
                 info={{
-                  tooltip: 'The model evaluated in this run',
+                  popover: 'The model evaluated in this run',
                 }}
               >
                 Evaluated
@@ -310,7 +315,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               <Th
                 modifier="nowrap"
                 info={{
-                  tooltip: 'The result score from the evaluation run',
+                  popover: 'The result score from the evaluation run',
                 }}
               >
                 Result

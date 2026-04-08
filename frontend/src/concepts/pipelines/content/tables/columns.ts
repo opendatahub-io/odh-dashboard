@@ -94,7 +94,14 @@ export const experimentColumns: SortableData<ExperimentKF>[] = [
   kebabTableColumn(),
 ];
 
-export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
+const mlflowExperimentColumn = <T>(): SortableData<T> => ({
+  label: 'MLflow experiment',
+  field: 'mlflow_experiment',
+  sortable: false,
+  width: 15,
+});
+
+export const pipelineRunColumns = (isMlflowAvailable?: boolean): SortableData<PipelineRunKF>[] => [
   checkboxTableColumn(),
   {
     label: 'Run',
@@ -107,9 +114,10 @@ export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
     sortable: false,
     width: 15,
   },
+  ...(isMlflowAvailable ? [mlflowExperimentColumn<PipelineRunKF>()] : []),
   {
-    label: 'Experiment',
-    field: 'experiment',
+    label: 'Run group',
+    field: 'run_group',
     sortable: false,
     width: 15,
   },
@@ -134,7 +142,7 @@ export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
   kebabTableColumn(),
 ];
 
-export const compareRunColumns: SortableData<PipelineRunKF>[] = [
+export const compareRunColumns = (isMlflowAvailable?: boolean): SortableData<PipelineRunKF>[] => [
   checkboxTableColumn(),
   {
     label: 'Run',
@@ -147,9 +155,10 @@ export const compareRunColumns: SortableData<PipelineRunKF>[] = [
     sortable: false,
     width: 15,
   },
+  ...(isMlflowAvailable ? [mlflowExperimentColumn<PipelineRunKF>()] : []),
   {
-    label: 'Experiment',
-    field: 'experiment',
+    label: 'Run group',
+    field: 'run_group',
     sortable: false,
     width: 15,
   },
@@ -175,6 +184,7 @@ export const compareRunColumns: SortableData<PipelineRunKF>[] = [
 
 export const getPipelineRunColumns = (
   metricsColumnNames: string[],
+  isMlflowAvailable?: boolean,
 ): SortableData<PipelineRunKF>[] => [
   { ...checkboxTableColumn(), isStickyColumn: true, stickyMinWidth: '45px' },
   {
@@ -193,9 +203,10 @@ export const getPipelineRunColumns = (
     sortable: false,
     width: 15,
   },
+  ...(isMlflowAvailable ? [mlflowExperimentColumn<PipelineRunKF>()] : []),
   {
-    label: 'Experiment',
-    field: 'experiment',
+    label: 'Run group',
+    field: 'run_group',
     sortable: false,
     width: 15,
   },
@@ -225,7 +236,9 @@ export const getPipelineRunColumns = (
   kebabTableColumn(),
 ];
 
-export const pipelineRecurringRunColumns: SortableData<PipelineRecurringRunKF>[] = [
+export const pipelineRecurringRunColumns = (
+  isMlflowAvailable?: boolean,
+): SortableData<PipelineRecurringRunKF>[] => [
   checkboxTableColumn(),
   {
     label: 'Schedule',
@@ -238,9 +251,10 @@ export const pipelineRecurringRunColumns: SortableData<PipelineRecurringRunKF>[]
     sortable: false,
     width: 15,
   },
+  ...(isMlflowAvailable ? [mlflowExperimentColumn<PipelineRecurringRunKF>()] : []),
   {
-    label: 'Experiment',
-    field: 'experiment',
+    label: 'Run group',
+    field: 'run_group',
     sortable: false,
     width: 15,
   },
