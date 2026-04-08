@@ -10,6 +10,7 @@ import {
   PageSection,
   Stack,
   StackItem,
+  Truncate,
 } from '@patternfly/react-core';
 import classNames from 'classnames';
 import { useNamespaceSelector } from 'mod-arch-core';
@@ -121,9 +122,11 @@ function AutoragConfigurePage(): React.JSX.Element {
       title={<AutoragHeader />}
       subtext={
         <h2 className="pf-v6-u-mt-sm">
-          {step === 'create'
-            ? 'Create AutoRAG optimization run'
-            : `"${displayName}" configurations`}
+          {step === 'create' ? (
+            'Create AutoRAG optimization run'
+          ) : (
+            <Truncate content={`"${displayName}" configurations`} />
+          )}
         </h2>
       }
       description={
@@ -140,7 +143,9 @@ function AutoragConfigurePage(): React.JSX.Element {
             <BreadcrumbItem>
               <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
             </BreadcrumbItem>
-            <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
+            <BreadcrumbItem isActive>
+              <Truncate content={displayName || ''} />
+            </BreadcrumbItem>
           </Breadcrumb>
         )
       }
