@@ -198,7 +198,7 @@ describe('Create connection modal', () => {
                 type: 'numeric',
                 name: 'numeric 3',
                 envVar: 'env3',
-                properties: { min: 0, max: 100 },
+                properties: { min: 0 },
               },
             ],
           }),
@@ -236,21 +236,18 @@ describe('Create connection modal', () => {
     });
     expect(createButton).toBeEnabled();
 
-    // numeric - values outside min/max are auto-corrected on blur
+    // numeric
     await act(async () => {
       fireEvent.change(numeric, {
         target: { value: '-10' },
       });
-      fireEvent.blur(numeric);
     });
-    // Value is clamped to min (0), so button remains enabled
-    expect(createButton).toBeEnabled();
+    expect(createButton).toBeDisabled();
 
     await act(async () => {
       fireEvent.change(numeric, {
         target: { value: '2' },
       });
-      fireEvent.blur(numeric);
     });
     expect(createButton).toBeEnabled();
 

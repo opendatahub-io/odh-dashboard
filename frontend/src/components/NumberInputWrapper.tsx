@@ -8,7 +8,6 @@ type NumberInputWrapperProps = {
   onBlur?: (blurValue: number | undefined) => void;
   onChange?: (newValue: number | undefined) => void;
   intOnly?: boolean;
-  increment?: number;
   fullWidth?: boolean;
 } & Omit<React.ComponentProps<typeof NumberInput>, 'onChange' | 'onPlus' | 'onMinus'>;
 
@@ -16,7 +15,6 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
   onBlur,
   onChange,
   intOnly = true,
-  increment = 1,
   fullWidth = false,
   value,
   validated,
@@ -25,7 +23,7 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
   ...otherProps
 }) => (
   <NumberInput
-    className={fullWidth ? 'odh-number-input-wrapper m-full-width' : 'odh-number-input-wrapper'}
+    className={fullWidth ? 'odh-number-input-wrapper m-full-width' : undefined}
     inputProps={{ placeholder: '' }}
     inputName="value-unit-input"
     {...otherProps}
@@ -45,10 +43,10 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
                 onChange(undefined);
                 return;
               }
-              if (min != null) {
+              if (min) {
                 v = Math.max(v, min);
               }
-              if (max != null) {
+              if (max) {
                 v = Math.min(v, max);
               }
               onChange(v);
@@ -66,16 +64,16 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
     onPlus={
       onChange
         ? () => {
-            const newVal = (value || 0) + increment;
-            onChange(max != null ? Math.min(newVal, max) : newVal);
+            const newVal = (value || 0) + 1;
+            onChange(min ? Math.max(newVal, min) : newVal);
           }
         : undefined
     }
     onMinus={
       onChange
         ? () => {
-            const newVal = (value || 0) - increment;
-            onChange(min != null ? Math.max(newVal, min) : newVal);
+            const newVal = (value || 0) - 1;
+            onChange(max ? Math.min(newVal, max) : newVal);
           }
         : undefined
     }

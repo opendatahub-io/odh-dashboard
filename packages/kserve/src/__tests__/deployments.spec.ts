@@ -20,7 +20,7 @@ const mockUseWatchServingRuntimes = watchModule.useWatchServingRuntimes as jest.
 const mockUseWatchDeploymentPods = watchModule.useWatchDeploymentPods as jest.Mock;
 
 // Type helper for hook return value
-type DeploymentHookResult = [KServeDeployment[] | undefined, boolean, Error[] | undefined];
+type DeploymentHookResult = [KServeDeployment[] | undefined, boolean, Error | undefined];
 
 describe('useWatchDeployments', () => {
   let mockProject: ProjectKind;
@@ -76,7 +76,7 @@ describe('useWatchDeployments', () => {
 
     expect(deployments).toHaveLength(3);
     expect(loaded).toBe(true);
-    expect(error).toHaveLength(0);
+    expect(error).toBeUndefined();
   });
 
   it('should filter deployments when filterFn is provided', () => {
@@ -91,7 +91,7 @@ describe('useWatchDeployments', () => {
     expect(deployments?.[0].model.metadata.name).toBe('model-1');
     expect(deployments?.[1].model.metadata.name).toBe('model-2');
     expect(loaded).toBe(true);
-    expect(error).toHaveLength(0);
+    expect(error).toBeUndefined();
   });
 
   it('should return empty array when filterFn filters out all deployments', () => {
@@ -104,7 +104,7 @@ describe('useWatchDeployments', () => {
 
     expect(deployments).toHaveLength(0);
     expect(loaded).toBe(true);
-    expect(error).toHaveLength(0);
+    expect(error).toBeUndefined();
   });
 
   it('should match serving runtimes to inference services', () => {
@@ -155,9 +155,9 @@ describe('useWatchDeployments', () => {
 
     const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
 
-    const [, , errors] = renderResult.result.current as DeploymentHookResult;
+    const [, , error] = renderResult.result.current as DeploymentHookResult;
 
-    expect(errors).toContain(mockError);
+    expect(error).toBe(mockError);
   });
 
   it('should pass through error state from serving runtimes', () => {
@@ -166,9 +166,9 @@ describe('useWatchDeployments', () => {
 
     const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
 
-    const [, , errors] = renderResult.result.current as DeploymentHookResult;
+    const [, , error] = renderResult.result.current as DeploymentHookResult;
 
-    expect(errors).toContain(mockError);
+    expect(error).toBe(mockError);
   });
 
   it('should pass through error state from deployment pods', () => {
@@ -177,9 +177,9 @@ describe('useWatchDeployments', () => {
 
     const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
 
-    const [, , errors] = renderResult.result.current as DeploymentHookResult;
+    const [, , error] = renderResult.result.current as DeploymentHookResult;
 
-    expect(errors).toContain(mockError);
+    expect(error).toBe(mockError);
   });
 
   it('should update deployments when filterFn changes', () => {
