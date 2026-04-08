@@ -17,6 +17,7 @@ import type {
   WizardFieldApplyExtension,
   WizardFieldExtractorExtension,
 } from '@odh-dashboard/model-serving/extension-points';
+import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import {
@@ -40,7 +41,7 @@ const extensions: (
   | ModelServingStartStopAction<KServeDeployment>
   | ModelServingPlatformFetchDeploymentStatus<KServeDeployment>
   | ModelServingDeploy<KServeDeployment>
-  | WizardField2Extension<TimeoutFieldValue, undefined, KServeDeployment>
+  | WizardField2Extension<WizardField<TimeoutFieldValue, undefined>, KServeDeployment>
   | WizardFieldApplyExtension<TimeoutFieldValue, KServeDeployment>
   | WizardFieldExtractorExtension<TimeoutFieldValue, KServeDeployment>
 )[] = [
@@ -152,13 +153,13 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       extractHardwareProfileConfig: () =>
-        import('./src/hardware').then((m) => (deployment) => ({
+        import('./src/hardware').then((m) => (deployment: KServeDeployment) => ({
           data: m.extractHardwareProfileConfig(deployment),
         })),
       extractModelType: () => import('./src/deployUtils').then((m) => m.extractModelType),
       extractModelFormat: () => import('./src/modelFormat').then((m) => m.extractKServeModelFormat),
       extractReplicas: () =>
-        import('./src/hardware').then((m) => (deployment) => ({
+        import('./src/hardware').then((m) => (deployment: KServeDeployment) => ({
           data: m.extractReplicas(deployment),
         })),
       extractRuntimeArgs: () => import('./src/hardware').then((m) => m.extractRuntimeArgs),

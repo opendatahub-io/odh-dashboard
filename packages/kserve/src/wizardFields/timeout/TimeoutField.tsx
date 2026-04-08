@@ -78,14 +78,14 @@ export const isKServeInferenceServiceActive = (
 
 type TimeoutFieldProps = {
   id: string;
-  value: TimeoutFieldValue;
+  value?: TimeoutFieldValue;
   onChange: (value: TimeoutFieldValue) => void;
   isDisabled?: boolean;
 };
 
 const TimeoutFieldComponent: React.FC<TimeoutFieldProps> = ({
   id,
-  value,
+  value = { timeout: DEFAULT_TIMEOUT, return401: false },
   onChange,
   isDisabled,
 }) => (
