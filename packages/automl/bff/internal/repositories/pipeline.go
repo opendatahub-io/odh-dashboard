@@ -148,15 +148,14 @@ func (c *pipelineCache) evictOldest() {
 
 // PipelineRepository handles pipeline discovery logic
 type PipelineRepository struct {
-	createMu   sync.Mutex          // serializes pipeline creation per BFF instance
-	inFlight   map[string]struct{} // tracks in-flight creation keys (namespace:namePrefix)
-	inFlightMu sync.Mutex          // guards inFlight map
+	inFlight   map[string]chan struct{} // per-key completion signals for in-flight creation
+	inFlightMu sync.Mutex              // guards inFlight map
 }
 
 // NewPipelineRepository creates a new pipeline repository
 func NewPipelineRepository() *PipelineRepository {
 	return &PipelineRepository{
-		inFlight: make(map[string]struct{}),
+		inFlight: make(map[string]chan struct{}),
 	}
 }
 
@@ -360,24 +359,40 @@ func (r *PipelineRepository) EnsurePipeline(
 		return nil, fmt.Errorf("no pipeline %q found and no YAML available for auto-creation", namePrefix)
 	}
 
-	// Serialize creation per key to prevent duplicate pipelines from concurrent requests
+	// Serialize creation per key to prevent duplicate pipelines from concurrent requests.
+	// If another goroutine is already creating this pipeline, wait for it to finish
+	// then retry discovery.
 	createKey := fmt.Sprintf("%s:%s:%s", pipelineServerBaseURL, namespace, namePrefix)
 	r.inFlightMu.Lock()
-	if _, ok := r.inFlight[createKey]; ok {
+	if doneCh, ok := r.inFlight[createKey]; ok {
 		r.inFlightMu.Unlock()
-		// Another goroutine is creating this pipeline — wait briefly and retry discovery
-		time.Sleep(2 * time.Second)
-		return r.discoverOnePipeline(client, ctx, namespace, namePrefix)
+		// Wait for the creating goroutine to finish or context cancellation
+		select {
+		case <-doneCh:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		// Retry discovery — the creator should have made the pipeline visible
+		discovered, err = r.discoverOnePipeline(client, ctx, namespace, namePrefix)
+		if err != nil {
+			return nil, err
+		}
+		if discovered != nil {
+			return discovered, nil
+		}
+		return nil, fmt.Errorf("pipeline %q was not found after concurrent creation completed", namePrefix)
 	}
-	r.inFlight[createKey] = struct{}{}
+	doneCh := make(chan struct{})
+	r.inFlight[createKey] = doneCh
 	r.inFlightMu.Unlock()
 	defer func() {
+		close(doneCh)
 		r.inFlightMu.Lock()
 		delete(r.inFlight, createKey)
 		r.inFlightMu.Unlock()
 	}()
 
-	// Double-check after acquiring the lock — another request may have created it
+	// Double-check after registering — another request may have just finished creating it
 	discovered, err = r.discoverOnePipeline(client, ctx, namespace, namePrefix)
 	if err != nil {
 		return nil, err
@@ -386,7 +401,7 @@ func (r *PipelineRepository) EnsurePipeline(
 		return discovered, nil
 	}
 
-	return r.createPipeline(client, ctx, namespace, pipelineServerBaseURL, def)
+	return r.createPipeline(client, ctx, namespace, pipelineServerBaseURL, namePrefix, def)
 }
 
 // createPipeline uploads embedded YAML to create a new pipeline and its first version in one step.
@@ -395,6 +410,7 @@ func (r *PipelineRepository) createPipeline(
 	ctx context.Context,
 	namespace string,
 	pipelineServerBaseURL string,
+	namePrefix string,
 	def PipelineDefinition,
 ) (*DiscoveredPipeline, error) {
 	logger := slog.Default()
@@ -405,16 +421,23 @@ func (r *PipelineRepository) createPipeline(
 	}
 
 	// Upload pipeline YAML — creates both the pipeline and its first version
-	created, err := client.UploadPipeline(ctx, def.NamePrefix, def.YAMLFilename, yamlBytes)
+	created, err := client.UploadPipeline(ctx, namePrefix, def.YAMLFilename, yamlBytes)
 	if err != nil {
 		// Handle 409 Conflict — another BFF instance may have created it
 		var httpErr *ps.HTTPError
 		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusConflict {
 			logger.Info("Pipeline already exists (concurrent creation), retrying discovery",
-				"namePrefix", def.NamePrefix, "namespace", namespace)
-			return r.discoverOnePipeline(client, ctx, namespace, def.NamePrefix)
+				"namePrefix", namePrefix, "namespace", namespace)
+			discovered, discoverErr := r.discoverOnePipeline(client, ctx, namespace, namePrefix)
+			if discoverErr != nil {
+				return nil, discoverErr
+			}
+			if discovered != nil {
+				return discovered, nil
+			}
+			return nil, fmt.Errorf("pipeline %q already exists but could not be discovered after conflict", namePrefix)
 		}
-		return nil, fmt.Errorf("failed to upload pipeline %q: %w", def.NamePrefix, err)
+		return nil, fmt.Errorf("failed to upload pipeline %q: %w", namePrefix, err)
 	}
 
 	// Fetch the version created by the upload
