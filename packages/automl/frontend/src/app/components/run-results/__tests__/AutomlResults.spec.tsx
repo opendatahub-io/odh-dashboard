@@ -38,15 +38,12 @@ const mockPipelineRun: PipelineRun = {
   created_at: '2025-06-01T00:00:00Z',
 };
 
-const createMockModel = (displayName: string): AutomlModel => ({
-  display_name: displayName,
-  model_config: {
-    eval_metric: 'accuracy',
-  },
+const createMockModel = (modelName: string): AutomlModel => ({
+  name: modelName,
   location: {
-    model_directory: `/models/${displayName}`,
-    predictor: `/models/${displayName}/predictor`,
-    notebook: `/models/${displayName}/notebook.ipynb`,
+    model_directory: `/models/${modelName}`,
+    predictor: `/models/${modelName}/predictor`,
+    notebook: `/models/${modelName}/notebook.ipynb`,
   },
   metrics: {
     test_data: { accuracy: 0.95 },
@@ -112,7 +109,7 @@ describe('AutomlResults', () => {
   describe('notebook download error handling', () => {
     it('should display error alert when fetchS3File fails', async () => {
       const testModel = createMockModel('Test Model');
-      const models = { 'Test Model': testModel }; // Key must match display_name
+      const models = { 'Test Model': testModel }; // Key must match name
 
       fetchS3FileMock.mockRejectedValueOnce(new Error('S3 connection failed'));
 
@@ -139,7 +136,7 @@ describe('AutomlResults', () => {
 
     it('should display error when namespace is missing', async () => {
       const testModel = createMockModel('Test Model');
-      const models = { 'Test Model': testModel }; // Key must match display_name
+      const models = { 'Test Model': testModel }; // Key must match name
 
       // Render without namespace in the route
       render(
@@ -188,7 +185,7 @@ describe('AutomlResults', () => {
           notebook: '', // Missing notebook location
         },
       };
-      const models = { 'Test Model': testModel }; // Key must match display_name
+      const models = { 'Test Model': testModel }; // Key must match name
 
       renderWithContext(mockPipelineRun, models);
 
@@ -212,7 +209,7 @@ describe('AutomlResults', () => {
 
     it('should allow user to dismiss error alert', async () => {
       const testModel = createMockModel('Test Model');
-      const models = { 'Test Model': testModel }; // Key must match display_name
+      const models = { 'Test Model': testModel }; // Key must match name
 
       fetchS3FileMock.mockRejectedValueOnce(new Error('Network error'));
 
@@ -244,7 +241,7 @@ describe('AutomlResults', () => {
 
     it('should clear previous error when new download is attempted', async () => {
       const testModel = createMockModel('Test Model');
-      const models = { 'Test Model': testModel }; // Key must match display_name
+      const models = { 'Test Model': testModel }; // Key must match name
 
       // First download fails
       fetchS3FileMock.mockRejectedValueOnce(new Error('First error'));
@@ -284,7 +281,7 @@ describe('AutomlResults', () => {
 
     it('should successfully download notebook when all data is valid', async () => {
       const testModel = createMockModel('Test Model');
-      const models = { 'Test Model': testModel }; // Key must match display_name
+      const models = { 'Test Model': testModel }; // Key must match name
 
       const mockBlob = new Blob(['notebook content'], { type: 'application/x-ipynb+json' });
       fetchS3FileMock.mockResolvedValueOnce(mockBlob);

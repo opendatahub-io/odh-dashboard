@@ -1,9 +1,34 @@
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { handleRestFailures, isModArchResponse, restCREATE } from 'mod-arch-core';
 import * as z from 'zod';
+import {
+  uploadFileToS3,
+  type UploadFileToS3Params,
+  type UploadFileToS3Response,
+} from '~/app/api/s3';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { PipelineRun } from '~/app/types';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+
+export type S3FileUploadMutationVariables = UploadFileToS3Params & {
+  file: File;
+};
+
+/**
+ * React Query mutation for uploading a file to S3 via POST /api/v1/s3/file.
+ * Uses hostPath '' for same-origin requests by default.
+ */
+export function useS3FileUploadMutation(
+  hostPath = '',
+): UseMutationResult<UploadFileToS3Response, Error, S3FileUploadMutationVariables> {
+  return useMutation({
+    mutationKey: ['automl', 's3FileUpload'],
+    mutationFn: async (variables: S3FileUploadMutationVariables) => {
+      const { file, ...params } = variables;
+      return uploadFileToS3(hostPath, params, file);
+    },
+  });
+}
 
 /**
  * Creates a new pipeline run via the AutoML BFF API.

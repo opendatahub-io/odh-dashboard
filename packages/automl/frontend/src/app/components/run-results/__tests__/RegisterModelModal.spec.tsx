@@ -48,8 +48,7 @@ const mockRegistries: ModelRegistriesResponse = {
 const defaultContext: AutomlResultsContextProps = {
   models: {
     TestModel: {
-      display_name: 'TestModel',
-      model_config: { eval_metric: 'accuracy' },
+      name: 'TestModel',
       location: {
         model_directory:
           'autogluon-tabular-training-pipeline/run-1/autogluon-models-full-refit/task-1/model_artifact/TestModel/',
