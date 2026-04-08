@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-a2a-tutorial
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started'
+spec:
+  type: tutorial
+  displayName: 'A2A: LangGraph + CrewAI Multi-Agent'
+  description: >-
+    Agent-to-Agent (A2A) example where a CrewAI pod exposes an A2A JSON-RPC
+    server and a LangGraph pod orchestrates it over HTTP. Single Dockerfile
+    with A2A_ROLE selecting crew vs langgraph process.
+  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/a2a/langgraph_crewai_agent'
+  provider: Open Data Hub
+  appName: agentic-starter-kits

@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-hitl-tutorial
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started'
+spec:
+  type: tutorial
+  displayName: 'LangGraph Human-in-the-Loop Agent'
+  description: >-
+    Agent with human-in-the-loop approval that pauses execution before
+    running sensitive tools and waits for human review. Simple questions
+    are answered directly without triggering the approval loop.
+  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/langgraph/human_in_the_loop'
+  provider: Open Data Hub
+  appName: agentic-starter-kits
