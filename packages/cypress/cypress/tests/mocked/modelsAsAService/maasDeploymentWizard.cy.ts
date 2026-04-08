@@ -212,8 +212,8 @@ describe('MaaS Deployment Wizard', () => {
 
     cy.wait('@createMaaSModelRef').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=true');
-      expect(interception.request.body.name).to.equal('test-llm-inference-service');
-      expect(interception.request.body.namespace).to.equal('test-project');
+      expect(interception.request.body.data.name).to.equal('test-llm-inference-service');
+      expect(interception.request.body.data.namespace).to.equal('test-project');
     });
 
     cy.wait('@createLLMInferenceService').then((interception) => {
@@ -231,10 +231,10 @@ describe('MaaS Deployment Wizard', () => {
     cy.get('@createLLMInferenceService.all').should('have.length', 2);
     cy.wait('@createMaaSModelRef').then((interception) => {
       expect(interception.request.url).not.to.include('?dryRun=true');
-      expect(interception.request.body.name).to.equal('test-llm-inference-service');
-      expect(interception.request.body.namespace).to.equal('test-project');
-      expect(interception.request.body.displayName).to.equal('Test LLM Inference Service');
-      expect(interception.request.body.description).to.equal(
+      expect(interception.request.body.data.name).to.equal('test-llm-inference-service');
+      expect(interception.request.body.data.namespace).to.equal('test-project');
+      expect(interception.request.body.data.displayName).to.equal('Test LLM Inference Service');
+      expect(interception.request.body.data.description).to.equal(
         'Test LLM Inference Service Description',
       );
     });
@@ -279,8 +279,8 @@ describe('MaaS Deployment Wizard', () => {
     cy.wait('@updateMaaSModelRef').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=true');
       expect(interception.request.url).to.include('/test-project/test-llm-inference-service');
-      expect(interception.request.body.displayName).to.equal('test-llmd-model-2');
-      expect(interception.request.body.description).to.equal('test-llmd-description-2');
+      expect(interception.request.body.data.displayName).to.equal('test-llmd-model-2');
+      expect(interception.request.body.data.description).to.equal('test-llmd-description-2');
     });
     cy.wait('@updateLLMInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');

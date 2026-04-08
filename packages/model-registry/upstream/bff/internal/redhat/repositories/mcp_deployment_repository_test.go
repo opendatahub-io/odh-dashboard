@@ -623,37 +623,6 @@ func TestConvertUnstructuredToMcpDeployment_FailedNoAddress(t *testing.T) {
 }
 
 // parseSpecYAML
-func TestParseSpecYAML_WithSpecWrapper(t *testing.T) {
-	yamlStr := `config:
-  port: 9090
-  path: /mcp
-runtime:
-  replicas: 2
-  security:
-    serviceAccountName: test-sa`
-
-	spec, err := parseSpecYAML(yamlStr)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if spec.Config == nil {
-		t.Fatal("expected config to be parsed")
-	}
-	if spec.Config.Port != 9090 {
-		t.Fatalf("expected port 9090, got %d", spec.Config.Port)
-	}
-	if spec.Config.Path != "/mcp" {
-		t.Fatalf("expected path '/mcp', got %q", spec.Config.Path)
-	}
-	if spec.Runtime == nil {
-		t.Fatal("expected runtime to be parsed")
-	}
-	if spec.Runtime.Security == nil || spec.Runtime.Security.ServiceAccountName != "test-sa" {
-		t.Fatalf("expected serviceAccountName 'test-sa', got %+v", spec.Runtime)
-	}
-}
-
 func TestParseSpecYAML_DirectKeys(t *testing.T) {
 	yamlStr := `config:
   port: 7070
@@ -708,29 +677,6 @@ func TestParseSpecYAML_InvalidYAMLReturnsError(t *testing.T) {
 	_, err := parseSpecYAML("invalid: yaml: [broken")
 	if err == nil {
 		t.Fatal("expected error for invalid YAML")
-	}
-}
-
-func TestParseSpecYAML_LegacySpecWrapperStillWorks(t *testing.T) {
-	yamlStr := `spec:
-  config:
-    port: 6060
-  runtime:
-    replicas: 1`
-
-	spec, err := parseSpecYAML(yamlStr)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if spec.Config == nil {
-		t.Fatal("expected config to be parsed from legacy spec wrapper")
-	}
-	if spec.Config.Port != 6060 {
-		t.Fatalf("expected port 6060, got %d", spec.Config.Port)
-	}
-	if spec.Runtime == nil {
-		t.Fatal("expected runtime to be parsed from legacy spec wrapper")
 	}
 }
 
