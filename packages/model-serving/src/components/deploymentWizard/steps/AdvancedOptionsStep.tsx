@@ -22,7 +22,6 @@ import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { DeploymentStrategyField } from '../fields/DeploymentStrategyField';
-import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 import { type UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
 import type { ExternalDataMap } from '../ExternalDataLoader';
@@ -217,13 +216,6 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 </FormGroup>
               </StackItem>
             )}
-            {/* Timeout field rendered via extension system */}
-            <GenericFieldRenderer
-              fieldId="kserve/timeout"
-              wizardState={wizardState}
-              externalData={externalData}
-              isEditing={wizardState.initialData?.isEditing}
-            />
           </Stack>
         </FormSection>
       </Form>

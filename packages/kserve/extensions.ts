@@ -13,17 +13,13 @@ import type {
   ModelServingPlatformFetchDeploymentStatus,
   ModelServingDeploymentFormDataExtension,
   ModelServingDeploy,
-  WizardField2Extension,
-  WizardFieldApplyExtension,
-  WizardFieldExtractorExtension,
 } from '@odh-dashboard/model-serving/extension-points';
-import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import {
   DataScienceStackComponent,
   SupportedArea,
 } from '@odh-dashboard/internal/concepts/areas/index';
-import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
+import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import type { KServeDeployment } from './src/deployments';
 
 export const KSERVE_ID = 'kserve';
@@ -40,9 +36,6 @@ const extensions: (
   | ModelServingStartStopAction<KServeDeployment>
   | ModelServingPlatformFetchDeploymentStatus<KServeDeployment>
   | ModelServingDeploy<KServeDeployment>
-  | WizardField2Extension<TimeoutFieldValue, undefined, KServeDeployment>
-  | WizardFieldApplyExtension<TimeoutFieldValue, KServeDeployment>
-  | WizardFieldExtractorExtension<TimeoutFieldValue, KServeDeployment>
 )[] = [
   {
     type: 'app.area',
@@ -187,45 +180,6 @@ const extensions: (
       priority: 0,
       supportsOverwrite: true,
       deploy: () => import('./src/deploy').then((m) => m.deployKServeDeployment),
-    },
-    flags: {
-      required: [SupportedArea.K_SERVE],
-    },
-  },
-  {
-    type: 'model-serving.deployment/wizard-field2',
-    properties: {
-      platform: KSERVE_ID,
-      field: () =>
-        import('./src/wizardFields/timeout/TimeoutField').then((m) => m.TimeoutFieldWizardField),
-    },
-    flags: {
-      required: [SupportedArea.K_SERVE],
-    },
-  },
-  {
-    type: 'model-serving.deployment/wizard-field-apply',
-    properties: {
-      fieldId: 'kserve/timeout',
-      platform: KSERVE_ID,
-      apply: () =>
-        import('./src/wizardFields/timeout/timeoutApplyExtract').then(
-          (m) => m.applyTimeoutFieldData,
-        ),
-    },
-    flags: {
-      required: [SupportedArea.K_SERVE],
-    },
-  },
-  {
-    type: 'model-serving.deployment/wizard-field-extractor',
-    properties: {
-      fieldId: 'kserve/timeout',
-      platform: KSERVE_ID,
-      extract: () =>
-        import('./src/wizardFields/timeout/timeoutApplyExtract').then(
-          (m) => m.extractTimeoutFieldData,
-        ),
     },
     flags: {
       required: [SupportedArea.K_SERVE],
