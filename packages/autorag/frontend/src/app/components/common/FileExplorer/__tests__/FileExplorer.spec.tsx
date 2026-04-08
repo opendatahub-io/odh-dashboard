@@ -180,6 +180,97 @@ describe('FileExplorer', () => {
       expect(mockOnClose).toHaveBeenCalled();
     });
   });
+  describe('row click behavior', () => {
+    it('should select file when clicking directly on the row', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(row);
+
+      expect(screen.getByTestId('file-explorer-details-panel')).toBeInTheDocument();
+    });
+    it('should NOT select file when clicking on kebab menu toggle', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const kebabToggle = within(row).getByRole('button', { name: /actions/i });
+      fireEvent.click(kebabToggle);
+
+      // File should not be selected
+      const checkbox = within(row).getByRole('checkbox');
+      expect(checkbox).not.toBeChecked();
+    });
+    it('should NOT select file when clicking on folder link', () => {
+      const folder = mockFolder({ name: 'my-folder', path: '/my-folder' });
+      const onFolderClick = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          files={[folder]}
+          onFolderClick={onFolderClick}
+          selection="checkbox"
+        />,
+      );
+
+      const row = screen.getByTestId('file-explorer-row--my-folder');
+      const folderLink = within(row).getByText('my-folder');
+      fireEvent.click(folderLink);
+
+      // Folder link callback should fire
+      expect(onFolderClick).toHaveBeenCalledWith(folder);
+
+      // Folder should not be selected via row click
+      const checkbox = within(row).getByRole('checkbox');
+      expect(checkbox).not.toBeChecked();
+    });
+    it('should NOT select file when clicking on checkbox in checkbox mode', () => {
+      const files = mockFiles(3);
+      const onSelectFile = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          files={files}
+          selection="checkbox"
+          onSelectFile={onSelectFile}
+        />,
+      );
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const checkbox = within(row).getByRole('checkbox');
+      fireEvent.click(checkbox);
+
+      // Checkbox should handle selection
+      expect(checkbox).toBeChecked();
+
+      // onSelectFile callback should be called only once (not twice from row click)
+      expect(onSelectFile).toHaveBeenCalledTimes(1);
+    });
+    it('should make selected rows not clickable or selectable', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const checkbox = within(row).getByRole('checkbox');
+      fireEvent.click(checkbox);
+
+      // Row should not have clickable styling after selection
+      expect(row).not.toHaveClass('pf-m-clickable');
+    });
+    it('should have file-specific aria-label on kebab menu toggle', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
+      const kebab1 = within(row1).getByRole('button', { name: /file-1\.json actions/i });
+      expect(kebab1).toBeInTheDocument();
+
+      const row2 = screen.getByTestId('file-explorer-row--file-2-json');
+      const kebab2 = within(row2).getByRole('button', { name: /file-2\.json actions/i });
+      expect(kebab2).toBeInTheDocument();
+    });
+  });
   describe('source selector', () => {
     it('should render source labels when sources are provided and no source selected', () => {
       const onSelectSource = jest.fn();
