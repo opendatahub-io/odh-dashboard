@@ -682,7 +682,6 @@ function AutoragConfigure(): React.JSX.Element {
                             <Button
                               variant="link"
                               isInline
-                              component="span"
                               onClick={() => setIsTemplateModalOpen(true)}
                             >
                               evaluation dataset template
