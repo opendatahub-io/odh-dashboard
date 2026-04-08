@@ -91,7 +91,7 @@ function AutomlConfigurePage(): React.JSX.Element {
           variant="primary"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
         >
-          Create optimization run
+          Create run
         </Button>
       </ActionListItem>
       <ActionListItem>
@@ -112,7 +112,7 @@ function AutomlConfigurePage(): React.JSX.Element {
       title={<AutomlHeader />}
       subtext={
         <h2 className="pf-v6-u-mt-sm">
-          {step === 'create' ? 'Create AutoML experiment' : `"${displayName}" configurations`}
+          {step === 'create' ? 'Create AutoML optimization run' : `"${displayName}" configurations`}
         </h2>
       }
       description={
