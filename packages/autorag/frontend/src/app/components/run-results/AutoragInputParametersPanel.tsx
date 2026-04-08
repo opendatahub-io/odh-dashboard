@@ -100,7 +100,11 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
   if (generationModels.length > 0) {
     parts.push(
       <Tooltip key="generation" content={generationModels.join(', ')}>
-        <span className="odh-autorag-input-parameters-panel__tooltip-text">
+        <span
+          className="odh-autorag-input-parameters-panel__tooltip-text"
+          tabIndex={0}
+          role="button"
+        >
           {generationModels.length} foundation model{generationModels.length !== 1 ? 's' : ''}
         </span>
       </Tooltip>,
@@ -113,7 +117,11 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
     }
     parts.push(
       <Tooltip key="embeddings" content={embeddingsModels.join(', ')}>
-        <span className="odh-autorag-input-parameters-panel__tooltip-text">
+        <span
+          className="odh-autorag-input-parameters-panel__tooltip-text"
+          tabIndex={0}
+          role="button"
+        >
           {embeddingsModels.length} embedding model{embeddingsModels.length !== 1 ? 's' : ''}
         </span>
       </Tooltip>,
