@@ -10,7 +10,7 @@ spec:
   type: tutorial
   description: |-
     Use OpenShift AI to train an example model in a Jupyter notebook, deploy the model, integrate the model into a fraud detection application, and refine the model by using automated pipelines.
-  url: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/openshift_ai_tutorial_-_fraud_detection_example/index
+  url: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed
   durationMinutes: 60
 ---
 apiVersion: dashboard.opendatahub.io/v1
