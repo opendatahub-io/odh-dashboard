@@ -838,6 +838,7 @@ function AutomlConfigure(): React.JSX.Element {
             setSelectedTrainingDataFile(file);
           }
         }}
+        allowFolderSelection={false}
         selectableExtensions={['csv']}
         unselectableReason="You can only select CSV files"
       />
