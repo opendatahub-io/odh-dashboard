@@ -647,7 +647,7 @@ function AutoragConfigure(): React.JSX.Element {
                 <Content component="h3">Configure details</Content>
               </CardHeader>
               <CardBody>
-                {!inputDataSecretName ? (
+                {!inputDataKey ? (
                   <EmptyState
                     variant="xs"
                     titleText="Select an S3 connection or upload a file to get started"
