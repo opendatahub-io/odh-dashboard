@@ -8,6 +8,10 @@ class GenAiPlayground {
     return cy.findByTestId('empty-state');
   }
 
+  findCreatePlaygroundEmptyState() {
+    return cy.findByTestId('create-playground-empty-state');
+  }
+
   findCreatePlaygroundButton() {
     return cy.findByTestId('empty-state-action-button');
   }
