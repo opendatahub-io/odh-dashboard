@@ -1,5 +1,14 @@
 import React from 'react';
-import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Alert,
+  AlertActionCloseButton,
+  Button,
+  Flex,
+  FlexItem,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
+import { StopIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router';
 import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useAutoRAGTaskTopology } from '~/app/topology/useAutoRAGTaskTopology';
@@ -8,13 +17,15 @@ import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
 import { downloadBlob, getOptimizedMetricForRAG, sanitizeFilename } from '~/app/utilities/utils';
 import AutoragLeaderboard from './AutoragLeaderboard';
+import AutoragInputParametersDrawer from './AutoragInputParametersDrawer';
 import './AutoragResults.scss';
 
 const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal'));
 
 function AutoragResults(): React.JSX.Element {
   const { namespace } = useParams<{ namespace: string }>();
-  const { pipelineRun, patterns, ragPatternsBasePath } = useAutoragResultsContext();
+  const { pipelineRun, patterns, parameters, ragPatternsBasePath } = useAutoragResultsContext();
+  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
   const [selectedPatternName, setSelectedPatternName] = React.useState<string | null>(null);
 
@@ -99,8 +110,26 @@ function AutoragResults(): React.JSX.Element {
   );
 
   return (
-    <>
+    <AutoragInputParametersDrawer
+      isOpen={isDrawerOpen}
+      onClose={() => setIsDrawerOpen(false)}
+      parameters={parameters}
+    >
       <Stack hasGutter>
+        <StackItem>
+          <Flex justifyContent={{ default: 'justifyContentFlexEnd' }}>
+            <FlexItem>
+              <Button
+                variant="secondary"
+                icon={<StopIcon />}
+                onClick={() => setIsDrawerOpen((prev) => !prev)}
+                data-testid="run-details-button"
+              >
+                Run details
+              </Button>
+            </FlexItem>
+          </Flex>
+        </StackItem>
         {downloadError && (
           <StackItem>
             <Alert
@@ -145,7 +174,7 @@ function AutoragResults(): React.JSX.Element {
           />
         </React.Suspense>
       )}
-    </>
+    </AutoragInputParametersDrawer>
   );
 }
 
