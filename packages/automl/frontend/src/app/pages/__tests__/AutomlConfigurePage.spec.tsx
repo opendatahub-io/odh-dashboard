@@ -228,9 +228,9 @@ describe('AutomlConfigurePage', () => {
       expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
     });
 
-    it('should display "Create AutoML experiment" subtitle in create step', async () => {
+    it('should display "Create AutoML optimization run" subtitle in create step', async () => {
       renderWithProviders(<AutomlConfigurePage />);
-      expect(await screen.findByText('Create AutoML experiment')).toBeInTheDocument();
+      expect(await screen.findByText('Create AutoML optimization run')).toBeInTheDocument();
     });
 
     it('should display description text in create step', async () => {
@@ -343,9 +343,9 @@ describe('AutomlConfigurePage', () => {
       expect(await screen.findByText('My Experiment')).toBeInTheDocument();
     });
 
-    it('should render "Create optimization run" button', async () => {
+    it('should render "Create AutoML optimization run" button', async () => {
       expect(
-        await screen.findByRole('button', { name: 'Create optimization run' }),
+        await screen.findByRole('button', { name: 'Create AutoML optimization run' }),
       ).toBeInTheDocument();
     });
 
@@ -419,8 +419,8 @@ describe('AutomlConfigurePage', () => {
     });
   });
 
-  describe('Configure step - Create optimization run', () => {
-    it('should call mutateAsync when Create optimization run button is clicked with valid form', async () => {
+  describe('Configure step - Create AutoML optimization run', () => {
+    it('should call mutateAsync when Create AutoML optimization run button is clicked with valid form', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
 
@@ -463,7 +463,9 @@ describe('AutomlConfigurePage', () => {
       await user.click(columnOption);
 
       // Wait for form to be valid and Run button to be enabled
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      const runButton = await screen.findByRole('button', {
+        name: 'Create AutoML optimization run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -471,7 +473,7 @@ describe('AutomlConfigurePage', () => {
         { timeout: 3000 },
       );
 
-      // Click Create optimization run button
+      // Click Create AutoML optimization run button
       await user.click(runButton);
 
       await waitFor(() => {
@@ -518,8 +520,10 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Create optimization run button
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      // Click Create AutoML optimization run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create AutoML optimization run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -574,8 +578,10 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Create optimization run button
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      // Click Create AutoML optimization run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create AutoML optimization run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -631,8 +637,10 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Create optimization run button
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      // Click Create AutoML optimization run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create AutoML optimization run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
