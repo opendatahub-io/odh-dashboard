@@ -9,6 +9,7 @@ import {
   APIKey,
   ApiKeyFilterDataType,
   initialApiKeyFilterData,
+  emptyApiKeyFilterData,
 } from '~/app/types/api-key';
 import { ApiKeySortField } from './allKeys/columns';
 import CreateApiKeyModal from './CreateApiKeyModal';
@@ -113,7 +114,7 @@ const AllApiKeysPage: React.FC = () => {
       JSON.stringify([...initialApiKeyFilterData.statuses].toSorted());
 
   const onClearFilters = React.useCallback(() => {
-    setFilterData(initialApiKeyFilterData);
+    setFilterData(emptyApiKeyFilterData);
     setPage(1);
     setLocalUsername('');
     setIsFetching(true);
