@@ -29,7 +29,7 @@ export function shouldShowConfigurePipelineServerEmptyState(error: unknown): boo
     return true;
   }
   // Require "(DSPA)" closed; exclude readiness wording so PipelineServerNotReady is not misrouted.
-  if (/\bpipeline\s+server\s*\(\s*dspa\s*\)(?!\s*is\s+not)/i.test(msg)) {
+  if (/\bpipeline\s+server\s*\(\s*dspa\s*\)(?!.*\bis\s+not\s+ready)/i.test(msg)) {
     return true;
   }
   return false;

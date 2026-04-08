@@ -60,6 +60,11 @@ func TestIsDSPAReady(t *testing.T) {
 		assert.False(t, isDSPAReady(dspa))
 	})
 
+	t.Run("should return false when Status is nil", func(t *testing.T) {
+		dspa := &models.DSPipelineApplication{Status: nil}
+		assert.False(t, isDSPAReady(dspa))
+	})
+
 	t.Run("should return false when dspa is nil", func(t *testing.T) {
 		assert.False(t, isDSPAReady(nil))
 	})
