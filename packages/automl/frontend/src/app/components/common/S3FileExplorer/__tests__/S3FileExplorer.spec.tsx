@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import S3FileExplorer, {
   formatBytes,
@@ -156,6 +156,91 @@ describe('S3FileExplorer', () => {
       render(<S3FileExplorer {...defaultProps} isOpen={false} />);
 
       expect(mockGetFiles).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('allowedSearchCharacters', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should strip "/" characters from search input before calling the API', async () => {
+      render(<S3FileExplorer {...defaultProps} />);
+
+      // Wait for initial fetch to complete
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+      mockGetFiles.mockClear();
+
+      const searchInput = screen
+        .getByTestId('file-explorer-search')
+        .querySelector('input') as HTMLInputElement;
+
+      // Type a value containing "/" characters
+      fireEvent.change(searchInput, { target: { value: 'my/search/term' } });
+
+      // Advance past the 300ms debounce
+      act(() => {
+        jest.advanceTimersByTime(300);
+      });
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      expect(mockGetFiles).toHaveBeenCalledWith(
+        '',
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+        expect.objectContaining({
+          search: 'mysearchterm',
+        }),
+      );
+    });
+
+    it('should pass the full search value when it contains no "/" characters', async () => {
+      render(<S3FileExplorer {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+      mockGetFiles.mockClear();
+
+      const searchInput = screen
+        .getByTestId('file-explorer-search')
+        .querySelector('input') as HTMLInputElement;
+
+      fireEvent.change(searchInput, { target: { value: 'valid-query' } });
+
+      act(() => {
+        jest.advanceTimersByTime(300);
+      });
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      expect(mockGetFiles).toHaveBeenCalledWith(
+        '',
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+        expect.objectContaining({
+          search: 'valid-query',
+        }),
+      );
+    });
+
+    it('should render the search characters info icon', async () => {
+      render(<S3FileExplorer {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      expect(screen.getByTestId('file-explorer-search-chars-info')).toBeInTheDocument();
     });
   });
 });

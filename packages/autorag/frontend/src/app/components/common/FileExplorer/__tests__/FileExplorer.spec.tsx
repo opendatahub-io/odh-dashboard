@@ -168,6 +168,55 @@ describe('FileExplorer', () => {
 
       expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
     });
+    it('should disable select button when no files are selected', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} />);
+
+      // Button should be disabled when nothing is selected
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
+    });
+    it('should enable select button after file selection in radio mode', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} />);
+
+      // Initially disabled
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
+
+      // Select a file
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(within(row).getByRole('radio'));
+
+      // Button should now be enabled
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeEnabled();
+    });
+    it('should enable select button when files are selected in checkbox mode', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      // Initially disabled
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
+
+      // Select first file
+      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(within(row1).getByRole('checkbox'));
+
+      // Button should be enabled after first selection
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeEnabled();
+
+      // Select second file
+      const row2 = screen.getByTestId('file-explorer-row--file-2-json');
+      fireEvent.click(within(row2).getByRole('checkbox'));
+
+      // Button should still be enabled
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeEnabled();
+
+      // Deselect both files
+      fireEvent.click(within(row1).getByRole('checkbox'));
+      fireEvent.click(within(row2).getByRole('checkbox'));
+
+      // Button should be disabled again
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
+    });
     it('should call onPrimary with selected files and close modal', () => {
       const files = mockFiles(3);
       render(<FileExplorer {...defaultProps} files={files} />);
@@ -261,6 +310,67 @@ describe('FileExplorer', () => {
         .getByTestId('file-explorer-search')
         .querySelector('input') as HTMLInputElement;
       expect(searchInput).toBeDisabled();
+    });
+    it('should strip disallowed characters and pass sanitized value to onSearch', () => {
+      const onSearch = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          onSearch={onSearch}
+          allowedSearchCharacters={/[a-z0-9-]/}
+        />,
+      );
+
+      const searchInput = screen
+        .getByTestId('file-explorer-search')
+        .querySelector('input') as HTMLInputElement;
+      fireEvent.change(searchInput, { target: { value: 'hello@world!' } });
+
+      expect(onSearch).toHaveBeenCalledWith('helloworld');
+    });
+    it('should pass full value to onSearch when all characters are allowed', () => {
+      const onSearch = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          onSearch={onSearch}
+          allowedSearchCharacters={/[a-z0-9-]/}
+        />,
+      );
+
+      const searchInput = screen
+        .getByTestId('file-explorer-search')
+        .querySelector('input') as HTMLInputElement;
+      fireEvent.change(searchInput, { target: { value: 'valid-input' } });
+
+      expect(onSearch).toHaveBeenCalledWith('valid-input');
+    });
+    it('should not filter characters when allowedSearchCharacters is not provided', () => {
+      const onSearch = jest.fn();
+      render(<FileExplorer {...defaultProps} onSearch={onSearch} />);
+
+      const searchInput = screen
+        .getByTestId('file-explorer-search')
+        .querySelector('input') as HTMLInputElement;
+      fireEvent.change(searchInput, { target: { value: 'any@chars!here' } });
+
+      expect(onSearch).toHaveBeenCalledWith('any@chars!here');
+    });
+    it('should render info icon when allowedSearchCharactersLabel is provided', () => {
+      render(
+        <FileExplorer
+          {...defaultProps}
+          allowedSearchCharacters={/[a-z]/}
+          allowedSearchCharactersLabel="Only lowercase letters are allowed"
+        />,
+      );
+
+      expect(screen.getByTestId('file-explorer-search-chars-info')).toBeInTheDocument();
+    });
+    it('should not render info icon when allowedSearchCharactersLabel is not provided', () => {
+      render(<FileExplorer {...defaultProps} allowedSearchCharacters={/[a-z]/} />);
+
+      expect(screen.queryByTestId('file-explorer-search-chars-info')).not.toBeInTheDocument();
     });
   });
   describe('pagination', () => {

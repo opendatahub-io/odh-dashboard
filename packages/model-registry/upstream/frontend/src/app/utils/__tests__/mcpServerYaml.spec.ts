@@ -22,10 +22,8 @@ describe('mcpServerCRToYaml', () => {
     const parsed = yaml.load(yamlStr) as Record<string, unknown>;
 
     expect(parsed).toEqual({
-      spec: {
-        runtime: { replicas: 2 },
-        config: { port: 8080 },
-      },
+      runtime: { replicas: 2 },
+      config: { port: 8080 },
     });
   });
 
@@ -33,7 +31,7 @@ describe('mcpServerCRToYaml', () => {
     const cr = makeCR();
     const yamlStr = mcpServerCRToYaml(cr);
 
-    expect(yamlStr).toContain('spec:');
+    expect(yamlStr).not.toContain('spec:');
     expect(yamlStr).toContain('config:');
     expect(yamlStr).toContain('port: 8080');
     expect(yamlStr).not.toContain('runtime:');
@@ -106,9 +104,9 @@ describe('mcpServerCRToYaml', () => {
       config: { port: 8080, arguments: ['--verbose', '--timeout=30'] },
     });
     const yamlStr = mcpServerCRToYaml(cr);
+    const parsed = yaml.load(yamlStr) as { config: { arguments: string[] } };
 
-    expect(yamlStr).toContain('- --verbose');
-    expect(yamlStr).toContain('- --timeout=30');
+    expect(parsed.config.arguments).toEqual(['--verbose', '--timeout=30']);
   });
 
   it('should serialize storage mounts', () => {
@@ -163,10 +161,10 @@ describe('mcpServerCRToYaml', () => {
       },
     });
     const yamlStr = mcpServerCRToYaml(cr);
-    const parsed = yaml.load(yamlStr) as { spec: { config: { env: { value: string }[] } } };
+    const parsed = yaml.load(yamlStr) as { config: { env: { value: string }[] } };
 
-    expect(parsed.spec.config.env[0].value).toBe('http://example.com:8080/api');
-    expect(parsed.spec.config.env[1].value).toBe('value with # hash');
+    expect(parsed.config.env[0].value).toBe('http://example.com:8080/api');
+    expect(parsed.config.env[1].value).toBe('value with # hash');
   });
 
   it('should handle strings with leading/trailing spaces', () => {
@@ -177,9 +175,9 @@ describe('mcpServerCRToYaml', () => {
       },
     });
     const yamlStr = mcpServerCRToYaml(cr);
-    const parsed = yaml.load(yamlStr) as { spec: { config: { env: { value: string }[] } } };
+    const parsed = yaml.load(yamlStr) as { config: { env: { value: string }[] } };
 
-    expect(parsed.spec.config.env[0].value).toBe(' leading');
+    expect(parsed.config.env[0].value).toBe(' leading');
   });
 
   it('should handle strings with quotes', () => {
@@ -190,9 +188,9 @@ describe('mcpServerCRToYaml', () => {
       },
     });
     const yamlStr = mcpServerCRToYaml(cr);
-    const parsed = yaml.load(yamlStr) as { spec: { config: { env: { value: string }[] } } };
+    const parsed = yaml.load(yamlStr) as { config: { env: { value: string }[] } };
 
-    expect(parsed.spec.config.env[0].value).toBe('say "hello"');
+    expect(parsed.config.env[0].value).toBe('say "hello"');
   });
 
   it('should serialize boolean values', () => {
@@ -224,7 +222,7 @@ describe('mcpServerCRToYaml', () => {
 
     expect(yamlStr).not.toContain('containerImage');
     expect(yamlStr).not.toContain('quay.io');
-    expect(yamlStr).toContain('spec:');
+    expect(yamlStr).not.toContain('spec:');
     expect(yamlStr).toContain('config:');
     expect(yamlStr).toContain('runtime:');
   });

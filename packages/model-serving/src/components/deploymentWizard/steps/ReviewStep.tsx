@@ -253,7 +253,7 @@ const getStatusSections = (
         },
         {
           key: 'modelServer',
-          label: 'Serving runtime',
+          label: 'Deployment resource',
           comp: (state) => state.modelServer.data?.selection?.label || 'Auto-selected',
         },
         {

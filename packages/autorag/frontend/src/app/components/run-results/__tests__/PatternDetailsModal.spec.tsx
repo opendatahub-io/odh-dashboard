@@ -17,7 +17,7 @@ const mockPattern: AutoragPattern = {
   max_combinations: 20,
   duration_seconds: 120,
   settings: {
-    vector_store: { datasource_type: 'ls_milvus', collection_name: 'collection0' },
+    vector_store: { datasource_type: 'milvus', collection_name: 'collection0' },
     chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
     embedding: {
       model_id: 'mock-embed-a',
@@ -230,7 +230,7 @@ describe('PatternDetailsModal', () => {
       await user.click(screen.getByTestId('tab-vector_store'));
 
       expect(screen.getByText('Datasource Type')).toBeInTheDocument();
-      expect(screen.getByText('ls_milvus')).toBeInTheDocument();
+      expect(screen.getByText('milvus')).toBeInTheDocument();
       expect(screen.getByText('Collection Name')).toBeInTheDocument();
       expect(screen.getByText('collection0')).toBeInTheDocument();
     });
@@ -420,33 +420,32 @@ describe('PatternDetailsModal', () => {
     it('should trigger window.print when Download is clicked', async () => {
       const user = userEvent.setup();
       const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
-      render(<PatternDetailsModal {...defaultProps} />);
-
-      await user.click(screen.getByTestId('pattern-details-download'));
-
-      await new Promise((resolve) => {
-        requestAnimationFrame(resolve);
-      });
-
-      expect(printSpy).toHaveBeenCalledTimes(1);
-      printSpy.mockRestore();
+      try {
+        render(<PatternDetailsModal {...defaultProps} />);
+        await user.click(screen.getByTestId('pattern-details-download'));
+        expect(printSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        printSpy.mockRestore();
+      }
     });
 
     it('should render print-only container with all sections when printing', async () => {
       const user = userEvent.setup();
-      jest.spyOn(window, 'print').mockImplementation(jest.fn());
-      render(<PatternDetailsModal {...defaultProps} />);
+      const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
+      try {
+        render(<PatternDetailsModal {...defaultProps} />);
+        await user.click(screen.getByTestId('pattern-details-download'));
 
-      await user.click(screen.getByTestId('pattern-details-download'));
-
-      const printContainer = document.querySelector('.autorag-pattern-details-print-only');
-      expect(printContainer).toBeInTheDocument();
-      expect(printContainer).toHaveTextContent('pattern0');
-      expect(printContainer).toHaveTextContent('Pattern information');
-      expect(printContainer).toHaveTextContent('Chunking');
-      expect(printContainer).toHaveTextContent('Embedding');
-
-      jest.restoreAllMocks();
+        // Print container should be portalled to document.body
+        const printContainer = screen.getByTestId('print-container');
+        expect(printContainer.parentElement).toBe(document.body);
+        expect(printContainer).toHaveTextContent('pattern0');
+        expect(printContainer).toHaveTextContent('Pattern information');
+        expect(printContainer).toHaveTextContent('Chunking');
+        expect(printContainer).toHaveTextContent('Embedding');
+      } finally {
+        printSpy.mockRestore();
+      }
     });
   });
 

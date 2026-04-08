@@ -25,7 +25,9 @@ export function transformNamespaceVariable(
   }
 
   const { variables } = dashboard.spec;
-  if (variables.length === 0) {
+  // variables may be undefined at runtime for dashboards that don't define any
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!variables || variables.length === 0) {
     return dashboard;
   }
 

@@ -78,7 +78,9 @@ function AutoragConfigurePage(): React.JSX.Element {
       </ActionListItem>
       <ActionListItem>
         <Button
-          component={(props) => <Link {...props} to={autoragExperimentsPathname} />}
+          component={(props) => (
+            <Link {...props} to={`${autoragExperimentsPathname}/${namespace}`} />
+          )}
           variant="link"
         >
           Cancel
@@ -97,7 +99,7 @@ function AutoragConfigurePage(): React.JSX.Element {
           isLoading={form.formState.isSubmitting}
           spinnerAriaValueText="Submitting"
         >
-          Run experiment
+          Create optimization run
         </Button>
       </ActionListItem>
       <ActionListItem>
@@ -119,7 +121,9 @@ function AutoragConfigurePage(): React.JSX.Element {
       title={<AutoragHeader />}
       subtext={
         <h2 className="pf-v6-u-mt-sm">
-          {step === 'create' ? 'Create RAG optimization run' : `"${displayName}" configurations`}
+          {step === 'create'
+            ? 'Create AutoRAG optimization run'
+            : `"${displayName}" configurations`}
         </h2>
       }
       description={

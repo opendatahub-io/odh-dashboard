@@ -20,15 +20,12 @@ jest.mock('~/app/components/empty-states/AutomlRunInProgress', () => ({
 // Mock Data Fixtures
 // ============================================================================
 
-const createMockModel = (displayName: string, metrics: Record<string, number>): AutomlModel => ({
-  display_name: displayName,
-  model_config: {
-    eval_metric: 'accuracy',
-  },
+const createMockModel = (modelName: string, metrics: Record<string, number>): AutomlModel => ({
+  name: modelName,
   location: {
-    model_directory: `/models/${displayName}`,
-    predictor: `/models/${displayName}/predictor.pkl`,
-    notebook: `/models/${displayName}/notebook.ipynb`,
+    model_directory: `/models/${modelName}`,
+    predictor: `/models/${modelName}/predictor.pkl`,
+    notebook: `/models/${modelName}/notebook.ipynb`,
   },
   metrics: {
     test_data: metrics,

@@ -310,6 +310,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 dataTestId="workbench"
                 {...k8sNameDescriptionData}
                 autoFocusName
+                maxLength={250}
+                maxLengthDesc={5500}
               />
             </FormSection>
             <FormSection

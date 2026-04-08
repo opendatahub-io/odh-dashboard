@@ -111,20 +111,20 @@ type ChildTask struct {
 
 // CreateAutoRAGRunRequest is the BFF-level input for creating an AutoRAG pipeline run.
 type CreateAutoRAGRunRequest struct {
-	DisplayName                string   `json:"display_name"`
-	Description                string   `json:"description,omitempty"`
-	TestDataSecretName         string   `json:"test_data_secret_name"`
-	TestDataBucketName         string   `json:"test_data_bucket_name"`
-	TestDataKey                string   `json:"test_data_key"`
-	InputDataSecretName        string   `json:"input_data_secret_name"`
-	InputDataBucketName        string   `json:"input_data_bucket_name"`
-	InputDataKey               string   `json:"input_data_key"`
-	LlamaStackSecretName       string   `json:"llama_stack_secret_name"`
-	EmbeddingsModels           []string `json:"embeddings_models,omitempty"`
-	GenerationModels           []string `json:"generation_models,omitempty"`
-	OptimizationMetric         string   `json:"optimization_metric,omitempty"`
-	LlamaStackVectorDatabaseID string   `json:"llama_stack_vector_database_id,omitempty"`
-	OptimizationMaxRagPatterns *int     `json:"optimization_max_rag_patterns,omitempty"`
+	DisplayName                  string   `json:"display_name"`
+	Description                  string   `json:"description,omitempty"`
+	TestDataSecretName           string   `json:"test_data_secret_name"`
+	TestDataBucketName           string   `json:"test_data_bucket_name"`
+	TestDataKey                  string   `json:"test_data_key"`
+	InputDataSecretName          string   `json:"input_data_secret_name"`
+	InputDataBucketName          string   `json:"input_data_bucket_name"`
+	InputDataKey                 string   `json:"input_data_key"`
+	LlamaStackSecretName         string   `json:"llama_stack_secret_name"`
+	EmbeddingsModels             []string `json:"embeddings_models,omitempty"`
+	GenerationModels             []string `json:"generation_models,omitempty"`
+	OptimizationMetric           string   `json:"optimization_metric,omitempty"`
+	LlamaStackVectorIOProviderID string   `json:"llama_stack_vector_io_provider_id,omitempty"`
+	OptimizationMaxRagPatterns   *int     `json:"optimization_max_rag_patterns,omitempty"`
 }
 
 // CreatePipelineRunKFRequest is the payload sent to the KFP v2beta1 POST /runs endpoint.

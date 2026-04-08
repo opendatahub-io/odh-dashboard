@@ -1,6 +1,6 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
-import type { APIKey } from '@odh-dashboard/maas/types/api-key';
+import type { APIKey, SubscriptionDetail } from '@odh-dashboard/maas/types/api-key';
 import {
   asClusterAdminUser,
   asProductAdminUser,
@@ -13,6 +13,7 @@ import {
   revokeAPIKeyModal,
   copyApiKeyModal,
   createApiKeyModal,
+  subscriptionPopover,
 } from '../../../pages/modelsAsAService';
 import {
   mockAPIKeys,
@@ -20,12 +21,24 @@ import {
   mockSubscriptionListItems,
 } from '../../../utils/maasUtils';
 
-const mockSearchResponse = (keys: APIKey[]) => ({
+const mockSubscriptionDetails: Record<string, SubscriptionDetail> = {
+  'premium-team-sub': {
+    displayName: 'Premium Team',
+    models: ['granite-3-8b-instruct', 'flan-t5-small'],
+  },
+  'basic-team-sub': { displayName: 'Basic Team', models: ['flan-t5-small'] },
+};
+
+const mockSearchResponse = (
+  keys: APIKey[],
+  subscriptionDetails?: Record<string, SubscriptionDetail>,
+) => ({
   data: {
     object: 'list',
     data: keys,
     // eslint-disable-next-line camelcase
     has_more: false,
+    subscriptionDetails,
   },
 });
 
@@ -53,9 +66,13 @@ describe('API Keys Page', () => {
         },
       }),
     );
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
-      'initialSearch',
-    );
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse(
+        mockAPIKeys().filter((k) => k.status === 'active'),
+        mockSubscriptionDetails,
+      ),
+    ).as('initialSearch');
     cy.interceptOdh('GET /maas/api/v1/subscriptions', {
       data: mockSubscriptionListItems(),
     }).as('getSubscriptions');
@@ -63,7 +80,7 @@ describe('API Keys Page', () => {
     cy.wait('@initialSearch');
   });
 
-  it('should display the API keys table page', () => {
+  it('should display the API keys table page with active keys on initial load', () => {
     apiKeysPage.findTitle().should('contain.text', 'API Keys');
     apiKeysPage
       .findDescription()
@@ -73,14 +90,62 @@ describe('API Keys Page', () => {
       );
 
     apiKeysPage.findTable().should('exist');
-    apiKeysPage.findRows().should('have.length', 4);
+    apiKeysPage.findRows().should('have.length', 2);
+
+    apiKeysPage.findStatusFilterToggle().click();
+    apiKeysPage.findStatusFilterOptionCheckbox('Active').should('be.checked');
+    apiKeysPage.findStatusFilterOptionCheckbox('Expired').should('not.be.checked');
+    apiKeysPage.findStatusFilterOptionCheckbox('Revoked').should('not.be.checked');
+
+    const developmentTestingRow = apiKeysPage.getRow('development-testing');
+    developmentTestingRow.findName().should('contain.text', 'development-testing');
+    developmentTestingRow
+      .findDescription()
+      .should('contain.text', 'Development API key for testing purposes');
+    developmentTestingRow.findStatus().should('contain.text', 'Active');
+    developmentTestingRow.findCreationDate().should('contain.text', 'Jan 14, 2026');
+    developmentTestingRow.findExpirationDate().should('contain.text', 'Jan 15, 2026');
+  });
+
+  it('should display all API keys when the status filter is cleared', () => {
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
+      'clearAllFilters',
+    );
+    apiKeysPage.findRows().should('have.length', 2); // active keys show on page load
+
+    apiKeysPage.clearAllFilters();
+    cy.wait('@clearAllFilters');
+
+    const oldServiceKeyRow = apiKeysPage.getRow('old-service-key');
+    oldServiceKeyRow.findStatus().should('contain.text', 'Expired');
+
+    const productionBackendRow = apiKeysPage.getRow('production-backend');
+    productionBackendRow.findStatus().should('contain.text', 'Active');
 
     const ciPipelineRow = apiKeysPage.getRow('ci-pipeline');
-    ciPipelineRow.findName().should('contain.text', 'ci-pipeline');
-    ciPipelineRow.findDescription().should('contain.text', 'API key for CI/CD pipeline automation');
     ciPipelineRow.findStatus().should('contain.text', 'Revoked');
-    ciPipelineRow.findCreationDate().should('contain.text', 'Jan 11, 2026');
-    ciPipelineRow.findExpirationDate().should('contain.text', 'Jan 18, 2026');
+
+    const developmentTestingRow = apiKeysPage.getRow('development-testing');
+    developmentTestingRow.findStatus().should('contain.text', 'Active');
+  });
+
+  it('should display the subscription column with display names', () => {
+    apiKeysPage.findTable().contains('th', 'Subscription').should('exist');
+
+    const prodRow = apiKeysPage.getRow('production-backend');
+    prodRow.findSubscription().should('contain.text', 'Premium Team');
+
+    const devRow = apiKeysPage.getRow('development-testing');
+    devRow.findSubscription().should('contain.text', 'Basic Team');
+  });
+
+  it('should show subscription popover with model names on click', () => {
+    const prodRow = apiKeysPage.getRow('production-backend');
+    prodRow.findSubscriptionPopoverButton().click();
+
+    subscriptionPopover.findModelCount().should('contain.text', '2 models');
+    subscriptionPopover.findModelName('granite-3-8b-instruct').should('be.visible');
+    subscriptionPopover.findModelName('flan-t5-small').should('be.visible');
   });
 
   it('should filter api keys by username', () => {
@@ -113,20 +178,32 @@ describe('API Keys Page', () => {
   });
 
   it('should filter api keys by status', () => {
-    const nonActiveKeys = mockAPIKeys().filter((k) => k.status !== 'active');
+    const filteredKeys = mockAPIKeys().filter(
+      (k) => k.status === 'active' || k.status === 'expired',
+    );
 
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(nonActiveKeys)).as(
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(filteredKeys)).as(
       'filterByStatus',
     );
 
     apiKeysPage.findStatusFilterToggle().click();
-    apiKeysPage.findStatusFilterOption('Active').click();
+    apiKeysPage.findStatusFilterOption('Expired').click();
 
+    // Keys are filtered to show active by default so here we're looking for active and expired since active was pre-selected
     cy.wait('@filterByStatus').then((interception) => {
-      expect(interception.request.body.data.filters.status).to.deep.equal(['active']);
+      expect(interception.request.body.data.filters.status).to.deep.equal(['active', 'expired']);
     });
 
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
+
+    const oldServiceKeyRow = apiKeysPage.getRow('old-service-key');
+    oldServiceKeyRow.findStatus().should('contain.text', 'Expired');
+
+    const productionBackendRow = apiKeysPage.getRow('production-backend');
+    productionBackendRow.findStatus().should('contain.text', 'Active');
+
+    const developmentTestingRow = apiKeysPage.getRow('development-testing');
+    developmentTestingRow.findStatus().should('contain.text', 'Active');
   });
 
   it('should sort api keys by name', () => {
@@ -438,10 +515,10 @@ describe('API Keys Page', () => {
     createApiKeyModal.findSubscriptionModelsTable().should('be.visible');
     createApiKeyModal
       .findSubscriptionModelRateLimit('granite-3-8b-instruct')
-      .should('contain.text', '100,000 / 24h');
+      .should('contain.text', '100,000 / 24 hours');
     createApiKeyModal
       .findSubscriptionModelRateLimit('flan-t5-small')
-      .should('contain.text', '200,000 / 24h');
+      .should('contain.text', '200,000 / 24 hours');
 
     createApiKeyModal.findSubmitButton().should('be.disabled');
 

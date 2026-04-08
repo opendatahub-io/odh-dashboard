@@ -93,9 +93,10 @@ class ModelServingGlobal {
 
   selectSingleServingModelButtonIfExists() {
     this.shouldBeEmpty();
+    cy.findByTestId('empty-state-title').should('be.visible');
     cy.get('body').then(($body) => {
       if ($body.find('[data-testid="kserve-select-button"]').length > 0) {
-        this.findSingleServingModelButton().click();
+        this.findSingleServingModelButton().should('be.visible').click();
       }
     });
   }
@@ -635,7 +636,7 @@ mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);
 
 class ModelServingRow extends TableRow {
   shouldHaveServingRuntime(servingRuntime: string) {
-    this.find().find('[data-label="Serving runtime"]').contains(servingRuntime);
+    this.find().find('[data-label="Deployment resource"]').contains(servingRuntime);
     return this;
   }
 
@@ -672,7 +673,7 @@ class ModelServingRow extends TableRow {
   }
 
   findServingRuntime() {
-    return this.find().find(`[data-label="Serving runtime"]`);
+    return this.find().find(`[data-label="Deployment resource"]`);
   }
 
   findServiceRuntime() {
@@ -1301,6 +1302,14 @@ class ModelServingWizard extends Wizard {
 
   findDiscardButton() {
     return cy.findByRole('button', { name: 'Discard' });
+  }
+
+  findGatewaySelect() {
+    return cy.findByTestId('gateway-select');
+  }
+
+  findGatewaySelectOption(name: string) {
+    return this.findGatewaySelect().findSelectOption(name);
   }
 
   findDeploymentStrategySection() {

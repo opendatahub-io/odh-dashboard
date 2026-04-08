@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -25,27 +24,27 @@ func attachMaaSModelRefHandlers(apiRouter *httprouter.Router, app *App) {
 func CreateMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	var request models.CreateMaaSModelRefRequest
+	var request Envelope[models.CreateMaaSModelRefRequest, None]
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	if strings.TrimSpace(request.Name) == "" {
+	if strings.TrimSpace(request.Data.Name) == "" {
 		app.badRequestResponse(w, r, errors.New("name is required"))
 		return
 	}
-	if strings.TrimSpace(request.Namespace) == "" {
+	if strings.TrimSpace(request.Data.Namespace) == "" {
 		app.badRequestResponse(w, r, errors.New("namespace is required"))
 		return
 	}
-	if strings.TrimSpace(request.ModelRef.Kind) == "" || strings.TrimSpace(request.ModelRef.Name) == "" {
+	if strings.TrimSpace(request.Data.ModelRef.Kind) == "" || strings.TrimSpace(request.Data.ModelRef.Name) == "" {
 		app.badRequestResponse(w, r, errors.New("modelRef with kind and name is required"))
 		return
 	}
 
 	dryRun := r.URL.Query().Get("dryRun") == "true"
-	response, err := app.repositories.MaaSModelRefs.CreateMaaSModelRef(ctx, request, dryRun)
+	result, err := app.repositories.MaaSModelRefs.CreateMaaSModelRef(ctx, request.Data, dryRun)
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			app.errorResponse(w, r, &HTTPError{
@@ -56,6 +55,10 @@ func CreateMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request,
 			app.serverErrorResponse(w, r, err)
 		}
 		return
+	}
+
+	response := Envelope[*models.MaaSModelRefSummary, None]{
+		Data: result,
 	}
 
 	if err := app.WriteJSON(w, http.StatusCreated, response, nil); err != nil {
@@ -78,19 +81,19 @@ func UpdateMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	var request models.UpdateMaaSModelRefRequest
+	var request Envelope[models.UpdateMaaSModelRefRequest, None]
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	if strings.TrimSpace(request.ModelRef.Kind) == "" || strings.TrimSpace(request.ModelRef.Name) == "" {
+	if strings.TrimSpace(request.Data.ModelRef.Kind) == "" || strings.TrimSpace(request.Data.ModelRef.Name) == "" {
 		app.badRequestResponse(w, r, errors.New("modelRef with kind and name is required"))
 		return
 	}
 
 	dryRun := r.URL.Query().Get("dryRun") == "true"
-	response, err := app.repositories.MaaSModelRefs.UpdateMaaSModelRef(ctx, namespace, name, request, dryRun)
+	result, err := app.repositories.MaaSModelRefs.UpdateMaaSModelRef(ctx, namespace, name, request.Data, dryRun)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			app.errorResponse(w, r, &HTTPError{
@@ -101,6 +104,10 @@ func UpdateMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request,
 			app.serverErrorResponse(w, r, err)
 		}
 		return
+	}
+
+	response := Envelope[*models.MaaSModelRefSummary, None]{
+		Data: result,
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
@@ -136,8 +143,8 @@ func DeleteMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	response := map[string]string{
-		"message": fmt.Sprintf("MaaSModelRef '%s' deleted successfully", name),
+	response := Envelope[None, None]{
+		Data: nil,
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {

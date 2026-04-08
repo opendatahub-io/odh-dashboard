@@ -11,7 +11,6 @@ import {
   Form,
   Stack,
   StackItem,
-  Alert,
   FormGroup,
   FormHelperText,
   FormSection,
@@ -26,8 +25,8 @@ import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { DeploymentStrategyField } from '../fields/DeploymentStrategyField';
 import { type UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
-import { showAuthWarning } from '../hooks/useAuthWarning';
 import type { ExternalDataMap } from '../ExternalDataLoader';
+import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 
 export const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -154,6 +153,11 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 </FormGroup>
               </StackItem>
             )}
+            <GenericFieldRenderer
+              wizardState={wizardState}
+              externalData={externalData}
+              parentId="networking"
+            />
             {isExternalRouteVisible && (
               <StackItem>
                 <FormGroup
@@ -179,26 +183,12 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                   tokens={tokenAuthData}
                   allowCreate={allowCreate && !wizardState.state.tokenAuthentication.isDisabled}
                   onChange={wizardState.state.tokenAuthentication.setData}
+                  shouldAutoCheck={shouldAutoCheckTokens}
+                  isExternalRouteVisible={isExternalRouteVisible}
+                  externalRouteData={externalRouteData}
                 />
               </FormGroup>
             </StackItem>
-
-            {showAuthWarning({
-              shouldAutoCheckTokens,
-              isExternalRouteVisible,
-              externalRouteData,
-              tokenAuthData,
-            }) && (
-              <StackItem>
-                <Alert
-                  id="no-auth-alert"
-                  data-testid="no-auth-alert"
-                  variant="warning"
-                  isInline
-                  title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
-                />
-              </StackItem>
-            )}
 
             <StackItem>
               <FormGroup

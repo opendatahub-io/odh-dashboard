@@ -355,7 +355,7 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
     },
     properties: {
       id: 'settings-model-registry',
-      title: 'AI registry settings',
+      title: 'Model registry settings',
       href: '/settings/model-resources-operations/model-registry',
       section: 'settings-model-resources-and-operations',
       path: '/settings/model-resources-operations/model-registry/*',

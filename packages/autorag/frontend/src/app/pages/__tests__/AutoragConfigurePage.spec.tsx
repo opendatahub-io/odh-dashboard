@@ -7,6 +7,12 @@ import React from 'react';
 import { BrowserRouter } from 'react-router';
 import AutoragConfigurePage from '~/app/pages/AutoragConfigurePage';
 
+// Truncate relies on DOM measurement APIs (scrollWidth) unavailable in JSDOM.
+jest.mock('@patternfly/react-core', () => ({
+  ...jest.requireActual('@patternfly/react-core'),
+  Truncate: ({ content }: { content: string }) => <span>{content}</span>,
+}));
+
 const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
 const mockMutateAsync = jest.fn();
@@ -104,7 +110,7 @@ jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
   const MockVectorStoreSelector = () => {
     const { setValue } = useFormContext();
     ReactMock.useEffect(() => {
-      setValue('llama_stack_vector_database_id', 'ls_milvus', { shouldValidate: true });
+      setValue('llama_stack_vector_io_provider_id', 'milvus', { shouldValidate: true });
     }, [setValue]);
     return ReactMock.createElement(
       'div',
@@ -208,6 +214,13 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
         </button>
       </div>
     ) : null,
+}));
+
+// Mock PatternFly Truncate – its useEffect measures text via canvas/getComputedStyle,
+// which JSDOM does not support, causing "Cannot read properties of undefined" errors.
+jest.mock('@patternfly/react-core', () => ({
+  ...jest.requireActual('@patternfly/react-core'),
+  Truncate: ({ content }: { content: string }) => <span>{content}</span>,
 }));
 
 // Mock useWatchConnectionTypes used by AutoragConfigure
@@ -323,9 +336,9 @@ describe('AutoragConfigurePage', () => {
       expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
     });
 
-    it('should display "Create AutoRAG experiment" subtitle in create step', async () => {
+    it('should display "Create AutoRAG optimization run" subtitle in create step', async () => {
       renderWithProviders(<AutoragConfigurePage />);
-      expect(await screen.findByText('Create RAG optimization run')).toBeInTheDocument();
+      expect(await screen.findByText('Create AutoRAG optimization run')).toBeInTheDocument();
     });
 
     it('should display description text in create step', async () => {
@@ -404,18 +417,14 @@ describe('AutoragConfigurePage', () => {
   });
 
   describe('Create step - Cancel button', () => {
-    it('should render Cancel link', async () => {
+    it('should render Cancel link with correct href', async () => {
       renderWithProviders(<AutoragConfigurePage />);
       const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
       expect(cancelLink).toBeInTheDocument();
-      expect(cancelLink).toHaveAttribute('href', '/gen-ai-studio/autorag/experiments');
-    });
-
-    it('should have correct href for Cancel link', async () => {
-      renderWithProviders(<AutoragConfigurePage />);
-
-      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
-      expect(cancelLink).toHaveAttribute('href', '/gen-ai-studio/autorag/experiments');
+      expect(cancelLink).toHaveAttribute(
+        'href',
+        '/gen-ai-studio/autorag/experiments/test-namespace',
+      );
     });
   });
 
@@ -460,8 +469,10 @@ describe('AutoragConfigurePage', () => {
       expect(await screen.findByText('My Experiment')).toBeInTheDocument();
     });
 
-    it('should render "Run experiment" button', async () => {
-      expect(await screen.findByRole('button', { name: 'Run experiment' })).toBeInTheDocument();
+    it('should render "Create optimization run" button', async () => {
+      expect(
+        await screen.findByRole('button', { name: 'Create optimization run' }),
+      ).toBeInTheDocument();
     });
 
     it('should render "Back" button', async () => {
@@ -532,8 +543,8 @@ describe('AutoragConfigurePage', () => {
     });
   });
 
-  describe('Configure step - Run experiment', () => {
-    it('should call mutateAsync when Run experiment button is clicked with valid form', async () => {
+  describe('Configure step - Create optimization run', () => {
+    it('should call mutateAsync when Create optimization run button is clicked with valid form', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
 
@@ -566,12 +577,12 @@ describe('AutoragConfigurePage', () => {
       // Vector store value is auto-set by the mocked AutoragVectorStoreSelector.
 
       // Wait for form to be valid and Run button to be enabled
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
 
-      // Click Run experiment button
+      // Click Create optimization run button
       await user.click(runButton);
 
       // Assert that the payload contains the .json evaluation dataset
@@ -613,8 +624,8 @@ describe('AutoragConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create optimization run button
+      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -656,8 +667,8 @@ describe('AutoragConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create optimization run button
+      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -700,8 +711,8 @@ describe('AutoragConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create optimization run button
+      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -752,7 +763,7 @@ describe('AutoragConfigurePage', () => {
       });
       expect(mockS3UploadMutateAsync).toHaveBeenCalledTimes(1);
 
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });

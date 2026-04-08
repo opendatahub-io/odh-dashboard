@@ -5,16 +5,23 @@ import { Button, Flex, ToolbarGroup, ToolbarItem, Tooltip } from '@patternfly/re
 import { TableVariant } from '@patternfly/react-table';
 
 import { TableBase, getTableColumnSort, useCheckboxTable } from '#~/components/table';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import useMlflowExperiments from '#~/concepts/mlflow/useMlflowExperiments';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import { pipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
 import PipelineRunTable from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import PipelineRunTableRow from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import PipelineRunTableToolbar from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
+import { filterByMlflowExperiment } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { compareRunsRoute } from '#~/routes/pipelines/runs';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
-import { usePipelineFilterSearchParams } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import {
+  FilterOptions,
+  getDataValue,
+  usePipelineFilterSearchParams,
+} from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 
 type ManageRunsTableProps = Omit<React.ComponentProps<typeof PipelineRunTable>, 'runType'> & {
   selectedRunIds: string[];
@@ -32,9 +39,23 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
   ...tableProps
 }) => {
   const { namespace } = usePipelinesAPI();
-  const pageRunIds = runs.map(({ run_id: runId }) => runId);
   const { experiment } = React.useContext(ExperimentContext);
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
+  const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
+    workspace: isMlflowAvailable ? namespace : '',
+  });
   const { onClearFilters, ...filterProps } = usePipelineFilterSearchParams(tableProps.setFilter);
+  const columns = pipelineRunColumns(isMlflowAvailable).filter(
+    (column) => !experiment || column.field !== 'run_group',
+  );
+
+  const mlflowFilter = getDataValue(filterProps.filterData[FilterOptions.MLFLOW_EXPERIMENT]);
+  const filteredRuns = React.useMemo(
+    () => filterByMlflowExperiment(runs, mlflowFilter),
+    [runs, mlflowFilter],
+  );
+  const effectiveTotalSize = mlflowFilter ? filteredRuns.length : totalSize;
+  const pageRunIds = filteredRuns.map(({ run_id: runId }) => runId);
 
   const {
     selections,
@@ -60,10 +81,15 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
           }}
           hasRowActions={false}
           run={run}
+          mlflow={{
+            isAvailable: isMlflowAvailable,
+            experiments: mlflowExperiments,
+            loaded: mlflowExperimentsLoaded,
+          }}
         />
       );
     },
-    [selections, toggleSelection],
+    [selections, toggleSelection, isMlflowAvailable, mlflowExperiments, mlflowExperimentsLoaded],
   );
 
   return (
@@ -79,13 +105,9 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
           }
         }}
         onPerPageSelect={(_, newSize) => setPageSize(newSize)}
-        itemCount={totalSize}
-        data={runs}
-        columns={
-          experiment
-            ? pipelineRunColumns.filter((column) => column.field !== 'experiment')
-            : pipelineRunColumns
-        }
+        itemCount={effectiveTotalSize}
+        data={filteredRuns}
+        columns={columns}
         enablePagination="compact"
         emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
         onClearFilters={onClearFilters}
@@ -94,7 +116,7 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
         }
         rowRenderer={rowRenderer}
         variant={TableVariant.compact}
-        getColumnSort={getTableColumnSort({ columns: pipelineRunColumns, ...tableProps })}
+        getColumnSort={getTableColumnSort({ columns, ...tableProps })}
         bottomToolbarContent={
           <ToolbarGroup>
             <ToolbarItem>

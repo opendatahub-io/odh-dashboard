@@ -57,26 +57,7 @@ describe('buildEvaluationRequest', () => {
       });
       expect(result.name).toBe('My Eval');
     });
-
-    it('should include description when provided', () => {
-      const result = buildEvaluationRequest({
-        ...baseParams,
-        description: ' some desc ',
-        benchmark: makeBenchmark(),
-      });
-      expect(result.description).toBe('some desc');
-    });
-
-    it('should omit description when empty or whitespace-only', () => {
-      const result = buildEvaluationRequest({
-        ...baseParams,
-        description: '   ',
-        benchmark: makeBenchmark(),
-      });
-      expect(result).not.toHaveProperty('description');
-    });
   });
-
   describe('inference mode', () => {
     it('should use modelName and endpointUrl for the model field', () => {
       const result = buildEvaluationRequest({

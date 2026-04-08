@@ -21,9 +21,8 @@ import (
 
 // chatCompletionRequest represents an OpenAI-compatible chat completion request
 type chatCompletionRequest struct {
-	Model     string                  `json:"model"`
-	Messages  []chatCompletionMessage `json:"messages"`
-	MaxTokens int                     `json:"max_tokens,omitempty"`
+	Model    string                  `json:"model"`
+	Messages []chatCompletionMessage `json:"messages"`
 }
 
 // chatCompletionMessage represents a message in the chat completion request
@@ -235,15 +234,14 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 			Messages: []chatCompletionMessage{
 				{Role: "user", Content: "test"},
 			},
-			MaxTokens: 10,
 		}
 		requestBody, err = json.Marshal(chatReq)
 		if err != nil {
 			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to marshal chat request: %v", err))
 		}
 	} else {
-		// Embeddings test - send minimal request to validate endpoint compatibility
-		endpoint = "/embeddings"
+		// Embeddings test - send minimal request to validate endpoint compatibility - LLS appends the /v1 here
+		endpoint = "/v1/embeddings"
 		embeddingReq := embeddingRequest{
 			Model:      modelID,
 			Input:      "test",

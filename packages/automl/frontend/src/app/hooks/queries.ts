@@ -249,7 +249,7 @@ const ConfusionMatrixDataSchema = z.record(z.string(), z.record(z.string(), z.nu
  * @param options.schema - Optional Zod schema for runtime validation
  * @returns Parsed JSON cast to type T (validated if schema provided)
  */
-async function fetchS3Json<T>(
+export async function fetchS3Json<T>(
   namespace: string,
   key: string,
   options?: {
@@ -283,6 +283,25 @@ async function fetchS3Json<T>(
     );
   }
 }
+
+/**
+ * Zod schema to validate AutomlModel shape from model.json files.
+ * Validates location (predictor/notebook paths) and metrics (numeric test_data values).
+ * model_directory is optional in the raw file since it gets rewritten after parsing.
+ */
+/* eslint-disable camelcase */
+export const AutomlModelSchema = z.object({
+  name: z.string(),
+  location: z.object({
+    model_directory: z.string().optional(),
+    predictor: z.string(),
+    notebook: z.string(),
+  }),
+  metrics: z.object({
+    test_data: z.record(z.string(), z.number()),
+  }),
+});
+/* eslint-enable camelcase */
 
 export function useModelEvaluationArtifactsQuery(
   namespace?: string,

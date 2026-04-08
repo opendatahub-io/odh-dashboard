@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
@@ -34,6 +34,9 @@ jest.mock('mod-arch-core', () => ({
 jest.mock('~/app/hooks/mutations', () => ({
   useCreatePipelineRunMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
+  })),
+  useS3FileUploadMutation: jest.fn(() => ({
+    mutateAsync: jest.fn().mockResolvedValue({ uploaded: true, key: 'data.csv' }),
   })),
 }));
 
@@ -291,18 +294,14 @@ describe('AutomlConfigurePage', () => {
   });
 
   describe('Create step - Cancel button', () => {
-    it('should render Cancel link', async () => {
+    it('should render Cancel link with correct href', async () => {
       renderWithProviders(<AutomlConfigurePage />);
       const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
       expect(cancelLink).toBeInTheDocument();
-      expect(cancelLink).toHaveAttribute('href', '/develop-train/automl/experiments');
-    });
-
-    it('should have correct href for Cancel link', async () => {
-      renderWithProviders(<AutomlConfigurePage />);
-
-      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
-      expect(cancelLink).toHaveAttribute('href', '/develop-train/automl/experiments');
+      expect(cancelLink).toHaveAttribute(
+        'href',
+        '/develop-train/automl/experiments/test-namespace',
+      );
     });
   });
 
@@ -344,8 +343,10 @@ describe('AutomlConfigurePage', () => {
       expect(await screen.findByText('My Experiment')).toBeInTheDocument();
     });
 
-    it('should render "Run experiment" button', async () => {
-      expect(await screen.findByRole('button', { name: 'Run experiment' })).toBeInTheDocument();
+    it('should render "Create optimization run" button', async () => {
+      expect(
+        await screen.findByRole('button', { name: 'Create optimization run' }),
+      ).toBeInTheDocument();
     });
 
     it('should render "Back" button', async () => {
@@ -418,8 +419,8 @@ describe('AutomlConfigurePage', () => {
     });
   });
 
-  describe('Configure step - Run experiment', () => {
-    it('should call mutateAsync when Run experiment button is clicked with valid form', async () => {
+  describe('Configure step - Create optimization run', () => {
+    it('should call mutateAsync when Create optimization run button is clicked with valid form', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
 
@@ -440,13 +441,18 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      // Select files to populate train_data_file_key
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      // Browse bucket to populate train_data_file_key
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       // FileExplorer should open
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
+
+      // Select a prediction type (required before label column appears)
+      const binaryRadio = document.getElementById('task-type-binary');
+      expect(binaryRadio).not.toBeNull();
+      fireEvent.click(binaryRadio!);
 
       // Select a label column
       const labelColumnSelect = await screen.findByTestId('label_column-select');
@@ -457,7 +463,7 @@ describe('AutomlConfigurePage', () => {
       await user.click(columnOption);
 
       // Wait for form to be valid and Run button to be enabled
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -465,7 +471,7 @@ describe('AutomlConfigurePage', () => {
         { timeout: 3000 },
       );
 
-      // Click Run experiment button
+      // Click Create optimization run button
       await user.click(runButton);
 
       await waitFor(() => {
@@ -494,11 +500,16 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
+
+      // Select a prediction type (required before label column appears)
+      const binaryRadio = document.getElementById('task-type-binary');
+      expect(binaryRadio).not.toBeNull();
+      fireEvent.click(binaryRadio!);
 
       // Select a label column
       const labelColumnSelect = await screen.findByTestId('label_column-select');
@@ -507,8 +518,8 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create optimization run button
+      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -545,11 +556,16 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
+
+      // Select a prediction type (required before label column appears)
+      const binaryRadio = document.getElementById('task-type-binary');
+      expect(binaryRadio).not.toBeNull();
+      fireEvent.click(binaryRadio!);
 
       // Select a label column
       const labelColumnSelect = await screen.findByTestId('label_column-select');
@@ -558,8 +574,8 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create optimization run button
+      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -597,11 +613,16 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
+
+      // Select a prediction type (required before label column appears)
+      const binaryRadio = document.getElementById('task-type-binary');
+      expect(binaryRadio).not.toBeNull();
+      fireEvent.click(binaryRadio!);
 
       // Select a label column
       const labelColumnSelect = await screen.findByTestId('label_column-select');
@@ -610,8 +631,8 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create optimization run button
+      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();

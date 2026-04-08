@@ -4,6 +4,6 @@ pipelineName: test-iris-pipeline
 pipelineDescription: ""
 runName: test-pipelines-run
 runDescription: "Run Description"
-experimentName: "Default"
+runGroupName: "Default"
 dspaSecretName: test-custom-pip-dspa-secret
 pipelineUrl: ""

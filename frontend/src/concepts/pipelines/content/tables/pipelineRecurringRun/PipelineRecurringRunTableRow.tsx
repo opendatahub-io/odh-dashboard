@@ -14,8 +14,10 @@ import {
   RecurringRunTrigger,
 } from '#~/concepts/pipelines/content/tables/renderUtils';
 import PipelineRunTableRowExperiment from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
+import PipelineRunTableRowMlflowExperiment from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowMlflowExperiment';
 import usePipelineRunExperimentInfo from '#~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
+import { MlflowExperimentData } from '#~/concepts/mlflow/types';
 
 type PipelineRecurringRunTableRowProps = {
   isChecked: boolean;
@@ -23,6 +25,7 @@ type PipelineRecurringRunTableRowProps = {
   onToggleCheck: () => void;
   onDelete: () => void;
   recurringRun: PipelineRecurringRunKF;
+  mlflow: MlflowExperimentData;
 };
 
 const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> = ({
@@ -31,6 +34,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
   onToggleCheck,
   onDelete,
   recurringRun,
+  mlflow,
 }) => {
   const navigate = useNavigate();
   const { experiment: contextExperiment } = React.useContext(ExperimentContext);
@@ -73,8 +77,13 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
       <Td modifier="truncate" dataLabel="Pipeline">
         <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />
       </Td>
+      {mlflow.isAvailable && (
+        <Td dataLabel="MLflow experiment">
+          <PipelineRunTableRowMlflowExperiment run={recurringRun} mlflow={mlflow} />
+        </Td>
+      )}
       {!contextExperiment && (
-        <Td modifier="truncate" dataLabel="Experiment">
+        <Td modifier="truncate" dataLabel="Run group">
           <PipelineRunTableRowExperiment
             experiment={experiment}
             error={experimentError}

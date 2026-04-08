@@ -72,7 +72,9 @@ function AutomlConfigurePage(): React.JSX.Element {
       </ActionListItem>
       <ActionListItem>
         <Button
-          component={(props) => <Link {...props} to={automlExperimentsPathname} />}
+          component={(props) => (
+            <Link {...props} to={`${automlExperimentsPathname}/${namespace}`} />
+          )}
           variant="link"
         >
           Cancel
@@ -89,7 +91,7 @@ function AutomlConfigurePage(): React.JSX.Element {
           variant="primary"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
         >
-          Run experiment
+          Create optimization run
         </Button>
       </ActionListItem>
       <ActionListItem>

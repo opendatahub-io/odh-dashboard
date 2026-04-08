@@ -63,7 +63,7 @@ describe('Evaluation Results Page - Single Benchmark', () => {
 
   it('should display benchmark details with primary metric and threshold', () => {
     evaluationResultsPage.visit(NAMESPACE, singleJob.resource.id);
-    evaluationResultsPage.findBenchmarkDetails('harmful_request_refusal').should('exist');
+    evaluationResultsPage.findBenchmarkDetails('harmful_request_refusal', 0).should('exist');
     evaluationResultsPage.findBenchmarkDetailsInfo().should('exist');
   });
 
@@ -119,6 +119,6 @@ describe('Evaluation Results Page - Collection', () => {
   it('should show benchmark details when clicking a card', () => {
     evaluationResultsPage.visit(NAMESPACE, collectionJob.resource.id);
     evaluationResultsPage.findBenchmarkCard('truthfulqa_mc1').click();
-    evaluationResultsPage.findBenchmarkDetails('truthfulqa_mc1').should('exist');
+    evaluationResultsPage.findBenchmarkDetails('truthfulqa_mc1', 0).should('exist');
   });
 });

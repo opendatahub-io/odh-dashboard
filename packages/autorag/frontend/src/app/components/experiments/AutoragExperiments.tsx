@@ -9,7 +9,10 @@ import NoPipelineServer from '~/app/components/empty-states/NoPipelineServer';
 import PipelineServerNotReady from '~/app/components/empty-states/PipelineServerNotReady';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
-import { shouldShowConfigurePipelineServerEmptyState } from '~/app/utilities/pipelineServerEmptyState';
+import {
+  shouldShowConfigurePipelineServerEmptyState,
+  shouldShowPipelineServerNotReady,
+} from '~/app/utilities/pipelineServerEmptyState';
 import { autoragConfigurePathname } from '~/app/utilities/routes';
 import { parseErrorStatus } from '~/app/utilities/utils';
 
@@ -23,7 +26,7 @@ export type AutoragExperimentsListStatus = {
 type AutoragExperimentsProps = {
   /**
    * Fired when list loading / emptiness changes so the host page can tune chrome (e.g. hide the
-   * header "Create RAG optimization run" action while the centered empty state is shown).
+   * header "Create AutoRAG optimization run" action while the centered empty state is shown).
    */
   onExperimentsListStatus?: (status: AutoragExperimentsListStatus) => void;
 };
@@ -120,7 +123,7 @@ function AutoragExperiments({
     if (shouldShowConfigurePipelineServerEmptyState(loadError)) {
       return <NoPipelineServer namespace={effectiveNamespace || undefined} />;
     }
-    if (errorCode === 503) {
+    if (shouldShowPipelineServerNotReady(loadError)) {
       return <PipelineServerNotReady namespace={effectiveNamespace || undefined} />;
     }
     return (
