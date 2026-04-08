@@ -4,47 +4,21 @@ class GenAiPlayground {
     cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
   }
 
+  navigateToAssets(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
   findEmptyState() {
     return cy.findByTestId('empty-state');
   }
 
-  findCreatePlaygroundEmptyState() {
-    return cy.findByTestId('create-playground-empty-state');
+  findAddToPlaygroundButton() {
+    return cy.findByTestId('ai-models-table').contains('button', 'Add to playground');
   }
 
-  /**
-   * Poll until the "Create your playground" empty state appears.
-   * The AAA models endpoint may take time to reflect a newly deployed model,
-   * so we reload the page until the correct empty state is rendered.
-   */
-  waitForCreatePlaygroundEmptyState(
-    projectName: string,
-    { maxAttempts = 12, pollIntervalMs = 10000 } = {},
-  ) {
-    const check = (attempt = 1): void => {
-      cy.log(`Attempt ${attempt}/${maxAttempts} - Waiting for models to be available...`);
-      cy.get('body').then(($body) => {
-        if ($body.find('[data-testid="create-playground-empty-state"]').length > 0) {
-          cy.log('Models available — "Create your playground" state found.');
-          return;
-        }
-        if (attempt >= maxAttempts) {
-          throw new Error(
-            `"Create your playground" empty state not found after ${maxAttempts} attempts. ` +
-              'The deployed model may not have been registered as an AI asset endpoint.',
-          );
-        }
-        // eslint-disable-next-line cypress/no-unnecessary-waiting
-        cy.wait(pollIntervalMs);
-        this.navigate(projectName);
-        check(attempt + 1);
-      });
-    };
-    check();
-  }
-
-  findCreatePlaygroundButton() {
-    return this.findCreatePlaygroundEmptyState().findByTestId('empty-state-action-button');
+  findGoToPlaygroundLink(options?: { timeout?: number }) {
+    return cy.findByTestId('go-to-playground-link', options);
   }
 
   findConfigurationTable() {
