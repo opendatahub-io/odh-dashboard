@@ -28,6 +28,8 @@ type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
 
 var trailingNumberPattern = regexp.MustCompile(`^(.*)-(\d+)$`)
 
+const s3PayloadTooLargeMsg = "request body exceeds maximum upload size (32 MiB plus allowance for multipart framing)"
+
 // resolvedS3 holds a ready-to-use S3 client and the resolved bucket name.
 type resolvedS3 struct {
 	client s3int.S3ClientInterface
@@ -294,7 +296,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 	mr, err := r.MultipartReader()
 	if err != nil {
 		if isS3PostRequestBodyTooLarge(err) {
-			app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (32 MiB plus allowance for multipart framing)")
+			app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
 			return
 		}
 		app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart request: %w", err))
@@ -313,7 +315,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		}
 		if nextErr != nil {
 			if isS3PostRequestBodyTooLarge(nextErr) {
-				app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (32 MiB plus allowance for multipart framing)")
+				app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
 				return
 			}
 			app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", nextErr))
@@ -326,7 +328,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		_, copyErr := io.Copy(io.Discard, part)
 		if copyErr != nil {
 			if isS3PostRequestBodyTooLarge(copyErr) {
-				app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (32 MiB plus allowance for multipart framing)")
+				app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
 				return
 			}
 			app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", copyErr))
@@ -453,7 +455,7 @@ func splitStemAndNextIndex(stem string) (base string, nextIndex int) {
 func (app *App) rejectDeclaredOversizedS3Post(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		if app.s3PostDeclaredBodyExceedsLimit(r) {
-			app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (32 MiB plus allowance for multipart framing)")
+			app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
 			return
 		}
 		next(w, r, ps)
