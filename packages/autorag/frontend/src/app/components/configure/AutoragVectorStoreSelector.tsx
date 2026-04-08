@@ -61,7 +61,10 @@ const AutoragVectorStoreSelector: React.FC = () => {
 
   useEffect(() => {
     if (isError) {
-      notification.error('Failed to load vector I/O providers');
+      notification.error(
+        'Failed to load vector I/O providers.',
+        <>Check the secret for the provided Llama Stack instance is valid and not expired.</>,
+      );
     }
   }, [isError, notification]);
 
