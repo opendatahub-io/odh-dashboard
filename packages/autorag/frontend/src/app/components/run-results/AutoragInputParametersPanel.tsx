@@ -86,6 +86,10 @@ const formatValue = (key: string, value: unknown): React.ReactNode => {
   return JSON.stringify(value);
 };
 
+/** Returns true if a value is considered empty and should be hidden from the panel. */
+const isEmptyValue = (value: unknown): boolean =>
+  value == null || value === '' || (Array.isArray(value) && value.length === 0);
+
 type ModelConfigurationValueProps = {
   generationModels?: string[];
   embeddingsModels?: string[];
@@ -156,12 +160,12 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
 
     // Build entries in the display order defined by PANEL_PARAMETERS, skipping empty values
     const knownEntries: [string, unknown][] = ORDERED_KEYS.filter(
-      (key) => valueByKey.has(key) && valueByKey.get(key) !== '',
+      (key) => valueByKey.has(key) && !isEmptyValue(valueByKey.get(key)),
     ).map((key) => [key, valueByKey.get(key)]);
 
     // Append any unexpected keys (e.g. new API fields) at the end
     const unknownEntries = allEntries.filter(
-      ([key, value]) => !knownKeySet.has(key) && value !== '',
+      ([key, value]) => !knownKeySet.has(key) && !isEmptyValue(value),
     );
     return [...knownEntries, ...unknownEntries];
   }, [parameters]);
@@ -172,7 +176,7 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
 
   return (
     <DrawerPanelContent minSize="320px" data-testid="run-details-drawer-panel">
-      <DrawerHead>
+      <DrawerHead className="odh-autorag-input-parameters-panel__head">
         <Title headingLevel="h2">Run details</Title>
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} data-testid="run-details-drawer-close" />
@@ -196,7 +200,7 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
                 <DescriptionListGroup data-testid={`parameter-${key}`}>
                   <DescriptionListTerm>{getParameterLabel(key)}</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <Content component="p" className="pf-v6-u-color-200">
+                    <Content component="p" className="odh-autorag-input-parameters-panel__value">
                       {formatValue(key, value)}
                     </Content>
                   </DescriptionListDescription>
@@ -208,7 +212,7 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
                 {entries.length > 0 && <Divider />}
                 <DescriptionListGroup data-testid="parameter-model-configuration">
                   <DescriptionListTerm>Model configuration</DescriptionListTerm>
-                  <DescriptionListDescription className="pf-v6-u-color-200">
+                  <DescriptionListDescription className="odh-autorag-input-parameters-panel__value">
                     <ModelConfigurationValue
                       generationModels={generationModels}
                       embeddingsModels={embeddingsModels}
