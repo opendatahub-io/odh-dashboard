@@ -98,11 +98,10 @@ describe('AvailableAiAssetsFields', () => {
     it('should force-clear saveAsAiAsset and useCase when Gen AI is disabled', () => {
       mockUseIsAreaAvailable.mockReturnValue(mockAreaAvailabilityStatus(false));
       const { result } = renderHook(() =>
-        useModelAvailabilityFields({ saveAsAiAsset: true, useCase: 'chat', saveAsMaaS: true }),
+        useModelAvailabilityFields({ saveAsAiAsset: true, useCase: 'chat' }),
       );
       expect(result.current.data.saveAsAiAsset).toBe(false);
       expect(result.current.data.useCase).toBe('');
-      expect(result.current.data.saveAsMaaS).toBe(true);
       expect(result.current.isGenAiEnabled).toBe(false);
     });
   });
