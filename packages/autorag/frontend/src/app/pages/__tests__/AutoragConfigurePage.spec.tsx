@@ -7,6 +7,12 @@ import React from 'react';
 import { BrowserRouter } from 'react-router';
 import AutoragConfigurePage from '~/app/pages/AutoragConfigurePage';
 
+// Truncate relies on DOM measurement APIs (scrollWidth) unavailable in JSDOM.
+jest.mock('@patternfly/react-core', () => ({
+  ...jest.requireActual('@patternfly/react-core'),
+  Truncate: ({ content }: { content: string }) => <span>{content}</span>,
+}));
+
 const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
 const mockMutateAsync = jest.fn();
@@ -210,6 +216,13 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
     ) : null,
 }));
 
+// Mock PatternFly Truncate – its useEffect measures text via canvas/getComputedStyle,
+// which JSDOM does not support, causing "Cannot read properties of undefined" errors.
+jest.mock('@patternfly/react-core', () => ({
+  ...jest.requireActual('@patternfly/react-core'),
+  Truncate: ({ content }: { content: string }) => <span>{content}</span>,
+}));
+
 // Mock useWatchConnectionTypes used by AutoragConfigure
 jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
   useWatchConnectionTypes: jest.fn(() => [[]]),
@@ -404,18 +417,14 @@ describe('AutoragConfigurePage', () => {
   });
 
   describe('Create step - Cancel button', () => {
-    it('should render Cancel link', async () => {
+    it('should render Cancel link with correct href', async () => {
       renderWithProviders(<AutoragConfigurePage />);
       const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
       expect(cancelLink).toBeInTheDocument();
-      expect(cancelLink).toHaveAttribute('href', '/gen-ai-studio/autorag/experiments');
-    });
-
-    it('should have correct href for Cancel link', async () => {
-      renderWithProviders(<AutoragConfigurePage />);
-
-      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
-      expect(cancelLink).toHaveAttribute('href', '/gen-ai-studio/autorag/experiments');
+      expect(cancelLink).toHaveAttribute(
+        'href',
+        '/gen-ai-studio/autorag/experiments/test-namespace',
+      );
     });
   });
 

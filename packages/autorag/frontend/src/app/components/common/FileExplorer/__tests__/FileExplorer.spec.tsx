@@ -262,6 +262,67 @@ describe('FileExplorer', () => {
         .querySelector('input') as HTMLInputElement;
       expect(searchInput).toBeDisabled();
     });
+    it('should strip disallowed characters and pass sanitized value to onSearch', () => {
+      const onSearch = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          onSearch={onSearch}
+          allowedSearchCharacters={/[a-z0-9-]/}
+        />,
+      );
+
+      const searchInput = screen
+        .getByTestId('file-explorer-search')
+        .querySelector('input') as HTMLInputElement;
+      fireEvent.change(searchInput, { target: { value: 'hello@world!' } });
+
+      expect(onSearch).toHaveBeenCalledWith('helloworld');
+    });
+    it('should pass full value to onSearch when all characters are allowed', () => {
+      const onSearch = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          onSearch={onSearch}
+          allowedSearchCharacters={/[a-z0-9-]/}
+        />,
+      );
+
+      const searchInput = screen
+        .getByTestId('file-explorer-search')
+        .querySelector('input') as HTMLInputElement;
+      fireEvent.change(searchInput, { target: { value: 'valid-input' } });
+
+      expect(onSearch).toHaveBeenCalledWith('valid-input');
+    });
+    it('should not filter characters when allowedSearchCharacters is not provided', () => {
+      const onSearch = jest.fn();
+      render(<FileExplorer {...defaultProps} onSearch={onSearch} />);
+
+      const searchInput = screen
+        .getByTestId('file-explorer-search')
+        .querySelector('input') as HTMLInputElement;
+      fireEvent.change(searchInput, { target: { value: 'any@chars!here' } });
+
+      expect(onSearch).toHaveBeenCalledWith('any@chars!here');
+    });
+    it('should render info icon when allowedSearchCharactersLabel is provided', () => {
+      render(
+        <FileExplorer
+          {...defaultProps}
+          allowedSearchCharacters={/[a-z]/}
+          allowedSearchCharactersLabel="Only lowercase letters are allowed"
+        />,
+      );
+
+      expect(screen.getByTestId('file-explorer-search-chars-info')).toBeInTheDocument();
+    });
+    it('should not render info icon when allowedSearchCharactersLabel is not provided', () => {
+      render(<FileExplorer {...defaultProps} allowedSearchCharacters={/[a-z]/} />);
+
+      expect(screen.queryByTestId('file-explorer-search-chars-info')).not.toBeInTheDocument();
+    });
   });
   describe('pagination', () => {
     it('should render pagination controls', () => {
