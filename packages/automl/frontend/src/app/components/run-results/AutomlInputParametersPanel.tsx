@@ -133,7 +133,7 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
 
   return (
     <DrawerPanelContent minSize="320px" data-testid="run-details-drawer-panel">
-      <DrawerHead>
+      <DrawerHead className="odh-automl-input-parameters-panel__head">
         <Title headingLevel="h2">Run details</Title>
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} data-testid="run-details-drawer-close" />
@@ -157,7 +157,7 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
                 <DescriptionListGroup data-testid={`parameter-${key}`}>
                   <DescriptionListTerm>{getParameterLabel(key)}</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <Content component="p" className="pf-v6-u-color-200">
+                    <Content component="p" className="odh-automl-input-parameters-panel__value">
                       {formatValue(key, value)}
                     </Content>
                   </DescriptionListDescription>
