@@ -102,6 +102,7 @@ export type CreateResponseRequest = {
   input_shield_id?: string;
   output_shield_id?: string;
   model_source_type?: string;
+  subscription?: string;
 };
 
 export type SimplifiedUsage = {
@@ -289,12 +290,18 @@ export type CodeExportRequest = {
   tools?: CodeExportTool[];
   mcp_servers?: MCPServerConfig[];
   vector_store?: {
+    /** Set for external vector stores — skips creation and references by ID instead */
+    id?: string;
     name: string;
     embedding_model?: string;
     embedding_dimension?: number;
     provider_id: string;
   };
   files?: { file: string; purpose: string }[];
+  prompt?: {
+    name: string;
+    version: number;
+  };
 };
 
 export type CodeExportData = {
@@ -376,6 +383,7 @@ export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
+  subscriptions?: SubscriptionInfo[];
 }
 
 export type ExternalModelRequest = {
@@ -558,6 +566,12 @@ export type GenAiAPIs = {
   deleteExternalModel: DeleteExternalModel;
 };
 
+export interface SubscriptionInfo {
+  name: string;
+  displayName?: string;
+  description?: string;
+}
+
 export interface MaaSModel {
   id: string;
   object: string;
@@ -571,12 +585,15 @@ export interface MaaSModel {
   description?: string;
   usecase?: string;
   model_type?: 'llm' | 'embedding';
+  subscriptions?: SubscriptionInfo[];
 }
 
 export type MaaSTokenRequest = {
   name?: string;
   description?: string;
   expiresIn?: string;
+  ephemeral?: boolean;
+  subscription?: string;
 };
 export interface MaaSTokenResponse {
   key: string;

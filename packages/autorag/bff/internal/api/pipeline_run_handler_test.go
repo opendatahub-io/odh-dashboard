@@ -144,7 +144,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		body := validCreateRequest()
 		body.EmbeddingsModels = []string{"model-a", "model-b"}
 		body.GenerationModels = []string{"gen-model"}
-		body.LlamaStackVectorDatabaseID = "vectordb-1"
+		body.LlamaStackVectorIOProviderID = "vectordb-1"
 		maxPatterns := 10
 		body.OptimizationMaxRagPatterns = &maxPatterns
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
@@ -161,7 +161,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		assert.Equal(t, "PENDING", response.Data.State)
 		assert.NotNil(t, response.Data.PipelineVersionReference)
 		assert.NotNil(t, response.Data.RuntimeConfig)
-		assert.Equal(t, "vectordb-1", response.Data.RuntimeConfig.Parameters["llama_stack_vector_database_id"])
+		assert.Equal(t, "vectordb-1", response.Data.RuntimeConfig.Parameters["llama_stack_vector_io_provider_id"])
 		assert.Equal(t, float64(10), response.Data.RuntimeConfig.Parameters["optimization_max_rag_patterns"])
 	})
 }

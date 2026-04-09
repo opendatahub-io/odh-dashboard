@@ -213,7 +213,14 @@ export const getExistingVersionsForImageStream = (
  */
 export const getRelatedVersionDescription = (imageStream: ImageStreamKind): string | undefined => {
   const versions = getExistingVersionsForImageStream(imageStream);
-  return versions.length === 1 ? getImageVersionSoftwareString(versions[0]) : undefined;
+  if (versions.length === 0) {
+    return undefined;
+  }
+  if (versions.length === 1) {
+    return getImageVersionSoftwareString(versions[0]);
+  }
+  const sortedVersions = versions.toSorted(compareTagVersions);
+  return getImageVersionSoftwareString(sortedVersions[0]);
 };
 
 /**

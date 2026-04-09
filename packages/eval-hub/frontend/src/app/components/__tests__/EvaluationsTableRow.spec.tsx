@@ -26,6 +26,7 @@ const renderRow = (jobOverrides = {}, rowIndex = 0) => {
             job={job}
             rowIndex={rowIndex}
             namespace="test-ns"
+            collectionNameMap={{}}
             onActionComplete={mockOnActionComplete}
           />
         </Tbody>
@@ -61,6 +62,20 @@ describe('EvaluationsTableRow', () => {
     expect(screen.getByTestId('status-label-running')).toBeInTheDocument();
   });
 
+  it('should show error popover when clicking a failed status with a message', () => {
+    renderRow({
+      state: 'failed',
+      statusMessage: 'Benchmark arc_easy failed with message: model not found',
+    });
+
+    fireEvent.click(screen.getByTestId('status-label-failed'));
+
+    expect(screen.getByText('Evaluation failed')).toBeInTheDocument();
+    expect(
+      screen.getByText('Benchmark arc_easy failed with message: model not found'),
+    ).toBeInTheDocument();
+  });
+
   it('should render benchmark name', () => {
     renderRow({ benchmarkId: 'MMLU Finance' });
     expect(screen.getByTestId('evaluation-benchmark')).toHaveTextContent('MMLU Finance');
@@ -82,13 +97,14 @@ describe('EvaluationsTableRow', () => {
               job={job}
               rowIndex={0}
               namespace="test-ns"
+              collectionNameMap={{}}
               onActionComplete={mockOnActionComplete}
             />
           </Tbody>
         </Table>
       </MemoryRouter>,
     );
-    expect(screen.getByTestId('evaluation-benchmark')).toHaveTextContent('arc_easy +1 more');
+    expect(screen.getByTestId('evaluation-benchmark')).toHaveTextContent('Arc Easy +1 more');
     expect(screen.getByTestId('evaluation-result')).toHaveTextContent('-');
   });
 

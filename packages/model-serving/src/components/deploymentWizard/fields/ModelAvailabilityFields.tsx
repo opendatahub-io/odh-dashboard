@@ -19,7 +19,6 @@ import type { ExternalDataMap } from '../ExternalDataLoader';
 
 export type ModelAvailabilityFieldsData = {
   saveAsAiAsset: boolean;
-  saveAsMaaS?: boolean;
   useCase?: string;
 };
 
@@ -54,7 +53,6 @@ export const useModelAvailabilityFields = (
     if (modelType && modelType.type !== ServingRuntimeModelType.GENERATIVE) {
       return {
         saveAsAiAsset: false,
-        saveAsMaaS: undefined,
         useCase: '',
       };
     }
@@ -101,12 +99,12 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
             data-testid="save-as-ai-asset-checkbox"
             label={
               <>
-                <div className="pf-v6-c-form__label-text">Add as AI asset endpoint</div>
+                <div className="pf-v6-c-form__label-text">Publish as AI asset endpoint</div>
                 <Flex>
                   <FlexItem>
-                    Enable users in your namespace to test this model in the playground by adding
-                    its endpoint to the{' '}
-                    <span className="pf-v6-c-form__label-text">AI asset endpoints</span> page.
+                    Publishing as an AI asset endpoint allows users with access to your project to
+                    test the model in the{' '}
+                    <span className="pf-v6-c-form__label-text">Playground</span>.
                   </FlexItem>
                   <Label isCompact color="yellow" variant="outline">
                     Tech preview

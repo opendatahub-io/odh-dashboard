@@ -365,5 +365,5 @@ func (kc *TokenKubernetesClient) GetEvalHubCRStatus(ctx context.Context, _ *Requ
 			"namespace", namespace, "count", len(list.Items))
 	}
 
-	return parseEvalHubCRStatus(&list.Items[0])
+	return ParseEvalHubCRStatus(&list.Items[0])
 }

@@ -363,7 +363,6 @@ export type HardwareProfilesData = {
   projectDescription: string;
   workbenchName: string;
   hardwareProfileDeploymentSize: string;
-  workbenchRunningStatus: string;
   notebookImageName: string;
   editWorkbenchAction: string;
   settingsHardwareProfilesUrl: string;
@@ -529,7 +528,7 @@ export const AccessModeLabelMap: Record<AccessMode, string> = {
 };
 
 export enum NotebookStatusLabel {
-  Running = 'Running',
+  Ready = 'Ready',
   Starting = 'Starting',
   Stopping = 'Stopping',
   Stopped = 'Stopped',
@@ -608,7 +607,7 @@ export type PipelineTestData = {
   pipelineDescription: string;
   runName: string;
   runDescription: string;
-  experimentName: string;
+  runGroupName: string;
   dspaSecretName: string;
   pipelineUrl: string;
 };
@@ -635,4 +634,16 @@ export type TiersTestData = {
   tierDeploymentOption: string;
   groupsCount: number;
   limits: string;
+};
+
+export type PromptManagementPromptData = {
+  name: string;
+  versionLabel: string;
+  template: string;
+  commitMessage: string;
+};
+
+export type PromptManagementTestData = {
+  projectName: string;
+  prompts: PromptManagementPromptData[];
 };

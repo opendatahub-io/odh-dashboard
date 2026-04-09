@@ -3,17 +3,25 @@ import type {
   NavExtension,
   RouteExtension,
   AreaExtension,
+  TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import {
   CATALOG_SETTINGS_PAGE_TITLE,
   catalogSettingsUrl,
 } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
+import { mcpCatalogUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import { McpServerDeployModalExtension } from './extension-points';
 
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
 const ADMIN_USER = 'ADMIN_USER';
-const extensions: (NavExtension | RouteExtension | AreaExtension | McpServerDeployModalExtension)[] = [
+
+const createRedirectComponent = (args: { from: string; to: string }) => () =>
+  import('@odh-dashboard/internal/utilities/v2Redirect').then((module) => ({
+    default: () => module.buildV2RedirectElement(args),
+  }));
+
+const extensions: (NavExtension | RouteExtension | AreaExtension | TabRouteTabExtension | McpServerDeployModalExtension)[] = [
   {
     type: 'app.area',
     properties: {
@@ -25,34 +33,48 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | McpServerDepl
       ],
     },
   },
+  // Tab extensions for the Models tabbed page
   {
-    type: 'app.navigation/href',
+    type: 'app.tab-route/tab',
     flags: {
       required: [SupportedArea.MODEL_CATALOG],
     },
     properties: {
-      id: 'modelCatalog',
+      pageId: 'models-tab-page',
+      id: 'catalog',
       title: 'Catalog',
-      href: '/ai-hub/catalog',
-      section: 'models',
-      path: '/ai-hub/catalog/*',
-      group: '1_aihub',
+      component: () => import('./ModelCatalogWrapper'),
+      group: '1_catalog',
     },
   },
   {
-    type: 'app.navigation/href',
+    type: 'app.tab-route/tab',
     flags: {
       required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
-      id: 'modelRegistry',
+      pageId: 'models-tab-page',
+      id: 'registry',
       title: 'Registry',
-      href: '/ai-hub/registry',
-      section: 'models',
-      path: '/ai-hub/registry/*',
-      group: '1_aihub',
+      component: () => import('./ModelRegistryWrapper'),
+      group: '2_registry',
     },
   },
+  // Tab extension for MCP servers tabbed page
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      pageId: 'mcp-servers-tab-page',
+      id: 'catalog',
+      title: 'Catalog',
+      component: () => import('./McpCatalogWrapper'),
+      group: '1_catalog',
+    },
+  },
+  // KF plugin nav items (kept as-is, these are dev-flag-gated)
   {
     type: 'app.navigation/href',
     flags: {
@@ -61,9 +83,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | McpServerDepl
     properties: {
       id: 'modelRegistry-kf',
       title: 'Model registry (KF)',
-      href: '/ai-hub/registry',
-      section: 'models',
-      path: '/ai-hub/registry/*',
+      href: '/ai-hub/models/registry',
+      section: 'ai-hub',
+      path: '/ai-hub/models/registry/*',
     },
   },
   {
@@ -84,26 +106,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | McpServerDepl
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.MODEL_REGISTRY],
-    },
-    properties: {
-      path: '/ai-hub/registry/*',
-      component: () => import('./ModelRegistryWrapper'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [SupportedArea.MODEL_CATALOG],
-    },
-    properties: {
-      path: '/ai-hub/catalog/*',
-      component: () => import('./ModelCatalogWrapper'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
       required: [PLUGIN_MODEL_REGISTRY],
     },
     properties: {
@@ -111,17 +113,31 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | McpServerDepl
       component: () => import('./ModelRegistrySettingsRoutesWrapper'),
     },
   },
+  // Redirects from old URLs
   {
-    type: 'app.navigation/href',
+    type: 'app.route',
     flags: {
-      required: [SupportedArea.MCP_CATALOG],
+      required: [SupportedArea.MODEL_CATALOG],
     },
     properties: {
-      id: 'mcpCatalog',
-      title: 'Catalog',
-      href: '/ai-hub/mcp-catalog',
-      section: 'mcp-servers',
-      path: '/ai-hub/mcp-catalog/*',
+      path: '/ai-hub/catalog/*',
+      component: createRedirectComponent({
+        from: '/ai-hub/catalog/*',
+        to: '/ai-hub/models/catalog/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.MODEL_REGISTRY],
+    },
+    properties: {
+      path: '/ai-hub/registry/*',
+      component: createRedirectComponent({
+        from: '/ai-hub/registry/*',
+        to: '/ai-hub/models/registry/*',
+      }),
     },
   },
   {
@@ -131,9 +147,40 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | McpServerDepl
     },
     properties: {
       path: '/ai-hub/mcp-catalog/*',
-      component: () => import('./McpCatalogWrapper'),
+      component: createRedirectComponent({
+        from: '/ai-hub/mcp-catalog/*',
+        to: `${mcpCatalogUrl()}/*`,
+      }),
     },
   },
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      pageId: 'mcp-servers-tab-page',
+      id: 'deployments',
+      title: 'Deployments',
+      component: () => import('./McpDeploymentsWrapper'),
+      group: '2_deployments',
+    },
+  },
+  // Redirect from old MCP deployments URL
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      path: '/ai-hub/mcp-deployments/*',
+      component: createRedirectComponent({
+        from: '/ai-hub/mcp-deployments/*',
+        to: '/ai-hub/mcp-servers/deployments/*',
+      }),
+    },
+  },
+  // Settings (unchanged)
   {
     type: 'app.navigation/href',
     flags: {

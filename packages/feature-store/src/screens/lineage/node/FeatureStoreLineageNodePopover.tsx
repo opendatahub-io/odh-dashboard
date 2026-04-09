@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   Popover,
   Button,
@@ -13,7 +14,6 @@ import {
 } from '@patternfly/react-core';
 import { LineageNode } from '@odh-dashboard/internal/components/lineage/types';
 import { useLineageClick } from '@odh-dashboard/internal/components/lineage/LineageClickContext';
-import { useNavigate } from 'react-router-dom';
 import {
   featureDataSourceRoute,
   featureEntityRoute,
@@ -63,7 +63,6 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
   featureViewName,
 }) => {
   const { currentProject } = useFeatureStoreProject();
-  const navigate = useNavigate();
   const { getLastClickPosition } = useLineageClick();
 
   // Conditional rendering after all hooks
@@ -73,6 +72,10 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
 
   const clickPosition = getLastClickPosition();
   const triggerElement = clickPosition?.pillElement;
+  const detailsRoute = goToDetailsPage(node, currentProject);
+  const allFeaturesSearchParams = new URLSearchParams();
+  allFeaturesSearchParams.set('featureView', node.name);
+  const allFeaturesHref = `/develop-train/feature-store/features/${currentProject}?${allFeaturesSearchParams.toString()}`;
 
   if (!triggerElement) {
     return null;
@@ -161,12 +164,12 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
             <FlexItem>
               <Button
                 variant="secondary"
-                onClick={() => {
-                  const route = goToDetailsPage(node, currentProject);
-                  if (route) {
-                    navigate(route);
-                  }
-                }}
+                component={
+                  detailsRoute
+                    ? (props: React.ComponentProps<'a'>) => <Link {...props} to={detailsRoute} />
+                    : 'button'
+                }
+                isDisabled={!detailsRoute}
               >
                 View {getFsObjectTypeLabel(node.fsObjectTypes)} page
               </Button>
@@ -176,13 +179,9 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
             <FlexItem>
               <Button
                 variant="link"
-                onClick={() => {
-                  const searchParams = new URLSearchParams();
-                  searchParams.set('featureView', node.name);
-                  navigate(
-                    `/develop-train/feature-store/features/${currentProject}?${searchParams.toString()}`,
-                  );
-                }}
+                component={(props: React.ComponentProps<'a'>) => (
+                  <Link {...props} to={allFeaturesHref} />
+                )}
               >
                 View all features
               </Button>

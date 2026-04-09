@@ -59,6 +59,7 @@ export enum SupportedArea {
   NIM_MODEL = 'nim-model',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   MODEL_AS_SERVICE = 'model-as-service',
+  MAAS_AUTH_POLICIES = 'maas-auth-policies',
   LLMD_SERVING = 'llmd-serving',
   YAML_VIEWER = 'yaml-viewer',
   VLLM_ON_MAAS = 'vllm-on-maas',
@@ -94,6 +95,7 @@ export enum SupportedArea {
 
   /* MLflow */
   MLFLOW = 'mlflow',
+  MLFLOW_PIPELINES = 'mlflow-pipelines',
 
   /* Project RBAC Settings */
   PROJECT_RBAC_SETTINGS = 'project-rbac-settings',
@@ -117,6 +119,7 @@ export enum DataScienceStackComponent {
   WORKBENCHES = 'workbenches',
   LLAMA_STACK_OPERATOR = 'llamastackoperator',
   TRAINER = 'trainer',
+  MLFLOW = 'mlflowoperator',
 }
 
 /**

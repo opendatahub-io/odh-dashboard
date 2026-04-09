@@ -77,10 +77,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Model Registry');
-      modelRegistry.visit();
-
-      cy.step('Select the created model registry');
-      modelRegistry.findSelectModelRegistry(registryName);
+      modelRegistry.visitWithRegistry(registryName);
 
       cy.step('Register a model using object storage');
       clickRegisterModelButton(30000);
@@ -159,7 +156,7 @@ describe('Verify models can be registered in a model registry', () => {
       checkModelExistsInDatabase(testData.uriModelName, databaseName).should('be.true');
 
       cy.step('Navigate back to model registry to verify both models');
-      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Verify both models are visible in the registry');
       cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
@@ -177,10 +174,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Model Registry');
-      modelRegistry.visit();
-
-      cy.step('Select the created model registry');
-      modelRegistry.findSelectModelRegistry(registryName);
+      modelRegistry.visitWithRegistry(registryName);
 
       cy.step('Navigate to the first registered model');
       cy.contains(objectStorageModelName).click();

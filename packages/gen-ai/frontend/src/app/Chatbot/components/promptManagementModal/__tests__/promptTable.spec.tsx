@@ -44,13 +44,17 @@ const mockUsePromptVersions = jest.fn();
 
 jest.mock('~/app/Chatbot/components/promptManagementModal/usePromptQueries', () => ({
   usePromptsList: () => mockUsePromptsList(),
-  usePromptVersions: () => mockUsePromptVersions(),
+  usePromptVersions: (promptName: string | null) => mockUsePromptVersions(promptName),
 }));
 
 describe('PromptTable', () => {
   const defaultProps = {
     onClickLoad: jest.fn(),
     onClose: jest.fn(),
+    displayText: {
+      title: 'Load prompt',
+      description: 'Select a prompt to load into the playground.',
+    },
   };
 
   beforeEach(() => {
@@ -164,11 +168,11 @@ describe('PromptTable', () => {
       isLoading: false,
       error: null,
     });
-    mockUsePromptVersions.mockReturnValue({
-      versions: mockVersions,
+    mockUsePromptVersions.mockImplementation((promptName: string | null) => ({
+      versions: promptName ? mockVersions : [],
       isLoading: false,
       error: null,
-    });
+    }));
 
     render(<PromptTable {...defaultProps} />);
 

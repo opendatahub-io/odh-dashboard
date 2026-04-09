@@ -52,15 +52,6 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
         >
           {benchmark.name}
         </Button>
-        <Content
-          component="p"
-          style={{
-            color: 'var(--pf-t--global--text--color--subtle)',
-            marginTop: 'var(--pf-t--global--spacer--xs)',
-          }}
-        >
-          {benchmark.id}
-        </Content>
       </CardTitle>
 
       <CardBody>
@@ -78,7 +69,7 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
 
       <CardFooter>
         <Button variant="secondary" isInline onClick={onRunBenchmark}>
-          Run this benchmark
+          Use this benchmark
         </Button>
       </CardFooter>
     </Card>

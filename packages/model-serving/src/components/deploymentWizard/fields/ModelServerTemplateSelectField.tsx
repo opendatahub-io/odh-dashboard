@@ -39,32 +39,30 @@ import { useModelServingClusterSettings } from '../../../concepts/useModelServin
 import { useWizardFieldFromExtension } from '../dynamicFormUtils';
 import { isModelServerTemplateField } from '../types';
 
-export type ModelServerOption = {
-  name: string;
-  label?: string;
-  namespace?: string;
-  scope?: string;
-  template?: TemplateKind | K8sResourceCommon;
-  version?: string;
-  compatibleWithHardwareProfile?: boolean;
-};
-
-export type ModelServerSelectFieldData = {
-  selection?: ModelServerOption | null;
-  autoSelect?: boolean;
-  suggestion?: ModelServerOption | null;
-};
-
 // Schema
-export const modelServerSelectFieldSchema = z.custom<ModelServerSelectFieldData>((val: unknown) => {
-  return z
-    .object({
-      selection: z.custom<ModelServerOption>(),
-      autoSelect: z.boolean().optional(),
-      suggestion: z.custom<ModelServerOption>().optional(),
-    })
-    .safeParse(val).success;
+const ModelServerOptionSchema = z.object({
+  name: z.string(),
+  label: z.string().optional(),
+  namespace: z.string().optional(),
+  scope: z.string().optional(),
+  template: z.custom<TemplateKind | K8sResourceCommon>().optional(),
+  version: z.string().optional(),
+  compatibleWithHardwareProfile: z.boolean().optional(),
 });
+export type ModelServerOption = z.infer<typeof ModelServerOptionSchema>;
+
+export const modelServerSelectFieldSchema = z.object({
+  selection: ModelServerOptionSchema,
+  autoSelect: z.boolean().optional(),
+  suggestion: ModelServerOptionSchema.optional(),
+});
+
+// Form state allows `selection` to be undefined (nothing chosen yet)
+export type ModelServerSelectFieldData = {
+  selection?: ModelServerOption;
+  autoSelect?: boolean;
+  suggestion?: ModelServerOption;
+};
 
 // utils
 
@@ -149,7 +147,7 @@ export const useModelServerSelectField = (
         template: suggestedTemplate,
       };
     }
-    return null;
+    return undefined;
     // We want dependencies to be specific to the values being used. If something else inside hardwareProfile changes, then it will recompute.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -237,7 +235,7 @@ type ModelServerTemplateSelectFieldProps = {
 const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldProps> = ({
   modelServerState,
   isEditing,
-  label = 'Serving runtime',
+  label = 'Deployment resource',
 }) => {
   const { data, setData, options } = modelServerState;
   const [searchServer, setSearchServer] = React.useState('');
@@ -381,7 +379,13 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
           <Radio
             data-testid="model-server-auto-select-radio"
             name="horizontal-inline-radio"
-            label={`Auto-select the best ${label.toLocaleLowerCase()} for my model based on model type, model format, and hardware profile`}
+            label={
+              <>
+                <span className="pf-v6-c-form__label-text">Automatic selection:</span> Automatically
+                select the best resource for my model based on model type, model format and hardware
+                profile.
+              </>
+            }
             id="horizontal-inline-radio-01"
             isChecked={data?.autoSelect}
             isDisabled={!data?.suggestion}
@@ -401,10 +405,15 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
           <Radio
             data-testid="model-server-manual-select-radio"
             name="horizontal-inline-radio"
-            label={`Select from a list of ${label.toLocaleLowerCase()}s, including custom ones`}
+            label={
+              <>
+                <span className="pf-v6-c-form__label-text">Manual selection:</span> Manually select
+                a resource from a list of preconfigured and custom options.
+              </>
+            }
             id="horizontal-inline-radio-02"
             isChecked={!data?.autoSelect}
-            onChange={() => setData({ ...data, autoSelect: false, selection: null })}
+            onChange={() => setData({ ...data, autoSelect: false, selection: undefined })}
             body={data?.autoSelect ? null : templateDropdown()}
           />
         </>

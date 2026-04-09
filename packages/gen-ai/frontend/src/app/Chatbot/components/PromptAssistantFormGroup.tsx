@@ -1,9 +1,26 @@
 import * as React from 'react';
 import { get } from 'lodash';
-import { Button, Flex, Label, Panel, TextArea, Stack, Title } from '@patternfly/react-core';
+import {
+  Button,
+  Flex,
+  Label,
+  Panel,
+  Popover,
+  TextArea,
+  Stack,
+  Title,
+} from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
+import {
+  useChatbotConfigStore,
+  selectActivePrompt,
+  selectDirtyPrompt,
+  DEFAULT_CONFIG_ID,
+} from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
@@ -11,6 +28,7 @@ import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 
 type PromptAssistantFormGroupProps = {
+  configId?: string;
   systemInstruction: string;
   onSystemInstructionChange: (value: string) => void;
 };
@@ -29,23 +47,22 @@ const RESET_CONFIRMATION_CONFIG = {
 };
 
 export default function PromptAssistantFormGroup({
+  configId = DEFAULT_CONFIG_ID,
   systemInstruction,
   onSystemInstructionChange,
 }: PromptAssistantFormGroupProps): React.ReactNode {
-  const {
-    activePrompt,
-    dirtyPrompt,
-    setDirtyPrompt,
-    resetDirtyPrompt,
-    clearPromptState,
-    openModal,
-  } = usePlaygroundStore();
+  const { openModal } = usePlaygroundStore();
+  const activePrompt = useChatbotConfigStore(selectActivePrompt(configId));
+  const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
+  const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
+  const resetDirtyPrompt = useChatbotConfigStore((state) => state.resetDirtyPrompt);
+  const clearPromptState = useChatbotConfigStore((state) => state.clearPromptState);
   const [editMode, setEditMode] = React.useState(true);
   const activeTemplate =
     activePrompt?.template ??
     activePrompt?.messages?.find((m) => m.role === 'system')?.content ??
     '';
-  const isEdited = usePromptEdited();
+  const isEdited = usePromptEdited(configId);
 
   useSafeBrowserUnloadBlocker(isEdited);
   const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
@@ -57,19 +74,19 @@ export default function PromptAssistantFormGroup({
   function handleTextChange(value: string) {
     onSystemInstructionChange(value);
     if (dirtyPrompt) {
-      setDirtyPrompt({ ...dirtyPrompt, template: value });
+      updateDirtyPrompt(configId, { ...dirtyPrompt, template: value });
     }
   }
 
   function handleRevert() {
-    resetDirtyPrompt();
+    resetDirtyPrompt(configId);
     onSystemInstructionChange(activeTemplate || DEFAULT_SYSTEM_INSTRUCTIONS);
     setEditMode(false);
   }
 
   function handleNewPrompt() {
     const promptStub = { ...buildPromptStub(), template: DEFAULT_SYSTEM_INSTRUCTIONS };
-    clearPromptState(promptStub);
+    clearPromptState(configId, promptStub);
     onSystemInstructionChange(promptStub.template);
     setEditMode(true);
   }
@@ -82,7 +99,8 @@ export default function PromptAssistantFormGroup({
     const mode = activePrompt ? 'edit' : 'create';
     // eslint-disable-next-line camelcase -- MLflow API uses snake_case
     newPrompt.commit_message = '';
-    openModal(mode, newPrompt);
+    updateDirtyPrompt(configId, newPrompt);
+    openModal(mode, configId, newPrompt);
   }
 
   function buildPromptStub(): MLflowPromptVersion {
@@ -139,29 +157,58 @@ export default function PromptAssistantFormGroup({
               <div className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}>Unsaved</div>
             )}
           </Flex>
+          <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <span>Instructions</span>
+            <Popover
+              headerContent="System instructions"
+              bodyContent="The instructions field is used as a system instruction when chatting with the model in the playground. It guides the model's behavior and response style."
+            >
+              <OutlinedQuestionCircleIcon className="pf-v6-u-color-200" />
+            </Popover>
+          </Flex>
           <TextArea
             className={!editMode ? 'pf-m-readonly' : undefined}
             id="system-instructions-input"
             type="text"
             value={systemInstruction}
             readOnly={!editMode}
+            resizeOrientation="vertical"
             onChange={(_event, value) => handleTextChange(value)}
             aria-label="Prompt instructions input"
-            rows={12}
+            rows={18}
             data-testid="system-instructions-input"
           />
           {!editMode && (
             <Flex>
               <Button
                 variant="primary"
-                isDisabled={editMode}
-                onClick={() => setEditMode(!editMode)}
+                onClick={() => {
+                  setEditMode(true);
+                  fireMiscTrackingEvent('Playground Prompt Edit Selected', {
+                    source: 'button',
+                  });
+                }}
               >
                 Edit
               </Button>
               <Button
                 variant="link"
-                onClick={() => confirm(handleNewPrompt, RESET_CONFIRMATION_CONFIG)}
+                isDisabled={!isEdited && !activePrompt}
+                onClick={() =>
+                  confirm(handleNewPrompt, {
+                    ...RESET_CONFIRMATION_CONFIG,
+                    onConfirmTracking: () =>
+                      fireMiscTrackingEvent('Playground Prompt Cleared', {
+                        outcome: 'submit',
+                        hadLoadedPrompt: !!activePrompt,
+                      }),
+                    onCancelTracking: () =>
+                      fireMiscTrackingEvent('Playground Prompt Cleared', {
+                        outcome: 'cancel',
+                        hadLoadedPrompt: !!activePrompt,
+                      }),
+                  })
+                }
               >
                 Reset
               </Button>
@@ -172,18 +219,50 @@ export default function PromptAssistantFormGroup({
               <Button variant="primary" isDisabled={!isEdited} onClick={handleSaveClicked}>
                 Save
               </Button>
-              <Button
-                variant="link"
-                isDisabled={!isEdited}
-                onClick={() =>
-                  confirm(
-                    handleRevert,
-                    activePrompt ? CONFIRMATION_CONFIG : RESET_CONFIRMATION_CONFIG,
-                  )
-                }
-              >
-                Revert
-              </Button>
+              {activePrompt ? (
+                <Button
+                  variant="link"
+                  isDisabled={!isEdited}
+                  onClick={() =>
+                    confirm(handleRevert, {
+                      ...CONFIRMATION_CONFIG,
+                      onConfirmTracking: () =>
+                        fireMiscTrackingEvent('Playground Prompt Reverted', {
+                          outcome: 'submit',
+                        }),
+                      onCancelTracking: () =>
+                        fireMiscTrackingEvent('Playground Prompt Reverted', {
+                          outcome: 'cancel',
+                        }),
+                    })
+                  }
+                >
+                  Revert
+                </Button>
+              ) : (
+                <Button
+                  variant="link"
+                  isDisabled={!isEdited}
+                  onClick={() =>
+                    confirm(handleNewPrompt, {
+                      ...RESET_CONFIRMATION_CONFIG,
+                      forceConfirm: true,
+                      onConfirmTracking: () =>
+                        fireMiscTrackingEvent('Playground Prompt Cleared', {
+                          outcome: 'submit',
+                          hadLoadedPrompt: false,
+                        }),
+                      onCancelTracking: () =>
+                        fireMiscTrackingEvent('Playground Prompt Cleared', {
+                          outcome: 'cancel',
+                          hadLoadedPrompt: false,
+                        }),
+                    })
+                  }
+                >
+                  Reset
+                </Button>
+              )}
             </Flex>
           )}
         </Stack>

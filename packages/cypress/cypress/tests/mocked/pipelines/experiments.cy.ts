@@ -23,6 +23,8 @@ import {
   archiveExperimentModal,
   bulkArchiveExperimentModal,
   bulkRestoreExperimentModal,
+  createRunPage,
+  createSchedulePage,
   pipelineRunDetails,
   pipelineRecurringRunTable,
   pipelineRunsGlobal,
@@ -91,7 +93,6 @@ describe('Experiments', () => {
 
     it('shows deprecated alert when MLflow is enabled', () => {
       initIntercepts();
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
       experimentsTabs.mockGetExperiments(projectName, mockExperiments);
       experimentsTabs.visit(projectName);
       experimentsPage.findPipelineExperimentDeprecatedAlert().should('exist');
@@ -284,9 +285,9 @@ describe('Experiments', () => {
       });
     });
 
-    it('has "Experiment" value pre-filled when on the "Create run" page', () => {
+    it('has "Run group" value pre-filled when on the "Create run" page', () => {
       pipelineRunsGlobal.findCreateRunButton().click();
-      cy.findByLabelText('Experiment').contains(mockExperiment.display_name);
+      createRunPage.findRunGroupInput().should('have.value', mockExperiment.display_name);
     });
 
     it('should display error state when the pipeline version deleted', () => {
@@ -343,10 +344,10 @@ describe('Experiments', () => {
       );
     });
 
-    it('has "Experiment" value pre-filled when on the "Schedule run" page', () => {
+    it('has "Run group" value pre-filled when on the "Schedule run" page', () => {
       pipelineRunsGlobal.findSchedulesTab().click();
       pipelineRunsGlobal.findScheduleRunButton().click();
-      cy.findByLabelText('Experiment').contains(mockExperiment.display_name);
+      createSchedulePage.findRunGroupInput().should('have.value', mockExperiment.display_name);
     });
   });
 

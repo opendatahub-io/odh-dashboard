@@ -12,6 +12,7 @@ const McpDeployButton: React.FC = () => (
           variant={ButtonVariant.primary}
           onClick={onOpenModal}
           isAriaDisabled={!buttonState.enabled}
+          isLoading={buttonState.loading}
           data-testid="mcp-deploy-button"
         >
           Deploy MCP server

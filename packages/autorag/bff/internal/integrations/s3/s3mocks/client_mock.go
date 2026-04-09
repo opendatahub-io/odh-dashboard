@@ -21,6 +21,35 @@ func (m *MockS3Client) GetObject(_ context.Context, bucket, key string) (io.Read
 	return io.NopCloser(bytes.NewReader([]byte(content))), "text/plain", nil
 }
 
+// mockListingContainsKey reports whether key appears in the static mock object listings (HeadObject simulation).
+func mockListingContainsKey(key string) bool {
+	allPaths := []string{"", "datasets", "datasets/train", "results"}
+	for _, path := range allPaths {
+		objects, _ := getMockObjectsForPath(path)
+		for _, object := range objects {
+			if object.Key == key {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// UploadObject mimics conditional create: fails if the key is already in the static listing; otherwise drains the body.
+// io.Copy reports errors from reading body (e.g. *http.MaxBytesError on a limited reader).
+func (m *MockS3Client) UploadObject(_ context.Context, _ string, key string, body io.Reader, _ string) error {
+	if mockListingContainsKey(key) {
+		return s3client.ErrObjectAlreadyExists
+	}
+	_, err := io.Copy(io.Discard, body)
+	return err
+}
+
+// ObjectExists reports whether a key exists in the static mock listings.
+func (m *MockS3Client) ObjectExists(_ context.Context, _ string, key string) (bool, error) {
+	return mockListingContainsKey(key), nil
+}
+
 // ListObjects returns a realistic mock listing of S3 objects.
 // Supports path-based navigation and pagination via options.
 func (m *MockS3Client) ListObjects(_ context.Context, bucket string, options s3client.ListObjectsOptions) (*models.S3ListObjectsResponse, error) {

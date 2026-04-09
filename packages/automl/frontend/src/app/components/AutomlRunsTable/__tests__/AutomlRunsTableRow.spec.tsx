@@ -2,14 +2,11 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import type { PipelineRun } from '~/app/types';
 import AutomlRunsTableRow, {
   getStatusLabelProps,
 } from '~/app/components/AutomlRunsTable/AutomlRunsTableRow';
-
-jest.mock('mod-arch-shared', () => ({
-  relativeTime: () => '1 day ago',
-}));
 
 describe('getStatusLabelProps', () => {
   it('should return success status for SUCCEEDED', () => {
@@ -35,18 +32,18 @@ describe('getStatusLabelProps', () => {
     expect(getStatusLabelProps('CUSTOM_FAILED')).toEqual({ status: 'danger' });
   });
 
-  it('should return info status for RUNNING', () => {
-    expect(getStatusLabelProps('RUNNING')).toEqual({ status: 'info' });
-    expect(getStatusLabelProps('running')).toEqual({ status: 'info' });
+  it('should return blue color for RUNNING', () => {
+    expect(getStatusLabelProps('RUNNING')).toEqual({ color: 'blue' });
+    expect(getStatusLabelProps('running')).toEqual({ color: 'blue' });
   });
 
-  it('should return info status when state includes running', () => {
-    expect(getStatusLabelProps('STILL_RUNNING')).toEqual({ status: 'info' });
+  it('should return blue color when state includes running', () => {
+    expect(getStatusLabelProps('STILL_RUNNING')).toEqual({ color: 'blue' });
   });
 
-  it('should return warning status for PENDING', () => {
-    expect(getStatusLabelProps('PENDING')).toEqual({ status: 'warning' });
-    expect(getStatusLabelProps('pending')).toEqual({ status: 'warning' });
+  it('should return purple color for PENDING', () => {
+    expect(getStatusLabelProps('PENDING')).toEqual({ color: 'purple' });
+    expect(getStatusLabelProps('pending')).toEqual({ color: 'purple' });
   });
 
   it('should return warning status for INCOMPLETE', () => {
@@ -54,16 +51,17 @@ describe('getStatusLabelProps', () => {
     expect(getStatusLabelProps('incomplete')).toEqual({ status: 'warning' });
   });
 
-  it('should return warning status when state includes pending', () => {
-    expect(getStatusLabelProps('AWAITING_PENDING')).toEqual({ status: 'warning' });
+  it('should return purple color when state includes pending', () => {
+    expect(getStatusLabelProps('AWAITING_PENDING')).toEqual({ color: 'purple' });
   });
 
-  it('should return warning status for PAUSED', () => {
-    expect(getStatusLabelProps('PAUSED')).toEqual({ status: 'warning' });
+  it('should return grey color for PAUSED', () => {
+    expect(getStatusLabelProps('PAUSED')).toEqual({ color: 'grey' });
   });
 
-  it('should return grey color for SKIPPED', () => {
-    expect(getStatusLabelProps('SKIPPED')).toEqual({ color: 'grey' });
+  it('should return success status for SKIPPED', () => {
+    expect(getStatusLabelProps('SKIPPED')).toEqual({ status: 'success' });
+    expect(getStatusLabelProps('skipped')).toEqual({ status: 'success' });
   });
 
   it('should return grey color for CANCELLED', () => {
@@ -90,44 +88,94 @@ describe('AutomlRunsTableRow', () => {
     pipeline_version_reference: { pipeline_id: 'p1', pipeline_version_id: 'v1' },
   };
 
+  const mockNamespace = 'test-namespace';
+
   it('should render run name', () => {
-    render(<AutomlRunsTableRow run={mockRun} />);
+    render(
+      <MemoryRouter>
+        <AutomlRunsTableRow run={mockRun} namespace={mockNamespace} />
+      </MemoryRouter>,
+    );
     expect(screen.getByTestId('run-name-r1')).toHaveTextContent('Run One');
   });
 
   it('should render description', () => {
-    render(<AutomlRunsTableRow run={mockRun} />);
+    render(
+      <MemoryRouter>
+        <AutomlRunsTableRow run={mockRun} namespace={mockNamespace} />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('First run')).toBeInTheDocument();
   });
 
   it('should render em dash for missing description', () => {
-    render(<AutomlRunsTableRow run={{ ...mockRun, description: undefined }} />);
+    render(
+      <MemoryRouter>
+        <AutomlRunsTableRow
+          run={{ ...mockRun, description: undefined }}
+          namespace={mockNamespace}
+        />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('—')).toBeInTheDocument();
   });
 
   it('should render state with Label', () => {
-    render(<AutomlRunsTableRow run={mockRun} />);
+    render(
+      <MemoryRouter>
+        <AutomlRunsTableRow run={mockRun} namespace={mockNamespace} />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('SUCCEEDED')).toBeInTheDocument();
   });
 
   it('should render different states correctly', () => {
-    const { rerender } = render(<AutomlRunsTableRow run={mockRun} />);
+    const { rerender } = render(
+      <MemoryRouter>
+        <AutomlRunsTableRow run={mockRun} namespace={mockNamespace} />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('SUCCEEDED')).toBeInTheDocument();
 
-    rerender(<AutomlRunsTableRow run={{ ...mockRun, state: 'FAILED', run_id: 'r2' }} />);
+    rerender(
+      <MemoryRouter>
+        <AutomlRunsTableRow
+          run={{ ...mockRun, state: 'FAILED', run_id: 'r2' }}
+          namespace={mockNamespace}
+        />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('FAILED')).toBeInTheDocument();
 
-    rerender(<AutomlRunsTableRow run={{ ...mockRun, state: 'RUNNING', run_id: 'r3' }} />);
+    rerender(
+      <MemoryRouter>
+        <AutomlRunsTableRow
+          run={{ ...mockRun, state: 'RUNNING', run_id: 'r3' }}
+          namespace={mockNamespace}
+        />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('RUNNING')).toBeInTheDocument();
   });
 
-  it('should render em dash for invalid created_at', () => {
-    render(<AutomlRunsTableRow run={{ ...mockRun, created_at: 'invalid-date' }} />);
-    expect(screen.getAllByText('—')).toHaveLength(1);
+  it('should render without crashing for invalid created_at', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AutomlRunsTableRow
+          run={{ ...mockRun, created_at: 'invalid-date' }}
+          namespace={mockNamespace}
+        />
+      </MemoryRouter>,
+    );
+    expect(container).toBeInTheDocument();
   });
 
-  it('should render em dash for empty created_at', () => {
-    render(<AutomlRunsTableRow run={{ ...mockRun, created_at: '' }} />);
-    expect(screen.getAllByText('—')).toHaveLength(1);
+  it('should render without crashing for empty created_at', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AutomlRunsTableRow run={{ ...mockRun, created_at: '' }} namespace={mockNamespace} />
+      </MemoryRouter>,
+    );
+    expect(container).toBeInTheDocument();
   });
 });

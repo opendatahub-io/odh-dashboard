@@ -17,17 +17,54 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 #    - Set the LLAMA_STACK_URL variable to the base URL of your Llama Stack server
 #
 # 3. Model Configuration:
-#    - The selected model (e.g., "llama3.2:3b") must be available in your Llama Stack deployment.
+#    - The selected model (e.g., "llama3.2:3b") must be available in your Llama Stack deployment with the correct API key.
 #
 # 4. Tools (MCP Integration):
 #    - Any tools used must be properly pre-configured in your Llama Stack setup.
+{{- if and .VectorStore .VectorStore.ID }}
+#
+# 5. External Vector Store:
+#    - This script uses an existing vector store (ID: {{.VectorStore.ID}}), which must be registered in your Llama Stack instance.
+#    - The vector store provider "{{.VectorStore.ProviderID}}" must be installed in your Llama Stack instance.
+{{- if .VectorStore.EmbeddingModel }}
+#    - The embedding model "{{.VectorStore.EmbeddingModel}}" must be registered in your Llama Stack instance.
+{{- else }}
+#    - The embedding model used by this vector store must be registered in your Llama Stack instance.
+{{- end }}
+{{- if .Prompt }}
+#
+# 6. Prompt Management (MLflow):
+#    - Set the MLFLOW_TRACKING_URI variable to your MLflow server URL
+#    - Set the MLFLOW_TRACKING_TOKEN variable to your OpenShift user token
+#    - Set the MLFLOW_WORKSPACE variable to the namespace containing your prompt
+#    - The prompt "{{.Prompt.Name}}" (version {{.Prompt.Version}}) must exist in that workspace
+{{- end }}
+{{- else }}
+{{- if .Prompt }}
+#
+# 5. Prompt Management (MLflow):
+#    - Set the MLFLOW_TRACKING_URI variable to your MLflow server URL
+#    - Set the MLFLOW_TRACKING_TOKEN variable to your OpenShift user token
+#    - Set the MLFLOW_WORKSPACE variable to the namespace containing your prompt
+#    - The prompt "{{.Prompt.Name}}" (version {{.Prompt.Version}}) must exist in that workspace
+{{- end }}
+{{- end }}
 
 # Configuration adjust as needed:
 LLAMA_STACK_URL = ""
+{{- if .Prompt }}
+MLFLOW_TRACKING_URI = "{{if .MLflowExternalURL}}{{.MLflowExternalURL}}{{end}}"
+MLFLOW_WORKSPACE = "{{if .Namespace}}{{.Namespace}}{{end}}"
+MLFLOW_TRACKING_TOKEN = ""  # Your OpenShift user token
+prompt_name = "{{.Prompt.Name}}"
+prompt_version = {{.Prompt.Version}}
+{{- end }}
 FILES_BASE_PATH = ""
 input_text = "{{.Input}}"
 model_name = "{{.Model}}"
-{{- if .VectorStore }}
+{{- if and .VectorStore .VectorStore.ID }}
+vector_store_id = "{{.VectorStore.ID}}"
+{{- else if .VectorStore }}
 vector_store_name = "{{.VectorStore.Name}}"
 {{- end }}
 {{- if .Temperature }}
@@ -52,7 +89,32 @@ import os
 from llama_stack_client import LlamaStackClient
 
 client = LlamaStackClient(base_url=LLAMA_STACK_URL)
-{{- if .VectorStore }}
+{{- if .Prompt }}
+
+import mlflow
+from mlflow.tracking.request_header.registry import _request_header_provider_registry
+from mlflow.tracking.request_header.abstract_request_header_provider import RequestHeaderProvider
+
+def _make_workspace_header_provider(namespace):
+    class _WorkspaceHeaderProvider(RequestHeaderProvider):
+        def in_context(self):
+            return True
+        def request_headers(self):
+            return {"X-MLFLOW-WORKSPACE": namespace}
+    return _WorkspaceHeaderProvider
+
+os.environ["MLFLOW_TRACKING_TOKEN"] = MLFLOW_TRACKING_TOKEN
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+_request_header_provider_registry.register(_make_workspace_header_provider(MLFLOW_WORKSPACE))
+
+prompt = mlflow.genai.load_prompt(f"prompts:/{prompt_name}/{prompt_version}")
+system_instructions = next(m["content"] for m in prompt.format() if m["role"] == "system")
+{{- end }}
+{{- if and .VectorStore .VectorStore.ID }}
+
+# Reference the existing external vector store by ID
+vector_store = client.vector_stores.retrieve(vector_store_id=vector_store_id)
+{{- else if .VectorStore }}
 
 # Create vector store
 vector_store = client.vector_stores.create(
@@ -120,7 +182,7 @@ for file_info in files_to_upload:
 config = {
     "input": input_text,
     "model": model_name{{- if .Temperature }},
-    "temperature": temperature{{- end }}{{- if .Instructions }},
+    "temperature": temperature{{- end }}{{- if or .Instructions .Prompt }},
     "instructions": system_instructions{{- end }}{{- if .Stream }},
     "stream": stream_enabled{{- end }}{{- if or .Tools .MCPServers }},
     "tools": tools{{- end }}

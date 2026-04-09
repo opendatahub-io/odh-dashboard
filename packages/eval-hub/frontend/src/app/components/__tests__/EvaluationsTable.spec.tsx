@@ -7,10 +7,20 @@ import EvaluationsTable from '~/app/components/EvaluationsTable';
 
 const mockOnRefresh = jest.fn();
 
-const renderTable = (props: { evaluations: EvaluationJob[]; loaded: boolean }) =>
+const renderTable = (props: {
+  evaluations: EvaluationJob[];
+  loaded: boolean;
+  collectionNameMap?: Record<string, string>;
+  collectionsLoaded?: boolean;
+}) =>
   render(
     <MemoryRouter>
-      <EvaluationsTable {...props} onRefresh={mockOnRefresh} />
+      <EvaluationsTable
+        {...props}
+        collectionNameMap={props.collectionNameMap ?? {}}
+        collectionsLoaded={props.collectionsLoaded ?? true}
+        onRefresh={mockOnRefresh}
+      />
     </MemoryRouter>,
   );
 
@@ -95,6 +105,24 @@ describe('EvaluationsTable', () => {
       fireEvent.click(screen.getByTestId('clear-filters-button'));
       expect(screen.queryByTestId('evaluations-empty-filter-state')).not.toBeInTheDocument();
       expect(screen.getByTestId('evaluations-table')).toBeInTheDocument();
+    });
+
+    it('should disable the evaluation filter option while collections are loading', () => {
+      renderTable({ evaluations: mockJobs, loaded: true, collectionsLoaded: false });
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+
+      const evaluationOption = screen.getByTestId('filter-option-evaluation');
+      expect(evaluationOption).toHaveTextContent('Evaluation (loading…)');
+      expect(evaluationOption.querySelector('button')).toBeDisabled();
+    });
+
+    it('should enable the evaluation filter option once collections are loaded', () => {
+      renderTable({ evaluations: mockJobs, loaded: true, collectionsLoaded: true });
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+
+      const evaluationOption = screen.getByTestId('filter-option-evaluation');
+      expect(evaluationOption).not.toHaveAttribute('aria-disabled', 'true');
+      expect(evaluationOption).toHaveTextContent('Evaluation');
     });
 
     it('should be case-insensitive', () => {

@@ -118,6 +118,55 @@ paths:
         - Collections
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to scope the collections request (tenant)
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of collections to return (1-100, default 50)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          description: Number of collections to skip for pagination (default 0)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: name
+          in: query
+          description: Filter collections by name (case-insensitive substring match)
+          required: false
+          schema:
+            type: string
+        - name: category
+          in: query
+          description: Filter collections by category (exact match)
+          required: false
+          schema:
+            type: string
+        - name: tags
+          in: query
+          description: Filter collections by tags (comma-separated)
+          required: false
+          schema:
+            type: string
+        - name: scope
+          in: query
+          description: Limit to system-defined or tenant-defined collections
+          required: false
+          schema:
+            type: string
+            enum: [system, tenant]
       responses:
         '200':
           $ref: '#/components/responses/CollectionsResponse'
@@ -129,7 +178,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       operationId: listCollections
       summary: List Collections
-      description: Gets a list of all benchmark collections from the EvalHub server.
+      description: Gets a paginated, filterable list of benchmark collections from the EvalHub server.
 
   /eval-hub/api/v1/evaluations/providers:
     summary: List evaluation providers
@@ -820,6 +869,10 @@ components:
         name:
           type: string
           example: 'Open LLM Leaderboard v2'
+        category:
+          type: string
+          example: 'General'
+          nullable: true
         description:
           type: string
           nullable: true
@@ -841,10 +894,21 @@ components:
           nullable: true
 
     CollectionsData:
-      type: array
-      items:
-        $ref: '#/components/schemas/Collection'
-      description: Array of benchmark collections
+      type: object
+      description: Paginated list of benchmark collections
+      properties:
+        total_count:
+          type: integer
+          example: 20
+          description: Total number of collections matching the query
+        limit:
+          type: integer
+          example: 6
+          description: Maximum number of items returned
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Collection'
 
     ProviderResource:
       type: object
@@ -1182,17 +1246,20 @@ components:
                 $ref: '#/components/schemas/CollectionsData'
           example:
             data:
-              - resource:
-                  id: 'collection-001'
-                name: 'Open LLM Leaderboard v2'
-                description: 'Comprehensive evaluation suite for general-purpose language models.'
-                tags:
-                  - 'Comprehensive'
-                  - 'Industry Standard'
-                benchmarks:
-                  - id: 'arc_challenge'
-                    provider_id: 'lm_evaluation_harness'
-                    weight: 1
+              total_count: 1
+              limit: 50
+              items:
+                - resource:
+                    id: 'collection-001'
+                  name: 'Open LLM Leaderboard v2'
+                  description: 'Comprehensive evaluation suite for general-purpose language models.'
+                  tags:
+                    - 'Comprehensive'
+                    - 'Industry Standard'
+                  benchmarks:
+                    - id: 'arc_challenge'
+                      provider_id: 'lm_evaluation_harness'
+                      weight: 1
 
     ProvidersResponse:
       description: List of evaluation providers with their benchmark catalogues

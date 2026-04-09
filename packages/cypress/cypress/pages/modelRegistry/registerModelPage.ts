@@ -20,25 +20,15 @@ class RegisterModelPage {
   projectDropdown = new SearchSelector('project-selector', 'connection-autofill-modal');
 
   visit() {
-    const preferredModelRegistry = 'modelregistry-sample';
-    cy.visitWithLogin(`/ai-hub/registry/${preferredModelRegistry}/register/model`);
-    this.wait();
+    this.visitWithRegistry('modelregistry-sample');
   }
 
   visitWithRegistry(registryName: string) {
-    cy.visitWithLogin(`/ai-hub/registry/${registryName}/register/model`);
-    this.waitWithRegistry(registryName);
+    cy.visitWithLogin(`/ai-hub/models/registry/${registryName}/register/model`);
+    this.wait(registryName);
   }
 
-  private wait() {
-    const preferredModelRegistry = 'modelregistry-sample';
-    cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Register model');
-    cy.findByText(`Model registry - ${preferredModelRegistry}`).should('exist');
-    cy.testA11y();
-  }
-
-  private waitWithRegistry(registryName: string) {
+  private wait(registryName = 'modelregistry-sample') {
     cy.findByTestId('app-page-title').should('exist');
     cy.findByTestId('app-page-title').contains('Register model');
     cy.findByText(`Model registry - ${registryName}`).should('exist');

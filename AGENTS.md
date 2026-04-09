@@ -95,6 +95,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | **React**                   | `react.md`                    | When writing React components, hooks, or pages                                 |
 | **Security**                | `security.md`                 | When working on auth, secrets, input validation, or K8s API interactions        |
 | **Testing Standards**       | `testing-standards.md`        | When working across multiple test types or choosing a testing strategy          |
+| **Third-Party Theming**     | `third-party-theming.md`      | When theming external libraries (Perses, MLflow, etc.) or mapping PF tokens into non-PF component systems |
 | **Unit Tests**              | `unit-tests.md`               | When creating or modifying Jest unit tests for utilities, hooks, or components |
 
 ## Agent Skills
@@ -104,7 +105,7 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | Skill                              | Directory                              | Use when                                                                       |
 | ---------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
 | **Dev Workflow**                   | `skills/dev-workflow/`                 | Implementing a feature, fix, or refactor — runs lint, type-check, tests, and optional browser verification |
-| **Model Registry Sync Status**    | `skills/model-registry-sync-status/`   | Checking whether the local model-registry upstream copy is up to date          |
-| **Model Registry Upstream Sync**  | `skills/model-registry-upstream-sync/` | Syncing upstream changes from kubeflow/model-registry and opening a PR         |
+| **Upstream Sync Status**           | `skills/upstream-sync-status/`         | Checking whether a package's upstream copy is up to date (pass package name or be prompted) |
+| **Upstream Sync**                  | `skills/upstream-sync/`                | Syncing upstream changes for a package and opening a PR (pass package name or be prompted)  |
 
 **Important**: Always read the relevant rule or skill file before starting the task to ensure you follow the project's conventions and patterns.

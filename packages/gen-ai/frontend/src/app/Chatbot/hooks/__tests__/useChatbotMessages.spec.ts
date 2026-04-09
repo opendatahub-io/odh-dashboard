@@ -2,10 +2,9 @@
 import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { CreateResponseRequest, SimplifiedResponseData, ChatbotSourceSettings } from '~/app/types';
+import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
 import {
   mockModelId,
-  mockSourceSettings,
   mockSuccessResponse,
   mockMetrics,
   mockNamespace,
@@ -65,23 +64,24 @@ const setupMocks = (): void => {
 
 // Helper to create default hook props
 const createDefaultHookProps = (overrides?: {
+  configId?: string;
   modelId?: string;
-  selectedSourceSettings?: ChatbotSourceSettings | null;
   systemInstruction?: string;
   isRawUploaded?: boolean;
   isStreamingEnabled?: boolean;
   temperature?: number;
   currentVectorStoreId?: string | null;
   selectedServerIds?: string[];
+  subscription?: string;
 }) => ({
   ...defaultMcpProps,
+  configId: 'default',
   modelId: mockModelId,
-  selectedSourceSettings: mockSourceSettings,
   systemInstruction: '',
   isRawUploaded: true,
   isStreamingEnabled: false,
   temperature: 0.7,
-  currentVectorStoreId: null,
+  currentVectorStoreId: 'test-vector-db',
   selectedServerIds: [],
   ...overrides,
 });
@@ -207,13 +207,12 @@ describe('useChatbotMessages', () => {
       expect(mockCreateResponse).not.toHaveBeenCalled();
     });
 
-    it('should handle missing selectedSourceSettings by calling createResponse without vector_store_ids', async () => {
+    it('should call createResponse without vector_store_ids when RAG is disabled', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
       const { result } = renderHook(() =>
         useChatbotMessages(
           createDefaultHookProps({
-            selectedSourceSettings: null,
             isRawUploaded: false,
           }),
         ),
@@ -359,13 +358,12 @@ describe('useChatbotMessages', () => {
       expect(result.current.isStreamingWithoutContent).toBe(false);
     });
 
-    it('should use currentVectorStoreId when RAG is enabled and selectedSourceSettings is null', async () => {
+    it('should use currentVectorStoreId when RAG is enabled', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
       const { result } = renderHook(() =>
         useChatbotMessages(
           createDefaultHookProps({
-            selectedSourceSettings: null,
             currentVectorStoreId: 'vs_current_store_123',
           }),
         ),
@@ -673,6 +671,57 @@ describe('useChatbotMessages', () => {
       expect(botMessage.metrics).toBeDefined();
       expect(botMessage.metrics?.latency_ms).toBe(1500);
       expect(botMessage.metrics?.time_to_first_token_ms).toBe(200);
+    });
+  });
+
+  describe('subscription', () => {
+    it('should include subscription in payload when provided', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ subscription: 'premium-subscription' })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello with subscription');
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: 'Hello with subscription',
+          subscription: 'premium-subscription',
+        }),
+        expect.objectContaining({
+          abortSignal: expect.any(Object),
+        }),
+      );
+    });
+
+    it('should omit subscription from payload when not provided', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello without subscription');
+      });
+
+      const payload = mockCreateResponse.mock.calls[0][0];
+      expect(payload).not.toHaveProperty('subscription');
+    });
+
+    it('should omit subscription from payload when subscription is empty string', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ subscription: '' })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello with empty subscription');
+      });
+
+      expect(mockCreateResponse.mock.calls[0][0]).not.toHaveProperty('subscription');
     });
   });
 });

@@ -6,7 +6,6 @@ import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilities/utils';
 import {
-  ChatbotSourceSettings,
   ChatMessageRole,
   CreateResponseRequest,
   GuardrailModelConfig,
@@ -25,6 +24,7 @@ import {
 } from '~/app/Chatbot/ChatbotMessagesToolResponse';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { useChatbotConfigStore } from '~/app/Chatbot/store';
 
 // Extended message type that includes metrics data for display
 export type ChatbotMessageProps = MessageProps & {
@@ -36,7 +36,7 @@ export interface UseChatbotMessagesReturn {
   isMessageSendButtonDisabled: boolean;
   isLoading: boolean;
   isStreamingWithoutContent: boolean;
-  handleMessageSend: (message: string) => Promise<void>;
+  handleMessageSend: (message: string, compareID?: string) => Promise<void>;
   handleStopStreaming: () => void;
   clearConversation: () => void;
   scrollToBottomRef: React.RefObject<HTMLDivElement>;
@@ -47,8 +47,8 @@ export interface UseChatbotMessagesReturn {
 }
 
 interface UseChatbotMessagesProps {
+  configId: string;
   modelId: string;
-  selectedSourceSettings: ChatbotSourceSettings | null;
   systemInstruction: string;
   isRawUploaded: boolean;
   username?: string;
@@ -65,11 +65,19 @@ interface UseChatbotMessagesProps {
   // Guardrails configuration
   guardrailsConfig?: GuardrailsConfig;
   guardrailModelConfigs?: GuardrailModelConfig[];
+  // MaaS subscription name for API key generation
+  subscription?: string;
+  // Compare-mode analytics
+  configIndex?: number;
+  isCompareMode?: boolean;
+  isGuardrailEnabled?: boolean;
+  promptVersion?: number;
+  promptName?: string;
 }
 
 const useChatbotMessages = ({
+  configId,
   modelId,
-  selectedSourceSettings,
   systemInstruction,
   isRawUploaded,
   username,
@@ -84,6 +92,12 @@ const useChatbotMessages = ({
   namespace,
   guardrailsConfig,
   guardrailModelConfigs = [],
+  subscription,
+  configIndex,
+  isCompareMode,
+  isGuardrailEnabled,
+  promptVersion,
+  promptName,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -249,7 +263,7 @@ const useChatbotMessages = ({
     }, 0);
   }, [modelDisplayName]);
 
-  const handleMessageSend = async (message: string) => {
+  const handleMessageSend = async (message: string, compareID?: string) => {
     const userMessage: MessageProps = {
       id: getId(),
       role: 'user',
@@ -277,9 +291,6 @@ const useChatbotMessages = ({
 
       const selectedMcpServers = getSelectedServersForAPICallback();
 
-      // Determine vector store ID to use for RAG
-      const vectorStoreIdToUse = selectedSourceSettings?.vectorStore || currentVectorStoreId;
-
       // Get guardrail shield IDs based on user configuration
       const guardrailShieldIds = getGuardrailShieldIds();
 
@@ -292,8 +303,8 @@ const useChatbotMessages = ({
         input: message,
         model: modelId,
         ...(isRawUploaded &&
-          vectorStoreIdToUse && {
-            vector_store_ids: [vectorStoreIdToUse],
+          currentVectorStoreId && {
+            vector_store_ids: [currentVectorStoreId],
           }),
         chat_context: messages
           .map((msg) => ({
@@ -310,12 +321,21 @@ const useChatbotMessages = ({
         ...(selectedModel?.model_source_type && {
           model_source_type: selectedModel.model_source_type,
         }),
+        ...(subscription && { subscription }),
       };
 
       fireMiscTrackingEvent('Playground Query Submitted', {
+        configID: configIndex ?? 0,
+        compareMode: isCompareMode ?? false,
+        compareID: compareID || '',
+        modelName: modelDisplayName,
+        guardrailOn: isGuardrailEnabled ?? false,
         isRag: isRawUploaded,
         countofMCP: selectedMcpServers.length,
         isStreaming: isStreamingEnabled,
+        promptSource: useChatbotConfigStore.getState().getPromptSourceType(configId),
+        promptVersion: promptVersion ?? 0,
+        promptName: promptName ?? '',
       });
 
       if (!apiAvailable) {

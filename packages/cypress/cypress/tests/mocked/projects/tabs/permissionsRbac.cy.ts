@@ -30,7 +30,10 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
     initProjectRbacIntercepts();
     projectRbacPermissions.visit(NAMESPACE);
 
-    projectRbacPermissions.findAssignRolesButton().should('be.enabled').click();
+    projectRbacPermissions
+      .findAssignRolesButton()
+      .should('not.have.attr', 'aria-disabled', 'true')
+      .click();
     cy.url().should('include', `/projects/${NAMESPACE}/permissions/assign`);
     projectRbacPermissions.findAssignRolesPage().should('exist');
   });
@@ -53,7 +56,7 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
     initProjectRbacIntercepts();
     projectRbacPermissions.visit(NAMESPACE);
 
-    projectRbacPermissions.findAssignRolesButton().should('be.enabled');
+    projectRbacPermissions.findAssignRolesButton().should('not.have.attr', 'aria-disabled', 'true');
 
     // Users table: rowSpan grouping should result in a single name cell for test-user-1
     usersTable.findNameCell('test-user-1').should('have.attr', 'rowspan', '2');

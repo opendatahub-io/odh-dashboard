@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { Label, Timestamp, TimestampTooltipVariant, type LabelProps } from '@patternfly/react-core';
+import { Label, type LabelProps } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import { relativeTime } from 'mod-arch-shared';
+import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
 import { autoragResultsPathname } from '~/app/utilities/routes';
 import { autoragRunsColumns } from './columns';
@@ -33,9 +33,12 @@ const getStatusLabelProps = (
     return { status: 'danger' };
   }
   if (s === RUN_STATE.RUNNING || s.includes(RUN_STATE.RUNNING)) {
-    return { status: 'info' };
+    return { color: 'blue' };
   }
-  if (s === RUN_STATE.INCOMPLETE || s === RUN_STATE.PENDING || s.includes(RUN_STATE.PENDING)) {
+  if (s === RUN_STATE.PENDING || s.includes(RUN_STATE.PENDING)) {
+    return { color: 'purple' };
+  }
+  if (s === RUN_STATE.INCOMPLETE) {
     return { status: 'warning' };
   }
   return { color: 'grey' };
@@ -53,22 +56,11 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({ run, namespac
     </Td>
     <Td dataLabel={autoragRunsColumns[1].label}>{run.description ?? '—'}</Td>
     <Td dataLabel={autoragRunsColumns[2].label}>
-      {run.created_at ? (
-        <Timestamp
-          date={new Date(run.created_at)}
-          tooltip={{
-            variant: TimestampTooltipVariant.default,
-          }}
-        >
-          {relativeTime(Date.now(), new Date(run.created_at).getTime())}
-        </Timestamp>
-      ) : (
-        '—'
-      )}
+      <RunStartTimestamp run={run} />
     </Td>
     <Td dataLabel={autoragRunsColumns[3].label}>
       {run.state ? (
-        <Label isCompact {...getStatusLabelProps(run.state)}>
+        <Label variant="outline" isCompact {...getStatusLabelProps(run.state)}>
           {run.state}
         </Label>
       ) : (

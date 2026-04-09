@@ -6,8 +6,8 @@ import {
   type FetchState,
   type FetchStateCallbackPromise,
 } from 'mod-arch-core';
-import { listSubscriptions } from '../api/subscriptions';
-import { MaaSSubscription } from '../types/subscriptions';
+import { listSubscriptions } from '~/app/api/subscriptions';
+import { MaaSSubscription } from '~/app/types/subscriptions';
 
 export const useListSubscriptions = (): FetchState<MaaSSubscription[]> => {
   const callback = React.useCallback<FetchStateCallbackPromise<MaaSSubscription[]>>(

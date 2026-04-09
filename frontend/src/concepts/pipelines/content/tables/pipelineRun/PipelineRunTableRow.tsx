@@ -18,6 +18,7 @@ import { RestoreRunModal } from '#~/pages/pipelines/global/runs/RestoreRunModal'
 import { compareRunsRoute, duplicateRunRoute } from '#~/routes/pipelines/runs';
 import { ArchiveRunModal } from '#~/pages/pipelines/global/runs/ArchiveRunModal';
 import PipelineRunTableRowExperiment from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
+import PipelineRunTableRowMlflowExperiment from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowMlflowExperiment';
 import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted,
@@ -27,12 +28,14 @@ import usePipelineRunExperimentInfo from '#~/concepts/pipelines/content/tables/u
 import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
 import { useFetchRunArtifact } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useFetchRunArtifact';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { MlflowExperimentData } from '#~/concepts/mlflow/types';
 import { isPipelineRunRegistered } from './utils';
 
 type PipelineRunTableRowProps = {
   checkboxProps: Omit<React.ComponentProps<typeof CheckboxTd>, 'id'>;
   onDelete?: () => void;
   run: PipelineRunKF;
+  mlflow?: MlflowExperimentData;
   customCells?: React.ReactNode;
   hasRowActions?: boolean;
   runType?: PipelineRunType;
@@ -42,6 +45,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   hasRowActions = true,
   checkboxProps,
   customCells,
+  mlflow,
   onDelete,
   run,
   runType,
@@ -162,8 +166,13 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       <Td modifier="truncate" dataLabel="Pipeline">
         <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />
       </Td>
+      {mlflow?.isAvailable && (
+        <Td dataLabel="MLflow experiment">
+          <PipelineRunTableRowMlflowExperiment run={run} mlflow={mlflow} />
+        </Td>
+      )}
       {!contextExperiment && (
-        <Td dataLabel="Experiment">
+        <Td dataLabel="Run group">
           <PipelineRunTableRowExperiment
             experiment={experiment}
             isExperimentArchived={isExperimentArchived}
@@ -172,7 +181,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
           />
         </Td>
       )}
-      <Td dataLabel="Created">
+      <Td dataLabel="Started">
         <RunCreated run={run} />
       </Td>
       <Td dataLabel="Duration">
