@@ -351,7 +351,7 @@ func TestGetSecretsHandler_TypeStorage_EmptyList(t *testing.T) {
 			},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID": []byte("key"),
-				// Missing AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT
+				// Missing AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
 			},
 		},
 		{

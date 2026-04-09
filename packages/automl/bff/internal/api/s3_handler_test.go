@@ -164,7 +164,7 @@ func TestGetS3FileHandler_SecretMissingRequiredFields(t *testing.T) {
 			},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID": []byte("AKIAIOSFODNN7EXAMPLE"),
-				// Missing AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT
+				// Missing AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
 			},
 		},
 	}

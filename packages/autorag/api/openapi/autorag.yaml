@@ -325,8 +325,8 @@ paths:
       description: >-
         Uploads a file to S3 storage using credentials from a Kubernetes secret.
         The request must include a multipart form with a file part (e.g. "file").
-        The secret must contain valid S3 credentials (aws_access_key_id, aws_secret_access_key,
-        aws_default_region, aws_s3_endpoint).
+        The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
+        AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
         Chunked transfer encoding is supported. When Content-Length is set, it must not exceed
         32 MiB plus allowance for multipart framing (~64 MiB) or the request is rejected with 413.
         The file part is streamed via http.MaxBytesReader (32 MiB max); larger file parts fail with 413.
@@ -455,7 +455,7 @@ paths:
       Lists all available models from LlamaStack Distribution (LSD).
       Returns a flat list of models with their identifiers, types, provider information, and resource paths.
       Requires namespace and secretName parameters. The secretName identifies a Kubernetes secret
-      containing llama_stack_client_base_url and llama_stack_client_api_key credentials.
+      containing LLAMA_STACK_CLIENT_BASE_URL and LLAMA_STACK_CLIENT_API_KEY credentials.
     get:
       tags:
         - Models
@@ -471,7 +471,7 @@ paths:
             example: 'default'
         - name: secretName
           in: query
-          description: Name of the Kubernetes secret containing LlamaStack credentials (llama_stack_client_base_url and llama_stack_client_api_key)
+          description: Name of the Kubernetes secret containing LlamaStack credentials (LLAMA_STACK_CLIENT_BASE_URL and LLAMA_STACK_CLIENT_API_KEY)
           required: true
           schema:
             type: string
@@ -504,7 +504,7 @@ paths:
       Calls the native /v1/providers endpoint and filters for vector_io API type.
       Returns provider identifiers and types (e.g., remote::milvus).
       Requires namespace and secretName parameters. The secretName identifies a Kubernetes secret
-      containing llama_stack_client_base_url and llama_stack_client_api_key credentials.
+      containing LLAMA_STACK_CLIENT_BASE_URL and LLAMA_STACK_CLIENT_API_KEY credentials.
     get:
       tags:
         - VectorStores
@@ -520,7 +520,7 @@ paths:
             example: 'default'
         - name: secretName
           in: query
-          description: Name of the Kubernetes secret containing LlamaStack credentials (llama_stack_client_base_url and llama_stack_client_api_key)
+          description: Name of the Kubernetes secret containing LlamaStack credentials (LLAMA_STACK_CLIENT_BASE_URL and LLAMA_STACK_CLIENT_API_KEY)
           required: true
           schema:
             type: string

@@ -942,7 +942,7 @@ components:
                 classificationKeys:
                   example: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_ENDPOINT"]
                 commonOptionalKeys:
-                  example: ["AWS_S3_BUCKET"]
+                  example: ["AWS_S3_BUCKET", "AWS_DEFAULT_REGION"]
 
     ModelRegistry:
       description: A Model Registry instance discovered from the cluster
