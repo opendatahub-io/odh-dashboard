@@ -82,7 +82,7 @@ describe('createConfigureSchema', () => {
       }
     });
 
-    it('should accept display_name at max length (250)', () => {
+    it('should accept display_name at max length (250 Unicode characters)', () => {
       const result = schema.full.safeParse({
         ...schema.defaults,
         display_name: 'a'.repeat(250),
@@ -95,10 +95,43 @@ describe('createConfigureSchema', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should reject display_name exceeding max length (250)', () => {
+    it('should reject display_name exceeding max length (251 Unicode characters)', () => {
       const result = schema.full.safeParse({
         ...schema.defaults,
         display_name: 'a'.repeat(251),
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_BINARY,
+        label_column: 'col1',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('display_name');
+      }
+    });
+
+    it('should accept display_name with 250 emoji characters (proper Unicode counting)', () => {
+      // 250 emojis = 250 Unicode code points
+      // JavaScript .length would count this as 500 (each emoji is 2 UTF-16 code units)
+      // Array.from().length correctly counts as 250 Unicode characters
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: '😀'.repeat(250),
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_BINARY,
+        label_column: 'col1',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject display_name with 251 emoji characters', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: '😀'.repeat(251),
         train_data_secret_name: 'secret',
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
