@@ -112,7 +112,12 @@ class McpDeploymentsPage {
   }
 
   getRow(name: string): McpDeploymentTableRow {
-    return new McpDeploymentTableRow(() => cy.findByTestId(`mcp-deployment-row-${name}`));
+    return new McpDeploymentTableRow(
+      () =>
+        cy.findByTestId(`mcp-deployment-row-${name}`) as unknown as Cypress.Chainable<
+          JQuery<HTMLTableRowElement>
+        >,
+    );
   }
 
   getFirstRow(): McpDeploymentTableRow {
