@@ -202,6 +202,10 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		}
 	}
 
+	if len(req.DisplayName) > 250 {
+		return NewValidationError("display_name must be at most 250 characters")
+	}
+
 	return nil
 }
 

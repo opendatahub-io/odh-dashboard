@@ -315,6 +315,10 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 		return NewValidationError("invalid prediction_length: must be a positive integer")
 	}
 
+	if len(req.DisplayName) > 250 {
+		return NewValidationError("display_name must be at most 250 characters")
+	}
+
 	return nil
 }
 

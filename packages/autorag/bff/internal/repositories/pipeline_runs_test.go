@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
@@ -331,5 +332,20 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "optimization_max_rag_patterns")
 		assert.Contains(t, err.Error(), "at most 20")
+	})
+
+	t.Run("should accept display_name at exactly 250 characters", func(t *testing.T) {
+		req := newValidCreateRequest()
+		req.DisplayName = strings.Repeat("a", 250)
+		err := ValidateCreateAutoRAGRunRequest(req)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should reject display_name exceeding 250 characters", func(t *testing.T) {
+		req := newValidCreateRequest()
+		req.DisplayName = strings.Repeat("a", 251)
+		err := ValidateCreateAutoRAGRunRequest(req)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "display_name must be at most 250 characters")
 	})
 }

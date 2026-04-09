@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
@@ -440,5 +441,20 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "unexpected fields")
 		assert.Contains(t, err.Error(), "label_column")
+	})
+
+	t.Run("should accept display_name at exactly 250 characters", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.DisplayName = strings.Repeat("a", 250)
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should reject display_name exceeding 250 characters", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.DisplayName = strings.Repeat("a", 251)
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "display_name must be at most 250 characters")
 	})
 }
