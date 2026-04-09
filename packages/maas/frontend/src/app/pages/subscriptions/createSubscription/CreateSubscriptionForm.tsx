@@ -41,6 +41,8 @@ import EditRateLimitsModal from './EditRateLimitsModal';
 type CreateSubscriptionFormProps = {
   formData: SubscriptionPolicyFormDataResponse;
 };
+const MAX_PRIORITY = 1000000;
+const MIN_PRIORITY = -1000000;
 
 const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formData }) => {
   const navigate = useNavigate();
@@ -270,16 +272,22 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
             id="subscription-priority"
             data-testid="subscription-priority"
             value={priority == null || Number.isNaN(priority) ? '' : priority}
-            min={-1000000}
-            max={1000000}
+            min={MIN_PRIORITY}
+            max={MAX_PRIORITY}
             onMinus={() =>
               setPriority(
-                Math.max(-1000000, (priority == null || Number.isNaN(priority) ? 0 : priority) - 1),
+                Math.max(
+                  MIN_PRIORITY,
+                  (priority == null || Number.isNaN(priority) ? 0 : priority) - 1,
+                ),
               )
             }
             onPlus={() =>
               setPriority(
-                Math.min(1000000, (priority == null || Number.isNaN(priority) ? 0 : priority) + 1),
+                Math.min(
+                  MAX_PRIORITY,
+                  (priority == null || Number.isNaN(priority) ? 0 : priority) + 1,
+                ),
               )
             }
             onChange={(event: React.FormEvent<HTMLInputElement>) => {
@@ -289,7 +297,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
               } else {
                 const parsed = parseInt(inputValue, 10);
                 if (!Number.isNaN(parsed)) {
-                  setPriority(Math.min(1000000, Math.max(-1000000, parsed)));
+                  setPriority(Math.min(MAX_PRIORITY, Math.max(MIN_PRIORITY, parsed)));
                 }
               }
             }}
