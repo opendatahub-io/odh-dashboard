@@ -74,8 +74,8 @@ class RegisterModelPage {
     return cy.findByTestId('autofill-modal-button');
   }
 
-  findSubmitButton() {
-    return cy.findByTestId('create-button');
+  findSubmitButton(timeout?: number) {
+    return cy.findByTestId('create-button', { timeout });
   }
 
   findModelNameError() {

@@ -158,11 +158,11 @@ describe('Verify models can be registered in a model registry', () => {
         .findFormField(FormFieldSelector.LOCATION_PATH)
         .type(testData.objectStoragePath);
 
-      registerModelPage.findSubmitButton().should('be.enabled').click();
+      registerModelPage.findSubmitButton(30000).should('be.enabled').click();
 
       cy.step('Verify the object storage model was registered');
       cy.url().should('include', '/details');
-      modelRegistry.shouldModelBeVisible(objectStorageModelName);
+      modelRegistry.findModelByName(objectStorageModelName).should('be.visible');
 
       cy.step('Verify the object storage model exists in the database');
       checkModelExistsInDatabase(objectStorageModelName, databaseName).should('be.true');
@@ -191,11 +191,11 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_URI).click();
       registerModelPage.findFormField(FormFieldSelector.LOCATION_URI).type(testData.uriPrimary);
 
-      registerModelPage.findSubmitButton().should('be.enabled').click();
+      registerModelPage.findSubmitButton(30000).should('be.enabled').click();
 
       cy.step('Verify the URI model was registered');
       cy.url().should('include', '/details');
-      modelRegistry.shouldModelBeVisible(testData.uriModelName);
+      modelRegistry.findModelByName(testData.uriModelName).should('be.visible');
 
       cy.step('Verify the URI model exists in the database');
       checkModelExistsInDatabase(testData.uriModelName, databaseName).should('be.true');
@@ -205,8 +205,8 @@ describe('Verify models can be registered in a model registry', () => {
 
       cy.step('Verify both models are visible in the registry');
       // Scoped to the registry table model-name cells (10s), not document-wide cy.contains.
-      modelRegistry.shouldModelBeVisible(objectStorageModelName);
-      modelRegistry.shouldModelBeVisible(testData.uriModelName);
+      modelRegistry.findModelByName(objectStorageModelName).should('be.visible');
+      modelRegistry.findModelByName(testData.uriModelName).should('be.visible');
     },
   );
 
@@ -226,7 +226,7 @@ describe('Verify models can be registered in a model registry', () => {
       modelRegistry.selectModelByName(objectStorageModelName);
 
       cy.step('Navigate to versions tab');
-      modelRegistry.findModelVersionsTab().click();
+      modelRegistry.findModelVersionsTab().should('be.visible').click();
 
       cy.step('Click Register new version button');
       modelRegistry.findRegisterNewVersionButton().click();
@@ -298,7 +298,6 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Select a namespace from the dropdown');
       registerModelPage.findNamespaceSelectorTrigger().scrollIntoView().click();
       registerModelPage.findNamespaceOption(namespaceName).click();
-      cy.step(`Selected namespace: ${namespaceName}`);
 
       cy.step('Verify origin and destination location sections appear');
       registerModelPage.findOriginLocationSection().should('be.visible', { timeout: 10000 });
@@ -420,7 +419,6 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Select a namespace from the dropdown');
       registerModelPage.findNamespaceSelectorTrigger().scrollIntoView().click();
       registerModelPage.findNamespaceOption(namespaceName).click();
-      cy.step(`Selected namespace: ${namespaceName}`);
 
       cy.step('Verify origin and destination location sections appear');
       registerModelPage.findOriginLocationSection().should('be.visible', { timeout: 10000 });

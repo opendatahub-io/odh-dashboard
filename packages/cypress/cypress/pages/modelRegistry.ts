@@ -169,14 +169,6 @@ class ModelRegistry {
     return this.getRow(name).findName();
   }
 
-  selectModelByName(name: string) {
-    return this.findModelByName(name).click();
-  }
-
-  shouldModelBeVisible(name: string) {
-    return this.findModelByName(name).should('be.visible', { timeout: 10000 });
-  }
-
   getModelVersionRow(name: string) {
     return new ModelRegistryTableRow(() =>
       this.findModelVersionsTable()
@@ -191,7 +183,7 @@ class ModelRegistry {
   }
 
   findModelRegistry() {
-    return cy.findByTestId('model-registry-selector-dropdown');
+    return cy.findAllByTestId('model-registry-selector-dropdown').filter(':visible').first();
   }
 
   findSelectModelRegistry(registryName: string) {
@@ -200,9 +192,15 @@ class ModelRegistry {
       if (!$dropdown.text().includes(registryName)) {
         // Registry is not selected, perform click actions
         this.findModelRegistry().click();
-        cy.findByTestId(registryName).click();
+        cy.findAllByTestId(registryName).filter(':visible').first().click();
       }
     });
+    return this;
+  }
+
+  selectModelByName(name: string) {
+    this.findModelByName(name).should('be.visible').click();
+    cy.url().should('include', '/details');
     return this;
   }
 
