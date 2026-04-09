@@ -168,10 +168,41 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
           },
         },
       },
+      MuiAutocomplete: {
+        styleOverrides: {
+          root: {
+            '& .MuiOutlinedInput-root': {
+              paddingRight: 'var(--pf-t--global--spacer--2xl)',
+            },
+          },
+          endAdornment: {
+            right: 'var(--pf-t--global--spacer--sm)',
+          },
+        },
+      },
       MuiSelect: {
         styleOverrides: {
+          select: {
+            paddingRight: 'var(--pf-t--global--spacer--2xl)',
+          },
           icon: {
             color: primaryTextColor,
+          },
+        },
+      },
+      MuiCheckbox: {
+        styleOverrides: {
+          root: {
+            color: 'var(--pf-t--global--border--color--default)',
+            '& .MuiSvgIcon-root': {
+              color: 'inherit',
+            },
+            '&.Mui-checked': {
+              color: 'var(--pf-t--global--color--brand--default)',
+            },
+            '&.MuiCheckbox-indeterminate': {
+              color: 'var(--pf-t--global--color--brand--default)',
+            },
           },
         },
       },
