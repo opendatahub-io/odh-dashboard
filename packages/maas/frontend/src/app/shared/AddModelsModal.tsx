@@ -284,6 +284,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                       <Td isActionCell style={{ textAlign: 'initial' }}>
                         <Button
                           variant={selected ? 'secondary' : 'link'}
+                          size={selected ? 'sm' : 'default'}
                           isDanger={selected}
                           onClick={() => handleToggleModel(ref)}
                           data-testid={`toggle-model-${ref.name}`}

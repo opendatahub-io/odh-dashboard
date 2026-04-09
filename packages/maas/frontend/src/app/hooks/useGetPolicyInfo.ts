@@ -12,10 +12,11 @@ import type { PolicyInfoResponse } from '~/app/types/auth-policies';
 export const useGetPolicyInfo = (name: string): FetchState<PolicyInfoResponse | null> => {
   const callback = React.useCallback<FetchStateCallbackPromise<PolicyInfoResponse | null>>(
     (opts: APIOptions) => {
-      if (!name.trim()) {
+      const trimmedName = name.trim();
+      if (!trimmedName) {
         return Promise.resolve(null);
       }
-      return getPolicyInfo(name)(opts);
+      return getPolicyInfo(trimmedName)(opts);
     },
     [name],
   );
