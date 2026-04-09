@@ -351,6 +351,44 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		assert.Contains(t, err.Error(), "top_n")
 	})
 
+	t.Run("should accept top_n at maximum for tabular pipeline", func(t *testing.T) {
+		req := newValidTabularRequest()
+		topN := constants.MaxTopNTabular
+		req.TopN = &topN
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should reject top_n exceeding maximum for tabular pipeline", func(t *testing.T) {
+		req := newValidTabularRequest()
+		topN := constants.MaxTopNTabular + 1
+		req.TopN = &topN
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "top_n")
+		assert.Contains(t, err.Error(), "maximum value")
+		assert.Contains(t, err.Error(), "tabular")
+	})
+
+	t.Run("should accept top_n at maximum for timeseries pipeline", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		topN := constants.MaxTopNTimeSeries
+		req.TopN = &topN
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should reject top_n exceeding maximum for timeseries pipeline", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		topN := constants.MaxTopNTimeSeries + 1
+		req.TopN = &topN
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "top_n")
+		assert.Contains(t, err.Error(), "maximum value")
+		assert.Contains(t, err.Error(), "timeseries")
+	})
+
 	t.Run("should reject non-positive prediction_length for timeseries", func(t *testing.T) {
 		req := newValidTimeSeriesRequest()
 		predictionLength := 0

@@ -307,8 +307,20 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 	}
 
 	// Validate optional field ranges
-	if req.TopN != nil && *req.TopN <= 0 {
-		return NewValidationError("invalid top_n: must be a positive integer")
+	if req.TopN != nil {
+		if *req.TopN < constants.MinTopN {
+			return NewValidationError(fmt.Sprintf("invalid top_n: must be at least %d", constants.MinTopN))
+		}
+
+		// Enforce max top_n based on pipeline type
+		maxTopN := constants.MaxTopNTabular
+		if pipelineType == constants.PipelineTypeTimeSeries {
+			maxTopN = constants.MaxTopNTimeSeries
+		}
+
+		if *req.TopN > maxTopN {
+			return NewValidationError(fmt.Sprintf("invalid top_n: maximum value for %s pipeline is %d", pipelineType, maxTopN))
+		}
 	}
 
 	if req.PredictionLength != nil && *req.PredictionLength <= 0 {
