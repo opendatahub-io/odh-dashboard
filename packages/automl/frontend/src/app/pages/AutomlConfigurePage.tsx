@@ -117,7 +117,9 @@ function AutomlConfigurePage(): React.JSX.Element {
             'Create AutoML optimization run'
           ) : (
             <span>
-              <Truncate content={displayName || ''} /> configurations
+              &quot;
+              <Truncate content={displayName || ''} />
+              &quot; configurations
             </span>
           )}
         </h2>

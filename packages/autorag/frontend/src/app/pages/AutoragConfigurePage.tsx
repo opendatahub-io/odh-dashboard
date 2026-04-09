@@ -126,7 +126,9 @@ function AutoragConfigurePage(): React.JSX.Element {
             'Create AutoRAG optimization run'
           ) : (
             <span>
-              <Truncate content={displayName || ''} /> configurations
+              &quot;
+              <Truncate content={displayName || ''} />
+              &quot; configurations
             </span>
           )}
         </h2>

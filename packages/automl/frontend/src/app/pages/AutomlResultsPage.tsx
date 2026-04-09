@@ -61,7 +61,9 @@ function AutomlResultsPage(): React.JSX.Element {
         <h2 className="pf-v6-u-mt-sm">
           {pipelineRun ? (
             <span>
-              <Truncate content={pipelineRun.display_name || ''} /> results
+              &quot;
+              <Truncate content={pipelineRun.display_name || ''} />
+              &quot; results
             </span>
           ) : (
             <Skeleton width="300px" />
