@@ -358,7 +358,7 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
     });
 
-    it('should show empty state when there are no models', () => {
+    it('should show empty state with completion message when succeeded with no models', () => {
       renderWithContext({
         models: {},
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
@@ -368,7 +368,6 @@ describe('AutomlLeaderboard component', () => {
       expect(emptyState).toBeInTheDocument();
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
 
-      // Verify EmptyState component structure
       expect(within(emptyState).getByText('No models produced')).toBeInTheDocument();
       // Text is split across multiple elements (spans and a button), so use toHaveTextContent
       expect(emptyState).toHaveTextContent(
@@ -378,6 +377,65 @@ describe('AutomlLeaderboard component', () => {
       const link = within(emptyState).getByRole('link', {
         name: /pipeline configuration and logs/i,
       });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
+      );
+    });
+
+    it.each([
+      [
+        'when run failed',
+        RuntimeStateKF.FAILED,
+        'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
+        /pipeline configuration and logs/i,
+      ],
+      [
+        'when run was canceled',
+        RuntimeStateKF.CANCELED,
+        'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
+        /pipeline configuration and logs/i,
+      ],
+      [
+        'when pipelineRun is undefined',
+        undefined,
+        'Unable to determine pipeline run status. Please check the pipeline configuration and logs.',
+        /pipeline configuration and logs/i,
+      ],
+      [
+        'for SKIPPED state',
+        RuntimeStateKF.SKIPPED,
+        'The pipeline run is in an unexpected state. Please check the pipeline status and logs.',
+        /pipeline status and logs/i,
+      ],
+      [
+        'for PAUSED state',
+        RuntimeStateKF.PAUSED,
+        'The pipeline run is in an unexpected state. Please check the pipeline status and logs.',
+        /pipeline status and logs/i,
+      ],
+    ])('should show empty state %s', (_testName, state, expectedMessage, linkName) => {
+      renderWithContext({
+        models: {},
+        pipelineRun: state !== undefined ? createMockPipelineRun(state) : undefined,
+      });
+
+      const emptyState = screen.getByTestId('leaderboard-empty');
+      expect(emptyState).toBeInTheDocument();
+      expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+
+      expect(within(emptyState).getByText('No models produced')).toBeInTheDocument();
+      expect(emptyState).toHaveTextContent(expectedMessage);
+
+      // All non-SUCCEEDED states should NOT show the SUCCEEDED message
+      if (state !== RuntimeStateKF.SUCCEEDED) {
+        expect(emptyState).not.toHaveTextContent(
+          'The pipeline run completed but did not generate any models. Please check the pipeline configuration and logs.',
+        );
+      }
+
+      const link = within(emptyState).getByRole('link', { name: linkName });
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute(
         'href',

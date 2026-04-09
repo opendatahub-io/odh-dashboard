@@ -292,6 +292,56 @@ function AutomlLeaderboard({
 
   // Show empty state when no models were produced
   if (Object.keys(models).length === 0) {
+    const isRunSucceeded = pipelineRun?.state === RuntimeStateKF.SUCCEEDED;
+    const isRunFailed =
+      pipelineRun?.state === RuntimeStateKF.FAILED ||
+      pipelineRun?.state === RuntimeStateKF.CANCELED;
+
+    // Helper to render message with pipeline run link (falls back to plain text when route params are missing)
+    const messageWithLink = (before: string, linkText: string, after = '.') =>
+      namespace && runId ? (
+        <>
+          <span>{before} </span>
+          <Button
+            variant="link"
+            isInline
+            component={(props) => (
+              <Link {...props} to={`/develop-train/pipelines/runs/${namespace}/runs/${runId}`} />
+            )}
+          >
+            {linkText}
+          </Button>
+          <span>{after}</span>
+        </>
+      ) : (
+        `${before} ${linkText}${after}`
+      );
+
+    let messageContent: React.ReactNode;
+    if (!pipelineRun) {
+      messageContent = messageWithLink(
+        'Unable to determine pipeline run status. Please check the',
+        'pipeline configuration and logs',
+      );
+    } else if (isRunFailed) {
+      messageContent = messageWithLink(
+        'The pipeline run did not complete successfully. Please check the',
+        'pipeline configuration and logs',
+        ' for errors.',
+      );
+    } else if (isRunSucceeded) {
+      messageContent = messageWithLink(
+        'The pipeline run completed but did not generate any models. Please check the',
+        'pipeline configuration and logs',
+      );
+    } else {
+      // SKIPPED, PAUSED, CACHED, RUNTIME_STATE_UNSPECIFIED, or other unexpected states
+      messageContent = messageWithLink(
+        'The pipeline run is in an unexpected state. Please check the',
+        'pipeline status and logs',
+      );
+    }
+
     return (
       <Bullseye>
         <EmptyState
@@ -300,21 +350,7 @@ function AutomlLeaderboard({
           variant={EmptyStateVariant.sm}
           data-testid="leaderboard-empty"
         >
-          <EmptyStateBody>
-            <span>
-              The pipeline run completed but did not generate any models. Please check the&nbsp;
-            </span>
-            <Button
-              variant="link"
-              isInline
-              component={(props) => (
-                <Link {...props} to={`/develop-train/pipelines/runs/${namespace}/runs/${runId}`} />
-              )}
-            >
-              pipeline configuration and logs
-            </Button>
-            <span>.</span>
-          </EmptyStateBody>
+          <EmptyStateBody>{messageContent}</EmptyStateBody>
         </EmptyState>
       </Bullseye>
     );
