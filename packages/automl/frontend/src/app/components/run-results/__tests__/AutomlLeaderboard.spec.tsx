@@ -370,11 +370,10 @@ describe('AutomlLeaderboard component', () => {
 
       // Verify EmptyState component structure
       expect(within(emptyState).getByText('No models produced')).toBeInTheDocument();
-      expect(
-        within(emptyState).getByText(
-          'The pipeline run completed but did not generate any models. Please check the pipeline configuration and logs.',
-        ),
-      ).toBeInTheDocument();
+      // Text is split across multiple elements (spans and a button), so use toHaveTextContent
+      expect(emptyState).toHaveTextContent(
+        'The pipeline run completed but did not generate any models. Please check the pipeline configuration and logs.',
+      );
     });
 
     it('should render loading skeleton with correct structure', () => {
