@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { DeploymentMode, asEnumMember } from 'mod-arch-core';
 
 const STYLE_THEME = process.env.STYLE_THEME || 'patternfly-theme';
@@ -32,3 +33,11 @@ export const FindAdministratorOptions = [
   'Someone in your IT department or help desk',
   'A project manager or developer',
 ];
+
+// Configure constants
+/** Human-readable labels for optimization metric values. */
+export const OPTIMIZATION_METRIC_LABELS: Record<string, string> = {
+  faithfulness: 'Answer faithfulness',
+  answer_correctness: 'Answer correctness',
+  context_correctness: 'Context correctness',
+};

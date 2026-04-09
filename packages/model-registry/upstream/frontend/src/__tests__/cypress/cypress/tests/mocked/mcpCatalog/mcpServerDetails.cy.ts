@@ -2,6 +2,10 @@ import { mockModArchResponse } from 'mod-arch-core';
 import { mockMcpServer } from '~/__mocks__';
 import { mcpCatalog, mcpServerDetails } from '~/__tests__/cypress/cypress/pages/mcpCatalog';
 import {
+  mcpCatalogUrl,
+  mcpServerDetailsUrl,
+} from '~/app/routes/mcpCatalog/mcpCatalog';
+import {
   initMcpCatalogIntercepts,
   initServerDetailIntercept,
   initServerToolsIntercept,
@@ -34,7 +38,7 @@ describe('MCP Server Details Page', () => {
       mcpCatalog.visit();
       mcpCatalog.findMcpCatalogCards().should('have.length.at.least', 1, { timeout: 15000 });
       cy.get('[data-testid^="mcp-catalog-card-detail-link-"]').first().click();
-      cy.url().should('include', '/ai-hub/mcp-servers/catalog/');
+      cy.url().should('include', mcpCatalogUrl());
     });
   });
 
@@ -52,7 +56,7 @@ describe('MCP Server Details Page', () => {
     it('should navigate back to catalog when clicking breadcrumb link', () => {
       mcpServerDetails.visit(kubernetesServer.id);
       mcpServerDetails.findBreadcrumbCatalogLink().click();
-      cy.url().should('include', '/ai-hub/mcp-servers/catalog');
+      cy.url().should('include', mcpCatalogUrl());
       cy.url().should('not.include', `/${kubernetesServer.id}`);
     });
   });
@@ -68,6 +72,23 @@ describe('MCP Server Details Page', () => {
       cy.findByTestId('app-page-title').should('contain.text', kubernetesServer.name);
 
       mcpServerDetails.findDescription().should('contain.text', kubernetesServer.description);
+    });
+
+    it('should not show Remote title label for local deployment', () => {
+      mcpServerDetails.visit(kubernetesServer.id);
+      mcpServerDetails.findRemoteTitleLabel().should('not.exist');
+    });
+
+    it('should show Remote title label when deploymentMode is remote', () => {
+      const remoteServer = mockMcpServer({
+        id: 'remote-header-test',
+        name: 'GitHub',
+        deploymentMode: 'remote',
+      });
+      initServerDetailIntercept(remoteServer);
+      mcpServerDetails.visit(remoteServer.id);
+      mcpServerDetails.findRemoteTitleLabel().should('be.visible');
+      mcpServerDetails.findRemoteTitleLabel().should('contain.text', 'Remote');
     });
   });
 
@@ -92,6 +113,25 @@ describe('MCP Server Details Page', () => {
   describe('Server details sidebar', () => {
     beforeEach(() => {
       initServerDetailIntercept(kubernetesServer);
+    });
+
+    it('should not display endpoint when API omits endpoints', () => {
+      mcpServerDetails.visit(kubernetesServer.id);
+      cy.findByTestId('mcp-server-endpoint-copy').should('not.exist');
+    });
+
+    it('should display endpoint with copy when endpoints are present', () => {
+      const host = 'splunk-mcp-server.demo-namespace.svc.cluster.local:8080';
+      const serverWithEndpoint = mockMcpServer({
+        id: 'endpoint-test-server',
+        name: 'Splunk MCP',
+        deploymentMode: 'remote',
+        endpoints: { http: host },
+      });
+      initServerDetailIntercept(serverWithEndpoint);
+      mcpServerDetails.visit(serverWithEndpoint.id);
+      mcpServerDetails.findEndpointCopy().should('be.visible');
+      mcpServerDetails.findEndpointCopy().find('input').should('have.value', host);
     });
 
     it('should display labels, license, version, and deployment mode', () => {
@@ -136,7 +176,7 @@ describe('MCP Server Details Page', () => {
           },
         },
       );
-      cy.visit('/ai-hub/mcp-servers/catalog/invalid-id-that-does-not-exist');
+      cy.visit(mcpServerDetailsUrl('invalid-id-that-does-not-exist'));
       mcpServerDetails.findMcpNotFound().should('be.visible');
       cy.contains('MCP server not found').should('be.visible');
     });
@@ -151,9 +191,9 @@ describe('MCP Server Details Page', () => {
       mcpCatalog.visit();
       mcpCatalog.findMcpCatalogCards().should('have.length.at.least', 1, { timeout: 15000 });
       cy.get('[data-testid^="mcp-catalog-card-detail-link-"]').first().click();
-      cy.url().should('include', '/ai-hub/mcp-servers/catalog/');
+      cy.url().should('include', mcpCatalogUrl());
       cy.go('back');
-      cy.url().should('eq', `${Cypress.config().baseUrl}/ai-hub/mcp-servers/catalog`);
+      cy.url().should('eq', `${Cypress.config().baseUrl}${mcpCatalogUrl()}`);
     });
   });
 
