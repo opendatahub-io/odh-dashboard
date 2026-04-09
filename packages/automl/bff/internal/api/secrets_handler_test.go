@@ -119,9 +119,22 @@ func TestGetSecretsHandler_TypeStorage_Success(t *testing.T) {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "incomplete-secret",
+				Name:      "s3-secret-no-region",
 				Namespace: "test-namespace",
 				UID:       types.UID("uid-3"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE3"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY3"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.eu-west-1.amazonaws.com"),
+				// AWS_DEFAULT_REGION intentionally omitted — storageTypeRequiredKeys no longer requires it
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "incomplete-secret",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-4"),
 			},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID": []byte("INCOMPLETE"),
@@ -132,7 +145,7 @@ func TestGetSecretsHandler_TypeStorage_Success(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "other-secret",
 				Namespace: "test-namespace",
-				UID:       types.UID("uid-4"),
+				UID:       types.UID("uid-5"),
 			},
 			Data: map[string][]byte{
 				"password": []byte("some-password"),
@@ -154,7 +167,7 @@ func TestGetSecretsHandler_TypeStorage_Success(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Len(t, envelope.Data, 2) // Only 2 secrets have all required S3 keys
+	assert.Len(t, envelope.Data, 3) // 3 secrets have all required S3 keys (region is not required)
 	assert.Equal(t, "uid-1", envelope.Data[0].UUID)
 	assert.Equal(t, "s3-secret-1", envelope.Data[0].Name)
 	assert.Equal(t, "s3", envelope.Data[0].Type)
@@ -173,6 +186,15 @@ func TestGetSecretsHandler_TypeStorage_Success(t *testing.T) {
 		"AWS_S3_ENDPOINT":       "[REDACTED]",
 		"AWS_SECRET_ACCESS_KEY": "[REDACTED]",
 	}, envelope.Data[1].Data)
+	// Third secret omits AWS_DEFAULT_REGION — still accepted because region is not a required key
+	assert.Equal(t, "uid-3", envelope.Data[2].UUID)
+	assert.Equal(t, "s3-secret-no-region", envelope.Data[2].Name)
+	assert.Equal(t, "s3", envelope.Data[2].Type)
+	assert.Equal(t, map[string]string{
+		"AWS_ACCESS_KEY_ID":     "[REDACTED]",
+		"AWS_S3_ENDPOINT":       "[REDACTED]",
+		"AWS_SECRET_ACCESS_KEY": "[REDACTED]",
+	}, envelope.Data[2].Data)
 }
 
 func TestGetSecretsHandler_TypeStorage_CaseSensitive(t *testing.T) {
@@ -206,6 +228,19 @@ func TestGetSecretsHandler_TypeStorage_CaseSensitive(t *testing.T) {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
+				Name:      "s3-uppercase-no-region",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-upper-no-region"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("key4"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret4"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.ap-southeast-1.amazonaws.com"),
+				// AWS_DEFAULT_REGION intentionally omitted
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      "s3-mixedcase",
 				Namespace: "test-namespace",
 				UID:       types.UID("uid-mixed"),
@@ -233,7 +268,7 @@ func TestGetSecretsHandler_TypeStorage_CaseSensitive(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Len(t, envelope.Data, 1) // Only uppercase keys match (case-sensitive)
+	assert.Len(t, envelope.Data, 2) // Uppercase keys match (case-sensitive), including one without region
 	assert.Equal(t, "uid-upper", envelope.Data[0].UUID)
 	assert.Equal(t, "s3-uppercase", envelope.Data[0].Name)
 	assert.Equal(t, "s3", envelope.Data[0].Type)
@@ -243,6 +278,15 @@ func TestGetSecretsHandler_TypeStorage_CaseSensitive(t *testing.T) {
 		"AWS_S3_ENDPOINT":       "[REDACTED]",
 		"AWS_SECRET_ACCESS_KEY": "[REDACTED]",
 	}, envelope.Data[0].Data)
+	// Second match: uppercase keys without AWS_DEFAULT_REGION — still accepted
+	assert.Equal(t, "uid-upper-no-region", envelope.Data[1].UUID)
+	assert.Equal(t, "s3-uppercase-no-region", envelope.Data[1].Name)
+	assert.Equal(t, "s3", envelope.Data[1].Type)
+	assert.Equal(t, map[string]string{
+		"AWS_ACCESS_KEY_ID":     "[REDACTED]",
+		"AWS_S3_ENDPOINT":       "[REDACTED]",
+		"AWS_SECRET_ACCESS_KEY": "[REDACTED]",
+	}, envelope.Data[1].Data)
 }
 
 func TestGetSecretsHandler_NoType_ReturnsAllSecrets(t *testing.T) {

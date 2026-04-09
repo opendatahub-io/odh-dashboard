@@ -336,13 +336,30 @@ describe('AutoML API Contract Tests', () => {
         if (result.success) {
           const responseData = result.response.data as SecretsResponseData;
 
+          // Find the fixture secret that has lowercase and mixed-case variants
+          const caseVariantSecret = responseData.data?.find(
+            (s) => s.name === 'case-variant-bucket-secret',
+          );
+          expect(caseVariantSecret).toBeDefined();
+
+          const caseVariantData = caseVariantSecret?.data ?? {};
+
+          // Uppercase AWS_S3_BUCKET should have its actual value
+          expect(caseVariantData.AWS_S3_BUCKET).not.toBe('[REDACTED]');
+          expect(caseVariantData.AWS_S3_BUCKET).toBe('correct-bucket');
+
+          // Lowercase variant should be redacted
+          expect(caseVariantData.aws_s3_bucket).toBe('[REDACTED]');
+
+          // Mixed-case variant should be redacted
+          expect(caseVariantData.Aws_S3_Bucket).toBe('[REDACTED]');
+
+          // Also verify the general rule across all secrets
           responseData.data?.forEach((secret) => {
             Object.entries(secret.data).forEach(([key, value]) => {
-              // Only exact uppercase AWS_S3_BUCKET should return actual value
               if (key === 'AWS_S3_BUCKET') {
                 expect(value).not.toBe('[REDACTED]');
               } else {
-                // Lowercase or mixed case variants should be redacted
                 expect(value).toBe('[REDACTED]');
               }
             });

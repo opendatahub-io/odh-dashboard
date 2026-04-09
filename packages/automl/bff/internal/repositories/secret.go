@@ -172,7 +172,7 @@ func hasAllKeys(secret corev1.Secret, keys []string) bool {
 // and builds a map where:
 // - Keys in the allowed list have their actual values
 // - All other keys have the value "[REDACTED]"
-// Key matching for allowed keys is case-insensitive.
+// Allowed-key matching is case-sensitive (via constants.IsAllowedSecretKey).
 func buildAvailableKeysMap(secret corev1.Secret) map[string]string {
 	result := make(map[string]string)
 

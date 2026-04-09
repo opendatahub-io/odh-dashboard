@@ -427,20 +427,33 @@ describe('AutoRAG API Contract Tests', () => {
 
         if (result.success) {
           const responseData = result.response.data as SecretsResponseData;
+
+          // Find the secret that has both canonical and non-canonical bucket keys
+          const mixedCaseSecret = responseData.data?.find(
+            (s) => s.name === 'test-secret-mixed-case-bucket',
+          );
+          expect(mixedCaseSecret).toBeDefined();
+
+          const mixedCaseData = mixedCaseSecret?.data ?? {};
+
+          // Verify canonical key exists and is NOT redacted
+          expect(mixedCaseData).toHaveProperty('AWS_S3_BUCKET');
+          expect(mixedCaseData.AWS_S3_BUCKET).not.toBe('[REDACTED]');
+          expect(typeof mixedCaseData.AWS_S3_BUCKET).toBe('string');
+          expect(mixedCaseData.AWS_S3_BUCKET.length).toBeGreaterThan(0);
+
+          // Verify non-canonical (lowercase) variant exists and IS redacted
+          expect(mixedCaseData).toHaveProperty('aws_s3_bucket');
+          expect(mixedCaseData.aws_s3_bucket).toBe('[REDACTED]');
+
+          // Also verify all secrets follow the sanitization rule generically
           responseData.data?.forEach((secret) => {
-            const keys = Object.keys(secret.data);
-
-            // Check each key-value pair
-            keys.forEach((key) => {
-              const value = secret.data[key];
-
-              // AWS_S3_BUCKET (case-sensitive, uppercase) should have actual value
+            Object.entries(secret.data).forEach(([key, value]) => {
               if (key === 'AWS_S3_BUCKET') {
                 expect(value).not.toBe('[REDACTED]');
                 expect(typeof value).toBe('string');
                 expect(value.length).toBeGreaterThan(0);
               } else {
-                // All other keys should be sanitized
                 expect(value).toBe('[REDACTED]');
               }
             });
