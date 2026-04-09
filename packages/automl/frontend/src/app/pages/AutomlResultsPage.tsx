@@ -6,6 +6,7 @@ import {
   DrawerContent,
   DrawerContentBody,
   Skeleton,
+  Truncate,
 } from '@patternfly/react-core';
 import { OpenDrawerRightIcon } from '@patternfly/react-icons';
 import { useNamespaceSelector } from 'mod-arch-core';
@@ -82,7 +83,15 @@ function AutomlResultsPage(): React.JSX.Element {
             title={<AutomlHeader />}
             subtext={
               <h2 className="pf-v6-u-mt-sm">
-                {pipelineRun ? `"${pipelineRun.display_name}" results` : <Skeleton width="300px" />}
+                {pipelineRun ? (
+                  <span>
+                    &quot;
+                    <Truncate content={pipelineRun.display_name || ''} />
+                    &quot; results
+                  </span>
+                ) : (
+                  <Skeleton width="300px" />
+                )}
               </h2>
             }
             headerAction={
@@ -101,7 +110,9 @@ function AutomlResultsPage(): React.JSX.Element {
                 <BreadcrumbItem>
                   <Link to={getRedirectPath(namespace!)}>AutoML: {namespace}</Link>
                 </BreadcrumbItem>
-                <BreadcrumbItem isActive>{pipelineRun?.display_name}</BreadcrumbItem>
+                <BreadcrumbItem isActive>
+                  <Truncate content={pipelineRun?.display_name || ''} />
+                </BreadcrumbItem>
               </Breadcrumb>
             }
             empty={noNamespaces || invalidNamespace || invalidPipelineRunId}

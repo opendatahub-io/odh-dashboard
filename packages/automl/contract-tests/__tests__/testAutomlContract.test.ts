@@ -1086,6 +1086,37 @@ describe('AutoML API Contract Tests', () => {
         });
       });
 
+      describe('display_name Length Validation', () => {
+        it('display_name 250 chars accepted', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'a'.repeat(250),
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'target',
+            task_type: 'binary',
+          });
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
+            status: 200,
+          });
+        });
+
+        it('display_name 251 chars rejected', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'a'.repeat(251),
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'target',
+            task_type: 'binary',
+          });
+          expect(result.success).toBe(false);
+          expect(result.error?.status).toBe(400);
+          expect(result.error?.data).toHaveProperty('error');
+        });
+      });
+
       describe('General Validation', () => {
         it('should return 400 for missing common required fields', async () => {
           const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
