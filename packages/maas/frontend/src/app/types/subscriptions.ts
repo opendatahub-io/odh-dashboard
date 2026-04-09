@@ -87,6 +87,15 @@ export type CreateSubscriptionRequest = {
   createAuthPolicy: boolean;
 };
 
+export type UpdateSubscriptionRequest = {
+  displayName?: string;
+  description?: string;
+  owner: OwnerSpec;
+  modelRefs: ModelSubscriptionRef[];
+  tokenMetadata?: TokenMetadata;
+  priority: number;
+};
+
 export type CreateSubscriptionResponse = {
   subscription: MaaSSubscription;
   authPolicy?: MaaSAuthPolicy;
