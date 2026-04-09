@@ -157,7 +157,7 @@ describe('View Subscription Page', () => {
       .and('contain.text', 'Name')
       .and('contain.text', 'Resource name')
       .and('contain.text', 'premium-team-sub')
-      .and('contain.text', 'Date created');
+      .and('contain.text', 'Created');
 
     viewSubscriptionPage.findGroupsSection().should('exist');
     viewSubscriptionPage.findGroupsTable().should('contain.text', 'premium-users');

@@ -30,7 +30,7 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
         <DescriptionListGroup>
           <DescriptionListTerm>Name</DescriptionListTerm>
           <DescriptionListDescription>
-            {subscription.displayName ?? subscription.name}
+            {subscription.displayName?.trim() || subscription.name}
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
@@ -48,7 +48,7 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
           <DescriptionListDescription>{subscription.name}</DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
-          <DescriptionListTerm>Date created</DescriptionListTerm>
+          <DescriptionListTerm>Created</DescriptionListTerm>
           <DescriptionListDescription>
             {subscription.creationTimestamp ? (
               <Timestamp
