@@ -42,6 +42,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     maasModelsError,
     models,
     modelsLoaded,
+    modelsError,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
   const { data: bffConfig } = useFetchBFFConfig();
@@ -108,7 +109,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           lsdStatusLoaded &&
           (aiModelsLoaded || !!aiModelsError) &&
           (maasModelsLoaded || !!maasModelsError) &&
-          (lsdStatus?.phase !== 'Ready' || !!modelsLoaded)
+          (lsdStatus?.phase !== 'Ready' || !!modelsLoaded || !!modelsError)
         }
         empty={!lsdStatus}
         emptyStatePage={
