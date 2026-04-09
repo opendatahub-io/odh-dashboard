@@ -17,7 +17,6 @@ import {
   ConfigureSchema,
   EXPERIMENT_SETTINGS_FIELDS,
   MIN_TOP_N,
-  MAX_TOP_N,
 } from '~/app/schemas/configure.schema';
 
 type AutomlExperimentSettingsProps = {
@@ -64,7 +63,6 @@ const AutomlExperimentSettings: React.FC<AutomlExperimentSettingsProps> = ({
                 id="top-n-input"
                 value={field.value}
                 min={MIN_TOP_N}
-                max={MAX_TOP_N}
                 validated={fieldState.error ? 'error' : 'default'}
                 onMinus={() => field.onChange(field.value - 1)}
                 onPlus={() => field.onChange(field.value + 1)}
