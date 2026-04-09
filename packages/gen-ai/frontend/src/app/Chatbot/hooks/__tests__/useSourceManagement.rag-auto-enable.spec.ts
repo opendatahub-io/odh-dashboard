@@ -12,7 +12,6 @@ import {
   mockFile,
   mockDropEvent,
   mockUploadResult,
-  createMockFileModel,
   renderHookWithLoadingState,
   simulateLoadingComplete,
 } from './useSourceManagement.test-utils';
@@ -89,7 +88,7 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
     });
   };
 
-  it('should auto-enable RAG toggle when first file is uploaded and page initially had no files', async () => {
+  it('should signal RAG auto-enable (fileUploadedSignal=true) after a successful file upload', async () => {
     const mockOnFileUploadComplete = jest.fn();
     const { result, rerender } = renderHookWithLoadingState(useSourceManagement, {
       onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -98,17 +97,17 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
     });
 
     simulateLoadingComplete(rerender);
-    expect(result.current.isRawUploaded).toBe(false);
+    expect(result.current.fileUploadedSignal).toBe(false);
 
     await uploadFileFlow(result);
 
-    expect(result.current.isRawUploaded).toBe(true);
+    expect(result.current.fileUploadedSignal).toBe(true);
     expect(mockOnShowSuccessAlert).toHaveBeenCalled();
   });
 
-  it('should NOT auto-enable RAG toggle when page initially had files', async () => {
+  it('should signal RAG auto-enable even when the page initially had files', async () => {
     const mockOnFileUploadComplete = jest.fn();
-    const existingFile = createMockFileModel();
+    const existingFile = { id: 'existing-file' } as unknown as FileModel;
 
     const { result, rerender } = renderHookWithLoadingState(useSourceManagement, {
       onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -117,15 +116,15 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
     });
 
     simulateLoadingComplete(rerender, [existingFile]);
-    expect(result.current.isRawUploaded).toBe(false);
+    expect(result.current.fileUploadedSignal).toBe(false);
 
     await uploadFileFlow(result);
 
-    expect(result.current.isRawUploaded).toBe(false);
+    expect(result.current.fileUploadedSignal).toBe(true);
     expect(mockOnShowSuccessAlert).toHaveBeenCalled();
   });
 
-  it('should only auto-enable RAG toggle once', async () => {
+  it('should signal RAG auto-enable again after fileUploadedSignal is reset', async () => {
     const mockOnFileUploadComplete = jest.fn();
     const { result, rerender } = renderHookWithLoadingState(useSourceManagement, {
       onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -136,11 +135,12 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
     simulateLoadingComplete(rerender);
 
     await uploadFileFlow(result);
-    expect(result.current.isRawUploaded).toBe(true);
+    expect(result.current.fileUploadedSignal).toBe(true);
 
     act(() => {
-      result.current.setIsRawUploaded(false);
+      result.current.setFileUploadedSignal(false);
     });
+    expect(result.current.fileUploadedSignal).toBe(false);
 
     const mockFile2 = new File(['test content 2'], 'test2.txt', { type: 'text/plain' });
     await act(async () => {
@@ -152,11 +152,10 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
       await result.current.handleSourceSettingsSubmit(mockSourceSettings);
     });
 
-    expect(result.current.isRawUploaded).toBe(false);
+    expect(result.current.fileUploadedSignal).toBe(true);
   });
 
-  it('should not auto-enable RAG if upload fails', async () => {
-    // Mock uploadFile to fail
+  it('should not signal RAG auto-enable if all uploads fail', async () => {
     mockUploadFile.mockResolvedValue({
       success: false,
       error: 'Upload failed',
@@ -171,31 +170,7 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
 
     await uploadFileFlow(result);
 
-    expect(result.current.isRawUploaded).toBe(false);
+    expect(result.current.fileUploadedSignal).toBe(false);
     expect(mockOnShowErrorAlert).toHaveBeenCalled();
-  });
-
-  it('should wait for files to finish loading before determining initial state', async () => {
-    const { result, rerender } = renderHookWithLoadingState(useSourceManagement, {
-      onShowSuccessAlert: mockOnShowSuccessAlert,
-      onShowErrorAlert: mockOnShowErrorAlert,
-    });
-
-    await uploadFileFlow(result);
-    expect(result.current.isRawUploaded).toBe(false);
-
-    simulateLoadingComplete(rerender);
-
-    const mockFile2 = new File(['test content 2'], 'test2.txt', { type: 'text/plain' });
-    await act(async () => {
-      await result.current.handleSourceDrop(mockDropEvent, [mockFile2]);
-      jest.advanceTimersByTime(100);
-    });
-
-    await act(async () => {
-      await result.current.handleSourceSettingsSubmit(mockSourceSettings);
-    });
-
-    expect(result.current.isRawUploaded).toBe(true);
   });
 });
