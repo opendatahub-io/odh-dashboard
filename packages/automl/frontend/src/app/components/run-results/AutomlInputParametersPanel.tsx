@@ -44,7 +44,7 @@ const TIMESERIES_ONLY_KEYS = new Set([
 const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'description', label: 'Description' },
   { key: 'train_data_secret_name', label: 'S3 connection' },
-  { key: 'train_data_bucket_name', label: 'Bucket selection' },
+  { key: 'train_data_bucket_name', label: 'S3 connection bucket' },
   { key: 'train_data_file_key', label: 'Selected files' },
   { key: 'task_type', label: 'Prediction type' },
   { key: 'label_column', label: 'Label column' },
@@ -53,7 +53,7 @@ const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'id_column', label: 'ID column' },
   { key: 'known_covariates_names', label: 'Known covariates' },
   { key: 'prediction_length', label: 'Prediction length' },
-  { key: 'top_n', label: 'Top models' },
+  { key: 'top_n', label: 'Top models to consider' },
 ];
 
 const PARAMETER_LABELS: Record<string, string> = Object.fromEntries(

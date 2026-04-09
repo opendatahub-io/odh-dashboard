@@ -27,6 +27,7 @@ function AutomlResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector();
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
+  const handleDrawerClose = React.useCallback(() => setIsDrawerOpen(false), []);
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -70,7 +71,7 @@ function AutomlResultsPage(): React.JSX.Element {
       <DrawerContent
         panelContent={
           <AutomlInputParametersPanel
-            onClose={() => setIsDrawerOpen(false)}
+            onClose={handleDrawerClose}
             parameters={contextValue.parameters}
             isLoading={pipelineRunPending}
           />
