@@ -145,7 +145,7 @@ class McpDeployModal {
   }
 
   findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByTestId('mcp-deploy-modal-title');
+    return this.findModal().find('.pf-v6-c-modal-box__title-text');
   }
 
   findNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -181,7 +181,7 @@ class McpDeployModal {
   }
 
   findLoadingSpinner(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByTestId('mcp-deploy-modal-spinner');
+    return this.findModal().find('[role="progressbar"]');
   }
 }
 
