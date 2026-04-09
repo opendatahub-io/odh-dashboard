@@ -245,14 +245,18 @@ func (kc *InternalKubernetesClient) getNamespacesViaProjectsAPI(ctx context.Cont
 
 		ns, err := typedClient.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
 		if err != nil {
-			kc.Logger.Warn("failed to get namespace details", "namespace", projectName, "error", err)
-			namespaces = append(namespaces, corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        projectName,
-					Annotations: project.GetAnnotations(),
-					Labels:      project.GetLabels(),
-				},
-			})
+			if k8serrors.IsForbidden(err) || k8serrors.IsNotFound(err) {
+				kc.Logger.Warn("failed to get namespace details, using project metadata", "namespace", projectName, "error", err)
+				namespaces = append(namespaces, corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        projectName,
+						Annotations: project.GetAnnotations(),
+						Labels:      project.GetLabels(),
+					},
+				})
+			} else {
+				return nil, fmt.Errorf("failed to get namespace %s: %w", projectName, err)
+			}
 		} else {
 			namespaces = append(namespaces, *ns)
 		}
