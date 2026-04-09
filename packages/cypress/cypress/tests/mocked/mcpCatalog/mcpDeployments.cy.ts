@@ -454,7 +454,7 @@ describe('MCP Deploy from Catalog', () => {
     }).as('getConverterError');
 
     cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
-    mcpServerDetailsPage.findDeployButton().click();
+    mcpServerDetailsPage.findDeployButton().should('be.visible').and('not.be.disabled').click();
 
     cy.wait('@getConverterError');
     mcpDeployModal.shouldBeOpen();

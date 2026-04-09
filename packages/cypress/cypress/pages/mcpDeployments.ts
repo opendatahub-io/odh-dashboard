@@ -112,9 +112,7 @@ class McpDeploymentsPage {
   }
 
   getRow(name: string): McpDeploymentTableRow {
-    return new McpDeploymentTableRow(() =>
-      cy.findByTestId(`mcp-deployment-row-${name}`).parents('tr'),
-    );
+    return new McpDeploymentTableRow(() => cy.findByTestId(`mcp-deployment-row-${name}`));
   }
 
   getFirstRow(): McpDeploymentTableRow {
