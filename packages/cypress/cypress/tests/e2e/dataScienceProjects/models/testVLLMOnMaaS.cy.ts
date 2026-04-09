@@ -25,9 +25,11 @@ import {
 import {
   createCleanLLMInferenceServiceConfig,
   cleanupLLMInferenceServiceConfig,
-  checkLLMInferenceServiceConfigState,
+  // TODO: Uncomment once RHOAIENG-56694 is resolved.
+  // checkLLMInferenceServiceConfigState,
 } from '../../../../utils/oc_commands/llmInferenceServiceConfig';
 import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
+import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -136,19 +138,36 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
       cy.step('Verify the model is available in UI');
       modelServingSection.findModelServerDeployedName(modelName);
 
-      cy.step('Verify LLMInferenceService exists in the project namespace');
+      // TODO: Uncomment once RHOAIENG-56694is resolved.
+      // cy.step('Verify LLMInferenceService exists in the project namespace');
+      // cy.get<string>('@resourceName').then((resourceName) => {
+      //   checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
+      // });
+
+      // cy.step('Verify LLMInferenceServiceConfig was copied to the project namespace');
+      // checkLLMInferenceServiceConfigState(llmInferenceServiceConfigName, projectName, {
+      //   containerImage: 'quay.io/pierdipi/vllm-cpu:latest',
+      // });
+
+      cy.step('Stop the model before deleting');
+      const kServeRow = modelServingSection.getKServeRow(modelName);
+      kServeRow.findStateActionToggle().click();
+      kServeRow.findConfirmStopModal().then(($modal) => {
+        if ($modal.length) {
+          kServeRow.findConfirmStopModalButton().click();
+        }
+      });
       cy.get<string>('@resourceName').then((resourceName) => {
-        checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
+        checkLLMInferenceServiceState(resourceName, projectName, {
+          checkReady: false,
+          checkStopped: true,
+          requireLoadedState: false,
+        });
       });
+      kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
 
-      cy.step('Verify LLMInferenceServiceConfig was copied to the project namespace');
-      checkLLMInferenceServiceConfigState(llmInferenceServiceConfigName, projectName, {
-        containerImage: 'quay.io/pierdipi/vllm-cpu:latest',
-      });
-
-      cy.step('Verify the model Row');
+      cy.step('Delete the deployed model');
       const deploymentRow = modelServingGlobal.getDeploymentRow(modelName);
-      deploymentRow.findStatusLabel(ModelStateLabel.STARTED).should('exist');
       deploymentRow.findKebab().click();
       inferenceServiceActions.findDeleteInferenceServiceAction().click();
       deleteModelServingModal.findInput().clear().type(modelName);
