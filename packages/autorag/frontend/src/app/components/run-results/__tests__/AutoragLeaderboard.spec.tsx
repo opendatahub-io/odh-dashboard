@@ -358,7 +358,7 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
     });
 
-    it('should show empty state when there are no patterns', () => {
+    it('should show empty state with completion message when succeeded with no patterns', () => {
       renderWithContext({
         patterns: {},
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
@@ -368,11 +368,44 @@ describe('AutoragLeaderboard component', () => {
       expect(emptyState).toBeInTheDocument();
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
 
-      // Verify EmptyState component structure
       expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
       expect(
         within(emptyState).getByText(
           'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('should show empty state with failure message when run failed', () => {
+      renderWithContext({
+        patterns: {},
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.FAILED),
+      });
+
+      const emptyState = screen.getByTestId('leaderboard-empty');
+      expect(emptyState).toBeInTheDocument();
+
+      expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
+      expect(
+        within(emptyState).getByText(
+          'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('should show empty state with failure message when run was canceled', () => {
+      renderWithContext({
+        patterns: {},
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.CANCELED),
+      });
+
+      const emptyState = screen.getByTestId('leaderboard-empty');
+      expect(emptyState).toBeInTheDocument();
+
+      expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
+      expect(
+        within(emptyState).getByText(
+          'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
         ),
       ).toBeInTheDocument();
     });
