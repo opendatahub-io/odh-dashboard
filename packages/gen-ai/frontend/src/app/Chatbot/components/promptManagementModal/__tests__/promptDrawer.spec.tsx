@@ -66,9 +66,7 @@ describe('PromptDrawer', () => {
   it('should display prompt template in text area', () => {
     render(<PromptDrawer {...defaultProps} selectedVersion={2} />);
 
-    expect(screen.getByLabelText('prompt template')).toHaveValue(
-      JSON.stringify('You are a helpful assistant.', null, 2),
-    );
+    expect(screen.getByLabelText('prompt template')).toHaveValue('You are a helpful assistant.');
   });
 
   it('should display commit message', () => {
