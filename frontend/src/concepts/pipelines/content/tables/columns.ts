@@ -105,6 +105,7 @@ const mlflowExperimentColumn = <T>(): SortableData<T> => ({
 
 // PF wraps string header labels in TableText, which adds a truncation tooltip.
 // But this tooltip shows up on hover regardless of whether it's truncated or not. This is a workaround.
+// TODO: remove when PF fixes TableText tooltip behaviour
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 const RUN_GROUP_LABEL = createElement('span', undefined, 'Run group') as unknown as string;
 
