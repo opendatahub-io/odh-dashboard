@@ -179,6 +179,8 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
             right: 'var(--pf-t--global--spacer--sm)',
           },
           popper: {
+            // Perses's StyledPopper sets minWidth: fit-content via sx, which truncates long options.
+            // !important is needed to override it until Perses adopts PF styling natively.
             minWidth: '500px !important',
           },
         },
