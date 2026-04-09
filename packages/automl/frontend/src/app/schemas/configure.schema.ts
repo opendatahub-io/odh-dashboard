@@ -11,6 +11,7 @@ import { createSchema } from '~/app/utilities/schema';
 export const MIN_TOP_N = 1;
 export const MAX_TOP_N_TABULAR = 10;
 export const MAX_TOP_N_TIMESERIES = 7;
+export const MAX_PREDICTION_LENGTH = 100;
 
 export const EXPERIMENT_SETTINGS_FIELDS = ['top_n'] as const;
 
@@ -39,7 +40,7 @@ function createConfigureSchema() {
       target: z.string().default('').optional(),
       id_column: z.string().default('').optional(),
       timestamp_column: z.string().default('').optional(),
-      prediction_length: z.int().min(1).max(100).default(1).optional(),
+      prediction_length: z.int().min(1).max(MAX_PREDICTION_LENGTH).default(1).optional(),
       known_covariates_names: z.array(z.string()).default([]).optional(),
     }),
     validators: [

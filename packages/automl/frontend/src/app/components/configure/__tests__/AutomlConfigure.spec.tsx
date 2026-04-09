@@ -931,7 +931,7 @@ describe('AutomlConfigure', () => {
           });
         });
 
-        it('should update max validation when switching from tabular to timeseries', async () => {
+        it('should automatically show error when switching from tabular to timeseries with top N exceeding new max', async () => {
           renderComponent();
           selectSecretAndFile();
           selectPredictionType('binary');
@@ -945,19 +945,15 @@ describe('AutomlConfigure', () => {
           expect(screen.queryByText('Maximum number of top models is 10')).not.toBeInTheDocument();
           expect(screen.queryByText('Maximum number of top models is 7')).not.toBeInTheDocument();
 
-          // Switch to timeseries - should now show error (max 7)
+          // Switch to timeseries - error should appear automatically without touching the field
           selectPredictionType('timeseries');
-
-          // Trigger revalidation by touching the field
-          fireEvent.focus(input);
-          fireEvent.blur(input);
 
           await waitFor(() => {
             expect(screen.getByText('Maximum number of top models is 7')).toBeInTheDocument();
           });
         });
 
-        it('should update max validation when switching from timeseries to tabular', async () => {
+        it('should automatically clear error when switching from timeseries to tabular with top N within new max', async () => {
           renderComponent();
           selectSecretAndFile();
           selectPredictionType('timeseries');
@@ -972,12 +968,8 @@ describe('AutomlConfigure', () => {
             expect(screen.getByText('Maximum number of top models is 7')).toBeInTheDocument();
           });
 
-          // Switch to binary - should now be valid (max 10)
+          // Switch to binary - error should clear automatically without touching the field
           selectPredictionType('binary');
-
-          // Trigger revalidation by touching the field
-          fireEvent.focus(input);
-          fireEvent.blur(input);
 
           await waitFor(() => {
             expect(

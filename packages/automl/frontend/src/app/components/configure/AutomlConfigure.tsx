@@ -176,6 +176,7 @@ function AutomlConfigure(): React.JSX.Element {
     control,
     setValue,
     getValues,
+    trigger,
     formState: { isSubmitting: formIsSubmitting },
   } = form;
 
@@ -188,6 +189,13 @@ function AutomlConfigure(): React.JSX.Element {
 
   // Calculate max top_n based on task type
   const maxTopN = isTimeseries ? MAX_TOP_N_TIMESERIES : MAX_TOP_N_TABULAR;
+
+  // Re-validate top_n when task type changes (max depends on task type)
+  useEffect(() => {
+    if (isTaskTypeSelected) {
+      void trigger('top_n');
+    }
+  }, [taskType, isTaskTypeSelected, trigger]);
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);
