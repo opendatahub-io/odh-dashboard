@@ -351,9 +351,26 @@ function AutoragLeaderboard({
 
   // Show empty state when no patterns were produced
   if (Object.keys(patterns).length === 0) {
+    const isRunSucceeded = pipelineRun?.state === RuntimeStateKF.SUCCEEDED;
     const isRunFailed =
       pipelineRun?.state === RuntimeStateKF.FAILED ||
       pipelineRun?.state === RuntimeStateKF.CANCELED;
+
+    let message: string;
+    if (!pipelineRun) {
+      message =
+        'Unable to determine pipeline run status. Please check the pipeline configuration and logs.';
+    } else if (isRunFailed) {
+      message =
+        'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.';
+    } else if (isRunSucceeded) {
+      message =
+        'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.';
+    } else {
+      // SKIPPED, PAUSED, CACHED, RUNTIME_STATE_UNSPECIFIED, or other unexpected states
+      message =
+        'The pipeline run is in an unexpected state. Please check the pipeline status and logs.';
+    }
 
     return (
       <Bullseye>
@@ -363,11 +380,7 @@ function AutoragLeaderboard({
           variant={EmptyStateVariant.sm}
           data-testid="leaderboard-empty"
         >
-          <EmptyStateBody>
-            {isRunFailed
-              ? 'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.'
-              : 'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.'}
-          </EmptyStateBody>
+          <EmptyStateBody>{message}</EmptyStateBody>
         </EmptyState>
       </Bullseye>
     );

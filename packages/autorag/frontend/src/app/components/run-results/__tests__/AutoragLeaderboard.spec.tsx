@@ -425,6 +425,72 @@ describe('AutoragLeaderboard component', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('should show error message when pipelineRun is undefined', () => {
+      renderWithContext({
+        patterns: {},
+        pipelineRun: undefined,
+      });
+
+      const emptyState = screen.getByTestId('leaderboard-empty');
+      expect(emptyState).toBeInTheDocument();
+
+      expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
+      expect(
+        within(emptyState).getByText(
+          'Unable to determine pipeline run status. Please check the pipeline configuration and logs.',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(emptyState).queryByText(
+          'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
+        ),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should show unexpected state message for SKIPPED state', () => {
+      renderWithContext({
+        patterns: {},
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SKIPPED),
+      });
+
+      const emptyState = screen.getByTestId('leaderboard-empty');
+      expect(emptyState).toBeInTheDocument();
+
+      expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
+      expect(
+        within(emptyState).getByText(
+          'The pipeline run is in an unexpected state. Please check the pipeline status and logs.',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(emptyState).queryByText(
+          'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
+        ),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should show unexpected state message for PAUSED state', () => {
+      renderWithContext({
+        patterns: {},
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.PAUSED),
+      });
+
+      const emptyState = screen.getByTestId('leaderboard-empty');
+      expect(emptyState).toBeInTheDocument();
+
+      expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
+      expect(
+        within(emptyState).getByText(
+          'The pipeline run is in an unexpected state. Please check the pipeline status and logs.',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(emptyState).queryByText(
+          'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
+        ),
+      ).not.toBeInTheDocument();
+    });
+
     it('should render loading skeleton with correct structure', () => {
       renderWithContext({
         pipelineRunLoading: true,
