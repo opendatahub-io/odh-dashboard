@@ -281,7 +281,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                         ))}
                         {(fromSubscription || !selected) && policies.length === 0 && 'None'}
                       </Td>
-                      <Td isActionCell style={{ textAlign: 'initial' }}>
+                      <Td isActionCell style={{ textAlign: 'center' }}>
                         <Button
                           variant={selected ? 'secondary' : 'link'}
                           size={selected ? 'sm' : 'default'}
