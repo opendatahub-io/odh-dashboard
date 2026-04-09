@@ -39,6 +39,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     aiModelsError,
     maasModels,
     maasModelsLoaded,
+    maasModelsError,
     models,
     modelsLoaded,
   } = React.useContext(ChatbotContext);
@@ -105,9 +106,9 @@ const ChatbotMain: React.FunctionComponent = () => {
         title={<ChatbotHeader />}
         loaded={
           lsdStatusLoaded &&
-          aiModelsLoaded &&
-          maasModelsLoaded &&
-          (lsdStatus?.phase !== 'Ready' || modelsLoaded)
+          (aiModelsLoaded || !!aiModelsError) &&
+          (maasModelsLoaded || !!maasModelsError) &&
+          (lsdStatus?.phase !== 'Ready' || !!modelsLoaded)
         }
         empty={!lsdStatus}
         emptyStatePage={
