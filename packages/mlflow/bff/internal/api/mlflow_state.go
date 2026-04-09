@@ -49,7 +49,7 @@ func initMockMLflowFactory(cfg config.EnvConfig, logger *slog.Logger) (mlflowpkg
 		if err := validateLoopbackURL(cfg.MLflowURL, cfg.DevMode); err != nil {
 			return nil, nil, err
 		}
-		logger.Info("Using external MLflow (no auth)", slog.String("url", cfg.MLflowURL))
+		logger.Info("Using external MLflow (no auth)", slog.String("url", sanitizeURL(cfg.MLflowURL)))
 		return mlflowmocks.NewMockClientFactory(cfg.MLflowURL), nil, nil
 	}
 
@@ -72,6 +72,9 @@ func validateLoopbackURL(rawURL string, devMode bool) error {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
 		return fmt.Errorf("invalid MLflow URL: %w", err)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return fmt.Errorf("unsupported MLflow URL scheme %q", parsed.Scheme)
 	}
 	host := parsed.Hostname()
 	ip := net.ParseIP(host)

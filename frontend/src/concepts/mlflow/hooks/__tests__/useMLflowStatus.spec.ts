@@ -6,6 +6,7 @@ jest.useFakeTimers();
 
 const STATUS_ENDPOINT = '/_bff/mlflow/api/v1/status';
 const POLL_INTERVAL = 30000;
+const TEARDOWN_GRACE_MS = 1000;
 
 const actualReact = jest.requireActual('react');
 
@@ -182,8 +183,8 @@ describe('useMLflowStatus', () => {
     renderResult.rerender(false);
     expect(renderResult.result.current).toStrictEqual({ configured: false, loaded: true });
 
-    // Let grace period expire (TEARDOWN_GRACE_MS = 1000)
-    jest.advanceTimersByTime(1000);
+    // Let grace period expire
+    jest.advanceTimersByTime(TEARDOWN_GRACE_MS);
 
     // Re-subscribe after grace expired — fresh fetch
     mockAxiosGet.mockResolvedValue({ data: { configured: false } });
