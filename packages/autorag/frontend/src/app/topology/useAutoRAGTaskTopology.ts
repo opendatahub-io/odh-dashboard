@@ -2,7 +2,7 @@ import * as React from 'react';
 import { RunStatus } from '@patternfly/react-topology';
 import { PipelineSpecVariable, RunDetailsKF, TaskKF } from '~/app/types/pipeline';
 import { PipelineNodeModelExpanded } from '~/app/types/topology';
-import { TERMINAL_STATES } from '~/app/hooks/queries';
+import { isTerminalState } from '~/app/hooks/queries';
 import { createNode } from './utils';
 import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from './parseUtils';
 
@@ -43,21 +43,10 @@ const topoSort = (tasks: Record<string, TaskKF>): string[] => {
 };
 
 const getTerminalFallbackStatus = (runState?: string): RunStatus | undefined => {
-  if (!runState || !TERMINAL_STATES.has(runState)) {
+  if (!runState || !isTerminalState(runState)) {
     return undefined;
   }
-  switch (runState) {
-    case 'SUCCEEDED':
-      return RunStatus.Succeeded;
-    case 'FAILED':
-      return RunStatus.Failed;
-    case 'CANCELED':
-      return RunStatus.Cancelled;
-    case 'SKIPPED':
-      return RunStatus.Skipped;
-    default:
-      return undefined;
-  }
+  return translateStatusForNode(runState);
 };
 
 /**
@@ -87,7 +76,21 @@ export const useAutoRAGTaskTopology = (
       const label = humanizeTaskName(task.taskInfo.name || taskId);
 
       const status = parseRuntimeInfoFromRunDetails(taskId, runDetails);
-      const runStatus = translateStatusForNode(status?.state) ?? terminalFallback;
+      let runStatus: RunStatus | undefined;
+      if (status) {
+        // Task entry exists in run details — translate its state directly
+        runStatus = translateStatusForNode(status.state);
+        if (runStatus === undefined && status.state) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[AutoRAG] Unknown task state "${status.state}" for task "${taskId}". ` +
+              'This may indicate a schema mismatch with the backend.',
+          );
+        }
+      } else {
+        // No task entry found — infer from overall run state
+        runStatus = terminalFallback;
+      }
       const runAfter = idx > 0 ? [ordered[idx - 1]] : [];
 
       return createNode(
