@@ -33,11 +33,12 @@ jest.mock('~/app/hooks/useGenAiAPI', () => ({
   })),
 }));
 
-const mockNamespace = { name: 'test-namespace' };
-jest.mock('react', () => ({
-  ...jest.requireActual('react'),
-  useContext: jest.fn(() => ({ namespace: mockNamespace })),
-}));
+jest.mock('~/app/context/GenAiContext', () => {
+  const React = jest.requireActual('react');
+  return {
+    GenAiContext: React.createContext({ namespace: { name: 'test-namespace' } }),
+  };
+});
 
 const mockUseQuery = jest.mocked(useQuery);
 const mockUseInfiniteQuery = jest.mocked(useInfiniteQuery);
@@ -270,7 +271,7 @@ describe('usePromptVersions', () => {
     expect(result.current.error).toEqual(mockError);
   });
 
-  it('should include prompt name in query key', () => {
+  it('should include namespace and prompt name in query key', () => {
     mockUseQuery.mockReturnValue({
       data: [],
       isLoading: false,
@@ -281,7 +282,7 @@ describe('usePromptVersions', () => {
 
     expect(mockUseQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        queryKey: ['prompts', 'my-prompt', 'versions'],
+        queryKey: ['test-namespace_prompts', 'my-prompt', 'versions'],
       }),
     );
   });

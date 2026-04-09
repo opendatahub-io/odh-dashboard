@@ -78,9 +78,10 @@ type UsePromptVersionsResult = {
 
 export function usePromptVersions(promptName: string | null): UsePromptVersionsResult {
   const { api, apiAvailable } = useGenAiAPI();
+  const { namespace } = useContext(GenAiContext);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['prompts', promptName, 'versions'],
+    queryKey: [`${namespace?.name}_prompts`, promptName, 'versions'],
     queryFn: async () => {
       if (!promptName) {
         return [];
@@ -112,9 +113,10 @@ type UseLatestPromptVersionResult = {
 
 export function useLatestPromptVersion(promptName: string | null): UseLatestPromptVersionResult {
   const { api, apiAvailable } = useGenAiAPI();
+  const { namespace } = useContext(GenAiContext);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['prompts', promptName, 'latest'],
+    queryKey: [`${namespace?.name}_prompts`, promptName, 'latest'],
     queryFn: () => api.getMLflowPrompt({ name: promptName! }),
     enabled: !!promptName && apiAvailable,
     staleTime: 0,
@@ -157,7 +159,9 @@ export function useCreatePrompt(options: UseCreatePromptOptions = {}): UseCreate
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`${namespace?.name}_prompts`, 'list'] });
-      queryClient.invalidateQueries({ queryKey: ['prompts', data.name, 'versions'] });
+      queryClient.invalidateQueries({
+        queryKey: [`${namespace?.name}_prompts`, data.name, 'versions'],
+      });
       onSuccess?.(data);
     },
     onError,
