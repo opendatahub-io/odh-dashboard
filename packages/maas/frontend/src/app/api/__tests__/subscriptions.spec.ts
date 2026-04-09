@@ -1,19 +1,26 @@
 /* eslint-disable camelcase */
 import * as modArchCore from 'mod-arch-core';
-import { SubscriptionInfoResponse, UserSubscription } from '~/app/types/subscriptions';
+import {
+  CreateSubscriptionResponse,
+  SubscriptionInfoResponse,
+  UserSubscription,
+} from '~/app/types/subscriptions';
 import {
   getSubscriptionInfo,
   listSubscriptions,
   listUserSubscriptions,
+  updateSubscription,
 } from '~/app/api/subscriptions';
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
   handleRestFailures: jest.fn((p: Promise<unknown>) => p),
   restGET: jest.fn(),
+  restUPDATE: jest.fn(),
 }));
 
 const mockRestGET = jest.mocked(modArchCore.restGET);
+const mockRestUPDATE = jest.mocked(modArchCore.restUPDATE);
 const mockHandleRestFailures = jest.mocked(modArchCore.handleRestFailures);
 
 const validSubscriptionInfoResponse: SubscriptionInfoResponse = {
@@ -257,5 +264,107 @@ describe('listUserSubscriptions', () => {
     mockRestGET.mockResolvedValue({ data: invalid });
 
     await expect(listUserSubscriptions()({} as never)).rejects.toThrow('Invalid response format');
+  });
+});
+
+describe('updateSubscription', () => {
+  const validUpdateResponse: CreateSubscriptionResponse = {
+    subscription: {
+      name: 'test-sub',
+      namespace: 'maas-system',
+      owner: { groups: [{ name: 'updated-group' }] },
+      modelRefs: [
+        {
+          name: 'test-model',
+          namespace: 'maas-models',
+          tokenRateLimits: [{ limit: 200000, window: '24h' }],
+        },
+      ],
+      priority: 5,
+    },
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockHandleRestFailures.mockImplementation((p: Promise<unknown>) => p);
+  });
+
+  it('should resolve with updated subscription for a valid response', async () => {
+    mockRestUPDATE.mockResolvedValue({ data: validUpdateResponse });
+
+    const result = await updateSubscription()({} as never, 'test-sub', {
+      owner: { groups: [{ name: 'updated-group' }] },
+      modelRefs: [
+        {
+          name: 'test-model',
+          namespace: 'maas-models',
+          tokenRateLimits: [{ limit: 200000, window: '24h' }],
+        },
+      ],
+      priority: 5,
+    });
+    expect(result.subscription.name).toBe('test-sub');
+    expect(result.subscription.owner.groups[0].name).toBe('updated-group');
+    expect(mockRestUPDATE).toHaveBeenCalledWith(
+      '',
+      expect.stringContaining('/update-subscription/test-sub'),
+      expect.any(Object),
+      {},
+      {},
+    );
+  });
+
+  it('should encode the subscription name in the URL', async () => {
+    mockRestUPDATE.mockResolvedValue({ data: validUpdateResponse });
+
+    await updateSubscription()({} as never, 'sub with spaces', {
+      owner: { groups: [] },
+      modelRefs: [],
+      priority: 0,
+    });
+
+    expect(mockRestUPDATE).toHaveBeenCalledWith(
+      '',
+      expect.stringContaining('/update-subscription/sub%20with%20spaces'),
+      expect.any(Object),
+      {},
+      {},
+    );
+  });
+
+  it('should throw for an invalid response format', async () => {
+    mockRestUPDATE.mockResolvedValue({ data: { invalid: true } });
+
+    await expect(
+      updateSubscription()({} as never, 'test-sub', {
+        owner: { groups: [] },
+        modelRefs: [],
+        priority: 0,
+      }),
+    ).rejects.toThrow('Invalid response format');
+  });
+
+  it('should normalize null tokenRateLimits to empty arrays', async () => {
+    const responseWithNull: CreateSubscriptionResponse = {
+      subscription: {
+        ...validUpdateResponse.subscription,
+        modelRefs: [
+          {
+            name: 'model',
+            namespace: 'ns',
+            tokenRateLimits: null as unknown as [],
+          },
+        ],
+      },
+    };
+    mockRestUPDATE.mockResolvedValue({ data: responseWithNull });
+
+    const result = await updateSubscription()({} as never, 'test-sub', {
+      owner: { groups: [] },
+      modelRefs: [],
+      priority: 0,
+    });
+
+    expect(result.subscription.modelRefs[0].tokenRateLimits).toEqual([]);
   });
 });

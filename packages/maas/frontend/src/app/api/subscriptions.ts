@@ -5,6 +5,7 @@ import {
   restGET,
   restDELETE,
   restCREATE,
+  restUPDATE,
   assembleModArchBody,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
@@ -23,6 +24,7 @@ import {
   SubscriptionInfoResponse,
   TokenMetadata,
   TokenRateLimit,
+  UpdateSubscriptionRequest,
   UserSubscription,
   ModelRefInfo,
   TokenRateLimitInfo,
@@ -238,6 +240,31 @@ export const createSubscription =
       restCREATE(
         hostPath,
         `${URL_PREFIX}/api/${BFF_API_VERSION}/new-subscription`,
+        assembleModArchBody(request),
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<unknown>(response) && isCreateSubscriptionResponse(response.data)) {
+        return {
+          ...response.data,
+          subscription: normalizeSubscription(response.data.subscription),
+        };
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const updateSubscription =
+  (hostPath = '') =>
+  (
+    opts: APIOptions,
+    name: string,
+    request: UpdateSubscriptionRequest,
+  ): Promise<CreateSubscriptionResponse> =>
+    handleRestFailures(
+      restUPDATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/update-subscription/${encodeURIComponent(name)}`,
         assembleModArchBody(request),
         {},
         opts,
