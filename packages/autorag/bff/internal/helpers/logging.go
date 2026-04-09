@@ -72,9 +72,14 @@ func CloneBody(r *http.Request) ([]byte, error) {
 	// from "over limit" without consuming an unbounded stream.
 	buf, err := io.ReadAll(io.LimitReader(r.Body, maxBodySize+1))
 	if err != nil {
+		// Restore whatever was read so downstream handlers are not left with a drained body.
+		r.Body = io.NopCloser(bytes.NewBuffer(buf))
 		return nil, fmt.Errorf("reading request body: %w", err)
 	}
 	if int64(len(buf)) > maxBodySize {
+		// Restore the partially-read bytes before returning so downstream handlers
+		// can still inspect the body (e.g., to emit a 413 response).
+		r.Body = io.NopCloser(bytes.NewBuffer(buf))
 		return nil, fmt.Errorf("request body too large: exceeds %d bytes", maxBodySize)
 	}
 	// Restore r.Body with the full, untruncated content for downstream handlers.
