@@ -1678,8 +1678,11 @@ describe('Model Serving Deploy Wizard', () => {
       expect(interception.request.body.metadata.name).to.satisfy(isGeneratedSecretName);
       expect(interception.request.body.metadata.namespace).to.equal('test-project');
       expect(interception.request.body.metadata.labels['opendatahub.io/dashboard']).to.equal(
-        'false',
+        'true',
       );
+      expect(
+        interception.request.body.metadata.annotations['opendatahub.io/connection-hidden'],
+      ).to.equal('true');
       expect(
         interception.request.body.metadata.annotations['opendatahub.io/connection-type-protocol'],
       ).to.equal('uri');
