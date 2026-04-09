@@ -6,6 +6,7 @@ import {
   addModelsToSubscriptionModal,
   deleteSubscriptionModal,
   editRateLimitsModal,
+  editSubscriptionPage,
   subscriptionsPage,
   viewSubscriptionPage,
 } from '../../../pages/modelsAsAService';
@@ -14,6 +15,7 @@ import {
   mockSubscriptionInfo,
   mockSubscriptionFormData,
   mockCreateSubscriptionResponse,
+  mockUpdateSubscriptionResponse,
 } from '../../../utils/maasUtils';
 
 const setupCommonIntercepts = () => {
@@ -257,6 +259,69 @@ describe('Subscription Create Page', () => {
       });
 
     // Verify we navigate back to the subscriptions list
+    cy.url().should('include', '/subscriptions');
+  });
+});
+
+describe('Edit Subscription Page', () => {
+  const subscriptionName = 'basic-team-sub';
+
+  beforeEach(() => {
+    setupCommonIntercepts();
+    cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
+      data: mockSubscriptionFormData(),
+    });
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: subscriptionName } },
+      { data: mockSubscriptionInfo(subscriptionName) },
+    );
+  });
+
+  it('should prefill the form with existing subscription data', () => {
+    editSubscriptionPage.visit(subscriptionName);
+    editSubscriptionPage.findTitle().should('contain.text', 'Edit subscription');
+
+    editSubscriptionPage.findNameInput().should('have.value', 'basic-team-sub');
+    editSubscriptionPage.findPriorityInput().should('have.value', '0');
+    editSubscriptionPage.findGroupsSelect().should('contain.text', 'system:authenticated');
+    editSubscriptionPage.findModelsTable().should('contain.text', 'flan-t5-small');
+  });
+
+  it('should save an updated subscription', () => {
+    cy.interceptOdh(
+      'PUT /maas/api/v1/update-subscription/:name',
+      { path: { name: subscriptionName } },
+      { data: mockUpdateSubscriptionResponse(subscriptionName) },
+    ).as('updateSubscription');
+
+    editSubscriptionPage.visit(subscriptionName);
+
+    editSubscriptionPage.findNameInput().clear().type('Updated Subscription');
+    editSubscriptionPage.findDescriptionInput().clear().type('Updated description');
+
+    editSubscriptionPage.findSaveButton().click();
+
+    cy.wait('@updateSubscription');
+    cy.url().should('include', '/subscriptions');
+  });
+
+  it('should show policy warning when groups are changed', () => {
+    editSubscriptionPage.visit(subscriptionName);
+
+    editSubscriptionPage.findPolicyChangeWarning().should('not.exist');
+
+    editSubscriptionPage.selectGroup('premium-users');
+
+    editSubscriptionPage.findPolicyChangeWarning().should('exist');
+    editSubscriptionPage
+      .findPolicyChangeWarning()
+      .should('contain.text', 'Authorization policy may need updating');
+  });
+
+  it('should navigate to subscriptions list on cancel', () => {
+    editSubscriptionPage.visit(subscriptionName);
+    editSubscriptionPage.findCancelButton().click();
     cy.url().should('include', '/subscriptions');
   });
 });

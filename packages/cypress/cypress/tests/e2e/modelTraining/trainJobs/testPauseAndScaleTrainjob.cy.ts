@@ -1,15 +1,15 @@
 import yaml from 'js-yaml';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
-import { createCleanProject } from '../../../utils/projectChecker';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
+import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { createCleanProject } from '../../../../utils/projectChecker';
 import {
   deleteTrainingRuntime,
   getTrainJobNumNodes,
   setupTrainingResources,
   verifyTrainJobDeleted,
-} from '../../../utils/oc_commands/trainingJobs';
-import { deleteKueueResources } from '../../../utils/oc_commands/distributedWorkloads';
+} from '../../../../utils/oc_commands/trainingJobs';
+import { deleteKueueResources } from '../../../../utils/oc_commands/distributedWorkloads';
 import {
   modelTrainingGlobal,
   pauseTrainingJobModal,
@@ -18,18 +18,18 @@ import {
   trainingJobResourcesTab,
   trainingJobStatusModal,
   trainingJobTable,
-} from '../../../pages/modelTraining';
-import { retryableBefore } from '../../../utils/retryableHooks';
-import { generateTestUUID } from '../../../utils/uuidGenerator';
-import { deleteModal } from '../../../pages/components/DeleteModal';
-import { getCustomResource } from '../../../utils/oc_commands/customResources';
-import type { TrainJobTestData } from '../../../types';
+} from '../../../../pages/modelTraining';
+import { retryableBefore } from '../../../../utils/retryableHooks';
+import { generateTestUUID } from '../../../../utils/uuidGenerator';
+import { deleteModal } from '../../../../pages/components/DeleteModal';
+import { isTrainerManaged } from '../../../../utils/oc_commands/dsc';
+import type { TrainJobTestData } from '../../../../types';
 
 // Node count constants - initial is defined in train-job.yaml, updated is the target after scaling
 const INITIAL_NODE_COUNT = 1;
 const UPDATED_NODE_COUNT = 2;
 
-describe('[Automation Bug: RHOAIENG-52544] Verify Pause, Scale Node Count, and Resume Training Job', () => {
+describe('Verify Pause, Scale Node Count, and Resume Training Job', () => {
   let testData: TrainJobTestData;
   let skipTest = false;
   let projectName: string;
@@ -44,25 +44,21 @@ describe('[Automation Bug: RHOAIENG-52544] Verify Pause, Scale Node Count, and R
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
-    // Check if the operator is RHOAI, if it's not (ODH), skip the test
-    cy.step('Check if the operator is RHOAI');
-    getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
-      if (!result.stdout.includes('rhods-operator')) {
-        cy.log('RHOAI operator not found, skipping the test (Trainer is RHOAI-specific).');
+    cy.step('Check if Trainer component is Managed in DSC');
+    isTrainerManaged().then((managed) => {
+      if (!managed) {
+        cy.log('Trainer component is not Managed in DSC, skipping the test.');
         skipTest = true;
-      } else {
-        cy.log('RHOAI operator confirmed:', result.stdout);
       }
     });
 
-    // If not skipping, proceed with test setup
     cy.then(() => {
       if (skipTest) {
         return;
       }
 
       // Load test data from fixture (reusing existing fixture)
-      cy.fixture('e2e/modelTraining/testTrainjobProgression.yaml', 'utf8')
+      cy.fixture('e2e/modelTraining/trainJobs/testTrainjobProgression.yaml', 'utf8')
         .then((yamlContent: string) => {
           testData = yaml.load(yamlContent) as TrainJobTestData;
 
@@ -122,7 +118,7 @@ describe('[Automation Bug: RHOAIENG-52544] Verify Pause, Scale Node Count, and R
   it(
     'Should pause running job, update node count, resume, and complete training',
     {
-      tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@Maintain'],
+      tags: ['@Sanity', '@SanitySet1', '@ModelTraining'],
     },
     () => {
       if (skipTest) {
@@ -150,12 +146,16 @@ describe('[Automation Bug: RHOAIENG-52544] Verify Pause, Scale Node Count, and R
         .contains(TrainingJobState.RUNNING, { timeout: 120000 })
         .should('be.visible');
 
-      cy.step('Wait for training job to make some progress before pausing');
+      cy.step('Wait for training job to reach at least 30% progress before pausing');
       trainingJobTable
         .getTableRow(trainJobName)
         .findStatusProgressBar()
         .should('be.visible')
-        .contains('27%', { timeout: 60000 });
+        .contains(/\d+%/, { timeout: 60000 })
+        .should(($el) => {
+          const percentage = Number($el.text().match(/(\d+)%/)?.[1] ?? 0);
+          expect(percentage, 'progress should be at least 30%').to.be.at.least(30);
+        });
 
       cy.step('Click on the training job status to open modal');
       trainingJobTable.getTableRow(trainJobName).findStatus().click();

@@ -193,9 +193,9 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   if (!existingDeployment && !crLoaded && !crError) {
     return (
       <Modal isOpen={isOpen} variant="medium" onClose={() => onClose()} data-testid="mcp-deploy-modal">
-        <ModalHeader title={modalTitle} />
+        <ModalHeader title={modalTitle} data-testid="mcp-deploy-modal-title" />
         <ModalBody>
-          <Spinner aria-label="Loading MCP server configuration" />
+          <Spinner aria-label="Loading MCP server configuration" data-testid="mcp-deploy-modal-spinner" />
         </ModalBody>
       </Modal>
     );
@@ -203,7 +203,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} variant="medium" onClose={() => onClose()} data-testid="mcp-deploy-modal">
-      <ModalHeader title={modalTitle} />
+      <ModalHeader title={modalTitle} data-testid="mcp-deploy-modal-title" />
       <ModalBody>
         {crError && (
           <Alert
@@ -272,7 +272,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
             labelHelp={
               <Popover
                 triggerRef={configLabelHelpRef}
-                bodyContent="Prefilled from catalog metadata when available; you can adjust before deploying. This block contains the config and runtime settings that are merged into the MCPServer resource—image and project are set by the form. For more options, see the server documentation on the details page."
+                bodyContent="Prefilled from catalog metadata when available; you can adjust before deploying. This block is the spec fragment only (not the full CRD); it is merged into the MCPServer resource—image and project are set by the form. For more options, see the server documentation on the details page."
                 aria-label="Configuration help"
               >
                 <FormGroupLabelHelp

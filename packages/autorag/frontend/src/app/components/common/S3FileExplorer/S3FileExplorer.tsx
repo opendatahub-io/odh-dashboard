@@ -440,6 +440,22 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
         };
       }
 
+      if (message.includes('endpoint URL must use HTTPS scheme, got: http')) {
+        return {
+          isEmpty: true,
+          emptyStateProps: {
+            status: 'danger',
+            titleText: 'S3 Connection must use HTTPS',
+            body: (
+              <>
+                The connection {secretNameToRender} is configured using HTTP. Configure the
+                connection&apos;s endpoint using HTTPS and try again.
+              </>
+            ),
+          },
+        };
+      }
+
       if (message.includes('not found')) {
         return {
           isEmpty: true,

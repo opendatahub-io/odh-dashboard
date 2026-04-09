@@ -12,12 +12,7 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import {
-  CalendarAltIcon,
-  ClipboardListIcon,
-  OutlinedClockIcon,
-  ProjectDiagramIcon,
-} from '@patternfly/react-icons';
+import { CalendarAltIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -25,6 +20,12 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import { evaluationsBaseRoute } from '~/app/routes';
 import { useEvaluationJob } from '~/app/hooks/useEvaluationJob';
+import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
+import useDarkMode from '~/app/hooks/useDarkMode';
+import aiModelIconDark from '~/app/bgimages/ai-model-white.svg';
+import aiModelIconLight from '~/app/bgimages/ai-model.svg';
+import paperStackIconDark from '~/app/bgimages/paper-stack-lined-white.svg';
+import paperStackIconLight from '~/app/bgimages/paper-stack-lined-black.svg';
 import {
   formatDate,
   formatDuration,
@@ -36,7 +37,7 @@ import {
 } from '~/app/utilities/evaluationUtils';
 import BenchmarkResultCard from '~/app/components/BenchmarkResultCard';
 import BenchmarkResultDetails from '~/app/components/BenchmarkResultDetails';
-import InlineHelpIcon from '~/app/components/InlineHelpIcon';
+import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 interface MlflowRunTabsProps {
@@ -72,6 +73,8 @@ const EvaluationResultsPage: React.FC = () => {
     [benchmarks],
   );
 
+  const isDarkMode = useDarkMode();
+  const { collectionNameMap } = useCollectionNameMap();
   const [selectedBenchmarkKey, setSelectedBenchmarkKey] = React.useState<string | null>(null);
   const [showAllBenchmarks, setShowAllBenchmarks] = React.useState(false);
 
@@ -155,22 +158,26 @@ const EvaluationResultsPage: React.FC = () => {
       )}
       <FlexItem>
         <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-          <ProjectDiagramIcon
+          <img
+            src={isDarkMode ? aiModelIconDark : aiModelIconLight}
+            alt=""
+            aria-hidden="true"
             className="pf-v6-u-mr-xs"
-            style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
+            style={{ width: '1em', height: '1em', verticalAlign: '-0.125em' }}
           />
           {job.model.name}
         </Content>
       </FlexItem>
       <FlexItem>
         <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-          <ClipboardListIcon
+          <img
+            src={isDarkMode ? paperStackIconDark : paperStackIconLight}
+            alt=""
+            aria-hidden="true"
             className="pf-v6-u-mr-xs"
-            style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
+            style={{ width: '1em', height: '1em', verticalAlign: '-0.125em' }}
           />
-          {job.collection?.id
-            ? `${job.collection.id} (${getJobBenchmarks(job).length} benchmarks)`
-            : getBenchmarkName(job)}
+          {getBenchmarkName(job, collectionNameMap)}
         </Content>
       </FlexItem>
       {duration && (
@@ -226,7 +233,7 @@ const EvaluationResultsPage: React.FC = () => {
                 <Content component="h3">Evaluation score</Content>
               </FlexItem>
               <FlexItem>
-                <InlineHelpIcon
+                <LabelHelpPopover
                   ariaLabel="About evaluation score"
                   content="The overall score aggregated across all benchmarks in this evaluation run."
                 />

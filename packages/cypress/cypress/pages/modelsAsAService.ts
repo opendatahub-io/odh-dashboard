@@ -418,6 +418,18 @@ class APIKeysPage {
     return cy.findByRole('menuitem', { name: new RegExp(status, 'i') });
   }
 
+  findStatusFilterOptionCheckbox(status: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findStatusFilterOption(status).findByRole('checkbox');
+  }
+
+  findToolbar(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-keys-toolbar');
+  }
+
+  clearAllFilters() {
+    this.findToolbar().contains('button', 'Clear all filters').click();
+  }
+
   findColumnSortButton(columnLabel: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findTable().find('thead').contains('th', columnLabel).findByRole('button');
   }
@@ -796,6 +808,7 @@ class CreateSubscriptionPage {
   typeCustomGroup(name: string): void {
     this.findGroupsSelect().find('input').type(name);
     cy.findByRole('option', { name: `Add group "${name}"` }).click();
+    this.findGroupsSelect().click();
   }
 
   findAddModelsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -816,6 +829,68 @@ class CreateSubscriptionPage {
 
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('cancel-subscription-button');
+  }
+}
+
+class EditSubscriptionPage {
+  visit(name: string): void {
+    cy.visitWithLogin(`/maas/subscriptions/edit/${name}`);
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-name-desc-name');
+  }
+
+  findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-name-desc-description');
+  }
+
+  findPriorityInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-priority').find('input[type="number"]');
+  }
+
+  findGroupsSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-groups');
+  }
+
+  selectGroup(name: string): void {
+    this.findGroupsSelect().click();
+    cy.findByRole('option', { name }).click();
+    this.findGroupsSelect().click();
+  }
+
+  findModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-models-table');
+  }
+
+  findAddModelsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-models-button');
+  }
+
+  findPolicyChangeWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-change-warning');
+  }
+
+  findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('update-subscription-button');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('cancel-subscription-button');
+  }
+
+  findSubmitError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByText('Failed to update subscription');
   }
 }
 
@@ -1032,5 +1107,6 @@ export const viewSubscriptionPage = new ViewSubscriptionPage();
 export const createSubscriptionPage = new CreateSubscriptionPage();
 export const addModelsToSubscriptionModal = new AddModelsToSubscriptionModal();
 export const editRateLimitsModal = new EditRateLimitsModal();
+export const editSubscriptionPage = new EditSubscriptionPage();
 export const authPoliciesPage = new AuthPoliciesPage();
 export const deleteAuthPolicyModal = new DeleteAuthPolicyModal();

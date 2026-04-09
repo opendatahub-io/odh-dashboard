@@ -264,18 +264,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
           </Stack>
         ) : (
           <Stack hasGutter>
-            {error && (
-              <StackItem>
-                <Alert
-                  data-testid="create-api-key-error-alert"
-                  title="Error creating API key"
-                  isInline
-                  variant="danger"
-                >
-                  {error.message}
-                </Alert>
-              </StackItem>
-            )}
             {subscriptionsLoaded && subscriptions.length === 0 && !subscriptionsError && (
               <StackItem>
                 <Alert
@@ -520,21 +508,35 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
             Close
           </Button>
         ) : (
-          <>
-            <Button
-              key="create"
-              variant="primary"
-              onClick={handleSubmit}
-              isDisabled={!isFormValid() || isCreating || subscriptions.length === 0}
-              isLoading={isCreating}
-              data-testid="submit-create-api-key-button"
-            >
-              Create API key
-            </Button>
-            <Button key="cancel" variant="link" onClick={onClose} isDisabled={isCreating}>
-              Cancel
-            </Button>
-          </>
+          <Stack hasGutter>
+            {error && (
+              <StackItem>
+                <Alert
+                  data-testid="create-api-key-error-alert"
+                  title="Error creating API key"
+                  isInline
+                  variant="danger"
+                >
+                  {error.message}
+                </Alert>
+              </StackItem>
+            )}
+            <StackItem>
+              <Button
+                key="create"
+                variant="primary"
+                onClick={handleSubmit}
+                isDisabled={!isFormValid() || isCreating || subscriptions.length === 0}
+                isLoading={isCreating}
+                data-testid="submit-create-api-key-button"
+              >
+                Create API key
+              </Button>
+              <Button key="cancel" variant="link" onClick={onClose} isDisabled={isCreating}>
+                Cancel
+              </Button>
+            </StackItem>
+          </Stack>
         )}
       </ModalFooter>
     </Modal>

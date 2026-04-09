@@ -1283,8 +1283,8 @@ describe('AutoRAG API Contract Tests', () => {
     });
 
     describe('Error Cases - Declared Content-Length', () => {
-      /** Matches bff s3_upload_limit.go: 1 GiB file max + 64 MiB multipart envelope. */
-      const s3PostMaxDeclaredBodyBytes = (1 << 30) + (64 << 20);
+      /** Matches bff s3_upload_limit.go: 32 MiB file max + 64 MiB multipart envelope. */
+      const s3PostMaxDeclaredBodyBytes = (32 << 20) + (64 << 20);
 
       const postS3WithDeclaredContentLength = async (
         pathWithQuery: string,

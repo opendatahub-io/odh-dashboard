@@ -536,6 +536,10 @@ class TrainingJobStatusModal extends Modal {
     return cy.findByTestId('event-logs');
   }
 
+  findEventLogEntries() {
+    return this.findEventLogs().find('li');
+  }
+
   findLogEntry(text: string) {
     return this.findEventLogs().find('li span').contains(text);
   }

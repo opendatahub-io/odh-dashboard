@@ -246,6 +246,6 @@ describe('AutomlExperiments', () => {
 
     renderAutoml(<AutomlExperiments />);
 
-    expect(screen.getByText('Pipeline Server is not ready')).toBeInTheDocument();
+    expect(screen.getByText('There is a problem with the pipeline server')).toBeInTheDocument();
   });
 });

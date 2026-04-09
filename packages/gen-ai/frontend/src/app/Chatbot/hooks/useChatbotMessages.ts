@@ -36,7 +36,7 @@ export interface UseChatbotMessagesReturn {
   isMessageSendButtonDisabled: boolean;
   isLoading: boolean;
   isStreamingWithoutContent: boolean;
-  handleMessageSend: (message: string) => Promise<void>;
+  handleMessageSend: (message: string, compareID?: string) => Promise<void>;
   handleStopStreaming: () => void;
   clearConversation: () => void;
   scrollToBottomRef: React.RefObject<HTMLDivElement>;
@@ -67,6 +67,12 @@ interface UseChatbotMessagesProps {
   guardrailModelConfigs?: GuardrailModelConfig[];
   // MaaS subscription name for API key generation
   subscription?: string;
+  // Compare-mode analytics
+  configIndex?: number;
+  isCompareMode?: boolean;
+  isGuardrailEnabled?: boolean;
+  promptVersion?: number;
+  promptName?: string;
 }
 
 const useChatbotMessages = ({
@@ -87,6 +93,11 @@ const useChatbotMessages = ({
   guardrailsConfig,
   guardrailModelConfigs = [],
   subscription,
+  configIndex,
+  isCompareMode,
+  isGuardrailEnabled,
+  promptVersion,
+  promptName,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -252,7 +263,7 @@ const useChatbotMessages = ({
     }, 0);
   }, [modelDisplayName]);
 
-  const handleMessageSend = async (message: string) => {
+  const handleMessageSend = async (message: string, compareID?: string) => {
     const userMessage: MessageProps = {
       id: getId(),
       role: 'user',
@@ -314,10 +325,17 @@ const useChatbotMessages = ({
       };
 
       fireMiscTrackingEvent('Playground Query Submitted', {
+        configID: configIndex ?? 0,
+        compareMode: isCompareMode ?? false,
+        compareID: compareID || '',
+        modelName: modelDisplayName,
+        guardrailOn: isGuardrailEnabled ?? false,
         isRag: isRawUploaded,
         countofMCP: selectedMcpServers.length,
         isStreaming: isStreamingEnabled,
         promptSource: useChatbotConfigStore.getState().getPromptSourceType(configId),
+        promptVersion: promptVersion ?? 0,
+        promptName: promptName ?? '',
       });
 
       if (!apiAvailable) {

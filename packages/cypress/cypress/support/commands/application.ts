@@ -393,7 +393,10 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
           cy.get('input[name=password]').fill(credentials.PASSWORD, { log: false });
           cy.get('form').submit();
         }
-      } else if (!interception.response || (statusCode !== 200 && statusCode !== 302)) {
+      } else if (
+        !interception.response ||
+        (statusCode !== 200 && statusCode !== 301 && statusCode !== 302)
+      ) {
         throw new Error(`Failed to visit '${fullUrl}'. Status code: ${statusCode || 'unknown'}`);
       }
     });

@@ -1171,7 +1171,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           key="select-files"
           data-testid="file-explorer-select-btn"
           variant="primary"
-          isDisabled={loading || isEmpty}
+          isDisabled={loading || isEmpty || !selectedFiles.length}
           onClick={(_event) => {
             onPrimary(selectedFiles);
             onClose(_event);
