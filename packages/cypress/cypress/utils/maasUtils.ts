@@ -120,6 +120,7 @@ export const mockPendingSubscription = (): MaaSSubscription => ({
 export const mockSubscriptions = (): MaaSSubscription[] => [
   {
     name: 'premium-team-sub',
+    displayName: 'Premium Team Subscription',
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
@@ -147,6 +148,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
   },
   {
     name: 'basic-team-sub',
+    displayName: 'Basic Team Subscription',
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',

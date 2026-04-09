@@ -63,6 +63,8 @@ const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [subscriptionInfo, loaded, loadError] = useGetSubscriptionInfo(subscriptionName);
+  const displaySubscriptionName =
+    subscriptionInfo?.subscription.displayName?.trim() ?? subscriptionName;
 
   const breadcrumb = (
     <Breadcrumb>
@@ -71,13 +73,13 @@ const ViewSubscriptionPage: React.FC = () => {
           Subscriptions
         </Link>
       </BreadcrumbItem>
-      <BreadcrumbItem isActive>{subscriptionName}</BreadcrumbItem>
+      <BreadcrumbItem isActive>{displaySubscriptionName}</BreadcrumbItem>
     </Breadcrumb>
   );
 
   return (
     <ApplicationsPage
-      title={subscriptionName}
+      title={displaySubscriptionName}
       breadcrumb={breadcrumb}
       headerAction={
         subscriptionInfo && <SubscriptionActions subscription={subscriptionInfo.subscription} />
