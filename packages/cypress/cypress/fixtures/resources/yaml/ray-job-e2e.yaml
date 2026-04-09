@@ -1,0 +1,47 @@
+apiVersion: ray.io/v1
+kind: RayJob
+metadata:
+  name: ${rayJobName}
+  namespace: ${namespace}
+  labels:
+    kueue.x-k8s.io/queue-name: ${localQueueName}
+spec:
+  shutdownAfterJobFinishes: true
+  ttlSecondsAfterFinished: 86400
+  submissionMode: K8sJobMode
+  entrypoint: python -c "import time; time.sleep(86400)"
+  rayClusterSpec:
+    rayVersion: '${rayVersion}'
+    headGroupSpec:
+      rayStartParams:
+        dashboard-host: '0.0.0.0'
+      template:
+        spec:
+          containers:
+            - name: ray-head
+              image: ${rayImage}
+              resources:
+                limits:
+                  cpu: '1'
+                  memory: 4Gi
+                requests:
+                  cpu: 500m
+                  memory: 2Gi
+    workerGroupSpecs:
+      - groupName: ${workerGroupName}
+        replicas: 1
+        minReplicas: 0
+        maxReplicas: 10
+        rayStartParams: {}
+        template:
+          spec:
+            containers:
+              - name: ray-worker
+                image: ${rayImage}
+                resources:
+                  limits:
+                    cpu: '1'
+                    memory: 2Gi
+                  requests:
+                    cpu: 500m
+                    memory: 2Gi
