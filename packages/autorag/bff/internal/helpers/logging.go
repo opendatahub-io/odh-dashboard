@@ -62,11 +62,13 @@ func (h HeaderLogValuer) LogValue() slog.Value {
 	return slog.GroupValue(values...)
 }
 
+const maxBodySize = 10 * 1024 * 1024 // 10 MB
+
 func CloneBody(r *http.Request) ([]byte, error) {
 	if r.Body == nil {
 		return nil, fmt.Errorf("no body provided")
 	}
-	buf, _ := io.ReadAll(r.Body)
+	buf, _ := io.ReadAll(io.LimitReader(r.Body, maxBodySize))
 	readerCopy := io.NopCloser(bytes.NewBuffer(buf))
 	readerOriginal := io.NopCloser(bytes.NewBuffer(buf))
 	r.Body = readerOriginal
