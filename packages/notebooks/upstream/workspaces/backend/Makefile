@@ -154,8 +154,13 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 
 .PHONY: deploy
 deploy: kustomize ## Deploy backend to the K8s cluster specified in ~/.kube/config.
-	cd manifests/kustomize/overlays/istio && $(KUSTOMIZE) edit set image workspaces-backend=${IMG}
-	$(KUBECTL) apply -k manifests/kustomize/overlays/istio
+	@echo "Copying kustomize directory structure to .output..."
+	@rm -rf manifests/kustomize/.output
+	@mkdir -p manifests/kustomize/.output
+	@cp -r manifests/kustomize/* manifests/kustomize/.output/
+	# Match both short name and registry-prefixed name (base kustomization may transform either)
+	@cd manifests/kustomize/.output/overlays/istio && $(KUSTOMIZE) edit set image $(NAME)=${IMG} $(REGISTRY)/$(NAME)=${IMG}
+	@$(KUBECTL) apply -k manifests/kustomize/.output/overlays/istio
 
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy backend from the K8s cluster specified in ~/.kube/config.
@@ -173,13 +178,15 @@ $(KUSTOMIZE): $(LOCALBIN)
 # $1 - target path with name of binary
 # $2 - package url which can be installed
 # $3 - specific version of package
+# $4 - (optional) extra ldflags to set with the installation
 define go-install-tool
 @[ -f "$(1)-$(3)" ] || { \
 set -e; \
 package=$(2)@$(3) ;\
+ldflags=$(4) ;\
 echo "Downloading $${package}" ;\
 rm -f $(1) || true ;\
-GOBIN=$(LOCALBIN) go install $${package} ;\
+GOBIN=$(LOCALBIN) go install $${ldflags:+-ldflags "$${ldflags}"} $${package} ;\
 mv $(1) $(1)-$(3) ;\
 } ;\
 ln -sf $(1)-$(3) $(1)
