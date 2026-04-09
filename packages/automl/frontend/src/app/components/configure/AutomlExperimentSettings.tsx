@@ -12,13 +12,15 @@ import {
   Title,
 } from '@patternfly/react-core';
 import React from 'react';
-import { Controller, useFormContext } from 'react-hook-form';
+import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import {
   ConfigureSchema,
   EXPERIMENT_SETTINGS_FIELDS,
+  MAX_TOP_N_TABULAR,
+  MAX_TOP_N_TIMESERIES,
   MIN_TOP_N,
-  MAX_TOP_N,
 } from '~/app/schemas/configure.schema';
+import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 
 type AutomlExperimentSettingsProps = {
   isOpen: boolean;
@@ -37,6 +39,9 @@ const AutomlExperimentSettings: React.FC<AutomlExperimentSettingsProps> = ({
     control,
     formState: { isDirty, errors },
   } = useFormContext<ConfigureSchema>();
+
+  const taskType = useWatch({ control, name: 'task_type' });
+  const maxTopN = taskType === TASK_TYPE_TIMESERIES ? MAX_TOP_N_TIMESERIES : MAX_TOP_N_TABULAR;
 
   const hasFieldErrors = EXPERIMENT_SETTINGS_FIELDS.some((field) => errors[field]);
 
@@ -64,7 +69,7 @@ const AutomlExperimentSettings: React.FC<AutomlExperimentSettingsProps> = ({
                 id="top-n-input"
                 value={field.value}
                 min={MIN_TOP_N}
-                max={MAX_TOP_N}
+                max={maxTopN}
                 validated={fieldState.error ? 'error' : 'default'}
                 onMinus={() => field.onChange(field.value - 1)}
                 onPlus={() => field.onChange(field.value + 1)}
