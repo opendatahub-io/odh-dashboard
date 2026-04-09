@@ -376,6 +376,11 @@ func (r *ModelRegistryRepository) ListModelRegistries(
 			}
 		}
 	}
+	// Clear client certificates to prevent credential leakage across user boundaries
+	userConfig.TLSClientConfig.CertData = nil
+	userConfig.TLSClientConfig.CertFile = ""
+	userConfig.TLSClientConfig.KeyData = nil
+	userConfig.TLSClientConfig.KeyFile = ""
 
 	dynamicClient, err := dynamic.NewForConfig(userConfig)
 	if err != nil {
