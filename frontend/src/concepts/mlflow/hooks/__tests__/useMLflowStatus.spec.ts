@@ -167,6 +167,11 @@ describe('useMLflowStatus', () => {
     renderResult.rerender(true);
     expect(renderResult.result.current).toStrictEqual({ configured: true, loaded: true });
     expect(mockAxiosGet).toHaveBeenCalledTimes(1);
+
+    // Advance past grace period — teardown timer should have been cancelled
+    jest.advanceTimersByTime(TEARDOWN_GRACE_MS);
+    expect(renderResult.result.current).toStrictEqual({ configured: true, loaded: true });
+    expect(mockAxiosGet).toHaveBeenCalledTimes(1);
   });
 
   it('should reset cache after teardown grace period expires', async () => {
