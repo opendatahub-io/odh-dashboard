@@ -279,8 +279,8 @@ This starts both the BFF (port 4003) and the frontend webpack dev server (port 9
 
 | Pipeline type | Env var | Default |
 |---|---|---|
-| Tabular (classification + regression) | `AUTOML_TABULAR_PIPELINE_NAME_PREFIX` | `automl-tabular` |
-| Time series | `AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX` | `automl-timeseries` |
+| Tabular (classification + regression) | `AUTOML_TABULAR_PIPELINE_NAME_PREFIX` | `autogluon-tabular-training-pipeline` |
+| Time series | `AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX` | `autogluon-timeseries-training-pipeline` |
 
 If your pipelines use different naming conventions, override them:
 
