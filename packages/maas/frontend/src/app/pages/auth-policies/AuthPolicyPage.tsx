@@ -8,12 +8,11 @@ import { URL_PREFIX } from '~/app/utilities/const';
 import PolicyForm from './policyForm/PolicyForm';
 
 const AuthPolicyPage: React.FC = () => {
-  const { authPolicyName } = useParams<{ authPolicyName?: string }>();
+  const { authPolicyName = '' } = useParams<{ authPolicyName?: string }>();
   const isEdit = !!authPolicyName;
-  const decodedAuthPolicyName = authPolicyName ? decodeURIComponent(authPolicyName) : '';
 
   const [formData, formLoaded, formError] = useSubscriptionPolicyFormData();
-  const [policyInfo, policyLoaded, policyError] = useGetPolicyInfo(decodedAuthPolicyName);
+  const [policyInfo, policyLoaded, policyError] = useGetPolicyInfo(authPolicyName);
 
   const loaded = isEdit ? formLoaded && policyLoaded : formLoaded;
   const loadError = isEdit ? (policyError ?? formError) : formError;
@@ -29,9 +28,7 @@ const AuthPolicyPage: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to={`${URL_PREFIX}/auth-policies`}>Policies</Link>} />
-          <BreadcrumbItem isActive>
-            {isEdit ? decodedAuthPolicyName : 'Create policy'}
-          </BreadcrumbItem>
+          <BreadcrumbItem isActive>{isEdit ? authPolicyName : 'Create policy'}</BreadcrumbItem>
         </Breadcrumb>
       }
       loaded={loaded}
