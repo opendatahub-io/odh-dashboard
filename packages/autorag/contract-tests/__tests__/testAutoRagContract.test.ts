@@ -1194,9 +1194,8 @@ describe('AutoRAG API Contract Tests', () => {
           llama_stack_secret_name: 'llama-secret',
         });
         expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
       });
 
       it('should return 400 for missing required fields', async () => {

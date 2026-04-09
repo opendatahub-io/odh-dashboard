@@ -1112,9 +1112,8 @@ describe('AutoML API Contract Tests', () => {
             task_type: 'binary',
           });
           expect(result.success).toBe(false);
-          if (!result.success) {
-            expect(result.error.status).toBe(400);
-          }
+          expect(result.error?.status).toBe(400);
+          expect(result.error?.data).toHaveProperty('error');
         });
       });
 
