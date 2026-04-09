@@ -22,9 +22,15 @@ const getApiKeyStatusProps = (
   }
 };
 
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
+const formatDate = (dateString?: string, fallback = '—'): string => {
+  if (!dateString) {
+    return fallback;
+  }
+  const timestamp = Date.parse(dateString);
+  if (Number.isNaN(timestamp)) {
+    return fallback;
+  }
+  return new Date(timestamp).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -61,11 +67,11 @@ const renderApiKeyCell = (
     case 'username':
       return apiKey.username ?? '—';
     case 'creationDate':
-      return formatDate(apiKey.creationDate);
+      return formatDate(apiKey.creationDate, '—');
     case 'lastUsedAt':
-      return apiKey.lastUsedAt ? formatDate(apiKey.lastUsedAt) : 'Never';
+      return formatDate(apiKey.lastUsedAt, 'Never');
     case 'expirationDate':
-      return apiKey.expirationDate ? formatDate(apiKey.expirationDate) : 'Never';
+      return formatDate(apiKey.expirationDate, 'Never');
     default:
       return null;
   }
