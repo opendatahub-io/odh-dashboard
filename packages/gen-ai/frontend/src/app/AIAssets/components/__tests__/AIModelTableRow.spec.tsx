@@ -96,8 +96,8 @@ const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
   ...overrides,
 });
 
-const createMockPlaygroundModel = (modelId: string): LlamaModel => ({
-  id: `provider/${modelId}`,
+const createMockPlaygroundModel = (modelId: string, providerPrefix = 'provider'): LlamaModel => ({
+  id: `${providerPrefix}/${modelId}`,
   modelId,
   object: 'model',
   created: Date.now(),
@@ -376,7 +376,7 @@ describe('AIModelTableRow', () => {
   describe('Tracking', () => {
     it('should track assetType as maas_model for MaaS models on playground launch', () => {
       const model = createMockAIModel({ model_id: 'maas-model-id', model_source_type: 'maas' });
-      const playgroundModel = createMockPlaygroundModel('maas-model-id');
+      const playgroundModel = createMockPlaygroundModel('maas-model-id', 'maas-vllm-inference-1');
 
       render(
         <TestWrapper>

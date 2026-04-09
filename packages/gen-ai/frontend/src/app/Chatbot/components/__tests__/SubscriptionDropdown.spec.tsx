@@ -51,7 +51,7 @@ const TestWrapper: React.FC<{
 
 describe('SubscriptionDropdown', () => {
   const defaultProps = {
-    selectedModel: 'provider/test-model',
+    selectedModel: 'maas-provider/test-model',
     selectedSubscription: '',
     onSubscriptionChange: jest.fn(),
   };
@@ -197,7 +197,7 @@ describe('SubscriptionDropdown', () => {
     const { rerender } = render(
       <TestWrapper maasModels={[model, otherModel]}>
         <SubscriptionDropdown
-          selectedModel="provider/test-model"
+          selectedModel="maas-provider/test-model"
           selectedSubscription="premium-sub"
           onSubscriptionChange={onSubscriptionChange}
         />
@@ -209,7 +209,7 @@ describe('SubscriptionDropdown', () => {
     rerender(
       <TestWrapper maasModels={[model, otherModel]}>
         <SubscriptionDropdown
-          selectedModel="provider/other-model"
+          selectedModel="maas-provider/other-model"
           selectedSubscription="premium-sub"
           onSubscriptionChange={onSubscriptionChange}
         />
