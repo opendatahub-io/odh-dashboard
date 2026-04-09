@@ -311,7 +311,7 @@ paths:
           $ref: "#/components/responses/NotFound"
         "413":
           description: >-
-            Declared Content-Length too large, or file part exceeds 1 GiB (http.MaxBytesReader).
+            Declared Content-Length too large, or file part exceeds 32 MiB (http.MaxBytesReader).
           content:
             application/json:
               schema:
@@ -328,8 +328,8 @@ paths:
         The secret must contain valid S3 credentials (aws_access_key_id, aws_secret_access_key,
         aws_default_region, aws_s3_endpoint).
         Chunked transfer encoding is supported. When Content-Length is set, it must not exceed
-        1 GiB plus allowance for multipart framing (~64 MiB) or the request is rejected with 413.
-        The file part is streamed via http.MaxBytesReader (1 GiB max); larger file parts fail with 413.
+        32 MiB plus allowance for multipart framing (~64 MiB) or the request is rejected with 413.
+        The file part is streamed via http.MaxBytesReader (32 MiB max); larger file parts fail with 413.
 
         On success, returns JSON with `uploaded: true` and the resolved `key` (which may differ
         from the requested key if a collision was avoided by probing existing keys).

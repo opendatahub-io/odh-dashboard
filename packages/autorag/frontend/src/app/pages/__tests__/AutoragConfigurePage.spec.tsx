@@ -469,10 +469,8 @@ describe('AutoragConfigurePage', () => {
       expect(await screen.findByText('My Experiment')).toBeInTheDocument();
     });
 
-    it('should render "Create optimization run" button', async () => {
-      expect(
-        await screen.findByRole('button', { name: 'Create optimization run' }),
-      ).toBeInTheDocument();
+    it('should render "Create run" button', async () => {
+      expect(await screen.findByRole('button', { name: 'Create run' })).toBeInTheDocument();
     });
 
     it('should render "Back" button', async () => {
@@ -543,8 +541,8 @@ describe('AutoragConfigurePage', () => {
     });
   });
 
-  describe('Configure step - Create optimization run', () => {
-    it('should call mutateAsync when Create optimization run button is clicked with valid form', async () => {
+  describe('Configure step - Create run', () => {
+    it('should call mutateAsync when Create run button is clicked with valid form', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
 
@@ -577,12 +575,14 @@ describe('AutoragConfigurePage', () => {
       // Vector store value is auto-set by the mocked AutoragVectorStoreSelector.
 
       // Wait for form to be valid and Run button to be enabled
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
 
-      // Click Create optimization run button
+      // Click Create run button
       await user.click(runButton);
 
       // Assert that the payload contains the .json evaluation dataset
@@ -624,8 +624,10 @@ describe('AutoragConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Create optimization run button
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -667,8 +669,10 @@ describe('AutoragConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Create optimization run button
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -711,8 +715,10 @@ describe('AutoragConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Create optimization run button
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -763,7 +769,9 @@ describe('AutoragConfigurePage', () => {
       });
       expect(mockS3UploadMutateAsync).toHaveBeenCalledTimes(1);
 
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });

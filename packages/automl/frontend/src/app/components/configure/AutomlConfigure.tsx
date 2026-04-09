@@ -111,8 +111,8 @@ const TRAINING_DATA_UPLOAD_NATIVE_ACCEPT = [
   ...new Set(Object.values(TRAINING_DATA_FILE_ACCEPT).flat()),
 ].join(',');
 
-/** Matches MultipleFileUpload dropzone `maxSize` (1 GiB). */
-const TRAINING_DATA_UPLOAD_MAX_BYTES = 1024 * 1024 * 1024;
+/** Matches MultipleFileUpload dropzone `maxSize` (32 MiB). */
+const TRAINING_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
 
 /** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
 function isAllowedTrainingDataUploadFile(file: File): boolean {
@@ -300,7 +300,7 @@ function AutomlConfigure(): React.JSX.Element {
         return;
       }
       if (file.size > TRAINING_DATA_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', 'File size must be 1 GiB or less.');
+        notification.error('File too large', 'File size must be 32 MiB or less.');
         return;
       }
       if (!isAllowedTrainingDataUploadFile(file)) {
@@ -663,7 +663,7 @@ function AutomlConfigure(): React.JSX.Element {
                 <Content component="h3">Configure details</Content>
               </CardHeader>
               <CardBody>
-                {!trainDataSecretName ? (
+                {!trainDataFileKey ? (
                   <EmptyState
                     variant="xs"
                     titleText="Select an S3 connection or upload a file to get started"
@@ -838,6 +838,7 @@ function AutomlConfigure(): React.JSX.Element {
             setSelectedTrainingDataFile(file);
           }
         }}
+        allowFolderSelection={false}
         selectableExtensions={['csv']}
         unselectableReason="You can only select CSV files"
       />
