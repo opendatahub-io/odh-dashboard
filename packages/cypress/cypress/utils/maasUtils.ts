@@ -257,6 +257,13 @@ export const mockCreateSubscriptionResponse = (): CreateSubscriptionResponse => 
   },
 });
 
+export const mockUpdateSubscriptionResponse = (
+  name = 'basic-team-sub',
+): CreateSubscriptionResponse => {
+  const subscription = mockSubscriptions().find((s) => s.name === name) ?? mockSubscriptions()[1];
+  return { subscription };
+};
+
 export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
   {
     name: 'test-subscription-policy',
