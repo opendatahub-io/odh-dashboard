@@ -374,6 +374,11 @@ describe('AutoragLeaderboard component', () => {
           'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
         ),
       ).toBeInTheDocument();
+      expect(
+        within(emptyState).queryByText(
+          'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
+        ),
+      ).not.toBeInTheDocument();
     });
 
     it('should show empty state with failure message when run failed', () => {
@@ -391,6 +396,11 @@ describe('AutoragLeaderboard component', () => {
           'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
         ),
       ).toBeInTheDocument();
+      expect(
+        within(emptyState).queryByText(
+          'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
+        ),
+      ).not.toBeInTheDocument();
     });
 
     it('should show empty state with failure message when run was canceled', () => {
@@ -408,6 +418,11 @@ describe('AutoragLeaderboard component', () => {
           'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
         ),
       ).toBeInTheDocument();
+      expect(
+        within(emptyState).queryByText(
+          'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
+        ),
+      ).not.toBeInTheDocument();
     });
 
     it('should render loading skeleton with correct structure', () => {
