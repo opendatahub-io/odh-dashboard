@@ -76,6 +76,8 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
 
   const [isSelectOpen, setIsSelectOpen] = React.useState(false);
 
+  // Auto-enable RAG when a file is successfully uploaded via inline mode.
+  // External vector store selection enables RAG directly in the onSelect handler below.
   const { autoEnableRag, setAutoEnableRag } = sourceManagement;
   React.useEffect(() => {
     if (autoEnableRag) {
