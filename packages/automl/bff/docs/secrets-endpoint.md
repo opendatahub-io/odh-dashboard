@@ -48,7 +48,7 @@ For key-based detection, a secret must contain **ALL** required keys for a type 
 
 | Storage Type | Required Keys (for key-based detection) |
 |--------------|------------------------------------------|
-| **S3** | `AWS_ACCESS_KEY_ID`, `AWS_DEFAULT_REGION`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT` |
+| **S3** | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT` |
 
 **Future storage types** (e.g., Azure, GCP) can be easily added to the configuration without changing the API.
 
@@ -147,7 +147,6 @@ The storage type configuration is defined in `internal/repositories/secret.go`:
 var storageTypeRequiredKeys = map[string][]string{
     "s3": {
         "AWS_ACCESS_KEY_ID",
-        "AWS_DEFAULT_REGION",
         "AWS_SECRET_ACCESS_KEY",
         "AWS_S3_ENDPOINT",
     },
@@ -203,7 +202,7 @@ The endpoint supports two filtering modes based on the `type` parameter:
    - **Key-based**: Secrets containing ALL required keys for at least ONE storage type
    - The dictionary maps storage types (e.g., "s3", "azure", "gcp") to their required keys
    - Currently configured storage types:
-     - **S3**: Requires `AWS_ACCESS_KEY_ID`, `AWS_DEFAULT_REGION`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT`
+     - **S3**: Requires `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT`
    - Extensible design allows adding new storage types (Azure, GCP, etc.) without API changes
    - Key matching is case-sensitive; keys must be uppercase
 
@@ -214,12 +213,11 @@ Invalid type values result in a 400 Bad Request error.
 {
   "AWS_ACCESS_KEY_ID": "AKIAIOSFODNN7EXAMPLE",
   "AWS_SECRET_ACCESS_KEY": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-  "AWS_DEFAULT_REGION": "us-east-1",
   "AWS_S3_ENDPOINT": "https://s3.amazonaws.com"
 }
 ```
 
-A secret missing any of these required keys would NOT match and would be excluded from `type=storage` results.
+A secret missing any of these required keys would NOT match and would be excluded from `type=storage` results. Note that `AWS_DEFAULT_REGION` is not required for BFF-level S3 type detection; it is validated as a frontend `additionalRequiredKey` instead.
 
 ### Data and Security Redaction
 

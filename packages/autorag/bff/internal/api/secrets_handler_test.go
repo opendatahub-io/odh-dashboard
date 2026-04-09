@@ -235,6 +235,8 @@ func TestGetSecretsHandler_TypeStorage_CaseSensitive(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Len(t, envelope.Data, 1) // Only uppercase keys match (case-sensitive)
+	assert.Equal(t, "uid-upper", envelope.Data[0].UUID)
+	assert.Equal(t, "s3-uppercase", envelope.Data[0].Name)
 	assert.Equal(t, "s3", envelope.Data[0].Type)
 	assert.Equal(t, map[string]string{
 		"AWS_ACCESS_KEY_ID":     "[REDACTED]",
@@ -472,6 +474,8 @@ func TestGetSecretsHandler_TypeLls_CaseSensitive(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Len(t, envelope.Data, 1) // Only uppercase keys match (case-sensitive)
+	assert.Equal(t, "uid-upper", envelope.Data[0].UUID)
+	assert.Equal(t, "lls-uppercase", envelope.Data[0].Name)
 	assert.Equal(t, "lls", envelope.Data[0].Type)
 	assert.Equal(t, map[string]string{
 		"LLAMA_STACK_CLIENT_API_KEY":  "[REDACTED]",

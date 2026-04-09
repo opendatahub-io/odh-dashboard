@@ -134,10 +134,11 @@ paths:
             Type detection uses:
             1. The 'opendatahub.io/connection-type' annotation value if present
             2. Otherwise, key-based classification (case-sensitive, keys must be uppercase):
-               - S3 requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT
+               - S3 requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
+               - AWS_DEFAULT_REGION is optional for classification; validate it from the 'data' field when needed
 
             The 'data' field in the response contains all secret keys. Use it to validate additional requirements
-            for your use case (e.g., checking for AWS_S3_BUCKET). Allowed keys show actual values; others show "[REDACTED]".
+            for your use case (e.g., checking for AWS_S3_BUCKET or AWS_DEFAULT_REGION). Allowed keys show actual values; others show "[REDACTED]".
           schema:
             type: string
             enum:
@@ -165,7 +166,7 @@ paths:
         Secret Type Detection:
         1. First checks for the 'opendatahub.io/connection-type' annotation. If present, its value is used as the type.
         2. Otherwise, performs key-based classification using required classification keys:
-           - 's3': S3 storage secrets (classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT)
+           - 's3': S3 storage secrets (classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT; AWS_DEFAULT_REGION is optional)
 
         Type Filtering:
         - 'storage': Returns only secrets classified as storage types (currently: s3)
@@ -939,7 +940,7 @@ components:
             - type: object
               properties:
                 classificationKeys:
-                  example: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_DEFAULT_REGION", "AWS_S3_ENDPOINT"]
+                  example: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_ENDPOINT"]
                 commonOptionalKeys:
                   example: ["AWS_S3_BUCKET"]
 

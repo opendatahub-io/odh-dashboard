@@ -94,7 +94,7 @@ paths:
           required: false
           description: >-
             Secret type filter (key matching is case-sensitive, keys must be uppercase):
-            - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT)
+            - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
             - 'lls': Filters for Llama Stack secrets (classification keys: LLAMA_STACK_CLIENT_API_KEY, LLAMA_STACK_CLIENT_BASE_URL)
             - Omit for all secrets
 
@@ -103,7 +103,7 @@ paths:
             1. Annotation-based type (highest priority): If the secret has the 'opendatahub.io/connection-type' annotation, that annotated type takes precedence for inclusion in ?type= filter results
             2. Key-based classification (fallback): If no connection-type annotation is present, the type is determined by key-based classification rules (e.g., storage keys like AWS_ACCESS_KEY_ID for ?type=storage, LLS keys like LLAMA_STACK_CLIENT_API_KEY for ?type=lls)
 
-            Note: Classification keys are used to identify the secret type. Additional optional keys (like AWS_S3_BUCKET for S3 secrets)
+            Note: Classification keys are used to identify the secret type. Additional optional keys (like AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets)
             may be present but are not required for type classification. The data field in the response lists all keys
             present in each secret, allowing clients to validate additional requirements for their specific use cases.
           schema:
@@ -135,11 +135,11 @@ paths:
         The type of each secret is determined using the following precedence:
         1. Annotation-based type (highest priority): If the secret has the 'opendatahub.io/connection-type' annotation with a non-empty value, that annotated type is used
         2. Key-based classification (fallback): If no connection-type annotation is present, type is determined by the presence of specific classification keys:
-           - 's3': S3 storage secrets (classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT)
+           - 's3': S3 storage secrets (classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
            - 'lls': Llama Stack secrets (classification keys: LLAMA_STACK_CLIENT_API_KEY, LLAMA_STACK_CLIENT_BASE_URL)
 
         Optional Keys:
-        Secrets may contain additional optional keys beyond classification requirements (e.g., AWS_S3_BUCKET for S3 secrets).
+        Secrets may contain additional optional keys beyond classification requirements (e.g., AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets).
         The data field lists all keys present, allowing clients to validate additional use-case-specific requirements.
 
         Type filtering with ?type= parameter:
@@ -782,9 +782,9 @@ components:
             - type: object
               properties:
                 classificationKeys:
-                  example: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_DEFAULT_REGION", "AWS_S3_ENDPOINT"]
+                  example: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_ENDPOINT"]
                 commonOptionalKeys:
-                  example: ["AWS_S3_BUCKET"]
+                  example: ["AWS_S3_BUCKET", "AWS_DEFAULT_REGION"]
         lls:
           allOf:
             - $ref: '#/components/schemas/SecretTypeSchema'
