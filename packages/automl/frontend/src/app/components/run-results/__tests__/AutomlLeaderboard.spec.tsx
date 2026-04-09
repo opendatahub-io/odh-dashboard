@@ -204,10 +204,10 @@ const renderWithContext = ({
   };
 
   return render(
-    <MemoryRouter initialEntries={[`/automl/${namespace}/results`]}>
+    <MemoryRouter initialEntries={[`/automl/${namespace}/results/test-run-123`]}>
       <Routes>
         <Route
-          path="/automl/:namespace/results"
+          path="/automl/:namespace/results/:runId"
           element={
             <AutomlResultsContext.Provider value={contextValue}>
               <AutomlLeaderboard
@@ -370,11 +370,19 @@ describe('AutomlLeaderboard component', () => {
 
       // Verify EmptyState component structure
       expect(within(emptyState).getByText('No models produced')).toBeInTheDocument();
-      expect(
-        within(emptyState).getByText(
-          'The pipeline run completed but did not generate any models. Please check the pipeline configuration and logs.',
-        ),
-      ).toBeInTheDocument();
+      // Text is split across multiple elements (spans and a button), so use toHaveTextContent
+      expect(emptyState).toHaveTextContent(
+        'The pipeline run completed but did not generate any models. Please check the pipeline configuration and logs.',
+      );
+      // Verify the interactive CTA link exists and navigates to the pipeline run page
+      const link = within(emptyState).getByRole('link', {
+        name: /pipeline configuration and logs/i,
+      });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
+      );
     });
 
     it('should render loading skeleton with correct structure', () => {
