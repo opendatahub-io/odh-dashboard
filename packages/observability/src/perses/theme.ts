@@ -178,6 +178,9 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
           endAdornment: {
             right: 'var(--pf-t--global--spacer--sm)',
           },
+          popper: {
+            minWidth: '500px !important',
+          },
         },
       },
       MuiSelect: {
