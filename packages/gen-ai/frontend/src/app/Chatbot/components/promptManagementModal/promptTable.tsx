@@ -110,7 +110,7 @@ export default function PromptTable({
           <Flex rowGap={{ default: 'rowGapXs' }}>
             <Button
               variant="primary"
-              disabled={selectedVersion === null || isLoadingDetails}
+              isDisabled={selectedVersion === null || isLoadingDetails}
               onClick={() => {
                 const prompt = selectedPromptVersions.find((v) => v.version === selectedVersion);
                 if (prompt) {
