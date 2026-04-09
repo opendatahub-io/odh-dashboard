@@ -374,6 +374,10 @@ describe('AutoragLeaderboard component', () => {
       expect(emptyState).toHaveTextContent(
         'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
       );
+      // Verify the interactive CTA button exists and is accessible
+      expect(
+        within(emptyState).getByRole('button', { name: /pipeline configuration and logs/i }),
+      ).toBeInTheDocument();
     });
 
     it('should render loading skeleton with correct structure', () => {
