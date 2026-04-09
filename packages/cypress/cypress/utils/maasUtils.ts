@@ -3,6 +3,7 @@ import type {
   CreateAPIKeyResponse,
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
+import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
 import type {
   MaaSSubscription,
   SubscriptionInfoResponse,
@@ -280,6 +281,22 @@ export const mockUpdateSubscriptionResponse = (
   const subscription = mockSubscriptions().find((s) => s.name === name) ?? mockSubscriptions()[1];
   return { subscription };
 };
+
+export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {
+  const policy = mockAuthPolicies().find((p) => p.name === name) ?? mockAuthPolicies()[0];
+  return {
+    policy,
+    modelRefs: mockModelRefSummaries(),
+  };
+};
+
+export const mockCreatePolicyResponse = (): MaaSAuthPolicy => ({
+  name: 'new-policy-from-test',
+  namespace: 'maas-system',
+  phase: 'Pending',
+  modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+  subjects: { groups: [{ name: 'premium-users' }] },
+});
 
 export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
   {
