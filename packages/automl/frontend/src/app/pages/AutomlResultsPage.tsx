@@ -72,7 +72,7 @@ function AutomlResultsPage(): React.JSX.Element {
           <AutomlInputParametersPanel
             onClose={() => setIsDrawerOpen(false)}
             parameters={contextValue.parameters}
-            isLoading={contextValue.pipelineRunLoading}
+            isLoading={pipelineRunPending}
           />
         }
       >
