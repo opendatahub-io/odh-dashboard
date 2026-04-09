@@ -3,6 +3,7 @@ import { PluginStateKF } from '@odh-dashboard/internal/concepts/pipelines/kfType
 import {
   buildMockExperimentKF,
   mockDashboardConfig,
+  mockDscStatus,
   mockDataSciencePipelineApplicationK8sResource,
   mockK8sResourceList,
   buildMockPipeline,
@@ -179,10 +180,8 @@ describe('Compare runs', () => {
     });
 
     it('shows the MLflow experiment column when MLflow is enabled', () => {
-      cy.interceptOdh(
-        'GET /api/config',
-        mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
-      );
+      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+      cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
       compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
         mockRun.run_id,
         mockRun2.run_id,
@@ -212,10 +211,8 @@ describe('Compare runs', () => {
         },
       });
 
-      cy.interceptOdh(
-        'GET /api/config',
-        mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
-      );
+      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+      cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
       cy.interceptOdh(
         'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
         {

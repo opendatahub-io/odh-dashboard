@@ -445,10 +445,7 @@ describe('Pipeline runs', () => {
         });
 
         it('navigate to MLflow experiment details from active run row', () => {
-          cy.interceptOdh(
-            'GET /api/config',
-            mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
-          );
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
           const runWithMlflow = buildMockRunKF({
             display_name: 'Run with mlflow',
             run_id: 'run-with-mlflow',
@@ -481,10 +478,7 @@ describe('Pipeline runs', () => {
         });
 
         it('shows the MLflow experiment column when MLflow is enabled', () => {
-          cy.interceptOdh(
-            'GET /api/config',
-            mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
-          );
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
           activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
           pipelineRunsGlobal.visit(projectName, 'active');
 
@@ -548,10 +542,7 @@ describe('Pipeline runs', () => {
         });
 
         it('filter by MLflow experiment', () => {
-          cy.interceptOdh(
-            'GET /api/config',
-            mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
-          );
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
           const runsWithMlflow = [
             buildMockRunKF({
               display_name: 'Run with mlflow first',

@@ -209,6 +209,29 @@ func TestCountLines(t *testing.T) {
 	assert.Equal(t, 3, countLines([]byte("a\nb\nc\n")))
 }
 
+func TestNormalizeLineEndings(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{name: "LF only (no change)", input: "a\nb\nc\n", want: "a\nb\nc\n"},
+		{name: "bare CR", input: "a\rb\rc\r", want: "a\nb\nc\n"},
+		{name: "CRLF", input: "a\r\nb\r\nc\r\n", want: "a\nb\nc\n"},
+		{name: "mixed CR and CRLF", input: "a\rb\r\nc\r", want: "a\nb\nc\n"},
+		{name: "no line endings", input: "abc", want: "abc"},
+		{name: "empty", input: "", want: ""},
+		{name: "consecutive bare CR", input: "a\r\rb", want: "a\n\nb"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := normalizeLineEndings([]byte(tt.input))
+			assert.Equal(t, tt.want, string(got))
+		})
+	}
+}
+
 // mockS3CodedError simulates AWS SDK errors that implement ErrorCode().
 type mockS3CodedError struct {
 	msg  string

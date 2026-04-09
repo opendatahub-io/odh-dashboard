@@ -93,7 +93,6 @@ describe('Experiments', () => {
 
     it('shows deprecated alert when MLflow is enabled', () => {
       initIntercepts();
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
       experimentsTabs.mockGetExperiments(projectName, mockExperiments);
       experimentsTabs.visit(projectName);
       experimentsPage.findPipelineExperimentDeprecatedAlert().should('exist');
