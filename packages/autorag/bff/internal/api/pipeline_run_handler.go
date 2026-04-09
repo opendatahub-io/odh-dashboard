@@ -87,6 +87,10 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 	// If pipeline was not discovered, auto-create it
 	if discovered == nil {
 		namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		if namespace == "" {
+			app.serverErrorResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used"))
+			return
+		}
 		pipelineServerBaseURL, _ := ctx.Value(constants.PipelineServerBaseURLKey).(string)
 		def := repositories.PipelineDefinition{
 			NamePrefix:   app.config.AutoRAGPipelineNamePrefix,

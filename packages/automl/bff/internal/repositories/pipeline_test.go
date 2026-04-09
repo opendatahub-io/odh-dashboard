@@ -5,10 +5,26 @@ import (
 	"fmt"
 	"testing"
 
+	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 )
+
+// conflictUploadMockClient wraps MockPipelineServerClient but returns 409 from UploadPipeline.
+// After the first upload attempt, subsequent ListPipelines calls return the pipeline
+// (simulating another instance having created it).
+type conflictUploadMockClient struct {
+	*psmocks.MockPipelineServerClient
+	uploaded bool
+}
+
+func (m *conflictUploadMockClient) UploadPipeline(_ context.Context, name string, _ string, _ []byte) (*models.KFPipeline, error) {
+	// Simulate the pipeline being created by another instance
+	m.PipelineNames = append(m.PipelineNames, name)
+	m.uploaded = true
+	return nil, &ps.HTTPError{StatusCode: 409, Message: "pipeline already exists"}
+}
 
 func TestDiscoverNamedPipelines(t *testing.T) {
 	repo := NewPipelineRepository()
@@ -475,5 +491,28 @@ func TestEnsurePipeline(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, discovered)
 		assert.Contains(t, err.Error(), "no YAML available")
+	})
+
+	t.Run("should retry discovery on 409 conflict during creation", func(t *testing.T) {
+		namespace := "test-ns-ensure-4"
+		baseMock := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		baseMock.PipelineNames = []string{"unrelated-pipeline"}
+		mockClient := &conflictUploadMockClient{MockPipelineServerClient: baseMock}
+
+		def := PipelineDefinition{
+			NamePrefix:   "autogluon-tabular-training-pipeline",
+			YAMLFilename: "autogluon-tabular-training-pipeline.yaml",
+		}
+
+		repo.InvalidateCache("http://mock-ps", namespace)
+
+		// UploadPipeline returns 409, but adds the pipeline name to PipelineNames
+		// so the retry discovery finds it
+		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, discovered)
+		assert.True(t, mockClient.uploaded, "UploadPipeline should have been called")
+		assert.Equal(t, "autogluon-tabular-training-pipeline", discovered.PipelineName)
 	})
 }

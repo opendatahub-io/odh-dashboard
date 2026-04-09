@@ -38,6 +38,9 @@ type PipelineServerClientInterface interface {
 	ListPipelines(ctx context.Context, filter string) (*models.KFPipelinesResponse, error)
 	ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error)
 	GetPipelineVersion(ctx context.Context, pipelineID, versionID string) (*models.KFPipelineVersion, error)
+	// UploadPipeline uploads a pipeline YAML to KFP. The fileName parameter is unused
+	// (multipart filename is hardcoded to avoid KFP using it as the pipeline name)
+	// but kept in the signature for future use.
 	UploadPipeline(ctx context.Context, name string, fileName string, fileContent []byte) (*models.KFPipeline, error)
 }
 
@@ -424,7 +427,7 @@ func (c *RealPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 
 // UploadPipeline uploads a pipeline YAML via the KFP v2beta1 /pipelines/upload
 // multipart endpoint, creating both the pipeline and its first version in one call.
-func (c *RealPipelineServerClient) UploadPipeline(ctx context.Context, name string, fileName string, fileContent []byte) (*models.KFPipeline, error) {
+func (c *RealPipelineServerClient) UploadPipeline(ctx context.Context, name string, _ string, fileContent []byte) (*models.KFPipeline, error) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
