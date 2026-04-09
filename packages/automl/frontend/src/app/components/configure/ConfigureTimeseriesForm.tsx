@@ -408,7 +408,7 @@ function ConfigureTimeseriesForm({
                   id="prediction-length-input"
                   value={field.value}
                   min={1}
-                  max={60}
+                  max={100}
                   validated={fieldState.error ? 'error' : 'default'}
                   onMinus={() => field.onChange(Number(field.value) - 1)}
                   onPlus={() => field.onChange(Number(field.value) + 1)}

@@ -42,7 +42,7 @@ function createConfigureSchema() {
       target: z.string().default('').optional(),
       id_column: z.string().default('').optional(),
       timestamp_column: z.string().default('').optional(),
-      prediction_length: z.number().min(1).max(60).default(1).optional(),
+      prediction_length: z.number().min(1).max(100).default(1).optional(),
       known_covariates_names: z.array(z.string()).default([]).optional(),
     }),
     validators: [
