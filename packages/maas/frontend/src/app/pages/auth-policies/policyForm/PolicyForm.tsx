@@ -35,18 +35,15 @@ import {
 import { URL_PREFIX } from '~/app/utilities/const';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 
-export type PolicyFormMode = 'create' | 'edit';
-
 export type PolicyFormProps = {
-  mode: PolicyFormMode;
   formData: SubscriptionPolicyFormDataResponse;
   initialPolicy?: MaaSAuthPolicy;
 };
 
-const PolicyForm: React.FC<PolicyFormProps> = ({ mode, formData, initialPolicy }) => {
+const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
   const navigate = useNavigate();
   const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
-    mode === 'edit' && initialPolicy
+    initialPolicy
       ? {
           initialData: {
             name: initialPolicy.displayName ?? initialPolicy.name,
@@ -58,7 +55,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ mode, formData, initialPolicy }
   );
 
   const [selectedGroups, setSelectedGroups] = React.useState<SelectionOptions[]>(() => {
-    if (mode === 'edit' && initialPolicy) {
+    if (initialPolicy) {
       const groupNames = initialPolicy.subjects.groups?.map((g) => g.name) ?? [];
       const allNames = [...new Set([...formData.groups, ...groupNames])];
       return allNames.map((g) => ({ id: g, name: g, selected: groupNames.includes(g) }));
@@ -68,9 +65,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ mode, formData, initialPolicy }
 
   const [groupsTouched, setGroupsTouched] = React.useState(false);
   const [selectedModels, setSelectedModels] = React.useState<MaaSModelRefSummary[]>(() =>
-    mode === 'edit' && initialPolicy
-      ? modelRefsToSummaries(initialPolicy.modelRefs, formData.modelRefs)
-      : [],
+    initialPolicy ? modelRefsToSummaries(initialPolicy.modelRefs, formData.modelRefs) : [],
   );
   const [isAddModelsModalOpen, setIsAddModelsModalOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -88,8 +83,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ mode, formData, initialPolicy }
     isValidK8sNameDescription &&
     selectedGroupNames.length > 0 &&
     selectedModels.length > 0 &&
-    !isSubmitting &&
-    (mode === 'create' || !!initialPolicy);
+    !isSubmitting;
 
   const handleAddModels = (refs: MaaSModelRefSummary[]) => {
     const existingKeys = new Set(selectedModels.map((m) => `${m.namespace}/${m.name}`));
@@ -119,10 +113,10 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ mode, formData, initialPolicy }
 
     try {
       const apiOpts: APIOptions = {};
-      if (mode === 'create') {
+      if (!initialPolicy) {
         const request: CreatePolicyRequest = { name: nameDescData.k8sName.value, ...sharedFields };
         await createAuthPolicy()(apiOpts, request);
-      } else if (initialPolicy) {
+      } else {
         const request: UpdatePolicyRequest = sharedFields;
         await updateAuthPolicy(initialPolicy.name)(apiOpts, request);
       }
@@ -134,8 +128,8 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ mode, formData, initialPolicy }
     }
   };
 
-  const primaryLabel = mode === 'create' ? 'Create policy' : 'Save changes';
-  const primaryLoadingLabel = mode === 'create' ? 'Creating...' : 'Saving...';
+  const primaryLabel = initialPolicy ? 'Save changes' : 'Create policy';
+  const primaryLoadingLabel = initialPolicy ? 'Saving...' : 'Creating...';
 
   return (
     <PageSection hasBodyWrapper={false}>
@@ -151,8 +145,8 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ mode, formData, initialPolicy }
           fieldId="policy-groups"
           isRequired
           labelHelp={
-            <Popover bodyContent="Select groups authorized by this policy. You can add OIDC group names.">
-              <Button variant="plain" aria-label="Groups help" style={{ padding: 0 }}>
+            <Popover bodyContent="Select existing groups from the list, or type the name of an OpenID Connect (OIDC) group and press Enter to add it. Groups correspond to OIDC group claims from your identity provider. Any group name that matches an OIDC group claim can be used, even if it does not appear in the list.">
+              <Button variant="plain" aria-label="Groups help" className="pf-v6-u-p-0">
                 <OutlinedQuestionCircleIcon />
               </Button>
             </Popover>
@@ -176,7 +170,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ mode, formData, initialPolicy }
             <HelperText>
               <HelperTextItem variant={groupsValidationError ? 'error' : 'default'}>
                 {groupsValidationError ||
-                  'Groups allowed to access the selected models through this policy.'}
+                  'Select groups that will be able to access this policy. You can also add the name of an OIDC group.'}
               </HelperTextItem>
             </HelperText>
           </FormHelperText>

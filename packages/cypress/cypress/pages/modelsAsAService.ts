@@ -1061,11 +1061,11 @@ class PolicyPage {
   }
 
   findToggleModelInModal(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`toggle-model-${modelName}`);
+    return this.findAddModelsModal().findByTestId(`toggle-model-${modelName}`);
   }
 
   findConfirmAddModelsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('confirm-add-models');
+    return this.findAddModelsModal().findByTestId('confirm-add-models');
   }
 
   findModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
