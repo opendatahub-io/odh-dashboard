@@ -314,11 +314,17 @@ jobs:
             **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Restore Cypress build cache
+        id: cypress-build-cache
         uses: actions/cache/restore@v4
         with:
           path: |
             **/public-cypress
           key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
+      - name: Rebuild on cache miss
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "::warning::Cypress build cache miss — rebuilding (key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }})"
+          npm run cypress:server:build:coverage -- --concurrency=4
       - name: Run Cypress Mock tests
         run: |
           npm run test:cypress-ci:coverage:nobuild -- --spec "../packages/${{ matrix.test-group.spec }}"

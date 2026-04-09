@@ -2,14 +2,12 @@ import { DashboardCommonConfig } from '#~/k8sTypes';
 import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from './types';
 
 export const techPreviewFlags = {
-  disableModelRegistry: true,
   genAiStudio: false,
   automl: false,
   autorag: false,
   modelAsService: false,
   maasAuthPolicies: false,
   aiAssetCustomEndpoints: false,
-  mlflow: false,
   mlflowPipelines: false,
   mcpCatalog: false,
   projectRBAC: true,
@@ -67,6 +65,7 @@ export const advancedAIMLFlags = {
   disablePipelines: false,
   disableDistributedWorkloads: false,
   disableModelCatalog: false,
+  disableModelRegistry: false,
   disableModelRegistrySecureDB: false,
   disableFeatureStore: false,
   disableFineTuning: true,
@@ -218,11 +217,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     requiredComponents: [DataScienceStackComponent.RAY],
   },
   [SupportedArea.MLFLOW]: {
-    featureFlags: ['mlflow'],
     requiredComponents: [DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.MLFLOW_PIPELINES]: {
-    featureFlags: ['mlflowPipelines', 'mlflow'],
+    featureFlags: ['mlflowPipelines'],
     requiredComponents: [DataScienceStackComponent.DS_PIPELINES, DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
