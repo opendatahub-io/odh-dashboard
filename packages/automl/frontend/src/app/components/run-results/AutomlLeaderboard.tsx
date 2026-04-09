@@ -301,7 +301,7 @@ function AutomlLeaderboard({
     const messageWithLink = (before: string, linkText: string, after = '.') =>
       namespace && runId ? (
         <>
-          <span>{before}&nbsp;</span>
+          <span>{before} </span>
           <Button
             variant="link"
             isInline
