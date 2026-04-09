@@ -18,7 +18,7 @@ import {
 import { retryableBefore, wasSetupPerformed } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
-import { getCustomResource } from '../../../../utils/oc_commands/customResources';
+import { isTrainerManaged } from '../../../../utils/oc_commands/dsc';
 import type { TrainJobTestData } from '../../../../types';
 
 describe('Verify user can monitor a training job through its lifecycle', () => {
@@ -36,16 +36,11 @@ describe('Verify user can monitor a training job through its lifecycle', () => {
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
-    cy.step('Check if the operator is RHOAI');
-    getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
-      if (result.code !== 0) {
-        throw new Error(`Failed to detect rhods-operator: ${result.stderr}`);
-      }
-      if (!result.stdout.includes('rhods-operator')) {
-        cy.log('RHOAI operator not found, skipping the test (Trainer is RHOAI-specific).');
+    cy.step('Check if Trainer component is Managed in DSC');
+    isTrainerManaged().then((managed) => {
+      if (!managed) {
+        cy.log('Trainer component is not Managed in DSC, skipping the test.');
         skipTest = true;
-      } else {
-        cy.log('RHOAI operator confirmed:', result.stdout);
       }
     });
 

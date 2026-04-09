@@ -13,7 +13,7 @@ import { deleteKueueResources } from '../../../../utils/oc_commands/distributedW
 import { modelTrainingGlobal, trainingJobTable } from '../../../../pages/modelTraining';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
-import { getCustomResource } from '../../../../utils/oc_commands/customResources';
+import { isTrainerManaged } from '../../../../utils/oc_commands/dsc';
 import type { TrainJobTestData } from '../../../../types';
 
 describe('Verify project access for user types in Training Jobs', () => {
@@ -39,18 +39,14 @@ describe('Verify project access for user types in Training Jobs', () => {
   };
 
   retryableBefore(() => {
-    // Check if the operator is RHOAI, if it's not (ODH), skip the test
-    cy.step('Check if the operator is RHOAI');
-    getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
-      if (!result.stdout.includes('rhods-operator')) {
-        cy.log('RHOAI operator not found, skipping the test (Trainer is RHOAI-specific).');
+    cy.step('Check if Trainer component is Managed in DSC');
+    isTrainerManaged().then((managed) => {
+      if (!managed) {
+        cy.log('Trainer component is not Managed in DSC, skipping the test.');
         skipTest = true;
-      } else {
-        cy.log('RHOAI operator confirmed:', result.stdout);
       }
     });
 
-    // If not skipping, proceed with test setup
     cy.then(() => {
       if (skipTest) {
         return;
