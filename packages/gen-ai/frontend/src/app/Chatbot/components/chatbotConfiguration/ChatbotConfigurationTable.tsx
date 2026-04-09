@@ -82,9 +82,14 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
         return Array.from(byKey.values());
       }
 
-      // Remove filtered models but keep locked ones
+      // Remove filtered models but keep locked ones.
+      // Build locked keys by composite key so a MaaS/namespace model sharing the
+      // same model_name as a locked embedding model isn't accidentally preserved.
+      const lockedModelKeys = new Set(
+        availableModels.filter((m) => lockedModelNames.has(m.model_name)).map(getModelKey),
+      );
       return prev.filter(
-        (m) => !availableKeys.has(getModelKey(m)) || lockedModelNames.has(m.model_name),
+        (m) => !availableKeys.has(getModelKey(m)) || lockedModelKeys.has(getModelKey(m)),
       );
     });
   };
