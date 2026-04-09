@@ -1,4 +1,15 @@
 import {
+  Bullseye,
+  Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  Label,
+  Skeleton,
+  Tooltip,
+} from '@patternfly/react-core';
+import { StarIcon } from '@patternfly/react-icons';
+import {
   ActionsColumn,
   InnerScrollContainer,
   Table,
@@ -9,28 +20,17 @@ import {
   Tr,
   type ThProps,
 } from '@patternfly/react-table';
-import { StarIcon } from '@patternfly/react-icons';
-import {
-  Bullseye,
-  Button,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateVariant,
-  Label,
-  Skeleton,
-  Tooltip,
-} from '@patternfly/react-core';
 import React from 'react';
-import { useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
+import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
+import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
-  getOptimizedMetricForRAG,
   formatMetricName,
   formatMetricValue,
+  getOptimizedMetricForRAG,
 } from '~/app/utilities/utils';
-import { RuntimeStateKF } from '~/app/types/pipeline';
-import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
 import './AutoragLeaderboard.scss';
 
 type LeaderboardEntry = {
@@ -68,7 +68,7 @@ function AutoragLeaderboard({
   onViewDetails,
   onSaveNotebook,
 }: AutoragLeaderboardProps): React.JSX.Element | null {
-  const { namespace } = useParams<{ namespace: string }>();
+  const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
   const { patterns, patternsLoading, pipelineRun, pipelineRunLoading } = useAutoragResultsContext();
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
@@ -356,20 +356,46 @@ function AutoragLeaderboard({
       pipelineRun?.state === RuntimeStateKF.FAILED ||
       pipelineRun?.state === RuntimeStateKF.CANCELED;
 
-    let message: string;
+    // Helper to render message with pipeline run link
+    const messageWithLink = (before: string, linkText: string, after = '.') => (
+      <>
+        <span>{before}&nbsp;</span>
+        <Button
+          variant="link"
+          isInline
+          component={(props) => (
+            <Link {...props} to={`/develop-train/pipelines/runs/${namespace}/runs/${runId}`} />
+          )}
+        >
+          {linkText}
+        </Button>
+        <span>{after}</span>
+      </>
+    );
+
+    let messageContent: React.ReactNode;
     if (!pipelineRun) {
-      message =
-        'Unable to determine pipeline run status. Please check the pipeline configuration and logs.';
+      messageContent = messageWithLink(
+        'Unable to determine pipeline run status. Please check the',
+        'pipeline configuration and logs',
+      );
     } else if (isRunFailed) {
-      message =
-        'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.';
+      messageContent = messageWithLink(
+        'The pipeline run did not complete successfully. Please check the',
+        'pipeline configuration and logs',
+        ' for errors.',
+      );
     } else if (isRunSucceeded) {
-      message =
-        'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.';
+      messageContent = messageWithLink(
+        'The pipeline run completed but did not generate any patterns. Please check the',
+        'pipeline configuration and logs',
+      );
     } else {
       // SKIPPED, PAUSED, CACHED, RUNTIME_STATE_UNSPECIFIED, or other unexpected states
-      message =
-        'The pipeline run is in an unexpected state. Please check the pipeline status and logs.';
+      messageContent = messageWithLink(
+        'The pipeline run is in an unexpected state. Please check the',
+        'pipeline status and logs',
+      );
     }
 
     return (
@@ -380,7 +406,7 @@ function AutoragLeaderboard({
           variant={EmptyStateVariant.sm}
           data-testid="leaderboard-empty"
         >
-          <EmptyStateBody>{message}</EmptyStateBody>
+          <EmptyStateBody>{messageContent}</EmptyStateBody>
         </EmptyState>
       </Bullseye>
     );

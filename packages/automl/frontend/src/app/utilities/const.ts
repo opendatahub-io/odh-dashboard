@@ -47,3 +47,12 @@ export const AUTOML_OPTIMIZED_METRIC_BY_TASK = {
   [TASK_TYPE_REGRESSION]: 'r2',
   [TASK_TYPE_TIMESERIES]: 'mase',
 };
+
+// Configure constants
+/** Human-readable labels for task type values. */
+export const TASK_TYPE_LABELS: Record<string, string> = {
+  [TASK_TYPE_BINARY]: 'Binary classification',
+  [TASK_TYPE_MULTICLASS]: 'Multiclass classification',
+  [TASK_TYPE_REGRESSION]: 'Regression',
+  [TASK_TYPE_TIMESERIES]: 'Time series forecasting',
+};

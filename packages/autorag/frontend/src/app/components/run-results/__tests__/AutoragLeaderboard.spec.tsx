@@ -227,10 +227,10 @@ const renderWithContext = ({
   };
 
   return render(
-    <MemoryRouter initialEntries={[`/autorag/${namespace}/results`]}>
+    <MemoryRouter initialEntries={[`/autorag/${namespace}/results/test-run-123`]}>
       <Routes>
         <Route
-          path="/autorag/:namespace/results"
+          path="/autorag/:namespace/results/:runId"
           element={
             <AutoragResultsContext.Provider value={contextValue}>
               <AutoragLeaderboard />
@@ -369,16 +369,19 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
 
       expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
-      expect(
-        within(emptyState).getByText(
-          'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
-        ),
-      ).toBeInTheDocument();
-      expect(
-        within(emptyState).queryByText(
-          'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
-        ),
-      ).not.toBeInTheDocument();
+      // Text is split across multiple elements (spans and a button), so use toHaveTextContent
+      expect(emptyState).toHaveTextContent(
+        'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
+      );
+      // Verify the interactive CTA link exists and navigates to the pipeline run page
+      const link = within(emptyState).getByRole('link', {
+        name: /pipeline configuration and logs/i,
+      });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
+      );
     });
 
     it('should show empty state with failure message when run failed', () => {
@@ -391,16 +394,17 @@ describe('AutoragLeaderboard component', () => {
       expect(emptyState).toBeInTheDocument();
 
       expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
-      expect(
-        within(emptyState).getByText(
-          'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
-        ),
-      ).toBeInTheDocument();
-      expect(
-        within(emptyState).queryByText(
-          'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
-        ),
-      ).not.toBeInTheDocument();
+      expect(emptyState).toHaveTextContent(
+        'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
+      );
+      const link = within(emptyState).getByRole('link', {
+        name: /pipeline configuration and logs/i,
+      });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
+      );
     });
 
     it('should show empty state with failure message when run was canceled', () => {
@@ -413,16 +417,17 @@ describe('AutoragLeaderboard component', () => {
       expect(emptyState).toBeInTheDocument();
 
       expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
-      expect(
-        within(emptyState).getByText(
-          'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
-        ),
-      ).toBeInTheDocument();
-      expect(
-        within(emptyState).queryByText(
-          'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
-        ),
-      ).not.toBeInTheDocument();
+      expect(emptyState).toHaveTextContent(
+        'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
+      );
+      const link = within(emptyState).getByRole('link', {
+        name: /pipeline configuration and logs/i,
+      });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
+      );
     });
 
     it('should show error message when pipelineRun is undefined', () => {
@@ -435,16 +440,17 @@ describe('AutoragLeaderboard component', () => {
       expect(emptyState).toBeInTheDocument();
 
       expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
-      expect(
-        within(emptyState).getByText(
-          'Unable to determine pipeline run status. Please check the pipeline configuration and logs.',
-        ),
-      ).toBeInTheDocument();
-      expect(
-        within(emptyState).queryByText(
-          'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
-        ),
-      ).not.toBeInTheDocument();
+      expect(emptyState).toHaveTextContent(
+        'Unable to determine pipeline run status. Please check the pipeline configuration and logs.',
+      );
+      const link = within(emptyState).getByRole('link', {
+        name: /pipeline configuration and logs/i,
+      });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
+      );
     });
 
     it('should show unexpected state message for SKIPPED state', () => {
@@ -457,16 +463,17 @@ describe('AutoragLeaderboard component', () => {
       expect(emptyState).toBeInTheDocument();
 
       expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
-      expect(
-        within(emptyState).getByText(
-          'The pipeline run is in an unexpected state. Please check the pipeline status and logs.',
-        ),
-      ).toBeInTheDocument();
-      expect(
-        within(emptyState).queryByText(
-          'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
-        ),
-      ).not.toBeInTheDocument();
+      expect(emptyState).toHaveTextContent(
+        'The pipeline run is in an unexpected state. Please check the pipeline status and logs.',
+      );
+      const link = within(emptyState).getByRole('link', {
+        name: /pipeline status and logs/i,
+      });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
+      );
     });
 
     it('should show unexpected state message for PAUSED state', () => {
@@ -479,16 +486,17 @@ describe('AutoragLeaderboard component', () => {
       expect(emptyState).toBeInTheDocument();
 
       expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
-      expect(
-        within(emptyState).getByText(
-          'The pipeline run is in an unexpected state. Please check the pipeline status and logs.',
-        ),
-      ).toBeInTheDocument();
-      expect(
-        within(emptyState).queryByText(
-          'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
-        ),
-      ).not.toBeInTheDocument();
+      expect(emptyState).toHaveTextContent(
+        'The pipeline run is in an unexpected state. Please check the pipeline status and logs.',
+      );
+      const link = within(emptyState).getByRole('link', {
+        name: /pipeline status and logs/i,
+      });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
+      );
     });
 
     it('should render loading skeleton with correct structure', () => {
