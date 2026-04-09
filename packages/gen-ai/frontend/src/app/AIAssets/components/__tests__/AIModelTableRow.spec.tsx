@@ -392,6 +392,39 @@ describe('AIModelTableRow', () => {
       );
     });
 
+    it('should not show Try in playground for a namespace model when only the MaaS variant of the same model_id is in the playground', () => {
+      // Regression: before the fix both source-type rows resolved to the same
+      // playground entry because the lookup only compared modelId.
+      const sharedModelId = 'shared-model-id';
+      const maasPlaygroundModel = createMockPlaygroundModel(sharedModelId, 'maas-vllm-inference-1');
+
+      // Render the NAMESPACE variant — the playground only contains the MaaS variant.
+      const namespaceModel = createMockAIModel({
+        model_id: sharedModelId,
+        model_source_type: 'namespace',
+      });
+
+      render(
+        <TestWrapper>
+          <AIModelTableRow
+            {...defaultProps}
+            model={namespaceModel}
+            playgroundModels={[maasPlaygroundModel]}
+          />
+        </TestWrapper>,
+      );
+
+      // Namespace row must show "Add to playground", not "Try in playground".
+      expect(screen.getByText('Add to playground')).toBeInTheDocument();
+      expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
+
+      // No tracking event should fire.
+      expect(mockFireMiscTrackingEvent).not.toHaveBeenCalledWith(
+        'Available Endpoints Playground Launched',
+        expect.objectContaining({ assetType: 'maas_model' }),
+      );
+    });
+
     it('should track assetType as model for non-MaaS models on playground launch', () => {
       const model = createMockAIModel({ model_id: 'ns-model-id', model_source_type: 'namespace' });
       const playgroundModel = createMockPlaygroundModel('ns-model-id');
