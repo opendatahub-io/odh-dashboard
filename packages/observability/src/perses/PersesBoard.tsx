@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Dashboard, DashboardStickyToolbar } from '@perses-dev/dashboards';
 
 const PersesBoard: React.FC = () => (
-  <div>
+  <>
     <DashboardStickyToolbar initialVariableIsSticky={false} />
     <Dashboard
       emptyDashboardProps={{
@@ -10,7 +10,7 @@ const PersesBoard: React.FC = () => (
         description: 'To get started add something to your dashboard',
       }}
     />
-  </div>
+  </>
 );
 
 export default PersesBoard;
