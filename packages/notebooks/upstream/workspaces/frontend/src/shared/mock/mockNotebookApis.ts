@@ -4,6 +4,9 @@ import {
   mockAllWorkspaces,
   mockedHealthCheckResponse,
   mockNamespaces,
+  mockPVCCreate,
+  mockPVCsList,
+  mockStorageClassesList,
   mockWorkspaceCreate,
   mockSecretCreate,
   mockSecretCreate3,
@@ -125,8 +128,39 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
     updateSecret: async () => ({
       data: mockSecretCreate,
     }),
-    deleteSecret: async () => {
+    deleteSecret: async (namespace, name) => {
+      // For mock API errors, a secret is considered invalid if the name contains a specific pattern.
+      if (name.includes('-invalid')) {
+        const apiErrorEnvelope: ApiErrorEnvelope = {
+          error: {
+            code: 'invalid_name',
+            message: 'Invalid name',
+          },
+        };
+        throw buildAxiosError(apiErrorEnvelope);
+      }
       await delay(1500);
     },
+  },
+  pvc: {
+    listPvCs: async () => ({ data: mockPVCsList }),
+    createPvc: async (_namespace, pvc) => {
+      if (pvc.data.name.includes('-invalid')) {
+        const apiErrorEnvelope: ApiErrorEnvelope = {
+          error: {
+            code: 'invalid_name',
+            message: 'Invalid name',
+          },
+        };
+        throw buildAxiosError(apiErrorEnvelope);
+      }
+      return { data: mockPVCCreate };
+    },
+    deletePvc: async () => {
+      await delay(1500);
+    },
+  },
+  storageClasses: {
+    listStorageClasses: async () => ({ data: mockStorageClassesList }),
   },
 });

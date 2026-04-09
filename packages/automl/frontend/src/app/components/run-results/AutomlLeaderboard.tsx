@@ -1,4 +1,15 @@
 import {
+  Bullseye,
+  Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  Label,
+  Skeleton,
+  Tooltip,
+} from '@patternfly/react-core';
+import { StarIcon } from '@patternfly/react-icons';
+import {
   ActionsColumn,
   InnerScrollContainer,
   Table,
@@ -9,27 +20,16 @@ import {
   Tr,
   type ThProps,
 } from '@patternfly/react-table';
-import { StarIcon } from '@patternfly/react-icons';
-import {
-  Bullseye,
-  Button,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateVariant,
-  Label,
-  Skeleton,
-  Tooltip,
-} from '@patternfly/react-core';
 import React from 'react';
-import { useParams } from 'react-router';
-import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
-import {
-  getOptimizedMetricForTask,
-  formatMetricValue,
-  formatMetricName,
-} from '~/app/utilities/utils';
-import { RuntimeStateKF } from '~/app/types/pipeline';
+import { Link, useParams } from 'react-router';
 import AutomlRunInProgress from '~/app/components/empty-states/AutomlRunInProgress';
+import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
+import { RuntimeStateKF } from '~/app/types/pipeline';
+import {
+  formatMetricName,
+  formatMetricValue,
+  getOptimizedMetricForTask,
+} from '~/app/utilities/utils';
 import './AutomlLeaderboard.scss';
 
 type LeaderboardEntry = {
@@ -51,7 +51,7 @@ function AutomlLeaderboard({
   onClickSaveNotebook,
   onRegisterModel,
 }: AutomlLeaderboardProps): React.JSX.Element | null {
-  const { namespace } = useParams<{ namespace: string }>();
+  const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
   const { models, parameters, modelsLoading, pipelineRun, pipelineRunLoading } =
     useAutomlResultsContext();
   // FYI default taskType to timeseries since it is the only task which will not have
@@ -301,8 +301,19 @@ function AutomlLeaderboard({
           data-testid="leaderboard-empty"
         >
           <EmptyStateBody>
-            The pipeline run completed but did not generate any models. Please check the pipeline
-            configuration and logs.
+            <span>
+              The pipeline run completed but did not generate any models. Please check the&nbsp;
+            </span>
+            <Button
+              variant="link"
+              isInline
+              component={(props) => (
+                <Link {...props} to={`/develop-train/pipelines/runs/${namespace}/runs/${runId}`} />
+              )}
+            >
+              pipeline configuration and logs
+            </Button>
+            <span>.</span>
           </EmptyStateBody>
         </EmptyState>
       </Bullseye>

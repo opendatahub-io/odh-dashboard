@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.4
+    controller-gen.kubebuilder.io/version: v0.20.1
   name: workspaces.kubeflow.org
 spec:
   group: kubeflow.org
@@ -11,6 +11,8 @@ spec:
     kind: Workspace
     listKind: WorkspaceList
     plural: workspaces
+    shortNames:
+    - ws
     singular: workspace
   scope: Namespaced
   versions:
@@ -47,9 +49,9 @@ spec:
               kind:
                 description: the WorkspaceKind to use
                 example: jupyterlab
-                maxLength: 63
-                minLength: 2
-                pattern: ^[a-z0-9][-a-z0-9]*[a-z0-9]$
+                maxLength: 253
+                minLength: 1
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                 type: string
                 x-kubernetes-validations:
                 - message: Workspace 'kind' is immutable
@@ -122,9 +124,9 @@ spec:
                             pvcName:
                               description: the name of the PVC to mount
                               example: my-data-pvc
-                              maxLength: 63
-                              minLength: 2
-                              pattern: ^[a-z0-9][-a-z0-9]*[a-z0-9]$
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                               type: string
                             readOnly:
                               default: false
@@ -146,9 +148,9 @@ spec:
                            - the mount path is defined in the WorkspaceKind under
                              `spec.podTemplate.volumeMounts.home`
                         example: my-home-pvc
-                        maxLength: 63
-                        minLength: 2
-                        pattern: ^[a-z0-9][-a-z0-9]*[a-z0-9]$
+                        maxLength: 253
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                         type: string
                       secrets:
                         description: |-
@@ -179,8 +181,8 @@ spec:
                             secretName:
                               description: the name of the Secret to mount
                               example: my-secret
-                              maxLength: 63
-                              minLength: 2
+                              maxLength: 253
+                              minLength: 1
                               pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                               type: string
                           required:
@@ -339,8 +341,12 @@ spec:
                   name:
                     description: the name of the Pod resource
                     type: string
+                  nodeName:
+                    description: the name of the node on which the Pod is scheduled
+                    type: string
                 required:
                 - name
+                - nodeName
                 type: object
               state:
                 default: Unknown

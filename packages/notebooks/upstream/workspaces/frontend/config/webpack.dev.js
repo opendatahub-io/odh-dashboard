@@ -9,6 +9,7 @@ const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const smp = new SpeedMeasurePlugin({ disable: !process.env.MEASURE });
 
 const env = process.env.DEV_ENV ?? 'development';
+const isTilt = env === 'tilt';
 setupDotenvFilesForEnv({ env });
 const webpackCommon = require('./webpack.common.js');
 
@@ -86,7 +87,11 @@ module.exports = smp.wrap(
         historyApiFallback: {
           index: `${BASE_PATH}/index.html`.replace('//', '/'),
         },
-        hot: true,
+        // In Tilt mode, disable HMR and live reload since the Istio gateway
+        // doesn't route WebSocket traffic. Webpack still watches files and
+        // rebuilds on changes; just refresh the browser manually.
+        hot: !isTilt,
+        liveReload: !isTilt,
         open: [BASE_PATH],
         proxy: [
           {
@@ -104,9 +109,11 @@ module.exports = smp.wrap(
           stats: 'errors-only',
           publicPath: BASE_PATH,
         },
-        client: {
-          overlay: false,
-        },
+        client: isTilt
+          ? false
+          : {
+              overlay: false,
+            },
         static: {
           directory: DIST_DIR,
           publicPath: BASE_PATH,

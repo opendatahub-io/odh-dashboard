@@ -1,4 +1,15 @@
 import {
+  Bullseye,
+  Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  Label,
+  Skeleton,
+  Tooltip,
+} from '@patternfly/react-core';
+import { StarIcon } from '@patternfly/react-icons';
+import {
   ActionsColumn,
   InnerScrollContainer,
   Table,
@@ -9,28 +20,17 @@ import {
   Tr,
   type ThProps,
 } from '@patternfly/react-table';
-import { StarIcon } from '@patternfly/react-icons';
-import {
-  Bullseye,
-  Button,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateVariant,
-  Label,
-  Skeleton,
-  Tooltip,
-} from '@patternfly/react-core';
 import React from 'react';
-import { useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
+import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
+import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
-  getOptimizedMetricForRAG,
   formatMetricName,
   formatMetricValue,
+  getOptimizedMetricForRAG,
 } from '~/app/utilities/utils';
-import { RuntimeStateKF } from '~/app/types/pipeline';
-import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
 import './AutoragLeaderboard.scss';
 
 type LeaderboardEntry = {
@@ -68,7 +68,7 @@ function AutoragLeaderboard({
   onViewDetails,
   onSaveNotebook,
 }: AutoragLeaderboardProps): React.JSX.Element | null {
-  const { namespace } = useParams<{ namespace: string }>();
+  const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
   const { patterns, patternsLoading, pipelineRun, pipelineRunLoading } = useAutoragResultsContext();
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
@@ -360,8 +360,19 @@ function AutoragLeaderboard({
           data-testid="leaderboard-empty"
         >
           <EmptyStateBody>
-            The pipeline run completed but did not generate any patterns. Please check the pipeline
-            configuration and logs.
+            <span>
+              The pipeline run completed but did not generate any patterns. Please check the&nbsp;
+            </span>
+            <Button
+              variant="link"
+              isInline
+              component={(props) => (
+                <Link {...props} to={`/develop-train/pipelines/runs/${namespace}/runs/${runId}`} />
+              )}
+            >
+              pipeline configuration and logs
+            </Button>
+            <span>.</span>
           </EmptyStateBody>
         </EmptyState>
       </Bullseye>
