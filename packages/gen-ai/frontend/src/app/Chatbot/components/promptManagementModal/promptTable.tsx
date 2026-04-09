@@ -77,6 +77,8 @@ export default function PromptTable({
   useEffect(() => {
     if (selectedPromptVersions.length > 0) {
       setSelectedVersion(selectedPromptVersions[0].version);
+    } else {
+      setSelectedVersion(null);
     }
   }, [selectedPromptVersions]);
 
