@@ -85,13 +85,13 @@ func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterfa
 		constants.PipelineTypeTimeSeries: {
 			PipelineID:        ids.PipelineID,
 			PipelineVersionID: ids.LatestVersionID,
-			PipelineName:      "automl-timeseries-pipeline",
+			PipelineName:      "autogluon-timeseries-training-pipeline",
 			Namespace:         "test-namespace",
 		},
 		constants.PipelineTypeTabular: {
 			PipelineID:        ids.PipelineID,
 			PipelineVersionID: ids.OldVersionID,
-			PipelineName:      "automl-tabular-pipeline",
+			PipelineName:      "autogluon-tabular-training-pipeline",
 			Namespace:         "test-namespace",
 		},
 	}

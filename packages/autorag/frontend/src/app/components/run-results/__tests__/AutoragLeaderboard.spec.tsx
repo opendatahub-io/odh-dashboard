@@ -227,10 +227,10 @@ const renderWithContext = ({
   };
 
   return render(
-    <MemoryRouter initialEntries={[`/autorag/${namespace}/results`]}>
+    <MemoryRouter initialEntries={[`/autorag/${namespace}/results/test-run-123`]}>
       <Routes>
         <Route
-          path="/autorag/:namespace/results"
+          path="/autorag/:namespace/results/:runId"
           element={
             <AutoragResultsContext.Provider value={contextValue}>
               <AutoragLeaderboard />
@@ -358,7 +358,7 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
     });
 
-    it('should show empty state when there are no patterns', () => {
+    it('should show empty state with completion message when succeeded with no patterns', () => {
       renderWithContext({
         patterns: {},
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
@@ -368,13 +368,79 @@ describe('AutoragLeaderboard component', () => {
       expect(emptyState).toBeInTheDocument();
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
 
-      // Verify EmptyState component structure
       expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
-      expect(
-        within(emptyState).getByText(
+      // Text is split across multiple elements (spans and a button), so use toHaveTextContent
+      expect(emptyState).toHaveTextContent(
+        'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
+      );
+      // Verify the interactive CTA link exists and navigates to the pipeline run page
+      const link = within(emptyState).getByRole('link', {
+        name: /pipeline configuration and logs/i,
+      });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
+      );
+    });
+
+    it.each([
+      [
+        'when run failed',
+        RuntimeStateKF.FAILED,
+        'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
+        /pipeline configuration and logs/i,
+      ],
+      [
+        'when run was canceled',
+        RuntimeStateKF.CANCELED,
+        'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
+        /pipeline configuration and logs/i,
+      ],
+      [
+        'when pipelineRun is undefined',
+        undefined,
+        'Unable to determine pipeline run status. Please check the pipeline configuration and logs.',
+        /pipeline configuration and logs/i,
+      ],
+      [
+        'for SKIPPED state',
+        RuntimeStateKF.SKIPPED,
+        'The pipeline run is in an unexpected state. Please check the pipeline status and logs.',
+        /pipeline status and logs/i,
+      ],
+      [
+        'for PAUSED state',
+        RuntimeStateKF.PAUSED,
+        'The pipeline run is in an unexpected state. Please check the pipeline status and logs.',
+        /pipeline status and logs/i,
+      ],
+    ])('should show empty state %s', (_testName, state, expectedMessage, linkName) => {
+      renderWithContext({
+        patterns: {},
+        pipelineRun: state !== undefined ? createMockPipelineRun(state) : undefined,
+      });
+
+      const emptyState = screen.getByTestId('leaderboard-empty');
+      expect(emptyState).toBeInTheDocument();
+      expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+
+      expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
+      expect(emptyState).toHaveTextContent(expectedMessage);
+
+      // All non-SUCCEEDED states should NOT show the SUCCEEDED message
+      if (state !== RuntimeStateKF.SUCCEEDED) {
+        expect(emptyState).not.toHaveTextContent(
           'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
-        ),
-      ).toBeInTheDocument();
+        );
+      }
+
+      const link = within(emptyState).getByRole('link', { name: linkName });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
+      );
     });
 
     it('should render loading skeleton with correct structure', () => {

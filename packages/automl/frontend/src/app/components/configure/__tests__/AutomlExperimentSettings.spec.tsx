@@ -1,18 +1,22 @@
+/* eslint-disable camelcase */
 import { zodResolver } from '@hookform/resolvers/zod';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import AutomlExperimentSettings from '~/app/components/configure/AutomlExperimentSettings';
-import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 
 const configureSchema = createConfigureSchema();
 
-const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const FormWrapper: React.FC<{
+  children: React.ReactNode;
+  defaultValues?: Partial<ConfigureSchema>;
+}> = ({ children, defaultValues }) => {
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
-    defaultValues: configureSchema.defaults,
+    defaultValues: { ...configureSchema.defaults, ...defaultValues },
   });
   return <FormProvider {...form}>{children}</FormProvider>;
 };
@@ -24,9 +28,9 @@ const defaultProps = {
   saveChanges: jest.fn(),
 };
 
-const renderComponent = (props = {}) =>
+const renderComponent = (props = {}, defaultValues?: Partial<ConfigureSchema>) =>
   render(
-    <FormWrapper>
+    <FormWrapper defaultValues={defaultValues}>
       <AutomlExperimentSettings {...defaultProps} {...props} />
     </FormWrapper>,
   );
@@ -81,11 +85,12 @@ describe('AutomlExperimentSettings', () => {
     });
 
     it('should show error message when top N exceeds the maximum', async () => {
-      renderComponent();
-      changeTopN('6');
+      // Provide a valid task_type so the cross-field top_n max validator runs
+      renderComponent({}, { task_type: 'binary' });
+      changeTopN('11');
 
       await waitFor(() => {
-        expect(screen.getByText('Maximum number of top models is 5')).toBeInTheDocument();
+        expect(screen.getByText('Maximum number of top models is 10')).toBeInTheDocument();
       });
     });
 

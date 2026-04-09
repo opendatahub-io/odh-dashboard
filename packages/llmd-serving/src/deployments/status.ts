@@ -11,7 +11,12 @@ import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
-import { LLMdDeployment, LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
+import {
+  LLMdDeployment,
+  LLMInferenceServiceKind,
+  LLMInferenceServiceModel,
+  LLMInferenceServiceReadyConditionReason,
+} from '../types';
 
 export const useLLMInferenceServicePods = (
   namespace: string,
@@ -35,13 +40,12 @@ export const useLLMInferenceServicePods = (
 export const getLLMdDeploymentStatus = (
   inferenceService: LLMInferenceServiceKind,
   deploymentPods: PodKind[],
-  gracePeriod?: boolean,
 ): DeploymentStatus => {
   const deploymentPod = deploymentPods.length > 0 ? deploymentPods[0] : undefined;
 
   const modelPodStatus = deploymentPod ? checkModelPodStatus(deploymentPod) : undefined;
 
-  const state = getLLMInferenceServiceModelState(inferenceService, modelPodStatus, gracePeriod);
+  const state = getLLMInferenceServiceModelState(inferenceService, modelPodStatus);
   const message = getLLMInferenceServiceStatusMessage(inferenceService, modelPodStatus);
 
   const stoppedStates = getModelDeploymentStoppedStates(
@@ -75,23 +79,23 @@ export const patchDeploymentStoppedStatus = (
 export const getLLMInferenceServiceModelState = (
   is: LLMInferenceServiceKind,
   modelPodStatus?: ModelStatus | null,
-  gracePeriod?: boolean,
 ): ModelDeploymentState => {
   const readyCondition = is.status?.conditions?.find((condition) => condition.type === 'Ready');
   if (modelPodStatus?.failedToSchedule) {
     return ModelDeploymentState.FAILED_TO_LOAD;
   }
-
-  if (
-    (gracePeriod && readyCondition?.status !== 'True') ||
-    // if the service is actually stopped it overrides this, checking for stopped here prevents a false failure while the status is updating after hitting start
-    (readyCondition?.message && readyCondition.message === 'Service is stopped')
-  ) {
-    return ModelDeploymentState.PENDING;
-  }
   switch (readyCondition?.status) {
     case 'False':
-      return ModelDeploymentState.FAILED_TO_LOAD;
+      if (
+        readyCondition.reason === LLMInferenceServiceReadyConditionReason.PROGRESS_DEADLINE_EXCEEDED
+      ) {
+        return ModelDeploymentState.FAILED_TO_LOAD;
+      }
+      if (readyCondition.reason === LLMInferenceServiceReadyConditionReason.STOPPED) {
+        // if the service is actually stopped it overrides this, checking for stopped here prevents a false failure while the status is updating after hitting start
+        return ModelDeploymentState.PENDING;
+      }
+      return ModelDeploymentState.PENDING;
     case 'True':
       return ModelDeploymentState.LOADED;
     default:
@@ -110,14 +114,4 @@ export const getLLMInferenceServiceStatusMessage = (
     is.status?.conditions?.find((condition) => condition.type === 'Ready')?.message ?? 'Unknown';
 
   return stateMessage;
-};
-
-export const calculateGracePeriod = (lastActivity?: Date): boolean => {
-  if (!lastActivity || Number.isNaN(lastActivity.getTime())) {
-    return false;
-  }
-  const now = Date.now();
-  const idleTime = new Date(lastActivity).setSeconds(lastActivity.getSeconds() + 600);
-  // Return true if we're still within grace period
-  return idleTime - now > 0;
 };
