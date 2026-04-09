@@ -19,22 +19,21 @@ const maxRequestBodyBytes = 10 << 20
 
 type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
 
-// pipelineDefinition returns the PipelineDefinition for the given pipeline type,
-// mapping config prefixes to embedded YAML filenames.
+// pipelineDefinition returns the PipelineDefinition for the given pipeline type.
 func (app *App) pipelineDefinition(pipelineType string) repositories.PipelineDefinition {
 	switch pipelineType {
 	case constants.PipelineTypeTimeSeries:
 		return repositories.PipelineDefinition{
-			NamePrefix:   app.config.AutoMLTimeSeriesPipelineNamePrefix,
+			Name:         app.config.AutoMLTimeSeriesPipelineNamePrefix,
 			YAMLFilename: "autogluon-timeseries-training-pipeline.yaml",
 		}
 	case constants.PipelineTypeTabular:
 		return repositories.PipelineDefinition{
-			NamePrefix:   app.config.AutoMLTabularPipelineNamePrefix,
+			Name:         app.config.AutoMLTabularPipelineNamePrefix,
 			YAMLFilename: "autogluon-tabular-training-pipeline.yaml",
 		}
 	default:
-		return repositories.PipelineDefinition{NamePrefix: pipelineType}
+		return repositories.PipelineDefinition{Name: pipelineType}
 	}
 }
 

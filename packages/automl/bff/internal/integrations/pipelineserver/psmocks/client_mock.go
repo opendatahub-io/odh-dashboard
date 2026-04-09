@@ -94,9 +94,8 @@ func (m *MockPipelineServerClient) pipelineDisplayName() string {
 	return defaultPipelineNamePrefix
 }
 
-// UploadPipeline returns a mock pipeline for the upload endpoint.
-// It also adds the name to PipelineNames so ListPipelineVersions can return versions for it.
-func (m *MockPipelineServerClient) UploadPipeline(_ context.Context, name string, _ string, _ []byte) (*models.KFPipeline, error) {
+// CreatePipeline returns a mock pipeline shell (no version).
+func (m *MockPipelineServerClient) CreatePipeline(_ context.Context, name string) (*models.KFPipeline, error) {
 	m.PipelineNames = append(m.PipelineNames, name)
 	ids := DeriveMockIDsFromName(m.Namespace, name)
 	return &models.KFPipeline{
@@ -104,6 +103,16 @@ func (m *MockPipelineServerClient) UploadPipeline(_ context.Context, name string
 		DisplayName: name,
 		Namespace:   m.Namespace,
 		CreatedAt:   "2026-04-08T12:00:00Z",
+	}, nil
+}
+
+// UploadPipelineVersion returns a mock pipeline version with the given version name.
+func (m *MockPipelineServerClient) UploadPipelineVersion(_ context.Context, pipelineID string, versionName string, _ []byte) (*models.KFPipelineVersion, error) {
+	return &models.KFPipelineVersion{
+		PipelineID:        pipelineID,
+		PipelineVersionID: hashUUID("version:" + pipelineID + ":" + versionName),
+		DisplayName:       versionName,
+		CreatedAt:         "2026-04-08T12:00:00Z",
 	}, nil
 }
 

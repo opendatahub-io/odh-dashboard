@@ -38,10 +38,8 @@ type PipelineServerClientInterface interface {
 	ListPipelines(ctx context.Context, filter string) (*models.KFPipelinesResponse, error)
 	ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error)
 	GetPipelineVersion(ctx context.Context, pipelineID, versionID string) (*models.KFPipelineVersion, error)
-	// UploadPipeline uploads a pipeline YAML to KFP. The fileName parameter is unused
-	// (multipart filename is hardcoded to avoid KFP using it as the pipeline name)
-	// but kept in the signature for future use.
-	UploadPipeline(ctx context.Context, name string, fileName string, fileContent []byte) (*models.KFPipeline, error)
+	CreatePipeline(ctx context.Context, name string) (*models.KFPipeline, error)
+	UploadPipelineVersion(ctx context.Context, pipelineID string, versionName string, fileContent []byte) (*models.KFPipelineVersion, error)
 }
 
 // maxPipelineErrorBodySize limits the size of error response bodies to prevent memory exhaustion.
@@ -425,44 +423,23 @@ func (c *RealPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 	return &response, nil
 }
 
-// UploadPipeline uploads a pipeline YAML via the KFP v2beta1 /pipelines/upload
-// multipart endpoint, creating both the pipeline and its first version in one call.
-func (c *RealPipelineServerClient) UploadPipeline(ctx context.Context, name string, _ string, fileContent []byte) (*models.KFPipeline, error) {
+// CreatePipeline creates a pipeline shell (no version) via JSON POST to /apis/v2beta1/pipelines.
+func (c *RealPipelineServerClient) CreatePipeline(ctx context.Context, name string) (*models.KFPipeline, error) {
 	if name == "" {
 		return nil, fmt.Errorf("pipeline name cannot be empty")
 	}
-	if len(fileContent) == 0 {
-		return nil, fmt.Errorf("pipeline file content cannot be empty")
-	}
 
-	var buf bytes.Buffer
-	writer := multipart.NewWriter(&buf)
-
-	// Use a generic filename for the multipart upload — the pipeline name is
-	// controlled by the name/display_name query params, not the filename.
-	part, err := writer.CreateFormFile("uploadfile", "uploadedFile.yaml")
+	body, err := json.Marshal(map[string]string{"display_name": name})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create form file: %w", err)
-	}
-	if _, err := part.Write(fileContent); err != nil {
-		return nil, fmt.Errorf("failed to write file content: %w", err)
-	}
-	if err := writer.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	// Pass name and display_name as query params (matches how the dashboard UI uploads)
-	queryParams := url.Values{}
-	queryParams.Set("name", name)
-	queryParams.Set("display_name", name)
-	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/upload?%s", c.baseURL, queryParams.Encode())
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, &buf)
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines", c.baseURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-
+	req.Header.Set("Content-Type", "application/json")
 	if c.authToken != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
 	}
@@ -477,21 +454,82 @@ func (c *RealPipelineServerClient) UploadPipeline(ctx context.Context, name stri
 		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
 		respBody, _ := io.ReadAll(limitedReader)
 		_, _ = io.Copy(io.Discard, resp.Body)
-
 		errorMsg := string(respBody)
 		if len(respBody) == maxPipelineErrorBodySize {
 			errorMsg += " (truncated)"
 		}
-		return nil, &HTTPError{
-			StatusCode: resp.StatusCode,
-			Message:    errorMsg,
-		}
+		return nil, &HTTPError{StatusCode: resp.StatusCode, Message: errorMsg}
 	}
 
 	var pipeline models.KFPipeline
 	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&pipeline); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-
 	return &pipeline, nil
+}
+
+// UploadPipelineVersion uploads a pipeline YAML as a named version of an existing pipeline
+// via multipart POST to /apis/v2beta1/pipelines/upload_version.
+func (c *RealPipelineServerClient) UploadPipelineVersion(ctx context.Context, pipelineID string, versionName string, fileContent []byte) (*models.KFPipelineVersion, error) {
+	if pipelineID == "" {
+		return nil, fmt.Errorf("pipeline ID cannot be empty")
+	}
+	if versionName == "" {
+		return nil, fmt.Errorf("version name cannot be empty")
+	}
+	if len(fileContent) == 0 {
+		return nil, fmt.Errorf("pipeline file content cannot be empty")
+	}
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	part, err := writer.CreateFormFile("uploadfile", "uploadedFile.yaml")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create form file: %w", err)
+	}
+	if _, err := part.Write(fileContent); err != nil {
+		return nil, fmt.Errorf("failed to write file content: %w", err)
+	}
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	queryParams := url.Values{}
+	queryParams.Set("name", versionName)
+	queryParams.Set("display_name", versionName)
+	queryParams.Set("pipelineid", pipelineID)
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/upload_version?%s", c.baseURL, queryParams.Encode())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, &buf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		respBody, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+		errorMsg := string(respBody)
+		if len(respBody) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return nil, &HTTPError{StatusCode: resp.StatusCode, Message: errorMsg}
+	}
+
+	var version models.KFPipelineVersion
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&version); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+	return &version, nil
 }

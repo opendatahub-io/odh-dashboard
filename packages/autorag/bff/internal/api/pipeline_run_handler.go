@@ -93,7 +93,7 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		}
 		pipelineServerBaseURL, _ := ctx.Value(constants.PipelineServerBaseURLKey).(string)
 		def := repositories.PipelineDefinition{
-			NamePrefix:   app.config.AutoRAGPipelineNamePrefix,
+			Name:         app.config.AutoRAGPipelineNamePrefix,
 			YAMLFilename: "documents-rag-optimization-pipeline.yaml",
 		}
 

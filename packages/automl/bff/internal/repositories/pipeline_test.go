@@ -11,19 +11,36 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// conflictUploadMockClient wraps MockPipelineServerClient but returns 409 from UploadPipeline.
-// After the first upload attempt, subsequent ListPipelines calls return the pipeline
-// (simulating another instance having created it).
-type conflictUploadMockClient struct {
+// conflictVersionMockClient wraps MockPipelineServerClient but returns 409 from UploadPipelineVersion.
+// ListPipelineVersions returns a version matching the expected version name to simulate
+// the version having been created by another instance.
+type conflictVersionMockClient struct {
 	*psmocks.MockPipelineServerClient
-	uploaded bool
+	uploaded    bool
+	versionName string // set by UploadPipelineVersion for ListPipelineVersions to return
 }
 
-func (m *conflictUploadMockClient) UploadPipeline(_ context.Context, name string, _ string, _ []byte) (*models.KFPipeline, error) {
-	// Simulate the pipeline being created by another instance
-	m.PipelineNames = append(m.PipelineNames, name)
+func (m *conflictVersionMockClient) UploadPipelineVersion(_ context.Context, _ string, versionName string, _ []byte) (*models.KFPipelineVersion, error) {
 	m.uploaded = true
-	return nil, &ps.HTTPError{StatusCode: 409, Message: "pipeline already exists"}
+	m.versionName = versionName
+	return nil, &ps.HTTPError{StatusCode: 409, Message: "version already exists"}
+}
+
+func (m *conflictVersionMockClient) ListPipelineVersions(_ context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
+	if m.versionName != "" {
+		return &models.KFPipelineVersionsResponse{
+			PipelineVersions: []models.KFPipelineVersion{
+				{
+					PipelineID:        pipelineID,
+					PipelineVersionID: "conflict-version-id",
+					DisplayName:       m.versionName,
+					CreatedAt:         "2026-04-09T12:00:00Z",
+				},
+			},
+			TotalSize: 1,
+		}, nil
+	}
+	return m.MockPipelineServerClient.ListPipelineVersions(context.Background(), pipelineID)
 }
 
 func TestDiscoverNamedPipelines(t *testing.T) {
@@ -420,16 +437,16 @@ func TestBuildPipelineNameFilter(t *testing.T) {
 		assert.Equal(t, "", result)
 	})
 
-	t.Run("should build IS_SUBSTRING filter for given prefix", func(t *testing.T) {
+	t.Run("should build EQUALS filter for given prefix", func(t *testing.T) {
 		result := buildPipelineNameFilter("automl")
-		assert.Contains(t, result, "IS_SUBSTRING")
+		assert.Contains(t, result, "EQUALS")
 		assert.Contains(t, result, "display_name")
 		assert.Contains(t, result, "automl")
 	})
 
 	t.Run("should produce valid JSON", func(t *testing.T) {
 		result := buildPipelineNameFilter("automl")
-		assert.JSONEq(t, `{"predicates":[{"key":"display_name","operation":"IS_SUBSTRING","string_value":"automl"}]}`, result)
+		assert.JSONEq(t, `{"predicates":[{"key":"display_name","operation":"EQUALS","string_value":"automl"}]}`, result)
 	})
 }
 
@@ -443,7 +460,7 @@ func TestEnsurePipeline(t *testing.T) {
 		ids := psmocks.DeriveMockIDs(mockClient.Namespace)
 
 		def := PipelineDefinition{
-			NamePrefix:   "automl",
+			Name:         "automl",
 			YAMLFilename: "autogluon-tabular-training-pipeline.yaml",
 		}
 
@@ -460,7 +477,7 @@ func TestEnsurePipeline(t *testing.T) {
 		mockClient.PipelineNames = []string{"unrelated-pipeline"}
 
 		def := PipelineDefinition{
-			NamePrefix:   "autogluon-tabular-training-pipeline",
+			Name:         "autogluon-tabular-training-pipeline",
 			YAMLFilename: "autogluon-tabular-training-pipeline.yaml",
 		}
 
@@ -480,7 +497,7 @@ func TestEnsurePipeline(t *testing.T) {
 		mockClient.PipelineNames = []string{"unrelated-pipeline"}
 
 		def := PipelineDefinition{
-			NamePrefix:   "nonexistent",
+			Name:         "nonexistent",
 			YAMLFilename: "", // No YAML available
 		}
 
@@ -493,26 +510,27 @@ func TestEnsurePipeline(t *testing.T) {
 		assert.Contains(t, err.Error(), "no YAML available")
 	})
 
-	t.Run("should retry discovery on 409 conflict during creation", func(t *testing.T) {
+	t.Run("should retry discovery on 409 conflict during version upload", func(t *testing.T) {
 		namespace := "test-ns-ensure-4"
 		baseMock := psmocks.NewMockPipelineServerClient("http://mock-ps")
-		baseMock.PipelineNames = []string{"unrelated-pipeline"}
-		mockClient := &conflictUploadMockClient{MockPipelineServerClient: baseMock}
+		// Pipeline exists but version doesn't — CreatePipeline will find it
+		baseMock.PipelineNames = []string{"autogluon-tabular-training-pipeline"}
+		mockClient := &conflictVersionMockClient{MockPipelineServerClient: baseMock}
 
 		def := PipelineDefinition{
-			NamePrefix:   "autogluon-tabular-training-pipeline",
+			Name:         "autogluon-tabular-training-pipeline",
 			YAMLFilename: "autogluon-tabular-training-pipeline.yaml",
 		}
 
 		repo.InvalidateCache("http://mock-ps", namespace)
 
-		// UploadPipeline returns 409, but adds the pipeline name to PipelineNames
-		// so the retry discovery finds it
+		// UploadPipelineVersion returns 409; ListPipelineVersions then returns
+		// a version with the correct display name so retry discovery succeeds
 		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
-		assert.True(t, mockClient.uploaded, "UploadPipeline should have been called")
+		assert.True(t, mockClient.uploaded, "UploadPipelineVersion should have been called")
 		assert.Equal(t, "autogluon-tabular-training-pipeline", discovered.PipelineName)
 	})
 }
