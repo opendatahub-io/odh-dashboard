@@ -264,7 +264,7 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
           uuid: 'aws-secret-1',
           name: 'Test AWS Secret',
           displayName: 'Test AWS Secret',
-          data: { aws_s3_bucket: 'test-bucket' },
+          data: { AWS_S3_BUCKET: 'test-bucket' },
           type: 's3',
           invalid: false,
         });
