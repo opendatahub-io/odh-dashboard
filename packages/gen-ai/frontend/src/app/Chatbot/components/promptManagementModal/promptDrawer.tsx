@@ -120,7 +120,11 @@ export default function PromptDrawer({
             <DescriptionListGroup>
               <DescriptionListTerm>Last Modified:</DescriptionListTerm>
               <DescriptionListDescription>
-                <Timestamp date={new Date(updatedAt)} dateFormat={TimestampFormat.full} />
+                <Timestamp
+                  date={new Date(updatedAt)}
+                  dateFormat={TimestampFormat.full}
+                  style={{ fontSize: '14px' }}
+                />
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
