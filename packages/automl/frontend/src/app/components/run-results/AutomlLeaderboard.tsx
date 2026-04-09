@@ -21,7 +21,7 @@ import {
   type ThProps,
 } from '@patternfly/react-table';
 import React from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import AutomlRunInProgress from '~/app/components/empty-states/AutomlRunInProgress';
 import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
 import { RuntimeStateKF } from '~/app/types/pipeline';
@@ -51,7 +51,6 @@ function AutomlLeaderboard({
   onClickSaveNotebook,
   onRegisterModel,
 }: AutomlLeaderboardProps): React.JSX.Element | null {
-  const navigate = useNavigate();
   const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
   const { models, parameters, modelsLoading, pipelineRun, pipelineRunLoading } =
     useAutomlResultsContext();
@@ -303,12 +302,14 @@ function AutomlLeaderboard({
         >
           <EmptyStateBody>
             <span>
-              The pipeline run completed but did not generate any models. Please check the{' '}
+              The pipeline run completed but did not generate any models. Please check the&nbsp;
             </span>
             <Button
               variant="link"
               isInline
-              onClick={() => navigate(`/develop-train/pipelines/runs/${namespace}/runs/${runId}`)}
+              component={(props) => (
+                <Link {...props} to={`/develop-train/pipelines/runs/${namespace}/runs/${runId}`} />
+              )}
             >
               pipeline configuration and logs
             </Button>

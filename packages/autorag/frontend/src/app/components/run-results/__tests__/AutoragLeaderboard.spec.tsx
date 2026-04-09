@@ -227,10 +227,10 @@ const renderWithContext = ({
   };
 
   return render(
-    <MemoryRouter initialEntries={[`/autorag/${namespace}/results`]}>
+    <MemoryRouter initialEntries={[`/autorag/${namespace}/results/test-run-123`]}>
       <Routes>
         <Route
-          path="/autorag/:namespace/results"
+          path="/autorag/:namespace/results/:runId"
           element={
             <AutoragResultsContext.Provider value={contextValue}>
               <AutoragLeaderboard />
@@ -374,10 +374,15 @@ describe('AutoragLeaderboard component', () => {
       expect(emptyState).toHaveTextContent(
         'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
       );
-      // Verify the interactive CTA button exists and is accessible
-      expect(
-        within(emptyState).getByRole('button', { name: /pipeline configuration and logs/i }),
-      ).toBeInTheDocument();
+      // Verify the interactive CTA link exists and navigates to the pipeline run page
+      const link = within(emptyState).getByRole('link', {
+        name: /pipeline configuration and logs/i,
+      });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
+      );
     });
 
     it('should render loading skeleton with correct structure', () => {

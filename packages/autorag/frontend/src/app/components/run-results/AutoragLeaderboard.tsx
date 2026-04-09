@@ -21,7 +21,7 @@ import {
   type ThProps,
 } from '@patternfly/react-table';
 import React from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
@@ -68,7 +68,6 @@ function AutoragLeaderboard({
   onViewDetails,
   onSaveNotebook,
 }: AutoragLeaderboardProps): React.JSX.Element | null {
-  const navigate = useNavigate();
   const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
   const { patterns, patternsLoading, pipelineRun, pipelineRunLoading } = useAutoragResultsContext();
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
@@ -362,12 +361,14 @@ function AutoragLeaderboard({
         >
           <EmptyStateBody>
             <span>
-              The pipeline run completed but did not generate any patterns. Please check the{' '}
+              The pipeline run completed but did not generate any patterns. Please check the&nbsp;
             </span>
             <Button
               variant="link"
               isInline
-              onClick={() => navigate(`/develop-train/pipelines/runs/${namespace}/runs/${runId}`)}
+              component={(props) => (
+                <Link {...props} to={`/develop-train/pipelines/runs/${namespace}/runs/${runId}`} />
+              )}
             >
               pipeline configuration and logs
             </Button>
