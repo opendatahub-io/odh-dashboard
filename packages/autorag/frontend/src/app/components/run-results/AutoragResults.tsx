@@ -21,7 +21,7 @@ function AutoragResults(): React.JSX.Element {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
-  const nodes = useAutoRAGTaskTopology(pipelineRun?.pipeline_spec, runDetails);
+  const nodes = useAutoRAGTaskTopology(pipelineRun?.pipeline_spec, runDetails, pipelineRun?.state);
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
   const patternsArray = React.useMemo(() => Object.values(patterns), [patterns]);

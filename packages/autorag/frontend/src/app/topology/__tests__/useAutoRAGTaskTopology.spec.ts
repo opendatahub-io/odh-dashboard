@@ -11,6 +11,8 @@ jest.mock('@patternfly/react-topology', () => ({
     InProgress: 'InProgress',
     Idle: 'Idle',
     Pending: 'Pending',
+    Cancelled: 'Cancelled',
+    Skipped: 'Skipped',
   },
 }));
 
@@ -81,6 +83,34 @@ describe('useAutoRAGTaskTopology', () => {
     expect(nodes[0].label).toBe('Test Data Loader');
     expect(nodes[1].label).toBe('Documents Sampling');
     expect(nodes[2].label).toBe('Text Extraction');
+  });
+
+  it('should use terminal fallback status when run is succeeded but task has no details', () => {
+    const renderResult = testHook(useAutoRAGTaskTopology)(mockSpec, undefined, 'SUCCEEDED');
+    const nodes = renderResult.result.current;
+
+    expect(nodes).toHaveLength(3);
+    nodes.forEach((node) => {
+      expect(node.data?.runStatus).toBe('Succeeded');
+    });
+  });
+
+  it('should use terminal fallback status when run is failed but task has no details', () => {
+    const renderResult = testHook(useAutoRAGTaskTopology)(mockSpec, undefined, 'FAILED');
+    const nodes = renderResult.result.current;
+
+    nodes.forEach((node) => {
+      expect(node.data?.runStatus).toBe('Failed');
+    });
+  });
+
+  it('should not apply terminal fallback when run is still running', () => {
+    const renderResult = testHook(useAutoRAGTaskTopology)(mockSpec, undefined, 'RUNNING');
+    const nodes = renderResult.result.current;
+
+    nodes.forEach((node) => {
+      expect(node.data?.runStatus).toBeUndefined();
+    });
   });
 
   it('should humanize unknown task names via fallback', () => {

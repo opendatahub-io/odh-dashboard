@@ -156,7 +156,7 @@ export function useLlamaStackVectorStoreProvidersQuery(
   });
 }
 
-const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED']);
+export const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED']);
 const POLL_INTERVAL_MS = 10000;
 
 export function usePipelineRunQuery(
