@@ -4,7 +4,16 @@ import { AssetsFilterOptions, assetsFilterSelectOptions } from '~/app/AIAssets/d
 
 export type FilterData = Record<string, string | string[] | undefined>;
 
-const getStatusLabel = (status: string): string => (status === 'Running' ? 'Active' : 'Inactive');
+const getStatusLabel = (status: string): string => {
+  switch (status) {
+    case 'Running':
+      return 'Ready';
+    case 'Stop':
+      return 'Inactive';
+    default:
+      return 'Unknown';
+  }
+};
 
 const isSelectFilter = (filterType: string): boolean => filterType in assetsFilterSelectOptions;
 

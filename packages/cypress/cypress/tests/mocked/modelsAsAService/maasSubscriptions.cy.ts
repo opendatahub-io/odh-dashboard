@@ -59,7 +59,7 @@ describe('Subscriptions Page', () => {
       );
 
     subscriptionsPage.findTable().should('exist');
-    subscriptionsPage.findRows().should('have.length', 2);
+    subscriptionsPage.findRows().should('have.length', 3);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
     const premiumRow = subscriptionsPage.getRow('premium-team-sub');
@@ -74,15 +74,22 @@ describe('Subscriptions Page', () => {
     basicRow.findModels().should('contain.text', '1 Model');
     basicRow.findPriority().should('contain.text', '0');
 
+    const negativePriorityRow = subscriptionsPage.getRow('negative-priority-sub');
+    negativePriorityRow.findName().should('contain.text', 'negative-priority-sub');
+    negativePriorityRow.findGroups().should('contain.text', '1 Group');
+    negativePriorityRow.findModels().should('contain.text', '1 Model');
+    negativePriorityRow.findPriority().should('contain.text', '-10000');
+
     subscriptionsPage.findFilterInput().should('exist').type('premium');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().should('exist').click();
-    subscriptionsPage.findRows().should('have.length', 2);
+    subscriptionsPage.findRows().should('have.length', 3);
 
     premiumRow.findKebabAction('View details').should('exist');
     premiumRow.findKebabAction('Edit subscription').should('exist');
     premiumRow.findKebabAction('Delete subscription').should('exist');
   });
+
   it('should delete a subscription', () => {
     cy.interceptOdh(
       'DELETE /maas/api/v1/subscription/:name',
@@ -103,7 +110,7 @@ describe('Subscriptions Page', () => {
         data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" },
       });
     });
-    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.findRows().should('have.length', 2);
     subscriptionsPage.findTable().should('not.contain', 'premium-team-sub');
   });
 });
@@ -192,6 +199,23 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage
       .findPriorityValidationError()
       .should('contain.text', 'Priority 10 is already used by');
+
+    // Testing out max and min priority values
+    createSubscriptionPage.findPriorityInput().clear();
+    createSubscriptionPage.findPriorityInput().type('-1000000');
+    createSubscriptionPage.findPriorityMinusButton().should('be.disabled');
+
+    createSubscriptionPage.findPriorityInput().clear();
+    createSubscriptionPage.findPriorityInput().type('-99999999999'); // Out of range the input will snap to -1000000
+    createSubscriptionPage.findPriorityInput().should('have.value', '-1000000');
+
+    createSubscriptionPage.findPriorityInput().clear();
+    createSubscriptionPage.findPriorityInput().type('1000000');
+    createSubscriptionPage.findPriorityPlusButton().should('be.disabled');
+
+    createSubscriptionPage.findPriorityInput().clear();
+    createSubscriptionPage.findPriorityInput().type('99999999999'); // Out of range the input will snap to 1000000
+    createSubscriptionPage.findPriorityInput().should('have.value', '1000000');
 
     // Set a non-conflicting priority
     createSubscriptionPage.findPriorityInput().clear();
