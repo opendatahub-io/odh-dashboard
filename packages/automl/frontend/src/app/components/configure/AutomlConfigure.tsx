@@ -55,7 +55,13 @@ import SecretSelector, { SecretSelection } from '~/app/components/common/SecretS
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
-import { ConfigureSchema, MAX_TOP_N, MIN_TOP_N, TASK_TYPES } from '~/app/schemas/configure.schema';
+import {
+  ConfigureSchema,
+  MAX_TOP_N_TABULAR,
+  MAX_TOP_N_TIMESERIES,
+  MIN_TOP_N,
+  TASK_TYPES,
+} from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 import {
   TASK_TYPE_BINARY,
@@ -179,6 +185,9 @@ function AutomlConfigure(): React.JSX.Element {
   });
   const isTaskTypeSelected = TASK_TYPES.includes(taskType);
   const isTimeseries = taskType === TASK_TYPE_TIMESERIES;
+
+  // Calculate max top_n based on task type
+  const maxTopN = isTimeseries ? MAX_TOP_N_TIMESERIES : MAX_TOP_N_TABULAR;
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);
@@ -755,7 +764,7 @@ function AutomlConfigure(): React.JSX.Element {
                                 id="top-n-input"
                                 value={field.value}
                                 min={MIN_TOP_N}
-                                max={MAX_TOP_N}
+                                max={maxTopN}
                                 isDisabled={formIsSubmitting}
                                 validated={fieldState.error ? 'error' : 'default'}
                                 onMinus={() => field.onChange(Number(field.value) - 1)}
