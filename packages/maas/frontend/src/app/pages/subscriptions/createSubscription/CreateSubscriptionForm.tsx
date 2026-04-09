@@ -43,6 +43,8 @@ type CreateSubscriptionFormProps = {
   formData: SubscriptionPolicyFormDataResponse;
   subscriptionInfo?: SubscriptionInfoResponse;
 };
+const MAX_PRIORITY = 1000000;
+const MIN_PRIORITY = -1000000;
 
 const buildInitialModels = (info: SubscriptionInfoResponse): SubscriptionModelEntry[] =>
   info.subscription.modelRefs.map((ref) => {
@@ -276,17 +278,20 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             id="subscription-priority"
             data-testid="subscription-priority"
             value={priority == null || Number.isNaN(priority) ? '' : priority}
-            min={0}
-            max={2147483647}
+            min={MIN_PRIORITY}
+            max={MAX_PRIORITY}
             onMinus={() =>
               setPriority(
-                Math.max(0, (priority == null || Number.isNaN(priority) ? 0 : priority) - 1),
+                Math.max(
+                  MIN_PRIORITY,
+                  (priority == null || Number.isNaN(priority) ? 0 : priority) - 1,
+                ),
               )
             }
             onPlus={() =>
               setPriority(
                 Math.min(
-                  2147483647,
+                  MAX_PRIORITY,
                   (priority == null || Number.isNaN(priority) ? 0 : priority) + 1,
                 ),
               )
@@ -298,7 +303,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
               } else {
                 const parsed = parseInt(inputValue, 10);
                 if (!Number.isNaN(parsed)) {
-                  setPriority(Math.min(2147483647, Math.max(0, parsed)));
+                  setPriority(Math.min(MAX_PRIORITY, Math.max(MIN_PRIORITY, parsed)));
                 }
               }
             }}

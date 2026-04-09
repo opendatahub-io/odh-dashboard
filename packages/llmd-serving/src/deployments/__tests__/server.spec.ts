@@ -35,4 +35,33 @@ describe('applyConfigBaseRef', () => {
     const result = applyConfigBaseRef(svc, undefined);
     expect(result.spec.baseRefs).toEqual([{ name: 'other-config' }]);
   });
+
+  it('should keep scheduler when baseRef is undefined (llm-d selection)', () => {
+    const svc = mockLLMInferenceServiceK8sResource({ name: 'my-deployment' });
+    const result = applyConfigBaseRef(svc, undefined);
+    expect(result.spec.router?.scheduler).toEqual({});
+  });
+
+  it('should keep scheduler when baseRef does not match the resource name', () => {
+    const svc = mockLLMInferenceServiceK8sResource({});
+    const result = applyConfigBaseRef(svc, 'unrelated-config');
+    expect(result.spec.router?.scheduler).toEqual({});
+  });
+
+  it('should remove scheduler when baseRef matches the resource name (non-llm-d selection)', () => {
+    const svc = mockLLMInferenceServiceK8sResource({ name: 'my-deployment' });
+    const result = applyConfigBaseRef(svc, 'my-deployment');
+    expect(result.spec.router?.scheduler).toBeUndefined();
+    expect(result.spec.router?.route).toBeDefined();
+    expect(result.spec.router?.gateway).toBeDefined();
+  });
+
+  it('should remove scheduler when resource already has a self-referencing baseRef', () => {
+    const svc = mockLLMInferenceServiceK8sResource({
+      name: 'my-deployment',
+      baseRefs: [{ name: 'my-deployment' }],
+    });
+    const result = applyConfigBaseRef(svc, 'my-deployment');
+    expect(result.spec.router?.scheduler).toBeUndefined();
+  });
 });

@@ -55,10 +55,17 @@ import SecretSelector, { SecretSelection } from '~/app/components/common/SecretS
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
-import { ConfigureSchema, MAX_TOP_N, MIN_TOP_N, TASK_TYPES } from '~/app/schemas/configure.schema';
+import {
+  ConfigureSchema,
+  MAX_TOP_N_TABULAR,
+  MAX_TOP_N_TIMESERIES,
+  MIN_TOP_N,
+  TASK_TYPES,
+} from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 import {
   TASK_TYPE_BINARY,
+  TASK_TYPE_LABELS,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
   TASK_TYPE_TIMESERIES,
@@ -76,25 +83,25 @@ const PREDICTION_TYPES: {
 }[] = [
   {
     value: TASK_TYPE_BINARY,
-    label: 'Binary classification',
+    label: TASK_TYPE_LABELS[TASK_TYPE_BINARY],
     description:
       'Classify data into categories. Choose this if your prediction column contains two distinct categories',
   },
   {
     value: TASK_TYPE_MULTICLASS,
-    label: 'Multiclass classification',
+    label: TASK_TYPE_LABELS[TASK_TYPE_MULTICLASS],
     description:
       'Classify data into categories. Choose this if your prediction column contains multiple distinct categories',
   },
   {
     value: TASK_TYPE_REGRESSION,
-    label: 'Regression',
+    label: TASK_TYPE_LABELS[TASK_TYPE_REGRESSION],
     description:
       'Predict values from a continuous set of values. Choose this if your prediction column contains a large number of values',
   },
   {
     value: TASK_TYPE_TIMESERIES,
-    label: 'Time series forecasting',
+    label: TASK_TYPE_LABELS[TASK_TYPE_TIMESERIES],
     description:
       'Predict future activity over a specified date/time range. Data must be structured and sequential.',
   },
@@ -170,6 +177,7 @@ function AutomlConfigure(): React.JSX.Element {
     control,
     setValue,
     getValues,
+    trigger,
     formState: { isSubmitting: formIsSubmitting },
   } = form;
 
@@ -179,6 +187,16 @@ function AutomlConfigure(): React.JSX.Element {
   });
   const isTaskTypeSelected = TASK_TYPES.includes(taskType);
   const isTimeseries = taskType === TASK_TYPE_TIMESERIES;
+
+  // Calculate max top_n based on task type
+  const maxTopN = isTimeseries ? MAX_TOP_N_TIMESERIES : MAX_TOP_N_TABULAR;
+
+  // Re-validate top_n when task type changes (max depends on task type)
+  useEffect(() => {
+    if (isTaskTypeSelected) {
+      void trigger('top_n');
+    }
+  }, [taskType, isTaskTypeSelected, trigger]);
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);
@@ -755,7 +773,7 @@ function AutomlConfigure(): React.JSX.Element {
                                 id="top-n-input"
                                 value={field.value}
                                 min={MIN_TOP_N}
-                                max={MAX_TOP_N}
+                                max={maxTopN}
                                 isDisabled={formIsSubmitting}
                                 validated={fieldState.error ? 'error' : 'default'}
                                 onMinus={() => field.onChange(Number(field.value) - 1)}
