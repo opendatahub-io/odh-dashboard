@@ -1,12 +1,5 @@
 const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
-const workspaceDeps = require('@odh-dashboard/autorag/package.json').dependencies;
 const deps = require('../package.json').dependencies;
-
-const odhDashboardShared = Object.fromEntries(
-  Object.keys(workspaceDeps)
-    .filter((name) => name.startsWith('@odh-dashboard/'))
-    .map((name) => [name, { singleton: true, requiredVersion: '*' }]),
-);
 
 const moduleFederationConfig = {
   name: 'autorag',
@@ -28,7 +21,8 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@openshift/dynamic-plugin-sdk-utils'],
     },
-    ...odhDashboardShared,
+    '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
+    '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
   },
   exposes: {
     './extensions': './src/odh/extensions',

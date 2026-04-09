@@ -314,37 +314,32 @@ exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
 
 This ensures webpack can parse TypeScript from `@odh-dashboard/*` packages resolved through `node_modules`.
 
-### 2. Auto-Generated MF Shared Config
+### 2. MF Shared Config
 
-All `@odh-dashboard/*` dependencies are automatically added to the MF `shared` config so that only one copy is loaded at runtime.
+All `@odh-dashboard/*` dependencies must be listed in the MF `shared` config so that only one copy is loaded at runtime.
 
-**Host** (`frontend/config/moduleFederation.js`): Calls `getOdhDashboardShared({ eager: true })`. The `eager: true` flag means the host's copy loads immediately and takes priority during runtime negotiation.
+**Host** (`frontend/config/moduleFederation.js`): Uses `npm query .workspace` at build time to dynamically discover all `@odh-dashboard/*` workspace packages and share them with `eager: true`. The `eager` flag means the host's copy loads immediately and takes priority during runtime negotiation. This is automatic — no manual updates needed when new packages are added.
 
-**Remotes** (each package's `moduleFederation.js`): Import the same utility and call it without `eager`:
+**Remotes** (each package's `moduleFederation.js`): Explicitly list the `@odh-dashboard/*` packages they depend on with `singleton: true`:
 
 ```javascript
-const { getOdhDashboardShared } = require('../../../../config/odhDashboardShared');
-// ...
 shared: {
-  // ...other shared deps...
-  ...getOdhDashboardShared(),
+  // ...other shared deps (react, patternfly, etc.)...
+  '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
+  '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
 },
 ```
 
-Both host and remotes use the shared utility in `config/odhDashboardShared.js`, which scans `node_modules/@odh-dashboard` at build time. This directory is populated by npm workspace hoisting. While some remotes also list `@odh-dashboard/*` packages in their `package.json` dependencies, the directory scan is more resilient — it catches all workspace packages automatically, even if a remote imports a package without declaring it as a dependency.
-
-This means:
-
-- Adding a new `@odh-dashboard/*` workspace package automatically makes it shared across all remotes — no manual config needed.
-- Both host and remote compile the library at build time, but at runtime MF ensures only the host's copy is loaded. The remote's copy is placed in a separate chunk that is never fetched by the browser.
+Both host and remote compile the library at build time, but at runtime MF ensures only the host's copy is loaded. The remote's copy is placed in a separate chunk that is never fetched by the browser.
 
 ### Adding a New Library Package
 
 When creating a new `@odh-dashboard/*` library package that will be consumed by federated remotes:
 
 1. Add the package to the monorepo under `packages/`. npm workspaces will hoist it into `node_modules/@odh-dashboard/`.
-2. Both the host and remotes will automatically discover it and add it to MF shared — no manual config needed.
-3. Ensure the consumer's `webpack.common.js` has the `node_modules\/(?!@odh-dashboard)` exclude pattern.
+2. The host will automatically discover it via `npm query .workspace` — no manual config needed.
+3. Add the package to the `shared` config of each remote that depends on it (e.g. `'@odh-dashboard/my-pkg': { singleton: true, requiredVersion: '*' }`).
+4. Ensure the consumer's `webpack.common.js` has the `node_modules\/(?!@odh-dashboard)` exclude pattern.
 
 ## Troubleshooting
 

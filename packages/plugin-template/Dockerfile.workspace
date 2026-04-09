@@ -60,7 +60,10 @@ ARG BFF_SOURCE_CODE
 ARG TARGETOS
 ARG TARGETARCH
 
+USER 0
 WORKDIR /usr/src/app
+RUN chown default:0 /usr/src/app
+USER default
 
 # Copy the Go Modules manifests
 COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./

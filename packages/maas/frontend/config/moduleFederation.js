@@ -1,12 +1,5 @@
 const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
-const workspaceDeps = require('@odh-dashboard/maas/package.json').dependencies;
 const deps = require('../package.json').dependencies;
-
-const odhDashboardShared = Object.fromEntries(
-  Object.keys(workspaceDeps)
-    .filter((name) => name.startsWith('@odh-dashboard/'))
-    .map((name) => [name, { singleton: true, requiredVersion: '*' }]),
-);
 
 const moduleFederationConfig = {
   name: 'maas',
@@ -20,7 +13,11 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@patternfly/react-core'],
     },
-    ...odhDashboardShared,
+    '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
+    '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
+    '@odh-dashboard/model-serving': { singleton: true, requiredVersion: '*' },
+    '@odh-dashboard/llmd-serving': { singleton: true, requiredVersion: '*' },
+    '@odh-dashboard/gen-ai': { singleton: true, requiredVersion: '*' },
   },
   exposes: {
     './extensions': './src/odh/extensions',
