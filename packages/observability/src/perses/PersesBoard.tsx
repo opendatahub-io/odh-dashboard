@@ -13,8 +13,7 @@ const DROPDOWN_MIN_WIDTH = 500;
  */
 const useAutoSizePoppers = (ref: React.RefObject<HTMLElement | null>): void => {
   React.useEffect(() => {
-    const container = ref.current;
-    if (!container) {
+    if (!ref.current) {
       return;
     }
 
@@ -24,10 +23,10 @@ const useAutoSizePoppers = (ref: React.RefObject<HTMLElement | null>): void => {
     };
 
     const observer = new MutationObserver(() => {
-      container.querySelectorAll<HTMLElement>(POPPER_SELECTOR).forEach(resizePopper);
+      document.body.querySelectorAll<HTMLElement>(POPPER_SELECTOR).forEach(resizePopper);
     });
 
-    observer.observe(container, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, [ref]);
 };
