@@ -74,7 +74,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
           Policies
         </Link>
       </BreadcrumbItem>
-      <BreadcrumbItem isActive>{authPolicyName}</BreadcrumbItem>
+      <BreadcrumbItem isActive>{policyInfo?.policy.displayName ?? authPolicyName}</BreadcrumbItem>
     </Breadcrumb>
   );
 

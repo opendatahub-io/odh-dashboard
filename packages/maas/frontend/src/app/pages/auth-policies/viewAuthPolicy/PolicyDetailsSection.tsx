@@ -41,7 +41,7 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy }) =
         <DescriptionListGroup>
           <DescriptionListTerm>Date created</DescriptionListTerm>
           <DescriptionListDescription>
-            {policy.creationTimestamp ? (
+            {policy.creationTimestamp && !Number.isNaN(Date.parse(policy.creationTimestamp)) ? (
               <Timestamp
                 date={new Date(policy.creationTimestamp)}
                 dateFormat="long"
