@@ -1,5 +1,7 @@
 import * as React from 'react';
 import {
+  Card,
+  CardBody,
   Content,
   DrawerActions,
   DrawerCloseButton,
@@ -7,9 +9,6 @@ import {
   DrawerPanelBody,
   DrawerPanelContent,
   Button,
-  Panel,
-  PanelMain,
-  PanelMainBody,
   Stack,
   StackItem,
   Title,
@@ -74,64 +73,59 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                   const safeUrl = toSafeExternalUrl(b.url);
                   return (
                     <StackItem key={`${b.provider_id ?? 'unknown'}-${b.id}`}>
-                      <Panel variant="bordered" style={{ borderRadius: '16px' }}>
-                        <PanelMain>
-                          <PanelMainBody>
-                            <Stack hasGutter>
-                              <StackItem>
-                                <Content
-                                  component="p"
-                                  style={{
-                                    fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                                  }}
-                                >
-                                  {safeUrl ? (
-                                    <Button
-                                      variant="link"
-                                      isInline
-                                      component="a"
-                                      href={safeUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      icon={<ExternalLinkAltIcon />}
-                                      iconPosition="end"
-                                      onClick={() =>
-                                        fireMiscTrackingEvent(
-                                          EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED,
-                                          {
-                                            url: safeUrl,
-                                            benchmarkId: b.id,
-                                            surface: 'collection_drawer',
-                                          },
-                                        )
-                                      }
-                                    >
-                                      {b.id}
-                                    </Button>
-                                  ) : (
-                                    b.id
-                                  )}
-                                </Content>
-                              </StackItem>
-                              {b.provider_id && (
-                                <Stack>
-                                  <StackItem>
-                                    <Content
-                                      component="p"
-                                      style={{
-                                        fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                                      }}
-                                    >
-                                      Evaluation framework
-                                    </Content>
-                                  </StackItem>
-                                  <StackItem>{b.provider_id}</StackItem>
-                                </Stack>
-                              )}
-                            </Stack>
-                          </PanelMainBody>
-                        </PanelMain>
-                      </Panel>
+                      <Card isCompact>
+                        <CardBody>
+                          <Stack hasGutter>
+                            <StackItem>
+                              <Content
+                                component="p"
+                                style={{
+                                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                                }}
+                              >
+                                {safeUrl ? (
+                                  <Button
+                                    variant="link"
+                                    isInline
+                                    component="a"
+                                    href={safeUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    icon={<ExternalLinkAltIcon />}
+                                    iconPosition="end"
+                                    onClick={() =>
+                                      fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
+                                        url: safeUrl,
+                                        benchmarkId: b.id,
+                                        surface: 'collection_drawer',
+                                      })
+                                    }
+                                  >
+                                    {b.id}
+                                  </Button>
+                                ) : (
+                                  b.id
+                                )}
+                              </Content>
+                            </StackItem>
+                            {b.provider_id && (
+                              <Stack>
+                                <StackItem>
+                                  <Content
+                                    component="p"
+                                    style={{
+                                      fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                                    }}
+                                  >
+                                    Evaluation framework
+                                  </Content>
+                                </StackItem>
+                                <StackItem>{b.provider_id}</StackItem>
+                              </Stack>
+                            )}
+                          </Stack>
+                        </CardBody>
+                      </Card>
                     </StackItem>
                   );
                 })}

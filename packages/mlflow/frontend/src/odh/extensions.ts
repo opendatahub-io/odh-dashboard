@@ -1,20 +1,6 @@
-import type {
-  NavExtension,
-  RouteExtension,
-  AreaExtension,
-} from '@odh-dashboard/plugin-core/extension-points';
+import type { NavExtension, RouteExtension } from '@odh-dashboard/plugin-core/extension-points';
 
-const MLFLOW = 'mlflow';
-
-const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
-  {
-    type: 'app.area',
-    properties: {
-      id: MLFLOW,
-      requiredComponents: [],
-      featureFlags: ['mlflow'],
-    },
-  },
+const extensions: (NavExtension | RouteExtension)[] = [
   // Navigation section kept commented out, only used for local testing
   // {
   //   type: 'app.navigation/section',

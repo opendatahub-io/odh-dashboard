@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import McpCatalogCard from '~/app/pages/mcpCatalog/components/McpCatalogCard';
 import type { McpServer } from '~/app/mcpServerCatalogTypes';
+import { mcpServerDetailsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <MemoryRouter>{children}</MemoryRouter>
@@ -62,7 +63,7 @@ describe('McpCatalogCard', () => {
     const link = screen.getByTestId('mcp-catalog-card-detail-link-1');
     expect(link).toBeInTheDocument();
     expect(link.tagName).toBe('A');
-    expect(link).toHaveAttribute('href', '/ai-hub/mcp-servers/catalog/1');
+    expect(link).toHaveAttribute('href', mcpServerDetailsUrl('1'));
   });
 
   it('renders description with TruncatedText wrapper', () => {

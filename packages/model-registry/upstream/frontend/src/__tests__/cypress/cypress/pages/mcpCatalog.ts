@@ -1,8 +1,9 @@
+import { mcpCatalogUrl, mcpServerDetailsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import { appChrome } from './appChrome';
 
 class McpCatalog {
   visit() {
-    cy.visit('/ai-hub/mcp-servers/catalog');
+    cy.visit(mcpCatalogUrl());
     this.wait();
   }
 
@@ -81,7 +82,7 @@ class McpCatalog {
 
 class McpServerDetails {
   visit(serverId: string) {
-    cy.visit(`/ai-hub/mcp-servers/catalog/${serverId}`);
+    cy.visit(mcpServerDetailsUrl(serverId));
     this.wait();
   }
 
@@ -120,6 +121,14 @@ class McpServerDetails {
 
   findDeploymentMode() {
     return cy.findByTestId('mcp-server-deployment-mode');
+  }
+
+  findRemoteTitleLabel() {
+    return cy.findByTestId('mcp-server-details-remote-label');
+  }
+
+  findEndpointCopy() {
+    return cy.findByTestId('mcp-server-endpoint-copy');
   }
 
   findTransportType() {

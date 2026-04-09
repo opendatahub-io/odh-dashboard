@@ -228,9 +228,9 @@ describe('AutomlConfigurePage', () => {
       expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
     });
 
-    it('should display "Create AutoML experiment" subtitle in create step', async () => {
+    it('should display "Create AutoML optimization run" subtitle in create step', async () => {
       renderWithProviders(<AutomlConfigurePage />);
-      expect(await screen.findByText('Create AutoML experiment')).toBeInTheDocument();
+      expect(await screen.findByText('Create AutoML optimization run')).toBeInTheDocument();
     });
 
     it('should display description text in create step', async () => {
@@ -343,8 +343,8 @@ describe('AutomlConfigurePage', () => {
       expect(await screen.findByText('My Experiment')).toBeInTheDocument();
     });
 
-    it('should render "Run experiment" button', async () => {
-      expect(await screen.findByRole('button', { name: 'Run experiment' })).toBeInTheDocument();
+    it('should render "Create run" button', async () => {
+      expect(await screen.findByRole('button', { name: 'Create run' })).toBeInTheDocument();
     });
 
     it('should render "Back" button', async () => {
@@ -417,8 +417,8 @@ describe('AutomlConfigurePage', () => {
     });
   });
 
-  describe('Configure step - Run experiment', () => {
-    it('should call mutateAsync when Run experiment button is clicked with valid form', async () => {
+  describe('Configure step - Create run', () => {
+    it('should call mutateAsync when Create run button is clicked with valid form', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
 
@@ -461,7 +461,9 @@ describe('AutomlConfigurePage', () => {
       await user.click(columnOption);
 
       // Wait for form to be valid and Run button to be enabled
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -469,7 +471,7 @@ describe('AutomlConfigurePage', () => {
         { timeout: 3000 },
       );
 
-      // Click Run experiment button
+      // Click Create run button
       await user.click(runButton);
 
       await waitFor(() => {
@@ -516,8 +518,10 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -572,8 +576,10 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -629,8 +635,10 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();

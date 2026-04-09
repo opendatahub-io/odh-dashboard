@@ -51,7 +51,6 @@ import {
 import { useNotification } from '~/app/hooks/useNotification';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
-import InlineHelpIcon from '~/app/components/InlineHelpIcon';
 
 type InputMode = 'inference' | 'prerecorded';
 type ExperimentMode = 'existing' | 'new';
@@ -513,7 +512,6 @@ const StartEvaluationRunPage: React.FC = () => {
                     data-testid="api-key-input"
                     value={apiKeySecretRef}
                     onChange={(_e, val) => setApiKeySecretRef(val)}
-                    placeholder="e.g. my-model-credentials"
                   />
                 </FormGroup>
               </>
@@ -593,7 +591,7 @@ const StartEvaluationRunPage: React.FC = () => {
               />
             </FlexItem>
             <FlexItem>
-              <InlineHelpIcon
+              <LabelHelpPopover
                 ariaLabel="More info for additional arguments"
                 content="Additional runtime arguments passed to the evaluation provider as a JSON object."
               />
