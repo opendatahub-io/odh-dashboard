@@ -248,7 +248,7 @@ const initDeployIntercepts = ({
     },
   });
 
-  cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}`, {
+  cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}*`, {
     body: {
       data: {
         id: TEST_SERVER_ID,
@@ -285,7 +285,7 @@ const initDeployIntercepts = ({
     },
   });
 
-  cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/tools`, {
+  cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/tools*`, {
     body: { data: { items: [], size: 0, pageSize: 10, nextPageToken: '' } },
   });
 
@@ -293,7 +293,7 @@ const initDeployIntercepts = ({
     body: { data: { available: crdAvailable } },
   });
 
-  cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/mcpserver`, {
+  cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/mcpserver*`, {
     body: {
       data: mockMcpServerCR({
         spec: {
@@ -376,7 +376,7 @@ describe('MCP Deploy from Catalog', () => {
     initDeployIntercepts();
     cy.intercept(
       'GET',
-      `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/mcpserver`,
+      `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/mcpserver*`,
       (req) => {
         req.reply({ delay: 60000, body: { data: {} } });
       },
@@ -391,7 +391,7 @@ describe('MCP Deploy from Catalog', () => {
 
   it('should show error alert in deploy modal when converter fails', () => {
     initDeployIntercepts();
-    cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/mcpserver`, {
+    cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/mcpserver*`, {
       statusCode: 500,
       body: { error: 'Server configuration unavailable' },
     }).as('getConverterError');

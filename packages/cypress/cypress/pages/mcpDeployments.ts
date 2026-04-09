@@ -80,9 +80,7 @@ class McpDeployModal {
   }
 
   findLoadingSpinner(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByRole('progressbar', {
-      name: 'Loading MCP server configuration',
-    });
+    return this.findModal().findByTestId('mcp-deploy-modal-spinner');
   }
 }
 
@@ -95,9 +93,9 @@ class McpServerDetailsPage {
     return cy.findByTestId('breadcrumb-server-name');
   }
 
-  // PF6 Button with isLoading renders an internal Spinner; no data-testid available
+  // PF6 Button's isLoading spinner is internal to PatternFly — no data-testid is available
   findDeployButtonSpinner(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findDeployButton().find('.pf-v6-c-spinner');
+    return this.findDeployButton().find('[role="progressbar"]');
   }
 }
 
@@ -119,16 +117,16 @@ class McpDeploymentsPage {
   }
 
   findTableRows(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findTable().find('tbody tr');
+    return this.findTable().find('[data-testid^="mcp-deployment-row-"]');
   }
 
-  // mod-arch-shared ApplicationsPage uses data-id (not data-testid)
+  // mod-arch-shared's ApplicationsPage uses data-id — we can't change the third-party component
   findLoadingState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.get('[data-id="loading-empty-state"]');
   }
 
   findLoadingSpinner(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findLoadingState().findByRole('progressbar');
+    return this.findLoadingState().find('[role="progressbar"]');
   }
 
   findErrorState(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -136,8 +134,11 @@ class McpDeploymentsPage {
   }
 
   getRow(name: string): McpDeploymentTableRow {
-    return new McpDeploymentTableRow(() =>
-      cy.findByTestId(`mcp-deployment-row-${name}`).parents('tr'),
+    return new McpDeploymentTableRow(
+      () =>
+        cy.findByTestId(`mcp-deployment-row-${name}`) as unknown as Cypress.Chainable<
+          JQuery<HTMLTableRowElement>
+        >,
     );
   }
 }
