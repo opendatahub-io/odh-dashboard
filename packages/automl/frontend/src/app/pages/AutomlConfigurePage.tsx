@@ -116,7 +116,7 @@ function AutomlConfigurePage(): React.JSX.Element {
           {step === 'create' ? (
             'Create AutoML optimization run'
           ) : (
-            <span>
+            <span data-testid="configure-step-subtitle">
               &quot;
               <Truncate content={displayName || ''} />
               &quot; configurations
@@ -135,7 +135,7 @@ function AutomlConfigurePage(): React.JSX.Element {
             <BreadcrumbItem>
               <Link to={getRedirectPath(namespace!)}>AutoML: {namespace}</Link>
             </BreadcrumbItem>
-            <BreadcrumbItem isActive>
+            <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
               <Truncate content={displayName || ''} />
             </BreadcrumbItem>
           </Breadcrumb>

@@ -125,7 +125,7 @@ function AutoragConfigurePage(): React.JSX.Element {
           {step === 'create' ? (
             'Create AutoRAG optimization run'
           ) : (
-            <span>
+            <span data-testid="configure-step-subtitle">
               &quot;
               <Truncate content={displayName || ''} />
               &quot; configurations
@@ -147,7 +147,7 @@ function AutoragConfigurePage(): React.JSX.Element {
             <BreadcrumbItem>
               <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
             </BreadcrumbItem>
-            <BreadcrumbItem isActive>
+            <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
               <Truncate content={displayName || ''} />
             </BreadcrumbItem>
           </Breadcrumb>
