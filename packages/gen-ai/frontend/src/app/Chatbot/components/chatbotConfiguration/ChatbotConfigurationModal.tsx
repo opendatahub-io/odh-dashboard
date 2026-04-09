@@ -25,6 +25,7 @@ import {
 import {
   computeEmbeddingModelStatus,
   convertMaaSModelToAIModel,
+  isPlaygroundModelMatchForAIModel,
   splitLlamaModelId,
 } from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -106,8 +107,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 
   const preSelectedModels = React.useMemo(() => {
     if (existingModels.length > 0) {
-      const existingModelsSet = new Set(existingModels.map((model) => model.modelId));
-      const existingAIModels = allModels.filter((model) => existingModelsSet.has(model.model_id));
+      const existingAIModels = allModels.filter((model) =>
+        existingModels.some((m) => isPlaygroundModelMatchForAIModel(m, model)),
+      );
 
       if (extraSelectedModels && extraSelectedModels.length > 0) {
         const extraSelectedModelsSet = new Set(
