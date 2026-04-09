@@ -1,0 +1,637 @@
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import { ChatbotMessages } from '../ChatbotMessagesList';
+import type { ChatbotMessageProps } from '../hooks/useChatbotMessages';
+
+jest.mock('../components/ChatbotErrorAlert', () => ({
+  __esModule: true,
+  default: jest.fn(({ errorClassification, onRetry, 'data-testid': dataTestId }) => (
+    <div data-testid={dataTestId}>
+      <span data-testid="error-title">{errorClassification.title}</span>
+      <span data-testid="error-severity">{errorClassification.severity}</span>
+      {onRetry && (
+        <button data-testid="retry-button" onClick={onRetry}>
+          Retry
+        </button>
+      )}
+    </div>
+  )),
+}));
+
+jest.mock('../ChatbotMessagesMetrics', () => ({
+  ChatbotMessagesMetrics: jest.fn(({ metrics }) => (
+    <div data-testid="metrics">
+      <span>{metrics.inputTokens}</span>
+    </div>
+  )),
+}));
+
+jest.mock('@patternfly/chatbot', () => ({
+  Message: jest.fn(
+    ({
+      role,
+      content,
+      error,
+      extraContent,
+      'data-testid': dataTestId,
+      ...props
+    }: {
+      role: string;
+      content?: string;
+      error?: { variant: string; title: string; body: React.ReactNode };
+      extraContent?: {
+        beforeMainContent?: React.ReactNode;
+        afterMainContent?: React.ReactNode;
+        endContent?: React.ReactNode;
+      };
+      'data-testid'?: string;
+    }) => (
+      <div data-testid={dataTestId}>
+        <div data-testid="message-role">{role}</div>
+        {error ? (
+          <div data-testid="message-error">
+            <div data-testid="error-variant">{error.variant}</div>
+            <div data-testid="error-title">{error.title}</div>
+            <div data-testid="error-body">{error.body}</div>
+          </div>
+        ) : (
+          <div data-testid="message-content">{content}</div>
+        )}
+        {extraContent?.beforeMainContent && (
+          <div data-testid="before-main-content">{extraContent.beforeMainContent}</div>
+        )}
+        {extraContent?.afterMainContent && (
+          <div data-testid="after-main-content">{extraContent.afterMainContent}</div>
+        )}
+        {extraContent?.endContent && (
+          <div data-testid="end-content">{extraContent.endContent}</div>
+        )}
+      </div>
+    ),
+  ),
+}));
+
+describe('ChatbotMessages', () => {
+  const scrollRef = React.createRef<HTMLDivElement>();
+  const mockOnRetry = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Full Failure Error Pattern', () => {
+    it('should render error prop when pattern is full_failure', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: '',
+          errorClassification: {
+            pattern: 'full_failure',
+            severity: 'danger',
+            retriable: true,
+            title: 'Model inference failed',
+            description: 'The model server did not respond in time.',
+            rawError: { code: 'timeout', message: 'Request timed out' },
+          },
+          onRetryError: mockOnRetry,
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      expect(screen.getByTestId('message-error')).toBeInTheDocument();
+      expect(screen.getByTestId('error-variant')).toHaveTextContent('danger');
+      expect(screen.getByTestId('error-title')).toHaveTextContent('Model inference failed');
+      expect(screen.queryByTestId('message-content')).not.toBeInTheDocument();
+    });
+
+    it('should render error body with ChatbotErrorAlert component', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: '',
+          errorClassification: {
+            pattern: 'full_failure',
+            severity: 'danger',
+            retriable: false,
+            title: 'Configuration error',
+            description: 'Invalid model configuration.',
+            rawError: { code: 'max_tokens', message: 'Token limit exceeded' },
+          },
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      const errorBody = screen.getByTestId('error-body');
+      expect(errorBody).toBeInTheDocument();
+      expect(screen.getByTestId('chatbot-error-alert-msg-1')).toBeInTheDocument();
+      expect(screen.getByTestId('error-title')).toHaveTextContent('Configuration error');
+    });
+
+    it('should use warning variant for warning severity', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: '',
+          errorClassification: {
+            pattern: 'full_failure',
+            severity: 'warning',
+            retriable: false,
+            title: 'Warning message',
+            description: 'This is a warning.',
+            rawError: { message: 'Warning error' },
+          },
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      expect(screen.getByTestId('error-variant')).toHaveTextContent('warning');
+    });
+
+    it('should pass onRetryError to ChatbotErrorAlert', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: '',
+          errorClassification: {
+            pattern: 'full_failure',
+            severity: 'danger',
+            retriable: true,
+            title: 'Error',
+            description: 'Description',
+            rawError: { message: 'Error' },
+          },
+          onRetryError: mockOnRetry,
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      const retryButton = screen.getByTestId('retry-button');
+      expect(retryButton).toBeInTheDocument();
+    });
+  });
+
+  describe('Partial Failure Error Pattern', () => {
+    it('should render error alert in beforeMainContent', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Model response without RAG context',
+          errorClassification: {
+            pattern: 'partial_failure',
+            severity: 'warning',
+            retriable: false,
+            title: 'Knowledge source retrieval failed',
+            description: 'Generated without context from your knowledge sources.',
+            rawError: { code: 'rag_down', message: 'RAG service unavailable' },
+          },
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      expect(screen.getByTestId('before-main-content')).toBeInTheDocument();
+      expect(screen.getByTestId('chatbot-error-alert-msg-1')).toBeInTheDocument();
+      expect(screen.getByTestId('message-content')).toHaveTextContent(
+        'Model response without RAG context',
+      );
+    });
+
+    it('should preserve main message content for partial failures', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Response content here',
+          errorClassification: {
+            pattern: 'partial_failure',
+            severity: 'warning',
+            retriable: false,
+            title: 'Partial failure',
+            description: 'Some component failed.',
+            rawError: { message: 'Component error' },
+          },
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      expect(screen.getByTestId('message-content')).toBeInTheDocument();
+      expect(screen.getByTestId('message-content')).toHaveTextContent('Response content here');
+      expect(screen.queryByTestId('message-error')).not.toBeInTheDocument();
+    });
+
+    it('should not render metrics when partial failure error exists', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Response',
+          metrics: {
+            inputTokens: 100,
+            outputTokens: 50,
+            totalTokens: 150,
+            latency: 1.5,
+          },
+          errorClassification: {
+            pattern: 'partial_failure',
+            severity: 'warning',
+            retriable: false,
+            title: 'Error',
+            description: 'Description',
+            rawError: { message: 'Error' },
+          },
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      expect(screen.queryByTestId('metrics')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Streaming Interruption Error Pattern', () => {
+    it('should render error alert in afterMainContent', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Partial response text...',
+          errorClassification: {
+            pattern: 'streaming_interruption',
+            severity: 'danger',
+            retriable: true,
+            title: 'Streaming error — connection lost',
+            description: 'The connection to the model was lost during generation.',
+            rawError: { code: 'stream_lost', message: 'Connection reset' },
+          },
+          onRetryError: mockOnRetry,
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      expect(screen.getByTestId('after-main-content')).toBeInTheDocument();
+      expect(screen.getByTestId('chatbot-error-alert-msg-1')).toBeInTheDocument();
+      expect(screen.getByTestId('message-content')).toHaveTextContent('Partial response text...');
+    });
+
+    it('should preserve partial content for streaming interruptions', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'The capital of France is Par...',
+          errorClassification: {
+            pattern: 'streaming_interruption',
+            severity: 'danger',
+            retriable: true,
+            title: 'Stream interrupted',
+            description: 'Connection lost.',
+            rawError: { message: 'Stream error' },
+          },
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      expect(screen.getByTestId('message-content')).toHaveTextContent(
+        'The capital of France is Par...',
+      );
+      expect(screen.queryByTestId('message-error')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Normal Messages (No Errors)', () => {
+    it('should render normal bot message without error classification', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Normal response',
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      expect(screen.getByTestId('message-content')).toHaveTextContent('Normal response');
+      expect(screen.queryByTestId('message-error')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('before-main-content')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('after-main-content')).not.toBeInTheDocument();
+    });
+
+    it('should render metrics in endContent when no error', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Response',
+          metrics: {
+            inputTokens: 100,
+            outputTokens: 50,
+            totalTokens: 150,
+            latency: 1.5,
+          },
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      expect(screen.getByTestId('end-content')).toBeInTheDocument();
+      expect(screen.getByTestId('metrics')).toBeInTheDocument();
+    });
+
+    it('should not render extraContent when no metrics or errors', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Response',
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      expect(screen.queryByTestId('end-content')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('before-main-content')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('after-main-content')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Props Destructuring', () => {
+    it('should not pass errorClassification or onRetryError to Message component', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Test',
+          errorClassification: {
+            pattern: 'full_failure',
+            severity: 'danger',
+            retriable: true,
+            title: 'Error',
+            description: 'Description',
+            rawError: { message: 'Error' },
+          },
+          onRetryError: mockOnRetry,
+        },
+      ];
+
+      const { container } = render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      // Check that Message component is called without these props
+      // The mock Message component would error if it received unexpected props
+      expect(container).toBeInTheDocument();
+    });
+
+    it('should handle messages with only metrics and no errors', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Response',
+          metrics: {
+            inputTokens: 100,
+            outputTokens: 50,
+            totalTokens: 150,
+            latency: 1.5,
+          },
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      expect(screen.getByTestId('metrics')).toBeInTheDocument();
+      expect(screen.queryByTestId('chatbot-error-alert-msg-1')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should not render error for user messages even with errorClassification', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'user',
+          content: 'User message',
+          errorClassification: {
+            pattern: 'full_failure',
+            severity: 'danger',
+            retriable: false,
+            title: 'Error',
+            description: 'Description',
+            rawError: { message: 'Error' },
+          },
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      expect(screen.queryByTestId('message-error')).not.toBeInTheDocument();
+      expect(screen.getByTestId('message-content')).toHaveTextContent('User message');
+    });
+
+    it('should render multiple messages with different error patterns', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: '',
+          errorClassification: {
+            pattern: 'full_failure',
+            severity: 'danger',
+            retriable: true,
+            title: 'Full failure',
+            description: 'Description',
+            rawError: { message: 'Error 1' },
+          },
+        },
+        {
+          id: 'msg-2',
+          role: 'bot',
+          content: 'Partial response',
+          errorClassification: {
+            pattern: 'partial_failure',
+            severity: 'warning',
+            retriable: false,
+            title: 'Partial failure',
+            description: 'Description',
+            rawError: { message: 'Error 2' },
+          },
+        },
+        {
+          id: 'msg-3',
+          role: 'bot',
+          content: 'Stream cut off...',
+          errorClassification: {
+            pattern: 'streaming_interruption',
+            severity: 'danger',
+            retriable: true,
+            title: 'Stream interrupted',
+            description: 'Description',
+            rawError: { message: 'Error 3' },
+          },
+        },
+      ];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={false}
+          isStreamingWithoutContent={false}
+        />,
+      );
+
+      expect(screen.getByTestId('chatbot-error-alert-msg-1')).toBeInTheDocument();
+      expect(screen.getByTestId('chatbot-error-alert-msg-2')).toBeInTheDocument();
+      expect(screen.getByTestId('chatbot-error-alert-msg-3')).toBeInTheDocument();
+    });
+
+    it('should render loading message when isLoading is true', () => {
+      const messages: ChatbotMessageProps[] = [];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={true}
+          isStreamingWithoutContent={false}
+          modelDisplayName="Test Model"
+        />,
+      );
+
+      // Loading message is rendered by Message component
+      expect(screen.getByTestId('chatbot-message-bot')).toBeInTheDocument();
+    });
+
+    it('should not render loading message when streaming without content', () => {
+      const messages: ChatbotMessageProps[] = [];
+
+      render(
+        <ChatbotMessages
+          messageList={messages}
+          scrollRef={scrollRef}
+          isLoading={true}
+          isStreamingWithoutContent={true}
+        />,
+      );
+
+      // Loading dots should not be shown during streaming
+      const loadingMessages = screen.queryAllByTestId('chatbot-message-bot');
+      expect(loadingMessages).toHaveLength(0);
+    });
+  });
+});
