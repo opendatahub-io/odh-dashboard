@@ -157,7 +157,6 @@ const initIntercepts = (options: { mlflow?: MlflowInterceptOptions } = {}) => {
     cy.interceptOdh(
       'GET /api/config',
       mockDashboardConfig({
-        mlflow: true,
         mlflowPipelines: pipelinesIntegrationEnabled,
       }),
     );
