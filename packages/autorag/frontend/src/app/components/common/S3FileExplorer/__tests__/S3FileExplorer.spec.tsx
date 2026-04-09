@@ -100,6 +100,7 @@ describe('S3FileExplorer', () => {
         expect(screen.getByText('Bucket not configured')).toBeInTheDocument();
       });
     });
+
     it('should show HTTPS required error for HTTP connections', async () => {
       mockGetFiles.mockRejectedValue(new Error('endpoint URL must use HTTPS scheme, got: http'));
 

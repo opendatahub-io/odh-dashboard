@@ -449,7 +449,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
             body: (
               <>
                 The connection {secretNameToRender} is configured using HTTP. Configure the
-                connection&#39;s endpoint using HTTPS and try again.
+                connection&apos;s endpoint using HTTPS and try again.
               </>
             ),
           },
