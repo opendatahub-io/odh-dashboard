@@ -26,3 +26,20 @@ export const mockMcpServerCR = (overrides?: Partial<MCPServerCR>): MCPServerCR =
   },
   ...overrides,
 });
+
+export type McpDeploymentList = {
+  items: McpDeployment[];
+  size: number;
+  pageSize: number;
+  nextPageToken: string;
+};
+
+export const mockMcpDeploymentList = (
+  partial?: Partial<McpDeploymentList>,
+): McpDeploymentList => ({
+  items: [mockMcpDeployment()],
+  size: 1,
+  pageSize: 10,
+  nextPageToken: '',
+  ...partial,
+});
