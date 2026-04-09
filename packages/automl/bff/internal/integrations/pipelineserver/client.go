@@ -428,6 +428,13 @@ func (c *RealPipelineServerClient) CreateRun(ctx context.Context, request models
 // UploadPipeline uploads a pipeline YAML via the KFP v2beta1 /pipelines/upload
 // multipart endpoint, creating both the pipeline and its first version in one call.
 func (c *RealPipelineServerClient) UploadPipeline(ctx context.Context, name string, _ string, fileContent []byte) (*models.KFPipeline, error) {
+	if name == "" {
+		return nil, fmt.Errorf("pipeline name cannot be empty")
+	}
+	if len(fileContent) == 0 {
+		return nil, fmt.Errorf("pipeline file content cannot be empty")
+	}
+
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
