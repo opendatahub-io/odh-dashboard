@@ -13,10 +13,11 @@ import {
   MCPServerFromAPI,
   ResponseMetrics,
   TokenInfo,
+  ErrorClassification,
 } from '~/app/types';
 import { GuardrailsConfig } from '~/app/Chatbot/components/guardrails/GuardrailsPanel';
 import { ERROR_MESSAGES, initialBotMessage } from '~/app/Chatbot/const';
-import { getSelectedServersForAPI } from '~/app/utilities/mcp';
+import { getSelectedServersForAPI, classifyError } from '~/app/utilities';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import {
   ToolResponseCardTitle,
@@ -26,9 +27,11 @@ import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 
-// Extended message type that includes metrics data for display
+// Extended message type that includes metrics data and error classification for display
 export type ChatbotMessageProps = MessageProps & {
   metrics?: ResponseMetrics;
+  errorClassification?: ErrorClassification;
+  onRetryError?: () => void;
 };
 
 export interface UseChatbotMessagesReturn {
@@ -584,11 +587,11 @@ const useChatbotMessages = ({
         return;
       }
 
-      // Extract error message and category from the error object
+      // Extract error message for backward compatibility logging
       const errorMessage = getErrorMessage(error);
       const errorCategory = getErrorCategory(error);
 
-      // Log error details for debugging (category helps identify the error type)
+      // Log error details for debugging
       if (errorCategory) {
         // eslint-disable-next-line no-console
         console.error('Response API error:', { category: errorCategory, message: errorMessage });
@@ -599,33 +602,102 @@ const useChatbotMessages = ({
         isStoppingStreamRef.current &&
         (isAbortError || errorMessage === 'Response stopped by user');
 
-      if (isStreamingEnabled && botMessageId) {
-        // For streaming, update existing bot message
-        setMessages((prevMessages) =>
-          prevMessages.map((msg) => {
-            if (msg.id === botMessageId) {
-              if (wasUserStopped) {
-                // Append "You stopped this message" to existing content
+      // Handle user-stopped messages (not errors, just user action)
+      if (wasUserStopped) {
+        if (isStreamingEnabled && botMessageId) {
+          // For streaming, append "You stopped this message" to existing content
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) => {
+              if (msg.id === botMessageId) {
                 const stoppedContent = msg.content
                   ? `${msg.content}\n\n*You stopped this message*`
                   : '*You stopped this message*';
                 return { ...msg, content: stoppedContent, isLoading: false };
               }
-              // For other errors, replace content with error message
-              return { ...msg, content: errorMessage, isLoading: false };
+              return msg;
+            }),
+          );
+        } else {
+          // For non-streaming, add stop message as new message
+          const botStopMessage: MessageProps = {
+            id: getId(),
+            role: 'bot',
+            content: '*You stopped this message*',
+            name: modelDisplayName,
+            avatar: botAvatar,
+            timestamp: new Date().toLocaleString(),
+          };
+          setMessages((prevMessages) => [...prevMessages, botStopMessage]);
+        }
+        return; // Exit early - this is not an error to classify
+      }
+
+      // Classify the error for UI rendering
+      const errorClassification = classifyError(error, {
+        wasResponseGenerated: false, // TODO: Track if partial response was generated
+        wasStreamStarted: isStreamingEnabled && botMessageId !== undefined,
+        modelName: modelDisplayName,
+        // TODO: Add maxTokens from model config when available
+      });
+
+      // Retry handler - resends the same prompt
+      const handleRetry = () => {
+        // Find the last user message to retry
+        const lastUserMessage = messages
+          .slice()
+          .reverse()
+          .find((msg) => msg.role === 'user');
+
+        if (lastUserMessage?.content) {
+          // Remove the error message and retry
+          setMessages((prevMessages) =>
+            prevMessages.filter((msg) => msg.id !== botMessageId),
+          );
+          handleMessageSend(lastUserMessage.content);
+        }
+      };
+
+      if (isStreamingEnabled && botMessageId) {
+        // For streaming errors, update existing bot message with error classification
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) => {
+            if (msg.id === botMessageId) {
+              // Determine if this is a streaming interruption (had some content)
+              const hadContent = msg.content && msg.content.length > 0;
+
+              if (hadContent) {
+                // Streaming interruption - show partial content with error below
+                return {
+                  ...msg,
+                  content: msg.content + '...', // Append ellipsis to signal cutoff
+                  isLoading: false,
+                  errorClassification,
+                  onRetryError: errorClassification.retriable ? handleRetry : undefined,
+                };
+              }
+              // Full failure in streaming mode - no content generated
+              return {
+                ...msg,
+                content: '', // Clear loading dots
+                isLoading: false,
+                errorClassification,
+                onRetryError: errorClassification.retriable ? handleRetry : undefined,
+              };
             }
             return msg;
           }),
         );
       } else {
-        // For non-streaming, add error/stop message as new message
-        const botErrorMessage: MessageProps = {
+        // For non-streaming, add error message as new bot message
+        const botErrorMessage: ChatbotMessageProps = {
           id: getId(),
           role: 'bot',
-          content: wasUserStopped ? '*You stopped this message*' : errorMessage,
+          content: '', // No content, error alert will be shown
           name: modelDisplayName,
           avatar: botAvatar,
           timestamp: new Date().toLocaleString(),
+          errorClassification,
+          onRetryError: errorClassification.retriable ? handleRetry : undefined,
         };
         setMessages((prevMessages) => [...prevMessages, botErrorMessage]);
       }

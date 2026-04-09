@@ -1,0 +1,423 @@
+import { classifyError } from '../errorClassifier';
+import { ErrorPattern, ErrorSeverity } from '~/app/types';
+import { ERROR_CATEGORIES } from '~/app/Chatbot/const';
+
+describe('errorClassifier', () => {
+  describe('classifyError', () => {
+    describe('error pattern determination', () => {
+      it('should classify as full_failure when no response was generated', () => {
+        const error = { error: { code: 'timeout', message: 'Request timed out' } };
+        const result = classifyError(error, {
+          wasResponseGenerated: false,
+          wasStreamStarted: false,
+        });
+
+        expect(result.pattern).toBe('full_failure' as ErrorPattern);
+        expect(result.severity).toBe('danger' as ErrorSeverity);
+      });
+
+      it('should classify as partial_failure when response was generated', () => {
+        const error = { error: { code: 'rag_down', message: 'RAG retrieval failed' } };
+        const result = classifyError(error, {
+          wasResponseGenerated: true,
+          wasStreamStarted: false,
+        });
+
+        expect(result.pattern).toBe('partial_failure' as ErrorPattern);
+        expect(result.severity).toBe('warning' as ErrorSeverity);
+      });
+
+      it('should classify as streaming_interruption when stream started but no full response', () => {
+        const error = { error: { code: 'stream_lost', message: 'Connection lost' } };
+        const result = classifyError(error, {
+          wasResponseGenerated: false,
+          wasStreamStarted: true,
+        });
+
+        expect(result.pattern).toBe('streaming_interruption' as ErrorPattern);
+        expect(result.severity).toBe('danger' as ErrorSeverity);
+      });
+    });
+
+    describe('retriable determination', () => {
+      it('should mark as retriable when error has explicit retriable flag set to true', () => {
+        const error = {
+          error: { code: 'custom_error', message: 'Custom error', retriable: true },
+        };
+        const result = classifyError(error);
+
+        expect(result.retriable).toBe(true);
+      });
+
+      it('should mark as non-retriable when error has explicit retriable flag set to false', () => {
+        const error = {
+          error: { code: 'timeout', message: 'Timeout', retriable: false },
+        };
+        const result = classifyError(error);
+
+        expect(result.retriable).toBe(false);
+      });
+
+      it('should mark timeout errors as retriable', () => {
+        const error = { error: { code: 'timeout', message: 'Request timed out' } };
+        const result = classifyError(error);
+
+        expect(result.retriable).toBe(true);
+      });
+
+      it('should mark server errors as retriable', () => {
+        const error = { error: { code: 'server_error', message: 'Server error' } };
+        const result = classifyError(error);
+
+        expect(result.retriable).toBe(true);
+      });
+
+      it('should mark rate limit errors as retriable', () => {
+        const error = { error: { code: 'rate_limit', message: 'Rate limited' } };
+        const result = classifyError(error);
+
+        expect(result.retriable).toBe(true);
+      });
+
+      it('should mark 429 HTTP status as retriable', () => {
+        const error = { error: { message: 'Too many requests' } };
+        const result = classifyError(error, { httpStatus: 429 });
+
+        expect(result.retriable).toBe(true);
+      });
+
+      it('should mark 5xx HTTP statuses as retriable', () => {
+        const error = { error: { message: 'Server error' } };
+
+        expect(classifyError(error, { httpStatus: 500 }).retriable).toBe(true);
+        expect(classifyError(error, { httpStatus: 502 }).retriable).toBe(true);
+        expect(classifyError(error, { httpStatus: 503 }).retriable).toBe(true);
+        expect(classifyError(error, { httpStatus: 504 }).retriable).toBe(true);
+      });
+
+      it('should mark configuration errors as non-retriable', () => {
+        const errors = [
+          { error: { code: 'max_tokens', message: 'Token limit exceeded' } },
+          { error: { code: 'chat_template', message: 'Invalid chat template' } },
+          { error: { code: 'no_tools', message: 'Tools not supported' } },
+          { error: { code: 'no_images', message: 'Images not supported' } },
+        ];
+
+        errors.forEach((error) => {
+          expect(classifyError(error).retriable).toBe(false);
+        });
+      });
+    });
+
+    describe('error title generation', () => {
+      it('should generate title for max_tokens error', () => {
+        const error = { error: { code: 'max_tokens', message: 'Token limit exceeded' } };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Token limit exceeds model capacity');
+      });
+
+      it('should generate title for chat_template error', () => {
+        const error = { error: { code: 'chat_template', message: 'Invalid template' } };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Model configuration error');
+      });
+
+      it('should generate title for no_tools error', () => {
+        const error = { error: { code: 'no_tools', message: 'Tools not supported' } };
+        const result = classifyError(error);
+
+        expect(result.title).toBe("This model doesn't support tool calling");
+      });
+
+      it('should generate title for no_images error', () => {
+        const error = { error: { code: 'no_images', message: 'Images not supported' } };
+        const result = classifyError(error);
+
+        expect(result.title).toBe("This model doesn't support image input");
+      });
+
+      it('should generate title for timeout error', () => {
+        const error = { error: { code: 'timeout', message: 'Request timed out' } };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Model inference failed');
+      });
+
+      it('should generate title for server_error', () => {
+        const error = { error: { code: 'server_error', message: 'Internal error' } };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Model server error');
+      });
+
+      it('should generate title for rate_limit error', () => {
+        const error = { error: { code: 'rate_limit', message: 'Too many requests' } };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Request was rate limited');
+      });
+
+      it('should generate title for RAG errors', () => {
+        const errors = [
+          { code: 'rag_down', expected: 'Knowledge source retrieval failed' },
+          { code: 'rag_embed', expected: 'Knowledge source retrieval failed' },
+          { code: 'rag_empty', expected: 'No matching knowledge found' },
+        ];
+
+        errors.forEach(({ code, expected }) => {
+          const error = { error: { code, message: 'RAG error' } };
+          expect(classifyError(error).title).toBe(expected);
+        });
+      });
+
+      it('should generate title for guardrails errors', () => {
+        const errors = [
+          { code: 'guardrail_flagged', expected: 'Content was flagged by guardrails' },
+          { code: 'guardrail_down', expected: 'Guardrail check was not applied' },
+        ];
+
+        errors.forEach(({ code, expected }) => {
+          const error = { error: { code, message: 'Guardrails error' } };
+          expect(classifyError(error).title).toBe(expected);
+        });
+      });
+
+      it('should generate title for MCP errors with tool name', () => {
+        const error = {
+          error: { code: 'mcp_down', message: 'Tool failed', tool_name: 'GitHub' },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('GitHub tool call failed');
+      });
+
+      it('should generate title for MCP errors without tool name', () => {
+        const error = { error: { code: 'mcp_down', message: 'Tool failed' } };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Tool call failed');
+      });
+
+      it('should generate title for streaming interruptions', () => {
+        const errors = [
+          { code: 'stream_lost', expected: 'Streaming error — connection lost' },
+          { code: 'stream_timeout', expected: 'Streaming error — response timed out' },
+          { code: 'stream_context', expected: 'Streaming error — context length exceeded' },
+        ];
+
+        errors.forEach(({ code, expected }) => {
+          const error = { error: { code, message: 'Stream error' } };
+          const result = classifyError(error, { wasStreamStarted: true });
+          expect(result.title).toBe(expected);
+        });
+      });
+
+      it('should use generic title for unknown errors', () => {
+        const error = { error: { code: 'unknown_code', message: 'Unknown error' } };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('An error occurred');
+      });
+    });
+
+    describe('error description generation', () => {
+      it('should generate description for max_tokens error with model name', () => {
+        const error = { error: { code: 'max_tokens', message: 'Token limit exceeded' } };
+        const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
+
+        expect(result.description).toContain('Llama 3.1 8B');
+        expect(result.description).toContain('supports a maximum of');
+      });
+
+      it('should generate description for timeout error', () => {
+        const error = { error: { code: 'timeout', message: 'Request timed out' } };
+        const result = classifyError(error);
+
+        expect(result.description).toBe(
+          "The model server didn't respond in time. This may be a temporary issue.",
+        );
+      });
+
+      it('should generate description for RAG partial failures', () => {
+        const error = { error: { code: 'rag_down', message: 'RAG failed' } };
+        const result = classifyError(error, { wasResponseGenerated: true });
+
+        expect(result.description).toBe('Generated without context from your knowledge sources.');
+        expect(result.pattern).toBe('partial_failure' as ErrorPattern);
+      });
+
+      it('should use error message as fallback for unknown errors', () => {
+        const error = { error: { code: 'unknown', message: 'Custom error message' } };
+        const result = classifyError(error);
+
+        expect(result.description).toBe('Custom error message');
+      });
+    });
+
+    describe('template variable interpolation', () => {
+      it('should include modelName in templateVars', () => {
+        const error = { error: { code: 'timeout', message: 'Timeout' } };
+        const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
+
+        expect(result.templateVars).toEqual({ modelName: 'Llama 3.1 8B' });
+      });
+
+      it('should include maxTokens in templateVars', () => {
+        const error = { error: { code: 'max_tokens', message: 'Token limit' } };
+        const result = classifyError(error, { maxTokens: 4096 });
+
+        expect(result.templateVars).toEqual({ maxTokens: 4096 });
+      });
+
+      it('should include toolName from error details', () => {
+        const error = {
+          error: { code: 'mcp_down', message: 'Tool failed', tool_name: 'GitHub' },
+        };
+        const result = classifyError(error);
+
+        expect(result.templateVars).toEqual({ toolName: 'GitHub' });
+      });
+
+      it('should include all template vars when provided', () => {
+        const error = {
+          error: { code: 'max_tokens', message: 'Token limit', tool_name: 'GitHub' },
+        };
+        const result = classifyError(error, {
+          modelName: 'Llama 3.1 8B',
+          maxTokens: 4096,
+        });
+
+        expect(result.templateVars).toEqual({
+          modelName: 'Llama 3.1 8B',
+          maxTokens: 4096,
+          toolName: 'GitHub',
+        });
+      });
+    });
+
+    describe('raw error extraction', () => {
+      it('should extract code and message from structured error', () => {
+        const error = { error: { code: 'timeout', message: 'Request timed out' } };
+        const result = classifyError(error);
+
+        expect(result.rawError).toEqual({
+          code: 'timeout',
+          message: 'Request timed out',
+        });
+      });
+
+      it('should handle error without code', () => {
+        const error = { error: { message: 'Generic error' } };
+        const result = classifyError(error);
+
+        expect(result.rawError).toEqual({
+          code: undefined,
+          message: 'Generic error',
+        });
+      });
+
+      it('should extract message from Error object', () => {
+        const error = new Error('Network error');
+        const result = classifyError(error);
+
+        expect(result.rawError.message).toBe('Network error');
+      });
+
+      it('should use fallback message for unknown error types', () => {
+        const error = { someField: 'value' };
+        const result = classifyError(error);
+
+        expect(result.rawError.message).toBe('An unexpected error occurred');
+      });
+    });
+
+    describe('error category constants integration', () => {
+      it('should recognize ERROR_CATEGORIES constants', () => {
+        const categoryTests = [
+          { code: ERROR_CATEGORIES.INVALID_MODEL_CONFIG, titleContains: 'configuration' },
+          { code: ERROR_CATEGORIES.UNSUPPORTED_FEATURE, titleContains: 'support' },
+          { code: ERROR_CATEGORIES.RAG_ERROR, titleContains: 'Knowledge' },
+          { code: ERROR_CATEGORIES.GUARDRAILS_VIOLATION, titleContains: 'guardrail' },
+          { code: ERROR_CATEGORIES.MCP_ERROR, titleContains: 'Tool' },
+          { code: ERROR_CATEGORIES.MODEL_TIMEOUT, titleContains: 'failed' },
+        ];
+
+        categoryTests.forEach(({ code, titleContains }) => {
+          const error = { error: { code, message: 'Error message' } };
+          const result = classifyError(error);
+          expect(result.title.toLowerCase()).toContain(titleContains.toLowerCase());
+        });
+      });
+    });
+
+    describe('component-based classification', () => {
+      it('should classify RAG errors by component field', () => {
+        const error = {
+          error: {
+            component: 'rag',
+            message: 'Retrieval failed',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toContain('Knowledge');
+      });
+
+      it('should classify guardrails errors by component field', () => {
+        const error = {
+          error: {
+            component: 'guardrails',
+            message: 'Guardrails failed',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toContain('Guardrail');
+      });
+
+      it('should classify MCP errors by component field', () => {
+        const error = {
+          error: {
+            component: 'mcp',
+            message: 'MCP failed',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toContain('Tool');
+      });
+    });
+
+    describe('edge cases', () => {
+      it('should handle null error', () => {
+        const result = classifyError(null);
+
+        expect(result.pattern).toBe('full_failure' as ErrorPattern);
+        expect(result.rawError.message).toBe('An unexpected error occurred');
+      });
+
+      it('should handle undefined error', () => {
+        const result = classifyError(undefined);
+
+        expect(result.pattern).toBe('full_failure' as ErrorPattern);
+        expect(result.rawError.message).toBe('An unexpected error occurred');
+      });
+
+      it('should handle empty error object', () => {
+        const result = classifyError({});
+
+        expect(result.pattern).toBe('full_failure' as ErrorPattern);
+        expect(result.rawError.message).toBe('An unexpected error occurred');
+      });
+
+      it('should handle error with empty message', () => {
+        const error = { error: { code: 'test', message: '' } };
+        const result = classifyError(error);
+
+        expect(result.rawError.message).toBe('');
+      });
+    });
+  });
+});

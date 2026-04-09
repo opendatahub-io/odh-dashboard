@@ -90,3 +90,28 @@ export const ERROR_CATEGORIES = {
 
 export const DEFAULT_SYSTEM_INSTRUCTIONS = `You are a helpful AI assistant. You are designed to answer questions in a concise and professional manner.
 `;
+
+// Retriable HTTP status codes (transient failures that may succeed on retry)
+export const RETRIABLE_HTTP_STATUSES = [429, 500, 502, 503, 504] as const;
+
+// Retriable error codes (known transient errors)
+export const RETRIABLE_ERROR_CODES = [
+  'timeout',
+  'server_error',
+  'service_unavailable',
+  'bad_gateway',
+  'rate_limit',
+  'stream_lost',
+  'stream_timeout',
+] as const;
+
+// Non-retriable error codes (configuration/capability errors that will fail the same way)
+export const NON_RETRIABLE_ERROR_CODES = [
+  'invalid_model_config',
+  'unsupported_feature',
+  'invalid_parameter',
+  'no_tools',
+  'no_images',
+  'chat_template',
+  'max_tokens',
+] as const;

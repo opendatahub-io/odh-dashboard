@@ -1,8 +1,9 @@
 import React from 'react';
-import { Message } from '@patternfly/chatbot';
+import { Message, MessageProps as PFMessageProps } from '@patternfly/chatbot';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
 import { ChatbotMessagesMetrics } from '~/app/Chatbot/ChatbotMessagesMetrics';
+import ChatbotErrorAlert from '~/app/Chatbot/components/ChatbotErrorAlert';
 
 type ChatbotMessagesListProps = {
   messageList: ChatbotMessageProps[];
@@ -27,20 +28,71 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   return (
     <>
       {messageList.map((message, index) => {
-        // Destructure metrics from message to avoid passing it to PatternFly Message component
-        const { metrics, ...messageProps } = message;
+        // Destructure custom props from message to avoid passing them to PatternFly Message component
+        const { metrics, errorClassification, onRetryError, ...messageProps } = message;
 
-        // Build extraContent with metrics if present (for bot messages)
-        const extraContent =
-          message.role === 'bot' && metrics
-            ? { endContent: <ChatbotMessagesMetrics metrics={metrics} /> }
+        // Build error props for PatternFly Message (only for full failures)
+        const errorProps: PFMessageProps['error'] =
+          message.role === 'bot' &&
+          errorClassification &&
+          errorClassification.pattern === 'full_failure'
+            ? {
+                variant: errorClassification.severity,
+                title: errorClassification.title,
+                body: (
+                  <ChatbotErrorAlert
+                    errorClassification={errorClassification}
+                    onRetry={onRetryError}
+                    data-testid={`chatbot-error-alert-${message.id}`}
+                  />
+                ),
+              }
             : undefined;
+
+        // Build extraContent with metrics and error alerts
+        const extraContent: PFMessageProps['extraContent'] = {};
+
+        // Add metrics to endContent (if present and no error)
+        if (message.role === 'bot' && metrics && !errorClassification) {
+          extraContent.endContent = <ChatbotMessagesMetrics metrics={metrics} />;
+        }
+
+        // Add partial failure alert to beforeMainContent (warning alert above response)
+        if (
+          message.role === 'bot' &&
+          errorClassification &&
+          errorClassification.pattern === 'partial_failure'
+        ) {
+          extraContent.beforeMainContent = (
+            <ChatbotErrorAlert
+              errorClassification={errorClassification}
+              onRetry={onRetryError}
+              data-testid={`chatbot-error-alert-${message.id}`}
+            />
+          );
+        }
+
+        // Add streaming interruption alert to afterMainContent (danger alert below partial response)
+        if (
+          message.role === 'bot' &&
+          errorClassification &&
+          errorClassification.pattern === 'streaming_interruption'
+        ) {
+          extraContent.afterMainContent = (
+            <ChatbotErrorAlert
+              errorClassification={errorClassification}
+              onRetry={onRetryError}
+              data-testid={`chatbot-error-alert-${message.id}`}
+            />
+          );
+        }
 
         return (
           <React.Fragment key={message.id}>
             <Message
               {...messageProps}
-              extraContent={extraContent}
+              error={errorProps}
+              extraContent={Object.keys(extraContent).length > 0 ? extraContent : undefined}
               data-testid={`chatbot-message-${message.role}`}
             />
             {index === messageList.length - 1 && <div ref={scrollRef} />}

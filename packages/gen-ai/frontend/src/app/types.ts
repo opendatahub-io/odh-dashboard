@@ -651,3 +651,63 @@ type VerifyExternalModel = ModArchRestCREATE<
   VerifyExternalModelRequest
 >;
 type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;
+
+/** Playground Error States Types */
+
+/**
+ * Error pattern determines how the error is rendered in the chat transcript
+ */
+export type ErrorPattern = 'full_failure' | 'partial_failure' | 'streaming_interruption';
+
+/**
+ * Error severity maps to PatternFly Alert variant
+ */
+export type ErrorSeverity = 'danger' | 'warning';
+
+/**
+ * Component that generated the error
+ */
+export type ErrorComponent =
+  | 'model'
+  | 'llama_stack'
+  | 'bff'
+  | 'rag'
+  | 'guardrails'
+  | 'mcp'
+  | 'config'
+  | 'network'
+  | 'unknown';
+
+/**
+ * Structured error information from API responses
+ */
+export type APIErrorDetails = {
+  component?: ErrorComponent;
+  code?: string;
+  message: string;
+  tool_name?: string; // For MCP errors
+  retriable?: boolean;
+};
+
+/**
+ * Classified error with UI rendering details
+ */
+export type ErrorClassification = {
+  /** How the error should be rendered (full, partial, or streaming interruption) */
+  pattern: ErrorPattern;
+  /** Alert variant (danger or warning) */
+  severity: ErrorSeverity;
+  /** Whether the error can be retried */
+  retriable: boolean;
+  /** Plain-language title for the alert */
+  title: string;
+  /** 1-2 sentence description of what happened and its impact */
+  description: string;
+  /** Raw error code and message for the code block */
+  rawError: {
+    code?: string;
+    message: string;
+  };
+  /** Variables for template interpolation (modelName, maxTokens, toolName) */
+  templateVars?: Record<string, string | number>;
+};
