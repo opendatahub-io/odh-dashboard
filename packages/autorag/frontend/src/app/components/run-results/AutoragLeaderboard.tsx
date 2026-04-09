@@ -356,22 +356,25 @@ function AutoragLeaderboard({
       pipelineRun?.state === RuntimeStateKF.FAILED ||
       pipelineRun?.state === RuntimeStateKF.CANCELED;
 
-    // Helper to render message with pipeline run link
-    const messageWithLink = (before: string, linkText: string, after = '.') => (
-      <>
-        <span>{before}&nbsp;</span>
-        <Button
-          variant="link"
-          isInline
-          component={(props) => (
-            <Link {...props} to={`/develop-train/pipelines/runs/${namespace}/runs/${runId}`} />
-          )}
-        >
-          {linkText}
-        </Button>
-        <span>{after}</span>
-      </>
-    );
+    // Helper to render message with pipeline run link (falls back to plain text when route params are missing)
+    const messageWithLink = (before: string, linkText: string, after = '.') =>
+      namespace && runId ? (
+        <>
+          <span>{before}&nbsp;</span>
+          <Button
+            variant="link"
+            isInline
+            component={(props) => (
+              <Link {...props} to={`/develop-train/pipelines/runs/${namespace}/runs/${runId}`} />
+            )}
+          >
+            {linkText}
+          </Button>
+          <span>{after}</span>
+        </>
+      ) : (
+        `${before} ${linkText}${after}`
+      );
 
     let messageContent: React.ReactNode;
     if (!pipelineRun) {
