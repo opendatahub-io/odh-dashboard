@@ -1,6 +1,9 @@
 import * as React from 'react';
 import { Dashboard, DashboardStickyToolbar } from '@perses-dev/dashboards';
 
+/**
+ * Perses Dashboard component - renders the actual dashboard with variable controls
+ */
 const PersesBoard: React.FC = () => (
   <>
     <DashboardStickyToolbar initialVariableIsSticky={false} />
