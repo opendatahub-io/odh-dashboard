@@ -1303,7 +1303,6 @@ export type DashboardCommonConfig = {
   modelAsService?: boolean;
   maasAuthPolicies?: boolean;
   aiAssetCustomEndpoints?: boolean;
-  mlflow?: boolean;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
   projectRBAC?: boolean;

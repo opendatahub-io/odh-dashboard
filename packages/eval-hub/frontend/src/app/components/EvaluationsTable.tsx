@@ -295,7 +295,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               <Th
                 modifier="nowrap"
                 info={{
-                  tooltip:
+                  popover:
                     'The benchmark collection or individual benchmark used for this evaluation',
                 }}
               >
@@ -304,7 +304,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               <Th
                 modifier="nowrap"
                 info={{
-                  tooltip: 'The model evaluated in this run',
+                  popover: 'The model evaluated in this run',
                 }}
               >
                 Evaluated
@@ -315,7 +315,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               <Th
                 modifier="nowrap"
                 info={{
-                  tooltip: 'The result score from the evaluation run',
+                  popover: 'The result score from the evaluation run',
                 }}
               >
                 Result

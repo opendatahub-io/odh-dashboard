@@ -418,6 +418,18 @@ class APIKeysPage {
     return cy.findByRole('menuitem', { name: new RegExp(status, 'i') });
   }
 
+  findStatusFilterOptionCheckbox(status: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findStatusFilterOption(status).findByRole('checkbox');
+  }
+
+  findToolbar(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-keys-toolbar');
+  }
+
+  clearAllFilters() {
+    this.findToolbar().contains('button', 'Clear all filters').click();
+  }
+
   findColumnSortButton(columnLabel: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findTable().find('thead').contains('th', columnLabel).findByRole('button');
   }

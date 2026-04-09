@@ -203,7 +203,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   );
 
   if (isLoading) {
-    return <Skeleton width={toggleWidth} />;
+    return <Skeleton />;
   }
 
   return (

@@ -113,6 +113,7 @@ describe('CreateExternalEndpointModal', () => {
 
       // Fill required fields
       await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
+      await user.type(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My GPT-4o');
       await user.type(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
         'https://model.svc.cluster.local/v1',
@@ -158,6 +159,7 @@ describe('CreateExternalEndpointModal', () => {
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
       await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
+      await user.type(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My GPT-4o');
       await user.type(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
         'https://model.svc.cluster.local/v1',
@@ -181,6 +183,7 @@ describe('CreateExternalEndpointModal', () => {
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
       await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
+      await user.type(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My GPT-4o');
       await user.type(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
         'https://model.svc.cluster.local/v1',

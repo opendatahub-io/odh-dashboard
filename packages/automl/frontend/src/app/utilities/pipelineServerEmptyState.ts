@@ -28,8 +28,27 @@ export function shouldShowConfigurePipelineServerEmptyState(error: unknown): boo
   if (/\bfailed\s+to\s+discover\s+automl\s+pipelines\b/i.test(msg)) {
     return true;
   }
-  // Require "(DSPA)" closed; exclude readiness wording so 503 → PipelineServerNotReady is not misrouted.
-  if (/\bpipeline\s+server\s*\(\s*dspa\s*\)(?!\s*is\s+not)/i.test(msg)) {
+  // Require "(DSPA)" closed; exclude readiness wording so PipelineServerNotReady is not misrouted.
+  if (/\bpipeline\s+server\s*\(\s*dspa\s*\)(?!.*\bis\s+not\s+ready)/i.test(msg)) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * True when the pipeline server exists but is not fully ready.
+ * Matches the BFF middleware's 503 response message, which handleRestFailures
+ * (mod-arch-core) flattens to a plain Error — stripping the HTTP status code.
+ */
+export function shouldShowPipelineServerNotReady(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const status = getGenericErrorCode(error) ?? parseErrorStatus(error);
+  if (status === 503) {
+    return true;
+  }
+  if (/\bpipeline\s+server\s+exists\s+but\s+is\s+not\s+ready\b/i.test(error.message)) {
     return true;
   }
   return false;

@@ -753,15 +753,17 @@ const (
 	dsPipelineResource = "datasciencepipelinesapplications"
 )
 
-// isAPIServerReady checks if the Pipeline Server API is ready
-// This matches the dashboard's check: conditions.find(c => c.type === 'APIServerReady' && c.status === 'True')
-func isAPIServerReady(dspa *models.DSPipelineApplication) bool {
+// isDSPAReady checks if the Pipeline Server is fully ready by looking for
+// the Ready condition. Ready is the aggregate condition set by the DSPA
+// controller — it is True only when all sub-conditions (APIServerReady,
+// DatabaseReady, PersistenceAgentReady, etc.) are also True.
+func isDSPAReady(dspa *models.DSPipelineApplication) bool {
 	if dspa == nil || dspa.Status == nil || dspa.Status.Conditions == nil {
 		return false
 	}
 
 	for _, condition := range dspa.Status.Conditions {
-		if condition.Type == "APIServerReady" && condition.Status == "True" {
+		if condition.Type == "Ready" && condition.Status == "True" {
 			return true
 		}
 	}
@@ -1093,8 +1095,9 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 	return result
 }
 
-// discoverReadyDSPA discovers the first ready DSPipelineApplication in a namespace
-// Returns the first DSPA with APIServerReady == True, or nil if none are ready
+// discoverReadyDSPA discovers the first ready DSPipelineApplication in a namespace.
+// Returns the first DSPA for which isDSPAReady reports the aggregate Ready condition is True,
+// or nil if none are ready.
 func (app *App) discoverReadyDSPA(
 	ctx context.Context,
 	client k8s.KubernetesClientInterface,
@@ -1109,7 +1112,7 @@ func (app *App) discoverReadyDSPA(
 
 	// Find the first ready DSPA
 	for _, dspa := range dspas {
-		if isAPIServerReady(&dspa) {
+		if isDSPAReady(&dspa) {
 			logger.Info("Found ready Pipeline Server",
 				"namespace", namespace,
 				"name", dspa.Metadata.Name)

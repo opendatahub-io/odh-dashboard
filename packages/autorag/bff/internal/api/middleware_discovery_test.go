@@ -12,54 +12,42 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestIsAPIServerReady tests the isAPIServerReady function
-func TestIsAPIServerReady(t *testing.T) {
-	t.Run("should return true when APIServerReady condition is True", func(t *testing.T) {
+// TestIsDSPAReady tests the isDSPAReady function
+func TestIsDSPAReady(t *testing.T) {
+	t.Run("should return true when Ready condition is True", func(t *testing.T) {
 		dspa := &models.DSPipelineApplication{
 			Status: &models.DSPipelineApplicationStatus{
 				Conditions: []models.DSPipelineApplicationCondition{
-					{
-						Type:   "APIServerReady",
-						Status: "True",
-					},
+					{Type: "Ready", Status: "True"},
 				},
 			},
 		}
 
-		result := isAPIServerReady(dspa)
-		assert.True(t, result, "Should return true when APIServerReady is True")
+		assert.True(t, isDSPAReady(dspa))
 	})
 
-	t.Run("should return false when APIServerReady condition is False", func(t *testing.T) {
+	t.Run("should return false when Ready condition is False", func(t *testing.T) {
 		dspa := &models.DSPipelineApplication{
 			Status: &models.DSPipelineApplicationStatus{
 				Conditions: []models.DSPipelineApplicationCondition{
-					{
-						Type:   "APIServerReady",
-						Status: "False",
-					},
+					{Type: "Ready", Status: "False"},
 				},
 			},
 		}
 
-		result := isAPIServerReady(dspa)
-		assert.False(t, result, "Should return false when APIServerReady is False")
+		assert.False(t, isDSPAReady(dspa))
 	})
 
-	t.Run("should return false when APIServerReady condition is missing", func(t *testing.T) {
+	t.Run("should return false when Ready condition is missing", func(t *testing.T) {
 		dspa := &models.DSPipelineApplication{
 			Status: &models.DSPipelineApplicationStatus{
 				Conditions: []models.DSPipelineApplicationCondition{
-					{
-						Type:   "Ready",
-						Status: "True",
-					},
+					{Type: "APIServerReady", Status: "True"},
 				},
 			},
 		}
 
-		result := isAPIServerReady(dspa)
-		assert.False(t, result, "Should return false when APIServerReady condition is missing")
+		assert.False(t, isDSPAReady(dspa))
 	})
 
 	t.Run("should return false when conditions array is nil", func(t *testing.T) {
@@ -69,41 +57,26 @@ func TestIsAPIServerReady(t *testing.T) {
 			},
 		}
 
-		result := isAPIServerReady(dspa)
-		assert.False(t, result, "Should return false when conditions is nil")
+		assert.False(t, isDSPAReady(dspa))
 	})
 
 	t.Run("should return false when dspa is nil", func(t *testing.T) {
-		result := isAPIServerReady(nil)
-		assert.False(t, result, "Should return false when dspa is nil")
+		assert.False(t, isDSPAReady(nil))
 	})
 
-	t.Run("should find APIServerReady among multiple conditions", func(t *testing.T) {
+	t.Run("should find Ready condition among multiple conditions", func(t *testing.T) {
 		dspa := &models.DSPipelineApplication{
 			Status: &models.DSPipelineApplicationStatus{
 				Conditions: []models.DSPipelineApplicationCondition{
-					{
-						Type:   "Ready",
-						Status: "True",
-					},
-					{
-						Type:   "DatabaseReady",
-						Status: "True",
-					},
-					{
-						Type:   "APIServerReady",
-						Status: "True",
-					},
-					{
-						Type:   "PersistenceAgentReady",
-						Status: "True",
-					},
+					{Type: "DatabaseReady", Status: "True"},
+					{Type: "APIServerReady", Status: "True"},
+					{Type: "Ready", Status: "True"},
+					{Type: "PersistenceAgentReady", Status: "True"},
 				},
 			},
 		}
 
-		result := isAPIServerReady(dspa)
-		assert.True(t, result, "Should find APIServerReady=True among multiple conditions")
+		assert.True(t, isDSPAReady(dspa))
 	})
 }
 
@@ -190,7 +163,7 @@ func TestDiscoverReadyDSPA(t *testing.T) {
 		assert.NotNil(t, dspa, "Should return a DSPA")
 		if dspa != nil {
 			assert.Equal(t, "dspa", dspa.Metadata.Name)
-			assert.True(t, isAPIServerReady(dspa), "Returned DSPA should be ready")
+			assert.True(t, isDSPAReady(dspa), "Returned DSPA should be ready")
 		}
 	})
 
@@ -234,7 +207,7 @@ func TestDiscoverReadyDSPA(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, dspa, "Should return a DSPA")
 		assert.Equal(t, "dspa", dspa.Metadata.Name, "Should return the ready DSPA named 'dspa'")
-		assert.True(t, isAPIServerReady(dspa), "Returned DSPA should be ready")
+		assert.True(t, isDSPAReady(dspa), "Returned DSPA should be ready")
 	})
 }
 
@@ -262,10 +235,10 @@ func TestGetMockDSPipelineApplications(t *testing.T) {
 		assert.Equal(t, "dspa", dspa.Metadata.Name)
 		assert.Equal(t, namespace, dspa.Metadata.Namespace)
 		assert.True(t, dspa.Status.Ready)
-		assert.True(t, isAPIServerReady(&dspa))
+		assert.True(t, isDSPAReady(&dspa))
 	})
 
-	t.Run("should have first DSPA ready with APIServerReady=True", func(t *testing.T) {
+	t.Run("should have first DSPA ready with Ready condition True", func(t *testing.T) {
 		namespace := "test-namespace"
 		dspas := getMockDSPipelineApplications(namespace)
 
@@ -275,20 +248,10 @@ func TestGetMockDSPipelineApplications(t *testing.T) {
 		assert.Equal(t, "dspa", firstDSPA.Metadata.Name)
 		assert.Equal(t, namespace, firstDSPA.Metadata.Namespace)
 		assert.True(t, firstDSPA.Status.Ready)
-		assert.True(t, isAPIServerReady(&firstDSPA), "First DSPA should have APIServerReady=True")
-
-		// Check conditions
-		var hasAPIServerReady bool
-		for _, condition := range firstDSPA.Status.Conditions {
-			if condition.Type == "APIServerReady" && condition.Status == "True" {
-				hasAPIServerReady = true
-				break
-			}
-		}
-		assert.True(t, hasAPIServerReady, "First DSPA should have APIServerReady condition set to True")
+		assert.True(t, isDSPAReady(&firstDSPA), "First DSPA should be fully ready")
 	})
 
-	t.Run("should have second DSPA not ready with APIServerReady=False", func(t *testing.T) {
+	t.Run("should have second DSPA not ready", func(t *testing.T) {
 		namespace := "test-namespace"
 		dspas := getMockDSPipelineApplications(namespace)
 
@@ -298,17 +261,7 @@ func TestGetMockDSPipelineApplications(t *testing.T) {
 		assert.Equal(t, "dspa-test", secondDSPA.Metadata.Name)
 		assert.Equal(t, namespace, secondDSPA.Metadata.Namespace)
 		assert.False(t, secondDSPA.Status.Ready)
-		assert.False(t, isAPIServerReady(&secondDSPA), "Second DSPA should have APIServerReady=False")
-
-		// Check conditions
-		var hasAPIServerReady bool
-		for _, condition := range secondDSPA.Status.Conditions {
-			if condition.Type == "APIServerReady" && condition.Status == "False" {
-				hasAPIServerReady = true
-				break
-			}
-		}
-		assert.True(t, hasAPIServerReady, "Second DSPA should have APIServerReady condition set to False")
+		assert.False(t, isDSPAReady(&secondDSPA), "Second DSPA should not be ready")
 	})
 
 	t.Run("should set correct API URLs in status", func(t *testing.T) {

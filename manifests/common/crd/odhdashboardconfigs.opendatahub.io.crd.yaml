@@ -119,6 +119,7 @@ spec:
                       type: boolean
                     mlflow:
                       type: boolean
+                      description: 'DEPRECATED: MLflow is now always enabled when the operator component is present. This field will be removed in a future version.'
                     mcpCatalog:
                       type: boolean
                     projectRBAC:
@@ -140,6 +141,8 @@ spec:
                       message: 'DEPRECATED: spec.dashboardConfig.disableHardwareProfiles must be removed or left unchanged.'
                     - rule: '!has(self.disableFineTuning) || self.disableFineTuning == oldSelf.disableFineTuning'
                       message: 'DEPRECATED: spec.dashboardConfig.disableFineTuning must be removed or left unchanged.'
+                    - rule: '!has(self.mlflow) || (has(oldSelf.mlflow) && self.mlflow == oldSelf.mlflow)'
+                      message: 'DEPRECATED: spec.dashboardConfig.mlflow must be removed or left unchanged.'
                 # TODO: Remove before going to v1
                 groupsConfig:
                   description: 'Ignored -- See "Auth" Resource'
