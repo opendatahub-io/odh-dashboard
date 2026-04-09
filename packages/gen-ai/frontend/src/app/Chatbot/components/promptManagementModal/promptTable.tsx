@@ -75,10 +75,10 @@ export default function PromptTable({
   const isDrawerOpen = selectedRow !== null || isLoadingDetails;
 
   useEffect(() => {
-    if (selectedPromptVersions.length > 0 && selectedVersion === null) {
+    if (selectedPromptVersions.length > 0) {
       setSelectedVersion(selectedPromptVersions[0].version);
     }
-  }, [selectedPromptVersions, selectedVersion]);
+  }, [selectedPromptVersions]);
 
   useEffect(() => {
     if (error || listError) {
