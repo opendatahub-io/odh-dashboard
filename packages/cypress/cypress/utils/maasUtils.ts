@@ -121,6 +121,23 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     priority: 0,
     creationTimestamp: '2025-02-15T08:00:00Z',
   },
+  {
+    name: 'negative-priority-sub',
+    namespace: 'maas-system',
+    phase: 'Active',
+    priority: -10000,
+    owner: {
+      groups: [{ name: 'system:authenticated' }],
+    },
+    modelRefs: [
+      {
+        name: 'flan-t5-small',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 10000, window: '24h' }],
+      },
+    ],
+    creationTimestamp: '2025-03-18T03:00:00Z',
+  },
 ];
 
 export const mockSubscriptionListItems = (): UserSubscription[] => [
