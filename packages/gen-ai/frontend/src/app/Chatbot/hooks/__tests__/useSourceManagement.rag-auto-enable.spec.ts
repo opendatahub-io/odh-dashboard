@@ -88,7 +88,7 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
     });
   };
 
-  it('should signal RAG auto-enable (fileUploadedSignal=true) after a successful file upload', async () => {
+  it('should signal RAG auto-enable (autoEnableRag=true) after a successful file upload', async () => {
     const mockOnFileUploadComplete = jest.fn();
     const { result, rerender } = renderHookWithLoadingState(useSourceManagement, {
       onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -97,11 +97,11 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
     });
 
     simulateLoadingComplete(rerender);
-    expect(result.current.fileUploadedSignal).toBe(false);
+    expect(result.current.autoEnableRag).toBe(false);
 
     await uploadFileFlow(result);
 
-    expect(result.current.fileUploadedSignal).toBe(true);
+    expect(result.current.autoEnableRag).toBe(true);
     expect(mockOnShowSuccessAlert).toHaveBeenCalled();
   });
 
@@ -116,15 +116,15 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
     });
 
     simulateLoadingComplete(rerender, [existingFile]);
-    expect(result.current.fileUploadedSignal).toBe(false);
+    expect(result.current.autoEnableRag).toBe(false);
 
     await uploadFileFlow(result);
 
-    expect(result.current.fileUploadedSignal).toBe(true);
+    expect(result.current.autoEnableRag).toBe(true);
     expect(mockOnShowSuccessAlert).toHaveBeenCalled();
   });
 
-  it('should signal RAG auto-enable again after fileUploadedSignal is reset', async () => {
+  it('should signal RAG auto-enable again after autoEnableRag is reset', async () => {
     const mockOnFileUploadComplete = jest.fn();
     const { result, rerender } = renderHookWithLoadingState(useSourceManagement, {
       onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -135,12 +135,12 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
     simulateLoadingComplete(rerender);
 
     await uploadFileFlow(result);
-    expect(result.current.fileUploadedSignal).toBe(true);
+    expect(result.current.autoEnableRag).toBe(true);
 
     act(() => {
-      result.current.setFileUploadedSignal(false);
+      result.current.setAutoEnableRag(false);
     });
-    expect(result.current.fileUploadedSignal).toBe(false);
+    expect(result.current.autoEnableRag).toBe(false);
 
     const mockFile2 = new File(['test content 2'], 'test2.txt', { type: 'text/plain' });
     await act(async () => {
@@ -152,7 +152,7 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
       await result.current.handleSourceSettingsSubmit(mockSourceSettings);
     });
 
-    expect(result.current.fileUploadedSignal).toBe(true);
+    expect(result.current.autoEnableRag).toBe(true);
   });
 
   it('should not signal RAG auto-enable if all uploads fail', async () => {
@@ -170,7 +170,7 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
 
     await uploadFileFlow(result);
 
-    expect(result.current.fileUploadedSignal).toBe(false);
+    expect(result.current.autoEnableRag).toBe(false);
     expect(mockOnShowErrorAlert).toHaveBeenCalled();
   });
 });

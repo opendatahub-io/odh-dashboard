@@ -21,13 +21,13 @@ export interface FileWithSettings {
 export interface UseSourceManagementReturn {
   selectedSourceSettings: ChatbotSourceSettings | null;
   isSourceSettingsOpen: boolean;
-  fileUploadedSignal: boolean;
+  autoEnableRag: boolean;
   filesWithSettings: FileWithSettings[];
   currentFileForSettings: File | null;
   pendingFiles: File[];
   isUploading: boolean;
   uploadProgress: { current: number; total: number };
-  setFileUploadedSignal: (value: boolean) => void;
+  setAutoEnableRag: (value: boolean) => void;
   handleSourceDrop: (event: DropEvent, source: File[]) => Promise<void>;
   removeUploadedSource: (fileName: string) => void;
   handleSourceSettingsSubmit: (settings: ChatbotSourceSettings | null) => Promise<void>;
@@ -59,7 +59,7 @@ const useSourceManagement = ({
   const { MAX_FILE_SIZE, MAX_FILES_IN_VECTOR_STORE } = FILE_UPLOAD_CONFIG;
   const [selectedSourceSettings, setSelectedSourceSettings] =
     React.useState<ChatbotSourceSettings | null>(null);
-  const [fileUploadedSignal, setFileUploadedSignal] = React.useState(false);
+  const [autoEnableRag, setAutoEnableRag] = React.useState(false);
   const [isSourceSettingsOpen, setIsSourceSettingsOpen] = React.useState(false);
   const [filesWithSettings, setFilesWithSettings] = React.useState<FileWithSettings[]>([]);
   const [currentFileForSettings, setCurrentFileForSettings] = React.useState<File | null>(null);
@@ -255,7 +255,7 @@ const useSourceManagement = ({
 
           // Signal RAG auto-enable on any successful upload
           if (successCount > 0) {
-            setFileUploadedSignal(true);
+            setAutoEnableRag(true);
           }
 
           // Refresh the uploaded files list
@@ -317,13 +317,13 @@ const useSourceManagement = ({
   return {
     selectedSourceSettings,
     isSourceSettingsOpen,
-    fileUploadedSignal,
+    autoEnableRag,
     filesWithSettings,
     currentFileForSettings,
     pendingFiles,
     isUploading,
     uploadProgress,
-    setFileUploadedSignal,
+    setAutoEnableRag,
     handleSourceDrop,
     removeUploadedSource,
     handleSourceSettingsSubmit,

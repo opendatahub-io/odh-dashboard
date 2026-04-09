@@ -76,13 +76,13 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
 
   const [isSelectOpen, setIsSelectOpen] = React.useState(false);
 
-  const { fileUploadedSignal, setFileUploadedSignal } = sourceManagement;
+  const { autoEnableRag, setAutoEnableRag } = sourceManagement;
   React.useEffect(() => {
-    if (fileUploadedSignal) {
+    if (autoEnableRag) {
       updateRagEnabled(configId, true);
-      setFileUploadedSignal(false);
+      setAutoEnableRag(false);
     }
-  }, [fileUploadedSignal, setFileUploadedSignal, updateRagEnabled, configId]);
+  }, [autoEnableRag, setAutoEnableRag, updateRagEnabled, configId]);
 
   const selectedStoreName = React.useMemo(
     () => externalVectorStores.find((s) => s.id === selectedVectorStoreId)?.name,
