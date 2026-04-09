@@ -279,7 +279,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                         {policies.map((policy) => (
                           <div key={policy}>{policy}</div>
                         ))}
-                        {!selected && policies.length === 0 && 'None'}
+                        {(fromSubscription || !selected) && policies.length === 0 && 'None'}
                       </Td>
                       <Td isActionCell style={{ textAlign: 'initial' }}>
                         <Button

@@ -4,9 +4,8 @@ import { pageNotfound } from '../../../pages/pageNotFound';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
   authPoliciesPage,
-  createPolicyPage,
   deleteAuthPolicyModal,
-  editPolicyPage,
+  policyPage,
 } from '../../../pages/modelsAsAService';
 import {
   mockAuthPolicies,
@@ -126,20 +125,20 @@ describe('Auth policy create and edit pages', () => {
     });
 
     it('should create a policy with groups and models', () => {
-      createPolicyPage.visit();
-      createPolicyPage.findTitle().should('contain.text', 'Create policy');
-      createPolicyPage.findSubmitButton().should('be.disabled');
+      policyPage.visit();
+      policyPage.findTitle().should('contain.text', 'Create policy');
+      policyPage.findSubmitButton().should('be.disabled');
 
-      createPolicyPage.findDisplayNameInput().type('New Test Policy');
-      createPolicyPage.selectGroup('premium-users');
-      createPolicyPage.findAddModelsButton().click();
-      createPolicyPage.findAddModelsModal().should('exist');
-      createPolicyPage.findToggleModelInModal('granite-3-8b-instruct').click();
-      createPolicyPage.findConfirmAddModelsButton().click();
-      createPolicyPage.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
+      policyPage.findDisplayNameInput().type('New Test Policy');
+      policyPage.selectGroup('premium-users');
+      policyPage.findAddModelsButton().click();
+      policyPage.findAddModelsModal().should('exist');
+      policyPage.findToggleModelInModal('granite-3-8b-instruct').click();
+      policyPage.findConfirmAddModelsButton().click();
+      policyPage.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
 
-      createPolicyPage.findSubmitButton().should('not.be.disabled');
-      createPolicyPage.findSubmitButton().click();
+      policyPage.findSubmitButton().should('not.be.disabled');
+      policyPage.findSubmitButton().click();
 
       cy.wait('@createPolicy').then((interception) => {
         expect(interception.request.body).to.containSubset({
@@ -161,11 +160,18 @@ describe('Auth policy create and edit pages', () => {
     });
 
     it('should update a policy', () => {
-      editPolicyPage.visit('premium-team-policy');
-      editPolicyPage.findTitle().should('contain.text', 'Edit policy');
-      editPolicyPage.findDescriptionInput().clear();
-      editPolicyPage.findDescriptionInput().type('Updated policy description');
-      editPolicyPage.findSubmitButton().click();
+      policyPage.visit('premium-team-policy');
+      policyPage.findTitle().should('contain.text', 'Edit policy');
+
+      // cancel without editing navigates back without calling the API
+      policyPage.findCancelButton().click();
+      cy.url().should('match', /\/maas\/auth-policies$/);
+
+      // re-open and perform an actual update
+      policyPage.visit('premium-team-policy');
+      policyPage.findDescriptionInput().clear();
+      policyPage.findDescriptionInput().type('Updated policy description');
+      policyPage.findSubmitButton().click();
 
       cy.wait('@updatePolicy').then((interception) => {
         expect(interception.request.body).to.containSubset({

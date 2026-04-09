@@ -32,6 +32,9 @@ import {
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
 
+const isOptionalString = (v: unknown): v is string | undefined =>
+  v === undefined || typeof v === 'string';
+
 const isGroupRef = (v: unknown): v is { name: string } => isRecord(v) && typeof v.name === 'string';
 
 const isTokenRateLimit = (v: unknown): v is TokenRateLimit =>
@@ -91,7 +94,9 @@ export const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
   isRecord(v) &&
   typeof v.name === 'string' &&
   typeof v.namespace === 'string' &&
-  (v.phase === undefined || typeof v.phase === 'string') &&
+  isOptionalString(v.displayName) &&
+  isOptionalString(v.description) &&
+  isOptionalString(v.phase) &&
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isModelRef) &&
   isSubjectSpec(v.subjects) &&

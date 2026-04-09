@@ -1,40 +1,11 @@
 import React from 'react';
 import { Link, useParams } from 'react-router-dom';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  Bullseye,
-  Button,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateFooter,
-} from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
 import { URL_PREFIX } from '~/app/utilities/const';
 import PolicyForm from './policyForm/PolicyForm';
-
-const PolicyNotFound: React.FC<{ name: string }> = ({ name }) => (
-  <Bullseye>
-    <EmptyState headingLevel="h4" icon={ExclamationCircleIcon} titleText="Policy not found">
-      <EmptyStateBody>
-        We were unable to find a policy named <strong>{name}</strong>
-      </EmptyStateBody>
-      <EmptyStateFooter>
-        <Button
-          variant="primary"
-          component={(props: React.ComponentProps<'a'>) => (
-            <Link {...props} to={`${URL_PREFIX}/auth-policies`} />
-          )}
-        >
-          Return to Policies
-        </Button>
-      </EmptyStateFooter>
-    </EmptyState>
-  </Bullseye>
-);
 
 const AuthPolicyPage: React.FC = () => {
   const { authPolicyName } = useParams<{ authPolicyName?: string }>();
@@ -68,7 +39,6 @@ const AuthPolicyPage: React.FC = () => {
       loadError={loadError}
       errorMessage={isEdit ? 'Unable to load policy.' : undefined}
     >
-      {isEdit && loaded && !policyInfo && <PolicyNotFound name={decodedAuthPolicyName} />}
       {loaded && (!isEdit || !!policyInfo) && (
         <PolicyForm
           key={policyInfo?.policy.name}
