@@ -600,7 +600,6 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 				Description: "Managed AutoRAG pipeline",
 				CreatedAt:   "2026-02-20T10:00:00Z",
 				Namespace:   m.Namespace,
-
 			})
 		}
 		return &models.KFPipelinesResponse{
@@ -619,7 +618,6 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 				Description: "Managed AutoRAG pipeline for optimizing retrieval strategies",
 				CreatedAt:   "2026-02-20T10:00:00Z",
 				Namespace:   m.Namespace,
-
 			},
 			{
 				PipelineID:  hashUUID("other-pipeline:" + m.Namespace),

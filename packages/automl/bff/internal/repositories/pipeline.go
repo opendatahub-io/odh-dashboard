@@ -149,7 +149,7 @@ func (c *pipelineCache) evictOldest() {
 // PipelineRepository handles pipeline discovery logic
 type PipelineRepository struct {
 	inFlight   map[string]chan struct{} // per-key completion signals for in-flight creation
-	inFlightMu sync.Mutex              // guards inFlight map
+	inFlightMu sync.Mutex               // guards inFlight map
 }
 
 // NewPipelineRepository creates a new pipeline repository
