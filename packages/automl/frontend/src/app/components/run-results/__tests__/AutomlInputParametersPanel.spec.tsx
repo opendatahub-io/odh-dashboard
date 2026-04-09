@@ -56,9 +56,9 @@ describe('AutomlInputParametersPanel', () => {
     renderPanel();
     expect(screen.getByText('Prediction type')).toBeInTheDocument();
     expect(screen.getByText('S3 connection')).toBeInTheDocument();
-    expect(screen.getByText('Bucket selection')).toBeInTheDocument();
+    expect(screen.getByText('S3 connection bucket')).toBeInTheDocument();
     expect(screen.getByText('Selected files')).toBeInTheDocument();
-    expect(screen.getByText('Top models')).toBeInTheDocument();
+    expect(screen.getByText('Top models to consider')).toBeInTheDocument();
     expect(screen.getByText('Label column')).toBeInTheDocument();
   });
 
@@ -138,7 +138,7 @@ describe('AutomlInputParametersPanel', () => {
     });
     const terms = screen.getAllByRole('term');
     const labels = terms.map((el) => el.textContent);
-    expect(labels).toEqual(['Description', 'S3 connection', 'Top models']);
+    expect(labels).toEqual(['Description', 'S3 connection', 'Top models to consider']);
   });
 
   it('should format boolean values as strings', () => {
