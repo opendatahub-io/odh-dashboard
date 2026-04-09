@@ -457,4 +457,21 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "display_name must be at most 250 characters")
 	})
+
+	t.Run("should accept display_name with 250 multi-byte characters", func(t *testing.T) {
+		// Each character is multi-byte in UTF-8 but counts as 1 rune.
+		// The limit is character-based (MySQL varchar(256) counts characters, not bytes).
+		req := newValidTabularRequest()
+		req.DisplayName = strings.Repeat("\u00e9", 250) // é = 2 bytes each, 500 bytes total
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should reject display_name with 251 multi-byte characters", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.DisplayName = strings.Repeat("\u00e9", 251)
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "display_name must be at most 250 characters")
+	})
 }
