@@ -97,6 +97,7 @@ export const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
   isOptionalString(v.displayName) &&
   isOptionalString(v.description) &&
   isOptionalString(v.phase) &&
+  isOptionalString(v.creationTimestamp) &&
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isModelRef) &&
   isSubjectSpec(v.subjects) &&

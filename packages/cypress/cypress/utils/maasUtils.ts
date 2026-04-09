@@ -332,11 +332,12 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
 
 export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {
   const policy = mockAuthPolicies().find((p) => p.name === name) ?? mockAuthPolicies()[0];
+  const resolvedName = policy.name;
   return {
     policy: {
       ...policy,
-      displayName: `${name} Display`,
-      description: `Description for ${name}`,
+      displayName: `${resolvedName} Display`,
+      description: `Description for ${resolvedName}`,
       creationTimestamp: '2025-03-01T10:00:00Z',
     },
     modelRefs: policy.modelRefs.map((ref) => ({
