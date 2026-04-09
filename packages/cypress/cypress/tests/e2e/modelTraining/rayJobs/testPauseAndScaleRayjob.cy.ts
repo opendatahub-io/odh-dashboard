@@ -29,7 +29,7 @@ const UPDATED_WORKER_REPLICAS = 2;
 const INITIAL_TOTAL_NODES = INITIAL_WORKER_REPLICAS + 1;
 const UPDATED_TOTAL_NODES = UPDATED_WORKER_REPLICAS + 1;
 
-describe('[RHOAIENG-56125] Verify pause, scale worker nodes, and delete RayJob', () => {
+describe('Verify pause, scale worker nodes, and delete RayJob', () => {
   let testData: RayJobE2eTestData;
   let skipTest = false;
   let projectName: string;
@@ -131,7 +131,7 @@ describe('[RHOAIENG-56125] Verify pause, scale worker nodes, and delete RayJob',
   it(
     'Should pause running RayJob, scale worker count, and delete the job',
     {
-      tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@RayJob'],
+      tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@RayJob', '@RHOAIENG-56125'],
     },
     function verifyRayJobPauseScaleAndDelete() {
       if (skipTest) {
