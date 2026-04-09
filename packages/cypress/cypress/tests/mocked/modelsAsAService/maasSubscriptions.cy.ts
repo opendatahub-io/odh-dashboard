@@ -303,7 +303,7 @@ describe('Edit Subscription Page', () => {
     editSubscriptionPage.findSaveButton().click();
 
     cy.wait('@updateSubscription');
-    cy.url().should('include', `/subscriptions/view/${subscriptionName}`);
+    cy.url().should('include', '/subscriptions');
   });
 
   it('should show policy warning when groups are changed', () => {
@@ -319,9 +319,9 @@ describe('Edit Subscription Page', () => {
       .should('contain.text', 'Authorization policy may need updating');
   });
 
-  it('should navigate to view page on cancel', () => {
+  it('should navigate to subscriptions list on cancel', () => {
     editSubscriptionPage.visit(subscriptionName);
     editSubscriptionPage.findCancelButton().click();
-    cy.url().should('include', `/subscriptions/view/${subscriptionName}`);
+    cy.url().should('include', '/subscriptions');
   });
 });

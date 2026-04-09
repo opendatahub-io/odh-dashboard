@@ -76,31 +76,30 @@ export const useSubscriptionModels = (
     });
   }, []);
 
-  const handleRemoveModelsByRef = React.useCallback(
-    (refs: MaaSModelRefSummary[]) => {
-      const keysToRemove = new Set(refs.map((r) => `${r.namespace}/${r.name}`));
+  const handleRemoveModelsByRef = React.useCallback((refs: MaaSModelRefSummary[]) => {
+    const keysToRemove = new Set(refs.map((r) => `${r.namespace}/${r.name}`));
+    setModels((prev) => {
       const removedIndices = new Set<number>();
-      models.forEach((m, i) => {
+      prev.forEach((m, i) => {
         if (keysToRemove.has(`${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`)) {
           removedIndices.add(i);
         }
       });
-      setModels((prev) => prev.filter((_, i) => !removedIndices.has(i)));
-      setRateLimitsTouched((prev) => {
+      setRateLimitsTouched((prevTouched) => {
         const next = new Set<number>();
         let offset = 0;
-        for (let i = 0; i < models.length; i++) {
+        for (let i = 0; i < prev.length; i++) {
           if (removedIndices.has(i)) {
             offset++;
-          } else if (prev.has(i)) {
+          } else if (prevTouched.has(i)) {
             next.add(i - offset);
           }
         }
         return next;
       });
-    },
-    [models],
-  );
+      return prev.filter((_, i) => !removedIndices.has(i));
+    });
+  }, []);
 
   const handleSaveRateLimits = React.useCallback(
     (rateLimits: TokenRateLimit[]) => {

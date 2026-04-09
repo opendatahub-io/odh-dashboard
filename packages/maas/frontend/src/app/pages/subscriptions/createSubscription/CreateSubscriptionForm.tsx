@@ -13,8 +13,6 @@ import {
   NumberInput,
   PageSection,
   Popover,
-  TextArea,
-  TextInput,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
@@ -69,11 +67,18 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   const isEditing = !!subscriptionInfo;
   const subscription = subscriptionInfo?.subscription;
 
-  const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData();
-  const [displayName, setDisplayName] = React.useState(
-    subscription?.displayName ?? subscription?.name ?? '',
+  const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
+    subscription
+      ? {
+          initialData: {
+            name: subscription.displayName ?? subscription.name,
+            k8sName: subscription.name,
+            description: subscription.description ?? '',
+          },
+        }
+      : undefined,
   );
-  const [description, setDescription] = React.useState(subscription?.description ?? '');
+
   const [selectedGroups, setSelectedGroups] = React.useState<SelectionOptions[]>(() => {
     if (subscription) {
       const existingGroupNames = new Set(subscription.owner.groups.map((g) => g.name));
@@ -134,9 +139,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     }
   }, [formData.subscriptions, priorityInitialized]);
 
-  const isNameValid = isEditing
-    ? displayName.trim().length > 0
-    : isK8sNameDescriptionDataValid(nameDescData);
+  const isNameValid = isK8sNameDescriptionDataValid(nameDescData);
 
   const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => String(g.id));
   const groupsValidationError =
@@ -173,8 +176,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         (m) => !initialModelKeys.has(`${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`),
       ));
 
-  const policyCount = subscriptionInfo?.authPolicies.length ?? 0;
-  const showPolicyWarning = isEditing && (groupsChanged || modelsChanged) && policyCount > 0;
+  const showPolicyWarning = isEditing && (groupsChanged || modelsChanged);
 
   const subscriptionsForConflictCheck = React.useMemo(
     () =>
@@ -223,15 +225,17 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     try {
       const apiOpts: APIOptions = {};
       if (isEditing && subscription) {
+        const trimmedName = nameDescData.name.trim();
+        const originalName = subscription.displayName ?? subscription.name;
         const request: UpdateSubscriptionRequest = {
-          displayName: displayName.trim() || undefined,
-          description: description.trim() || undefined,
+          displayName:
+            trimmedName !== originalName ? trimmedName || undefined : subscription.displayName,
+          description: nameDescData.description.trim() || undefined,
           owner: { groups: selectedGroupNames.map((g) => ({ name: g })) },
           modelRefs: modelRefsPayload,
           priority,
         };
         await updateSubscription()(apiOpts, subscription.name, request);
-        navigate(`${URL_PREFIX}/subscriptions/view/${subscription.name}`);
       } else {
         const request: CreateSubscriptionRequest = {
           name: nameDescData.k8sName.value,
@@ -243,8 +247,8 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           createAuthPolicy,
         };
         await createSubscription()(apiOpts, request);
-        navigate(`${URL_PREFIX}/subscriptions`);
       }
+      navigate(`${URL_PREFIX}/subscriptions`);
     } catch (e) {
       setSubmitError(
         e instanceof Error
@@ -261,48 +265,13 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   return (
     <PageSection hasBodyWrapper={false}>
       <Form maxWidth="750px">
-        {isEditing ? (
-          <>
-            <FormGroup label="Name" fieldId="subscription-name" isRequired>
-              <TextInput
-                id="subscription-name"
-                data-testid="subscription-name"
-                value={displayName}
-                onChange={(_event, value) => setDisplayName(value)}
-              />
-            </FormGroup>
-            <FormGroup label="Description" fieldId="subscription-description">
-              <TextArea
-                id="subscription-description"
-                data-testid="subscription-description"
-                value={description}
-                onChange={(_event, value) => setDescription(value)}
-                resizeOrientation="vertical"
-              />
-            </FormGroup>
-          </>
-        ) : (
-          <K8sNameDescriptionField
-            data={nameDescData}
-            onDataChange={onNameDescChange}
-            dataTestId="subscription-name-desc"
-          />
-        )}
+        <K8sNameDescriptionField
+          data={nameDescData}
+          onDataChange={onNameDescChange}
+          dataTestId="subscription-name-desc"
+        />
 
-        <FormGroup
-          label={isEditing ? 'Priority' : 'Priority level'}
-          fieldId="subscription-priority"
-          isRequired={isEditing}
-          labelHelp={
-            isEditing ? (
-              <Popover bodyContent="Higher numbers rank above lower numbers when resolving defaults across multiple subscriptions.">
-                <Button variant="plain" aria-label="Priority help" style={{ padding: 0 }}>
-                  <OutlinedQuestionCircleIcon />
-                </Button>
-              </Popover>
-            ) : undefined
-          }
-        >
+        <FormGroup label="Priority" fieldId="subscription-priority">
           <NumberInput
             id="subscription-priority"
             data-testid="subscription-priority"
@@ -339,9 +308,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             <HelperText>
               <HelperTextItem variant={priorityValidationError ? 'error' : 'default'}>
                 {priorityValidationError ||
-                  (isEditing
-                    ? 'Higher numbers rank above lower numbers when resolving defaults across multiple subscriptions.'
-                    : 'Higher numbers indicate higher priority. Users with access to multiple subscriptions will use the highest priority subscription available to them.')}
+                  'Higher numbers indicate higher priority. Users with access to multiple subscriptions will use the highest priority subscription available to them.'}
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
@@ -483,13 +450,8 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             title="Authorization policy may need updating"
             data-testid="policy-change-warning"
           >
-            This subscription has{' '}
-            {policyCount === 1
-              ? 'an associated authorization policy'
-              : `${policyCount} associated authorization policies`}
-            . Changing the groups or models here will not automatically update the{' '}
-            {policyCount === 1 ? 'policy' : 'policies'}. You may need to update{' '}
-            {policyCount === 1 ? 'it' : 'them'} separately on the{' '}
+            You may have an associated authorization policy. Changing the groups or models here will
+            not automatically update it. You may need to update it separately on the{' '}
             <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies page</Link>.
           </Alert>
         )}
@@ -522,13 +484,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           </Button>
           <Button
             variant="link"
-            onClick={() =>
-              navigate(
-                isEditing && subscription
-                  ? `${URL_PREFIX}/subscriptions/view/${subscription.name}`
-                  : `${URL_PREFIX}/subscriptions`,
-              )
-            }
+            onClick={() => navigate(`${URL_PREFIX}/subscriptions`)}
             isDisabled={isSubmitting}
             data-testid="cancel-subscription-button"
           >

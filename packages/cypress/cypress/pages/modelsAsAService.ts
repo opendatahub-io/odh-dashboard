@@ -848,11 +848,11 @@ class EditSubscriptionPage {
   }
 
   findNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-name');
+    return cy.findByTestId('subscription-name-desc-name');
   }
 
   findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-description');
+    return cy.findByTestId('subscription-name-desc-description');
   }
 
   findPriorityInput(): Cypress.Chainable<JQuery<HTMLElement>> {
