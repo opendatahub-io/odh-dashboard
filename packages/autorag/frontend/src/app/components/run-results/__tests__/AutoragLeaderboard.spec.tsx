@@ -384,120 +384,71 @@ describe('AutoragLeaderboard component', () => {
       );
     });
 
-    it('should show empty state with failure message when run failed', () => {
-      renderWithContext({
-        patterns: {},
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.FAILED),
-      });
-
-      const emptyState = screen.getByTestId('leaderboard-empty');
-      expect(emptyState).toBeInTheDocument();
-
-      expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
-      expect(emptyState).toHaveTextContent(
+    it.each([
+      [
+        'when run failed',
+        RuntimeStateKF.FAILED,
         'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
-      );
-      const link = within(emptyState).getByRole('link', {
-        name: /pipeline configuration and logs/i,
-      });
-      expect(link).toBeInTheDocument();
-      expect(link).toHaveAttribute(
-        'href',
-        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
-      );
-    });
-
-    it('should show empty state with failure message when run was canceled', () => {
-      renderWithContext({
-        patterns: {},
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.CANCELED),
-      });
-
-      const emptyState = screen.getByTestId('leaderboard-empty');
-      expect(emptyState).toBeInTheDocument();
-
-      expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
-      expect(emptyState).toHaveTextContent(
+        /pipeline configuration and logs/i,
+        true,
+      ],
+      [
+        'when run was canceled',
+        RuntimeStateKF.CANCELED,
         'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
-      );
-      const link = within(emptyState).getByRole('link', {
-        name: /pipeline configuration and logs/i,
-      });
-      expect(link).toBeInTheDocument();
-      expect(link).toHaveAttribute(
-        'href',
-        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
-      );
-    });
-
-    it('should show error message when pipelineRun is undefined', () => {
-      renderWithContext({
-        patterns: {},
-        pipelineRun: undefined,
-      });
-
-      const emptyState = screen.getByTestId('leaderboard-empty');
-      expect(emptyState).toBeInTheDocument();
-
-      expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
-      expect(emptyState).toHaveTextContent(
+        /pipeline configuration and logs/i,
+        true,
+      ],
+      [
+        'when pipelineRun is undefined',
+        undefined,
         'Unable to determine pipeline run status. Please check the pipeline configuration and logs.',
-      );
-      const link = within(emptyState).getByRole('link', {
-        name: /pipeline configuration and logs/i,
-      });
-      expect(link).toBeInTheDocument();
-      expect(link).toHaveAttribute(
-        'href',
-        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
-      );
-    });
-
-    it('should show unexpected state message for SKIPPED state', () => {
-      renderWithContext({
-        patterns: {},
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SKIPPED),
-      });
-
-      const emptyState = screen.getByTestId('leaderboard-empty');
-      expect(emptyState).toBeInTheDocument();
-
-      expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
-      expect(emptyState).toHaveTextContent(
+        /pipeline configuration and logs/i,
+        false,
+      ],
+      [
+        'for SKIPPED state',
+        RuntimeStateKF.SKIPPED,
         'The pipeline run is in an unexpected state. Please check the pipeline status and logs.',
-      );
-      const link = within(emptyState).getByRole('link', {
-        name: /pipeline status and logs/i,
-      });
-      expect(link).toBeInTheDocument();
-      expect(link).toHaveAttribute(
-        'href',
-        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
-      );
-    });
-
-    it('should show unexpected state message for PAUSED state', () => {
-      renderWithContext({
-        patterns: {},
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.PAUSED),
-      });
-
-      const emptyState = screen.getByTestId('leaderboard-empty');
-      expect(emptyState).toBeInTheDocument();
-
-      expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
-      expect(emptyState).toHaveTextContent(
+        /pipeline status and logs/i,
+        false,
+      ],
+      [
+        'for PAUSED state',
+        RuntimeStateKF.PAUSED,
         'The pipeline run is in an unexpected state. Please check the pipeline status and logs.',
-      );
-      const link = within(emptyState).getByRole('link', {
-        name: /pipeline status and logs/i,
-      });
-      expect(link).toBeInTheDocument();
-      expect(link).toHaveAttribute(
-        'href',
-        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
-      );
-    });
+        /pipeline status and logs/i,
+        false,
+      ],
+    ])(
+      'should show empty state %s',
+      (_testName, state, expectedMessage, linkName, shouldCheckSucceededMessageAbsence) => {
+        renderWithContext({
+          patterns: {},
+          pipelineRun: state !== undefined ? createMockPipelineRun(state) : undefined,
+        });
+
+        const emptyState = screen.getByTestId('leaderboard-empty');
+        expect(emptyState).toBeInTheDocument();
+        expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+
+        expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
+        expect(emptyState).toHaveTextContent(expectedMessage);
+
+        if (shouldCheckSucceededMessageAbsence) {
+          expect(emptyState).not.toHaveTextContent(
+            'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
+          );
+        }
+
+        const link = within(emptyState).getByRole('link', { name: linkName });
+        expect(link).toBeInTheDocument();
+        expect(link).toHaveAttribute(
+          'href',
+          '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
+        );
+      },
+    );
 
     it('should render loading skeleton with correct structure', () => {
       renderWithContext({
