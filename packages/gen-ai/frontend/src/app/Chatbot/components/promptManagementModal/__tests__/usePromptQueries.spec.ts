@@ -33,6 +33,12 @@ jest.mock('~/app/hooks/useGenAiAPI', () => ({
   })),
 }));
 
+const mockNamespace = { name: 'test-namespace' };
+jest.mock('react', () => ({
+  ...jest.requireActual('react'),
+  useContext: jest.fn(() => ({ namespace: mockNamespace })),
+}));
+
 const mockUseQuery = jest.mocked(useQuery);
 const mockUseInfiniteQuery = jest.mocked(useInfiniteQuery);
 
@@ -165,7 +171,7 @@ describe('usePromptsList', () => {
 
     expect(mockUseInfiniteQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        queryKey: ['prompts', 'list', { maxResults: 10, filterName: 'test' }],
+        queryKey: ['test-namespace_prompts', 'list', { maxResults: 10, filterName: 'test' }],
       }),
     );
 
