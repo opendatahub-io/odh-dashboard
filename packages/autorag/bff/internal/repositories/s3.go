@@ -48,9 +48,10 @@ func (r *S3Repository) GetS3Credentials(
 	//     normalizedData := make(map[string]string, len(secretData))
 	//     for k, v := range secretData { normalizedData[strings.ToLower(k)] = string(v) }
 	//     getValue := func(key string) string { return normalizedData[strings.ToLower(key)] }
-	// Helper to get value from secret data case-insensitively
+	// getValue uses case-insensitive matching for credential extraction.
+	// This is intentionally more lenient than the case-sensitive classification
+	// in secret.go to maximize compatibility with existing secrets.
 	getValue := func(targetKeys ...string) string {
-		// Check all keys in the secret against the target keys (case-insensitive)
 		for secretKey, secretValue := range secretData {
 			secretKeyLower := strings.ToLower(secretKey)
 			for _, targetKey := range targetKeys {
@@ -109,6 +110,9 @@ func (r *S3Repository) GetS3CredentialsFromDSPA(
 			dspaStorage.SecretName, namespace, err)
 	}
 
+	// getValue uses case-insensitive matching for credential extraction.
+	// This is intentionally more lenient than the case-sensitive classification
+	// in secret.go to maximize compatibility with existing secrets.
 	getValue := func(targetKey string) string {
 		targetLower := strings.ToLower(targetKey)
 		for secretKey, secretValue := range secret.Data {

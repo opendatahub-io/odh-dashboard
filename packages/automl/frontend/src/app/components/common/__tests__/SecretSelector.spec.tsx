@@ -898,6 +898,58 @@ describe('SecretSelector', () => {
       });
     });
 
+    it('should reject keys with incorrect case', () => {
+      const mockSecrets: SecretListItem[] = [
+        mockStorageSecret({
+          uuid: '1',
+          name: 'lowercase-secret',
+          data: {
+            AWS_ACCESS_KEY_ID: '[REDACTED]',
+            AWS_SECRET_ACCESS_KEY: '[REDACTED]',
+            AWS_DEFAULT_REGION: '[REDACTED]',
+            AWS_S3_ENDPOINT: '[REDACTED]',
+            // eslint-disable-next-line camelcase
+            aws_s3_bucket: 'my-bucket',
+          },
+        }),
+      ];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+      fireEvent.click(screen.getByText('lowercase-secret'));
+
+      // Should show error - lowercase key does not match uppercase requirement
+      expect(
+        screen.getByText('Required key "AWS_S3_BUCKET" is not set in this secret'),
+      ).toBeInTheDocument();
+
+      // onChange should be called with selection marked as invalid
+      expect(mockOnChange).toHaveBeenCalledWith({
+        uuid: '1',
+        name: 'lowercase-secret',
+        type: 's3',
+        data: {
+          AWS_ACCESS_KEY_ID: '[REDACTED]',
+          AWS_SECRET_ACCESS_KEY: '[REDACTED]',
+          AWS_DEFAULT_REGION: '[REDACTED]',
+          AWS_S3_ENDPOINT: '[REDACTED]',
+          // eslint-disable-next-line camelcase
+          aws_s3_bucket: 'my-bucket',
+        },
+        invalid: true,
+      });
+    });
+
     it('should not validate when no additionalRequiredKeys prop provided', () => {
       const mockSecrets: SecretListItem[] = [
         mockStorageSecret({
