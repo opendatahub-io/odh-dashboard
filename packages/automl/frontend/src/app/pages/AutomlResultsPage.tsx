@@ -1,4 +1,4 @@
-import { Breadcrumb, BreadcrumbItem, Skeleton } from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, Skeleton, Truncate } from '@patternfly/react-core';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
@@ -59,7 +59,11 @@ function AutomlResultsPage(): React.JSX.Element {
       title={<AutomlHeader />}
       subtext={
         <h2 className="pf-v6-u-mt-sm">
-          {pipelineRun ? `"${pipelineRun.display_name}" results` : <Skeleton width="300px" />}
+          {pipelineRun ? (
+            <Truncate content={`"${pipelineRun.display_name}" results`} />
+          ) : (
+            <Skeleton width="300px" />
+          )}
         </h2>
       }
       breadcrumb={
@@ -67,7 +71,9 @@ function AutomlResultsPage(): React.JSX.Element {
           <BreadcrumbItem>
             <Link to={getRedirectPath(namespace!)}>AutoML: {namespace}</Link>
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>{pipelineRun?.display_name}</BreadcrumbItem>
+          <BreadcrumbItem isActive>
+            <Truncate content={pipelineRun?.display_name || ''} />
+          </BreadcrumbItem>
         </Breadcrumb>
       }
       empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
