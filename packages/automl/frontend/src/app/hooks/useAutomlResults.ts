@@ -143,16 +143,23 @@ export function useAutomlResults(
             return {
               name,
               directory: prefix,
+              // Parent path up to models_artifact/ (excludes the model name).
+              // Used as the base for resolving predictor and notebook paths,
+              // which already include the model name as their first segment.
+              artifactDirectory: `${parts.slice(0, -1).join('/')}/`,
             };
           })
-          .filter((item): item is { name: string; directory: string } => item !== null);
+          .filter(
+            (item): item is { name: string; directory: string; artifactDirectory: string } =>
+              item !== null,
+          );
       }),
     [modelArtifactQueries.data],
   );
 
   // Step 4: Fetch model.json for each model directory
   const modelQueries = useQueries({
-    queries: modelDirectories.map(({ name, directory }) => {
+    queries: modelDirectories.map(({ name, directory, artifactDirectory }) => {
       const modelJsonPath = `${directory}model.json`;
       return {
         queryKey: ['s3File', namespace, name, modelJsonPath],
@@ -172,8 +179,8 @@ export function useAutomlResults(
             location: {
               // eslint-disable-next-line camelcase
               model_directory: directory,
-              predictor: `${directory}${validated.location.predictor}`,
-              notebook: `${directory}${validated.location.notebook}`,
+              predictor: `${artifactDirectory}${validated.location.predictor}`,
+              notebook: `${artifactDirectory}${validated.location.notebook}`,
             },
           };
 
