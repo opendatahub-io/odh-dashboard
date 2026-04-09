@@ -161,7 +161,7 @@ class ModelRegistry {
 
   getRow(name: string) {
     return new ModelRegistryTableRow(() =>
-      this.findTable().find(`[data-label="Model name"]`).contains(name).parents('tr'),
+      this.findTable().find(`[data-label="Model name"]`).contains(name).closest('tr'),
     );
   }
 
@@ -174,7 +174,7 @@ class ModelRegistry {
       this.findModelVersionsTable()
         .find(`[data-label="Version name"]`)
         .contains(name)
-        .parents('tr'),
+        .closest('tr'),
     );
   }
 
@@ -187,21 +187,28 @@ class ModelRegistry {
   }
 
   findSelectModelRegistry(registryName: string) {
-    // Check if the registry is already selected
-    this.findModelRegistry().then(($dropdown) => {
-      if (!$dropdown.text().includes(registryName)) {
-        // Registry is not selected, perform click actions
-        this.findModelRegistry().click();
-        cy.findAllByTestId(registryName).filter(':visible').first().click();
+    cy.url({ timeout: 30000 }).then((url) => {
+      if (url.includes(`/registry/${registryName}`)) {
+        return;
       }
+      cy.findAllByTestId('model-registry-selector-dropdown').filter(':visible').first().click();
+      cy.findAllByTestId(registryName).filter(':visible').first().click();
     });
+    cy.url({ timeout: 30000 }).should('include', `/registry/${registryName}`);
     return this;
   }
 
-  selectModelByName(name: string) {
-    this.findModelByName(name).should('be.visible').click();
-    cy.url().should('include', '/details');
-    return this;
+  /** Link button in the Model name column (navigates to registered model / overview). */
+  findModelNameLinkButton(name: string) {
+    return this.getRow(name).find().find('[data-testid="model-name"] button').first();
+  }
+
+  findVersionDetailsBreadcrumbModel() {
+    return cy.findByTestId('breadcrumb-model-version');
+  }
+
+  findVersionDetailsBreadcrumbVersion() {
+    return cy.findByTestId('breadcrumb-version-name');
   }
 
   findModelVersionsTableHeaderButton(name: string) {

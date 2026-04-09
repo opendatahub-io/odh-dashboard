@@ -161,8 +161,10 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton(30000).should('be.enabled').click();
 
       cy.step('Verify the object storage model was registered');
-      cy.url().should('include', '/details');
-      modelRegistry.findModelByName(objectStorageModelName).should('be.visible');
+      cy.url({ timeout: 30000 })
+        .should('include', '/registered-models/')
+        .and('include', '/versions/');
+      modelRegistry.findVersionDetailsBreadcrumbModel().should('contain', objectStorageModelName);
 
       cy.step('Verify the object storage model exists in the database');
       checkModelExistsInDatabase(objectStorageModelName, databaseName).should('be.true');
@@ -194,8 +196,10 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton(30000).should('be.enabled').click();
 
       cy.step('Verify the URI model was registered');
-      cy.url().should('include', '/details');
-      modelRegistry.findModelByName(testData.uriModelName).should('be.visible');
+      cy.url({ timeout: 30000 })
+        .should('include', '/registered-models/')
+        .and('include', '/versions/');
+      modelRegistry.findVersionDetailsBreadcrumbModel().should('contain', testData.uriModelName);
 
       cy.step('Verify the URI model exists in the database');
       checkModelExistsInDatabase(testData.uriModelName, databaseName).should('be.true');
@@ -223,7 +227,8 @@ describe('Verify models can be registered in a model registry', () => {
       modelRegistry.visitWithRegistry(registryName);
 
       cy.step('Navigate to the first registered model');
-      modelRegistry.selectModelByName(objectStorageModelName);
+      modelRegistry.findModelNameLinkButton(objectStorageModelName).should('be.visible').click();
+      cy.url({ timeout: 30000 }).should('include', '/registered-models/');
 
       cy.step('Navigate to versions tab');
       modelRegistry.findModelVersionsTab().should('be.visible').click();
@@ -258,8 +263,10 @@ describe('Verify models can be registered in a model registry', () => {
       registerVersionPage.findSubmitButton().click();
 
       cy.step('Verify the new version was registered');
-      cy.url().should('include', '/details');
-      cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
+      cy.url({ timeout: 30000 })
+        .should('include', '/registered-models/')
+        .and('include', '/versions/');
+      modelRegistry.findVersionDetailsBreadcrumbVersion().should('contain', testData.version2Name);
 
       cy.step('Verify the new version exists in the database');
       checkModelVersionExistsInDatabase(testData.version2Name, databaseName).should('be.true');
@@ -300,7 +307,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findNamespaceOption(namespaceName).click();
 
       cy.step('Verify origin and destination location sections appear');
-      registerModelPage.findOriginLocationSection().should('be.visible', { timeout: 10000 });
+      registerModelPage.findOriginLocationSection(10000).should('be.visible');
       registerModelPage.findDestinationLocationSection().should('be.visible');
 
       cy.step('Fill in model details');
@@ -421,7 +428,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findNamespaceOption(namespaceName).click();
 
       cy.step('Verify origin and destination location sections appear');
-      registerModelPage.findOriginLocationSection().should('be.visible', { timeout: 10000 });
+      registerModelPage.findOriginLocationSection(10000).should('be.visible');
       registerModelPage.findDestinationLocationSection().should('be.visible');
 
       cy.step('Fill in model details');

@@ -102,16 +102,19 @@ class RegisterModelPage {
     return cy.findByTestId('form-namespace-selector-trigger');
   }
 
+  /**
+   * Namespace options render in the SimpleSelect menu (often portaled). Query by role after opening the menu.
+   */
   findNamespaceOption(name: string) {
-    return this.findNamespaceSelector().findByRole('option', { name });
+    return cy.findByRole('option', { name });
   }
 
-  findOriginLocationSection() {
-    return cy.findByTestId('model-origin-location-section');
+  findOriginLocationSection(timeout?: number) {
+    return cy.findByTestId('model-origin-location-section', { timeout });
   }
 
-  findDestinationLocationSection() {
-    return cy.findByTestId('model-destination-location-section');
+  findDestinationLocationSection(timeout?: number) {
+    return cy.findByTestId('model-destination-location-section', { timeout });
   }
 }
 
