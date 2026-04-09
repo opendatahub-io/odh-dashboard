@@ -88,7 +88,7 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
     });
   };
 
-  it('should signal RAG auto-enable (autoEnableRag=true) after a successful file upload', async () => {
+  it('should set autoEnableRag to true after a successful file upload', async () => {
     const mockOnFileUploadComplete = jest.fn();
     const { result, rerender } = renderHookWithLoadingState(useSourceManagement, {
       onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -105,7 +105,7 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
     expect(mockOnShowSuccessAlert).toHaveBeenCalled();
   });
 
-  it('should signal RAG auto-enable even when the page initially had files', async () => {
+  it('should set autoEnableRag to true even when files already existed before the upload', async () => {
     const mockOnFileUploadComplete = jest.fn();
     const existingFile = { id: 'existing-file' } as unknown as FileModel;
 
@@ -124,7 +124,7 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
     expect(mockOnShowSuccessAlert).toHaveBeenCalled();
   });
 
-  it('should signal RAG auto-enable again after autoEnableRag is reset', async () => {
+  it('should set autoEnableRag to true again after it has been reset', async () => {
     const mockOnFileUploadComplete = jest.fn();
     const { result, rerender } = renderHookWithLoadingState(useSourceManagement, {
       onShowSuccessAlert: mockOnShowSuccessAlert,
@@ -155,7 +155,7 @@ describe('useSourceManagement - RAG Auto-Enable', () => {
     expect(result.current.autoEnableRag).toBe(true);
   });
 
-  it('should not signal RAG auto-enable if all uploads fail', async () => {
+  it('should not set autoEnableRag if all uploads fail', async () => {
     mockUploadFile.mockResolvedValue({
       success: false,
       error: 'Upload failed',
