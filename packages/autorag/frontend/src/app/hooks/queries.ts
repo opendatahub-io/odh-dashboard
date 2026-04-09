@@ -156,7 +156,7 @@ export function useLlamaStackVectorStoreProvidersQuery(
   });
 }
 
-const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED']);
+const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED', 'CACHED']);
 export const isTerminalState = (state: string): boolean => TERMINAL_STATES.has(state);
 const POLL_INTERVAL_MS = 10000;
 
