@@ -1107,6 +1107,7 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.url).to.include('?dryRun=All');
         expect(interception.request.body.spec.baseRefs).to.have.length(1);
         expect(interception.request.body.spec.baseRefs).to.deep.include({ name: deploymentName });
+        expect(interception.request.body.spec.router).to.not.have.property('scheduler');
       });
 
       // Actual: config created with same resource name as deployment, cloned from the selected template
@@ -1123,6 +1124,7 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.url).not.to.include('?dryRun=All');
         expect(interception.request.body.spec.baseRefs).to.have.length(1);
         expect(interception.request.body.spec.baseRefs).to.deep.include({ name: deploymentName });
+        expect(interception.request.body.spec.router).to.not.have.property('scheduler');
       });
     });
 
@@ -1213,6 +1215,7 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.url).to.include('?dryRun=All');
         expect(interception.request.body.spec.baseRefs).to.have.length(1);
         expect(interception.request.body.spec.baseRefs).to.deep.include({ name: 'test-vllm-gpu' });
+        expect(interception.request.body.spec.router).to.not.have.property('scheduler');
       });
 
       // Actual: config updated (preserved), IS updated with exactly one baseRef preserved
@@ -1224,6 +1227,7 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.url).not.to.include('?dryRun=All');
         expect(interception.request.body.spec.baseRefs).to.have.length(1);
         expect(interception.request.body.spec.baseRefs).to.deep.include({ name: 'test-vllm-gpu' });
+        expect(interception.request.body.spec.router).to.not.have.property('scheduler');
       });
     });
 

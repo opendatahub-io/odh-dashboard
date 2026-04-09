@@ -83,7 +83,7 @@ function AutoragResultsPage(): React.JSX.Element {
           <AutoragInputParametersPanel
             onClose={handleDrawerClose}
             parameters={contextValue.parameters}
-            isLoading={contextValue.pipelineRunLoading}
+            isLoading={pipelineRunPending}
           />
         }
       >
