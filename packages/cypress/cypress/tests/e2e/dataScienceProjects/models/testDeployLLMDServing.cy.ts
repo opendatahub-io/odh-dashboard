@@ -23,11 +23,6 @@ import {
   createCleanHardwareProfile,
   cleanupHardwareProfiles,
 } from '../../../../utils/oc_commands/hardwareProfiles';
-import {
-  createCleanLLMInferenceServiceConfig,
-  cleanupLLMInferenceServiceConfig,
-  checkLLMInferenceServiceConfigState,
-} from '../../../../utils/oc_commands/llmInferenceServiceConfig';
 import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
 import { stubClipboard, getClipboardContent } from '../../../../utils/clipboardUtils';
 
@@ -40,11 +35,10 @@ let hardwareProfileResourceName: string;
 let hardwareProfileYamlPath: string;
 let modelURI: string;
 let servingRuntime: string;
+let existingImage: string;
+let replaceImage: string;
 let yamlEditorModelName: string;
 let yamlEditorModelPath: string;
-const llmInferenceServiceConfigName = 'kserve-config-llm-template-cpu';
-const llmInferenceServiceConfigYamlPath =
-  'resources/modelServing/llmd-inference-service-config.yaml';
 
 describe('A user can deploy an LLMD model', () => {
   retryableBefore(() => {
@@ -58,8 +52,11 @@ describe('A user can deploy an LLMD model', () => {
         servingRuntime = testData.servingRuntime;
         hardwareProfileResourceName = `${testData.hardwareProfileName}`;
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
+        existingImage = testData.existingImage;
+        replaceImage = testData.replaceImage;
         yamlEditorModelName = testData.yamlEditorModelName;
         yamlEditorModelPath = 'cypress/fixtures/resources/yaml/yaml_editor_model_serving.yaml';
+
         cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
       })
@@ -67,14 +64,6 @@ describe('A user can deploy an LLMD model', () => {
         // Load Hardware Profile
         cy.log(`Load Hardware Profile Name: ${hardwareProfileResourceName}`);
         createCleanHardwareProfile(hardwareProfileYamlPath);
-      })
-      .then(() => {
-        // Load LLMInferenceServiceConfig
-        cy.log(`Load LLMInferenceServiceConfig: ${llmInferenceServiceConfigName}`);
-        createCleanLLMInferenceServiceConfig(
-          llmInferenceServiceConfigName,
-          llmInferenceServiceConfigYamlPath,
-        );
       });
   });
 
@@ -83,8 +72,6 @@ describe('A user can deploy an LLMD model', () => {
     cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
     // Call cleanupHardwareProfiles with the actual name from the YAML file
     cleanupHardwareProfiles(hardwareProfileResourceName);
-    cy.log(`Cleaning up LLMInferenceServiceConfig: ${llmInferenceServiceConfigName}`);
-    cleanupLLMInferenceServiceConfig(llmInferenceServiceConfigName);
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
@@ -150,7 +137,8 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLCodeEditor().waitForReady();
 
-      cy.step('Verify YAML content includes the LLMInferenceServiceConfig CPU image');
+      cy.step('Patch YAML to use CPU image (workaround for non-GPU cluster)');
+      modelServingWizard.findYAMLCodeEditor().replaceInEditor(existingImage, replaceImage);
       modelServingWizard.findYAMLCodeEditor().copyToClipboard().click();
       getClipboardContent('copiedYAML').then((copied) => {
         expect(copied).to.have.length.at.least(1);
@@ -158,6 +146,7 @@ describe('A user can deploy an LLMD model', () => {
         expect(yamlContent).to.include('apiVersion: serving.kserve.io/v1alpha1');
         expect(yamlContent).to.include('kind: LLMInferenceService');
         expect(yamlContent).to.include(`name: ${modelName}`);
+        expect(yamlContent).to.include(replaceImage);
       });
       modelServingWizard.findYAMLCodeEditor().download().should('exist').click();
       // Back to Form view
@@ -178,13 +167,12 @@ describe('A user can deploy an LLMD model', () => {
       modelServingSection.findModelServerDeployedName(modelName);
 
       cy.step('Verify that the Model is ready');
+      // Image was patched in YAML editor before submit, so no post-deployment patching needed
       cy.get<string>('@resourceName').then((resourceName) => {
-        checkLLMInferenceServiceState(resourceName, projectName);
+        checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
-      checkLLMInferenceServiceConfigState(llmInferenceServiceConfigName);
 
       cy.step('Verify the model Row');
-      cy.reload();
       const llmdRow = modelServingGlobal.getDeploymentRow(modelName);
       llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');
       llmdRow.findServingRuntime().should('have.text', servingRuntime);

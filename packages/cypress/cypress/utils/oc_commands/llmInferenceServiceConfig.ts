@@ -54,19 +54,22 @@ export const createCleanLLMInferenceServiceConfig = (
 };
 
 /**
- * Verifies that an LLMInferenceServiceConfig exists in the applications namespace
+ * Verifies that an LLMInferenceServiceConfig exists in the given namespace
  * and contains the expected metadata and spec fields.
  *
  * @param configName - The `metadata.name` of the config to check.
+ * @param namespace - The namespace to look for the config in (e.g. the project namespace where it is copied on deploy).
  * @param expectedFields - Optional fields to verify in the resource JSON.
  */
 export const checkLLMInferenceServiceConfigState = (
   configName: string,
+  namespace: string,
   expectedFields?: { containerImage?: string },
 ): Cypress.Chainable<CommandLineResult> => {
   const sanitizedName = configName.replace(/[^a-zA-Z0-9_-]/g, '');
-  const ocCommand = `oc get LLMInferenceServiceConfig ${sanitizedName} -n ${applicationNamespace} -o json`;
-  cy.log(`Checking LLMInferenceServiceConfig exists: ${configName}`);
+  const sanitizedNamespace = namespace.replace(/[^a-zA-Z0-9_-]/g, '');
+  const ocCommand = `oc get LLMInferenceServiceConfig ${sanitizedName} -n ${sanitizedNamespace} -o json`;
+  cy.log(`Checking LLMInferenceServiceConfig exists: ${configName} in namespace ${namespace}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
     let config;
