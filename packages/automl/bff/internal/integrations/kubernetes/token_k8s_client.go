@@ -210,7 +210,13 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 	}
 
 	kc.Logger.Debug("cluster-wide namespace list forbidden, falling back to OpenShift Projects API", "error", err)
+	return kc.getNamespacesViaProjectsAPI(ctx)
+}
 
+// getNamespacesViaProjectsAPI uses the OpenShift Projects API to list namespaces
+// accessible to the caller. The token already represents the user's identity so no
+// impersonation is needed — the dynamic client inherits the bearer token from RestConfig.
+func (kc *TokenKubernetesClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]corev1.Namespace, error) {
 	dynClient, err := dynamic.NewForConfig(kc.RestConfig)
 	if err != nil {
 		kc.Logger.Error("failed to create dynamic client for Projects API", "error", err)
@@ -235,14 +241,18 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 
 		ns, err := kc.Client.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
 		if err != nil {
-			kc.Logger.Warn("failed to get namespace details", "namespace", projectName, "error", err)
-			namespaces = append(namespaces, corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        projectName,
-					Annotations: project.GetAnnotations(),
-					Labels:      project.GetLabels(),
-				},
-			})
+			if k8serrors.IsForbidden(err) || k8serrors.IsNotFound(err) {
+				kc.Logger.Warn("failed to get namespace details, using project metadata", "namespace", projectName, "error", err)
+				namespaces = append(namespaces, corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        projectName,
+						Annotations: project.GetAnnotations(),
+						Labels:      project.GetLabels(),
+					},
+				})
+			} else {
+				return nil, fmt.Errorf("failed to get namespace %q: %w", projectName, err)
+			}
 		} else {
 			namespaces = append(namespaces, *ns)
 		}
