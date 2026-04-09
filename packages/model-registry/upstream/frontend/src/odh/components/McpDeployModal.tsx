@@ -152,7 +152,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
           'MCP server deployed successfully',
           `${displayName || k8sName} has been deployed to ${selectedNamespace}.`,
         );
-        navigate(mcpDeploymentsUrl());
+        navigate(mcpDeploymentsUrl(selectedNamespace));
       }
     } catch (e) {
       setSubmitError(
