@@ -203,7 +203,7 @@ describe('AIModelTableRow', () => {
       expect(screen.getByText('Ready')).toBeInTheDocument();
     });
 
-    it('should show Inactive status when model is not Running', () => {
+    it('should show Inactive status when model is stopped', () => {
       const model = createMockAIModel({ status: 'Stop' });
       render(
         <TestWrapper>

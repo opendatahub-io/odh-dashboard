@@ -132,7 +132,7 @@ describe('useAIModelsFilter', () => {
   });
 
   describe('Filter by status', () => {
-    it('should filter models by status (select filter)', () => {
+    it('should filter models by Ready status', () => {
       const models = [
         createMockAIModel({ model_id: 'model-1', status: 'Running' }),
         createMockAIModel({ model_id: 'model-2', status: 'Stop' }),
@@ -142,7 +142,7 @@ describe('useAIModelsFilter', () => {
       const { result } = testHook(useAIModelsFilter)(models);
 
       act(() => {
-        result.current.onFilterUpdate(AssetsFilterOptions.STATUS, 'Active');
+        result.current.onFilterUpdate(AssetsFilterOptions.STATUS, 'Ready');
       });
 
       expect(result.current.filteredModels).toHaveLength(2);
@@ -150,7 +150,7 @@ describe('useAIModelsFilter', () => {
       expect(result.current.filteredModels[1].model_id).toBe('model-3');
     });
 
-    it('should filter for inactive models', () => {
+    it('should filter models by Inactive status', () => {
       const models = [
         createMockAIModel({ model_id: 'model-1', status: 'Running' }),
         createMockAIModel({ model_id: 'model-2', status: 'Stop' }),
@@ -164,6 +164,23 @@ describe('useAIModelsFilter', () => {
 
       expect(result.current.filteredModels).toHaveLength(1);
       expect(result.current.filteredModels[0].model_id).toBe('model-2');
+    });
+
+    it('should filter models by Unknown status', () => {
+      const models = [
+        createMockAIModel({ model_id: 'model-1', status: 'Running' }),
+        createMockAIModel({ model_id: 'model-2', status: 'Stop' }),
+        createMockAIModel({ model_id: 'model-3', status: 'Pending' }),
+      ];
+
+      const { result } = testHook(useAIModelsFilter)(models);
+
+      act(() => {
+        result.current.onFilterUpdate(AssetsFilterOptions.STATUS, 'Unknown');
+      });
+
+      expect(result.current.filteredModels).toHaveLength(1);
+      expect(result.current.filteredModels[0].model_id).toBe('model-3');
     });
   });
 
