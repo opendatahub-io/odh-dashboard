@@ -100,7 +100,9 @@ const PREDICTION_TYPES: {
   },
 ];
 
-const AUTOML_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['AWS_S3_BUCKET'] };
+const AUTOML_REQUIRED_KEYS: { [type: string]: string[] } = {
+  s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
+};
 
 /** MIME types and extensions for the training CSV upload dropzone (react-dropzone `accept` format). */
 const TRAINING_DATA_FILE_ACCEPT: Record<string, string[]> = {
@@ -207,10 +209,7 @@ function AutomlConfigure(): React.JSX.Element {
       return;
     }
 
-    const bucketKey = findKey(
-      selectedSecret.data,
-      (value, key) => key === 'AWS_S3_BUCKET',
-    );
+    const bucketKey = findKey(selectedSecret.data, (value, key) => key === 'AWS_S3_BUCKET');
     setValue('train_data_bucket_name', bucketKey ? selectedSecret.data[bucketKey] : '', {
       shouldValidate: true,
     });

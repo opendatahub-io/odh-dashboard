@@ -16,7 +16,8 @@ import (
 var storageTypeRequiredKeys = map[string][]string{
 	"s3": {
 		"AWS_ACCESS_KEY_ID",
-		"AWS_DEFAULT_REGION",
+		// Region is currently not enforced by common connections ui so we need to handle it as an additionalRequiredKeys in frontend
+		// "AWS_DEFAULT_REGION",
 		"AWS_SECRET_ACCESS_KEY",
 		"AWS_S3_ENDPOINT",
 	},
