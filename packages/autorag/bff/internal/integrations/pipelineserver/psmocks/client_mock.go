@@ -413,7 +413,8 @@ func getBaseMockRuns(namespace string) []models.KFPipelineRun {
 	}
 }
 
-// cloneRunWithVariant returns a copy of the template run with unique IDs for the given index
+// cloneRunWithVariant returns a copy of the template run with unique IDs for the given index.
+// TaskDetails are deep-copied to prevent mutations from affecting the original template.
 func cloneRunWithVariant(template *models.KFPipelineRun, index int) models.KFPipelineRun {
 	run := *template
 	suffix := fmt.Sprintf("-%d", index)
@@ -421,9 +422,13 @@ func cloneRunWithVariant(template *models.KFPipelineRun, index int) models.KFPip
 	run.DisplayName = template.DisplayName + " " + suffix
 	if run.RunDetails != nil {
 		details := *run.RunDetails
-		for i := range details.TaskDetails {
-			details.TaskDetails[i].RunID = run.RunID
+		// Deep copy the TaskDetails slice so mutations don't affect the original template
+		tasks := make([]models.TaskDetail, len(details.TaskDetails))
+		copy(tasks, details.TaskDetails)
+		for i := range tasks {
+			tasks[i].RunID = run.RunID
 		}
+		details.TaskDetails = tasks
 		run.RunDetails = &details
 	}
 	return run

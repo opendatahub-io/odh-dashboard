@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +16,13 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/opendatahub-io/automl-library/bff/internal/pipelines"
 )
+
+func getEnvOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
 
 // TODO: Confirm caching architecture for shared ODH deployments
 // This implementation uses in-memory caching which has the following considerations:
@@ -50,8 +58,8 @@ type DiscoveredPipeline struct {
 }
 
 // DefaultPipelineVersion is the release version suffix appended to pipeline version names.
-// Update this constant for each RHOAI release.
-const DefaultPipelineVersion = "3.4.0"
+// Override via PIPELINE_VERSION_SUFFIX env var, otherwise defaults to "3.4.0".
+var DefaultPipelineVersion = getEnvOrDefault("PIPELINE_VERSION_SUFFIX", "3.4.0")
 
 // PipelineDefinition describes a managed pipeline type for discovery and auto-creation.
 type PipelineDefinition struct {

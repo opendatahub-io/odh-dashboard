@@ -46,7 +46,7 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
 		return
 	}
-	discovered := pipelines["autorag"]
+	discovered := pipelines[constants.PipelineTypeAutoRAG]
 	if discovered == nil {
 		// No pipeline discovered — return empty runs list.
 		// The pipeline will be auto-created when the user submits their first experiment.
@@ -138,7 +138,7 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
 		return
 	}
-	discovered := discoveredPipelines["autorag"]
+	discovered := discoveredPipelines[constants.PipelineTypeAutoRAG]
 
 	// Get run ID from URL path parameter
 	runID := params.ByName("runId")
