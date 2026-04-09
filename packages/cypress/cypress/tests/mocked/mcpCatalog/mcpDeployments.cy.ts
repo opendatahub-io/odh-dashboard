@@ -218,7 +218,15 @@ const initDeployIntercepts = ({
   cy.intercept('GET', `${BFF_PREFIX}/model_catalog/sources*`, {
     body: {
       data: {
-        items: [{ id: 'source-1', name: 'Community', labels: ['community'] }],
+        items: [
+          {
+            id: 'source-1',
+            name: 'Community',
+            labels: ['community'],
+            status: 'available',
+            enabled: true,
+          },
+        ],
         size: 1,
         pageSize: 10,
         nextPageToken: '',
