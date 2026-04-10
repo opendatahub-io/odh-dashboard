@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Label, Skeleton, Split, SplitItem } from '@patternfly/react-core';
 import TruncatedText from '#~/components/TruncatedText';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
@@ -10,7 +9,6 @@ type PipelineRunTableRowExperimentProps = {
   isExperimentArchived?: boolean;
   loaded: boolean;
   error?: Error;
-  linkTo?: string;
   isClickable?: boolean;
   onClick?: () => void;
 };
@@ -20,12 +18,9 @@ const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps
   isExperimentArchived,
   loaded,
   error,
-  linkTo,
   isClickable = false,
   onClick,
 }) => {
-  const navigate = useNavigate();
-
   if (!loaded && !error) {
     return <Skeleton />;
   }
@@ -34,15 +29,14 @@ const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps
     return <NoRunContent />;
   }
 
-  const handleClick = onClick ?? (linkTo ? () => navigate(linkTo) : undefined);
-  const showClickableStyles = isClickable || !!handleClick;
+  const showClickableStyles = isClickable || !!onClick;
 
   const runGroupLabel = (
     <Label
       {...(showClickableStyles
         ? {
             isClickable: true,
-            ...(handleClick ? { onClick: handleClick } : {}),
+            ...(onClick ? { onClick } : {}),
           }
         : {})}
       isCompact

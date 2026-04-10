@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { PipelineRecurringRunKF } from '#~/concepts/pipelines/kfTypes';
 import { TableRowTitleDescription, CheckboxTd } from '#~/components/table';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
@@ -22,7 +22,7 @@ import PipelineRunTableRowMlflowExperiment from '#~/concepts/pipelines/content/t
 import usePipelineRunExperimentInfo from '#~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import { MlflowExperimentData } from '#~/concepts/mlflow/types';
-import { buildLegacyExperimentFilterUrl } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import { LEGACY_EXPERIMENT_FILTER_PARAM } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 
 type PipelineRecurringRunTableRowProps = {
   isChecked: boolean;
@@ -54,16 +54,18 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
     loaded: isExperimentLoaded,
     error: experimentError,
   } = usePipelineRunExperimentInfo(recurringRun);
-  const runGroupLink = React.useMemo(() => {
+  const [searchParams] = useSearchParams();
+  const handleRunGroupClick = React.useMemo(() => {
     if (!experiment) {
       return undefined;
     }
 
-    return buildLegacyExperimentFilterUrl(
-      globalPipelineRecurringRunsRoute(namespace),
-      experiment.experiment_id,
-    );
-  }, [experiment, namespace]);
+    return () => {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.set(LEGACY_EXPERIMENT_FILTER_PARAM, experiment.experiment_id);
+      navigate(`${globalPipelineRecurringRunsRoute(namespace)}?${nextParams.toString()}`);
+    };
+  }, [experiment, namespace, navigate, searchParams]);
 
   return (
     <Tr>
@@ -103,7 +105,8 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
             experiment={experiment}
             error={experimentError}
             loaded={isExperimentLoaded}
-            linkTo={runGroupLink}
+            isClickable={!!handleRunGroupClick}
+            onClick={handleRunGroupClick}
           />
         </Td>
       )}

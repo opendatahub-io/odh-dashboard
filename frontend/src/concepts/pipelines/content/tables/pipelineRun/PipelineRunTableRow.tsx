@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ExperimentKF, PipelineRunKF, RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '#~/components/table';
 import {
@@ -34,7 +34,7 @@ import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/run
 import { useFetchRunArtifact } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useFetchRunArtifact';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { MlflowExperimentData } from '#~/concepts/mlflow/types';
-import { buildLegacyExperimentFilterUrl } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import { LEGACY_EXPERIMENT_FILTER_PARAM } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 import { isPipelineRunRegistered } from './utils';
 
 type PipelineRunTableRowProps = {
@@ -76,18 +76,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
   const [mlmdData] = useFetchRunArtifact(modelRegistryAvailable ? run.run_id : undefined); // Prevent API call when model registry is not available
   const isRegistered = isPipelineRunRegistered(mlmdData);
-  const runGroupLink = React.useMemo(() => {
-    if (!experiment) {
-      return undefined;
-    }
-
-    return buildLegacyExperimentFilterUrl(
-      runType === PipelineRunType.ARCHIVED
-        ? globalArchivedPipelineRunsRoute(namespace)
-        : globalPipelineRunsRoute(namespace),
-      experiment.experiment_id,
-    );
-  }, [experiment, namespace, runType]);
+  const [searchParams] = useSearchParams();
   const handleRunGroupClick = React.useMemo(() => {
     if (!experiment) {
       return undefined;
@@ -97,12 +86,16 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       return () => onRunGroupClick(experiment);
     }
 
-    if (!runGroupLink) {
-      return undefined;
-    }
-
-    return () => navigate(runGroupLink);
-  }, [experiment, navigate, onRunGroupClick, runGroupLink]);
+    return () => {
+      const basePath =
+        runType === PipelineRunType.ARCHIVED
+          ? globalArchivedPipelineRunsRoute(namespace)
+          : globalPipelineRunsRoute(namespace);
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.set(LEGACY_EXPERIMENT_FILTER_PARAM, experiment.experiment_id);
+      navigate(`${basePath}?${nextParams.toString()}`);
+    };
+  }, [experiment, namespace, navigate, onRunGroupClick, runType, searchParams]);
 
   const { isExperimentArchived: isContextExperimentArchived } =
     useContextExperimentArchivedOrDeleted();
