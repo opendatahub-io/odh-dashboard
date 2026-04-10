@@ -252,6 +252,7 @@ describe('createSharedPollingStore', () => {
     fetchFn.mockImplementation(() => new Promise(jest.fn()));
     renderResult.rerender(true);
     expect(renderResult.result.current).toStrictEqual(INITIAL);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
   it('should call onReset when the last subscriber leaves', async () => {
