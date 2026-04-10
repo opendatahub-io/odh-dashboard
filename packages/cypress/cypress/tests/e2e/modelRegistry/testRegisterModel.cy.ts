@@ -29,9 +29,8 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { getApplicationsNamespace, getBooleanEnv } from '../../../utils/cypressEnvHelpers';
 import type { ModelRegistryTestData } from '../../../types';
 
-const namespaceName = getApplicationsNamespace();
-
 describe('Verify models can be registered in a model registry', () => {
+  let namespaceName: string;
   let testData: ModelRegistryTestData;
   let registryName: string;
   let objectStorageModelName: string;
@@ -43,6 +42,7 @@ describe('Verify models can be registered in a model registry', () => {
   const databaseName = `model-registry-db-${uuid}`;
 
   before(() => {
+    namespaceName = getApplicationsNamespace();
     cy.step('Load test data from fixture');
     loadModelRegistryFixture('e2e/modelRegistry/testModelRegistry.yaml').then((fixtureData) => {
       testData = fixtureData;
@@ -293,11 +293,11 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Click Register Model button');
       clickRegisterModelButton(30000);
 
-      cy.step('Verify registration mode toggle is visible');
-      registerModelPage.findRegistrationModeToggleGroup().should('be.visible');
+      cy.step('Verify registration mode toggle is present');
+      registerModelPage.findRegistrationModeToggleGroup().should('exist');
 
       cy.step('Toggle to Register and store mode');
-      registerModelPage.findRegisterAndStoreToggle().click();
+      registerModelPage.findRegisterAndStoreToggle().scrollIntoView().should('be.visible').click();
 
       cy.step('Verify namespace selector appears');
       registerModelPage.findNamespaceSelector().should('be.visible');
@@ -414,11 +414,11 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Click Register Model button');
       clickRegisterModelButton(30000);
 
-      cy.step('Verify registration mode toggle is visible');
-      registerModelPage.findRegistrationModeToggleGroup().should('be.visible');
+      cy.step('Verify registration mode toggle is present');
+      registerModelPage.findRegistrationModeToggleGroup().should('exist');
 
       cy.step('Toggle to Register and store mode');
-      registerModelPage.findRegisterAndStoreToggle().click();
+      registerModelPage.findRegisterAndStoreToggle().scrollIntoView().should('be.visible').click();
 
       cy.step('Verify namespace selector appears');
       registerModelPage.findNamespaceSelector().should('be.visible');
