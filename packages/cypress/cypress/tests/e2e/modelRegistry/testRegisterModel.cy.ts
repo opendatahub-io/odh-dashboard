@@ -31,13 +31,17 @@ import type { ModelRegistryTestData } from '../../../types';
 
 describe('Verify models can be registered in a model registry', () => {
   const chooseNamespaceForRegisterAndStore = (name: string): void => {
-    cy.get('body').then(($body) => {
-      const hasNamespaceSelector = $body.find('[data-testid="form-namespace-selector"]').length > 0;
-      if (hasNamespaceSelector) {
+    cy.findByTestId('namespace-form-group', { timeout: 30000 }).then(($formGroup) => {
+      if ($formGroup.find('[data-testid="form-namespace-selector"]').length > 0) {
         registerModelPage.findNamespaceSelectorTrigger().scrollIntoView().click();
         registerModelPage.findNamespaceOption(name).click();
-      } else {
+      } else if ($formGroup.find('[data-testid="form-namespace-text-input"]').length > 0) {
         registerModelPage.findNamespaceTextInput(30000).scrollIntoView().clear().type(name);
+      } else {
+        cy.findByTestId('project-selector-toggle').click();
+        cy.findByTestId('project-selector-search').clear();
+        cy.findByTestId('project-selector-search').type(name);
+        cy.get('[data-testid="project-selector-menuList"]').contains(name).click();
       }
     });
   };
@@ -317,9 +321,7 @@ describe('Verify models can be registered in a model registry', () => {
         .should('have.attr', 'aria-pressed', 'true');
 
       cy.step('Verify namespace input appears');
-      cy.get('[data-testid="form-namespace-selector"], [data-testid="form-namespace-text-input"]', {
-        timeout: 30000,
-      }).should('exist');
+      cy.findByTestId('namespace-form-group', { timeout: 30000 }).should('exist');
 
       cy.step('Select or type namespace');
       chooseNamespaceForRegisterAndStore(namespaceName);
@@ -444,9 +446,7 @@ describe('Verify models can be registered in a model registry', () => {
         .should('have.attr', 'aria-pressed', 'true');
 
       cy.step('Verify namespace input appears');
-      cy.get('[data-testid="form-namespace-selector"], [data-testid="form-namespace-text-input"]', {
-        timeout: 30000,
-      }).should('exist');
+      cy.findByTestId('namespace-form-group', { timeout: 30000 }).should('exist');
 
       cy.step('Select or type namespace');
       chooseNamespaceForRegisterAndStore(namespaceName);
