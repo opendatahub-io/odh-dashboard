@@ -13,9 +13,10 @@ export const getJobBenchmarks = (job: EvaluationJob): NonNullable<EvaluationJob[
     const resultsBenchmarks = job.results.benchmarks;
     if (resultsBenchmarks?.length) {
       /* eslint-disable camelcase */
-      return resultsBenchmarks.map((rb) => {
+      return resultsBenchmarks.map((rb, rbIdx) => {
         const config = collBenchmarks.find(
-          (cb, idx) => cb.id === rb.id && (cb.benchmark_index ?? idx) === rb.benchmark_index,
+          (cb, cbIdx) =>
+            cb.id === rb.id && (cb.benchmark_index ?? cbIdx) === (rb.benchmark_index ?? rbIdx),
         );
         return {
           id: rb.id,

@@ -184,6 +184,26 @@ describe('getJobBenchmarks', () => {
     expect(benchmarks[1].pass_criteria).toEqual({ threshold: 0.5 });
   });
 
+  it('should merge collection config when results benchmarks lack benchmark_index', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-collection' });
+    job.collection = {
+      id: 'my-collection',
+      benchmarks: [
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          primary_score: { metric: 'acc_norm', lower_is_better: false },
+          pass_criteria: { threshold: 0.7 },
+        },
+      ],
+    };
+    job.results.benchmarks = [{ id: 'arc_easy', provider_id: 'lm_evaluation_harness' }];
+    const benchmarks = getJobBenchmarks(job);
+    expect(benchmarks).toHaveLength(1);
+    expect(benchmarks[0].primary_score).toEqual({ metric: 'acc_norm', lower_is_better: false });
+    expect(benchmarks[0].pass_criteria).toEqual({ threshold: 0.7 });
+  });
+
   it('should assign benchmark_index from position when collection benchmarks have no results', () => {
     const job = mockEvaluationJob({ collectionId: 'my-collection' });
     job.collection = {
