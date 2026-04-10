@@ -141,14 +141,6 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
                   className="toolbar-fieldset-wrapper"
                 >
                   <ToolbarItem style={{ flex: 1 }}>
-                    <style>{`
-                      .toolbar-fieldset-wrapper{
-                        > div:first-child > div > div {
-                          flex: 1 1 auto;
-                          min-width: 600px;
-                        }
-                      }
-                    `}</style>
                     <ThemeAwareSearchInput
                       data-testid="search-input"
                       aria-label="Search with submit button"
