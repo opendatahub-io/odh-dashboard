@@ -616,6 +616,18 @@ export type RayJobE2eTestData = {
   rayVersion: string;
 };
 
+export type RayJobTestData = {
+  projectName: string;
+  rayJobName: string;
+  rayImage: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+};
+
 export type PipelineTestData = {
   projectNamePrefix: string;
   pipelineName: string;

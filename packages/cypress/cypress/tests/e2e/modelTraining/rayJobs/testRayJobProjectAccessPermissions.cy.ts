@@ -1,28 +1,24 @@
 import yaml from 'js-yaml';
-import { TrainingJobState } from '@odh-dashboard/model-training/types';
+import { RayJobState } from '@odh-dashboard/model-training/types';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../../utils/projectChecker';
-import {
-  createTrainJob,
-  createTrainingKueueResources,
-  createTrainingRuntime,
-  deleteTrainingRuntime,
-} from '../../../../utils/oc_commands/trainingJobs';
+import { createTrainingKueueResources } from '../../../../utils/oc_commands/trainingJobs';
+import { createBasicRayJob, deleteRayJob } from '../../../../utils/oc_commands/rayJobs';
 import { deleteKueueResources } from '../../../../utils/oc_commands/distributedWorkloads';
 import { ensureAdminOcSession } from '../../../../utils/oc_commands/baseCommands';
 import { modelTrainingGlobal, trainingJobTable } from '../../../../pages/modelTraining';
 import { retryableBefore, wasSetupPerformed } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { isTrainerManaged } from '../../../../utils/oc_commands/dsc';
-import type { TrainJobTestData } from '../../../../types';
+import type { RayJobTestData } from '../../../../types';
 
-describe('Verify project access for user types in Training Jobs', () => {
-  let testData: TrainJobTestData;
+describe('Verify project access for user types in Ray Jobs', () => {
+  let testData: RayJobTestData;
   let skipTest = false;
   let projectName: string;
-  let trainJobName: string;
-  let trainingRuntimeName: string;
+  let rayJobName: string;
+  let rayImage: string;
   let flavorName: string;
   let clusterQueueName: string;
   let localQueueName: string;
@@ -33,7 +29,7 @@ describe('Verify project access for user types in Training Jobs', () => {
 
   const shouldSkip = () => {
     if (skipTest) {
-      cy.log('Skipping test - Trainer is RHOAI-specific and not available on ODH.');
+      cy.log('Skipping test - Ray jobs require RHOAI and are not available on ODH.');
       return true;
     }
     return false;
@@ -56,14 +52,13 @@ describe('Verify project access for user types in Training Jobs', () => {
         return;
       }
 
-      // Load test data from fixture
-      cy.fixture('e2e/modelTraining/trainJobs/testTrainjobProgression.yaml', 'utf8')
+      cy.fixture('e2e/modelTraining/rayJobs/testRayJobProjectAccess.yaml', 'utf8')
         .then((yamlContent: string) => {
-          testData = yaml.load(yamlContent) as TrainJobTestData;
+          testData = yaml.load(yamlContent) as RayJobTestData;
 
           projectName = `${testData.projectName}-${uuid}`;
-          trainJobName = `${testData.trainJobName}-${uuid}`;
-          trainingRuntimeName = `${testData.trainingRuntimeName}-${uuid}`;
+          rayJobName = `${testData.rayJobName}-${uuid}`;
+          rayImage = testData.rayImage;
           flavorName = `${testData.flavorName}-${uuid}`;
           clusterQueueName = `${testData.clusterQueueName}-${uuid}`;
           localQueueName = `${testData.localQueueName}-${uuid}`;
@@ -90,12 +85,8 @@ describe('Verify project access for user types in Training Jobs', () => {
           );
         })
         .then(() => {
-          cy.step('Setup TrainingRuntime');
-          createTrainingRuntime(projectName, trainingRuntimeName);
-        })
-        .then(() => {
-          cy.step('Create TrainJob');
-          createTrainJob(projectName, trainJobName, trainingRuntimeName, localQueueName);
+          cy.step('Create RayJob');
+          createBasicRayJob(projectName, rayJobName, rayImage, localQueueName);
         });
     });
   });
@@ -109,8 +100,8 @@ describe('Verify project access for user types in Training Jobs', () => {
     cy.step('Restore admin oc session for cleanup');
     ensureAdminOcSession();
 
-    cy.step('Delete TrainingRuntime');
-    deleteTrainingRuntime(trainingRuntimeName, projectName, { ignoreNotFound: true });
+    cy.step('Delete RayJob');
+    deleteRayJob(rayJobName, projectName, { ignoreNotFound: true });
 
     cy.step('Delete Kueue resources');
     deleteKueueResources(localQueueName, clusterQueueName, flavorName, projectName, {
@@ -122,8 +113,8 @@ describe('Verify project access for user types in Training Jobs', () => {
   });
 
   it(
-    'Admin can access project and view training job',
-    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
+    'Admin can access project and view Ray job',
+    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@RayJob'] },
     () => {
       if (shouldSkip()) {
         return;
@@ -138,15 +129,15 @@ describe('Verify project access for user types in Training Jobs', () => {
       cy.step('Verify admin can access the project and select it');
       modelTrainingGlobal.selectProject(projectName);
 
-      cy.step('Verify admin can view the training job');
+      cy.step('Verify admin can view the Ray job');
       trainingJobTable.findTable().should('be.visible');
-      trainingJobTable.getTableRow(trainJobName).findTrainingJobName().should('exist');
+      trainingJobTable.getTableRow(rayJobName).findTrainingJobName().should('exist');
     },
   );
 
   it(
     'Regular user access transitions from denied to granted',
-    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@RayJob'] },
     () => {
       if (shouldSkip()) {
         return;
@@ -175,17 +166,16 @@ describe('Verify project access for user types in Training Jobs', () => {
       cy.step('Verify regular user can now access the project and select it');
       modelTrainingGlobal.selectProject(projectName);
 
-      cy.step('Verify regular user can now view the training job');
+      cy.step('Verify regular user can now view the Ray job');
       trainingJobTable.findTable().should('be.visible');
-      trainingJobTable.getTableRow(trainJobName).findTrainingJobName().should('exist');
+      trainingJobTable.getTableRow(rayJobName).findTrainingJobName().should('exist');
 
-      cy.step('Verify training job is running with progress bar');
+      cy.step('Verify Ray job is running');
       trainingJobTable
-        .getTableRow(trainJobName)
+        .getTableRow(rayJobName)
         .findStatus()
-        .contains(TrainingJobState.RUNNING, { timeout: 120000 })
+        .contains(RayJobState.RUNNING, { timeout: 120000 })
         .should('be.visible');
-      trainingJobTable.getTableRow(trainJobName).findStatusProgressBar().should('be.visible');
     },
   );
 });
