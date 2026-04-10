@@ -170,11 +170,6 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
       },
       MuiAutocomplete: {
         styleOverrides: {
-          root: {
-            '& .MuiOutlinedInput-root': {
-              paddingRight: 'var(--pf-t--global--spacer--2xl)',
-            },
-          },
           option: {
             paddingRight: 'var(--pf-t--global--spacer--lg) !important',
           },
