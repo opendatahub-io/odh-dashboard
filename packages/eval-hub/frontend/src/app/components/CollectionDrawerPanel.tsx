@@ -136,7 +136,11 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
       </DrawerPanelBody>
 
       <DrawerPanelBody style={{ flex: '0 0 auto' }} className="pf-v6-u-mt-md">
-        <Button variant="primary" onClick={() => onRunCollection(collection)}>
+        <Button
+          variant="primary"
+          data-testid="use-benchmark-suite-button"
+          onClick={() => onRunCollection(collection)}
+        >
           Use this benchmark suite
         </Button>
       </DrawerPanelBody>

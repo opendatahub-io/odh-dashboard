@@ -263,6 +263,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                           <Button
                             variant="secondary"
                             isInline
+                            data-testid="use-benchmark-suite-button"
                             onClick={() => handleRunCollection(collection)}
                           >
                             Use this benchmark suite

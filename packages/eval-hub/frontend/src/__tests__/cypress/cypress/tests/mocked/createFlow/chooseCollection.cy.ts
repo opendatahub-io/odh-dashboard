@@ -122,10 +122,7 @@ describe('Choose Collection Page', () => {
   it('should navigate to start page when clicking "Use this benchmark suite"', () => {
     chooseCollectionPage.visit(NAMESPACE);
 
-    chooseCollectionPage
-      .findCollectionCard('col-safety')
-      .findByText('Use this benchmark suite')
-      .click();
+    chooseCollectionPage.findUseBenchmarkSuiteButton('col-safety').click();
 
     cy.url().should('include', `${NAMESPACE}/create/start`);
     cy.url().should('include', 'type=collection');
