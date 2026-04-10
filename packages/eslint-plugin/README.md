@@ -8,7 +8,7 @@ Encapsulates rules that cannot be expressed through config alone — e.g., enfor
 
 ## Usage
 
-```text
+```js
 import plugin from '@odh-dashboard/eslint-plugin';
 
 export default [
