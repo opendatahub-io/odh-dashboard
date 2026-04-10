@@ -385,7 +385,7 @@ deploymentSpec:
           \ DOCUMENTS_DESCRIPTOR_FILENAME)\n    with open(descriptor_path, \"w\")\
           \ as f:\n        json.dump(descriptor, f, indent=2)\n\n    logger.info(\"\
           Documents descriptor written to %s\", descriptor_path)\n\n"
-        image: quay.io/opendatahub/odh-autorag:odh-stable
+        image: quay.io/rhoai/odh-autorag-rhel9:rhoai-3.4@sha256:06a2892228510011c9081acf73fe140e46bd13e5aad6ecb9721f902ed5418ec5
         resources:
           cpuRequest: 2.0
           memoryRequest: 8.589934592
@@ -666,7 +666,7 @@ deploymentSpec:
           \    )\n\n    Path(html_artifact.path).parent.mkdir(parents=True, exist_ok=True)\n\
           \    with open(html_artifact.path, \"w\", encoding=\"utf-8\") as f:\n  \
           \      f.write(html_content)\n\n"
-        image: quay.io/opendatahub/odh-autorag:odh-stable
+        image: quay.io/rhoai/odh-autorag-rhel9:rhoai-3.4@sha256:06a2892228510011c9081acf73fe140e46bd13e5aad6ecb9721f902ed5418ec5
         resources:
           cpuRequest: 1.0
           memoryRequest: 4.294967296
@@ -712,11 +712,15 @@ deploymentSpec:
           \ resolves the API key from ``LLAMA_STACK_CLIENT_API_KEY``\n    or ``LLAMA_STACK_API_KEY``\
           \ (or a one-time prompt), sets ``os.environ`` for the process when you\n\
           \    type a key at the prompt, then loops on questions until an empty line.\
-          \ No secret file is written.\n\n    Request-body construction is defined\
-          \ inside this function so Kubeflow embeds it in\n    ``ephemeral_component.py``\
-          \ (module-level helpers in this file are not shipped to the executor).\n\
-          \n    The generated body matches OpenAI-compatible ``POST /v1/responses``\
-          \ (see OpenAI's\n    `Migrate to the Responses API <https://developers.openai.com/api/docs/guides/migrate-to-responses>`__\n\
+          \ No secret file is written.\n    For TLS, the script honors ``REQUESTS_CA_BUNDLE``\
+          \ / ``SSL_CERT_FILE`` for custom CA bundles\n    (e.g. corporate/private\
+          \ PKI), and ``LLAMA_STACK_TLS_INSECURE=1`` as a dev-only opt-out that\n\
+          \    disables certificate verification with a stderr warning.\n\n    Request-body\
+          \ construction is defined inside this function so Kubeflow embeds it in\n\
+          \    ``ephemeral_component.py`` (module-level helpers in this file are not\
+          \ shipped to the executor).\n\n    The generated body matches OpenAI-compatible\
+          \ ``POST /v1/responses`` (see OpenAI's\n    `Migrate to the Responses API\
+          \ <https://developers.openai.com/api/docs/guides/migrate-to-responses>`__\n\
           \    and Llama Stack's ``POST /v1/responses``): ``model``, ``input``, ``stream``,\
           \ ``store``,\n    ``metadata`` (string values only), optional ``instructions``,\
           \ and optional ``tools`` /\n    ``file_search`` when a collection name is\
@@ -841,56 +845,72 @@ deploymentSpec:
           \"\"Interactive helper: load v1_responses_body.json and call POST /v1/responses.\"\
           \"\"\n\nimport copy\nimport json\nimport os\nfrom getpass import getpass\n\
           from pathlib import Path\nfrom urllib import request\nfrom urllib.error\
-          \ import HTTPError, URLError\n\n\nLLAMA_STACK_BASE_URL = \"{base_url.rstrip(\"\
-          /\")}\"\nBODY_PATH = Path(__file__).with_name(\"{output_filename}\")\n\n\
-          \ndef _set_question(body: dict, question: str) -> None:\n    \"\"\"Replace\
-          \ first user input_text payload with an interactive question.\"\"\"\n  \
-          \  try:\n        body[\"input\"][0][\"content\"][0][\"text\"] = question\n\
-          \    except (KeyError, IndexError, TypeError):\n        pass\n\n\ndef _api_key_from_env()\
-          \ -> str:\n    return (\n        os.environ.get(\"LLAMA_STACK_CLIENT_API_KEY\"\
-          , \"\").strip()\n        or os.environ.get(\"LLAMA_STACK_API_KEY\", \"\"\
-          ).strip()\n    )\n\n\ndef _apply_api_key_to_env(key: str) -> None:\n   \
-          \ \"\"\"Store key only in this process environment (for the rest of this\
-          \ run).\"\"\"\n    if not key:\n        return\n    os.environ[\"LLAMA_STACK_CLIENT_API_KEY\"\
-          ] = key\n    os.environ[\"LLAMA_STACK_API_KEY\"] = key\n\n\ndef _resolve_api_key_once()\
-          \ -> str:\n    \"\"\"Use ``LLAMA_STACK_CLIENT_API_KEY`` / ``LLAMA_STACK_API_KEY``,\
-          \ else one interactive prompt.\"\"\"\n    key = _api_key_from_env()\n  \
-          \  if key:\n        return key\n    key = getpass(\"Llama Stack API key\
-          \ (press Enter if not required): \").strip()\n    if key:\n        _apply_api_key_to_env(key)\n\
-          \    return key\n\n\ndef _post_responses(body: dict, api_key: str) -> int:\n\
-          \    url = f\"{{LLAMA_STACK_BASE_URL}}/v1/responses\"\n    headers = {{\n\
-          \        \"Content-Type\": \"application/json\",\n        \"Accept\": \"\
-          application/json\",\n    }}\n    if api_key:\n        headers[\"Authorization\"\
+          \ import HTTPError, URLError\nimport ssl\nimport sys\n\n\nLLAMA_STACK_BASE_URL\
+          \ = \"{base_url.rstrip(\"/\")}\"\nBODY_PATH = Path(__file__).with_name(\"\
+          {output_filename}\")\n\n\ndef _set_question(body: dict, question: str) ->\
+          \ None:\n    \"\"\"Replace first user input_text payload with an interactive\
+          \ question.\"\"\"\n    try:\n        body[\"input\"][0][\"content\"][0][\"\
+          text\"] = question\n    except (KeyError, IndexError, TypeError):\n    \
+          \    pass\n\n\ndef _api_key_from_env() -> str:\n    return (\n        os.environ.get(\"\
+          LLAMA_STACK_CLIENT_API_KEY\", \"\").strip()\n        or os.environ.get(\"\
+          LLAMA_STACK_API_KEY\", \"\").strip()\n    )\n\n\ndef _apply_api_key_to_env(key:\
+          \ str) -> None:\n    \"\"\"Store key only in this process environment (for\
+          \ the rest of this run).\"\"\"\n    if not key:\n        return\n    os.environ[\"\
+          LLAMA_STACK_CLIENT_API_KEY\"] = key\n    os.environ[\"LLAMA_STACK_API_KEY\"\
+          ] = key\n\n\ndef _resolve_api_key_once() -> str:\n    \"\"\"Use ``LLAMA_STACK_CLIENT_API_KEY``\
+          \ / ``LLAMA_STACK_API_KEY``, else one interactive prompt.\"\"\"\n    key\
+          \ = _api_key_from_env()\n    if key:\n        return key\n    key = getpass(\"\
+          Llama Stack API key (press Enter if not required): \").strip()\n    if key:\n\
+          \        _apply_api_key_to_env(key)\n    return key\n\n\ndef _build_ssl_context():\n\
+          \    \"\"\"Build an SSLContext honoring corporate CA bundles or a dev-only\
+          \ insecure flag.\n\n    Precedence:\n      1. LLAMA_STACK_TLS_INSECURE=1\
+          \  -> verification disabled (dev only, prints warning)\n      2. REQUESTS_CA_BUNDLE\
+          \          -> custom CA bundle path\n      3. SSL_CERT_FILE            \
+          \   -> custom CA bundle path\n      4. None                        -> stdlib\
+          \ default (system trust store)\n    \"\"\"\n    insecure = os.environ.get(\"\
+          LLAMA_STACK_TLS_INSECURE\", \"\").strip().lower() in (\"1\", \"true\", \"\
+          yes\", \"on\")\n    if insecure:\n        print(\n            \"WARNING:\
+          \ TLS verification is DISABLED (LLAMA_STACK_TLS_INSECURE=1). \"\n      \
+          \      \"Do not use this against production Llama Stack deployments.\",\n\
+          \            file=sys.stderr,\n        )\n        ctx = ssl.create_default_context()\n\
+          \        ctx.check_hostname = False\n        ctx.verify_mode = ssl.CERT_NONE\n\
+          \        return ctx\n    cafile = (\n        os.environ.get(\"REQUESTS_CA_BUNDLE\"\
+          , \"\").strip()\n        or os.environ.get(\"SSL_CERT_FILE\", \"\").strip()\n\
+          \    )\n    if cafile:\n        return ssl.create_default_context(cafile=cafile)\n\
+          \    return None\n\n\ndef _post_responses(body: dict, api_key: str, ssl_context)\
+          \ -> int:\n    url = f\"{{LLAMA_STACK_BASE_URL}}/v1/responses\"\n    headers\
+          \ = {{\n        \"Content-Type\": \"application/json\",\n        \"Accept\"\
+          : \"application/json\",\n    }}\n    if api_key:\n        headers[\"Authorization\"\
           ] = f\"Bearer {{api_key}}\"\n\n    req = request.Request(\n        url=url,\n\
           \        data=json.dumps(body).encode(\"utf-8\"),\n        headers=headers,\n\
           \        method=\"POST\",\n    )\n\n    try:\n        with request.urlopen(req,\
-          \ timeout=120) as resp:\n            payload = resp.read().decode(\"utf-8\"\
-          )\n            print(payload)\n            return 0\n    except HTTPError\
+          \ timeout=120, context=ssl_context) as resp:\n            payload = resp.read().decode(\"\
+          utf-8\")\n            print(payload)\n            return 0\n    except HTTPError\
           \ as e:\n        print(f\"HTTP {{e.code}}: {{e.reason}}\")\n        detail\
           \ = e.read().decode(\"utf-8\", errors=\"replace\")\n        if detail:\n\
           \            print(detail)\n        return 2\n    except URLError as e:\n\
           \        print(f\"Connection error: {{e}}\")\n        return 3\n\n\ndef\
           \ main() -> int:\n    if not BODY_PATH.is_file():\n        print(f\"Missing\
           \ JSON body file: {{BODY_PATH}}\")\n        return 1\n\n    api_key = _resolve_api_key_once()\n\
-          \n    with BODY_PATH.open(encoding=\"utf-8\") as f:\n        template =\
-          \ json.load(f)\n\n    print(\"Enter questions; an empty line exits.\")\n\
-          \    while True:\n        question = input(\"Question (empty line to exit):\
-          \ \").strip()\n        if not question:\n            return 0\n        body\
-          \ = copy.deepcopy(template)\n        _set_question(body, question)\n   \
-          \     rc = _post_responses(body, api_key)\n        if rc != 0:\n       \
-          \     return rc\n\n\nif __name__ == \"__main__\":\n    raise SystemExit(main())\n\
-          '''\n\n    def _pattern_readme_contents(base_url: str) -> str:\n       \
-          \ \"\"\"Short README next to each pattern's JSON and script.\"\"\"\n   \
-          \     url = base_url.rstrip(\"/\")\n        ofn = output_filename\n    \
-          \    sfn = script_filename\n        return (\n            f\"# Call Llama\
-          \ Stack ``POST /v1/responses`` for this RAG pattern\\n\\n\"\n          \
-          \  f\"This folder contains:\\n\\n\"\n            f\"- ``{ofn}`` \u2014 request\
-          \ body for the OpenAI-compatible Responses API \"\n            f\"(Llama\
-          \ Stack ``/v1/responses``).\\n\"\n            f\"- ``{sfn}`` \u2014 interactive\
-          \ helper that loads the JSON, resolves the API key from \"\n           \
-          \ f\"environment variables or one prompt (then sets ``os.environ`` for this\
-          \ run only), \"\n            f\"then loops: ask a question, POST, repeat\
-          \ until you enter an empty question.\\n\\n\"\n            \"## Prerequisites\\\
+          \    ssl_context = _build_ssl_context()\n\n    with BODY_PATH.open(encoding=\"\
+          utf-8\") as f:\n        template = json.load(f)\n\n    print(\"Enter questions;\
+          \ an empty line exits.\")\n    while True:\n        question = input(\"\
+          Question (empty line to exit): \").strip()\n        if not question:\n \
+          \           return 0\n        body = copy.deepcopy(template)\n        _set_question(body,\
+          \ question)\n        rc = _post_responses(body, api_key, ssl_context)\n\
+          \        if rc != 0:\n            return rc\n\n\nif __name__ == \"__main__\"\
+          :\n    raise SystemExit(main())\n'''\n\n    def _pattern_readme_contents(base_url:\
+          \ str) -> str:\n        \"\"\"Short README next to each pattern's JSON and\
+          \ script.\"\"\"\n        url = base_url.rstrip(\"/\")\n        ofn = output_filename\n\
+          \        sfn = script_filename\n        return (\n            f\"# Call\
+          \ Llama Stack ``POST /v1/responses`` for this RAG pattern\\n\\n\"\n    \
+          \        f\"This folder contains:\\n\\n\"\n            f\"- ``{ofn}`` \u2014\
+          \ request body for the OpenAI-compatible Responses API \"\n            f\"\
+          (Llama Stack ``/v1/responses``).\\n\"\n            f\"- ``{sfn}`` \u2014\
+          \ interactive helper that loads the JSON, resolves the API key from \"\n\
+          \            f\"environment variables or one prompt (then sets ``os.environ``\
+          \ for this run only), \"\n            f\"then loops: ask a question, POST,\
+          \ repeat until you enter an empty question.\\n\\n\"\n            \"## Prerequisites\\\
           n\\n\"\n            \"- Python 3 available on your PATH as ``python3`` \"\
           \n            \"(or run with your Python interpreter).\\n\"\n          \
           \  \"- Network reachability to Llama Stack.\\n\"\n            f\"- Keep\
@@ -919,13 +939,41 @@ deploymentSpec:
           \ is printed to stdout (JSON).\\n\\n\"\n            \"To reuse the same\
           \ key in a **new** shell session, export \"\n            \"``LLAMA_STACK_CLIENT_API_KEY``\
           \ (or ``LLAMA_STACK_API_KEY``) again; nothing is \"\n            \"written\
-          \ to disk by this script.\\n\\n\"\n            \"## Troubleshooting\\n\\\
-          n\"\n            f\"- **Missing JSON body file** \u2014 restore ``{ofn}``\
-          \ next to the script or \"\n            \"re-download the artifact folder.\\\
-          n\"\n            \"- **Connection or HTTP errors** \u2014 confirm the base\
-          \ URL, TLS, firewall, and that \"\n            \"the model and ``file_search``\
-          \ / vector store identifiers in the JSON match your \"\n            \"deployment.\\\
-          n\"\n        )\n\n    root = Path(rag_patterns)\n    out_root = Path(responses_api_artifacts.path)\n\
+          \ to disk by this script.\\n\\n\"\n            \"## TLS / certificates\\\
+          n\\n\"\n            \"The script uses Python's standard library (``urllib``\
+          \ + ``ssl``). It honors these \"\n            \"environment variables, in\
+          \ order of precedence:\\n\\n\"\n            \"1. **``LLAMA_STACK_TLS_INSECURE=1``**\
+          \ \u2014 **dev only.** Disables TLS verification \"\n            \"entirely\
+          \ (``check_hostname=False``, ``verify_mode=CERT_NONE``) and prints a warning\
+          \ \"\n            \"to stderr. **Never** use this against a production Llama\
+          \ Stack deployment; it \"\n            \"exposes you to man-in-the-middle\
+          \ attacks.\\n\"\n            \"2. **``REQUESTS_CA_BUNDLE=/path/to/ca-bundle.pem``**\
+          \ \u2014 path to a PEM file containing \"\n            \"the CA(s) that\
+          \ signed your Llama Stack server certificate. Use this when your \"\n  \
+          \          \"deployment is fronted by a private/corporate CA that is not\
+          \ in the OS default trust \"\n            \"store.\\n\"\n            \"\
+          3. **``SSL_CERT_FILE=/path/to/ca-bundle.pem``** \u2014 same effect as \"\
+          \n            \"``REQUESTS_CA_BUNDLE``; honored for compatibility with the\
+          \ Python stdlib \"\n            \"convention.\\n\"\n            \"4. If\
+          \ none of the above are set, the script uses the system trust store.\\n\\\
+          n\"\n            \"Example (private/corporate CA):\\n\\n\"\n           \
+          \ \"```bash\\n\"\n            \"export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/corporate-ca.pem\\\
+          n\"\n            f\"python3 {sfn}\\n\"\n            \"```\\n\\n\"\n    \
+          \        \"Example (dev cluster with self-signed cert, **non-production**):\\\
+          n\\n\"\n            \"```bash\\n\"\n            \"export LLAMA_STACK_TLS_INSECURE=1\\\
+          n\"\n            f\"python3 {sfn}\\n\"\n            \"```\\n\\n\"\n    \
+          \        \"## Troubleshooting\\n\\n\"\n            f\"- **Missing JSON body\
+          \ file** \u2014 restore ``{ofn}`` next to the script or \"\n           \
+          \ \"re-download the artifact folder.\\n\"\n            \"- **TLS / certificate\
+          \ errors** (e.g. ``CERTIFICATE_VERIFY_FAILED``) \u2014 your Llama \"\n \
+          \           \"Stack server certificate is signed by a CA not in the OS trust\
+          \ store. See the \"\n            \"**TLS / certificates** section above\
+          \ for ``REQUESTS_CA_BUNDLE`` / ``SSL_CERT_FILE`` \"\n            \"and the\
+          \ dev-only ``LLAMA_STACK_TLS_INSECURE`` opt-out.\\n\"\n            \"- **Connection\
+          \ or HTTP errors** \u2014 confirm the base URL, firewall, and that \"\n\
+          \            \"the model and ``file_search`` / vector store identifiers\
+          \ in the JSON match your \"\n            \"deployment.\\n\"\n        )\n\
+          \n    root = Path(rag_patterns)\n    out_root = Path(responses_api_artifacts.path)\n\
           \    out_root.mkdir(parents=True, exist_ok=True)\n\n    written: list[dict]\
           \ = []\n    if not root.is_dir():\n        raise FileNotFoundError(f\"rag_patterns\
           \ path is not a directory: {root}\")\n\n    for sub in sorted(p for p in\
@@ -946,7 +994,7 @@ deploymentSpec:
           readme_path\": str(readme_file),\n            }\n        )\n\n    responses_api_artifacts.metadata[\"\
           name\"] = \"responses_api_artifacts\"\n    responses_api_artifacts.metadata[\"\
           metadata\"] = {\"patterns\": written}\n\n"
-        image: quay.io/opendatahub/odh-autorag:odh-stable
+        image: quay.io/rhoai/odh-autorag-rhel9:rhoai-3.4@sha256:06a2892228510011c9081acf73fe140e46bd13e5aad6ecb9721f902ed5418ec5
         resources:
           cpuRequest: 0.5
           memoryRequest: 2.147483648
@@ -978,7 +1026,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\n__KFP_EMBEDDED_ARCHIVE_B64 = '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'\n\
+          \ *\n\n__KFP_EMBEDDED_ARCHIVE_B64 = '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'\n\
           \nimport base64 as __kfp_b64\nimport io as __kfp_io\nimport os as __kfp_os\n\
           import sys as __kfp_sys\nimport tarfile as __kfp_tarfile\nimport tempfile\
           \ as __kfp_tempfile\n\n# Extract embedded archive at import time to ensure\
@@ -1057,17 +1105,23 @@ deploymentSpec:
           \            msg = str(current).upper()\n            if \"CERTIFICATE_VERIFY_FAILED\"\
           \ in msg or \"SSL\" in msg:\n                return True\n            current\
           \ = current.__cause__ or current.__context__\n        return False\n\n \
-          \   def _create_openai_client(api_key: str, base_url: str) -> OpenAI:\n\
-          \        \"\"\"Create OpenAI client, falling back to SSL-unverified if self-signed\
-          \ cert detected.\"\"\"\n        client = OpenAI(api_key=api_key, base_url=base_url)\n\
-          \        try:\n            client.models.list()\n        except (ssl.SSLCertVerificationError,\
-          \ httpx.ConnectError, OAIAPIConnectionError) as exc:\n            if _is_ssl_error(exc):\n\
-          \                _ssl_logger.warning(\n                    \"SSL verification\
-          \ failed for %s \u2014 retrying with verify=False. \",\n               \
-          \     base_url,\n                )\n                client = OpenAI(\n \
-          \                   api_key=api_key,\n                    base_url=base_url,\n\
-          \                    http_client=httpx.Client(verify=False),\n         \
-          \       )\n            else:\n                raise\n        return client\n\
+          \   # Mutable containers so the nested _create_openai_client can update\
+          \ the flags\n    # without requiring `nonlocal` or returning the flag.\n\
+          \    _chat_ssl_verify = [True]\n    _embedding_ssl_verify = [True]\n\n \
+          \   def _create_openai_client(api_key: str, base_url: str, _ssl_verify:\
+          \ list) -> OpenAI:\n        \"\"\"Create OpenAI client, falling back to\
+          \ SSL-unverified if self-signed cert detected.\"\"\"\n        client = OpenAI(api_key=api_key,\
+          \ base_url=base_url)\n        try:\n            client.models.list()\n \
+          \       except (ssl.SSLCertVerificationError, httpx.ConnectError, OAIAPIConnectionError)\
+          \ as exc:\n            if _is_ssl_error(exc):\n                _ssl_logger.warning(\n\
+          \                    \"SSL verification failed for %s \u2014 retrying with\
+          \ verify=False. \",\n                    base_url,\n                )\n\
+          \                client = OpenAI(\n                    api_key=api_key,\n\
+          \                    base_url=base_url,\n                    http_client=httpx.Client(verify=False),\n\
+          \                )\n                _ssl_verify[0] = False\n           \
+          \ else:\n                raise\n        return client\n\n    # Mutable container\
+          \ so the nested _create_llama_stack_client can update the flag\n    # without\
+          \ requiring `nonlocal` or returning the flag.\n    _ls_ssl_verify = [True]\n\
           \n    def _create_llama_stack_client(**kwargs) -> LlamaStackClient:\n  \
           \      \"\"\"Create LlamaStackClient, falling back to SSL-unverified if\
           \ self-signed cert detected.\"\"\"\n        client = LlamaStackClient(**kwargs)\n\
@@ -1076,23 +1130,23 @@ deploymentSpec:
           \                _ssl_logger.warning(\"SSL verification failed for LlamaStackClient\
           \ \u2014 retrying with verify=False. \")\n                client = LlamaStackClient(\n\
           \                    **kwargs,\n                    http_client=httpx.Client(verify=False),\n\
-          \                )\n            else:\n                raise\n        return\
-          \ client\n\n    if not isinstance(test_data_key, str) or not test_data_key.strip()\
-          \ or not test_data_key.lower().endswith(\".json\"):\n        raise ValueError(\"\
-          test_data_path must point to a JSON file\")\n\n    if optimization_settings\
-          \ is not None:\n        if not isinstance(optimization_settings, dict):\n\
-          \            raise TypeError(\"optimization_settings must be a dictionary.\"\
-          )\n        max_rag_patterns = optimization_settings.get(\"max_number_of_rag_patterns\"\
-          , DEFAULT_MAX_NUMBER_OF_RAG_PATTERNS)\n        if isinstance(max_rag_patterns,\
-          \ str):\n            try:\n                max_rag_patterns = int(max_rag_patterns.strip())\n\
-          \            except ValueError as exc:\n                raise ValueError(\n\
-          \                    \"optimization_settings.max_number_of_rag_patterns\
-          \ must be a valid integer \"\n                    f\"(e.g. from the pipeline\
-          \ UI); got {max_rag_patterns!r}.\"\n                ) from exc\n       \
-          \ if not isinstance(max_rag_patterns, int):\n            raise TypeError(\"\
-          optimization_settings.max_number_of_rag_patterns must be an integer.\")\n\
-          \n        _ssl_logger.info(\"max_number_of_rag_patterns %s\", max_rag_patterns)\n\
-          \        if not (\n            MAX_NUMBER_OF_RAG_PATTERNS_ALLOWED_RANGE[0]\n\
+          \                )\n                _ls_ssl_verify[0] = False\n        \
+          \    else:\n                raise\n        return client\n\n    if not isinstance(test_data_key,\
+          \ str) or not test_data_key.strip() or not test_data_key.lower().endswith(\"\
+          .json\"):\n        raise ValueError(\"test_data_path must point to a JSON\
+          \ file\")\n\n    if optimization_settings is not None:\n        if not isinstance(optimization_settings,\
+          \ dict):\n            raise TypeError(\"optimization_settings must be a\
+          \ dictionary.\")\n        max_rag_patterns = optimization_settings.get(\"\
+          max_number_of_rag_patterns\", DEFAULT_MAX_NUMBER_OF_RAG_PATTERNS)\n    \
+          \    if isinstance(max_rag_patterns, str):\n            try:\n         \
+          \       max_rag_patterns = int(max_rag_patterns.strip())\n            except\
+          \ ValueError as exc:\n                raise ValueError(\n              \
+          \      \"optimization_settings.max_number_of_rag_patterns must be a valid\
+          \ integer \"\n                    f\"(e.g. from the pipeline UI); got {max_rag_patterns!r}.\"\
+          \n                ) from exc\n        if not isinstance(max_rag_patterns,\
+          \ int):\n            raise TypeError(\"optimization_settings.max_number_of_rag_patterns\
+          \ must be an integer.\")\n\n        _ssl_logger.info(\"max_number_of_rag_patterns\
+          \ %s\", max_rag_patterns)\n        if not (\n            MAX_NUMBER_OF_RAG_PATTERNS_ALLOWED_RANGE[0]\n\
           \            <= max_rag_patterns\n            <= MAX_NUMBER_OF_RAG_PATTERNS_ALLOWED_RANGE[1]\n\
           \        ):\n            raise ValueError(\n                f\"optimization_settings.max_number_of_rag_patterns\
           \ must be in a range\"\n                f\"{MAX_NUMBER_OF_RAG_PATTERNS_ALLOWED_RANGE[0]}\
@@ -1174,8 +1228,8 @@ deploymentSpec:
           \ self\n\n        @classmethod\n        def load(\n            cls,\n  \
           \          notebook_name: Literal[\n                \"ls_indexing_template.ipynb\"\
           ,\n                \"ls_inference_template.ipynb\",\n                \"\
-          chroma_teamplate.ipynb\",\n            ],\n        ) -> \"Notebook\":\n\
-          \            \"\"\"Load a Jupyter notebook from a file.\n\n            Parameters\n\
+          chroma_template.ipynb\",\n            ],\n        ) -> \"Notebook\":\n \
+          \           \"\"\"Load a Jupyter notebook from a file.\n\n            Parameters\n\
           \            ----------\n            path : str | Path\n               \
           \ Input file path to the .ipynb file.\n\n            Returns:\n        \
           \    -------\n            Notebook\n                A new Notebook instance\
@@ -1208,61 +1262,77 @@ deploymentSpec:
           \    def create_placeholder_mapping(\n        output_data: dict[str, Any],\n\
           \        test_data_key: str = \"\",\n        input_data_key: str = \"\"\
           ,\n        chat_model_url: str = \"\",\n        embedding_model_url: str\
-          \ = \"\",\n    ) -> dict[str, Any]:\n        \"\"\"Create a mapping from\
-          \ placeholder names to their values from output.json.\n\n        This function\
-          \ extracts values from the output.json structure and creates\n        a\
-          \ flat dictionary suitable for use with NotebookCell.format_source().\n\n\
-          \        Expected output.json structure:\n        {\n            \"config\"\
-          : {\n                \"pattern_name\": \"...\",\n                \"autorag_version\"\
-          : \"...\",\n                \"llama_stack\": {\n                    \"foundation_model\"\
-          : {...},\n                    \"embedding_model\": {...},\n            \
-          \        \"vector_store\": {...},\n                    \"retriever\": {...},\n\
-          \                    \"chunker\": {...}\n                },\n          \
-          \      \"data\": {...}\n            }\n        }\n\n        Args:\n    \
-          \        output_data: The parsed pattern.json data\n            test_data_key:\
+          \ = \"\",\n        ls_ssl_verify: bool = True,\n        chat_ssl_verify:\
+          \ bool = True,\n        embedding_ssl_verify: bool = True,\n    ) -> dict[str,\
+          \ Any]:\n        \"\"\"Create a mapping from placeholder names to their\
+          \ values from output.json.\n\n        This function extracts values from\
+          \ the output.json structure and creates\n        a flat dictionary suitable\
+          \ for use with NotebookCell.format_source().\n\n        Expected output.json\
+          \ structure:\n        {\n            \"config\": {\n                \"pattern_name\"\
+          : \"...\",\n                \"autorag_version\": \"...\",\n            \
+          \    \"llama_stack\": {\n                    \"foundation_model\": {...},\n\
+          \                    \"embedding_model\": {...},\n                    \"\
+          vector_store\": {...},\n                    \"retriever\": {...},\n    \
+          \                \"chunker\": {...}\n                },\n              \
+          \  \"data\": {...}\n            }\n        }\n\n        Args:\n        \
+          \    output_data: The parsed pattern.json data\n            test_data_key:\
           \ Test data key.\n            input_data_key: Input data key.\n        \
           \    chat_model_url: Chat model url.\n            embedding_model_url: Embedding\
-          \ model url.\n\n        Returns:\n            Dictionary mapping placeholder\
-          \ names to their values.\n        \"\"\"\n        mapping = {}\n\n     \
-          \   mapping[\"PATTERN_NAME\"] = output_data.get(\"name\", \"\")\n      \
-          \  settings = output_data.get(\"settings\", {})\n        fm = settings.get(\"\
-          generation\", {})\n        mapping[\"FM_MODEL_ID\"] = fm.get(\"model_id\"\
-          , \"\")\n        mapping[\"SYSTEM_MESSAGE\"] = fm.get(\"system_message_text\"\
-          , \"\")\n        mapping[\"USER_MESSAGE\"] = fm.get(\"user_message_text\"\
-          , \"\")\n        mapping[\"CONTEXT_TEXT\"] = fm.get(\"context_template_text\"\
-          , \"\")\n\n        em = settings.get(\"embedding\", {})\n        mapping[\"\
-          EMBEDDING_MODEL_ID\"] = em.get(\"model_id\", \"\")\n        mapping[\"EMBEDDING_PARAMS\"\
-          ] = em.get(\"embedding_params\", {\"embedding_dimension\": 768})\n     \
-          \   mapping[\"DISTANCE_METRIC\"] = em.get(\"distance_metric\", \"\")\n\n\
-          \        vs = settings.get(\"vector_store\", {})\n        mapping[\"PROVIDER_ID\"\
-          ] = vs.get(\"datasource_type\", \"\")\n        mapping[\"COLLECTION_NAME\"\
-          ] = vs.get(\"collection_name\", \"\")\n\n        ret = settings.get(\"retrieval\"\
-          , {})\n        mapping[\"RETRIEVAL_METHOD\"] = ret.get(\"method\", \"\"\
-          )\n        mapping[\"NUMBER_OF_CHUNKS\"] = ret.get(\"number_of_chunks\"\
-          , 5)\n\n        ch = settings.get(\"chunking\", {})\n        mapping[\"\
-          CHUNKING_METHOD\"] = ch.get(\"method\", \"\")\n        mapping[\"CHUNK_SIZE\"\
-          ] = ch.get(\"chunk_size\", 512)\n        mapping[\"CHUNK_OVERLAP\"] = ch.get(\"\
-          chunk_overlap\", 50)\n\n        mapping[\"TEST_DATA_KEY\"] = test_data_key\n\
-          \        mapping[\"INPUT_DATA_KEY\"] = input_data_key\n\n        mapping[\"\
-          CHAT_MODEL_URL\"] = chat_model_url\n        mapping[\"EMBEDDING_MODEL_URL\"\
-          ] = embedding_model_url\n\n        return mapping\n\n    def generate_notebook_from_templates(\n\
+          \ model url.\n            ls_ssl_verify: Whether LlamaStack SSL verification\
+          \ succeeded.\n            chat_ssl_verify: Whether chat model (OpenAI) SSL\
+          \ verification succeeded.\n            embedding_ssl_verify: Whether embedding\
+          \ model (OpenAI) SSL verification succeeded.\n\n        Returns:\n     \
+          \       Dictionary mapping placeholder names to their values.\n        \"\
+          \"\"\n        mapping = {}\n\n        mapping[\"PATTERN_NAME\"] = output_data.get(\"\
+          name\", \"\")\n        settings = output_data.get(\"settings\", {})\n  \
+          \      fm = settings.get(\"generation\", {})\n        mapping[\"FM_MODEL_ID\"\
+          ] = fm.get(\"model_id\", \"\")\n        mapping[\"SYSTEM_MESSAGE\"] = fm.get(\"\
+          system_message_text\", \"\")\n        mapping[\"USER_MESSAGE\"] = fm.get(\"\
+          user_message_text\", \"\")\n        mapping[\"CONTEXT_TEXT\"] = fm.get(\"\
+          context_template_text\", \"\")\n\n        em = settings.get(\"embedding\"\
+          , {})\n        mapping[\"EMBEDDING_MODEL_ID\"] = em.get(\"model_id\", \"\
+          \")\n        mapping[\"EMBEDDING_PARAMS\"] = em.get(\"embedding_params\"\
+          , {\"embedding_dimension\": 768})\n        mapping[\"DISTANCE_METRIC\"]\
+          \ = em.get(\"distance_metric\", \"\")\n\n        vs = settings.get(\"vector_store\"\
+          , {})\n        mapping[\"PROVIDER_ID\"] = vs.get(\"datasource_type\", \"\
+          \")\n        mapping[\"COLLECTION_NAME\"] = vs.get(\"collection_name\",\
+          \ \"\")\n\n        ret = settings.get(\"retrieval\", {})\n        mapping[\"\
+          RETRIEVAL_METHOD\"] = ret.get(\"method\", \"\")\n        mapping[\"NUMBER_OF_CHUNKS\"\
+          ] = ret.get(\"number_of_chunks\", 5)\n\n        ch = settings.get(\"chunking\"\
+          , {})\n        mapping[\"CHUNKING_METHOD\"] = ch.get(\"method\", \"\")\n\
+          \        mapping[\"CHUNK_SIZE\"] = ch.get(\"chunk_size\", 512)\n       \
+          \ mapping[\"CHUNK_OVERLAP\"] = ch.get(\"chunk_overlap\", 50)\n\n       \
+          \ mapping[\"TEST_DATA_KEY\"] = test_data_key\n        mapping[\"INPUT_DATA_KEY\"\
+          ] = input_data_key\n\n        mapping[\"CHAT_MODEL_URL\"] = chat_model_url\n\
+          \        mapping[\"EMBEDDING_MODEL_URL\"] = embedding_model_url\n      \
+          \  mapping[\"LS_SSL_VERIFY\"] = ls_ssl_verify\n        mapping[\"CHAT_SSL_VERIFY\"\
+          ] = chat_ssl_verify\n        mapping[\"EMBEDDING_SSL_VERIFY\"] = embedding_ssl_verify\n\
+          \n        return mapping\n\n    def generate_notebook_from_templates(\n\
           \        notebook_template: Literal[\n            \"ls_inference\",\n  \
           \          \"ls_indexing\",\n            \"chroma\",\n        ],\n     \
           \   output_data: dict[str, Any],\n        output_notebook_path: Path,\n\
           \        test_data_key: str = \"\",\n        input_data_key: str = \"\"\
-          ,\n    ) -> None:\n        \"\"\"Generate a filled notebook from templates\
-          \ and output.json.\n\n        Args:\n            notebook_template: One\
-          \ of the allowed template names.\n            output_data: The parsed output.json\
-          \ data.\n            output_notebook_path: Path where to save the generated\
-          \ notebook.\n            test_data_key: Path to test data file within bucket\
-          \ used as input to AI4RAG.\n            input_data_key: Path to documents\
-          \ dir within bucket used as input to AI4RAG.\n\n        Returns:\n     \
-          \       None. The notebook is written to output_notebook_path.\n       \
-          \ \"\"\"\n        placeholder_mapping = create_placeholder_mapping(\n  \
-          \          output_data,\n            test_data_key=test_data_key,\n    \
-          \        input_data_key=input_data_key,\n            chat_model_url=chat_model_url,\n\
-          \            embedding_model_url=embedding_model_url,\n        )\n     \
-          \   notebook = Notebook.load(notebook_name=f\"{notebook_template}_template.ipynb\"\
+          ,\n        ls_ssl_verify: bool = True,\n        chat_ssl_verify: bool =\
+          \ True,\n        embedding_ssl_verify: bool = True,\n    ) -> None:\n  \
+          \      \"\"\"Generate a filled notebook from templates and output.json.\n\
+          \n        Args:\n            notebook_template: One of the allowed template\
+          \ names.\n            output_data: The parsed output.json data.\n      \
+          \      output_notebook_path: Path where to save the generated notebook.\n\
+          \            test_data_key: Path to test data file within bucket used as\
+          \ input to AI4RAG.\n            input_data_key: Path to documents dir within\
+          \ bucket used as input to AI4RAG.\n            ls_ssl_verify: Whether LlamaStack\
+          \ SSL verification succeeded; False causes the\n                generated\
+          \ notebook to skip the SSL probe and connect with verify=False directly.\n\
+          \            chat_ssl_verify: Whether chat model (OpenAI) SSL verification\
+          \ succeeded.\n            embedding_ssl_verify: Whether embedding model\
+          \ (OpenAI) SSL verification succeeded.\n\n        Returns:\n           \
+          \ None. The notebook is written to output_notebook_path.\n        \"\"\"\
+          \n        placeholder_mapping = create_placeholder_mapping(\n          \
+          \  output_data,\n            test_data_key=test_data_key,\n            input_data_key=input_data_key,\n\
+          \            chat_model_url=chat_model_url,\n            embedding_model_url=embedding_model_url,\n\
+          \            ls_ssl_verify=ls_ssl_verify,\n            chat_ssl_verify=chat_ssl_verify,\n\
+          \            embedding_ssl_verify=embedding_ssl_verify,\n        )\n   \
+          \     notebook = Notebook.load(notebook_name=f\"{notebook_template}_template.ipynb\"\
           )\n        filled_cells = []\n        for cell in notebook.cells:\n    \
           \        filled_cell = cell.format_source(placeholder_mapping)\n       \
           \     filled_cells.append(filled_cell)\n\n        notebook = Notebook(cells=filled_cells)\n\
@@ -1307,16 +1377,18 @@ deploymentSpec:
           \    \"All of (`chat_model_url`, `chat_model_token`, `embedding_model_url`,\
           \ `embedding_model_token`) \"\n                \"have to be defined when\
           \ running AutoRAG experiment using an in-memory vector store.\"\n      \
-          \      )\n        client = Client(\n            generation_model=_create_openai_client(api_key=chat_model_token,\
-          \ base_url=chat_model_url),\n            embedding_model=_create_openai_client(api_key=embedding_model_token,\
-          \ base_url=embedding_model_url),\n        )\n        in_memory_vector_store_scenario\
-          \ = True\n\n    def construct_model_instance(loader, node: yml.MappingNode)\
-          \ -> BaseEmbeddingModel | BaseFoundationModel:\n        \"\"\"Instructs\
-          \ yml.Loader on how to construct \"!Model\" tag.\"\"\"\n        mapping\
-          \ = loader.construct_mapping(node, deep=True)\n\n        match mapping:\n\
-          \            case {\"type_\": \"embedding\", **id_to_params}:\n        \
-          \        model_id, params = id_to_params.popitem()\n                if in_memory_vector_store_scenario:\n\
-          \                    return OpenAIEmbeddingModel(client=client.embedding_model,\
+          \      )\n        client = Client(\n            generation_model=_create_openai_client(\n\
+          \                api_key=chat_model_token, base_url=chat_model_url, _ssl_verify=_chat_ssl_verify\n\
+          \            ),\n            embedding_model=_create_openai_client(\n  \
+          \              api_key=embedding_model_token, base_url=embedding_model_url,\
+          \ _ssl_verify=_embedding_ssl_verify\n            ),\n        )\n       \
+          \ in_memory_vector_store_scenario = True\n\n    def construct_model_instance(loader,\
+          \ node: yml.MappingNode) -> BaseEmbeddingModel | BaseFoundationModel:\n\
+          \        \"\"\"Instructs yml.Loader on how to construct \"!Model\" tag.\"\
+          \"\"\n        mapping = loader.construct_mapping(node, deep=True)\n\n  \
+          \      match mapping:\n            case {\"type_\": \"embedding\", **id_to_params}:\n\
+          \                model_id, params = id_to_params.popitem()\n           \
+          \     if in_memory_vector_store_scenario:\n                    return OpenAIEmbeddingModel(client=client.embedding_model,\
           \ model_id=model_id, params=params)\n                else:\n           \
           \         return LSEmbeddingModel(client=client.llama_stack, model_id=model_id,\
           \ params=params)\n\n            case {\"type_\": \"generation\", **id_to_params}:\n\
@@ -1473,21 +1545,23 @@ deploymentSpec:
           \ == \"chroma\":\n            generate_notebook_from_templates(\n      \
           \          \"chroma\",\n                pattern_data,\n                Path(patt_dir,\
           \ \"indexing_and_inference.ipynb\"),\n                input_data_key=input_data_key,\n\
-          \                test_data_key=test_data_key,\n            )\n        else:\n\
-          \            generate_notebook_from_templates(\n                \"ls_indexing\"\
-          ,\n                pattern_data,\n                Path(patt_dir, \"indexing.ipynb\"\
-          ),\n                input_data_key=input_data_key,\n            )\n\n  \
-          \          generate_notebook_from_templates(\n                \"ls_inference\"\
+          \                test_data_key=test_data_key,\n                chat_ssl_verify=_chat_ssl_verify[0],\n\
+          \                embedding_ssl_verify=_embedding_ssl_verify[0],\n      \
+          \      )\n        else:\n            generate_notebook_from_templates(\n\
+          \                \"ls_indexing\",\n                pattern_data,\n     \
+          \           Path(patt_dir, \"indexing.ipynb\"),\n                input_data_key=input_data_key,\n\
+          \                ls_ssl_verify=_ls_ssl_verify[0],\n            )\n\n   \
+          \         generate_notebook_from_templates(\n                \"ls_inference\"\
           ,\n                pattern_data,\n                Path(patt_dir, \"inference.ipynb\"\
-          ),\n                test_data_key=test_data_key,\n            )\n\n    \
-          \    # Flat schema: scores = per-metric aggregates (mean, ci_low, ci_high);\
-          \ final_score\n        pattern_data[\"scores\"] = (getattr(eval, \"scores\"\
-          , None) or {}).get(\"scores\") or {}\n        pattern_data[\"final_score\"\
-          ] = getattr(eval, \"final_score\", None)\n        rag_patterns.metadata[\"\
-          metadata\"][\"patterns\"].append(pattern_data)\n        with (patt_dir /\
-          \ \"pattern.json\").open(\"w+\", encoding=\"utf-8\") as pattern_details:\n\
-          \            json_dump(pattern_data, pattern_details, indent=2)\n\n    \
-          \    eval_data = evaluation_data_list[i] if i < len(evaluation_data_list)\
+          ),\n                test_data_key=test_data_key,\n                ls_ssl_verify=_ls_ssl_verify[0],\n\
+          \            )\n\n        # Flat schema: scores = per-metric aggregates\
+          \ (mean, ci_low, ci_high); final_score\n        pattern_data[\"scores\"\
+          ] = (getattr(eval, \"scores\", None) or {}).get(\"scores\") or {}\n    \
+          \    pattern_data[\"final_score\"] = getattr(eval, \"final_score\", None)\n\
+          \        rag_patterns.metadata[\"metadata\"][\"patterns\"].append(pattern_data)\n\
+          \        with (patt_dir / \"pattern.json\").open(\"w+\", encoding=\"utf-8\"\
+          ) as pattern_details:\n            json_dump(pattern_data, pattern_details,\
+          \ indent=2)\n\n        eval_data = evaluation_data_list[i] if i < len(evaluation_data_list)\
           \ else []\n        try:\n            q_scores = (eval.scores or {}).get(\"\
           question_scores\") or {}\n            if q_scores and all(isinstance(q_scores.get(k),\
           \ dict) for k in q_scores):\n                evaluation_result_list = ExperimentResults.create_evaluation_results_json(eval_data,\
@@ -1497,7 +1571,7 @@ deploymentSpec:
           \ / \"evaluation_results.json\").open(\"w+\", encoding=\"utf-8\") as f:\n\
           \            json_dump(evaluation_result_list, f, indent=2)\n\n    # TODO\
           \ autorag_run_artifact\n\n"
-        image: quay.io/opendatahub/odh-autorag:odh-stable
+        image: quay.io/rhoai/odh-autorag-rhel9:rhoai-3.4@sha256:06a2892228510011c9081acf73fe140e46bd13e5aad6ecb9721f902ed5418ec5
         resources:
           cpuRequest: 2.0
           memoryRequest: 8.589934592
@@ -1737,7 +1811,7 @@ deploymentSpec:
           \ |= selected_models_names\n\n    with open(search_space_prep_report.path,\
           \ \"w\") as report_file:\n        yml.safe_dump(verbose_search_space_repr,\
           \ report_file)\n\n"
-        image: quay.io/opendatahub/odh-autorag:odh-stable
+        image: quay.io/rhoai/odh-autorag-rhel9:rhoai-3.4@sha256:06a2892228510011c9081acf73fe140e46bd13e5aad6ecb9721f902ed5418ec5
         resources:
           cpuRequest: 2.0
           memoryRequest: 8.589934592
@@ -1827,7 +1901,7 @@ deploymentSpec:
           \        except JSONDecodeError as e:\n            raise TestDataLoaderException(\"\
           test_data_path must point to a valid JSON file.\") from e\n\n    get_test_data_s3()\n\
           \n"
-        image: quay.io/opendatahub/odh-autorag:odh-stable
+        image: quay.io/rhoai/odh-autorag-rhel9:rhoai-3.4@sha256:06a2892228510011c9081acf73fe140e46bd13e5aad6ecb9721f902ed5418ec5
         resources:
           cpuRequest: 2.0
           memoryRequest: 8.589934592
@@ -2121,7 +2195,7 @@ deploymentSpec:
           \ completed. Total processed: %d/%d, Errors: %d\",\n        processed_count,\n\
           \        total_docs,\n        total_errors,\n    )\n    raise_if_threshold_exceeded(all_error_details,\
           \ total_docs, error_tolerance)\n\n"
-        image: quay.io/opendatahub/odh-autorag:odh-stable
+        image: quay.io/rhoai/odh-autorag-rhel9:rhoai-3.4@sha256:06a2892228510011c9081acf73fe140e46bd13e5aad6ecb9721f902ed5418ec5
         resources:
           cpuRequest: 2.0
           memoryRequest: 8.589934592

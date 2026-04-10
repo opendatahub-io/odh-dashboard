@@ -460,8 +460,8 @@ func TestEnsurePipeline(t *testing.T) {
 		ids := psmocks.DeriveMockIDs(mockClient.Namespace)
 
 		def := PipelineDefinition{
-			Name:         "automl",
-			YAMLFilename: "autogluon-tabular-training-pipeline.yaml",
+			Name:        "automl",
+			PipelineDir: "autogluon_tabular_training_pipeline",
 		}
 
 		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
@@ -477,8 +477,8 @@ func TestEnsurePipeline(t *testing.T) {
 		mockClient.PipelineNames = []string{"unrelated-pipeline"}
 
 		def := PipelineDefinition{
-			Name:         "autogluon-tabular-training-pipeline",
-			YAMLFilename: "autogluon-tabular-training-pipeline.yaml",
+			Name:        "autogluon-tabular-training-pipeline",
+			PipelineDir: "autogluon_tabular_training_pipeline",
 		}
 
 		// Clear cache to avoid stale entries
@@ -497,8 +497,8 @@ func TestEnsurePipeline(t *testing.T) {
 		mockClient.PipelineNames = []string{"unrelated-pipeline"}
 
 		def := PipelineDefinition{
-			Name:         "nonexistent",
-			YAMLFilename: "", // No YAML available
+			Name:        "nonexistent",
+			PipelineDir: "", // No YAML available
 		}
 
 		repo.InvalidateCache("http://mock-ps", namespace)
@@ -518,8 +518,8 @@ func TestEnsurePipeline(t *testing.T) {
 		mockClient := &conflictVersionMockClient{MockPipelineServerClient: baseMock}
 
 		def := PipelineDefinition{
-			Name:         "autogluon-tabular-training-pipeline",
-			YAMLFilename: "autogluon-tabular-training-pipeline.yaml",
+			Name:        "autogluon-tabular-training-pipeline",
+			PipelineDir: "autogluon_tabular_training_pipeline",
 		}
 
 		repo.InvalidateCache("http://mock-ps", namespace)

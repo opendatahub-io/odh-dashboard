@@ -63,9 +63,9 @@ var DefaultPipelineVersion = getEnvOrDefault("PIPELINE_VERSION_SUFFIX", "3.4.0")
 
 // PipelineDefinition describes a managed pipeline type for discovery and auto-creation.
 type PipelineDefinition struct {
-	Name         string // Exact pipeline display name for discovery and creation
-	YAMLFilename string // Filename of the embedded pipeline YAML for auto-creation
-	Version      string // Release version suffix for the version name (e.g. "3.4.0")
+	Name        string // Exact pipeline display name for discovery and creation
+	PipelineDir string // Directory name containing pipeline.yaml (matches upstream repo structure)
+	Version     string // Release version suffix for the version name (e.g. "3.4.0")
 }
 
 // pipelineCacheEntry wraps a map of discovered pipelines with expiration and LRU tracking.
@@ -387,7 +387,7 @@ func (r *PipelineRepository) EnsurePipeline(
 	}
 
 	// Soft miss — create the pipeline and/or version
-	if def.YAMLFilename == "" {
+	if def.PipelineDir == "" {
 		return nil, fmt.Errorf("no pipeline %q version %q found and no YAML available for auto-creation", pipelineName, versionName)
 	}
 
@@ -445,9 +445,9 @@ func (r *PipelineRepository) ensurePipelineAndVersion(
 ) (*DiscoveredPipeline, error) {
 	logger := slog.Default()
 
-	yamlBytes, err := pipelines.GetPipelineYAML(def.YAMLFilename)
+	yamlBytes, err := pipelines.GetPipelineYAML(def.PipelineDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load embedded pipeline YAML %q: %w", def.YAMLFilename, err)
+		return nil, fmt.Errorf("failed to load embedded pipeline YAML %q: %w", def.PipelineDir, err)
 	}
 
 	// Step 1: Find or create the pipeline shell
