@@ -7,7 +7,6 @@ import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies
 import type {
   MaaSSubscription,
   SubscriptionInfoResponse,
-  PolicyInfoResponse,
   UserSubscription,
   MaaSModelRefSummary,
   SubscriptionPolicyFormDataResponse,
@@ -281,17 +280,6 @@ export const mockUpdateSubscriptionResponse = (
 ): CreateSubscriptionResponse => {
   const subscription = mockSubscriptions().find((s) => s.name === name) ?? mockSubscriptions()[1];
   return { subscription };
-};
-
-export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {
-  const policy = mockAuthPolicies().find((p) => p.name === name);
-  if (!policy) {
-    throw new Error(`mockPolicyInfo: no policy found with name "${name}"`);
-  }
-  return {
-    policy,
-    modelRefs: mockModelRefSummaries(),
-  };
 };
 
 export const mockCreatePolicyResponse = (name = 'new-policy-from-test'): MaaSAuthPolicy => ({
