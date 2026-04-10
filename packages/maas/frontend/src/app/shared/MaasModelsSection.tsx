@@ -30,9 +30,9 @@ const COLUMNS: { key: ModelColumnKey; label: string; width?: ThProps['width'] }[
   { key: 'tokenLimits', label: 'Token limits', width: 25 },
 ];
 
-type SubscriptionModelsSectionProps = {
+export type MaasModelsSectionProps = {
   modelRefSummaries: MaaSModelRefSummary[];
-  subscriptionModelRefs: ModelSubscriptionRef[];
+  modelRefsWithRateLimits?: ModelSubscriptionRef[];
   hideColumns?: ModelColumnKey[];
   titleHeadingLevel?: React.ComponentProps<typeof Title>['headingLevel'];
   titleSize?: React.ComponentProps<typeof Title>['size'];
@@ -41,11 +41,18 @@ type SubscriptionModelsSectionProps = {
   onAddModels?: () => void;
   onEditLimits?: (index: number) => void;
   onRemoveModel?: (index: number) => void;
+  helperText?: React.ReactNode;
+  formGroupFieldId?: string;
+  sectionTestId?: string;
+  tableTestId?: string;
+  tableAriaLabel?: string;
+  addModelsButtonTestId?: string;
+  addModelsButtonAriaLabel?: string;
 };
 
-const SubscriptionModelsSection: React.FC<SubscriptionModelsSectionProps> = ({
+const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
   modelRefSummaries,
-  subscriptionModelRefs,
+  modelRefsWithRateLimits = [],
   hideColumns = [],
   titleHeadingLevel = 'h2',
   titleSize = 'xl',
@@ -54,16 +61,19 @@ const SubscriptionModelsSection: React.FC<SubscriptionModelsSectionProps> = ({
   onAddModels,
   onEditLimits,
   onRemoveModel,
+  helperText,
+  formGroupFieldId = 'subscription-models',
+  sectionTestId = 'subscription-models-section',
+  tableTestId = 'subscription-models-table',
+  tableAriaLabel = 'Subscription models',
+  addModelsButtonTestId = 'add-models-button',
+  addModelsButtonAriaLabel,
 }) => {
   const [openKebabIndex, setOpenKebabIndex] = React.useState<number | null>(null);
   const visibleColumns = COLUMNS.filter((col) => !hideColumns.includes(col.key));
 
   const table = modelRefSummaries.length > 0 && (
-    <Table
-      aria-label="Subscription models"
-      variant="compact"
-      data-testid="subscription-models-table"
-    >
+    <Table aria-label={tableAriaLabel} variant="compact" data-testid={tableTestId}>
       <Thead>
         <Tr>
           {visibleColumns.map((col) => (
@@ -77,7 +87,7 @@ const SubscriptionModelsSection: React.FC<SubscriptionModelsSectionProps> = ({
       <Tbody>
         {modelRefSummaries.map((modelRef, index) => {
           const tokenLimitsLines = formatTokenLimits(
-            subscriptionModelRefs,
+            modelRefsWithRateLimits,
             modelRef.namespace,
             modelRef.name,
           );
@@ -164,15 +174,17 @@ const SubscriptionModelsSection: React.FC<SubscriptionModelsSectionProps> = ({
                     popperProps={{ position: 'right' }}
                   >
                     <DropdownList>
-                      <DropdownItem
-                        key="edit-token-limits"
-                        onClick={() => {
-                          onEditLimits?.(index);
-                          setOpenKebabIndex(null);
-                        }}
-                      >
-                        Edit token limits
-                      </DropdownItem>
+                      {onEditLimits && (
+                        <DropdownItem
+                          key="edit-token-limits"
+                          onClick={() => {
+                            onEditLimits(index);
+                            setOpenKebabIndex(null);
+                          }}
+                        >
+                          Edit token limits
+                        </DropdownItem>
+                      )}
                       <DropdownItem
                         key="remove"
                         isDanger
@@ -196,15 +208,10 @@ const SubscriptionModelsSection: React.FC<SubscriptionModelsSectionProps> = ({
 
   if (editable) {
     return (
-      <FormGroup
-        label="Models"
-        fieldId="subscription-models"
-        isRequired
-        data-testid="subscription-models-section"
-      >
+      <FormGroup label="Models" fieldId={formGroupFieldId} isRequired data-testid={sectionTestId}>
         <Stack hasGutter>
           <StackItem>
-            <Content>Add models that subscribers will be able to use.</Content>
+            {helperText ?? <Content>Add models that subscribers will be able to use.</Content>}
           </StackItem>
           {table && <StackItem>{table}</StackItem>}
           <StackItem>
@@ -212,7 +219,8 @@ const SubscriptionModelsSection: React.FC<SubscriptionModelsSectionProps> = ({
               variant="link"
               icon={<PlusCircleIcon />}
               onClick={onAddModels}
-              data-testid="add-models-button"
+              data-testid={addModelsButtonTestId}
+              aria-label={addModelsButtonAriaLabel}
             >
               Add models
             </Button>
@@ -223,7 +231,7 @@ const SubscriptionModelsSection: React.FC<SubscriptionModelsSectionProps> = ({
   }
 
   return (
-    <Stack hasGutter data-testid="subscription-models-section">
+    <Stack hasGutter data-testid={sectionTestId}>
       <StackItem>
         <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
           <FlexItem>
@@ -249,4 +257,4 @@ const SubscriptionModelsSection: React.FC<SubscriptionModelsSectionProps> = ({
   );
 };
 
-export default SubscriptionModelsSection;
+export default MaasModelsSection;
