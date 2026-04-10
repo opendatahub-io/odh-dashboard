@@ -300,6 +300,15 @@ const handleOAuthLogin = (credentials: UserAuthConfig): void => {
   cy.url().should('not.include', '/oauth');
 };
 
+// The webpack dev-server proxy polls `oc whoami --show-token` every
+// TOKEN_REFRESH_MIN_INTERVAL (5 000 ms, see webpack.dev.js) to detect
+// user switches.  After an `oc login`, we must wait at least one full
+// poll cycle so the proxy picks up the new user's token.
+//
+// NOTE: cy.intercept() cannot observe this — the refresh is a
+// server-side execSync call inside the proxy, not a browser request.
+const OC_TOKEN_REFRESH_WAIT_MS = Number(Cypress.env('OC_TOKEN_REFRESH_WAIT_MS')) || 6000;
+
 Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUSTER_ADMIN_USER) => {
   if (Cypress.env('MOCK')) {
     cy.visit(relativeUrl);
@@ -352,6 +361,8 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
             .then((loginResult) => {
               if (loginResult.code === 0) {
                 cy.log(`✅ oc user switched successfully`);
+                // eslint-disable-next-line cypress/no-unnecessary-waiting
+                cy.wait(OC_TOKEN_REFRESH_WAIT_MS);
               } else {
                 const errorMsg =
                   `oc login failed (exit code: ${loginResult.code}). ` +

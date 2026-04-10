@@ -1133,6 +1133,7 @@ components:
         display_name:
           type: string
           minLength: 1
+          maxLength: 250
           description: Human-readable name for the run
           example: "AutoML Optimization Run 1"
         description:

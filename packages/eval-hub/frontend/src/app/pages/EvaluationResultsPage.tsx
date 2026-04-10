@@ -30,7 +30,6 @@ import {
   formatDate,
   formatDuration,
   getBenchmarkName,
-  getBenchmarkResultScore,
   getEvaluationName,
   getJobBenchmarks,
   getResultScore,
@@ -113,11 +112,8 @@ const EvaluationResultsPage: React.FC = () => {
     if (!job) {
       return '-';
     }
-    if (selectedBenchmark && benchmarks.length > 1) {
-      return getBenchmarkResultScore(job, selectedBenchmark.id, selectedBenchmark.benchmark_index);
-    }
     return getResultScore(job);
-  }, [job, selectedBenchmark, benchmarks.length]);
+  }, [job]);
 
   const mlflowExperimentId = job?.resource.mlflow_experiment_id;
   const mlflowRunId = React.useMemo(() => {

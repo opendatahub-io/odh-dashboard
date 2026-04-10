@@ -1,3 +1,72 @@
+/* Workspace Form Option Cards */
+.pf-v6-c-card.workspace-option-card--hidden {
+  opacity: 0.7;
+}
+
+.pf-v6-c-card.workspace-option-card--redirected {
+  border-left: 8px solid var(--pf-t--global--border--color--default);
+}
+
+.pf-v6-c-card.pf-m-selected {
+  background-color: var(--pf-t--global--background--color--disabled--default) !important;
+  opacity: 1 !important;
+}
+
+.pf-v6-c-card__body.workspace-option-card__description {
+  font-size: var(--pf-v6-global--FontSize--xs);
+  color: var(--pf-v6-c-content--small--Color);
+}
+
+.pf-v6-c-card__header.workspace-option-card__header--with-icons .pf-v6-c-card__title {
+  padding-right: 5rem !important;
+}
+
+.workspace-option-card__icons-container {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1;
+}
+
+.workspace-kind-logo {
+  max-width: 60px;
+}
+
+.summary-card--clickable {
+  cursor: pointer;
+}
+
+.summary-redirect-icon-button {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.strikethrough {
+  text-decoration: line-through;
+}
+
+.workspace-form__full-height {
+  height: 100%;
+}
+
+.workspace-form__filter-sidebar {
+  min-width: 200px;
+}
+
+.workspace-form__info-icon {
+  color: var(--pf-t--global--icon--color--status--info--default);
+}
+
+.workspace-form__form-group--spaced {
+  margin-top: 1rem;
+}
+
+.pf-v6-c-drawer__panel-body.workspace-form__drawer-panel-body {
+  overflow-y: auto;
+  padding-inline-end: var(--pf-v6-global--spacer--xl);
+}
+
 html,
 body,
 #root {
@@ -7,4 +76,132 @@ body,
 /* Workaround to remove the margin-block-start from the alert title */
 .pf-v6-c-alert--no-title-margin .pf-v6-c-alert__title {
   margin-block-start: 0;
+}
+
+/* File upload full height layout */
+/* Page main body and Stack container need height for FileUpload to fill available space */
+.pf-v6-c-page__main-section .pf-v6-c-page__main-body {
+  height: 100%;
+}
+
+.pf-v6-c-page__main-body > .pf-v6-l-stack,
+.pf-v6-c-page__main-section.pf-m-fill > .pf-v6-l-stack {
+  height: 100%;
+  flex-grow: 1;
+}
+
+.pf-v6-c-file-upload {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.pf-v6-c-file-upload__file-details {
+  flex-grow: 1;
+}
+
+.pf-v6-c-file-upload__file-details .pf-v6-c-form-control {
+  height: 100%;
+}
+
+/* Grey background for read-only file upload textarea */
+.workspacekind-file-upload .pf-v6-c-form-control:has(textarea[readonly]) {
+  background-color: var(--pf-t--global--background--color--disabled--default);
+}
+
+/* Read-only mount path input (pencil-to-edit pattern): styled to match disabled appearance */
+.mui-theme .mount-path-readonly .pf-v6-c-form-control {
+  --pf-v6-c-form-control--Color: var(--pf-t--global--text--color--on-disabled);
+  --pf-v6-c-form-control--before--BorderColor: var(--pf-t--global--border--color--disabled);
+  pointer-events: none;
+  cursor: default;
+}
+
+/* PF theme: grey the form label */
+.mui-theme .mount-path-readonly .pf-v6-c-form__label {
+  color: var(--pf-t--global--text--color--on-disabled);
+}
+
+/* MUI theme: grey the fieldset border and floating legend label; suppress hover/focus styles */
+.mui-theme .mount-path-readonly .form-fieldset {
+  border-color: var(--pf-t--global--border--color--disabled);
+}
+
+.mui-theme .mount-path-readonly .form-fieldset-wrapper:hover .form-fieldset,
+.mui-theme .mount-path-readonly .form-fieldset-wrapper:focus-within .form-fieldset {
+  border-color: var(--pf-t--global--border--color--disabled);
+}
+
+.mui-theme .mount-path-readonly .pf-v6-c-form__group-label .pf-v6-c-form__label {
+  color: var(--pf-t--global--text--color--on-disabled);
+}
+
+/* TODO: remove when https://github.com/opendatahub-io/mod-arch-library/issues/134 is complete. Revert file upload control buttons to default PF style; MUI-theme will exclude .pf-v6-c-file-upload via selector instead. */
+.mui-theme .workspacekind-file-upload .pf-v6-c-input-group__item .pf-v6-c-button.pf-m-control {
+  --pf-v6-c-button--BorderColor: var(--pf-t--global--border--color--default);
+  --pf-v6-c-button--hover--BorderColor: var(--pf-t--global--border--color--hover);
+  --pf-v6-c-button--m-control--BorderColor: var(--pf-t--global--border--color--default);
+  --pf-v6-c-button--m-control--hover--BorderColor: var(--pf-t--global--border--color--hover);
+  --pf-v6-c-button--m-control--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
+  --pf-v6-c-button--PaddingBlockStart: var(--pf-t--global--spacer--control--vertical--default);
+  --pf-v6-c-button--PaddingBlockEnd: var(--pf-t--global--spacer--control--vertical--default);
+  --pf-v6-c-button--PaddingInlineStart: var(--pf-t--global--spacer--control--horizontal--default);
+  --pf-v6-c-button--PaddingInlineEnd: var(--pf-t--global--spacer--control--horizontal--default);
+  --pf-v6-c-button--m-control--BorderRadius: var(--pf-t--global--border--radius--small);
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  border-radius: var(--pf-t--global--border--radius--small);
+  line-height: var(--pf-t--global--font--line-height--body);
+  align-self: stretch;
+}
+
+.mui-theme
+  .workspacekind-file-upload
+  .pf-v6-c-input-group__item:has(.pf-v6-c-button.pf-m-control):last-child {
+  padding-inline-end: 0;
+}
+
+.mui-theme .workspacekind-file-upload .pf-v6-c-input-group__item .pf-v6-c-button.pf-m-control:hover,
+.mui-theme
+  .workspacekind-file-upload
+  .pf-v6-c-input-group__item
+  .pf-v6-c-button.pf-m-control:focus-visible {
+  border-radius: var(--pf-t--global--border--radius--small);
+}
+
+/* Custom inline-edit input in secrets table row (editable label in table — not supported natively by PF). */
+.mui-theme .secrets-inline-edit__input.pf-v6-c-form-control {
+  --pf-v6-c-form-control--PaddingBlockStart: var(--pf-t--global--spacer--xs, 0.25rem);
+  --pf-v6-c-form-control--PaddingBlockEnd: var(--pf-t--global--spacer--xs, 0.25rem);
+  border: 1px solid var(--mui-form-control--BorderColor, rgba(0, 0, 0, 0.23));
+  border-radius: var(--mui-shape-borderRadius, 4px);
+}
+
+.mui-theme .secrets-inline-edit__input.pf-v6-c-form-control:hover {
+  border-color: var(--pf-v6-c-form-control--hover--after--BorderColor, rgba(0, 0, 0, 0.87));
+}
+
+.mui-theme .secrets-inline-edit__input.pf-v6-c-form-control:focus-within {
+  border-color: var(--mui-palette-primary-main, #1976d2);
+  box-shadow: inset 0 0 0 1px var(--mui-palette-primary-main, #1976d2);
+}
+
+.mui-theme .pf-v6-c-form__group-control .form-fieldset-wrapper .pf-v6-c-menu-toggle {
+  height: calc(
+    var(--pf-v6-c-menu-toggle--FontSize) * var(--pf-v6-c-menu-toggle--LineHeight) + 1rem * 2
+  );
+  padding-inline-start: var(--mui-spacing-16px);
+  padding-inline-end: var(--mui-spacing-16px);
+}
+
+/* Override pf-v6-c-content ul rule that forces flex-direction: column on LabelGroup lists */
+.pf-v6-c-content .pf-v6-c-label-group__list {
+  flex-direction: row;
+}
+
+/* Top border separator for non-first storage class group headers in the PVC typeahead select */
+.pvc-select-group-header--with-divider {
+  border-top: 1px solid var(--pf-t--global--border--color--default);
 }

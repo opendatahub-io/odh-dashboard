@@ -35,8 +35,8 @@ import {
   CreateSubscriptionRequest,
   UpdateSubscriptionRequest,
 } from '~/app/types/subscriptions';
-import SubscriptionModelsSection from '~/app/pages/subscriptions/viewSubscription/SubscriptionModelsSection';
-import AddModelsModal from './AddModelsModal';
+import AddModelsModal from '~/app/shared/AddModelsModal';
+import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import EditRateLimitsModal from './EditRateLimitsModal';
 
 type CreateSubscriptionFormProps = {
@@ -367,9 +367,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             before creating a subscription.
           </Alert>
         ) : (
-          <SubscriptionModelsSection
+          <MaasModelsSection
             modelRefSummaries={models.map((m) => m.modelRefSummary)}
-            subscriptionModelRefs={models.map((m) => ({
+            modelRefsWithRateLimits={models.map((m) => ({
               name: m.modelRefSummary.name,
               namespace: m.modelRefSummary.namespace,
               tokenRateLimits: m.tokenRateLimits,
@@ -384,6 +384,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
 
         {isAddModelsModalOpen && canAddModels && (
           <AddModelsModal
+            modalSource="subscription"
             availableModelRefs={formData.modelRefs}
             allSubscriptions={subscriptionsForConflictCheck}
             allPolicies={formData.policies}

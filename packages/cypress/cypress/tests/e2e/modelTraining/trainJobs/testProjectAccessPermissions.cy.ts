@@ -10,8 +10,9 @@ import {
   deleteTrainingRuntime,
 } from '../../../../utils/oc_commands/trainingJobs';
 import { deleteKueueResources } from '../../../../utils/oc_commands/distributedWorkloads';
+import { ensureAdminOcSession } from '../../../../utils/oc_commands/baseCommands';
 import { modelTrainingGlobal, trainingJobTable } from '../../../../pages/modelTraining';
-import { retryableBefore } from '../../../../utils/retryableHooks';
+import { retryableBefore, wasSetupPerformed } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { isTrainerManaged } from '../../../../utils/oc_commands/dsc';
 import type { TrainJobTestData } from '../../../../types';
@@ -39,6 +40,9 @@ describe('Verify project access for user types in Training Jobs', () => {
   };
 
   retryableBefore(() => {
+    cy.step('Ensure admin oc session for setup');
+    ensureAdminOcSession();
+
     cy.step('Check if Trainer component is Managed in DSC');
     isTrainerManaged().then((managed) => {
       if (!managed) {
@@ -71,7 +75,6 @@ describe('Verify project access for user types in Training Jobs', () => {
         })
         .then(() => {
           cy.step('Create testing project');
-          cy.log(`Creating project: ${projectName}`);
           createCleanProject(projectName);
         })
         .then(() => {
@@ -98,22 +101,24 @@ describe('Verify project access for user types in Training Jobs', () => {
   });
 
   after(() => {
-    if (shouldSkip()) {
-      cy.log('Skipping cleanup: Tests were skipped');
+    if (!wasSetupPerformed() || shouldSkip()) {
+      cy.log('Skipping cleanup: Setup was not performed or tests were skipped');
       return;
     }
 
-    cy.step('Delete project');
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    cy.step('Restore admin oc session for cleanup');
+    ensureAdminOcSession();
 
     cy.step('Delete TrainingRuntime');
     deleteTrainingRuntime(trainingRuntimeName, projectName, { ignoreNotFound: true });
 
     cy.step('Delete Kueue resources');
     deleteKueueResources(localQueueName, clusterQueueName, flavorName, projectName, {
-      wait: false,
       ignoreNotFound: true,
     });
+
+    cy.step('Delete project');
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
   it(
@@ -140,7 +145,7 @@ describe('Verify project access for user types in Training Jobs', () => {
   );
 
   it(
-    'Regular user cannot access project without permissions',
+    'Regular user access transitions from denied to granted',
     { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
     () => {
       if (shouldSkip()) {
@@ -156,21 +161,12 @@ describe('Verify project access for user types in Training Jobs', () => {
       cy.step('Verify regular user cannot access the project in the project selector');
       modelTrainingGlobal.findProjectSelectorToggle().click();
       modelTrainingGlobal.findProjectMenuItem(projectName).should('not.exist');
-    },
-  );
-
-  it(
-    'Regular user can access project after admin grants permission',
-    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
-    () => {
-      if (shouldSkip()) {
-        return;
-      }
+      modelTrainingGlobal.findProjectSelectorToggle().click();
 
       cy.step('Grant edit role to regular user via oc command');
       addUserToProject(projectName, LDAP_CONTRIBUTOR_USER.USERNAME, 'edit');
 
-      cy.step('Log in as regular user');
+      cy.step('Re-login as regular user to pick up new permissions');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       cy.step('Navigate to Training jobs');

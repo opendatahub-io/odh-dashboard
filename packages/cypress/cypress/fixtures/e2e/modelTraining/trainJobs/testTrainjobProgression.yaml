@@ -7,4 +7,3 @@ localQueueName: default
 cpuQuota: 100
 memoryQuota: 200
 gpuQuota: 8
-

@@ -26,7 +26,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
@@ -129,53 +128,10 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCrea
 	// TODO: get actual user email from request context
 	actor := "mock@example.com"
 
-	// get data volumes from workspace model
-	dataVolumeMounts := make([]kubefloworgv1beta1.PodVolumeMount, len(workspaceCreate.PodTemplate.Volumes.Data))
-	for i, dataVolume := range workspaceCreate.PodTemplate.Volumes.Data {
-		dataVolumeMounts[i] = kubefloworgv1beta1.PodVolumeMount{
-			PVCName:   dataVolume.PVCName,
-			MountPath: dataVolume.MountPath,
-			ReadOnly:  ptr.To(dataVolume.ReadOnly),
-		}
-	}
-
-	// get secrets from workspace model
-	secretMounts := make([]kubefloworgv1beta1.PodSecretMount, len(workspaceCreate.PodTemplate.Volumes.Secrets))
-	for i, secret := range workspaceCreate.PodTemplate.Volumes.Secrets {
-		secretMounts[i] = kubefloworgv1beta1.PodSecretMount{
-			SecretName:  secret.SecretName,
-			MountPath:   secret.MountPath,
-			DefaultMode: secret.DefaultMode,
-		}
-	}
-
-	// define workspace object from model
-	workspaceName := workspaceCreate.Name
-	workspaceKindName := workspaceCreate.Kind
-	workspace := &kubefloworgv1beta1.Workspace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      workspaceName,
-			Namespace: namespace,
-		},
-		Spec: kubefloworgv1beta1.WorkspaceSpec{
-			Paused: &workspaceCreate.Paused,
-			Kind:   workspaceKindName,
-			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
-				PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
-					Labels:      workspaceCreate.PodTemplate.PodMetadata.Labels,
-					Annotations: workspaceCreate.PodTemplate.PodMetadata.Annotations,
-				},
-				Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
-					Home:    workspaceCreate.PodTemplate.Volumes.Home,
-					Data:    dataVolumeMounts,
-					Secrets: secretMounts,
-				},
-				Options: kubefloworgv1beta1.WorkspacePodOptions{
-					ImageConfig: workspaceCreate.PodTemplate.Options.ImageConfig,
-					PodConfig:   workspaceCreate.PodTemplate.Options.PodConfig,
-				},
-			},
-		},
+	// create workspace object from model
+	workspace, err := models.NewWorkspaceFromWorkspaceCreateModel(ctx, r.client, workspaceCreate, namespace)
+	if err != nil {
+		return nil, err
 	}
 
 	// set audit annotations
@@ -220,15 +176,29 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, workspaceUpda
 		return nil, ErrWorkspaceRevisionConflict
 	}
 
-	// TODO: update workspace fields from workspaceUpdate model
-	// ...
+	// apply update model to workspace object
+	if err := models.ApplyWorkspaceUpdateModelToWorkspace(ctx, r.client, workspaceUpdate, workspace); err != nil {
+		return nil, err
+	}
+
+	// set audit annotations
 	modelsCommon.UpdateObjectMetaForUpdate(&workspace.ObjectMeta, actor, now)
 
-	// TODO: update the workspace in K8s
 	// TODO: if the update fails due to a kubernetes conflict, this implies our cache is stale.
-	//       we should retry the entire update operation a few times (including recalculating clusterRevision)
-	//       before returning a 500 error to the caller (DO NOT return a 409, as it's not the caller's fault)
-	// ...
+	//       we should wrap this operation in retry.RetryOnConflict to retry the entire update
+	//       (including re-fetching and recalculating clusterRevision) before returning a 500
+	//       error to the caller (DO NOT return a 409, as it's not the caller's fault)
+	if err := r.client.Update(ctx, workspace); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrWorkspaceNotFound
+		}
+		if apierrors.IsInvalid(err) {
+			// NOTE: we don't wrap this error so we can unpack it in the caller
+			//       and extract the validation errors returned by the Kubernetes API server
+			return nil, err
+		}
+		return nil, err
+	}
 
 	workspaceUpdateModel := models.NewWorkspaceUpdateModelFromWorkspace(workspace)
 	return workspaceUpdateModel, nil

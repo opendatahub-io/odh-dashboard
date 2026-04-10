@@ -577,6 +577,10 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Verify selections took effect
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
+      expect(screen.getByRole('button', { name: 'Remove selection' })).toBeInTheDocument();
     };
 
     /** Click a prediction type tile via its hidden radio input */
@@ -788,6 +792,11 @@ describe('AutomlConfigure', () => {
 
         // Select a secret but no file — configure details shows empty state
         fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+        // Empty state should be rendered
+        expect(
+          screen.getByText('Select an S3 connection or upload a file to get started'),
+        ).toBeInTheDocument();
 
         // Label column should not exist since configure details is hidden
         expect(screen.queryByTestId('label_column-select')).not.toBeInTheDocument();

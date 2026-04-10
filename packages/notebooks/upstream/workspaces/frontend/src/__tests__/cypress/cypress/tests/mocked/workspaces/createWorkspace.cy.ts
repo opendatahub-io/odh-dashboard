@@ -6,11 +6,16 @@ import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/comma
 import {
   buildMockNamespace,
   buildMockOptionInfo,
+  buildMockPVC,
   buildMockWorkspace,
+  buildMockWorkspaceCreate,
   buildMockWorkspaceKind,
-  buildMockWorkspaceKindInfo,
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
+import {
+  secretsDetachModal,
+  secretsManagement,
+} from '~/__tests__/cypress/cypress/pages/workspaces/secretsManagement';
 import type {
   WorkspacekindsImageConfigValue,
   WorkspacekindsPodConfigValue,
@@ -36,6 +41,8 @@ const selectWorkspaceKind = (kindName: string): void => {
 };
 
 const selectImage = (imageId: string): void => {
+  createWorkspace.checkExtraFilter('showRedirected');
+  createWorkspace.checkExtraFilter('showHidden');
   createWorkspace.selectImage(imageId);
   createWorkspace.assertImageSelected(imageId);
   createWorkspace.clickNext();
@@ -123,6 +130,12 @@ describe('Create workspace', () => {
 
   describe('Basic', () => {
     it('should navigate through all steps to create a workspace', () => {
+      cy.interceptApi(
+        'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+        mockModArchResponse([buildMockPVC({ name: 'home-pvc' })]),
+      ).as('listPVCs');
+
       workspaces.findCreateWorkspaceButton().click();
       createWorkspace.verifyPageURL();
       cy.wait('@getWorkspaceKinds');
@@ -140,8 +153,10 @@ describe('Create workspace', () => {
       createWorkspace.clickNext();
       createWorkspace.assertProgressStepVisible(STEP_NAMES.IMAGE);
       createWorkspace.assertPreviousButtonEnabled();
-      createWorkspace.assertNextButtonDisabled();
+      createWorkspace.assertNextButtonEnabled();
 
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.assertImageSelected(mockImage.id);
       createWorkspace.assertNextButtonEnabled();
@@ -149,7 +164,7 @@ describe('Create workspace', () => {
       // Step 3: Select Pod Config
       createWorkspace.clickNext();
       createWorkspace.assertProgressStepVisible(STEP_NAMES.POD_CONFIG);
-      createWorkspace.assertNextButtonDisabled();
+      createWorkspace.assertNextButtonEnabled();
 
       createWorkspace.selectPodConfig(mockPodConfig.id);
       createWorkspace.assertPodConfigSelected(mockPodConfig.id);
@@ -161,6 +176,9 @@ describe('Create workspace', () => {
       createWorkspace.assertCreateButtonExists();
       createWorkspace.assertCreateButtonDisabled();
 
+      // Attach home volume (required)
+      createWorkspace.attachHomeVolume('home-pvc');
+
       const workspaceName = 'My Test Workspace';
       createWorkspace.typeWorkspaceName(workspaceName);
       createWorkspace.assertCreateButtonEnabled();
@@ -169,10 +187,9 @@ describe('Create workspace', () => {
         'POST /api/:apiVersion/workspaces/:namespace',
         { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
         mockModArchResponse(
-          buildMockWorkspace({
+          buildMockWorkspaceCreate({
             name: workspaceName,
-            namespace: mockNamespace.name,
-            workspaceKind: buildMockWorkspaceKindInfo({}),
+            kind: mockWorkspaceKind.name,
           }),
         ),
       ).as('createWorkspace');
@@ -196,7 +213,12 @@ describe('Create workspace', () => {
       // Go back to image selection
       createWorkspace.clickPrevious();
       createWorkspace.assertProgressStepVisible(STEP_NAMES.IMAGE);
-      createWorkspace.assertImageSelected(mockImage.id);
+      createWorkspace.assertExtraFilterChecked('showRedirected');
+      createWorkspace.assertExtraFilterChecked('showHidden'); // Both filters are checked from before
+      createWorkspace.uncheckExtraFilter('showHidden'); // Uncheck to test the filter behavior
+      createWorkspace.findImageCard(mockImage.id).should('not.exist');
+      createWorkspace.checkExtraFilter('showHidden');
+      createWorkspace.findImageCard(mockImage.id).should('be.visible');
 
       // Go back to kind selection
       createWorkspace.clickPrevious();
@@ -213,7 +235,18 @@ describe('Create workspace', () => {
     });
 
     it('should validate workspace name is required', () => {
+      cy.interceptApi(
+        'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+        mockModArchResponse([buildMockPVC({ name: 'home-pvc' })]),
+      ).as('listPVCs');
+
       completeAllStepsToProperties(mockWorkspaceKind.name, mockImage.id, mockPodConfig.id);
+
+      createWorkspace.assertCreateButtonDisabled();
+
+      // Attach home volume (required) — Create should still be disabled without a name
+      createWorkspace.attachHomeVolume('home-pvc');
 
       createWorkspace.assertCreateButtonDisabled();
 
@@ -234,13 +267,29 @@ describe('Create workspace', () => {
       createWorkspace.assertProgressStepVisible(STEP_NAMES.KIND);
     });
 
+    it('should include namespaceFilter in workspace kinds request', () => {
+      workspaces.findCreateWorkspaceButton().click();
+
+      cy.wait('@getWorkspaceKinds').then((interception) => {
+        expect(interception.request.url).to.include(`namespaceFilter=${mockNamespace.name}`);
+      });
+    });
+
     it('should display error alert when workspace creation fails', () => {
+      cy.interceptApi(
+        'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+        mockModArchResponse([buildMockPVC({ name: 'home-pvc' })]),
+      ).as('listPVCs');
+
       workspaces.findCreateWorkspaceButton().click();
       cy.wait('@getWorkspaceKinds');
 
       createWorkspace.selectKind(mockWorkspaceKind.name);
       createWorkspace.clickNext();
 
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.clickNext();
 
@@ -248,6 +297,9 @@ describe('Create workspace', () => {
       createWorkspace.clickNext();
 
       createWorkspace.typeWorkspaceName('my-test-workspace');
+
+      // Attach home volume (required)
+      createWorkspace.attachHomeVolume('home-pvc');
 
       cy.interceptApi(
         'POST /api/:apiVersion/workspaces/:namespace',
@@ -313,6 +365,8 @@ describe('Create workspace', () => {
       createWorkspace.selectKind(mockWorkspaceKindWithMultipleImages.name);
       createWorkspace.clickNext();
 
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showHidden');
       // Select first image
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.assertImageSelected(mockImage.id);
@@ -361,6 +415,8 @@ describe('Create workspace', () => {
       createWorkspace.selectKind(mockWorkspaceKindWithMultiplePodConfigs.name);
       createWorkspace.clickNext();
 
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.clickNext();
 
@@ -397,6 +453,8 @@ describe('Create workspace', () => {
       createWorkspace.selectKind(mockWorkspaceKind.name);
       createWorkspace.clickNext();
 
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.clickNext();
 
@@ -410,9 +468,7 @@ describe('Create workspace', () => {
       createWorkspace.selectKind(mockWorkspaceKind2.name);
       createWorkspace.clickNext();
 
-      // Verify previous image selection is not applied
-      // (the UI should show unselected state or different options)
-      createWorkspace.assertNextButtonDisabled();
+      createWorkspace.assertNextButtonEnabled();
     });
   });
 
@@ -473,6 +529,8 @@ describe('Create workspace', () => {
       createWorkspace.selectKind(mockWorkspaceKindSingleImage.name);
       createWorkspace.clickNext();
 
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showHidden');
       // Select the single available image
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.assertImageSelected(mockImage.id);
@@ -507,6 +565,8 @@ describe('Create workspace', () => {
       createWorkspace.selectKind(mockWorkspaceKindSinglePodConfig.name);
       createWorkspace.clickNext();
 
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.clickNext();
 
@@ -685,6 +745,8 @@ describe('Create workspace', () => {
         createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
         createWorkspace.clickNext();
 
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.checkExtraFilter('showHidden');
         createWorkspace.selectImage(mockImage.id);
         createWorkspace.clickNext();
 
@@ -704,6 +766,8 @@ describe('Create workspace', () => {
         createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
         createWorkspace.clickNext();
 
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.checkExtraFilter('showHidden');
         createWorkspace.selectImage(mockImage.id);
         createWorkspace.clickNext();
 
@@ -720,6 +784,8 @@ describe('Create workspace', () => {
         createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
         createWorkspace.clickNext();
 
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.checkExtraFilter('showHidden');
         createWorkspace.selectImage(mockImage.id);
         createWorkspace.clickNext();
 
@@ -735,6 +801,8 @@ describe('Create workspace', () => {
         createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
         createWorkspace.clickNext();
 
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.checkExtraFilter('showHidden');
         createWorkspace.selectImage(mockImage.id);
         createWorkspace.clickNext();
 
@@ -787,7 +855,7 @@ describe('Create workspace', () => {
     const openSecretsCreationModal = () => {
       navigateToPropertiesStep();
       createWorkspace.expandSecretsSection();
-      createWorkspace.clickCreateNewSecret();
+      createWorkspace.clickAttachNewSecret();
     };
 
     beforeEach(() => {
@@ -804,9 +872,9 @@ describe('Create workspace', () => {
 
         // Open modal
         createWorkspace.expandSecretsSection();
-        createWorkspace.clickCreateNewSecret();
+        createWorkspace.clickAttachNewSecret();
         secretsCreateModal.assertModalExists();
-        secretsCreateModal.find().contains('Create Secret').should('be.visible');
+        secretsCreateModal.find().contains('Attach New Secret').should('be.visible');
 
         // Close modal via Cancel button
         secretsCreateModal.clickCancel();
@@ -1003,7 +1071,7 @@ describe('Create workspace', () => {
           mockModArchResponse(mockSecretResponse),
         ).as('createSecret');
 
-        // Mock getSecret for the SecretsViewPopover that will mount after creation
+        // Mock getSecret for lazy loading key/value pairs on row expand
         cy.intercept(
           'GET',
           `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secretName}`,
@@ -1052,7 +1120,7 @@ describe('Create workspace', () => {
           mockModArchResponse(mockSecretResponse),
         ).as('createSecret');
 
-        // Mock getSecret for the SecretsViewPopover
+        // Mock getSecret for lazy loading key/value pairs on row expand
         cy.intercept(
           'GET',
           `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secretName}`,
@@ -1122,7 +1190,7 @@ describe('Create workspace', () => {
           mockModArchResponse(mockSecretResponse),
         ).as('createSecret');
 
-        // Mock getSecret for the SecretsViewPopover
+        // Mock getSecret for lazy loading key/value pairs on row expand
         cy.intercept(
           'GET',
           `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secretName}`,
@@ -1143,13 +1211,217 @@ describe('Create workspace', () => {
         secretsCreateModal.assertModalNotExists();
 
         // Open modal again
-        createWorkspace.clickCreateNewSecret();
+        createWorkspace.clickAttachNewSecret();
         secretsCreateModal.assertModalExists();
 
         // Form should be reset
         secretsCreateModal.assertSecretNameValue('');
         secretsCreateModal.assertKeyValue(0, '');
         secretsCreateModal.assertValueValue(0, '');
+      });
+    });
+
+    describe('Home Volume validation', () => {
+      it('should display required helper when no home volume is mounted', () => {
+        completeAllStepsToProperties(mockWorkspaceKind.name, mockImage.id, mockPodConfig.id);
+
+        cy.findByTestId('workspace-home-volume-required-helper').should('be.visible');
+        cy.findByTestId('workspace-home-volume-required-helper').should(
+          'contain.text',
+          'Mounting a home volume is required.',
+        );
+      });
+    });
+
+    describe('Secret removal flows', () => {
+      it('should trigger API call when removing a created secret', () => {
+        const secretName = 'created-secret-to-remove';
+        const key1 = 'API_KEY';
+        const value1 = 'secret-value-123';
+
+        const mockSecretResponse = {
+          name: secretName,
+          type: 'Opaque',
+          immutable: false,
+          contents: {
+            [key1]: { base64: btoa(value1) },
+          },
+        };
+
+        // Mock createSecret API
+        cy.interceptApi(
+          'POST /api/:apiVersion/secrets/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          mockModArchResponse(mockSecretResponse),
+        ).as('createSecret');
+
+        // Mock getSecret for the SecretsViewPopover
+        cy.intercept(
+          'GET',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secretName}`,
+          { data: mockSecretResponse },
+        ).as('getSecret');
+
+        // Mock deleteSecret API call
+        cy.intercept(
+          'DELETE',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secretName}`,
+          {
+            statusCode: 200,
+            body: { data: {} },
+          },
+        ).as('deleteSecret');
+
+        navigateToPropertiesStep();
+        createWorkspace.expandSecretsSection();
+
+        // Wait for listSecrets API to complete (component fetches on mount)
+        cy.wait('@listSecrets');
+
+        // Scroll to and wait for the create button to be visible
+        cy.findByTestId('attach-new-secret-button').should('exist');
+        cy.findByTestId('attach-new-secret-button').scrollIntoView();
+        cy.findByTestId('attach-new-secret-button').should('be.visible');
+
+        // Create a new secret
+        createWorkspace.clickAttachNewSecret();
+        secretsCreateModal.assertModalExists();
+        secretsCreateModal.typeSecretName(secretName);
+        secretsCreateModal.typeKey(0, key1);
+        secretsCreateModal.typeValue(0, value1);
+
+        secretsCreateModal.clickCreate();
+        cy.wait('@createSecret');
+        secretsCreateModal.assertModalNotExists();
+
+        // Verify secret appears in table
+        cy.findByTestId('secrets-table').should('be.visible');
+        cy.findByTestId('secrets-table').should('contain', secretName);
+
+        // Remove the secret
+        secretsManagement.clickKebabMenu(secretName);
+        secretsManagement.clickRemoveAction(secretName);
+
+        // Confirm detach in modal
+        secretsDetachModal.assertModalVisible();
+        secretsDetachModal.assertContains(secretName);
+        secretsDetachModal.clickConfirm();
+
+        // Verify API call was made
+        cy.wait('@deleteSecret');
+
+        // Verify secret is removed from table or table disappears
+        cy.findByTestId('secrets-table').should('not.exist');
+      });
+
+      it('should handle multiple secret creation and removal operations', () => {
+        const secret1 = 'multi-secret-1';
+        const secret2 = 'multi-secret-2';
+
+        const mockSecret1Response = {
+          name: secret1,
+          type: 'Opaque',
+          immutable: false,
+          contents: { key1: { base64: btoa('value1') } },
+        };
+
+        const mockSecret2Response = {
+          name: secret2,
+          type: 'Opaque',
+          immutable: false,
+          contents: { key2: { base64: btoa('value2') } },
+        };
+
+        navigateToPropertiesStep();
+        createWorkspace.expandSecretsSection();
+
+        // Wait for listSecrets API to complete (component fetches on mount)
+        cy.wait('@listSecrets');
+
+        // Scroll to and wait for the create button to be visible
+        cy.findByTestId('attach-new-secret-button').should('exist');
+        cy.findByTestId('attach-new-secret-button').scrollIntoView();
+        cy.findByTestId('attach-new-secret-button').should('be.visible');
+
+        // Create first secret
+        cy.interceptApi(
+          'POST /api/:apiVersion/secrets/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          mockModArchResponse(mockSecret1Response),
+        ).as('createSecret1');
+
+        cy.intercept(
+          'GET',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secret1}`,
+          { data: mockSecret1Response },
+        ).as('getSecret1');
+
+        cy.intercept(
+          'DELETE',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secret1}`,
+          { statusCode: 200, body: { data: {} } },
+        ).as('deleteSecret1');
+
+        createWorkspace.clickAttachNewSecret();
+        secretsCreateModal.typeSecretName(secret1);
+        secretsCreateModal.typeKey(0, 'key1');
+        secretsCreateModal.typeValue(0, 'value1');
+        secretsCreateModal.clickCreate();
+        cy.wait('@createSecret1');
+
+        // Create second secret
+        cy.interceptApi(
+          'POST /api/:apiVersion/secrets/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          mockModArchResponse(mockSecret2Response),
+        ).as('createSecret2');
+
+        cy.intercept(
+          'GET',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secret2}`,
+          { data: mockSecret2Response },
+        ).as('getSecret2');
+
+        cy.intercept(
+          'DELETE',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secret2}`,
+          { statusCode: 200, body: { data: {} } },
+        ).as('deleteSecret2');
+
+        createWorkspace.clickAttachNewSecret();
+        secretsCreateModal.typeSecretName(secret2);
+        secretsCreateModal.typeKey(0, 'key2');
+        secretsCreateModal.typeValue(0, 'value2');
+        secretsCreateModal.clickCreate();
+        cy.wait('@createSecret2');
+
+        // Verify both secrets are in the table
+        cy.findByTestId('secrets-table').should('be.visible');
+        cy.findByTestId('secrets-table').should('contain', secret1);
+        cy.findByTestId('secrets-table').should('contain', secret2);
+
+        // Remove first secret
+        secretsManagement.clickKebabMenu(secret1);
+        secretsManagement.clickRemoveAction(secret1);
+
+        // Confirm first detach
+        secretsDetachModal.clickConfirm();
+        cy.wait('@deleteSecret1');
+
+        // Verify only secret2 remains
+        cy.findByTestId('secrets-table').should('not.contain', secret1);
+        cy.findByTestId('secrets-table').should('contain', secret2);
+
+        // Remove second secret
+        secretsManagement.clickKebabMenu(secret2);
+        secretsManagement.clickRemoveAction(secret2);
+
+        // Confirm second detach
+        secretsDetachModal.clickConfirm();
+        cy.wait('@deleteSecret2');
+
+        // Verify table is gone (no secrets left)
+        cy.findByTestId('secrets-table').should('not.exist');
       });
     });
   });

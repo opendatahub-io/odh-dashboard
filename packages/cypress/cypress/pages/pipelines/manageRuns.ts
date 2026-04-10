@@ -1,9 +1,9 @@
 import { TableRow } from '../components/table';
 
 class ManageRunsPage {
-  visit(experimentId: string, projectName: string, runIds: string[]) {
+  visit(projectName: string, runIds: string[]) {
     cy.visitWithLogin(
-      `/develop-train/experiments/${projectName}/${experimentId}/compare-runs/add?compareRuns=${runIds.join(
+      `/develop-train/pipelines/runs/${projectName}/compare-runs/add?compareRuns=${runIds.join(
         ',',
       )}`,
     );
