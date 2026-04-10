@@ -206,6 +206,7 @@ describe('View Auth Policy Page', () => {
       .findDetailsSection()
       .should('contain.text', policyName)
       .and('contain.text', 'Name')
+      .and('contain.text', 'Resource name')
       .and('contain.text', 'Date created');
 
     viewAuthPolicyPage.findGroupsSection().should('exist');

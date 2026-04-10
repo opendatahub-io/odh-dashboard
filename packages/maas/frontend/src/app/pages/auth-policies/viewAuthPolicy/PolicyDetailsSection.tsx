@@ -25,7 +25,7 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy }) =
     <StackItem>
       <DescriptionList columnModifier={{ default: '2Col' }}>
         <DescriptionListGroup>
-          <DescriptionListTerm>Display name</DescriptionListTerm>
+          <DescriptionListTerm>Name</DescriptionListTerm>
           <DescriptionListDescription>
             {policy.displayName ?? policy.name}
           </DescriptionListDescription>
@@ -35,7 +35,7 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy }) =
           <DescriptionListDescription>{policy.description ?? '—'}</DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
-          <DescriptionListTerm>Name</DescriptionListTerm>
+          <DescriptionListTerm>Resource name</DescriptionListTerm>
           <DescriptionListDescription>{policy.name}</DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
