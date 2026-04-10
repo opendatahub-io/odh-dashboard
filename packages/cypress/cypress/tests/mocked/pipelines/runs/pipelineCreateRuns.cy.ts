@@ -365,7 +365,7 @@ describe('Pipeline create runs', () => {
       paramsSection.fillParamInputById('neighbors', '2');
       paramsSection.fillParamInputById('standard_scaler', 'yes');
 
-      createRunPage.findRunGroupInput().should('have.value', '');
+      createRunPage.findRunGroupToggle().should('have.text', 'Select a run group');
       createRunPage.findSubmitButton().should('be.disabled');
     });
 
@@ -448,7 +448,7 @@ describe('Pipeline create runs', () => {
       cy.findByTestId('duplicate-name-help-text').should('be.visible');
       createRunPage.fillName('New run');
       createRunPage.fillDescription(veryLongDesc);
-      createRunPage.findRunGroupInput().should('have.value', '');
+      createRunPage.findRunGroupToggle().should('have.text', 'Select a run group');
       createRunPage.fillRunGroup('Test experiment 1');
       createRunPage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
       createRunPage.selectPipelineByName('Test pipeline');
@@ -520,7 +520,7 @@ describe('Pipeline create runs', () => {
       );
 
       // Verify pre-populated values & submit
-      duplicateRunPage.findRunGroupInput().should('have.value', mockExperiment.display_name);
+      duplicateRunPage.findRunGroupToggle().should('have.text', mockExperiment.display_name);
       duplicateRunPage.pipelineSelect
         .findToggleButton()
         .should('have.text', mockPipeline.display_name);
@@ -926,7 +926,10 @@ describe('Pipeline create runs', () => {
       pipelineRunsGlobal.findCreateRunButton().click();
       createRunPage.find();
 
-      createRunPage.findRunGroupInput().should('be.visible').and('have.value', '');
+      createRunPage
+        .findRunGroupToggle()
+        .should('be.visible')
+        .and('have.text', 'Select a run group');
     });
   });
 
@@ -954,7 +957,7 @@ describe('Pipeline create runs', () => {
 
     it('creates a schedule', () => {
       createScheduleRunCommonTest();
-      createSchedulePage.findRunGroupInput().should('have.value', '');
+      createSchedulePage.findRunGroupToggle().should('have.text', 'Select a run group');
       createSchedulePage.fillRunGroup('Test experiment 1');
       createSchedulePage
         .mockCreateRecurringRun(projectName, mockPipelineVersion, createRecurringRunParams)
@@ -1143,7 +1146,7 @@ describe('Pipeline create runs', () => {
       );
 
       // Verify pre-populated values & submit
-      duplicateSchedulePage.findRunGroupInput().should('have.value', mockExperiment.display_name);
+      duplicateSchedulePage.findRunGroupToggle().should('have.text', mockExperiment.display_name);
       duplicateSchedulePage.pipelineSelect
         .findToggleButton()
         .should('have.text', mockPipeline.display_name);
@@ -1223,7 +1226,7 @@ describe('Pipeline create runs', () => {
       );
 
       // Verify pre-populated values
-      duplicateSchedulePage.findRunGroupInput().should('have.value', mockExperiment.display_name);
+      duplicateSchedulePage.findRunGroupToggle().should('have.text', mockExperiment.display_name);
     });
 
     it('shows cron & periodic fields', () => {
