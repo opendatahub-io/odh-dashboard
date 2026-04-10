@@ -1,20 +1,9 @@
-[Guidelines]: ../../docs/guidelines.md
-[BOOKMARKS]: ../../BOOKMARKS.md
-[Backend Overview]: ../../backend/docs/overview.md
-[Extensibility]: ../../docs/extensibility.md
-[Admin Settings]: admin-settings.md
-[Projects]: projects.md
-
 # Home / Applications
-
-**Last Updated**: 2026-04-10 | **Template**: frontend-template v2
 
 ## Overview
 
-Home / Applications is the dashboard entry surface: **Home** (projects, learning strip, admin
-shortcuts), **Enabled Applications** (gallery of operator-enabled components), and **Learning
-Center** (searchable docs and quick starts from `OdhDocument` / `OdhQuickStart` CRs). Scientists
-land here; admins use “Enable your team” shortcuts into settings.
+- Dashboard entry surface: **Home** (projects, learning strip, admin shortcuts), **Enabled Applications** (gallery of operator-enabled components), and **Learning Center** (searchable docs and quick starts from `OdhDocument` / `OdhQuickStart` CRs).
+- Scientists land here; admins use “Enable your team” shortcuts into settings.
 
 ## UI Entry Points
 
@@ -25,28 +14,17 @@ land here; admins use “Enable your team” shortcuts into settings.
 | Applications > Explore | `/applications/explore` | None |
 | Resources > Learning resources | `/learning-resources` | None |
 
-When `disableHome` is true, `/` redirects to `/applications/enabled`. Legacy `/enabled` redirects
-to `/applications/enabled` at the router.
+- When `disableHome` is true, `/` redirects to `/applications/enabled`.
+- Legacy `/enabled` redirects to `/applications/enabled` at the router.
 
 ## Design Intent
 
-Home is a thin orchestrator: `useIsAreaAvailable` gates sections; section-specific hooks
-(`useResourcesSection`, `useEnableTeamSection`, etc.) return ready-made nodes so the page stays
-composable and tree-shakeable without deep prop drilling.
-
-Enabled Applications splits an outer shell that polls `useWatchComponents(true)` from a memoized
-inner renderer so Cypress can mount the inner piece with fixtures. Before paint, integration checks
-confirm enabled state is live, not only what the last CR poll showed.
-
-Learning Center builds a unified document model in `useDocResources` (backend docs + all components
-for `docsLink` synthesis + PatternFly QuickStart context). Filters and sort sync to URL search
-params (`useQueryFilters`) for shareable views. Polling (`useWatchComponents`, `useWatchDocs` on
-`POLL_INTERVAL`) is timer-based, not watches; Redux `forceComponentsUpdate` forces an immediate
-refetch after admin actions (e.g. enabling an app). Favorites and collapsible section state use
-`localStorage` under namespaced keys.
-
-`OdhAppCard` and `OdhDocCard` wrap PatternFly `Card` with ODH-specific badges and icons—they are
-not PF primitives. Home sections use custom gallery helpers for layout.
+- Home is a thin orchestrator: `useIsAreaAvailable` gates sections; section-specific hooks (`useResourcesSection`, `useEnableTeamSection`, etc.) return ready-made nodes—composable and tree-shakeable without deep prop drilling.
+- **Enabled Applications:** outer shell polls `useWatchComponents(true)`; inner renderer memoized so Cypress can mount the inner piece with fixtures. Integration checks before paint confirm enabled state is live, not only the last CR poll.
+- **Learning Center:** unified document model in `useDocResources` (backend docs + all components for `docsLink` synthesis + PatternFly QuickStart context). Filters and sort sync to URL search params (`useQueryFilters`) for shareable views.
+- Polling (`useWatchComponents`, `useWatchDocs` on `POLL_INTERVAL`) is timer-based, not watches; Redux `forceComponentsUpdate` forces immediate refetch after admin actions (e.g. enabling an app).
+- Favorites and collapsible section state use `localStorage` under namespaced keys.
+- `OdhAppCard` and `OdhDocCard` wrap PatternFly `Card` with ODH-specific badges and icons—not PF primitives. Home sections use custom gallery helpers for layout.
 
 ## Key Concepts
 
@@ -71,8 +49,8 @@ not PF primitives. Home sections use custom gallery helpers for layout.
 | `ProjectsContext` | Frontend Area | Project list for Home project cards. |
 | `useIsAreaAvailable` | Frontend Concept | Section visibility from dashboard config. |
 | PatternFly QuickStarts | External | `QuickStartContext` input to `useDocResources`. |
-| [Admin Settings] | Frontend Area | “Enable your team” destinations. |
-| [Projects] | Frontend Area | Project creation and project routes from Home. |
+| Admin Settings | Frontend Area | “Enable your team” destinations. |
+| Projects | Frontend Area | Project creation and project routes from Home. |
 
 Primary flow: poll components/docs → enrich into doc model → render galleries or filtered Learning
 Center views; Redux nudge refreshes components when operators change enablement.
@@ -89,12 +67,3 @@ Center views; Redux nudge refreshes components when operators change enablement.
 - **Learning Center favorites**: Stored in `localStorage` (`FAVORITE_RESOURCES` in
   `learningCenter/const.ts`); clearing site data loses them.
 - **Legacy `/enabled`**: Redirect is router-level—verify guards do not block bookmarked URLs.
-
-## Related Docs
-
-- [Guidelines] — documentation style guide
-- [BOOKMARKS] — full doc index
-- [Backend Overview] — backend architecture reference
-- [Extensibility] — nav and routes via extensions
-- [Admin Settings] — admin shortcut targets
-- [Projects] — projects data for Home

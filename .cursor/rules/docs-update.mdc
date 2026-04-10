@@ -14,5 +14,4 @@ Key points:
 - A code change can affect multiple doc types — check overview docs, guides, READMEs, ADRs, and agent rules.
 - In diff mode (default), update only the affected sections; do not rewrite unaffected content.
 - In `--no-cache` mode, rewrite every section treating the current source code as the single source of truth.
-- Update the `Last Updated` date if the doc uses one.
 - Show a summary of proposed changes before writing.

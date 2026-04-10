@@ -1,16 +1,9 @@
-[Guidelines]: ../../docs/guidelines.md
-[BOOKMARKS]: ../../BOOKMARKS.md
-[Backend Overview]: ../../backend/docs/overview.md
-[Architecture]: ../../docs/architecture.md
-[Projects]: ./projects.md
-
 # Pipelines
-
-**Last Updated**: 2026-04-10 | **Template**: frontend-template v2
 
 ## Overview
 
-The Pipelines area lets data scientists manage Kubeflow Pipelines (KFP) v2 workflows inside a Data Science Project: import definitions, create and schedule runs, inspect DAGs and outputs, compare metrics, and browse MLMD artifacts and executions. It is namespace-scoped and requires a ready pipeline server (`DSPipelineKind` CR) before operations are available.
+- Manage Kubeflow Pipelines (KFP) v2 workflows in a Data Science Project: import definitions, create and schedule runs, inspect DAGs and outputs, compare metrics, and browse MLMD artifacts and executions.
+- Namespace-scoped; requires a ready pipeline server (`DSPipelineKind` CR) before operations are available.
 
 ## UI Entry Points
 
@@ -23,15 +16,20 @@ The Pipelines area lets data scientists manage Kubeflow Pipelines (KFP) v2 workf
 | Executions | `/develop-train/pipelines/executions` | same as above |
 | Project detail — Pipelines tab | `/projects/:namespace` (Pipelines tab) | same as above |
 
-Global routes live under `develop-train`. Each embeds `/:namespace`, resolved by `GlobalPipelineCoreLoader`; if the URL has no namespace, the user is redirected to their preferred project. Gating uses `SupportedArea.DS_PIPELINES` (dashboard config + DSC). From a project, the Pipelines section is rendered under `frontend/src/pages/projects/screens/detail/pipelines/PipelinesSection.tsx`.
+- Global routes live under `develop-train`; each embeds `/:namespace`, resolved by `GlobalPipelineCoreLoader`.
+- If the URL has no namespace, the user is redirected to their preferred project.
+- Gating uses `SupportedArea.DS_PIPELINES` (dashboard config + DSC).
+- From a project, the Pipelines section is rendered under `frontend/src/pages/projects/screens/detail/pipelines/PipelinesSection.tsx`.
 
 ## Design Intent
 
-Every global pipeline route mounts through `GlobalPipelineCoreLoader`, which reads the namespace, aligns with `ProjectsContext`, and wraps children in `PipelineContextProvider`. That provider owns pipeline state for the namespace: child routes do not construct their own API clients.
-
-The dominant pattern is **discover infra, then bind typed clients**. The provider watches the `DSPipelineKind` CR until the server route is ready, then builds a typed KFP REST surface against `/api/service/pipelines/:namespace/:dspaName`. MLMD (artifacts, executions) is a **parallel path**: gRPC-web to `/api/service/mlmd/:namespace/:dspaName`, not the same transport as KFP REST. Secondary contexts (`MlmdListContext`, selection/compare contexts) exist to cache MLMD lists or UI selection state—not to replace the main provider.
-
-Dashboard backends for both paths are pass-through proxies; they forward the user token and do not implement pipeline business logic.
+- Every global pipeline route mounts through `GlobalPipelineCoreLoader`, which reads the namespace, aligns with `ProjectsContext`, and wraps children in `PipelineContextProvider`.
+  - That provider owns pipeline state for the namespace; child routes do not construct their own API clients.
+- Dominant pattern: **discover infra, then bind typed clients**.
+  - Provider watches the `DSPipelineKind` CR until the server route is ready, then builds a typed KFP REST surface against `/api/service/pipelines/:namespace/:dspaName`.
+- MLMD (artifacts, executions) is a **parallel path**: gRPC-web to `/api/service/mlmd/:namespace/:dspaName`, not the same transport as KFP REST.
+- Secondary contexts (`MlmdListContext`, selection/compare contexts) cache MLMD lists or UI selection state—not to replace the main provider.
+- Dashboard backends for both paths are pass-through proxies; they forward the user token and do not implement pipeline business logic.
 
 ## Key Concepts
 
@@ -72,11 +70,3 @@ Dashboard backends for both paths are pass-through proxies; they forward the use
 - **MLMD in dev:** With `DEV_MODE`, [grpc-web-devtools](https://github.com/SafetyCulture/grpc-web-devtools) helps inspect gRPC-web; otherwise network tab is opaque.
 - **DSPipeline spec:** Context checks `spec.dspVersion === 'v2'` for `hasCompatibleVersion`; older spec can warn even if reachable.
 - **Bookmarking:** Namespace-less `/develop-train/pipelines/...` redirects to preferred (or first) project—bookmarks without `/:namespace` can surprise users.
-
-## Related Docs
-
-- [Guidelines] — documentation style guide
-- [BOOKMARKS] — full doc index
-- [Backend Overview] — backend proxy and authentication
-- [Architecture] — overall dashboard architecture and pass-through patterns
-- [Projects] — project detail and shared `ProjectsContext`

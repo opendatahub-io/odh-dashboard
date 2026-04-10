@@ -20,11 +20,4 @@ Defines the contracts that all modular packages must implement to integrate with
 import { defineExtension, useExtensions } from '@odh-dashboard/plugin-core';
 ```
 
-## Development
-
-```bash
-npx turbo run test-unit --filter=@odh-dashboard/plugin-core
-npx turbo run type-check lint --filter=@odh-dashboard/plugin-core
-```
-
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).

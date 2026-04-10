@@ -25,8 +25,4 @@ In your package `tsconfig.json`:
 | `tsconfig.json` | Default browser/React packages |
 | `tsconfig.node.json` | Node.js scripts and BFF servers |
 
-## Development
-
-This is a configuration-only package with no build, test, or type-check scripts.
-
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).

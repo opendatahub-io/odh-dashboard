@@ -1,18 +1,10 @@
-[Guidelines]: ../../docs/guidelines.md
-[BOOKMARKS]: ../../BOOKMARKS.md
-[Architecture]: ../../docs/architecture.md
-[Backend Overview]: ../../backend/docs/overview.md
-[Projects Doc]: projects.md
-
 # Workbenches
-
-**Last Updated**: 2026-04-10 | **Template**: frontend-template v2
 
 ## Overview
 
-Workbenches let data scientists create, configure, start, stop, and delete JupyterLab servers (`Notebook` CRs) in a Data Science Project, with image, resources, env vars, storage, and optional accelerators.
-
-A standalone **Notebook Controller** view still supports spawning and admin workflows outside the strict project-tab flow. Shared notebook helpers live under `frontend/src/concepts/notebooks/` and `packages/notebooks` so both entry points stay consistent.
+- Create, configure, start, stop, and delete JupyterLab servers (`Notebook` CRs) in a Data Science Project, with image, resources, env vars, storage, and optional accelerators.
+- A standalone **Notebook Controller** view supports spawning and admin workflows outside the strict project-tab flow.
+- Shared notebook helpers live under `frontend/src/concepts/notebooks/` and `packages/notebooks` so both entry points stay consistent.
 
 ## UI Entry Points
 
@@ -23,15 +15,19 @@ A standalone **Notebook Controller** view still supports spawning and admin work
 | Notebook Controller | `/notebook-controller` | `notebookController.enabled` |
 | Admin user management | `/notebook-controller` (admin tab) | `notebookController.enabled` + admin role |
 
-Reach the tab via **Data Science Projects** → project → **Workbenches**. Legacy `/notebookController` redirects to `/notebook-controller`. `useCheckJupyterEnabled` in `frontend/src/utilities/notebookControllerUtils.ts` reads `dashboardConfig.spec.notebookController.enabled` and sends users to `/` when disabled.
+- Reach the tab via **Data Science Projects** → project → **Workbenches**.
+- Legacy `/notebookController` redirects to `/notebook-controller`.
+- `useCheckJupyterEnabled` in `frontend/src/utilities/notebookControllerUtils.ts` reads `dashboardConfig.spec.notebookController.enabled` and sends users to `/` when disabled.
 
 ## Design Intent
 
-Inside a project, the flow is **project → detail tabs → workbench table → row actions**. The Workbenches tab lists notebooks and polls pod-backed status on an interval so badges and actions stay current. Create/edit navigates to full-page spawner screens that compose image selection, sizing, environment variables, PVC attachment, and accelerators—shared between project spawner and the standalone controller where appropriate.
-
-The **standalone Notebook Controller** uses `NotebookControllerContextProvider` to track the current user’s notebook, gateway vs Route link resolution, and **admin impersonation** (session-only). The **project path** relies on `ProjectDetailsContext` for the notebook list and related resources; it does not duplicate the controller context’s concerns. Fetches go through `useFetchState` and `frontend/src/api/k8s/notebooks.ts`, with status merged into `NotebookState[]` for presentation.
-
-Create and edit share the same spawner stack; edit pre-populates from the existing CR. The standalone controller reuses the same form building blocks with a different shell and context.
+- Inside a project, the flow is **project → detail tabs → workbench table → row actions**.
+  - Workbenches tab lists notebooks and polls pod-backed status on an interval so badges and actions stay current.
+  - Create/edit navigates to full-page spawner screens (image selection, sizing, environment variables, PVC attachment, accelerators)—shared between project spawner and the standalone controller where appropriate.
+- **Standalone Notebook Controller** uses `NotebookControllerContextProvider` for the current user’s notebook, gateway vs Route link resolution, and **admin impersonation** (session-only).
+- **Project path** relies on `ProjectDetailsContext` for the notebook list and related resources; it does not duplicate the controller context’s concerns.
+- Fetches use `useFetchState` and `frontend/src/api/k8s/notebooks.ts`, with status merged into `NotebookState[]` for presentation.
+- Create and edit share the same spawner stack; edit pre-populates from the existing CR. The standalone controller reuses the same form building blocks with a different shell and context.
 
 ## Key Concepts
 
@@ -71,11 +67,3 @@ Create and edit share the same spawner stack; edit pre-populates from the existi
 - **Admin impersonation:** Stored in React state only—refresh clears it without warning.
 - **Elyra alerts:** `ElyraInvalidVersionAlerts` can hide the table body while loading; intentional, not a render bug.
 - **Edit flow in tests:** The edit-spawner path is thin in mocked Cypress; broader coverage lives under E2E `dataScienceProjects/workbenches/`—do not assume mocks alone validate edit.
-
-## Related Docs
-
-- [Guidelines] — documentation style guide
-- [BOOKMARKS] — full doc index
-- [Architecture] — dashboard architecture including v3.0 routing/auth
-- [Backend Overview] — k8s pass-through and SSAR
-- [Projects Doc] — project detail; Workbenches tab lives there

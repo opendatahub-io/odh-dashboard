@@ -1,48 +1,17 @@
-[Guidelines]: ../../../docs/guidelines.md
-[BOOKMARKS]: ../../../BOOKMARKS.md
-[Backend Overview]: ../../../backend/docs/overview.md
-[Module Federation Docs]: ../../../docs/module-federation.md
-[LLMd Serving Package]: ../../llmd-serving/docs/overview.md
-[MaaS Package]: ../../maas/docs/overview.md
-[Model Serving Package]: ../../model-serving/docs/overview.md
-[BFF Deep Dive]: developer/BFF_OVERVIEW.md
-[Developer Docs]: developer/README.md
-[User Docs]: user/README.md
-[Logging Guide]: user/admin/logging/README.md
-[BFF Logging]: user/admin/logging/bff-logging.md
-[vLLM Logging]: user/admin/logging/vllm-logging.md
-[Logging Troubleshooting]: user/admin/logging/troubleshooting.md
-[Logging Best Practices]: user/admin/logging/best-practices.md
-[Logging Config Examples]: user/admin/logging/configuration-examples.md
-[RBAC Guide]: user/admin/rbac/README.md
-[ADR Index]: adr/README.md
-
 # Gen AI
-
-**Last Updated**: 2026-04-10 | **Template**: package-template v2
 
 ## Overview
 
-Gen AI is the full LLM chatbot UI for the ODH Dashboard: streaming chat, model selection, conversation history, and system prompts, backed by a Go BFF that integrates MCP (Model Context Protocol) and LSD (LLM Service Discovery) with MaaS and related clients. Host-side feature flags and types for embedding Gen AI are documented in `frontend/docs/gen-ai.md`.
-
-**Package path**: `packages/gen-ai/`
-
-## Deployment Modes
-
-| Mode | How to start | Notes |
-|------|-------------|-------|
-| Standalone | `make dev-start` | Needs `LLAMA_STACK_URL` and `MAAS_URL` for live backends; serves UI and BFF together (`http://localhost:8080`). |
-| Standalone (mocked) | `make dev-start-mock` | All BFF mocks on; no cluster or live Llama Stack/MaaS required. |
-| Kubeflow | `build.openshift.sh` (and cluster routing) | OpenShift BuildConfig-style deploy; cluster route for access. |
-| Federated | `make dev-start` + `npm run dev` at repo root | Host loads the remote; primary dashboard URL `http://localhost:4010`. |
-
-Use mocked standalone for offline work; use live standalone when you have Llama Stack and MaaS endpoints. Federated matches production embedding in the main app.
+- Full LLM chatbot UI: streaming chat, model selection, conversation history, and system prompts.
+- Go BFF integrates MCP (Model Context Protocol) and LSD (LLM Service Discovery) with MaaS and related clients.
+- Host feature flags and embedding types: `frontend/docs/gen-ai.md`.
 
 ## Design Intent
 
-The BFF is the security and integration boundary: it talks to Kubernetes (via mocked or real clients), forwards inference to **Llama Stack**, lists models through **LSD** and **MaaS**, and streams tokens to the browser as **server-sent events**. **MCP** support lives in the BFF — session lifecycle and tool calls are mediated there so the browser does not hold cluster credentials for those paths.
-
-Module Federation remote name is `genAi`. The host consumes `./extensions` and `./extension-points`. The main dashboard also embeds the federated **`AIAssetsMaaSTab`** component; prop changes require coordinated host updates.
+- **Security and integration boundary**: Kubernetes (mocked or real clients); inference to **Llama Stack**; model listing via **LSD** and **MaaS**; token streaming to the browser as **server-sent events**.
+- **MCP**: Session lifecycle and tool calls run in the BFF so the browser does not hold cluster credentials on those paths.
+- **Module Federation**: Remote `genAi`; host consumes `./extensions` and `./extension-points`.
+- **Host contract**: Main dashboard embeds federated **`AIAssetsMaaSTab`**; coordinate prop/API changes with the host.
 
 ## Key Concepts
 
@@ -74,24 +43,3 @@ Module Federation remote name is `genAi`. The host consumes `./extensions` and `
 - `AIAssetsMaaSTab` is a cross-package contract with the host — coordinate API/prop changes.
 - Delve (`dlv`) and `README.md` / `make dev-start-debug` are required for the documented debugger workflow.
 - Contract tests expect `GET /healthcheck` on the BFF.
-
-## Related Docs
-
-- [BFF Deep Dive] — handlers, integrations, testing
-- [Developer Docs] — developer index
-- [User Docs] — user and admin index
-- [ADR Index] — architecture decisions
-- [Logging Guide] — logging overview
-- [BFF Logging] — BFF logging behavior
-- [vLLM Logging] — vLLM server logs
-- [Logging Troubleshooting] — common issues
-- [Logging Best Practices] — patterns
-- [Logging Config Examples] — samples
-- [RBAC Guide] — admin RBAC
-- [Guidelines] — documentation style guide
-- [Module Federation Docs] — Module Federation in this monorepo
-- [Backend Overview] — main dashboard backend
-- [LLMd Serving Package] — LLM serving reference
-- [MaaS Package] — MaaS integration
-- [Model Serving Package] — serving infrastructure
-- [BOOKMARKS] — full doc index

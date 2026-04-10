@@ -27,7 +27,7 @@ $ARGUMENTS (optional):
    Otherwise, collect every doc listed in BOOKMARKS.md.
 2. **Read `docs/guidelines.md`** and the relevant template for each doc.
 3. **For each doc**: read the doc, read the source code it describes, rewrite every section
-   from current source. Update `Last Updated`. Keep under 300 lines (hard limit 500).
+   from current source. Keep under 300 lines (hard limit 500).
 4. **Show summary** and ask for confirmation before writing.
 5. **Verify BOOKMARKS.md** links still resolve.
 
@@ -55,8 +55,7 @@ $ARGUMENTS (optional):
    b. Read `docs/guidelines.md`.
    c. Identify which sections are impacted by the diff.
    d. Update only affected sections — do not rewrite unaffected content.
-   e. Update `Last Updated`.
-   f. Keep under 300 lines (hard limit 500).
+   e. Keep under 300 lines (hard limit 500).
 
 4. **Show summary** of proposed changes and ask for confirmation:
    ```text
@@ -69,5 +68,5 @@ $ARGUMENTS (optional):
 
 ## Output
 
-- Updated doc file(s) with changed sections and refreshed `Last Updated` date.
+- Updated doc file(s) with changed sections.
 - Summary of which sections changed and why.

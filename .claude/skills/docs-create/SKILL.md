@@ -51,7 +51,6 @@ $ARGUMENTS — natural language description of what to document.
    - No placeholder text (`[Description]`, `TODO`, `TBD`)
    - Omit template sections that don't apply — no "Not applicable" filler
    - Interactions section must name at least 1 concrete dependency
-   - Set `Last Updated` to today's date
    - Target under 300 lines (hard limit 500)
 
 7. **Remind** user to verify links and update BOOKMARKS.md if applicable.

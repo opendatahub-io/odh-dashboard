@@ -37,13 +37,11 @@ $ARGUMENTS — package name (directory name under packages/).
    - Fill every applicable section with real content
    - Omit template sections that don't apply — no "Not applicable" filler
    - Interactions must name the main ODH Dashboard and at least one other dependency
-   - Set `Last Updated` to today's date
    - Target under 300 lines (hard limit 500)
 
 6. **Update BOOKMARKS.md**:
    - Full-doc → **Packages > Full Docs**
    - Stub → **Packages > Stubs**
-   - Update `Last Updated` date in BOOKMARKS.md
 
 ## Output
 

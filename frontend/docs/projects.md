@@ -1,19 +1,9 @@
-[Guidelines]: ../../docs/guidelines.md
-[Architecture]: ../../docs/architecture.md
-[BOOKMARKS]: ../../BOOKMARKS.md
-[Backend Overview]: ../../backend/docs/overview.md
-[ProjectsContext]: ../src/concepts/projects/ProjectsContext.tsx
-[ProjectDetailsContext]: ../src/pages/projects/ProjectDetailsContext.tsx
-[ProjectViewRoutes]: ../src/pages/projects/ProjectViewRoutes.tsx
-[Pipelines]: ./pipelines.md
-
 # Data Science Projects
-
-**Last Updated**: 2026-04-10 | **Template**: frontend-template v2
 
 ## Overview
 
-Data Science Projects is the main hub for ODH Dashboard users: each project maps to an OpenShift/Kubernetes namespace where users create and manage workbenches, pipelines, deployed models, cluster storage, connections, and permissions from one place.
+- Main hub for ODH Dashboard users: each project maps to an OpenShift/Kubernetes namespace.
+- Create and manage workbenches, pipelines, deployed models, cluster storage, connections, and permissions from one place.
 
 ## UI Entry Points
 
@@ -26,13 +16,18 @@ Data Science Projects is the main hub for ODH Dashboard users: each project maps
 | Assign permissions | `/projects/:namespace/permissions/assign` | `DS_PROJECTS_PERMISSIONS` |
 | Model metrics | `/projects/:namespace/metrics/model/:inferenceService` | Model metrics feature flag |
 
-Users open **Data Science Projects** in the left nav, then a project name for detail. The detail view switches tabs via `?section=<id>` (not nested routes) so URLs stay shareable without remounting the layout.
+- Users open **Data Science Projects** in the left nav, then a project name for detail.
+- Detail view switches tabs via `?section=<id>` (not nested routes) so URLs stay shareable without remounting the layout.
 
 ## Design Intent
 
-[ProjectViewRoutes] defines the router. The `/:namespace/*` branch wraps children in [ProjectDetailsContext], which resolves the namespace to a `ProjectKind`, starts resource polling, and renders an `<Outlet>`. The index route is project detail: a **horizontal tab host** (`GenericHorizontalBar`) whose visible tabs are computed from `SupportedArea` and SSAR results. Tab changes only update the query string; the provider and polls keep running—this avoids refetch storms when switching tabs.
-
-[ProjectsContext] at app root holds the full project list, preferred project, and helpers (e.g. waiting after create). **Project detail** is intentionally centralized: once the user is on `/:namespace`, [ProjectDetailsContext] aggregates notebooks, PVCs, connections, serving resources, secrets, role bindings, hardware/Kueue data, etc. Tab components read that context instead of each issuing duplicate fetches for resources the provider already loads. Spawner and permissions flows live alongside detail screens under `pages/projects/` but follow the same routing boundaries.
+- `ProjectViewRoutes` defines the router; `/:namespace/*` wraps children in `ProjectDetailsContext`, which resolves the namespace to a `ProjectKind`, starts resource polling, and renders an `<Outlet>`.
+- Index route is project detail: **horizontal tab host** (`GenericHorizontalBar`); visible tabs from `SupportedArea` and SSAR results.
+- Tab changes only update the query string; provider and polls keep running—avoids refetch storms when switching tabs.
+- `ProjectsContext` at app root: full project list, preferred project, helpers (e.g. waiting after create).
+- **Project detail** is centralized on `/:namespace`: `ProjectDetailsContext` aggregates notebooks, PVCs, connections, serving resources, secrets, role bindings, hardware/Kueue data, etc.
+- Tab components read that context instead of duplicate fetches for resources the provider already loads.
+- Spawner and permissions flows live under `pages/projects/` alongside detail screens and follow the same routing boundaries.
 
 ## Key Concepts
 
@@ -52,7 +47,7 @@ Users open **Data Science Projects** in the left nav, then a project name for de
 
 | Dependency | Type | Details |
 |-----------|------|---------|
-| [ProjectsContext] | Frontend | Project list and preferred project; namespace resolution for detail |
+| `ProjectsContext` | Frontend | Project list and preferred project; namespace resolution for detail |
 | `concepts/pipelines/context` | Frontend | `PipelineContextProvider` on detail route when `DS_PIPELINES` enabled; Pipelines tab consumes it |
 | Workbenches / notebook controller | Frontend | Spawner and notebook hooks in `projects/`; image/hardware data from model-serving and notebook-controller concepts |
 | `pages/modelServing` / kserve | Frontend | Serving runtimes, inference services, secrets; deployments tab via project detail hooks |
@@ -67,15 +62,7 @@ Users open **Data Science Projects** in the left nav, then a project name for de
 
 - **`?section=`:** Deep links must include the query string. Internal links to a tab must use e.g. `?section=workbenches` or users land on Overview.
 - **Permissions implementations:** Legacy `ProjectSharing` vs RBAC `ProjectPermissions` behind `PROJECT_RBAC_SETTINGS` both use `ProjectSectionID.PERMISSIONS`—only one shows. Do not remove legacy until RBAC exits tech preview.
-- **Polling vs permissions:** [ProjectDetailsContext] starts hooks for the loaded project; if the user lacks access to a resource type (e.g. `InferenceService`), hooks may error and return empty—check `FetchStateObject.error` before treating empty as “none exist”.
+- **Polling vs permissions:** `ProjectDetailsContext` starts hooks for the loaded project; if the user lacks access to a resource type (e.g. `InferenceService`), hooks may error and return empty—check `FetchStateObject.error` before treating empty as “none exist”.
 - **Non-OpenShift:** Project creation uses OpenShift `projectrequests`; on plain K8s, create is unavailable by design (`allowCreate` false, button hidden).
 - **Workbench URLs (v3.0):** Prefer same-origin `/notebook/{namespace}/{name}` via `NotebookRouteLink`; reading `route.spec.host` for notebooks is deprecated.
 - **Tables:** Resource tables on Workbenches, Storage, and Connections use the standard `Table` override from `src/components/pf-overrides/Table.tsx`. `GenericHorizontalBar` itself uses stock PatternFly `Tabs` (no tab override).
-
-## Related Docs
-
-- [Guidelines] — documentation style guide
-- [Architecture] — client and backend architecture
-- [BOOKMARKS] — full doc index
-- [Backend Overview] — backend architecture reference
-- [Pipelines] — global and project-tab pipeline UI (shares detail route wiring)

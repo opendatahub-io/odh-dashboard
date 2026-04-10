@@ -1,37 +1,20 @@
-[Guidelines]: ../../../docs/guidelines.md
-[BOOKMARKS]: ../../../BOOKMARKS.md
-[Backend Overview]: ../../../backend/docs/overview.md
-[Model Serving Overview]: ../../model-serving/docs/overview.md
-[Model Registry Overview]: ../../model-registry/docs/overview.md
-[Module Federation Docs]: ../../../docs/module-federation.md
-
 # KServe
-
-**Last Updated**: 2026-04-10 | **Template**: package-template v2
 
 ## Overview
 
-The `@odh-dashboard/kserve` package implements the KServe single-model serving platform as a pluggable extension of `@odh-dashboard/model-serving`. It provides UI logic and Kubernetes API usage to deploy, configure, monitor, and delete models using KServe `InferenceService` resources (one dedicated model server per deployment).
-
-**Package path**: `packages/kserve/`
-
-## Deployment Modes
-
-| Mode | How to start | Notes |
-|------|-------------|-------|
-| Federated | `npm run dev` from repo root (with model-serving loaded) | Main dashboard at `http://localhost:4010`; enable `K_SERVE` in cluster / `OdhDashboardConfig` |
-
-KServe has no standalone or Kubeflow mode. It ships only as a federated extension loaded by `model-serving`, which the main dashboard loads via Module Federation.
+- Implements the KServe single-model serving platform as a pluggable extension of `@odh-dashboard/model-serving`.
+- Provides UI logic and Kubernetes API usage to deploy, configure, monitor, and delete models using KServe `InferenceService` resources (one dedicated model server per deployment).
 
 ## Design Intent
 
-There is no Go BFF: all Kubernetes work (`InferenceService`, `ServingRuntime`, `Pod`, `Secret`, `ServiceAccount`, `Role`, `RoleBinding`) goes through the main dashboard backend proxy at `/api/k8s/` using `@openshift/dynamic-plugin-sdk-utils` from the browser.
-
-Deployment flow: `model-serving` collects wizard data and calls `deployKServeDeployment` (via the `model-serving.deployment/deploy` extension). Orchestration creates or patches `ServingRuntime` and `InferenceService`, then optional token-auth resources. After deploy, `useWatchDeployments` watches `InferenceService`, `ServingRuntime`, and labeled `Pod` resources and merges them into `KServeDeployment` objects.
-
-KServe does not publish its own Module Federation remote. `model-serving` consumes this package as a TypeScript dependency; `extensions.ts` exports the extension manifest registered by the parent. Notable package exports include `@odh-dashboard/kserve/extensions` and `@odh-dashboard/kserve/deployUtils` (shared helpers for other packages).
-
-Feature gating uses `OdhDashboardConfig` (`disableKServe`, `disableKServeMetrics`) and `SupportedArea` values (`K_SERVE`, `K_SERVE_METRICS`) in `extensions.ts` via `flags.required`.
+- **No Go BFF:** all Kubernetes work (`InferenceService`, `ServingRuntime`, `Pod`, `Secret`, `ServiceAccount`, `Role`, `RoleBinding`) goes through the main dashboard backend proxy at `/api/k8s/` using `@openshift/dynamic-plugin-sdk-utils` from the browser.
+- **Deployment flow:**
+  - `model-serving` collects wizard data and calls `deployKServeDeployment` (via the `model-serving.deployment/deploy` extension).
+  - Orchestration creates or patches `ServingRuntime` and `InferenceService`, then optional token-auth resources.
+  - After deploy, `useWatchDeployments` watches `InferenceService`, `ServingRuntime`, and labeled `Pod` resources and merges them into `KServeDeployment` objects.
+- **No package Module Federation remote:** `model-serving` consumes this package as a TypeScript dependency; `extensions.ts` exports the extension manifest registered by the parent.
+  - Notable exports: `@odh-dashboard/kserve/extensions`, `@odh-dashboard/kserve/deployUtils` (shared helpers for other packages).
+- **Feature gating:** `OdhDashboardConfig` (`disableKServe`, `disableKServeMetrics`) and `SupportedArea` values (`K_SERVE`, `K_SERVE_METRICS`) in `extensions.ts` via `flags.required`.
 
 ## Key Concepts
 
@@ -64,12 +47,3 @@ Feature gating uses `OdhDashboardConfig` (`disableKServe`, `disableKServeMetrics
 - **No standalone mode**: Must run main dashboard + `model-serving`.
 - **`modelmesh-enabled: false`**: Project needs this label for KServe to be active; otherwise ModelMesh is default (set when choosing single-model serving in project settings).
 - **`patchInferenceService` no-op**: Zero JSON patches skips the network call and returns the new object.
-
-## Related Docs
-
-- [Guidelines] — documentation style guide for this repo
-- [Model Serving Overview] — parent package; extension-point contracts and deployment wizard
-- [Model Registry Overview] — registered model versions into KServe deployments
-- [Backend Overview] — main dashboard backend proxy and authentication
-- [Module Federation Docs] — how packages load as micro-frontends
-- [BOOKMARKS] — full documentation index

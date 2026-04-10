@@ -25,10 +25,4 @@ export default [...base];
 | `node.js` | Node.js / CommonJS scripts |
 | `package-restrictions.js` | Import restriction rules |
 
-## Development
-
-```bash
-npx turbo run lint --filter=@odh-dashboard/eslint-config
-```
-
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).

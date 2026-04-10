@@ -8,7 +8,7 @@ Encapsulates rules that cannot be expressed through config alone — e.g., enfor
 
 ## Usage
 
-```js
+```text
 import plugin from '@odh-dashboard/eslint-plugin';
 
 export default [
@@ -22,10 +22,5 @@ export default [
 | Rule | Description |
 |------|-------------|
 | See `rules/` | Custom rules defined in the `rules/` directory |
-
-## Development
-
-This package has no npm scripts. It is consumed directly by `@odh-dashboard/eslint-config`
-and does not require a separate build or lint step.
 
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).

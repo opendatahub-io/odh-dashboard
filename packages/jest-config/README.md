@@ -23,10 +23,4 @@ export default { ...base, displayName: 'my-package' };
 | `config/` | Named preset configs (dom, node) |
 | `src/` | Config construction helpers |
 
-## Development
-
-```bash
-npx turbo run test-unit --filter=@odh-dashboard/jest-config
-```
-
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).

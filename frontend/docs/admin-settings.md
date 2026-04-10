@@ -1,18 +1,9 @@
-[Guidelines]: ../../docs/guidelines.md
-[BOOKMARKS]: ../../BOOKMARKS.md
-[Backend Overview]: ../../backend/docs/overview.md
-[Admin Dashboard]: ../../docs/admin-dashboard.md
-
 # Admin Settings
-
-**Last Updated**: 2026-04-10 | **Template**: frontend-template v2
 
 ## Overview
 
-Admin Settings groups six admin-only configuration sections under the "Settings" left-nav: PVC
-defaults, notebook culling, user/group access, storage classes, GPU hardware profiles, custom
-workbench images, and connection type schemas. Non-admins never see Settings; direct URLs return
-403.
+- Six admin-only configuration sections under the Settings left-nav: PVC defaults, notebook culling, user/group access, storage classes, GPU hardware profiles, custom workbench images, and connection type schemas.
+- Non-admins never see Settings; direct URLs return 403.
 
 ## UI Entry Points
 
@@ -25,27 +16,19 @@ workbench images, and connection type schemas. Non-admins never see Settings; di
 | Settings > Workbench images | `/settings/environment-setup/workbench-images` | None (admin role only) |
 | Settings > Connection types | `/settings/connection-types` | None (admin role only) |
 
-The Settings group appears only after an SSAR check on the dashboard auth resource. Direct access
-to these routes redirects non-admins to 403.
+- Settings group appears only after an SSAR check on the dashboard auth resource.
+- Direct access to these routes redirects non-admins to 403.
 
 ## Design Intent
 
-Cluster settings is intentionally one heavy page: `fetchClusterSettings()` / `updateClusterSettings()`
-against `/api/config` feed a single component that owns draft state for every sub-form and commits
-the whole payload on one save. Model-serving sub-sections appear only when
-`SupportedArea.MODEL_SERVING` is available. `useAppContext().dashboardConfig` supplies values such as
-`disableTracking` and deployment strategy for conditional UI.
-
-Storage classes use a dedicated provider pattern: raw `StorageClassKind` objects are enriched with
-ODH config parsed from the `opendatahub.io/storage-class-config` annotation so list, toggles, and
-the edit modal share one source of truth.
-
-Hardware profile routes add a second gate beyond admin: `accessAllowedRouteHoC` with SSAR on
-`create` for `HardwareProfileModel`. Connection type list/create/duplicate/edit are lazy-loaded to
-keep the initial route bundle small.
-
-Across pages, the dominant flow is: fetch (REST or k8s hooks) → local `useState` or context →
-sub-forms via props → one primary save → notification toast. Shared section chrome uses `SettingSection`, a custom wrapper around PatternFly `Card` with a consistent title/footer pattern—not a PF primitive.
+- **Cluster settings:** intentionally one heavy page—`fetchClusterSettings()` / `updateClusterSettings()` against `/api/config`; a single component owns draft state for every sub-form and commits the whole payload on one save.
+  - Model-serving sub-sections only when `SupportedArea.MODEL_SERVING` is available.
+  - `useAppContext().dashboardConfig` supplies values such as `disableTracking` and deployment strategy for conditional UI.
+- **Storage classes:** dedicated provider pattern; raw `StorageClassKind` enriched with ODH config from `opendatahub.io/storage-class-config` so list, toggles, and edit modal share one source of truth.
+- **Hardware profiles:** second gate beyond admin—`accessAllowedRouteHoC` with SSAR on `create` for `HardwareProfileModel`.
+- **Connection types:** list/create/duplicate/edit lazy-loaded to keep the initial route bundle small.
+- **Cross-page flow:** fetch (REST or k8s hooks) → local `useState` or context → sub-forms via props → one primary save → notification toast.
+- Shared section chrome: `SettingSection`, a custom wrapper around PatternFly `Card` with a consistent title/footer pattern—not a PF primitive.
 
 ## Key Concepts
 
@@ -92,10 +75,3 @@ the same service layer on save, with notifications on success or failure.
   routes.
 - **Connection types**: Sub-pages are lazy imports—parent router must keep Suspense boundaries if
   nesting grows.
-
-## Related Docs
-
-- [Guidelines] — documentation style guide
-- [BOOKMARKS] — full doc index
-- [Backend Overview] — backend architecture reference
-- [Admin Dashboard] — legacy admin panel / `groupsConfig` setup

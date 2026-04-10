@@ -1,40 +1,19 @@
-[Guidelines]: ../../../docs/guidelines.md
-[BOOKMARKS]: ../../../BOOKMARKS.md
-[Backend Overview]: ../../../backend/docs/overview.md
-[Module Federation Docs]: ../../../docs/module-federation.md
-[AutoRAG Overview]: ../../autorag/docs/overview.md
-[Install Guide]: install.md
-[Local Deployment Guide]: local-deployment-guide.md
-[Local Deployment Guide (UI)]: local-deployment-guide-ui.md
-[Kubeflow Development Guide]: kubeflow-development-guide.md
-
 # AutoML
-
-**Last Updated**: 2026-04-10 | **Template**: package-template v2
 
 ## Overview
 
-AutoML provides automated ML pipeline optimization for OpenShift AI: it orchestrates experiments through Kubeflow Pipelines using AutoGluon, evaluates configurations, and aims to produce deployable model artifacts. The package is early-stage with functional BFF infrastructure and placeholder frontend UI.
-
-**Package path**: `packages/automl/`
-
-## Deployment Modes
-
-| Mode | How to start | Notes |
-|------|-------------|-------|
-| Standalone | `make dev-start` | BFF and frontend with mocked clients; UI `http://localhost:9108`. Default for local work. |
-| Kubeflow | `make dev-start-kubeflow` | Integrates with the Kubeflow Dashboard; Material UI theme. Same dev URL as standalone. |
-| Federated | `make dev-start-federated` + `npm run dev` at repo root | Micro-frontend in the main ODH Dashboard; access via `http://localhost:4010`. |
-
-Standalone suits most local development. Kubeflow mode is for Kubeflow-shaped deployments and MUI. Federated mode requires the host dashboard running so the remote bundle and auth context load correctly.
+- Automates ML pipeline optimization for OpenShift AI using Kubeflow Pipelines and AutoGluon; evaluates configurations toward deployable model artifacts.
+- Early-stage package: functional BFF infrastructure; frontend UI is largely placeholder.
 
 ## Design Intent
 
-The Go BFF is the single ingress for AutoML traffic. It authenticates via the cluster auth chain, proxies experiment orchestration to Kubeflow Pipelines, and talks to the Kubernetes API for resources. In standalone and kubeflow modes it also serves compiled frontend assets; in federated mode it serves API routes only while the main ODH Dashboard hosts the UI.
-
-Data flow: React → BFF (`/api/v1/...`) → Kubeflow Pipelines and/or Kubernetes → JSON back to the UI. For local work without live endpoints, `cmd/main.go` supports in-memory mocks for Kubernetes and HTTP (KFP) clients.
-
-Module Federation remote name is `automl`; the host loads `./AutoMLApp` as the root app component. Main-dashboard extension wiring is still evolving as the feature matures.
+- **BFF (single ingress)**: Cluster auth chain; proxies experiment orchestration to Kubeflow Pipelines; uses the Kubernetes API for resources.
+- **Serving by deployment mode**:
+  - Standalone and kubeflow: BFF serves compiled frontend assets.
+  - Federated: BFF exposes API routes only; main ODH Dashboard hosts the UI.
+- **Data flow**: React → BFF (`/api/v1/...`) → Kubeflow Pipelines and/or Kubernetes → JSON to the UI.
+- **Local dev**: Without live endpoints, `cmd/main.go` can use in-memory mocks for Kubernetes and HTTP (KFP) clients.
+- **Module Federation**: Remote name `automl`; host loads `./AutoMLApp`. Main-dashboard extension wiring is still evolving as the feature matures.
 
 ## Key Concepts
 
@@ -61,15 +40,3 @@ Module Federation remote name is `automl`; the host loads `./AutoMLApp` as the r
 - Without a live Kubeflow Pipelines endpoint, enable the HTTP client mock or the BFF may fail at startup when mocks are off.
 - Docker deployment is not documented here; use the package `Makefile` targets for local workflows.
 - Contract tests expect `GET /healthcheck` on the BFF.
-
-## Related Docs
-
-- [Install Guide] — installation and cluster prerequisites
-- [Local Deployment Guide] — local development and cluster setup
-- [Local Deployment Guide (UI)] — UI-focused local deployment
-- [Kubeflow Development Guide] — kubeflow-mode environment
-- [Guidelines] — documentation style guide
-- [Module Federation Docs] — Module Federation in this monorepo
-- [Backend Overview] — main dashboard backend
-- [AutoRAG Overview] — sibling package with the same BFF pattern
-- [BOOKMARKS] — full doc index
