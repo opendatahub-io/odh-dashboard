@@ -131,10 +131,16 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
             : {})}
         >
           <ToolbarContent rowWrap={{ default: 'wrap' }}>
-            <Flex>
-              <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
-                <ToolbarGroup variant="filter-group" gap={{ default: 'gapMd' }} alignItems="center">
-                  <ToolbarItem style={{ flex: '1 1 auto' }}>
+            <Flex style={{ flex: 1 }}>
+              <ToolbarToggleGroup style={{ flex: 1 }} breakpoint="md" toggleIcon={<FilterIcon />}>
+                <ToolbarGroup
+                  variant="filter-group"
+                  style={{ flex: 1 }}
+                  gap={{ default: 'gapMd' }}
+                  alignItems="center"
+                  className="toolbar-fieldset-wrapper"
+                >
+                  <ToolbarItem style={{ flex: 1 }}>
                     <style>{`
                       .toolbar-fieldset-wrapper{
                         > div:first-child > div > div {
