@@ -63,7 +63,26 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
   const [registrySelectOpen, setRegistrySelectOpen] = React.useState(false);
   const [registeredModelName, setRegisteredModelName] = React.useState(displayName);
   const [modelDescription, setModelDescription] = React.useState(defaultDescription);
-  const [registryValidationError, setRegistryValidationError] = React.useState('');
+
+  // Derive validation error from current registry data to handle React Query refetches.
+  // If the user selects a registry without external_url and then the data refetches
+  // (e.g., operator reconciles and adds external_url), we want the error to clear
+  // automatically without requiring the user to re-select.
+  const registryValidationError = React.useMemo(() => {
+    if (!selectedRegistry) {
+      return '';
+    }
+    // Find the current version of the selected registry in the latest data
+    const currentRegistry = readyRegistries.find((r) => r.id === selectedRegistry.id);
+    if (!currentRegistry) {
+      return ''; // Registry was removed
+    }
+    if (!currentRegistry.external_url?.trim()) {
+      return 'This registry does not have an external URL configured and cannot be used for model registration.';
+    }
+    return '';
+  }, [selectedRegistry, readyRegistries]);
+
   // The predictor path is a relative S3 key (e.g. "pipeline/run/.../predictor").
   // The BFF resolves the bucket, endpoint, and region from the DSPA object storage
   // config and constructs the full URI for the Model Registry.
@@ -104,7 +123,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
   });
 
   const handleSubmit = React.useCallback(() => {
-    if (!selectedRegistry || !registeredModelName.trim() || !s3Path) {
+    if (!selectedRegistry || !registeredModelName.trim() || !s3Path || registryValidationError) {
       return;
     }
 
@@ -122,7 +141,14 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
       registryName: selectedRegistry.name,
       request,
     });
-  }, [selectedRegistry, registeredModelName, s3Path, modelDescription, registerMutation]);
+  }, [
+    selectedRegistry,
+    registeredModelName,
+    s3Path,
+    modelDescription,
+    registerMutation,
+    registryValidationError,
+  ]);
 
   const isFormValid =
     Boolean(selectedRegistry) &&
@@ -177,15 +203,6 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
                 selected={selectedRegistry?.id}
                 onSelect={(_event, value) => {
                   const registry = readyRegistries.find((r) => r.id === value);
-                  if (registry) {
-                    if (!registry.external_url) {
-                      setRegistryValidationError(
-                        'This registry does not have an external URL configured and cannot be used for model registration.',
-                      );
-                    } else {
-                      setRegistryValidationError('');
-                    }
-                  }
                   setSelectedRegistry(registry);
                   setRegistrySelectOpen(false);
                 }}
@@ -221,7 +238,11 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
             {registryValidationError && (
               <FormHelperText>
                 <HelperText>
-                  <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
+                  <HelperTextItem
+                    variant="error"
+                    icon={<ExclamationCircleIcon />}
+                    data-testid="registry-validation-error"
+                  >
                     {registryValidationError}
                   </HelperTextItem>
                 </HelperText>

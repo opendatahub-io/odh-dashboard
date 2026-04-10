@@ -194,16 +194,16 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 func validateResolvedModelRegistryURL(serverURL, authMethod string) error {
 	u, err := url.Parse(serverURL)
 	if err != nil || u.Scheme == "" || u.Host == "" {
-		return fmt.Errorf("invalid model registry server_url")
+		return fmt.Errorf("invalid model registry URL")
 	}
 	if authMethod == config.AuthMethodUser &&
 		u.Scheme != "https" &&
 		u.Hostname() != "localhost" &&
 		u.Hostname() != "127.0.0.1" {
-		return fmt.Errorf("model registry server_url must use https when using user token auth (except for localhost)")
+		return fmt.Errorf("model registry URL must use https when using user token auth (except for localhost)")
 	}
 	if !strings.Contains(u.Path, "/api/model_registry/") {
-		return fmt.Errorf("model registry server_url path must contain /api/model_registry/")
+		return fmt.Errorf("model registry URL path must contain /api/model_registry/")
 	}
 	return nil
 }
