@@ -143,6 +143,26 @@ describe('FileSelector', () => {
     );
   });
 
+  it('should call onUpload exactly once per file upload', async () => {
+    const user = userEvent.setup();
+    const file = new File(['test content'], 'test.json', { type: 'application/json' });
+
+    const { container } = render(
+      <FileSelector id="test-selector" onUpload={mockOnUpload} onClear={mockOnClear} />,
+    );
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(input, file);
+
+    // Verify onUpload is called exactly once (not duplicated)
+    expect(mockOnUpload).toHaveBeenCalledTimes(1);
+    expect(mockOnUpload).toHaveBeenCalledWith(
+      file,
+      expect.any(Function), // setProgress
+      expect.any(Function), // setStatus
+    );
+  });
+
   it('should show progress bar during upload', async () => {
     const user = userEvent.setup();
     const file = new File(['test content'], 'test.json', { type: 'application/json' });
