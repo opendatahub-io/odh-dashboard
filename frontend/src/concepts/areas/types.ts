@@ -63,6 +63,7 @@ export enum SupportedArea {
   LLMD_SERVING = 'llmd-serving',
   YAML_VIEWER = 'yaml-viewer',
   VLLM_ON_MAAS = 'vllm-on-maas',
+  LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
