@@ -1,5 +1,41 @@
-import type { CommandLineResult } from '../../types';
+import type { CommandLineResult, UserAuthConfig } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
+
+/**
+ * Ensures the oc CLI session is logged in as the cluster admin user.
+ * Required before setup/cleanup steps that run oc commands after a test
+ * may have switched the oc session to a non-admin user via visitWithLogin.
+ *
+ * No-ops when OC_SERVER is not set (non-localhost runs don't switch oc users).
+ */
+export const ensureAdminOcSession = (): void => {
+  const ocServer = Cypress.env('OC_SERVER');
+  if (!ocServer) {
+    return;
+  }
+  const admin: UserAuthConfig = Cypress.env('HTPASSWD_CLUSTER_ADMIN_USER');
+
+  // Check if already logged in as admin before attempting oc login,
+  // because a failed oc login --server=... overwrites the kubeconfig
+  // context and invalidates the existing session.
+  cy.exec('oc whoami', { failOnNonZeroExit: false, log: false }).then(
+    (whoami: CommandLineResult) => {
+      if (whoami.code === 0 && whoami.stdout.trim() === admin.USERNAME) {
+        return;
+      }
+
+      cy.exec(
+        `oc login -u "${admin.USERNAME}" -p "${admin.PASSWORD}" --server="${ocServer}" --insecure-skip-tls-verify`,
+        { failOnNonZeroExit: false, log: false },
+      ).then((result: CommandLineResult) => {
+        if (result.code !== 0) {
+          const maskedStderr = maskSensitiveInfo(result.stderr || result.stdout);
+          cy.log(`⚠️ oc login as admin failed: ${maskedStderr}`);
+        }
+      });
+    },
+  );
+};
 
 /**
  * Run a command and return the result exitCode and output (including stderr).
