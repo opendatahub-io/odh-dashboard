@@ -25,6 +25,7 @@ import {
 import {
   computeEmbeddingModelStatus,
   convertMaaSModelToAIModel,
+  isPlaygroundModelMatchForAIModel,
   splitLlamaModelId,
 } from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -106,8 +107,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 
   const preSelectedModels = React.useMemo(() => {
     if (existingModels.length > 0) {
-      const existingModelsSet = new Set(existingModels.map((model) => model.modelId));
-      const existingAIModels = allModels.filter((model) => existingModelsSet.has(model.model_id));
+      const existingAIModels = allModels.filter((model) =>
+        existingModels.some((m) => isPlaygroundModelMatchForAIModel(m, model)),
+      );
 
       if (extraSelectedModels && extraSelectedModels.length > 0) {
         const extraSelectedModelsSet = new Set(
@@ -232,24 +234,28 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
           });
         };
 
-        // Only act on newly selected collections — never remove models when deselecting
+        // Only act on newly selected collections — never remove models when deselecting.
+        // Use composite key (model_source_type + model_id) so a MaaS and a namespace model
+        // sharing the same model_name are not collapsed into one entry.
+        const modelKey = (m: AIModel) => `${m.model_source_type}-${m.model_id}`;
         const nextRequired = new Map<string, AIModel>();
         next.forEach((c) => {
           const m = findEmbeddingModel(c.embedding_model);
           if (m) {
-            nextRequired.set(m.model_name, m);
+            nextRequired.set(modelKey(m), m);
           }
         });
 
         setSelectedModels((prevModels) => {
-          const byName = new Map(prevModels.map((m) => [m.model_name, m]));
-          nextRequired.forEach((model, name) => byName.set(name, model));
-          return Array.from(byName.values());
+          const byKey = new Map(prevModels.map((m) => [modelKey(m), m]));
+          nextRequired.forEach((model, key) => byKey.set(key, model));
+          return Array.from(byKey.values());
         });
 
         setModelTypeMap((prevMap) => {
           const newMap = new Map(prevMap);
-          nextRequired.forEach((_, name) => newMap.set(name, 'Embedding'));
+          // modelTypeMap is keyed by model_name everywhere else — keep that convention here.
+          nextRequired.forEach((model) => newMap.set(model.model_name, 'Embedding'));
           return newMap;
         });
 

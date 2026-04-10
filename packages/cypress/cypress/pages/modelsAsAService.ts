@@ -1016,6 +1016,71 @@ class ViewSubscriptionPage {
   }
 }
 
+class PolicyPage {
+  visit(policyName?: string): void {
+    const path = policyName
+      ? `/maas/auth-policies/edit/${encodeURIComponent(policyName)}`
+      : '/maas/auth-policies/create';
+    cy.visitWithLogin(path);
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findDisplayNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-name-desc-name');
+  }
+
+  findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-name-desc-description');
+  }
+
+  findGroupsSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-groups');
+  }
+
+  selectGroup(name: string): void {
+    this.findGroupsSelect().click();
+    cy.findByRole('option', { name }).click();
+    this.findGroupsSelect().click();
+  }
+
+  findAddModelsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-add-models-button');
+  }
+
+  findAddModelsModal(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-models-modal');
+  }
+
+  findToggleModelInModal(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAddModelsModal().findByTestId(`toggle-model-${modelName}`);
+  }
+
+  findConfirmAddModelsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAddModelsModal().findByTestId('confirm-add-models');
+  }
+
+  findModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-models-table');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-cancel-button');
+  }
+
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-submit-button');
+  }
+}
+
 class AuthPoliciesPage {
   visit(): void {
     cy.visitWithLogin('/maas/auth-policies');
@@ -1108,5 +1173,6 @@ export const createSubscriptionPage = new CreateSubscriptionPage();
 export const addModelsToSubscriptionModal = new AddModelsToSubscriptionModal();
 export const editRateLimitsModal = new EditRateLimitsModal();
 export const editSubscriptionPage = new EditSubscriptionPage();
+export const policyPage = new PolicyPage();
 export const authPoliciesPage = new AuthPoliciesPage();
 export const deleteAuthPolicyModal = new DeleteAuthPolicyModal();

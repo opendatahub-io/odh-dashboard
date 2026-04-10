@@ -8,9 +8,9 @@ import CreateSubscriptionPage from '~/app/pages/subscriptions/CreateSubscription
 import AllApiKeysPage from '~/app/pages/api-keys/AllApiKeysPage';
 import { URL_PREFIX } from '~/app/utilities/const';
 import AllAuthPoliciesPage from '~/app/pages/auth-policies/AllAuthPoliciesPage';
-import CreateAuthPoliciesPage from '~/app/pages/auth-policies/CreateAuthPoliciesPage';
+import CreateAuthPolicyPage from '~/app/pages/auth-policies/CreateAuthPolicyPage';
+import EditAuthPolicyPage from '~/app/pages/auth-policies/EditAuthPolicyPage';
 import ViewAuthPoliciesPage from '~/app/pages/auth-policies/ViewAuthPoliciesPage';
-import EditAuthPoliciesPage from '~/app/pages/auth-policies/EditAuthPoliciesPage';
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();
@@ -20,9 +20,9 @@ const AppRoutes: React.FC = () => {
     return (
       <Routes>
         <Route path="/" element={<AllAuthPoliciesPage />} />
-        <Route path="/create" element={<CreateAuthPoliciesPage />} />
+        <Route path="/create" element={<CreateAuthPolicyPage />} />
         <Route path="/view/:authPolicyName" element={<ViewAuthPoliciesPage />} />
-        <Route path="/edit/:authPolicyName" element={<EditAuthPoliciesPage />} />
+        <Route path="/edit/:authPolicyName" element={<EditAuthPolicyPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     );

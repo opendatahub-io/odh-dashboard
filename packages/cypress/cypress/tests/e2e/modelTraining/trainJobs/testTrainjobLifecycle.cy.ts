@@ -100,7 +100,6 @@ describe('Verify user can monitor a training job through its lifecycle', () => {
 
     cy.step('Delete Kueue resources');
     deleteKueueResources(localQueueName, clusterQueueName, flavorName, projectName, {
-      wait: false,
       ignoreNotFound: true,
     });
   });
