@@ -237,12 +237,6 @@ module.exports = {
   },
   overrides: [
     {
-      files: ['config/*.js'],
-      rules: {
-        'import/no-extraneous-dependencies': 'off',
-      },
-    },
-    {
       files: ['./src/api/**'],
       rules: {
         'no-restricted-imports': [
