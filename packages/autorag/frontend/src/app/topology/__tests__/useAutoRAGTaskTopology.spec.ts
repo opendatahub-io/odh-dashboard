@@ -122,6 +122,15 @@ describe('useAutoRAGTaskTopology', () => {
     });
   });
 
+  it('should use terminal fallback status when run is cached but task has no details', () => {
+    const renderResult = testHook(useAutoRAGTaskTopology)(mockSpec, undefined, 'CACHED');
+    const nodes = renderResult.result.current;
+
+    nodes.forEach((node) => {
+      expect(node.data?.runStatus).toBe('Succeeded');
+    });
+  });
+
   it('should retain explicit task status instead of terminal fallback', () => {
     const runDetails = {
       task_details: [

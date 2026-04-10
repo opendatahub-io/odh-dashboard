@@ -1,7 +1,13 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useS3GetFileSchemaQuery, fetchS3File } from '~/app/hooks/queries';
+import {
+  useS3GetFileSchemaQuery,
+  fetchS3File,
+  AutomlModelSchema,
+  isRawTimeseriesModel,
+} from '~/app/hooks/queries';
+import type { AutomlRawTabularModel, AutomlRawTimeseriesModel } from '~/app/hooks/queries';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -411,3 +417,98 @@ describe('fetchS3File', () => {
     );
   });
 });
+
+/* eslint-disable camelcase */
+describe('AutomlModelSchema', () => {
+  const validTabularModel: AutomlRawTabularModel = {
+    name: 'WeightedEnsemble_L5_FULL',
+    location: {
+      predictor: 'WeightedEnsemble_L5_FULL/predictor.pkl',
+      notebook: 'WeightedEnsemble_L5_FULL/automl_predictor_notebook.ipynb',
+    },
+    metrics: {
+      test_data: { accuracy: 0.95, f1: 0.93 },
+    },
+  };
+
+  const validTimeseriesModel: AutomlRawTimeseriesModel = {
+    name: 'TemporalFusionTransformer_FULL',
+    base_model: 'TemporalFusionTransformer',
+    location: {
+      predictor: 'TemporalFusionTransformer_FULL/predictor.pkl',
+      notebooks: 'TemporalFusionTransformer_FULL/notebooks',
+      metrics: 'TemporalFusionTransformer_FULL/metrics',
+    },
+    metrics: {
+      test_data: { mase: 1.2, rmse: 0.05 },
+    },
+  };
+
+  it('should validate a tabular model', () => {
+    const result = AutomlModelSchema.safeParse(validTabularModel);
+    expect(result.success).toBe(true);
+  });
+
+  it('should validate a timeseries model', () => {
+    const result = AutomlModelSchema.safeParse(validTimeseriesModel);
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept optional model_directory', () => {
+    const tabularWithDir = {
+      ...validTabularModel,
+      location: { ...validTabularModel.location, model_directory: 'some/dir/' },
+    };
+    const timeseriesWithDir = {
+      ...validTimeseriesModel,
+      location: { ...validTimeseriesModel.location, model_directory: 'some/dir/' },
+    };
+
+    expect(AutomlModelSchema.safeParse(tabularWithDir).success).toBe(true);
+    expect(AutomlModelSchema.safeParse(timeseriesWithDir).success).toBe(true);
+  });
+
+  it('should reject a model missing required fields', () => {
+    const invalid = { name: 'bad-model' };
+    const result = AutomlModelSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject non-numeric metric values', () => {
+    const invalid = {
+      ...validTabularModel,
+      metrics: { test_data: { accuracy: 'high' } },
+    };
+    const result = AutomlModelSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('isRawTimeseriesModel', () => {
+  it('should return true for a timeseries model with base_model', () => {
+    const model: AutomlRawTimeseriesModel = {
+      name: 'TemporalFusionTransformer_FULL',
+      base_model: 'TemporalFusionTransformer',
+      location: {
+        predictor: 'predictor.pkl',
+        notebooks: 'notebooks',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { mase: 1.2 } },
+    };
+    expect(isRawTimeseriesModel(model)).toBe(true);
+  });
+
+  it('should return false for a tabular model without base_model', () => {
+    const model: AutomlRawTabularModel = {
+      name: 'WeightedEnsemble_L5_FULL',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawTimeseriesModel(model)).toBe(false);
+  });
+});
+/* eslint-enable camelcase */
