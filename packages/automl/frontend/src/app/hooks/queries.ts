@@ -213,7 +213,7 @@ export function usePipelineRunQuery(
     placeholderData: (previousData) => previousData,
     refetchInterval: (query) => {
       const state = query.state.data?.state;
-      if (!state || TERMINAL_STATES.has(state)) {
+      if (!state || isTerminalState(state)) {
         return false;
       }
       return POLL_INTERVAL_MS;
