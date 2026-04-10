@@ -2,8 +2,7 @@ import {
   ModelLocationSelectOption,
   ModelTypeLabel,
   ModelStateLabel,
-  // TODO: Uncomment once Facebook model startup bug is resolved.
-  // ModelStateToggleLabel,
+  ModelStateToggleLabel,
 } from '@odh-dashboard/model-serving/types/form-data';
 import type { DataScienceProjectData } from '../../../../types';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
@@ -20,16 +19,12 @@ import {
 import {
   checkInferenceServiceState,
   provisionProjectForModelServing,
-  // TODO: Uncomment once RHOAIENG-56694 is resolved.
-  // modelExternalTester,
 } from '../../../../utils/oc_commands/modelServing';
 import {
   createCleanHardwareProfile,
   cleanupHardwareProfiles,
 } from '../../../../utils/oc_commands/hardwareProfiles';
 import { retryableBefore } from '../../../../utils/retryableHooks';
-// TODO: Uncomment once RHOAIENG-56694 is resolved.
-// import { attemptToClickTooltip } from '../../../../utils/models';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
 
@@ -160,30 +155,10 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(modelName);
 
-      // TODO: Uncomment once RHOAIENG-56694 is resolved.
-      // The model fails to become ready, so readiness checks, external access tests,
-      // and stop/start cycle are temporarily skipped.
-
-      // //Verify the model created
-      // cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      // // Verify model deployment is ready
-      // cy.get<string>('@resourceName').then((resourceName) => {
-      //   checkInferenceServiceState(resourceName, projectName, { checkReady: true });
-      // });
-      // // Note reload is required as status tooltip was not found due to a stale element
-      // cy.reload();
-      // modelServingSection.findModelMetricsLink(modelName);
-      // attemptToClickTooltip();
-
-      // //Verify the Model is accessible externally
-      // cy.step('Verify the model is accessible externally');
-      // modelExternalTester(modelName, projectName).then(({ url, response }) => {
-      //   expect(response.status).to.equal(200);
-      //
-      //   //verify the External URL Matches the Backend
-      //   modelServingSection.findInternalExternalServiceButton().click();
-      //   modelServingSection.findExternalServicePopoverTable().should('contain', url);
-      // });
+      cy.step('Verify that the Model is created Successfully on the backend');
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, {});
+      });
 
       // Test stop/start functionality
       const kServeRow = modelServingSection.getKServeRow(modelName);
@@ -193,9 +168,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       //Ensure the modal is shown
       cy.window().then((win) => win.localStorage.setItem(STOP_MODAL_PREFERENCE_KEY, 'false'));
 
-      // TODO: Uncomment toggle text assertion once RHOAIENG-56694is resolved.
-      // kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.STOP).click();
-      kServeRow.findStateActionToggle().click();
+      kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.STOP).click();
       kServeRow.findConfirmStopModal().should('exist');
       kServeRow.findConfirmStopModalCheckbox().should('exist');
       kServeRow.findConfirmStopModalCheckbox().should('not.be.checked');
@@ -218,27 +191,19 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       //Restart the model
       cy.step('Restart the model');
-      // TODO: Uncomment toggle text assertion once RHOAIENG-56694 is resolved.
-      // kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.START).click();
-      kServeRow.findStateActionToggle().click();
+      kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.START).click();
       kServeRow.findStatusLabel(ModelStateLabel.STARTING, MODEL_STATUS_TIMEOUT).should('exist');
 
-      // TODO: Uncomment once RHOAIENG-56694 is resolved (model never reaches ready/started).
       // //Verify the model is running again
-      // cy.step('Verify the model is running again');
-      // cy.get<string>('@resourceName').then((resourceName) => {
-      //   checkInferenceServiceState(resourceName, projectName, { checkReady: true });
-      // });
+      cy.step('Verify the model is running again');
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkInferenceServiceState(resourceName, projectName, {});
+      });
+      // TODO: Uncomment once RHOAIENG-56694 is resolved (model never reaches ready/started).
       // kServeRow
       //   .findStatusLabel()
       //   .invoke('text')
       //   .should('match', new RegExp(`${ModelStateLabel.STARTING}|${ModelStateLabel.STARTED}`));
-
-      // //Verify external access still works after restart
-      // cy.step('Verify the model is still accessible externally after restart');
-      // modelExternalTester(modelName, projectName).then(({ response }) => {
-      //   expect(response.status).to.equal(200);
-      // });
 
       cy.step('Stop the model before editing');
       kServeRow.findStateActionToggle().click();

@@ -25,9 +25,6 @@ import {
 } from '../../../../utils/oc_commands/hardwareProfiles';
 import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
 import { stubClipboard, getClipboardContent } from '../../../../utils/clipboardUtils';
-import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
-
-const STOP_MODAL_PREFERENCE_KEY = 'odh.dashboard.modelServing.stop.modal.preference';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -40,8 +37,7 @@ let modelURI: string;
 let servingRuntime: string;
 let existingImage: string;
 let replaceImage: string;
-// TODO: Uncomment once RHOAIENG-56694 is resolved.
-// let yamlEditorModelName: string;
+let yamlEditorModelName: string;
 let yamlEditorModelPath: string;
 
 describe('A user can deploy an LLMD model', () => {
@@ -58,8 +54,7 @@ describe('A user can deploy an LLMD model', () => {
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
         existingImage = testData.existingImage;
         replaceImage = testData.replaceImage;
-        // TODO: Uncomment once RHOAIENG-56694 is resolved.
-        // yamlEditorModelName = testData.yamlEditorModelName;
+        yamlEditorModelName = testData.yamlEditorModelName;
         yamlEditorModelPath = 'cypress/fixtures/resources/yaml/yaml_editor_model_serving.yaml';
 
         cy.log(`Loaded project name: ${projectName}`);
@@ -68,6 +63,7 @@ describe('A user can deploy an LLMD model', () => {
       .then(() => {
         // Load Hardware Profile
         cy.log(`Load Hardware Profile Name: ${hardwareProfileResourceName}`);
+        // Cleanup Hardware Profile if it already exists
         createCleanHardwareProfile(hardwareProfileYamlPath);
       });
   });
@@ -90,7 +86,7 @@ describe('A user can deploy an LLMD model', () => {
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin(
-        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,vLLMDeploymentOnMaaS=true',
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -143,8 +139,10 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLCodeEditor().waitForReady();
 
       cy.step('Patch YAML to use CPU image (workaround for non-GPU cluster)');
+      // Add the CPU image to the containers spec so deployment works without GPU
       modelServingWizard.findYAMLCodeEditor().replaceInEditor(existingImage, replaceImage);
       modelServingWizard.findYAMLCodeEditor().copyToClipboard().click();
+      // Verify the actual copied YAML content
       getClipboardContent('copiedYAML').then((copied) => {
         expect(copied).to.have.length.at.least(1);
         const yamlContent = copied[0];
@@ -171,36 +169,16 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Verify the model is available in UI');
       modelServingSection.findModelServerDeployedName(modelName);
 
-      // TODO: Uncomment once RHOAIENG-56694 is resolved.
-      // cy.step('Verify that the Model is ready');
-      // // Image was patched in YAML editor before submit, so no post-deployment patching needed
-      // cy.get<string>('@resourceName').then((resourceName) => {
-      //   checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
-      // });
+      cy.step('Verify that the Model is ready');
+      // Image was patched in YAML editor before submit, so no post-deployment patching needed
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
 
       cy.step('Verify the model Row');
       const llmdRow = modelServingGlobal.getDeploymentRow(modelName);
-      // TODO: Uncomment once RHOAIENG-56694 is resolved.
-      // llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');
-      // llmdRow.findServingRuntime().should('have.text', servingRuntime);
-
-      // TODO: Remove stop step once RHOAIENG-56694 is resolved.
-      cy.step('Stop the model before deleting');
-      const kServeRow = modelServingSection.getKServeRow(modelName);
-      cy.window().then((win) => win.localStorage.setItem(STOP_MODAL_PREFERENCE_KEY, 'false'));
-      kServeRow.findStateActionToggle().click();
-      kServeRow.findConfirmStopModal().should('exist');
-      kServeRow.findConfirmStopModalButton().click();
-      cy.get<string>('@resourceName').then((resourceName) => {
-        checkLLMInferenceServiceState(resourceName, projectName, {
-          checkReady: false,
-          checkStopped: true,
-          requireLoadedState: false,
-        });
-      });
-      kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
-
-      cy.step('Delete the deployed model');
+      llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');
+      llmdRow.findServingRuntime().should('have.text', servingRuntime);
       llmdRow.findKebab().click();
       inferenceServiceActions.findDeleteInferenceServiceAction().click();
       deleteModelServingModal.findInput().clear().type(modelName);
@@ -215,7 +193,7 @@ describe('A user can deploy an LLMD model', () => {
     () => {
       cy.step('Log into the application as admin with YAML viewer feature flag enabled');
       cy.visitWithLogin(
-        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,vLLMDeploymentOnMaaS=true',
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -226,7 +204,6 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Deploy LLMD Model From YAML Editor');
       projectDetails.findSectionTab('model-server').click();
-      modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Enter Manual YAML editor Mode');
@@ -243,16 +220,16 @@ describe('A user can deploy an LLMD model', () => {
       });
       modelServingWizard.findYAMLCodeEditor().waitForReady();
       modelServingWizard.findSubmitButton().should('be.enabled').click();
-      // TODO: Uncomment once RHOAIENG-56694 is resolved.
-      // const llmdRow2 = modelServingGlobal.getDeploymentRow(yamlEditorModelName);
-      // checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
-      // cy.step('Verify the model Row and edit');
-      // llmdRow2.findStatusLabel(ModelStateLabel.READY).should('exist');
-      // llmdRow2.findKebab().click();
-      // inferenceServiceActions.findEditInferenceServiceAction().click();
-      // modelServingWizard.findYAMLEditFallbackAlert().should('exist');
-      // modelServingWizard.findYAMLCodeEditor().findInput().should('not.be.empty');
-      // modelServingWizard.findSubmitButton().should('be.enabled').click();
+      const llmdRow = modelServingGlobal.getDeploymentRow(yamlEditorModelName);
+      checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
+
+      cy.step('Verify the model Row');
+      llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');
+      llmdRow.findKebab().click();
+      inferenceServiceActions.findEditInferenceServiceAction().click();
+      modelServingWizard.findYAMLEditFallbackAlert().should('exist');
+      modelServingWizard.findYAMLCodeEditor().findInput().should('not.be.empty');
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
     },
   );
 });
