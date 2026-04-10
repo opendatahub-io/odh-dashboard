@@ -949,6 +949,10 @@ class EditRateLimitsModal extends Modal {
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('save-rate-limits');
   }
+
+  findHelperText(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`edit-token-limit-${index}-helper-text`);
+  }
 }
 
 class DeleteSubscriptionModal extends DeleteModal {
