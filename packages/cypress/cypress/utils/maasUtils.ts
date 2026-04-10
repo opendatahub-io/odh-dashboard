@@ -283,15 +283,18 @@ export const mockUpdateSubscriptionResponse = (
 };
 
 export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {
-  const policy = mockAuthPolicies().find((p) => p.name === name) ?? mockAuthPolicies()[0];
+  const policy = mockAuthPolicies().find((p) => p.name === name);
+  if (!policy) {
+    throw new Error(`mockPolicyInfo: no policy found with name "${name}"`);
+  }
   return {
     policy,
     modelRefs: mockModelRefSummaries(),
   };
 };
 
-export const mockCreatePolicyResponse = (): MaaSAuthPolicy => ({
-  name: 'new-policy-from-test',
+export const mockCreatePolicyResponse = (name = 'new-policy-from-test'): MaaSAuthPolicy => ({
+  name,
   namespace: 'maas-system',
   phase: 'Pending',
   modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
