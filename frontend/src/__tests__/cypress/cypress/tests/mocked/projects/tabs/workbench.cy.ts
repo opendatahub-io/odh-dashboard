@@ -1380,7 +1380,7 @@ describe('Workbench page', () => {
         statusCode: 404,
         body: mock404Error({}),
       },
-    );
+    ).as('getDeletedHwProfile');
 
     cy.interceptK8sList(
       { model: NotebookModel, ns: 'test-project' },
@@ -1410,6 +1410,7 @@ describe('Workbench page', () => {
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Stopped');
+    cy.wait('@getDeletedHwProfile');
 
     cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('startWorkbench');
     cy.interceptK8s(

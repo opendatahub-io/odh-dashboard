@@ -13,9 +13,9 @@ const useDeletedHardwareProfilePatches = (notebook: NotebookKind): Patch[] => {
     notebook.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'] ||
     dashboardNamespace;
 
-  const [, loaded, loadError] = useHardwareProfile(hardwareProfileNamespace, hardwareProfileName);
+  const [, , loadError] = useHardwareProfile(hardwareProfileNamespace, hardwareProfileName);
 
-  if (hardwareProfileName && loaded && loadError && getGenericErrorCode(loadError) === 404) {
+  if (hardwareProfileName && loadError && getGenericErrorCode(loadError) === 404) {
     return REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH;
   }
   return [];
