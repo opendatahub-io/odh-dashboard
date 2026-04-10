@@ -58,6 +58,11 @@ describe('createNode', () => {
 });
 
 describe('measureTextWidth via createNode', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.resetModules();
+  });
+
   it('should return NODE_WIDTH when canvas context is unavailable', () => {
     jest.resetModules();
 
@@ -82,8 +87,6 @@ describe('measureTextWidth via createNode', () => {
     );
 
     expect(node.width).toBe(NODE_WIDTH);
-
-    jest.restoreAllMocks();
   });
 
   it('should return width wider than NODE_WIDTH for long labels when canvas is available', () => {
@@ -114,7 +117,5 @@ describe('measureTextWidth via createNode', () => {
 
     expect(node.width).toBeGreaterThan(NODE_WIDTH);
     expect(mockMeasureText).toHaveBeenCalledWith(longLabel);
-
-    jest.restoreAllMocks();
   });
 });
