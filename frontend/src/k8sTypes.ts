@@ -1312,6 +1312,7 @@ export type DashboardCommonConfig = {
   deploymentWizardYAMLViewer?: boolean;
   externalVectorStores?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
+  llmGatewayField?: boolean;
   promptManagement?: boolean;
 };
 

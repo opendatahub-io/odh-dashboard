@@ -16,6 +16,7 @@ export const techPreviewFlags = {
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   vLLMDeploymentOnMaaS: false,
+  llmGatewayField: false,
   promptManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
@@ -234,6 +235,11 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.VLLM_ON_MAAS]: {
     featureFlags: ['vLLMDeploymentOnMaaS'],
+    reliantAreas: [SupportedArea.LLMD_SERVING],
+  },
+  [SupportedArea.LLMD_GATEWAY_FIELD]: {
+    featureFlags: ['llmGatewayField'],
+    reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.MAAS_AUTH_POLICIES]: {
     featureFlags: ['maasAuthPolicies'],
