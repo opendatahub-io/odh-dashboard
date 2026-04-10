@@ -142,12 +142,12 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
         checkLLMInferenceServiceState(resourceName, projectName, {});
       });
 
-      cy.step('Verify LLMInferenceServiceConfig exists in the applications namespace');
-      checkLLMInferenceServiceConfigState(
-        llmInferenceServiceConfigName,
-        Cypress.env('APPLICATIONS_NAMESPACE'),
-        { containerImage: 'quay.io/pierdipi/vllm-cpu:latest' },
-      );
+      cy.step('Verify LLMInferenceServiceConfig was copied to the project namespace');
+      cy.get<string>('@resourceName').then((resourceName) => {
+        checkLLMInferenceServiceConfigState(resourceName, projectName, {
+          containerImage: 'quay.io/pierdipi/vllm-cpu:latest',
+        });
+      });
 
       cy.step('Stop the model before deleting');
       const kServeRow = modelServingSection.getKServeRow(modelName);
