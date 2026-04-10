@@ -28,6 +28,7 @@ func (f *RealClientFactory) CreateClient(baseURL string, authToken string, insec
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: insecureSkipVerify,
 				RootCAs:            rootCAs,
+				MinVersion:         tls.VersionTLS12,
 			},
 		},
 	}

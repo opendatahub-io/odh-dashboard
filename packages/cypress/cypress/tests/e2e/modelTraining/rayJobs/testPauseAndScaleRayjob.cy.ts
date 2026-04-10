@@ -118,7 +118,6 @@ describe('Verify pause, scale worker nodes, and delete RayJob', () => {
     if (projectName && localQueueName && clusterQueueName && flavorName) {
       cy.step('Delete Kueue resources');
       deleteKueueResources(localQueueName, clusterQueueName, flavorName, projectName, {
-        wait: false,
         ignoreNotFound: true,
       });
     } else {

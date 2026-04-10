@@ -18,19 +18,33 @@ import {
   SubscriptionModelEntry,
 } from '~/app/types/subscriptions';
 
-type AddModelsModalProps = {
+export type AddModelsModalSource = 'subscription' | 'policy';
+
+const CURRENT_SELECTION_LABEL: Record<AddModelsModalSource, string> = {
+  subscription: 'This subscription',
+  policy: 'This policy',
+};
+
+export type AddModelsModalProps = {
   availableModelRefs: MaaSModelRefSummary[];
   allSubscriptions: MaaSSubscription[];
   allPolicies: MaaSAuthPolicy[];
-  currentModels: SubscriptionModelEntry[];
+  currentModels: Pick<SubscriptionModelEntry, 'modelRefSummary'>[];
   onAdd: (refs: MaaSModelRefSummary[]) => void;
   onRemove: (refs: MaaSModelRefSummary[]) => void;
   onClose: () => void;
+  modalSource: AddModelsModalSource;
+  ariaLabel?: string;
+  title?: string;
+  description?: React.ReactNode;
 };
 
 type SortColumn = 'name' | 'namespace' | 'modelId';
 
 const modelRefKey = (namespace: string, name: string): string => `${namespace}/${name}`;
+
+const defaultDescription =
+  'Select model endpoints that are available as a service to add to this subscription.';
 
 const AddModelsModal: React.FC<AddModelsModalProps> = ({
   availableModelRefs,
@@ -40,7 +54,13 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
   onAdd,
   onRemove,
   onClose,
+  modalSource,
+  ariaLabel = 'Add models to subscription',
+  title = 'Add models to subscription',
+  description = defaultDescription,
 }) => {
+  const fromSubscription = modalSource === 'subscription';
+
   const [filter, setFilter] = React.useState('');
   const [sortColumn, setSortColumn] = React.useState<SortColumn>('name');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
@@ -81,7 +101,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
     return map;
   }, [allPolicies]);
 
-  const isInSubscription = (ref: MaaSModelRefSummary) => {
+  const isInCurrentSelection = (ref: MaaSModelRefSummary) => {
     const key = modelRefKey(ref.namespace, ref.name);
     return (currentModelKeys.has(key) && !pendingRemoves.has(key)) || pendingAdds.has(key);
   };
@@ -187,20 +207,20 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
     onClose();
   };
 
+  const currentSelectionLabel = CURRENT_SELECTION_LABEL[modalSource];
+
   return (
     <Modal
       isOpen
       onClose={onClose}
       variant="large"
-      aria-label="Add models to subscription"
+      aria-label={ariaLabel}
       data-testid="add-models-modal"
     >
-      <ModalHeader title="Add models to subscription" />
+      <ModalHeader title={title} />
       <ModalBody>
         <Stack hasGutter>
-          <StackItem>
-            Select model endpoints that are available as a service to add to this subscription.
-          </StackItem>
+          <StackItem>{description}</StackItem>
           <StackItem>
             <SearchInput
               placeholder="Filter by name or description"
@@ -225,7 +245,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
               <Tbody>
                 {filteredModels.map((ref) => {
                   const key = modelRefKey(ref.namespace, ref.name);
-                  const inSub = isInSubscription(ref);
+                  const selected = isInCurrentSelection(ref);
                   const subs = subscriptionsByModel.get(key) ?? [];
                   const policies = policiesByModel.get(key) ?? [];
 
@@ -239,30 +259,37 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                       <Td dataLabel="Project">{ref.namespace}</Td>
                       <Td dataLabel="Model ID">{ref.modelRef.name}</Td>
                       <Td dataLabel="Subscriptions">
-                        {inSub && (
+                        {selected && fromSubscription && (
                           <Label color="green" isCompact>
-                            This subscription
+                            {currentSelectionLabel}
                           </Label>
                         )}
                         {subs.map((sub) => (
                           <div key={sub}>{sub}</div>
                         ))}
-                        {!inSub && subs.length === 0 && 'None'}
+                        {(fromSubscription ? !selected && subs.length === 0 : subs.length === 0) &&
+                          'None'}
                       </Td>
                       <Td dataLabel="Policies">
+                        {selected && !fromSubscription && (
+                          <Label color="green" isCompact>
+                            {currentSelectionLabel}
+                          </Label>
+                        )}
                         {policies.map((policy) => (
                           <div key={policy}>{policy}</div>
                         ))}
-                        {policies.length === 0 && 'None'}
+                        {(fromSubscription || !selected) && policies.length === 0 && 'None'}
                       </Td>
                       <Td isActionCell style={{ textAlign: 'center' }}>
                         <Button
-                          variant={inSub ? 'secondary' : 'link'}
-                          isDanger={inSub}
+                          variant={selected ? 'secondary' : 'link'}
+                          size={selected ? 'sm' : 'default'}
+                          isDanger={selected}
                           onClick={() => handleToggleModel(ref)}
                           data-testid={`toggle-model-${ref.name}`}
                         >
-                          {inSub ? 'Remove model' : 'Add model'}
+                          {selected ? 'Remove model' : 'Add model'}
                         </Button>
                       </Td>
                     </Tr>

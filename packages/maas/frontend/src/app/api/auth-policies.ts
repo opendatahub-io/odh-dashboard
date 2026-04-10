@@ -1,13 +1,42 @@
 import {
   APIOptions,
-  restGET,
+  assembleModArchBody,
   handleRestFailures,
   isModArchResponse,
+  restCREATE,
   restDELETE,
+  restGET,
+  restUPDATE,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { MaaSAuthPolicy } from '~/app/types/subscriptions';
+import type {
+  CreatePolicyRequest,
+  PolicyInfoResponse,
+  UpdatePolicyRequest,
+} from '~/app/types/auth-policies';
+import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
 import { isMaaSAuthPolicy } from './subscriptions';
+
+const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
+
+const isModelReference = (v: unknown): v is { kind: string; name: string } =>
+  isRecord(v) && typeof v.kind === 'string' && typeof v.name === 'string';
+
+const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
+  isRecord(v) &&
+  typeof v.name === 'string' &&
+  typeof v.namespace === 'string' &&
+  (v.displayName === undefined || typeof v.displayName === 'string') &&
+  (v.description === undefined || typeof v.description === 'string') &&
+  isModelReference(v.modelRef) &&
+  (v.phase === undefined || typeof v.phase === 'string') &&
+  (v.endpoint === undefined || typeof v.endpoint === 'string');
+
+const isPolicyInfoResponse = (v: unknown): v is PolicyInfoResponse =>
+  isRecord(v) &&
+  isMaaSAuthPolicy(v.policy) &&
+  Array.isArray(v.modelRefs) &&
+  v.modelRefs.every(isMaaSModelRefSummary);
 
 const isDeleteAuthPolicyResponse = (v: unknown): v is { message: string } =>
   typeof v === 'object' && v !== null && 'message' in v && typeof v.message === 'string';
@@ -20,6 +49,62 @@ export const listAuthPolicies =
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/all-policies`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<MaaSAuthPolicy[]>(response) && response.data.every(isMaaSAuthPolicy)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+/** GET /api/v1/view-policy/:name - Policy details for edit / view */
+export const getPolicyInfo =
+  (name: string, hostPath = '') =>
+  (opts: APIOptions): Promise<PolicyInfoResponse> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/view-policy/${encodeURIComponent(name)}`,
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<unknown>(response) && isPolicyInfoResponse(response.data)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+/** POST /api/v1/new-policy - Create policy */
+export const createAuthPolicy =
+  (hostPath = '') =>
+  (opts: APIOptions, request: CreatePolicyRequest): Promise<MaaSAuthPolicy> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/new-policy`,
+        assembleModArchBody(request),
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<unknown>(response) && isMaaSAuthPolicy(response.data)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+/** PUT /api/v1/update-policy/:name - Update policy */
+export const updateAuthPolicy =
+  (name: string, hostPath = '') =>
+  (opts: APIOptions, request: UpdatePolicyRequest): Promise<MaaSAuthPolicy> =>
+    handleRestFailures(
+      restUPDATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/update-policy/${encodeURIComponent(name)}`,
+        assembleModArchBody(request),
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<unknown>(response) && isMaaSAuthPolicy(response.data)) {
         return response.data;
       }
       throw new Error('Invalid response format');
