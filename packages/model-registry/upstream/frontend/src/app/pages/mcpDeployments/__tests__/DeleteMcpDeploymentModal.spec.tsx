@@ -44,43 +44,31 @@ describe('DeleteMcpDeploymentModal', () => {
     renderModal();
     const modal = screen.getByTestId('delete-mcp-deployment-modal');
     expect(modal.textContent).toContain('to confirm deletion');
-    expect(screen.getAllByText('kubernetes-mcp').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('kubernetes-mcp').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('should render the helper text below the input', () => {
+  it('should not use a placeholder on the confirmation input', () => {
     renderModal();
-    expect(
-      screen.getByText('Enter the deployment name exactly as shown to confirm deletion.'),
-    ).toBeInTheDocument();
-  });
-
-  it('should show the input with the deployment name as placeholder', () => {
-    renderModal();
-    expect(screen.getByTestId('delete-modal-input')).toHaveAttribute(
-      'placeholder',
-      'kubernetes-mcp',
-    );
+    expect(screen.getByTestId('delete-modal-input')).not.toHaveAttribute('placeholder');
   });
 
   it('should have the delete button disabled initially', () => {
     renderModal();
-    expect(screen.getByRole('button', { name: /delete mcp server deployment/i })).toBeDisabled();
+    expect(screen.getByTestId('delete-modal-confirm-button')).toBeDisabled();
   });
 
   it('should keep the delete button disabled when incorrect name is typed', async () => {
     const user = userEvent.setup();
     renderModal();
     await user.type(screen.getByTestId('delete-modal-input'), 'wrong-name');
-    expect(screen.getByRole('button', { name: /delete mcp server deployment/i })).toBeDisabled();
+    expect(screen.getByTestId('delete-modal-confirm-button')).toBeDisabled();
   });
 
   it('should enable the delete button when the exact name is typed', async () => {
     const user = userEvent.setup();
     renderModal();
     await user.type(screen.getByTestId('delete-modal-input'), 'kubernetes-mcp');
-    expect(
-      screen.getByRole('button', { name: /delete mcp server deployment/i }),
-    ).not.toBeDisabled();
+    expect(screen.getByTestId('delete-modal-confirm-button')).not.toBeDisabled();
   });
 
   it('should call onClose(false) when cancel is clicked', () => {
@@ -97,7 +85,7 @@ describe('DeleteMcpDeploymentModal', () => {
     renderModal(onClose);
 
     await user.type(screen.getByTestId('delete-modal-input'), 'kubernetes-mcp');
-    fireEvent.click(screen.getByRole('button', { name: /delete mcp server deployment/i }));
+    fireEvent.click(screen.getByTestId('delete-modal-confirm-button'));
 
     await waitFor(() => expect(onClose).toHaveBeenCalledWith(true));
   });
@@ -125,9 +113,9 @@ describe('DeleteMcpDeploymentModal', () => {
     renderModal();
 
     await user.type(screen.getByTestId('delete-modal-input'), 'kubernetes-mcp');
-    fireEvent.click(screen.getByRole('button', { name: /delete mcp server deployment/i }));
+    fireEvent.click(screen.getByTestId('delete-modal-confirm-button'));
 
-    expect(screen.getByRole('button', { name: /delete mcp server deployment/i })).toBeDisabled();
+    expect(screen.getByTestId('delete-modal-confirm-button')).toBeDisabled();
 
     resolveDelete();
   });
@@ -140,7 +128,7 @@ describe('DeleteMcpDeploymentModal', () => {
     renderModal();
 
     await user.type(screen.getByTestId('delete-modal-input'), 'kubernetes-mcp');
-    fireEvent.click(screen.getByRole('button', { name: /delete mcp server deployment/i }));
+    fireEvent.click(screen.getByTestId('delete-modal-confirm-button'));
 
     await waitFor(() =>
       expect(screen.getByTestId('delete-modal-error-message-alert')).toBeInTheDocument(),
@@ -157,7 +145,7 @@ describe('DeleteMcpDeploymentModal', () => {
     renderModal(onClose);
 
     await user.type(screen.getByTestId('delete-modal-input'), 'kubernetes-mcp');
-    fireEvent.click(screen.getByRole('button', { name: /delete mcp server deployment/i }));
+    fireEvent.click(screen.getByTestId('delete-modal-confirm-button'));
 
     await waitFor(() =>
       expect(screen.getByTestId('delete-modal-error-message-alert')).toBeInTheDocument(),

@@ -65,20 +65,20 @@ describe('getStatusInfo', () => {
     const result = getStatusInfo(McpDeploymentPhase.RUNNING);
     expect(result.label).toBe('Available');
     expect(result.status).toBe('success');
-    expect(result.tooltip).toBe('This MCP server is running and available for connections.');
+    expect(result.popoverBody).toBe('The pod and its containers are healthy and running.');
   });
 
   it('should return unavailable status for Failed phase', () => {
     const result = getStatusInfo(McpDeploymentPhase.FAILED);
     expect(result.label).toBe('Unavailable');
     expect(result.status).toBe('danger');
-    expect(result.tooltip).toBe('This MCP server has failed and is not available.');
+    expect(result.popoverBody).toBe('At least 1 container in the pod failed.');
   });
 
   it('should return pending status for Pending phase', () => {
     const result = getStatusInfo(McpDeploymentPhase.PENDING);
     expect(result.label).toBe('Pending');
     expect(result.status).toBe('info');
-    expect(result.tooltip).toBe('This MCP server is starting up and will be available shortly.');
+    expect(result.popoverBody).toBe('This MCP server is starting up and will be available shortly.');
   });
 });

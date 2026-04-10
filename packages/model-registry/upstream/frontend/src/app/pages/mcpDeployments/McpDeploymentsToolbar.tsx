@@ -21,7 +21,7 @@ const McpDeploymentsToolbar: React.FC<McpDeploymentsToolbarProps> = ({
     <ToolbarContent>
       <ToolbarItem>
         <SearchInput
-          placeholder="Filter by name or server name"
+          placeholder="Filter by name or MCP server"
           value={filterText}
           onChange={(_event, value) => onFilterChange(value)}
           onClear={() => onClearFilters()}
