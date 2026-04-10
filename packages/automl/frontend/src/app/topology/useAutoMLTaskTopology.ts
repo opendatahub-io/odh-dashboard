@@ -8,10 +8,12 @@ const TASK_DISPLAY_NAMES: Record<string, string> = {
   'automl-data-loader': 'Input data loader',
   'timeseries-data-loader': 'Input data loader',
   'models-selection': 'Model selection',
-  'timeseries-models-selection': 'Model selection',
+  'autogluon-timeseries-models-selection': 'Model selection',
   'for-loop-1': 'Model generation', // used in timeseries
   'autogluon-models-training': 'Model generation', // used in tabular
+  'autogluon-timeseries-models-full-refit': 'Model generation',
   'leaderboard-evaluation': 'Leaderboard evaluation',
+  'timeseries-leaderboard-evaluation': 'Leaderboard evaluation',
 };
 
 const humanizeTaskName = (name: string): string =>
