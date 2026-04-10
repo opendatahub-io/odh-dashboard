@@ -196,7 +196,7 @@ const buildTimeseriesLocation = (
   taskId: string,
   modelName: string,
 ): AutomlModel['location'] => {
-  const base = `autogluon-timeseries-training-pipeline/${runId}/timeseries-models-full-refit/${taskId}/model_artifact/${modelName}`;
+  const base = `autogluon-timeseries-training-pipeline/${runId}/autogluon-timeseries-models-full-refit/${taskId}/model_artifact/${modelName}`;
   return {
     model_directory: `${base}/`,
     predictor: `${base}/predictor`,
