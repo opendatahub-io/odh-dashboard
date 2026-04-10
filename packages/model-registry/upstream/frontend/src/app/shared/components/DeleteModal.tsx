@@ -79,7 +79,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
               <FlexItem>
                 Type <strong>{deleteNameSanitized}</strong> to confirm
-                {genericLabel ? '' : ' deletion'}:{confirmationRequiredIndicator ? ' *' : ''}
+                {genericLabel ? '' : ' deletion'}:
+                {confirmationRequiredIndicator ? ' *' : ''}
               </FlexItem>
 
               <FlexItem>
