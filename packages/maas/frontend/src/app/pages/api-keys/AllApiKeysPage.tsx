@@ -28,7 +28,7 @@ const AllApiKeysPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
 
-  const [isMaasAdmin] = useIsMaasAdmin();
+  const [isMaasAdmin, isMaasAdminLoaded] = useIsMaasAdmin();
 
   const [filterData, setFilterData] = React.useState<ApiKeyFilterDataType>(initialApiKeyFilterData);
   const [page, setPage] = React.useState(1);
@@ -140,7 +140,7 @@ const AllApiKeysPage: React.FC = () => {
         />
       )}
 
-      {loaded && (
+      {loaded && isMaasAdminLoaded && (
         <PageSection isFilled>
           <ApiKeysTable
             onRevokeApiKey={setRevokeApiKey}
@@ -156,6 +156,7 @@ const AllApiKeysPage: React.FC = () => {
             onSort={onSort}
             onClearFilters={onClearFilters}
             isFetching={isFetching}
+            isMaasAdmin={isMaasAdmin}
             toolbarContent={
               <ApiKeysToolbar
                 isMaasAdmin={isMaasAdmin}

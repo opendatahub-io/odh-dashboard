@@ -117,7 +117,7 @@ type EnvConfig struct {
 	// AutoRAGPipelineNamePrefix is the prefix used to identify AutoRAG managed pipelines
 	// during automatic pipeline discovery. The discovery process searches for pipelines
 	// with display names starting with this prefix (case-insensitive).
-	// Default: "autorag"
+	// Default: "documents-rag-optimization-pipeline"
 	AutoRAGPipelineNamePrefix string
 
 	// ─── TLS ────────────────────────────────────────────────────

@@ -70,6 +70,29 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 			},
 			CreationTimestamp: timePtr(time.Date(2025, 2, 15, 8, 0, 0, 0, time.UTC)),
 		},
+		{
+			Name:        "negative-priority-sub",
+			Namespace:   "maas-system",
+			DisplayName: "Negative Priority Subscription",
+			Description: "Negative priority subscription for testing.",
+			Phase:       "Active",
+			Priority:    -10,
+			Owner: models.OwnerSpec{
+				Groups: []models.GroupReference{
+					{Name: "system:authenticated"},
+				},
+			},
+			ModelRefs: []models.ModelSubscriptionRef{
+				{
+					Name:      "flan-t5-small",
+					Namespace: "maas-models",
+					TokenRateLimits: []models.TokenRateLimit{
+						{Limit: 10000, Window: "24h"},
+					},
+				},
+			},
+			CreationTimestamp: timePtr(time.Date(2025, 2, 15, 8, 0, 0, 0, time.UTC)),
+		},
 	}
 }
 
@@ -100,6 +123,20 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			Phase:     "Active",
 			ModelRefs: []models.ModelRef{
 				{Name: "flan-t5-small", Namespace: "maas-models"},
+			},
+			Subjects: models.SubjectSpec{
+				Groups: []models.GroupReference{
+					{Name: "system:authenticated"},
+				},
+			},
+		},
+		{
+			Name:      "negative-priority-sub-policy",
+			Namespace: "maas-system",
+			Phase:     "Active",
+			ModelRefs: []models.ModelRef{
+				{Name: "flan-t5-small", Namespace: "maas-models"},
+				{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
 			},
 			Subjects: models.SubjectSpec{
 				Groups: []models.GroupReference{

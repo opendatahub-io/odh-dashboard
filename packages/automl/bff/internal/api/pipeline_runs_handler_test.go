@@ -26,13 +26,13 @@ func withDiscoveredPipelinesAutoML(req *http.Request) *http.Request {
 		constants.PipelineTypeTimeSeries: {
 			PipelineID:        tsIDs.PipelineID,
 			PipelineVersionID: tsIDs.LatestVersionID,
-			PipelineName:      "automl-timeseries-pipeline",
+			PipelineName:      "autogluon-timeseries-training-pipeline",
 			Namespace:         "test-namespace",
 		},
 		constants.PipelineTypeTabular: {
 			PipelineID:        tabIDs.PipelineID,
 			PipelineVersionID: tabIDs.LatestVersionID,
-			PipelineName:      "automl-tabular-pipeline",
+			PipelineName:      "autogluon-tabular-training-pipeline",
 			Namespace:         "test-namespace",
 		},
 	}
@@ -214,7 +214,7 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 
-	t.Run("should return 500 when no AutoML pipelines discovered", func(t *testing.T) {
+	t.Run("should return empty runs list when no AutoML pipelines discovered", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(
 			http.MethodGet,
@@ -232,17 +232,14 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 
 		app.PipelineRunsHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		assert.Equal(t, http.StatusOK, rr.Code)
 		var response struct {
-			Error struct {
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			} `json:"error"`
+			Data models.PipelineRunsData `json:"data"`
 		}
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, "500", response.Error.Code)
-		assert.Contains(t, response.Error.Message, "no AutoML pipelines found")
+		assert.NotNil(t, response.Data.Runs)
+		assert.Len(t, response.Data.Runs, 0)
 	})
 
 	t.Run("should reject invalid pageSize", func(t *testing.T) {

@@ -23,7 +23,7 @@ func newMinimalTestApp() *App {
 	return &App{
 		config: config.EnvConfig{
 			AuthMethod:                config.AuthMethodInternal,
-			AutoRAGPipelineNamePrefix: "autorag",
+			AutoRAGPipelineNamePrefix: "documents-rag-optimization-pipeline",
 		},
 		logger:       slog.Default(),
 		repositories: repositories.NewRepositories(slog.Default()),
@@ -66,7 +66,7 @@ func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterfa
 	discovered := &repositories.DiscoveredPipeline{
 		PipelineID:        ids.PipelineID,
 		PipelineVersionID: ids.LatestVersionID,
-		PipelineName:      "autorag-pipeline",
+		PipelineName:      "documents-rag-optimization-pipeline",
 		Namespace:         "test-namespace",
 	}
 	pipelines := map[string]*repositories.DiscoveredPipeline{"autorag": discovered}

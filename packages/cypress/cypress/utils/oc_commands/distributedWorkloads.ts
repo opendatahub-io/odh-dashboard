@@ -50,8 +50,7 @@ export const createKueueResources = (
  * @param {string} resourceFlavor - The name of the resource flavor to delete.
  * @param {string} projectName - The namespace/project in which the resources exist.
  * @param {object} options - Configuration options for the deletion operation.
- * @param {number} options.timeout - Timeout in milliseconds for the command (only used when wait is true).
- * @param {boolean} options.wait - Whether to wait for the deletion to complete (default: true).
+ * @param {number} options.timeout - Timeout in milliseconds for the exec command (default: 120 000).
  * @param {boolean} options.ignoreNotFound - Whether to ignore errors when resources are not found (default: false).
  * @returns {Cypress.Chainable<CommandLineResult>} A Cypress chainable resolving with the result of the deletion command.
  */
@@ -60,34 +59,37 @@ export const deleteKueueResources = (
   clusterQueueName: string,
   resourceFlavor: string,
   projectName: string,
-  options: { timeout?: number; wait?: boolean; ignoreNotFound?: boolean } = {},
+  options: { timeout?: number; ignoreNotFound?: boolean } = {},
 ): Cypress.Chainable<CommandLineResult> => {
-  const { timeout, wait = true, ignoreNotFound = false } = options;
+  const { timeout = 120000, ignoreNotFound = false } = options;
 
-  // Create the OC command to delete the resources
-  const ocCommand = `
-      oc delete LocalQueue ${localQueueName} -n ${projectName} && 
-      oc delete ClusterQueue ${clusterQueueName} && 
-      oc delete ResourceFlavor ${resourceFlavor}
-    `;
+  const ignoreFlag = ignoreNotFound ? ' --ignore-not-found' : '';
+
+  // Use ';' so each delete runs independently — '&&' would skip
+  // ClusterQueue/ResourceFlavor if LocalQueue deletion fails or hangs.
+  const ocCommand = [
+    `oc delete LocalQueue ${localQueueName} -n ${projectName}${ignoreFlag}`,
+    `oc delete ClusterQueue ${clusterQueueName}${ignoreFlag}`,
+    `oc delete ResourceFlavor ${resourceFlavor}${ignoreFlag}`,
+  ].join(' ; ');
 
   cy.log(`Executing: ${ocCommand}`);
 
-  // Only apply timeout if we're waiting for the deletion
   const execOptions = {
     failOnNonZeroExit: false,
-    ...(wait && timeout && { timeout }),
+    timeout,
   };
 
   return cy.exec(ocCommand, execOptions).then((result) => {
-    if (result.code !== 0) {
-      cy.log(`ERROR deleting Kueue resources
-                stdout: ${result.stdout}
-                stderr: ${result.stderr}`);
-      if (!ignoreNotFound) {
-        throw new Error(`Command failed with code ${result.code}`);
-      }
+    if (result.code !== 0 && !ignoreNotFound) {
+      throw new Error(`Command failed with code ${result.code}`);
     }
-    return result;
+    if (result.code !== 0) {
+      Cypress.log({
+        name: 'WARN',
+        message: `Kueue resource deletion returned code ${result.code} (ignored)\nstdout: ${result.stdout}\nstderr: ${result.stderr}`,
+      });
+    }
+    return cy.wrap(result);
   });
 };

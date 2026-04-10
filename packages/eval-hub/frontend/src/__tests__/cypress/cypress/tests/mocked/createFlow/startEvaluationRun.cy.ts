@@ -91,7 +91,7 @@ const navigateToCollectionStart = () => {
   );
 
   chooseCollectionPage.visit(NAMESPACE);
-  chooseCollectionPage.findCollectionCard('col-safety').findByText('Use this collection').click();
+  chooseCollectionPage.findUseBenchmarkSuiteButton('col-safety').click();
 
   startEvaluationRunPage.findForm().should('exist');
 };
@@ -239,6 +239,12 @@ describe('Start Evaluation Run - Collection Mode', () => {
     cy.wait('@createCollectionJob').then((interception) => {
       expect(interception.request.body).to.have.property('collection');
       expect(interception.request.body.collection).to.have.property('id', 'col-safety');
+      expect(interception.request.body.collection).to.have.property('benchmarks');
+      expect(interception.request.body.collection.benchmarks).to.have.length(2);
+      expect(interception.request.body.collection.benchmarks[0]).to.have.property(
+        'id',
+        'harmful_request_refusal',
+      );
       expect(interception.request.body).to.not.have.property('benchmarks');
     });
 

@@ -1,4 +1,15 @@
 import {
+  Bullseye,
+  Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  Label,
+  Skeleton,
+  Tooltip,
+} from '@patternfly/react-core';
+import { StarIcon } from '@patternfly/react-icons';
+import {
   ActionsColumn,
   InnerScrollContainer,
   Table,
@@ -9,27 +20,16 @@ import {
   Tr,
   type ThProps,
 } from '@patternfly/react-table';
-import { StarIcon } from '@patternfly/react-icons';
-import {
-  Bullseye,
-  Button,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateVariant,
-  Label,
-  Skeleton,
-  Tooltip,
-} from '@patternfly/react-core';
 import React from 'react';
-import { useParams } from 'react-router';
-import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
-import {
-  getOptimizedMetricForTask,
-  formatMetricValue,
-  formatMetricName,
-} from '~/app/utilities/utils';
-import { RuntimeStateKF } from '~/app/types/pipeline';
+import { Link, useParams } from 'react-router';
 import AutomlRunInProgress from '~/app/components/empty-states/AutomlRunInProgress';
+import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
+import { RuntimeStateKF } from '~/app/types/pipeline';
+import {
+  formatMetricName,
+  formatMetricValue,
+  getOptimizedMetricForTask,
+} from '~/app/utilities/utils';
 import './AutomlLeaderboard.scss';
 
 type LeaderboardEntry = {
@@ -51,7 +51,7 @@ function AutomlLeaderboard({
   onClickSaveNotebook,
   onRegisterModel,
 }: AutomlLeaderboardProps): React.JSX.Element | null {
-  const { namespace } = useParams<{ namespace: string }>();
+  const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
   const { models, parameters, modelsLoading, pipelineRun, pipelineRunLoading } =
     useAutomlResultsContext();
   // FYI default taskType to timeseries since it is the only task which will not have
@@ -292,6 +292,56 @@ function AutomlLeaderboard({
 
   // Show empty state when no models were produced
   if (Object.keys(models).length === 0) {
+    const isRunSucceeded = pipelineRun?.state === RuntimeStateKF.SUCCEEDED;
+    const isRunFailed =
+      pipelineRun?.state === RuntimeStateKF.FAILED ||
+      pipelineRun?.state === RuntimeStateKF.CANCELED;
+
+    // Helper to render message with pipeline run link (falls back to plain text when route params are missing)
+    const messageWithLink = (before: string, linkText: string, after = '.') =>
+      namespace && runId ? (
+        <>
+          <span>{before} </span>
+          <Button
+            variant="link"
+            isInline
+            component={(props) => (
+              <Link {...props} to={`/develop-train/pipelines/runs/${namespace}/runs/${runId}`} />
+            )}
+          >
+            {linkText}
+          </Button>
+          <span>{after}</span>
+        </>
+      ) : (
+        `${before} ${linkText}${after}`
+      );
+
+    let messageContent: React.ReactNode;
+    if (!pipelineRun) {
+      messageContent = messageWithLink(
+        'Unable to determine pipeline run status. Please check the',
+        'pipeline configuration and logs',
+      );
+    } else if (isRunFailed) {
+      messageContent = messageWithLink(
+        'The pipeline run did not complete successfully. Please check the',
+        'pipeline configuration and logs',
+        ' for errors.',
+      );
+    } else if (isRunSucceeded) {
+      messageContent = messageWithLink(
+        'The pipeline run completed but did not generate any models. Please check the',
+        'pipeline configuration and logs',
+      );
+    } else {
+      // SKIPPED, PAUSED, CACHED, RUNTIME_STATE_UNSPECIFIED, or other unexpected states
+      messageContent = messageWithLink(
+        'The pipeline run is in an unexpected state. Please check the',
+        'pipeline status and logs',
+      );
+    }
+
     return (
       <Bullseye>
         <EmptyState
@@ -300,10 +350,7 @@ function AutomlLeaderboard({
           variant={EmptyStateVariant.sm}
           data-testid="leaderboard-empty"
         >
-          <EmptyStateBody>
-            The pipeline run completed but did not generate any models. Please check the pipeline
-            configuration and logs.
-          </EmptyStateBody>
+          <EmptyStateBody>{messageContent}</EmptyStateBody>
         </EmptyState>
       </Bullseye>
     );

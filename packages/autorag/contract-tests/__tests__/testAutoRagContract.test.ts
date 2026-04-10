@@ -1165,6 +1165,39 @@ describe('AutoRAG API Contract Tests', () => {
         });
       });
 
+      it('display_name 250 chars accepted', async () => {
+        const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+          display_name: 'a'.repeat(250),
+          test_data_secret_name: 'minio-secret',
+          test_data_bucket_name: 'autorag',
+          test_data_key: 'test_data.json',
+          input_data_secret_name: 'minio-secret',
+          input_data_bucket_name: 'autorag',
+          input_data_key: 'documents/',
+          llama_stack_secret_name: 'llama-secret',
+        });
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('display_name 251 chars rejected', async () => {
+        const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+          display_name: 'a'.repeat(251),
+          test_data_secret_name: 'minio-secret',
+          test_data_bucket_name: 'autorag',
+          test_data_key: 'test_data.json',
+          input_data_secret_name: 'minio-secret',
+          input_data_bucket_name: 'autorag',
+          input_data_key: 'documents/',
+          llama_stack_secret_name: 'llama-secret',
+        });
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
+
       it('should return 400 for missing required fields', async () => {
         const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
           display_name: 'incomplete-run',
@@ -1283,8 +1316,8 @@ describe('AutoRAG API Contract Tests', () => {
     });
 
     describe('Error Cases - Declared Content-Length', () => {
-      /** Matches bff s3_upload_limit.go: 1 GiB file max + 64 MiB multipart envelope. */
-      const s3PostMaxDeclaredBodyBytes = (1 << 30) + (64 << 20);
+      /** Matches bff s3_upload_limit.go: 32 MiB file max + 64 MiB multipart envelope. */
+      const s3PostMaxDeclaredBodyBytes = (32 << 20) + (64 << 20);
 
       const postS3WithDeclaredContentLength = async (
         pathWithQuery: string,

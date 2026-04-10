@@ -89,7 +89,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableFineTuning: true,
       disableKueue: true,
       disableLMEval: true,
-      mlflow: false,
+      mlflow: true,
       mcpCatalog: false,
       trainingJobs: true,
       disableLLMd: false,
