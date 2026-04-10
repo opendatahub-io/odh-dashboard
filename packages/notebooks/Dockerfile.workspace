@@ -62,10 +62,7 @@ ARG CONTROLLER_SOURCE_CODE
 ARG TARGETOS
 ARG TARGETARCH
 
-USER 0
 WORKDIR /usr/src/app
-RUN chown default:0 /usr/src/app
-USER default
 
 RUN mkdir bff
 
