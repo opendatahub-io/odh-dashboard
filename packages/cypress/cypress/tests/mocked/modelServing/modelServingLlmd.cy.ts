@@ -676,9 +676,8 @@ describe('Model Serving LLMD', () => {
     it('should create an LLMD deployment with a gateway selection', () => {
       initIntercepts({});
 
-      cy.intercept(
-        'GET',
-        '/api/config',
+      cy.interceptOdh(
+        'GET /api/config',
         mockDashboardConfig({
           disableNIMModelServing: true,
           disableKServe: false,
@@ -761,9 +760,8 @@ describe('Model Serving LLMD', () => {
         ],
       });
 
-      cy.intercept(
-        'GET',
-        '/api/config',
+      cy.interceptOdh(
+        'GET /api/config',
         mockDashboardConfig({
           disableNIMModelServing: true,
           disableKServe: false,

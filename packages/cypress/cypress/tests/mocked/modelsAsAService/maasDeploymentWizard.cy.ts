@@ -44,9 +44,8 @@ describe('MaaS Deployment Wizard', () => {
         },
       }),
     );
-    cy.intercept(
-      'GET',
-      '/api/config',
+    cy.interceptOdh(
+      'GET /api/config',
       mockDashboardConfig({
         disableNIMModelServing: true,
         disableKServe: false,
