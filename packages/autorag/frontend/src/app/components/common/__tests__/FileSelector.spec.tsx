@@ -132,29 +132,10 @@ describe('FileSelector', () => {
 
     // The actual file input has type="file" and is inside the FileUpload component
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(input).toBeInTheDocument();
     await user.upload(input, file);
 
-    // onUpload should be called at least once with the file
-    expect(mockOnUpload).toHaveBeenCalled();
-    expect(mockOnUpload).toHaveBeenCalledWith(
-      file,
-      expect.any(Function), // setProgress
-      expect.any(Function), // setStatus
-    );
-  });
-
-  it('should call onUpload exactly once per file upload', async () => {
-    const user = userEvent.setup();
-    const file = new File(['test content'], 'test.json', { type: 'application/json' });
-
-    const { container } = render(
-      <FileSelector id="test-selector" onUpload={mockOnUpload} onClear={mockOnClear} />,
-    );
-
-    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(input, file);
-
-    // Verify onUpload is called exactly once (not duplicated)
+    // onUpload should be called exactly once with the file
     expect(mockOnUpload).toHaveBeenCalledTimes(1);
     expect(mockOnUpload).toHaveBeenCalledWith(
       file,
@@ -176,6 +157,7 @@ describe('FileSelector', () => {
     );
 
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(input).toBeInTheDocument();
     await user.upload(input, file);
 
     await waitFor(() => {
@@ -197,6 +179,7 @@ describe('FileSelector', () => {
     );
 
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(input).toBeInTheDocument();
     await user.upload(input, file);
 
     await waitFor(() => {
@@ -222,6 +205,7 @@ describe('FileSelector', () => {
     );
 
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(input).toBeInTheDocument();
     await user.upload(input, file);
 
     await waitFor(() => {
@@ -266,6 +250,7 @@ describe('FileSelector', () => {
     );
 
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(input).toBeInTheDocument();
     await user.upload(input, file);
 
     // FileUpload should be disabled during upload and show the progress bar
@@ -291,6 +276,7 @@ describe('FileSelector', () => {
     );
 
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(input).toBeInTheDocument();
 
     // Upload first file
     await user.upload(input, file1);

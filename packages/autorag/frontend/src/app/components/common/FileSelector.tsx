@@ -55,8 +55,9 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
         )}
       </TextInputGroup>
       <FileUpload
-        id={props.id}
         className="pf-v6-u-mt-sm"
+        {...props.fileUploadProps}
+        id={props.id}
         style={{
           maxHeight: hideUpload ? '0' : '6rem',
           padding: hideUpload ? '0' : undefined,
@@ -86,15 +87,20 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
         filename={uploadedFile?.name}
         onClearClick={() => setUploadedFile(undefined)}
         dropzoneProps={{
+          ...props.fileUploadProps?.dropzoneProps,
           onDropAccepted: (files) => {
             const file = files[0];
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            if (!file) {
+              return;
+            }
+
             setUploadedFile(file);
             setUploadProgress(0);
             setUploadStatus(undefined);
             void props.onUpload(file, setUploadProgress, setUploadStatus);
           },
         }}
-        {...props.fileUploadProps}
       >
         {uploadedFile ? (
           <FileUploadHelperText>
