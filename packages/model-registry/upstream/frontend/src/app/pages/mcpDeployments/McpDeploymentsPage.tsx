@@ -75,7 +75,8 @@ const McpDeploymentsPage: React.FC = () => {
     return deployments.items.filter(
       (d) =>
         d.name.toLowerCase().includes(lower) ||
-        getDeploymentDisplayName(d).toLowerCase().includes(lower),
+        getDeploymentDisplayName(d).toLowerCase().includes(lower) ||
+        (d.serverName ?? '').toLowerCase().includes(lower),
     );
   }, [deployments.items, filterText]);
 
@@ -99,7 +100,6 @@ const McpDeploymentsPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="MCP server deployments"
       noTitle
       description="Manage and view the health and performance of your deployed MCP servers."
       headerContent={headerContent}
