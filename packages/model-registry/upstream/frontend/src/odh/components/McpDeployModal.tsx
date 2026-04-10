@@ -259,7 +259,8 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
             }
           >
             <Content component="small" className="pf-v6-u-mb-sm">
-            This YAML has been prefilled from the selected server's metadata in the catalog. Edit as needed.
+              This YAML has been prefilled from the selected server&apos;s metadata in the catalog.
+              Edit as needed.
             </Content>
             <CodeEditor
               code={yamlContent}

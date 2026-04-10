@@ -13,7 +13,7 @@ export const getDeploymentDisplayName = (deployment: McpDeployment): string =>
 export type McpDeploymentStatusInfo = {
   label: string;
   status: 'success' | 'danger' | 'info';
-  tooltip: string;
+  popoverBody: string;
 };
 
 export const getStatusInfo = (phase: McpDeploymentPhase): McpDeploymentStatusInfo => {
@@ -22,25 +22,25 @@ export const getStatusInfo = (phase: McpDeploymentPhase): McpDeploymentStatusInf
       return {
         label: 'Available',
         status: 'success',
-        tooltip: 'The pod and its containers are healthy and running.',
+        popoverBody: 'The pod and its containers are healthy and running.',
       };
     case McpDeploymentPhase.FAILED:
       return {
         label: 'Unavailable',
         status: 'danger',
-        tooltip: 'At least 1 container in the pod failed.',
+        popoverBody: 'At least 1 container in the pod failed.',
       };
     case McpDeploymentPhase.PENDING:
       return {
         label: 'Pending',
         status: 'info',
-        tooltip: 'This MCP server is starting up and will be available shortly.',
+        popoverBody: 'This MCP server is starting up and will be available shortly.',
       };
     default:
       return {
         label: 'Unknown',
         status: 'info',
-        tooltip: 'The status of this MCP server is unknown.',
+        popoverBody: 'The status of this MCP server is unknown.',
       };
   }
 };

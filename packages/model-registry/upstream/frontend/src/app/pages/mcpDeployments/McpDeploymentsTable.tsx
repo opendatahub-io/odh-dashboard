@@ -9,7 +9,6 @@ type McpDeploymentsTableProps = {
   onClearFilters: () => void;
   onDeleteClick: (deployment: McpDeployment) => void;
   onEditClick: (deployment: McpDeployment) => void;
-  onPublishClick: (deployment: McpDeployment) => void;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'toolbarContent'>>;
 
 const McpDeploymentsTable: React.FC<McpDeploymentsTableProps> = ({
@@ -18,7 +17,6 @@ const McpDeploymentsTable: React.FC<McpDeploymentsTableProps> = ({
   onClearFilters,
   onDeleteClick,
   onEditClick,
-  onPublishClick,
 }) => (
   <Table
     data-testid="mcp-deployments-table"
@@ -35,7 +33,6 @@ const McpDeploymentsTable: React.FC<McpDeploymentsTableProps> = ({
         deployment={deployment}
         onDeleteClick={onDeleteClick}
         onEditClick={onEditClick}
-        onPublishClick={onPublishClick}
       />
     )}
   />

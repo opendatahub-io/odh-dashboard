@@ -40,7 +40,6 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 describe('McpDeploymentsTable', () => {
   const onDeleteClick = jest.fn();
   const onEditClick = jest.fn();
-  const onPublishClick = jest.fn();
   const onClearFilters = jest.fn();
 
   beforeEach(() => {
@@ -55,7 +54,6 @@ describe('McpDeploymentsTable', () => {
         onClearFilters={onClearFilters}
         onDeleteClick={onDeleteClick}
         onEditClick={onEditClick}
-        onPublishClick={onPublishClick}
       />,
       { wrapper },
     );
@@ -68,27 +66,6 @@ describe('McpDeploymentsTable', () => {
     expect(onDeleteClick).toHaveBeenCalledWith(mockDeployments[0]);
   });
 
-  it('should call onPublishClick when Publish as AI asset is selected', async () => {
-    const user = userEvent.setup();
-    render(
-      <McpDeploymentsTable
-        deployments={mockDeployments}
-        onClearFilters={onClearFilters}
-        onDeleteClick={onDeleteClick}
-        onEditClick={onEditClick}
-        onPublishClick={onPublishClick}
-      />,
-      { wrapper },
-    );
-
-    const row = screen.getByTestId('mcp-deployment-row-kubernetes-mcp');
-    const actionsButton = within(row).getByRole('button', { name: /kebab toggle/i });
-    await user.click(actionsButton);
-    await user.click(screen.getByRole('menuitem', { name: /publish as ai asset/i }));
-
-    expect(onPublishClick).toHaveBeenCalledWith(mockDeployments[0]);
-  });
-
   it('should render all deployment rows', () => {
     render(
       <McpDeploymentsTable
@@ -96,7 +73,6 @@ describe('McpDeploymentsTable', () => {
         onClearFilters={onClearFilters}
         onDeleteClick={onDeleteClick}
         onEditClick={onEditClick}
-        onPublishClick={onPublishClick}
       />,
       { wrapper },
     );
@@ -113,7 +89,6 @@ describe('McpDeploymentsTable', () => {
         onClearFilters={onClearFilters}
         onDeleteClick={onDeleteClick}
         onEditClick={onEditClick}
-        onPublishClick={onPublishClick}
       />,
       { wrapper },
     );

@@ -10,14 +10,12 @@ type McpDeploymentsTableRowProps = {
   deployment: McpDeployment;
   onDeleteClick: (deployment: McpDeployment) => void;
   onEditClick: (deployment: McpDeployment) => void;
-  onPublishClick: (deployment: McpDeployment) => void;
 };
 
 const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
   deployment,
   onDeleteClick,
   onEditClick,
-  onPublishClick,
 }) => {
   const actions: IAction[] = React.useMemo(
     () => [
@@ -26,15 +24,11 @@ const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
         onClick: () => onEditClick(deployment),
       },
       {
-        title: 'Publish as AI asset',
-        onClick: () => onPublishClick(deployment),
-      },
-      {
         title: 'Delete',
         onClick: () => onDeleteClick(deployment),
       },
     ],
-    [deployment, onDeleteClick, onEditClick, onPublishClick],
+    [deployment, onDeleteClick, onEditClick],
   );
 
   return (

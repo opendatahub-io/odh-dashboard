@@ -7,21 +7,11 @@ import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
 import McpDeploymentsTableRow from '../McpDeploymentsTableRow';
 import { createMockDeployment } from './mcpDeploymentTestUtils';
 
-const renderRow = (
-  deployment: McpDeployment,
-  onDeleteClick = jest.fn(),
-  onEditClick = jest.fn(),
-  onPublishClick = jest.fn(),
-) =>
+const renderRow = (deployment: McpDeployment, onDeleteClick = jest.fn(), onEditClick = jest.fn()) =>
   render(
     <PfTable>
       <Tbody>
-        <McpDeploymentsTableRow
-          deployment={deployment}
-          onDeleteClick={onDeleteClick}
-          onEditClick={onEditClick}
-          onPublishClick={onPublishClick}
-        />
+        <McpDeploymentsTableRow deployment={deployment} onDeleteClick={onDeleteClick} onEditClick={onEditClick} />
       </Tbody>
     </PfTable>,
   );

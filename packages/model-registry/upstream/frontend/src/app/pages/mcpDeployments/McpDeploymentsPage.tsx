@@ -3,18 +3,14 @@ import { useSearchParams } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useNamespaceSelector, useModularArchContext } from 'mod-arch-core';
 import {
-  Content,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
   Flex,
   FlexItem,
-  Stack,
-  StackItem,
 } from '@patternfly/react-core';
-import { CubesIcon, RocketIcon } from '@patternfly/react-icons';
+import { CubesIcon } from '@patternfly/react-icons';
 import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFieldWrapper';
-import { useNotification } from '~/app/hooks/useNotification';
 import { McpDeployment } from '~/app/mcpDeploymentTypes';
 import McpDeployModal from '~/odh/components/McpDeployModal';
 import useMcpDeployments from './useMcpDeployments';
@@ -24,23 +20,6 @@ import McpDeploymentsEmptyState from './McpDeploymentsEmptyState';
 import DeleteMcpDeploymentModal from './DeleteMcpDeploymentModal';
 import { getDeploymentDisplayName } from './utils';
 
-const ICON_SIZE = 40;
-const ICON_PADDING = 4;
-const ICON_INNER = ICON_SIZE - ICON_PADDING * 2;
-
-const iconContainerStyle: React.CSSProperties = {
-  background: 'var(--pf-t--color--teal--10)',
-  borderRadius: ICON_SIZE / 2,
-  padding: ICON_PADDING,
-  width: ICON_SIZE,
-  height: ICON_SIZE,
-};
-
-const iconStyle: React.CSSProperties = {
-  width: ICON_INNER,
-  height: ICON_INNER,
-};
-
 const McpDeploymentsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [deployments, loaded, loadError, refresh] = useMcpDeployments();
@@ -49,7 +28,6 @@ const McpDeploymentsPage: React.FC = () => {
   const [editingDeployment, setEditingDeployment] = React.useState<McpDeployment>();
   const { preferredNamespace, updatePreferredNamespace } = useNamespaceSelector();
   const { config } = useModularArchContext();
-  const notification = useNotification();
 
   const isMandatoryNamespace = Boolean(config.mandatoryNamespace);
   const selectedProject = preferredNamespace?.name || '';
@@ -89,24 +67,6 @@ const McpDeploymentsPage: React.FC = () => {
     setEditingDeployment(deployment);
   }, []);
 
-  const handlePublishClick = React.useCallback(
-    (deployment: McpDeployment) => {
-      const displayName = getDeploymentDisplayName(deployment);
-      const ns = selectedProject || deployment.namespace;
-      const to = `/gen-ai-studio/assets/${ns}/mcpservers`;
-      notification.success(
-        'MCP server deployment published',
-        undefined,
-        {
-          messageText: `The ${displayName} MCP server is now available from the MCP tab of the `,
-          linkUrl: to,
-          linkLabel: 'AI asset endpoints page',
-        },
-      );
-    },
-    [notification, selectedProject],
-  );
-
   const filteredDeployments = React.useMemo(() => {
     if (!filterText) {
       return deployments.items;
@@ -126,32 +86,16 @@ const McpDeploymentsPage: React.FC = () => {
   const isEmpty = !noProjectSelected && loaded && !loadError && deployments.items.length === 0;
 
   const headerContent = (
-    <Stack hasGutter>
-      <StackItem>
-        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-          <FlexItem>
-            <div style={iconContainerStyle}>
-              <RocketIcon style={iconStyle} />
-            </div>
-          </FlexItem>
-          <FlexItem>
-            <Content component="h1">MCP server deployments</Content>
-          </FlexItem>
-        </Flex>
-      </StackItem>
-      <StackItem>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
-          <FlexItem>Project</FlexItem>
-          <FlexItem>
-            <NamespaceSelectorFieldWrapper
-              selectedNamespace={selectedProject}
-              onSelect={handleProjectChange}
-              selectorOnly
-            />
-          </FlexItem>
-        </Flex>
-      </StackItem>
-    </Stack>
+    <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+      <FlexItem>Project</FlexItem>
+      <FlexItem>
+        <NamespaceSelectorFieldWrapper
+          selectedNamespace={selectedProject}
+          onSelect={handleProjectChange}
+          selectorOnly
+        />
+      </FlexItem>
+    </Flex>
   );
 
   return (
@@ -192,7 +136,6 @@ const McpDeploymentsPage: React.FC = () => {
         onClearFilters={clearFilters}
         onDeleteClick={handleDeleteClick}
         onEditClick={handleEditClick}
-        onPublishClick={handlePublishClick}
       />
       {deleteTarget && (
         <DeleteMcpDeploymentModal
