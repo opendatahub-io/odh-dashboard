@@ -1155,6 +1155,58 @@ class DeleteAuthPolicyModal extends DeleteModal {
   }
 }
 
+class ViewAuthPolicyPage {
+  visit(name: string): void {
+    cy.visitWithLogin(`/maas/auth-policies/view/${name}`);
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findBreadcrumbPoliciesLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('breadcrumb-policies-link');
+  }
+
+  findDetailsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-details-tab');
+  }
+
+  findDetailsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-details-section');
+  }
+
+  findGroupsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-groups-section');
+  }
+
+  findGroupsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-groups-table');
+  }
+
+  findModelsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-models-section');
+  }
+
+  findModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-models-table');
+  }
+
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-actions-toggle');
+  }
+
+  findPageError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('error-empty-state-body');
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
@@ -1176,3 +1228,4 @@ export const editSubscriptionPage = new EditSubscriptionPage();
 export const policyPage = new PolicyPage();
 export const authPoliciesPage = new AuthPoliciesPage();
 export const deleteAuthPolicyModal = new DeleteAuthPolicyModal();
+export const viewAuthPolicyPage = new ViewAuthPolicyPage();

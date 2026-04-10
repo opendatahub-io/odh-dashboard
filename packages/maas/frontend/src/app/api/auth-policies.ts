@@ -14,23 +14,10 @@ import type {
   PolicyInfoResponse,
   UpdatePolicyRequest,
 } from '~/app/types/auth-policies';
-import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
-import { isMaaSAuthPolicy } from './subscriptions';
+import { MaaSAuthPolicy } from '~/app/types/subscriptions';
+import { isMaaSAuthPolicy, isMaaSModelRefSummary } from './subscriptions';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
-
-const isModelReference = (v: unknown): v is { kind: string; name: string } =>
-  isRecord(v) && typeof v.kind === 'string' && typeof v.name === 'string';
-
-const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
-  isRecord(v) &&
-  typeof v.name === 'string' &&
-  typeof v.namespace === 'string' &&
-  (v.displayName === undefined || typeof v.displayName === 'string') &&
-  (v.description === undefined || typeof v.description === 'string') &&
-  isModelReference(v.modelRef) &&
-  (v.phase === undefined || typeof v.phase === 'string') &&
-  (v.endpoint === undefined || typeof v.endpoint === 'string');
 
 const isPolicyInfoResponse = (v: unknown): v is PolicyInfoResponse =>
   isRecord(v) &&
@@ -39,7 +26,7 @@ const isPolicyInfoResponse = (v: unknown): v is PolicyInfoResponse =>
   v.modelRefs.every(isMaaSModelRefSummary);
 
 const isDeleteAuthPolicyResponse = (v: unknown): v is { message: string } =>
-  typeof v === 'object' && v !== null && 'message' in v && typeof v.message === 'string';
+  isRecord(v) && typeof v.message === 'string';
 
 /** GET /api/v1/all-policies - List all policies */
 export const listAuthPolicies =
@@ -54,7 +41,7 @@ export const listAuthPolicies =
       throw new Error('Invalid response format');
     });
 
-/** GET /api/v1/view-policy/:name - Policy details for edit / view */
+/** GET /api/v1/view-policy/:name - Policy details for edit / view / view details */
 export const getPolicyInfo =
   (name: string, hostPath = '') =>
   (opts: APIOptions): Promise<PolicyInfoResponse> =>

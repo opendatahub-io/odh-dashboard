@@ -17,24 +17,27 @@ const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
   onDeleteClick,
   onEditClick,
 }) => {
-  const actions: IAction[] = [
-    {
-      title: 'Edit',
-      onClick: () => onEditClick(deployment),
-    },
-    {
-      title: 'Delete',
-      onClick: () => onDeleteClick(deployment),
-    },
-  ];
+  const actions: IAction[] = React.useMemo(
+    () => [
+      {
+        title: 'Edit',
+        onClick: () => onEditClick(deployment),
+      },
+      {
+        title: 'Delete',
+        onClick: () => onDeleteClick(deployment),
+      },
+    ],
+    [deployment, onDeleteClick, onEditClick],
+  );
 
   return (
     <Tr data-testid={`mcp-deployment-row-${deployment.name}`}>
-      <Td dataLabel="Server" data-testid="mcp-deployment-server">
-        <Truncate content={deployment.serverName || '-'} />
-      </Td>
       <Td dataLabel="Name" data-testid="mcp-deployment-name">
         <Truncate content={getDeploymentDisplayName(deployment)} />
+      </Td>
+      <Td dataLabel="MCP server" data-testid="mcp-deployment-server">
+        <Truncate content={deployment.serverName || '-'} />
       </Td>
       <Td dataLabel="Created" data-testid="mcp-deployment-created">
         <Timestamp

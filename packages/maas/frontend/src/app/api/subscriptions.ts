@@ -77,7 +77,7 @@ const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
 const isMaaSSubscriptionArray = (v: unknown): v is MaaSSubscription[] =>
   Array.isArray(v) && v.every(isMaaSSubscription);
 
-const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
+export const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
   isRecord(v) &&
   typeof v.name === 'string' &&
   typeof v.namespace === 'string' &&
@@ -97,6 +97,7 @@ export const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
   isOptionalString(v.displayName) &&
   isOptionalString(v.description) &&
   isOptionalString(v.phase) &&
+  isOptionalString(v.creationTimestamp) &&
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isModelRef) &&
   isSubjectSpec(v.subjects) &&

@@ -21,6 +21,10 @@ class McpDeploymentTableRow extends TableRow {
     return this.find().findByTestId('mcp-deployment-service-unavailable');
   }
 
+  findCreated(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('mcp-deployment-created');
+  }
+
   findDeleteAction(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findKebabAction('Delete');
   }
@@ -139,6 +143,13 @@ class McpDeploymentsPage {
         cy.findByTestId(`mcp-deployment-row-${name}`) as unknown as Cypress.Chainable<
           JQuery<HTMLTableRowElement>
         >,
+    );
+  }
+
+  getFirstRow(): McpDeploymentTableRow {
+    return new McpDeploymentTableRow(
+      () =>
+        this.findTableRows().first() as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>,
     );
   }
 }

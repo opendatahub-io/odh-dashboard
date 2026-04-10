@@ -272,7 +272,7 @@ describe('AutoML API Contract Tests', () => {
     });
 
     describe('Secret Value Sanitization', () => {
-      it('should return actual values only for aws_s3_bucket keys', async () => {
+      it('should return actual values only for AWS_S3_BUCKET keys', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default&type=storage');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
@@ -288,8 +288,8 @@ describe('AutoML API Contract Tests', () => {
             keys.forEach((key) => {
               const value = secret.data[key];
 
-              // aws_s3_bucket (case-insensitive) should have actual value
-              if (key.toLowerCase() === 'aws_s3_bucket') {
+              // AWS_S3_BUCKET (case-sensitive, uppercase) should have actual value
+              if (key === 'AWS_S3_BUCKET') {
                 expect(value).not.toBe('[REDACTED]');
                 expect(typeof value).toBe('string');
                 expect(value.length).toBeGreaterThan(0);
@@ -302,7 +302,7 @@ describe('AutoML API Contract Tests', () => {
         }
       });
 
-      it('should sanitize all secret values except aws_s3_bucket', async () => {
+      it('should sanitize all secret values except AWS_S3_BUCKET', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result.success).toBe(true);
 
@@ -317,8 +317,8 @@ describe('AutoML API Contract Tests', () => {
           if (secretsWithKeys && secretsWithKeys.length > 0) {
             secretsWithKeys.forEach((secret) => {
               Object.entries(secret.data).forEach(([key, value]) => {
-                // Only aws_s3_bucket (case-insensitive) should have actual values
-                const isAllowedKey = key.toLowerCase() === 'aws_s3_bucket';
+                // Only AWS_S3_BUCKET (case-sensitive, uppercase) should have actual values
+                const isAllowedKey = key === 'AWS_S3_BUCKET';
 
                 if (!isAllowedKey) {
                   expect(value).toBe('[REDACTED]');
@@ -329,19 +329,38 @@ describe('AutoML API Contract Tests', () => {
         }
       });
 
-      it('should handle aws_s3_bucket key with different casing', async () => {
+      it('should only allow uppercase AWS_S3_BUCKET key', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result.success).toBe(true);
 
         if (result.success) {
           const responseData = result.response.data as SecretsResponseData;
 
+          // Find the fixture secret that has lowercase and mixed-case variants
+          const caseVariantSecret = responseData.data?.find(
+            (s) => s.name === 'case-variant-bucket-secret',
+          );
+          expect(caseVariantSecret).toBeDefined();
+
+          const caseVariantData = caseVariantSecret?.data ?? {};
+
+          // Uppercase AWS_S3_BUCKET should have its actual value
+          expect(caseVariantData.AWS_S3_BUCKET).not.toBe('[REDACTED]');
+          expect(caseVariantData.AWS_S3_BUCKET).toBe('correct-bucket');
+
+          // Lowercase variant should be redacted
+          expect(caseVariantData.aws_s3_bucket).toBe('[REDACTED]');
+
+          // Mixed-case variant should be redacted
+          expect(caseVariantData.Aws_S3_Bucket).toBe('[REDACTED]');
+
+          // Also verify the general rule across all secrets
           responseData.data?.forEach((secret) => {
             Object.entries(secret.data).forEach(([key, value]) => {
-              // Check various casings of aws_s3_bucket
-              if (['aws_s3_bucket', 'AWS_S3_BUCKET', 'Aws_S3_Bucket'].includes(key)) {
-                // Should return actual value, not [REDACTED]
+              if (key === 'AWS_S3_BUCKET') {
                 expect(value).not.toBe('[REDACTED]');
+              } else {
+                expect(value).toBe('[REDACTED]');
               }
             });
           });

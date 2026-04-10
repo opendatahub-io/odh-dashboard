@@ -132,7 +132,11 @@ spec:
                       type: boolean
                     deploymentWizardYAMLViewer:
                       type: boolean
+                    vLLMDeploymentOnMaaS:
+                      type: boolean
                     promptManagement:
+                      type: boolean
+                    llmGatewayField:
                       type: boolean
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
