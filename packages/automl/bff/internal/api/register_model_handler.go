@@ -127,7 +127,7 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 		logger.Warn("Using internal URL for model registry; may fail due to NetworkPolicy restrictions", "url", baseURL)
 	}
 	if baseURL == "" {
-		app.serverErrorResponse(w, r, fmt.Errorf("model registry has empty server_url"))
+		app.serverErrorResponse(w, r, fmt.Errorf("model registry has no useable URL (external_url/server_url are empty)"))
 		return
 	}
 
