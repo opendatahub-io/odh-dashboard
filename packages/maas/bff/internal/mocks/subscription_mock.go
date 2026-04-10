@@ -100,9 +100,12 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 	return []models.MaaSAuthPolicy{
 		{
-			Name:      "premium-team-sub-policy",
-			Namespace: "maas-system",
-			Phase:     "Active",
+			Name:              "premium-team-sub-policy",
+			Namespace:         "maas-system",
+			DisplayName:       "Premium Team Policy",
+			Description:       "High-priority access policy for the premium team with extended model access.",
+			Phase:             "Active",
+			CreationTimestamp: timePtr(time.Date(2025, 3, 1, 10, 0, 0, 0, time.UTC)),
 			ModelRefs: []models.ModelRef{
 				{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
 				{Name: "flan-t5-small", Namespace: "maas-models"},
@@ -118,9 +121,12 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			},
 		},
 		{
-			Name:      "basic-team-sub-policy",
-			Namespace: "maas-system",
-			Phase:     "Active",
+			Name:              "basic-team-sub-policy",
+			Namespace:         "maas-system",
+			DisplayName:       "Basic Team Policy",
+			Description:       "Standard access policy for general team usage.",
+			Phase:             "Active",
+			CreationTimestamp: timePtr(time.Date(2025, 2, 15, 8, 0, 0, 0, time.UTC)),
 			ModelRefs: []models.ModelRef{
 				{Name: "flan-t5-small", Namespace: "maas-models"},
 			},

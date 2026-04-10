@@ -163,6 +163,10 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 		UserName: user.UserName,
 		Groups:   user.Groups,
 	}
+	impersonatedCfg.CertData = nil
+	impersonatedCfg.CertFile = ""
+	impersonatedCfg.KeyData = nil
+	impersonatedCfg.KeyFile = ""
 
 	clientset, err := kubernetes.NewForConfig(impersonatedCfg)
 	if err != nil {

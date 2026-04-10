@@ -29,7 +29,7 @@ The endpoint:
      2. Key-based detection matching required keys (e.g., "s3" for S3 secrets)
      3. Empty string if no type matches
    - **Data with redaction**: Map of all secret keys with values
-     - Allowed keys (currently: `aws_s3_bucket`) return actual values
+     - Allowed keys (currently: `AWS_S3_BUCKET`) return actual values
      - All other keys return `"[REDACTED]"` for security
    - **Metadata**: Display name and description from OpenShift annotations (if present)
 4. Requires authentication via the InjectRequestIdentity middleware
@@ -42,13 +42,13 @@ Secret type is determined using a two-step process:
 1. **Annotation-based detection** (primary): If the secret has an `opendatahub.io/connection-type` annotation, its value is used as the type
 2. **Key-based detection** (fallback): If no annotation exists, the secret is classified based on required keys
 
-For key-based detection, a secret must contain **ALL** required keys for a type to be classified. Key matching is **case-insensitive**.
+For key-based detection, a secret must contain **ALL** required keys for a type to be classified. Key matching is **case-sensitive**; keys must be uppercase.
 
 **Currently Supported Storage Types:**
 
 | Storage Type | Required Keys (for key-based detection) |
 |--------------|------------------------------------------|
-| **S3** | `aws_access_key_id`, `aws_default_region`, `aws_secret_access_key`, `aws_s3_endpoint` |
+| **S3** | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT` |
 
 **Future storage types** (e.g., Azure, GCP) can be easily added to the configuration without changing the API.
 
@@ -64,11 +64,11 @@ The response follows the envelope pattern:
       "name": "aws-secret-1",
       "type": "s3",
       "data": {
-        "aws_access_key_id": "[REDACTED]",
-        "aws_default_region": "[REDACTED]",
-        "aws_s3_endpoint": "[REDACTED]",
-        "aws_secret_access_key": "[REDACTED]",
-        "aws_s3_bucket": "my-training-data"
+        "AWS_ACCESS_KEY_ID": "[REDACTED]",
+        "AWS_DEFAULT_REGION": "[REDACTED]",
+        "AWS_S3_ENDPOINT": "[REDACTED]",
+        "AWS_SECRET_ACCESS_KEY": "[REDACTED]",
+        "AWS_S3_BUCKET": "my-training-data"
       },
       "displayName": "Production S3 Storage",
       "description": "S3 bucket for production training datasets"
@@ -78,10 +78,10 @@ The response follows the envelope pattern:
       "name": "aws-secret-2",
       "type": "s3",
       "data": {
-        "aws_access_key_id": "[REDACTED]",
-        "aws_default_region": "[REDACTED]",
-        "aws_s3_endpoint": "[REDACTED]",
-        "aws_secret_access_key": "[REDACTED]"
+        "AWS_ACCESS_KEY_ID": "[REDACTED]",
+        "AWS_DEFAULT_REGION": "[REDACTED]",
+        "AWS_S3_ENDPOINT": "[REDACTED]",
+        "AWS_SECRET_ACCESS_KEY": "[REDACTED]"
       }
     }
   ]
@@ -95,7 +95,7 @@ The response follows the envelope pattern:
 | `uuid` | string | The Kubernetes UID of the secret |
 | `name` | string | The name of the secret |
 | `type` | string | The detected type (from annotation or key-based detection, e.g., "s3"), or empty string if it doesn't match any type |
-| `data` | object | Map of all secret keys with values. Allowed keys (currently: `aws_s3_bucket`) show actual values; all others show `"[REDACTED]"` |
+| `data` | object | Map of all secret keys with values. Allowed keys (currently: `AWS_S3_BUCKET`) show actual values; all others show `"[REDACTED]"` |
 | `displayName` | string (optional) | Display name from `openshift.io/display-name` annotation |
 | `description` | string (optional) | Description from `openshift.io/description` annotation |
 
@@ -146,10 +146,9 @@ The storage type configuration is defined in `internal/repositories/secret.go`:
 ```go
 var storageTypeRequiredKeys = map[string][]string{
     "s3": {
-        "aws_access_key_id",
-        "aws_default_region",
-        "aws_secret_access_key",
-        "aws_s3_endpoint",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_S3_ENDPOINT",
     },
     // Future storage types can be added here
 }
@@ -164,12 +163,12 @@ The allowed keys configuration (keys whose values are not redacted) is defined i
 ```go
 // allowedSecretKeys is unexported to prevent external modification
 var allowedSecretKeys = []string{
-    AllowedSecretKey_AWS_S3_Bucket, // "aws_s3_bucket"
+    AllowedSecretKey_AWS_S3_Bucket, // "AWS_S3_BUCKET"
 }
 
 // IsAllowedSecretKey checks if a given key is in the allowed list
 func IsAllowedSecretKey(key string) bool {
-    // Implementation handles case-insensitive matching
+    // Implementation handles case-sensitive matching
 }
 ```
 
@@ -178,7 +177,7 @@ To allow a new key to be exposed to clients:
 2. Add it to the `allowedSecretKeys` slice
 3. The key will automatically return its actual value instead of `"[REDACTED]"`
 
-Key matching is case-insensitive via the `IsAllowedSecretKey()` function, so `aws_s3_bucket`, `AWS_S3_BUCKET`, and `Aws_S3_Bucket` will all match.
+Key matching is case-sensitive via the `IsAllowedSecretKey()` function. Keys must be uppercase (e.g., `AWS_S3_BUCKET`).
 
 ### Security
 
@@ -188,7 +187,7 @@ Key matching is case-insensitive via the `IsAllowedSecretKey()` function, so `aw
 - Only secrets the authenticated user has permission to access are returned
 - **Data redaction**: Sensitive secret values are redacted with `"[REDACTED]"` by default
   - Only keys in the allowed list (defined in `internal/constants/secrets.go`) return actual values
-  - Currently allowed: `aws_s3_bucket` (non-sensitive configuration)
+  - Currently allowed: `AWS_S3_BUCKET` (non-sensitive configuration)
   - All credential keys (access keys, passwords, tokens) are always redacted
 
 ### Filtering Logic
@@ -203,23 +202,22 @@ The endpoint supports two filtering modes based on the `type` parameter:
    - **Key-based**: Secrets containing ALL required keys for at least ONE storage type
    - The dictionary maps storage types (e.g., "s3", "azure", "gcp") to their required keys
    - Currently configured storage types:
-     - **S3**: Requires `aws_access_key_id`, `aws_default_region`, `aws_secret_access_key`, `aws_s3_endpoint`
+     - **S3**: Requires `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT`
    - Extensible design allows adding new storage types (Azure, GCP, etc.) without API changes
-   - Key matching is case-insensitive
+   - Key matching is case-sensitive; keys must be uppercase
 
 Invalid type values result in a 400 Bad Request error.
 
 **Example**: A secret with the following data would match S3 storage type:
 ```json
 {
-  "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
-  "aws_secret_access_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-  "aws_default_region": "us-east-1",
-  "aws_s3_endpoint": "https://s3.amazonaws.com"
+  "AWS_ACCESS_KEY_ID": "AKIAIOSFODNN7EXAMPLE",
+  "AWS_SECRET_ACCESS_KEY": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+  "AWS_S3_ENDPOINT": "https://s3.amazonaws.com"
 }
 ```
 
-A secret missing any of these required keys would NOT match and would be excluded from `type=storage` results.
+A secret missing any of these required keys would NOT match and would be excluded from `type=storage` results. Note that `AWS_DEFAULT_REGION` is not required for BFF-level S3 type detection; it is validated as a frontend `additionalRequiredKey` instead.
 
 ### Data and Security Redaction
 
@@ -231,10 +229,10 @@ The `data` field exposes all keys present in the secret along with their values,
 
 **Security Behavior:**
 - **Allowed keys** return their actual values
-  - Currently allowed: `aws_s3_bucket`
+  - Currently allowed: `AWS_S3_BUCKET`
   - Defined in `internal/constants/secrets.go`
 - **All other keys** return `"[REDACTED]"` to protect sensitive credentials
-- **Key matching** for allowed keys is case-insensitive
+- **Key matching** is case-sensitive; keys must be uppercase
 - **Key names** are case-preserved as they appear in Kubernetes
 - **Both Data and StringData** fields are included
 - **No duplicates**: If a key appears in both fields, it appears once with preference to Data
@@ -247,16 +245,16 @@ The `data` field exposes all keys present in the secret along with their values,
   "name": "my-s3-secret",
   "type": "s3",
   "data": {
-    "aws_access_key_id": "[REDACTED]",
-    "aws_default_region": "[REDACTED]",
-    "aws_s3_bucket": "my-training-data",
-    "aws_s3_endpoint": "[REDACTED]",
-    "aws_secret_access_key": "[REDACTED]"
+    "AWS_ACCESS_KEY_ID": "[REDACTED]",
+    "AWS_DEFAULT_REGION": "[REDACTED]",
+    "AWS_S3_BUCKET": "my-training-data",
+    "AWS_S3_ENDPOINT": "[REDACTED]",
+    "AWS_SECRET_ACCESS_KEY": "[REDACTED]"
   }
 }
 ```
 
-In this example, the secret has an optional `aws_s3_bucket` key in addition to the required S3 keys. The bucket name is returned (allowed key) while credentials are redacted. Clients can detect the bucket presence and use its value for configuration.
+In this example, the secret has an optional `AWS_S3_BUCKET` key in addition to the required S3 keys. The bucket name is returned (allowed key) while credentials are redacted. Clients can detect the bucket presence and use its value for configuration.
 
 ### Metadata Annotations
 
@@ -277,11 +275,11 @@ Secrets can include metadata from OpenShift annotations:
   "name": "prod-s3-storage",
   "type": "s3",
   "data": {
-    "aws_access_key_id": "[REDACTED]",
-    "aws_secret_access_key": "[REDACTED]",
-    "aws_default_region": "[REDACTED]",
-    "aws_s3_endpoint": "[REDACTED]",
-    "aws_s3_bucket": "production-datasets"
+    "AWS_ACCESS_KEY_ID": "[REDACTED]",
+    "AWS_SECRET_ACCESS_KEY": "[REDACTED]",
+    "AWS_DEFAULT_REGION": "[REDACTED]",
+    "AWS_S3_ENDPOINT": "[REDACTED]",
+    "AWS_S3_BUCKET": "production-datasets"
   },
   "displayName": "Production S3 Storage",
   "description": "S3 bucket for production ML training datasets"
@@ -304,7 +302,7 @@ For complete details on S3 endpoint security validation, see [s3-endpoint-securi
 
 The implementation includes comprehensive tests covering:
 - **Type filtering**:
-  - `type=storage`: Successful retrieval with S3 secret filtering, case-insensitive key matching
+  - `type=storage`: Successful retrieval with S3 secret filtering, case-sensitive key matching
   - No type: Returns all secrets in namespace
   - Invalid type: Returns 400 Bad Request
 - **Type detection**:
@@ -312,9 +310,9 @@ The implementation includes comprehensive tests covering:
   - Key-based fallback detection
   - Annotation takes precedence over key-based detection
 - **Data redaction**:
-  - Allowed keys (e.g., `aws_s3_bucket`) return actual values
+  - Allowed keys (e.g., `AWS_S3_BUCKET`) return actual values
   - All other keys return `"[REDACTED]"`
-  - Case-insensitive matching for allowed keys
+  - Case-sensitive matching for allowed keys
   - Keys are case-preserved in output
   - Keys from both Data and StringData are included
   - Empty secrets return empty object `{}`

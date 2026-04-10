@@ -24,7 +24,15 @@ function createConfigureSchema() {
   return createSchema({
     schema: z.object({
       // Common fields
-      display_name: z.string().trim().min(1).default(''),
+      display_name: z
+        .string()
+        .trim()
+        .min(1)
+        .refine(
+          (val) => Array.from(val).length <= 250,
+          'Display name must be at most 250 characters',
+        )
+        .default(''),
       description: z.string().trim().default('').optional(),
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- intentionally invalid default; validated on submit
       task_type: z.enum(TASK_TYPES).default('' as never),

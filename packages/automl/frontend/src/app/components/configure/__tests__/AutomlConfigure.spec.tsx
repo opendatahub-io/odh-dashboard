@@ -117,8 +117,7 @@ jest.mock('~/app/components/common/SecretSelector', () => {
             onChange({
               uuid: 'secret-1',
               name: 'Test Secret 1',
-              // eslint-disable-next-line camelcase
-              data: { aws_s3_bucket: 'test-bucket-1' },
+              data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
               type: 's3',
               invalid: false,
             })
@@ -132,8 +131,7 @@ jest.mock('~/app/components/common/SecretSelector', () => {
             onChange({
               uuid: 'secret-2',
               name: 'Test Secret 2',
-              // eslint-disable-next-line camelcase
-              data: { aws_s3_bucket: 'test-bucket-2' },
+              data: { AWS_S3_BUCKET: 'test-bucket-2', AWS_DEFAULT_REGION: 'us-east-1' },
               type: 's3',
               invalid: false,
             })
@@ -577,6 +575,10 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Verify selections took effect
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
+      expect(screen.getByRole('button', { name: 'Remove selection' })).toBeInTheDocument();
     };
 
     /** Click a prediction type tile via its hidden radio input */
@@ -788,6 +790,11 @@ describe('AutomlConfigure', () => {
 
         // Select a secret but no file — configure details shows empty state
         fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+        // Empty state should be rendered
+        expect(
+          screen.getByText('Select an S3 connection or upload a file to get started'),
+        ).toBeInTheDocument();
 
         // Label column should not exist since configure details is hidden
         expect(screen.queryByTestId('label_column-select')).not.toBeInTheDocument();

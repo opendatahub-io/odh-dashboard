@@ -9,8 +9,10 @@ import {
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 import { formatMetricName, getOptimizedMetricForTask } from '~/app/utilities/utils';
 
-/** Keys excluded from the parameter list (not useful as experiment metadata). */
+/** Keys excluded from the parameter list (not useful as model-level metadata). */
 const HIDDEN_KEYS = new Set([
+  'display_name',
+  'description',
   'task_type',
   'train_data_secret_name',
   'train_data_bucket_name',
@@ -18,7 +20,12 @@ const HIDDEN_KEYS = new Set([
 ]);
 
 const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, createdAt }) => {
-  const paramEntries = Object.entries(parameters ?? {}).filter(([key]) => !HIDDEN_KEYS.has(key));
+  const paramEntries = Object.entries(parameters ?? {}).filter(([key, value]) => {
+    if (HIDDEN_KEYS.has(key) || value === '') {
+      return false;
+    }
+    return !Array.isArray(value) || value.length > 0;
+  });
   const evalMetric = getOptimizedMetricForTask(taskType);
 
   return (

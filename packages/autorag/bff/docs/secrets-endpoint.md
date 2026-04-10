@@ -34,13 +34,13 @@ The endpoint:
 
 ### Secret Type Filtering
 
-Secrets are filtered using configurable dictionaries of secret types and their required keys. A secret must contain **ALL** required keys for a type to be included in the results. Key matching is **case-insensitive**.
+Secrets are filtered using configurable dictionaries of secret types and their required keys. A secret must contain **ALL** required keys for a type to be included in the results. Key matching is **case-sensitive**; keys must be uppercase.
 
 **Currently Supported Storage Types:**
 
 | Storage Type | Required Keys |
 |--------------|---------------|
-| **S3** | `aws_access_key_id`, `aws_default_region`, `aws_secret_access_key`, `aws_s3_endpoint` |
+| **S3** | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT` |
 
 **Future storage types** (e.g., Azure, GCP) can be easily added to the configuration without changing the API.
 
@@ -48,7 +48,7 @@ Secrets are filtered using configurable dictionaries of secret types and their r
 
 | LLS Type | Required Keys |
 |----------|---------------|
-| **Llama Stack** | `llama_stack_client_api_key`, `llama_stack_client_base_url` |
+| **Llama Stack** | `LLAMA_STACK_CLIENT_API_KEY`, `LLAMA_STACK_CLIENT_BASE_URL` |
 
 ## Response Format
 
@@ -62,11 +62,11 @@ The response follows the envelope pattern:
       "name": "aws-secret-1",
       "type": "s3",
       "data": {
-        "aws_access_key_id": "[REDACTED]",
-        "aws_default_region": "[REDACTED]",
-        "aws_s3_endpoint": "[REDACTED]",
-        "aws_secret_access_key": "[REDACTED]",
-        "aws_s3_bucket": "my-production-bucket"
+        "AWS_ACCESS_KEY_ID": "[REDACTED]",
+        "AWS_DEFAULT_REGION": "[REDACTED]",
+        "AWS_S3_ENDPOINT": "[REDACTED]",
+        "AWS_SECRET_ACCESS_KEY": "[REDACTED]",
+        "AWS_S3_BUCKET": "my-production-bucket"
       },
       "displayName": "Production S3 Bucket"
     },
@@ -75,10 +75,10 @@ The response follows the envelope pattern:
       "name": "aws-secret-2",
       "type": "s3",
       "data": {
-        "aws_access_key_id": "[REDACTED]",
-        "aws_default_region": "[REDACTED]",
-        "aws_s3_endpoint": "[REDACTED]",
-        "aws_secret_access_key": "[REDACTED]"
+        "AWS_ACCESS_KEY_ID": "[REDACTED]",
+        "AWS_DEFAULT_REGION": "[REDACTED]",
+        "AWS_S3_ENDPOINT": "[REDACTED]",
+        "AWS_SECRET_ACCESS_KEY": "[REDACTED]"
       }
     }
   ]
@@ -92,7 +92,7 @@ The response follows the envelope pattern:
 | `uuid` | string | The Kubernetes UID of the secret |
 | `name` | string | The name of the secret |
 | `type` | string | **(Optional)** The returned connection type: either a non-empty `opendatahub.io/connection-type` annotation value or a detected built-in type (e.g., "s3", "lls"). Omitted from the response only when neither is available. |
-| `data` | object | Object mapping all keys available in the secret to their values. Keys are case-preserved. Most values are sanitized as `"[REDACTED]"` for security. Only specific allowed keys (currently: `aws_s3_bucket`) return their actual values. Use `Object.keys()` to validate that additional optional keys required for your use case are present. |
+| `data` | object | Object mapping all keys available in the secret to their values. Most values are sanitized as `"[REDACTED]"` for security. Only specific allowed keys (currently: `AWS_S3_BUCKET`) return their actual values. Use `Object.keys()` to validate that additional optional keys required for your use case are present. |
 | `displayName` | string | **(Optional)** Human-readable display name from the `openshift.io/display-name` annotation. Omitted from response if annotation doesn't exist. |
 | `description` | string | **(Optional)** Human-readable description from the `openshift.io/description` annotation. Omitted from response if annotation doesn't exist. |
 
@@ -135,8 +135,8 @@ Response:
       "name": "llama-stack-secret-1",
       "type": "lls",
       "data": {
-        "llama_stack_client_api_key": "[REDACTED]",
-        "llama_stack_client_base_url": "[REDACTED]"
+        "LLAMA_STACK_CLIENT_API_KEY": "[REDACTED]",
+        "LLAMA_STACK_CLIENT_BASE_URL": "[REDACTED]"
       },
       "displayName": "Development LLS"
     },
@@ -145,8 +145,8 @@ Response:
       "name": "llama-stack-secret-2",
       "type": "lls",
       "data": {
-        "llama_stack_client_api_key": "[REDACTED]",
-        "llama_stack_client_base_url": "[REDACTED]"
+        "LLAMA_STACK_CLIENT_API_KEY": "[REDACTED]",
+        "LLAMA_STACK_CLIENT_BASE_URL": "[REDACTED]"
       }
     }
   ]
@@ -176,10 +176,11 @@ The storage type configuration is defined in `internal/repositories/secret.go`:
 ```go
 var storageTypeRequiredKeys = map[string][]string{
     "s3": {
-        "aws_access_key_id",
-        "aws_default_region",
-        "aws_secret_access_key",
-        "aws_s3_endpoint",
+        "AWS_ACCESS_KEY_ID",
+        // Region is currently not enforced by common connections ui so we need to handle it as an additionalRequiredKeys in frontend
+        // "AWS_DEFAULT_REGION",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_S3_ENDPOINT",
     },
     // Future storage types can be added here
 }
@@ -194,12 +195,12 @@ The allowed keys configuration (keys whose values are not redacted) is defined i
 ```go
 // allowedSecretKeys is unexported to prevent external modification
 var allowedSecretKeys = []string{
-    AllowedSecretKey_AWS_S3_Bucket, // "aws_s3_bucket"
+    AllowedSecretKey_AWS_S3_Bucket, // "AWS_S3_BUCKET"
 }
 
 // IsAllowedSecretKey checks if a given key is in the allowed list
 func IsAllowedSecretKey(key string) bool {
-    // Implementation handles case-insensitive matching
+    // Implementation handles case-sensitive matching for classification keys
 }
 ```
 
@@ -208,7 +209,7 @@ To allow a new key to be exposed to clients:
 2. Add it to the `allowedSecretKeys` slice
 3. The key will automatically return its actual value instead of `"[REDACTED]"`
 
-Key matching is case-insensitive via the `IsAllowedSecretKey()` function, so `aws_s3_bucket`, `AWS_S3_BUCKET`, and `Aws_S3_Bucket` will all match.
+Key matching is case-sensitive via the `IsAllowedSecretKey()` function. Keys must be uppercase (e.g., `AWS_S3_BUCKET`).
 
 ### Security
 
@@ -227,51 +228,52 @@ The endpoint supports three filtering modes based on the `type` parameter:
    - The dictionary maps storage types (e.g., "s3", "azure", "gcp") to their required keys
    - A secret matches if it contains ALL required keys for at least ONE storage type
    - Currently configured storage types:
-     - **S3**: Requires `aws_access_key_id`, `aws_default_region`, `aws_secret_access_key`, `aws_s3_endpoint`
+     - **S3**: Requires `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT`
+     - `AWS_DEFAULT_REGION` is **not** a BFF-level classification key because the common connections UI does not enforce it. Instead, it is surfaced as a frontend `additionalRequiredKey` so users are warned when it is missing from their selected secret.
    - Extensible design allows adding new storage types (Azure, GCP, etc.) without API changes
+   - Key matching is case-sensitive; keys must be uppercase
 
 3. **`type=lls`**: Filters for LLS (Llama Stack) secrets
    - A secret matches if it contains ALL required LLS keys
    - Currently configured LLS type:
-     - **Llama Stack**: Requires `llama_stack_client_api_key`, `llama_stack_client_base_url`
-   - Key matching is case-insensitive
+     - **Llama Stack**: Requires `LLAMA_STACK_CLIENT_API_KEY`, `LLAMA_STACK_CLIENT_BASE_URL`
+   - Key matching is case-sensitive; keys must be uppercase
 
 Invalid type values result in a 400 Bad Request error.
 
 **Example**: A secret with the following data would match S3 storage type:
 ```json
 {
-  "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
-  "aws_secret_access_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-  "aws_default_region": "us-east-1",
-  "aws_s3_endpoint": "https://s3.amazonaws.com"
+  "AWS_ACCESS_KEY_ID": "AKIAIOSFODNN7EXAMPLE",
+  "AWS_SECRET_ACCESS_KEY": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+  "AWS_S3_ENDPOINT": "https://s3.amazonaws.com"
 }
 ```
 
-A secret missing any of these required keys would NOT match and would be excluded from `type=storage` results.
+A secret missing any of these required keys would NOT match and would be excluded from `type=storage` results. Note that `AWS_DEFAULT_REGION` is not required for BFF-level S3 type detection; its presence is validated on the frontend side via `additionalRequiredKeys`.
 
 **Example**: A secret with the following data would match LLS (Llama Stack) type:
 ```json
 {
-  "llama_stack_client_api_key": "sk-test-api-key-123",
-  "llama_stack_client_base_url": "https://llama-stack.example.com"
+  "LLAMA_STACK_CLIENT_API_KEY": "sk-test-api-key-123",
+  "LLAMA_STACK_CLIENT_BASE_URL": "https://llama-stack.example.com"
 }
 ```
 
-A secret missing any of these required keys would NOT match and would be excluded from `type=lls` results. Key matching is case-insensitive, so `LLAMA_STACK_CLIENT_API_KEY` and `llama_stack_client_api_key` are treated as equivalent.
+A secret missing any of these required keys would NOT match and would be excluded from `type=lls` results. Key matching is case-sensitive — keys must be uppercase (e.g., `LLAMA_STACK_CLIENT_API_KEY`).
 
 ### Secret Data Field
 
 The `data` field exposes an object mapping all keys present in the secret to their values. For security, most values are sanitized as `"[REDACTED]"`, with only specific allowed keys returning their actual values.
 
 **Allowed keys (returning actual values):**
-- `aws_s3_bucket` (case-insensitive matching)
+- `AWS_S3_BUCKET` (case-sensitive, uppercase)
 
 **Key characteristics:**
 - **Object format**: Returns a `Record<string, string>` mapping keys to values
 - **Case-preserved**: Keys are returned exactly as they appear in Kubernetes (e.g., `AWS_ACCESS_KEY_ID`, `aws_access_key_id`, `Aws_Access_Key_Id` are all preserved)
 - **Sanitized values**: Most values are `"[REDACTED]"` for security
-- **Selective exposure**: Only allowed keys (currently `aws_s3_bucket`) return actual values
+- **Selective exposure**: Only allowed keys (currently `AWS_S3_BUCKET`) return actual values
 - **Includes both Data and StringData**: Keys from both `Data` and `StringData` fields are included
 - **No duplicates**: If a key appears in both `Data` and `StringData`, it only appears once in the object
 - **Empty secrets**: Secrets with no keys return an empty object `{}`
@@ -283,18 +285,18 @@ The `data` field exposes an object mapping all keys present in the secret to the
   "name": "my-s3-secret",
   "type": "s3",
   "data": {
-    "aws_access_key_id": "[REDACTED]",
-    "aws_default_region": "[REDACTED]",
-    "aws_s3_bucket": "my-bucket-name",
-    "aws_s3_endpoint": "[REDACTED]",
-    "aws_secret_access_key": "[REDACTED]"
+    "AWS_ACCESS_KEY_ID": "[REDACTED]",
+    "AWS_DEFAULT_REGION": "[REDACTED]",
+    "AWS_S3_BUCKET": "my-bucket-name",
+    "AWS_S3_ENDPOINT": "[REDACTED]",
+    "AWS_SECRET_ACCESS_KEY": "[REDACTED]"
   }
 }
 ```
 
 In this example:
-- The secret has an optional `aws_s3_bucket` key in addition to the required S3 keys
-- The `aws_s3_bucket` value is exposed (`"my-bucket-name"`) because it's in the allowed list
+- The secret has an optional `AWS_S3_BUCKET` key in addition to the required S3 keys
+- The `AWS_S3_BUCKET` value is exposed (`"my-bucket-name"`) because it's in the allowed list
 - All other keys have sanitized values (`"[REDACTED]"`)
 - Clients can use `Object.keys(data)` to determine which keys are present and offer additional configuration options
 
@@ -373,9 +375,9 @@ data:
   "name": "my-s3-credentials",
   "type": "s3",
   "data": {
-    "aws_access_key_id": "[REDACTED]",
-    "aws_secret_access_key": "[REDACTED]",
-    "aws_s3_bucket": "production-bucket"
+    "AWS_ACCESS_KEY_ID": "[REDACTED]",
+    "AWS_SECRET_ACCESS_KEY": "[REDACTED]",
+    "AWS_S3_BUCKET": "production-bucket"
   },
   "displayName": "Production S3 Bucket",
   "description": "Main S3 bucket for production data storage and backups"
@@ -419,15 +421,15 @@ For complete details on S3 endpoint security validation, see [s3-endpoint-securi
 
 The implementation includes comprehensive tests covering:
 - **Type filtering**:
-  - `type=storage`: Successful retrieval with S3 secret filtering, case-insensitive key matching
-  - `type=lls`: Successful retrieval with LLS (Llama Stack) secret filtering, case-insensitive key matching
+  - `type=storage`: Successful retrieval with S3 secret filtering, case-sensitive key matching
+  - `type=lls`: Successful retrieval with LLS (Llama Stack) secret filtering, case-sensitive key matching
   - No type: Returns all secrets in namespace
   - Invalid type: Returns 400 Bad Request
 - **Secret data field**:
   - Data is returned as an object mapping keys to values
   - Keys are case-preserved
   - Most values are sanitized as `"[REDACTED]"`
-  - Allowed keys (e.g., `aws_s3_bucket`) return actual values
+  - Allowed keys (e.g., `AWS_S3_BUCKET`) return actual values
   - Empty secrets return empty object `{}`
   - Keys from both Data and StringData are included
 - **Display name**:

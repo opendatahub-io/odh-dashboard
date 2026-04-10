@@ -1,11 +1,10 @@
 package constants
 
-import "strings"
-
 // Secret key constants for allowed secret keys that can be exposed to clients.
 // All other secret keys will be sanitized with "[REDACTED]".
+// Keys must be uppercase.
 const (
-	AllowedSecretKey_AWS_S3_Bucket = "aws_s3_bucket"
+	AllowedSecretKey_AWS_S3_Bucket = "AWS_S3_BUCKET"
 )
 
 // allowedSecretKeys defines the keys whose actual values can be returned to the client.
@@ -16,11 +15,10 @@ var allowedSecretKeys = []string{
 }
 
 // IsAllowedSecretKey checks if a given key is in the allowed list.
-// Key matching is case-insensitive.
+// Key matching is case-sensitive; keys must be uppercase.
 func IsAllowedSecretKey(key string) bool {
-	keyLower := strings.ToLower(key)
 	for _, allowedKey := range allowedSecretKeys {
-		if strings.ToLower(allowedKey) == keyLower {
+		if allowedKey == key {
 			return true
 		}
 	}

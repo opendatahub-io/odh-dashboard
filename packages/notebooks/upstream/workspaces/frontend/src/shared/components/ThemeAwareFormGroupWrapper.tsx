@@ -14,6 +14,8 @@ type ThemeAwareFormGroupWrapperProps = {
   className?: string; // Optional className for the outer FormGroup
   role?: string; // Optional role attribute for accessibility
   isInline?: boolean; // Optional isInline prop for FormGroup
+  skipFieldset?: boolean; // If true, skip wrapping in FormFieldset (for NumberInput, etc.)
+  labelHelp?: React.ReactElement; // Optional label help content (e.g. edit icon)
 };
 
 const ThemeAwareFormGroupWrapper: React.FC<ThemeAwareFormGroupWrapperProps> = ({
@@ -26,21 +28,24 @@ const ThemeAwareFormGroupWrapper: React.FC<ThemeAwareFormGroupWrapperProps> = ({
   className,
   role,
   isInline,
+  skipFieldset = false,
+  labelHelp,
 }) => {
   const { isMUITheme } = useThemeContext();
 
-  if (isMUITheme) {
+  if (isMUITheme && !skipFieldset) {
     // For MUI theme, render FormGroup -> FormFieldset -> Input
     // Helper text is rendered *after* the FormGroup wrapper
     return (
       <>
         <FormGroup
-          className={`${className || ''} ${hasError ? 'pf-m-error' : ''}`.trim()} // Apply className and error state class
+          className={`${className || ''} ${hasError ? 'pf-m-error' : ''}`.trim()}
           label={label}
           isRequired={isRequired}
           fieldId={fieldId}
           role={role}
           isInline={isInline}
+          labelHelp={labelHelp}
         >
           <FormFieldset component={children} field={label} />
         </FormGroup>
@@ -49,21 +54,41 @@ const ThemeAwareFormGroupWrapper: React.FC<ThemeAwareFormGroupWrapperProps> = ({
     );
   }
 
+  if (isMUITheme && skipFieldset) {
+    // For MUI theme with skipFieldset, render FormGroup -> Input (no FormFieldset)
+    // This is for components like NumberInput that don't need the fieldset wrapper
+    return (
+      <>
+        <FormGroup
+          className={`${className || ''} ${hasError ? 'pf-m-error' : ''}`.trim()}
+          label={label}
+          isRequired={isRequired}
+          fieldId={fieldId}
+          role={role}
+          isInline={isInline}
+          labelHelp={labelHelp}
+        >
+          {children}
+        </FormGroup>
+        {helperTextNode}
+      </>
+    );
+  }
+
   // For PF theme, render standard FormGroup
   return (
-    <>
-      <FormGroup
-        className={`${className || ''} ${hasError ? 'pf-m-error' : ''}`.trim()} // Apply className and error state class
-        label={label}
-        isRequired={isRequired}
-        fieldId={fieldId}
-        role={role}
-        isInline={isInline}
-      >
-        {children}
-        {helperTextNode}
-      </FormGroup>
-    </>
+    <FormGroup
+      className={`${className || ''} ${hasError ? 'pf-m-error' : ''}`.trim()}
+      label={label}
+      isRequired={isRequired}
+      fieldId={fieldId}
+      role={role}
+      isInline={isInline}
+      labelHelp={labelHelp}
+    >
+      {children}
+      {helperTextNode}
+    </FormGroup>
   );
 };
 

@@ -33,7 +33,7 @@ const mockRuns = Array(11)
 describe('Manage runs', () => {
   beforeEach(() => {
     initIntercepts();
-    manageRunsPage.visit(experimentId, projectName, initialRunIds);
+    manageRunsPage.visit(projectName, initialRunIds);
   });
 
   it('renders the project navigator link', () => {
@@ -64,25 +64,14 @@ describe('Manage runs', () => {
     manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Compare runs' }).click();
     cy.location('pathname').should(
       'equal',
-      `/develop-train/experiments/${projectName}/${experimentId}/compare-runs`,
+      `/develop-train/pipelines/runs/${projectName}/compare-runs`,
     );
     cy.location('search').should('equal', '?compareRuns=test-run-1,test-run-2');
   });
 
-  it('navigates to experiment runs page when the experiment name breadcrumb is clicked', () => {
-    manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Default' }).click();
-    cy.location('pathname').should(
-      'equal',
-      `/develop-train/experiments/${projectName}/${experimentId}/runs`,
-    );
-  });
-
-  it('navigates to experiment list page when the project name breadcrumb is clicked', () => {
-    manageRunsPage
-      .findBreadcrumb()
-      .findByRole('link', { name: 'Experiments in Test project' })
-      .click();
-    cy.location('pathname').should('equal', `/develop-train/experiments/${projectName}`);
+  it('navigates to runs page when the project breadcrumb is clicked', () => {
+    manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Runs in Test project' }).click();
+    cy.location('pathname').should('equal', `/develop-train/pipelines/runs/${projectName}`);
   });
 
   it('navigates to "Compare runs" page with updated run IDs when "Update" toolbar action is clicked', () => {
@@ -98,7 +87,7 @@ describe('Manage runs', () => {
     manageRunsTable.findUpdateButton().click();
     cy.location('pathname').should(
       'equal',
-      `/develop-train/experiments/${projectName}/${experimentId}/compare-runs`,
+      `/develop-train/pipelines/runs/${projectName}/compare-runs`,
     );
     cy.location('search').should('equal', '?compareRuns=test-run-1,test-run-2,test-run-3');
   });
@@ -130,9 +119,12 @@ const initIntercepts = () => {
   );
 
   cy.interceptOdh(
-    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
-    { path: { namespace: projectName, serviceName: 'dspa', experimentId } },
-    buildMockExperimentKF({ experiment_id: experimentId }),
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
+    { path: { namespace: projectName, serviceName: 'dspa' } },
+    {
+      experiments: [buildMockExperimentKF({ experiment_id: experimentId })],
+      total_size: 1,
+    },
   );
 
   initialRunIds.forEach((selectedRunId) => {
