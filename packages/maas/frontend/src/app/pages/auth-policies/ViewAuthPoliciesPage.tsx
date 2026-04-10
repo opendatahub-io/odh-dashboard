@@ -11,14 +11,12 @@ import {
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
-import { MaaSAuthPolicy, ModelSubscriptionRef } from '~/app/types/subscriptions';
+import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
-import SubscriptionModelsSection from '~/app/pages/subscriptions/viewSubscription/SubscriptionModelsSection';
+import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import PolicyDetailsSection from './viewAuthPolicy/PolicyDetailsSection';
 import PolicyGroupsSection from './viewAuthPolicy/PolicyGroupsSection';
-
-const EMPTY_MODEL_REFS: ModelSubscriptionRef[] = [];
 
 type PolicyActionsProps = {
   policy: MaaSAuthPolicy;
@@ -108,9 +106,8 @@ const ViewAuthPoliciesPage: React.FC = () => {
               <PolicyGroupsSection groups={policyInfo.policy.subjects.groups ?? []} />
             </PageSection>
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
-              <SubscriptionModelsSection
+              <MaasModelsSection
                 modelRefSummaries={policyInfo.modelRefs}
-                subscriptionModelRefs={EMPTY_MODEL_REFS}
                 hideColumns={['tokenLimits']}
               />
             </PageSection>
