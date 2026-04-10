@@ -231,6 +231,38 @@ describe('errorClassifier', () => {
         expect(result.description).toContain('supports a maximum of');
       });
 
+      it('should generate description for max_tokens error without model name', () => {
+        const error = { error: { code: 'max_tokens', message: 'Token limit exceeded' } };
+        const result = classifyError(error);
+
+        expect(result.description).toContain('This model');
+        expect(result.description).toContain('supports a maximum of');
+      });
+
+      it('should generate description for chat_template error', () => {
+        const error = { error: { code: 'chat_template', message: 'Invalid template' } };
+        const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
+
+        expect(result.description).toContain('Llama 3.1 8B');
+        expect(result.description).toContain("doesn't support the current chat template");
+      });
+
+      it('should generate description for no_tools error', () => {
+        const error = { error: { code: 'no_tools', message: 'Tools not supported' } };
+        const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
+
+        expect(result.description).toContain('Llama 3.1 8B');
+        expect(result.description).toContain("doesn't support the tools feature");
+      });
+
+      it('should generate description for no_images error', () => {
+        const error = { error: { code: 'no_images', message: 'Images not supported' } };
+        const result = classifyError(error);
+
+        expect(result.description).toContain("can't process images");
+        expect(result.description).toContain('multimodal');
+      });
+
       it('should generate description for timeout error', () => {
         const error = { error: { code: 'timeout', message: 'Request timed out' } };
         const result = classifyError(error);
@@ -238,6 +270,27 @@ describe('errorClassifier', () => {
         expect(result.description).toBe(
           "The model server didn't respond in time. This may be a temporary issue.",
         );
+      });
+
+      it('should generate description for server_error', () => {
+        const error = { error: { code: 'server_error', message: 'Server error' } };
+        const result = classifyError(error);
+
+        expect(result.description).toBe('The model server encountered an internal error.');
+      });
+
+      it('should generate description for rate_limit error', () => {
+        const error = { error: { code: 'rate_limit', message: 'Rate limited' } };
+        const result = classifyError(error);
+
+        expect(result.description).toBe('Too many requests to the model server. Wait a moment.');
+      });
+
+      it('should generate description for service_unavailable error', () => {
+        const error = { error: { code: 'service_unavailable', message: 'Service down' } };
+        const result = classifyError(error);
+
+        expect(result.description).toBe('The playground server is not responding.');
       });
 
       it('should generate description for RAG partial failures', () => {
@@ -248,11 +301,90 @@ describe('errorClassifier', () => {
         expect(result.pattern).toBe('partial_failure' as ErrorPattern);
       });
 
+      it('should generate description for rag_embed error', () => {
+        const error = { error: { code: 'rag_embed', message: 'Embedding failed' } };
+        const result = classifyError(error);
+
+        expect(result.description).toBe("Embedding model couldn't process your query.");
+      });
+
+      it('should generate description for rag_empty error', () => {
+        const error = { error: { code: 'rag_empty', message: 'No results' } };
+        const result = classifyError(error);
+
+        expect(result.description).toBe("Knowledge sources didn't return relevant results.");
+      });
+
+      it('should generate description for guardrail_flagged error', () => {
+        const error = { error: { code: 'guardrail_flagged', message: 'Content flagged' } };
+        const result = classifyError(error);
+
+        expect(result.description).toBe('A guardrail flagged this response. Review carefully.');
+      });
+
+      it('should generate description for guardrail_down error', () => {
+        const error = { error: { code: 'guardrail_down', message: 'Guardrails down' } };
+        const result = classifyError(error);
+
+        expect(result.description).toBe("Safety filter couldn't process this response.");
+      });
+
+      it('should generate description for mcp_down error', () => {
+        const error = { error: { code: 'mcp_down', message: 'MCP server down' } };
+        const result = classifyError(error);
+
+        expect(result.description).toBe(
+          "Server didn't respond. Response generated without tool output.",
+        );
+      });
+
+      it('should generate description for mcp_auth error', () => {
+        const error = { error: { code: 'mcp_auth', message: 'Auth failed' } };
+        const result = classifyError(error);
+
+        expect(result.description).toBe('Auth error. Check credentials in Build panel.');
+      });
+
+      it('should generate description for mcp_exec error', () => {
+        const error = { error: { code: 'mcp_exec', message: 'Execution failed' } };
+        const result = classifyError(error);
+
+        expect(result.description).toBe('Tool encountered an error during execution.');
+      });
+
+      it('should generate description for stream_lost error', () => {
+        const error = { error: { code: 'stream_lost', message: 'Stream lost' } };
+        const result = classifyError(error, { wasStreamStarted: true });
+
+        expect(result.description).toBe('The connection to the model was lost during generation.');
+      });
+
+      it('should generate description for stream_timeout error', () => {
+        const error = { error: { code: 'stream_timeout', message: 'Stream timeout' } };
+        const result = classifyError(error, { wasStreamStarted: true });
+
+        expect(result.description).toBe('The model stopped responding during generation.');
+      });
+
+      it('should generate description for stream_context error', () => {
+        const error = { error: { code: 'stream_context', message: 'Context exceeded' } };
+        const result = classifyError(error, { wasStreamStarted: true });
+
+        expect(result.description).toBe("The response exceeded the model's context length.");
+      });
+
       it('should use error message as fallback for unknown errors', () => {
         const error = { error: { code: 'unknown', message: 'Custom error message' } };
         const result = classifyError(error);
 
         expect(result.description).toBe('Custom error message');
+      });
+
+      it('should use default message when error message is empty', () => {
+        const error = { error: { code: 'unknown', message: '' } };
+        const result = classifyError(error);
+
+        expect(result.description).toBe('An unexpected error occurred. Please try again.');
       });
     });
 
@@ -338,10 +470,17 @@ describe('errorClassifier', () => {
         const categoryTests = [
           { code: ERROR_CATEGORIES.INVALID_MODEL_CONFIG, titleContains: 'configuration' },
           { code: ERROR_CATEGORIES.UNSUPPORTED_FEATURE, titleContains: 'support' },
+          { code: ERROR_CATEGORIES.INVALID_PARAMETER, titleContains: 'error' },
           { code: ERROR_CATEGORIES.RAG_ERROR, titleContains: 'Knowledge' },
+          { code: ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND, titleContains: 'knowledge' },
+          { code: ERROR_CATEGORIES.GUARDRAILS_ERROR, titleContains: 'Guardrail' },
           { code: ERROR_CATEGORIES.GUARDRAILS_VIOLATION, titleContains: 'guardrail' },
           { code: ERROR_CATEGORIES.MCP_ERROR, titleContains: 'Tool' },
+          { code: ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND, titleContains: 'error' },
+          { code: ERROR_CATEGORIES.MCP_AUTH_ERROR, titleContains: 'Tool' },
+          { code: ERROR_CATEGORIES.MODEL_INVOCATION_ERROR, titleContains: 'error' },
           { code: ERROR_CATEGORIES.MODEL_TIMEOUT, titleContains: 'failed' },
+          { code: ERROR_CATEGORIES.MODEL_OVERLOADED, titleContains: 'rate limited' },
         ];
 
         categoryTests.forEach(({ code, titleContains }) => {
@@ -349,6 +488,83 @@ describe('errorClassifier', () => {
           const result = classifyError(error);
           expect(result.title.toLowerCase()).toContain(titleContains.toLowerCase());
         });
+      });
+
+      it('should handle service_unavailable code', () => {
+        const error = { error: { code: 'service_unavailable', message: 'Service down' } };
+        const result = classifyError(error);
+
+        expect(result.title).toBe("Couldn't reach the server");
+        expect(result.description).toBe('The playground server is not responding.');
+        expect(result.retriable).toBe(true);
+      });
+
+      it('should handle bad_gateway code', () => {
+        const error = { error: { code: 'bad_gateway', message: 'Gateway error' } };
+        const result = classifyError(error);
+
+        expect(result.title).toBe("Couldn't reach the server");
+        expect(result.description).toBe('The playground server is not responding.');
+        expect(result.retriable).toBe(true);
+      });
+
+      it('should handle ERROR_CATEGORIES.INVALID_PARAMETER', () => {
+        const error = {
+          error: { code: ERROR_CATEGORIES.INVALID_PARAMETER, message: 'Invalid param' },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('An error occurred');
+        expect(result.retriable).toBe(false);
+      });
+
+      it('should handle ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND', () => {
+        const error = {
+          error: {
+            code: ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND,
+            message: 'Vector store not found',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('No matching knowledge found');
+      });
+
+      it('should handle ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND', () => {
+        const error = {
+          error: { code: ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND, message: 'Tool not found' },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Tool returned an error');
+      });
+
+      it('should handle ERROR_CATEGORIES.MCP_AUTH_ERROR', () => {
+        const error = {
+          error: { code: ERROR_CATEGORIES.MCP_AUTH_ERROR, message: 'Auth failed' },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Tool call failed');
+      });
+
+      it('should handle ERROR_CATEGORIES.MODEL_INVOCATION_ERROR', () => {
+        const error = {
+          error: { code: ERROR_CATEGORIES.MODEL_INVOCATION_ERROR, message: 'Model error' },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('An error occurred');
+      });
+
+      it('should handle ERROR_CATEGORIES.MODEL_OVERLOADED', () => {
+        const error = {
+          error: { code: ERROR_CATEGORIES.MODEL_OVERLOADED, message: 'Model overloaded' },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Request was rate limited');
+        expect(result.retriable).toBe(true);
       });
     });
 
@@ -387,6 +603,32 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toContain('Tool');
+      });
+
+      it('should prefer code over component for RAG errors', () => {
+        const error = {
+          error: {
+            code: 'rag_empty',
+            component: 'rag',
+            message: 'No results',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('No matching knowledge found');
+      });
+
+      it('should use component when code does not match', () => {
+        const error = {
+          error: {
+            code: 'unknown_code',
+            component: 'guardrails',
+            message: 'Unknown guardrails error',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toContain('Guardrail');
       });
     });
 
