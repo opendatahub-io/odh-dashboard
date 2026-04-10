@@ -1,5 +1,5 @@
 /**
- * Empty State A — no compatible pipeline server and/or managed AutoRAG pipeline unavailable.
+ * Empty State A — no compatible pipeline server detected.
  * Directs users to the Pipelines page to configure a pipeline server.
  */
 import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
