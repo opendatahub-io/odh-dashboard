@@ -7,173 +7,64 @@
 
 # Model Training
 
-**Last Updated**: 2026-03-09 | **Template**: package-template v1
+**Last Updated**: 2026-04-10 | **Template**: package-template v2
 
 ## Overview
 
-`@odh-dashboard/model-training` provides the training job management UI for ODH Dashboard.
-It lets users create, monitor, pause, scale, and delete ML training jobs running on Kubernetes
-via the Kubeflow Training Operator. This package is frontend-only with no BFF.
+`@odh-dashboard/model-training` is the training job UI for ODH Dashboard: create, monitor, pause, scale, and delete ML training jobs on Kubernetes via the Kubeflow Training Operator. The package is frontend-only (no BFF).
 
 **Package path**: `packages/model-training/`
 
 ## Deployment Modes
 
-| Mode | How to start | Access URL |
-|------|-------------|-----------|
-| Federated | `npm run dev` from repo root (loads this package via Module Federation) | `http://localhost:4010` |
+| Mode | How to start | Notes |
+|------|-------------|-------|
+| Federated | `npm run dev` (repo root) | Host loads this package via Module Federation; navigate to `/develop-train/training-jobs`. |
 
-This package is frontend-only and ships no standalone server. It is always loaded as a
-federated extension by the main ODH Dashboard. Local development requires the main dashboard
-to be running alongside.
+No standalone dev server in-package; the main dashboard supplies auth, config, and API access patterns.
 
-## BFF Architecture
+## Design Intent
 
-Not applicable.
+Training job data is read and written through **Kubernetes APIs** using `@odh-dashboard/internal` helpers — there is no dedicated model-training backend. Kueue scheduling metadata comes from `ClusterQueue` / `LocalQueue` and related modules; `ClusterTrainingRuntime` supplies create-form defaults. The list and detail experiences cover **TrainJob** and **RayJob** rows with separate drawers and scaling flows where applicable.
 
-## OpenAPI Specification
-
-Not applicable.
-
-## Module Federation
-
-**Config file**: `packages/model-training/package.json` (`module-federation` section)
-
-**Remote entry name**: `plugin-model-training`
-
-**Exposed modules**:
-- `./ModelTrainingRoutes` — top-level route component; loaded by the main dashboard when
-  the user navigates to `/develop-train/training-jobs/*`
-
-**Main dashboard registration**: `packages/model-training/extensions.ts`
-
-The extension declares three entries:
-
-- `app.area` — gated by `SupportedArea.MODEL_TRAINING` and the `trainingJobs` feature flag
-- `app.navigation/href` — adds "Training jobs" under the "Develop and train" nav section
-- `app.route` — maps `/develop-train/training-jobs/*` to `ModelTrainingRoutes`
-
-```bash
-# From repo root — start the main dashboard which loads model-training via Module Federation
-npm run dev
-```
-
-## Architecture
-
-```text
-packages/model-training/
-├── extensions.ts               # Extension point declarations (area, nav, route)
-├── src/
-│   ├── ModelTrainingRoutes.tsx # Top-level router; lazy-loaded by Module Federation
-│   ├── const.ts                # Shared label/annotation constants (Kueue, Trainer)
-│   ├── k8sTypes.ts             # TypeScript types for TrainJob, ClusterTrainingRuntime CRDs
-│   ├── types.ts                # Internal domain types
-│   ├── api/                    # Kubernetes API calls (trainJobs, events, pods, queue, etc.)
-│   ├── components/             # Shared UI components (project selector, empty state)
-│   ├── global/
-│   │   ├── ModelTraining.tsx           # Root component; sets up context
-│   │   ├── ModelTrainingContext.tsx    # React context for jobs and cluster state
-│   │   ├── trainingJobList/            # List view, table, toolbar, modals (TrainJob + RayJob rows)
-│   │   ├── trainingJobDetailsDrawer/   # TrainJob detail drawer with tabs
-│   │   └── rayJobDetailsDrawer/        # RayJob detail drawer, scale modal, tabs
-│   └── hooks/                  # Data-fetching hooks (logs, pods, runtimes, queues, Ray scaling)
-├── docs/
-│   └── overview.md             # This file
-└── package.json
-```
-
-The package calls the Kubernetes API directly through `@odh-dashboard/internal` utilities —
-there is no intermediate BFF. Kueue scheduling data is fetched via the `queue.ts` and
-`workloads.ts` API modules. Training runtimes (`ClusterTrainingRuntime` CRD) are resolved
-via `useClusterTrainingRuntime`.
+The **Module Federation** remote is named `plugin-model-training`; it exposes `./ModelTrainingRoutes` for the `/develop-train/training-jobs/*` route. `extensions.ts` registers the `app.area` (gated by `SupportedArea.MODEL_TRAINING` and the `trainingJobs` flag), nav href under “Develop and train”, and the route mapping.
 
 ## Key Concepts
 
 | Term | Definition |
 |------|-----------|
-| **TrainJob** | The primary Kubernetes CRD managed by this package; represents a single training run |
-| **ClusterTrainingRuntime** | Cluster-scoped CRD defining reusable runtime configurations (framework, image, resource defaults) |
-| **TrainingOperator** | Kubeflow component that reconciles TrainJob CRDs into framework-specific jobs (PyTorchJob, TFJob) |
-| **PyTorchJob / TFJob** | Framework-specific job CRDs created by the Training Operator from a TrainJob |
-| **ResourceSpec** | Per-node resource request/limit structure (CPU, memory, GPU) attached to a TrainJob |
-| **TrainingLog** | Pod log stream surfaced in the details drawer's Logs tab via `useFetchLogs` |
-| **Kueue** | Kubernetes batch-scheduling system; TrainJobs carry a `kueue.x-k8s.io/queue-name` label to join a ClusterQueue |
-| **ClusterQueue** | Kueue resource that governs quota and scheduling for training workloads |
-
-## Quick Start
-
-### Prerequisites
-
-- Node.js >= 22.0.0
-- Access to an OpenShift / Kubernetes cluster with the Kubeflow Training Operator installed
-- `trainingJobs` feature flag enabled in `OdhDashboardConfig`
-
-### Environment setup
-
-No `.env.local` is needed for this package.
-
-### Start in federated mode
-
-```bash
-# From repo root:
-npm run dev
-# Navigate to http://localhost:4010/develop-train/training-jobs
-```
-
-## Environment Variables
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|---------|
-| `DEPLOYMENT_MODE` | Must be `federated` for this package | `federated` | No |
-| `DEV_MODE` | Enable development-only UI features | `false` | No |
-
-## Testing
-
-### Frontend unit tests
-
-```bash
-npx turbo run type-check lint --filter=@odh-dashboard/model-training
-```
-
-This package has `lint` and `type-check` scripts but no `test-unit` script wired via npm.
-Test files live alongside source files in `__tests__/` directories. Key coverage areas:
-- `api/__tests__/` — API call construction for trainJobs, events, pods, queue, workloads
-- `global/trainingJobList/__tests__/` — list utilities and status helpers
-- `global/trainingJobDetailsDrawer/__tests__/` — drawer utilities
-- `hooks/__tests__/` — queue resolution, runtime lookup, node scaling
-
-### Cypress tests
-
-```bash
-npm run test:cypress-ci -- --spec "**/modelTraining/**"
-```
+| **TrainJob** | Primary CRD for a single training run. |
+| **ClusterTrainingRuntime** | Cluster-scoped CRD for reusable runtime presets (image, resources). |
+| **TrainingOperator** | Reconciles TrainJobs into framework jobs (e.g. PyTorchJob, TFJob). |
+| **PyTorchJob / TFJob** | Operator-created framework CRDs from a TrainJob. |
+| **ResourceSpec** | Per-node CPU/memory/GPU requests and limits on a TrainJob. |
+| **TrainingLog** | Pod logs in the details drawer (via log-fetch hooks). |
+| **Kueue** | Batch scheduler; TrainJobs use `kueue.x-k8s.io/queue-name` for queues. |
+| **ClusterQueue** | Kueue quota/scheduling scope for training workloads. |
+| **RayJob** | Ray-based training job resource surfaced alongside TrainJob in the UI where installed. |
 
 ## Interactions
 
 | Dependency | Type | Details |
 |-----------|------|---------|
-| Main ODH Dashboard | Host application | Loads this package via Module Federation; provides auth, routing, and `OdhDashboardConfig` feature flags |
-| Kubeflow Training Operator | Kubernetes CRDs | CRUD on `TrainJob`, read on `ClusterTrainingRuntime`; pods and events fetched per job |
-| Kueue | Kubernetes CRDs | Reads `ClusterQueue` and `LocalQueue` for scheduling metadata; uses `kueue.x-k8s.io/queue-name` label |
-| `packages/model-registry` | Package | Users can register a trained model artifact after a job completes |
-| `frontend/docs/distributed-workloads.md` | Frontend area | Shared Kueue scheduling concepts; training jobs appear in the Distributed Workloads queue view |
+| Main ODH Dashboard | Host | Federation, auth, routing, `OdhDashboardConfig` / feature flags. |
+| Kubeflow Training Operator | Kubernetes | CRUD on `TrainJob`; read `ClusterTrainingRuntime`; pods and events per job. |
+| Kueue | Kubernetes | ClusterQueue/LocalQueue for scheduling UI. |
+| `packages/model-registry` | Package | Optional flow to register a trained artifact after a job completes. |
+| Distributed Workloads (frontend) | Related area | Shared Kueue concepts; jobs surface in queue views — see [Distributed Workloads]. |
 
 ## Known Issues / Gotchas
 
-- The `trainingJobs` feature flag must be set in `OdhDashboardConfig` or the nav entry and
-  route will not appear — even if the Training Operator CRDs are present on the cluster.
-- `ClusterTrainingRuntime` is cluster-scoped; users without cluster-level read access will
-  see no runtimes in the create form.
-- Log streaming (`useFetchLogs`) requires direct pod access; environments with strict network
-  policies may block the pod log endpoint.
-- Kueue integration is optional: jobs without the `kueue.x-k8s.io/queue-name` label bypass
-  scheduling and run immediately. The `TrainingJobClusterQueue` column will be empty.
+- Without `trainingJobs` in `OdhDashboardConfig`, nav and routes stay hidden even if CRDs exist on-cluster.
+- `ClusterTrainingRuntime` is cluster-scoped; users without cluster read see empty runtime lists in create flow.
+- Pod log streaming needs pod log access; strict network policies may block it.
+- Kueue is optional: jobs without `kueue.x-k8s.io/queue-name` run without queue assignment; the cluster-queue column may be empty.
 
 ## Related Docs
 
 - [Guidelines] — documentation style guide
-- [Distributed Workloads] — Kueue scheduling context shared with this package
-- [Model Registry] — downstream target for registering trained model artifacts
-- [Module Federation Docs] — how Module Federation works in this monorepo
-- [Backend Overview] — main dashboard backend reference
+- [Distributed Workloads] — Kueue / workload context
+- [Model Registry] — registering trained artifacts
+- [Module Federation Docs] — federation in the monorepo
+- [Backend Overview] — main dashboard backend
 - [BOOKMARKS] — full doc index

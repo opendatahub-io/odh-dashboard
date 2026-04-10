@@ -7,278 +7,106 @@
 
 # ODH Dashboard Documentation Guidelines
 
-**Last Updated**: 2026-03-10
+**Last Updated**: 2026-04-10
 
-## Purpose and Audience
+## Core Principles
 
-These guidelines govern every Markdown file in the repository — `docs/`, `frontend/docs/`,
-`backend/docs/`, `packages/*/docs/`, package-level READMEs, ADRs, guides, agent rules, and any
-other `.md` file that is part of the project's knowledge base.
-
-They exist for two equal audiences:
-
-- **Human developers** — contributors who need to understand, navigate, and modify the codebase.
-- **AI agents** — automated agents reading docs as context before making changes. Docs must be
-  precise, unambiguous, and machine-parseable.
-
-All documentation MUST follow these guidelines. When an existing doc conflicts, update the doc —
-not the guidelines.
-
----
-
-## Principles
-
-These principles apply to every document regardless of type.
-
-### 1. Accuracy over completeness
-
-A short, correct doc is better than a long, stale one. Delete outdated content rather than leaving
-it with a "TODO: update" marker. If a section cannot be filled accurately, omit it and note why.
-
-### 2. Specificity
-
-Name actual files, directories, components, hooks, functions, environment variables, and CLI
-commands. Vague statements like "the config file" or "run the setup script" force readers to
-search — save them the effort.
-
-### 3. Single source of truth
-
-Every fact should live in exactly one place. Other docs should link to that place, not duplicate
-it. When you find duplicated information, consolidate it and replace the copies with links.
-
-### 4. Navigability
-
-Every doc must be reachable from [BOOKMARKS] or a README in the same directory. Orphan docs are
-invisible docs. When you create or move a file, update the relevant index.
-
-### 5. Maintainability
-
-Structure docs so that a code change requires updating at most one or two sentences, not
-rewriting entire sections. Prefer tables and lists over prose for content that changes often
-(routes, env vars, flags).
-
-### 6. Audience awareness
-
-State who the doc is for and what they should already know. A quick-start guide for new
-contributors has different assumptions than an ADR written for the architecture team.
-
----
+1. **Accuracy over completeness** — A short, correct doc beats a long, stale one. Delete
+   outdated content rather than marking it `TODO`.
+2. **Added value only** — Every section must tell the reader something they cannot trivially
+   discover by reading the source code. Do not reproduce file trees (use `ls`), enumerate
+   every hook (read the code), or list env vars (check `.env.local.example`). Focus on *why*
+   and *how things connect*, not *what files exist*.
+3. **Single source of truth** — Every fact lives in one place. Link, don't duplicate.
+4. **Resilience to churn** — Structure docs so a routine bug fix or file rename does not
+   invalidate them. Describe design patterns and data flows, not individual file paths.
+   Specific paths are acceptable only in Key Concepts, Interactions, and Known Issues where
+   the path itself *is* the knowledge.
+5. **Navigability** — Every doc must be reachable from [BOOKMARKS] or a parent README.
 
 ## Document Types
 
-The repository contains many kinds of documentation. The table below lists them, their typical
-location, and whether a template exists.
+| Type | Location | Template |
+|------|----------|----------|
+| Area overview (frontend) | `frontend/docs/<area>.md` | `docs/templates/frontend-template.md` |
+| Module overview (backend) | `backend/docs/<module>.md` | `docs/templates/backend-template.md` |
+| Package overview | `packages/<pkg>/docs/overview.md` | `docs/templates/package-template.md` |
+| README | Root, package, or sub-directory | None |
+| ADR | `packages/<pkg>/docs/adr/NNNN-*.md` | MADR format or package ADR template |
+| Guide (install, deploy, dev) | `packages/<pkg>/docs/` | None |
+| Agent rule | `.claude/rules/<rule>.md` | None |
 
-| Type | Typical location | Template |
-|------|-----------------|----------|
-| **Area overview** (frontend) | `frontend/docs/<area>.md` | `docs/templates/frontend-template.md` |
-| **Module overview** (backend) | `backend/docs/<module>.md` | `docs/templates/backend-template.md` |
-| **Package overview** | `packages/<pkg>/docs/overview.md` | `docs/templates/package-template.md` |
-| **README** | Root, package, or sub-directory | None — follow README guidance below |
-| **Architecture Decision Record** (ADR) | `packages/<pkg>/docs/adr/NNNN-*.md` | `packages/gen-ai/docs/adr/template.md` |
-| **Install / setup guide** | `packages/<pkg>/docs/install.md` | None |
-| **Local deployment guide** | `packages/<pkg>/docs/local-deployment-guide.md` | None |
-| **Developer guide** | `packages/<pkg>/docs/` or `packages/<pkg>/bff/docs/` | None |
-| **Architecture doc** | `docs/architecture.md`, `packages/<pkg>/frontend/docs/architecture.md` | None |
-| **Best practices / coding standards** | `docs/best-practices.md`, `docs/code_examples.md` | None |
-| **Process doc** (DoD, DoR, PR review, release) | `docs/` | None |
-| **Migration guide** | `docs/migration-*.md` | None |
-| **Agent rule** | `.claude/rules/<rule>.md` | None |
-| **Skill / command** | `.claude/skills/`, `.claude/commands/` | None |
-| **Meta doc** (guidelines, BOOKMARKS, templates) | `docs/` | N/A — guidelines govern themselves |
-| **User-facing doc** | `packages/<pkg>/docs/user/` | None |
+Tooling-only packages (`eslint-config`, `tsconfig`, etc.) need only a `README.md`.
 
-### When to use a template
+## Template Rules
 
-Use a template when one exists for your doc type. Templates encode the section structure that
-reviewers and agents expect. If no template exists, follow the general structure rules below and
-the writing style rules in this document.
+Use templates when one exists for your doc type. Templates define the required sections.
 
-### When NOT to create a full doc
+**Omit sections that don't apply** — never include "Not applicable" or empty sections.
+If a template section is genuinely irrelevant to the subject, skip it entirely.
 
-- Tooling-only packages (`eslint-config`, `tsconfig`, `jest-config`, `cypress`, `plugin-template`,
-  etc.) need only a `README.md` with purpose, install, and usage sections.
-- Tiny utilities or scripts need only a comment block or a short README.
-
----
+No placeholder text (`[Description]`, `TODO`, `TBD`) may remain in a finished doc.
 
 ## Writing Style
 
-### Tone and voice
-
-- Write in **imperative, active voice**: "Use X", "Avoid Y", "Run Z".
-- Address the reader as "you" or use third-person for system behaviour ("The backend extracts…").
-- Be specific: name actual files, directories, component names, and hook names.
-- Do not write "this document covers…" — just cover it. Remove meta-commentary.
-
-### Sentence and line length
-
-- Target 80–100 characters per line in prose. Do not hard-wrap code blocks.
-- Keep paragraphs to 5 sentences or fewer. Use bullet lists when enumerating 3+ items.
-
-### Emoji policy
-
-- Use `✅` and `❌` only inside comparison tables (do/don't, pass/fail).
-- Do not use emoji in prose, headings, or code blocks.
-
-### Code and commands
-
-- Every shell command MUST be in a fenced bash code block.
-- Every file tree MUST be in a fenced `text` code block.
-- Inline code uses backticks: `fileName.ts`, `npm run dev`, `DEPLOYMENT_MODE`.
-- TypeScript/Go/YAML examples MUST use the correct language fence (`ts`, `go`, `yaml`).
-
-### Callouts
-
-Use blockquotes for important notes: `> **Note**: ...` or `> **Warning**: ...`.
-Reserve bold (`**text**`) for the first occurrence of a key term or table headers.
-
-### Tables
-
-Use Markdown tables for structured data (routes, env vars, flags, dependencies). Align columns
-for readability in source. Every table must have a header row.
-
----
-
-## Structure Rules
-
-### Universal sections
-
-These sections are recommended for any substantial doc. Omit a section only when it genuinely
-does not apply — do not leave it empty or filled with placeholder text.
-
-1. **Title** — H1. Clear, descriptive name. Not "Overview" or "Documentation".
-2. **Metadata** (optional but recommended for maintained docs):
-   ```
-   **Last Updated**: YYYY-MM-DD
-   ```
-3. **Overview / Purpose** — 1–5 sentences explaining what the doc covers and who it is for.
-4. **Body sections** — organized by the doc type (see type-specific guidance below).
-5. **Related Docs** — links to other docs in the repo that the reader may need.
-
-### Type-specific structure guidance
-
-**Area / module / package overviews** — use the corresponding template. Templates define the
-required sections and their order. Fill every section with real content. No placeholder text
-(`[Description]`, `TODO`, etc.) may remain.
-
-**READMEs** — at minimum include:
-- What the package/directory contains and why it exists.
-- How to install or set up (if applicable).
-- How to run or use it.
-- Links to more detailed docs if they exist.
-
-**ADRs** — use the standard MADR (Markdown Any Decision Records) structure. Key sections:
-Context and Problem Statement, Decision Drivers, Considered Options, Decision Outcome
-(with Positive/Negative Consequences), Implementation. Some packages maintain their own ADR
-template (e.g., `packages/gen-ai/docs/adr/template.md`) — use the package's template when one
-exists, otherwise follow the standard MADR format.
-
-**Guides** (install, deployment, dev setup) — use numbered steps. Each step should have:
-- A short heading or bold label.
-- The command(s) to run.
-- Expected output or how to verify success.
-- Troubleshooting for common failures.
-
-**Process docs** (DoD, DoR, PR review, release) — use checklists where appropriate. State who
-is responsible for each step.
-
-**Agent rules** — state the trigger (when this rule applies), the constraints, and concrete
-examples of correct and incorrect behavior.
-
-**Architecture docs** — include at least one diagram (text-based file tree, Mermaid, or ASCII).
-Describe the data flow, not just the directory structure.
-
-### Section heading style
-
-- H2 (`##`) headings: Title Case.
-- H3+ (`###`) headings: Sentence case is acceptable.
-- Do not skip heading levels (e.g., H1 → H3 without H2).
-
----
+- Imperative, active voice: "Use X", "Avoid Y".
+- Be specific when naming domain concepts, CRDs, feature flags, and API routes. Avoid file paths in prose unless the path itself is the knowledge (see principle 4).
+- Paragraphs <= 5 sentences. Bullet lists for 3+ items.
+- Fenced code blocks with correct language tags (`bash`, `ts`, `go`, `yaml`, `text`).
+- Blockquotes for callouts: `> **Note**: ...` or `> **Warning**: ...`.
+- Tables for structured data. Every table needs a header row.
+- Reference-style links declared at the top of the file, before the H1:
+  ```
+  [Architecture]: ../docs/architecture.md
+  ```
+- Relative paths for all intra-repo links. Never hardcode GitHub URLs.
+- H2 headings: Title Case. H3+: Sentence case is acceptable.
+- Do not skip heading levels (H1 → H3 without H2).
 
 ## Naming Conventions
 
 | Item | Convention | Example |
 |------|-----------|---------|
-| Doc file name | `kebab-case.md` | `local-deployment-guide.md` |
-| Package overview doc | always `overview.md` | `packages/autorag/docs/overview.md` |
+| Doc file | `kebab-case.md` | `local-deployment-guide.md` |
+| Package overview | always `overview.md` | `packages/autorag/docs/overview.md` |
 | README | always `README.md` | `packages/autorag/README.md` |
-| ADR file | `NNNN-short-title.md` | `0002-system-architecture.md` |
-| Template file | `<type>-template.md` | `frontend-template.md` |
-| Agent rule | `kebab-case.md` | `cypress-e2e.md` |
-| Skill file | `kebab-case.md` | `create-doc.md` |
-| Command file | `<scope>-<action>.md` | `docs-create.md` |
-
-Do NOT use spaces or underscores in doc file names.
-
----
-
-## Linking Conventions
-
-- Declare cross-doc links as **reference-style links** at the top of the file, before the H1
-  title:
-  ```
-  [Architecture]: ../docs/architecture.md
-  [Backend Overview]: ../../backend/docs/overview.md
-  ```
-- Within the doc body, use `[Link Text]` (the reference). This keeps prose readable and links
-  maintainable in one place.
-- Use **relative paths** for all intra-repo links. Never hardcode `https://github.com/...` for
-  files that live in the repo.
-- BOOKMARKS.md entries use relative paths from the repository root.
-
----
+| ADR | `NNNN-short-title.md` | `0002-system-architecture.md` |
 
 ## Metadata
 
-### Last Updated
+For actively maintained docs, include after the H1:
 
-Include a `**Last Updated**: YYYY-MM-DD` line after the H1 title for any doc that is actively
-maintained and expected to evolve with the codebase. This helps readers gauge freshness.
-
-Omit it for stable reference docs that rarely change (e.g., ADR decisions, process definitions).
-
-### Template reference
-
-For docs created from a template, include the template name and version:
 ```
-**Last Updated**: 2026-03-10 | **Template**: frontend-template v1
+**Last Updated**: YYYY-MM-DD | **Template**: <template-name> v<N>
 ```
 
----
+Omit for stable docs that rarely change (ADR decisions, process definitions).
 
 ## Quality Checklist
 
-Before merging a doc, verify:
-
-- [ ] No placeholder text remains (`[Description]`, `TODO`, `TBD`, `FIXME`).
-- [ ] All links resolve (no broken relative paths).
-- [ ] Code blocks use the correct language fence.
-- [ ] File and directory references match the actual repo structure.
+- [ ] No placeholder text remains.
+- [ ] All links resolve.
 - [ ] The doc is reachable from BOOKMARKS.md or a parent README.
-- [ ] The `Last Updated` date is current (if the doc uses one).
-- [ ] The doc is under 500 lines (target 300 or fewer for overviews). Split large docs into
-      linked sub-pages rather than creating monoliths.
-
----
+- [ ] The `Last Updated` date is current.
+- [ ] Under 300 lines (hard limit 500). Split large docs into linked sub-pages.
+- [ ] Every section adds value an agent cannot get faster by reading source code.
 
 ## Glossary
 
 | Term | Definition |
 |------|-----------|
-| **BFF** | Backend-for-Frontend — a Go HTTP server in a package that serves the package's frontend assets, handles auth, and proxies Kubernetes/external API calls. |
-| **Module Federation** | Webpack 5 feature used to load packages as micro-frontends into the main ODH Dashboard at runtime. Federated packages expose a remote entry (only packages configured for Module Federation). |
-| **PatternFly (PF)** | The primary React component library used in the main dashboard and federated packages. v6 is current. |
-| **Material UI (MUI)** | Secondary UI library used in Kubeflow deployment mode (e.g., packages/maas). |
-| **SSAR** | SelfSubjectAccessReview — Kubernetes API used to check user permissions without relying on Group API. |
-| **Extension Point** | A specification defining where the dashboard can be extended (type, properties contract). |
-| **Extension** | A concrete instance implementing an Extension Point specification. |
-| **OdhDashboardConfig** | The custom Kubernetes CR (`kind: OdhDashboardConfig`) that stores feature flags and dashboard settings. |
-| **kube-rbac-proxy** | Authentication gateway replacing the OpenShift OAuth Proxy as of OpenShift 4.19+. Injects auth headers via Envoy filter. |
-| **Standalone mode** | Package deployment where the BFF serves both assets and APIs; used for local development. |
-| **Federated mode** | Package deployed as a micro-frontend loaded by the main ODH Dashboard via Module Federation. |
-| **Kubeflow mode** | Package deployed within Kubeflow Dashboard; uses Material UI instead of PatternFly. |
-| **Turbo** | The monorepo task runner (`npx turbo run <task>`) used to run build/test/lint across all packages. |
-| **Contract test** | A test that validates the frontend's HTTP expectations against the BFF's OpenAPI schema using the `@odh-dashboard/contract-tests` framework. |
-| **ADR** | Architecture Decision Record — a document capturing an important architectural choice, its context, and consequences. |
+| **BFF** | Backend-for-Frontend — a Go HTTP server that serves frontend assets, handles auth, and proxies k8s/external API calls. |
+| **Module Federation** | Webpack 5 feature loading packages as micro-frontends at runtime. |
+| **PatternFly (PF)** | Primary React component library (v6). |
+| **Material UI (MUI)** | Secondary UI library used in Kubeflow deployment mode. |
+| **SSAR** | SelfSubjectAccessReview — k8s API for permission checks without Group API. |
+| **Extension Point** | Specification defining where the dashboard can be extended. |
+| **Extension** | Concrete instance implementing an Extension Point. |
+| **OdhDashboardConfig** | k8s CR (`opendatahub.io/v1alpha`) storing feature flags and settings. |
+| **kube-rbac-proxy** | Auth gateway injecting auth headers via Envoy filter (OpenShift 4.19+). |
+| **Standalone mode** | BFF serves both assets and APIs; used for local dev. |
+| **Federated mode** | Package loaded as micro-frontend via Module Federation. |
+| **Kubeflow mode** | Package deployed within Kubeflow Dashboard; uses MUI. |
+| **Turbo** | Monorepo task runner (`npx turbo run <task>`). |
+| **Contract test** | Validates frontend HTTP expectations against the BFF's OpenAPI schema. |
+| **ADR** | Architecture Decision Record — captures an architectural choice and consequences. |

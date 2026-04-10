@@ -12,4 +12,5 @@ Key points:
 - Read `docs/guidelines.md` for style rules.
 - Research the package by reading its README, Makefile, package.json, BFF directory, and frontend source — only read files and directories that exist; skip missing ones.
 - Write the doc at `packages/<name>/docs/overview.md`.
+- Omit template sections that don't apply — no "Not applicable" filler.
 - Automatically update `BOOKMARKS.md` with the new entry.

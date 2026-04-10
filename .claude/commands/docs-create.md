@@ -13,4 +13,5 @@ When asked to create new documentation, read and follow the full workflow in
 - **Determine the output path** by doc type (e.g., `frontend/docs/<area>.md`,
   `packages/<name>/docs/overview.md`, `.claude/rules/<rule>.md`).
 - No placeholder text (`TODO`, `TBD`, `[Description]`) may remain in the final doc.
+- Omit template sections that don't apply — no "Not applicable" filler.
 - Set `Last Updated` to today's date for doc types that use it.

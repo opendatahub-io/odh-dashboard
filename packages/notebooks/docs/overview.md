@@ -6,192 +6,66 @@
 
 # Notebooks
 
-**Last Updated**: 2026-03-09 | **Template**: package-template v1
+**Last Updated**: 2026-04-10 | **Template**: package-template v2
 
 ## Overview
 
-The Notebooks package integrates the upstream [Kubeflow Notebooks v2](https://github.com/kubeflow/notebooks)
-workspace management UI into the ODH Dashboard via Module Federation. It extends the main
-dashboard's workbench capabilities with Workspace and WorkspaceKind management pages sourced from
-the upstream Kubeflow Notebooks project, tracked as a git subtree under `upstream/`.
+The Notebooks package integrates [Kubeflow Notebooks v2](https://github.com/kubeflow/notebooks) workspace UI into ODH Dashboard via Module Federation. It adds Workspace and WorkspaceKind management under the AI Hub area; upstream sources live in a git subtree under `upstream/`.
 
 **Package path**: `packages/notebooks/`
 
 ## Deployment Modes
 
-| Mode | How to start | Access URL |
-|------|-------------|-----------|
-| Federated (ODH dev) | `npm run start:dev` in this package, then `npm run dev:frontend` from repo root | `http://localhost:4010` |
-| Mocked (standalone) | `cd upstream/workspaces && make tilt-up` | See upstream docs |
+| Mode | How to start | Notes |
+|------|-------------|-------|
+| Federated (ODH) | `npm run start:dev` in package, then `npm run dev:frontend` from repo root | Remote dev server (default port 9105); open dashboard at `http://localhost:4010`. |
+| Upstream standalone | See `upstream/DEVELOPMENT_GUIDE.md` | e.g. `cd upstream/workspaces && make tilt-up` for upstream’s own workflows. |
 
-The primary development mode for ODH integration is federated. The upstream project also supports
-its own standalone and Kubeflow deployment modes; refer to
-`packages/notebooks/upstream/DEVELOPMENT_GUIDE.md` for those workflows.
+Primary ODH integration is federated. Upstream also documents standalone/Kubeflow modes separately; use its guide when changing upstream-only behaviour.
 
-> **Note**: Do not use `npm run start:dev:ext` for the ODH frontend when testing this
-> integration. Use `npm run dev:frontend` from the repo root instead.
+The ODH backend must be running for realistic API behaviour during federated dev (`npm run dev:backend` from repo root when using split terminals).
 
-## BFF Architecture
+## Design Intent
 
-Not applicable — this package has no BFF.
+There is **no ODH-authored BFF** for this package. The federated **remote name** is `notebooks`. The host proxies `/workspaces/api` to the upstream API (path rewritten to `/api`). ODH-specific registration lives under `upstream/workspaces/frontend/src/odh/` (`extensions.ts` for area/nav/route; `NotebooksWrapper.tsx` loads the federated shell). The upstream repo includes its own Go backend for non-ODH deployments; in ODH federated mode, browser traffic to workspace APIs goes through the dashboard proxy to that API surface, not through a separate dashboard BFF layer.
 
-## OpenAPI Specification
+`Dockerfile.workspace` exists because the federated build depends on unpublished workspace packages (`@odh-dashboard/plugin-core`, `@odh-dashboard/internal`, dynamic plugin SDK) and must see the monorepo context.
 
-Not applicable.
-
-## Module Federation
-
-**Config file**: `packages/notebooks/package.json` (`"module-federation"` key)
-
-**Remote entry name**: `notebooks`
-
-**Remote entry location**:
-- Cluster: `/remoteEntry.js` served by the `odh-dashboard` service on port 8343
-- Local dev: `http://localhost:9105` (started by `npm run start:dev`)
-
-**Proxy path**: `/workspaces/api` → rewritten to `/api` on the upstream backend
-
-**Exposed module consumed**:
-- The upstream frontend's Module Federation container exposes routes loaded by `NotebooksWrapper.tsx`
-
-**Main dashboard registration**: `packages/notebooks/upstream/workspaces/frontend/src/odh/extensions.ts`
-— declares `AreaExtension`, `NavExtension`, and `RouteExtension` entries.
-
-```bash
-# Start the notebooks federated frontend (port 9105)
-npm run start:dev
-# In another terminal, start the ODH host dashboard
-npm run dev:frontend
-# Navigate to: AI Hub > Workspaces or AI Hub > Workspace Kinds
-```
-
-## Architecture
-
-```text
-packages/notebooks/
-├── upstream/                        # Git subtree: github.com/kubeflow/notebooks (branch: notebooks-v2)
-│   ├── workspaces/
-│   │   ├── frontend/
-│   │   │   └── src/
-│   │   │       ├── app/             # App entry, routes
-│   │   │       ├── odh/             # ODH-specific extensions and wrapper
-│   │   │       │   ├── extensions.ts      # Registers area, nav, and route extensions
-│   │   │       │   └── NotebooksWrapper.tsx
-│   │   │       ├── pages/           # Workspace and WorkspaceKind pages
-│   │   │       └── shared/          # Shared components and utilities
-│   │   └── backend/                 # Upstream Go BFF (not used directly by ODH)
-│   └── developing/                  # Tilt and local dev tooling
-├── Dockerfile.workspace             # Workspace-aware Docker build (run from repo root)
-├── docs/
-│   └── overview.md                  # This file
-├── package.json                     # Module Federation config and subtree metadata
-└── tsconfig.json
-```
-
-The package is a thin ODH integration layer around the upstream Kubeflow Notebooks frontend.
-The upstream code lives in `upstream/` as a git subtree pinned to commit `8f0495d`. ODH-specific
-glue (extensions, wrapper component) lives under `upstream/workspaces/frontend/src/odh/`.
-
-The Docker build (`Dockerfile.workspace`) must be run from the repository root because the
-federated frontend depends on workspace packages (`@odh-dashboard/plugin-core`,
-`@odh-dashboard/internal`, `@openshift/dynamic-plugin-sdk`) that are not published to npm.
+For day-to-day ODH development, treat the **host** as the source of truth for auth and navigation; the notebooks dev server is the federated asset origin only.
 
 ## Key Concepts
 
 | Term | Definition |
 |------|-----------|
-| **NotebookImage** | A container image registered as a WorkspaceKind that defines the environment available to a notebook workspace. |
-| **NotebookServer** | In the upstream Kubeflow model, the running container instance for a Workspace; lifecycle managed via Kubernetes WorkspaceKind and Workspace CRs. |
-| **CustomNotebookEnvironment** | A user-defined WorkspaceKind that extends a base image with additional packages or configuration. |
-| **Workspace** | The Kubeflow Notebooks v2 CR (`kind: Workspace`) representing a running notebook environment; analogous to a JupyterServer in v1. |
-| **WorkspaceKind** | The Kubeflow Notebooks v2 CR (`kind: WorkspaceKind`) defining the image and resource profile available to Workspaces. |
-| **notebooks-plugin** | The area ID registered by this package's extensions; controlled by the `Notebooks Plugin` dev flag. |
-
-## Quick Start
-
-### Prerequisites
-
-- Node.js >= 22.0.0
-- ODH backend running: `npm run dev:backend` from repo root
-- `Notebooks Plugin` dev flag enabled in your ODH cluster or dev config
-
-### Install upstream frontend dependencies
-
-```bash
-npm run install:module
-# Equivalent to: npm install --prefix upstream/workspaces/frontend
-```
-
-### Start in federated mode
-
-```bash
-# Terminal 1 — notebooks federated frontend (port 9105)
-npm run start:dev
-
-# Terminal 2 — wait for notebooks to be ready, then start ODH host
-npm run start:dev:wait && npm run dev:frontend
-# Navigate to: AI Hub > Workspaces
-```
-
-## Environment Variables
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|---------|
-| `PORT` | Dev server port for the notebooks frontend | `9105` | No |
-| `DEPLOYMENT_MODE` | Must be `federated` for ODH integration | `federated` | No |
-| `MODULE_NAME` | Docker build arg: module name to build | `notebooks` | No |
-
-The `Notebooks Plugin` area flag is controlled by `OdhDashboardConfig` on the cluster (or by
-dev flags in local config). The area also declares `reliantAreas: ['workbenches']`, so the
-core workbench area must be enabled for the nav items to appear.
-
-## Testing
-
-### Frontend Unit Tests
-
-This package has no `test-unit` script at root level. Tests are run from the upstream workspace:
-
-```bash
-cd packages/notebooks/upstream/workspaces/frontend
-npm test
-```
-
-### Cypress Tests
-
-```bash
-npm run test:cypress-ci -- --spec "**/notebooks/**"
-```
-
-This package has no contract tests (no ODH BFF).
+| **NotebookImage** | Image registered as a WorkspaceKind defining a notebook environment. |
+| **NotebookServer** | Upstream name for the running workspace instance (Workspace CR lifecycle). |
+| **CustomNotebookEnvironment** | User-defined WorkspaceKind extending a base image. |
+| **Workspace** | Notebooks v2 CR (`kind: Workspace`) for a running notebook environment. |
+| **WorkspaceKind** | CR defining image and resource profile for Workspaces. |
+| **notebooks-plugin** | Area ID from this package’s extensions; gated by dev/feature flags. |
 
 ## Interactions
 
 | Dependency | Type | Details |
 |-----------|------|---------|
-| Main ODH Dashboard | Host application | Loads this package's federated remote entry via Module Federation; provides `@odh-dashboard/plugin-core` and `@odh-dashboard/internal` |
-| Workbenches (frontend area) | Reliant area | The `notebooks-plugin` area declares `reliantAreas: ['workbenches']`; see [Workbenches Docs] |
-| Kubernetes Workspace CR | Kubernetes API | Upstream backend manages `kind: Workspace` CRs for notebook lifecycle |
-| Kubernetes WorkspaceKind CR | Kubernetes API | Upstream backend manages `kind: WorkspaceKind` CRs for image and resource profiles |
-| JupyterHub | External service | Applicable only if the upstream deployment targets JupyterHub mode; not required for ODH federated integration |
-| `upstream/workspaces/backend` | Upstream Go BFF | The upstream project includes its own BFF; in ODH federated mode, API calls are proxied via `/workspaces/api` → `/api` through the ODH proxy |
+| Main ODH Dashboard | Host | Loads `notebooks` remote; shares plugin-core and internal packages. |
+| Workbenches (frontend) | Reliant area | `reliantAreas: ['workbenches']` — workbenches must be enabled; see [Workbenches Docs]. |
+| Kubernetes | API | Workspace / WorkspaceKind CRs (upstream backend in non-ODH layouts). |
+| `upstream/workspaces/backend` | Upstream BFF | Upstream’s Go server; ODH uses `/workspaces/api` proxy to reach its API shape. |
+| JupyterHub | External | Only for some upstream deployment modes; not required for ODH federated dev. |
 
 ## Known Issues / Gotchas
 
-- The upstream subtree is pinned to a specific commit (`8f0495d`). To update it, run
-  `npm run update-subtree`. Review upstream changelog before updating — breaking changes to the
-  extensions API or WorkspaceKind schema require ODH-side adjustments in `src/odh/`.
-- `npm run start:dev:ext` starts the upstream frontend in isolation (no ODH host). Use
-  `npm run start:dev` for ODH federated integration, not `start:dev:ext`.
-- The Docker build (`Dockerfile.workspace`) must be run from the repository root, not from
-  `packages/notebooks/`. Running it from the package directory will fail because workspace
-  dependencies are not available in that context.
-- The `Notebooks Plugin` area uses a dev flag (`devFlags: ['Notebooks Plugin']`). It will not
-  appear in production builds until the flag is promoted to a feature flag.
+- **Subtree updates**: Refresh with `npm run update-subtree`; review upstream breaking changes to extensions or WorkspaceKind schema before merging — adjust `src/odh/` as needed.
+- **`npm run start:dev:ext`**: Isolates upstream UI without the ODH host — use `npm run start:dev` + root `npm run dev:frontend` for real integration (same class of issue as `start:dev:ext` on the main app for other federated packages).
+- **Docker**: Build `Dockerfile.workspace` from **repo root**, not `packages/notebooks/`, or workspace deps are missing.
+- **Visibility**: Area uses a dev flag (`Notebooks Plugin`); production exposure depends on promoting to a proper feature flag in `OdhDashboardConfig`.
+- **`OdhDashboardConfig`**: `reliantAreas: ['workbenches']` — core workbench area must be on for nav items.
 
 ## Related Docs
 
 - [Guidelines] — documentation style guide
-- [Module Federation Docs] — how Module Federation works in this monorepo
-- [Workbenches Docs] — the main dashboard workbench frontend area
-- [Backend Overview] — main dashboard backend reference
+- [Module Federation Docs] — federation in the monorepo
+- [Workbenches Docs] — main workbench area
+- [Backend Overview] — main backend and proxy behaviour
 - [BOOKMARKS] — full doc index

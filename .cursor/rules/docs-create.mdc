@@ -13,3 +13,4 @@ Key points:
 - For ADRs, check if the target package has its own template in `packages/<pkg>/docs/adr/`.
 - For doc types without a template, follow the general structure guidance in the guidelines.
 - No placeholder text may remain in the final doc.
+- Omit template sections that don't apply — no "Not applicable" filler.

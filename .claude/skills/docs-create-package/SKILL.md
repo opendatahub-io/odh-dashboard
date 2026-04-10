@@ -2,83 +2,50 @@
 
 ## Purpose
 
-Use this skill to scaffold a complete package doc for any package under `packages/` and
-automatically register it in `BOOKMARKS.md`. Use this when adding a new package or when
-a package needs its first structured doc.
+Scaffold a package doc for any package under `packages/` and register it in `BOOKMARKS.md`.
 
 ## Prerequisites
 
-The following files must exist before invoking this skill:
-
-- `docs/guidelines.md` — authoritative style and structure guide
+- `docs/guidelines.md` — style and structure rules
 - `docs/templates/package-template.md` — the package doc template
-- `BOOKMARKS.md` — will be updated automatically by this skill
+- `BOOKMARKS.md` — updated automatically by this skill
 
 ## Inputs
 
 ```text
-$ARGUMENTS — the package name (directory name under packages/). Examples:
-  autorag
-  model-registry
-  my-new-package
+$ARGUMENTS — package name (directory name under packages/).
 ```
 
 ## Workflow
 
-1. **Resolve the package path**: `packages/$ARGUMENTS/`
+1. **Verify** the package exists at `packages/$ARGUMENTS/`.
 
-2. **Verify the package exists**:
-   ```bash
-   ls packages/$ARGUMENTS/
-   ```
-   If the directory does not exist, stop and report an error.
+2. **Determine package type** (before creating any files):
+   - Has `frontend/src/` or `bff/` → **full doc**
+   - Tooling-only → **stub only** (README.md; no overview.md)
 
-3. **Read the package template**: `docs/templates/package-template.md`
+3. **Read** the template (`docs/templates/package-template.md`) and `docs/guidelines.md`.
 
-4. **Read `docs/guidelines.md`** for style rules.
-
-5. **Research the package** by reading:
-   - `packages/$ARGUMENTS/README.md` (if exists)
-   - `packages/$ARGUMENTS/CONTRIBUTING.md` (if exists)
-   - `packages/$ARGUMENTS/bff/` (if exists — check for Go BFF)
+4. **Research the package** — read only files that exist:
+   - `packages/$ARGUMENTS/README.md`
+   - `packages/$ARGUMENTS/package.json`
+   - `packages/$ARGUMENTS/Makefile`
+   - `packages/$ARGUMENTS/bff/` or `packages/$ARGUMENTS/upstream/bff/`
    - `packages/$ARGUMENTS/frontend/src/` (browse structure)
-   - `packages/$ARGUMENTS/Makefile` (for deployment mode commands)
-   - `packages/$ARGUMENTS/package.json` (for scripts and dependencies)
 
-6. **Determine BFF status**:
-   - If `packages/$ARGUMENTS/bff/` or `packages/$ARGUMENTS/upstream/bff/` exists → document the BFF
-   - Otherwise → write "Not applicable — this package has no BFF." in that section
-
-7. **Determine deployment modes** from Makefile scripts:
-   - `make dev-start` → Standalone
-   - `make dev-start-kubeflow` → Kubeflow
-   - `make dev-start-federated` → Federated
-
-8. **Determine package type** — decide before creating any files:
-   - If the package has a user-facing frontend (`frontend/src/`) or BFF (`bff/`) → **full doc**
-   - If tooling-only (no frontend, no BFF) → **stub only** (README.md, no overview.md)
-
-9. **For full-doc packages only** — create `packages/$ARGUMENTS/docs/overview.md`:
-   ```bash
-   mkdir -p packages/$ARGUMENTS/docs/
-   ```
-   - Fill every section with real content (no placeholder text)
-   - Interactions section must name the main ODH Dashboard and at least one other dependency
+5. **For full-doc packages** — create `packages/$ARGUMENTS/docs/overview.md`:
+   - Fill every applicable section with real content
+   - Omit template sections that don't apply — no "Not applicable" filler
+   - Interactions must name the main ODH Dashboard and at least one other dependency
    - Set `Last Updated` to today's date
-   - Keep under 500 lines
+   - Target under 300 lines (hard limit 500)
 
-10. **Update `BOOKMARKS.md`** — append to the correct section:
-    - Full-doc package → add to **Packages > Full Docs**:
-      ```markdown
-      | [Package Name](../packages/$ARGUMENTS/docs/overview.md) | One-line description |
-      ```
-    - Tooling-only package → add to **Packages > Stubs**:
-      ```markdown
-      | [Package Name](../packages/$ARGUMENTS/README.md) | One-line description |
-      ```
-    - Update the `Last Updated` date in BOOKMARKS.md.
+6. **Update BOOKMARKS.md**:
+   - Full-doc → **Packages > Full Docs**
+   - Stub → **Packages > Stubs**
+   - Update `Last Updated` date in BOOKMARKS.md
 
 ## Output
 
-- `packages/$ARGUMENTS/docs/overview.md` — fully-populated package doc (full-doc packages only)
-- `BOOKMARKS.md` — updated with the new entry
+- `packages/$ARGUMENTS/docs/overview.md` (full-doc packages only)
+- `BOOKMARKS.md` updated with the new entry

@@ -11,5 +11,6 @@ When asked to create documentation for a package, read and follow the full workf
   - Tooling-only → **stub only** (README.md; no overview.md)
 - **Research** only files and directories that exist: README, Makefile, package.json, bff/, frontend/src/.
 - **Use** `docs/templates/package-template.md` and follow `docs/guidelines.md` for style.
+- **Omit** template sections that don't apply — no "Not applicable" filler.
 - **Update** `BOOKMARKS.md`: full-doc packages under **Packages > Full Docs**;
   tooling-only packages under **Packages > Stubs**.

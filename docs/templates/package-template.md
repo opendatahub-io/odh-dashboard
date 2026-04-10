@@ -5,7 +5,7 @@
 
 # [Package Name]
 
-**Last Updated**: YYYY-MM-DD | **Template**: package-template v1
+**Last Updated**: YYYY-MM-DD | **Template**: package-template v2
 
 ## Overview
 
@@ -15,154 +15,26 @@
 
 ## Deployment Modes
 
-| Mode | How to start | Access URL |
-|------|-------------|-----------|
-| Standalone | `make dev-start` or `npm run start:dev` | `http://localhost:[port]` |
-| Kubeflow | `make dev-start-kubeflow` | `http://localhost:[port]` |
-| Federated | `make dev-start-federated` + run main dashboard | `http://localhost:4010` |
+| Mode | How to start | Notes |
+|------|-------------|-------|
+| Standalone | `make dev-start` | [Mocked clients, no cluster needed] |
+| Kubeflow | `make dev-start-kubeflow` | [Material UI theme, live cluster] |
+| Federated | `make dev-start-federated` + main dashboard | [PatternFly theme, Module Federation] |
 
-[Explain which modes apply to this package and any mode-specific behaviour differences.]
+[Which modes apply and any mode-specific behaviour differences worth knowing.]
 
-## BFF Architecture
+## Design Intent
 
-> **Not applicable** — this package has no BFF. Skip to [Architecture](#architecture).
-
-<!-- If BFF exists, replace the line above with: -->
-
-```text
-packages/[name]/bff/
-├── cmd/main.go           # Entry point; accepts mock flags
-├── internal/
-│   ├── api/              # HTTP handlers
-│   ├── models/           # Domain models
-│   └── repositories/     # Data access (k8s, external APIs)
-├── openapi/src/          # OpenAPI 3.0 specification
-├── go.mod
-└── Makefile
-```
-
-**Mock flags** accepted by `main.go`:
-- `--mock-k8s-client` — use in-memory mock for Kubernetes
-- `--mock-[service]-client` — [other mocks]
-
-**Health endpoint**: `GET /healthcheck` — required for contract tests.
-
-## OpenAPI Specification
-
-> **Not applicable** — this package has no BFF.
-
-<!-- If BFF exists, replace with: -->
-
-**Location**: `packages/[name]/bff/openapi/src/[name].yaml` (or `upstream/api/openapi/`)
-
-Key endpoint groups:
-- `[/api/v1/resource]` — [description]
-
-## Module Federation
-
-**Config file**: `packages/[name]/frontend/config/webpack.common.js` (or `webpack.config.js`)
-
-**Remote entry name**: `[remoteName]`
-
-**Exposed modules**:
-- `./[ModuleName]` — [what it exports; how the main dashboard loads it]
-
-**Main dashboard registration**: `frontend/src/app/[extensionFile].ts` (or equivalent)
-
-```bash
-# Start in federated mode (also requires main dashboard running)
-cd packages/[name]
-make dev-start-federated
-# Then in repo root:
-npm run dev
-```
-
-## Architecture
-
-```text
-packages/[name]/
-├── api/openapi/          # OpenAPI spec (if BFF)
-├── bff/                  # Go BFF (if applicable)
-├── frontend/
-│   ├── src/
-│   │   ├── app/          # App entry, routes, extensions
-│   │   ├── components/   # Package-specific UI components
-│   │   ├── pages/        # Page-level components
-│   │   └── api/          # Frontend API calls to BFF
-│   └── config/           # Webpack / Module Federation config
-├── docs/
-│   └── overview.md       # This file
-├── Dockerfile
-├── Makefile
-└── package.json
-```
-
-[1–2 paragraphs on architectural decisions: why a BFF exists, how data flows from cluster through BFF to frontend.]
+[1–3 paragraphs on the architectural approach: why a BFF exists (or not), how data flows from
+cluster through BFF to frontend, what the Module Federation remote exposes and how the main
+dashboard loads it. Name the remote entry name and the key exposed modules.
+Do NOT reproduce file trees or env var tables — describe the design and data flow.]
 
 ## Key Concepts
 
 | Term | Definition |
 |------|-----------|
 | [Term] | [Definition scoped to this package] |
-
-## Quick Start
-
-### Prerequisites
-
-- Node.js >= 22.0.0
-- Go >= 1.24 (if BFF)
-- Access to an OpenShift / Kubernetes cluster (optional for mocked dev)
-
-### Environment setup
-
-```bash
-cp packages/[name]/.env.local.example packages/[name]/.env.local
-# Edit .env.local with your cluster details
-```
-
-### Start in standalone mode (recommended for development)
-
-```bash
-cd packages/[name]
-make dev-start
-# Frontend: http://localhost:[port]
-```
-
-## Environment Variables
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|---------|
-| `PORT` | BFF HTTP port | `4000` | No |
-| `DEPLOYMENT_MODE` | `standalone`, `kubeflow`, or `federated` | `standalone` | No |
-| `DEV_MODE` | Enable development features | `false` | No |
-| `MOCK_K8S_CLIENT` | Use in-memory Kubernetes mock | `false` | No |
-
-[Full list in `packages/[name]/.env.local.example`.]
-
-## Testing
-
-### Contract Tests
-
-```bash
-cd packages/[name]
-npm run test:contract
-```
-
-Validates frontend HTTP expectations against the BFF's OpenAPI schema.
-Framework: `@odh-dashboard/contract-tests`. See [.claude/rules/contract-tests.md](../../.claude/rules/contract-tests.md).
-
-### Frontend Unit Tests
-
-```bash
-npx turbo run test-unit --filter=@odh-dashboard/[package-name]
-```
-
-### Cypress Tests
-
-```bash
-# Mock tests
-npm run test:cypress-ci -- --spec "**/[package-name]/**"
-```
 
 ## Interactions
 
@@ -176,6 +48,7 @@ npm run test:cypress-ci -- --spec "**/[package-name]/**"
 
 - [Known issue with context and workaround]
 - [Deprecated pattern and preferred alternative]
+- [Theme constraints, upstream vendoring rules, or other non-obvious traps]
 
 ## Related Docs
 

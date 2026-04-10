@@ -7,90 +7,43 @@
 
 # Gen AI
 
-**Last Updated**: 2026-04-03 | **Template**: frontend-template v1
+**Last Updated**: 2026-04-10 | **Template**: frontend-template v2
 
 ## Overview
 
-The Gen AI frontend area covers LLM-related feature flags and type definitions in the main
-dashboard codebase. The actual chatbot UI, LLM evaluation, and inference management features
-live in federated packages (`packages/gen-ai` for the chatbot, `packages/eval-hub` for
-evaluation workflows). This doc covers only the remnant host-side definitions.
-
-## UI Entry Points
-
-No pages or routes are registered in the main frontend for this area. All Gen AI UI is served
-by the `packages/gen-ai` and `packages/eval-hub` federated packages, which register their own
-routes and navigation items via the extension system.
-
-## Architecture
-
-The main frontend contains only feature-flag definitions and TypeScript types related to Gen AI:
-
-```text
-frontend/src/concepts/areas/
-├── const.ts        # SupportedArea.LM_EVAL definition with featureFlags and reliantAreas
-└── types.ts        # SupportedArea.LM_EVAL enum value ('lm-eval')
-
-frontend/src/k8sTypes.ts
-└── LMEvalKind      # TypeScript type mirroring the LMEvalJob CRD schema
-```
-
-`SupportedArea.LM_EVAL` is defined with `featureFlags: ['disableLMEval']` and
-`reliantAreas: [SupportedArea.MODEL_REGISTRY, SupportedArea.MODEL_SERVING]`. The
-`disableLMEval` flag in `OdhDashboardConfig` controls whether evaluation features are
-available. `LMEvalKind` in `k8sTypes.ts` provides the TypeScript type for `LMEvalJob` CRs.
-
-## State Management
-
-No contexts or hooks exist in the main frontend for this area. All state management lives in
-the federated packages.
-
-## PatternFly Component Usage
-
-Not applicable — no UI components exist in the main frontend for this area.
+In the **main** `frontend/` app, Gen AI is only feature-area wiring and types: `SupportedArea.LM_EVAL`
+and `LMEvalKind`. Chatbot UI, eval workflows, and inference UX live in federated packages
+(`packages/gen-ai`, `packages/eval-hub`) loaded via Module Federation—not in this tree.
 
 ## Key Concepts
 
 | Term | Definition |
 |------|-----------|
-| **SupportedArea.LM_EVAL** | Feature-area token in `frontend/src/concepts/areas/types.ts`. Controlled by the `disableLMEval` flag in `OdhDashboardConfig`. Both `MODEL_REGISTRY` and `MODEL_SERVING` must also be enabled. |
-| **LMEvalKind** | TypeScript type in `frontend/src/k8sTypes.ts` mirroring the `LMEvalJob` CRD schema; carries `spec.modelArgs`, `spec.taskList`, `status.state`, and `status.results`. |
+| **SupportedArea.LM_EVAL** | Area token in `frontend/src/concepts/areas/types.ts`. `featureFlags: ['disableLMEval']`; `reliantAreas: [MODEL_REGISTRY, MODEL_SERVING]`. |
+| **LMEvalKind** | Type in `frontend/src/k8sTypes.ts` mirroring the `LMEvalJob` CRD (`spec.modelArgs`, `spec.taskList`, `status.state`, `status.results`). |
 
-## Quick Start
-
-Gen AI functionality requires the federated packages. See the [Gen AI Package] doc for chatbot
-setup and the [Eval Hub Package] doc for evaluation workflow setup.
-
-## Testing
-
-No tests exist in the main frontend for this area. All test coverage lives in the respective
-federated packages.
-
-## Cypress Test Coverage
-
-Not applicable — no Cypress tests target this area in the main frontend.
+Host-side code locations: `concepts/areas/const.ts` and `types.ts` for the area definition;
+`k8sTypes.ts` for `LMEvalKind`.
 
 ## Interactions
 
 | Dependency | Type | Details |
 |-----------|------|---------|
-| `packages/gen-ai` | Package (federated) | Full chatbot and LLM inference UI; loaded by Module Federation |
-| `packages/eval-hub` | Package (federated) | Model evaluation workflows; loaded by Module Federation |
-| `OdhDashboardConfig` (k8s CR) | Backend / Config | The `disableLMEval` flag enables or disables evaluation features via `SupportedArea.LM_EVAL` |
+| `packages/gen-ai` | Federated package | Chatbot and LLM inference UI. |
+| `packages/eval-hub` | Federated package | Evaluation workflows; consumes shared types. |
+| `OdhDashboardConfig` | Backend / Config | `disableLMEval` gates `SupportedArea.LM_EVAL`. |
 
 ## Known Issues / Gotchas
 
-- `SupportedArea.LM_EVAL` declares `reliantAreas: [MODEL_REGISTRY, MODEL_SERVING]`. If either
-  of those areas is disabled, evaluation features are also disabled even if `disableLMEval` is
-  `false`.
-- The `LMEvalKind` type in `k8sTypes.ts` is used by federated packages; changes to this type
-  require coordinated updates in `packages/eval-hub`.
+- **Reliant areas**: If `MODEL_REGISTRY` or `MODEL_SERVING` is off, LM eval is off even when
+  `disableLMEval` is false.
+- **Shared type**: Changes to `LMEvalKind` require coordinated updates in `packages/eval-hub`.
 
 ## Related Docs
 
-- [Gen AI Package] — full chatbot package with Go BFF
-- [Eval Hub Package] — model evaluation hub package
-- [Guidelines] — documentation style guide for this repo
+- [Gen AI Package] — chatbot package and BFF
+- [Eval Hub Package] — evaluation hub
+- [Guidelines] — documentation style guide
 - [BOOKMARKS] — full doc index
-- [Backend Overview] — backend architecture and k8s proxy patterns
-- [Architecture] — overall ODH Dashboard architecture
+- [Backend Overview] — backend and k8s proxy patterns
+- [Architecture] — overall dashboard architecture

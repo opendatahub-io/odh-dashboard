@@ -4,7 +4,7 @@
 
 # [Area Name]
 
-**Last Updated**: YYYY-MM-DD | **Template**: frontend-template v1
+**Last Updated**: YYYY-MM-DD | **Template**: frontend-template v2
 
 ## Overview
 
@@ -16,85 +16,20 @@
 |----------|-------|--------------------------|
 | [Nav label] | `/path` | `FLAG_NAME` or None |
 
-[Describe how users reach this area: left navigation, project tabs, direct URL, etc.]
+[How users reach this area: nav item, project tab, direct URL, etc.]
 
-## Architecture
+## Design Intent
 
-```text
-[File tree of the key source files for this area]
-frontend/src/pages/[area]/
-├── [PageComponent].tsx
-├── [SubComponent]/
-└── utils/
-```
-
-[1–2 paragraphs describing the structural approach: page → concept → API call flow.]
-
-## State Management
-
-**Contexts used**:
-- [`[ContextName]`]([relative path]) — [what state it holds]
-
-**Key hooks**:
-- `[useHookName]` in `[file path]` — [what it fetches/manages]
-
-**Data flow**: [brief description of how data moves from API → hook → component]
-
-## PatternFly Component Usage
-
-| Component | Usage in this area |
-|-----------|--------------------|
-| `[PFComponent]` | [how it's used] |
-
-[Note any PF overrides from `frontend/src/concepts/dashboard/` that apply here.]
+[1–3 paragraphs explaining *why* the area is structured the way it is: the page → concept →
+API call flow, what context providers own, how data moves from the API to the UI. Name the
+primary context/provider (e.g., `PipelinesContext`) and the dominant data-fetching pattern.
+Do NOT enumerate every hook or file — describe the design philosophy.]
 
 ## Key Concepts
 
 | Term | Definition |
 |------|-----------|
 | [Term] | [Definition scoped to this area] |
-
-## Quick Start
-
-```bash
-# Start the main dashboard frontend pointing at a remote cluster
-cd frontend
-oc login <cluster-url>
-npm run start:dev:ext
-# Navigate to http://localhost:4010[/route]
-```
-
-[Any area-specific setup steps, feature flags to enable, or test data requirements.]
-
-## Testing
-
-### Unit Tests
-
-Location: `frontend/src/pages/[area]/__tests__/`
-
-```bash
-npm run test:unit -- --testPathPattern="[area]"
-```
-
-### Cypress Mock Tests
-
-Location: `packages/cypress/cypress/tests/mocked/[area]/`
-
-```bash
-npm run test:cypress-ci -- --spec "**/[area]/**"
-```
-
-### Cypress E2E Tests
-
-Location: `packages/cypress/cypress/tests/e2e/[area]/`
-
-```bash
-npm run cypress:run -- --spec "**/[area]/**"
-```
-
-## Cypress Test Coverage
-
-[Describe which user flows are covered by Cypress mock tests vs E2E tests. Note any gaps.]
 
 ## Interactions
 
@@ -108,6 +43,7 @@ npm run cypress:run -- --spec "**/[area]/**"
 
 - [Known issue or caveat with context]
 - [Deprecated path or pattern to avoid, with the preferred alternative]
+- [Any non-obvious PF component overrides or theme constraints]
 
 ## Related Docs
 
