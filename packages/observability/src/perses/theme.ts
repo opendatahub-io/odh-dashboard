@@ -175,9 +175,6 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
               paddingRight: 'var(--pf-t--global--spacer--2xl)',
             },
           },
-          endAdornment: {
-            right: 'var(--pf-t--global--spacer--sm)',
-          },
           option: {
             paddingRight: 'var(--pf-t--global--spacer--lg) !important',
           },
