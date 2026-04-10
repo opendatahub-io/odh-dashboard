@@ -106,6 +106,10 @@ class RegisterModelPage {
     return cy.findByTestId('form-namespace-selector-trigger');
   }
 
+  findNamespaceTextInput(timeout?: number) {
+    return cy.findByTestId('form-namespace-text-input', { timeout });
+  }
+
   /**
    * Namespace options render in the SimpleSelect menu (often portaled). Query by role after opening the menu.
    */

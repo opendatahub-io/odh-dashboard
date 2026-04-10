@@ -30,6 +30,18 @@ import { getApplicationsNamespace, getBooleanEnv } from '../../../utils/cypressE
 import type { ModelRegistryTestData } from '../../../types';
 
 describe('Verify models can be registered in a model registry', () => {
+  const chooseNamespaceForRegisterAndStore = (name: string): void => {
+    cy.get('body').then(($body) => {
+      const hasNamespaceSelector = $body.find('[data-testid="form-namespace-selector"]').length > 0;
+      if (hasNamespaceSelector) {
+        registerModelPage.findNamespaceSelectorTrigger().scrollIntoView().click();
+        registerModelPage.findNamespaceOption(name).click();
+      } else {
+        registerModelPage.findNamespaceTextInput(30000).scrollIntoView().clear().type(name);
+      }
+    });
+  };
+
   let namespaceName: string;
   let testData: ModelRegistryTestData;
   let registryName: string;
@@ -304,12 +316,13 @@ describe('Verify models can be registered in a model registry', () => {
         .click({ force: true })
         .should('have.attr', 'aria-pressed', 'true');
 
-      cy.step('Verify namespace selector appears');
-      registerModelPage.findNamespaceSelector(30000).should('exist');
+      cy.step('Verify namespace input appears');
+      cy.get('[data-testid="form-namespace-selector"], [data-testid="form-namespace-text-input"]', {
+        timeout: 30000,
+      }).should('exist');
 
-      cy.step('Select a namespace from the dropdown');
-      registerModelPage.findNamespaceSelectorTrigger().scrollIntoView().click();
-      registerModelPage.findNamespaceOption(namespaceName).click();
+      cy.step('Select or type namespace');
+      chooseNamespaceForRegisterAndStore(namespaceName);
 
       cy.step('Verify origin and destination location sections appear');
       registerModelPage.findOriginLocationSection(10000).should('be.visible');
@@ -430,12 +443,13 @@ describe('Verify models can be registered in a model registry', () => {
         .click({ force: true })
         .should('have.attr', 'aria-pressed', 'true');
 
-      cy.step('Verify namespace selector appears');
-      registerModelPage.findNamespaceSelector(30000).should('exist');
+      cy.step('Verify namespace input appears');
+      cy.get('[data-testid="form-namespace-selector"], [data-testid="form-namespace-text-input"]', {
+        timeout: 30000,
+      }).should('exist');
 
-      cy.step('Select a namespace from the dropdown');
-      registerModelPage.findNamespaceSelectorTrigger().scrollIntoView().click();
-      registerModelPage.findNamespaceOption(namespaceName).click();
+      cy.step('Select or type namespace');
+      chooseNamespaceForRegisterAndStore(namespaceName);
 
       cy.step('Verify origin and destination location sections appear');
       registerModelPage.findOriginLocationSection(10000).should('be.visible');
