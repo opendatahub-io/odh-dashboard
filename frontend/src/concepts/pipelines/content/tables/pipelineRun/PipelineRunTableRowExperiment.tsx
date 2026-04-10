@@ -1,5 +1,7 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Label, Skeleton, Split, SplitItem } from '@patternfly/react-core';
+import TruncatedText from '#~/components/TruncatedText';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 import { NoRunContent } from '#~/concepts/pipelines/content/tables/renderUtils';
 
@@ -8,6 +10,9 @@ type PipelineRunTableRowExperimentProps = {
   isExperimentArchived?: boolean;
   loaded: boolean;
   error?: Error;
+  linkTo?: string;
+  isClickable?: boolean;
+  onClick?: () => void;
 };
 
 const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps> = ({
@@ -15,7 +20,12 @@ const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps
   isExperimentArchived,
   loaded,
   error,
+  linkTo,
+  isClickable = false,
+  onClick,
 }) => {
+  const navigate = useNavigate();
+
   if (!loaded && !error) {
     return <Skeleton />;
   }
@@ -23,13 +33,28 @@ const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps
   if (!experiment) {
     return <NoRunContent />;
   }
+
+  const handleClick = onClick ?? (linkTo ? () => navigate(linkTo) : undefined);
+  const showClickableStyles = isClickable || !!handleClick;
+
+  const runGroupLabel = (
+    <Label
+      {...(showClickableStyles
+        ? {
+            isClickable: true,
+            ...(handleClick ? { onClick: handleClick } : {}),
+          }
+        : {})}
+      isCompact
+      variant="outline"
+    >
+      <TruncatedText content={experiment.display_name} maxLines={1} />
+    </Label>
+  );
+
   return (
     <Split hasGutter>
-      <SplitItem>
-        <Label isCompact variant="outline">
-          {experiment.display_name}
-        </Label>
-      </SplitItem>
+      <SplitItem>{runGroupLabel}</SplitItem>
       {isExperimentArchived && (
         <SplitItem>
           <Label variant="outline" isCompact>

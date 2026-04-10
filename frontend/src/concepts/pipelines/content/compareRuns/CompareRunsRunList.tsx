@@ -21,6 +21,7 @@ import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import useMlflowExperiments from '#~/concepts/mlflow/useMlflowExperiments';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 
 const CompareRunsRunList: React.FC = () => {
   const { namespace } = usePipelinesAPI();
@@ -91,6 +92,12 @@ const CompareRunsRunList: React.FC = () => {
     runs.map((r) => r.run_id),
     experiment?.experiment_id,
   );
+  const handleRunGroupClick = React.useCallback(
+    (clickedExperiment: ExperimentKF) => {
+      filterToolbarProps.onFilterUpdate(FilterOptions.RUN_GROUP, clickedExperiment.display_name);
+    },
+    [filterToolbarProps],
+  );
 
   return (
     <ExpandableSection
@@ -139,6 +146,7 @@ const CompareRunsRunList: React.FC = () => {
               loaded: mlflowExperimentsLoaded,
             }}
             hasRowActions={false}
+            onRunGroupClick={handleRunGroupClick}
             run={run}
           />
         )}

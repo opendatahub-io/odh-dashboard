@@ -3,7 +3,7 @@ import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 
 export const experimentSelectorColumns: SortableData<ExperimentKF>[] = [
   {
-    label: 'Experiment name',
+    label: 'Run group name',
     field: 'name',
     sortable: (a, b) => a.display_name.localeCompare(b.display_name),
     width: 70,

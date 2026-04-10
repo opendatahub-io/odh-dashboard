@@ -55,7 +55,7 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ onClose }
       }}
       variant="small"
     >
-      <ModalHeader title="Create experiment" />
+      <ModalHeader title="Create run group" />
       <ModalBody>
         <Form>
           <Stack hasGutter>
@@ -65,7 +65,7 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ onClose }
               </FormGroup>
             </StackItem>
             <StackItem>
-              <FormGroup label="Experiment name" isRequired fieldId="experiment-name">
+              <FormGroup label="Run group name" isRequired fieldId="experiment-name">
                 <TextInput
                   isRequired
                   type="text"
@@ -99,7 +99,7 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ onClose }
             </StackItem>
             {error && (
               <StackItem>
-                <Alert title="Error creating experiment" isInline variant="danger">
+                <Alert title="Error creating run group" isInline variant="danger">
                   {error.message}
                 </Alert>
               </StackItem>
@@ -136,7 +136,7 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ onClose }
               });
           }}
         >
-          Create experiment
+          Create run group
         </Button>
         <Button key="cancel-button" variant="secondary" onClick={() => onBeforeClose()}>
           Cancel

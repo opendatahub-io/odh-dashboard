@@ -6,7 +6,11 @@ import { TableRowTitleDescription, CheckboxTd } from '#~/components/table';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import usePipelineRunVersionInfo from '#~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 import { PipelineVersionLink } from '#~/concepts/pipelines/content/PipelineVersionLink';
-import { duplicateRecurringRunRoute, recurringRunDetailsRoute } from '#~/routes/pipelines/runs';
+import {
+  duplicateRecurringRunRoute,
+  globalPipelineRecurringRunsRoute,
+  recurringRunDetailsRoute,
+} from '#~/routes/pipelines/runs';
 import {
   RecurringRunCreated,
   RecurringRunScheduled,
@@ -18,6 +22,7 @@ import PipelineRunTableRowMlflowExperiment from '#~/concepts/pipelines/content/t
 import usePipelineRunExperimentInfo from '#~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import { MlflowExperimentData } from '#~/concepts/mlflow/types';
+import { buildLegacyExperimentFilterUrl } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 
 type PipelineRecurringRunTableRowProps = {
   isChecked: boolean;
@@ -49,6 +54,16 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
     loaded: isExperimentLoaded,
     error: experimentError,
   } = usePipelineRunExperimentInfo(recurringRun);
+  const runGroupLink = React.useMemo(() => {
+    if (!experiment) {
+      return undefined;
+    }
+
+    return buildLegacyExperimentFilterUrl(
+      globalPipelineRecurringRunsRoute(namespace),
+      experiment.experiment_id,
+    );
+  }, [experiment, namespace]);
 
   return (
     <Tr>
@@ -88,6 +103,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
             experiment={experiment}
             error={experimentError}
             loaded={isExperimentLoaded}
+            linkTo={runGroupLink}
           />
         </Td>
       )}

@@ -25,6 +25,7 @@ import { DuplicateNameHelperText } from '#~/concepts/pipelines/content/Duplicate
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import useDebounceCallback from '#~/utilities/useDebounceCallback';
 import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
+import { ActiveExperimentSelector } from '#~/concepts/pipelines/content/experiment/ExperimentSelector';
 import {
   NAME_CHARACTER_LIMIT,
   DESCRIPTION_CHARACTER_LIMIT,
@@ -154,13 +155,10 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
           isRequired
           labelHelp={<DashboardHelpTooltip content={runGroupCreateModalPopoverText} />}
         >
-          <TextInput
-            id="run-group"
-            data-testid="run-group-field"
-            value={data.runGroup}
-            onChange={(_e, value) => onValueChange('runGroup', value)}
-            maxLength={NAME_CHARACTER_LIMIT}
-            isRequired
+          <ActiveExperimentSelector
+            dataTestId="run-group-selector"
+            selection={data.runGroup}
+            onSelect={(experiment) => onValueChange('runGroup', experiment.display_name)}
           />
           <CharLimitHelperText limit={NAME_CHARACTER_LIMIT} currentLength={data.runGroup.length} />
         </FormGroup>

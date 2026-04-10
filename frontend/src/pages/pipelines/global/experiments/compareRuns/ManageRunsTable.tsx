@@ -13,7 +13,7 @@ import PipelineRunTable from '#~/concepts/pipelines/content/tables/pipelineRun/P
 import PipelineRunTableRow from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import PipelineRunTableToolbar from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import { filterByMlflowExperiment } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
-import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { ExperimentKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { compareRunsRoute } from '#~/routes/pipelines/runs';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
@@ -64,6 +64,12 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
   } = useCheckboxTable(pageRunIds, selectedRunIds, true);
   const updateHref = compareRunsRoute(namespace, selections, experiment?.experiment_id);
   const isUpdateDisabled = selections.length < 1 || selections.length > 10;
+  const handleRunGroupClick = React.useCallback(
+    (clickedExperiment: ExperimentKF) => {
+      filterProps.onFilterUpdate(FilterOptions.RUN_GROUP, clickedExperiment.display_name);
+    },
+    [filterProps],
+  );
 
   const rowRenderer = React.useCallback(
     (run: PipelineRunKF) => {
@@ -81,6 +87,7 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
           }}
           hasRowActions={false}
           run={run}
+          onRunGroupClick={handleRunGroupClick}
           mlflow={{
             isAvailable: isMlflowAvailable,
             experiments: mlflowExperiments,
@@ -89,7 +96,14 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
         />
       );
     },
-    [selections, toggleSelection, isMlflowAvailable, mlflowExperiments, mlflowExperimentsLoaded],
+    [
+      selections,
+      toggleSelection,
+      handleRunGroupClick,
+      isMlflowAvailable,
+      mlflowExperiments,
+      mlflowExperimentsLoaded,
+    ],
   );
 
   return (

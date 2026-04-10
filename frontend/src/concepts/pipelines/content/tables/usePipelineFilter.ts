@@ -23,7 +23,22 @@ export enum FilterOptions {
   MLFLOW_EXPERIMENT = 'mlflow_experiment',
 }
 
-const LEGACY_EXPERIMENT_FILTER_PARAM = 'experiment';
+export const LEGACY_EXPERIMENT_FILTER_PARAM = 'experiment';
+
+export const buildLegacyExperimentFilterUrl = (
+  pathname: string,
+  experimentId: string | undefined,
+): string => {
+  if (!experimentId) {
+    return pathname;
+  }
+
+  const searchParams = new URLSearchParams({
+    [LEGACY_EXPERIMENT_FILTER_PARAM]: experimentId,
+  });
+
+  return `${pathname}?${searchParams.toString()}`;
+};
 
 export const getDataValue = (data: string | { value: string } | undefined): string | undefined => {
   if (typeof data === 'string' || typeof data === 'undefined') {
