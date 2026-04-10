@@ -18,7 +18,7 @@ describe('NoPipelineServer', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'To use AutoML, you need access to a pipeline server with AutoML and AutoRAG enabled. Create or edit a pipeline server on the Pipelines page.',
+        'To use AutoML, you need access to a pipeline server. Create or edit a pipeline server on the Pipelines page.',
       ),
     ).toBeInTheDocument();
     const goToPipelinesControl = screen.getByTestId('go-to-pipelines-link');
