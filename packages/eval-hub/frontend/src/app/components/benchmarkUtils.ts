@@ -21,6 +21,9 @@ export const getCategoryColor = (category?: string): CategoryColor => {
   return CATEGORY_COLOR_PALETTE[hash % CATEGORY_COLOR_PALETTE.length];
 };
 
+export const capitalizeFirst = (value: string): string =>
+  value.charAt(0).toUpperCase() + value.slice(1);
+
 export const VISIBLE_METRICS_COUNT = 3;
 
 export const toSafeExternalUrl = (raw?: string): string | undefined => {

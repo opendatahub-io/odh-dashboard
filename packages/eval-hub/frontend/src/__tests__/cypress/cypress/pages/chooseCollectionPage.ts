@@ -25,6 +25,10 @@ class ChooseCollectionPage {
     return cy.findByTestId('collection-drawer-panel');
   }
 
+  findUseBenchmarkSuiteButton(collectionId: string) {
+    return this.findCollectionCard(collectionId).findByTestId('use-benchmark-suite-button');
+  }
+
   findNameFilterInput() {
     return cy.findByTestId('collections-name-filter');
   }
