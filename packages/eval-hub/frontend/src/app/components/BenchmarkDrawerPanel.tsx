@@ -17,7 +17,7 @@ import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { FlatBenchmark } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
+import { capitalizeFirst, getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
 
 type BenchmarkDrawerPanelProps = {
   benchmark: FlatBenchmark | undefined;
@@ -43,7 +43,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
         <Stack hasGutter>
           {benchmark.category && (
             <StackItem>
-              <Label color={color}>{benchmark.category}</Label>
+              <Label color={color}>{capitalizeFirst(benchmark.category)}</Label>
             </StackItem>
           )}
           <StackItem>

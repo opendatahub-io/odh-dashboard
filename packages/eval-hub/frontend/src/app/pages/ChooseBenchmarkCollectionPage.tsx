@@ -36,7 +36,7 @@ import { Collection } from '~/app/types';
 import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
-import { getCategoryColor } from '~/app/components/benchmarkUtils';
+import { capitalizeFirst, getCategoryColor } from '~/app/components/benchmarkUtils';
 
 const ChooseBenchmarkCollectionPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -229,7 +229,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                               isCompact
                               style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
                             >
-                              {collection.category}
+                              {capitalizeFirst(collection.category)}
                             </Label>
                           )}
                           <Button
@@ -265,7 +265,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                             isInline
                             onClick={() => handleRunCollection(collection)}
                           >
-                            Use this collection
+                            Use this benchmark suite
                           </Button>
                         </CardFooter>
                       </Card>

@@ -91,7 +91,10 @@ const navigateToCollectionStart = () => {
   );
 
   chooseCollectionPage.visit(NAMESPACE);
-  chooseCollectionPage.findCollectionCard('col-safety').findByText('Use this collection').click();
+  chooseCollectionPage
+    .findCollectionCard('col-safety')
+    .findByText('Use this benchmark suite')
+    .click();
 
   startEvaluationRunPage.findForm().should('exist');
 };

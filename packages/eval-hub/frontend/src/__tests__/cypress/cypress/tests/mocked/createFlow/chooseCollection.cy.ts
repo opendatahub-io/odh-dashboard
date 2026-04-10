@@ -119,10 +119,13 @@ describe('Choose Collection Page', () => {
     chooseCollectionPage.findCollectionDrawerPanel().should('not.exist');
   });
 
-  it('should navigate to start page when clicking "Use this collection"', () => {
+  it('should navigate to start page when clicking "Use this benchmark suite"', () => {
     chooseCollectionPage.visit(NAMESPACE);
 
-    chooseCollectionPage.findCollectionCard('col-safety').findByText('Use this collection').click();
+    chooseCollectionPage
+      .findCollectionCard('col-safety')
+      .findByText('Use this benchmark suite')
+      .click();
 
     cy.url().should('include', `${NAMESPACE}/create/start`);
     cy.url().should('include', 'type=collection');

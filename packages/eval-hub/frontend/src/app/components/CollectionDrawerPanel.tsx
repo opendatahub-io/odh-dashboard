@@ -18,7 +18,7 @@ import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Collection } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
+import { capitalizeFirst, getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
 
 type CollectionDrawerPanelProps = {
   collection: Collection | undefined;
@@ -43,7 +43,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
         <Stack hasGutter>
           {collection.category && (
             <StackItem>
-              <Label color={color}>{collection.category}</Label>
+              <Label color={color}>{capitalizeFirst(collection.category)}</Label>
             </StackItem>
           )}
           <StackItem>
@@ -137,7 +137,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
 
       <DrawerPanelBody style={{ flex: '0 0 auto' }} className="pf-v6-u-mt-md">
         <Button variant="primary" onClick={() => onRunCollection(collection)}>
-          Use this collection
+          Use this benchmark suite
         </Button>
       </DrawerPanelBody>
     </DrawerPanelContent>
