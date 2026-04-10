@@ -58,7 +58,7 @@ const CompareRunsRunList: React.FC = () => {
     const matchingRunGroups = runGroupFilter
       ? new Set(
           allExperiments
-            .filter((e) => e.display_name.toLowerCase().includes(runGroupFilter))
+            .filter((e) => e.display_name.toLowerCase() === runGroupFilter)
             .map((e) => e.experiment_id),
         )
       : undefined;

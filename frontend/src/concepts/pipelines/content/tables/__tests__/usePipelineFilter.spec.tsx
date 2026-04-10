@@ -382,7 +382,7 @@ describe('usePipelineFilterSearchParams', () => {
       return Wrapper;
     };
 
-    it('should produce IN predicate when run group matches a single experiment', () => {
+    it('should produce EQUALS predicate when run group matches an experiment by exact name', () => {
       const setFilterMock = jest.fn();
       renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
         wrapper: wrapperWithExperiments('/?run_group=Gamma'),
@@ -394,36 +394,14 @@ describe('usePipelineFilterSearchParams', () => {
         predicates: expect.arrayContaining([
           {
             key: 'experiment_id',
-            operation: PipelinesFilterOp.IN,
-            string_values: { values: ['exp-gamma'] },
+            operation: PipelinesFilterOp.EQUALS,
+            string_value: 'exp-gamma',
           },
         ]),
       });
     });
 
-    it('should produce IN predicate when run group matches multiple experiments', () => {
-      const setFilterMock = jest.fn();
-      renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
-        wrapper: wrapperWithExperiments('/?run_group=Test'),
-      });
-
-      jest.runAllTimers();
-
-      expect(setFilterMock).toHaveBeenLastCalledWith({
-        predicates: expect.arrayContaining([
-          {
-            key: 'experiment_id',
-            operation: PipelinesFilterOp.IN,
-            // eslint-disable-next-line camelcase
-            string_values: {
-              values: expect.arrayContaining(['exp-alpha', 'exp-beta']),
-            },
-          },
-        ]),
-      });
-    });
-
-    it('should produce empty IN predicate when run group matches no experiments', () => {
+    it('should not produce experiment predicate when run group has no exact match', () => {
       const setFilterMock = jest.fn();
       renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
         wrapper: wrapperWithExperiments('/?run_group=NoMatch'),
@@ -431,15 +409,7 @@ describe('usePipelineFilterSearchParams', () => {
 
       jest.runAllTimers();
 
-      expect(setFilterMock).toHaveBeenLastCalledWith({
-        predicates: expect.arrayContaining([
-          {
-            key: 'experiment_id',
-            operation: PipelinesFilterOp.IN,
-            string_values: { values: [] },
-          },
-        ]),
-      });
+      expect(setFilterMock).toHaveBeenLastCalledWith(undefined);
     });
 
     it('should use exact experiment ID for legacy ?experiment= deep links', () => {

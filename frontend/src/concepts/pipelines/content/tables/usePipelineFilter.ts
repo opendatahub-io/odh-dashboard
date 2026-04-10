@@ -69,14 +69,14 @@ const resolveExperimentPredicate = (
   if (!runGroupName) {
     return undefined;
   }
-  const lowerName = runGroupName.toLowerCase();
-  const matchingIds = experiments
-    .filter((e) => e.display_name.toLowerCase().includes(lowerName))
-    .map((e) => e.experiment_id);
+  const match = experiments.find((e) => e.display_name === runGroupName);
+  if (!match) {
+    return undefined;
+  }
   return {
     key: 'experiment_id',
-    operation: PipelinesFilterOp.IN,
-    string_values: { values: matchingIds },
+    operation: PipelinesFilterOp.EQUALS,
+    string_value: match.experiment_id,
   };
 };
 
