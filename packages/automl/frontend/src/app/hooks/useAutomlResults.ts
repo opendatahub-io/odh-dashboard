@@ -17,7 +17,7 @@ type UseAutomlResultsReturn = {
  * Custom hook to fetch and process AutoML model results from S3.
  * Models are outputted into the following directory structure
  *      Tabular:     autogluon-tabular-training-pipeline/xxx/autogluon-models-training/yyy/models_artifact/WeightedEnsemble_L5_FULL
- *      Time series: autogluon-timeseries-training-pipeline/xxx/timeseries-models-full-refit/yyy/model_artifact/WeightedEnsemble_L5_FULL
+ *      Time series: autogluon-timeseries-training-pipeline/xxx/autogluon-timeseries-models-full-refit/yyy/model_artifact/TemporalFusionTransformer_FULL
  * where xxx is the kubeflow pipeline run_id and yyy is a nondeterministic ID.
  * The directory variables used to generate these paths in this file are as follows:
  *      ${rootDir}/xxx/${modelGenerationDir}/yyy/${modelArtifactsDirectory}/${modelName}
@@ -65,7 +65,7 @@ export function useAutomlResults(
     : 'autogluon-timeseries-training-pipeline';
   const modelGenerationDir = isTabular
     ? 'autogluon-models-training'
-    : 'timeseries-models-full-refit';
+    : 'autogluon-timeseries-models-full-refit';
   const generatedModelsPath = shouldFetchS3Files
     ? `${rootDir}/${runId}/${modelGenerationDir}`
     : undefined;
