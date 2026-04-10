@@ -145,13 +145,13 @@ describe('MCP Deployments', () => {
     // do not toggle. Click the Created sort control until the newest row (`jun-mcp`) is first.
     const newestRowTestId = 'mcp-deployment-row-jun-mcp';
     const maxCreatedSortClicks = 12;
-    const clickCreatedUntilNewestFirst = (n: number): Cypress.Chainable<void> =>
+    const clickCreatedUntilNewestFirst = (n: number): Cypress.Chainable =>
       mcpDeploymentsPage
         .findTableRows()
         .first()
         .then(($row) => {
           if ($row.attr('data-testid') === newestRowTestId) {
-            return;
+            return cy.wrap(null);
           }
           if (n >= maxCreatedSortClicks) {
             const got = $row.attr('data-testid') ?? '(missing)';
