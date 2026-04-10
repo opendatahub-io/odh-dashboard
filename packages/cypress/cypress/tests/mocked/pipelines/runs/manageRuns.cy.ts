@@ -108,7 +108,7 @@ describe('Manage runs', () => {
         mlflow: { enabled: true, pipelinesIntegration: true, bffConfigured: true },
       });
       interceptDSPAMlflowIntegration(projectName);
-      manageRunsPage.visit(experimentId, projectName, initialRunIds);
+      manageRunsPage.visit(projectName, initialRunIds);
 
       manageRunsTable.findColumnHeaders().should('contain', 'MLflow experiment');
     });
@@ -117,7 +117,7 @@ describe('Manage runs', () => {
       initIntercepts({
         mlflow: { enabled: true, pipelinesIntegration: false },
       });
-      manageRunsPage.visit(experimentId, projectName, initialRunIds);
+      manageRunsPage.visit(projectName, initialRunIds);
 
       manageRunsTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
     });
@@ -126,7 +126,7 @@ describe('Manage runs', () => {
       initIntercepts({
         mlflow: { enabled: true, pipelinesIntegration: true, bffConfigured: false },
       });
-      manageRunsPage.visit(experimentId, projectName, initialRunIds);
+      manageRunsPage.visit(projectName, initialRunIds);
 
       manageRunsTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
     });
@@ -136,7 +136,7 @@ describe('Manage runs', () => {
         mlflow: { enabled: true, pipelinesIntegration: true, bffConfigured: true },
       });
       interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
-      manageRunsPage.visit(experimentId, projectName, initialRunIds);
+      manageRunsPage.visit(projectName, initialRunIds);
 
       manageRunsTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
     });
