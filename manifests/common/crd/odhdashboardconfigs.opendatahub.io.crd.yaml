@@ -132,6 +132,8 @@ spec:
                       type: boolean
                     deploymentWizardYAMLViewer:
                       type: boolean
+                    vLLMDeploymentOnMaaS:
+                      type: boolean
                     promptManagement:
                       type: boolean
                     llmGatewayField:
