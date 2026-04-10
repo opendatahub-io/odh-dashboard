@@ -89,12 +89,11 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
         dropzoneProps={{
           ...props.fileUploadProps?.dropzoneProps,
           onDropAccepted: (files) => {
-            const file = files[0];
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            if (!file) {
+            if (files.length === 0) {
               return;
             }
 
+            const [file] = files;
             setUploadedFile(file);
             setUploadProgress(0);
             setUploadStatus(undefined);
