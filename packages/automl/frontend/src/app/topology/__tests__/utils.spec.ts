@@ -115,7 +115,8 @@ describe('measureTextWidth via createNode', () => {
     const longLabel = 'A'.repeat(30);
     const node = freshCreateNode('task-1', longLabel, mockTask('task-1'));
 
-    expect(node.width).toBeGreaterThan(NODE_WIDTH);
+    // 30 chars * 10px = 300px + NODE_PADDING (40) = 340px
+    expect(node.width).toBe(340);
     expect(mockMeasureText).toHaveBeenCalledWith(longLabel);
   });
 });
