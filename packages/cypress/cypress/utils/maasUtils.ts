@@ -282,17 +282,6 @@ export const mockUpdateSubscriptionResponse = (
   return { subscription };
 };
 
-export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {
-  const policy = mockAuthPolicies().find((p) => p.name === name);
-  if (!policy) {
-    throw new Error(`mockPolicyInfo: no policy found with name "${name}"`);
-  }
-  return {
-    policy,
-    modelRefs: mockModelRefSummaries(),
-  };
-};
-
 export const mockCreatePolicyResponse = (name = 'new-policy-from-test'): MaaSAuthPolicy => ({
   name,
   namespace: 'maas-system',
@@ -328,3 +317,25 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
     },
   },
 ];
+
+export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {
+  const policy = mockAuthPolicies().find((p) => p.name === name) ?? mockAuthPolicies()[0];
+  const resolvedName = policy.name;
+  return {
+    policy: {
+      ...policy,
+      displayName: `${resolvedName} Display`,
+      description: `Description for ${resolvedName}`,
+      creationTimestamp: '2025-03-01T10:00:00Z',
+    },
+    modelRefs: policy.modelRefs.map((ref) => ({
+      name: ref.name,
+      namespace: ref.namespace,
+      displayName: `${ref.name} Display`,
+      description: `Description for ${ref.name}`,
+      modelRef: { kind: 'LLMInferenceService', name: ref.name },
+      phase: 'Ready' as const,
+      endpoint: `https://${ref.name}.example.com`,
+    })),
+  };
+};

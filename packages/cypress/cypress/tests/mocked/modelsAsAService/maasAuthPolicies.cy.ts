@@ -6,6 +6,7 @@ import {
   authPoliciesPage,
   deleteAuthPolicyModal,
   policyPage,
+  viewAuthPolicyPage,
 } from '../../../pages/modelsAsAService';
 import {
   mockAuthPolicies,
@@ -163,11 +164,9 @@ describe('Auth policy create and edit pages', () => {
       policyPage.visit('premium-team-policy');
       policyPage.findTitle().should('contain.text', 'Edit policy');
 
-      // cancel without editing navigates back without calling the API
       policyPage.findCancelButton().click();
       cy.url().should('match', /\/maas\/auth-policies$/);
 
-      // re-open and perform an actual update
       policyPage.visit('premium-team-policy');
       policyPage.findDescriptionInput().clear();
       policyPage.findDescriptionInput().type('Updated policy description');
@@ -180,5 +179,54 @@ describe('Auth policy create and edit pages', () => {
       });
       cy.url().should('match', /\/maas\/auth-policies$/);
     });
+  });
+});
+
+describe('View Auth Policy Page', () => {
+  const policyName = 'premium-team-policy';
+
+  beforeEach(() => {
+    setupAuthPoliciesCommon();
+    cy.interceptOdh(
+      'GET /maas/api/v1/view-policy/:name',
+      { path: { name: policyName } },
+      { data: mockPolicyInfo(policyName) },
+    );
+  });
+
+  it('should display the page content with title, breadcrumb, details, groups, and models', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-policies', { data: mockAuthPolicies() });
+    authPoliciesPage.visit();
+    authPoliciesPage.getRow(policyName).findKebabAction('View details').click();
+    cy.url().should('include', `/maas/auth-policies/view/${policyName}`);
+
+    viewAuthPolicyPage.findTitle().should('contain.text', `${policyName} Display`);
+
+    viewAuthPolicyPage
+      .findDetailsSection()
+      .should('contain.text', policyName)
+      .and('contain.text', 'Name')
+      .and('contain.text', 'Resource name')
+      .and('contain.text', 'Date created');
+
+    viewAuthPolicyPage.findGroupsSection().should('exist');
+    viewAuthPolicyPage.findGroupsTable().should('contain.text', 'premium-users');
+
+    viewAuthPolicyPage.findModelsSection().should('exist');
+    viewAuthPolicyPage
+      .findModelsTable()
+      .should('contain.text', 'granite-3-8b-instruct Display')
+      .and('contain.text', 'maas-models');
+
+    viewAuthPolicyPage.findBreadcrumbPoliciesLink().click();
+    cy.url().should('include', '/maas/auth-policies');
+  });
+
+  it('should show error state when the view-policy API fails', () => {
+    cy.interceptOdh('GET /maas/api/v1/view-policy/:name', { path: { name: policyName } }, {
+      forceNetworkError: true,
+    } as never);
+    viewAuthPolicyPage.visit(policyName);
+    viewAuthPolicyPage.findPageError().should('exist');
   });
 });

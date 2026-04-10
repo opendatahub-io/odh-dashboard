@@ -107,6 +107,7 @@ export type MaaSAuthPolicy = {
   name: string;
   namespace: string;
   phase?: string;
+  creationTimestamp?: string;
   modelRefs: ModelRef[];
   subjects: SubjectSpec;
   meteringMetadata?: TokenMetadata;

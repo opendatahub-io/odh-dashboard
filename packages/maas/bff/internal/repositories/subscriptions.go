@@ -493,6 +493,12 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 		policy.MeteringMetadata = meta
 	}
 
+	ct := obj.GetCreationTimestamp()
+	if !ct.IsZero() {
+		t := ct.Time
+		policy.CreationTimestamp = &t
+	}
+
 	return policy, nil
 }
 
