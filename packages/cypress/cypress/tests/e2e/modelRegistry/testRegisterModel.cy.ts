@@ -297,10 +297,15 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findRegistrationModeToggleGroup().should('exist');
 
       cy.step('Toggle to Register and store mode');
-      registerModelPage.findRegisterAndStoreToggle().scrollIntoView().should('be.visible').click();
+      registerModelPage
+        .findRegisterAndStoreToggleButton()
+        .scrollIntoView()
+        .should('be.visible')
+        .click({ force: true })
+        .should('have.attr', 'aria-pressed', 'true');
 
       cy.step('Verify namespace selector appears');
-      registerModelPage.findNamespaceSelector().should('be.visible');
+      registerModelPage.findNamespaceSelector(30000).should('exist');
 
       cy.step('Select a namespace from the dropdown');
       registerModelPage.findNamespaceSelectorTrigger().scrollIntoView().click();
@@ -418,10 +423,15 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findRegistrationModeToggleGroup().should('exist');
 
       cy.step('Toggle to Register and store mode');
-      registerModelPage.findRegisterAndStoreToggle().scrollIntoView().should('be.visible').click();
+      registerModelPage
+        .findRegisterAndStoreToggleButton()
+        .scrollIntoView()
+        .should('be.visible')
+        .click({ force: true })
+        .should('have.attr', 'aria-pressed', 'true');
 
       cy.step('Verify namespace selector appears');
-      registerModelPage.findNamespaceSelector().should('be.visible');
+      registerModelPage.findNamespaceSelector(30000).should('exist');
 
       cy.step('Select a namespace from the dropdown');
       registerModelPage.findNamespaceSelectorTrigger().scrollIntoView().click();

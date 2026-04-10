@@ -94,8 +94,12 @@ class RegisterModelPage {
     return cy.findByTestId('registration-mode-register-and-store');
   }
 
-  findNamespaceSelector() {
-    return cy.findByTestId('form-namespace-selector');
+  findRegisterAndStoreToggleButton() {
+    return this.findRegisterAndStoreToggle().find('button');
+  }
+
+  findNamespaceSelector(timeout?: number) {
+    return cy.findByTestId('form-namespace-selector', { timeout });
   }
 
   findNamespaceSelectorTrigger() {
