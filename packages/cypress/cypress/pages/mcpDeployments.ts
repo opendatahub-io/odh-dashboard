@@ -40,19 +40,19 @@ class McpDeploymentDeleteModal {
   }
 
   findInput() {
-    return cy.findByTestId('delete-modal-input');
+    return this.find().findByTestId('delete-modal-input');
   }
 
   findSubmitButton() {
-    return cy.findByTestId('delete-modal-submit-button');
+    return this.find().findByRole('button', { name: /delete mcp server deployment/i });
   }
 
   findCancelButton() {
-    return cy.findByTestId('delete-modal-cancel-button');
+    return this.find().findByRole('button', { name: /^cancel$/i });
   }
 
   findErrorAlert() {
-    return cy.findByTestId('delete-modal-error-message-alert');
+    return this.find().findByTestId('delete-modal-error-message-alert');
   }
 
   shouldBeVisible() {
@@ -96,6 +96,13 @@ class McpDeploymentsPage {
 
   findTableRows(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findTable().findAllByTestId(/^mcp-deployment-row-/);
+  }
+
+  /**
+   * PatternFly sortable columns expose a button inside the &lt;th&gt;; clicking `columnheader` is unreliable.
+   */
+  findCreatedSortButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().findByRole('button', { name: /^Created$/i });
   }
 
   // mod-arch-shared's ApplicationsPage uses data-id — we can't change the third-party component

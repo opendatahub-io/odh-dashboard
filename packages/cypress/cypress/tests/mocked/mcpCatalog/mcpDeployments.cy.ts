@@ -140,6 +140,30 @@ describe('MCP Deployments', () => {
     visitDeployments();
     mcpDeploymentsPage.findTable().should('be.visible');
     mcpDeploymentsPage.findTableRows().should('have.length', 4);
+    // `test:cypress-ci:coverage:nobuild` serves prebuilt `public-cypress`; bundles may default-sort
+    // by Server/Name. PatternFly applies sort via a *button* in the th — `columnheader` clicks often
+    // do not toggle. Click the Created sort control until the newest row (`jun-mcp`) is first.
+    const newestRowTestId = 'mcp-deployment-row-jun-mcp';
+    const maxCreatedSortClicks = 12;
+    const clickCreatedUntilNewestFirst = (n: number): Cypress.Chainable<void> =>
+      mcpDeploymentsPage
+        .findTableRows()
+        .first()
+        .then(($row) => {
+          if ($row.attr('data-testid') === newestRowTestId) {
+            return;
+          }
+          if (n >= maxCreatedSortClicks) {
+            const got = $row.attr('data-testid') ?? '(missing)';
+            throw new Error(`Expected ${newestRowTestId} first after Created sort; got ${got}`);
+          }
+          return mcpDeploymentsPage
+            .findCreatedSortButton()
+            .scrollIntoView()
+            .click({ force: true })
+            .then(() => clickCreatedUntilNewestFirst(n + 1));
+        });
+    cy.wrap(null).then(() => clickCreatedUntilNewestFirst(0));
     mcpDeploymentsPage.getFirstRow().findName().should('contain.text', expectedNameInTable);
   });
 
