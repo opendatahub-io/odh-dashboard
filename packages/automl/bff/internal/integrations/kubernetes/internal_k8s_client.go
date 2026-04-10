@@ -201,10 +201,10 @@ func (kc *InternalKubernetesClient) getNamespacesViaProjectsAPI(ctx context.Cont
 		Groups:   append([]string(nil), identity.Groups...),
 	}
 	// Clear client certificates to prevent credential leakage across user boundaries
-	impersonatedConfig.TLSClientConfig.CertData = nil
-	impersonatedConfig.TLSClientConfig.CertFile = ""
-	impersonatedConfig.TLSClientConfig.KeyData = nil
-	impersonatedConfig.TLSClientConfig.KeyFile = ""
+	impersonatedConfig.CertData = nil
+	impersonatedConfig.CertFile = ""
+	impersonatedConfig.KeyData = nil
+	impersonatedConfig.KeyFile = ""
 
 	dynClient, err := dynamic.NewForConfig(impersonatedConfig)
 	if err != nil {

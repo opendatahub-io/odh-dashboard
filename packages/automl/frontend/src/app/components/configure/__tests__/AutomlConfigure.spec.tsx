@@ -117,8 +117,7 @@ jest.mock('~/app/components/common/SecretSelector', () => {
             onChange({
               uuid: 'secret-1',
               name: 'Test Secret 1',
-              // eslint-disable-next-line camelcase
-              data: { aws_s3_bucket: 'test-bucket-1' },
+              data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
               type: 's3',
               invalid: false,
             })
@@ -132,8 +131,7 @@ jest.mock('~/app/components/common/SecretSelector', () => {
             onChange({
               uuid: 'secret-2',
               name: 'Test Secret 2',
-              // eslint-disable-next-line camelcase
-              data: { aws_s3_bucket: 'test-bucket-2' },
+              data: { AWS_S3_BUCKET: 'test-bucket-2', AWS_DEFAULT_REGION: 'us-east-1' },
               type: 's3',
               invalid: false,
             })
