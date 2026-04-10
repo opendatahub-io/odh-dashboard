@@ -178,18 +178,13 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
           endAdornment: {
             right: 'var(--pf-t--global--spacer--sm)',
           },
-          popper: {
-            // Perses's StyledPopper sets minWidth: fit-content via sx, which truncates long options.
-            // !important is needed to override it until Perses adopts PF styling natively.
-            minWidth: '500px !important',
+          option: {
+            paddingRight: 'var(--pf-t--global--spacer--lg) !important',
           },
         },
       },
       MuiSelect: {
         styleOverrides: {
-          select: {
-            paddingRight: 'var(--pf-t--global--spacer--2xl)',
-          },
           icon: {
             color: primaryTextColor,
           },
