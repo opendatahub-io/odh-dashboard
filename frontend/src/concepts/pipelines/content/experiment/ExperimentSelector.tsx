@@ -128,6 +128,7 @@ const InnerExperimentSelector: React.FC<
       </SearchSelector>
       {isModalOpen && (
         <CreateExperimentModal
+          existingNames={experiments.map((e) => e.display_name)}
           onClose={(experiment) => {
             setIsModalOpen(false);
             if (experiment) {

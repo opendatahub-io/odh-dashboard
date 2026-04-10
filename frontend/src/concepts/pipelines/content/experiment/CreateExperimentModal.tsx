@@ -4,6 +4,8 @@ import {
   Button,
   Form,
   FormGroup,
+  HelperText,
+  HelperTextItem,
   Stack,
   StackItem,
   TextInput,
@@ -26,16 +28,23 @@ import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingPropertie
 
 type CreateExperimentModalProps = {
   onClose: (experiment?: ExperimentKF) => void;
+  existingNames?: string[];
 };
 
 const eventName = 'Experiment Created';
-const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ onClose }) => {
+const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({
+  onClose,
+  existingNames = [],
+}) => {
   const { project, api, apiAvailable } = usePipelinesAPI();
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [{ name, description }, setData, resetData] = useCreateExperimentData();
 
-  const haveEnoughData = !!name;
+  const isDuplicate = existingNames.some(
+    (existing) => existing.toLowerCase() === name.trim().toLowerCase(),
+  );
+  const haveEnoughData = !!name && !isDuplicate;
 
   const onBeforeClose = (experiment?: ExperimentKF) => {
     onClose(experiment);
@@ -72,11 +81,19 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ onClose }
                   id="experiment-name"
                   name="experiment-name"
                   value={name}
+                  validated={isDuplicate ? 'error' : 'default'}
                   onChange={(_, value) => setData('name', value)}
                   maxLength={NAME_CHARACTER_LIMIT}
                 />
-
-                <CharLimitHelperText limit={NAME_CHARACTER_LIMIT} currentLength={name.length} />
+                {isDuplicate ? (
+                  <HelperText>
+                    <HelperTextItem variant="error">
+                      A run group with this name already exists.
+                    </HelperTextItem>
+                  </HelperText>
+                ) : (
+                  <CharLimitHelperText limit={NAME_CHARACTER_LIMIT} currentLength={name.length} />
+                )}
               </FormGroup>
             </StackItem>
             <StackItem>
