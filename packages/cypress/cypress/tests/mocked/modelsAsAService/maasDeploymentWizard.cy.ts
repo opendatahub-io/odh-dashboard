@@ -44,25 +44,18 @@ describe('MaaS Deployment Wizard', () => {
         },
       }),
     );
-    const config = mockDashboardConfig({
-      disableNIMModelServing: true,
-      disableKServe: false,
-      genAiStudio: true,
-      modelAsService: true,
-      disableLLMd: false,
-    });
-    cy.intercept('GET', '/api/config', {
-      body: {
-        ...config,
-        spec: {
-          ...config.spec,
-          dashboardConfig: {
-            ...config.spec.dashboardConfig,
-            'gateway-dev': true,
-          },
-        },
-      },
-    });
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableNIMModelServing: true,
+        disableKServe: false,
+        genAiStudio: true,
+        modelAsService: true,
+        disableLLMd: false,
+        llmGatewayField: true,
+      }),
+    );
+
     initMockGatewayIntercepts({
       gateways: [
         {
