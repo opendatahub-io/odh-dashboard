@@ -27,7 +27,6 @@ import useMcpServerConverter from '~/app/hooks/mcpCatalogDeployment/useMcpServer
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { useNotification } from '~/app/hooks/useNotification';
 import { createMcpDeployment, updateMcpDeployment } from '~/app/api/mcpCatalogDeployment/service';
 import { mcpDeploymentsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import { mcpServerCRToYaml } from '~/app/utils/mcpServerYaml';
@@ -48,7 +47,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   const navigate = useNavigate();
   const queryParams = useQueryParamNamespaces();
   const { theme } = useThemeContext();
-  const notification = useNotification();
   const [crData, crLoaded, crError] = useMcpServerConverter(existingDeployment ? '' : serverId);
 
   const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
@@ -135,10 +133,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
           },
         );
         onClose(true);
-        notification.success(
-          'MCP server updated successfully',
-          `${displayName || k8sName} has been updated.`,
-        );
       } else {
         await createMcpDeployment('', { ...queryParams, namespace: selectedNamespace })(opts, {
           name: k8sName,
@@ -148,10 +142,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
           yaml: yamlContent,
         });
         onClose(true);
-        notification.success(
-          'MCP server deployed successfully',
-          `${displayName || k8sName} has been deployed to ${selectedNamespace}.`,
-        );
         navigate(mcpDeploymentsUrl(selectedNamespace));
       }
     } catch (e) {
@@ -172,7 +162,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
     crData,
     queryParams,
     onClose,
-    notification,
     navigate,
     existingDeployment,
   ]);

@@ -25,7 +25,7 @@ export const mcpDeploymentColumns: SortableData<McpDeployment>[] = [
     field: 'created',
     label: 'Created',
     sortable: (a, b) =>
-      new Date(a.creationTimestamp).getTime() - new Date(b.creationTimestamp).getTime(),
+      new Date(b.creationTimestamp).getTime() - new Date(a.creationTimestamp).getTime(),
     width: 20,
   },
   {
