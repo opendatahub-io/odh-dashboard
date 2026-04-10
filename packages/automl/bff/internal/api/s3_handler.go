@@ -20,6 +20,7 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	s3int "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
+	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -102,6 +103,10 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 			return nil, false
 		}
 		if strings.Contains(err.Error(), "missing required field") {
+			app.badRequestResponse(w, r, err)
+			return nil, false
+		}
+		if errors.Is(err, repositories.ErrAmbiguousSecretKey) {
 			app.badRequestResponse(w, r, err)
 			return nil, false
 		}

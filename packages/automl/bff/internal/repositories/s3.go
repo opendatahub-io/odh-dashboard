@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -55,7 +56,7 @@ func newSecretLookup(secretData map[string][]byte) func(targetKeys ...string) (s
 				keys[i] = e.originalKey
 			}
 			slices.Sort(keys)
-			return "", fmt.Errorf("ambiguous secret key %q: multiple case-variants found: %v", targetKey, keys)
+			return "", fmt.Errorf("%w %q: multiple case-variants found: %v", ErrAmbiguousSecretKey, targetKey, keys)
 		}
 		return "", nil
 	}
@@ -64,6 +65,8 @@ func newSecretLookup(secretData map[string][]byte) func(targetKeys ...string) (s
 // S3Credentials is a type alias for the s3 integration package's credentials type,
 // re-exported so callers in the repositories package don't need an extra import.
 type S3Credentials = s3int.S3Credentials
+
+var ErrAmbiguousSecretKey = errors.New("ambiguous secret key")
 
 type S3Repository struct{}
 

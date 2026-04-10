@@ -56,7 +56,7 @@ func newSecretLookup(secretData map[string][]byte) func(targetKeys ...string) (s
 				keys[i] = e.originalKey
 			}
 			slices.Sort(keys)
-			return "", fmt.Errorf("ambiguous secret key %q: multiple case-variants found: %v", targetKey, keys)
+			return "", fmt.Errorf("%w %q: multiple case-variants found: %v", ErrAmbiguousSecretKey, targetKey, keys)
 		}
 		return "", nil
 	}
@@ -66,6 +66,7 @@ func newSecretLookup(secretData map[string][]byte) func(targetKeys ...string) (s
 // re-exported so the interface can reference it without a package qualifier.
 type S3Credentials = s3client.S3Credentials
 
+var ErrAmbiguousSecretKey = errors.New("ambiguous secret key")
 var ErrMissingRequiredField = errors.New("missing required field")
 
 type S3Repository struct{}

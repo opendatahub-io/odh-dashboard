@@ -381,3 +381,25 @@ func TestGetS3CredentialsFromDSPA_CaseVariantCollision(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "ambiguous secret key")
 }
+
+func TestGetS3CredentialsFromDSPA_SecretKeyCollision(t *testing.T) {
+	data := map[string][]byte{
+		"access_key": []byte("valid-access"),
+		"secret_key": []byte("secret-1"),
+		"Secret_Key": []byte("secret-2"),
+	}
+	client := &mockK8sClient{secrets: []corev1.Secret{makeSecret("dspa-sk-collision", "test-namespace", data)}}
+	identity := &k8s.RequestIdentity{UserID: "test-user"}
+	repo := NewS3Repository()
+
+	_, err := repo.GetS3CredentialsFromDSPA(context.Background(), client, "test-namespace", &models.DSPAObjectStorage{
+		SecretName:     "dspa-sk-collision",
+		EndpointURL:    "https://s3.amazonaws.com",
+		AccessKeyField: "access_key",
+		SecretKeyField: "SECRET_KEY",
+		Bucket:         "bucket",
+		Region:         "us-east-1",
+	}, identity)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ambiguous secret key")
+}
