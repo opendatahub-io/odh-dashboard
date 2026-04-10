@@ -198,6 +198,8 @@ export function useS3ListFilesQuery(
 }
 
 const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED']);
+
+export const isTerminalState = (state: string): boolean => TERMINAL_STATES.has(state);
 const POLL_INTERVAL_MS = 10000;
 
 export function usePipelineRunQuery(
