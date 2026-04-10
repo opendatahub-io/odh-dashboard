@@ -46,4 +46,10 @@
       white-space: normal !important;
     }
   }
+
+  // Center-align the rank column so plain numbers align with the starred rank label
+  [data-testid='rank-header'],
+  [data-testid^='rank-'] {
+    text-align: center;
+  }
 }

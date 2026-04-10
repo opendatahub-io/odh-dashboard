@@ -6,9 +6,12 @@ import {
   EmptyStateVariant,
   Label,
   Skeleton,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
-import { StarIcon } from '@patternfly/react-icons';
+import { ColumnsIcon, StarIcon } from '@patternfly/react-icons';
 import {
   ActionsColumn,
   InnerScrollContainer,
@@ -22,6 +25,10 @@ import {
 } from '@patternfly/react-table';
 import React from 'react';
 import { Link, useParams } from 'react-router';
+import {
+  ColumnManagementModal,
+  type ColumnManagementModalColumn,
+} from '@patternfly/react-component-groups';
 import AutomlRunInProgress from '~/app/components/empty-states/AutomlRunInProgress';
 import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
 import { RuntimeStateKF } from '~/app/types/pipeline';
@@ -38,6 +45,111 @@ type LeaderboardEntry = {
   displayName: string;
   metrics: Record<string, number | string>;
   optimizedMetricValue: number | string;
+};
+
+// Column metadata — display name and description for column header tooltips.
+// Metric columns use "metric:<key>" IDs matching the column IDs at render time.
+const COLUMN_META: Record<string, { name: string; description?: string }> = {
+  rank: {
+    name: 'Rank',
+    description:
+      'The rank of the model. Ranks are determined by the performance of the optimized metric.',
+  },
+  model: {
+    name: 'Model name',
+  },
+  'metric:roc_auc': {
+    name: formatMetricName('roc_auc'),
+    description: 'Receiver Operating Characteristic (Area Under Curve)',
+  },
+  'metric:mcc': {
+    name: formatMetricName('mcc'),
+    description: 'Matthews correlation coefficient (MCC)',
+  },
+  'metric:f1': {
+    name: formatMetricName('f1'),
+    description: formatMetricName('f1'),
+  },
+  'metric:r2': {
+    name: formatMetricName('r2'),
+    description: formatMetricName('r2'),
+  },
+  'metric:mae': {
+    name: formatMetricName('mae'),
+    description: 'Mean Absolute Error (MAE)',
+  },
+  'metric:mse': {
+    name: formatMetricName('mse'),
+    description: 'Mean Squared Error (MSE)',
+  },
+  'metric:rmse': {
+    name: formatMetricName('rmse'),
+    description: 'Root Mean Square Error (RMSE)',
+  },
+  'metric:mape': {
+    name: formatMetricName('mape'),
+    description: 'Mean Absolute Percentage Error (MAPE)',
+  },
+  'metric:mase': {
+    name: formatMetricName('mase'),
+    description: 'Mean Absolute Scaled Error (MASE)',
+  },
+  'metric:rmsle': {
+    name: formatMetricName('rmsle'),
+    description: 'Root Mean Squared Logarithmic Error (RMSLE)',
+  },
+  'metric:rmsse': {
+    name: formatMetricName('rmsse'),
+    description: 'Root Mean Squared Scaled Error (RMSSE)',
+  },
+  'metric:smape': {
+    name: formatMetricName('smape'),
+    description: 'Symmetric Mean Absolute Percentage Error (SMAPE)',
+  },
+  'metric:sql': {
+    name: formatMetricName('sql'),
+    description: 'Scaled Quantile Loss (SQL)',
+  },
+  'metric:wape': {
+    name: formatMetricName('wape'),
+    description: 'Weighted Absolute Percentage Error (WAPE)',
+  },
+  'metric:wql': {
+    name: formatMetricName('wql'),
+    description: 'Weighted Quantile Loss (WQL)',
+  },
+};
+
+const ColumnHeaderContent: React.FC<{
+  columnId: string;
+  tooltipName?: string;
+  children: React.ReactNode;
+}> = ({ columnId, tooltipName, children }) => {
+  const lowerColumnId = columnId.toLowerCase();
+  const meta = COLUMN_META[lowerColumnId];
+  const name = tooltipName ?? meta.name;
+  const { description } = meta;
+  return (
+    <Tooltip
+      content={
+        <div>
+          <div style={{ fontWeight: 'bold' }}>{name}</div>
+          {description && (
+            <div
+              style={{
+                fontSize: 'var(--pf-t--global--font--size--xs)',
+                marginTop: 'var(--pf-t--global--spacer--xs)',
+              }}
+            >
+              {description}
+            </div>
+          )}
+        </div>
+      }
+    >
+      <span>{children}</span>
+    </Tooltip>
+  );
 };
 
 type AutomlLeaderboardProps = {
@@ -59,7 +171,7 @@ function AutomlLeaderboard({
   const taskType = parameters?.task_type ?? 'timeseries';
 
   // Sorting state
-  const [activeSortIndex, setActiveSortIndex] = React.useState<number>(0); // 0 = rank column
+  const [activeSortId, setActiveSortId] = React.useState<string>('rank');
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>('asc');
 
   // Check if pipeline is still running
@@ -94,6 +206,69 @@ function AutomlLeaderboard({
     });
     return Array.from(keysSet).toSorted();
   }, [models]);
+
+  // Metric keys excluding the optimized metric (shown in sticky column)
+  const nonOptimizedMetricKeys = React.useMemo(
+    () => metricKeys.filter((key) => key.toLowerCase() !== optimizedMetric.toLowerCase()),
+    [metricKeys, optimizedMetric],
+  );
+
+  // Column definitions — source of truth for column IDs, labels, and visibility
+  const columnDefs = React.useMemo<{ id: string; label: string; isAlwaysVisible?: boolean }[]>(
+    () => [
+      { id: 'rank', label: 'Rank', isAlwaysVisible: true },
+      { id: 'model', label: 'Model name', isAlwaysVisible: true },
+      {
+        id: 'optimized-metric',
+        label: `${formatMetricName(optimizedMetric)} (optimized)`,
+        isAlwaysVisible: true,
+      },
+      ...nonOptimizedMetricKeys.map((key) => ({
+        id: `metric:${key}`,
+        label: formatMetricName(key),
+      })),
+    ],
+    [nonOptimizedMetricKeys, optimizedMetric],
+  );
+
+  // Column visibility state
+  const [hiddenColumnIds, setHiddenColumnIds] = React.useState<Set<string>>(new Set());
+  const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
+
+  // Bridge to PF ColumnManagementModal format
+  const managedColumns: ColumnManagementModalColumn[] = React.useMemo(
+    () =>
+      columnDefs.map((col) => ({
+        key: col.id,
+        title: col.label,
+        isShownByDefault: true,
+        isShown: !hiddenColumnIds.has(col.id),
+        isUntoggleable: col.isAlwaysVisible,
+      })),
+    [columnDefs, hiddenColumnIds],
+  );
+
+  const handleApplyColumns = React.useCallback((newColumns: ColumnManagementModalColumn[]) => {
+    const newHiddenIds = new Set<string>();
+    newColumns.forEach((col) => {
+      if (!col.isShown) {
+        newHiddenIds.add(col.key);
+      }
+    });
+    setHiddenColumnIds(newHiddenIds);
+  }, []);
+
+  // Column IDs in render order (visible only) — bridges PF's numeric sort index API
+  const sortableColumnIds = React.useMemo(
+    () => columnDefs.filter((col) => !hiddenColumnIds.has(col.id)).map((col) => col.id),
+    [columnDefs, hiddenColumnIds],
+  );
+
+  // Visible non-optimized metric keys for header/body rendering
+  const visibleNonOptimizedMetricKeys = React.useMemo(
+    () => nonOptimizedMetricKeys.filter((key) => !hiddenColumnIds.has(`metric:${key}`)),
+    [nonOptimizedMetricKeys, hiddenColumnIds],
+  );
 
   // Transform models into LeaderboardEntry array
   const data: LeaderboardEntry[] = React.useMemo(() => {
@@ -178,26 +353,25 @@ function AutomlLeaderboard({
     }));
 
     // Apply user-selected sorting
-    if (activeSortIndex === 0) {
-      // Sort by rank
+    if (activeSortId === 'rank') {
       return rankedEntries.toSorted((a, b) =>
         activeSortDirection === 'asc' ? a.rank - b.rank : b.rank - a.rank,
       );
     }
-    if (activeSortIndex === 1) {
-      // Sort by model name
+    if (activeSortId === 'model') {
       return rankedEntries.toSorted((a, b) => {
         const comparison = a.displayName.localeCompare(b.displayName);
         return activeSortDirection === 'asc' ? comparison : -comparison;
       });
     }
-    // Sort by metric column (index 2+ maps to metricKeys)
-    const metricIndex = activeSortIndex - 2;
-    const metricKey = metricKeys[metricIndex];
-    if (metricKey) {
+
+    // Sort by metric column (optimized or non-optimized)
+    if (activeSortId === 'optimized-metric' || activeSortId.startsWith('metric:')) {
+      const metricKey =
+        activeSortId === 'optimized-metric' ? null : activeSortId.slice('metric:'.length);
       return rankedEntries.toSorted((a, b) => {
-        const aVal = a.metrics[metricKey];
-        const bVal = b.metrics[metricKey];
+        const aVal = metricKey ? a.metrics[metricKey] : a.optimizedMetricValue;
+        const bVal = metricKey ? b.metrics[metricKey] : b.optimizedMetricValue;
 
         // N/A always sorts last regardless of direction
         if (aVal === 'N/A' && bVal === 'N/A') {
@@ -210,7 +384,6 @@ function AutomlLeaderboard({
           return -1;
         }
 
-        // Both are numbers
         const aNum = typeof aVal === 'number' ? aVal : 0;
         const bNum = typeof bVal === 'number' ? bVal : 0;
         const comparison = aNum - bNum;
@@ -219,28 +392,31 @@ function AutomlLeaderboard({
     }
 
     return rankedEntries;
-  }, [models, metricKeys, optimizedMetric, activeSortIndex, activeSortDirection]);
+  }, [models, metricKeys, optimizedMetric, activeSortId, activeSortDirection]);
 
   // Memoized sort callback - stable reference shared by all columns
   const handleSort = React.useCallback(
     (_event: React.MouseEvent, index: number, direction: 'asc' | 'desc') => {
-      setActiveSortIndex(index);
+      const columnId = sortableColumnIds[index];
+      if (columnId) {
+        setActiveSortId(columnId);
+      }
       setActiveSortDirection(direction);
     },
-    [],
+    [sortableColumnIds],
   );
 
   // Helper function to get sort params for a column
   const getSortParams = React.useCallback(
-    (columnIndex: number): ThProps['sort'] => ({
+    (columnId: string): ThProps['sort'] => ({
       sortBy: {
-        index: activeSortIndex,
+        index: sortableColumnIds.indexOf(activeSortId),
         direction: activeSortDirection,
       },
       onSort: handleSort,
-      columnIndex,
+      columnIndex: sortableColumnIds.indexOf(columnId),
     }),
-    [activeSortIndex, activeSortDirection, handleSort],
+    [sortableColumnIds, activeSortId, activeSortDirection, handleSort],
   );
 
   // Handler for viewing model details
@@ -357,137 +533,190 @@ function AutomlLeaderboard({
   }
 
   return (
-    <InnerScrollContainer>
-      <Table
-        aria-label="AutoML Model Leaderboard"
-        variant="compact"
-        data-testid="leaderboard-table"
-        className="automl-leaderboard"
-        isStickyHeader
-      >
-        <Thead>
-          <Tr>
-            <Th
-              sort={getSortParams(0)}
-              data-testid="rank-header"
-              isStickyColumn
-              stickyMinWidth="80px"
-              stickyLeftOffset="0"
+    <>
+      <Toolbar>
+        <ToolbarContent>
+          <ToolbarItem align={{ default: 'alignEnd' }}>
+            <Button
+              variant="link"
+              icon={<ColumnsIcon />}
+              onClick={() => setIsManageColumnsOpen(true)}
+              data-testid="manage-columns-button"
             >
-              Rank
-            </Th>
-            <Th
-              sort={getSortParams(1)}
-              data-testid="model-name-header"
-              isStickyColumn
-              hasRightBorder
-              stickyMinWidth="150px"
-              stickyLeftOffset="80px"
-            >
-              Model name
-            </Th>
-            {metricKeys.map((metricKey, index) => (
+              Manage columns
+            </Button>
+          </ToolbarItem>
+        </ToolbarContent>
+      </Toolbar>
+      <InnerScrollContainer>
+        <Table
+          aria-label="AutoML Model Leaderboard"
+          variant="compact"
+          data-testid="leaderboard-table"
+          className="automl-leaderboard"
+          isStickyHeader
+        >
+          <Thead>
+            <Tr>
               <Th
-                key={metricKey}
-                sort={getSortParams(index + 2)}
-                data-testid={`metric-header-${metricKey}`}
-              >
-                {formatMetricName(metricKey)}
-                {metricKey.toLowerCase() === optimizedMetric.toLowerCase() ? (
-                  <span data-testid="optimized-indicator"> (optimized)</span>
-                ) : (
-                  ''
-                )}
-              </Th>
-            ))}
-            <Th
-              screenReaderText="Actions"
-              isStickyColumn
-              hasLeftBorder
-              stickyMinWidth="80px"
-              stickyRightOffset="0"
-            />
-          </Tr>
-        </Thead>
-        <Tbody>
-          {data.map((entry) => (
-            <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
-              <Td
-                dataLabel="Rank"
-                data-testid={`rank-${entry.rank}`}
+                sort={getSortParams('rank')}
+                data-testid="rank-header"
                 isStickyColumn
-                stickyMinWidth="80px"
+                stickyMinWidth="120px"
                 stickyLeftOffset="0"
               >
-                {entry.rank === 1 ? (
-                  <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
-                    {entry.rank}
-                  </Label>
-                ) : (
-                  entry.rank
-                )}
-              </Td>
-              <Td
-                dataLabel="Model"
-                data-testid={`model-name-${entry.rank}`}
+                <ColumnHeaderContent columnId="rank">Rank</ColumnHeaderContent>
+              </Th>
+              <Th
+                sort={getSortParams('model')}
+                data-testid="model-name-header"
+                isStickyColumn
+                stickyMinWidth="150px"
+                stickyLeftOffset="120px"
+              >
+                <ColumnHeaderContent columnId="model">Model name</ColumnHeaderContent>
+              </Th>
+              <Th
+                sort={getSortParams('optimized-metric')}
+                data-testid={`metric-header-${optimizedMetric}`}
                 isStickyColumn
                 hasRightBorder
                 stickyMinWidth="150px"
-                stickyLeftOffset="80px"
+                stickyLeftOffset="270px"
               >
-                <Button
-                  variant="link"
-                  isInline
-                  onClick={() => handleViewDetails(entry.modelKey, entry.rank)}
-                  data-testid={`model-link-${entry.rank}`}
+                <ColumnHeaderContent
+                  columnId={`metric:${optimizedMetric}`}
+                  tooltipName={`${COLUMN_META[`metric:${optimizedMetric}`].name} (optimized)`}
                 >
-                  {entry.displayName}
-                </Button>
-              </Td>
-              {metricKeys.map((metricKey) => (
-                <Td
+                  {formatMetricName(optimizedMetric)}
+                  <div
+                    data-testid="optimized-indicator"
+                    style={{
+                      fontWeight: 'normal',
+                      fontSize: 'var(--pf-t--global--font--size--xs)',
+                    }}
+                  >
+                    (optimized)
+                  </div>
+                </ColumnHeaderContent>
+              </Th>
+              {visibleNonOptimizedMetricKeys.map((metricKey) => (
+                <Th
                   key={metricKey}
-                  dataLabel={formatMetricName(metricKey)}
-                  data-testid={`metric-${metricKey}-${entry.rank}`}
+                  sort={getSortParams(`metric:${metricKey}`)}
+                  data-testid={`metric-header-${metricKey}`}
                 >
-                  <Tooltip content={String(entry.metrics[metricKey])}>
-                    <span>{formatMetricValue(entry.metrics[metricKey])}</span>
-                  </Tooltip>
-                </Td>
+                  <ColumnHeaderContent columnId={`metric:${metricKey}`}>
+                    {formatMetricName(metricKey)}
+                  </ColumnHeaderContent>
+                </Th>
               ))}
-              <Td
-                isActionCell
+              <Th
+                screenReaderText="Actions"
                 isStickyColumn
                 hasLeftBorder
-                stickyMinWidth="80px"
+                stickyMinWidth="50px"
                 stickyRightOffset="0"
-              >
-                <ActionsColumn
-                  items={[
-                    {
-                      title: 'View details',
-                      onClick: () => handleViewDetails(entry.modelKey, entry.rank),
-                    },
-                    {
-                      title: 'Register model',
-                      onClick: () => {
-                        onRegisterModel?.(entry.modelKey);
-                      },
-                    },
-                    {
-                      title: 'Save notebook',
-                      onClick: () => {
-                        onClickSaveNotebook?.(entry.modelKey);
-                      },
-                    },
-                  ]}
-                />
-              </Td>
+              />
             </Tr>
-          ))}
-        </Tbody>
-      </Table>
-    </InnerScrollContainer>
+          </Thead>
+          <Tbody>
+            {data.map((entry) => (
+              <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
+                <Td
+                  dataLabel="Rank"
+                  data-testid={`rank-${entry.rank}`}
+                  isStickyColumn
+                  stickyMinWidth="120px"
+                  stickyLeftOffset="0"
+                >
+                  {entry.rank === 1 ? (
+                    <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
+                      {entry.rank}
+                    </Label>
+                  ) : (
+                    entry.rank
+                  )}
+                </Td>
+                <Td
+                  dataLabel="Model"
+                  data-testid={`model-name-${entry.rank}`}
+                  isStickyColumn
+                  stickyMinWidth="150px"
+                  stickyLeftOffset="120px"
+                >
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={() => handleViewDetails(entry.modelKey, entry.rank)}
+                    data-testid={`model-link-${entry.rank}`}
+                  >
+                    {entry.displayName}
+                  </Button>
+                </Td>
+                <Td
+                  dataLabel={formatMetricName(optimizedMetric)}
+                  data-testid={`metric-${optimizedMetric}-${entry.rank}`}
+                  isStickyColumn
+                  hasRightBorder
+                  stickyMinWidth="150px"
+                  stickyLeftOffset="270px"
+                >
+                  <Tooltip content={String(entry.optimizedMetricValue)}>
+                    <span>{formatMetricValue(entry.optimizedMetricValue)}</span>
+                  </Tooltip>
+                </Td>
+                {visibleNonOptimizedMetricKeys.map((metricKey) => (
+                  <Td
+                    key={metricKey}
+                    dataLabel={formatMetricName(metricKey)}
+                    data-testid={`metric-${metricKey}-${entry.rank}`}
+                  >
+                    <Tooltip content={String(entry.metrics[metricKey])}>
+                      <span>{formatMetricValue(entry.metrics[metricKey])}</span>
+                    </Tooltip>
+                  </Td>
+                ))}
+                <Td
+                  isActionCell
+                  isStickyColumn
+                  hasLeftBorder
+                  stickyMinWidth="80px"
+                  stickyRightOffset="0"
+                >
+                  <ActionsColumn
+                    items={[
+                      {
+                        title: 'View details',
+                        onClick: () => handleViewDetails(entry.modelKey, entry.rank),
+                      },
+                      {
+                        title: 'Register model',
+                        onClick: () => {
+                          onRegisterModel?.(entry.modelKey);
+                        },
+                      },
+                      {
+                        title: 'Save notebook',
+                        onClick: () => {
+                          onClickSaveNotebook?.(entry.modelKey);
+                        },
+                      },
+                    ]}
+                  />
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      </InnerScrollContainer>
+      <ColumnManagementModal
+        isOpen={isManageColumnsOpen}
+        onClose={() => setIsManageColumnsOpen(false)}
+        appliedColumns={managedColumns}
+        applyColumns={handleApplyColumns}
+      />
+    </>
   );
 }
 
