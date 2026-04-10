@@ -114,14 +114,17 @@ class McpDeploymentsPage {
   getRow(name: string): McpDeploymentTableRow {
     return new McpDeploymentTableRow(
       () =>
-        cy.findByTestId(`mcp-deployment-row-${name}`) as unknown as Cypress.Chainable<
-          JQuery<HTMLTableRowElement>
-        >,
+        this.findTable()
+          .findByTestId(`mcp-deployment-row-${name}`)
+          .closest('tr')
+          .should('exist') as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>,
     );
   }
 
   getFirstRow(): McpDeploymentTableRow {
-    return new McpDeploymentTableRow(() => this.findTableRows().first().parents('tr'));
+    return new McpDeploymentTableRow(() =>
+      this.findTableRows().should('have.length.at.least', 1).first().closest('tr').should('exist'),
+    );
   }
 
   findDeleteModal() {
