@@ -130,6 +130,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       <ModalFooter>
         <Button
           key="delete-button"
+          data-testid="delete-modal-submit-button"
           variant="danger"
           isLoading={deleting}
           isDisabled={deleting || value.trim() !== deleteNameSanitized}
@@ -138,7 +139,12 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         >
           {submitButtonLabel}
         </Button>
-        <Button key="cancel-button" variant="link" onClick={() => onBeforeClose(false)}>
+        <Button
+          key="cancel-button"
+          data-testid="delete-modal-cancel-button"
+          variant="link"
+          onClick={() => onBeforeClose(false)}
+        >
           Cancel
         </Button>
       </ModalFooter>
