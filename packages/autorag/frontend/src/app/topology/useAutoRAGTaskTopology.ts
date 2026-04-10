@@ -80,12 +80,15 @@ export const useAutoRAGTaskTopology = (
       if (status) {
         // Task entry exists in run details — translate its state directly
         runStatus = translateStatusForNode(status.state);
-        if (runStatus === undefined && status.state) {
-          // eslint-disable-next-line no-console
-          console.warn(
-            `[AutoRAG] Unknown task state "${status.state}" for task "${taskId}". ` +
-              'This may indicate a schema mismatch with the backend.',
-          );
+        if (runStatus === undefined) {
+          if (status.state) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[AutoRAG] Unknown task state "${status.state}" for task "${taskId}". ` +
+                'This may indicate a schema mismatch with the backend.',
+            );
+          }
+          runStatus = terminalFallback;
         }
       } else {
         // No task entry found — infer from overall run state
