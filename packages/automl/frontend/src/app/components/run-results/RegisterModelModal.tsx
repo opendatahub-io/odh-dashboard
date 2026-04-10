@@ -20,6 +20,7 @@ import {
   TextInput,
   Tooltip,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router';
 import { useModelRegistriesQuery } from '~/app/hooks/useModelRegistriesQuery';
@@ -62,6 +63,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
   const [registrySelectOpen, setRegistrySelectOpen] = React.useState(false);
   const [registeredModelName, setRegisteredModelName] = React.useState(displayName);
   const [modelDescription, setModelDescription] = React.useState(defaultDescription);
+  const [registryValidationError, setRegistryValidationError] = React.useState('');
   // The predictor path is a relative S3 key (e.g. "pipeline/run/.../predictor").
   // The BFF resolves the bucket, endpoint, and region from the DSPA object storage
   // config and constructs the full URI for the Model Registry.
@@ -123,7 +125,10 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
   }, [selectedRegistry, registeredModelName, s3Path, modelDescription, registerMutation]);
 
   const isFormValid =
-    Boolean(selectedRegistry) && registeredModelName.trim().length > 0 && Boolean(s3Path);
+    Boolean(selectedRegistry) &&
+    !registryValidationError &&
+    registeredModelName.trim().length > 0 &&
+    Boolean(s3Path);
 
   const isSubmitting = registerMutation.isPending;
 
@@ -172,6 +177,15 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
                 selected={selectedRegistry?.id}
                 onSelect={(_event, value) => {
                   const registry = readyRegistries.find((r) => r.id === value);
+                  if (registry) {
+                    if (!registry.external_url) {
+                      setRegistryValidationError(
+                        'This registry does not have an external URL configured and cannot be used for model registration.',
+                      );
+                    } else {
+                      setRegistryValidationError('');
+                    }
+                  }
                   setSelectedRegistry(registry);
                   setRegistrySelectOpen(false);
                 }}
@@ -182,6 +196,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
                     onClick={() => setRegistrySelectOpen((prev) => !prev)}
                     isExpanded={registrySelectOpen}
                     isFullWidth
+                    status={registryValidationError ? 'danger' : undefined}
                     data-testid="registry-select-toggle"
                   >
                     {selectedRegistry?.display_name ?? 'Select a model registry'}
@@ -202,6 +217,15 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
                   ))}
                 </SelectList>
               </Select>
+            )}
+            {registryValidationError && (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
+                    {registryValidationError}
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
             )}
           </FormGroup>
 

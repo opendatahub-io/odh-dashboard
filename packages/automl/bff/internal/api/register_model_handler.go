@@ -114,15 +114,17 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	// In dev mode, prefer ExternalURL (OpenShift Route) because the in-cluster
-	// ServerURL is not reachable from a local development environment.
-	// In production, always use the in-cluster ServerURL.
+	// Always prefer ExternalURL when available to avoid NetworkPolicy restrictions.
+	// The model-registry-operator creates a NetworkPolicy that blocks in-cluster traffic
+	// to the kube-rbac-proxy on port 8443, only allowing external Route access.
+	// Fall back to ServerURL only if ExternalURL is not available.
 	baseURL := ""
-	if app.config.DevMode && strings.TrimSpace(reg.ExternalURL) != "" {
+	if strings.TrimSpace(reg.ExternalURL) != "" {
 		baseURL = strings.TrimSuffix(strings.TrimSpace(reg.ExternalURL), "/")
-		logger.Debug("Using external URL for model registry (dev mode)", "url", baseURL)
+		logger.Debug("Using external URL for model registry", "url", baseURL)
 	} else {
 		baseURL = strings.TrimSuffix(strings.TrimSpace(reg.ServerURL), "/")
+		logger.Warn("Using internal URL for model registry; may fail due to NetworkPolicy restrictions", "url", baseURL)
 	}
 	if baseURL == "" {
 		app.serverErrorResponse(w, r, fmt.Errorf("model registry has empty server_url"))
