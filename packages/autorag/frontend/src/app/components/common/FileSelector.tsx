@@ -34,13 +34,6 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
 
   const hideUpload = !!props.selected;
 
-  const handleFileChange = (event: unknown, file: File) => {
-    setUploadedFile(file);
-    setUploadProgress(0);
-    setUploadStatus(undefined);
-    void props.onUpload(file, setUploadProgress, setUploadStatus);
-  };
-
   return (
     <div className="pf-v6-c-multiple-file-upload pf-v6-u-display-block">
       <TextInputGroup>
@@ -91,8 +84,16 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
         hidden={hideUpload}
         isDisabled={!!uploadedFile && !uploadStatus}
         filename={uploadedFile?.name}
-        onFileInputChange={handleFileChange}
         onClearClick={() => setUploadedFile(undefined)}
+        dropzoneProps={{
+          onDropAccepted: (files) => {
+            const file = files[0];
+            setUploadedFile(file);
+            setUploadProgress(0);
+            setUploadStatus(undefined);
+            void props.onUpload(file, setUploadProgress, setUploadStatus);
+          },
+        }}
         {...props.fileUploadProps}
       >
         {uploadedFile ? (
