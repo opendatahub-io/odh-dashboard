@@ -80,10 +80,40 @@ const getWorkspacePackages = () => {
 
 const workspacePackages = getWorkspacePackages();
 
+/**
+ * Collect the transitive closure of @odh-dashboard/* runtime dependencies
+ * starting from federated remotes and the host's own dependencies.
+ * Only follows `dependencies` (not `devDependencies`), so dev tooling
+ * packages like eslint-config, jest-config, tsconfig are excluded.
+ */
+const getRuntimeOdhPackages = (packages) => {
+  const byName = Object.fromEntries(packages.map((p) => [p.name, p]));
+  const hostDeps = Object.keys(require('../src/package.json').dependencies || {});
+  const seeds = [
+    ...hostDeps.filter((n) => n.startsWith('@odh-dashboard/')),
+    ...packages.filter((p) => p['module-federation']).map((p) => p.name),
+  ];
+
+  const visited = new Set();
+  const queue = [...seeds];
+  while (queue.length > 0) {
+    const name = queue.shift();
+    if (visited.has(name)) continue;
+    visited.add(name);
+    const pkg = byName[name];
+    if (!pkg) continue;
+    for (const dep of Object.keys(pkg.dependencies || {})) {
+      if (dep.startsWith('@odh-dashboard/') && !visited.has(dep)) queue.push(dep);
+    }
+  }
+  return visited;
+};
+
 const odhDashboardShared = Object.fromEntries(
-  workspacePackages
-    .filter((pkg) => pkg.name.startsWith('@odh-dashboard/'))
-    .map((pkg) => [pkg.name, { singleton: true, requiredVersion: '*', eager: true }]),
+  [...getRuntimeOdhPackages(workspacePackages)].map((name) => [
+    name,
+    { singleton: true, requiredVersion: '*', eager: true },
+  ]),
 );
 
 // Function to read module federation config from workspace packages
