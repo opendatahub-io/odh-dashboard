@@ -6,9 +6,13 @@ import { FilterOptions } from '#~/concepts/pipelines/content/tables/usePipelineF
 import { RuntimeStateKF, runtimeStateLabels } from '#~/concepts/pipelines/kfTypes';
 import DashboardDatePicker from '#~/components/DashboardDatePicker';
 import { PipelineRunVersionsContext } from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
-import { PipelineVersionFilterSelector } from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
+import {
+  ExperimentFilterSelector,
+  PipelineVersionFilterSelector,
+} from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
 import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -28,6 +32,7 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
   ...toolbarProps
 }) => {
   const { versions } = React.useContext(PipelineRunVersionsContext);
+  const { experiments } = React.useContext(PipelineRunExperimentsContext);
   const { namespace } = usePipelinesAPI();
   /* eslint-disable @typescript-eslint/no-unused-vars */
   const {
@@ -52,13 +57,11 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
             onChange={(_event, value) => onChange(value)}
           />
         ),
-        [FilterOptions.RUN_GROUP]: ({ onChange, ...props }) => (
-          <TextInput
-            {...props}
-            data-testid="search-for-run-group-name"
-            aria-label="Search for a run group name"
-            placeholder="Search..."
-            onChange={(_event, value) => onChange(value)}
+        [FilterOptions.RUN_GROUP]: ({ onChange, value }) => (
+          <ExperimentFilterSelector
+            resources={experiments}
+            selection={value}
+            onSelect={(experiment) => onChange(experiment.display_name)}
           />
         ),
         [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (

@@ -521,7 +521,7 @@ describe('Pipeline runs', () => {
           // Verify initial run rows exist
           activeRunsTable.findRows().should('have.length', 3);
 
-          // Select the "Run group" filter, enter a value to filter by
+          // Select the "Run group" filter, select a value to filter by
           pipelineRunsGlobal
             .findActiveRunsToolbar()
             .within(() => pipelineRunsGlobal.selectFilterByName('Run group'));
@@ -532,8 +532,7 @@ describe('Pipeline runs', () => {
             projectName,
           );
 
-          // Type a run group name to filter by
-          pipelineRunFilterBar.findRunGroupInput().type('Test Experiment 1');
+          pipelineRunFilterBar.selectRunGroupByName('Test Experiment 1');
 
           // Verify only rows with selected experiment exist
           activeRunsTable.findRows().should('have.length', 2);
@@ -801,7 +800,7 @@ describe('Pipeline runs', () => {
           // Verify initial run rows exist
           archivedRunsTable.findRows().should('have.length', 2);
 
-          // Select the "Run group" filter, enter a value to filter by
+          // Select the "Run group" filter, select a value to filter by
           pipelineRunsGlobal
             .findArchivedRunsToolbar()
             .within(() => pipelineRunsGlobal.selectFilterByName('Run group'));
@@ -812,8 +811,7 @@ describe('Pipeline runs', () => {
             projectName,
           );
 
-          // Type a run group name to filter by
-          pipelineRunFilterBar.findRunGroupInput().type('Test Experiment 1');
+          pipelineRunFilterBar.selectRunGroupByName('Test Experiment 1');
 
           // Verify only rows with selected experiment exist
           archivedRunsTable.findRows().should('have.length', 1);

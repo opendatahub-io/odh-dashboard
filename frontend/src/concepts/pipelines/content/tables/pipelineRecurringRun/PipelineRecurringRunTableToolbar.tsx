@@ -8,8 +8,12 @@ import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted as useIsExperimentArchived,
 } from '#~/pages/pipelines/global/experiments/ExperimentContext';
-import { PipelineVersionFilterSelector } from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
+import {
+  ExperimentFilterSelector,
+  PipelineVersionFilterSelector,
+} from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
@@ -27,6 +31,7 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
   ...toolbarProps
 }) => {
   const { versions } = React.useContext(PipelineRunVersionsContext);
+  const { experiments } = React.useContext(PipelineRunExperimentsContext);
   const { isExperimentArchived } = useIsExperimentArchived();
   const { experiment } = React.useContext(ExperimentContext);
   const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
@@ -57,13 +62,11 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
             onChange={(_event, value) => onChange(value)}
           />
         ),
-        [FilterOptions.RUN_GROUP]: ({ onChange, ...props }) => (
-          <TextInput
-            {...props}
-            data-testid="search-for-run-group-name"
-            aria-label="Search for a run group name"
-            placeholder="Search..."
-            onChange={(_event, value) => onChange(value)}
+        [FilterOptions.RUN_GROUP]: ({ onChange, value }) => (
+          <ExperimentFilterSelector
+            resources={experiments}
+            selection={value}
+            onSelect={(selected) => onChange(selected.display_name)}
           />
         ),
         [FilterOptions.MLFLOW_EXPERIMENT]: ({ onChange, value }) => (
