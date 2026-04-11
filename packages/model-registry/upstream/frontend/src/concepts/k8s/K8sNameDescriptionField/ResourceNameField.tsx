@@ -8,6 +8,7 @@ import {
 } from '@patternfly/react-core';
 import FormFieldset from '~/app/pages/modelRegistry/screens/components/FormFieldset';
 import { K8sNameDescriptionFieldData, K8sNameDescriptionFieldUpdateFunction } from './types';
+import { getMaxLengthErrorMessage, INVALID_K8S_NAME_CHARACTERS_MESSAGE } from './utils';
 
 type ResourceNameFieldProps = {
   allowEdit: boolean;
@@ -69,13 +70,12 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
       <HelperText>
         {k8sName.state.invalidLength && (
           <HelperTextItem variant="error">
-            Cannot exceed {k8sName.state.maxLength} characters
+            {getMaxLengthErrorMessage(k8sName.state.maxLength)}
           </HelperTextItem>
         )}
         {k8sName.state.invalidCharacters && (
           <HelperTextItem variant="error">
-            Must start and end with a lowercase letter or number. Valid characters include lowercase
-            letters, numbers, and hyphens (-).
+            {INVALID_K8S_NAME_CHARACTERS_MESSAGE}
           </HelperTextItem>
         )}
         {!k8sName.state.invalidLength && !k8sName.state.invalidCharacters && (
