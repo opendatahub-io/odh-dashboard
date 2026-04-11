@@ -185,16 +185,26 @@ const COLUMN_META: Record<
   },
 };
 
+// Safe accessor — COLUMN_META is typed as Record<string, …> so TS believes every
+// key returns a value, but at runtime dynamic metric keys may be absent.
+const getColumnMeta = (id: string): (typeof COLUMN_META)[string] | undefined => {
+  if (!(id in COLUMN_META)) {
+    return undefined;
+  }
+  return COLUMN_META[id];
+};
+
 // Helper to resolve priority for any column id (metric columns default to priority 2)
 const getColumnPriority = (id: string): number => {
   if (id.startsWith('metric:')) {
     return 1;
   }
-  return COLUMN_META[id].priority ?? Number.MAX_SAFE_INTEGER;
+  return getColumnMeta(id)?.priority ?? Number.MAX_SAFE_INTEGER;
 };
 
 // Helper to resolve display name for any column id
-const getColumnName = (id: string): string => COLUMN_META[id].name;
+const getColumnName = (id: string, fallbackLabel: string): string =>
+  getColumnMeta(id)?.name ?? fallbackLabel;
 
 // Togglable settings columns for the table body. Derived by filtering COLUMN_META to entries
 // with a `field` — only those map to a LeaderboardEntry key and render as data cells.
@@ -213,9 +223,9 @@ const ColumnHeaderContent: React.FC<{
   tooltipName?: string;
   children: React.ReactNode;
 }> = ({ columnId, tooltipName, children }) => {
-  const meta = COLUMN_META[columnId];
-  const name = tooltipName ?? meta.name;
-  const { description } = meta;
+  const meta = getColumnMeta(columnId);
+  const name = tooltipName ?? meta?.name ?? children;
+  const description = meta?.description;
   return (
     <Tooltip
       content={
@@ -321,7 +331,7 @@ function AutoragLeaderboard({
     const dynamicColumns = [
       ...nonOptimizedMetricKeys.map((key) => ({
         id: `metric:${key}`,
-        label: getColumnName(`metric:${key}`),
+        label: getColumnName(`metric:${key}`, formatMetricName(key)),
       })),
       ...SETTINGS_COLUMNS.map((col) => ({
         id: col.id,
@@ -384,7 +394,7 @@ function AutoragLeaderboard({
         kind: 'metric',
         metricKey: key,
         id: `metric:${key}`,
-        label: getColumnName(`metric:${key}`),
+        label: getColumnName(`metric:${key}`, formatMetricName(key)),
       }));
 
     const settingCols: DynamicColumn[] = SETTINGS_COLUMNS.filter(
@@ -772,7 +782,7 @@ function AutoragLeaderboard({
               >
                 <ColumnHeaderContent
                   columnId={`metric:${optimizedMetric}`}
-                  tooltipName={`${COLUMN_META[`metric:${optimizedMetric}`].name} (optimized)`}
+                  tooltipName={`${getColumnMeta(`metric:${optimizedMetric}`)?.name ?? formatMetricName(optimizedMetric)} (optimized)`}
                 >
                   {formatMetricName(optimizedMetric)}
                   <div

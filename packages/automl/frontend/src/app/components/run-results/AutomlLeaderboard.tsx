@@ -49,7 +49,8 @@ type LeaderboardEntry = {
 
 // Column metadata — display name and description for column header tooltips.
 // Metric columns use "metric:<key>" IDs matching the column IDs at render time.
-const COLUMN_META: Record<string, { name: string; description?: string }> = {
+type ColumnMeta = { name: string; description?: string };
+const COLUMN_META: Record<string, ColumnMeta> = {
   rank: {
     name: 'Rank',
     description:
@@ -120,15 +121,24 @@ const COLUMN_META: Record<string, { name: string; description?: string }> = {
   },
 };
 
+// Safe accessor — COLUMN_META is typed as Record<string, …> so TS believes every
+// key returns a value, but at runtime dynamic metric keys may be absent.
+const getColumnMeta = (id: string): ColumnMeta | undefined => {
+  if (!(id in COLUMN_META)) {
+    return undefined;
+  }
+  return COLUMN_META[id];
+};
+
 const ColumnHeaderContent: React.FC<{
   columnId: string;
   tooltipName?: string;
   children: React.ReactNode;
 }> = ({ columnId, tooltipName, children }) => {
   const lowerColumnId = columnId.toLowerCase();
-  const meta = COLUMN_META[lowerColumnId];
-  const name = tooltipName ?? meta.name;
-  const { description } = meta;
+  const meta = getColumnMeta(lowerColumnId);
+  const name = tooltipName ?? meta?.name ?? children;
+  const description = meta?.description;
   return (
     <Tooltip
       content={
@@ -586,7 +596,7 @@ function AutomlLeaderboard({
               >
                 <ColumnHeaderContent
                   columnId={`metric:${optimizedMetric}`}
-                  tooltipName={`${COLUMN_META[`metric:${optimizedMetric}`].name} (optimized)`}
+                  tooltipName={`${getColumnMeta(`metric:${optimizedMetric}`)?.name ?? formatMetricName(optimizedMetric)} (optimized)`}
                 >
                   {formatMetricName(optimizedMetric)}
                   <div
