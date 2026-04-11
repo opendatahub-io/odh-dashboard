@@ -1,6 +1,6 @@
 ---
 name: style-review
-description: Review code for custom styling convention violations in ODH Dashboard. Validates that custom SCSS follows the PF priority order and that project wrappers are used correctly. Use when asked to review code, audit styling, or review a PR for convention compliance.
+description: Review code for custom styling convention violations in ODH Dashboard against css-patternfly.md rules. Checks PF priority order, wrapper compliance, and class naming conventions. Use when asked to review code, audit styling, or review a PR for convention compliance.
 ---
 
 # Style Convention Review — ODH Dashboard
@@ -18,7 +18,7 @@ The user may provide:
 
 ## Phase 1: Load reference data
 
-1. `.claude/rules/css-patternfly.md` — priority order, token rules, wrapper components, class naming. **The "Priority order" section is the core rule for Check 1; the "PF Wrapper Components" section is the reference for Check 2.**
+1. `.claude/rules/css-patternfly.md` — priority order, token rules, wrapper components, class naming. **The "Priority order" section is the core rule for Check 1; the "PF Wrapper Components" section is the reference for Check 2; the "Custom Class Naming" section is the reference for Check 3.**
 
 ## Phase 2: Run checks
 
@@ -26,12 +26,7 @@ The user may provide:
 
 This is the most important check. The priority order from `css-patternfly.md` exists because the dashboard uses PatternFly components and mod-arch-shared wrappers as the primary styling system. Custom SCSS or inline styles should only appear when PF genuinely cannot do it.
 
-For every custom SCSS block or inline style introduced, verify the priority order was followed:
-
-1. **PF component props first** — does the component have a prop that handles this? (`hasGutter`, `isCompact`, `variant`, `spaceItems`, `direction`, etc.)
-2. **PF layout components** — does `Flex`, `Stack`, `Grid`, `Split`, or `Gallery` handle the arrangement instead of custom flex/grid CSS?
-3. **PF utility classes** — does a `pf-v6-u-*` class (globally available, no import) handle it?
-4. **SCSS with PF tokens** — only if 1–3 cannot do it; must use `var(--pf-t--*)` tokens, not hardcoded values
+For every custom SCSS block or inline style introduced, verify the **"Priority order"** from `css-patternfly.md` was followed.
 
 Flag SCSS or inline styles where a PF prop, layout component, or utility class would have been sufficient. For SCSS that IS appropriate (step 4), also flag any hardcoded values that should be PF tokens.
 
@@ -54,6 +49,17 @@ Use the wrapper mapping table in the **"PF Wrapper Components"** section of `.cl
 2. Only consider imports whose source starts with `@patternfly/` (e.g. `@patternfly/react-core`, `@patternfly/react-table`).
 3. For each wrapper entry in the mapping table, check whether the PF component name appears as an import specifier from a `@patternfly/*` source in this file. If it does, and the JSX tree uses that imported identifier, flag it.
 4. **Skip the wrapper's own implementation file** — do not flag the file that defines the project wrapper itself (e.g. `components/pf-overrides/FormSection.tsx` legitimately imports PF `FormSection`).
+
+### Check 3: Custom class naming convention
+
+Scan SCSS and TSX files for custom CSS class names. Use the **"Custom Class Naming"** section of `css-patternfly.md` as the authoritative reference for naming conventions. Ignore PF classes (`pf-v6-*`, `pf-v5-*`, `pf-c-*`, `pf-m-*`).
+
+Flag class names where:
+
+- **Missing required prefix** — block-level class has no namespace prefix per the location rules in `css-patternfly.md`.
+- **Wrong BEM separator** — element uses single underscore or hyphen instead of double underscore (`__`).
+- **Non-standard modifier** — uses `--modifier` or `is-modifier` instead of `m-{modifier}` / `{prefix}-m-{modifier}`.
+- **Non-standard utility** — uses an unprefixed utility name instead of `{prefix}-u-{name}`.
 
 ## Phase 3: Generate report
 
@@ -83,8 +89,8 @@ Use the wrapper mapping table in the **"PF Wrapper Components"** section of `.cl
 
 | Severity | Criteria |
 |---|---|
-| Critical | Hardcoded hex/colors in SCSS or inline styles where PF tokens exist |
-| Warning | Custom SCSS/inline styles where a PF prop, layout component, or utility class would suffice; missing wrapper where one clearly applies |
+| Critical | Hardcoded tokenizable values in SCSS or inline styles where PF tokens exist (e.g., colors, spacing, sizing, typography, radii) |
+| Warning | Custom SCSS/inline styles where a PF prop, layout component, or utility class would suffice; missing wrapper where one clearly applies; custom class name that doesn't follow the naming convention |
 | Info | Genuine PF gap — open a PF upstream issue, then open a RHOAIENG follow-up linking it |
 
 If there are no violations, confirm the files pass and note any well-structured patterns worth preserving.
