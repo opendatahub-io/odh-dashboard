@@ -44,7 +44,7 @@ class McpDeploymentDeleteModal {
   }
 
   findSubmitButton() {
-    return this.find().findByRole('button', { name: /delete mcp server deployment/i });
+    return this.find().findByTestId('delete-modal-confirm-button');
   }
 
   findCancelButton() {
