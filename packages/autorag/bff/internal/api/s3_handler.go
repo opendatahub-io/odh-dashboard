@@ -28,6 +28,10 @@ type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
 
 var trailingNumberPattern = regexp.MustCompile(`^(.*)-(\d+)$`)
 
+// ErrMaxCollisionsExceeded is returned when resolveNonCollidingS3Key exhausts all attempts
+// to find a unique object key due to naming collisions.
+var ErrMaxCollisionsExceeded = errors.New("max collision attempts exceeded")
+
 // resolvedS3 holds a ready-to-use S3 client and the resolved bucket name.
 type resolvedS3 struct {
 	client s3int.S3ClientInterface
@@ -284,6 +288,12 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 	bucket := s3.bucket
 	resolvedKey, err := resolveNonCollidingS3Key(ctx, s3.client, bucket, key, app.effectivePostS3CollisionAttempts())
 	if err != nil {
+		if errors.Is(err, ErrMaxCollisionsExceeded) {
+			app.conflictResponse(w, r,
+				fmt.Sprintf("unable to find unique filename after %d attempts; try a different base name",
+					app.effectivePostS3CollisionAttempts()))
+			return
+		}
 		app.serverErrorResponse(w, r, fmt.Errorf("error resolving S3 key for upload: %w", err))
 		return
 	}
@@ -415,7 +425,7 @@ func resolveNonCollidingS3Key(
 		}
 		nextIndex++
 	}
-	return "", fmt.Errorf("failed to resolve non-colliding S3 key after %d attempts", maxCollisionAttempts)
+	return "", ErrMaxCollisionsExceeded
 }
 
 func splitS3ObjectPath(key string) (dir string, name string) {
