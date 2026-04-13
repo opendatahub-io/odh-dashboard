@@ -4,7 +4,7 @@
 
 - Full LLM chatbot UI: streaming chat, model selection, conversation history, and system prompts.
 - Go BFF integrates MCP (Model Context Protocol) and LSD (LLM Service Discovery) with MaaS and related clients.
-- Host feature flags and embedding types: `frontend/docs/gen-ai.md`.
+- Host-side feature flags and shared LLM types are defined in the main frontend (see `frontend/docs/gen-ai.md`); this package contains the actual chatbot UI.
 
 ## Design Intent
 
