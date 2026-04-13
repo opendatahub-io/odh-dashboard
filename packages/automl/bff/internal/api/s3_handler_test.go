@@ -1971,7 +1971,7 @@ func TestPostS3FileHandler_TwoFileParts_UsesFirstPartOnly(t *testing.T) {
 	assert.Equal(t, []byte("first-content"), capture.uploaded)
 }
 
-func TestPostS3FileHandler_CollisionResolutionExhausted_Returns500(t *testing.T) {
+func TestPostS3FileHandler_CollisionResolutionExhausted_Returns409(t *testing.T) {
 	t.Parallel()
 	secret := mockS3Secret("aws-secret-1", "test-namespace")
 	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
@@ -1994,12 +1994,13 @@ func TestPostS3FileHandler_CollisionResolutionExhausted_Returns500(t *testing.T)
 	res := rr.Result()
 	defer res.Body.Close()
 
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.Equal(t, http.StatusConflict, res.StatusCode)
 	var env ErrorEnvelope
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
 	require.NotNil(t, env.Error)
-	assert.Equal(t, "500", env.Error.Code)
-	assert.Contains(t, env.Error.Message, "the server encountered a problem")
+	assert.Equal(t, "409", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "unable to find unique filename")
+	assert.Contains(t, env.Error.Message, "5 attempts")
 }
 
 func TestResolveNonCollidingS3Key_PreservesDirectoryPrefix(t *testing.T) {
