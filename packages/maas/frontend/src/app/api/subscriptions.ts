@@ -48,7 +48,7 @@ const isModelReference = (v: unknown): v is ModelReference =>
 
 // OwnerSpec and SubjectSpec are structurally identical
 const isGroupsSpec = (v: unknown): boolean =>
-  isRecord(v) && Array.isArray(v.groups) && v.groups.every(isGroupRef);
+  isRecord(v) && (v.groups == null || (Array.isArray(v.groups) && v.groups.every(isGroupRef)));
 
 const isOwnerSpec = (v: unknown): v is OwnerSpec => isGroupsSpec(v);
 const isSubjectSpec = (v: unknown): v is SubjectSpec => isGroupsSpec(v);
@@ -73,9 +73,6 @@ const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
   v.modelRefs.every(isMaaSSubscriptionRef) &&
   (v.tokenMetadata === undefined || typeof v.tokenMetadata === 'object') &&
   (v.creationTimestamp === undefined || typeof v.creationTimestamp === 'string');
-
-const isMaaSSubscriptionArray = (v: unknown): v is MaaSSubscription[] =>
-  Array.isArray(v) && v.every(isMaaSSubscription);
 
 export const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
   isRecord(v) &&
@@ -130,7 +127,7 @@ const isModelRefInfo = (v: unknown): v is ModelRefInfo =>
   isRecord(v) &&
   typeof v.name === 'string' &&
   (v.namespace === undefined || typeof v.namespace === 'string') &&
-  (v.token_rate_limits === undefined ||
+  (v.token_rate_limits == null ||
     (Array.isArray(v.token_rate_limits) && v.token_rate_limits.every(isTokenRateLimitInfo)));
 
 const isUserSubscription = (v: unknown): v is UserSubscription =>
@@ -140,9 +137,6 @@ const isUserSubscription = (v: unknown): v is UserSubscription =>
   typeof v.priority === 'number' &&
   Array.isArray(v.model_refs) &&
   v.model_refs.every(isModelRefInfo);
-
-const isUserSubscriptionArray = (v: unknown): v is UserSubscription[] =>
-  Array.isArray(v) && v.every(isUserSubscription);
 
 const isSubscriptionPolicyFormDataResponse = (
   v: unknown,
@@ -169,8 +163,8 @@ export const listSubscriptions =
     handleRestFailures(
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/all-subscriptions`, {}, opts),
     ).then((response) => {
-      if (isModArchResponse<unknown>(response) && isMaaSSubscriptionArray(response.data)) {
-        return response.data.map(normalizeSubscription);
+      if (isModArchResponse<unknown>(response) && Array.isArray(response.data)) {
+        return response.data.filter(isMaaSSubscription).map(normalizeSubscription);
       }
       throw new Error('Invalid response format');
     });
@@ -291,8 +285,8 @@ export const listUserSubscriptions =
     handleRestFailures(
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/subscriptions`, {}, opts),
     ).then((response) => {
-      if (isModArchResponse<unknown>(response) && isUserSubscriptionArray(response.data)) {
-        return response.data;
+      if (isModArchResponse<unknown>(response) && Array.isArray(response.data)) {
+        return response.data.filter(isUserSubscription);
       }
       throw new Error('Invalid response format');
     });
