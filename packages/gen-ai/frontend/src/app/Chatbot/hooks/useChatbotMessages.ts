@@ -13,7 +13,7 @@ import {
   MCPServerFromAPI,
   ResponseMetrics,
   TokenInfo,
-  ErrorClassification,
+  ClassifiedError,
 } from '~/app/types';
 import {
   ERROR_MESSAGES,
@@ -44,7 +44,7 @@ export type GuardrailsConfig = {
 // Extended message type that includes metrics data for display
 export type ChatbotMessageProps = MessageProps & {
   metrics?: ResponseMetrics;
-  errorClassification?: ErrorClassification;
+  errorClassification?: ClassifiedError;
   onRetryError?: () => void;
 };
 
@@ -438,6 +438,25 @@ const useChatbotMessages = ({
           );
         };
 
+        // Check for mock error scenarios (trigger words)
+        const mockScenario = findMockScenario(message);
+        if (mockScenario) {
+          // Simulate partial response if provided
+          if (mockScenario.partialResponse) {
+            // Simulate streaming of partial response
+            await new Promise((resolve) => {
+              setTimeout(() => {
+                completeLines.push(mockScenario.partialResponse!);
+                updateMessage(true, true);
+                resolve(undefined);
+              }, 500);
+            });
+          }
+
+          // Throw the mock error after partial response (or immediately if no partial)
+          throw mockScenario.apiError;
+        }
+
         const streamingResponse = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
           onStreamData: (chunk: string, clearPrevious?: boolean) => {
@@ -540,6 +559,15 @@ const useChatbotMessages = ({
         }
       } else {
         // Handle non-streaming response
+
+        // Check for mock error scenarios (trigger words)
+        const mockScenario = findMockScenario(message);
+        if (mockScenario) {
+          // For non-streaming, we don't support partial responses
+          // Just throw the error immediately
+          throw mockScenario.apiError;
+        }
+
         const response = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
         });
@@ -660,10 +688,9 @@ const useChatbotMessages = ({
 
       // Classify the error for UI rendering
       const errorClassification = classifyError(error, {
-        wasResponseGenerated: false, // TODO: Track if partial response was generated
-        wasStreamStarted: isStreamingEnabled && botMessageId !== undefined,
         modelName: modelDisplayName,
         // TODO: Add maxTokens from model config when available
+        // TODO: Add toolName if error is from MCP tool call
       });
 
       // Retry handler - resends the same prompt
@@ -676,9 +703,7 @@ const useChatbotMessages = ({
 
         if (lastUserMessage?.content) {
           // Remove the error message and retry
-          setMessages((prevMessages) =>
-            prevMessages.filter((msg) => msg.id !== botMessageId),
-          );
+          setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== botMessageId));
           handleMessageSend(lastUserMessage.content);
         }
       };
@@ -695,10 +720,10 @@ const useChatbotMessages = ({
                 // Streaming interruption - show partial content with error below
                 return {
                   ...msg,
-                  content: msg.content + '...', // Append ellipsis to signal cutoff
+                  content: `${msg.content}...`, // Append ellipsis to signal cutoff
                   isLoading: false,
                   errorClassification,
-                  onRetryError: errorClassification.retriable ? handleRetry : undefined,
+                  onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
                 };
               }
               // Full failure in streaming mode - no content generated
@@ -707,7 +732,7 @@ const useChatbotMessages = ({
                 content: '', // Clear loading dots
                 isLoading: false,
                 errorClassification,
-                onRetryError: errorClassification.retriable ? handleRetry : undefined,
+                onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
               };
             }
             return msg;
@@ -723,7 +748,7 @@ const useChatbotMessages = ({
           avatar: botAvatar,
           timestamp: new Date().toLocaleString(),
           errorClassification,
-          onRetryError: errorClassification.retriable ? handleRetry : undefined,
+          onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
         };
         setMessages((prevMessages) => [...prevMessages, botErrorMessage]);
       }

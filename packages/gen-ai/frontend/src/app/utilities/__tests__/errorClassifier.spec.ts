@@ -1,6 +1,6 @@
-import { classifyError } from '../errorClassifier';
 import { ErrorPattern, ErrorSeverity } from '~/app/types';
 import { ERROR_CATEGORIES } from '~/app/Chatbot/const';
+import { classifyError } from '~/app/utilities/errorClassifier';
 
 describe('errorClassifier', () => {
   describe('classifyError', () => {
@@ -186,6 +186,7 @@ describe('errorClassifier', () => {
 
       it('should generate title for MCP errors with tool name', () => {
         const error = {
+          // eslint-disable-next-line camelcase
           error: { code: 'mcp_down', message: 'Tool failed', tool_name: 'GitHub' },
         };
         const result = classifyError(error);
@@ -405,6 +406,7 @@ describe('errorClassifier', () => {
 
       it('should include toolName from error details', () => {
         const error = {
+          // eslint-disable-next-line camelcase
           error: { code: 'mcp_down', message: 'Tool failed', tool_name: 'GitHub' },
         };
         const result = classifyError(error);
@@ -414,6 +416,7 @@ describe('errorClassifier', () => {
 
       it('should include all template vars when provided', () => {
         const error = {
+          // eslint-disable-next-line camelcase
           error: { code: 'max_tokens', message: 'Token limit', tool_name: 'GitHub' },
         };
         const result = classifyError(error, {

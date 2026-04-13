@@ -533,13 +533,10 @@ describe('useChatbotMessages - Error Handling', () => {
       });
 
       const mockError = { error: { message: 'Error' } };
-      const mockCreateResponse = jest
-        .fn()
-        .mockRejectedValueOnce(mockError)
-        .mockResolvedValueOnce({
-          response: 'Success on retry',
-          metadata: {},
-        });
+      const mockCreateResponse = jest.fn().mockRejectedValueOnce(mockError).mockResolvedValueOnce({
+        response: 'Success on retry',
+        metadata: {},
+      });
 
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
@@ -557,9 +554,7 @@ describe('useChatbotMessages - Error Handling', () => {
         expect(botMessage?.errorClassification).toBeDefined();
       });
 
-      const messagesBeforeRetry = result.current.messages.length;
-      const retryCallback = result.current.messages.find((msg) => msg.role === 'bot')
-        ?.onRetryError;
+      const retryCallback = result.current.messages.find((msg) => msg.role === 'bot')?.onRetryError;
 
       // Trigger retry
       retryCallback?.();
@@ -590,13 +585,10 @@ describe('useChatbotMessages - Error Handling', () => {
       });
 
       const mockError = { error: { message: 'Error' } };
-      const mockCreateResponse = jest
-        .fn()
-        .mockRejectedValueOnce(mockError)
-        .mockResolvedValueOnce({
-          response: 'Success',
-          metadata: {},
-        });
+      const mockCreateResponse = jest.fn().mockRejectedValueOnce(mockError).mockResolvedValueOnce({
+        response: 'Success',
+        metadata: {},
+      });
 
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
@@ -614,8 +606,7 @@ describe('useChatbotMessages - Error Handling', () => {
         failedBotMessageId = botMessage?.id;
       });
 
-      const retryCallback = result.current.messages.find((msg) => msg.role === 'bot')
-        ?.onRetryError;
+      const retryCallback = result.current.messages.find((msg) => msg.role === 'bot')?.onRetryError;
       retryCallback?.();
 
       await waitFor(() => {
@@ -657,8 +648,7 @@ describe('useChatbotMessages - Error Handling', () => {
       const initialCallCount = mockCreateResponse.mock.calls.length;
 
       // Clear messages to simulate no user message scenario
-      const retryCallback = result.current.messages.find((msg) => msg.role === 'bot')
-        ?.onRetryError;
+      const retryCallback = result.current.messages.find((msg) => msg.role === 'bot')?.onRetryError;
 
       // Manually clear user messages to test edge case
       result.current.messages.forEach((msg) => {

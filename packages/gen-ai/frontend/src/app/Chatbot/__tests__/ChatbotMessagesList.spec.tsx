@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { ChatbotMessages } from '../ChatbotMessagesList';
-import type { ChatbotMessageProps } from '../hooks/useChatbotMessages';
+import { ChatbotMessages } from '~/app/Chatbot/ChatbotMessagesList';
+import type { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
 
 jest.mock('../components/ChatbotErrorAlert', () => ({
   __esModule: true,
@@ -34,7 +34,6 @@ jest.mock('@patternfly/chatbot', () => ({
       error,
       extraContent,
       'data-testid': dataTestId,
-      ...props
     }: {
       role: string;
       content?: string;
@@ -63,9 +62,7 @@ jest.mock('@patternfly/chatbot', () => ({
         {extraContent?.afterMainContent && (
           <div data-testid="after-main-content">{extraContent.afterMainContent}</div>
         )}
-        {extraContent?.endContent && (
-          <div data-testid="end-content">{extraContent.endContent}</div>
-        )}
+        {extraContent?.endContent && <div data-testid="end-content">{extraContent.endContent}</div>}
       </div>
     ),
   ),
@@ -607,7 +604,7 @@ describe('ChatbotMessages', () => {
         <ChatbotMessages
           messageList={messages}
           scrollRef={scrollRef}
-          isLoading={true}
+          isLoading
           isStreamingWithoutContent={false}
           modelDisplayName="Test Model"
         />,
@@ -624,8 +621,8 @@ describe('ChatbotMessages', () => {
         <ChatbotMessages
           messageList={messages}
           scrollRef={scrollRef}
-          isLoading={true}
-          isStreamingWithoutContent={true}
+          isLoading
+          isStreamingWithoutContent
         />,
       );
 
