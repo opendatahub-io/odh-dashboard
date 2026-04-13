@@ -15,6 +15,7 @@ import (
 	"net/textproto"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/config"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
@@ -2482,4 +2483,130 @@ func TestPostS3FileHandler_RejectsNonCsvContentType(t *testing.T) {
 	res := rr.Result()
 	defer res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+// ---------------------------------------------------------------------------
+// Metadata timeout tests
+// ---------------------------------------------------------------------------
+
+// deadlineCapturingS3Client records the context passed to each S3 operation
+// so tests can verify that handlers set appropriate deadlines.
+type deadlineCapturingS3Client struct {
+	s3mocks.MockS3Client
+	capturedCtx context.Context
+}
+
+func (c *deadlineCapturingS3Client) ListObjects(ctx context.Context, bucket string, options s3int.ListObjectsOptions) (*models.S3ListObjectsResponse, error) {
+	c.capturedCtx = ctx
+	return c.MockS3Client.ListObjects(ctx, bucket, options)
+}
+
+func (c *deadlineCapturingS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (s3int.CSVSchemaResult, error) {
+	c.capturedCtx = ctx
+	return c.MockS3Client.GetCSVSchema(ctx, bucket, key)
+}
+
+func (c *deadlineCapturingS3Client) GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error) {
+	c.capturedCtx = ctx
+	return c.MockS3Client.GetObject(ctx, bucket, key)
+}
+
+func TestGetS3FilesHandler_SetsMetadataTimeout(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	capturingClient := &deadlineCapturingS3Client{}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(capturingClient)
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/files?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	// Verify the handler set a deadline on the context passed to ListObjects.
+	require.NotNil(t, capturingClient.capturedCtx, "ListObjects should have been called")
+	deadline, hasDeadline := capturingClient.capturedCtx.Deadline()
+	assert.True(t, hasDeadline, "context passed to ListObjects should have a deadline from s3MetadataTimeout")
+	assert.WithinDuration(t, time.Now().Add(s3MetadataTimeout), deadline, 5*time.Second,
+		"deadline should be approximately s3MetadataTimeout from request time")
+}
+
+func TestGetS3FileSchemaHandler_SetsMetadataTimeout(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	capturingClient := &deadlineCapturingS3Client{}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(capturingClient)
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/file/schema?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=data.csv",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	// Verify the handler set a deadline on the context passed to GetCSVSchema.
+	require.NotNil(t, capturingClient.capturedCtx, "GetCSVSchema should have been called")
+	deadline, hasDeadline := capturingClient.capturedCtx.Deadline()
+	assert.True(t, hasDeadline, "context passed to GetCSVSchema should have a deadline from s3MetadataTimeout")
+	assert.WithinDuration(t, time.Now().Add(s3MetadataTimeout), deadline, 5*time.Second,
+		"deadline should be approximately s3MetadataTimeout from request time")
+}
+
+// TestGetS3FileHandler_DoesNotSetMetadataTimeout verifies that file-transfer
+// handlers do NOT impose the metadata timeout — large downloads need an
+// unbounded response window.
+func TestGetS3FileHandler_DoesNotSetMetadataTimeout(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	capturingClient := &deadlineCapturingS3Client{}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(capturingClient)
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=README.md",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	// The file-transfer handler should NOT set its own deadline.
+	require.NotNil(t, capturingClient.capturedCtx, "GetObject should have been called")
+	_, hasDeadline := capturingClient.capturedCtx.Deadline()
+	assert.False(t, hasDeadline, "context passed to GetObject should NOT have a handler-imposed deadline")
 }

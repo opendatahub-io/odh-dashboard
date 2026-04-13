@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/julienschmidt/httprouter"
@@ -57,6 +58,15 @@ func s3ConnectivityErrorMessage(bucket string) string {
 		bucket,
 	)
 }
+
+// s3MetadataTimeout is the deadline for read-only S3 metadata operations
+// (ListObjects, HeadObject, etc.) that should complete quickly. This bounds
+// the response-header phase: if the endpoint accepts the TCP connection but
+// never sends response headers, r.Context() alone won't cancel the call
+// because net/http's WriteTimeout sets a conn deadline, not a context
+// cancellation. File transfers (GetObject, UploadObject) are excluded
+// because legitimate large payloads can exceed any static timeout.
+const s3MetadataTimeout = 15 * time.Second
 
 type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
 
@@ -598,7 +608,9 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), s3MetadataTimeout)
+	defer cancel()
+
 	bucket := s3.bucket
 	result, err := s3.client.ListObjects(ctx, bucket, s3int.ListObjectsOptions{
 		Path:   parameters.Path,

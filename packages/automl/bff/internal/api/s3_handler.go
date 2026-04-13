@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/julienschmidt/httprouter"
@@ -24,6 +25,15 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
+
+// s3MetadataTimeout is the deadline for read-only S3 metadata operations
+// (ListObjects, HeadObject, GetCSVSchema, etc.) that should complete quickly.
+// This bounds the response-header phase: if the endpoint accepts the TCP
+// connection but never sends response headers, r.Context() alone won't cancel
+// the call because net/http's WriteTimeout sets a conn deadline, not a context
+// cancellation. File transfers (GetObject, UploadObject) are excluded because
+// legitimate large payloads can exceed any static timeout.
+const s3MetadataTimeout = 15 * time.Second
 
 // resolvedS3 holds a ready-to-use S3 client and the resolved bucket name.
 type resolvedS3 struct {
@@ -586,7 +596,9 @@ func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _
 		return
 	}
 
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), s3MetadataTimeout)
+	defer cancel()
+
 	schemaResult, err := s3.client.GetCSVSchema(ctx, s3.bucket, key)
 	if err != nil {
 		var noSuchKey *types.NoSuchKey
@@ -668,7 +680,9 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), s3MetadataTimeout)
+	defer cancel()
+
 	result, err := s3.client.ListObjects(ctx, s3.bucket, s3int.ListObjectsOptions{
 		Path:   params.path,
 		Search: params.search,

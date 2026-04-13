@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -25,6 +26,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1813,4 +1815,92 @@ func TestPostS3FileHandler_ConnectivityError_OnUpload_Returns503(t *testing.T) {
 	assert.NotNil(t, env.Error)
 	assert.Equal(t, "503", env.Error.Code)
 	assert.Contains(t, env.Error.Message, "Unable to connect")
+}
+
+// ---------------------------------------------------------------------------
+// Metadata timeout tests
+// ---------------------------------------------------------------------------
+
+// deadlineCapturingS3Client records the context passed to each S3 operation
+// so tests can verify that handlers set appropriate deadlines.
+type deadlineCapturingS3Client struct {
+	s3mocks.MockS3Client
+	capturedCtx context.Context
+}
+
+func (c *deadlineCapturingS3Client) ListObjects(ctx context.Context, bucket string, options s3int.ListObjectsOptions) (*models.S3ListObjectsResponse, error) {
+	c.capturedCtx = ctx
+	return c.MockS3Client.ListObjects(ctx, bucket, options)
+}
+
+func (c *deadlineCapturingS3Client) GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error) {
+	c.capturedCtx = ctx
+	return c.MockS3Client.GetObject(ctx, bucket, key)
+}
+
+func TestGetS3FilesHandler_SetsMetadataTimeout(t *testing.T) {
+	t.Parallel()
+	secret := newTestS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	capturingClient := &deadlineCapturingS3Client{}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(capturingClient)
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/files?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	// Verify the handler set a deadline on the context passed to ListObjects.
+	require.NotNil(t, capturingClient.capturedCtx, "ListObjects should have been called")
+	deadline, hasDeadline := capturingClient.capturedCtx.Deadline()
+	assert.True(t, hasDeadline, "context passed to ListObjects should have a deadline from s3MetadataTimeout")
+	assert.WithinDuration(t, time.Now().Add(s3MetadataTimeout), deadline, 5*time.Second,
+		"deadline should be approximately s3MetadataTimeout from request time")
+}
+
+// TestGetS3FileHandler_DoesNotSetMetadataTimeout verifies that file-transfer
+// handlers do NOT impose the metadata timeout — large downloads need an
+// unbounded response window.
+func TestGetS3FileHandler_DoesNotSetMetadataTimeout(t *testing.T) {
+	t.Parallel()
+	secret := newTestS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	capturingClient := &deadlineCapturingS3Client{}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(capturingClient)
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=README.md",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	// The file-transfer handler should NOT set its own deadline.
+	require.NotNil(t, capturingClient.capturedCtx, "GetObject should have been called")
+	_, hasDeadline := capturingClient.capturedCtx.Deadline()
+	assert.False(t, hasDeadline, "context passed to GetObject should NOT have a handler-imposed deadline")
 }
