@@ -59,25 +59,25 @@ print(yaml.dump(data, default_flow_style=False), end='')
 };
 
 /**
- * Verify that the model-catalog-default-sources ConfigMap exists in the model registry namespace.
+ * Verify that the default-catalog-sources ConfigMap exists in the model registry namespace.
  * @returns A Cypress chainable that resolves with the command result.
  */
 export const verifyModelCatalogSourcesConfigMap = (): Cypress.Chainable<CommandLineResult> => {
   const namespace = getModelRegistryNamespace();
-  const command = `oc get configmap model-catalog-default-sources -n ${namespace}`;
-  cy.log(`Verifying model-catalog-default-sources ConfigMap: ${command}`);
+  const command = `oc get configmap default-catalog-sources -n ${namespace}`;
+  cy.log(`Verifying default-catalog-sources ConfigMap: ${command}`);
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
     if (result.code !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
-      cy.log(`ERROR: model-catalog-default-sources ConfigMap not found in ${namespace}`);
+      cy.log(`ERROR: default-catalog-sources ConfigMap not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
       cy.log(`stderr: ${maskedStderr}`);
       throw new Error(
-        `model-catalog-default-sources ConfigMap not found in ${namespace}: ${maskedStderr}`,
+        `default-catalog-sources ConfigMap not found in ${namespace}: ${maskedStderr}`,
       );
     }
-    cy.log(`✓ model-catalog-default-sources ConfigMap exists in ${namespace}`);
+    cy.log(`✓ default-catalog-sources ConfigMap exists in ${namespace}`);
     return cy.wrap(result);
   });
 };
@@ -149,7 +149,7 @@ export const verifyModelCatalogBackend = (): Cypress.Chainable<CommandLineResult
 
 /**
  * Verify the enabled status of a specific source in the catalog configmaps.
- * First checks model-catalog-sources (user overrides), then falls back to model-catalog-default-sources.
+ * First checks model-catalog-sources (user overrides), then falls back to default-catalog-sources.
  * Polls until the expected value is found or max attempts is reached.
  * @param sourceId The ID of the source to check (e.g., 'redhat_ai')
  * @param expectedEnabled The expected enabled status (true or false)
@@ -165,10 +165,10 @@ export const verifyModelCatalogSourceEnabled = (
 ): Cypress.Chainable<undefined> => {
   const namespace = getModelRegistryNamespace();
   const parseCmd = getYamlParseCommand(sourceId);
-  // User changes are stored in model-catalog-sources, defaults in model-catalog-default-sources
+  // User changes are stored in model-catalog-sources, defaults in default-catalog-sources
   // Try user configmap first, fall back to default if source not found there
   const userCommand = `oc get configmap model-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' 2>/dev/null | ${parseCmd}`;
-  const defaultCommand = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
+  const defaultCommand = `oc get configmap default-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
 
   cy.log(`Polling for source ${sourceId} enabled status to be ${expectedEnabled}`);
 
@@ -240,14 +240,14 @@ export const verifyModelCatalogSourceEnabled = (
 
 /**
  * Check if a specific model catalog source is currently enabled.
- * Checks the model-catalog-default-sources ConfigMap for the source's enabled status.
+ * Checks the default-catalog-sources ConfigMap for the source's enabled status.
  * @param sourceId The ID of the source to check (e.g., 'redhat_ai_models')
  * @returns A Cypress chainable that resolves with true if enabled, false otherwise.
  */
 export const isModelCatalogSourceEnabled = (sourceId: string): Cypress.Chainable<boolean> => {
   const namespace = getModelRegistryNamespace();
   const parseCmd = getYamlParseCommand(sourceId);
-  const command = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
+  const command = `oc get configmap default-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
     if (result.code !== 0) {
