@@ -18,26 +18,25 @@ import { TASK_TYPE_MULTICLASS } from '~/app/utilities/const';
 
 const MULTI_CLASS_VIEW = 'multi-class';
 
-function getCellStyle(
-  rowLabel: string,
-  colLabel: string,
-  value: number,
-  maxValue: number,
-): React.CSSProperties {
+function getCellClassName(rowLabel: string, colLabel: string): string {
   const isDiagonal = rowLabel === colLabel;
-  const intensity = maxValue > 0 ? value / maxValue : 0;
-  const alpha = intensity * 0.6;
+  return isDiagonal
+    ? 'automl-confusion-matrix__cell--diagonal'
+    : 'automl-confusion-matrix__cell--off-diagonal';
+}
 
-  return {
-    backgroundColor:
-      alpha > 0
-        ? isDiagonal
-          ? `rgba(56, 142, 60, ${alpha})`
-          : `rgba(144, 164, 174, ${alpha})`
-        : 'transparent',
-    textAlign: 'center',
-    fontWeight: isDiagonal ? 600 : 400,
-  };
+function getCellIntensityClass(value: number, maxValue: number): string {
+  if (maxValue <= 0 || value <= 0) {
+    return '';
+  }
+  const intensity = value / maxValue;
+  if (intensity > 0.66) {
+    return 'm-intensity-high';
+  }
+  if (intensity > 0.33) {
+    return 'm-intensity-medium';
+  }
+  return 'm-intensity-low';
 }
 
 /**
@@ -214,12 +213,14 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
                 </Td>
                 {labels.map((colLabel) => {
                   const val = getCell(rowLabel, colLabel);
+                  const cellClass = [
+                    getCellClassName(rowLabel, colLabel),
+                    getCellIntensityClass(val, maxValue),
+                  ]
+                    .filter(Boolean)
+                    .join(' ');
                   return (
-                    <Td
-                      key={colLabel}
-                      style={getCellStyle(rowLabel, colLabel, val, maxValue)}
-                      textCenter
-                    >
+                    <Td key={colLabel} className={cellClass} textCenter>
                       {val}
                     </Td>
                   );

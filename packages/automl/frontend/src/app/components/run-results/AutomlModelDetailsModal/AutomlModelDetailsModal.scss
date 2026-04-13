@@ -82,6 +82,59 @@
   }
 }
 
+/* Confusion matrix header delineation — gray background on axis labels and summary cells */
+.automl-confusion-matrix {
+  thead th {
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+  }
+
+  tbody tr td:first-child {
+    background-color: var(--pf-t--global--background--color--secondary--default);
+  }
+
+  /* Summary row and column ("Percent correct") */
+  tbody tr:last-child td,
+  tbody tr td:last-child,
+  thead th:last-child {
+    background-color: var(--pf-t--global--background--color--secondary--default);
+  }
+}
+
+/* Confusion matrix data cell colors — uses PF palette tokens for dark mode support */
+.automl-confusion-matrix__cell--diagonal {
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  background-color: var(--pf-t--color--green--10);
+
+  &.m-intensity-low {
+    background-color: var(--pf-t--color--green--20);
+  }
+
+  &.m-intensity-medium {
+    background-color: var(--pf-t--color--green--30);
+  }
+
+  &.m-intensity-high {
+    background-color: var(--pf-t--color--green--40);
+  }
+}
+
+.automl-confusion-matrix__cell--off-diagonal {
+  background-color: var(--pf-t--color--blue--10);
+
+  &.m-intensity-low {
+    background-color: var(--pf-t--color--blue--10);
+  }
+
+  &.m-intensity-medium {
+    background-color: var(--pf-t--color--blue--20);
+  }
+
+  &.m-intensity-high {
+    background-color: var(--pf-t--color--blue--30);
+  }
+}
+
 /* Confusion matrix view selector */
 .automl-confusion-matrix-view {
   max-width: 250px;
@@ -94,7 +147,7 @@
   justify-content: space-between;
   margin-top: var(--pf-t--global--spacer--md);
   padding: var(--pf-t--global--spacer--sm) 0;
-  background: linear-gradient(to right, rgba(144, 164, 174, 0.5) 0%, #fff 45%, #fff 55%, rgba(56, 142, 60, 0.5) 100%);
+  background: linear-gradient(to right, var(--pf-t--color--blue--20) 0%, var(--pf-t--global--background--color--primary--default) 45%, var(--pf-t--global--background--color--primary--default) 55%, var(--pf-t--color--green--30) 100%);
   border-radius: 4px;
   font-size: var(--pf-t--global--font--size--sm);
   color: var(--pf-t--global--text--color--subtle);
