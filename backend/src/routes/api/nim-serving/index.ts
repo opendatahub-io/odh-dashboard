@@ -19,7 +19,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
       if (secretNames.includes(nimResource)) {
         try {
-          return await coreV1Api.readNamespacedSecret(nimResource, namespace);
+          const result = await coreV1Api.readNamespacedSecret(nimResource, namespace);
+          return { body: result.body };
         } catch (e) {
           fastify.log.error(`Failed to fetch secret ${nimResource}: ${e.message}`);
           throw createCustomError('Not found', 'Secret not found', 404);
@@ -28,7 +29,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
       if (nimResource === configMapName) {
         try {
-          return await coreV1Api.readNamespacedConfigMap(configMapName, namespace);
+          const result = await coreV1Api.readNamespacedConfigMap(configMapName, namespace);
+          return { body: result.body };
         } catch (e) {
           fastify.log.error(`Failed to fetch configMap ${nimResource}: ${e.message}`);
           throw createCustomError('Not found', 'ConfigMap not found', 404);
