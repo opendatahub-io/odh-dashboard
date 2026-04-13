@@ -156,8 +156,10 @@ func TestValidateAndNormalizeEndpoint_AcceptsPrivateIPWhenAllowed(t *testing.T) 
 	c := newPermissiveTestClient()
 	for _, endpoint := range []string{
 		"https://10.0.0.1:9000",
+		"https://100.64.0.1:9000",
 		"https://172.16.0.1:9000",
 		"https://192.168.1.1:9000",
+		"https://[fd00::1]:9000",
 	} {
 		result, err := c.validateAndNormalizeEndpoint(endpoint)
 		assert.NoError(t, err, "should accept %s", endpoint)

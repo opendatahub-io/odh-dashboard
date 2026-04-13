@@ -79,7 +79,7 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
 	}
 
-	if opts.InsecureSkipVerify {
+	if c.options.InsecureSkipVerify {
 		// Clone the default transport to preserve its timeouts and connection pooling,
 		// then override TLS config for self-signed certificate support.
 		transport := http.DefaultTransport.(*http.Transport).Clone()
@@ -333,11 +333,13 @@ func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, er
 // When AllowInternalIPs is true, RFC-1918 private ranges and IPv6 unique local addresses
 // are permitted (for in-cluster MinIO and similar services).
 func (c *RealS3Client) validateIPAddress(ip net.IP) error {
-	// Always-blocked ranges (dangerous regardless of deployment context)
-	blockedRanges := []struct {
+	type blockedRange struct {
 		cidr        string
 		description string
-	}{
+	}
+
+	// Always-blocked ranges (dangerous regardless of deployment context)
+	blockedRanges := []blockedRange{
 		{"0.0.0.0/8", "reserved 'this network' range (RFC 1122)"},
 		{"169.254.0.0/16", "link-local range (169.254.0.0/16)"},
 		{"127.0.0.0/8", "loopback range (127.0.0.0/8)"},
@@ -349,26 +351,11 @@ func (c *RealS3Client) validateIPAddress(ip net.IP) error {
 	// Private/internal ranges — blocked unless AllowInternalIPs is set
 	if !c.options.AllowInternalIPs {
 		blockedRanges = append(blockedRanges,
-			struct {
-				cidr        string
-				description string
-			}{"10.0.0.0/8", "RFC-1918 private range (10.0.0.0/8)"},
-			struct {
-				cidr        string
-				description string
-			}{"100.64.0.0/10", "Carrier-Grade NAT range (RFC 6598)"},
-			struct {
-				cidr        string
-				description string
-			}{"172.16.0.0/12", "RFC-1918 private range (172.16.0.0/12)"},
-			struct {
-				cidr        string
-				description string
-			}{"192.168.0.0/16", "RFC-1918 private range (192.168.0.0/16)"},
-			struct {
-				cidr        string
-				description string
-			}{"fc00::/7", "IPv6 unique local addresses"},
+			blockedRange{"10.0.0.0/8", "RFC-1918 private range (10.0.0.0/8)"},
+			blockedRange{"100.64.0.0/10", "Carrier-Grade NAT range (RFC 6598)"},
+			blockedRange{"172.16.0.0/12", "RFC-1918 private range (172.16.0.0/12)"},
+			blockedRange{"192.168.0.0/16", "RFC-1918 private range (192.168.0.0/16)"},
+			blockedRange{"fc00::/7", "IPv6 unique local addresses"},
 		)
 	}
 
