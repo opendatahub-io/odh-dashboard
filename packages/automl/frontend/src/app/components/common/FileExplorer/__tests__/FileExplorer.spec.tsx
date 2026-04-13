@@ -217,6 +217,31 @@ describe('FileExplorer', () => {
       // Button should be disabled again
       expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
     });
+    it('should hide "View details" in selected files list when file is already being viewed', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      // Select file-1, then file-2 — filesToView will be [file-2] (last selected)
+      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
+      const row2 = screen.getByTestId('file-explorer-row--file-2-json');
+      fireEvent.click(within(row1).getByRole('checkbox'));
+      fireEvent.click(within(row2).getByRole('checkbox'));
+
+      const selectedFilesList = screen.getByTestId('file-explorer-selected-files');
+
+      // file-2 is currently being viewed — its kebab should NOT have "View details"
+      fireEvent.click(within(selectedFilesList).getByLabelText('file-2.json overflow menu'));
+      expect(screen.queryByText('View details')).not.toBeInTheDocument();
+      expect(screen.getByText('Remove selection')).toBeInTheDocument();
+
+      // Close the dropdown by clicking the toggle again
+      fireEvent.click(within(selectedFilesList).getByLabelText('file-2.json overflow menu'));
+
+      // file-1 is NOT being viewed — its kebab SHOULD have "View details"
+      fireEvent.click(within(selectedFilesList).getByLabelText('file-1.json overflow menu'));
+      expect(screen.getByText('View details')).toBeInTheDocument();
+      expect(screen.getByText('Remove selection')).toBeInTheDocument();
+    });
     it('should call onPrimary with selected files and close modal', () => {
       const files = mockFiles(3);
       render(<FileExplorer {...defaultProps} files={files} />);

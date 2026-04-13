@@ -645,11 +645,13 @@ const FileDetails: React.FC<FileDetailsProps> = ({ file }) => (
 
 interface SelectedFilesDataListProps {
   selectedFiles: Files;
+  filesToView?: Files;
   onViewDetails: (file: File) => void;
   onRemoveSelection: (file: File) => void;
 }
 const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
   selectedFiles,
+  filesToView,
   onViewDetails,
   onRemoveSelection,
 }) => {
@@ -707,15 +709,19 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
                 popperProps={{ position: 'right' }}
               >
                 <DropdownList>
-                  <DropdownItem
-                    key="view-details"
-                    onClick={() => {
-                      onViewDetails(file);
-                      setOpenMenuFileKey(null);
-                    }}
-                  >
-                    {defaults.labels.tableActionViewDetails}
-                  </DropdownItem>
+                  {!(
+                    Array.isArray(filesToView) && filesToView.some((f) => f.path === file.path)
+                  ) && (
+                    <DropdownItem
+                      key="view-details"
+                      onClick={() => {
+                        onViewDetails(file);
+                        setOpenMenuFileKey(null);
+                      }}
+                    >
+                      {defaults.labels.tableActionViewDetails}
+                    </DropdownItem>
+                  )}
                   <DropdownItem
                     key="remove-selection"
                     onClick={() => {
@@ -786,6 +792,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
         {Array.isArray(selectedFiles) && selectedFiles.length > 0 && (
           <SelectedFilesDataList
             selectedFiles={selectedFiles}
+            filesToView={filesToView}
             onViewDetails={onViewDetails}
             onRemoveSelection={onRemoveSelection}
           />
