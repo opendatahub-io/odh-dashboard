@@ -456,6 +456,24 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
         };
       }
 
+      if (message.includes('Unable to connect to the S3 storage endpoint')) {
+        return {
+          isEmpty: true,
+          emptyStateProps: {
+            status: 'danger',
+            titleText: 'S3 endpoint unreachable',
+            body: (
+              <>
+                The S3 storage endpoint for connection {secretNameToRender} could not be reached.
+                The endpoint may be unreachable from this cluster. If this is a disconnected or
+                air-gapped environment, verify the S3 endpoint URL in the data connection secret
+                points to a storage service accessible within the cluster network.
+              </>
+            ),
+          },
+        };
+      }
+
       if (message.includes('not found')) {
         return {
           isEmpty: true,
