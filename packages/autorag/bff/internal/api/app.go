@@ -157,35 +157,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		s3ClientFactory = s3mocks.NewMockClientFactory()
 	} else {
 		logger.Info("Using real S3 client factory")
-		// INTENTIONAL SECURITY DECISION: S3 TLS and network defaults are permissive.
-		//
-		// InsecureSkipVerify defaults to TRUE because RHOAI's managed MinIO and many
-		// customer S3-compatible stores use self-signed certificates. Requiring valid
-		// certs by default would break the most common deployment scenario. The BFF
-		// runs inside the cluster and communicates over the internal network, so the
-		// risk of MITM is low. Customers who use a CA-signed S3 endpoint can set
-		// S3_INSECURE_SKIP_VERIFY=false to enforce certificate verification.
-		//
-		// AllowInternalIPs defaults to TRUE because MinIO typically runs on the same
-		// cluster as the BFF, using RFC-1918 private IPs (e.g. 10.x service IPs).
-		// Blocking private IPs by default would prevent the most common S3 configuration.
-		// Loopback, link-local, and reserved ranges remain always blocked regardless
-		// of this setting. Customers can set S3_ALLOW_INTERNAL_IPS=false to also block
-		// private ranges if their S3 store is external.
-		//
-		// AllowHTTP defaults to TRUE because some in-cluster MinIO deployments expose
-		// HTTP-only endpoints. Traffic stays within the cluster network, so the risk
-		// of interception is low. Customers can set S3_ALLOW_HTTP=false to require HTTPS.
-		s3InsecureSkipVerify := os.Getenv("S3_INSECURE_SKIP_VERIFY") != "false"
-		s3AllowInternalIPs := os.Getenv("S3_ALLOW_INTERNAL_IPS") != "false"
-		s3AllowHTTP := os.Getenv("S3_ALLOW_HTTP") != "false"
-		s3ClientOptions := s3int.S3ClientOptions{
-			DevMode:            cfg.DevMode,
-			InsecureSkipVerify: s3InsecureSkipVerify,
-			AllowInternalIPs:   s3AllowInternalIPs,
-			AllowHTTP:          s3AllowHTTP,
-		}
-		s3ClientFactory = s3int.NewRealClientFactory(s3ClientOptions)
+		// TLS verification uses the operator-mounted CA bundles (rootCAs) so that
+		// self-signed MinIO certificates are validated properly rather than skipped.
+		// The RHOAI operator passes --bundle-paths with cluster CA, service-ca, and
+		// odh-trusted-ca-bundle paths, which are loaded into rootCAs above.
+		// HTTPS is always required; plain HTTP is rejected to prevent credentials
+		// from being transmitted in cleartext.
+		// RFC-1918 private IPs are allowed (MinIO runs in-cluster); loopback,
+		// link-local, and reserved ranges are always blocked.
+		s3ClientFactory = s3int.NewRealClientFactory(s3int.S3ClientOptions{
+			DevMode: cfg.DevMode,
+			RootCAs: rootCAs,
+		})
 	}
 
 	app := &App{

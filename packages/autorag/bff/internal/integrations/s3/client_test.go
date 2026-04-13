@@ -64,28 +64,19 @@ func TestValidateAndNormalizeEndpoint_RejectsInvalidURL(t *testing.T) {
 	assert.Contains(t, err.Error(), "endpoint URL must use HTTPS")
 }
 
-func TestValidateAndNormalizeEndpoint_RejectsPrivateIP_10(t *testing.T) {
+func TestValidateAndNormalizeEndpoint_AcceptsPrivateIPs(t *testing.T) {
 	c := newTestClient()
-	_, err := c.validateAndNormalizeEndpoint("https://10.0.0.1:9000")
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "RFC-1918")
-}
-
-func TestValidateAndNormalizeEndpoint_RejectsPrivateIP_172(t *testing.T) {
-	c := newTestClient()
-	_, err := c.validateAndNormalizeEndpoint("https://172.16.0.1:9000")
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "RFC-1918")
-}
-
-func TestValidateAndNormalizeEndpoint_RejectsPrivateIP_192(t *testing.T) {
-	c := newTestClient()
-	_, err := c.validateAndNormalizeEndpoint("https://192.168.1.1:9000")
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "RFC-1918")
+	for _, endpoint := range []string{
+		"https://10.0.0.1:9000",
+		"https://100.64.0.1:9000",
+		"https://172.16.0.1:9000",
+		"https://192.168.1.1:9000",
+		"https://[fd00::1]:9000",
+	} {
+		result, err := c.validateAndNormalizeEndpoint(endpoint)
+		assert.NoError(t, err, "should accept %s", endpoint)
+		assert.Equal(t, endpoint, result)
+	}
 }
 
 func TestValidateAndNormalizeEndpoint_RejectsLoopback(t *testing.T) {
@@ -144,74 +135,11 @@ func TestValidateAndNormalizeEndpoint_RejectsIPv6LinkLocal(t *testing.T) {
 	assert.Contains(t, err.Error(), "IPv6 link-local")
 }
 
-func TestValidateAndNormalizeEndpoint_RejectsIPv6UniqueLocal(t *testing.T) {
+func TestValidateAndNormalizeEndpoint_AcceptsIPv6UniqueLocal(t *testing.T) {
 	c := newTestClient()
-	_, err := c.validateAndNormalizeEndpoint("https://[fc00::1]:9000")
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "IPv6 unique local")
-}
-
-// ---------------------------------------------------------------------------
-// Permissive mode tests (production defaults: AllowHTTP, AllowInternalIPs, InsecureSkipVerify)
-// ---------------------------------------------------------------------------
-
-func newPermissiveTestClient() *RealS3Client {
-	return &RealS3Client{options: S3ClientOptions{
-		AllowHTTP:          true,
-		AllowInternalIPs:   true,
-		InsecureSkipVerify: true,
-	}}
-}
-
-func TestValidateAndNormalizeEndpoint_AcceptsHTTPWhenAllowed(t *testing.T) {
-	c := newPermissiveTestClient()
-	result, err := c.validateAndNormalizeEndpoint("http://s3.amazonaws.com")
+	result, err := c.validateAndNormalizeEndpoint("https://[fc00::1]:9000")
 	assert.NoError(t, err)
-	assert.Equal(t, "http://s3.amazonaws.com", result)
-}
-
-func TestValidateAndNormalizeEndpoint_RejectsHTTPWhenNotAllowed(t *testing.T) {
-	c := &RealS3Client{options: S3ClientOptions{AllowHTTP: false}}
-	_, err := c.validateAndNormalizeEndpoint("http://s3.amazonaws.com")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "S3_ALLOW_HTTP")
-}
-
-func TestValidateAndNormalizeEndpoint_AcceptsPrivateIPWhenAllowed(t *testing.T) {
-	c := newPermissiveTestClient()
-	for _, endpoint := range []string{
-		"https://10.0.0.1:9000",
-		"https://100.64.0.1:9000",
-		"https://172.16.0.1:9000",
-		"https://192.168.1.1:9000",
-		"https://[fd00::1]:9000",
-	} {
-		result, err := c.validateAndNormalizeEndpoint(endpoint)
-		assert.NoError(t, err, "should accept %s", endpoint)
-		assert.Equal(t, endpoint, result)
-	}
-}
-
-func TestValidateAndNormalizeEndpoint_StillBlocksLoopbackWhenPermissive(t *testing.T) {
-	c := newPermissiveTestClient()
-	_, err := c.validateAndNormalizeEndpoint("http://127.0.0.1:9000")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "loopback")
-}
-
-func TestValidateAndNormalizeEndpoint_StillBlocksLinkLocalWhenPermissive(t *testing.T) {
-	c := newPermissiveTestClient()
-	_, err := c.validateAndNormalizeEndpoint("https://169.254.169.254")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "link-local")
-}
-
-func TestValidateAndNormalizeEndpoint_AcceptsHTTPWithPrivateIP(t *testing.T) {
-	c := newPermissiveTestClient()
-	result, err := c.validateAndNormalizeEndpoint("http://10.0.0.1:9000")
-	assert.NoError(t, err)
-	assert.Equal(t, "http://10.0.0.1:9000", result)
+	assert.Equal(t, "https://[fc00::1]:9000", result)
 }
 
 // mockS3CodedError simulates AWS SDK errors that implement ErrorCode().

@@ -99,12 +99,29 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
 	}
 
-	if opts.InsecureSkipVerify {
+	if c.options.RootCAs != nil {
 		// Clone the default transport to preserve its timeouts and connection pooling,
-		// then override TLS config for self-signed certificate support.
+		// then supply the custom CA pool so that self-signed or cluster-issued
+		// certificates (e.g. MinIO) are verified against the operator-mounted
+		// CA bundles rather than the system default.
 		transport := http.DefaultTransport.(*http.Transport).Clone()
 		transport.TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: true, //nolint:gosec // user-configured for dev/self-signed certs
+			RootCAs:    c.options.RootCAs,
+			MinVersion: tls.VersionTLS12,
+		}
+		cfg.HTTPClient = &http.Client{
+			Transport: transport,
+			Timeout:   30 * time.Second,
+		}
+	} else if c.options.DevMode {
+		// In dev mode without CA bundles, skip TLS verification so developers
+		// can test against clusters with self-signed certificates from their
+		// local machine. In production the operator always provides CA bundles
+		// via --bundle-paths, so this path is never reached.
+		slog.Warn("S3 TLS certificate verification disabled (dev mode, no CA bundles provided)")
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true, //nolint:gosec // dev-mode only fallback
 			MinVersion:         tls.VersionTLS12,
 		}
 		cfg.HTTPClient = &http.Client{
@@ -440,12 +457,13 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 
 // validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
 //
-// Configurable behaviors (all default to permissive for in-cluster MinIO compatibility):
-//   - AllowHTTP (S3_ALLOW_HTTP, default: true) — permits plain HTTP endpoints
-//   - InsecureSkipVerify (S3_INSECURE_SKIP_VERIFY, default: true) — skips TLS cert verification
-//   - AllowInternalIPs (S3_ALLOW_INTERNAL_IPS, default: true) — permits RFC-1918 private IPs
+// HTTPS is required — plain HTTP is rejected because S3 credentials would be
+// transmitted in cleartext. Self-signed or cluster-issued certificates are
+// supported via the RootCAs option (populated from operator-mounted CA bundles).
 //
-// Loopback, link-local, and reserved IP ranges are always blocked.
+// RFC-1918 private IPs are permitted because MinIO commonly runs on the same
+// cluster using service IPs (e.g. 10.x). Loopback, link-local, and reserved
+// IP ranges are always blocked.
 func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, error) {
 	if endpoint == "" {
 		return "", fmt.Errorf("endpoint URL cannot be empty")
@@ -456,11 +474,8 @@ func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, er
 		return "", fmt.Errorf("invalid endpoint URL format: %w", err)
 	}
 
-	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
-		return "", fmt.Errorf("endpoint URL must use HTTPS or HTTP scheme, got: %s", parsedURL.Scheme)
-	}
-	if parsedURL.Scheme == "http" && !c.options.AllowHTTP {
-		return "", fmt.Errorf("endpoint URL uses HTTP but S3_ALLOW_HTTP is not enabled; use HTTPS or set S3_ALLOW_HTTP=true")
+	if parsedURL.Scheme != "https" {
+		return "", fmt.Errorf("endpoint URL must use HTTPS scheme, got: %s", parsedURL.Scheme)
 	}
 
 	hostname := parsedURL.Hostname()
@@ -497,15 +512,17 @@ func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, er
 }
 
 // validateIPAddress checks if an IP address is in a blocked range.
-// When AllowInternalIPs is true, RFC-1918 private ranges and IPv6 unique local addresses
-// are permitted (for in-cluster MinIO and similar services).
+//
+// RFC-1918 private ranges and IPv6 unique local addresses are permitted because
+// MinIO and other S3-compatible stores commonly run on the same cluster using
+// service IPs (e.g. 10.x). Loopback, link-local, and reserved ranges are
+// always blocked to prevent SSRF targeting the node or cloud metadata services.
 func (c *RealS3Client) validateIPAddress(ip net.IP) error {
 	type blockedRange struct {
 		cidr        string
 		description string
 	}
 
-	// Always-blocked ranges (dangerous regardless of deployment context)
 	blockedRanges := []blockedRange{
 		{"0.0.0.0/8", "reserved 'this network' range (RFC 1122)"},
 		{"169.254.0.0/16", "link-local range (169.254.0.0/16)"},
@@ -513,17 +530,6 @@ func (c *RealS3Client) validateIPAddress(ip net.IP) error {
 		{"240.0.0.0/4", "reserved for future use (RFC 1112)"},
 		{"::1/128", "IPv6 loopback"},
 		{"fe80::/10", "IPv6 link-local"},
-	}
-
-	// Private/internal ranges — blocked unless AllowInternalIPs is set
-	if !c.options.AllowInternalIPs {
-		blockedRanges = append(blockedRanges,
-			blockedRange{"10.0.0.0/8", "RFC-1918 private range (10.0.0.0/8)"},
-			blockedRange{"100.64.0.0/10", "Carrier-Grade NAT range (RFC 6598)"},
-			blockedRange{"172.16.0.0/12", "RFC-1918 private range (172.16.0.0/12)"},
-			blockedRange{"192.168.0.0/16", "RFC-1918 private range (192.168.0.0/16)"},
-			blockedRange{"fc00::/7", "IPv6 unique local addresses"},
-		)
 	}
 
 	for _, blocked := range blockedRanges {

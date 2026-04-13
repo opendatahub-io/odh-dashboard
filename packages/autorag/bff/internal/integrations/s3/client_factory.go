@@ -1,5 +1,7 @@
 package s3
 
+import "crypto/x509"
+
 // S3ClientFactory creates S3 clients from credentials.
 type S3ClientFactory interface {
 	CreateClient(creds *S3Credentials) (S3ClientInterface, error)
@@ -18,21 +20,14 @@ const (
 type S3ClientOptions struct {
 	DevMode bool // Controls whether ALLOW_UNRESOLVED_S3_ENDPOINTS is honored during endpoint validation
 
-	// InsecureSkipVerify skips TLS certificate verification for S3 endpoints.
-	// Required for MinIO or other S3-compatible stores using self-signed certificates.
-	// Controlled via S3_INSECURE_SKIP_VERIFY env var (default: true).
-	InsecureSkipVerify bool
-
-	// AllowInternalIPs permits connections to RFC-1918 private IP ranges
-	// (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and IPv6 unique local addresses.
-	// Required when the S3-compatible store (e.g. MinIO) runs on the same cluster.
-	// Controlled via S3_ALLOW_INTERNAL_IPS env var (default: true).
-	AllowInternalIPs bool
-
-	// AllowHTTP permits plain HTTP (non-TLS) S3 endpoint URLs.
-	// Some MinIO deployments use HTTP internally within the cluster.
-	// Controlled via S3_ALLOW_HTTP env var (default: true).
-	AllowHTTP bool
+	// RootCAs is the CA certificate pool used to verify S3 endpoint TLS certificates.
+	// In production the RHOAI operator mounts cluster and custom CA bundles into the
+	// pod (e.g. odh-trusted-ca-bundle, service-ca.crt) and passes them via
+	// --bundle-paths. When non-nil this pool is used instead of the system default,
+	// allowing connections to MinIO or other S3-compatible stores that use
+	// self-signed or cluster-issued certificates without skipping verification.
+	// When nil the system CA pool is used (suitable for public S3 endpoints).
+	RootCAs *x509.CertPool
 
 	// Transfer manager tuning for GetObject downloads.
 	// Zero values fall back to the conservative defaults above.
