@@ -41,7 +41,7 @@ type GroupReference struct {
 
 // OwnerSpec defines who owns a subscription.
 type OwnerSpec struct {
-	Groups []GroupReference `json:"groups,omitempty"`
+	Groups []GroupReference `json:"groups"`
 }
 
 // TokenRateLimit defines a token-based rate limit.
@@ -87,7 +87,7 @@ type MaaSSubscription struct {
 
 // SubjectSpec defines subjects (groups) that have access.
 type SubjectSpec struct {
-	Groups []GroupReference `json:"groups,omitempty"`
+	Groups []GroupReference `json:"groups"`
 }
 
 // ModelRef is a simple reference to a MaaSModelRef by name and namespace.
