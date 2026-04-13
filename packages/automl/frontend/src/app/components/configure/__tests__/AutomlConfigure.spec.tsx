@@ -7,11 +7,12 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
-import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { createConfigureSchema, TASK_TYPES } from '~/app/schemas/configure.schema';
 
 const mockNotificationError = jest.fn();
+
+const mockS3MutateAsync = jest.fn().mockResolvedValue({ uploaded: true, key: 'uploaded-key.csv' });
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -28,30 +29,18 @@ jest.mock('~/app/hooks/useNotification', () => ({
   }),
 }));
 
-jest.mock('~/app/hooks/mutations', () => {
-  const mockS3MutateAsync = jest
-    .fn()
-    .mockResolvedValue({ uploaded: true, key: 'uploaded-key.csv' });
-  const stableS3UploadMutation = {
+jest.mock('~/app/hooks/mutations', () => ({
+  ...jest.requireActual<typeof import('~/app/hooks/mutations')>('~/app/hooks/mutations'),
+  useS3FileUploadMutation: jest.fn(() => ({
     mutateAsync: mockS3MutateAsync,
     isPending: false,
     reset: jest.fn(),
-    variables: undefined as { file: File } | undefined,
-  };
-  return {
-    ...jest.requireActual<typeof import('~/app/hooks/mutations')>('~/app/hooks/mutations'),
-    useS3FileUploadMutation: jest.fn(() => stableS3UploadMutation),
-  };
-});
+    variables: undefined,
+  })),
+}));
 
 function getMockS3MutateAsync(): jest.Mock {
-  const result = jest.mocked(useS3FileUploadMutation).mock.results[0]?.value as
-    | { mutateAsync: jest.Mock }
-    | undefined;
-  if (!result?.mutateAsync) {
-    throw new Error('useS3FileUploadMutation was not called; render AutomlConfigure first');
-  }
-  return result.mutateAsync;
+  return mockS3MutateAsync;
 }
 
 // Mock S3FileExplorer component
@@ -239,6 +228,8 @@ describe('AutomlConfigure', () => {
     } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+    // Reset the S3 upload mock to default resolved value
+    mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: 'uploaded-key.csv' });
   });
 
   describe('initial state - no secret selected', () => {
@@ -374,6 +365,30 @@ describe('AutomlConfigure', () => {
         );
       });
       expect(mockNotificationError).not.toHaveBeenCalled();
+    });
+
+    it('should show human-readable error for max collision attempts (409)', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const file = new File(['hello'], 'collision.csv', { type: 'text/csv' });
+      getMockS3MutateAsync().mockClear();
+      getMockS3MutateAsync().mockRejectedValue(
+        new Error('unable to find unique filename after 10 attempts'),
+      );
+
+      fireEvent.change(fileInput!, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Failed to upload file',
+          'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.',
+        );
+      });
     });
 
     it('should show the newly selected secret name when switching secrets', () => {
