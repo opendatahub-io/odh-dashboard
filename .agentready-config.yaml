@@ -115,7 +115,7 @@ documentation:
 
   agent_specific:
     - "AGENTS.md"
-    - "docs/agent-rules/*.md"
+    - ".claude/rules/*.md"
     - "packages/*/AGENTS.md"
 
   technical_docs:
