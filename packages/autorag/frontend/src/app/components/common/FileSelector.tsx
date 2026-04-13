@@ -56,6 +56,7 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
       </TextInputGroup>
       <FileUpload
         className="pf-v6-u-mt-sm"
+        onClearClick={() => setUploadedFile(undefined)}
         {...props.fileUploadProps}
         id={props.id}
         style={{
@@ -85,7 +86,6 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
         hidden={hideUpload}
         isDisabled={!!uploadedFile && !uploadStatus}
         filename={uploadedFile?.name}
-        onClearClick={() => setUploadedFile(undefined)}
         dropzoneProps={{
           ...props.fileUploadProps?.dropzoneProps,
           onDropAccepted: (files) => {
