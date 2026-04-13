@@ -41,15 +41,21 @@ export const isTabularRun = (pipelineRun?: PipelineRun): boolean => {
  */
 /* eslint-disable camelcase */
 const METRIC_DISPLAY_NAMES: Record<string, string> = {
-  roc_auc: 'ROC AUC',
-  mcc: 'MCC',
-  f1: 'F1',
-  r2: 'R²',
+  f1: 'F₁',
   mae: 'MAE',
-  mse: 'MSE',
-  rmse: 'RMSE',
   mape: 'MAPE',
   mase: 'MASE',
+  mcc: 'MCC',
+  mse: 'MSE',
+  r2: 'R²',
+  rmse: 'RMSE',
+  rmsle: 'RMSLE',
+  rmsse: 'RMSSE',
+  roc_auc: 'ROC AUC',
+  smape: 'SMAPE',
+  sql: 'SQL',
+  wape: 'WAPE',
+  wql: 'WQL',
 };
 /* eslint-enable camelcase */
 
@@ -57,6 +63,7 @@ export function formatMetricName(key: string): string {
   if (METRIC_DISPLAY_NAMES[key]) {
     return METRIC_DISPLAY_NAMES[key];
   }
+  // Title-case: capitalize the first letter of each word separated by '_'.
   return key
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

@@ -26,6 +26,7 @@ type AutomlModelDetailsModalProps = {
   modelName: string;
   rank: number;
   onClickSaveNotebook?: (modelName: string) => void;
+  onRegisterModel?: (modelName: string) => void;
 };
 
 /** Group tabs by their section for sidebar rendering. */
@@ -45,6 +46,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   modelName,
   rank: initialRank,
   onClickSaveNotebook,
+  onRegisterModel,
 }) => {
   const { models: modelsRecord, parameters, pipelineRun } = useAutomlResultsContext();
   const models = Object.values(modelsRecord);
@@ -129,6 +131,14 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
               onClickSaveNotebook
                 ? () => {
                     onClickSaveNotebook(selectedModelName);
+                  }
+                : undefined
+            }
+            onRegisterModel={
+              onRegisterModel
+                ? () => {
+                    onClose();
+                    onRegisterModel(selectedModelName);
                   }
                 : undefined
             }

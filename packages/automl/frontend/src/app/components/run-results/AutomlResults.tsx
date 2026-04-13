@@ -142,6 +142,7 @@ function AutomlResults(): React.JSX.Element {
           modelName={modalState.modelName}
           rank={modalState.rank}
           onClickSaveNotebook={handleSaveNotebook}
+          onRegisterModel={handleRegisterModel}
         />
       )}
       {registerModelName && (
