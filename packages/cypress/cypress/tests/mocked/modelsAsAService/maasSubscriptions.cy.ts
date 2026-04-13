@@ -64,18 +64,21 @@ describe('Subscriptions Page', () => {
 
     const premiumRow = subscriptionsPage.getRow('premium-team-sub');
     premiumRow.findName().should('contain.text', 'premium-team-sub');
+    premiumRow.findPhase().should('contain.text', 'Active');
     premiumRow.findGroups().should('contain.text', '1 Group');
     premiumRow.findModels().should('contain.text', '2 Models');
     premiumRow.findPriority().should('contain.text', '10');
 
     const basicRow = subscriptionsPage.getRow('basic-team-sub');
     basicRow.findName().should('contain.text', 'basic-team-sub');
+    basicRow.findPhase().should('contain.text', 'Active');
     basicRow.findGroups().should('contain.text', '1 Group');
     basicRow.findModels().should('contain.text', '1 Model');
     basicRow.findPriority().should('contain.text', '0');
 
     const negativePriorityRow = subscriptionsPage.getRow('negative-priority-sub');
     negativePriorityRow.findName().should('contain.text', 'negative-priority-sub');
+    negativePriorityRow.findPhase().should('contain.text', 'Active');
     negativePriorityRow.findGroups().should('contain.text', '1 Group');
     negativePriorityRow.findModels().should('contain.text', '1 Model');
     negativePriorityRow.findPriority().should('contain.text', '-10000');
@@ -138,6 +141,8 @@ describe('View Subscription Page', () => {
     viewSubscriptionPage
       .findDetailsSection()
       .should('contain.text', subscriptionName)
+      .and('contain.text', 'Phase')
+      .and('contain.text', 'Active')
       .and('contain.text', 'Name')
       .and('contain.text', 'Date created');
 

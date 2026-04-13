@@ -740,6 +740,10 @@ class SubscriptionTableRow extends TableRow {
     return this.find().find('[data-label="Name"]');
   }
 
+  findPhase(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Phase"]');
+  }
+
   findGroups(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Groups"]');
   }
@@ -1130,6 +1134,10 @@ class AuthPoliciesPage {
 class AuthPolicyTableRow extends TableRow {
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Name"]');
+  }
+
+  findPhase(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Phase"]');
   }
 
   findGroups(): Cypress.Chainable<JQuery<HTMLElement>> {

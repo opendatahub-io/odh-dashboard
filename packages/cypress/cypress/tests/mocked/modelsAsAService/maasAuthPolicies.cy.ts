@@ -94,10 +94,12 @@ describe('MaaS Auth Policies', () => {
     authPoliciesPage.findRows().should('have.length', 3);
     const premiumRow = authPoliciesPage.getRow('premium-team-policy');
     premiumRow.findName().should('contain.text', 'premium-team-policy');
+    premiumRow.findPhase().should('contain.text', 'Active');
     premiumRow.findGroups().should('contain.text', '1 Group');
     premiumRow.findModels().should('contain.text', '2 Models');
     const basicRow = authPoliciesPage.getRow('basic-team-policy');
     basicRow.findName().should('contain.text', 'basic-team-policy');
+    basicRow.findPhase().should('contain.text', 'Active');
     basicRow.findGroups().should('contain.text', '1 Group');
     basicRow.findModels().should('contain.text', '1 Model');
   });
@@ -205,6 +207,8 @@ describe('View Auth Policy Page', () => {
     viewAuthPolicyPage
       .findDetailsSection()
       .should('contain.text', policyName)
+      .and('contain.text', 'Phase')
+      .and('contain.text', 'Active')
       .and('contain.text', 'Name')
       .and('contain.text', 'Resource name')
       .and('contain.text', 'Date created');
