@@ -441,6 +441,13 @@ const useChatbotMessages = ({
         // Check for mock error scenarios (trigger words)
         const mockScenario = findMockScenario(message);
         if (mockScenario) {
+          // eslint-disable-next-line no-console
+          console.log(
+            '[Mock Error] Triggering scenario:',
+            mockScenario.trigger,
+            mockScenario.apiError,
+          );
+
           // Simulate partial response if provided
           if (mockScenario.partialResponse) {
             // Simulate streaming of partial response
@@ -563,6 +570,13 @@ const useChatbotMessages = ({
         // Check for mock error scenarios (trigger words)
         const mockScenario = findMockScenario(message);
         if (mockScenario) {
+          // eslint-disable-next-line no-console
+          console.log(
+            '[Mock Error] Triggering scenario (non-streaming):',
+            mockScenario.trigger,
+            mockScenario.apiError,
+          );
+
           // For non-streaming, we don't support partial responses
           // Just throw the error immediately
           throw mockScenario.apiError;
@@ -693,6 +707,15 @@ const useChatbotMessages = ({
         // TODO: Add toolName if error is from MCP tool call
       });
 
+      // eslint-disable-next-line no-console
+      console.log('[Error Classification]', {
+        pattern: errorClassification.pattern,
+        variant: errorClassification.variant,
+        isRetriable: errorClassification.isRetriable,
+        title: errorClassification.title,
+        hasOnRetry: !!errorClassification.isRetriable,
+      });
+
       // Retry handler - resends the same prompt
       const handleRetry = () => {
         // Find the last user message to retry
@@ -716,24 +739,31 @@ const useChatbotMessages = ({
               // Determine if this is a streaming interruption (had some content)
               const hadContent = msg.content && msg.content.length > 0;
 
-              if (hadContent) {
-                // Streaming interruption - show partial content with error below
-                return {
-                  ...msg,
-                  content: `${msg.content}...`, // Append ellipsis to signal cutoff
-                  isLoading: false,
-                  errorClassification,
-                  onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
-                };
-              }
-              // Full failure in streaming mode - no content generated
-              return {
-                ...msg,
-                content: '', // Clear loading dots
-                isLoading: false,
-                errorClassification,
-                onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
-              };
+              const updatedMessage = hadContent
+                ? {
+                    ...msg,
+                    content: `${msg.content}...`, // Append ellipsis to signal cutoff
+                    isLoading: false,
+                    errorClassification,
+                    onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
+                  }
+                : {
+                    ...msg,
+                    content: '', // Clear loading dots
+                    isLoading: false,
+                    errorClassification,
+                    onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
+                  };
+
+              // eslint-disable-next-line no-console
+              console.log('[Updated Bot Message]', {
+                hadContent,
+                isRetriable: errorClassification.isRetriable,
+                hasOnRetryError: !!updatedMessage.onRetryError,
+                pattern: errorClassification.pattern,
+              });
+
+              return updatedMessage;
             }
             return msg;
           }),

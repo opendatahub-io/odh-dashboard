@@ -21,7 +21,7 @@ jest.mock('../components/ChatbotErrorAlert', () => ({
 jest.mock('../ChatbotMessagesMetrics', () => ({
   ChatbotMessagesMetrics: jest.fn(({ metrics }) => (
     <div data-testid="metrics">
-      <span>{metrics.inputTokens}</span>
+      <span>{metrics.usage?.input_tokens}</span>
     </div>
   )),
 }));
@@ -84,12 +84,16 @@ describe('ChatbotMessages', () => {
           role: 'bot',
           content: '',
           errorClassification: {
-            pattern: 'full_failure',
-            severity: 'danger',
-            retriable: true,
+            pattern: 'full-failure',
+            variant: 'danger',
+            isRetriable: true,
             title: 'Model inference failed',
             description: 'The model server did not respond in time.',
-            rawError: { code: 'timeout', message: 'Request timed out' },
+            details: {
+              component: 'Llama Stack',
+              errorCode: 'timeout',
+              rawMessage: 'Request timed out',
+            },
           },
           onRetryError: mockOnRetry,
         },
@@ -117,12 +121,16 @@ describe('ChatbotMessages', () => {
           role: 'bot',
           content: '',
           errorClassification: {
-            pattern: 'full_failure',
-            severity: 'danger',
-            retriable: false,
+            pattern: 'full-failure',
+            variant: 'danger',
+            isRetriable: false,
             title: 'Configuration error',
             description: 'Invalid model configuration.',
-            rawError: { code: 'max_tokens', message: 'Token limit exceeded' },
+            details: {
+              component: 'Model',
+              errorCode: 'max_tokens',
+              rawMessage: 'Token limit exceeded',
+            },
           },
         },
       ];
@@ -149,12 +157,12 @@ describe('ChatbotMessages', () => {
           role: 'bot',
           content: '',
           errorClassification: {
-            pattern: 'full_failure',
-            severity: 'warning',
-            retriable: false,
+            pattern: 'full-failure',
+            variant: 'warning',
+            isRetriable: false,
             title: 'Warning message',
             description: 'This is a warning.',
-            rawError: { message: 'Warning error' },
+            details: { component: 'Unknown', errorCode: 'UNKNOWN', rawMessage: 'Warning error' },
           },
         },
       ];
@@ -178,12 +186,12 @@ describe('ChatbotMessages', () => {
           role: 'bot',
           content: '',
           errorClassification: {
-            pattern: 'full_failure',
-            severity: 'danger',
-            retriable: true,
+            pattern: 'full-failure',
+            variant: 'danger',
+            isRetriable: true,
             title: 'Error',
             description: 'Description',
-            rawError: { message: 'Error' },
+            details: { component: 'Unknown', errorCode: 'UNKNOWN', rawMessage: 'Error' },
           },
           onRetryError: mockOnRetry,
         },
@@ -211,12 +219,16 @@ describe('ChatbotMessages', () => {
           role: 'bot',
           content: 'Model response without RAG context',
           errorClassification: {
-            pattern: 'partial_failure',
-            severity: 'warning',
-            retriable: false,
+            pattern: 'partial-failure',
+            variant: 'warning',
+            isRetriable: false,
             title: 'Knowledge source retrieval failed',
             description: 'Generated without context from your knowledge sources.',
-            rawError: { code: 'rag_down', message: 'RAG service unavailable' },
+            details: {
+              component: 'RAG',
+              errorCode: 'unreachable',
+              rawMessage: 'RAG service unavailable',
+            },
           },
         },
       ];
@@ -244,12 +256,12 @@ describe('ChatbotMessages', () => {
           role: 'bot',
           content: 'Response content here',
           errorClassification: {
-            pattern: 'partial_failure',
-            severity: 'warning',
-            retriable: false,
+            pattern: 'partial-failure',
+            variant: 'warning',
+            isRetriable: false,
             title: 'Partial failure',
             description: 'Some component failed.',
-            rawError: { message: 'Component error' },
+            details: { component: 'Unknown', errorCode: 'UNKNOWN', rawMessage: 'Component error' },
           },
         },
       ];
@@ -274,19 +286,23 @@ describe('ChatbotMessages', () => {
           id: 'msg-1',
           role: 'bot',
           content: 'Response',
+          /* eslint-disable camelcase */
           metrics: {
-            inputTokens: 100,
-            outputTokens: 50,
-            totalTokens: 150,
-            latency: 1.5,
+            latency_ms: 1500,
+            usage: {
+              input_tokens: 100,
+              output_tokens: 50,
+              total_tokens: 150,
+            },
           },
+          /* eslint-enable camelcase */
           errorClassification: {
-            pattern: 'partial_failure',
-            severity: 'warning',
-            retriable: false,
+            pattern: 'partial-failure',
+            variant: 'warning',
+            isRetriable: false,
             title: 'Error',
             description: 'Description',
-            rawError: { message: 'Error' },
+            details: { component: 'Unknown', errorCode: 'UNKNOWN', rawMessage: 'Error' },
           },
         },
       ];
@@ -312,12 +328,16 @@ describe('ChatbotMessages', () => {
           role: 'bot',
           content: 'Partial response text...',
           errorClassification: {
-            pattern: 'streaming_interruption',
-            severity: 'danger',
-            retriable: true,
+            pattern: 'streaming-interruption',
+            variant: 'danger',
+            isRetriable: true,
             title: 'Streaming error — connection lost',
             description: 'The connection to the model was lost during generation.',
-            rawError: { code: 'stream_lost', message: 'Connection reset' },
+            details: {
+              component: 'Llama Stack',
+              errorCode: 'timeout',
+              rawMessage: 'Connection reset',
+            },
           },
           onRetryError: mockOnRetry,
         },
@@ -344,12 +364,12 @@ describe('ChatbotMessages', () => {
           role: 'bot',
           content: 'The capital of France is Par...',
           errorClassification: {
-            pattern: 'streaming_interruption',
-            severity: 'danger',
-            retriable: true,
+            pattern: 'streaming-interruption',
+            variant: 'danger',
+            isRetriable: true,
             title: 'Stream interrupted',
             description: 'Connection lost.',
-            rawError: { message: 'Stream error' },
+            details: { component: 'Unknown', errorCode: 'UNKNOWN', rawMessage: 'Stream error' },
           },
         },
       ];
@@ -401,12 +421,16 @@ describe('ChatbotMessages', () => {
           id: 'msg-1',
           role: 'bot',
           content: 'Response',
+          /* eslint-disable camelcase */
           metrics: {
-            inputTokens: 100,
-            outputTokens: 50,
-            totalTokens: 150,
-            latency: 1.5,
+            latency_ms: 1500,
+            usage: {
+              input_tokens: 100,
+              output_tokens: 50,
+              total_tokens: 150,
+            },
           },
+          /* eslint-enable camelcase */
         },
       ];
 
@@ -455,12 +479,12 @@ describe('ChatbotMessages', () => {
           role: 'bot',
           content: 'Test',
           errorClassification: {
-            pattern: 'full_failure',
-            severity: 'danger',
-            retriable: true,
+            pattern: 'full-failure',
+            variant: 'danger',
+            isRetriable: true,
             title: 'Error',
             description: 'Description',
-            rawError: { message: 'Error' },
+            details: { component: 'Unknown', errorCode: 'UNKNOWN', rawMessage: 'Error' },
           },
           onRetryError: mockOnRetry,
         },
@@ -486,12 +510,16 @@ describe('ChatbotMessages', () => {
           id: 'msg-1',
           role: 'bot',
           content: 'Response',
+          /* eslint-disable camelcase */
           metrics: {
-            inputTokens: 100,
-            outputTokens: 50,
-            totalTokens: 150,
-            latency: 1.5,
+            latency_ms: 1500,
+            usage: {
+              input_tokens: 100,
+              output_tokens: 50,
+              total_tokens: 150,
+            },
           },
+          /* eslint-enable camelcase */
         },
       ];
 
@@ -517,12 +545,12 @@ describe('ChatbotMessages', () => {
           role: 'user',
           content: 'User message',
           errorClassification: {
-            pattern: 'full_failure',
-            severity: 'danger',
-            retriable: false,
+            pattern: 'full-failure',
+            variant: 'danger',
+            isRetriable: false,
             title: 'Error',
             description: 'Description',
-            rawError: { message: 'Error' },
+            details: { component: 'Unknown', errorCode: 'UNKNOWN', rawMessage: 'Error' },
           },
         },
       ];
@@ -547,12 +575,12 @@ describe('ChatbotMessages', () => {
           role: 'bot',
           content: '',
           errorClassification: {
-            pattern: 'full_failure',
-            severity: 'danger',
-            retriable: true,
+            pattern: 'full-failure',
+            variant: 'danger',
+            isRetriable: true,
             title: 'Full failure',
             description: 'Description',
-            rawError: { message: 'Error 1' },
+            details: { component: 'Unknown', errorCode: 'UNKNOWN', rawMessage: 'Error 1' },
           },
         },
         {
@@ -560,12 +588,12 @@ describe('ChatbotMessages', () => {
           role: 'bot',
           content: 'Partial response',
           errorClassification: {
-            pattern: 'partial_failure',
-            severity: 'warning',
-            retriable: false,
+            pattern: 'partial-failure',
+            variant: 'warning',
+            isRetriable: false,
             title: 'Partial failure',
             description: 'Description',
-            rawError: { message: 'Error 2' },
+            details: { component: 'Unknown', errorCode: 'UNKNOWN', rawMessage: 'Error 2' },
           },
         },
         {
@@ -573,12 +601,12 @@ describe('ChatbotMessages', () => {
           role: 'bot',
           content: 'Stream cut off...',
           errorClassification: {
-            pattern: 'streaming_interruption',
-            severity: 'danger',
-            retriable: true,
+            pattern: 'streaming-interruption',
+            variant: 'danger',
+            isRetriable: true,
             title: 'Stream interrupted',
             description: 'Description',
-            rawError: { message: 'Error 3' },
+            details: { component: 'Unknown', errorCode: 'UNKNOWN', rawMessage: 'Error 3' },
           },
         },
       ];
