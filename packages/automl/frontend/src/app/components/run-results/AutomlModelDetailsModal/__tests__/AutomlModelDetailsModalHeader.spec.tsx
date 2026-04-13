@@ -25,6 +25,7 @@ describe('AutomlModelDetailsModalHeader', () => {
     onSelectModel: jest.fn(),
     onDownload: jest.fn(),
     onSaveNotebook: jest.fn(),
+    onRegisterModel: jest.fn(),
   };
 
   beforeEach(() => {
@@ -117,17 +118,79 @@ describe('AutomlModelDetailsModalHeader', () => {
     expect(defaultProps.onDownload).toHaveBeenCalledTimes(1);
   });
 
-  it('should render Save as notebook button', () => {
+  it('should render Save as dropdown toggle', () => {
     render(<AutomlModelDetailsModalHeader {...defaultProps} />);
-    const saveButton = screen.getByTestId('model-details-save-notebook');
-    expect(saveButton).toBeInTheDocument();
-    expect(saveButton).toBeEnabled();
+    expect(screen.getByTestId('model-details-actions-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('model-details-actions-toggle')).toHaveTextContent('Save as');
   });
 
-  it('should call onSaveNotebook when Save as notebook is clicked', () => {
+  it('should render Save as notebook item in dropdown', async () => {
+    const user = userEvent.setup();
     render(<AutomlModelDetailsModalHeader {...defaultProps} />);
-    screen.getByTestId('model-details-save-notebook').click();
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    const saveItem = screen.getByTestId('model-details-save-notebook');
+    expect(saveItem).toBeInTheDocument();
+    expect(saveItem).toHaveTextContent('Save as notebook');
+  });
+
+  it('should render Register model item in dropdown', async () => {
+    const user = userEvent.setup();
+    render(<AutomlModelDetailsModalHeader {...defaultProps} />);
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    const registerItem = screen.getByTestId('model-details-register-model');
+    expect(registerItem).toBeInTheDocument();
+    expect(registerItem).toHaveTextContent('Register model');
+  });
+
+  it('should call onSaveNotebook when Save as notebook is clicked', async () => {
+    const user = userEvent.setup();
+    render(<AutomlModelDetailsModalHeader {...defaultProps} />);
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    await user.click(screen.getByRole('menuitem', { name: 'Save as notebook' }));
     expect(defaultProps.onSaveNotebook).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onRegisterModel when Register model is clicked', async () => {
+    const user = userEvent.setup();
+    render(<AutomlModelDetailsModalHeader {...defaultProps} />);
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    await user.click(screen.getByRole('menuitem', { name: 'Register model' }));
+    expect(defaultProps.onRegisterModel).toHaveBeenCalledTimes(1);
+  });
+
+  it('should disable Save as notebook when onSaveNotebook is not provided', async () => {
+    const user = userEvent.setup();
+    render(<AutomlModelDetailsModalHeader {...defaultProps} onSaveNotebook={undefined} />);
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    expect(screen.getByRole('menuitem', { name: 'Save as notebook' })).toBeDisabled();
+  });
+
+  it('should disable Register model when onRegisterModel is not provided', async () => {
+    const user = userEvent.setup();
+    render(<AutomlModelDetailsModalHeader {...defaultProps} onRegisterModel={undefined} />);
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    expect(screen.getByRole('menuitem', { name: 'Register model' })).toBeDisabled();
+  });
+
+  it('should show dropdown when only onSaveNotebook is provided', () => {
+    render(<AutomlModelDetailsModalHeader {...defaultProps} onRegisterModel={undefined} />);
+    expect(screen.getByTestId('model-details-actions-toggle')).toBeInTheDocument();
+  });
+
+  it('should show dropdown when only onRegisterModel is provided', () => {
+    render(<AutomlModelDetailsModalHeader {...defaultProps} onSaveNotebook={undefined} />);
+    expect(screen.getByTestId('model-details-actions-toggle')).toBeInTheDocument();
+  });
+
+  it('should not render dropdown when neither callback is provided', () => {
+    render(
+      <AutomlModelDetailsModalHeader
+        {...defaultProps}
+        onSaveNotebook={undefined}
+        onRegisterModel={undefined}
+      />,
+    );
+    expect(screen.queryByTestId('model-details-actions-toggle')).not.toBeInTheDocument();
   });
 
   it('should render model name as plain text when only one model', () => {
