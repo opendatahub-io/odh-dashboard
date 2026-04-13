@@ -7,6 +7,7 @@ import (
 	"io"
 	"mime"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"path"
 	"regexp"
@@ -155,6 +156,36 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 	return &resolvedS3{client: s3Client, bucket: bucket}, true
 }
 
+// isS3ConnectivityError checks whether an error is caused by a network-level
+// failure to reach the S3 endpoint (e.g. connection timeout, DNS failure,
+// connection refused). This lets handlers return an actionable 503 instead of
+// a generic 500 when the endpoint is unreachable — common in air-gapped or
+// misconfigured environments.
+func isS3ConnectivityError(err error) bool {
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	var opErr *net.OpError
+	if errors.As(err, &opErr) {
+		return true
+	}
+	var dnsErr *net.DNSError
+	return errors.As(err, &dnsErr)
+}
+
+// s3ConnectivityErrorMessage returns a user-facing message for S3 connectivity failures.
+func s3ConnectivityErrorMessage(bucket string) string {
+	return fmt.Sprintf(
+		"Unable to connect to the S3 storage endpoint for bucket '%s'. "+
+			"The endpoint may be unreachable from this cluster. "+
+			"If this is a disconnected or air-gapped environment, "+
+			"verify the S3 endpoint URL in the data connection secret "+
+			"points to a storage service accessible within the cluster network.",
+		bucket,
+	)
+}
+
 // GetS3FileHandler retrieves a file from S3 storage.
 // Query parameters:
 //   - secretName (optional): Kubernetes secret with S3 credentials.
@@ -200,6 +231,11 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		var accessDenied interface{ ErrorCode() string }
 		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
 			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 object '%s/%s'", s3.bucket, key))
+			return
+		}
+
+		if isS3ConnectivityError(err) {
+			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(s3.bucket))
 			return
 		}
 
@@ -268,6 +304,10 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 	bucket := s3.bucket
 	resolvedKey, err := resolveNonCollidingS3Key(ctx, s3.client, bucket, key, app.effectivePostS3CollisionAttempts())
 	if err != nil {
+		if isS3ConnectivityError(err) {
+			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
+			return
+		}
 		app.serverErrorResponse(w, r, fmt.Errorf("error resolving S3 key for upload: %w", err))
 		return
 	}
@@ -348,6 +388,10 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		var accessDenied interface{ ErrorCode() string }
 		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
 			app.forbiddenResponse(w, r, fmt.Sprintf("access denied uploading to S3 '%s/%s'", bucket, resolvedKey))
+			return
+		}
+		if isS3ConnectivityError(err) {
+			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
 			return
 		}
 		app.serverErrorResponse(w, r, fmt.Errorf("error uploading file to S3: %w", err))
@@ -574,6 +618,11 @@ func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _
 			return
 		}
 
+		if isS3ConnectivityError(err) {
+			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(s3.bucket))
+			return
+		}
+
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -633,6 +682,11 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		var accessDenied interface{ ErrorCode() string }
 		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
 			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 bucket '%s'", s3.bucket))
+			return
+		}
+
+		if isS3ConnectivityError(err) {
+			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(s3.bucket))
 			return
 		}
 

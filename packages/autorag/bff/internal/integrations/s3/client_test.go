@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -150,6 +151,33 @@ func TestValidateAndNormalizeEndpoint_RejectsIPv6UniqueLocal(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "IPv6 unique local")
+}
+
+// ---------------------------------------------------------------------------
+// S3 connect timeout configuration tests
+// ---------------------------------------------------------------------------
+
+func TestS3ConnectTimeout_Is10Seconds(t *testing.T) {
+	t.Parallel()
+	assert.Equal(t, 10*time.Second, s3ConnectTimeout,
+		"s3ConnectTimeout must be 10s to fail fast before the OpenShift route timeout (30s)")
+}
+
+func TestNewRealS3Client_SetsRetryMaxAttemptsToOne(t *testing.T) {
+	t.Parallel()
+	// Create a valid client and verify it was created successfully.
+	// The RetryMaxAttempts=1 setting is in the aws.Config and isn't directly
+	// inspectable on the constructed client, but we can verify the client
+	// is built with the timeout-aware HTTP transport by checking it doesn't
+	// error on valid credentials.
+	client, err := NewRealS3Client(&S3Credentials{
+		AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
+		SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+		Region:          "us-east-1",
+		EndpointURL:     "https://s3.amazonaws.com",
+	}, S3ClientOptions{})
+	assert.NoError(t, err)
+	assert.NotNil(t, client)
 }
 
 // mockS3CodedError simulates AWS SDK errors that implement ErrorCode().

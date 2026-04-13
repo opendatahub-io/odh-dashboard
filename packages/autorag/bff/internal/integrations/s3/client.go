@@ -2,17 +2,20 @@ package s3
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
@@ -59,6 +62,11 @@ type RealS3Client struct {
 	options  S3ClientOptions
 }
 
+// s3ConnectTimeout is the maximum time allowed for TCP connection and TLS handshake
+// to the S3 endpoint. This must complete well under the OpenShift route timeout
+// (typically 30s) so the BFF can return a meaningful error instead of a raw 504.
+const s3ConnectTimeout = 10 * time.Second
+
 // NewRealS3Client creates a new S3 client from credentials.
 func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client, error) {
 	if creds == nil {
@@ -72,9 +80,22 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 		return nil, fmt.Errorf("%w: %w", ErrEndpointValidation, err)
 	}
 
+	// Use an HTTP client with explicit connect and TLS timeouts so that
+	// unreachable S3 endpoints (e.g. in air-gapped clusters) fail fast
+	// instead of hanging until the gateway timeout fires.
+	httpClient := awshttp.NewBuildableClient().WithTransportOptions(func(t *http.Transport) {
+		t.DialContext = (&net.Dialer{
+			Timeout: s3ConnectTimeout,
+		}).DialContext
+		t.TLSHandshakeTimeout = s3ConnectTimeout
+		t.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	})
+
 	cfg := aws.Config{
-		Region:      creds.Region,
-		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
+		Region:           creds.Region,
+		Credentials:      credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
+		RetryMaxAttempts: 1,
+		HTTPClient:       httpClient,
 	}
 
 	c.s3Client = awss3.NewFromConfig(cfg, func(o *awss3.Options) {

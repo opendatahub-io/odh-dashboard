@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -1548,4 +1549,258 @@ func TestS3ObjectContentTypeNeedsForcedDownload(t *testing.T) {
 			assert.Equal(t, tt.want, isInlineDangerousContentType(tt.in), tt.in)
 		})
 	}
+}
+
+// ---------------------------------------------------------------------------
+// isS3ConnectivityError tests
+// ---------------------------------------------------------------------------
+
+func TestIsS3ConnectivityError(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "net.Error timeout",
+			err:  &net.DNSError{IsTimeout: true, Name: "s3.example.com", Err: "i/o timeout"},
+			want: true,
+		},
+		{
+			name: "net.OpError connection refused",
+			err:  &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("connection refused")},
+			want: true,
+		},
+		{
+			name: "net.DNSError no such host",
+			err:  &net.DNSError{Err: "no such host", Name: "s3.airgapped.local"},
+			want: true,
+		},
+		{
+			name: "wrapped net.OpError",
+			err:  fmt.Errorf("s3 call failed: %w", &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("connection refused")}),
+			want: true,
+		},
+		{
+			name: "wrapped net.DNSError",
+			err:  fmt.Errorf("lookup failed: %w", &net.DNSError{Err: "no such host", Name: "s3.example.com"}),
+			want: true,
+		},
+		{
+			name: "wrapped timeout error",
+			err:  fmt.Errorf("request failed: %w", &net.DNSError{IsTimeout: true, Name: "s3.example.com", Err: "i/o timeout"}),
+			want: true,
+		},
+		{
+			name: "generic error",
+			err:  fmt.Errorf("something went wrong"),
+			want: false,
+		},
+		{
+			name: "nil error",
+			err:  nil,
+			want: false,
+		},
+		{
+			name: "access denied error (not connectivity)",
+			err:  &accessDeniedError{},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, isS3ConnectivityError(tt.err))
+		})
+	}
+}
+
+func TestS3ConnectivityErrorMessage(t *testing.T) {
+	t.Parallel()
+	msg := s3ConnectivityErrorMessage("my-test-bucket")
+	assert.Contains(t, msg, "my-test-bucket")
+	assert.Contains(t, msg, "Unable to connect")
+	assert.Contains(t, msg, "air-gapped")
+	assert.Contains(t, msg, "S3 endpoint URL")
+}
+
+// ---------------------------------------------------------------------------
+// Handler-level S3 connectivity error tests
+// ---------------------------------------------------------------------------
+
+// connectivityErrorS3Client returns a net.OpError for all operations,
+// simulating an unreachable S3 endpoint.
+type connectivityErrorS3Client struct {
+	s3mocks.MockS3Client
+}
+
+func (c *connectivityErrorS3Client) GetObject(_ context.Context, _, _ string) (io.ReadCloser, string, error) {
+	return nil, "", &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("i/o timeout")}
+}
+
+func (c *connectivityErrorS3Client) ListObjects(_ context.Context, _ string, _ s3int.ListObjectsOptions) (*models.S3ListObjectsResponse, error) {
+	return nil, &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("i/o timeout")}
+}
+
+func (c *connectivityErrorS3Client) ObjectExists(_ context.Context, _ string, _ string) (bool, error) {
+	return false, &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("i/o timeout")}
+}
+
+func (c *connectivityErrorS3Client) UploadObject(_ context.Context, _ string, _ string, _ io.Reader, _ string) error {
+	return &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("i/o timeout")}
+}
+
+func newTestS3Secret(name, namespace string) corev1.Secret {
+	return corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			UID:       types.UID("uid-1"),
+		},
+		Data: map[string][]byte{
+			"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+			"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+			"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+			"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+		},
+	}
+}
+
+func TestGetS3FileHandler_ConnectivityError_Returns503(t *testing.T) {
+	t.Parallel()
+	secret := newTestS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&connectivityErrorS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.csv",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	var env ErrorEnvelope
+	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
+	assert.NotNil(t, env.Error)
+	assert.Equal(t, "503", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "my-bucket")
+	assert.Contains(t, env.Error.Message, "Unable to connect")
+}
+
+func TestGetS3FilesHandler_ConnectivityError_Returns503(t *testing.T) {
+	t.Parallel()
+	secret := newTestS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&connectivityErrorS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/files?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	var env ErrorEnvelope
+	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
+	assert.NotNil(t, env.Error)
+	assert.Equal(t, "503", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "my-bucket")
+	assert.Contains(t, env.Error.Message, "air-gapped")
+}
+
+func TestPostS3FileHandler_ConnectivityError_OnResolveKey_Returns503(t *testing.T) {
+	t.Parallel()
+	secret := newTestS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&connectivityErrorS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	body, contentType := buildMultipartFileUpload(t, "file", "data.csv", []byte("a,b\n1,2\n"))
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=data.csv",
+		body,
+		contentType,
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	var env ErrorEnvelope
+	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
+	assert.NotNil(t, env.Error)
+	assert.Equal(t, "503", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "my-bucket")
+}
+
+// connectivityErrorOnUploadS3Client returns connectivity errors only on upload,
+// simulating an endpoint reachable for HEAD but failing on PUT.
+type connectivityErrorOnUploadS3Client struct {
+	s3mocks.MockS3Client
+}
+
+func (c *connectivityErrorOnUploadS3Client) ObjectExists(_ context.Context, _ string, _ string) (bool, error) {
+	return false, nil
+}
+
+func (c *connectivityErrorOnUploadS3Client) UploadObject(_ context.Context, _ string, _ string, _ io.Reader, _ string) error {
+	return &net.OpError{Op: "write", Net: "tcp", Err: fmt.Errorf("connection reset by peer")}
+}
+
+func TestPostS3FileHandler_ConnectivityError_OnUpload_Returns503(t *testing.T) {
+	t.Parallel()
+	secret := newTestS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&connectivityErrorOnUploadS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	body, contentType := buildMultipartFileUpload(t, "file", "data.csv", []byte("a,b\n1,2\n"))
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=data.csv",
+		body,
+		contentType,
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	var env ErrorEnvelope
+	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
+	assert.NotNil(t, env.Error)
+	assert.Equal(t, "503", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "Unable to connect")
 }
