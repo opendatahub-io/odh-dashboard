@@ -12,7 +12,7 @@
 /* Sidebar section headers */
 .automl-model-details-sidebar-section {
   font-size: var(--pf-t--global--font--size--sm);
-  font-weight: 600;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
   color: var(--pf-t--global--text--color--regular);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -21,7 +21,7 @@
 
 /* Add spacing between sidebar nav sections */
 .automl-model-details-sidebar nav > div + div {
-  margin-top: 16px;
+  margin-top: var(--pf-t--global--spacer--md);
 }
 
 .automl-model-details-nav-list {
@@ -35,7 +35,7 @@
   width: 100%;
   padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
   border: none;
-  border-left: 3px solid transparent;
+  border-left: var(--pf-t--global--border--width--box--default) solid transparent;
   background: none;
   text-align: left;
   font-size: var(--pf-t--global--font--size--md);
@@ -56,7 +56,7 @@
 .automl-model-details-tab-title {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--pf-t--global--spacer--xs);
   padding-left: var(--pf-t--global--spacer--xl);
 
   .pf-v6-c-title {
@@ -82,26 +82,36 @@
   }
 }
 
-/* Confusion matrix header delineation — gray background on axis labels and summary cells */
+/* Confusion matrix layout and delineation */
 .automl-confusion-matrix {
-  thead th {
-    background-color: var(--pf-t--global--background--color--secondary--default);
-    font-weight: var(--pf-t--global--font--weight--body--bold);
+  /* White grid lines between all cells — PF tables only have horizontal row borders
+     by default, so we add explicit borders on every cell for a full grid */
+  --pf-v6-c-table__tr--BorderBlockEndColor: var(--pf-t--global--background--color--primary--default);
+
+  th,
+  td {
+    border: var(--pf-t--global--border--width--divider--default) solid
+      var(--pf-t--global--background--color--primary--default);
   }
 
-  tbody tr td:first-child {
+  /* Gray background on all header cells (thead + tbody row headers) */
+  th {
     background-color: var(--pf-t--global--background--color--secondary--default);
+  }
+
+  /* Vertical alignment for row-spanning headers ("Observed", "Percent correct") */
+  thead th[rowspan] {
+    vertical-align: middle;
   }
 
   /* Summary row and column ("Percent correct") */
   tbody tr:last-child td,
-  tbody tr td:last-child,
-  thead th:last-child {
+  tbody tr td:last-child {
     background-color: var(--pf-t--global--background--color--secondary--default);
   }
 }
 
-/* Confusion matrix data cell colors — uses PF palette tokens for dark mode support */
+/* Confusion matrix data cell colors — PF palette tokens for dark mode support */
 .automl-confusion-matrix__cell--diagonal {
   font-weight: var(--pf-t--global--font--weight--body--bold);
   background-color: var(--pf-t--color--green--10);
@@ -121,10 +131,6 @@
 
 .automl-confusion-matrix__cell--off-diagonal {
   background-color: var(--pf-t--color--blue--10);
-
-  &.m-intensity-low {
-    background-color: var(--pf-t--color--blue--10);
-  }
 
   &.m-intensity-medium {
     background-color: var(--pf-t--color--blue--20);
@@ -148,7 +154,7 @@
   margin-top: var(--pf-t--global--spacer--md);
   padding: var(--pf-t--global--spacer--sm) 0;
   background: linear-gradient(to right, var(--pf-t--color--blue--20) 0%, var(--pf-t--global--background--color--primary--default) 45%, var(--pf-t--global--background--color--primary--default) 55%, var(--pf-t--color--green--30) 100%);
-  border-radius: 4px;
+  border-radius: var(--pf-t--global--border--radius--small);
   font-size: var(--pf-t--global--font--size--sm);
   color: var(--pf-t--global--text--color--subtle);
 
@@ -182,13 +188,13 @@
 .automl-model-details-header-actions {
   margin-left: auto;
   display: flex;
-  gap: 8px;
+  gap: var(--pf-t--global--spacer--sm);
 }
 
 .automl-model-details-header-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--pf-t--global--spacer--xs);
 }
 
 .automl-model-details-header-label {
@@ -203,12 +209,12 @@
 
 /* Feature importance bar */
 .automl-feature-importance-bar {
-  height: 12px;
-  border-radius: 2px;
+  height: var(--pf-t--global--spacer--sm);
+  border-radius: var(--pf-t--global--border--radius--tiny);
   background-color: var(--pf-t--global--color--brand--default);
 
   &.m-has-value {
-    min-width: 4px;
+    min-width: var(--pf-t--global--spacer--xs);
   }
 
   &.m-negative {

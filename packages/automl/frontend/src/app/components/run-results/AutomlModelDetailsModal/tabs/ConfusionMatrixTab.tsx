@@ -144,6 +144,11 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
   // Compute per-column totals
   const colTotals = labels.map((col) => labels.reduce((sum, row) => sum + getCell(row, col), 0));
 
+  // Overall accuracy
+  const totalCorrect = labels.reduce((sum, label) => sum + getCell(label, label), 0);
+  const grandTotal = rowTotals.reduce((sum, t) => sum + t, 0);
+  const overallPct = grandTotal > 0 ? ((totalCorrect / grandTotal) * 100).toFixed(1) : '0.0';
+
   return (
     <>
       {showViewSelector && (
@@ -188,16 +193,28 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
           </Select>
         </FormGroup>
       )}
-      <Table aria-label="Confusion matrix" variant="compact" className="automl-confusion-matrix">
+      <Table
+        aria-label="Confusion matrix"
+        variant="compact"
+        className="automl-confusion-matrix"
+        gridBreakPoint=""
+      >
         <Thead>
           <Tr>
-            <Th>Observed</Th>
+            <Th rowSpan={2}>Observed</Th>
+            <Th colSpan={labels.length} textCenter>
+              Predicted
+            </Th>
+            <Th rowSpan={2} textCenter>
+              Percent correct
+            </Th>
+          </Tr>
+          <Tr>
             {labels.map((label) => (
               <Th key={label} textCenter>
                 {label}
               </Th>
             ))}
-            <Th textCenter>Percent correct</Th>
           </Tr>
         </Thead>
         <Tbody>
@@ -208,9 +225,7 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
 
             return (
               <Tr key={rowLabel}>
-                <Td dataLabel="Observed">
-                  <strong>{rowLabel}</strong>
-                </Td>
+                <Th dataLabel="Observed">{rowLabel}</Th>
                 {labels.map((colLabel) => {
                   const val = getCell(rowLabel, colLabel);
                   const cellClass = [
@@ -230,9 +245,7 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
             );
           })}
           <Tr>
-            <Td>
-              <strong>Percent correct</strong>
-            </Td>
+            <Th>Percent correct</Th>
             {labels.map((colLabel, colIdx) => {
               const colCorrect = getCell(colLabel, colLabel);
               const colTotal = colTotals[colIdx];
@@ -243,13 +256,7 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
                 </Td>
               );
             })}
-            {(() => {
-              const totalCorrect = labels.reduce((sum, label) => sum + getCell(label, label), 0);
-              const total = rowTotals.reduce((sum, t) => sum + t, 0);
-              const overallPct =
-                total > 0 ? `${((totalCorrect / total) * 100).toFixed(1)}%` : '0.0%';
-              return <Td textCenter>{overallPct}</Td>;
-            })()}
+            <Td textCenter>{overallPct}%</Td>
           </Tr>
         </Tbody>
       </Table>
