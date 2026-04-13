@@ -100,13 +100,16 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 	}
 
 	if opts.InsecureSkipVerify {
+		// Clone the default transport to preserve its timeouts and connection pooling,
+		// then override TLS config for self-signed certificate support.
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true, //nolint:gosec // user-configured for dev/self-signed certs
+			MinVersion:         tls.VersionTLS12,
+		}
 		cfg.HTTPClient = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true, //nolint:gosec // user-configured for dev/self-signed certs
-					MinVersion:         tls.VersionTLS12,
-				},
-			},
+			Transport: transport,
+			Timeout:   30 * time.Second,
 		}
 	}
 
