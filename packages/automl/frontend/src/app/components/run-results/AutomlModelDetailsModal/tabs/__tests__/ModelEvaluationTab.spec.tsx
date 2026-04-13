@@ -22,7 +22,7 @@ describe('ModelEvaluationTab', () => {
     render(<ModelEvaluationTab {...defaultProps} model={model} />);
 
     expect(screen.getByText('Accuracy')).toBeInTheDocument();
-    expect(screen.getByText('F1')).toBeInTheDocument();
+    expect(screen.getByText('F₁')).toBeInTheDocument();
     expect(screen.getByText('Precision')).toBeInTheDocument();
   });
 
