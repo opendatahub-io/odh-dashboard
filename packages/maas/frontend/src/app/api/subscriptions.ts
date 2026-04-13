@@ -48,7 +48,7 @@ const isModelReference = (v: unknown): v is ModelReference =>
 
 // OwnerSpec and SubjectSpec are structurally identical
 const isGroupsSpec = (v: unknown): boolean =>
-  isRecord(v) && (v.groups == null || (Array.isArray(v.groups) && v.groups.every(isGroupRef)));
+  isRecord(v) && Array.isArray(v.groups) && v.groups.every(isGroupRef);
 
 const isOwnerSpec = (v: unknown): v is OwnerSpec => isGroupsSpec(v);
 const isSubjectSpec = (v: unknown): v is SubjectSpec => isGroupsSpec(v);
