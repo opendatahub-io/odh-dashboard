@@ -210,8 +210,9 @@ describe('AutoragEvaluationSelect', () => {
 
     const { container } = renderWithProviders(<AutoragEvaluationSelect />, { onFormChange });
 
-    const uploadInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(uploadInput, file);
+    const uploadInput = container.querySelector('input[type="file"]');
+    expect(uploadInput).not.toBeNull();
+    await user.upload(uploadInput as HTMLInputElement, file);
 
     await waitFor(() => {
       expect(mockUploadMutateAsync).toHaveBeenCalledWith({
@@ -236,8 +237,9 @@ describe('AutoragEvaluationSelect', () => {
 
     const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 
-    const uploadInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(uploadInput, file);
+    const uploadInput = container.querySelector('input[type="file"]');
+    expect(uploadInput).not.toBeNull();
+    await user.upload(uploadInput as HTMLInputElement, file);
 
     await waitFor(() => {
       expect(mockNotificationError).toHaveBeenCalledWith('Failed to upload file', 'Upload failed');
@@ -252,8 +254,9 @@ describe('AutoragEvaluationSelect', () => {
 
     const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 
-    const uploadInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(uploadInput, file);
+    const uploadInput = container.querySelector('input[type="file"]');
+    expect(uploadInput).not.toBeNull();
+    await user.upload(uploadInput as HTMLInputElement, file);
 
     await waitFor(() => {
       expect(mockNotificationError).toHaveBeenCalledWith('Failed to upload file', 'String error');
