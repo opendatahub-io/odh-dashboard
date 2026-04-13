@@ -41,7 +41,7 @@ const rateLimitSchema = z.object({
     .int()
     .min(1, 'Time value must be greater than 0')
     .max(Number.MAX_SAFE_INTEGER, 'Time value exceeds maximum allowed value'),
-  unit: z.enum(['day', 'hour', 'minute', 'second']),
+  unit: z.enum(['hour', 'minute', 'second']),
 });
 
 const rateLimitsSchema = z
