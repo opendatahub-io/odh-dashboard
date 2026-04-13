@@ -151,14 +151,11 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     return undefined;
   }, [inputValue, isCreatable, allValues]);
 
-  const createOptionDisplayName = React.useMemo(() => {
-    if (!createOption) {
-      return undefined;
-    }
-    return typeof createOptionMessage === 'string'
+  const createOptionDisplayName = createOption
+    ? typeof createOptionMessage === 'string'
       ? createOptionMessage
-      : createOptionMessage(createOption.name);
-  }, [createOption, createOptionMessage]);
+      : createOptionMessage(createOption.name)
+    : undefined;
 
   const allOptions = React.useMemo(() => {
     const options = [...allValues];
