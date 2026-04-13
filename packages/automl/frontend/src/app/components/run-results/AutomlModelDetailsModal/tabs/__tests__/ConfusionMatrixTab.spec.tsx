@@ -3,8 +3,8 @@ import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ConfusionMatrixData } from '~/app/types';
-import { AutomlModel } from '~/app/context/AutomlResultsContext';
+import type { ConfusionMatrixData } from '~/app/types';
+import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import ConfusionMatrixTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/ConfusionMatrixTab';
 
 const baseModel: AutomlModel = {

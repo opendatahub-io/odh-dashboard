@@ -14,6 +14,7 @@ import {
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import type { ConfusionMatrixData } from '~/app/types';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
+import { TASK_TYPE_MULTICLASS } from '~/app/utilities/const';
 
 const MULTI_CLASS_VIEW = 'multi-class';
 
@@ -53,28 +54,26 @@ function computeOneVsRest(
   const getCell = (row: string, col: string): number => matrix[row]?.[col] ?? 0;
   const notLabel = `Not ${targetLabel}`;
 
-  const tp = getCell(targetLabel, targetLabel);
-  const fn = labels
-    .filter((c) => c !== targetLabel)
-    .reduce((sum, c) => sum + getCell(targetLabel, c), 0);
-  const fp = labels
-    .filter((r) => r !== targetLabel)
-    .reduce((sum, r) => sum + getCell(r, targetLabel), 0);
-  const tn = labels
-    .filter((r) => r !== targetLabel)
-    .reduce(
-      (sum, r) =>
-        sum + labels.filter((c) => c !== targetLabel).reduce((s, c) => s + getCell(r, c), 0),
-      0,
-    );
+  const otherLabels = labels.filter((l) => l !== targetLabel);
+  const truePositive = getCell(targetLabel, targetLabel);
+  const falseNegative = otherLabels.reduce((sum, c) => sum + getCell(targetLabel, c), 0);
+  const falsePositive = otherLabels.reduce((sum, r) => sum + getCell(r, targetLabel), 0);
+  const trueNegative = otherLabels.reduce(
+    (sum, r) => sum + otherLabels.reduce((s, c) => s + getCell(r, c), 0),
+    0,
+  );
 
   return {
-    [targetLabel]: { [targetLabel]: tp, [notLabel]: fn },
-    [notLabel]: { [targetLabel]: fp, [notLabel]: tn },
+    [targetLabel]: { [targetLabel]: truePositive, [notLabel]: falseNegative },
+    [notLabel]: { [targetLabel]: falsePositive, [notLabel]: trueNegative },
   };
 }
 
-const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix, isArtifactsLoading }) => {
+const ConfusionMatrixTab: React.FC<TabContentProps> = ({
+  confusionMatrix,
+  isArtifactsLoading,
+  taskType,
+}) => {
   const [selectedView, setSelectedView] = React.useState(MULTI_CLASS_VIEW);
   const [isViewOpen, setIsViewOpen] = React.useState(false);
 
@@ -126,7 +125,7 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix, isArti
   }
 
   const originalLabels = Object.keys(confusionMatrix);
-  const showViewSelector = originalLabels.length > 2;
+  const showViewSelector = taskType === TASK_TYPE_MULTICLASS && originalLabels.length > 2;
 
   // Compute the effective matrix based on the selected view
   const effectiveMatrix =
@@ -159,7 +158,7 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix, isArti
             isOpen={isViewOpen}
             selected={selectedView}
             onSelect={(_e, value) => {
-              setSelectedView(String(value));
+              setSelectedView(typeof value === 'string' ? value : MULTI_CLASS_VIEW);
               setIsViewOpen(false);
             }}
             onOpenChange={setIsViewOpen}
@@ -168,6 +167,7 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix, isArti
                 ref={toggleRef}
                 onClick={() => setIsViewOpen(!isViewOpen)}
                 isExpanded={isViewOpen}
+                aria-label="Select confusion matrix view"
                 data-testid="confusion-matrix-view-toggle"
               >
                 {selectedView === MULTI_CLASS_VIEW
