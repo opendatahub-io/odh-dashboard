@@ -1,9 +1,10 @@
 /* eslint-disable camelcase -- mock data uses snake_case keys */
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import type { ConfusionMatrixData } from '~/app/types';
-import type { AutomlModel } from '~/app/context/AutomlResultsContext';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { ConfusionMatrixData } from '~/app/types';
+import { AutomlModel } from '~/app/context/AutomlResultsContext';
 import ConfusionMatrixTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/ConfusionMatrixTab';
 
 const baseModel: AutomlModel = {
@@ -123,5 +124,95 @@ describe('ConfusionMatrixTab', () => {
 
     expect(screen.getByText('Less correct')).toBeInTheDocument();
     expect(screen.getByText('More correct')).toBeInTheDocument();
+  });
+
+  describe('One vs Rest view', () => {
+    const matrix3x3: ConfusionMatrixData = {
+      Ghost: { Ghost: 10, Ghoul: 0, Goblin: 2 },
+      Ghoul: { Ghost: 1, Ghoul: 10, Goblin: 2 },
+      Goblin: { Ghost: 2, Ghoul: 6, Goblin: 5 },
+    };
+
+    it('should show view selector for 3+ class matrices', () => {
+      render(<ConfusionMatrixTab {...defaultProps} confusionMatrix={matrix3x3} />);
+      expect(screen.getByTestId('confusion-matrix-view-toggle')).toBeInTheDocument();
+      expect(screen.getByText('Multi-class')).toBeInTheDocument();
+    });
+
+    it('should not show view selector for 2-class matrices', () => {
+      const matrix2x2: ConfusionMatrixData = {
+        Cat: { Cat: 8, Dog: 2 },
+        Dog: { Cat: 1, Dog: 9 },
+      };
+      render(<ConfusionMatrixTab {...defaultProps} confusionMatrix={matrix2x2} />);
+      expect(screen.queryByTestId('confusion-matrix-view-toggle')).not.toBeInTheDocument();
+    });
+
+    it('should show One v. Rest options in the dropdown', async () => {
+      const user = userEvent.setup();
+      render(<ConfusionMatrixTab {...defaultProps} confusionMatrix={matrix3x3} />);
+
+      await user.click(screen.getByTestId('confusion-matrix-view-toggle'));
+
+      expect(screen.getByText('Ghost (One v. Rest)')).toBeInTheDocument();
+      expect(screen.getByText('Ghoul (One v. Rest)')).toBeInTheDocument();
+      expect(screen.getByText('Goblin (One v. Rest)')).toBeInTheDocument();
+    });
+
+    it('should collapse to 2x2 matrix when One v. Rest view is selected', async () => {
+      const user = userEvent.setup();
+      render(<ConfusionMatrixTab {...defaultProps} confusionMatrix={matrix3x3} />);
+
+      // Select Ghost (One v. Rest)
+      await user.click(screen.getByTestId('confusion-matrix-view-toggle'));
+      await user.click(screen.getByText('Ghost (One v. Rest)'));
+
+      // Should show Ghost and Not Ghost labels
+      const table = screen.getByRole('grid');
+      expect(within(table).getAllByText('Ghost')).toHaveLength(2); // header + row
+      expect(within(table).getAllByText('Not Ghost')).toHaveLength(2); // header + row
+
+      // Should NOT show Ghoul or Goblin as separate labels
+      expect(within(table).queryByText('Ghoul')).not.toBeInTheDocument();
+      expect(within(table).queryByText('Goblin')).not.toBeInTheDocument();
+    });
+
+    it('should compute correct One v. Rest values for Ghost', async () => {
+      const user = userEvent.setup();
+      render(<ConfusionMatrixTab {...defaultProps} confusionMatrix={matrix3x3} />);
+
+      await user.click(screen.getByTestId('confusion-matrix-view-toggle'));
+      await user.click(screen.getByText('Ghost (One v. Rest)'));
+
+      // Ghost row: TP=10, FN=0+2=2 → row total=12
+      // Not Ghost row: FP=1+2=3, TN=10+2+6+5=23 → row total=26
+      expect(screen.getByText('10')).toBeInTheDocument(); // TP
+      expect(screen.getByText('2')).toBeInTheDocument(); // FN
+      expect(screen.getByText('3')).toBeInTheDocument(); // FP
+      expect(screen.getByText('23')).toBeInTheDocument(); // TN
+
+      // Row percents: Ghost=10/12=83.3%, Not Ghost=23/26=88.5%
+      expect(screen.getByText('83.3%')).toBeInTheDocument();
+      expect(screen.getByText('88.5%')).toBeInTheDocument();
+    });
+
+    it('should switch back to multi-class view', async () => {
+      const user = userEvent.setup();
+      render(<ConfusionMatrixTab {...defaultProps} confusionMatrix={matrix3x3} />);
+
+      // Switch to One v. Rest
+      await user.click(screen.getByTestId('confusion-matrix-view-toggle'));
+      await user.click(screen.getByText('Ghost (One v. Rest)'));
+
+      // Switch back to Multi-class
+      await user.click(screen.getByTestId('confusion-matrix-view-toggle'));
+      await user.click(screen.getByText('Multi-class'));
+
+      // Should show all 3 original labels again
+      const table = screen.getByRole('grid');
+      expect(within(table).getAllByText('Ghost')).toHaveLength(2);
+      expect(within(table).getAllByText('Ghoul')).toHaveLength(2);
+      expect(within(table).getAllByText('Goblin')).toHaveLength(2);
+    });
   });
 });

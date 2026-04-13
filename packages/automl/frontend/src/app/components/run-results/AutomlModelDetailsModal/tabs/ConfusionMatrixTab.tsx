@@ -4,10 +4,18 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
+  FormGroup,
+  MenuToggle,
+  Select,
+  SelectList,
+  SelectOption,
   Skeleton,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import type { ConfusionMatrixData } from '~/app/types';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
+
+const MULTI_CLASS_VIEW = 'multi-class';
 
 function getCellStyle(
   rowLabel: string,
@@ -31,7 +39,45 @@ function getCellStyle(
   };
 }
 
+/**
+ * Collapse an N×N confusion matrix into a 2×2 "One vs Rest" matrix
+ * for the given target class. The resulting matrix has labels:
+ *   [targetLabel, `Not ${targetLabel}`]
+ * with cells: TP, FN, FP, TN.
+ */
+function computeOneVsRest(
+  matrix: ConfusionMatrixData,
+  labels: string[],
+  targetLabel: string,
+): ConfusionMatrixData {
+  const getCell = (row: string, col: string): number => matrix[row]?.[col] ?? 0;
+  const notLabel = `Not ${targetLabel}`;
+
+  const tp = getCell(targetLabel, targetLabel);
+  const fn = labels
+    .filter((c) => c !== targetLabel)
+    .reduce((sum, c) => sum + getCell(targetLabel, c), 0);
+  const fp = labels
+    .filter((r) => r !== targetLabel)
+    .reduce((sum, r) => sum + getCell(r, targetLabel), 0);
+  const tn = labels
+    .filter((r) => r !== targetLabel)
+    .reduce(
+      (sum, r) =>
+        sum + labels.filter((c) => c !== targetLabel).reduce((s, c) => s + getCell(r, c), 0),
+      0,
+    );
+
+  return {
+    [targetLabel]: { [targetLabel]: tp, [notLabel]: fn },
+    [notLabel]: { [targetLabel]: fp, [notLabel]: tn },
+  };
+}
+
 const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix, isArtifactsLoading }) => {
+  const [selectedView, setSelectedView] = React.useState(MULTI_CLASS_VIEW);
+  const [isViewOpen, setIsViewOpen] = React.useState(false);
+
   if (isArtifactsLoading) {
     return (
       <Table aria-label="Confusion matrix loading" variant="compact">
@@ -79,8 +125,16 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix, isArti
     );
   }
 
-  const labels = Object.keys(confusionMatrix);
-  const getCell = (row: string, col: string): number => confusionMatrix[row]?.[col] ?? 0;
+  const originalLabels = Object.keys(confusionMatrix);
+  const showViewSelector = originalLabels.length > 2;
+
+  // Compute the effective matrix based on the selected view
+  const effectiveMatrix =
+    selectedView !== MULTI_CLASS_VIEW
+      ? computeOneVsRest(confusionMatrix, originalLabels, selectedView)
+      : confusionMatrix;
+  const labels = Object.keys(effectiveMatrix);
+  const getCell = (row: string, col: string): number => effectiveMatrix[row]?.[col] ?? 0;
 
   // Find max value for color scaling
   const allValues = labels.flatMap((row) => labels.map((col) => getCell(row, col)));
@@ -94,6 +148,47 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({ confusionMatrix, isArti
 
   return (
     <>
+      {showViewSelector && (
+        <FormGroup
+          label="View"
+          fieldId="confusion-matrix-view"
+          className="automl-confusion-matrix-view"
+        >
+          <Select
+            id="confusion-matrix-view"
+            isOpen={isViewOpen}
+            selected={selectedView}
+            onSelect={(_e, value) => {
+              setSelectedView(String(value));
+              setIsViewOpen(false);
+            }}
+            onOpenChange={setIsViewOpen}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                ref={toggleRef}
+                onClick={() => setIsViewOpen(!isViewOpen)}
+                isExpanded={isViewOpen}
+                data-testid="confusion-matrix-view-toggle"
+              >
+                {selectedView === MULTI_CLASS_VIEW
+                  ? 'Multi-class'
+                  : `${selectedView} (One v. Rest)`}
+              </MenuToggle>
+            )}
+            shouldFocusToggleOnSelect
+            data-testid="confusion-matrix-view-select"
+          >
+            <SelectList>
+              <SelectOption value={MULTI_CLASS_VIEW}>Multi-class</SelectOption>
+              {originalLabels.map((label) => (
+                <SelectOption key={label} value={label}>
+                  {label} (One v. Rest)
+                </SelectOption>
+              ))}
+            </SelectList>
+          </Select>
+        </FormGroup>
+      )}
       <Table aria-label="Confusion matrix" variant="compact" className="automl-confusion-matrix">
         <Thead>
           <Tr>
