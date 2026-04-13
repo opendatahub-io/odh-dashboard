@@ -329,7 +329,15 @@ function AutoragConfigure(): React.JSX.Element {
         setValue('input_data_key', uploadResult.key, { shouldValidate: true });
       } catch (err) {
         if (uploadRequestId === inputDataUploadSeqRef.current) {
-          notification.error('Failed to upload file', err instanceof Error ? err.message : '');
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          const isConflict = errorMessage.toLowerCase().includes('unique filename');
+
+          notification.error(
+            'Failed to upload file',
+            isConflict
+              ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
+              : errorMessage,
+          );
         }
       } finally {
         if (uploadRequestId === inputDataUploadSeqRef.current) {

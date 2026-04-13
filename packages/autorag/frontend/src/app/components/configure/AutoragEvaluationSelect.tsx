@@ -36,9 +36,14 @@ function AutoragEvaluationSelect(): React.JSX.Element {
           try {
             response = await uploadToStorageMutation.mutateAsync({ file, onProgress: setProgress });
           } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const isConflict = errorMessage.toLowerCase().includes('unique filename');
+
             notification.error(
               'Failed to upload file',
-              error instanceof Error ? error.message : String(error),
+              isConflict
+                ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
+                : errorMessage,
             );
             setStatus('danger');
             return;
