@@ -35,13 +35,13 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         const errorProps: PFMessageProps['error'] =
           message.role === 'bot' &&
           errorClassification &&
-          errorClassification.pattern === 'full_failure'
+          errorClassification.pattern === 'full-failure'
             ? {
-                variant: errorClassification.severity,
+                variant: errorClassification.variant,
                 title: errorClassification.title,
                 body: (
                   <ChatbotErrorAlert
-                    errorClassification={errorClassification}
+                    classifiedError={errorClassification}
                     onRetry={onRetryError}
                     data-testid={`chatbot-error-alert-${message.id}`}
                   />
@@ -61,11 +61,11 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         if (
           message.role === 'bot' &&
           errorClassification &&
-          errorClassification.pattern === 'partial_failure'
+          errorClassification.pattern === 'partial-failure'
         ) {
           extraContent.beforeMainContent = (
             <ChatbotErrorAlert
-              errorClassification={errorClassification}
+              classifiedError={errorClassification}
               onRetry={onRetryError}
               data-testid={`chatbot-error-alert-${message.id}`}
             />
@@ -76,11 +76,11 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         if (
           message.role === 'bot' &&
           errorClassification &&
-          errorClassification.pattern === 'streaming_interruption'
+          errorClassification.pattern === 'streaming-interruption'
         ) {
           extraContent.afterMainContent = (
             <ChatbotErrorAlert
-              errorClassification={errorClassification}
+              classifiedError={errorClassification}
               onRetry={onRetryError}
               data-testid={`chatbot-error-alert-${message.id}`}
             />

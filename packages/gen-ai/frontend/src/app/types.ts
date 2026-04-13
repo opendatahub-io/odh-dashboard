@@ -657,57 +657,42 @@ type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;
 /**
  * Error pattern determines how the error is rendered in the chat transcript
  */
-export type ErrorPattern = 'full_failure' | 'partial_failure' | 'streaming_interruption';
+// ──────────────────────────────────────────────────────────────────────────────
+// Error Types (matches UXD prototype structure)
+// ──────────────────────────────────────────────────────────────────────────────
 
-/**
- * Error severity maps to PatternFly Alert variant
- */
-export type ErrorSeverity = 'danger' | 'warning';
+export type ErrorPattern = 'full-failure' | 'partial-failure' | 'streaming-interruption';
+export type ErrorVariant = 'danger' | 'warning';
 
-/**
- * Component that generated the error
- */
-export type ErrorComponent =
-  | 'model'
-  | 'llama_stack'
-  | 'bff'
-  | 'rag'
-  | 'guardrails'
-  | 'mcp'
-  | 'config'
-  | 'network'
-  | 'unknown';
+export interface ErrorDetails {
+  component: string;
+  errorCode: string;
+  rawMessage: string;
+}
 
-/**
- * Structured error information from API responses
- */
-export type APIErrorDetails = {
-  component?: ErrorComponent;
-  code?: string;
-  message: string;
-  tool_name?: string; // For MCP errors
-  retriable?: boolean;
-};
-
-/**
- * Classified error with UI rendering details
- */
-export type ErrorClassification = {
-  /** How the error should be rendered (full, partial, or streaming interruption) */
+export interface ClassifiedError {
   pattern: ErrorPattern;
-  /** Alert variant (danger or warning) */
-  severity: ErrorSeverity;
-  /** Whether the error can be retried */
-  retriable: boolean;
-  /** Plain-language title for the alert */
+  variant: ErrorVariant;
   title: string;
-  /** 1-2 sentence description of what happened and its impact */
   description: string;
-  /** Raw error code and message for the code block */
-  rawError: {
+  details: ErrorDetails;
+  isRetriable: boolean;
+  actionSuggestion?: string;
+}
+
+export interface ApiError {
+  status?: number;
+  error?: {
+    component?: 'guardrails' | 'rag' | 'mcp' | 'model' | 'llama_stack' | 'bff';
     code?: string;
-    message: string;
+    message?: string;
+    tool_name?: string;
+    retriable?: boolean;
   };
-  /** Variables for template interpolation (modelName, maxTokens, toolName) */
-  templateVars?: Record<string, string | number>;
-};
+  message?: string;
+}
+
+// Legacy type aliases for backwards compatibility
+export type ErrorSeverity = ErrorVariant;
+export type ErrorClassification = ClassifiedError;
+export type APIErrorDetails = ApiError['error'];

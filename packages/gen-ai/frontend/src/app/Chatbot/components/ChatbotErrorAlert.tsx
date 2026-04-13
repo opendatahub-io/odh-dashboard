@@ -5,113 +5,97 @@ import {
   CodeBlock,
   CodeBlockCode,
   CodeBlockAction,
+  ClipboardCopyButton,
 } from '@patternfly/react-core';
-import { ClipboardCopyButton } from '@patternfly/react-core';
-import { ErrorClassification } from '~/app/types';
+import { ClassifiedError } from '~/app/types';
 
 type ChatbotErrorAlertProps = {
-  /** Error classification with UI rendering details */
-  errorClassification: ErrorClassification;
+  /** Classified error with UI rendering details */
+  classifiedError: ClassifiedError;
   /** Callback when retry is clicked (only shown if retriable) */
   onRetry?: () => void;
+  /** Retry count for button label */
+  retryCount?: number;
   /** Test ID for the alert */
   'data-testid'?: string;
 };
 
 /**
- * Interpolates template variables into a string
- * Replaces {variableName} with values from templateVars
- */
-const interpolateTemplate = (
-  template: string,
-  templateVars?: Record<string, string | number>,
-): string => {
-  if (!templateVars) {
-    return template;
-  }
-
-  let result = template;
-  Object.entries(templateVars).forEach(([key, value]) => {
-    const placeholder = `{${key}}`;
-    result = result.replace(new RegExp(placeholder, 'g'), String(value));
-  });
-
-  return result;
-};
-
-/**
  * ChatbotErrorAlert - Expandable inline alert for chatbot errors
  *
- * Displays error information in three layers:
- * 1. Collapsed state: Icon + Title + Retry link (if retriable)
- * 2. Expanded state: Description text explaining impact
- * 3. Code block: Raw error code and message for debugging
- *
- * Follows PatternFly expandable inline alert pattern with proper spacing:
- * - Right padding matches left visual indentation
- * - Spacer between description and code block
+ * Matches UXD prototype structure exactly:
+ * - Collapsed state: Icon + Title + Retry link (if retriable)
+ * - Expanded state: Description text explaining impact
+ * - Code block: Raw error code and message for debugging
  */
 const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
-  errorClassification,
+  classifiedError,
   onRetry,
+  retryCount = 0,
   'data-testid': dataTestId = 'chatbot-error-alert',
 }) => {
-  const { severity, retriable, title, description, rawError, templateVars } = errorClassification;
+  const { variant, title, description, details, isRetriable, actionSuggestion } = classifiedError;
+  const [copied, setCopied] = React.useState(false);
 
-  // Interpolate template variables in title and description
-  const interpolatedTitle = interpolateTemplate(title, templateVars);
-  const interpolatedDescription = interpolateTemplate(description, templateVars);
+  const handleCopy = () => {
+    const rawError = `[${details.errorCode}] ${details.rawMessage}`;
+    navigator.clipboard.writeText(rawError);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-  // Build code block content: [ERROR_CODE] message
-  const codeBlockContent = rawError.code
-    ? `[${rawError.code}] ${rawError.message}`
-    : rawError.message;
-
-  // Action link for retry (only if retriable and onRetry callback provided)
+  // Action links for retry and action suggestions
   const actionLinks = React.useMemo(() => {
-    if (retriable && onRetry) {
-      return (
-        <AlertActionLink onClick={onRetry} data-testid={`${dataTestId}-retry-link`}>
-          Retry
-        </AlertActionLink>
+    const links: React.ReactNode[] = [];
+
+    if (isRetriable && onRetry) {
+      links.push(
+        <AlertActionLink key="retry" onClick={onRetry} data-testid={`${dataTestId}-retry-link`}>
+          {retryCount > 0 ? 'Retry again' : 'Retry'}
+        </AlertActionLink>,
       );
     }
-    return undefined;
-  }, [retriable, onRetry, dataTestId]);
+
+    // Action suggestions (e.g., "Open Build panel") - for future implementation
+    if (actionSuggestion) {
+      // TODO: Implement action suggestion handlers
+      // links.push(<AlertActionLink key="action">{actionSuggestion}</AlertActionLink>);
+    }
+
+    return links.length > 0 ? links : undefined;
+  }, [isRetriable, onRetry, retryCount, actionSuggestion, dataTestId]);
+
+  const rawErrorText = `[${details.errorCode}] ${details.rawMessage}`;
 
   return (
     <Alert
-      variant={severity}
-      title={interpolatedTitle}
+      variant={variant}
+      title={title}
       isInline
       isExpandable
       actionLinks={actionLinks}
       data-testid={dataTestId}
     >
-      {/* Description text explaining what happened and impact */}
-      <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-        {interpolatedDescription}
-      </div>
+      {/* Description explaining what happened and impact */}
+      <p>{description}</p>
 
-      {/* Code block with raw error for debugging */}
+      {/* Code block with error details */}
       <CodeBlock
         actions={
           <CodeBlockAction>
             <ClipboardCopyButton
-              id={`${dataTestId}-copy-button`}
-              textId={`${dataTestId}-code-content`}
+              id={`copy-error-${details.errorCode}`}
+              textId="error-code"
               aria-label="Copy error to clipboard"
-              onClick={() => navigator.clipboard.writeText(codeBlockContent)}
-              exitDelay={600}
-              maxWidth="110px"
+              onClick={handleCopy}
               variant="plain"
             >
-              Copy
+              {copied ? 'Copied' : 'Copy'}
             </ClipboardCopyButton>
           </CodeBlockAction>
         }
       >
-        <CodeBlockCode id={`${dataTestId}-code-content`}>{codeBlockContent}</CodeBlockCode>
+        <CodeBlockCode>{rawErrorText}</CodeBlockCode>
       </CodeBlock>
     </Alert>
   );

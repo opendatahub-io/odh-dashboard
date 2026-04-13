@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import ChatbotErrorAlert from '../ChatbotErrorAlert';
 import { ErrorClassification } from '~/app/types';
+import ChatbotErrorAlert from '~/app/Chatbot/components/ChatbotErrorAlert';
 
 describe('ChatbotErrorAlert', () => {
   const mockOnRetry = jest.fn();
@@ -89,18 +89,14 @@ describe('ChatbotErrorAlert', () => {
   describe('retry functionality', () => {
     it('should show retry link when retriable is true and onRetry is provided', () => {
       const errorClassification = createErrorClassification({ retriable: true });
-      render(
-        <ChatbotErrorAlert errorClassification={errorClassification} onRetry={mockOnRetry} />,
-      );
+      render(<ChatbotErrorAlert errorClassification={errorClassification} onRetry={mockOnRetry} />);
 
       expect(screen.getByText('Retry')).toBeInTheDocument();
     });
 
     it('should not show retry link when retriable is false', () => {
       const errorClassification = createErrorClassification({ retriable: false });
-      render(
-        <ChatbotErrorAlert errorClassification={errorClassification} onRetry={mockOnRetry} />,
-      );
+      render(<ChatbotErrorAlert errorClassification={errorClassification} onRetry={mockOnRetry} />);
 
       expect(screen.queryByText('Retry')).not.toBeInTheDocument();
     });
@@ -114,9 +110,7 @@ describe('ChatbotErrorAlert', () => {
 
     it('should call onRetry when retry link is clicked', () => {
       const errorClassification = createErrorClassification({ retriable: true });
-      render(
-        <ChatbotErrorAlert errorClassification={errorClassification} onRetry={mockOnRetry} />,
-      );
+      render(<ChatbotErrorAlert errorClassification={errorClassification} onRetry={mockOnRetry} />);
 
       const retryLink = screen.getByText('Retry');
       fireEvent.click(retryLink);
@@ -126,9 +120,7 @@ describe('ChatbotErrorAlert', () => {
 
     it('should have correct data-testid on retry link', () => {
       const errorClassification = createErrorClassification({ retriable: true });
-      render(
-        <ChatbotErrorAlert errorClassification={errorClassification} onRetry={mockOnRetry} />,
-      );
+      render(<ChatbotErrorAlert errorClassification={errorClassification} onRetry={mockOnRetry} />);
 
       expect(screen.getByTestId('chatbot-error-alert-retry-link')).toBeInTheDocument();
     });
@@ -232,9 +224,7 @@ describe('ChatbotErrorAlert', () => {
       const copyButton = screen.getByText('Copy');
       fireEvent.click(copyButton);
 
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        '[TEST_CODE] Test error message',
-      );
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('[TEST_CODE] Test error message');
     });
 
     it('should copy error without code prefix when code is undefined', async () => {
@@ -302,9 +292,7 @@ describe('ChatbotErrorAlert', () => {
         title: 'Streaming error — connection lost',
         retriable: true,
       });
-      render(
-        <ChatbotErrorAlert errorClassification={errorClassification} onRetry={mockOnRetry} />,
-      );
+      render(<ChatbotErrorAlert errorClassification={errorClassification} onRetry={mockOnRetry} />);
 
       expect(screen.getByText('Streaming error — connection lost')).toBeInTheDocument();
       expect(screen.getByText('Retry')).toBeInTheDocument();
