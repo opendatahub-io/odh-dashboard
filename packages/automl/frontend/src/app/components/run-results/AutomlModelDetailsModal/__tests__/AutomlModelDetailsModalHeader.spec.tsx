@@ -83,7 +83,7 @@ describe('AutomlModelDetailsModalHeader', () => {
         currentModelName="Model"
       />,
     );
-    expect(screen.getByText('F1 (Optimized)')).toBeInTheDocument();
+    expect(screen.getByText('F₁ (Optimized)')).toBeInTheDocument();
     expect(screen.getByText('N/A')).toBeInTheDocument();
   });
 

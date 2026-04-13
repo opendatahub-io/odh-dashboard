@@ -93,15 +93,27 @@ type SettingsField =
   | 'retrievalSearchMode'
   | 'retrievalRankerStrategy';
 
-// Column metadata — priority, display name, description, and optional settings column config.
-// Sticky columns (rank, pattern name, optimized metric, actions) are not in this map.
-// Columns are displayed in ascending priority order; equal priority sorts alphabetically by name.
-// Columns without an entry here appear after all prioritized columns.
-// Entries with `field` and `testId` are togglable settings columns rendered in the table body.
+/**
+ * Column metadata for leaderboard table headers and tooltips.
+ * Sticky columns (rank, pattern name, optimized metric, actions) are not in this map.
+ * Columns are displayed in ascending priority order; equal priority sorts alphabetically by name.
+ * Columns without an entry here appear after all prioritized columns.
+ * Entries with `field` and `testId` are togglable settings columns rendered in the table body.
+ *
+ * @property name - The full display name shown in the tooltip header.
+ * @property acronym - Optional short label rendered in the column header instead of `name`.
+ *   When present, the header displays the acronym while the tooltip continues to show the
+ *   full `name`. Useful for metric columns where the full name is too long for a header cell.
+ * @property description - Optional supplementary text shown below `name` in the tooltip.
+ * @property priority - Sort order for non-sticky columns (ascending). Default: MAX_SAFE_INTEGER.
+ * @property field - LeaderboardEntry key for togglable settings columns.
+ * @property testId - data-testid prefix for settings column headers and cells.
+ */
 const COLUMN_META: Record<
   string,
   {
     name: string;
+    acronym?: string;
     description?: string;
     priority?: number;
     field?: SettingsField;
@@ -121,29 +133,29 @@ const COLUMN_META: Record<
   // metric columns use the "metric:<key>" id — handled via a fallback with priority 1
   'metric:faithfulness': {
     name: formatMetricName('faithfulness'),
-    description: 'Accuracy of the generated response to the retrieved text.',
+    // description: 'Accuracy of the generated response to the retrieved text.',
   },
   'metric:answer_correctness': {
     name: formatMetricName('answer_correctness'),
-    description:
-      'Correctness of the generated response including both the relevance of the retrieved context and the quality of the generated response.',
+    // description:
+    //   'Correctness of the generated response including both the relevance of the retrieved context and the quality of the generated response.',
   },
   'metric:context_correctness': {
     name: formatMetricName('context_correctness'),
-    description: 'Relevancy of the generated response to the input.',
+    // description: 'Relevancy of the generated response to the input.',
   },
   retrievalMethod: {
     name: 'Retrieval method',
-    description:
-      'Retrieval methods differ in the ways that they filter and rank documents so that they can retrieve relevant data.',
+    // description:
+    //   'Retrieval methods differ in the ways that they filter and rank documents so that they can retrieve relevant data.',
     priority: 2,
     field: 'retrievalMethod',
     testId: 'retrieval-method',
   },
   retrievalRankerStrategy: {
     name: 'Hybrid strategy',
-    description:
-      'A method that combines multiple retrieval approaches to enhance answer accuracy. RRF (reciprocal rank fusion) merges rankings from various sources into one list, and weighted assigns importance to outputs, prioritizing the most reliable for the final outcome.',
+    // description:
+    //   'A method that combines multiple retrieval approaches to enhance answer accuracy. RRF (reciprocal rank fusion) merges rankings from various sources into one list, and weighted assigns importance to outputs, prioritizing the most reliable for the final outcome.',
     priority: 3,
     field: 'retrievalRankerStrategy',
     testId: 'retrieval-ranker-strategy',
@@ -156,29 +168,29 @@ const COLUMN_META: Record<
   },
   chunkingMethod: {
     name: 'Chunk method',
-    description:
-      'How relevant text is retrieved for each chunk of the input after splitting the input into multiple chunks.',
+    // description:
+    //   'How relevant text is retrieved for each chunk of the input after splitting the input into multiple chunks.',
     priority: 5,
     field: 'chunkingMethod',
     testId: 'chunking-method',
   },
   retrievalNumberOfChunks: {
     name: 'Number of chunks',
-    description: 'The number of chunks that are retrieved from the indexed documents.',
+    // description: 'The number of chunks that are retrieved from the indexed documents.',
     priority: 6,
     field: 'retrievalNumberOfChunks',
     testId: 'retrieval-number-of-chunks',
   },
   chunkingChunkSize: {
     name: 'Chunk size',
-    description: 'The maximum number of characters that a chunk should contain.',
+    // description: 'The maximum number of characters that a chunk should contain.',
     priority: 7,
     field: 'chunkingChunkSize',
     testId: 'chunking-chunk-size',
   },
   chunkingChunkOverlap: {
     name: 'Chunk overlap',
-    description: 'The number of characters that overlap between two chunks.',
+    // description: 'The number of characters that overlap between two chunks.',
     priority: 8,
     field: 'chunkingChunkOverlap',
     testId: 'chunking-chunk-overlap',
@@ -188,10 +200,15 @@ const COLUMN_META: Record<
 // Safe accessor — COLUMN_META is typed as Record<string, …> so TS believes every
 // key returns a value, but at runtime dynamic metric keys may be absent.
 const getColumnMeta = (id: string): (typeof COLUMN_META)[string] | undefined => {
-  if (!(id in COLUMN_META)) {
-    return undefined;
+  if (id in COLUMN_META) {
+    return COLUMN_META[id];
   }
-  return COLUMN_META[id];
+  // Metric keys from the API may differ in case (e.g. "metric:MASE" vs "metric:mase")
+  const lowerId = id.toLowerCase();
+  if (lowerId in COLUMN_META) {
+    return COLUMN_META[lowerId];
+  }
+  return undefined;
 };
 
 // Helper to resolve priority for any column id (metric columns default to priority 2)
@@ -793,7 +810,8 @@ function AutoragLeaderboard({
                   columnId={`metric:${optimizedMetric}`}
                   tooltipName={`${getColumnMeta(`metric:${optimizedMetric}`)?.name ?? formatMetricName(optimizedMetric)} (optimized)`}
                 >
-                  {formatMetricName(optimizedMetric)}
+                  {getColumnMeta(`metric:${optimizedMetric}`)?.acronym ??
+                    formatMetricName(optimizedMetric)}
                   <div
                     data-testid="optimized-indicator"
                     className="autorag-leaderboard__optimized-indicator"
@@ -812,7 +830,9 @@ function AutoragLeaderboard({
                       : `${dc.col.testId}-header`
                   }
                 >
-                  <ColumnHeaderContent columnId={dc.id}>{dc.label}</ColumnHeaderContent>
+                  <ColumnHeaderContent columnId={dc.id}>
+                    {getColumnMeta(dc.id)?.acronym ?? dc.label}
+                  </ColumnHeaderContent>
                 </Th>
               ))}
               <Th

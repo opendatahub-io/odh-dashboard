@@ -47,9 +47,17 @@ type LeaderboardEntry = {
   optimizedMetricValue: number | string;
 };
 
-// Column metadata — display name and description for column header tooltips.
-// Metric columns use "metric:<key>" IDs matching the column IDs at render time.
-type ColumnMeta = { name: string; description?: string };
+/**
+ * Column metadata for leaderboard table headers and tooltips.
+ * Metric columns use `"metric:<key>"` IDs matching the column IDs at render time.
+ *
+ * @property name - The full display name shown in the tooltip header.
+ * @property acronym - Optional short label rendered in the column header instead of `name`.
+ *   When present, the header displays the acronym while the tooltip continues to show the
+ *   full `name`. Useful for metric columns where the full name is too long for a header cell.
+ * @property description - Optional supplementary text shown below `name` in the tooltip.
+ */
+type ColumnMeta = { name: string; description?: string; acronym?: string };
 const COLUMN_META: Record<string, ColumnMeta> = {
   rank: {
     name: 'Rank',
@@ -58,76 +66,97 @@ const COLUMN_META: Record<string, ColumnMeta> = {
   },
   model: {
     name: 'Model name',
+    description: 'The name of the generated model.',
   },
   'metric:roc_auc': {
-    name: formatMetricName('roc_auc'),
-    description: 'Receiver Operating Characteristic (Area Under Curve)',
+    name: 'Receiver Operating Characteristic (Area Under Curve)',
+    acronym: formatMetricName('roc_auc'),
+    // description: 'Receiver Operating Characteristic (Area Under Curve)',
   },
   'metric:mcc': {
-    name: formatMetricName('mcc'),
-    description: 'Matthews correlation coefficient (MCC)',
+    name: 'Matthews correlation coefficient (MCC)',
+    acronym: formatMetricName('mcc'),
+    // description: 'Matthews correlation coefficient (MCC)',
   },
   'metric:f1': {
     name: formatMetricName('f1'),
-    description: formatMetricName('f1'),
+    acronym: formatMetricName('f1'),
+    // description: formatMetricName('f1'),
   },
   'metric:r2': {
     name: formatMetricName('r2'),
-    description: formatMetricName('r2'),
+    acronym: formatMetricName('r2'),
+    // description: formatMetricName('r2'),
   },
   'metric:mae': {
-    name: formatMetricName('mae'),
-    description: 'Mean Absolute Error (MAE)',
+    name: 'Mean Absolute Error (MAE)',
+    acronym: formatMetricName('mae'),
+    // description: 'Mean Absolute Error (MAE)',
   },
   'metric:mse': {
-    name: formatMetricName('mse'),
-    description: 'Mean Squared Error (MSE)',
+    name: 'Mean Squared Error (MSE)',
+    acronym: formatMetricName('mse'),
+    // description: 'Mean Squared Error (MSE)',
   },
   'metric:rmse': {
-    name: formatMetricName('rmse'),
-    description: 'Root Mean Square Error (RMSE)',
+    name: 'Root Mean Square Error (RMSE)',
+    acronym: formatMetricName('rmse'),
+    // description: 'Root Mean Square Error (RMSE)',
   },
   'metric:mape': {
-    name: formatMetricName('mape'),
-    description: 'Mean Absolute Percentage Error (MAPE)',
+    name: 'Mean Absolute Percentage Error (MAPE)',
+    acronym: formatMetricName('mape'),
+    // description: 'Mean Absolute Percentage Error (MAPE)',
   },
   'metric:mase': {
-    name: formatMetricName('mase'),
-    description: 'Mean Absolute Scaled Error (MASE)',
+    name: 'Mean Absolute Scaled Error (MASE)',
+    acronym: formatMetricName('mase'),
+    // description: 'Mean Absolute Scaled Error (MASE)',
   },
   'metric:rmsle': {
-    name: formatMetricName('rmsle'),
-    description: 'Root Mean Squared Logarithmic Error (RMSLE)',
+    name: 'Root Mean Squared Logarithmic Error (RMSLE)',
+    acronym: formatMetricName('rmsle'),
+    // description: 'Root Mean Squared Logarithmic Error (RMSLE)',
   },
   'metric:rmsse': {
-    name: formatMetricName('rmsse'),
-    description: 'Root Mean Squared Scaled Error (RMSSE)',
+    name: 'Root Mean Squared Scaled Error (RMSSE)',
+    acronym: formatMetricName('rmsse'),
+    // description: 'Root Mean Squared Scaled Error (RMSSE)',
   },
   'metric:smape': {
-    name: formatMetricName('smape'),
-    description: 'Symmetric Mean Absolute Percentage Error (SMAPE)',
+    name: 'Symmetric Mean Absolute Percentage Error (SMAPE)',
+    acronym: formatMetricName('smape'),
+    // description: 'Symmetric Mean Absolute Percentage Error (SMAPE)',
   },
   'metric:sql': {
-    name: formatMetricName('sql'),
-    description: 'Scaled Quantile Loss (SQL)',
+    name: 'Scaled Quantile Loss (SQL)',
+    acronym: formatMetricName('sql'),
+    // description: 'Scaled Quantile Loss (SQL)',
   },
   'metric:wape': {
-    name: formatMetricName('wape'),
-    description: 'Weighted Absolute Percentage Error (WAPE)',
+    name: 'Weighted Absolute Percentage Error (WAPE)',
+    acronym: formatMetricName('wape'),
+    // description: 'Weighted Absolute Percentage Error (WAPE)',
   },
   'metric:wql': {
-    name: formatMetricName('wql'),
-    description: 'Weighted Quantile Loss (WQL)',
+    name: 'Weighted Quantile Loss (WQL)',
+    acronym: formatMetricName('wql'),
+    // description: 'Weighted Quantile Loss (WQL)',
   },
 };
 
 // Safe accessor — COLUMN_META is typed as Record<string, …> so TS believes every
 // key returns a value, but at runtime dynamic metric keys may be absent.
 const getColumnMeta = (id: string): ColumnMeta | undefined => {
-  if (!(id in COLUMN_META)) {
-    return undefined;
+  if (id in COLUMN_META) {
+    return COLUMN_META[id];
   }
-  return COLUMN_META[id];
+  // Metric keys from the API may differ in case (e.g. "metric:MASE" vs "metric:mase")
+  const lowerId = id.toLowerCase();
+  if (lowerId in COLUMN_META) {
+    return COLUMN_META[lowerId];
+  }
+  return undefined;
 };
 
 const ColumnHeaderContent: React.FC<{
@@ -135,8 +164,7 @@ const ColumnHeaderContent: React.FC<{
   tooltipName?: string;
   children: React.ReactNode;
 }> = ({ columnId, tooltipName, children }) => {
-  const lowerColumnId = columnId.toLowerCase();
-  const meta = getColumnMeta(lowerColumnId);
+  const meta = getColumnMeta(columnId);
   const name = tooltipName ?? meta?.name ?? children;
   const description = meta?.description;
   return (
@@ -600,9 +628,13 @@ function AutomlLeaderboard({
               >
                 <ColumnHeaderContent
                   columnId={`metric:${optimizedMetric}`}
-                  tooltipName={`${getColumnMeta(`metric:${optimizedMetric}`)?.name ?? formatMetricName(optimizedMetric)} (optimized)`}
+                  tooltipName={`${
+                    getColumnMeta(`metric:${optimizedMetric}`)?.name ??
+                    formatMetricName(optimizedMetric)
+                  } (optimized)`}
                 >
-                  {formatMetricName(optimizedMetric)}
+                  {getColumnMeta(`metric:${optimizedMetric}`)?.acronym ??
+                    formatMetricName(optimizedMetric)}
                   <div
                     data-testid="optimized-indicator"
                     className="automl-leaderboard__optimized-indicator"
@@ -618,7 +650,7 @@ function AutomlLeaderboard({
                   data-testid={`metric-header-${metricKey}`}
                 >
                   <ColumnHeaderContent columnId={`metric:${metricKey}`}>
-                    {formatMetricName(metricKey)}
+                    {getColumnMeta(`metric:${metricKey}`)?.acronym ?? formatMetricName(metricKey)}
                   </ColumnHeaderContent>
                 </Th>
               ))}

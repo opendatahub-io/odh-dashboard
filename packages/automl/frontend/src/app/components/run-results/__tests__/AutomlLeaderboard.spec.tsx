@@ -253,7 +253,7 @@ describe('AutomlLeaderboard utility functions', () => {
       // Check that special case acronyms are displayed correctly
       expect(screen.getByText('ROC AUC')).toBeInTheDocument();
       expect(screen.getByText('MCC')).toBeInTheDocument();
-      expect(screen.getByText('F1')).toBeInTheDocument();
+      expect(screen.getByText('F₁')).toBeInTheDocument();
       expect(screen.getByText('R²')).toBeInTheDocument();
       expect(screen.getByText('MAE')).toBeInTheDocument();
       expect(screen.getByText('MSE')).toBeInTheDocument();
