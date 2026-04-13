@@ -162,6 +162,9 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 // a generic 500 when the endpoint is unreachable — common in air-gapped or
 // misconfigured environments.
 func isS3ConnectivityError(err error) bool {
+	if errors.Is(err, net.ErrClosed) {
+		return true
+	}
 	var netErr net.Error
 	if errors.As(err, &netErr) && netErr.Timeout() {
 		return true

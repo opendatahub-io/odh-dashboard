@@ -2137,6 +2137,16 @@ func TestIsS3ConnectivityError(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "net.ErrClosed",
+			err:  net.ErrClosed,
+			want: true,
+		},
+		{
+			name: "wrapped net.ErrClosed",
+			err:  fmt.Errorf("http2: client conn not usable: %w", net.ErrClosed),
+			want: true,
+		},
+		{
 			name: "generic error",
 			err:  fmt.Errorf("something went wrong"),
 			want: false,
