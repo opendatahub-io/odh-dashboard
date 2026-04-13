@@ -21,6 +21,22 @@ const (
 type S3ClientOptions struct {
 	DevMode bool // Controls whether ALLOW_UNRESOLVED_S3_ENDPOINTS is honoured
 
+	// InsecureSkipVerify skips TLS certificate verification for S3 endpoints.
+	// Required for MinIO or other S3-compatible stores using self-signed certificates.
+	// Controlled via S3_INSECURE_SKIP_VERIFY env var (default: true).
+	InsecureSkipVerify bool
+
+	// AllowInternalIPs permits connections to RFC-1918 private IP ranges
+	// (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and IPv6 unique local addresses.
+	// Required when the S3-compatible store (e.g. MinIO) runs on the same cluster.
+	// Controlled via S3_ALLOW_INTERNAL_IPS env var (default: true).
+	AllowInternalIPs bool
+
+	// AllowHTTP permits plain HTTP (non-TLS) S3 endpoint URLs.
+	// Some MinIO deployments use HTTP internally within the cluster.
+	// Controlled via S3_ALLOW_HTTP env var (default: true).
+	AllowHTTP bool
+
 	// Transfer manager tuning for GetObject. Zero values fall back to defaults.
 	Concurrency        int
 	PartSizeBytes      int64
