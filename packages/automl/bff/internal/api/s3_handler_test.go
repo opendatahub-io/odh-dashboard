@@ -2195,6 +2195,41 @@ func (c *connectivityErrorS3Client) UploadObject(_ context.Context, _ string, _ 
 	return &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("i/o timeout")}
 }
 
+func (c *connectivityErrorS3Client) GetCSVSchema(_ context.Context, _, _ string) (s3int.CSVSchemaResult, error) {
+	return s3int.CSVSchemaResult{}, &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("i/o timeout")}
+}
+
+func TestGetS3FileSchemaHandler_ConnectivityError_Returns503(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&connectivityErrorS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/file/schema?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.csv",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	var env ErrorEnvelope
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
+	require.NotNil(t, env.Error)
+	assert.Equal(t, "503", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "my-bucket")
+	assert.Contains(t, env.Error.Message, "Unable to connect")
+}
+
 func TestGetS3FileHandler_ConnectivityError_Returns503(t *testing.T) {
 	t.Parallel()
 	secret := mockS3Secret("aws-secret-1", "test-namespace")

@@ -163,21 +163,27 @@ func TestS3ConnectTimeout_Is10Seconds(t *testing.T) {
 		"s3ConnectTimeout must be 10s to fail fast before the OpenShift route timeout (30s)")
 }
 
-func TestNewRealS3Client_SetsRetryMaxAttemptsToOne(t *testing.T) {
+func TestNewRealS3Client_CreatesClientWithValidCredentials(t *testing.T) {
 	t.Parallel()
-	// Create a valid client and verify it was created successfully.
-	// The RetryMaxAttempts=1 setting is in the aws.Config and isn't directly
-	// inspectable on the constructed client, but we can verify the client
-	// is built with the timeout-aware HTTP transport by checking it doesn't
-	// error on valid credentials.
+	// Use a literal IP to avoid DNS resolution dependency in tests.
 	client, err := NewRealS3Client(&S3Credentials{
 		AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
 		SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
 		Region:          "us-east-1",
-		EndpointURL:     "https://s3.amazonaws.com",
+		EndpointURL:     "https://1.2.3.4:443",
 	}, S3ClientOptions{})
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
+}
+
+func TestBuildS3AWSConfig_SetsRetryMaxAttemptsToOne(t *testing.T) {
+	t.Parallel()
+	cfg := buildS3AWSConfig(&S3Credentials{
+		AccessKeyID:     "test-key",
+		SecretAccessKey: "test-secret",
+		Region:          "us-east-1",
+	})
+	assert.Equal(t, 1, cfg.RetryMaxAttempts)
 }
 
 // mockS3CodedError simulates AWS SDK errors that implement ErrorCode().

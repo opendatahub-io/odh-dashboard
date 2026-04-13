@@ -67,6 +67,26 @@ type RealS3Client struct {
 // (typically 30s) so the BFF can return a meaningful error instead of a raw 504.
 const s3ConnectTimeout = 10 * time.Second
 
+// buildS3AWSConfig creates the aws.Config used by NewRealS3Client.
+// It configures timeout-aware HTTP transport and single-attempt retries
+// so that unreachable S3 endpoints fail fast.
+func buildS3AWSConfig(creds *S3Credentials) aws.Config {
+	httpClient := awshttp.NewBuildableClient().WithTransportOptions(func(t *http.Transport) {
+		t.DialContext = (&net.Dialer{
+			Timeout: s3ConnectTimeout,
+		}).DialContext
+		t.TLSHandshakeTimeout = s3ConnectTimeout
+		t.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	})
+
+	return aws.Config{
+		Region:           creds.Region,
+		Credentials:      credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
+		RetryMaxAttempts: 1,
+		HTTPClient:       httpClient,
+	}
+}
+
 // NewRealS3Client creates a new S3 client from credentials.
 func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client, error) {
 	if creds == nil {
@@ -80,23 +100,7 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 		return nil, fmt.Errorf("%w: %w", ErrEndpointValidation, err)
 	}
 
-	// Use an HTTP client with explicit connect and TLS timeouts so that
-	// unreachable S3 endpoints (e.g. in air-gapped clusters) fail fast
-	// instead of hanging until the gateway timeout fires.
-	httpClient := awshttp.NewBuildableClient().WithTransportOptions(func(t *http.Transport) {
-		t.DialContext = (&net.Dialer{
-			Timeout: s3ConnectTimeout,
-		}).DialContext
-		t.TLSHandshakeTimeout = s3ConnectTimeout
-		t.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
-	})
-
-	cfg := aws.Config{
-		Region:           creds.Region,
-		Credentials:      credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
-		RetryMaxAttempts: 1,
-		HTTPClient:       httpClient,
-	}
+	cfg := buildS3AWSConfig(creds)
 
 	c.s3Client = awss3.NewFromConfig(cfg, func(o *awss3.Options) {
 		o.BaseEndpoint = aws.String(validatedEndpoint)
