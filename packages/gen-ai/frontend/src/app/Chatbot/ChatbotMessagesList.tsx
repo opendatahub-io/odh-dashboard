@@ -31,33 +31,39 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         // Destructure custom props from message to avoid passing them to PatternFly Message component
         const { metrics, errorClassification, onRetryError, ...messageProps } = message;
 
-        // Build error props for PatternFly Message (only for full failures)
-        const errorProps: PFMessageProps['error'] =
+        // Build extraContent with metrics and error alerts
+        const extraContent: PFMessageProps['extraContent'] = {};
+
+        // Full-failure errors: render as beforeMainContent (above empty content)
+        if (
           message.role === 'bot' &&
           errorClassification &&
           errorClassification.pattern === 'full-failure'
-            ? {
-                variant: errorClassification.variant,
-                title: errorClassification.title,
-                body: (
-                  <ChatbotErrorAlert
-                    classifiedError={errorClassification}
-                    onRetry={onRetryError}
-                    data-testid={`chatbot-error-alert-${message.id}`}
-                  />
-                ),
-              }
-            : undefined;
+        ) {
+          // eslint-disable-next-line no-console
+          console.log('[ChatbotMessagesList] Rendering full-failure error', {
+            pattern: errorClassification.pattern,
+            isRetriable: errorClassification.isRetriable,
+            hasOnRetry: !!onRetryError,
+            messageId: message.id,
+          });
 
-        // Build extraContent with metrics and error alerts
-        const extraContent: PFMessageProps['extraContent'] = {};
+          extraContent.beforeMainContent = (
+            <ChatbotErrorAlert
+              classifiedError={errorClassification}
+              onRetry={onRetryError}
+              data-testid={`chatbot-error-alert-${message.id}`}
+            />
+          );
+        }
 
         // Add metrics to endContent (if present and no error)
         if (message.role === 'bot' && metrics && !errorClassification) {
           extraContent.endContent = <ChatbotMessagesMetrics metrics={metrics} />;
         }
 
-        // Add partial failure alert to beforeMainContent (warning alert above response)
+        // Partial-failure errors: render as beforeMainContent (warning alert above response)
+        // Note: Full-failure errors are already handled above in the same way
         if (
           message.role === 'bot' &&
           errorClassification &&
@@ -91,7 +97,6 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
           <React.Fragment key={message.id}>
             <Message
               {...messageProps}
-              error={errorProps}
               extraContent={Object.keys(extraContent).length > 0 ? extraContent : undefined}
               data-testid={`chatbot-message-${message.role}`}
             />

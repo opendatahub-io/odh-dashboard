@@ -34,8 +34,16 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
   retryCount = 0,
   'data-testid': dataTestId = 'chatbot-error-alert',
 }) => {
-  const { variant, title, description, details, isRetriable, actionSuggestion } = classifiedError;
+  const { variant, title, description, details, isRetriable } = classifiedError;
   const [copied, setCopied] = React.useState(false);
+
+  // eslint-disable-next-line no-console
+  console.log('[ChatbotErrorAlert] Props:', {
+    classifiedError,
+    isRetriable,
+    onRetry: !!onRetry,
+    retryCount,
+  });
 
   const handleCopy = () => {
     const rawError = `[${details.errorCode}] ${details.rawMessage}`;
@@ -44,26 +52,21 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Action links for retry and action suggestions
+  // Action link for retry (single ReactNode, not array - matches prototype)
   const actionLinks = React.useMemo(() => {
-    const links: React.ReactNode[] = [];
-
     if (isRetriable && onRetry) {
-      links.push(
-        <AlertActionLink key="retry" onClick={onRetry} data-testid={`${dataTestId}-retry-link`}>
+      return (
+        <AlertActionLink onClick={onRetry} data-testid={`${dataTestId}-retry-link`}>
           {retryCount > 0 ? 'Retry again' : 'Retry'}
-        </AlertActionLink>,
+        </AlertActionLink>
       );
     }
 
     // Action suggestions (e.g., "Open Build panel") - for future implementation
-    if (actionSuggestion) {
-      // TODO: Implement action suggestion handlers
-      // links.push(<AlertActionLink key="action">{actionSuggestion}</AlertActionLink>);
-    }
+    // TODO: Implement action suggestion handlers when needed
 
-    return links.length > 0 ? links : undefined;
-  }, [isRetriable, onRetry, retryCount, actionSuggestion, dataTestId]);
+    return undefined;
+  }, [isRetriable, onRetry, retryCount, dataTestId]);
 
   const rawErrorText = `[${details.errorCode}] ${details.rawMessage}`;
 
