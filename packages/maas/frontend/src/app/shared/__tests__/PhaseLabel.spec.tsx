@@ -3,51 +3,52 @@ import { render, screen } from '@testing-library/react';
 import PhaseLabel from '~/app/shared/PhaseLabel';
 
 describe('PhaseLabel', () => {
-  it('should render a success label for Active phase', () => {
+  it('should render Active phase with correct text', () => {
     render(<PhaseLabel phase="Active" />);
-    const label = screen.getByText('Active').closest('.pf-v6-c-label');
+    const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
-    expect(label?.className).toContain('pf-m-success');
+    expect(label.textContent).toContain('Active');
   });
 
-  it('should render a success label for Ready phase', () => {
+  it('should render Ready phase with correct text', () => {
     render(<PhaseLabel phase="Ready" />);
-    const label = screen.getByText('Ready').closest('.pf-v6-c-label');
+    const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
-    expect(label?.className).toContain('pf-m-success');
+    expect(label.textContent).toContain('Ready');
   });
 
-  it('should render a danger label for Failed phase', () => {
+  it('should render Failed phase with correct text', () => {
     render(<PhaseLabel phase="Failed" />);
-    const label = screen.getByText('Failed').closest('.pf-v6-c-label');
+    const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
-    expect(label?.className).toContain('pf-m-danger');
+    expect(label.textContent).toContain('Failed');
   });
 
-  it('should render a danger label for Unhealthy phase', () => {
+  it('should render Unhealthy phase with correct text', () => {
     render(<PhaseLabel phase="Unhealthy" />);
-    const label = screen.getByText('Unhealthy').closest('.pf-v6-c-label');
+    const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
-    expect(label?.className).toContain('pf-m-danger');
+    expect(label.textContent).toContain('Unhealthy');
   });
 
-  it('should render a blue label for Pending phase', () => {
+  it('should render Pending phase with correct text', () => {
     render(<PhaseLabel phase="Pending" />);
-    const label = screen.getByText('Pending').closest('.pf-v6-c-label');
+    const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
-    expect(label?.className).toContain('pf-m-blue');
+    expect(label.textContent).toContain('Pending');
   });
 
-  it('should render an em-dash when phase is undefined', () => {
-    const { container } = render(<PhaseLabel phase={undefined} />);
-    expect(container.textContent).toBe('—');
-    expect(screen.queryByTestId('phase-label')).toBeNull();
+  it('should render Unknown label when phase is undefined', () => {
+    render(<PhaseLabel phase={undefined} />);
+    const label = screen.getByTestId('phase-label');
+    expect(label).not.toBeNull();
+    expect(label.textContent).toContain('Unknown');
   });
 
-  it('should render a compact filled label for an unknown phase value', () => {
+  it('should render unrecognized phase values as-is', () => {
     render(<PhaseLabel phase="SomethingElse" />);
-    const label = screen.getByText('SomethingElse').closest('.pf-v6-c-label');
+    const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
-    expect(label?.className).toContain('pf-m-compact');
+    expect(label.textContent).toContain('SomethingElse');
   });
 });

@@ -24,13 +24,10 @@ const getPhaseProps = (
 };
 
 const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase }) => {
-  if (!phase) {
-    return <>—</>;
-  }
-
+  const normalized = phase?.trim() || 'Unknown';
   return (
-    <Label isCompact data-testid="phase-label" {...getPhaseProps(phase)}>
-      {phase}
+    <Label isCompact data-testid="phase-label" {...getPhaseProps(normalized)}>
+      {normalized}
     </Label>
   );
 };

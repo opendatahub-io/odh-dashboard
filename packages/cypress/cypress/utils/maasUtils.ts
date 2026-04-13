@@ -78,6 +78,42 @@ export const mockCreateAPIKeyRequest = (): CreateAPIKeyRequest => {
   };
 };
 
+export const mockFailedSubscription = (): MaaSSubscription => ({
+  name: 'failed-sub',
+  namespace: 'maas-system',
+  phase: 'Failed',
+  priority: 99,
+  owner: {
+    groups: [{ name: 'system:authenticated' }],
+  },
+  modelRefs: [
+    {
+      name: 'granite-3-8b-instruct',
+      namespace: 'maas-models',
+      tokenRateLimits: [{ limit: 9999999, window: '24h' }],
+    },
+  ],
+  creationTimestamp: '2025-04-01T12:00:00Z',
+});
+
+export const mockPendingSubscription = (): MaaSSubscription => ({
+  name: 'pending-sub',
+  namespace: 'maas-system',
+  phase: 'Pending',
+  priority: 99,
+  owner: {
+    groups: [{ name: 'beta-testers' }],
+  },
+  modelRefs: [
+    {
+      name: 'flan-t5-small',
+      namespace: 'maas-models',
+      tokenRateLimits: [{ limit: 5000, window: '1h' }],
+    },
+  ],
+  creationTimestamp: '2025-04-05T09:00:00Z',
+});
+
 export const mockSubscriptions = (): MaaSSubscription[] => [
   {
     name: 'premium-team-sub',
@@ -139,6 +175,8 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     ],
     creationTimestamp: '2025-03-18T03:00:00Z',
   },
+  mockFailedSubscription(),
+  mockPendingSubscription(),
 ];
 
 export const mockSubscriptionListItems = (): UserSubscription[] => [
@@ -290,6 +328,22 @@ export const mockCreatePolicyResponse = (name = 'new-policy-from-test'): MaaSAut
   subjects: { groups: [{ name: 'premium-users' }] },
 });
 
+export const mockFailedAuthPolicy = (): MaaSAuthPolicy => ({
+  name: 'failed-policy',
+  namespace: 'maas-system',
+  phase: 'Failed',
+  modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+  subjects: { groups: [{ name: 'system:authenticated' }] },
+});
+
+export const mockPendingAuthPolicy = (): MaaSAuthPolicy => ({
+  name: 'pending-policy',
+  namespace: 'maas-system',
+  phase: 'Pending',
+  modelRefs: [{ name: 'flan-t5-small', namespace: 'maas-models' }],
+  subjects: { groups: [{ name: 'beta-testers' }] },
+});
+
 export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
   {
     name: 'test-subscription-policy',
@@ -316,59 +370,9 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
       groups: mockSubscriptions()[1].owner.groups,
     },
   },
+  mockFailedAuthPolicy(),
+  mockPendingAuthPolicy(),
 ];
-
-export const mockFailedSubscription = (): MaaSSubscription => ({
-  name: 'failed-sub',
-  namespace: 'maas-system',
-  phase: 'Failed',
-  priority: 99,
-  owner: {
-    groups: [{ name: 'system:authenticated' }],
-  },
-  modelRefs: [
-    {
-      name: 'granite-3-8b-instruct',
-      namespace: 'maas-models',
-      tokenRateLimits: [{ limit: 9999999, window: '24h' }],
-    },
-  ],
-  creationTimestamp: '2025-04-01T12:00:00Z',
-});
-
-export const mockPendingSubscription = (): MaaSSubscription => ({
-  name: 'pending-sub',
-  namespace: 'maas-system',
-  phase: 'Pending',
-  priority: 99,
-  owner: {
-    groups: [{ name: 'beta-testers' }],
-  },
-  modelRefs: [
-    {
-      name: 'flan-t5-small',
-      namespace: 'maas-models',
-      tokenRateLimits: [{ limit: 5000, window: '1h' }],
-    },
-  ],
-  creationTimestamp: '2025-04-05T09:00:00Z',
-});
-
-export const mockFailedAuthPolicy = (): MaaSAuthPolicy => ({
-  name: 'failed-policy',
-  namespace: 'maas-system',
-  phase: 'Failed',
-  modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
-  subjects: { groups: [{ name: 'system:authenticated' }] },
-});
-
-export const mockPendingAuthPolicy = (): MaaSAuthPolicy => ({
-  name: 'pending-policy',
-  namespace: 'maas-system',
-  phase: 'Pending',
-  modelRefs: [{ name: 'flan-t5-small', namespace: 'maas-models' }],
-  subjects: { groups: [{ name: 'beta-testers' }] },
-});
 
 export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {
   const policy = mockAuthPolicies().find((p) => p.name === name) ?? mockAuthPolicies()[0];

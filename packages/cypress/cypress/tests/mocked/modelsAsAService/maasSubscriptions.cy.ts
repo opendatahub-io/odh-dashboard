@@ -59,7 +59,7 @@ describe('Subscriptions Page', () => {
       );
 
     subscriptionsPage.findTable().should('exist');
-    subscriptionsPage.findRows().should('have.length', 3);
+    subscriptionsPage.findRows().should('have.length', 5);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
     const premiumRow = subscriptionsPage.getRow('premium-team-sub');
@@ -86,7 +86,7 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findFilterInput().should('exist').type('premium');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().should('exist').click();
-    subscriptionsPage.findRows().should('have.length', 3);
+    subscriptionsPage.findRows().should('have.length', 5);
 
     premiumRow.findKebabAction('View details').should('exist');
     premiumRow.findKebabAction('Edit subscription').should('exist');
@@ -113,7 +113,7 @@ describe('Subscriptions Page', () => {
         data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" },
       });
     });
-    subscriptionsPage.findRows().should('have.length', 2);
+    subscriptionsPage.findRows().should('have.length', 4);
     subscriptionsPage.findTable().should('not.contain', 'premium-team-sub');
   });
 });
