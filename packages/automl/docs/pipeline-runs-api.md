@@ -579,8 +579,8 @@ The API automatically discovers all managed AutoML pipelines (time-series and ta
 4. Applies `page`/`pageSize` pagination to the merged list
 
 **Discovery Details:**
-- Time-series prefix: configurable via `AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX` (default: "automl-timeseries")
-- Tabular prefix: configurable via `AUTOML_TABULAR_PIPELINE_NAME_PREFIX` (default: "automl-tabular")
+- Time-series prefix: configurable via `AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX` (default: "autogluon-timeseries-training-pipeline")
+- Tabular prefix: configurable via `AUTOML_TABULAR_PIPELINE_NAME_PREFIX` (default: "autogluon-tabular-training-pipeline")
 - Returns 500 if no managed AutoML pipelines are found in the namespace
 
 ## Error Responses
