@@ -61,10 +61,10 @@ func TestListSubscriptionsForApiKeys_NilModelRefsNormalized(t *testing.T) {
 	// Simulate the upstream MaaS API returning null for model_refs
 	body := []map[string]any{
 		{
-			"subscription_id_header":    "test-sub",
-			"subscription_description":  "Test",
-			"priority":                  1,
-			"model_refs":                nil,
+			"subscription_id_header":   "test-sub",
+			"subscription_description": "Test",
+			"priority":                 1,
+			"model_refs":               nil,
 		},
 	}
 	client := newTestClient(t, jsonHandler(t, body))
