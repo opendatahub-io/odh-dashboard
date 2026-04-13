@@ -199,6 +199,7 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Deploy LLMD Model From YAML Editor');
       projectDetails.findSectionTab('model-server').click();
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Enter Manual YAML editor Mode');

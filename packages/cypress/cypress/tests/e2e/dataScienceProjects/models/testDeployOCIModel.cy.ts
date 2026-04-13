@@ -216,6 +216,12 @@ describe(
 
         // Submit the changes
         modelServingWizardEdit.findSubmitButton().click();
+        modelServingSection.findModelServerDeployedName(modelDeploymentName);
+
+        cy.step('Verify that the Model is running');
+        cy.get<string>('@resourceName').then((resourceName) => {
+          checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+        });
 
         // Verify the model is accessible without a token after disabling auth
         cy.step('Verify the model is accessible without a token after disabling auth');
