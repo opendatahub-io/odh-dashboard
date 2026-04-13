@@ -62,7 +62,16 @@ class ModelsTabPage {
   }
 
   filterByName(name: string): void {
-    cy.findByTestId('models-table-search').clear();
+    // Ensure we're in text search mode by checking if the search input is visible
+    cy.get('body').then(($body) => {
+      // If search input is not visible, we need to switch to Name filter
+      if (!$body.find('[data-testid="models-table-search"]').is(':visible')) {
+        cy.findByRole('button', { name: /Filter toggle/i }).click();
+        cy.findByRole('menuitem', { name: 'Name' }).click();
+      }
+    });
+
+    cy.findByTestId('models-table-search').should('be.visible').clear();
     cy.findByTestId('models-table-search').type(`${name}{enter}`);
   }
 
@@ -76,12 +85,17 @@ class ModelsTabPage {
     cy.findByTestId('models-table-search').type(`${useCase}{enter}`);
   }
 
-  findActiveFilterChip(filterType: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`filter-chip-${filterType}`);
+  findActiveFilterChip(filterType: string, value: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`filter-chip-${filterType}-${value}`);
   }
 
   clearFilters(): void {
-    cy.findByTestId('clear-all-filters-button').click();
+    // Only clear if the button exists (idempotent - safe when no filters are active)
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="clear-all-filters-button"]').length) {
+        cy.findByTestId('clear-all-filters-button').click();
+      }
+    });
   }
 }
 

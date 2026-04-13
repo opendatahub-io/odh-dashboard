@@ -195,13 +195,10 @@ describe('AI Playground - Chatbot Interactions (Mocked)', () => {
         cy.step('Verify Knowledge section is present (with external vector stores feature)');
         chatbotPage.clickKnowledgeTab();
         // Handle both knowledge-section-title (vector-store enabled) and rag-section-title (disabled)
-        cy.get('body').then(($body) => {
-          if ($body.find('[data-testid="knowledge-section-title"]').length) {
-            cy.findByTestId('knowledge-section-title').should('be.visible');
-          } else {
-            cy.findByTestId('rag-section-title').should('be.visible');
-          }
-        });
+        // Use retryable selector that waits for either element to appear
+        cy.get('[data-testid="knowledge-section-title"], [data-testid="rag-section-title"]').should(
+          'be.visible',
+        );
 
         cy.step('Test completed - MCP servers tab is visible');
       },

@@ -236,7 +236,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
                 {activeFilters.map(({ filterType, value }) => (
                   <FlexItem key={`${filterType}-${value}`}>
                     <Label
-                      data-testid={`filter-chip-${filterType}`}
+                      data-testid={`filter-chip-${filterType}-${value}`}
                       color={getLabelColor(filterType)}
                       onClose={() => handleRemoveFilter(filterType, value)}
                       closeBtnProps={{
