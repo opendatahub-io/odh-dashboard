@@ -377,10 +377,12 @@ describe('Playground - MCP Servers', () => {
       cy.step('Verify tools button is enabled after closing modal');
       // Wait for MCP table to be visible after potential tab remount
       playgroundPage.mcpTab.findMCPServersTable().should('be.visible');
-      serverRow.findToolsButton().should('exist').and('not.have.attr', 'aria-disabled');
+      // Re-query server row after modal closes to avoid stale reference
+      const freshServerRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
+      freshServerRow.findToolsButton().should('exist').and('not.have.attr', 'aria-disabled');
 
       cy.step('Click tools button to open tools modal');
-      serverRow.findToolsButton().click();
+      freshServerRow.findToolsButton().click();
 
       cy.step('Verify tools modal opens with tools');
       mcpToolsModal.find().should('be.visible');
