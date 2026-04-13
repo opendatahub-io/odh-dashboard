@@ -143,17 +143,8 @@ const ColumnHeaderContent: React.FC<{
     <Tooltip
       content={
         <div>
-          <div style={{ fontWeight: 'bold' }}>{name}</div>
-          {description && (
-            <div
-              style={{
-                fontSize: 'var(--pf-t--global--font--size--xs)',
-                marginTop: 'var(--pf-t--global--spacer--xs)',
-              }}
-            >
-              {description}
-            </div>
-          )}
+          <div className="pf-v6-u-font-weight-bold">{name}</div>
+          {description && <div className="pf-v6-u-font-size-xs pf-v6-u-mt-xs">{description}</div>}
         </div>
       }
     >
@@ -266,6 +257,15 @@ function AutomlLeaderboard({
       }
     });
     setHiddenColumnIds(newHiddenIds);
+
+    // Reset sort to default if the currently sorted column is being hidden
+    setActiveSortId((currentId) => {
+      if (newHiddenIds.has(currentId)) {
+        setActiveSortDirection('asc');
+        return 'rank';
+      }
+      return currentId;
+    });
   }, []);
 
   // Column IDs in render order (visible only) — bridges PF's numeric sort index API
@@ -418,14 +418,17 @@ function AutomlLeaderboard({
 
   // Helper function to get sort params for a column
   const getSortParams = React.useCallback(
-    (columnId: string): ThProps['sort'] => ({
-      sortBy: {
-        index: sortableColumnIds.indexOf(activeSortId),
-        direction: activeSortDirection,
-      },
-      onSort: handleSort,
-      columnIndex: sortableColumnIds.indexOf(columnId),
-    }),
+    (columnId: string): ThProps['sort'] => {
+      const activeSortIndex = sortableColumnIds.indexOf(activeSortId);
+      return {
+        sortBy: {
+          index: activeSortIndex >= 0 ? activeSortIndex : 0,
+          direction: activeSortDirection,
+        },
+        onSort: handleSort,
+        columnIndex: sortableColumnIds.indexOf(columnId),
+      };
+    },
     [sortableColumnIds, activeSortId, activeSortDirection, handleSort],
   );
 
@@ -571,6 +574,7 @@ function AutomlLeaderboard({
               <Th
                 sort={getSortParams('rank')}
                 data-testid="rank-header"
+                className="automl-leaderboard__rank-cell"
                 isStickyColumn
                 stickyMinWidth="120px"
                 stickyLeftOffset="0"
@@ -601,10 +605,7 @@ function AutomlLeaderboard({
                   {formatMetricName(optimizedMetric)}
                   <div
                     data-testid="optimized-indicator"
-                    style={{
-                      fontWeight: 'normal',
-                      fontSize: 'var(--pf-t--global--font--size--xs)',
-                    }}
+                    className="automl-leaderboard__optimized-indicator"
                   >
                     (optimized)
                   </div>
@@ -636,6 +637,7 @@ function AutomlLeaderboard({
                 <Td
                   dataLabel="Rank"
                   data-testid={`rank-${entry.rank}`}
+                  className="automl-leaderboard__rank-cell"
                   isStickyColumn
                   stickyMinWidth="120px"
                   stickyLeftOffset="0"

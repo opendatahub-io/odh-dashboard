@@ -61,7 +61,7 @@ export function downloadBlob(blob: Blob, filename: string): void {
  * e.g. "Pattern7" → "Pattern\u00a07"
  */
 export function formatPatternName(name: string): string {
-  return name.replace(/(\D)(\d+)$/, '$1\u00a0$2');
+  return name.replace(/(\S)\s*(\d+)$/, '$1\u00a0$2');
 }
 
 /**

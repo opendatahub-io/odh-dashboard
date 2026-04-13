@@ -47,9 +47,13 @@
     }
   }
 
+  &__optimized-indicator {
+    font-weight: normal;
+    font-size: var(--pf-t--global--font--size--xs);
+  }
+
   // Center-align the rank column so plain numbers align with the starred rank label
-  [data-testid='rank-header'],
-  [data-testid^='rank-'] {
+  &__rank-cell {
     text-align: center;
   }
 

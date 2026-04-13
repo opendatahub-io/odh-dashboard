@@ -230,17 +230,8 @@ const ColumnHeaderContent: React.FC<{
     <Tooltip
       content={
         <div>
-          <div style={{ fontWeight: 'bold' }}>{name}</div>
-          {description && (
-            <div
-              style={{
-                fontSize: 'var(--pf-t--global--font--size--xs)',
-                marginTop: 'var(--pf-t--global--spacer--xs)',
-              }}
-            >
-              {description}
-            </div>
-          )}
+          <div className="pf-v6-u-font-weight-bold">{name}</div>
+          {description && <div className="pf-v6-u-font-size-xs pf-v6-u-mt-xs">{description}</div>}
         </div>
       }
     >
@@ -374,6 +365,15 @@ function AutoragLeaderboard({
       }
     });
     setHiddenColumnIds(newHiddenIds);
+
+    // Reset sort to default if the currently sorted column is being hidden
+    setActiveSortId((currentId) => {
+      if (newHiddenIds.has(currentId)) {
+        setActiveSortDirection('asc');
+        return 'rank';
+      }
+      return currentId;
+    });
   }, []);
 
   // Column IDs in render order (visible only) — bridges PF's numeric sort index API
@@ -515,7 +515,12 @@ function AutoragLeaderboard({
     }
     if (activeSortId === 'modelNames') {
       return rankedEntries.toSorted((a, b) => {
-        const comparison = a.generationModelId.localeCompare(b.generationModelId);
+        const aDisplay = `${getModelIdShortName(a.generationModelId)} / ${getModelIdShortName(a.embeddingsModelId)}`;
+        const bDisplay = `${getModelIdShortName(b.generationModelId)} / ${getModelIdShortName(b.embeddingsModelId)}`;
+        const comparison =
+          aDisplay.localeCompare(bDisplay) ||
+          a.generationModelId.localeCompare(b.generationModelId) ||
+          a.embeddingsModelId.localeCompare(b.embeddingsModelId);
         return activeSortDirection === 'asc' ? comparison : -comparison;
       });
     }
@@ -598,14 +603,17 @@ function AutoragLeaderboard({
 
   // Helper function to get sort params for a column
   const getSortParams = React.useCallback(
-    (columnId: string): ThProps['sort'] => ({
-      sortBy: {
-        index: sortableColumnIds.indexOf(activeSortId),
-        direction: activeSortDirection,
-      },
-      onSort: handleSort,
-      columnIndex: sortableColumnIds.indexOf(columnId),
-    }),
+    (columnId: string): ThProps['sort'] => {
+      const activeSortIndex = sortableColumnIds.indexOf(activeSortId);
+      return {
+        sortBy: {
+          index: activeSortIndex >= 0 ? activeSortIndex : 0,
+          direction: activeSortDirection,
+        },
+        onSort: handleSort,
+        columnIndex: sortableColumnIds.indexOf(columnId),
+      };
+    },
     [sortableColumnIds, activeSortId, activeSortDirection, handleSort],
   );
 
@@ -748,6 +756,7 @@ function AutoragLeaderboard({
               <Th
                 sort={getSortParams('rank')}
                 data-testid="rank-header"
+                className="autorag-leaderboard__rank-cell"
                 isStickyColumn
                 stickyMinWidth="120px"
                 stickyLeftOffset="0"
@@ -787,10 +796,7 @@ function AutoragLeaderboard({
                   {formatMetricName(optimizedMetric)}
                   <div
                     data-testid="optimized-indicator"
-                    style={{
-                      fontWeight: 'normal',
-                      fontSize: 'var(--pf-t--global--font--size--xs)',
-                    }}
+                    className="autorag-leaderboard__optimized-indicator"
                   >
                     (optimized)
                   </div>
@@ -824,6 +830,7 @@ function AutoragLeaderboard({
                 <Td
                   dataLabel="Rank"
                   data-testid={`rank-${entry.rank}`}
+                  className="autorag-leaderboard__rank-cell"
                   isStickyColumn
                   stickyMinWidth="80px"
                   stickyLeftOffset="0"
