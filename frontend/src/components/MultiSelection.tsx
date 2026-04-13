@@ -144,15 +144,21 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     ) {
       return {
         id: inputValueTrim,
-        name:
-          typeof createOptionMessage === 'string'
-            ? createOptionMessage
-            : createOptionMessage(inputValueTrim),
+        name: inputValueTrim,
         selected: false,
       };
     }
     return undefined;
-  }, [inputValue, isCreatable, createOptionMessage, allValues]);
+  }, [inputValue, isCreatable, allValues]);
+
+  const createOptionDisplayName = React.useMemo(() => {
+    if (!createOption) {
+      return undefined;
+    }
+    return typeof createOptionMessage === 'string'
+      ? createOptionMessage
+      : createOptionMessage(createOption.name);
+  }, [createOption, createOptionMessage]);
 
   const allOptions = React.useMemo(() => {
     const options = [...allValues];
@@ -341,7 +347,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         {createOption && isCreateOptionOnTop && groupOptions.length > 0 ? (
           <SelectList isAriaMultiselectable>
             <SelectOption value={createOption.id} isFocused={focusedItemIndex === 0}>
-              {createOption.name}
+              {createOptionDisplayName}
             </SelectOption>
           </SelectList>
         ) : null}
@@ -377,7 +383,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         (createOption && (!isCreateOptionOnTop || groupOptions.length === 0)) ? (
           <SelectList isAriaMultiselectable data-testid={listTestId}>
             {createOption && isCreateOptionOnTop && groupOptions.length === 0 ? (
-              <SelectOption value={createOption.id}>{createOption.name}</SelectOption>
+              <SelectOption value={createOption.id}>{createOptionDisplayName}</SelectOption>
             ) : null}
             {selectOptions.map((option) => (
               <SelectOption
@@ -395,11 +401,11 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
             ))}
             {createOption && !isCreateOptionOnTop ? (
               <SelectOption
-                data-testid={`select-multi-typeahead-${Option.name.replace(' ', '-')}`}
+                data-testid={`select-multi-typeahead-${createOption.name.replace(' ', '-')}`}
                 value={createOption.id}
                 isFocused={focusedItemIndex === visibleOptions.length - 1}
               >
-                {createOption.name}
+                {createOptionDisplayName}
               </SelectOption>
             ) : null}
           </SelectList>
