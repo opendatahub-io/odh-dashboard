@@ -1,0 +1,17 @@
+---
+description: Update existing docs after code changes. Use when asked to update documentation, sync docs with code, or refresh docs after a commit.
+alwaysApply: false
+---
+
+# Update Documentation
+
+When asked to update documentation after code changes, read and follow the skill at `.claude/skills/docs-update/SKILL.md`.
+
+Key points:
+- Input is optional. If no git reference or description is given, default to uncommitted changes (`HEAD`).
+- **`--no-cache` flag**: Skip git diff entirely and rewrite all sections of targeted docs from scratch by re-reading source code. Can be scoped to a specific path (e.g., `--no-cache backend`). Without a scope filter, refreshes every doc in BOOKMARKS.md (frontend areas, backend, and packages).
+- Map changed source files to affected docs using `BOOKMARKS.md` as the index (covers frontend areas, backend, and packages — not all docs in the repo).
+- A code change can affect multiple doc types — check overview docs, guides, READMEs, ADRs, and agent rules.
+- In diff mode (default), update only the affected sections; do not rewrite unaffected content.
+- In `--no-cache` mode, rewrite every section treating the current source code as the single source of truth.
+- Show a summary of proposed changes before writing.
