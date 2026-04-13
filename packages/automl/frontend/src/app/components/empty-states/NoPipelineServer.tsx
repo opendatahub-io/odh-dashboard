@@ -1,6 +1,6 @@
 /**
- * Empty State A — no compatible pipeline server and/or managed AutoML pipelines unavailable.
- * Directs users to the Pipelines page to configure DSPA and enable AutoML / AutoRAG pipelines.
+ * Empty State A — no compatible pipeline server detected.
+ * Directs users to the Pipelines page to configure a pipeline server.
  */
 import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
@@ -17,7 +17,7 @@ function NoPipelineServer({ namespace }: NoPipelineServerProps): React.JSX.Eleme
   return (
     <EmptyDetailsView
       title="Configure a compatible pipeline server"
-      description="To use AutoML, you need access to a pipeline server with AutoML and AutoRAG enabled. Create or edit a pipeline server on the Pipelines page."
+      description="To use AutoML, you need access to a pipeline server. Create or edit a pipeline server on the Pipelines page."
       iconImage={typedEmptyImage(ProjectObjectType.pipeline, 'MissingModel')}
       imageAlt=""
       createButton={

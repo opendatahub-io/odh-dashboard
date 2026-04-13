@@ -25,8 +25,6 @@ import type {
 
 export const LLMD_SERVING_ID = 'llmd-serving';
 
-const GATEWAY_DEV_FLAG = 'gateway-dev';
-
 const llmConfigOptionsFieldExtension: WizardField2Extension<
   LLMConfigOptionsFieldType,
   LLMdDeployment
@@ -52,7 +50,7 @@ const gatewaySelectFieldExtension: WizardField2Extension<GatewaySelectFieldType,
       import('../src/wizardFields/gateway/GatewaySelectField').then((m) => m.GatewaySelectField),
   },
   flags: {
-    required: [LLMD_SERVING_ID, GATEWAY_DEV_FLAG],
+    required: [LLMD_SERVING_ID, SupportedArea.LLMD_GATEWAY_FIELD],
   },
 };
 
@@ -70,7 +68,7 @@ const gatewaySelectApplyExtension: WizardFieldApplyExtension<
       ),
   },
   flags: {
-    required: [LLMD_SERVING_ID, GATEWAY_DEV_FLAG],
+    required: [LLMD_SERVING_ID, SupportedArea.LLMD_GATEWAY_FIELD],
   },
 };
 
@@ -88,7 +86,7 @@ const gatewaySelectExtractorExtension: WizardFieldExtractorExtension<
       ),
   },
   flags: {
-    required: [LLMD_SERVING_ID, GATEWAY_DEV_FLAG],
+    required: [LLMD_SERVING_ID, SupportedArea.LLMD_GATEWAY_FIELD],
   },
 };
 
@@ -114,15 +112,6 @@ const extensions: (
       id: LLMD_SERVING_ID,
       reliantAreas: [SupportedArea.K_SERVE],
       featureFlags: ['disableLLMd'],
-    },
-  },
-  // Use flag for development so we don't mess up maas gateway stuff
-  {
-    type: 'app.area',
-    properties: {
-      id: GATEWAY_DEV_FLAG,
-      reliantAreas: [SupportedArea.K_SERVE],
-      devFlags: ['gateway-dev'],
     },
   },
   {

@@ -5,6 +5,7 @@ import {
   restGET,
   restDELETE,
   restCREATE,
+  restUPDATE,
   assembleModArchBody,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
@@ -23,12 +24,16 @@ import {
   SubscriptionInfoResponse,
   TokenMetadata,
   TokenRateLimit,
+  UpdateSubscriptionRequest,
   UserSubscription,
   ModelRefInfo,
   TokenRateLimitInfo,
 } from '~/app/types/subscriptions';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
+
+const isOptionalString = (v: unknown): v is string | undefined =>
+  v === undefined || typeof v === 'string';
 
 const isGroupRef = (v: unknown): v is { name: string } => isRecord(v) && typeof v.name === 'string';
 
@@ -72,7 +77,7 @@ const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
 const isMaaSSubscriptionArray = (v: unknown): v is MaaSSubscription[] =>
   Array.isArray(v) && v.every(isMaaSSubscription);
 
-const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
+export const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
   isRecord(v) &&
   typeof v.name === 'string' &&
   typeof v.namespace === 'string' &&
@@ -89,7 +94,10 @@ export const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
   isRecord(v) &&
   typeof v.name === 'string' &&
   typeof v.namespace === 'string' &&
-  (v.phase === undefined || typeof v.phase === 'string') &&
+  isOptionalString(v.displayName) &&
+  isOptionalString(v.description) &&
+  isOptionalString(v.phase) &&
+  isOptionalString(v.creationTimestamp) &&
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isModelRef) &&
   isSubjectSpec(v.subjects) &&
@@ -238,6 +246,31 @@ export const createSubscription =
       restCREATE(
         hostPath,
         `${URL_PREFIX}/api/${BFF_API_VERSION}/new-subscription`,
+        assembleModArchBody(request),
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<unknown>(response) && isCreateSubscriptionResponse(response.data)) {
+        return {
+          ...response.data,
+          subscription: normalizeSubscription(response.data.subscription),
+        };
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const updateSubscription =
+  (hostPath = '') =>
+  (
+    opts: APIOptions,
+    name: string,
+    request: UpdateSubscriptionRequest,
+  ): Promise<CreateSubscriptionResponse> =>
+    handleRestFailures(
+      restUPDATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/update-subscription/${encodeURIComponent(name)}`,
         assembleModArchBody(request),
         {},
         opts,

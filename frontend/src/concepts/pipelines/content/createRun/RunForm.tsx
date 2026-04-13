@@ -30,6 +30,7 @@ import {
   DESCRIPTION_CHARACTER_LIMIT,
 } from '#~/concepts/pipelines/content/const';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { runGroupCreateModalPopoverText } from '#~/pages/pipelines/global/runs/const';
 import MlflowIntegrationSection from './contentSections/MlflowIntegrationSection';
 import PipelineSection from './contentSections/PipelineSection';
 import { RunTypeSection } from './contentSections/RunTypeSection';
@@ -151,9 +152,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
           label="Run group"
           fieldId="run-group"
           isRequired
-          labelHelp={
-            <DashboardHelpTooltip content="Run groups were formerly known as pipeline experiments. Use this field to group your pipeline runs for easier management." />
-          }
+          labelHelp={<DashboardHelpTooltip content={runGroupCreateModalPopoverText} />}
         >
           <TextInput
             id="run-group"

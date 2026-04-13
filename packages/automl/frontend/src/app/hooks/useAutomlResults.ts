@@ -1,6 +1,11 @@
 import { useQueries } from '@tanstack/react-query';
 import React from 'react';
-import { useS3ListFilesQuery, fetchS3Json, AutomlModelSchema } from '~/app/hooks/queries';
+import {
+  useS3ListFilesQuery,
+  fetchS3Json,
+  AutomlModelSchema,
+  isRawTimeseriesModel,
+} from '~/app/hooks/queries';
 import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
@@ -17,7 +22,7 @@ type UseAutomlResultsReturn = {
  * Custom hook to fetch and process AutoML model results from S3.
  * Models are outputted into the following directory structure
  *      Tabular:     autogluon-tabular-training-pipeline/xxx/autogluon-models-training/yyy/models_artifact/WeightedEnsemble_L5_FULL
- *      Time series: autogluon-timeseries-training-pipeline/xxx/timeseries-models-full-refit/yyy/model_artifact/WeightedEnsemble_L5_FULL
+ *      Time series: autogluon-timeseries-training-pipeline/xxx/autogluon-timeseries-models-full-refit/yyy/model_artifact/TemporalFusionTransformer_FULL
  * where xxx is the kubeflow pipeline run_id and yyy is a nondeterministic ID.
  * The directory variables used to generate these paths in this file are as follows:
  *      ${rootDir}/xxx/${modelGenerationDir}/yyy/${modelArtifactsDirectory}/${modelName}
@@ -65,7 +70,7 @@ export function useAutomlResults(
     : 'autogluon-timeseries-training-pipeline';
   const modelGenerationDir = isTabular
     ? 'autogluon-models-training'
-    : 'timeseries-models-full-refit';
+    : 'autogluon-timeseries-models-full-refit';
   const generatedModelsPath = shouldFetchS3Files
     ? `${rootDir}/${runId}/${modelGenerationDir}`
     : undefined;
@@ -143,16 +148,23 @@ export function useAutomlResults(
             return {
               name,
               directory: prefix,
+              // Parent path up to models_artifact/ (excludes the model name).
+              // Used as the base for resolving predictor and notebook paths,
+              // which already include the model name as their first segment.
+              artifactDirectory: `${parts.slice(0, -1).join('/')}/`,
             };
           })
-          .filter((item): item is { name: string; directory: string } => item !== null);
+          .filter(
+            (item): item is { name: string; directory: string; artifactDirectory: string } =>
+              item !== null,
+          );
       }),
     [modelArtifactQueries.data],
   );
 
   // Step 4: Fetch model.json for each model directory
   const modelQueries = useQueries({
-    queries: modelDirectories.map(({ name, directory }) => {
+    queries: modelDirectories.map(({ name, directory, artifactDirectory }) => {
       const modelJsonPath = `${directory}model.json`;
       return {
         queryKey: ['s3File', namespace, name, modelJsonPath],
@@ -166,16 +178,35 @@ export function useAutomlResults(
             schema: AutomlModelSchema,
           });
 
-          // Rewrite relative location paths to absolute S3 paths
-          const model: AutomlModel = {
-            ...validated,
-            location: {
+          // Rewrite relative location paths to absolute S3 paths.
+          // Timeseries has `notebooks` (directory) + `metrics`; tabular has `notebook` (file path).
+          let model: AutomlModel;
+          if (isRawTimeseriesModel(validated)) {
+            model = {
+              name: validated.name,
               // eslint-disable-next-line camelcase
-              model_directory: directory,
-              predictor: `${directory}${validated.location.predictor}`,
-              notebook: `${directory}${validated.location.notebook}`,
-            },
-          };
+              base_model: validated.base_model,
+              location: {
+                // eslint-disable-next-line camelcase
+                model_directory: directory,
+                predictor: `${artifactDirectory}${validated.location.predictor}`,
+                notebook: `${artifactDirectory}${validated.location.notebooks}/automl_predictor_notebook.ipynb`,
+                metrics: `${artifactDirectory}${validated.location.metrics}`,
+              },
+              metrics: validated.metrics,
+            };
+          } else {
+            model = {
+              name: validated.name,
+              location: {
+                // eslint-disable-next-line camelcase
+                model_directory: directory,
+                predictor: `${artifactDirectory}${validated.location.predictor}`,
+                notebook: `${artifactDirectory}${validated.location.notebook}`,
+              },
+              metrics: validated.metrics,
+            };
+          }
 
           return { name, model };
         },
@@ -185,14 +216,39 @@ export function useAutomlResults(
         retry: false,
       };
     }),
-    combine: (results) => ({
-      data: results.filter((r) => !r.isError).map((r) => r.data),
-      isPending: results.some((r) => r.isPending),
-      isError: results.length > 0 && results.every((r) => r.isError),
-      failedModels: results
-        .map((r, i) => (r.isError ? modelDirectories[i]?.name : null))
-        .filter((name): name is string => Boolean(name)),
-    }),
+    combine: (results) => {
+      // eslint-disable-next-line no-console
+      results.forEach((r, i) => {
+        if (r.isError) {
+          // eslint-disable-next-line no-console
+          console.error(
+            `Model query failed for AutoML model "${modelDirectories[i]?.name}" (directory: "${modelDirectories[i]?.directory}")`,
+            r.error,
+          );
+        }
+      });
+      if (results.length > 0 && results.every((r) => r.isError)) {
+        // eslint-disable-next-line no-console
+        console.error(
+          'ALL AutoML model queries failed. Total:',
+          results.length,
+          'Errors:',
+          results.map((r, i) => ({
+            model: modelDirectories[i]?.name,
+            directory: modelDirectories[i]?.directory,
+            error: r.error,
+          })),
+        );
+      }
+      return {
+        data: results.filter((r) => !r.isError).map((r) => r.data),
+        isPending: results.some((r) => r.isPending),
+        isError: results.length > 0 && results.every((r) => r.isError),
+        failedModels: results
+          .map((r, i) => (r.isError ? modelDirectories[i]?.name : null))
+          .filter((name): name is string => Boolean(name)),
+      };
+    },
   });
 
   // Step 5: Collect models into a Record keyed by model name

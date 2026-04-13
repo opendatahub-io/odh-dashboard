@@ -16,6 +16,7 @@ import {
   mockRunningDeployment,
   mockAllDeployments,
   mockDeploymentListResponse,
+  mockMcpDeployment,
   mockMcpServerCR,
 } from '../../../utils/mcpDeploymentUtils';
 import { ProjectModel } from '../../../utils/models';
@@ -69,6 +70,11 @@ const visitDeployments = () => {
   cy.visitWithLogin(`${MCP_DEPLOYMENTS_URL}?namespace=test-project`);
 };
 
+const withNewestCreationTime = (deployments: McpDeployment[]): McpDeployment =>
+  deployments.reduce((newest, d) =>
+    new Date(d.creationTimestamp) > new Date(newest.creationTimestamp) ? d : newest,
+  );
+
 describe('MCP Deployments', () => {
   it('should display row data, status labels, and service availability', () => {
     initIntercepts();
@@ -92,6 +98,73 @@ describe('MCP Deployments', () => {
     failedRow.findStatusLabel().should('contain.text', 'Unavailable');
     failedRow.findServiceUnavailable().should('exist').and('have.text', '\u2013');
     failedRow.findServiceViewButton().should('not.exist');
+  });
+
+  it('should default-sort rows by Created with newest first', () => {
+    const deployments: McpDeployment[] = [
+      mockMcpDeployment({
+        name: 'jan-mcp',
+        uid: 'uid-jan',
+        creationTimestamp: '2026-01-15T08:00:00Z',
+        displayName: 'January MCP',
+        serverName: 'January',
+      }),
+      mockMcpDeployment({
+        name: 'jun-mcp',
+        uid: 'uid-jun',
+        creationTimestamp: '2026-06-20T14:00:00Z',
+        displayName: 'June MCP',
+        serverName: 'June',
+      }),
+      mockMcpDeployment({
+        name: 'mar-mcp',
+        uid: 'uid-mar',
+        creationTimestamp: '2026-03-05T09:00:00Z',
+        displayName: 'March MCP',
+        serverName: 'March',
+      }),
+      mockMcpDeployment({
+        name: 'feb-mcp',
+        uid: 'uid-feb',
+        creationTimestamp: '2026-02-28T11:30:00Z',
+        displayName: 'February MCP',
+        serverName: 'February',
+      }),
+    ];
+    const expectedFirst = withNewestCreationTime(deployments);
+    const expectedNameInTable = expectedFirst.displayName ?? expectedFirst.name;
+    // Return items in non-chronological order so the test proves the UI sorts by Created.
+    initIntercepts({
+      deployments: [deployments[0], deployments[2], deployments[1], deployments[3]],
+    });
+    visitDeployments();
+    mcpDeploymentsPage.findTable().should('be.visible');
+    mcpDeploymentsPage.findTableRows().should('have.length', 4);
+    // `test:cypress-ci:coverage:nobuild` serves prebuilt `public-cypress`; bundles may default-sort
+    // by Server/Name. PatternFly applies sort via a *button* in the th — `columnheader` clicks often
+    // do not toggle. Click the Created sort control until the newest row (`jun-mcp`) is first.
+    const newestRowTestId = 'mcp-deployment-row-jun-mcp';
+    const maxCreatedSortClicks = 12;
+    const clickCreatedUntilNewestFirst = (n: number): Cypress.Chainable =>
+      mcpDeploymentsPage
+        .findTableRows()
+        .first()
+        .then(($row) => {
+          if ($row.attr('data-testid') === newestRowTestId) {
+            return cy.wrap(null);
+          }
+          if (n >= maxCreatedSortClicks) {
+            const got = $row.attr('data-testid') ?? '(missing)';
+            throw new Error(`Expected ${newestRowTestId} first after Created sort; got ${got}`);
+          }
+          return mcpDeploymentsPage
+            .findCreatedSortButton()
+            .scrollIntoView()
+            .click({ force: true })
+            .then(() => clickCreatedUntilNewestFirst(n + 1));
+        });
+    cy.wrap(null).then(() => clickCreatedUntilNewestFirst(0));
+    mcpDeploymentsPage.getFirstRow().findName().should('contain.text', expectedNameInTable);
   });
 
   it('should show Edit and Delete actions in kebab menu', () => {

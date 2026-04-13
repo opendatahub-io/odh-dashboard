@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { get } from 'lodash';
 import {
   Button,
   Flex,
@@ -105,14 +104,9 @@ export default function PromptAssistantFormGroup({
 
   function buildPromptStub(): MLflowPromptVersion {
     const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const month = now.toLocaleString('en', { month: 'short' });
-    const date = [month, pad(now.getDate()), now.getFullYear()].join('.');
-    const time = [pad(now.getHours()), pad(now.getMinutes())].join('.');
-    const name = `${date}_${time}`;
     /* eslint-disable camelcase */
     return {
-      name,
+      name: '',
       version: 0,
       template: '',
       commit_message: '',
@@ -143,7 +137,7 @@ export default function PromptAssistantFormGroup({
           }}
         >
           <Flex>
-            <Title headingLevel="h6">{get(dirtyPrompt, 'name', 'New Prompt')}</Title>
+            <Title headingLevel="h6">{dirtyPrompt?.name || 'New Prompt'}</Title>
             {!!activePrompt?.version && (
               <Label
                 isCompact

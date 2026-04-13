@@ -601,6 +601,33 @@ export type TrainJobTestData = {
   gpuQuota: number;
 };
 
+/** E2E fixture for RayJob pause / scale / delete (RHOAIENG-56125). */
+export type RayJobE2eTestData = {
+  projectName: string;
+  rayJobName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+  workerGroupName: string;
+  rayImage: string;
+  rayVersion: string;
+};
+
+export type RayJobTestData = {
+  projectName: string;
+  rayJobName: string;
+  rayImage: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+};
+
 export type PipelineTestData = {
   projectNamePrefix: string;
   pipelineName: string;

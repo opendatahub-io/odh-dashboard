@@ -80,6 +80,10 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 						return nil, false
 					}
 				}
+				if errors.Is(err, repositories.ErrAmbiguousSecretKey) {
+					app.badRequestResponse(w, r, err)
+					return nil, false
+				}
 				app.serverErrorResponse(w, r, err)
 				return nil, false
 			}
@@ -628,7 +632,7 @@ func (app *App) getS3CredentialsFromSecret(
 			}
 		}
 
-		if errors.Is(err, repositories.ErrMissingRequiredField) {
+		if errors.Is(err, repositories.ErrMissingRequiredField) || errors.Is(err, repositories.ErrAmbiguousSecretKey) {
 			return nil, &integrations.HTTPError{
 				StatusCode: http.StatusBadRequest,
 				ErrorResponse: integrations.ErrorResponse{

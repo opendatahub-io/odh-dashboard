@@ -21,6 +21,10 @@ class McpDeploymentTableRow extends TableRow {
     return this.find().findByTestId('mcp-deployment-service-unavailable');
   }
 
+  findCreated(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('mcp-deployment-created');
+  }
+
   findDeleteAction(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findKebabAction('Delete');
   }
@@ -29,6 +33,113 @@ class McpDeploymentTableRow extends TableRow {
     return this.findKebabAction('Edit');
   }
 }
+
+class McpDeploymentDeleteModal {
+  find() {
+    return cy.findByTestId('delete-mcp-deployment-modal');
+  }
+
+  findInput() {
+    return this.find().findByTestId('delete-modal-input');
+  }
+
+  findSubmitButton() {
+    return this.find().findByTestId('delete-modal-confirm-button');
+  }
+
+  findCancelButton() {
+    return this.find().findByRole('button', { name: /^cancel$/i });
+  }
+
+  findErrorAlert() {
+    return this.find().findByTestId('delete-modal-error-message-alert');
+  }
+
+  shouldBeVisible() {
+    return this.find().should('be.visible');
+  }
+
+  shouldNotExist() {
+    return this.find().should('not.exist');
+  }
+}
+
+class McpDeploymentsPage {
+  visit() {
+    cy.visitWithLogin('/ai-hub/mcp-deployments');
+    this.wait();
+  }
+
+  private wait() {
+    // A project must be selected before the table loads (namespace drives the BFF list call).
+    cy.findByTestId('project-selector-toggle').should('be.visible').click();
+    cy.findByRole('menuitem', { name: 'mcp-servers' }).click();
+    cy.findByTestId('mcp-deployments-table').should('be.visible');
+    cy.testA11y();
+  }
+
+  findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-deployments-table');
+  }
+
+  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-deployments-empty-state');
+  }
+
+  findSelectProjectState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-deployments-select-project');
+  }
+
+  findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-deployments-filter-input');
+  }
+
+  findTableRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().findAllByTestId(/^mcp-deployment-row-/);
+  }
+
+  /**
+   * PatternFly sortable columns expose a button inside the &lt;th&gt;; clicking `columnheader` is unreliable.
+   */
+  findCreatedSortButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().findByRole('button', { name: /^Created$/i });
+  }
+
+  // mod-arch-shared's ApplicationsPage uses data-id — we can't change the third-party component
+  findLoadingState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('[data-id="loading-empty-state"]');
+  }
+
+  findLoadingSpinner(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findLoadingState().find('[role="progressbar"]');
+  }
+
+  findErrorState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('[data-id="error-empty-state"]');
+  }
+
+  getRow(name: string): McpDeploymentTableRow {
+    return new McpDeploymentTableRow(
+      () =>
+        this.findTable()
+          .findByTestId(`mcp-deployment-row-${name}`)
+          .closest('tr')
+          .should('exist') as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>,
+    );
+  }
+
+  getFirstRow(): McpDeploymentTableRow {
+    return new McpDeploymentTableRow(() =>
+      this.findTableRows().should('have.length.at.least', 1).first().closest('tr').should('exist'),
+    );
+  }
+
+  findDeleteModal() {
+    return new McpDeploymentDeleteModal();
+  }
+}
+
+export const mcpDeploymentsPage = new McpDeploymentsPage();
 
 class McpDeployModal {
   findModal(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -44,7 +155,7 @@ class McpDeployModal {
   }
 
   findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByTestId('mcp-deploy-modal-title');
+    return this.findModal().find('.pf-v6-c-modal-box__title-text');
   }
 
   findNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -80,7 +191,7 @@ class McpDeployModal {
   }
 
   findLoadingSpinner(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByTestId('mcp-deploy-modal-spinner');
+    return this.findModal().find('[role="progressbar"]');
   }
 }
 
@@ -93,56 +204,11 @@ class McpServerDetailsPage {
     return cy.findByTestId('breadcrumb-server-name');
   }
 
-  // PF6 Button's isLoading spinner is internal to PatternFly — no data-testid is available
+  // PF6 Button's isLoading spinner is internal to PatternFly -- no data-testid is available
   findDeployButtonSpinner(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findDeployButton().find('[role="progressbar"]');
   }
 }
 
-class McpDeploymentsPage {
-  findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('mcp-deployments-table');
-  }
-
-  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('mcp-deployments-empty-state');
-  }
-
-  findSelectProjectState(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('mcp-deployments-select-project');
-  }
-
-  findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('mcp-deployments-filter-input');
-  }
-
-  findTableRows(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findTable().find('[data-testid^="mcp-deployment-row-"]');
-  }
-
-  // mod-arch-shared's ApplicationsPage uses data-id — we can't change the third-party component
-  findLoadingState(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.get('[data-id="loading-empty-state"]');
-  }
-
-  findLoadingSpinner(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findLoadingState().find('[role="progressbar"]');
-  }
-
-  findErrorState(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.get('[data-id="error-empty-state"]');
-  }
-
-  getRow(name: string): McpDeploymentTableRow {
-    return new McpDeploymentTableRow(
-      () =>
-        cy.findByTestId(`mcp-deployment-row-${name}`) as unknown as Cypress.Chainable<
-          JQuery<HTMLTableRowElement>
-        >,
-    );
-  }
-}
-
-export const mcpDeploymentsPage = new McpDeploymentsPage();
 export const mcpDeployModal = new McpDeployModal();
 export const mcpServerDetailsPage = new McpServerDetailsPage();

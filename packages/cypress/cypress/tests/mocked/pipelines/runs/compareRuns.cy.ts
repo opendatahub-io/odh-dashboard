@@ -90,23 +90,17 @@ describe('Compare runs', () => {
   });
 
   it('renders the project navigator link', () => {
-    compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
-      mockRun.run_id,
-      mockRun2.run_id,
-    ]);
+    compareRunsGlobal.visit(projectName, [mockRun.run_id, mockRun2.run_id]);
     compareRunsGlobal.findProjectNavigatorLink().should('exist');
   });
 
   it('zero runs in url', () => {
-    compareRunsGlobal.visit(projectName, mockExperiment.experiment_id);
+    compareRunsGlobal.visit(projectName);
     compareRunsGlobal.findInvalidRunsError().should('exist');
   });
 
   it('valid number of runs', () => {
-    compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
-      mockRun.run_id,
-      mockRun2.run_id,
-    ]);
+    compareRunsGlobal.visit(projectName, [mockRun.run_id, mockRun2.run_id]);
     cy.wait('@validRun');
     compareRunsGlobal.findInvalidRunsError().should('not.exist');
 
@@ -123,7 +117,7 @@ describe('Compare runs', () => {
       { statusCode: 404 },
     ).as('invalidRun');
 
-    compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, ['invalid_run_id']);
+    compareRunsGlobal.visit(projectName, ['invalid_run_id']);
     cy.wait('@invalidRun');
     compareRunsGlobal.findInvalidRunsError().should('exist');
   });
@@ -136,15 +130,12 @@ describe('Compare runs', () => {
       },
       { statusCode: 404 },
     ).as('invalidRun');
-    compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
-      'invalid_run_id',
-      mockRun.run_id,
-    ]);
+    compareRunsGlobal.visit(projectName, ['invalid_run_id', mockRun.run_id]);
     cy.wait('@invalidRun');
     cy.wait('@validRun');
     compareRunsGlobal.findInvalidRunsError().should('not.exist');
     verifyRelativeURL(
-      `/develop-train/experiments/${projectName}/${mockExperiment.experiment_id}/compare-runs?compareRuns=${mockRun.run_id}`,
+      `/develop-train/pipelines/runs/${projectName}/compare-runs?compareRuns=${mockRun.run_id}`,
     );
   });
 
@@ -156,24 +147,18 @@ describe('Compare runs', () => {
       },
       mockCancelledGoogleRpcStatus({ message: 'Run cancelled by caller' }),
     ).as('invalidRun');
-    compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
-      'invalid_run_id',
-      mockRun.run_id,
-    ]);
+    compareRunsGlobal.visit(projectName, ['invalid_run_id', mockRun.run_id]);
     cy.wait('@invalidRun');
     cy.wait('@validRun');
     compareRunsGlobal.findInvalidRunsError().should('not.exist');
     verifyRelativeURL(
-      `/develop-train/experiments/${projectName}/${mockExperiment.experiment_id}/compare-runs?compareRuns=invalid_run_id,${mockRun.run_id}`,
+      `/develop-train/pipelines/runs/${projectName}/compare-runs?compareRuns=invalid_run_id,${mockRun.run_id}`,
     );
   });
 
   describe('MLflow column visibility', () => {
     it('hides the MLflow experiment column when MLflow is disabled', () => {
-      compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
-        mockRun.run_id,
-        mockRun2.run_id,
-      ]);
+      compareRunsGlobal.visit(projectName, [mockRun.run_id, mockRun2.run_id]);
       cy.wait('@validRun');
 
       compareRunsListTable.find().find('thead th').should('not.contain', 'MLflow experiment');
@@ -182,10 +167,7 @@ describe('Compare runs', () => {
     it('shows the MLflow experiment column when MLflow is enabled', () => {
       cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
       cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
-      compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
-        mockRun.run_id,
-        mockRun2.run_id,
-      ]);
+      compareRunsGlobal.visit(projectName, [mockRun.run_id, mockRun2.run_id]);
       cy.wait('@validRun');
 
       compareRunsListTable.find().find('thead th').should('contain', 'MLflow experiment');
@@ -221,9 +203,7 @@ describe('Compare runs', () => {
         mockRunWithMlflow,
       );
 
-      compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
-        mockRunWithMlflow.run_id,
-      ]);
+      compareRunsGlobal.visit(projectName, [mockRunWithMlflow.run_id]);
 
       compareRunsListTable
         .findRowByName('Run with MLflow')
@@ -236,10 +216,7 @@ describe('Compare runs', () => {
 
   describe('Parameters', () => {
     beforeEach(() => {
-      compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
-        mockRun.run_id,
-        mockRun2.run_id,
-      ]);
+      compareRunsGlobal.visit(projectName, [mockRun.run_id, mockRun2.run_id]);
     });
 
     it('shows empty state when the Runs list has no selections', () => {
@@ -291,11 +268,7 @@ describe('Compare runs', () => {
     describe('Metrics', () => {
       beforeEach(() => {
         initIntercepts({});
-        compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
-          mockRun.run_id,
-          mockRun2.run_id,
-          mockRun3.run_id,
-        ]);
+        compareRunsGlobal.visit(projectName, [mockRun.run_id, mockRun2.run_id, mockRun3.run_id]);
       });
 
       it('shows empty state when the Runs list has no selections', () => {
@@ -404,11 +377,7 @@ describe('Compare runs', () => {
     describe('Metrics', () => {
       beforeEach(() => {
         initIntercepts({});
-        compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
-          mockRun.run_id,
-          mockRun2.run_id,
-          mockRun3.run_id,
-        ]);
+        compareRunsGlobal.visit(projectName, [mockRun.run_id, mockRun2.run_id, mockRun3.run_id]);
         cy.interceptOdh(
           'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',
           {
@@ -443,11 +412,7 @@ describe('Compare runs', () => {
   describe('No metrics', () => {
     beforeEach(() => {
       initIntercepts({ noMetrics: true });
-      compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
-        mockRun.run_id,
-        mockRun2.run_id,
-        mockRun3.run_id,
-      ]);
+      compareRunsGlobal.visit(projectName, [mockRun.run_id, mockRun2.run_id, mockRun3.run_id]);
     });
 
     it('shows no data state when the Runs list has selections but no metrics', () => {
@@ -513,26 +478,18 @@ describe('Compare runs', () => {
       );
     });
 
-    it('experiments - compare runs', () => {
+    it('experiments - compare runs redirects to runs page', () => {
       cy.visitWithLogin(
         `/experiments/${projectName}/${mockExperiment.experiment_id}/compareRuns?compareRuns=${mockRun.run_id},${mockRun2.run_id}`,
       );
-      cy.findByRole('link', { name: 'Manage runs' }).should('exist');
-      cy.url().should(
-        'include',
-        `/develop-train/experiments/${projectName}/${mockExperiment.experiment_id}/compare-runs?compareRuns=${mockRun.run_id},${mockRun2.run_id}`,
-      );
+      cy.url().should('include', `/develop-train/pipelines/runs/${projectName}`);
     });
 
-    it('experiments - compare runs add', () => {
+    it('experiments - compare runs add redirects to runs page', () => {
       cy.visitWithLogin(
         `/experiments/${projectName}/${mockExperiment.experiment_id}/compareRuns/add?compareRuns=${mockRun.run_id},${mockRun2.run_id}`,
       );
-      cy.findByTestId('app-page-title').contains('Manage runs');
-      cy.url().should(
-        'include',
-        `/develop-train/experiments/${projectName}/${mockExperiment.experiment_id}/compare-runs/add?compareRuns=${mockRun.run_id},${mockRun2.run_id}`,
-      );
+      cy.url().should('include', `/develop-train/pipelines/runs/${projectName}`);
     });
 
     it('runs - compare runs', () => {
@@ -594,6 +551,13 @@ const initIntercepts = ({ noMetrics }: InterceptsType) => {
       path: { namespace: projectName, serviceName: 'dspa' },
     },
     buildMockPipelines([initialMockPipeline]),
+  );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
+    {
+      path: { namespace: projectName, serviceName: 'dspa' },
+    },
+    { experiments: [mockExperiment], total_size: 1 },
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
