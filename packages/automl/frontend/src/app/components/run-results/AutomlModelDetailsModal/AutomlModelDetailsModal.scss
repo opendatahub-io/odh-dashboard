@@ -82,10 +82,19 @@
   }
 }
 
-/* Confusion matrix layout and delineation */
+/* Confusion matrix — theme-aware cell colors.
+   Palette tokens (--pf-t--color--green--10 etc.) are NOT dark-mode-aware,
+   so we define custom properties and override them for dark theme. */
 .automl-confusion-matrix {
-  /* White grid lines between all cells — PF tables only have horizontal row borders
-     by default, so we add explicit borders on every cell for a full grid */
+  --automl-cm--cell--diagonal--base: var(--pf-t--color--green--10);
+  --automl-cm--cell--diagonal--low: var(--pf-t--color--green--20);
+  --automl-cm--cell--diagonal--medium: var(--pf-t--color--green--30);
+  --automl-cm--cell--diagonal--high: var(--pf-t--color--green--40);
+  --automl-cm--cell--off-diagonal--base: var(--pf-t--color--blue--10);
+  --automl-cm--cell--off-diagonal--medium: var(--pf-t--color--blue--20);
+  --automl-cm--cell--off-diagonal--high: var(--pf-t--color--blue--30);
+
+  /* Grid lines between all cells */
   --pf-v6-c-table__tr--BorderBlockEndColor: var(--pf-t--global--background--color--primary--default);
 
   th,
@@ -111,33 +120,43 @@
   }
 }
 
-/* Confusion matrix data cell colors — PF palette tokens for dark mode support */
+:root:where(.pf-v6-theme-dark) .automl-confusion-matrix {
+  --automl-cm--cell--diagonal--base: var(--pf-t--color--green--60);
+  --automl-cm--cell--diagonal--low: var(--pf-t--color--green--50);
+  --automl-cm--cell--diagonal--medium: var(--pf-t--color--green--40);
+  --automl-cm--cell--diagonal--high: var(--pf-t--color--green--30);
+  --automl-cm--cell--off-diagonal--base: var(--pf-t--color--blue--60);
+  --automl-cm--cell--off-diagonal--medium: var(--pf-t--color--blue--50);
+  --automl-cm--cell--off-diagonal--high: var(--pf-t--color--blue--40);
+}
+
+/* Confusion matrix data cell colors */
 .automl-confusion-matrix__cell--diagonal {
   font-weight: var(--pf-t--global--font--weight--body--bold);
-  background-color: var(--pf-t--color--green--10);
+  background-color: var(--automl-cm--cell--diagonal--base);
 
   &.m-intensity-low {
-    background-color: var(--pf-t--color--green--20);
+    background-color: var(--automl-cm--cell--diagonal--low);
   }
 
   &.m-intensity-medium {
-    background-color: var(--pf-t--color--green--30);
+    background-color: var(--automl-cm--cell--diagonal--medium);
   }
 
   &.m-intensity-high {
-    background-color: var(--pf-t--color--green--40);
+    background-color: var(--automl-cm--cell--diagonal--high);
   }
 }
 
 .automl-confusion-matrix__cell--off-diagonal {
-  background-color: var(--pf-t--color--blue--10);
+  background-color: var(--automl-cm--cell--off-diagonal--base);
 
   &.m-intensity-medium {
-    background-color: var(--pf-t--color--blue--20);
+    background-color: var(--automl-cm--cell--off-diagonal--medium);
   }
 
   &.m-intensity-high {
-    background-color: var(--pf-t--color--blue--30);
+    background-color: var(--automl-cm--cell--off-diagonal--high);
   }
 }
 
@@ -149,11 +168,14 @@
 
 /* Confusion matrix gradient bar */
 .automl-confusion-gradient {
+  --automl-cm--gradient--start: var(--pf-t--color--blue--20);
+  --automl-cm--gradient--end: var(--pf-t--color--green--30);
+
   display: flex;
   justify-content: space-between;
   margin-top: var(--pf-t--global--spacer--md);
   padding: var(--pf-t--global--spacer--sm) 0;
-  background: linear-gradient(to right, var(--pf-t--color--blue--20) 0%, var(--pf-t--global--background--color--primary--default) 45%, var(--pf-t--global--background--color--primary--default) 55%, var(--pf-t--color--green--30) 100%);
+  background: linear-gradient(to right, var(--automl-cm--gradient--start) 0%, var(--pf-t--global--background--color--primary--default) 45%, var(--pf-t--global--background--color--primary--default) 55%, var(--automl-cm--gradient--end) 100%);
   border-radius: var(--pf-t--global--border--radius--small);
   font-size: var(--pf-t--global--font--size--sm);
   color: var(--pf-t--global--text--color--subtle);
@@ -161,6 +183,11 @@
   span {
     padding: 0 var(--pf-t--global--spacer--sm);
   }
+}
+
+:root:where(.pf-v6-theme-dark) .automl-confusion-gradient {
+  --automl-cm--gradient--start: var(--pf-t--color--blue--50);
+  --automl-cm--gradient--end: var(--pf-t--color--green--40);
 }
 
 /* Header row styling */
