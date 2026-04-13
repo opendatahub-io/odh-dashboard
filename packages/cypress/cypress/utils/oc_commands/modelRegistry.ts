@@ -685,8 +685,8 @@ export const cleanupRegisteredModelsFromDatabase = (
 
       const podName = podResult.stdout.trim();
 
-      // SQL commands to clean up contexts for the specified registeredmodels
-      const modelNamesStr = modelNames.map((name) => `'${name}'`).join(', ');
+      const escapeSql = (name: string) => name.replace(/'/g, "''");
+      const modelNamesStr = modelNames.map((name) => `'${escapeSql(name)}'`).join(', ');
       const sqlCommands = [
         `DELETE cp FROM ContextProperty cp JOIN Context c ON cp.context_id = c.id WHERE c.name IN (${modelNamesStr});`,
         `DELETE pc FROM ParentContext pc JOIN Context c ON pc.context_id = c.id OR pc.parent_context_id = c.id WHERE c.name IN (${modelNamesStr});`,
@@ -695,7 +695,10 @@ export const cleanupRegisteredModelsFromDatabase = (
         `DELETE FROM Context WHERE name IN (${modelNamesStr});`,
       ].join(' ');
 
-      const cleanupCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes --database="model-registry" -e "${sqlCommands}"`;
+      const escapeShellDoubleQuotes = (s: string) => s.replace(/["$`\\]/g, '\\$&');
+      const cleanupCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes --database="model-registry" -e "${escapeShellDoubleQuotes(
+        sqlCommands,
+      )}"`;
 
       cy.log(`Cleaning up registered models: ${modelNames.join(', ')}`);
 

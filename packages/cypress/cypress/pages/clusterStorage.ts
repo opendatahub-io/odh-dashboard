@@ -275,7 +275,7 @@ class ClusterStorage {
   }
 
   shouldNotHaveDeprecatedAlertMessage() {
-    return cy.get('[date-testid="storage-class-deprecated-alert"]').should('not.exist');
+    return cy.get('[data-testid="storage-class-deprecated-alert"]').should('not.exist');
   }
 
   closeDeprecatedAlert() {
