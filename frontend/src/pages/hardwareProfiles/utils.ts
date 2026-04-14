@@ -1,4 +1,4 @@
-import { HardwareProfileKind, LocalQueueKind } from '#~/k8sTypes';
+import { HardwareProfileFeatureVisibility, HardwareProfileKind, LocalQueueKind } from '#~/k8sTypes';
 import { DisplayNameAnnotation, Identifier, IdentifierResourceType } from '#~/types';
 import {
   HardwareProfileWarningType,
@@ -258,4 +258,11 @@ export const getClusterQueueNameFromLocalQueues = (
   }
   const queue = localQueues.data.find((q) => q.metadata?.name === localQueueName);
   return queue?.spec.clusterQueue;
+};
+
+export const filterRecognizedVisibility = (
+  visibleIn: string[],
+): HardwareProfileFeatureVisibility[] => {
+  const recognized: string[] = Object.values(HardwareProfileFeatureVisibility);
+  return visibleIn.filter((v): v is HardwareProfileFeatureVisibility => recognized.includes(v));
 };

@@ -26,6 +26,7 @@ import TolerationTable from '#~/pages/hardwareProfiles/toleration/TolerationTabl
 import { useKebabAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
 import {
   createHardwareProfileWarningTitle,
+  filterRecognizedVisibility,
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
   isDefaultHardwareProfile,
@@ -58,9 +59,10 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
   const useCases: HardwareProfileFeatureVisibility[] = React.useMemo(() => {
     if (hardwareProfile.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility']) {
       try {
-        return JSON.parse(
+        const raw: string[] = JSON.parse(
           hardwareProfile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
         );
+        return filterRecognizedVisibility(raw);
       } catch (error) {
         return [];
       }
@@ -75,15 +77,9 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
       return <i>All features</i>;
     }
 
-    const validUseCases = useCases.filter((v) => HardwareProfileFeatureVisibilityTitles[v]);
-
-    if (validUseCases.length === 0) {
-      return '-';
-    }
-
     return (
       <LabelGroup>
-        {validUseCases.map((v) => (
+        {useCases.map((v) => (
           <Label key={v} data-testid={`label-${v}`}>
             {HardwareProfileFeatureVisibilityTitles[v]}
           </Label>
