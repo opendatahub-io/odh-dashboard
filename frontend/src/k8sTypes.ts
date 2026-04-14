@@ -1543,10 +1543,6 @@ export type DataScienceClusterInitializationKindStatus = {
   };
   components?: Record<string, never>;
   phase?: string;
-  // Added by the backend to identify the monitoring namespace
-  monitoring?: {
-    namespace?: string;
-  };
 };
 
 export type ModelRegistryKind = K8sResourceCommon & {
