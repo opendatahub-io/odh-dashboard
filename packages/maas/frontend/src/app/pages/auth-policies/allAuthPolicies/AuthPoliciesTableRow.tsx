@@ -53,7 +53,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         />
       </Td>
       <Td dataLabel={columns[1].label}>
-        <PhaseLabel phase={authPolicy.phase} />
+        <PhaseLabel phase={authPolicy.phase} statusMessage={authPolicy.statusMessage} />
       </Td>
       <Td dataLabel={columns[2].label}>{labelHelper(groupsCount, 'Group', 'Groups')}</Td>
       <Td dataLabel={columns[3].label}>{labelHelper(modelsCount, 'Model', 'Models')}</Td>

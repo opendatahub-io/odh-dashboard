@@ -744,6 +744,14 @@ class SubscriptionTableRow extends TableRow {
     return this.find().find('[data-label="Phase"]');
   }
 
+  findPhaseLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findPhase().findByTestId('phase-label');
+  }
+
+  findPhasePopover(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('phase-popover');
+  }
+
   findGroups(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Groups"]');
   }
@@ -1138,6 +1146,14 @@ class AuthPolicyTableRow extends TableRow {
 
   findPhase(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Phase"]');
+  }
+
+  findPhaseLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findPhase().findByTestId('phase-label');
+  }
+
+  findPhasePopover(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('phase-popover');
   }
 
   findGroups(): Cypress.Chainable<JQuery<HTMLElement>> {

@@ -349,6 +349,8 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	sub.Phase = phase
 
+	sub.StatusMessage = extractReadyConditionMessage(content)
+
 	priority, _, _ := unstructured.NestedFieldNoCopy(content, "spec", "priority")
 	if priority != nil {
 		switch v := priority.(type) {
@@ -450,6 +452,8 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	policy.Phase = phase
 
+	policy.StatusMessage = extractReadyConditionMessage(content)
+
 	modelRefs, _, _ := unstructured.NestedSlice(content, "spec", "modelRefs")
 	for _, mr := range modelRefs {
 		if mrMap, ok := mr.(map[string]interface{}); ok {
@@ -524,6 +528,21 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) (*mode
 	summary.Endpoint = endpoint
 
 	return summary, nil
+}
+
+// extractReadyConditionMessage returns the message from the "Ready" condition in status.conditions.
+func extractReadyConditionMessage(content map[string]interface{}) string {
+	conditions, _, _ := unstructured.NestedSlice(content, "status", "conditions")
+	for _, c := range conditions {
+		if cMap, ok := c.(map[string]interface{}); ok {
+			if condType, _ := cMap["type"].(string); condType == "Ready" {
+				if msg, _ := cMap["message"].(string); msg != "" {
+					return msg
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // --- Builder helpers: Go models -> Unstructured ---

@@ -83,6 +83,14 @@ describe('Subscriptions Page', () => {
     negativePriorityRow.findModels().should('contain.text', '1 Model');
     negativePriorityRow.findPriority().should('contain.text', '-10000');
 
+    const failedRow = subscriptionsPage.getRow('failed-sub');
+    failedRow.findPhase().should('contain.text', 'Failed');
+    failedRow.findPhaseLabel().click();
+    failedRow.findPhasePopover().should('contain.text', 'Failed');
+
+    const pendingRow = subscriptionsPage.getRow('pending-sub');
+    pendingRow.findPhase().should('contain.text', 'Pending');
+
     subscriptionsPage.findFilterInput().should('exist').type('premium');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().should('exist').click();

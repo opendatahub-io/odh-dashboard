@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { Label, LabelProps } from '@patternfly/react-core';
+import { Label, LabelProps, Popover } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
 
 type PhaseLabelProps = {
   phase: string | undefined;
+  statusMessage?: string;
 };
 
 const getPhaseProps = (
@@ -23,12 +24,42 @@ const getPhaseProps = (
   }
 };
 
-const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase }) => {
+const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase, statusMessage }) => {
   const normalized = phase?.trim() || 'Unknown';
-  return (
-    <Label isCompact data-testid="phase-label" {...getPhaseProps(normalized)}>
+  const phaseProps = getPhaseProps(normalized);
+  const hasPopover = !!statusMessage;
+
+  const label = (
+    <Label
+      variant={hasPopover ? 'filled' : 'outline'}
+      isCompact
+      data-testid="phase-label"
+      {...phaseProps}
+      {...(hasPopover
+        ? {
+            onClick: () => {
+              /* Click handled by Popover parent */
+            },
+          }
+        : {})}
+    >
       {normalized}
     </Label>
+  );
+
+  if (!hasPopover) {
+    return label;
+  }
+
+  return (
+    <Popover
+      data-testid="phase-popover"
+      headerContent={normalized}
+      bodyContent={statusMessage}
+      position="top"
+    >
+      {label}
+    </Popover>
   );
 };
 

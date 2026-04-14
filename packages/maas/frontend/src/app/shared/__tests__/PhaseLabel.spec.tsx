@@ -51,4 +51,18 @@ describe('PhaseLabel', () => {
     expect(label).not.toBeNull();
     expect(label.textContent).toContain('SomethingElse');
   });
+
+  it('should render outline variant when no statusMessage is provided', () => {
+    render(<PhaseLabel phase="Active" />);
+    const label = screen.getByTestId('phase-label');
+    expect(label.className).toContain('pf-m-outline');
+    expect(screen.queryByTestId('phase-popover')).toBeNull();
+  });
+
+  it('should render filled variant with popover when statusMessage is provided', () => {
+    render(<PhaseLabel phase="Failed" statusMessage="Token limit exceeded." />);
+    const label = screen.getByTestId('phase-label');
+    expect(label.className).not.toContain('pf-m-outline');
+    expect(label.textContent).toContain('Failed');
+  });
 });

@@ -102,6 +102,14 @@ describe('MaaS Auth Policies', () => {
     basicRow.findPhase().should('contain.text', 'Active');
     basicRow.findGroups().should('contain.text', '1 Group');
     basicRow.findModels().should('contain.text', '1 Model');
+
+    const failedRow = authPoliciesPage.getRow('failed-policy');
+    failedRow.findPhase().should('contain.text', 'Failed');
+    failedRow.findPhaseLabel().click();
+    failedRow.findPhasePopover().should('contain.text', 'Failed');
+
+    const pendingRow = authPoliciesPage.getRow('pending-policy');
+    pendingRow.findPhase().should('contain.text', 'Pending');
   });
 
   it('should delete an auth policy', () => {

@@ -35,8 +35,8 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Phase</DescriptionListTerm>
-          <DescriptionListDescription data-testid="subscription-status">
-            <PhaseLabel phase={subscription.phase} />
+          <DescriptionListDescription data-testid="subscription-phase">
+            <PhaseLabel phase={subscription.phase} statusMessage={subscription.statusMessage} />
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>

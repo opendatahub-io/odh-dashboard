@@ -45,7 +45,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         />
       </Td>
       <Td dataLabel={subscriptionsColumns[1].label}>
-        <PhaseLabel phase={subscription.phase} />
+        <PhaseLabel phase={subscription.phase} statusMessage={subscription.statusMessage} />
       </Td>
       <Td dataLabel={subscriptionsColumns[2].label}>
         <Label color="grey">{`${subscription.owner.groups.length} Group${subscription.owner.groups.length === 1 ? '' : 's'}`}</Label>

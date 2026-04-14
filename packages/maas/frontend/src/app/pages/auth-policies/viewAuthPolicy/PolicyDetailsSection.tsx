@@ -33,8 +33,8 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy }) =
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Phase</DescriptionListTerm>
-          <DescriptionListDescription data-testid="policy-status">
-            <PhaseLabel phase={policy.phase} />
+          <DescriptionListDescription data-testid="policy-phase">
+            <PhaseLabel phase={policy.phase} statusMessage={policy.statusMessage} />
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
