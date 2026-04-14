@@ -17,7 +17,7 @@ export const mockDocs = (): OdhDocument[] => [
       displayName: 'How to install Python packages on your notebook server',
       durationMinutes: 15,
       type: 'how-to',
-      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_connected_applications/using_the_jupyter_application#installing-python-packages-on-your-notebook-server_connected-apps',
+      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4',
     },
   },
   {
@@ -36,7 +36,7 @@ export const mockDocs = (): OdhDocument[] => [
       displayName: 'How to manage notebook server settings',
       durationMinutes: 15,
       type: 'how-to',
-      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_resources/managing-notebook-servers_notebook-mgmt',
+      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4',
     },
   },
   {
@@ -55,7 +55,7 @@ export const mockDocs = (): OdhDocument[] => [
       displayName: 'How to use data from an S3-compatible object store',
       durationMinutes: 15,
       type: 'how-to',
-      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_data_in_an_s3-compatible_object_store/index',
+      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_data_in_an_s3-compatible_object_store/index',
     },
   },
   {
@@ -74,7 +74,7 @@ export const mockDocs = (): OdhDocument[] => [
       displayName: 'How to view installed packages on your notebook server',
       durationMinutes: 15,
       type: 'how-to',
-      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_connected_applications/using_the_jupyter_application#viewing-python-packages-installed-on-your-notebook-server_connected-apps',
+      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4',
     },
   },
   {
@@ -93,7 +93,7 @@ export const mockDocs = (): OdhDocument[] => [
       displayName: 'test',
       durationMinutes: 15,
       type: 'how-to',
-      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_connected_applications/using_the_jupyter_application#installing-python-packages-on-your-notebook-server_connected-apps',
+      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4',
     },
   },
 ];

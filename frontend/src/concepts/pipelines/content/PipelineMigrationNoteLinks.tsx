@@ -2,10 +2,10 @@ import React from 'react';
 import { AlertActionLink } from '@patternfly/react-core';
 
 const INVALID_ARGO_DEPLOYMENT_SELF_DOCUMENTATION_URL =
-  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/2.22/html/working_with_data_science_pipelines/migrating-to-data-science-pipelines-2_ds-pipelines#upgrading_to_data_science_pipelines_2_0';
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_ai_pipelines/pr01';
 
 const INVALID_ARGO_DEPLOYMENT_CLOUD_DOCUMENTATION_URL =
-  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_data_science_pipelines/migrating-to-data-science-pipelines-2_ds-pipelines';
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_ai_pipelines/pr01';
 
 const PipelineMigrationNoteLinks: React.FC = () => (
   <>
