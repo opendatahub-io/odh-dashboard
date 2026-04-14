@@ -28,6 +28,12 @@ describe('ConfusionMatrixTab', () => {
     expect(skeletons.length).toBeGreaterThan(0);
   });
 
+  it('should render disabled view selector during loading for multiclass tasks', () => {
+    render(<ConfusionMatrixTab {...defaultProps} isArtifactsLoading />);
+    const toggle = screen.getByLabelText('Loading view selector');
+    expect(toggle).toBeDisabled();
+  });
+
   it('should show no-data empty state when confusionMatrix is undefined and not loading', () => {
     render(<ConfusionMatrixTab {...defaultProps} />);
 
