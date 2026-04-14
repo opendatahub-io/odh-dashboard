@@ -61,8 +61,8 @@ import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
-import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
 import type { File as S3File } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
@@ -75,15 +75,15 @@ import {
   RAG_METRIC_CONTEXT_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
 } from '~/app/schemas/configure.schema';
-import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 import { SecretListItem } from '~/app/types';
+import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import './AutoragConfigure.css';
 import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 import EvaluationTemplateModal from './EvaluationTemplateModal';
-import './AutoragConfigure.css';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = {
   s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
@@ -330,7 +330,8 @@ function AutoragConfigure(): React.JSX.Element {
       } catch (err) {
         if (uploadRequestId === inputDataUploadSeqRef.current) {
           const errorMessage = err instanceof Error ? err.message : String(err);
-          const isConflict = errorMessage.toLowerCase().includes('unique filename');
+          // Check for 409 Conflict status code (filename collision)
+          const isConflict = err instanceof Error && 'statusCode' in err && err.statusCode === 409;
 
           notification.error(
             'Failed to upload file',
