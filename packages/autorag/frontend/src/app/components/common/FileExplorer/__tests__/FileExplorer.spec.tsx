@@ -794,6 +794,148 @@ describe('FileExplorer', () => {
       expect(mockOnClose).toHaveBeenCalled();
     });
   });
+  describe('eye icon indicator in selected files list', () => {
+    it('should show eye icon next to file being viewed when multiple files are selected', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
+      const row2 = screen.getByTestId('file-explorer-row--file-2-json');
+
+      // Select two files
+      fireEvent.click(within(row1).getByRole('checkbox'));
+      fireEvent.click(within(row2).getByRole('checkbox'));
+
+      // Click "View details" on first file
+      const kebab1 = within(row1).getByRole('button', { name: /file-1\.json actions/i });
+      fireEvent.click(kebab1);
+      const viewDetailsAction = screen.getByText('View details');
+      fireEvent.click(viewDetailsAction);
+
+      // Eye icon should appear next to file-1 in selected files list
+      const selectedFilesList = screen.getByTestId('file-explorer-selected-files');
+      const file1Item = within(selectedFilesList).getByText('file-1.json').closest('li');
+      expect(file1Item).toBeInTheDocument();
+
+      // Eye icon should be present for file-1
+      const eyeIcon = within(file1Item!).getByTitle('Viewing details');
+      expect(eyeIcon).toBeInTheDocument();
+    });
+    it('should NOT show eye icon when only one file is selected', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
+
+      // Select only one file
+      fireEvent.click(within(row1).getByRole('checkbox'));
+
+      // Selected files list should exist
+      const selectedFilesList = screen.getByTestId('file-explorer-selected-files');
+      const file1Item = within(selectedFilesList).getByText('file-1.json').closest('li');
+      expect(file1Item).toBeInTheDocument();
+
+      // Eye icon should NOT be present when only one file selected
+      const eyeIcon = within(file1Item!).queryByTitle('Viewing details');
+      expect(eyeIcon).not.toBeInTheDocument();
+    });
+    it('should move eye icon when viewing different file in multi-selection', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
+      const row2 = screen.getByTestId('file-explorer-row--file-2-json');
+
+      // Select two files
+      fireEvent.click(within(row1).getByRole('checkbox'));
+      fireEvent.click(within(row2).getByRole('checkbox'));
+
+      // View details of first file
+      const kebab1 = within(row1).getByRole('button', { name: /file-1\.json actions/i });
+      fireEvent.click(kebab1);
+      fireEvent.click(screen.getByText('View details'));
+
+      const selectedFilesList = screen.getByTestId('file-explorer-selected-files');
+      const file1Item = within(selectedFilesList).getByText('file-1.json').closest('li');
+      const file2Item = within(selectedFilesList).getByText('file-2.json').closest('li');
+
+      // Eye should be on file-1
+      expect(within(file1Item!).queryByTitle('Viewing details')).toBeInTheDocument();
+      expect(within(file2Item!).queryByTitle('Viewing details')).not.toBeInTheDocument();
+
+      // Click on file-2 in selected files list to view its details
+      fireEvent.click(within(file2Item!).getByText('file-2.json'));
+
+      // Eye should now be on file-2
+      expect(within(file1Item!).queryByTitle('Viewing details')).not.toBeInTheDocument();
+      expect(within(file2Item!).queryByTitle('Viewing details')).toBeInTheDocument();
+    });
+    it('should remove eye icon when deselecting down to one file', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
+      const row2 = screen.getByTestId('file-explorer-row--file-2-json');
+
+      // Select two files
+      fireEvent.click(within(row1).getByRole('checkbox'));
+      fireEvent.click(within(row2).getByRole('checkbox'));
+
+      // View details of first file
+      const kebab1 = within(row1).getByRole('button', { name: /file-1\.json actions/i });
+      fireEvent.click(kebab1);
+      fireEvent.click(screen.getByText('View details'));
+
+      const selectedFilesList = screen.getByTestId('file-explorer-selected-files');
+      let file1Item = within(selectedFilesList).getByText('file-1.json').closest('li');
+
+      // Eye icon should be visible with 2 files selected
+      expect(within(file1Item!).queryByTitle('Viewing details')).toBeInTheDocument();
+
+      // Deselect file-2 (leaving only file-1 selected)
+      fireEvent.click(within(row2).getByRole('checkbox'));
+
+      // Eye icon should disappear when only 1 file remains selected
+      file1Item = within(selectedFilesList).getByText('file-1.json').closest('li');
+      expect(within(file1Item!).queryByTitle('Viewing details')).not.toBeInTheDocument();
+    });
+    it('should move eye icon to newly selected file', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
+      const row2 = screen.getByTestId('file-explorer-row--file-2-json');
+      const row3 = screen.getByTestId('file-explorer-row--file-3-json');
+
+      // Select two files
+      fireEvent.click(within(row1).getByRole('checkbox'));
+      fireEvent.click(within(row2).getByRole('checkbox'));
+
+      // View details of file-2
+      const kebab2 = within(row2).getByRole('button', { name: /file-2\.json actions/i });
+      fireEvent.click(kebab2);
+      fireEvent.click(screen.getByText('View details'));
+
+      const selectedFilesList = screen.getByTestId('file-explorer-selected-files');
+      let file1Item = within(selectedFilesList).getByText('file-1.json').closest('li');
+      let file2Item = within(selectedFilesList).getByText('file-2.json').closest('li');
+
+      // Eye should be on file-2
+      expect(within(file2Item!).queryByTitle('Viewing details')).toBeInTheDocument();
+
+      // Select third file (selecting a file shows its details)
+      fireEvent.click(within(row3).getByRole('checkbox'));
+
+      file1Item = within(selectedFilesList).getByText('file-1.json').closest('li');
+      file2Item = within(selectedFilesList).getByText('file-2.json').closest('li');
+      const file3Item = within(selectedFilesList).getByText('file-3.json').closest('li');
+
+      // Eye should now be on file-3 (the newly selected file)
+      expect(within(file1Item!).queryByTitle('Viewing details')).not.toBeInTheDocument();
+      expect(within(file2Item!).queryByTitle('Viewing details')).not.toBeInTheDocument();
+      expect(within(file3Item!).queryByTitle('Viewing details')).toBeInTheDocument();
+    });
+  });
 });
 
 describe('isFolder', () => {

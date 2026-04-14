@@ -680,11 +680,13 @@ const FileDetails: React.FC<FileDetailsProps> = ({ file }) => (
 
 interface SelectedFilesDataListProps {
   selectedFiles: Files;
+  filesToView?: Files;
   onViewDetails: (file: File) => void;
   onRemoveSelection: (file: File) => void;
 }
 const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
   selectedFiles,
+  filesToView,
   onViewDetails,
   onRemoveSelection,
 }) => {
@@ -710,11 +712,28 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
             <DataListItemCells
               dataListCells={[
                 <DataListCell key="name">
-                  <Truncate
-                    id={`selected-file-${sanitizeId(file.path)}`}
-                    content={file.name}
-                    tooltipPosition="right"
-                  />
+                  <Flex
+                    spaceItems={{ default: 'spaceItemsSm' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    flexWrap={{ default: 'nowrap' }}
+                  >
+                    <FlexItem>
+                      <Truncate
+                        id={`selected-file-${sanitizeId(file.path)}`}
+                        content={file.name}
+                        tooltipPosition="right"
+                      />
+                    </FlexItem>
+                    {selectedFiles.length > 1 &&
+                      Array.isArray(filesToView) &&
+                      filesToView.some((f) => f.path === file.path) && (
+                        <FlexItem>
+                          <OutlinedEyeIcon
+                            title={defaults.labels.detailsViewingDetailsOfThisFile}
+                          />
+                        </FlexItem>
+                      )}
+                  </Flex>
                 </DataListCell>,
               ]}
             />
@@ -821,6 +840,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
         {Array.isArray(selectedFiles) && selectedFiles.length > 0 && (
           <SelectedFilesDataList
             selectedFiles={selectedFiles}
+            filesToView={filesToView}
             onViewDetails={onViewDetails}
             onRemoveSelection={onRemoveSelection}
           />
