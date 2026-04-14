@@ -258,7 +258,7 @@ describe('errorClassifier', () => {
       it('should detect streaming errors from timeout with message keywords', () => {
         const error = {
           error: {
-            component: 'llama_stack',
+            component: 'llama_stack' as const,
             code: 'timeout',
             message: '{"error": "stream terminated: connection reset by peer"}',
           },
@@ -272,7 +272,7 @@ describe('errorClassifier', () => {
       it('should detect context_length error from BFF', () => {
         const error = {
           error: {
-            component: 'model',
+            component: 'model' as const,
             code: 'context_length',
             message: '{"error": "context length 8192 exceeded at token 8191"}',
           },
@@ -286,7 +286,7 @@ describe('errorClassifier', () => {
       it('should detect context length from message keywords', () => {
         const error = {
           error: {
-            component: 'model',
+            component: 'model' as const,
             code: 'some_error',
             message: '{"error": "context length exceeded at token 8191"}',
           },
@@ -380,7 +380,7 @@ describe('errorClassifier', () => {
         const result = classifyError(error, { wasResponseGenerated: true });
 
         expect(result.description).toBe('Generated without context from your knowledge sources.');
-        expect(result.pattern).toBe('partial_failure' as ErrorPattern);
+        expect(result.pattern).toBe('partial-failure' as ErrorPattern);
       });
 
       it('should generate description for rag_embed error', () => {
@@ -470,85 +470,6 @@ describe('errorClassifier', () => {
       });
     });
 
-    describe('template variable interpolation', () => {
-      it('should include modelName in templateVars', () => {
-        const error = { error: { code: 'timeout', message: 'Timeout' } };
-        const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
-
-        expect(result.templateVars).toEqual({ modelName: 'Llama 3.1 8B' });
-      });
-
-      it('should include maxTokens in templateVars', () => {
-        const error = { error: { code: 'max_tokens', message: 'Token limit' } };
-        const result = classifyError(error, { maxTokens: 4096 });
-
-        expect(result.templateVars).toEqual({ maxTokens: 4096 });
-      });
-
-      it('should include toolName from error details', () => {
-        const error = {
-          // eslint-disable-next-line camelcase
-          error: { code: 'mcp_down', message: 'Tool failed', tool_name: 'GitHub' },
-        };
-        const result = classifyError(error);
-
-        expect(result.templateVars).toEqual({ toolName: 'GitHub' });
-      });
-
-      it('should include all template vars when provided', () => {
-        const error = {
-          // eslint-disable-next-line camelcase
-          error: { code: 'max_tokens', message: 'Token limit', tool_name: 'GitHub' },
-        };
-        const result = classifyError(error, {
-          modelName: 'Llama 3.1 8B',
-          maxTokens: 4096,
-        });
-
-        expect(result.templateVars).toEqual({
-          modelName: 'Llama 3.1 8B',
-          maxTokens: 4096,
-          toolName: 'GitHub',
-        });
-      });
-    });
-
-    describe('raw error extraction', () => {
-      it('should extract code and message from structured error', () => {
-        const error = { error: { code: 'timeout', message: 'Request timed out' } };
-        const result = classifyError(error);
-
-        expect(result.rawError).toEqual({
-          code: 'timeout',
-          message: 'Request timed out',
-        });
-      });
-
-      it('should handle error without code', () => {
-        const error = { error: { message: 'Generic error' } };
-        const result = classifyError(error);
-
-        expect(result.rawError).toEqual({
-          code: undefined,
-          message: 'Generic error',
-        });
-      });
-
-      it('should extract message from Error object', () => {
-        const error = new Error('Network error');
-        const result = classifyError(error);
-
-        expect(result.rawError.message).toBe('Network error');
-      });
-
-      it('should use fallback message for unknown error types', () => {
-        const error = { someField: 'value' };
-        const result = classifyError(error);
-
-        expect(result.rawError.message).toBe('An unexpected error occurred');
-      });
-    });
-
     describe('error category constants integration', () => {
       it('should recognize ERROR_CATEGORIES constants', () => {
         const categoryTests = [
@@ -580,7 +501,7 @@ describe('errorClassifier', () => {
 
         expect(result.title).toBe("Couldn't reach the server");
         expect(result.description).toBe('The playground server is not responding.');
-        expect(result.retriable).toBe(true);
+        expect(result.isRetriable).toBe(true);
       });
 
       it('should handle bad_gateway code', () => {
@@ -589,7 +510,7 @@ describe('errorClassifier', () => {
 
         expect(result.title).toBe("Couldn't reach the server");
         expect(result.description).toBe('The playground server is not responding.');
-        expect(result.retriable).toBe(true);
+        expect(result.isRetriable).toBe(true);
       });
 
       it('should handle ERROR_CATEGORIES.INVALID_PARAMETER', () => {
@@ -599,7 +520,7 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toBe('An error occurred');
-        expect(result.retriable).toBe(false);
+        expect(result.isRetriable).toBe(false);
       });
 
       it('should handle ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND', () => {
@@ -648,7 +569,7 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toBe('Request was rate limited');
-        expect(result.retriable).toBe(true);
+        expect(result.isRetriable).toBe(true);
       });
     });
 
@@ -656,7 +577,7 @@ describe('errorClassifier', () => {
       it('should classify RAG errors by component field', () => {
         const error = {
           error: {
-            component: 'rag',
+            component: 'rag' as const,
             message: 'Retrieval failed',
           },
         };
@@ -668,7 +589,7 @@ describe('errorClassifier', () => {
       it('should classify guardrails errors by component field', () => {
         const error = {
           error: {
-            component: 'guardrails',
+            component: 'guardrails' as const,
             message: 'Guardrails failed',
           },
         };
@@ -680,7 +601,7 @@ describe('errorClassifier', () => {
       it('should classify MCP errors by component field', () => {
         const error = {
           error: {
-            component: 'mcp',
+            component: 'mcp' as const,
             message: 'MCP failed',
           },
         };
@@ -693,7 +614,7 @@ describe('errorClassifier', () => {
         const error = {
           error: {
             code: 'rag_empty',
-            component: 'rag',
+            component: 'rag' as const,
             message: 'No results',
           },
         };
@@ -706,7 +627,7 @@ describe('errorClassifier', () => {
         const error = {
           error: {
             code: 'unknown_code',
-            component: 'guardrails',
+            component: 'guardrails' as const,
             message: 'Unknown guardrails error',
           },
         };

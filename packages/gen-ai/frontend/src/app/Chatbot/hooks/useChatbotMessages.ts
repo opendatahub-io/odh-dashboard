@@ -6,6 +6,7 @@ import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilities/utils';
 import {
+  ApiError,
   ChatMessageRole,
   CreateResponseRequest,
   GuardrailModelConfig,
@@ -677,11 +678,13 @@ const useChatbotMessages = ({
 
       // Check if there's partial content in the bot message (for streaming interruptions)
       const currentBotMessage = messages.find((msg) => msg.id === botMessageId);
-      const hadPartialContent =
-        isStreamingEnabled && currentBotMessage?.content && currentBotMessage.content.length > 0;
+      const hadPartialContent = Boolean(
+        isStreamingEnabled && currentBotMessage?.content && currentBotMessage.content.length > 0,
+      );
 
       // Classify the error for UI rendering
-      const errorClassification = classifyError(error, {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const errorClassification = classifyError(error as ApiError, {
         modelName: modelDisplayName,
         wasStreamStarted: isStreamingEnabled,
         wasResponseGenerated: hadPartialContent,
