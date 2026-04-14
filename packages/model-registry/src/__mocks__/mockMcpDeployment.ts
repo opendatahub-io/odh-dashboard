@@ -32,9 +32,7 @@ export const mockMcpServerCR = (overrides?: Partial<MCPServerCR>): MCPServerCR =
   ...overrides,
 });
 
-export const mockMcpDeploymentList = (
-  partial?: Partial<McpDeploymentList>,
-): McpDeploymentList => ({
+export const mockMcpDeploymentList = (partial?: Partial<McpDeploymentList>): McpDeploymentList => ({
   items: [mockMcpDeployment()],
   size: 1,
   ...partial,

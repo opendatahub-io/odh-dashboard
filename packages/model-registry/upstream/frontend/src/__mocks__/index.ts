@@ -10,4 +10,3 @@ export * from './mockCatalogLabelList';
 export * from './mockMcpCatalogTestData';
 export * from './mockModelArtifact';
 export * from './mockModelTransferJob';
-export * from './mockMcpDeployment';

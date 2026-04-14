@@ -19,7 +19,6 @@ import K8sNameDescriptionField, {
 import { APIOptions, useQueryParamNamespaces } from 'mod-arch-core';
 import ProjectSelectorField from '../../projectSelector/ProjectSelectorField';
 import useMcpServerConverter from '../../hooks/useMcpServerConverter';
-import { useNotification } from '../../../upstream/frontend/src/app/hooks/useNotification';
 import { createMcpDeployment, updateMcpDeployment } from '../../api/mcpCatalogDeployment/service';
 import { mcpDeploymentsUrl } from '../../../upstream/frontend/src/app/routes/mcpCatalog/mcpCatalog';
 import { mcpServerCRToYaml } from '../../utils/mcpServerYaml';
@@ -35,7 +34,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
   const navigate = useNavigate();
   const queryParams = useQueryParamNamespaces();
   const { theme } = useThemeContext();
-  const notification = useNotification();
   const [crData, crLoaded, crError] = useMcpServerConverter(existingDeployment ? '' : serverId);
 
   const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
@@ -53,7 +51,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
     existingDeployment?.namespace ?? '',
   );
   const [yamlContent, setYamlContent] = React.useState(existingDeployment?.yaml ?? '');
-  const [initialYaml, setInitialYaml] = React.useState(existingDeployment?.yaml ?? '');
   const [ociImageValue, setOciImageValue] = React.useState(existingDeployment?.image ?? '');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error>();
@@ -67,7 +64,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
       crInitializedRef.current = true;
       const yaml = mcpServerCRToYaml(crData);
       setYamlContent(yaml);
-      setInitialYaml(yaml);
       setOciImageValue(crData.spec.source.containerImage?.ref ?? '');
     }
   }, [existingDeployment, crData]);
@@ -82,17 +78,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
   const handleNamespaceSelect = React.useCallback((projectName: string) => {
     setSelectedNamespace(projectName);
   }, []);
-
-  const handleReset = React.useCallback(() => {
-    setYamlContent(initialYaml);
-    if (existingDeployment) {
-      onNameDescChange('name', existingDeployment.displayName ?? existingDeployment.name);
-    } else {
-      setSelectedNamespace('');
-      onNameDescChange('name', '');
-    }
-    setSubmitError(undefined);
-  }, [initialYaml, existingDeployment, onNameDescChange]);
 
   const displayName = nameDescData.name;
   const k8sName = nameDescData.k8sName.value;
@@ -122,10 +107,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
           },
         );
         onClose(true);
-        notification.success(
-          'MCP server updated successfully',
-          `${displayName || k8sName} has been updated.`,
-        );
       } else {
         await createMcpDeployment('', { ...queryParams, namespace: selectedNamespace })(opts, {
           name: k8sName,
@@ -135,10 +116,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
           yaml: yamlContent,
         });
         onClose(true);
-        notification.success(
-          'MCP server deployed successfully',
-          `${displayName || k8sName} has been deployed to ${selectedNamespace}.`,
-        );
         navigate(mcpDeploymentsUrl(selectedNamespace));
       }
     } catch (e) {
@@ -159,7 +136,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
     crData,
     queryParams,
     onClose,
-    notification,
     navigate,
     existingDeployment,
   ]);
@@ -202,13 +178,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
       isDisabled: isDeployDisabled,
       isLoading: isSubmitting,
       dataTestId: 'mcp-deploy-submit-button',
-    },
-    {
-      label: 'Reset',
-      onClick: handleReset,
-      variant: 'secondary',
-      isDisabled: isSubmitting,
-      dataTestId: 'mcp-deploy-reset-button',
     },
     {
       label: 'Close',
@@ -256,7 +225,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
               labelHelp={
                 <Popover
                   triggerRef={ociImageLabelHelpRef}
-                  bodyContent="The container image reference for this MCP server, sourced from the catalog artifact."
+                  bodyContent="This is the container image associated with the MCP server that you selected from the catalog. This cannot be edited."
                   aria-label="OCI image help"
                 >
                   <FormGroupLabelHelp
@@ -291,12 +260,12 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
             )}
 
             <FormGroup
-              label="Configuration (YAML)"
+              label="YAML configuration"
               fieldId="mcp-deploy-yaml"
               labelHelp={
                 <Popover
                   triggerRef={configLabelHelpRef}
-                  bodyContent="Prefilled from catalog metadata when available; you can adjust before deploying. This block is the spec fragment only (not the full CRD); it is merged into the MCPServer resource—image and project are set by the form. For more options, see the server documentation on the details page."
+                  bodyContent="For more information about the prefilled YAML configuration, check the details page of the selected server."
                   aria-label="Configuration help"
                 >
                   <FormGroupLabelHelp
@@ -307,8 +276,8 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ onClose, existingDeploy
               }
             >
               <Content component="small" className="pf-v6-u-mb-sm">
-                Prefilled from catalog metadata. Adjust runtime, config, and environment settings as
-                needed.
+                This YAML has been prefilled from the selected server&apos;s metadata in the
+                catalog. Edit as needed.
               </Content>
               <CodeEditor
                 code={yamlContent}

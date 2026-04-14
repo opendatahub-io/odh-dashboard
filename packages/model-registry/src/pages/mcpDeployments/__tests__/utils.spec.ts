@@ -79,6 +79,8 @@ describe('getStatusInfo', () => {
     const result = getStatusInfo(McpDeploymentPhase.PENDING);
     expect(result.label).toBe('Pending');
     expect(result.status).toBe('info');
-    expect(result.popoverBody).toBe('This MCP server is starting up and will be available shortly.');
+    expect(result.popoverBody).toBe(
+      'This MCP server is starting up and will be available shortly.',
+    );
   });
 });

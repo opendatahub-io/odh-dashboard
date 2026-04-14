@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { useQueryParamNamespaces } from 'mod-arch-core';
+import { getDeploymentDisplayName } from './utils';
 import { McpDeployment } from '../../types/mcpDeploymentTypes';
 import DeleteModal from '../../../upstream/frontend/src/app/shared/components/DeleteModal';
 import { deleteMcpDeployment } from '../../api/mcpDeploymentService';
 import { BFF_HOST_PATH } from '../../../upstream/frontend/src/app/utilities/const';
-import { getDeploymentDisplayName } from './utils';
 
 type DeleteMcpDeploymentModalProps = {
   deployment: McpDeployment;
