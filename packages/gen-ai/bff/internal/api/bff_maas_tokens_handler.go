@@ -31,7 +31,9 @@ func (app *App) BFFMaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request,
 	var tokenRequest models.MaaSTokenRequest
 
 	// Only try to parse JSON if there's actually a body
-	if r.ContentLength > 0 {
+	// Use r.ContentLength != 0 instead of > 0 to handle chunked transfer encoding
+	// where ContentLength is -1 (common with K8s proxies and Envoy)
+	if r.Body != nil && r.ContentLength != 0 {
 		if err := app.ReadJSON(w, r, &tokenRequest); err != nil {
 			app.badRequestResponse(w, r, err)
 			return
