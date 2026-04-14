@@ -435,9 +435,9 @@ const FilesTable: React.FC<FilesTableProps> = ({
                     isSelectable={!isUnselectable && (!isSelected || selection === 'checkbox')}
                     isRowSelected={isSelected}
                     isClickable={!isUnselectable && (!isSelected || selection === 'checkbox')}
-                    onClick={(event) => {
+                    onRowClick={(event) => {
                       const clickedInteractiveDescendant =
-                        event.target instanceof Element &&
+                        event?.target instanceof Element &&
                         event.target.closest('a, button, input, label');
 
                       if (isUnselectable || clickedInteractiveDescendant) {
