@@ -20,6 +20,7 @@ import {
   TextInput,
   Tooltip,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router';
 import { useModelRegistriesQuery } from '~/app/hooks/useModelRegistriesQuery';
@@ -62,6 +63,26 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
   const [registrySelectOpen, setRegistrySelectOpen] = React.useState(false);
   const [registeredModelName, setRegisteredModelName] = React.useState(displayName);
   const [modelDescription, setModelDescription] = React.useState(defaultDescription);
+
+  // Derive validation error from current registry data to handle React Query refetches.
+  // If the user selects a registry without external_url and then the data refetches
+  // (e.g., operator reconciles and adds external_url), we want the error to clear
+  // automatically without requiring the user to re-select.
+  const registryValidationError = React.useMemo(() => {
+    if (!selectedRegistry) {
+      return '';
+    }
+    // Find the current version of the selected registry in the latest data
+    const currentRegistry = readyRegistries.find((r) => r.id === selectedRegistry.id);
+    if (!currentRegistry) {
+      return ''; // Registry was removed
+    }
+    if (!currentRegistry.external_url?.trim()) {
+      return 'This registry does not have an external URL configured and cannot be used for model registration.';
+    }
+    return '';
+  }, [selectedRegistry, readyRegistries]);
+
   // The predictor path is a relative S3 key (e.g. "pipeline/run/.../predictor").
   // The BFF resolves the bucket, endpoint, and region from the DSPA object storage
   // config and constructs the full URI for the Model Registry.
@@ -102,7 +123,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
   });
 
   const handleSubmit = React.useCallback(() => {
-    if (!selectedRegistry || !registeredModelName.trim() || !s3Path) {
+    if (!selectedRegistry || !registeredModelName.trim() || !s3Path || registryValidationError) {
       return;
     }
 
@@ -120,10 +141,20 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
       registryName: selectedRegistry.name,
       request,
     });
-  }, [selectedRegistry, registeredModelName, s3Path, modelDescription, registerMutation]);
+  }, [
+    selectedRegistry,
+    registeredModelName,
+    s3Path,
+    modelDescription,
+    registerMutation,
+    registryValidationError,
+  ]);
 
   const isFormValid =
-    Boolean(selectedRegistry) && registeredModelName.trim().length > 0 && Boolean(s3Path);
+    Boolean(selectedRegistry) &&
+    !registryValidationError &&
+    registeredModelName.trim().length > 0 &&
+    Boolean(s3Path);
 
   const isSubmitting = registerMutation.isPending;
 
@@ -182,6 +213,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
                     onClick={() => setRegistrySelectOpen((prev) => !prev)}
                     isExpanded={registrySelectOpen}
                     isFullWidth
+                    status={registryValidationError ? 'danger' : undefined}
                     data-testid="registry-select-toggle"
                   >
                     {selectedRegistry?.display_name ?? 'Select a model registry'}
@@ -202,6 +234,19 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
                   ))}
                 </SelectList>
               </Select>
+            )}
+            {registryValidationError && (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem
+                    variant="error"
+                    icon={<ExclamationCircleIcon />}
+                    data-testid="registry-validation-error"
+                  >
+                    {registryValidationError}
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
             )}
           </FormGroup>
 

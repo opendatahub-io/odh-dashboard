@@ -5,8 +5,11 @@ import type { PipelineRun } from '~/app/types';
 
 const configureSchema = createConfigureSchema();
 
-// Schema matches the model.json file outputted in each model directory.
-export type AutomlModel = {
+// Normalized model types after rewriting relative S3 paths to absolute paths.
+// Tabular and timeseries models have different shapes; downstream code should
+// use the `AutomlModel` union and narrow via `isTimeseriesModel()` when needed.
+
+export type AutomlTabularModel = {
   name: string;
   location: {
     model_directory: string;
@@ -17,6 +20,25 @@ export type AutomlModel = {
     test_data: Record<string, number>;
   };
 };
+
+export type AutomlTimeseriesModel = {
+  name: string;
+  base_model: string;
+  location: {
+    model_directory: string;
+    predictor: string;
+    notebook: string;
+    metrics: string;
+  };
+  metrics: {
+    test_data: Record<string, number>;
+  };
+};
+
+export type AutomlModel = AutomlTabularModel | AutomlTimeseriesModel;
+
+export const isTimeseriesModel = (model: AutomlModel): model is AutomlTimeseriesModel =>
+  'base_model' in model;
 
 export type AutomlResultsContextProps = {
   pipelineRun?: PipelineRun;

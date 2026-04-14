@@ -46,4 +46,14 @@
       white-space: normal !important;
     }
   }
+
+  &__optimized-indicator {
+    font-weight: normal;
+    font-size: var(--pf-t--global--font--size--xs);
+  }
+
+  // Center-align the rank column so plain numbers align with the starred rank label
+  &__rank-cell {
+    text-align: center;
+  }
 }

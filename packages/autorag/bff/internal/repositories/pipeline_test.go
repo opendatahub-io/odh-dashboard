@@ -460,8 +460,8 @@ func TestEnsurePipeline(t *testing.T) {
 		ids := psmocks.DeriveMockIDs(mockClient.Namespace)
 
 		def := PipelineDefinition{
-			Name:         "documents-rag-optimization-pipeline",
-			YAMLFilename: "documents-rag-optimization-pipeline.yaml",
+			Name:        "documents-rag-optimization-pipeline",
+			PipelineDir: "documents_rag_optimization_pipeline",
 		}
 
 		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
@@ -477,8 +477,8 @@ func TestEnsurePipeline(t *testing.T) {
 		mockClient.PipelineNames = []string{"unrelated-pipeline"}
 
 		def := PipelineDefinition{
-			Name:         "documents-rag-optimization-pipeline",
-			YAMLFilename: "documents-rag-optimization-pipeline.yaml",
+			Name:        "documents-rag-optimization-pipeline",
+			PipelineDir: "documents_rag_optimization_pipeline",
 		}
 
 		repo.InvalidateCache("http://mock-ps", namespace)
@@ -496,8 +496,8 @@ func TestEnsurePipeline(t *testing.T) {
 		mockClient.PipelineNames = []string{"unrelated-pipeline"}
 
 		def := PipelineDefinition{
-			Name:         "nonexistent",
-			YAMLFilename: "",
+			Name:        "nonexistent",
+			PipelineDir: "",
 		}
 
 		repo.InvalidateCache("http://mock-ps", namespace)
@@ -516,8 +516,8 @@ func TestEnsurePipeline(t *testing.T) {
 		mockClient := &conflictVersionMockClient{MockPipelineServerClient: baseMock}
 
 		def := PipelineDefinition{
-			Name:         "documents-rag-optimization-pipeline",
-			YAMLFilename: "documents-rag-optimization-pipeline.yaml",
+			Name:        "documents-rag-optimization-pipeline",
+			PipelineDir: "documents_rag_optimization_pipeline",
 		}
 
 		repo.InvalidateCache("http://mock-ps", namespace)

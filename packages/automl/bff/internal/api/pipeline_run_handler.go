@@ -24,13 +24,13 @@ func (app *App) pipelineDefinition(pipelineType string) repositories.PipelineDef
 	switch pipelineType {
 	case constants.PipelineTypeTimeSeries:
 		return repositories.PipelineDefinition{
-			Name:         app.config.AutoMLTimeSeriesPipelineNamePrefix,
-			YAMLFilename: "autogluon-timeseries-training-pipeline.yaml",
+			Name:        app.config.AutoMLTimeSeriesPipelineNamePrefix,
+			PipelineDir: "autogluon_timeseries_training_pipeline",
 		}
 	case constants.PipelineTypeTabular:
 		return repositories.PipelineDefinition{
-			Name:         app.config.AutoMLTabularPipelineNamePrefix,
-			YAMLFilename: "autogluon-tabular-training-pipeline.yaml",
+			Name:        app.config.AutoMLTabularPipelineNamePrefix,
+			PipelineDir: "autogluon_tabular_training_pipeline",
 		}
 	default:
 		return repositories.PipelineDefinition{Name: pipelineType}

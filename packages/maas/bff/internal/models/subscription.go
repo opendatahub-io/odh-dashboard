@@ -97,14 +97,15 @@ type ModelRef struct {
 
 // MaaSAuthPolicy is the BFF representation of a MaaSAuthPolicy CR.
 type MaaSAuthPolicy struct {
-	Name             string         `json:"name"`
-	Namespace        string         `json:"namespace"`
-	DisplayName      string         `json:"displayName,omitempty"`
-	Description      string         `json:"description,omitempty"`
-	Phase            string         `json:"phase,omitempty"`
-	ModelRefs        []ModelRef     `json:"modelRefs"`
-	Subjects         SubjectSpec    `json:"subjects"`
-	MeteringMetadata *TokenMetadata `json:"meteringMetadata,omitempty"`
+	Name              string         `json:"name"`
+	Namespace         string         `json:"namespace"`
+	DisplayName       string         `json:"displayName,omitempty"`
+	Description       string         `json:"description,omitempty"`
+	Phase             string         `json:"phase,omitempty"`
+	CreationTimestamp *time.Time     `json:"creationTimestamp,omitempty"`
+	ModelRefs         []ModelRef     `json:"modelRefs"`
+	Subjects          SubjectSpec    `json:"subjects"`
+	MeteringMetadata  *TokenMetadata `json:"meteringMetadata,omitempty"`
 }
 
 // ModelReference references a model endpoint.

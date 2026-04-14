@@ -89,6 +89,12 @@ public-cypress/
 .npm/
 vendor/
 
+# Agent worktrees
+.claude/worktrees/
+
+# Triage artifacts
+.artifacts/
+
 # AgentReady reports
 .agentready/
 assessment-output.txt

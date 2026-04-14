@@ -949,6 +949,10 @@ class EditRateLimitsModal extends Modal {
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('save-rate-limits');
   }
+
+  findHelperText(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`edit-token-limit-${index}-helper-text`);
+  }
 }
 
 class DeleteSubscriptionModal extends DeleteModal {
@@ -1013,6 +1017,71 @@ class ViewSubscriptionPage {
 
   findDetailsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('subscription-details-tab');
+  }
+}
+
+class PolicyPage {
+  visit(policyName?: string): void {
+    const path = policyName
+      ? `/maas/auth-policies/edit/${encodeURIComponent(policyName)}`
+      : '/maas/auth-policies/create';
+    cy.visitWithLogin(path);
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findDisplayNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-name-desc-name');
+  }
+
+  findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-name-desc-description');
+  }
+
+  findGroupsSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-groups');
+  }
+
+  selectGroup(name: string): void {
+    this.findGroupsSelect().click();
+    cy.findByRole('option', { name }).click();
+    this.findGroupsSelect().click();
+  }
+
+  findAddModelsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-add-models-button');
+  }
+
+  findAddModelsModal(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-models-modal');
+  }
+
+  findToggleModelInModal(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAddModelsModal().findByTestId(`toggle-model-${modelName}`);
+  }
+
+  findConfirmAddModelsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAddModelsModal().findByTestId('confirm-add-models');
+  }
+
+  findModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-models-table');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-cancel-button');
+  }
+
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-submit-button');
   }
 }
 
@@ -1090,6 +1159,58 @@ class DeleteAuthPolicyModal extends DeleteModal {
   }
 }
 
+class ViewAuthPolicyPage {
+  visit(name: string): void {
+    cy.visitWithLogin(`/maas/auth-policies/view/${name}`);
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findBreadcrumbPoliciesLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('breadcrumb-policies-link');
+  }
+
+  findDetailsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-details-tab');
+  }
+
+  findDetailsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-details-section');
+  }
+
+  findGroupsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-groups-section');
+  }
+
+  findGroupsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-groups-table');
+  }
+
+  findModelsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-models-section');
+  }
+
+  findModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-models-table');
+  }
+
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-actions-toggle');
+  }
+
+  findPageError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('error-empty-state-body');
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
@@ -1108,5 +1229,7 @@ export const createSubscriptionPage = new CreateSubscriptionPage();
 export const addModelsToSubscriptionModal = new AddModelsToSubscriptionModal();
 export const editRateLimitsModal = new EditRateLimitsModal();
 export const editSubscriptionPage = new EditSubscriptionPage();
+export const policyPage = new PolicyPage();
 export const authPoliciesPage = new AuthPoliciesPage();
 export const deleteAuthPolicyModal = new DeleteAuthPolicyModal();
+export const viewAuthPolicyPage = new ViewAuthPolicyPage();
