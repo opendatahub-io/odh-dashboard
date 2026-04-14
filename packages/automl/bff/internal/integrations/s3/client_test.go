@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,24 +33,37 @@ func TestNewRealS3Client_WrapsErrEndpointValidation(t *testing.T) {
 func TestNewRealS3Client_WithRootCAs(t *testing.T) {
 	t.Parallel()
 	pool := x509.NewCertPool()
-	_, err := NewRealS3Client(&S3Credentials{
+	client, err := NewRealS3Client(&S3Credentials{
 		AccessKeyID:     "a",
 		SecretAccessKey: "b",
 		Region:          "us-east-1",
-		EndpointURL:     "https://s3.amazonaws.com",
+		EndpointURL:     "https://10.0.0.1:9000",
 	}, S3ClientOptions{RootCAs: pool})
 	assert.NoError(t, err)
+
+	httpClient, ok := client.s3Client.Options().HTTPClient.(*http.Client)
+	assert.True(t, ok, "HTTPClient should be *http.Client")
+	transport, ok := httpClient.Transport.(*http.Transport)
+	assert.True(t, ok, "Transport should be *http.Transport")
+	assert.Same(t, pool, transport.TLSClientConfig.RootCAs, "RootCAs should match the provided pool")
+	assert.False(t, transport.TLSClientConfig.InsecureSkipVerify, "InsecureSkipVerify should be false")
 }
 
 func TestNewRealS3Client_DevModeFallback(t *testing.T) {
 	t.Parallel()
-	_, err := NewRealS3Client(&S3Credentials{
+	client, err := NewRealS3Client(&S3Credentials{
 		AccessKeyID:     "a",
 		SecretAccessKey: "b",
 		Region:          "us-east-1",
-		EndpointURL:     "https://s3.amazonaws.com",
+		EndpointURL:     "https://10.0.0.1:9000",
 	}, S3ClientOptions{DevMode: true})
 	assert.NoError(t, err)
+
+	httpClient, ok := client.s3Client.Options().HTTPClient.(*http.Client)
+	assert.True(t, ok, "HTTPClient should be *http.Client")
+	transport, ok := httpClient.Transport.(*http.Transport)
+	assert.True(t, ok, "Transport should be *http.Transport")
+	assert.True(t, transport.TLSClientConfig.InsecureSkipVerify, "InsecureSkipVerify should be true in dev mode")
 }
 
 func TestValidateAndNormalizeEndpoint_AcceptsValidHTTPS(t *testing.T) {

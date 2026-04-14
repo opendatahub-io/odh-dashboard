@@ -89,9 +89,9 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 			RootCAs:    c.options.RootCAs,
 			MinVersion: tls.VersionTLS12,
 		}
+		transport.ResponseHeaderTimeout = 30 * time.Second
 		cfg.HTTPClient = &http.Client{
 			Transport: transport,
-			Timeout:   30 * time.Second,
 		}
 	} else if c.options.DevMode {
 		// In dev mode without CA bundles, skip TLS verification so developers
@@ -104,9 +104,9 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 			InsecureSkipVerify: true, //nolint:gosec // dev-mode only fallback
 			MinVersion:         tls.VersionTLS12,
 		}
+		transport.ResponseHeaderTimeout = 30 * time.Second
 		cfg.HTTPClient = &http.Client{
 			Transport: transport,
-			Timeout:   30 * time.Second,
 		}
 	}
 
