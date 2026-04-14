@@ -1,13 +1,13 @@
 /**
- * Returns which required keys are missing from the available keys (case-insensitive).
+ * Returns which required keys are missing from the available keys (case-sensitive).
  * Used to validate that a secret has all keys required for a given use case.
  */
 export function getMissingRequiredKeys(requiredKeys: string[], availableKeys: string[]): string[] {
   if (!requiredKeys.length) {
     return [];
   }
-  const availableLower = availableKeys.map((k) => k.toLowerCase());
-  return requiredKeys.filter((requiredKey) => !availableLower.includes(requiredKey.toLowerCase()));
+  const availableSet = new Set(availableKeys);
+  return requiredKeys.filter((requiredKey) => !availableSet.has(requiredKey));
 }
 
 /**

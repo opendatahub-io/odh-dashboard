@@ -1,5 +1,7 @@
 import * as React from 'react';
 import {
+  Card,
+  CardBody,
   Content,
   DrawerActions,
   DrawerCloseButton,
@@ -7,9 +9,6 @@ import {
   DrawerPanelBody,
   DrawerPanelContent,
   Button,
-  Panel,
-  PanelMain,
-  PanelMainBody,
   Stack,
   StackItem,
   Title,
@@ -19,7 +18,7 @@ import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Collection } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
+import { capitalizeFirst, getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
 
 type CollectionDrawerPanelProps = {
   collection: Collection | undefined;
@@ -44,7 +43,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
         <Stack hasGutter>
           {collection.category && (
             <StackItem>
-              <Label color={color}>{collection.category}</Label>
+              <Label color={color}>{capitalizeFirst(collection.category)}</Label>
             </StackItem>
           )}
           <StackItem>
@@ -74,64 +73,59 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                   const safeUrl = toSafeExternalUrl(b.url);
                   return (
                     <StackItem key={`${b.provider_id ?? 'unknown'}-${b.id}`}>
-                      <Panel variant="bordered" style={{ borderRadius: '16px' }}>
-                        <PanelMain>
-                          <PanelMainBody>
-                            <Stack hasGutter>
-                              <StackItem>
-                                <Content
-                                  component="p"
-                                  style={{
-                                    fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                                  }}
-                                >
-                                  {safeUrl ? (
-                                    <Button
-                                      variant="link"
-                                      isInline
-                                      component="a"
-                                      href={safeUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      icon={<ExternalLinkAltIcon />}
-                                      iconPosition="end"
-                                      onClick={() =>
-                                        fireMiscTrackingEvent(
-                                          EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED,
-                                          {
-                                            url: safeUrl,
-                                            benchmarkId: b.id,
-                                            surface: 'collection_drawer',
-                                          },
-                                        )
-                                      }
-                                    >
-                                      {b.id}
-                                    </Button>
-                                  ) : (
-                                    b.id
-                                  )}
-                                </Content>
-                              </StackItem>
-                              {b.provider_id && (
-                                <Stack>
-                                  <StackItem>
-                                    <Content
-                                      component="p"
-                                      style={{
-                                        fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                                      }}
-                                    >
-                                      Evaluation framework
-                                    </Content>
-                                  </StackItem>
-                                  <StackItem>{b.provider_id}</StackItem>
-                                </Stack>
-                              )}
-                            </Stack>
-                          </PanelMainBody>
-                        </PanelMain>
-                      </Panel>
+                      <Card isCompact>
+                        <CardBody>
+                          <Stack hasGutter>
+                            <StackItem>
+                              <Content
+                                component="p"
+                                style={{
+                                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                                }}
+                              >
+                                {safeUrl ? (
+                                  <Button
+                                    variant="link"
+                                    isInline
+                                    component="a"
+                                    href={safeUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    icon={<ExternalLinkAltIcon />}
+                                    iconPosition="end"
+                                    onClick={() =>
+                                      fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
+                                        url: safeUrl,
+                                        benchmarkId: b.id,
+                                        surface: 'collection_drawer',
+                                      })
+                                    }
+                                  >
+                                    {b.id}
+                                  </Button>
+                                ) : (
+                                  b.id
+                                )}
+                              </Content>
+                            </StackItem>
+                            {b.provider_id && (
+                              <Stack>
+                                <StackItem>
+                                  <Content
+                                    component="p"
+                                    style={{
+                                      fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                                    }}
+                                  >
+                                    Evaluation framework
+                                  </Content>
+                                </StackItem>
+                                <StackItem>{b.provider_id}</StackItem>
+                              </Stack>
+                            )}
+                          </Stack>
+                        </CardBody>
+                      </Card>
                     </StackItem>
                   );
                 })}
@@ -142,8 +136,12 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
       </DrawerPanelBody>
 
       <DrawerPanelBody style={{ flex: '0 0 auto' }} className="pf-v6-u-mt-md">
-        <Button variant="primary" onClick={() => onRunCollection(collection)}>
-          Use this collection
+        <Button
+          variant="primary"
+          data-testid="use-benchmark-suite-button"
+          onClick={() => onRunCollection(collection)}
+        >
+          Use this benchmark suite
         </Button>
       </DrawerPanelBody>
     </DrawerPanelContent>

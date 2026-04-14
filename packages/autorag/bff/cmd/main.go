@@ -31,7 +31,7 @@ func main() {
 	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", getEnvAsBool("MOCK_S3_CLIENT", false), "Use mock S3 repository")
 
 	flag.StringVar(&cfg.PipelineServerURL, "pipeline-server-url", getEnvAsString("PIPELINE_SERVER_URL", ""), "Override Pipeline Server URL for local testing (e.g., http://localhost:8888)")
-	flag.StringVar(&cfg.AutoRAGPipelineNamePrefix, "autorag-pipeline-name-prefix", getEnvAsString("AUTORAG_PIPELINE_NAME_PREFIX", "autorag"), "Prefix for identifying AutoRAG managed pipelines during discovery (default: autorag)")
+	flag.StringVar(&cfg.AutoRAGPipelineNamePrefix, "autorag-pipeline-name-prefix", getEnvAsString("AUTORAG_PIPELINE_NAME_PREFIX", "documents-rag-optimization-pipeline"), "Prefix for identifying AutoRAG managed pipelines during discovery (default: documents-rag-optimization-pipeline)")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 

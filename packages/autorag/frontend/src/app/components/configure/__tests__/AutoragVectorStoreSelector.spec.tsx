@@ -156,7 +156,10 @@ describe('AutoragVectorStoreSelector', () => {
 
     const toggle = screen.getByTestId('vector-store-select-toggle');
     expect(toggle).toBeDisabled();
-    expect(mockNotificationError).toHaveBeenCalledWith('Failed to load vector I/O providers');
+    expect(mockNotificationError).toHaveBeenCalledWith(
+      'Failed to load vector I/O providers.',
+      expect.anything(), // Error message may include details from lls BFF in the future.
+    );
   });
 
   it('should show a loading skeleton when providers are loading', () => {

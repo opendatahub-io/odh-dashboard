@@ -54,6 +54,7 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
         onUsernameChange('');
         onClearFilters();
       }}
+      data-testid="api-keys-toolbar"
     >
       <ToolbarContent>
         <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="md">

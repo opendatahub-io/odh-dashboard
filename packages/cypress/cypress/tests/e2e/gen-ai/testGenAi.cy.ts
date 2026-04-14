@@ -267,12 +267,11 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      cy.step('Navigate to Gen AI Playground');
-      genAiPlayground.navigate(projectName);
+      cy.step('Navigate to AI asset endpoints page');
+      genAiPlayground.navigateToAssets(projectName);
 
-      cy.step('Click Create playground button');
-      genAiPlayground.findEmptyState().should('exist');
-      genAiPlayground.findCreatePlaygroundButton().should('be.visible').click();
+      cy.step('Click Add to playground button');
+      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
 
       cy.step('Ensure model is selected in the configuration table');
       genAiPlayground.findConfigurationTable().should('be.visible');
@@ -290,7 +289,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step('Wait for playground service to be created');
       waitForResource('service', testData.playgroundServiceName, projectName);
 
-      cy.step('Navigate to playground URL');
+      cy.step('Navigate to playground');
       genAiPlayground.navigate(projectName);
 
       cy.step(`Select ${testData.modelDeploymentName} model from dropdown`);

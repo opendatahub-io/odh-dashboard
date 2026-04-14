@@ -50,13 +50,13 @@ export type MockDashboardConfigType = {
   observabilityDashboard?: boolean;
   hardwareProfileOrder?: string[];
   pvcSize?: string;
-  mlflow?: boolean;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
+  llmGatewayField?: boolean;
   promptManagement?: boolean;
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -67,7 +67,6 @@ export type MockDashboardConfigType = {
 };
 
 export const mockDashboardConfig = ({
-  mlflow = false,
   mlflowPipelines = false,
   projectRBAC = false,
   disableInfo = false,
@@ -80,7 +79,7 @@ export const mockDashboardConfig = ({
   automl = false,
   autorag = false,
   modelAsService = true,
-  maasAuthPolicies = false,
+  maasAuthPolicies = true,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -114,6 +113,7 @@ export const mockDashboardConfig = ({
   deploymentWizardYAMLViewer = false,
   externalVectorStores = false,
   vLLMDeploymentOnMaaS = false,
+  llmGatewayField = false,
   promptManagement = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   genAiStudioConfig = {
@@ -244,7 +244,6 @@ export const mockDashboardConfig = ({
   },
   spec: {
     dashboardConfig: {
-      mlflow,
       mlflowPipelines,
       projectRBAC,
       enablement: true,
@@ -294,6 +293,7 @@ export const mockDashboardConfig = ({
       deploymentWizardYAMLViewer,
       externalVectorStores,
       vLLMDeploymentOnMaaS,
+      llmGatewayField,
       promptManagement,
     },
     notebookController: {

@@ -75,10 +75,12 @@ export default function PromptTable({
   const isDrawerOpen = selectedRow !== null || isLoadingDetails;
 
   useEffect(() => {
-    if (selectedPromptVersions.length > 0 && selectedVersion === null) {
+    if (selectedPromptVersions.length > 0) {
       setSelectedVersion(selectedPromptVersions[0].version);
+    } else {
+      setSelectedVersion(null);
     }
-  }, [selectedPromptVersions, selectedVersion]);
+  }, [selectedPromptVersions]);
 
   useEffect(() => {
     if (error || listError) {
@@ -110,7 +112,7 @@ export default function PromptTable({
           <Flex rowGap={{ default: 'rowGapXs' }}>
             <Button
               variant="primary"
-              disabled={selectedVersion === null || isLoadingDetails}
+              isDisabled={selectedVersion === null || isLoadingDetails}
               onClick={() => {
                 const prompt = selectedPromptVersions.find((v) => v.version === selectedVersion);
                 if (prompt) {

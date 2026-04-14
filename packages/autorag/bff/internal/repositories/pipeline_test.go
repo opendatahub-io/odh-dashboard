@@ -5,10 +5,41 @@ import (
 	"fmt"
 	"testing"
 
+	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 )
+
+// conflictVersionMockClient wraps MockPipelineServerClient but returns 409 from UploadPipelineVersion.
+type conflictVersionMockClient struct {
+	*psmocks.MockPipelineServerClient
+	uploaded    bool
+	versionName string
+}
+
+func (m *conflictVersionMockClient) UploadPipelineVersion(_ context.Context, _ string, versionName string, _ []byte) (*models.KFPipelineVersion, error) {
+	m.uploaded = true
+	m.versionName = versionName
+	return nil, &ps.HTTPError{StatusCode: 409, Message: "version already exists"}
+}
+
+func (m *conflictVersionMockClient) ListPipelineVersions(_ context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
+	if m.versionName != "" {
+		return &models.KFPipelineVersionsResponse{
+			PipelineVersions: []models.KFPipelineVersion{
+				{
+					PipelineID:        pipelineID,
+					PipelineVersionID: "conflict-version-id",
+					DisplayName:       m.versionName,
+					CreatedAt:         "2026-04-09T12:00:00Z",
+				},
+			},
+			TotalSize: 1,
+		}, nil
+	}
+	return m.MockPipelineServerClient.ListPipelineVersions(context.Background(), pipelineID)
+}
 
 func TestDiscoverNamedPipelines(t *testing.T) {
 	repo := NewPipelineRepository()
@@ -28,7 +59,7 @@ func TestDiscoverNamedPipelines(t *testing.T) {
 		discovered := pipelines["autorag"]
 		assert.Equal(t, ids.PipelineID, discovered.PipelineID)
 		assert.Equal(t, ids.LatestVersionID, discovered.PipelineVersionID)
-		assert.Equal(t, "autorag-pipeline", discovered.PipelineName)
+		assert.Equal(t, "documents-rag-optimization-pipeline", discovered.PipelineName)
 		assert.Equal(t, namespace, discovered.Namespace)
 	})
 
@@ -36,30 +67,30 @@ func TestDiscoverNamedPipelines(t *testing.T) {
 		namespace := "test-ns-2"
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
-		definitions := map[string]string{"autorag": "autorag"}
+		definitions := map[string]string{"autorag": "documents-rag-optimization-pipeline"}
 		pipelines, err := repo.DiscoverNamedPipelines(mockClient, ctx, namespace, "http://mock-ps", definitions)
 
 		assert.NoError(t, err)
 		assert.Contains(t, pipelines, "autorag")
-		assert.Equal(t, "autorag-pipeline", pipelines["autorag"].PipelineName)
+		assert.Equal(t, "documents-rag-optimization-pipeline", pipelines["autorag"].PipelineName)
 	})
 
 	t.Run("should be case-insensitive when matching prefix", func(t *testing.T) {
 		namespace := "test-ns-3"
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
-		definitions := map[string]string{"autorag": "AUTORAG"}
+		definitions := map[string]string{"autorag": "Documents-Rag-Optimization-Pipeline"}
 		pipelines, err := repo.DiscoverNamedPipelines(mockClient, ctx, namespace, "http://mock-ps", definitions)
 
 		assert.NoError(t, err)
 		assert.Contains(t, pipelines, "autorag")
-		assert.Equal(t, "autorag-pipeline", pipelines["autorag"].PipelineName)
+		assert.Equal(t, "documents-rag-optimization-pipeline", pipelines["autorag"].PipelineName)
 	})
 
 	t.Run("should return error when namespace is empty", func(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
-		definitions := map[string]string{"autorag": "autorag"}
+		definitions := map[string]string{"autorag": "documents-rag-optimization-pipeline"}
 		pipelines, err := repo.DiscoverNamedPipelines(mockClient, ctx, "", "http://mock-ps", definitions)
 
 		assert.Error(t, err)
@@ -69,7 +100,7 @@ func TestDiscoverNamedPipelines(t *testing.T) {
 
 	t.Run("should return error when client is nil", func(t *testing.T) {
 		namespace := "test-ns-4"
-		definitions := map[string]string{"autorag": "autorag"}
+		definitions := map[string]string{"autorag": "documents-rag-optimization-pipeline"}
 		pipelines, err := repo.DiscoverNamedPipelines(nil, ctx, namespace, "http://mock-ps", definitions)
 
 		assert.Error(t, err)
@@ -81,9 +112,9 @@ func TestDiscoverNamedPipelines(t *testing.T) {
 		namespace := "test-ns-5"
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
-		// "autorag" prefix matches the mock pipeline; "nonexistent" does not
+		// "documents-rag-optimization-pipeline" prefix matches the mock pipeline; "nonexistent" does not
 		definitions := map[string]string{
-			"autorag":     "autorag",
+			"autorag":     "documents-rag-optimization-pipeline",
 			"nonexistent": "nonexistent",
 		}
 		pipelines, err := repo.DiscoverNamedPipelines(mockClient, ctx, namespace, "http://mock-ps", definitions)
@@ -111,7 +142,7 @@ func TestDiscoverNamedPipelines(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 		ids := psmocks.DeriveMockIDs(mockClient.Namespace)
 
-		definitions := map[string]string{"autorag": "autorag"}
+		definitions := map[string]string{"autorag": "documents-rag-optimization-pipeline"}
 		pipelines, err := repo.DiscoverNamedPipelines(mockClient, ctx, namespace, "http://mock-ps", definitions)
 
 		assert.NoError(t, err)
@@ -124,7 +155,7 @@ func TestDiscoverNamedPipelines(t *testing.T) {
 		namespace := "test-ns-8"
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
-		definitions := map[string]string{"autorag": "autorag"}
+		definitions := map[string]string{"autorag": "documents-rag-optimization-pipeline"}
 
 		// First call should discover and cache
 		pipelines1, err1 := repo.DiscoverNamedPipelines(mockClient, ctx, namespace, "http://mock-ps", definitions)
@@ -145,7 +176,7 @@ func TestDiscoverNamedPipelines(t *testing.T) {
 		namespace := "test-ns-9"
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 
-		definitions := map[string]string{"autorag": "autorag"}
+		definitions := map[string]string{"autorag": "documents-rag-optimization-pipeline"}
 
 		// Discover and cache
 		pipelines1, err := repo.DiscoverNamedPipelines(mockClient, ctx, namespace, "http://mock-ps", definitions)
@@ -163,27 +194,26 @@ func TestDiscoverNamedPipelines(t *testing.T) {
 
 	t.Run("should discover multiple named pipelines", func(t *testing.T) {
 		namespace := "test-ns-10"
-		// Use PipelineNames mock to return both pipelines
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
-		mockClient.PipelineNames = []string{"autorag-v1-pipeline", "autorag-v2-pipeline"}
+		mockClient.PipelineNames = []string{"documents-rag-optimization-pipeline", "documents-rag-evaluation-pipeline"}
 
-		tsIDs := psmocks.DeriveMockIDsFromName(mockClient.Namespace, "autorag-v1-pipeline")
-		clsIDs := psmocks.DeriveMockIDsFromName(mockClient.Namespace, "autorag-v2-pipeline")
+		ragIDs := psmocks.DeriveMockIDsFromName(mockClient.Namespace, "documents-rag-optimization-pipeline")
+		evalIDs := psmocks.DeriveMockIDsFromName(mockClient.Namespace, "documents-rag-evaluation-pipeline")
 
 		definitions := map[string]string{
-			"v1": "autorag-v1",
-			"v2": "autorag-v2",
+			"autorag":    "documents-rag-optimization-pipeline",
+			"evaluation": "documents-rag-evaluation-pipeline",
 		}
 		pipelines, err := repo.DiscoverNamedPipelines(mockClient, ctx, namespace, "http://mock-ps", definitions)
 
 		assert.NoError(t, err)
 		assert.Len(t, pipelines, 2)
-		assert.Contains(t, pipelines, "v1")
-		assert.Contains(t, pipelines, "v2")
-		assert.Equal(t, tsIDs.PipelineID, pipelines["v1"].PipelineID)
-		assert.Equal(t, tsIDs.LatestVersionID, pipelines["v1"].PipelineVersionID)
-		assert.Equal(t, clsIDs.PipelineID, pipelines["v2"].PipelineID)
-		assert.Equal(t, clsIDs.LatestVersionID, pipelines["v2"].PipelineVersionID)
+		assert.Contains(t, pipelines, "autorag")
+		assert.Contains(t, pipelines, "evaluation")
+		assert.Equal(t, ragIDs.PipelineID, pipelines["autorag"].PipelineID)
+		assert.Equal(t, ragIDs.LatestVersionID, pipelines["autorag"].PipelineVersionID)
+		assert.Equal(t, evalIDs.PipelineID, pipelines["evaluation"].PipelineID)
+		assert.Equal(t, evalIDs.LatestVersionID, pipelines["evaluation"].PipelineVersionID)
 	})
 }
 
@@ -208,7 +238,7 @@ func TestCacheSizeLimit(t *testing.T) {
 		globalPipelineCache.entries = make(map[string]*pipelineCacheEntry)
 		globalPipelineCache.mu.Unlock()
 
-		definitions := map[string]string{"autorag": "autorag"}
+		definitions := map[string]string{"autorag": "documents-rag-optimization-pipeline"}
 		const baseURL = "http://mock-ps"
 
 		// Add first entry
@@ -407,15 +437,96 @@ func TestBuildPipelineNameFilter(t *testing.T) {
 		assert.Equal(t, "", result)
 	})
 
-	t.Run("should build IS_SUBSTRING filter for given prefix", func(t *testing.T) {
+	t.Run("should build EQUALS filter for given prefix", func(t *testing.T) {
 		result := buildPipelineNameFilter("autorag")
-		assert.Contains(t, result, "IS_SUBSTRING")
+		assert.Contains(t, result, "EQUALS")
 		assert.Contains(t, result, "display_name")
 		assert.Contains(t, result, "autorag")
 	})
 
 	t.Run("should produce valid JSON", func(t *testing.T) {
 		result := buildPipelineNameFilter("autorag")
-		assert.JSONEq(t, `{"predicates":[{"key":"display_name","operation":"IS_SUBSTRING","string_value":"autorag"}]}`, result)
+		assert.JSONEq(t, `{"predicates":[{"key":"display_name","operation":"EQUALS","string_value":"autorag"}]}`, result)
+	})
+}
+
+func TestEnsurePipeline(t *testing.T) {
+	repo := NewPipelineRepository()
+	ctx := context.Background()
+
+	t.Run("should return existing pipeline when discovery succeeds", func(t *testing.T) {
+		namespace := "test-ns-ensure-1"
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		ids := psmocks.DeriveMockIDs(mockClient.Namespace)
+
+		def := PipelineDefinition{
+			Name:        "documents-rag-optimization-pipeline",
+			PipelineDir: "documents_rag_optimization_pipeline",
+		}
+
+		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, discovered)
+		assert.Equal(t, ids.PipelineID, discovered.PipelineID)
+	})
+
+	t.Run("should create pipeline when discovery returns soft miss", func(t *testing.T) {
+		namespace := "test-ns-ensure-2"
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		mockClient.PipelineNames = []string{"unrelated-pipeline"}
+
+		def := PipelineDefinition{
+			Name:        "documents-rag-optimization-pipeline",
+			PipelineDir: "documents_rag_optimization_pipeline",
+		}
+
+		repo.InvalidateCache("http://mock-ps", namespace)
+
+		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, discovered)
+		assert.Equal(t, "documents-rag-optimization-pipeline", discovered.PipelineName)
+	})
+
+	t.Run("should return error when no YAML filename is provided and pipeline not found", func(t *testing.T) {
+		namespace := "test-ns-ensure-3"
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		mockClient.PipelineNames = []string{"unrelated-pipeline"}
+
+		def := PipelineDefinition{
+			Name:        "nonexistent",
+			PipelineDir: "",
+		}
+
+		repo.InvalidateCache("http://mock-ps", namespace)
+
+		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
+
+		assert.Error(t, err)
+		assert.Nil(t, discovered)
+		assert.Contains(t, err.Error(), "no YAML available")
+	})
+
+	t.Run("should retry discovery on 409 conflict during version upload", func(t *testing.T) {
+		namespace := "test-ns-ensure-4"
+		baseMock := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		baseMock.PipelineNames = []string{"documents-rag-optimization-pipeline"}
+		mockClient := &conflictVersionMockClient{MockPipelineServerClient: baseMock}
+
+		def := PipelineDefinition{
+			Name:        "documents-rag-optimization-pipeline",
+			PipelineDir: "documents_rag_optimization_pipeline",
+		}
+
+		repo.InvalidateCache("http://mock-ps", namespace)
+
+		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, discovered)
+		assert.True(t, mockClient.uploaded, "UploadPipelineVersion should have been called")
+		assert.Equal(t, "documents-rag-optimization-pipeline", discovered.PipelineName)
 	})
 }

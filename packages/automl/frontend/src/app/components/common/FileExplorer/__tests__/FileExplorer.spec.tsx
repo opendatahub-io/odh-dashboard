@@ -168,6 +168,55 @@ describe('FileExplorer', () => {
 
       expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
     });
+    it('should disable select button when no files are selected', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} />);
+
+      // Button should be disabled when nothing is selected
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
+    });
+    it('should enable select button after file selection in radio mode', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} />);
+
+      // Initially disabled
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
+
+      // Select a file
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(within(row).getByRole('radio'));
+
+      // Button should now be enabled
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeEnabled();
+    });
+    it('should enable select button when files are selected in checkbox mode', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      // Initially disabled
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
+
+      // Select first file
+      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(within(row1).getByRole('checkbox'));
+
+      // Button should be enabled after first selection
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeEnabled();
+
+      // Select second file
+      const row2 = screen.getByTestId('file-explorer-row--file-2-json');
+      fireEvent.click(within(row2).getByRole('checkbox'));
+
+      // Button should still be enabled
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeEnabled();
+
+      // Deselect both files
+      fireEvent.click(within(row1).getByRole('checkbox'));
+      fireEvent.click(within(row2).getByRole('checkbox'));
+
+      // Button should be disabled again
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
+    });
     it('should call onPrimary with selected files and close modal', () => {
       const files = mockFiles(3);
       render(<FileExplorer {...defaultProps} files={files} />);

@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
@@ -13,17 +12,18 @@ import (
 
 // storageTypeRequiredKeys defines the required keys for each supported storage type.
 // A secret must have ALL required keys for a storage type to be considered a match.
-// Key matching is case-insensitive.
+// Key matching is case-sensitive; keys must be uppercase.
 var storageTypeRequiredKeys = map[string][]string{
 	"s3": {
-		"aws_access_key_id",
-		"aws_default_region",
-		"aws_secret_access_key",
-		"aws_s3_endpoint",
+		"AWS_ACCESS_KEY_ID",
+		// Region is currently not enforced by common connections ui so we need to handle it as an additionalRequiredKeys in frontend
+		// "AWS_DEFAULT_REGION",
+		"AWS_SECRET_ACCESS_KEY",
+		"AWS_S3_ENDPOINT",
 	},
 	// Future storage types can be added here:
-	// "azure": {"azure_storage_account", "azure_storage_key"},
-	// "gcp": {"gcp_service_account_key"},
+	// "azure": {"AZURE_STORAGE_ACCOUNT", "AZURE_STORAGE_KEY"},
+	// "gcp": {"GCP_SERVICE_ACCOUNT_KEY"},
 }
 
 type SecretRepository struct{}
@@ -119,10 +119,10 @@ func filterStorageSecrets(secrets []corev1.Secret) []corev1.Secret {
 	return filtered
 }
 
-// matchesAnyStorageType checks if a secret contains all required keys for any storage type (case-insensitive).
+// matchesAnyStorageType checks if a secret contains all required keys for any storage type (case-sensitive).
 func matchesAnyStorageType(secret corev1.Secret) bool {
 	for _, requiredKeys := range storageTypeRequiredKeys {
-		if hasAllKeysCaseInsensitive(secret, requiredKeys) {
+		if hasAllKeys(secret, requiredKeys) {
 			return true
 		}
 	}
@@ -131,10 +131,10 @@ func matchesAnyStorageType(secret corev1.Secret) bool {
 
 // getStorageType returns the storage type name for a secret, or empty string if it doesn't match any.
 // Returns the first matching storage type if the secret matches multiple types.
-// Key matching is case-insensitive.
+// Key matching is case-sensitive; keys must be uppercase.
 func getStorageType(secret corev1.Secret) string {
 	for storageType, requiredKeys := range storageTypeRequiredKeys {
-		if hasAllKeysCaseInsensitive(secret, requiredKeys) {
+		if hasAllKeys(secret, requiredKeys) {
 			return storageType
 		}
 	}
@@ -148,20 +148,20 @@ func getSecretType(secret corev1.Secret) string {
 	return getStorageType(secret)
 }
 
-// hasAllKeysCaseInsensitive checks if a secret contains all specified keys in its data (case-insensitive).
-func hasAllKeysCaseInsensitive(secret corev1.Secret, keys []string) bool {
-	// Create a map of lowercase keys from the secret
+// hasAllKeys checks if a secret contains all specified keys in its data (case-sensitive).
+func hasAllKeys(secret corev1.Secret, keys []string) bool {
+	// Create a map of keys from the secret
 	secretKeys := make(map[string]bool)
 	for key := range secret.Data {
-		secretKeys[strings.ToLower(key)] = true
+		secretKeys[key] = true
 	}
 	for key := range secret.StringData {
-		secretKeys[strings.ToLower(key)] = true
+		secretKeys[key] = true
 	}
 
-	// Check if all required keys exist (case-insensitive)
+	// Check if all required keys exist (case-sensitive)
 	for _, requiredKey := range keys {
-		if !secretKeys[strings.ToLower(requiredKey)] {
+		if !secretKeys[requiredKey] {
 			return false
 		}
 	}
@@ -172,7 +172,7 @@ func hasAllKeysCaseInsensitive(secret corev1.Secret, keys []string) bool {
 // and builds a map where:
 // - Keys in the allowed list have their actual values
 // - All other keys have the value "[REDACTED]"
-// Key matching for allowed keys is case-insensitive.
+// Allowed-key matching is case-sensitive (via constants.IsAllowedSecretKey).
 func buildAvailableKeysMap(secret corev1.Secret) map[string]string {
 	result := make(map[string]string)
 

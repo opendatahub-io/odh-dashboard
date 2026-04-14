@@ -9,6 +9,7 @@ import {
   APIKey,
   ApiKeyFilterDataType,
   initialApiKeyFilterData,
+  emptyApiKeyFilterData,
 } from '~/app/types/api-key';
 import { ApiKeySortField } from './allKeys/columns';
 import CreateApiKeyModal from './CreateApiKeyModal';
@@ -27,7 +28,7 @@ const AllApiKeysPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
 
-  const [isMaasAdmin] = useIsMaasAdmin();
+  const [isMaasAdmin, isMaasAdminLoaded] = useIsMaasAdmin();
 
   const [filterData, setFilterData] = React.useState<ApiKeyFilterDataType>(initialApiKeyFilterData);
   const [page, setPage] = React.useState(1);
@@ -113,7 +114,7 @@ const AllApiKeysPage: React.FC = () => {
       JSON.stringify([...initialApiKeyFilterData.statuses].toSorted());
 
   const onClearFilters = React.useCallback(() => {
-    setFilterData(initialApiKeyFilterData);
+    setFilterData(emptyApiKeyFilterData);
     setPage(1);
     setLocalUsername('');
     setIsFetching(true);
@@ -139,7 +140,7 @@ const AllApiKeysPage: React.FC = () => {
         />
       )}
 
-      {loaded && (
+      {loaded && isMaasAdminLoaded && (
         <PageSection isFilled>
           <ApiKeysTable
             onRevokeApiKey={setRevokeApiKey}
@@ -155,6 +156,7 @@ const AllApiKeysPage: React.FC = () => {
             onSort={onSort}
             onClearFilters={onClearFilters}
             isFetching={isFetching}
+            isMaasAdmin={isMaasAdmin}
             toolbarContent={
               <ApiKeysToolbar
                 isMaasAdmin={isMaasAdmin}

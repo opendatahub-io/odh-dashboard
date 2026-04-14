@@ -25,12 +25,16 @@ class ChooseCollectionPage {
     return cy.findByTestId('collection-drawer-panel');
   }
 
+  findUseBenchmarkSuiteButton(collectionId: string) {
+    return this.findCollectionCard(collectionId).findByTestId('use-benchmark-suite-button');
+  }
+
   findNameFilterInput() {
     return cy.findByTestId('collections-name-filter');
   }
 
-  findCategorySelect() {
-    return cy.findByTestId('collections-category-select');
+  findCategoryToggle() {
+    return cy.findByTestId('collections-category-toggle');
   }
 
   findCollectionsEmptyState() {
@@ -39,6 +43,14 @@ class ChooseCollectionPage {
 
   findTruncationAlert() {
     return cy.findByTestId('collections-truncation-alert');
+  }
+
+  findCategoryOption(name: string) {
+    return cy.findByRole('option', { name });
+  }
+
+  findNextPageButton() {
+    return cy.findAllByLabelText('Go to next page').first();
   }
 }
 

@@ -144,8 +144,7 @@ jest.mock('~/app/components/common/SecretSelector', () => {
             onChange({
               uuid: 'secret-1',
               name: 'Test Secret 1',
-              // eslint-disable-next-line camelcase
-              data: { aws_s3_bucket: 'test-bucket-1' },
+              data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
               type: 's3',
               invalid: false,
             })
@@ -159,8 +158,7 @@ jest.mock('~/app/components/common/SecretSelector', () => {
             onChange({
               uuid: 'secret-2',
               name: 'Test Secret 2',
-              // eslint-disable-next-line camelcase
-              data: { aws_s3_bucket: 'test-bucket-2' },
+              data: { AWS_S3_BUCKET: 'test-bucket-2', AWS_DEFAULT_REGION: 'us-east-1' },
               type: 's3',
               invalid: false,
             })
@@ -396,7 +394,7 @@ describe('AutoragConfigure', () => {
       expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
       expect(mockNotificationError).toHaveBeenCalledWith(
         'File too large',
-        'File size must be 1 GiB or less.',
+        'File size must be 32 MiB or less.',
       );
     });
 
@@ -480,7 +478,7 @@ describe('AutoragConfigure', () => {
       expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
     });
 
-    it('should display the "Configure details" fields when a secret is selected', () => {
+    it('should display the "Configure details" fields when a file is selected', () => {
       renderComponent();
 
       // Initially should show empty state
@@ -491,6 +489,15 @@ describe('AutoragConfigure', () => {
       // Select a secret
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
       fireEvent.click(selectButton);
+
+      // Empty state should still be shown (no file selected yet)
+      expect(
+        screen.getByText('Select an S3 connection or upload a file to get started'),
+      ).toBeInTheDocument();
+
+      // Select a file via the file explorer
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
       // Empty state should be hidden
       expect(
@@ -507,13 +514,15 @@ describe('AutoragConfigure', () => {
   });
 
   describe('Optimization metric', () => {
+    const selectSecretAndFile = () => {
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+    };
+
     it('should render the optimization metric dropdown with default value', () => {
-      renderComponent({
-        // eslint-disable-next-line camelcase
-        input_data_secret_name: 'test-secret',
-        // eslint-disable-next-line camelcase
-        input_data_bucket_name: 'test-bucket',
-      });
+      renderComponent();
+      selectSecretAndFile();
 
       expect(screen.getByTestId('optimization-metric-select')).toBeInTheDocument();
       expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
@@ -523,12 +532,8 @@ describe('AutoragConfigure', () => {
 
     it('should display all metric options when dropdown is opened', async () => {
       const user = userEvent.setup();
-      renderComponent({
-        // eslint-disable-next-line camelcase
-        input_data_secret_name: 'test-secret',
-        // eslint-disable-next-line camelcase
-        input_data_bucket_name: 'test-bucket',
-      });
+      renderComponent();
+      selectSecretAndFile();
 
       await user.click(screen.getByTestId('optimization-metric-select'));
 
@@ -542,12 +547,9 @@ describe('AutoragConfigure', () => {
     it('should render with a non-default metric when configured', () => {
       renderComponent({
         // eslint-disable-next-line camelcase
-        input_data_secret_name: 'test-secret',
-        // eslint-disable-next-line camelcase
-        input_data_bucket_name: 'test-bucket',
-        // eslint-disable-next-line camelcase
         optimization_metric: 'answer_correctness',
       });
+      selectSecretAndFile();
 
       expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
         'Answer correctness',
@@ -556,25 +558,23 @@ describe('AutoragConfigure', () => {
   });
 
   describe('Maximum RAG patterns', () => {
+    const selectSecretAndFile = () => {
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+    };
+
     it('should render the max RAG patterns input with default value 8', () => {
-      renderComponent({
-        // eslint-disable-next-line camelcase
-        input_data_secret_name: 'test-secret',
-        // eslint-disable-next-line camelcase
-        input_data_bucket_name: 'test-bucket',
-      });
+      renderComponent();
+      selectSecretAndFile();
 
       const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
       expect(input).toHaveValue(8);
     });
 
     it('should increment value when plus button is clicked', () => {
-      renderComponent({
-        // eslint-disable-next-line camelcase
-        input_data_secret_name: 'test-secret',
-        // eslint-disable-next-line camelcase
-        input_data_bucket_name: 'test-bucket',
-      });
+      renderComponent();
+      selectSecretAndFile();
 
       const container = screen.getByTestId('max-rag-patterns-input');
       const plusButton = container.querySelector('button[aria-label="Plus"]')!;
@@ -585,12 +585,8 @@ describe('AutoragConfigure', () => {
     });
 
     it('should decrement value when minus button is clicked', () => {
-      renderComponent({
-        // eslint-disable-next-line camelcase
-        input_data_secret_name: 'test-secret',
-        // eslint-disable-next-line camelcase
-        input_data_bucket_name: 'test-bucket',
-      });
+      renderComponent();
+      selectSecretAndFile();
 
       const container = screen.getByTestId('max-rag-patterns-input');
       const minusButton = container.querySelector('button[aria-label="Minus"]')!;
@@ -601,12 +597,8 @@ describe('AutoragConfigure', () => {
     });
 
     it('should show error when value exceeds maximum', async () => {
-      renderComponent({
-        // eslint-disable-next-line camelcase
-        input_data_secret_name: 'test-secret',
-        // eslint-disable-next-line camelcase
-        input_data_bucket_name: 'test-bucket',
-      });
+      renderComponent();
+      selectSecretAndFile();
 
       const input = screen.getByTestId('max-rag-patterns-input').querySelector('input')!;
       fireEvent.change(input, { target: { value: '21' } });
@@ -617,12 +609,8 @@ describe('AutoragConfigure', () => {
     });
 
     it('should show error when value is below minimum', async () => {
-      renderComponent({
-        // eslint-disable-next-line camelcase
-        input_data_secret_name: 'test-secret',
-        // eslint-disable-next-line camelcase
-        input_data_bucket_name: 'test-bucket',
-      });
+      renderComponent();
+      selectSecretAndFile();
 
       const input = screen.getByTestId('max-rag-patterns-input').querySelector('input')!;
       fireEvent.change(input, { target: { value: '3' } });
@@ -651,12 +639,12 @@ describe('AutoragConfigure', () => {
         isLoading: false,
       } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
 
-      renderComponent({
-        // eslint-disable-next-line camelcase
-        input_data_secret_name: 'test-secret',
-        // eslint-disable-next-line camelcase
-        input_data_bucket_name: 'test-bucket',
-      });
+      renderComponent();
+
+      // Select a secret and file to show configure details
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
       // The "Selected models" card should show model counts
       expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
@@ -801,9 +789,11 @@ describe('AutoragConfigure', () => {
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
       fireEvent.click(selectButton);
 
-      // Initially Edit button should be disabled (no files selected)
-      const editButton = screen.getByRole('button', { name: 'Edit' });
-      expect(editButton).toBeDisabled();
+      // Before file selection, the configure details panel shows the empty state
+      expect(
+        screen.getByText('Select an S3 connection or upload a file to get started'),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
 
       // Click "Browse bucket" button to open FileExplorer
       const browseButton = screen.getByRole('button', { name: 'Browse bucket' });
@@ -816,7 +806,8 @@ describe('AutoragConfigure', () => {
       const fileSelectButton = screen.getByTestId('file-explorer-select-file');
       fireEvent.click(fileSelectButton);
 
-      // Now Edit button should be enabled after files are selected
+      // Now Edit button should be visible and enabled after files are selected
+      const editButton = screen.getByRole('button', { name: 'Edit' });
       expect(editButton).toBeEnabled();
     });
   });

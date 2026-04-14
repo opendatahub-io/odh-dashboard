@@ -4,6 +4,7 @@ import { McpDeployment } from '~/app/mcpDeploymentTypes';
 import DeleteModal from '~/app/shared/components/DeleteModal';
 import { deleteMcpDeployment } from '~/app/api/mcpDeploymentService';
 import { BFF_HOST_PATH } from '~/app/utilities/const';
+import { getDeploymentDisplayName } from './utils';
 
 type DeleteMcpDeploymentModalProps = {
   deployment: McpDeployment;
@@ -38,13 +39,12 @@ const DeleteMcpDeploymentModal: React.FC<DeleteMcpDeploymentModalProps> = ({
       deleting={isDeleting}
       onDelete={handleDelete}
       deleteName={deployment.name}
-      submitButtonLabel="Delete MCP server deployment"
-      inputPlaceholder={deployment.name}
-      inputHelperText="Enter the deployment name exactly as shown to confirm deletion."
+      submitButtonLabel="Delete"
+      confirmationRequiredIndicator
       error={deleteError}
     >
-      The <strong>{deployment.name}</strong> MCP server deployment and its API keys will be deleted,
-      and its endpoint will no longer be available as an AI asset.
+      The <strong>{getDeploymentDisplayName(deployment)}</strong> MCP server deployment and its API
+      keys will be deleted, and its endpoint will no longer be available as an AI asset.
     </DeleteModal>
   );
 };

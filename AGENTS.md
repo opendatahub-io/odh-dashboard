@@ -69,6 +69,10 @@ npm run lint:fix
 npm run type-check
 ```
 
+## Documentation
+
+**[BOOKMARKS.md](BOOKMARKS.md)** indexes key documentation for frontend areas, the backend, and packages. Review relevant docs for the area you are working on before starting a task.
+
 ## Package-Specific Guidelines
 
 Some packages have their own AGENTS.md with package-specific guidance. Check the package directory for its own AGENTS.md file.
@@ -105,7 +109,17 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | Skill                              | Directory                              | Use when                                                                       |
 | ---------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
 | **Dev Workflow**                   | `skills/dev-workflow/`                 | Implementing a feature, fix, or refactor — runs lint, type-check, tests, and optional browser verification |
+| **Docs Create**                    | `skills/docs-create/`                  | Creating a new documentation file from a description                           |
+| **Docs Create Package**            | `skills/docs-create-package/`          | Scaffolding a package doc and registering it in BOOKMARKS.md                   |
+| **Docs Update**                    | `skills/docs-update/`                  | Updating existing docs after code changes                                      |
 | **Upstream Sync Status**           | `skills/upstream-sync-status/`         | Checking whether a package's upstream copy is up to date (pass package name or be prompted) |
 | **Upstream Sync**                  | `skills/upstream-sync/`                | Syncing upstream changes for a package and opening a PR (pass package name or be prompted)  |
+| **Jira Triage**                   | `skills/jira-triage/`                  | Fetching Jira issues by filter criteria, running full triage on New issues (orchestrates all analysis skills), defining triage operations, and bulk-applying them |
+| **Jira Validate Priority/Severity** | `skills/jira-validate-priority-severity/` | Analyzing bugs for missing or incorrect severity and priority fields         |
+| **Jira Validate Description**     | `skills/jira-validate-description/`    | Validating issue descriptions for completeness per type, requesting missing information from reporters |
+| **Jira Evaluate Blockers**        | `skills/jira-evaluate-blockers/`       | Applying needs-\* labels and blocking state during triage, or evaluating whether existing blockers have been resolved |
+| **Jira Validate Issue Type**      | `skills/jira-validate-issue-type/`     | Validating or correcting issue types (Bug, Story, Task) and labeling feature requests |
+| **Jira Validate Area Label**      | `skills/jira-validate-area-label/`     | Validating or assigning `dashboard-area-*` labels based on multi-signal content analysis |
+| **Jira Assign Scrum Team**        | `skills/jira-assign-scrum-team/`       | Assigning a scrum team label based on area-to-scrum mapping during triage |
 
 **Important**: Always read the relevant rule or skill file before starting the task to ensure you follow the project's conventions and patterns.

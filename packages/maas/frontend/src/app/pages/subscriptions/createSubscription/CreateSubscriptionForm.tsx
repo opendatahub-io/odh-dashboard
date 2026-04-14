@@ -26,40 +26,104 @@ import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/
 import { APIOptions } from 'mod-arch-core';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { getLowestAvailablePriority } from '~/app/utilities/subscriptions';
-import { createSubscription } from '~/app/api/subscriptions';
+import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
+import { useSubscriptionModels } from '~/app/hooks/useSubscriptionModels';
 import {
-  MaaSModelRefSummary,
   SubscriptionPolicyFormDataResponse,
+  SubscriptionInfoResponse,
   SubscriptionModelEntry,
   CreateSubscriptionRequest,
-  TokenRateLimit,
+  UpdateSubscriptionRequest,
 } from '~/app/types/subscriptions';
-import SubscriptionModelsSection from '~/app/pages/subscriptions/viewSubscription/SubscriptionModelsSection';
-import AddModelsModal from './AddModelsModal';
+import AddModelsModal from '~/app/shared/AddModelsModal';
+import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import EditRateLimitsModal from './EditRateLimitsModal';
 
 type CreateSubscriptionFormProps = {
   formData: SubscriptionPolicyFormDataResponse;
+  subscriptionInfo?: SubscriptionInfoResponse;
 };
+const MAX_PRIORITY = 1000000;
+const MIN_PRIORITY = -1000000;
 
-const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formData }) => {
+const buildInitialModels = (info: SubscriptionInfoResponse): SubscriptionModelEntry[] =>
+  info.subscription.modelRefs.map((ref) => {
+    const summary = info.modelRefs.find(
+      (s) => s.name === ref.name && s.namespace === ref.namespace,
+    );
+    return {
+      modelRefSummary: summary ?? {
+        name: ref.name,
+        namespace: ref.namespace,
+        modelRef: { kind: '', name: '' },
+      },
+      tokenRateLimits: ref.tokenRateLimits,
+    };
+  });
+
+const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
+  formData,
+  subscriptionInfo,
+}) => {
   const navigate = useNavigate();
+  const isEditing = !!subscriptionInfo;
+  const subscription = subscriptionInfo?.subscription;
 
-  const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData();
-  const [selectedGroups, setSelectedGroups] = React.useState<SelectionOptions[]>([]);
+  const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
+    subscription
+      ? {
+          initialData: {
+            name: subscription.displayName ?? subscription.name,
+            k8sName: subscription.name,
+            description: subscription.description ?? '',
+          },
+        }
+      : undefined,
+  );
+
+  const [selectedGroups, setSelectedGroups] = React.useState<SelectionOptions[]>(() => {
+    if (subscription) {
+      const existingGroupNames = new Set(subscription.owner.groups.map((g) => g.name));
+      const allGroupNames = new Set([...formData.groups, ...existingGroupNames]);
+      return Array.from(allGroupNames).map((group) => ({
+        id: group,
+        name: group,
+        selected: existingGroupNames.has(group),
+      }));
+    }
+    return [];
+  });
   const [groupsTouched, setGroupsTouched] = React.useState(false);
-  const [priority, setPriority] = React.useState<number | undefined>(undefined);
-  const [priorityInitialized, setPriorityInitialized] = React.useState(false);
-  const [models, setModels] = React.useState<SubscriptionModelEntry[]>([]);
+  const [priority, setPriority] = React.useState<number | undefined>(
+    subscription?.priority ?? undefined,
+  );
+  const [priorityInitialized, setPriorityInitialized] = React.useState(isEditing);
   const [createAuthPolicy, setCreateAuthPolicy] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isAddModelsModalOpen, setIsAddModelsModalOpen] = React.useState(false);
-  const [editLimitsTarget, setEditLimitsTarget] = React.useState<number | null>(null);
-  const [rateLimitsTouched, setRateLimitsTouched] = React.useState<Set<number>>(new Set());
   const [submitError, setSubmitError] = React.useState<string | null>(null);
 
+  const [initialModels] = React.useState(() =>
+    subscriptionInfo ? buildInitialModels(subscriptionInfo) : [],
+  );
+
+  const {
+    models,
+    isAddModelsModalOpen,
+    setIsAddModelsModalOpen,
+    editLimitsTarget,
+    setEditLimitsTarget,
+    editingModel,
+    rateLimitErrorIndices,
+    allModelsHaveRateLimits,
+    handleAddModels,
+    handleRemoveModel,
+    handleRemoveModelsByRef,
+    handleSaveRateLimits,
+    handleCloseRateLimitsModal,
+  } = useSubscriptionModels(initialModels);
+
   React.useEffect(() => {
-    if (formData.groups.length > 0 && selectedGroups.length === 0) {
+    if (!isEditing && formData.groups.length > 0 && selectedGroups.length === 0) {
       setSelectedGroups(
         formData.groups.map((group) => ({
           id: group,
@@ -68,7 +132,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
         })),
       );
     }
-  }, [formData.groups, selectedGroups.length]);
+  }, [formData.groups, selectedGroups.length, isEditing]);
 
   React.useEffect(() => {
     if (!priorityInitialized) {
@@ -77,7 +141,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
     }
   }, [formData.subscriptions, priorityInitialized]);
 
-  const isNameDescValid = isK8sNameDescriptionDataValid(nameDescData);
+  const isNameValid = isK8sNameDescriptionDataValid(nameDescData);
 
   const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => String(g.id));
   const groupsValidationError =
@@ -85,106 +149,66 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
       ? 'At least one group must be selected'
       : undefined;
 
+  const initialGroupNames = React.useMemo(
+    () =>
+      subscription ? new Set(subscription.owner.groups.map((g) => g.name)) : new Set<string>(),
+    [subscription],
+  );
+
+  const initialModelKeys = React.useMemo(
+    () =>
+      subscription
+        ? new Set(subscription.modelRefs.map((r) => `${r.namespace}/${r.name}`))
+        : new Set<string>(),
+    [subscription],
+  );
+
+  const groupsChanged =
+    isEditing &&
+    (selectedGroupNames.length !== initialGroupNames.size ||
+      selectedGroupNames.some((g) => !initialGroupNames.has(g)));
+
+  const currentModelKeys = new Set(
+    models.map((m) => `${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`),
+  );
+  const modelsChanged =
+    isEditing &&
+    (currentModelKeys.size !== initialModelKeys.size ||
+      models.some(
+        (m) => !initialModelKeys.has(`${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`),
+      ));
+
+  const showPolicyWarning = isEditing && (groupsChanged || modelsChanged);
+
+  const subscriptionsForConflictCheck = React.useMemo(
+    () =>
+      isEditing && subscription
+        ? formData.subscriptions.filter((s) => s.name !== subscription.name)
+        : formData.subscriptions,
+    [formData.subscriptions, subscription, isEditing],
+  );
+
   const conflictingSubscription = React.useMemo(() => {
     if (priority == null || Number.isNaN(priority)) {
       return undefined;
     }
-    return formData.subscriptions.find((s) => (s.priority ?? 0) === priority);
-  }, [priority, formData.subscriptions]);
+    return subscriptionsForConflictCheck.find((s) => (s.priority ?? 0) === priority);
+  }, [priority, subscriptionsForConflictCheck]);
 
   const priorityValidationError = conflictingSubscription
-    ? `Priority ${conflictingSubscription.priority ?? 0} is already used by ${conflictingSubscription.displayName || conflictingSubscription.name}. The next available priority is ${getLowestAvailablePriority(formData.subscriptions, (conflictingSubscription.priority ?? 0) + 1)}.`
+    ? `Priority ${conflictingSubscription.priority ?? 0} is already used by ${conflictingSubscription.displayName || conflictingSubscription.name}. The next available priority is ${getLowestAvailablePriority(subscriptionsForConflictCheck, (conflictingSubscription.priority ?? 0) + 1)}.`
     : undefined;
 
   const isPriorityValid = priority != null && !Number.isNaN(priority);
 
-  const allModelsHaveRateLimits = models.every((m) => m.tokenRateLimits.length > 0);
-
-  const rateLimitErrorIndices = React.useMemo(
-    () =>
-      new Set(
-        models.reduce<number[]>((acc, m, i) => {
-          if (rateLimitsTouched.has(i) && m.tokenRateLimits.length === 0) {
-            acc.push(i);
-          }
-          return acc;
-        }, []),
-      ),
-    [models, rateLimitsTouched],
-  );
-
   const canSubmit =
-    isNameDescValid &&
+    isNameValid &&
     selectedGroupNames.length > 0 &&
     models.length > 0 &&
     allModelsHaveRateLimits &&
     isPriorityValid &&
     !isSubmitting &&
     !priorityValidationError;
-
-  const handleAddModels = (selectedRefs: MaaSModelRefSummary[]) => {
-    const existingKeys = new Set(
-      models.map((m) => `${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`),
-    );
-    const newEntries: SubscriptionModelEntry[] = selectedRefs
-      .filter((ref) => !existingKeys.has(`${ref.namespace}/${ref.name}`))
-      .map((ref) => ({
-        modelRefSummary: ref,
-        tokenRateLimits: [],
-      }));
-    setModels((prev) => [...prev, ...newEntries]);
-  };
-
-  const handleRemoveModel = (index: number) => {
-    setModels((prev) => prev.filter((_, i) => i !== index));
-    setRateLimitsTouched((prev) => {
-      const next = new Set<number>();
-      prev.forEach((i) => {
-        if (i < index) {
-          next.add(i);
-        } else if (i > index) {
-          next.add(i - 1);
-        }
-      });
-      return next;
-    });
-  };
-
-  const handleRemoveModelsByRef = (refs: MaaSModelRefSummary[]) => {
-    const keysToRemove = new Set(refs.map((r) => `${r.namespace}/${r.name}`));
-    const removedIndices = new Set<number>();
-    models.forEach((m, i) => {
-      if (keysToRemove.has(`${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`)) {
-        removedIndices.add(i);
-      }
-    });
-    setModels((prev) => prev.filter((_, i) => !removedIndices.has(i)));
-    setRateLimitsTouched((prev) => {
-      const next = new Set<number>();
-      let offset = 0;
-      for (let i = 0; i < models.length; i++) {
-        if (removedIndices.has(i)) {
-          offset++;
-        } else if (prev.has(i)) {
-          next.add(i - offset);
-        }
-      }
-      return next;
-    });
-  };
-
-  const handleSaveRateLimits = (rateLimits: TokenRateLimit[]) => {
-    if (editLimitsTarget == null) {
-      return;
-    }
-    setModels((prev) =>
-      prev.map((entry, i) =>
-        i === editLimitsTarget ? { ...entry, tokenRateLimits: rateLimits } : entry,
-      ),
-    );
-  };
-
-  const editingModel = editLimitsTarget != null ? models[editLimitsTarget] : null;
 
   const handleSubmit = async () => {
     if (!isPriorityValid) {
@@ -194,31 +218,51 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
     setIsSubmitting(true);
     setSubmitError(null);
 
-    const request: CreateSubscriptionRequest = {
-      name: nameDescData.k8sName.value,
-      displayName: nameDescData.name.trim() || undefined,
-      description: nameDescData.description.trim() || undefined,
-      owner: {
-        groups: selectedGroupNames.map((g) => ({ name: g })),
-      },
-      modelRefs: models.map((m) => ({
-        name: m.modelRefSummary.name,
-        namespace: m.modelRefSummary.namespace,
-        tokenRateLimits: m.tokenRateLimits,
-      })),
-      priority,
-      createAuthPolicy,
-    };
+    const modelRefsPayload = models.map((m) => ({
+      name: m.modelRefSummary.name,
+      namespace: m.modelRefSummary.namespace,
+      tokenRateLimits: m.tokenRateLimits,
+    }));
 
     try {
       const apiOpts: APIOptions = {};
-      await createSubscription()(apiOpts, request);
+      if (isEditing && subscription) {
+        const trimmedName = nameDescData.name.trim();
+        const originalName = subscription.displayName ?? subscription.name;
+        const request: UpdateSubscriptionRequest = {
+          displayName:
+            trimmedName !== originalName ? trimmedName || undefined : subscription.displayName,
+          description: nameDescData.description.trim() || undefined,
+          owner: { groups: selectedGroupNames.map((g) => ({ name: g })) },
+          modelRefs: modelRefsPayload,
+          priority,
+        };
+        await updateSubscription()(apiOpts, subscription.name, request);
+      } else {
+        const request: CreateSubscriptionRequest = {
+          name: nameDescData.k8sName.value,
+          displayName: nameDescData.name.trim() || undefined,
+          description: nameDescData.description.trim() || undefined,
+          owner: { groups: selectedGroupNames.map((g) => ({ name: g })) },
+          modelRefs: modelRefsPayload,
+          priority,
+          createAuthPolicy,
+        };
+        await createSubscription()(apiOpts, request);
+      }
       navigate(`${URL_PREFIX}/subscriptions`);
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : 'Failed to create subscription');
+      setSubmitError(
+        e instanceof Error
+          ? e.message
+          : `Failed to ${isEditing ? 'update' : 'create'} subscription`,
+      );
       setIsSubmitting(false);
     }
   };
+
+  const showNoModelsWarning = !isEditing && formData.modelRefs.length === 0 && models.length === 0;
+  const canAddModels = formData.modelRefs.length > 0;
 
   return (
     <PageSection hasBodyWrapper={false}>
@@ -228,6 +272,52 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
           onDataChange={onNameDescChange}
           dataTestId="subscription-name-desc"
         />
+
+        <FormGroup label="Priority" fieldId="subscription-priority">
+          <NumberInput
+            id="subscription-priority"
+            data-testid="subscription-priority"
+            value={priority == null || Number.isNaN(priority) ? '' : priority}
+            min={MIN_PRIORITY}
+            max={MAX_PRIORITY}
+            onMinus={() =>
+              setPriority(
+                Math.max(
+                  MIN_PRIORITY,
+                  (priority == null || Number.isNaN(priority) ? 0 : priority) - 1,
+                ),
+              )
+            }
+            onPlus={() =>
+              setPriority(
+                Math.min(
+                  MAX_PRIORITY,
+                  (priority == null || Number.isNaN(priority) ? 0 : priority) + 1,
+                ),
+              )
+            }
+            onChange={(event: React.FormEvent<HTMLInputElement>) => {
+              const inputValue = event.currentTarget.value;
+              if (inputValue === '') {
+                setPriority(NaN);
+              } else {
+                const parsed = parseInt(inputValue, 10);
+                if (!Number.isNaN(parsed)) {
+                  setPriority(Math.min(MAX_PRIORITY, Math.max(MIN_PRIORITY, parsed)));
+                }
+              }
+            }}
+            validated={priorityValidationError ? 'error' : 'default'}
+          />
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem variant={priorityValidationError ? 'error' : 'default'}>
+                {priorityValidationError ||
+                  'Higher numbers indicate higher priority. Users with access to multiple subscriptions will use the highest priority subscription available to them.'}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        </FormGroup>
 
         <FormGroup
           label="Groups"
@@ -265,50 +355,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
           </FormHelperText>
         </FormGroup>
 
-        <FormGroup label="Priority level" fieldId="subscription-priority">
-          <NumberInput
-            id="subscription-priority"
-            data-testid="subscription-priority"
-            value={priority == null || Number.isNaN(priority) ? '' : priority}
-            min={0}
-            max={2147483647}
-            onMinus={() =>
-              setPriority(
-                Math.max(0, (priority == null || Number.isNaN(priority) ? 0 : priority) - 1),
-              )
-            }
-            onPlus={() =>
-              setPriority(
-                Math.min(
-                  2147483647,
-                  (priority == null || Number.isNaN(priority) ? 0 : priority) + 1,
-                ),
-              )
-            }
-            onChange={(event: React.FormEvent<HTMLInputElement>) => {
-              const inputValue = event.currentTarget.value;
-              if (inputValue === '') {
-                setPriority(NaN);
-              } else {
-                const parsed = parseInt(inputValue, 10);
-                if (!Number.isNaN(parsed)) {
-                  setPriority(Math.min(2147483647, Math.max(0, parsed)));
-                }
-              }
-            }}
-            validated={priorityValidationError ? 'error' : 'default'}
-          />
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem variant={priorityValidationError ? 'error' : 'default'}>
-                {priorityValidationError ||
-                  'Higher numbers indicate higher priority. Users with access to multiple subscriptions will use the highest priority subscription available to them.'}
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        </FormGroup>
-
-        {formData.modelRefs.length === 0 ? (
+        {showNoModelsWarning ? (
           <Alert
             variant="warning"
             isInline
@@ -320,25 +367,26 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
             before creating a subscription.
           </Alert>
         ) : (
-          <SubscriptionModelsSection
+          <MaasModelsSection
             modelRefSummaries={models.map((m) => m.modelRefSummary)}
-            subscriptionModelRefs={models.map((m) => ({
+            modelRefsWithRateLimits={models.map((m) => ({
               name: m.modelRefSummary.name,
               namespace: m.modelRefSummary.namespace,
               tokenRateLimits: m.tokenRateLimits,
             }))}
             editable
             rateLimitErrorIndices={rateLimitErrorIndices}
-            onAddModels={() => setIsAddModelsModalOpen(true)}
+            onAddModels={canAddModels ? () => setIsAddModelsModalOpen(true) : undefined}
             onEditLimits={(index) => setEditLimitsTarget(index)}
             onRemoveModel={handleRemoveModel}
           />
         )}
 
-        {isAddModelsModalOpen && (
+        {isAddModelsModalOpen && canAddModels && (
           <AddModelsModal
+            modalSource="subscription"
             availableModelRefs={formData.modelRefs}
-            allSubscriptions={formData.subscriptions}
+            allSubscriptions={subscriptionsForConflictCheck}
             allPolicies={formData.policies}
             currentModels={models}
             onAdd={handleAddModels}
@@ -354,56 +402,72 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
             }
             rateLimits={editingModel.tokenRateLimits}
             onSave={handleSaveRateLimits}
-            onClose={() => {
-              setRateLimitsTouched((prev) => new Set(prev).add(editLimitsTarget));
-              setEditLimitsTarget(null);
-            }}
+            onClose={handleCloseRateLimitsModal}
           />
         )}
 
-        <FormGroup fieldId="subscription-create-auth-policy">
-          <Checkbox
-            id="subscription-create-auth-policy"
-            data-testid="subscription-create-auth-policy"
-            label={
-              <>
-                Create a matching authorization policy{' '}
-                <Popover
-                  headerContent="Why create a policy?"
-                  bodyContent={
-                    <>
-                      <p>
-                        A <b>subscription</b> (MaaSSubscription) defines which models should be
-                        available to certain groups on request, but it does not grant access to
-                        those models on its own.
-                      </p>
-                      <br />
-                      <p>
-                        A <b>policy</b> (MaaSAuthPolicy) is a separate resource that authorizes
-                        specific groups to be able to access model endpoints through the API
-                        gateway.
-                      </p>
-                      <br />
-                      <p>
-                        Both resources are needed in order to consume model endpoints through the
-                        API gateway.
-                      </p>
-                    </>
-                  }
-                >
-                  <Button variant="plain" aria-label="Auth policy help" style={{ padding: 0 }}>
-                    <OutlinedQuestionCircleIcon />
-                  </Button>
-                </Popover>
-              </>
-            }
-            isChecked={createAuthPolicy}
-            onChange={(_event, checked) => setCreateAuthPolicy(checked)}
-          />
-        </FormGroup>
+        {!isEditing && (
+          <FormGroup fieldId="subscription-create-auth-policy">
+            <Checkbox
+              id="subscription-create-auth-policy"
+              data-testid="subscription-create-auth-policy"
+              label={
+                <>
+                  Create a matching authorization policy{' '}
+                  <Popover
+                    headerContent="Why create a policy?"
+                    bodyContent={
+                      <>
+                        <p>
+                          A <b>subscription</b> (MaaSSubscription) defines which models should be
+                          available to certain groups on request, but it does not grant access to
+                          those models on its own.
+                        </p>
+                        <br />
+                        <p>
+                          A <b>policy</b> (MaaSAuthPolicy) is a separate resource that authorizes
+                          specific groups to be able to access model endpoints through the API
+                          gateway.
+                        </p>
+                        <br />
+                        <p>
+                          Both resources are needed in order to consume model endpoints through the
+                          API gateway.
+                        </p>
+                      </>
+                    }
+                  >
+                    <Button variant="plain" aria-label="Auth policy help" style={{ padding: 0 }}>
+                      <OutlinedQuestionCircleIcon />
+                    </Button>
+                  </Popover>
+                </>
+              }
+              isChecked={createAuthPolicy}
+              onChange={(_event, checked) => setCreateAuthPolicy(checked)}
+            />
+          </FormGroup>
+        )}
+
+        {showPolicyWarning && (
+          <Alert
+            variant="warning"
+            isInline
+            title="Authorization policy may need updating"
+            data-testid="policy-change-warning"
+          >
+            You may have an associated authorization policy. Changing the groups or models here will
+            not automatically update it. You may need to update it separately on the{' '}
+            <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies page</Link>.
+          </Alert>
+        )}
 
         {submitError && (
-          <Alert variant="danger" isInline title="Failed to create subscription">
+          <Alert
+            variant="danger"
+            isInline
+            title={`Failed to ${isEditing ? 'update' : 'create'} subscription`}
+          >
             {submitError}
           </Alert>
         )}
@@ -414,9 +478,15 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({ formDat
             onClick={handleSubmit}
             isDisabled={!canSubmit}
             isLoading={isSubmitting}
-            data-testid="create-subscription-button"
+            data-testid={isEditing ? 'update-subscription-button' : 'create-subscription-button'}
           >
-            {isSubmitting ? 'Creating...' : 'Create subscription'}
+            {isEditing
+              ? isSubmitting
+                ? 'Saving...'
+                : 'Save'
+              : isSubmitting
+                ? 'Creating...'
+                : 'Create subscription'}
           </Button>
           <Button
             variant="link"

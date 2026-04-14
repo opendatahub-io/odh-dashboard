@@ -21,13 +21,12 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
     type: 'app.area',
     properties: {
       id: 'mlflow-embedded',
-      featureFlags: ['mlflow'],
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW],
+      required: [SupportedArea.MLFLOW],
     },
     properties: {
       id: 'experiments-mlflow',
@@ -35,13 +34,12 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
       href: '/develop-train/mlflow/experiments',
       section: 'develop-and-train',
       path: '/develop-train/mlflow/experiments/*',
-      label: 'Tech Preview',
     },
   },
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW],
+      required: [SupportedArea.MLFLOW],
     },
     properties: {
       path: '/develop-train/mlflow/*',
@@ -60,7 +58,6 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
       section: 'gen-ai-studio',
       path: globPromptManagementAll,
       group: '6_prompt_management',
-      label: 'Tech Preview',
     },
   },
   {

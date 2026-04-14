@@ -1,5 +1,6 @@
 import {
   APIOptions,
+  assembleModArchBody,
   handleRestFailures,
   isModArchResponse,
   restGET,
@@ -65,7 +66,7 @@ export const createMaaSModelRef =
       restCREATE(
         hostPath,
         `${URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel${dryRun ? '?dryRun=true' : ''}`,
-        requestBody,
+        assembleModArchBody(requestBody),
         {},
         opts,
       ),
@@ -92,7 +93,7 @@ export const updateMaaSModelRef =
       restUPDATE(
         hostPath,
         `${URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel/${namespace}/${name}${dryRun ? '?dryRun=true' : ''}`,
-        requestBody,
+        assembleModArchBody(requestBody),
         {},
         opts,
       ),

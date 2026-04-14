@@ -9,7 +9,10 @@ import NoPipelineServer from '~/app/components/empty-states/NoPipelineServer';
 import PipelineServerNotReady from '~/app/components/empty-states/PipelineServerNotReady';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
-import { shouldShowConfigurePipelineServerEmptyState } from '~/app/utilities/pipelineServerEmptyState';
+import {
+  shouldShowConfigurePipelineServerEmptyState,
+  shouldShowPipelineServerNotReady,
+} from '~/app/utilities/pipelineServerEmptyState';
 import { autoragConfigurePathname } from '~/app/utilities/routes';
 import { parseErrorStatus } from '~/app/utilities/utils';
 
@@ -120,7 +123,7 @@ function AutoragExperiments({
     if (shouldShowConfigurePipelineServerEmptyState(loadError)) {
       return <NoPipelineServer namespace={effectiveNamespace || undefined} />;
     }
-    if (errorCode === 503) {
+    if (shouldShowPipelineServerNotReady(loadError)) {
       return <PipelineServerNotReady namespace={effectiveNamespace || undefined} />;
     }
     return (

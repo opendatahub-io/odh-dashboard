@@ -18,7 +18,7 @@ describe('shouldShowConfigurePipelineServerEmptyState', () => {
     expect(shouldShowConfigurePipelineServerEmptyState(new Error('any'))).toBe(true);
   });
 
-  it('returns true when message indicates no AutoML pipelines (500)', () => {
+  it('returns false when message indicates no AutoML pipelines (auto-creation handles this)', () => {
     mockGetGenericErrorCode.mockReturnValue(500);
     expect(
       shouldShowConfigurePipelineServerEmptyState(
@@ -26,7 +26,7 @@ describe('shouldShowConfigurePipelineServerEmptyState', () => {
           'no AutoML pipelines found in namespace - ensure managed AutoML pipelines are deployed',
         ),
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('returns false for unrelated 500 errors', () => {

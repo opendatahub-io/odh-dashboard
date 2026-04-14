@@ -3,6 +3,7 @@ import type {
   CreateAPIKeyResponse,
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
+import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
 import type {
   MaaSSubscription,
   SubscriptionInfoResponse,
@@ -120,6 +121,23 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     ],
     priority: 0,
     creationTimestamp: '2025-02-15T08:00:00Z',
+  },
+  {
+    name: 'negative-priority-sub',
+    namespace: 'maas-system',
+    phase: 'Active',
+    priority: -10000,
+    owner: {
+      groups: [{ name: 'system:authenticated' }],
+    },
+    modelRefs: [
+      {
+        name: 'flan-t5-small',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 10000, window: '24h' }],
+      },
+    ],
+    creationTimestamp: '2025-03-18T03:00:00Z',
   },
 ];
 
@@ -257,6 +275,21 @@ export const mockCreateSubscriptionResponse = (): CreateSubscriptionResponse => 
   },
 });
 
+export const mockUpdateSubscriptionResponse = (
+  name = 'basic-team-sub',
+): CreateSubscriptionResponse => {
+  const subscription = mockSubscriptions().find((s) => s.name === name) ?? mockSubscriptions()[1];
+  return { subscription };
+};
+
+export const mockCreatePolicyResponse = (name = 'new-policy-from-test'): MaaSAuthPolicy => ({
+  name,
+  namespace: 'maas-system',
+  phase: 'Pending',
+  modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+  subjects: { groups: [{ name: 'premium-users' }] },
+});
+
 export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
   {
     name: 'test-subscription-policy',
@@ -284,3 +317,25 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
     },
   },
 ];
+
+export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {
+  const policy = mockAuthPolicies().find((p) => p.name === name) ?? mockAuthPolicies()[0];
+  const resolvedName = policy.name;
+  return {
+    policy: {
+      ...policy,
+      displayName: `${resolvedName} Display`,
+      description: `Description for ${resolvedName}`,
+      creationTimestamp: '2025-03-01T10:00:00Z',
+    },
+    modelRefs: policy.modelRefs.map((ref) => ({
+      name: ref.name,
+      namespace: ref.namespace,
+      displayName: `${ref.name} Display`,
+      description: `Description for ${ref.name}`,
+      modelRef: { kind: 'LLMInferenceService', name: ref.name },
+      phase: 'Ready' as const,
+      endpoint: `https://${ref.name}.example.com`,
+    })),
+  };
+};

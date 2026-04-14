@@ -295,6 +295,52 @@ module.exports = {
 2. Start the main ODH Dashboard application
 3. The dashboard will automatically discover and load your module
 
+## Sharing Library Packages
+
+The monorepo contains two types of packages:
+
+- **Federated remotes** (webpack + MF config): Packages like `gen-ai`, `maas`, `mlflow` that build separately and the host loads at runtime.
+- **Library packages** (no webpack, no MF config): Packages like `llmd-serving`, `model-serving`, `kserve`, `plugin-core` that expose raw TypeScript via `package.json` `exports`.
+
+When a federated remote imports from a library package, webpack must compile the library's TypeScript and the code can end up duplicated between the host and remote bundles. Two mechanisms prevent this:
+
+### 1. Webpack Exclude Regex
+
+All `webpack.common.js` files use a negative lookahead in the TS/JS rule to allow `@odh-dashboard/*` packages to be compiled:
+
+```javascript
+exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
+```
+
+This ensures webpack can parse TypeScript from `@odh-dashboard/*` packages resolved through `node_modules`.
+
+### 2. MF Shared Config
+
+All `@odh-dashboard/*` dependencies must be listed in the MF `shared` config so that only one copy is loaded at runtime.
+
+**Host** (`frontend/config/moduleFederation.js`): Uses `npm query .workspace` at build time to dynamically discover all `@odh-dashboard/*` workspace packages and share them with `eager: true`. The `eager` flag means the host's copy loads immediately and takes priority during runtime negotiation. This is automatic — no manual updates needed when new packages are added.
+
+**Remotes** (each package's `moduleFederation.js`): Explicitly list the `@odh-dashboard/*` packages they depend on with `singleton: true`:
+
+```javascript
+shared: {
+  // ...other shared deps (react, patternfly, etc.)...
+  '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
+  '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
+},
+```
+
+Both host and remote compile the library at build time, but at runtime MF ensures only the host's copy is loaded. The remote's copy is placed in a separate chunk that is never fetched by the browser.
+
+### Adding a New Library Package
+
+When creating a new `@odh-dashboard/*` library package that will be consumed by federated remotes:
+
+1. Add the package to the monorepo under `packages/`. npm workspaces will hoist it into `node_modules/@odh-dashboard/`.
+2. The host will automatically discover it via `npm query .workspace` — no manual config needed.
+3. Add the package to the `shared` config of each remote that depends on it (e.g. `'@odh-dashboard/my-pkg': { singleton: true, requiredVersion: '*' }`).
+4. Ensure the consumer's `webpack.common.js` has the `node_modules\/(?!@odh-dashboard)` exclude pattern.
+
 ## Troubleshooting
 
 ### Common Issues
@@ -303,3 +349,4 @@ module.exports = {
 2. **Shared dependency conflicts**: Ensure all required shared dependencies are configured with correct versions  
 3. **Proxy issues**: Check that the backend service is running and accessible
 4. **Asset loading issues**: If you see failing requests for `__federation_expose_` files without the module name in the path, add `output.publicPath = 'auto'` to your webpack configuration (see [Webpack Configuration](#webpack-configuration) section above)
+5. **Module parse failed for `@odh-dashboard/*` packages**: Ensure `webpack.common.js` uses `exclude: [/node_modules\/(?!@odh-dashboard)/]` instead of `exclude: [/node_modules/]` in the TS/JS rule

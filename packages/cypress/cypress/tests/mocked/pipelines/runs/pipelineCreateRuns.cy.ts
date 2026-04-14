@@ -130,10 +130,7 @@ describe('Pipeline create runs', () => {
   describe('Runs', () => {
     describe('MLflow integration', () => {
       beforeEach(() => {
-        cy.interceptOdh(
-          'GET /api/config',
-          mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
-        );
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
         pipelineRunsGlobal.visit(projectName);
 
         createRunPage.mockGetExperiments(projectName, mockExperiments);
@@ -515,11 +512,11 @@ describe('Pipeline create runs', () => {
       activeRunsTable.mockGetActiveRuns([...initialMockRuns, mockDuplicateRun], projectName);
 
       // Navigate to duplicate run page for a given active run
-      cy.visitWithLogin(`/develop-train/experiments/${projectName}/experiment-1/runs`);
+      cy.visitWithLogin(`/develop-train/pipelines/runs/${projectName}/runs`);
       pipelineRunsGlobal.findActiveRunsTab().click();
       activeRunsTable.getRowByName(mockRun.display_name).findKebabAction('Duplicate').click();
       verifyRelativeURL(
-        `/develop-train/experiments/${projectName}/experiment-1/runs/duplicate/${mockRun.run_id}`,
+        `/develop-train/pipelines/runs/${projectName}/runs/duplicate/${mockRun.run_id}`,
       );
 
       // Verify pre-populated values & submit
@@ -562,7 +559,7 @@ describe('Pipeline create runs', () => {
 
       // Should redirect to the details of the newly duplicated active run
       verifyRelativeURL(
-        `/develop-train/experiments/${projectName}/experiment-1/runs/${mockDuplicateRun.run_id}`,
+        `/develop-train/pipelines/runs/${projectName}/runs/${mockDuplicateRun.run_id}`,
       );
     });
 
@@ -992,10 +989,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('creates a schedule with MLflow plugin payload', () => {
-      cy.interceptOdh(
-        'GET /api/config',
-        mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
-      );
+      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
       pipelineRunsGlobal.visit(projectName);
       pipelineRunsGlobal.findSchedulesTab().click();
 
@@ -1139,14 +1133,13 @@ describe('Pipeline create runs', () => {
       duplicateSchedulePage.mockGetExperiment(projectName, mockExperiment);
 
       // Navigate to duplicate run page for a given schedule
-      cy.visitWithLogin(`/develop-train/experiments/${projectName}/experiment-1/runs`);
-      pipelineRunsGlobal.findSchedulesTab().click();
+      cy.visitWithLogin(`/develop-train/pipelines/runs/${projectName}/schedules`);
       pipelineRecurringRunTable
         .getRowByName(mockRecurringRun.display_name)
         .findKebabAction('Duplicate')
         .click();
       verifyRelativeURL(
-        `/develop-train/experiments/${projectName}/experiment-1/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
+        `/develop-train/pipelines/runs/${projectName}/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
       );
 
       // Verify pre-populated values & submit
@@ -1195,7 +1188,7 @@ describe('Pipeline create runs', () => {
 
       // Should be redirected to the schedule details page
       verifyRelativeURL(
-        `/develop-train/experiments/${projectName}/experiment-1/schedules/${mockDuplicateRecurringRun.recurring_run_id}`,
+        `/develop-train/pipelines/runs/${projectName}/schedules/${mockDuplicateRecurringRun.recurring_run_id}`,
       );
     });
 
@@ -1220,14 +1213,13 @@ describe('Pipeline create runs', () => {
       duplicateSchedulePage.mockGetExperiment(projectName, mockExperiment);
 
       // Navigate to duplicate run page for a given schedule
-      cy.visitWithLogin(`/develop-train/experiments/${projectName}/experiment-1/runs`);
-      pipelineRunsGlobal.findSchedulesTab().click();
+      cy.visitWithLogin(`/develop-train/pipelines/runs/${projectName}/schedules`);
       pipelineRecurringRunTable
         .getRowByName(mockRecurringRun.display_name)
         .findKebabAction('Duplicate')
         .click();
       verifyRelativeURL(
-        `/develop-train/experiments/${projectName}/experiment-1/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
+        `/develop-train/pipelines/runs/${projectName}/schedules/duplicate/${mockRecurringRun.recurring_run_id}`,
       );
 
       // Verify pre-populated values

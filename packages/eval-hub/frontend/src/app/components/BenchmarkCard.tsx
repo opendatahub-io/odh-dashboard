@@ -10,11 +10,8 @@ import {
   Label,
   LabelGroup,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { FlatBenchmark } from '~/app/types';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { getCategoryColor, toSafeExternalUrl, VISIBLE_METRICS_COUNT } from './benchmarkUtils';
+import { capitalizeFirst, getCategoryColor, VISIBLE_METRICS_COUNT } from './benchmarkUtils';
 
 type BenchmarkCardProps = {
   benchmark: FlatBenchmark;
@@ -30,7 +27,6 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
   onRunBenchmark,
 }) => {
   const color = getCategoryColor(benchmark.category);
-  const safeBenchmarkUrl = toSafeExternalUrl(benchmark.url);
 
   return (
     <Card
@@ -40,7 +36,7 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
       {benchmark.category && (
         <CardHeader>
           <Label color={color} isCompact>
-            {benchmark.category}
+            {capitalizeFirst(benchmark.category)}
           </Label>
         </CardHeader>
       )}
@@ -56,37 +52,6 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
         >
           {benchmark.name}
         </Button>
-        <Content
-          component="p"
-          style={{
-            color: 'var(--pf-t--global--text--color--subtle)',
-            marginTop: 'var(--pf-t--global--spacer--xs)',
-          }}
-        >
-          {safeBenchmarkUrl ? (
-            <Button
-              variant="link"
-              isInline
-              component="a"
-              href={safeBenchmarkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              icon={<ExternalLinkAltIcon />}
-              iconPosition="end"
-              onClick={() =>
-                fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
-                  url: safeBenchmarkUrl,
-                  benchmarkId: benchmark.id,
-                  surface: 'benchmark_card',
-                })
-              }
-            >
-              {benchmark.id}
-            </Button>
-          ) : (
-            benchmark.id
-          )}
-        </Content>
       </CardTitle>
 
       <CardBody>

@@ -40,17 +40,21 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		return
 	}
 
-	// Require discovered AutoRAG pipeline
+	// Get discovered AutoRAG pipeline — may be nil if no pipeline exists yet
 	pipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
 	if !ok {
-		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines not found in context — ensure AttachDiscoveredPipeline middleware is used"))
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
 		return
 	}
-	discovered := pipelines["autorag"]
+	discovered := pipelines[constants.PipelineTypeAutoRAG]
 	if discovered == nil {
-		app.serverErrorResponseWithMessage(w, r,
-			fmt.Errorf("no AutoRAG pipeline found in namespace"),
-			"no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed")
+		// No pipeline discovered — return empty runs list.
+		// The pipeline will be auto-created when the user submits their first experiment.
+		if err := app.WriteJSON(w, http.StatusOK, PipelineRunsEnvelope{
+			Data: &models.PipelineRunsData{Runs: []models.PipelineRun{}},
+		}, nil); err != nil {
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 
@@ -128,19 +132,13 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 		return
 	}
 
-	// Get discovered pipeline from context (added by AttachDiscoveredPipeline middleware)
-	pipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
-	if !ok {
-		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines not found in context — ensure AttachDiscoveredPipeline middleware is used"))
+	// Get discovered pipeline from context — may be nil if no pipeline exists yet
+	discoveredPipelines, ok2 := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok2 {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
 		return
 	}
-	discovered := pipelines["autorag"]
-	if discovered == nil {
-		app.serverErrorResponseWithMessage(w, r,
-			fmt.Errorf("no AutoRAG pipeline found in namespace"),
-			"no AutoRAG pipeline found in namespace - ensure a managed AutoRAG pipeline is deployed")
-		return
-	}
+	discovered := discoveredPipelines[constants.PipelineTypeAutoRAG]
 
 	// Get run ID from URL path parameter
 	runID := params.ByName("runId")
@@ -178,7 +176,8 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 	}
 
 	// Validate that the run belongs to the discovered AutoRAG pipeline
-	if run.PipelineVersionReference.PipelineID != discovered.PipelineID ||
+	if discovered == nil ||
+		run.PipelineVersionReference.PipelineID != discovered.PipelineID ||
 		run.PipelineVersionReference.PipelineVersionID != discovered.PipelineVersionID {
 		// Run exists but belongs to a different pipeline - return 404 for security
 		app.notFoundResponse(w, r)

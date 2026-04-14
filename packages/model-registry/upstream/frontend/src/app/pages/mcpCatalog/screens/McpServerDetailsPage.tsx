@@ -12,6 +12,7 @@ import {
   EmptyStateFooter,
   Flex,
   FlexItem,
+  Label,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
@@ -21,6 +22,11 @@ import { useMcpServerWithAPI } from '~/app/hooks/mcpServerCatalog/useMcpServer';
 import { McpCatalogContext } from '~/app/context/mcpCatalog/McpCatalogContext';
 import { mcpCatalogUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
+import {
+  McpCardIconType,
+  getMcpCardIconConfig,
+} from '~/app/pages/mcpCatalog/components/McpCatalogCardIcons';
+import { isMcpRemoteDeploymentMode } from '~/app/pages/mcpCatalog/utils/mcpCatalogUtils';
 import McpServerDetailsView from './McpServerDetailsView';
 import McpDeployButton from '~/odh/components/McpDeployButton';
 
@@ -65,7 +71,20 @@ const McpServerDetailsPage: React.FC = () => {
               )}
               <Stack>
                 <StackItem>
-                  <FlexItem>{server.name}</FlexItem>
+                  <Flex
+                    gap={{ default: 'gapSm' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    flexWrap={{ default: 'wrap' }}
+                  >
+                    <FlexItem>{server.name}</FlexItem>
+                    {isMcpRemoteDeploymentMode(server.deploymentMode) && (
+                      <FlexItem>
+                        <Label data-testid="mcp-server-details-remote-label">
+                          {getMcpCardIconConfig(McpCardIconType.REMOTE).label}
+                        </Label>
+                      </FlexItem>
+                    )}
+                  </Flex>
                 </StackItem>
                 {server.provider && (
                   <StackItem>

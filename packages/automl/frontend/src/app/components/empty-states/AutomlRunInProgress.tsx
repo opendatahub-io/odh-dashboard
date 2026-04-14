@@ -13,6 +13,8 @@ interface AutomlRunInProgressProps {
   namespace: string;
 }
 
+const EmptyStateImageIcon = () => <img src={emptyStateImage} alt="Run in progress" />;
+
 function AutomlRunInProgress({ namespace }: AutomlRunInProgressProps): React.JSX.Element {
   const navigate = useNavigate();
 
@@ -20,7 +22,7 @@ function AutomlRunInProgress({ namespace }: AutomlRunInProgressProps): React.JSX
     <EmptyState
       titleText="Your AutoML run is currently in progress"
       headingLevel="h4"
-      icon={() => <img src={emptyStateImage} alt="Run in progress" />}
+      icon={EmptyStateImageIcon}
     >
       <EmptyStateBody>
         Please check back soon for your run results. Runs can take some time to complete.

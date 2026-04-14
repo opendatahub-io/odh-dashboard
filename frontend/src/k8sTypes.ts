@@ -499,6 +499,7 @@ export enum DeploymentMode {
 export type InferenceServiceAnnotations = DisplayNameAnnotations &
   Partial<{
     'security.opendatahub.io/enable-auth': string;
+    'security.opendatahub.io/auth-proxy-type': 'kube-rbac-proxy' | 'oauth-proxy' | string;
     'serving.kserve.io/deploymentMode': DeploymentMode;
     'serving.knative.openshift.io/enablePassthrough': 'true';
     'sidecar.istio.io/inject': 'true';
@@ -529,6 +530,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
       annotations?: Record<string, string>;
       tolerations?: Toleration[];
       nodeSelector?: NodeSelector;
+      timeout?: number;
       deploymentStrategy?: {
         type: 'RollingUpdate' | 'Recreate';
       };
@@ -1303,7 +1305,6 @@ export type DashboardCommonConfig = {
   modelAsService?: boolean;
   maasAuthPolicies?: boolean;
   aiAssetCustomEndpoints?: boolean;
-  mlflow?: boolean;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
   projectRBAC?: boolean;
@@ -1312,6 +1313,7 @@ export type DashboardCommonConfig = {
   deploymentWizardYAMLViewer?: boolean;
   externalVectorStores?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
+  llmGatewayField?: boolean;
   promptManagement?: boolean;
 };
 
@@ -1541,10 +1543,6 @@ export type DataScienceClusterInitializationKindStatus = {
   };
   components?: Record<string, never>;
   phase?: string;
-  // Added by the backend to identify the monitoring namespace
-  monitoring?: {
-    namespace?: string;
-  };
 };
 
 export type ModelRegistryKind = K8sResourceCommon & {

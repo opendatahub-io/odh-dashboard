@@ -104,7 +104,7 @@ describe('EvaluationsTableRow', () => {
         </Table>
       </MemoryRouter>,
     );
-    expect(screen.getByTestId('evaluation-benchmark')).toHaveTextContent('arc_easy +1 more');
+    expect(screen.getByTestId('evaluation-benchmark')).toHaveTextContent('Arc Easy +1 more');
     expect(screen.getByTestId('evaluation-result')).toHaveTextContent('-');
   });
 

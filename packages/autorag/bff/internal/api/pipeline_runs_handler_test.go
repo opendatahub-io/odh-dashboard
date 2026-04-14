@@ -23,7 +23,7 @@ func withDiscoveredPipeline(req *http.Request) *http.Request {
 	discovered := &repositories.DiscoveredPipeline{
 		PipelineID:        ids.PipelineID,
 		PipelineVersionID: ids.LatestVersionID,
-		PipelineName:      "autorag-pipeline",
+		PipelineName:      "documents-rag-optimization-pipeline",
 		Namespace:         "test-namespace",
 	}
 	pipelines := map[string]*repositories.DiscoveredPipeline{"autorag": discovered}
@@ -119,7 +119,7 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 
-	t.Run("should return 500 when no AutoRAG pipeline discovered", func(t *testing.T) {
+	t.Run("should return empty runs list when no AutoRAG pipeline discovered", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(
 			http.MethodGet,
@@ -137,18 +137,14 @@ func TestPipelineRunsHandler_ErrorCases(t *testing.T) {
 
 		app.PipelineRunsHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-		// Error message should be visible to help users understand the issue
+		assert.Equal(t, http.StatusOK, rr.Code)
 		var response struct {
-			Error struct {
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			} `json:"error"`
+			Data models.PipelineRunsData `json:"data"`
 		}
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, "500", response.Error.Code)
-		assert.Contains(t, response.Error.Message, "no AutoRAG pipeline found")
+		assert.NotNil(t, response.Data.Runs)
+		assert.Len(t, response.Data.Runs, 0)
 	})
 
 }
@@ -312,7 +308,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
 			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "autorag-pipeline",
+			PipelineName:      "documents-rag-optimization-pipeline",
 			Namespace:         "test-namespace",
 		}
 		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
@@ -355,7 +351,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
 			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "autorag-pipeline",
+			PipelineName:      "documents-rag-optimization-pipeline",
 			Namespace:         "test-namespace",
 		}
 		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
@@ -395,7 +391,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
 			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "autorag-pipeline",
+			PipelineName:      "documents-rag-optimization-pipeline",
 			Namespace:         "test-namespace",
 		}
 		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
@@ -464,7 +460,7 @@ func TestPipelineRunHandler_Success(t *testing.T) {
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
 			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "autorag-pipeline",
+			PipelineName:      "documents-rag-optimization-pipeline",
 			Namespace:         "test-namespace",
 		}
 		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
@@ -540,7 +536,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
 			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "autorag-pipeline",
+			PipelineName:      "documents-rag-optimization-pipeline",
 			Namespace:         "test-namespace",
 		}
 		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
@@ -583,7 +579,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
 			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "autorag-pipeline",
+			PipelineName:      "documents-rag-optimization-pipeline",
 			Namespace:         "test-namespace",
 		}
 		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
@@ -627,7 +623,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
 			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "autorag-pipeline",
+			PipelineName:      "documents-rag-optimization-pipeline",
 			Namespace:         "test-namespace",
 		}
 		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
@@ -676,7 +672,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
 			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "autorag-pipeline",
+			PipelineName:      "documents-rag-optimization-pipeline",
 			Namespace:         "test-namespace",
 		}
 		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
@@ -692,7 +688,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
-	t.Run("should return 500 when no discovered pipeline in context", func(t *testing.T) {
+	t.Run("should return 404 when no discovered pipeline in context", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		runID := "run-test-123"
 		req, err := http.NewRequest(
@@ -715,20 +711,8 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 
 		app.PipelineRunHandler(rr, req, params)
 
-		// Should return 500 with user-visible message
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-
-		var response struct {
-			Error struct {
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			} `json:"error"`
-		}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		require.NoError(t, err)
-
-		assert.Equal(t, "500", response.Error.Code)
-		assert.Contains(t, response.Error.Message, "no AutoRAG pipeline found")
+		// With no discovered pipeline, the ownership check fails and returns 404
+		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
 	t.Run("should return 404 when run has nil PipelineVersionReference", func(t *testing.T) {
@@ -752,7 +736,7 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		discovered := &repositories.DiscoveredPipeline{
 			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
 			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "autorag-pipeline",
+			PipelineName:      "documents-rag-optimization-pipeline",
 			Namespace:         "test-namespace",
 		}
 		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})

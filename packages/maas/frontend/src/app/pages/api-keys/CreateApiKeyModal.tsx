@@ -43,7 +43,7 @@ import { formatApiKeyError } from '~/app/pages/api-keys/utils';
 import { createApiKey } from '~/app/api/api-keys';
 import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
 import { MaaSModelRefSummary, ModelSubscriptionRef } from '~/app/types/subscriptions';
-import SubscriptionModelsSection from '~/app/pages/subscriptions/viewSubscription/SubscriptionModelsSection';
+import MaasModelsSection from '~/app/shared/MaasModelsSection';
 
 const EXPIRATION_OPTION_VALUES = ['30d', '60d', '90d', '180d', '1y', 'custom'] as const;
 
@@ -264,18 +264,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
           </Stack>
         ) : (
           <Stack hasGutter>
-            {error && (
-              <StackItem>
-                <Alert
-                  data-testid="create-api-key-error-alert"
-                  title="Error creating API key"
-                  isInline
-                  variant="danger"
-                >
-                  {error.message}
-                </Alert>
-              </StackItem>
-            )}
             {subscriptionsLoaded && subscriptions.length === 0 && !subscriptionsError && (
               <StackItem>
                 <Alert
@@ -424,9 +412,9 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                       </FormGroup>
                     )}
                     <FormGroup fieldId="api-key-subscription-models">
-                      <SubscriptionModelsSection
+                      <MaasModelsSection
                         modelRefSummaries={modelRefSummaries}
-                        subscriptionModelRefs={subscriptionModelRefs}
+                        modelRefsWithRateLimits={subscriptionModelRefs}
                         hideColumns={['project']}
                         titleHeadingLevel="h3"
                         titleSize="md"
@@ -520,21 +508,35 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
             Close
           </Button>
         ) : (
-          <>
-            <Button
-              key="create"
-              variant="primary"
-              onClick={handleSubmit}
-              isDisabled={!isFormValid() || isCreating || subscriptions.length === 0}
-              isLoading={isCreating}
-              data-testid="submit-create-api-key-button"
-            >
-              Create API key
-            </Button>
-            <Button key="cancel" variant="link" onClick={onClose} isDisabled={isCreating}>
-              Cancel
-            </Button>
-          </>
+          <Stack hasGutter>
+            {error && (
+              <StackItem>
+                <Alert
+                  data-testid="create-api-key-error-alert"
+                  title="Error creating API key"
+                  isInline
+                  variant="danger"
+                >
+                  {error.message}
+                </Alert>
+              </StackItem>
+            )}
+            <StackItem>
+              <Button
+                key="create"
+                variant="primary"
+                onClick={handleSubmit}
+                isDisabled={!isFormValid() || isCreating || subscriptions.length === 0}
+                isLoading={isCreating}
+                data-testid="submit-create-api-key-button"
+              >
+                Create API key
+              </Button>
+              <Button key="cancel" variant="link" onClick={onClose} isDisabled={isCreating}>
+                Cancel
+              </Button>
+            </StackItem>
+          </Stack>
         )}
       </ModalFooter>
     </Modal>

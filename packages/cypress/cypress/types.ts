@@ -363,7 +363,6 @@ export type HardwareProfilesData = {
   projectDescription: string;
   workbenchName: string;
   hardwareProfileDeploymentSize: string;
-  workbenchRunningStatus: string;
   notebookImageName: string;
   editWorkbenchAction: string;
   settingsHardwareProfilesUrl: string;
@@ -594,6 +593,33 @@ export type TrainJobTestData = {
   projectName: string;
   trainJobName: string;
   trainingRuntimeName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+};
+
+/** E2E fixture for RayJob pause / scale / delete (RHOAIENG-56125). */
+export type RayJobE2eTestData = {
+  projectName: string;
+  rayJobName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+  workerGroupName: string;
+  rayImage: string;
+  rayVersion: string;
+};
+
+export type RayJobTestData = {
+  projectName: string;
+  rayJobName: string;
+  rayImage: string;
   flavorName: string;
   clusterQueueName: string;
   localQueueName: string;

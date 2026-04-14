@@ -33,6 +33,7 @@ import {
 } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { genAiAiAssetsTabRoute, genAiChatPlaygroundRoute } from '~/app/utilities/routes';
+import { isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
 import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import AIModelsTableRowInfo from './AIModelsTableRowInfo';
@@ -64,7 +65,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
   const isVectorStoresEnabled = useAiAssetVectorStoresEnabled();
-  const enabledModel = playgroundModels.find((m) => m.modelId === model.model_id);
+  const enabledModel = playgroundModels.find((m) => isPlaygroundModelMatchForAIModel(m, model));
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
   const [isEndpointModalOpen, setIsEndpointModalOpen] = React.useState(false);
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
