@@ -68,6 +68,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
 
     createSecret(secret)
       .then(() => {
+        setIsSaving(false);
         onSubmit(k8sName);
         onClose();
       })
@@ -113,7 +114,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
                 handleFieldChange();
               }}
               onBlur={() => setBaseUrlTouched(true)}
-              validated={showBaseUrlError ? 'error' : undefined}
+              validated={showBaseUrlError ? 'error' : 'default'}
               isRequired
             />
             <FormHelperText>
@@ -121,7 +122,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
                 <HelperTextItem variant={showBaseUrlError ? 'error' : 'default'}>
                   {showBaseUrlError
                     ? 'Enter a valid URL (e.g. https://example.com).'
-                    : 'The base URL of the Llama Stack instance.'}
+                    : 'The base URL of the Llama Stack connection.'}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>

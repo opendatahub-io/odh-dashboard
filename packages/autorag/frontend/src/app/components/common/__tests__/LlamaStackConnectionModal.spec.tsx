@@ -210,6 +210,10 @@ describe('LlamaStackConnectionModal', () => {
     expect(createSecretMock).toHaveBeenCalled();
     expect(onSubmitMock).not.toHaveBeenCalled();
     expect(onCloseMock).not.toHaveBeenCalled();
+
+    const alert = await screen.findByTestId('error-message-alert');
+    expect(alert).toHaveTextContent('Failed to create connection');
+    expect(alert).toHaveTextContent('API error');
   });
 
   it('should keep button disabled when only name is filled', async () => {
@@ -313,6 +317,6 @@ describe('LlamaStackConnectionModal', () => {
     expect(
       screen.queryByText('Enter a valid URL (e.g. https://example.com).'),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('The base URL of the Llama Stack instance.')).toBeInTheDocument();
+    expect(screen.getByText('The base URL of the Llama Stack connection.')).toBeInTheDocument();
   });
 });

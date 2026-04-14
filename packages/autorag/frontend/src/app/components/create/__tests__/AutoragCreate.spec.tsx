@@ -14,12 +14,13 @@ jest.mock('react-router', () => ({
 }));
 
 // Mock SecretSelector component to avoid fetch errors
-jest.mock('~/app/components/common/SecretSelector', () => ({
-  __esModule: true,
-  default: ({
+jest.mock('~/app/components/common/SecretSelector', () => {
+  const { useEffect } = jest.requireActual<typeof import('react')>('react');
+  const MockSecretSelector = ({
     onChange,
     value,
     dataTestId,
+    onRefreshReady,
   }: {
     onChange: (
       secret:
@@ -34,26 +35,52 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
     ) => void;
     value?: string;
     dataTestId?: string;
-  }) => (
-    <div data-testid={dataTestId}>
-      <button
-        data-testid={`${dataTestId}-select-secret`}
-        onClick={() =>
-          onChange({
-            uuid: 'secret-1',
-            name: 'Test LLS Secret',
-            data: {},
-            type: 'lls',
-            invalid: false,
-          })
-        }
-      >
-        Select Secret
-      </button>
-      {value && <div data-testid={`${dataTestId}-value`}>{value}</div>}
-    </div>
-  ),
-}));
+    onRefreshReady?: (
+      refresh: () => Promise<
+        { uuid: string; name: string; data: Record<string, string>; type?: string }[] | undefined
+      >,
+    ) => void;
+  }) => {
+    useEffect(() => {
+      if (onRefreshReady) {
+        onRefreshReady(() =>
+          Promise.resolve([
+            {
+              uuid: 'new-secret-uuid',
+              name: 'new-lls-secret',
+              data: {},
+              type: 'lls',
+            },
+          ]),
+        );
+      }
+    }, [onRefreshReady]);
+
+    return (
+      <div data-testid={dataTestId}>
+        <button
+          data-testid={`${dataTestId}-select-secret`}
+          onClick={() =>
+            onChange({
+              uuid: 'secret-1',
+              name: 'Test LLS Secret',
+              data: {},
+              type: 'lls',
+              invalid: false,
+            })
+          }
+        >
+          Select Secret
+        </button>
+        {value && <div data-testid={`${dataTestId}-value`}>{value}</div>}
+      </div>
+    );
+  };
+  return {
+    __esModule: true,
+    default: MockSecretSelector,
+  };
+});
 
 // Mock LlamaStackConnectionModal
 jest.mock('~/app/components/common/LlamaStackConnectionModal', () => ({
@@ -67,7 +94,13 @@ jest.mock('~/app/components/common/LlamaStackConnectionModal', () => ({
     onSubmit: (secretName: string) => void;
   }) => (
     <div data-testid="lls-connection-modal">
-      <button data-testid="lls-modal-submit" onClick={() => onSubmit('new-lls-secret')}>
+      <button
+        data-testid="lls-modal-submit"
+        onClick={() => {
+          onSubmit('new-lls-secret');
+          onClose();
+        }}
+      >
         Add connection
       </button>
       <button data-testid="lls-modal-cancel" onClick={onClose}>
@@ -253,6 +286,26 @@ describe('AutoragCreate', () => {
 
       await user.click(screen.getByTestId('lls-modal-cancel'));
       expect(screen.queryByTestId('lls-connection-modal')).not.toBeInTheDocument();
+    });
+
+    it('should close modal and update form with new connection after submit', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      await user.click(screen.getByTestId('add-lls-connection-button'));
+      expect(screen.getByTestId('lls-connection-modal')).toBeInTheDocument();
+
+      await user.click(screen.getByTestId('lls-modal-submit'));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('lls-connection-modal')).not.toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('lls-secret-selector-value')).toHaveTextContent(
+          'new-secret-uuid',
+        );
+      });
     });
   });
 
