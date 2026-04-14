@@ -11,6 +11,7 @@ const usePipelineRecurringRuns = (
 ): FetchState<PipelineListPaged<PipelineRecurringRunKF>> => {
   const { api } = usePipelinesAPI();
   const experimentId = options?.experimentId;
+  const pipelineVersionId = options?.pipelineVersionId;
 
   const fetchLatestVersionId = React.useCallback(
     async (pipelineId: string, opts: K8sAPIOptions) => {
@@ -26,9 +27,24 @@ const usePipelineRecurringRuns = (
   return usePipelineQuery<PipelineRecurringRunKF>(
     React.useCallback(
       async (opts, params) => {
+        const unsupportedKeys = new Set(['experiment_id', 'pipeline_version_id']);
+        const unsupported = new Map(
+          params?.filter?.predicates
+            ?.filter((p) => unsupportedKeys.has(p.key))
+            .map((p) => [p.key, p.string_value]) ?? [],
+        );
+        const supportedPredicates = params?.filter?.predicates?.filter(
+          (p) => !unsupportedKeys.has(p.key),
+        );
+        const resolvedExperimentId = experimentId || unsupported.get('experiment_id');
+        const resolvedPipelineVersionId =
+          pipelineVersionId || unsupported.get('pipeline_version_id');
+
         const response = await api.listPipelineRecurringRuns(opts, {
           ...params,
-          ...(experimentId && { experimentId }),
+          ...(resolvedExperimentId && { experimentId: resolvedExperimentId }),
+          ...(resolvedPipelineVersionId && { pipelineVersionId: resolvedPipelineVersionId }),
+          filter: supportedPredicates ? { predicates: supportedPredicates } : params?.filter,
         });
 
         if (!response.recurringRuns) {
@@ -57,7 +73,7 @@ const usePipelineRecurringRuns = (
         );
         return { ...response, items: completeRecurringRuns };
       },
-      [api, experimentId, fetchLatestVersionId],
+      [api, experimentId, pipelineVersionId, fetchLatestVersionId],
     ),
     options,
   );

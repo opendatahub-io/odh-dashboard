@@ -66,7 +66,10 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
   const isUpdateDisabled = selections.length < 1 || selections.length > 10;
   const handleRunGroupClick = React.useCallback(
     (clickedExperiment: ExperimentKF) => {
-      filterProps.onFilterUpdate(FilterOptions.RUN_GROUP, clickedExperiment.display_name);
+      filterProps.onFilterUpdate(FilterOptions.RUN_GROUP, {
+        value: clickedExperiment.experiment_id,
+        label: clickedExperiment.display_name,
+      });
     },
     [filterProps],
   );

@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Form, FormGroup, FormSection, TextArea, TextInput } from '@patternfly/react-core';
-import { CharLimitHelperText } from '#~/components/CharLimitHelperText';
-import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
+import { Form, FormGroup, FormSection, Stack, StackItem } from '@patternfly/react-core';
+import NameDescriptionField from '#~/concepts/k8s/NameDescriptionField';
 import {
   MlflowFormData,
   PipelineVersionToUse,
@@ -19,19 +18,20 @@ import {
 } from '#~/concepts/pipelines/kfTypes';
 import ProjectSection from '#~/concepts/pipelines/content/createRun/contentSections/ProjectSection';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { ActiveExperimentSelector } from '#~/concepts/pipelines/content/experiment/ExperimentSelector';
 import { useLatestPipelineVersion } from '#~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
 import { getNameEqualsFilter } from '#~/concepts/pipelines/utils';
 import { DuplicateNameHelperText } from '#~/concepts/pipelines/content/DuplicateNameHelperText';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import useDebounceCallback from '#~/utilities/useDebounceCallback';
 import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
-import { ActiveExperimentSelector } from '#~/concepts/pipelines/content/experiment/ExperimentSelector';
 import {
   NAME_CHARACTER_LIMIT,
   DESCRIPTION_CHARACTER_LIMIT,
 } from '#~/concepts/pipelines/content/const';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { runGroupCreateModalPopoverText } from '#~/pages/pipelines/global/runs/const';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import MlflowIntegrationSection from './contentSections/MlflowIntegrationSection';
 import PipelineSection from './contentSections/PipelineSection';
 import { RunTypeSection } from './contentSections/RunTypeSection';
@@ -128,57 +128,34 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
           ]
         }
       >
-        <FormGroup label="Name" isRequired fieldId="run-name">
-          <TextInput
-            isRequired
-            id="run-name"
-            data-testid="run-name"
-            name="run-name"
-            value={data.nameDesc.name}
-            onChange={(_e, value) => {
-              onValueChange('nameDesc', { ...data.nameDesc, name: value });
-              setHasDuplicateName(false);
-              checkForDuplicateName(value);
-            }}
-            maxLength={NAME_CHARACTER_LIMIT}
-          />
-          {hasDuplicateName ? <DuplicateNameHelperText name={name} /> : undefined}
-          <CharLimitHelperText
-            limit={NAME_CHARACTER_LIMIT}
-            currentLength={data.nameDesc.name.length}
-          />
-        </FormGroup>
+        <NameDescriptionField
+          nameFieldId="run-name"
+          descriptionFieldId="run-description"
+          data={data.nameDesc}
+          setData={(nameDesc) => onValueChange('nameDesc', nameDesc)}
+          maxLengthName={NAME_CHARACTER_LIMIT}
+          maxLengthDesc={DESCRIPTION_CHARACTER_LIMIT}
+          onNameChange={(value) => {
+            setHasDuplicateName(false);
+            checkForDuplicateName(value);
+          }}
+          nameHelperText={hasDuplicateName ? <DuplicateNameHelperText name={name} /> : undefined}
+        />
 
         <FormGroup
           label="Run group"
-          fieldId="run-group"
+          aria-label="Run group"
           isRequired
           labelHelp={<DashboardHelpTooltip content={runGroupCreateModalPopoverText} />}
         >
-          <ActiveExperimentSelector
-            dataTestId="run-group-selector"
-            selection={data.runGroup}
-            onSelect={(experiment) => onValueChange('runGroup', experiment.display_name)}
-          />
-          <CharLimitHelperText limit={NAME_CHARACTER_LIMIT} currentLength={data.runGroup.length} />
-        </FormGroup>
-
-        <FormGroup label="Description" fieldId="run-description">
-          <TextArea
-            resizeOrientation="vertical"
-            id="run-description"
-            data-testid="run-description"
-            name="run-description"
-            value={data.nameDesc.description}
-            onChange={(_e, description) =>
-              onValueChange('nameDesc', { ...data.nameDesc, description })
-            }
-            maxLength={DESCRIPTION_CHARACTER_LIMIT}
-          />
-          <CharLimitHelperText
-            limit={DESCRIPTION_CHARACTER_LIMIT}
-            currentLength={data.nameDesc.description.length}
-          />
+          <Stack hasGutter>
+            <StackItem>
+              <ActiveExperimentSelector
+                selection={data.experiment?.display_name}
+                onSelect={(runGroup) => onValueChange('experiment', runGroup)}
+              />
+            </StackItem>
+          </Stack>
         </FormGroup>
 
         {isSchedule && data.runType.type === RunTypeOption.SCHEDULED && (

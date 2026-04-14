@@ -12,8 +12,8 @@ import {
   ExperimentFilterSelector,
   PipelineVersionFilterSelector,
 } from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
@@ -30,8 +30,8 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
   dropdownActions,
   ...toolbarProps
 }) => {
-  const { versions } = React.useContext(PipelineRunVersionsContext);
   const { experiments } = React.useContext(PipelineRunExperimentsContext);
+  const { versions } = React.useContext(PipelineRunVersionsContext);
   const { isExperimentArchived } = useIsExperimentArchived();
   const { experiment } = React.useContext(ExperimentContext);
   const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
@@ -62,11 +62,11 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
             onChange={(_event, value) => onChange(value)}
           />
         ),
-        [FilterOptions.RUN_GROUP]: ({ onChange, value }) => (
+        [FilterOptions.RUN_GROUP]: ({ onChange, label }) => (
           <ExperimentFilterSelector
             resources={experiments}
-            selection={value}
-            onSelect={(selected) => onChange(selected.display_name)}
+            selection={label}
+            onSelect={(e) => onChange(e.experiment_id, e.display_name)}
           />
         ),
         [FilterOptions.MLFLOW_EXPERIMENT]: ({ onChange, value }) => (

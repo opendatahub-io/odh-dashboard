@@ -22,7 +22,10 @@ import PipelineRunTableRowMlflowExperiment from '#~/concepts/pipelines/content/t
 import usePipelineRunExperimentInfo from '#~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import { MlflowExperimentData } from '#~/concepts/mlflow/types';
-import { LEGACY_EXPERIMENT_FILTER_PARAM } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import {
+  FilterOptions,
+  LEGACY_EXPERIMENT_FILTER_PARAM,
+} from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 
 type PipelineRecurringRunTableRowProps = {
   isChecked: boolean;
@@ -62,7 +65,8 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
 
     return () => {
       const nextParams = new URLSearchParams(searchParams);
-      nextParams.set(LEGACY_EXPERIMENT_FILTER_PARAM, experiment.experiment_id);
+      nextParams.delete(LEGACY_EXPERIMENT_FILTER_PARAM);
+      nextParams.set(FilterOptions.RUN_GROUP, experiment.experiment_id);
       navigate(`${globalPipelineRecurringRunsRoute(namespace)}?${nextParams.toString()}`);
     };
   }, [experiment, namespace, navigate, searchParams]);

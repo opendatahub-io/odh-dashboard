@@ -34,7 +34,10 @@ import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/run
 import { useFetchRunArtifact } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useFetchRunArtifact';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { MlflowExperimentData } from '#~/concepts/mlflow/types';
-import { LEGACY_EXPERIMENT_FILTER_PARAM } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import {
+  FilterOptions,
+  LEGACY_EXPERIMENT_FILTER_PARAM,
+} from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 import { isPipelineRunRegistered } from './utils';
 
 type PipelineRunTableRowProps = {
@@ -92,7 +95,8 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
           ? globalArchivedPipelineRunsRoute(namespace)
           : globalPipelineRunsRoute(namespace);
       const nextParams = new URLSearchParams(searchParams);
-      nextParams.set(LEGACY_EXPERIMENT_FILTER_PARAM, experiment.experiment_id);
+      nextParams.delete(LEGACY_EXPERIMENT_FILTER_PARAM);
+      nextParams.set(FilterOptions.RUN_GROUP, experiment.experiment_id);
       navigate(`${basePath}?${nextParams.toString()}`);
     };
   }, [experiment, namespace, navigate, onRunGroupClick, runType, searchParams]);

@@ -62,7 +62,6 @@ export const isFilledRunFormData = (
   formData: RunFormData,
   isMlflowAvailable: boolean,
 ): formData is SafeRunFormData => {
-  const runGroupName = formData.runGroup.trim();
   const mlflowExperimentName = getMlflowExperimentName(formData.mlflow);
   const hasMlflowExperimentName =
     !isMlflowAvailable || !formData.mlflow.isExperimentTrackingEnabled || !!mlflowExperimentName;
@@ -76,7 +75,7 @@ export const isFilledRunFormData = (
 
   return (
     !!formData.nameDesc.name &&
-    !!runGroupName &&
+    !!formData.experiment &&
     !!formData.pipeline &&
     !!formData.version &&
     hasMlflowExperimentName &&

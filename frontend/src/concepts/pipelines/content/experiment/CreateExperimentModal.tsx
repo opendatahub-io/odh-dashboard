@@ -31,7 +31,7 @@ type CreateExperimentModalProps = {
   existingNames?: string[];
 };
 
-const eventName = 'Experiment Created';
+const eventName = 'Run Group Created';
 const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({
   onClose,
   existingNames = [],

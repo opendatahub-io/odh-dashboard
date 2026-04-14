@@ -12,9 +12,11 @@ import {
 } from '#~/concepts/pipelines/content/createRun/types';
 import {
   DateTimeKF,
+  ExperimentKF,
   PipelineRecurringRunKF,
   PipelineRunKF,
   RuntimeConfigParameters,
+  StorageStateKF,
 } from '#~/concepts/pipelines/kfTypes';
 
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
@@ -99,25 +101,46 @@ const useUpdateRunType = (
   }, [setFunction, initialData]);
 };
 
+const useUpdateRunGroupFormData = (
+  formState: GenericObjectState<RunFormData>,
+  runGroup: ExperimentKF | null | undefined,
+) => {
+  const [formData, setFormValue] = formState;
+
+  React.useEffect(() => {
+    if (formData.experiment) {
+      if (formData.experiment.storage_state === StorageStateKF.ARCHIVED) {
+        setFormValue('experiment', null);
+      }
+    } else if (runGroup) {
+      if (runGroup.storage_state === StorageStateKF.ARCHIVED) {
+        setFormValue('experiment', null);
+      } else {
+        setFormValue('experiment', runGroup);
+      }
+    }
+  }, [formData.experiment, setFormValue, runGroup, formData.runType.type]);
+};
+
 const useUpdateDuplicateData = (
   setFunction: UpdateObjectAtPropAndValue<RunFormData>,
   initialData?: PipelineRunKF | PipelineRecurringRunKF | null,
 ) => {
   const duplicateRunPipelineId = initialData?.pipeline_version_reference?.pipeline_id || '';
   const duplicateRunVersionId = initialData?.pipeline_version_reference?.pipeline_version_id || '';
-  const duplicateRunExperimentId = initialData?.experiment_id || '';
+  const duplicateRunGroupId = initialData?.experiment_id || '';
   const [duplicateRunPipelineVersion] = usePipelineVersionById(
     duplicateRunPipelineId,
     duplicateRunVersionId,
   );
   const [duplicateRunPipeline] = usePipelineById(duplicateRunPipelineId);
-  const [duplicateExperiment] = useExperimentById(duplicateRunExperimentId);
+  const [duplicateRunGroup] = useExperimentById(duplicateRunGroupId);
 
   React.useEffect(() => {
     if (!initialData) {
       return;
     }
-    setFunction('runGroup', duplicateExperiment?.display_name ?? '');
+    setFunction('experiment', duplicateRunGroup);
     setFunction('pipeline', duplicateRunPipeline);
     setFunction('version', duplicateRunPipelineVersion);
     setFunction('versionToUse', PipelineVersionToUse.PROVIDED);
@@ -136,7 +159,7 @@ const useUpdateDuplicateData = (
   }, [
     setFunction,
     initialData,
-    duplicateExperiment,
+    duplicateRunGroup,
     duplicateRunPipeline,
     duplicateRunPipelineVersion,
   ]);
@@ -147,7 +170,7 @@ const useRunFormData = (
   initialFormData?: Partial<RunFormData>,
 ): GenericObjectState<RunFormData> => {
   const { project } = usePipelinesAPI();
-  const { pipeline, version, runGroup, nameDesc, versionToUse, mlflow } = initialFormData || {};
+  const { pipeline, version, experiment, nameDesc, versionToUse, mlflow } = initialFormData || {};
 
   const formState = useGenericObjectState<RunFormData>(() => ({
     project,
@@ -155,10 +178,10 @@ const useRunFormData = (
     pipeline: pipeline ?? null,
     version: version ?? null,
     versionToUse: versionToUse ?? PipelineVersionToUse.LATEST,
-    runGroup: runGroup ?? '',
+    experiment: experiment ?? null,
     mlflow: mlflow ?? getDefaultMlflowFormData(),
     runType: { type: RunTypeOption.ONE_TRIGGER },
-    params: {}, // Start with empty params
+    params: {},
     ...initialFormData,
   }));
   const [formData, setFormValue] = formState;
@@ -169,9 +192,6 @@ const useRunFormData = (
       const inputDefinitionParams = getInputDefinitionParams(formData.version) || {};
       const newParams = Object.entries(inputDefinitionParams).reduce(
         (acc: RuntimeConfigParameters, [paramKey, paramValue]) => {
-          // Use run params if available, otherwise use defaults
-          // else; when doing a duplicate run, only parameters that have values will be included
-          // (this way all the empty defaults are also included in a duplicate run)
           acc[paramKey] =
             run?.runtime_config?.parameters[paramKey] ?? paramValue.defaultValue ?? '';
           return acc;
@@ -182,6 +202,7 @@ const useRunFormData = (
     }
   }, [formData.version, run, setFormValue]);
 
+  useUpdateRunGroupFormData(formState, experiment);
   useUpdateRunType(setFormValue, run);
   useUpdateDuplicateData(setFormValue, run);
 

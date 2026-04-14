@@ -410,7 +410,7 @@ describe('Pipeline runs', () => {
         it('navigate to duplicate run page', () => {
           duplicateRunPage.mockGetExperiments(projectName, mockExperiments);
           duplicateRunPage.mockGetExperiment(projectName, mockExperiments[0]);
-          pipelineRunsGlobal.visit(projectName, 'active');
+          cy.visitWithLogin(`/develop-train/experiments/${projectName}/test-experiment-1/runs`);
 
           activeRunsTable
             .getRowByName(mockActiveRuns[0].display_name)
@@ -418,7 +418,7 @@ describe('Pipeline runs', () => {
             .click();
 
           verifyRelativeURL(
-            `/develop-train/pipelines/runs/${projectName}/runs/duplicate/${mockActiveRuns[0].run_id}`,
+            `/develop-train/experiments/${projectName}/test-experiment-1/runs/duplicate/${mockActiveRuns[0].run_id}`,
           );
         });
 
@@ -521,7 +521,7 @@ describe('Pipeline runs', () => {
           // Verify initial run rows exist
           activeRunsTable.findRows().should('have.length', 3);
 
-          // Select the "Run group" filter, select a value to filter by
+          // Select the "Run group" filter, enter a value to filter by
           pipelineRunsGlobal
             .findActiveRunsToolbar()
             .within(() => pipelineRunsGlobal.selectFilterByName('Run group'));
@@ -532,6 +532,7 @@ describe('Pipeline runs', () => {
             projectName,
           );
 
+          // Select an experiment to filter by
           pipelineRunFilterBar.selectRunGroupByName('Test Experiment 1');
 
           // Verify only rows with selected experiment exist
@@ -800,7 +801,7 @@ describe('Pipeline runs', () => {
           // Verify initial run rows exist
           archivedRunsTable.findRows().should('have.length', 2);
 
-          // Select the "Run group" filter, select a value to filter by
+          // Select the "Run group" filter, enter a value to filter by
           pipelineRunsGlobal
             .findArchivedRunsToolbar()
             .within(() => pipelineRunsGlobal.selectFilterByName('Run group'));
@@ -811,6 +812,7 @@ describe('Pipeline runs', () => {
             projectName,
           );
 
+          // Select an experiment to filter by
           pipelineRunFilterBar.selectRunGroupByName('Test Experiment 1');
 
           // Verify only rows with selected experiment exist
@@ -1193,15 +1195,16 @@ describe('Pipeline runs', () => {
         it('navigate to duplicate scheduled run page', () => {
           duplicateSchedulePage.mockGetExperiments(projectName, mockExperiments);
           duplicateSchedulePage.mockGetExperiment(projectName, mockExperiments[0]);
-          pipelineRunsGlobal.visit(projectName, 'scheduled');
+          cy.visitWithLogin(`/develop-train/experiments/${projectName}/test-experiment-1/runs`);
 
+          pipelineRunsGlobal.findSchedulesTab().click();
           pipelineRecurringRunTable
             .getRowByName(mockRecurringRuns[0].display_name)
             .findKebabAction('Duplicate')
             .click();
 
           verifyRelativeURL(
-            `/develop-train/pipelines/runs/${projectName}/schedules/duplicate/${mockRecurringRuns[0].recurring_run_id}`,
+            `/develop-train/experiments/${projectName}/test-experiment-1/schedules/duplicate/${mockRecurringRuns[0].recurring_run_id}`,
           );
         });
 

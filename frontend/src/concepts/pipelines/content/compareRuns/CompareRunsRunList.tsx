@@ -19,14 +19,12 @@ import PipelineRunTableToolbar from '#~/concepts/pipelines/content/tables/pipeli
 import { manageCompareRunsRoute } from '#~/routes/pipelines/runs';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
-import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import useMlflowExperiments from '#~/concepts/mlflow/useMlflowExperiments';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 
 const CompareRunsRunList: React.FC = () => {
   const { namespace } = usePipelinesAPI();
   const { experiment } = React.useContext(ExperimentContext);
-  const { experiments: allExperiments } = React.useContext(PipelineRunExperimentsContext);
   const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
   const { runs, loaded } = useCompareRuns();
   const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
@@ -47,27 +45,17 @@ const CompareRunsRunList: React.FC = () => {
     const startedTime = getDataValue(filterData[FilterOptions.CREATED_AT]);
     const startedDate = startedTime && new Date(startedTime);
     const state = getDataValue(filterData[FilterOptions.STATUS])?.toLowerCase();
-    const runGroupFilter = experiment
-      ? undefined
-      : getDataValue(filterData[FilterOptions.RUN_GROUP])?.toLowerCase();
+    const runGroupFilter = getDataValue(filterData[FilterOptions.RUN_GROUP]);
     const pipelineVersionId = getDataValue(filterData[FilterOptions.PIPELINE_VERSION]);
     const mlflowExperimentFilter = isMlflowAvailable
       ? getDataValue(filterData[FilterOptions.MLFLOW_EXPERIMENT])?.toLowerCase()
-      : undefined;
-
-    const matchingRunGroups = runGroupFilter
-      ? new Set(
-          allExperiments
-            .filter((e) => e.display_name.toLowerCase() === runGroupFilter)
-            .map((e) => e.experiment_id),
-        )
       : undefined;
 
     return runs.filter((run) => {
       const nameMatch = !runName || run.display_name.toLowerCase().includes(runName);
       const dateTimeMatch = !startedDate || new Date(run.created_at) >= startedDate;
       const stateMatch = !state || run.state.toLowerCase() === state;
-      const runGroupMatch = !matchingRunGroups || matchingRunGroups.has(run.experiment_id);
+      const runGroupIdMatch = !runGroupFilter || run.experiment_id === runGroupFilter;
       const pipelineVersionIdMatch =
         !pipelineVersionId ||
         run.pipeline_version_reference?.pipeline_version_id === pipelineVersionId;
@@ -80,12 +68,12 @@ const CompareRunsRunList: React.FC = () => {
         nameMatch &&
         dateTimeMatch &&
         stateMatch &&
-        runGroupMatch &&
+        runGroupIdMatch &&
         pipelineVersionIdMatch &&
         mlflowExperimentMatch
       );
     });
-  }, [runs, filterData, allExperiments, experiment, isMlflowAvailable]);
+  }, [runs, filterData, isMlflowAvailable]);
 
   const manageRunsHref = manageCompareRunsRoute(
     namespace,
@@ -94,7 +82,10 @@ const CompareRunsRunList: React.FC = () => {
   );
   const handleRunGroupClick = React.useCallback(
     (clickedExperiment: ExperimentKF) => {
-      filterToolbarProps.onFilterUpdate(FilterOptions.RUN_GROUP, clickedExperiment.display_name);
+      filterToolbarProps.onFilterUpdate(FilterOptions.RUN_GROUP, {
+        value: clickedExperiment.experiment_id,
+        label: clickedExperiment.display_name,
+      });
     },
     [filterToolbarProps],
   );
