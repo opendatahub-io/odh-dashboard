@@ -368,6 +368,151 @@ describe('FileExplorer', () => {
       expect(kebab2).toBeInTheDocument();
     });
   });
+  describe('keyboard row interactions', () => {
+    it('should select file when pressing Enter on row in radio mode', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="radio" />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const radio = within(row).getByRole('radio');
+
+      // Simulate Enter key press
+      fireEvent.keyDown(row, { key: 'Enter', code: 'Enter' });
+
+      expect(radio).toBeChecked();
+      expect(screen.getByTestId('file-explorer-details-panel')).toBeInTheDocument();
+    });
+    it('should select file when pressing Space on row in radio mode', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="radio" />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const radio = within(row).getByRole('radio');
+
+      // Simulate Space key press
+      fireEvent.keyDown(row, { key: ' ', code: 'Space' });
+
+      expect(radio).toBeChecked();
+      expect(screen.getByTestId('file-explorer-details-panel')).toBeInTheDocument();
+    });
+    it('should toggle selection when pressing Enter on row in checkbox mode', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const checkbox = within(row).getByRole('checkbox');
+
+      // First Enter - select
+      fireEvent.keyDown(row, { key: 'Enter', code: 'Enter' });
+      expect(checkbox).toBeChecked();
+
+      // Second Enter - deselect
+      fireEvent.keyDown(row, { key: 'Enter', code: 'Enter' });
+      expect(checkbox).not.toBeChecked();
+    });
+    it('should toggle selection when pressing Space on row in checkbox mode', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const checkbox = within(row).getByRole('checkbox');
+
+      // First Space - select
+      fireEvent.keyDown(row, { key: ' ', code: 'Space' });
+      expect(checkbox).toBeChecked();
+
+      // Second Space - deselect
+      fireEvent.keyDown(row, { key: ' ', code: 'Space' });
+      expect(checkbox).not.toBeChecked();
+    });
+    it('should call onSelectFile callback when keyboard selecting in radio mode', () => {
+      const files = mockFiles(3);
+      const onSelectFile = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          files={files}
+          selection="radio"
+          onSelectFile={onSelectFile}
+        />,
+      );
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.keyDown(row, { key: 'Enter', code: 'Enter' });
+
+      expect(onSelectFile).toHaveBeenCalledWith(files[0], true);
+      expect(onSelectFile).toHaveBeenCalledTimes(1);
+    });
+    it('should call onSelectFile callback when keyboard toggling in checkbox mode', () => {
+      const files = mockFiles(3);
+      const onSelectFile = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          files={files}
+          selection="checkbox"
+          onSelectFile={onSelectFile}
+        />,
+      );
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+
+      // Select via keyboard
+      fireEvent.keyDown(row, { key: 'Enter', code: 'Enter' });
+      expect(onSelectFile).toHaveBeenCalledWith(files[0], true);
+
+      // Deselect via keyboard
+      fireEvent.keyDown(row, { key: 'Enter', code: 'Enter' });
+      expect(onSelectFile).toHaveBeenCalledWith(files[0], false);
+
+      expect(onSelectFile).toHaveBeenCalledTimes(2);
+    });
+    it('should not select unselectable rows via keyboard', () => {
+      const files = [mockFile({ name: 'unselectable.json', path: '/u.json', selectable: false })];
+      const onSelectFile = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          files={files}
+          selection="checkbox"
+          onSelectFile={onSelectFile}
+        />,
+      );
+
+      const row = screen.getByTestId('file-explorer-row--u-json');
+      const checkbox = within(row).getByRole('checkbox');
+
+      fireEvent.keyDown(row, { key: 'Enter', code: 'Enter' });
+
+      expect(checkbox).not.toBeChecked();
+      expect(onSelectFile).not.toHaveBeenCalled();
+    });
+    it('should not interfere with keyboard navigation on interactive elements', () => {
+      const folder = mockFolder({ name: 'my-folder', path: '/my-folder' });
+      const onFolderClick = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          files={[folder]}
+          onFolderClick={onFolderClick}
+          selection="checkbox"
+        />,
+      );
+
+      const row = screen.getByTestId('file-explorer-row--my-folder');
+      const folderLink = within(row).getByText('my-folder');
+
+      // Pressing Enter on the folder link should only trigger folder navigation
+      fireEvent.keyDown(folderLink, { key: 'Enter', code: 'Enter' });
+      fireEvent.click(folderLink);
+
+      expect(onFolderClick).toHaveBeenCalledWith(folder);
+
+      // Checkbox should not be selected
+      const checkbox = within(row).getByRole('checkbox');
+      expect(checkbox).not.toBeChecked();
+    });
+  });
   describe('source selector', () => {
     it('should render source labels when sources are provided and no source selected', () => {
       const onSelectSource = jest.fn();
