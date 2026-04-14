@@ -12,13 +12,14 @@ describe('formatMetricName', () => {
   it('should return special-cased acronyms as-is', () => {
     expect(formatMetricName('roc_auc')).toBe('ROC AUC');
     expect(formatMetricName('mcc')).toBe('MCC');
-    expect(formatMetricName('f1')).toBe('F1');
+    expect(formatMetricName('f1')).toBe('F₁');
     expect(formatMetricName('r2')).toBe('R²');
     expect(formatMetricName('mae')).toBe('MAE');
     expect(formatMetricName('mse')).toBe('MSE');
     expect(formatMetricName('rmse')).toBe('RMSE');
     expect(formatMetricName('mape')).toBe('MAPE');
     expect(formatMetricName('mase')).toBe('MASE');
+    expect(formatMetricName('smape')).toBe('SMAPE');
   });
 
   it('should convert snake_case to Title Case', () => {
@@ -26,7 +27,7 @@ describe('formatMetricName', () => {
     expect(formatMetricName('root_mean_squared_error')).toBe('Root Mean Squared Error');
   });
 
-  it('should capitalize a single word', () => {
+  it('should title-case a single-word key not in the display names map', () => {
     expect(formatMetricName('accuracy')).toBe('Accuracy');
     expect(formatMetricName('precision')).toBe('Precision');
   });

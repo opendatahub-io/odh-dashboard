@@ -13,6 +13,10 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@patternfly/react-core'],
     },
+    '@patternfly/react-component-groups': {
+      singleton: true,
+      requiredVersion: deps['@patternfly/react-component-groups'],
+    },
     '@openshift/dynamic-plugin-sdk': {
       singleton: true,
     },
