@@ -18,14 +18,18 @@ jest.mock('react', () => ({
   ...jest.requireActual('react'),
   useContext: jest.fn(),
 }));
-jest.mock('~/app/utilities/errorClassifier');
+jest.mock('~/app/utilities/errorClassifier', () => ({
+  classifyError: jest.fn(),
+}));
 
 const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
 const mockUseGenAiAPI = jest.mocked(useGenAiAPI);
+const mockClassifyError = jest.mocked(errorClassifierModule.classifyError);
 
 describe('useChatbotMessages - Error Handling', () => {
   const defaultProps = {
     modelId: 'test-model',
+    configId: 'test-config',
     selectedSourceSettings: null,
     systemInstruction: '',
     isRawUploaded: false,
@@ -43,6 +47,20 @@ describe('useChatbotMessages - Error Handling', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseContext.mockReturnValue({ namespace: 'test-namespace', aiModels: [] });
+
+    // Default mock for classifyError - tests can override as needed
+    mockClassifyError.mockReturnValue({
+      pattern: 'full-failure',
+      variant: 'danger',
+      isRetriable: false,
+      title: 'Error',
+      description: 'An error occurred',
+      details: {
+        component: 'Unknown',
+        errorCode: 'UNKNOWN',
+        rawMessage: 'Error message',
+      },
+    });
   });
 
   describe('Structured Error Handling', () => {
@@ -59,7 +77,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -85,7 +103,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -112,7 +130,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -138,7 +156,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -165,7 +183,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -192,7 +210,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -219,7 +237,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -242,7 +260,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -262,7 +280,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -292,7 +310,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -317,7 +335,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -336,16 +354,18 @@ describe('useChatbotMessages - Error Handling', () => {
   });
 
   describe('Error Classification Integration', () => {
-    const mockClassifyError = jest.mocked(errorClassifierModule.classifyError);
-
     beforeEach(() => {
       mockClassifyError.mockReturnValue({
-        pattern: 'full_failure',
-        severity: 'danger',
-        retriable: true,
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: true,
         title: 'Model inference failed',
         description: 'The model server did not respond in time.',
-        rawError: { code: 'timeout', message: 'Request timed out' },
+        details: {
+          component: 'Unknown',
+          errorCode: 'timeout',
+          rawMessage: 'Request timed out',
+        },
       });
     });
 
@@ -361,7 +381,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() =>
         useChatbotMessages({
@@ -394,19 +414,23 @@ describe('useChatbotMessages - Error Handling', () => {
       };
 
       mockClassifyError.mockReturnValue({
-        pattern: 'streaming_interruption',
-        severity: 'danger',
-        retriable: true,
+        pattern: 'streaming-interruption',
+        variant: 'danger',
+        isRetriable: true,
         title: 'Streaming error — connection lost',
         description: 'The connection to the model was lost during generation.',
-        rawError: { code: 'stream_lost', message: 'Connection lost' },
+        details: {
+          component: 'Unknown',
+          errorCode: 'stream_lost',
+          rawMessage: 'Connection lost',
+        },
       });
 
       const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() =>
         useChatbotMessages({
@@ -431,12 +455,16 @@ describe('useChatbotMessages - Error Handling', () => {
 
     it('should add errorClassification to bot message props', async () => {
       const mockErrorClassification = {
-        pattern: 'full_failure' as const,
-        severity: 'danger' as const,
-        retriable: true,
+        pattern: 'full-failure' as const,
+        variant: 'danger' as const,
+        isRetriable: true,
         title: 'Test Error Title',
         description: 'Test error description',
-        rawError: { code: 'test_code', message: 'Test error message' },
+        details: {
+          component: 'Unknown',
+          errorCode: 'test_code',
+          rawMessage: 'Test error message',
+        },
       };
 
       mockClassifyError.mockReturnValue(mockErrorClassification);
@@ -452,7 +480,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -467,12 +495,16 @@ describe('useChatbotMessages - Error Handling', () => {
 
     it('should add onRetryError callback when error is retriable', async () => {
       mockClassifyError.mockReturnValue({
-        pattern: 'full_failure',
-        severity: 'danger',
-        retriable: true,
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: true,
         title: 'Retriable error',
         description: 'This error can be retried',
-        rawError: { code: 'timeout', message: 'Timeout' },
+        details: {
+          component: 'Unknown',
+          errorCode: 'timeout',
+          rawMessage: 'Timeout',
+        },
       });
 
       const mockError = { error: { code: 'timeout', message: 'Timeout' } };
@@ -480,7 +512,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -496,12 +528,16 @@ describe('useChatbotMessages - Error Handling', () => {
 
     it('should not add onRetryError callback when error is not retriable', async () => {
       mockClassifyError.mockReturnValue({
-        pattern: 'full_failure',
-        severity: 'danger',
-        retriable: false,
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: false,
         title: 'Non-retriable error',
         description: 'This error cannot be retried',
-        rawError: { code: 'max_tokens', message: 'Token limit exceeded' },
+        details: {
+          component: 'Unknown',
+          errorCode: 'max_tokens',
+          rawMessage: 'Token limit exceeded',
+        },
       });
 
       const mockError = { error: { code: 'max_tokens', message: 'Token limit exceeded' } };
@@ -509,7 +545,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -524,12 +560,16 @@ describe('useChatbotMessages - Error Handling', () => {
 
     it('should retry by resending last user message when onRetryError is called', async () => {
       mockClassifyError.mockReturnValue({
-        pattern: 'full_failure',
-        severity: 'danger',
-        retriable: true,
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: true,
         title: 'Retriable error',
         description: 'Can retry',
-        rawError: { message: 'Error' },
+        details: {
+          component: 'Unknown',
+          errorCode: '',
+          rawMessage: 'Error',
+        },
       });
 
       const mockError = { error: { message: 'Error' } };
@@ -541,7 +581,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -576,12 +616,16 @@ describe('useChatbotMessages - Error Handling', () => {
 
     it('should remove failed bot message before retry', async () => {
       mockClassifyError.mockReturnValue({
-        pattern: 'full_failure',
-        severity: 'danger',
-        retriable: true,
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: true,
         title: 'Retriable error',
         description: 'Can retry',
-        rawError: { message: 'Error' },
+        details: {
+          component: 'Unknown',
+          errorCode: '',
+          rawMessage: 'Error',
+        },
       });
 
       const mockError = { error: { message: 'Error' } };
@@ -593,7 +637,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -620,12 +664,16 @@ describe('useChatbotMessages - Error Handling', () => {
 
     it('should not retry if no user message exists', async () => {
       mockClassifyError.mockReturnValue({
-        pattern: 'full_failure',
-        severity: 'danger',
-        retriable: true,
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: true,
         title: 'Retriable error',
         description: 'Can retry',
-        rawError: { message: 'Error' },
+        details: {
+          component: 'Unknown',
+          errorCode: '',
+          rawMessage: 'Error',
+        },
       });
 
       const mockError = { error: { message: 'Error' } };
@@ -633,7 +681,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -671,7 +719,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() =>
         useChatbotMessages({
@@ -692,14 +740,18 @@ describe('useChatbotMessages - Error Handling', () => {
       });
     });
 
-    it('should handle partial_failure pattern classification', async () => {
+    it('should handle partial-failure pattern classification', async () => {
       mockClassifyError.mockReturnValue({
-        pattern: 'partial_failure',
-        severity: 'warning',
-        retriable: false,
+        pattern: 'partial-failure',
+        variant: 'warning',
+        isRetriable: false,
         title: 'Knowledge source retrieval failed',
         description: 'Generated without context from your knowledge sources.',
-        rawError: { code: 'rag_down', message: 'RAG service unavailable' },
+        details: {
+          component: 'RAG',
+          errorCode: 'rag_down',
+          rawMessage: 'RAG service unavailable',
+        },
       });
 
       const mockError = { error: { code: 'rag_down', message: 'RAG service unavailable' } };
@@ -707,7 +759,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() => useChatbotMessages(defaultProps));
 
@@ -715,19 +767,23 @@ describe('useChatbotMessages - Error Handling', () => {
 
       await waitFor(() => {
         const botMessage = result.current.messages.find((msg) => msg.role === 'bot');
-        expect(botMessage?.errorClassification?.pattern).toBe('partial_failure');
-        expect(botMessage?.errorClassification?.severity).toBe('warning');
+        expect(botMessage?.errorClassification?.pattern).toBe('partial-failure');
+        expect(botMessage?.errorClassification?.variant).toBe('warning');
       });
     });
 
-    it('should handle streaming_interruption pattern classification', async () => {
+    it('should handle streaming-interruption pattern classification', async () => {
       mockClassifyError.mockReturnValue({
-        pattern: 'streaming_interruption',
-        severity: 'danger',
-        retriable: true,
+        pattern: 'streaming-interruption',
+        variant: 'danger',
+        isRetriable: true,
         title: 'Streaming error — connection lost',
         description: 'The connection to the model was lost during generation.',
-        rawError: { code: 'stream_lost', message: 'Connection reset' },
+        details: {
+          component: 'Unknown',
+          errorCode: 'stream_lost',
+          rawMessage: 'Connection reset',
+        },
       });
 
       const mockError = { error: { code: 'stream_lost', message: 'Connection reset' } };
@@ -735,7 +791,7 @@ describe('useChatbotMessages - Error Handling', () => {
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
         apiAvailable: true,
-      } as ReturnType<typeof useGenAiAPI>);
+      } as unknown as ReturnType<typeof useGenAiAPI>);
 
       const { result } = renderHook(() =>
         useChatbotMessages({
@@ -748,8 +804,8 @@ describe('useChatbotMessages - Error Handling', () => {
 
       await waitFor(() => {
         const botMessage = result.current.messages.find((msg) => msg.role === 'bot');
-        expect(botMessage?.errorClassification?.pattern).toBe('streaming_interruption');
-        expect(botMessage?.errorClassification?.retriable).toBe(true);
+        expect(botMessage?.errorClassification?.pattern).toBe('streaming-interruption');
+        expect(botMessage?.errorClassification?.isRetriable).toBe(true);
       });
     });
   });
