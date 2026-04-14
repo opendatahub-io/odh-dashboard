@@ -97,13 +97,13 @@
   /* Grid lines between all cells */
   --pf-v6-c-table__tr--BorderBlockEndColor: var(--pf-t--global--background--color--primary--default);
 
+  /* Gray background on all header cells + white grid borders on all cells */
   th,
   td {
     border: var(--pf-t--global--border--width--divider--default) solid
       var(--pf-t--global--background--color--primary--default);
   }
 
-  /* Gray background on all header cells (thead + tbody row headers) */
   th {
     background-color: var(--pf-t--global--background--color--secondary--default);
   }

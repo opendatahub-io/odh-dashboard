@@ -78,29 +78,46 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
 
   if (isArtifactsLoading) {
     return (
-      <Table aria-label="Confusion matrix loading" variant="compact">
+      <Table
+        aria-label="Confusion matrix loading"
+        variant="compact"
+        className="automl-confusion-matrix"
+        gridBreakPoint=""
+        data-testid="confusion-matrix-loading"
+      >
         <Thead>
           <Tr>
-            <Th>Observed</Th>
+            <Th rowSpan={2}>Observed</Th>
+            <Th colSpan={3} textCenter>
+              Predicted
+            </Th>
+            <Th rowSpan={2} textCenter>
+              Percent correct
+            </Th>
+          </Tr>
+          <Tr>
             <Th textCenter>Class 1</Th>
             <Th textCenter>Class 2</Th>
-            <Th textCenter>Percent correct</Th>
+            <Th textCenter>Class 3</Th>
           </Tr>
         </Thead>
         <Tbody>
-          {Array.from({ length: 3 }, (_, i) => (
+          {Array.from({ length: 4 }, (_, i) => (
             <Tr key={i}>
+              <Th>
+                <Skeleton screenreaderText="Loading row label" width="50%" />
+              </Th>
               <Td>
-                <Skeleton width="50%" />
+                <Skeleton screenreaderText="Loading cell value" width="30%" />
               </Td>
               <Td>
-                <Skeleton width="30%" />
+                <Skeleton screenreaderText="Loading cell value" width="30%" />
               </Td>
               <Td>
-                <Skeleton width="30%" />
+                <Skeleton screenreaderText="Loading cell value" width="30%" />
               </Td>
               <Td>
-                <Skeleton width="40%" />
+                <Skeleton screenreaderText="Loading percentage" width="40%" />
               </Td>
             </Tr>
           ))}
@@ -198,6 +215,7 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
         variant="compact"
         className="automl-confusion-matrix"
         gridBreakPoint=""
+        data-testid="confusion-matrix-table"
       >
         <Thead>
           <Tr>
@@ -260,7 +278,7 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
           </Tr>
         </Tbody>
       </Table>
-      <div className="automl-confusion-gradient">
+      <div className="automl-confusion-gradient" data-testid="confusion-matrix-gradient">
         <span>Less correct</span>
         <span>More correct</span>
       </div>
