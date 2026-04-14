@@ -148,6 +148,23 @@ function resolveRetriable(error: ApiError): boolean {
 }
 
 export function classifyError(error: ApiError, context: ClassifyContext = {}): ClassifiedError {
+  // Handle null/undefined errors defensively
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!error) {
+    return {
+      pattern: 'full-failure',
+      variant: 'danger',
+      title: 'Something went wrong',
+      description: 'An unexpected error occurred. Check the details below for more information.',
+      details: {
+        component: 'Unknown',
+        errorCode: 'UNKNOWN',
+        rawMessage: 'An unexpected error occurred',
+      },
+      isRetriable: true,
+    };
+  }
+
   const component = error.error?.component;
   const code = error.error?.code ?? '';
   const rawMessage = error.error?.message ?? error.message ?? '';
