@@ -83,11 +83,34 @@ describe('errorClassifier', () => {
         expect(result.isRetriable).toBe(true);
       });
 
-      it('should mark streaming errors as retriable', () => {
+      it('should mark stream_lost as retriable', () => {
         const error = { error: { code: 'stream_lost', message: 'Stream lost' } };
         const result = classifyError(error);
 
         expect(result.isRetriable).toBe(true);
+      });
+
+      it('should mark stream_timeout as retriable', () => {
+        const error = { error: { code: 'stream_timeout', message: 'Stream timeout' } };
+        const result = classifyError(error);
+
+        expect(result.isRetriable).toBe(true);
+      });
+
+      it('should mark stream_context as non-retriable', () => {
+        const error = { error: { code: 'stream_context', message: 'Context exceeded' } };
+        const result = classifyError(error);
+
+        expect(result.isRetriable).toBe(false);
+      });
+
+      it('should mark context_length as non-retriable', () => {
+        const error = {
+          error: { code: 'context_length', message: 'Context length exceeded' },
+        };
+        const result = classifyError(error);
+
+        expect(result.isRetriable).toBe(false);
       });
 
       it('should mark 429 HTTP status as retriable', () => {

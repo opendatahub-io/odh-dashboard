@@ -125,8 +125,9 @@ function resolveRetriable(error: ApiError): boolean {
   const code = error.error?.code;
   const message = error.error?.message ?? error.message ?? '';
 
-  // Streaming errors are retriable
-  if (detectStreamingErrorFromMessage(message)) {
+  // Streaming connection/timeout errors are retriable, but NOT context length
+  const streamingKey = detectStreamingErrorFromMessage(message);
+  if (streamingKey && streamingKey !== 'stream:context_length') {
     return true;
   }
 
