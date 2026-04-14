@@ -432,9 +432,9 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   <Tr
                     key={file.path}
                     data-testid={`file-explorer-row-${sanitizeId(file.path)}`}
-                    isSelectable={!isUnselectable && !isSelected}
+                    isSelectable={!isUnselectable && (!isSelected || selection === 'checkbox')}
                     isRowSelected={isSelected}
-                    isClickable={!isUnselectable && !isSelected}
+                    isClickable={!isUnselectable && (!isSelected || selection === 'checkbox')}
                     onClick={(event) => {
                       const clickedInteractiveDescendant =
                         event.target instanceof Element &&
@@ -444,7 +444,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         return;
                       }
 
-                      onSelect(event, true);
+                      onSelect(event, selection === 'checkbox' ? !isSelected : true);
                     }}
                   >
                     <Td
