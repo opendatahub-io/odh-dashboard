@@ -716,33 +716,104 @@ describe('errorClassifier', () => {
       });
     });
 
+    describe('component display name handling', () => {
+      it('should use display name for known components', () => {
+        const error = {
+          error: {
+            component: 'guardrails' as const,
+            code: 'some_error',
+            message: 'Guardrails error',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.details.component).toBe('Guardrails');
+      });
+
+      it('should use component value for unknown components', () => {
+        const error = {
+          error: {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            component: 'unknown_component' as any,
+            code: 'some_error',
+            message: 'Unknown component error',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.details.component).toBe('unknown_component');
+      });
+
+      it('should use "Unknown" when component is not present', () => {
+        const error = {
+          error: {
+            code: 'some_error',
+            message: 'Error without component',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.details.component).toBe('Unknown');
+      });
+
+      it('should format MCP component with tool name', () => {
+        const error = {
+          error: {
+            component: 'mcp' as const,
+            code: 'mcp_down',
+            message: 'Tool failed',
+            // eslint-disable-next-line camelcase
+            tool_name: 'GitHub',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.details.component).toBe('MCP: GitHub');
+      });
+
+      it('should use MCP display name when no tool name provided', () => {
+        const error = {
+          error: {
+            component: 'mcp' as const,
+            code: 'mcp_down',
+            message: 'Tool failed',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.details.component).toBe('MCP');
+      });
+    });
+
     describe('edge cases', () => {
       it('should handle null error', () => {
-        const result = classifyError(null);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = classifyError(null as any);
 
-        expect(result.pattern).toBe('full_failure' as ErrorPattern);
-        expect(result.rawError.message).toBe('An unexpected error occurred');
+        expect(result.pattern).toBe('full-failure' as ErrorPattern);
+        expect(result.details.rawMessage).toBe('An unexpected error occurred');
       });
 
       it('should handle undefined error', () => {
-        const result = classifyError(undefined);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = classifyError(undefined as any);
 
-        expect(result.pattern).toBe('full_failure' as ErrorPattern);
-        expect(result.rawError.message).toBe('An unexpected error occurred');
+        expect(result.pattern).toBe('full-failure' as ErrorPattern);
+        expect(result.details.rawMessage).toBe('An unexpected error occurred');
       });
 
       it('should handle empty error object', () => {
         const result = classifyError({});
 
-        expect(result.pattern).toBe('full_failure' as ErrorPattern);
-        expect(result.rawError.message).toBe('An unexpected error occurred');
+        expect(result.pattern).toBe('full-failure' as ErrorPattern);
+        expect(result.details.rawMessage).toBe('An unexpected error occurred');
       });
 
       it('should handle error with empty message', () => {
         const error = { error: { code: 'test', message: '' } };
         const result = classifyError(error);
 
-        expect(result.rawError.message).toBe('');
+        expect(result.details.rawMessage).toBe('');
       });
     });
   });
