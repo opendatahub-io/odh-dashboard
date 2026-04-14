@@ -191,15 +191,25 @@ func TestValidateAndNormalizeEndpoint_AcceptsIPv6UniqueLocal(t *testing.T) {
 // S3 connect timeout configuration tests
 // ---------------------------------------------------------------------------
 
-// TODO [ AI ] This test asserts a constant equals itself — it can never fail unless
-// someone changes the constant, at which point they'd update both. This provides no regression
-// value. Replace with a test that verifies the timeout is actually wired into the transport
-// (e.g. inspect the Dialer.Timeout on the http.Client from a constructed RealS3Client), or delete.
-// From Gustavo: Lets inspect the Dialer
-func TestS3ConnectTimeout_Is10Seconds(t *testing.T) {
+func TestNewRealS3Client_TransportHasConnectTimeout(t *testing.T) {
 	t.Parallel()
-	assert.Equal(t, 10*time.Second, s3ConnectTimeout,
-		"s3ConnectTimeout must be 10s to fail fast before the OpenShift route timeout (30s)")
+	client, err := NewRealS3Client(&S3Credentials{
+		AccessKeyID:     "a",
+		SecretAccessKey: "b",
+		Region:          "us-east-1",
+		EndpointURL:     "https://10.0.0.1:9000",
+	}, S3ClientOptions{})
+	require.NoError(t, err)
+
+	httpClient, ok := client.s3Client.Options().HTTPClient.(*http.Client)
+	require.True(t, ok, "HTTPClient should be *http.Client")
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok, "Transport should be *http.Transport")
+
+	assert.Equal(t, s3ConnectTimeout, transport.TLSHandshakeTimeout,
+		"TLSHandshakeTimeout should equal s3ConnectTimeout (%v)", s3ConnectTimeout)
+	assert.NotNil(t, transport.DialContext,
+		"DialContext should be set with s3ConnectTimeout dial timeout")
 }
 
 func TestNewRealS3Client_CreatesClientWithValidCredentials(t *testing.T) {

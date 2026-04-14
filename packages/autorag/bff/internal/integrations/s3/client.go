@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
@@ -68,28 +67,15 @@ type RealS3Client struct {
 const s3ConnectTimeout = 10 * time.Second
 
 // buildS3AWSConfig creates the aws.Config used by NewRealS3Client.
-// It configures timeout-aware HTTP transport and single-attempt retries
-// so that unreachable S3 endpoints fail fast.
-// TODO [ AI ] This function's HTTPClient is dead code — NewRealS3Client overwrites
-// cfg.HTTPClient at line ~130. Also, the TLSClientConfig here (MinVersion only) conflicts with
-// NewRealS3Client's TLS config which handles RootCAs and DevMode. If you consolidate, apply
-// s3ConnectTimeout's DialContext and TLSHandshakeTimeout to the transport in NewRealS3Client
-// instead of building a separate awshttp.BuildableClient that gets thrown away.
-// From Gustavo: A recent change from Chris Jones [in this PR](https://github.com/opendatahub-io/odh-dashboard/pull/7221) likely caused this. Lets consolidate the two approaches
+// It configures static credentials and single-attempt retries so that
+// unreachable S3 endpoints fail fast. The HTTP transport (including
+// connect and TLS handshake timeouts) is set by NewRealS3Client after
+// this function returns.
 func buildS3AWSConfig(creds *S3Credentials) aws.Config {
-	httpClient := awshttp.NewBuildableClient().WithTransportOptions(func(t *http.Transport) {
-		t.DialContext = (&net.Dialer{
-			Timeout: s3ConnectTimeout,
-		}).DialContext
-		t.TLSHandshakeTimeout = s3ConnectTimeout
-		t.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
-	})
-
 	return aws.Config{
 		Region:           creds.Region,
 		Credentials:      credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
 		RetryMaxAttempts: 1,
-		HTTPClient:       httpClient,
 	}
 }
 
@@ -108,17 +94,11 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 
 	cfg := buildS3AWSConfig(creds)
 
-	// TODO [ AI ] buildS3AWSConfig sets cfg.HTTPClient to an awshttp.BuildableClient
-	// with s3ConnectTimeout dial/TLS settings, but lines below OVERWRITE cfg.HTTPClient with a
-	// plain http.Client wrapping cloneDefaultTransport(). This means the 10s connect timeout
-	// from buildS3AWSConfig is silently discarded and the Go default 30s dial timeout applies instead.
-	// Fix: either apply s3ConnectTimeout to this transport's DialContext/TLSHandshakeTimeout,
-	// or remove the HTTPClient from buildS3AWSConfig (since it's dead code).
-  // From Gustavo: A recent change from Chris Jones [in this PR](https://github.com/opendatahub-io/odh-dashboard/pull/7221) likely caused this. Lets consolidate the two approaches
-
-	// Clone the default transport to preserve connection pooling and set a
-	// transport-level timeout unconditionally, regardless of TLS configuration.
+	// Clone the default transport to preserve connection pooling and set
+	// connect, TLS handshake, and response-header timeouts.
 	transport := cloneDefaultTransport()
+	transport.DialContext = (&net.Dialer{Timeout: s3ConnectTimeout}).DialContext
+	transport.TLSHandshakeTimeout = s3ConnectTimeout
 	transport.ResponseHeaderTimeout = 30 * time.Second
 
 	if c.options.RootCAs != nil {

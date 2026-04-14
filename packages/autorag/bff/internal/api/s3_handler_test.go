@@ -1565,14 +1565,29 @@ func TestIsS3ConnectivityError(t *testing.T) {
 		want bool
 	}{
 		{
+			name: "context.DeadlineExceeded",
+			err:  context.DeadlineExceeded,
+			want: true,
+		},
+		{
+			name: "wrapped context.DeadlineExceeded",
+			err:  fmt.Errorf("s3 metadata call: %w", context.DeadlineExceeded),
+			want: true,
+		},
+		{
 			name: "net.Error timeout",
 			err:  &net.DNSError{IsTimeout: true, Name: "s3.example.com", Err: "i/o timeout"},
 			want: true,
 		},
 		{
-			name: "net.OpError connection refused",
+			name: "net.OpError dial connection refused",
 			err:  &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("connection refused")},
 			want: true,
+		},
+		{
+			name: "net.OpError write is not connectivity",
+			err:  &net.OpError{Op: "write", Net: "tcp", Err: fmt.Errorf("connection reset by peer")},
+			want: false,
 		},
 		{
 			name: "net.DNSError no such host",
@@ -1580,7 +1595,7 @@ func TestIsS3ConnectivityError(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "wrapped net.OpError",
+			name: "wrapped net.OpError dial",
 			err:  fmt.Errorf("s3 call failed: %w", &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("connection refused")}),
 			want: true,
 		},
@@ -1783,7 +1798,7 @@ func (c *connectivityErrorOnUploadS3Client) ObjectExists(_ context.Context, _ st
 }
 
 func (c *connectivityErrorOnUploadS3Client) UploadObject(_ context.Context, _ string, _ string, _ io.Reader, _ string) error {
-	return &net.OpError{Op: "write", Net: "tcp", Err: fmt.Errorf("connection reset by peer")}
+	return &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("connection refused")}
 }
 
 func TestPostS3FileHandler_ConnectivityError_OnUpload_Returns503(t *testing.T) {
@@ -1836,6 +1851,11 @@ func (c *deadlineCapturingS3Client) ListObjects(ctx context.Context, bucket stri
 func (c *deadlineCapturingS3Client) GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error) {
 	c.capturedCtx = ctx
 	return c.MockS3Client.GetObject(ctx, bucket, key)
+}
+
+func (c *deadlineCapturingS3Client) ObjectExists(ctx context.Context, bucket, key string) (bool, error) {
+	c.capturedCtx = ctx
+	return c.MockS3Client.ObjectExists(ctx, bucket, key)
 }
 
 func TestGetS3FilesHandler_SetsMetadataTimeout(t *testing.T) {
@@ -1903,4 +1923,39 @@ func TestGetS3FileHandler_DoesNotSetMetadataTimeout(t *testing.T) {
 	require.NotNil(t, capturingClient.capturedCtx, "GetObject should have been called")
 	_, hasDeadline := capturingClient.capturedCtx.Deadline()
 	assert.False(t, hasDeadline, "context passed to GetObject should NOT have a handler-imposed deadline")
+}
+
+func TestPostS3FileHandler_SetsMetadataTimeoutForResolveKey(t *testing.T) {
+	t.Parallel()
+	secret := newTestS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	capturingClient := &deadlineCapturingS3Client{}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(capturingClient)
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	body, contentType := buildMultipartFileUpload(t, "file", "data.csv", []byte("a,b\n1,2\n"))
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=data.csv",
+		body,
+		contentType,
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+
+	// Verify the handler set a deadline on the context passed to ObjectExists
+	// (called by resolveNonCollidingS3Key).
+	require.NotNil(t, capturingClient.capturedCtx, "ObjectExists should have been called")
+	deadline, hasDeadline := capturingClient.capturedCtx.Deadline()
+	assert.True(t, hasDeadline, "context passed to ObjectExists should have a deadline from s3MetadataTimeout")
+	assert.WithinDuration(t, time.Now().Add(s3MetadataTimeout), deadline, 5*time.Second,
+		"deadline should be approximately s3MetadataTimeout from request time")
 }
