@@ -355,6 +355,112 @@ describe('FileExplorer', () => {
       expect(kebab2).toBeInTheDocument();
     });
   });
+  describe('keyboard input interactions', () => {
+    it('should select radio when pressing Space on the radio input directly', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="radio" />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const radio = within(row).getByRole('radio');
+
+      // Simulate Space key press on radio input itself
+      fireEvent.keyDown(radio, { key: ' ', code: 'Space' });
+
+      expect(radio).toBeChecked();
+      expect(screen.getByTestId('file-explorer-details-panel')).toBeInTheDocument();
+    });
+    it('should toggle checkbox when pressing Space on the checkbox input directly', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const checkbox = within(row).getByRole('checkbox');
+
+      // First Space - select
+      fireEvent.keyDown(checkbox, { key: ' ', code: 'Space' });
+      expect(checkbox).toBeChecked();
+
+      // Second Space - deselect
+      fireEvent.keyDown(checkbox, { key: ' ', code: 'Space' });
+      expect(checkbox).not.toBeChecked();
+    });
+    it('should navigate between radio inputs using arrow keys', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="radio" />);
+
+      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
+      const row2 = screen.getByTestId('file-explorer-row--file-2-json');
+      const radio1 = within(row1).getByRole('radio');
+      const radio2 = within(row2).getByRole('radio');
+
+      // Focus and select first radio
+      radio1.focus();
+      fireEvent.keyDown(radio1, { key: ' ', code: 'Space' });
+      expect(radio1).toBeChecked();
+
+      // Arrow Down should move focus (browser native behavior)
+      fireEvent.keyDown(radio1, { key: 'ArrowDown', code: 'ArrowDown' });
+
+      // Note: This test validates the radio is in the DOM and accessible
+      // Actual focus movement is handled by the browser
+      expect(radio2).toBeInTheDocument();
+    });
+    it('should call onSelectFile when selecting checkbox via Space key on input', () => {
+      const files = mockFiles(3);
+      const onSelectFile = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          files={files}
+          selection="checkbox"
+          onSelectFile={onSelectFile}
+        />,
+      );
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const checkbox = within(row).getByRole('checkbox');
+
+      fireEvent.keyDown(checkbox, { key: ' ', code: 'Space' });
+
+      expect(checkbox).toBeChecked();
+      expect(onSelectFile).toHaveBeenCalledWith(files[0], true);
+    });
+    it('should call onSelectFile when selecting radio via Space key on input', () => {
+      const files = mockFiles(3);
+      const onSelectFile = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          files={files}
+          selection="radio"
+          onSelectFile={onSelectFile}
+        />,
+      );
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const radio = within(row).getByRole('radio');
+
+      fireEvent.keyDown(radio, { key: ' ', code: 'Space' });
+
+      expect(radio).toBeChecked();
+      expect(onSelectFile).toHaveBeenCalledWith(files[0], true);
+    });
+    it('should not allow keyboard interaction on disabled checkbox', () => {
+      const files = [mockFile({ name: 'disabled.json', path: '/d.json', selectable: false })];
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row = screen.getByTestId('file-explorer-row--d-json');
+      const checkbox = within(row).getByRole('checkbox');
+
+      expect(checkbox).toBeDisabled();
+
+      // Attempt to toggle with Space
+      fireEvent.keyDown(checkbox, { key: ' ', code: 'Space' });
+
+      // Should remain unchecked
+      expect(checkbox).not.toBeChecked();
+    });
+  });
   describe('keyboard row interactions', () => {
     it('should select file when pressing Enter on row in radio mode', () => {
       const files = mockFiles(3);

@@ -436,15 +436,26 @@ const FilesTable: React.FC<FilesTableProps> = ({
                     isRowSelected={isSelected}
                     isClickable={!isUnselectable}
                     onRowClick={(event) => {
+                      // we want to ignore clicks that propagate up from the
+                      // folder link button, actions menu toggle, etc.
                       const clickedInteractiveDescendant =
                         event?.target instanceof Element &&
                         event.target.closest('a, button, input, label');
+                      // when using both `onRowClick` and the radio/checkbox on the Td component,
+                      // keyboard events on the Td radio/checkbox no longer trigger `onSelect`
+                      // so we need handle it here instead
+                      const clickedRadioOrCheckboxWithKeyboard =
+                        event?.target instanceof HTMLInputElement &&
+                        ['radio', 'checkbox'].includes(event.target.type) &&
+                        event.nativeEvent instanceof KeyboardEvent &&
+                        event.nativeEvent.code === 'Space';
 
-                      if (isUnselectable || clickedInteractiveDescendant) {
-                        return;
+                      if (
+                        !isUnselectable &&
+                        (!clickedInteractiveDescendant || clickedRadioOrCheckboxWithKeyboard)
+                      ) {
+                        onSelect(event, selection === 'checkbox' ? !isSelected : true);
                       }
-
-                      onSelect(event, selection === 'checkbox' ? !isSelected : true);
                     }}
                   >
                     <Td
