@@ -58,25 +58,21 @@ class ModelRegistry {
     this.waitLanding();
   }
 
-  visit() {
-    this.visitWithRegistry('modelregistry-sample');
-  }
-
-  visitWithRegistry(registryName: string) {
-    cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`);
-    this.wait();
+  visit(registryName = 'modelregistry-sample') {
+    cy.visitWithLogin(`/ai-hub/registry/${registryName}`);
+    cy.findByTestId('app-page-title', { timeout: 60000 }).should('exist');
   }
 
   navigate() {
-    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).click();
+    appChrome
+      .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
+      .click();
     this.wait();
   }
 
   private wait() {
-    cy.findByTestId('app-tab-page-title').should('exist');
-    cy.findByText('Select a model registry to view and manage your registered models.', {
-      exact: false,
-    }).should('exist');
+    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('app-page-title').contains('Registry');
     cy.testA11y();
   }
 
@@ -134,12 +130,16 @@ class ModelRegistry {
   }
 
   tabEnabled() {
-    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('exist');
+    appChrome
+      .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
+      .should('exist');
     return this;
   }
 
   tabDisabled() {
-    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('not.exist');
+    appChrome
+      .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
+      .should('not.exist');
     return this;
   }
 
@@ -161,12 +161,8 @@ class ModelRegistry {
 
   getRow(name: string) {
     return new ModelRegistryTableRow(() =>
-      this.findTable().find(`[data-label="Model name"]`).contains(name).closest('tr'),
+      this.findTable().find(`[data-label="Model name"]`).contains(name).parents('tr'),
     );
-  }
-
-  findModelByName(name: string) {
-    return this.getRow(name).findName();
   }
 
   getModelVersionRow(name: string) {
@@ -174,7 +170,7 @@ class ModelRegistry {
       this.findModelVersionsTable()
         .find(`[data-label="Version name"]`)
         .contains(name)
-        .closest('tr'),
+        .parents('tr'),
     );
   }
 
@@ -183,32 +179,19 @@ class ModelRegistry {
   }
 
   findModelRegistry() {
-    return cy.findAllByTestId('model-registry-selector-dropdown').filter(':visible').first();
+    return cy.findByTestId('model-registry-selector-dropdown');
   }
 
   findSelectModelRegistry(registryName: string) {
-    cy.url({ timeout: 30000 }).then((url) => {
-      if (url.includes(`/registry/${registryName}`)) {
-        return;
+    // Check if the registry is already selected
+    this.findModelRegistry().then(($dropdown) => {
+      if (!$dropdown.text().includes(registryName)) {
+        // Registry is not selected, perform click actions
+        this.findModelRegistry().click();
+        cy.findByTestId(registryName).click();
       }
-      cy.findAllByTestId('model-registry-selector-dropdown').filter(':visible').first().click();
-      cy.findAllByTestId(registryName).filter(':visible').first().click();
     });
-    cy.url({ timeout: 30000 }).should('include', `/registry/${registryName}`);
     return this;
-  }
-
-  /** Link button in the Model name column (navigates to registered model / overview). */
-  findModelNameLinkButton(name: string) {
-    return this.getRow(name).find().find('[data-testid="model-name"] button').first();
-  }
-
-  findVersionDetailsBreadcrumbModel() {
-    return cy.findByTestId('breadcrumb-model-version');
-  }
-
-  findVersionDetailsBreadcrumbVersion() {
-    return cy.findByTestId('breadcrumb-version-name');
   }
 
   findModelVersionsTableHeaderButton(name: string) {

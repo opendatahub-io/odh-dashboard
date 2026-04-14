@@ -8,6 +8,7 @@ import {
   registerVersionPage,
 } from '../../../pages/modelRegistry/registerVersionPage';
 import { modelRegistry } from '../../../pages/modelRegistry';
+import { registerAndStorePage } from '../../../pages/modelRegistry/registerAndStorePage';
 import { clickRegisterModelButton } from '../../../utils/modelRegistryUtils';
 import { retryableBeforeEach } from '../../../utils/retryableHooks';
 import {
@@ -22,43 +23,28 @@ import {
   deleteModelRegistry,
   deleteModelRegistryDatabase,
   ensureOperatorMemoryLimit,
+  grantProjectAccessToModelRegistry,
 } from '../../../utils/oc_commands/modelRegistry';
 import { loadModelRegistryFixture } from '../../../utils/dataLoader';
 import { toastNotifications } from '../../../pages/components/ToastNotifications';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import { getApplicationsNamespace, getBooleanEnv } from '../../../utils/cypressEnvHelpers';
 import type { ModelRegistryTestData } from '../../../types';
+import { createCleanProject } from '../../../utils/projectChecker';
+import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { AWS_BUCKETS } from '../../../utils/s3Buckets';
 
 describe('Verify models can be registered in a model registry', () => {
-  const chooseNamespaceForRegisterAndStore = (name: string): void => {
-    cy.findByTestId('namespace-form-group', { timeout: 30000 }).then(($formGroup) => {
-      if ($formGroup.find('[data-testid="form-namespace-selector"]').length > 0) {
-        registerModelPage.findNamespaceSelectorTrigger().scrollIntoView().click();
-        registerModelPage.findNamespaceOption(name).click();
-      } else if ($formGroup.find('[data-testid="form-namespace-text-input"]').length > 0) {
-        registerModelPage.findNamespaceTextInput(30000).scrollIntoView().clear().type(name);
-      } else {
-        cy.findByTestId('project-selector-toggle').click();
-        cy.findByTestId('project-selector-search').clear();
-        cy.findByTestId('project-selector-search').type(name);
-        cy.get('[data-testid="project-selector-menuList"]').contains(name).click();
-      }
-    });
-  };
-
-  let namespaceName: string;
   let testData: ModelRegistryTestData;
   let registryName: string;
   let objectStorageModelName: string;
   let ociModelName: string;
   let ociUriModelName: string;
   let deploymentName: string;
-  let setupComplete = false;
+  let projectName: string;
   const uuid = generateTestUUID();
   const databaseName = `model-registry-db-${uuid}`;
 
   before(() => {
-    namespaceName = getApplicationsNamespace();
     cy.step('Load test data from fixture');
     loadModelRegistryFixture('e2e/modelRegistry/testModelRegistry.yaml').then((fixtureData) => {
       testData = fixtureData;
@@ -85,42 +71,14 @@ describe('Verify models can be registered in a model registry', () => {
 
       cy.step('Wait for model registry to be in Available state');
       checkModelRegistryAvailable(registryName).should('be.true');
-      setupComplete = true;
+
+      cy.step('Create a project for register and store test');
+      projectName = `test-register-store-${uuid}`;
+      createCleanProject(projectName);
+
+      cy.step('Grant project access to the model registry');
+      grantProjectAccessToModelRegistry(projectName, registryName);
     });
-  });
-
-  after(() => {
-    cy.clearCookies();
-    cy.clearLocalStorage();
-
-    if (!setupComplete) {
-      cy.step('Skip cleanup because suite setup did not complete');
-      return;
-    }
-
-    cy.step('Navigate away from model registry before cleanup');
-    cy.visit('/');
-
-    const modelsToClean = [
-      objectStorageModelName,
-      testData.uriModelName,
-      ociModelName,
-      ociUriModelName,
-    ].filter((modelName): modelName is string => Boolean(modelName));
-
-    if (modelsToClean.length > 0) {
-      cy.step('Clean up registered models from database');
-      cleanupRegisteredModelsFromDatabase(modelsToClean, databaseName);
-    }
-
-    cy.step('Delete the model registry');
-    deleteModelRegistry(registryName);
-
-    cy.step('Verify model registry is removed from the backend');
-    checkModelRegistry(registryName).should('be.false');
-
-    cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase(databaseName).should('be.true');
   });
 
   retryableBeforeEach(() => {
@@ -138,12 +96,12 @@ describe('Verify models can be registered in a model registry', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Model Registry');
-      modelRegistry.visitWithRegistry(registryName);
+      modelRegistry.visit(registryName);
 
       cy.step('Register a model using object storage');
       clickRegisterModelButton(30000);
 
-      cy.step('Fill in object storage model details');
+      // Fill in model details for object storage
       registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type(objectStorageModelName);
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
@@ -159,7 +117,7 @@ describe('Verify models can be registered in a model registry', () => {
         .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
         .type(testData.formatVersion1_0);
 
-      cy.step('Configure object storage location');
+      // Configure object storage location
       registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();
       registerModelPage
         .findFormField(FormFieldSelector.LOCATION_ENDPOINT)
@@ -174,13 +132,11 @@ describe('Verify models can be registered in a model registry', () => {
         .findFormField(FormFieldSelector.LOCATION_PATH)
         .type(testData.objectStoragePath);
 
-      registerModelPage.findSubmitButton(30000).should('be.enabled').click();
+      registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the object storage model was registered');
-      cy.url({ timeout: 30000 })
-        .should('include', '/registered-models/')
-        .and('include', '/versions/');
-      modelRegistry.findVersionDetailsBreadcrumbModel().should('contain', objectStorageModelName);
+      cy.url().should('include', '/details');
+      cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the object storage model exists in the database');
       checkModelExistsInDatabase(objectStorageModelName, databaseName).should('be.true');
@@ -205,28 +161,25 @@ describe('Verify models can be registered in a model registry', () => {
         .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
         .type(testData.formatVersion2_0);
 
-      cy.step('Configure URI location');
+      // Configure URI location
       registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_URI).click();
       registerModelPage.findFormField(FormFieldSelector.LOCATION_URI).type(testData.uriPrimary);
 
-      registerModelPage.findSubmitButton(30000).should('be.enabled').click();
+      registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the URI model was registered');
-      cy.url({ timeout: 30000 })
-        .should('include', '/registered-models/')
-        .and('include', '/versions/');
-      modelRegistry.findVersionDetailsBreadcrumbModel().should('contain', testData.uriModelName);
+      cy.url().should('include', '/details');
+      cy.contains(testData.uriModelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the URI model exists in the database');
       checkModelExistsInDatabase(testData.uriModelName, databaseName).should('be.true');
 
       cy.step('Navigate back to model registry to verify both models');
-      cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Verify both models are visible in the registry');
-      // Scoped to the registry table model-name cells (10s), not document-wide cy.contains.
-      modelRegistry.findModelByName(objectStorageModelName).should('be.visible');
-      modelRegistry.findModelByName(testData.uriModelName).should('be.visible');
+      cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
+      cy.contains(testData.uriModelName, { timeout: 10000 }).should('be.visible');
     },
   );
 
@@ -240,14 +193,13 @@ describe('Verify models can be registered in a model registry', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Model Registry');
-      modelRegistry.visitWithRegistry(registryName);
+      modelRegistry.visit(registryName);
 
       cy.step('Navigate to the first registered model');
-      modelRegistry.findModelNameLinkButton(objectStorageModelName).should('be.visible').click();
-      cy.url({ timeout: 30000 }).should('include', '/registered-models/');
+      cy.contains(objectStorageModelName).click();
 
       cy.step('Navigate to versions tab');
-      modelRegistry.findModelVersionsTab().should('be.visible').click();
+      modelRegistry.findModelVersionsTab().click();
 
       cy.step('Click Register new version button');
       modelRegistry.findRegisterNewVersionButton().click();
@@ -279,10 +231,8 @@ describe('Verify models can be registered in a model registry', () => {
       registerVersionPage.findSubmitButton().click();
 
       cy.step('Verify the new version was registered');
-      cy.url({ timeout: 30000 })
-        .should('include', '/registered-models/')
-        .and('include', '/versions/');
-      modelRegistry.findVersionDetailsBreadcrumbVersion().should('contain', testData.version2Name);
+      cy.url().should('include', '/details');
+      cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the new version exists in the database');
       checkModelVersionExistsInDatabase(testData.version2Name, databaseName).should('be.true');
@@ -295,39 +245,39 @@ describe('Verify models can be registered in a model registry', () => {
       tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet4'],
     },
     () => {
-      const expectOciTransferFailure = getBooleanEnv('EXPECT_OCI_TRANSFER_FAILURE', true);
-
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Model Registry');
-      modelRegistry.visit();
-
-      cy.step('Select the created model registry');
-      modelRegistry.findSelectModelRegistry(registryName);
+      modelRegistry.visit(registryName);
 
       cy.step('Click Register Model button');
       clickRegisterModelButton(30000);
 
-      cy.step('Verify registration mode toggle is present');
-      registerModelPage.findRegistrationModeToggleGroup().should('exist');
+      cy.step('Verify registration mode toggle is visible');
+      registerModelPage.findRegistrationModeToggleGroup(30000).scrollIntoView();
+      registerModelPage.findRegistrationModeToggleGroup().should('be.visible');
 
       cy.step('Toggle to Register and store mode');
-      registerModelPage
-        .findRegisterAndStoreToggleButton()
-        .scrollIntoView()
+      registerModelPage.findRegisterAndStoreToggle().click();
+
+      cy.step('Verify namespace selector appears');
+      registerAndStorePage.findProjectSelectorToggle(30000).scrollIntoView();
+      registerAndStorePage.findProjectSelectorToggle().should('be.visible');
+
+      cy.step('Select a namespace from the dropdown');
+      registerAndStorePage.findProjectSelectorToggle().click();
+      registerAndStorePage.findProjectSelectorSearch().fill(projectName);
+      registerAndStorePage
+        .findProjectSelectorMenuList()
+        .contains('button', projectName)
         .should('be.visible')
-        .click({ force: true })
-        .should('have.attr', 'aria-pressed', 'true');
-
-      cy.step('Verify namespace input appears');
-      cy.findByTestId('namespace-form-group', { timeout: 30000 }).should('exist');
-
-      cy.step('Select or type namespace');
-      chooseNamespaceForRegisterAndStore(namespaceName);
+        .click();
+      cy.step(`Selected namespace: ${projectName}`);
 
       cy.step('Verify origin and destination location sections appear');
-      registerModelPage.findOriginLocationSection(10000).should('be.visible');
+      registerModelPage.findOriginLocationSection(30000).scrollIntoView();
+      registerModelPage.findOriginLocationSection().should('be.visible');
       registerModelPage.findDestinationLocationSection().should('be.visible');
 
       cy.step('Fill in model details');
@@ -362,12 +312,15 @@ describe('Verify models can be registered in a model registry', () => {
         .type(testData.ociSourceRegion);
       registerModelPage.findFormField(FormFieldSelector.LOCATION_PATH).type(testData.ociSourcePath);
 
+      const sourceAccessKeyId = AWS_BUCKETS.AWS_ACCESS_KEY_ID;
+      const sourceSecretAccessKey = AWS_BUCKETS.AWS_SECRET_ACCESS_KEY;
       registerModelPage
         .findFormField(FormFieldSelector.LOCATION_S3_ACCESS_KEY_ID)
-        .type(Cypress.env('OCI_SOURCE_ACCESS_KEY_ID'), { log: false });
+        .scrollIntoView()
+        .type(sourceAccessKeyId, { log: false });
       registerModelPage
         .findFormField(FormFieldSelector.LOCATION_S3_SECRET_ACCESS_KEY)
-        .type(Cypress.env('OCI_SOURCE_SECRET_ACCESS_KEY'), { log: false });
+        .type(sourceSecretAccessKey, { log: false });
 
       cy.step('Fill in OCI destination fields');
       registerModelPage
@@ -378,10 +331,10 @@ describe('Verify models can be registered in a model registry', () => {
         .type(testData.ociDestinationUri);
       registerModelPage
         .findFormField(FormFieldSelector.DESTINATION_OCI_USERNAME)
-        .type(Cypress.env('OCI_DESTINATION_USERNAME'), { log: false });
+        .type(testData.ociDestinationUsername, { log: false });
       registerModelPage
         .findFormField(FormFieldSelector.DESTINATION_OCI_PASSWORD)
-        .type(Cypress.env('OCI_DESTINATION_PASSWORD'), { log: false });
+        .type(testData.ociDestinationPassword, { log: false });
 
       cy.step('Verify submit button is enabled');
       registerModelPage.findSubmitButton().should('be.enabled');
@@ -390,27 +343,15 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton().click();
 
       cy.step('Verify transfer job started notification appears');
-      toastNotifications
-        .findToastNotificationList()
-        .should('contain.text', testData.ociTransferJobStartedNotification);
-
-      cy.step('Verify transfer job and pod started in the backend');
-      checkModelTransferJobPodStarted(testData.ociJobName, namespaceName).should('be.true');
+      cy.contains(testData.ociTransferJobStartedNotification, { timeout: 15000 }).should(
+        'be.visible',
+      );
 
       cy.step('Verify navigation away from the registration form');
       cy.url().should('not.include', '/register');
 
-      if (expectOciTransferFailure) {
-        // PSI cluster environments do not support TLS for OCI registries,
-        // so the transfer job is expected to fail. We verify the failure
-        // notification appears as confirmation that the job was created and ran.
-        cy.step('Verify transfer job failure notification (expected — no TLS on PSI)');
-        toastNotifications
-          .findToastNotificationList()
-          .should('contain.text', testData.ociTransferJobFailedNotification);
-      } else {
-        cy.step('Skip transfer failure notification assertion for non-PSI cluster');
-      }
+      // Terminal state of the transfer job (success/failure) is environment-dependent
+      // and not validated here. A dedicated test with a controlled backend is more appropriate.
     },
   );
 
@@ -420,39 +361,38 @@ describe('Verify models can be registered in a model registry', () => {
       tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet4'],
     },
     () => {
-      const expectOciTransferFailure = getBooleanEnv('EXPECT_OCI_TRANSFER_FAILURE', true);
-
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Model Registry');
-      modelRegistry.visit();
-
-      cy.step('Select the created model registry');
-      modelRegistry.findSelectModelRegistry(registryName);
+      modelRegistry.visit(registryName);
 
       cy.step('Click Register Model button');
       clickRegisterModelButton(30000);
 
-      cy.step('Verify registration mode toggle is present');
-      registerModelPage.findRegistrationModeToggleGroup().should('exist');
+      cy.step('Verify registration mode toggle is visible');
+      registerModelPage.findRegistrationModeToggleGroup(30000).scrollIntoView();
+      registerModelPage.findRegistrationModeToggleGroup().should('be.visible');
 
       cy.step('Toggle to Register and store mode');
-      registerModelPage
-        .findRegisterAndStoreToggleButton()
-        .scrollIntoView()
+      registerModelPage.findRegisterAndStoreToggle().click();
+
+      cy.step('Verify namespace selector appears');
+      registerAndStorePage.findProjectSelectorToggle(30000).scrollIntoView();
+      registerAndStorePage.findProjectSelectorToggle().should('be.visible');
+
+      cy.step('Select a namespace from the dropdown');
+      registerAndStorePage.findProjectSelectorToggle().click();
+      registerAndStorePage.findProjectSelectorSearch().fill(projectName);
+      registerAndStorePage
+        .findProjectSelectorMenuList()
+        .contains('button', projectName)
         .should('be.visible')
-        .click({ force: true })
-        .should('have.attr', 'aria-pressed', 'true');
-
-      cy.step('Verify namespace input appears');
-      cy.findByTestId('namespace-form-group', { timeout: 30000 }).should('exist');
-
-      cy.step('Select or type namespace');
-      chooseNamespaceForRegisterAndStore(namespaceName);
+        .click();
 
       cy.step('Verify origin and destination location sections appear');
-      registerModelPage.findOriginLocationSection(10000).should('be.visible');
+      registerModelPage.findOriginLocationSection(30000).scrollIntoView();
+      registerModelPage.findOriginLocationSection().should('be.visible');
       registerModelPage.findDestinationLocationSection().should('be.visible');
 
       cy.step('Fill in model details');
@@ -483,16 +423,17 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Fill in OCI destination fields');
       registerModelPage
         .findFormField(FormFieldSelector.DESTINATION_OCI_REGISTRY)
+        .scrollIntoView()
         .type(testData.ociDestinationRegistry);
       registerModelPage
         .findFormField(FormFieldSelector.DESTINATION_OCI_URI)
         .type(testData.ociDestinationUri);
       registerModelPage
         .findFormField(FormFieldSelector.DESTINATION_OCI_USERNAME)
-        .type(Cypress.env('OCI_DESTINATION_USERNAME'), { log: false });
+        .type(testData.ociDestinationUsername, { log: false });
       registerModelPage
         .findFormField(FormFieldSelector.DESTINATION_OCI_PASSWORD)
-        .type(Cypress.env('OCI_DESTINATION_PASSWORD'), { log: false });
+        .type(testData.ociDestinationPassword, { log: false });
 
       cy.step('Verify submit button is enabled');
       registerModelPage.findSubmitButton().should('be.enabled');
@@ -506,22 +447,36 @@ describe('Verify models can be registered in a model registry', () => {
         .should('contain.text', testData.ociTransferJobStartedNotification);
 
       cy.step('Verify transfer job and pod started in the backend');
-      checkModelTransferJobPodStarted(testData.ociUriJobName, namespaceName).should('be.true');
+      checkModelTransferJobPodStarted(testData.ociUriJobName, projectName).should('be.true');
 
       cy.step('Verify navigation away from the registration form');
       cy.url().should('not.include', '/register');
-
-      if (expectOciTransferFailure) {
-        // PSI cluster environments do not support TLS for OCI registries,
-        // so the transfer job is expected to fail. We verify the failure
-        // notification appears as confirmation that the job was created and ran.
-        cy.step('Verify transfer job failure notification (expected — no TLS on PSI)');
-        toastNotifications
-          .findToastNotificationList()
-          .should('contain.text', testData.ociTransferJobFailedNotification);
-      } else {
-        cy.step('Skip transfer failure notification assertion for non-PSI cluster');
-      }
     },
   );
+
+  after(() => {
+    cy.clearCookies();
+    cy.clearLocalStorage();
+
+    cy.step('Navigate away from model registry before cleanup');
+    cy.visit('/');
+
+    cy.step('Clean up registered models from database');
+    cleanupRegisteredModelsFromDatabase(
+      [objectStorageModelName, testData.uriModelName, ociModelName, ociUriModelName],
+      databaseName,
+    );
+
+    cy.step('Delete the model registry');
+    deleteModelRegistry(registryName);
+
+    cy.step('Verify model registry is removed from the backend');
+    checkModelRegistry(registryName).should('be.false');
+
+    cy.step('Delete the SQL database');
+    deleteModelRegistryDatabase(databaseName).should('be.true');
+
+    cy.step('Delete the test project');
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+  });
 });

@@ -82,8 +82,8 @@ class RegisterModelPage {
     return cy.findByTestId('model-name-error');
   }
 
-  findRegistrationModeToggleGroup() {
-    return cy.findByTestId('registration-mode-toggle-group');
+  findRegistrationModeToggleGroup(timeout?: number) {
+    return cy.findByTestId('registration-mode-toggle-group', { timeout });
   }
 
   findRegisterToggle() {

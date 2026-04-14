@@ -520,6 +520,8 @@ export type ModelRegistryTestData = {
   ociTransferJobFailedNotification: string;
   ociDestinationRegistry: string;
   ociDestinationUri: string;
+  ociDestinationUsername: string;
+  ociDestinationPassword: string;
 
   // OCI Register and Store — URI origin variant
   ociUriModelName: string;
