@@ -85,51 +85,73 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
 
   if (isArtifactsLoading) {
     return (
-      <Table
-        aria-label="Confusion matrix loading"
-        variant="compact"
-        className="automl-confusion-matrix"
-        gridBreakPoint=""
-        data-testid="confusion-matrix-loading"
-      >
-        <Thead>
-          <Tr>
-            <Th rowSpan={2}>Observed</Th>
-            <Th colSpan={3} textCenter>
-              Predicted
-            </Th>
-            <Th rowSpan={2} textCenter>
-              Percent correct
-            </Th>
-          </Tr>
-          <Tr>
-            <Th textCenter>Class 1</Th>
-            <Th textCenter>Class 2</Th>
-            <Th textCenter>Class 3</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {Array.from({ length: 4 }, (_, i) => (
-            <Tr key={i}>
-              <Th>
-                <Skeleton screenreaderText="Loading row label" width="50%" />
+      <>
+        {taskType === TASK_TYPE_MULTICLASS && (
+          <FormGroup
+            label="View"
+            fieldId="confusion-matrix-view-loading"
+            className="automl-confusion-matrix-view"
+          >
+            <MenuToggle isDisabled aria-label="Loading view selector">
+              {selectedView === MULTI_CLASS_VIEW ? 'Multi-class' : `${selectedView} (One v. Rest)`}
+            </MenuToggle>
+          </FormGroup>
+        )}
+        <Table
+          aria-label="Confusion matrix loading"
+          variant="compact"
+          className="automl-confusion-matrix m-loading"
+          gridBreakPoint=""
+          data-testid="confusion-matrix-loading"
+        >
+          <Thead>
+            <Tr>
+              <Th rowSpan={2}>Observed</Th>
+              <Th colSpan={3} textCenter>
+                Predicted
               </Th>
-              <Td>
-                <Skeleton screenreaderText="Loading cell value" width="30%" />
-              </Td>
-              <Td>
-                <Skeleton screenreaderText="Loading cell value" width="30%" />
-              </Td>
-              <Td>
-                <Skeleton screenreaderText="Loading cell value" width="30%" />
-              </Td>
-              <Td>
-                <Skeleton screenreaderText="Loading percentage" width="40%" />
+              <Th rowSpan={2} textCenter>
+                Percent correct
+              </Th>
+            </Tr>
+            <Tr>
+              {Array.from({ length: 3 }, (_, i) => (
+                <Th key={i} textCenter>
+                  <Skeleton screenreaderText="Loading column label" />
+                </Th>
+              ))}
+            </Tr>
+          </Thead>
+          <Tbody>
+            {Array.from({ length: 3 }, (_, i) => (
+              <Tr key={i}>
+                <Th>
+                  <Skeleton screenreaderText="Loading row label" />
+                </Th>
+                {Array.from({ length: 3 }, (_v, j) => (
+                  <Td key={j} textCenter>
+                    <Skeleton screenreaderText="Loading cell value" />
+                  </Td>
+                ))}
+                <Td textCenter>
+                  <Skeleton screenreaderText="Loading percentage" />
+                </Td>
+              </Tr>
+            ))}
+            <Tr>
+              <Th>Percent correct</Th>
+              {Array.from({ length: 3 }, (_, i) => (
+                <Td key={i} textCenter>
+                  <Skeleton screenreaderText="Loading column percentage" />
+                </Td>
+              ))}
+              <Td textCenter>
+                <Skeleton screenreaderText="Loading overall percentage" />
               </Td>
             </Tr>
-          ))}
-        </Tbody>
-      </Table>
+          </Tbody>
+        </Table>
+      </>
     );
   }
 

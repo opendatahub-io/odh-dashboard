@@ -150,6 +150,17 @@
     font-weight: var(--pf-t--global--font--weight--body--bold);
   }
 
+  /* Loading state: all cells get the same gray background; skeletons are
+     darkened so they remain visible against the uniform surface. */
+  &.m-loading tbody tr td,
+  &.m-loading tbody tr:last-child td {
+    background-color: var(--automl-cm--cell--bg);
+  }
+
+  &.m-loading .pf-v6-c-skeleton {
+    --pf-v6-c-skeleton--BackgroundColor: var(--pf-t--global--border--color--default);
+  }
+
   /* Center skeleton loading bars within table cells */
   .pf-v6-c-skeleton {
     margin-inline: auto;
