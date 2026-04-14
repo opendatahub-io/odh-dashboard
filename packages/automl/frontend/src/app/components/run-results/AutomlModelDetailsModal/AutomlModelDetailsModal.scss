@@ -86,37 +86,35 @@
    Palette tokens (--pf-t--color--green--10 etc.) are NOT dark-mode-aware,
    so we define custom properties and override them for dark theme. */
 .automl-confusion-matrix {
+  --automl-cm--cell--bg: var(--pf-t--global--background--color--secondary--default);
   --automl-cm--cell--diagonal--base: var(--pf-t--color--green--10);
   --automl-cm--cell--diagonal--low: var(--pf-t--color--green--20);
   --automl-cm--cell--diagonal--medium: var(--pf-t--color--green--30);
   --automl-cm--cell--diagonal--high: var(--pf-t--color--green--40);
   --automl-cm--cell--off-diagonal--base: var(--pf-t--color--blue--10);
+  --automl-cm--cell--off-diagonal--low: var(--pf-t--color--blue--10);
   --automl-cm--cell--off-diagonal--medium: var(--pf-t--color--blue--20);
   --automl-cm--cell--off-diagonal--high: var(--pf-t--color--blue--30);
+  --automl-cm--border--color: var(--pf-t--global--background--color--primary--default);
 
   /* Grid lines between all cells */
-  --pf-v6-c-table__tr--BorderBlockEndColor: var(--pf-t--global--background--color--primary--default);
+  --pf-v6-c-table__tr--BorderBlockEndColor: var(--automl-cm--border--color);
 
-  /* Gray background on all header cells + white grid borders on all cells */
   th,
   td {
     border: var(--pf-t--global--border--width--divider--default) solid
-      var(--pf-t--global--background--color--primary--default);
+      var(--automl-cm--border--color);
   }
 
-  th {
-    background-color: var(--pf-t--global--background--color--secondary--default);
+  th,
+  tbody tr:last-child td,
+  tbody tr td:last-child {
+    background-color: var(--automl-cm--cell--bg);
   }
 
   /* Vertical alignment for row-spanning headers ("Observed", "Percent correct") */
   thead th[rowspan] {
     vertical-align: middle;
-  }
-
-  /* Summary row and column ("Percent correct") */
-  tbody tr:last-child td,
-  tbody tr td:last-child {
-    background-color: var(--pf-t--global--background--color--secondary--default);
   }
 
   tbody tr:last-child th {
@@ -125,13 +123,16 @@
 }
 
 :root:where(.pf-v6-theme-dark) .automl-confusion-matrix {
-  --automl-cm--cell--diagonal--base: var(--pf-t--color--green--60);
+  --automl-cm--cell--bg: var(--pf-v6-c-table--BackgroundColor);
+  --automl-cm--cell--diagonal--base: var(--pf-v6-c-table--BackgroundColor);
   --automl-cm--cell--diagonal--low: var(--pf-t--color--green--50);
-  --automl-cm--cell--diagonal--medium: var(--pf-t--color--green--40);
-  --automl-cm--cell--diagonal--high: var(--pf-t--color--green--30);
-  --automl-cm--cell--off-diagonal--base: var(--pf-t--color--blue--60);
+  --automl-cm--cell--diagonal--medium: var(--pf-t--color--green--50);
+  --automl-cm--cell--diagonal--high: var(--pf-t--color--green--40);
+  --automl-cm--cell--off-diagonal--base: var(--pf-v6-c-table--BackgroundColor);
+  --automl-cm--cell--off-diagonal--low: var(--pf-t--color--blue--50);
   --automl-cm--cell--off-diagonal--medium: var(--pf-t--color--blue--50);
   --automl-cm--cell--off-diagonal--high: var(--pf-t--color--blue--40);
+  --automl-cm--border--color: var(--pf-t--global--border--color--default);
 }
 
 /* Confusion matrix data cell colors */
@@ -154,6 +155,10 @@
 
 .automl-confusion-matrix__cell--off-diagonal {
   background-color: var(--automl-cm--cell--off-diagonal--base);
+
+  &.m-intensity-low {
+    background-color: var(--automl-cm--cell--off-diagonal--low);
+  }
 
   &.m-intensity-medium {
     background-color: var(--automl-cm--cell--off-diagonal--medium);
