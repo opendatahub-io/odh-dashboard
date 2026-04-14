@@ -212,6 +212,10 @@ describe('FeatureSummaryTab', () => {
     const percentages = rows.map((row) => within(row).getAllByRole('cell')[1].textContent);
     expect(percentages).toEqual(['75.00%', '0.00%', '0.00%']);
     expect(screen.queryByText('-0.00%')).not.toBeInTheDocument();
+
+    // Near-zero negative bar should not be styled as negative
+    const tinyNegativeBar = screen.getByTestId('feature-importance-bar-tiny_negative');
+    expect(tinyNegativeBar).not.toHaveClass('m-negative');
   });
 
   it('should handle a single feature with only negative importance', () => {
