@@ -33,11 +33,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8043
@@ -106,11 +106,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8143
@@ -179,11 +179,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8243
@@ -256,11 +256,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8343
@@ -327,11 +327,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8543
@@ -398,11 +398,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8643
@@ -468,11 +468,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8743
