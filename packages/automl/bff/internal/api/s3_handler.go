@@ -171,6 +171,17 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 // connection refused). This lets handlers return an actionable 503 instead of
 // a generic 500 when the endpoint is unreachable — common in air-gapped or
 // misconfigured environments.
+
+// TODO [ AI ] context.DeadlineExceeded is not handled here. When s3MetadataTimeout
+// fires, the context is cancelled and the AWS SDK wraps it as context.DeadlineExceeded — which
+// won't match any of these net.* checks, so it falls through to a generic 500 instead of 503.
+// Add: if errors.Is(err, context.DeadlineExceeded) { return true }
+// From Gustavo: Add relevant tests to cover this new change
+
+// TODO [ AI ] net.OpError is overly broad — it wraps ALL network operations including
+// successful-but-reset reads, write errors on established connections, etc. Not all OpErrors
+// indicate connectivity failure (e.g. a write timeout on an established connection after partial
+// transfer is not "endpoint unreachable"). Consider checking opErr.Op == "dial" to narrow scope.
 func isS3ConnectivityError(err error) bool {
 	if errors.Is(err, net.ErrClosed) {
 		return true
@@ -313,6 +324,10 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
+	// TODO [ AI ] resolveNonCollidingS3Key calls ObjectExists (HeadObject) which is
+	// a metadata operation, but this handler uses r.Context() without s3MetadataTimeout — inconsistent
+	// with GetS3FilesHandler and GetS3FileSchemaHandler. Apply context.WithTimeout here for the
+	// resolveNonCollidingS3Key call (the subsequent UploadObject can use the bare r.Context()).
 	ctx := r.Context()
 	bucket := s3.bucket
 	resolvedKey, err := resolveNonCollidingS3Key(ctx, s3.client, bucket, key, app.effectivePostS3CollisionAttempts())

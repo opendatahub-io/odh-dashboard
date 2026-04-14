@@ -217,6 +217,11 @@ func TestValidateAndNormalizeEndpoint_AcceptsIPv6UniqueLocal(t *testing.T) {
 // S3 connect timeout configuration tests
 // ---------------------------------------------------------------------------
 
+// TODO [ AI ] This test asserts a constant equals itself — it can never fail unless
+// someone changes the constant, at which point they'd update both. This provides no regression
+// value. Replace with a test that verifies the timeout is actually wired into the transport
+// (e.g. inspect the Dialer.Timeout on the http.Client from a constructed RealS3Client), or delete.
+// From Gustavo: Lets inspect the Dialer
 func TestS3ConnectTimeout_Is10Seconds(t *testing.T) {
 	t.Parallel()
 	assert.Equal(t, 10*time.Second, s3ConnectTimeout,

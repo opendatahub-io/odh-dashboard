@@ -229,6 +229,10 @@ describe('FileExplorer', () => {
 
       const selectedFilesList = screen.getByTestId('file-explorer-selected-files');
 
+      // TODO [ AI ] Assertions use global screen.queryByText/getByText which can match
+      // unintended elements when multiple dropdown menus exist in the DOM. Scope to the active
+      // dropdown: within(screen.getByRole('menu')).queryByRole('menuitem', { name: 'View details' })
+
       // file-2 is currently being viewed — its kebab should NOT have "View details"
       fireEvent.click(within(selectedFilesList).getByLabelText('file-2.json overflow menu'));
       expect(screen.queryByText('View details')).not.toBeInTheDocument();
