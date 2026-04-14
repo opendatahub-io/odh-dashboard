@@ -96,6 +96,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
     ? getDisplayNameFromServingRuntimeTemplate(existingData.servingRuntime)
     : '';
 
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const existingNumReplicas = existingData?.servingRuntime?.spec?.replicas ?? 1;
 
@@ -106,6 +107,7 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   const existingTokens = useDeepCompareMemoize(getServingRuntimeTokens(existingData?.secrets));
 
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const existingImageName = existingData?.servingRuntime?.spec?.containers?.[0]?.image;
   const servingRuntimeScope =
@@ -452,6 +454,7 @@ export const getSubmitServingRuntimeResourcesFn = (
   }
   const servingRuntimeData = {
     ...createData,
+    // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     existingTolerations: servingRuntimeSelected?.spec?.tolerations || [],
     ...(name !== undefined && { name }),

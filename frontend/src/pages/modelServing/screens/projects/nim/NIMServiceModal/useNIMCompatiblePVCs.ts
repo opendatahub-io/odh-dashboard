@@ -22,6 +22,7 @@ const isNIMServingRuntime = (servingRuntime: ServingRuntimeKind): boolean => {
     return true;
   }
 
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const containers = servingRuntime.spec?.containers;
 
@@ -33,6 +34,7 @@ const isNIMServingRuntime = (servingRuntime: ServingRuntimeKind): boolean => {
 };
 
 const extractPVCFromServingRuntime = (servingRuntime: ServingRuntimeKind): string | null => {
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const volumes = servingRuntime.spec?.volumes;
   if (!volumes) {
@@ -54,6 +56,7 @@ const parseNimModelFromImage = (image: string): string | null => {
 };
 
 const extractModelFromServingRuntime = (servingRuntime: ServingRuntimeKind): string | null => {
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const supportedFormats = servingRuntime.spec?.supportedModelFormats;
   if (supportedFormats?.length && supportedFormats[0]?.name) {

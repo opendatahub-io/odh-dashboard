@@ -95,10 +95,13 @@ export const getNIMServingRuntimeTemplate = async (
 export const updateServingRuntimeTemplate = (
   servingRuntime: ServingRuntimeKind,
   pvcName: string,
-  pvcSubPath?: string, // ← NEW: Optional subPath parameter
+  pvcSubPath?: string,
 ): ServingRuntimeKind => {
+  // TODO(RHOAIENG-32511): shallow copy — spec is still the same reference. Deep-copy spec
+  // in a follow-up to avoid mutating the caller's original.
   const updatedServingRuntime = { ...servingRuntime };
 
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!updatedServingRuntime.spec) {
     return updatedServingRuntime;
@@ -153,6 +156,7 @@ export const checkPVCUsage = async (
     const servingRuntimes = await listServingRuntimes(namespace);
 
     const usingPVC = servingRuntimes.filter((sr) => {
+      // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const volumes = sr.spec?.volumes || [];
       return volumes.some((volume) => volume.persistentVolumeClaim?.claimName === pvcName);
@@ -200,6 +204,7 @@ export const getNIMResourcesToDelete = async (
   // Handle PVC deletion with reference counting
   // IMPORTANT: With subPath support, multiple deployments may share the same PVC
   // We only delete the PVC when NO deployments are using it anymore
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const pvcName = servingRuntime.spec?.volumes?.find(
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -273,12 +278,14 @@ export const getNIMResourcesToDelete = async (
   let nimSecretName: string | undefined;
   let imagePullSecretName: string | undefined;
 
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const pullNGCSecret = servingRuntime.spec?.imagePullSecrets?.[0]?.name ?? '';
   if (pullNGCSecret === 'ngc-secret') {
     imagePullSecretName = pullNGCSecret;
   }
 
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   servingRuntime.spec?.containers?.forEach((container) => {
     container.env?.forEach((env) => {

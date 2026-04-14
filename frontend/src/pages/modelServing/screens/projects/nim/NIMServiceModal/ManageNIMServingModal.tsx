@@ -235,6 +235,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     const { servingRuntime } = editInfo?.servingRuntimeEditInfo || {};
     if (servingRuntime) {
       // Find the volumeMount with mountPath '/mnt/models/cache' and extract its subPath
+      // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const containers = servingRuntime.spec?.containers ?? [];
       for (const container of containers) {

@@ -14,13 +14,14 @@ const useServingAcceleratorProfileFormState = (
 ): UseAcceleratorProfileFormResult => {
   const acceleratorProfileName =
     servingRuntime?.metadata.annotations?.['opendatahub.io/accelerator-name'];
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+  /* eslint-disable @typescript-eslint/no-unnecessary-condition */
   const resources =
-    inferenceService?.spec.predictor.model?.resources ||
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    inferenceService?.spec?.predictor?.model?.resources ||
     servingRuntime?.spec?.containers?.[0]?.resources;
   const tolerations =
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    inferenceService?.spec.predictor.tolerations || servingRuntime?.spec?.tolerations;
+    inferenceService?.spec?.predictor?.tolerations || servingRuntime?.spec?.tolerations;
+  /* eslint-enable @typescript-eslint/no-unnecessary-condition */
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const namespace = servingRuntime?.metadata.namespace;
   const acceleratorProfileNamespace =

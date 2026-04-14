@@ -18,6 +18,7 @@ export const useNIMPVC = (
   React.useEffect(() => {
     const fetchPVC = async () => {
       if (namespace && servingRuntimeEditInfo) {
+        // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         const pvcName = servingRuntimeEditInfo.spec?.volumes?.find(
           (vol) => vol.persistentVolumeClaim?.claimName,

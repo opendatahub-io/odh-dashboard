@@ -250,6 +250,7 @@ export const getInferenceServiceSizeOrReturnEmpty = (
 export const getServingRuntimeOrReturnEmpty = (
   servingRuntime?: ServingRuntimeKind,
 ): ContainerResources | undefined => {
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const resources = servingRuntime?.spec?.containers?.[0]?.resources;
   if (resources && Object.keys(resources).length === 0) {
@@ -261,6 +262,7 @@ export const getServingRuntimeOrReturnEmpty = (
 export const getKServeContainer = (
   servingRuntime?: ServingRuntimeKind,
 ): ServingContainer | undefined =>
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   servingRuntime?.spec?.containers?.find((container) => container.name === 'kserve-container');
 
@@ -319,9 +321,11 @@ const isPodSpecOptionsChanged = (
   const currentSize = getServingRuntimeOrReturnEmpty(existingServingRuntime);
 
   const initialTolerations = currentPodSpecOptionsState.podSpecOptions.tolerations;
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const currentTolerations = existingServingRuntime?.spec?.tolerations;
 
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const currentNodeSelector = existingServingRuntime?.spec?.nodeSelector;
   const initialNodeSelector = currentPodSpecOptionsState.podSpecOptions.nodeSelector;
@@ -340,6 +344,7 @@ export const isModelServerEditInfoChanged = (
 ): boolean =>
   editInfo?.servingRuntime
     ? getDisplayNameFromK8sResource(editInfo.servingRuntime) !== createData.name ||
+      // K8s resources can arrive without spec/annotations at runtime (RHOAIENG-32511)
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       editInfo.servingRuntime.spec?.replicas !== createData.numReplicas ||
       editInfo.servingRuntime.metadata.annotations?.['enable-route'] !==
