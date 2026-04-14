@@ -4,9 +4,12 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func newTestClient() *RealS3Client {
@@ -25,28 +28,72 @@ func TestNewRealS3Client_WrapsErrEndpointValidation(t *testing.T) {
 	assert.True(t, errors.Is(err, ErrEndpointValidation))
 }
 
-func TestNewRealS3Client_WithRootCAs(t *testing.T) {
+// ---------------------------------------------------------------------------
+// NewRealS3Client — transport / TLS tests
+// ---------------------------------------------------------------------------
+
+func TestNewRealS3Client_DefaultTransport(t *testing.T) {
 	t.Parallel()
-	pool := x509.NewCertPool()
-	_, err := NewRealS3Client(&S3Credentials{
+	client, err := NewRealS3Client(&S3Credentials{
 		AccessKeyID:     "a",
 		SecretAccessKey: "b",
 		Region:          "us-east-1",
-		EndpointURL:     "https://s3.amazonaws.com",
+		EndpointURL:     "https://10.0.0.1:9000",
+	}, S3ClientOptions{})
+	assert.NoError(t, err)
+
+	httpClient, ok := client.s3Client.Options().HTTPClient.(*http.Client)
+	require.True(t, ok, "HTTPClient should be *http.Client")
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok, "Transport should be *http.Transport")
+	assert.Equal(t, 30*time.Second, transport.ResponseHeaderTimeout, "ResponseHeaderTimeout should be 30s")
+	if transport.TLSClientConfig != nil {
+		assert.Nil(t, transport.TLSClientConfig.RootCAs, "RootCAs should be nil when no custom CAs provided")
+		assert.False(t, transport.TLSClientConfig.InsecureSkipVerify, "InsecureSkipVerify should be false")
+	}
+}
+
+func TestNewRealS3Client_WithRootCAs(t *testing.T) {
+	t.Parallel()
+	pool := x509.NewCertPool()
+	client, err := NewRealS3Client(&S3Credentials{
+		AccessKeyID:     "a",
+		SecretAccessKey: "b",
+		Region:          "us-east-1",
+		EndpointURL:     "https://10.0.0.1:9000",
 	}, S3ClientOptions{RootCAs: pool})
 	assert.NoError(t, err)
+
+	httpClient, ok := client.s3Client.Options().HTTPClient.(*http.Client)
+	require.True(t, ok, "HTTPClient should be *http.Client")
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok, "Transport should be *http.Transport")
+	assert.Same(t, pool, transport.TLSClientConfig.RootCAs, "RootCAs should match the provided pool")
+	assert.False(t, transport.TLSClientConfig.InsecureSkipVerify, "InsecureSkipVerify should be false")
+	assert.Equal(t, 30*time.Second, transport.ResponseHeaderTimeout, "ResponseHeaderTimeout should be 30s")
 }
 
 func TestNewRealS3Client_DevModeFallback(t *testing.T) {
 	t.Parallel()
-	_, err := NewRealS3Client(&S3Credentials{
+	client, err := NewRealS3Client(&S3Credentials{
 		AccessKeyID:     "a",
 		SecretAccessKey: "b",
 		Region:          "us-east-1",
-		EndpointURL:     "https://s3.amazonaws.com",
+		EndpointURL:     "https://10.0.0.1:9000",
 	}, S3ClientOptions{DevMode: true})
 	assert.NoError(t, err)
+
+	httpClient, ok := client.s3Client.Options().HTTPClient.(*http.Client)
+	require.True(t, ok, "HTTPClient should be *http.Client")
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok, "Transport should be *http.Transport")
+	assert.True(t, transport.TLSClientConfig.InsecureSkipVerify, "InsecureSkipVerify should be true in dev mode")
+	assert.Equal(t, 30*time.Second, transport.ResponseHeaderTimeout, "ResponseHeaderTimeout should be 30s")
 }
+
+// ---------------------------------------------------------------------------
+// validateAndNormalizeEndpoint — SSRF protection tests
+// ---------------------------------------------------------------------------
 
 func TestValidateAndNormalizeEndpoint_AcceptsValidHTTPS(t *testing.T) {
 	c := newTestClient()
