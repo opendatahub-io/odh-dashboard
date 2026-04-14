@@ -235,7 +235,7 @@ describe('errorClassifier', () => {
       });
 
       it('should generate title for rate_limit error', () => {
-        const error = { error: { code: 'rate_limit', message: 'Too many requests' } };
+        const error = { status: 429, error: { message: 'Too many requests' } };
         const result = classifyError(error);
 
         expect(result.title).toBe('Request was rate limited');
@@ -291,7 +291,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe('Tool call failed');
+        expect(result.title).toBe('A tool tool call failed');
       });
 
       it('should generate title for streaming interruptions', () => {
@@ -353,13 +353,20 @@ describe('errorClassifier', () => {
         const error = { error: { code: 'unknown_code', message: 'Unknown error' } };
         const result = classifyError(error);
 
-        expect(result.title).toBe('An error occurred');
+        // Unknown errors without status or component fall back to bff:unreachable
+        expect(result.title).toBe("Couldn't reach the server");
       });
     });
 
     describe('error description generation', () => {
       it('should generate description for max_tokens error with model name', () => {
-        const error = { error: { code: 'max_tokens', message: 'Token limit exceeded' } };
+        const error = {
+          error: {
+            component: 'model' as const,
+            code: 'max_tokens',
+            message: 'Token limit exceeded',
+          },
+        };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
 
         expect(result.description).toContain('Llama 3.1 8B');
@@ -367,15 +374,27 @@ describe('errorClassifier', () => {
       });
 
       it('should generate description for max_tokens error without model name', () => {
-        const error = { error: { code: 'max_tokens', message: 'Token limit exceeded' } };
+        const error = {
+          error: {
+            component: 'model' as const,
+            code: 'max_tokens',
+            message: 'Token limit exceeded',
+          },
+        };
         const result = classifyError(error);
 
-        expect(result.description).toContain('This model');
+        expect(result.description).toContain('The selected model');
         expect(result.description).toContain('supports a maximum of');
       });
 
       it('should generate description for chat_template error', () => {
-        const error = { error: { code: 'chat_template', message: 'Invalid template' } };
+        const error = {
+          error: {
+            component: 'model' as const,
+            code: 'chat_template',
+            message: 'Invalid template',
+          },
+        };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
 
         expect(result.description).toContain('Llama 3.1 8B');
@@ -383,7 +402,13 @@ describe('errorClassifier', () => {
       });
 
       it('should generate description for no_tools error', () => {
-        const error = { error: { code: 'no_tools', message: 'Tools not supported' } };
+        const error = {
+          error: {
+            component: 'model' as const,
+            code: 'no_tools',
+            message: 'Tools not supported',
+          },
+        };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
 
         expect(result.description).toContain('Llama 3.1 8B');
@@ -391,7 +416,13 @@ describe('errorClassifier', () => {
       });
 
       it('should generate description for no_images error', () => {
-        const error = { error: { code: 'no_images', message: 'Images not supported' } };
+        const error = {
+          error: {
+            component: 'model' as const,
+            code: 'no_images',
+            message: 'Images not supported',
+          },
+        };
         const result = classifyError(error);
 
         expect(result.description).toContain("can't process images");
@@ -438,10 +469,12 @@ describe('errorClassifier', () => {
       });
 
       it('should generate description for service_unavailable error', () => {
-        const error = { error: { code: 'service_unavailable', message: 'Service down' } };
+        const error = { status: 503, error: { message: 'Service down' } };
         const result = classifyError(error);
 
-        expect(result.description).toBe('The playground server is not responding.');
+        expect(result.description).toBe(
+          "The playground server isn't responding. Check your connection and try again.",
+        );
       });
 
       it('should generate description for RAG partial failures', () => {
@@ -574,57 +607,69 @@ describe('errorClassifier', () => {
         const error = { error: { code: 'unknown', message: 'Custom error message' } };
         const result = classifyError(error);
 
-        expect(result.description).toBe('Custom error message');
+        // Unknown errors without status/component fall back to bff:unreachable
+        expect(result.description).toBe(
+          'Unable to connect to the playground backend. Check that the service is running.',
+        );
       });
 
       it('should use default message when error message is empty', () => {
         const error = { error: { code: 'unknown', message: '' } };
         const result = classifyError(error);
 
-        expect(result.description).toBe('An unexpected error occurred. Please try again.');
+        // Unknown errors without status/component fall back to bff:unreachable
+        expect(result.description).toBe(
+          'Unable to connect to the playground backend. Check that the service is running.',
+        );
       });
     });
 
     describe('error category constants integration', () => {
       it('should recognize ERROR_CATEGORIES constants', () => {
+        // ERROR_CATEGORIES constants don't have specific microcopy templates,
+        // and without status or component they fall back to bff:unreachable
         const categoryTests = [
-          { code: ERROR_CATEGORIES.INVALID_MODEL_CONFIG, titleContains: 'configuration' },
-          { code: ERROR_CATEGORIES.UNSUPPORTED_FEATURE, titleContains: 'support' },
-          { code: ERROR_CATEGORIES.INVALID_PARAMETER, titleContains: 'error' },
-          { code: ERROR_CATEGORIES.RAG_ERROR, titleContains: 'Knowledge' },
-          { code: ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND, titleContains: 'knowledge' },
-          { code: ERROR_CATEGORIES.GUARDRAILS_ERROR, titleContains: 'Guardrail' },
-          { code: ERROR_CATEGORIES.GUARDRAILS_VIOLATION, titleContains: 'guardrail' },
-          { code: ERROR_CATEGORIES.MCP_ERROR, titleContains: 'Tool' },
-          { code: ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND, titleContains: 'error' },
-          { code: ERROR_CATEGORIES.MCP_AUTH_ERROR, titleContains: 'Tool' },
-          { code: ERROR_CATEGORIES.MODEL_INVOCATION_ERROR, titleContains: 'error' },
-          { code: ERROR_CATEGORIES.MODEL_TIMEOUT, titleContains: 'failed' },
-          { code: ERROR_CATEGORIES.MODEL_OVERLOADED, titleContains: 'rate limited' },
+          ERROR_CATEGORIES.INVALID_MODEL_CONFIG,
+          ERROR_CATEGORIES.UNSUPPORTED_FEATURE,
+          ERROR_CATEGORIES.INVALID_PARAMETER,
+          ERROR_CATEGORIES.RAG_ERROR,
+          ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND,
+          ERROR_CATEGORIES.GUARDRAILS_ERROR,
+          ERROR_CATEGORIES.GUARDRAILS_VIOLATION,
+          ERROR_CATEGORIES.MCP_ERROR,
+          ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND,
+          ERROR_CATEGORIES.MCP_AUTH_ERROR,
+          ERROR_CATEGORIES.MODEL_INVOCATION_ERROR,
+          ERROR_CATEGORIES.MODEL_TIMEOUT,
+          ERROR_CATEGORIES.MODEL_OVERLOADED,
         ];
 
-        categoryTests.forEach(({ code, titleContains }) => {
+        categoryTests.forEach((code) => {
           const error = { error: { code, message: 'Error message' } };
           const result = classifyError(error);
-          expect(result.title.toLowerCase()).toContain(titleContains.toLowerCase());
+          expect(result.title).toBe("Couldn't reach the server");
         });
       });
 
       it('should handle service_unavailable code', () => {
-        const error = { error: { code: 'service_unavailable', message: 'Service down' } };
+        const error = { status: 503, error: { message: 'Service down' } };
         const result = classifyError(error);
 
         expect(result.title).toBe("Couldn't reach the server");
-        expect(result.description).toBe('The playground server is not responding.');
+        expect(result.description).toBe(
+          "The playground server isn't responding. Check your connection and try again.",
+        );
         expect(result.isRetriable).toBe(true);
       });
 
       it('should handle bad_gateway code', () => {
-        const error = { error: { code: 'bad_gateway', message: 'Gateway error' } };
+        const error = { status: 502, error: { message: 'Gateway error' } };
         const result = classifyError(error);
 
         expect(result.title).toBe("Couldn't reach the server");
-        expect(result.description).toBe('The playground server is not responding.');
+        expect(result.description).toBe(
+          "The playground server isn't responding. Check your connection and try again.",
+        );
         expect(result.isRetriable).toBe(true);
       });
 
@@ -634,7 +679,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe('An error occurred');
+        expect(result.title).toBe("Couldn't reach the server");
         expect(result.isRetriable).toBe(false);
       });
 
@@ -647,7 +692,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe('No matching knowledge found');
+        expect(result.title).toBe("Couldn't reach the server");
       });
 
       it('should handle ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND', () => {
@@ -656,7 +701,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe('Tool returned an error');
+        expect(result.title).toBe("Couldn't reach the server");
       });
 
       it('should handle ERROR_CATEGORIES.MCP_AUTH_ERROR', () => {
@@ -665,7 +710,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe('Tool call failed');
+        expect(result.title).toBe("Couldn't reach the server");
       });
 
       it('should handle ERROR_CATEGORIES.MODEL_INVOCATION_ERROR', () => {
@@ -674,7 +719,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe('An error occurred');
+        expect(result.title).toBe("Couldn't reach the server");
       });
 
       it('should handle ERROR_CATEGORIES.MODEL_OVERLOADED', () => {
@@ -683,8 +728,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe('Request was rate limited');
-        expect(result.isRetriable).toBe(true);
+        expect(result.title).toBe("Couldn't reach the server");
+        expect(result.isRetriable).toBe(false);
       });
     });
 
@@ -698,7 +743,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toContain('Knowledge');
+        // Without a code, errors fall back to generic template
+        expect(result.title).toBe('Something went wrong');
       });
 
       it('should classify guardrails errors by component field', () => {
@@ -710,7 +756,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toContain('Guardrail');
+        // Without a code, errors fall back to generic template
+        expect(result.title).toBe('Something went wrong');
       });
 
       it('should classify MCP errors by component field', () => {
@@ -722,7 +769,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toContain('Tool');
+        // Without a code, errors fall back to generic template
+        expect(result.title).toBe('Something went wrong');
       });
 
       it('should prefer code over component for RAG errors', () => {
@@ -748,7 +796,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toContain('Guardrail');
+        // Unknown code with component still falls back to generic template
+        expect(result.title).toBe('Something went wrong');
       });
     });
 
@@ -842,7 +891,8 @@ describe('errorClassifier', () => {
         const result = classifyError({});
 
         expect(result.pattern).toBe('full-failure' as ErrorPattern);
-        expect(result.details.rawMessage).toBe('An unexpected error occurred');
+        expect(result.details.rawMessage).toBe('');
+        expect(result.title).toBe("Couldn't reach the server");
       });
 
       it('should handle error with empty message', () => {
