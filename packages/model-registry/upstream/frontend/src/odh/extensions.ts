@@ -10,8 +10,6 @@ import {
   catalogSettingsUrl,
 } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
 import { mcpCatalogUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
-import { McpServerDeployModalExtension } from './extension-points';
-
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
 const ADMIN_USER = 'ADMIN_USER';
@@ -21,7 +19,7 @@ const createRedirectComponent = (args: { from: string; to: string }) => () =>
     default: () => module.buildV2RedirectElement(args),
   }));
 
-const extensions: (NavExtension | RouteExtension | AreaExtension | TabRouteTabExtension | McpServerDeployModalExtension)[] = [
+const extensions: (NavExtension | RouteExtension | AreaExtension | TabRouteTabExtension)[] = [
   {
     type: 'app.area',
     properties: {
@@ -153,33 +151,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | TabRouteTabEx
       }),
     },
   },
-  {
-    type: 'app.tab-route/tab',
-    flags: {
-      required: [SupportedArea.MCP_CATALOG],
-    },
-    properties: {
-      pageId: 'mcp-servers-tab-page',
-      id: 'deployments',
-      title: 'Deployments',
-      component: () => import('./McpDeploymentsWrapper'),
-      group: '2_deployments',
-    },
-  },
-  // Redirect from old MCP deployments URL
-  {
-    type: 'app.route',
-    flags: {
-      required: [SupportedArea.MCP_CATALOG],
-    },
-    properties: {
-      path: '/ai-hub/mcp-deployments/*',
-      component: createRedirectComponent({
-        from: '/ai-hub/mcp-deployments/*',
-        to: '/ai-hub/mcp-servers/deployments/*',
-      }),
-    },
-  },
   // Settings (unchanged)
   {
     type: 'app.navigation/href',
@@ -203,16 +174,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | TabRouteTabEx
     properties: {
       path: `${catalogSettingsUrl()}/*`,
       component: () => import('./ModelCatalogSettingsRoutesWrapper'),
-    },
-  },
-  {
-    type: 'mcp-catalog.mcp-server/deploy-modal',
-    flags: {
-      required: [SupportedArea.MCP_CATALOG],
-    },
-    properties: {
-      useIsDeployAvailable: () =>
-        import('../app/hooks/mcpCatalogDeployment/useMcpServerDeployAvailable').then((m) => m.default),
     },
   },
 ];

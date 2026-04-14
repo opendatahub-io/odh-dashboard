@@ -27,8 +27,17 @@ import {
   getMcpCardIconConfig,
 } from '~/app/pages/mcpCatalog/components/McpCatalogCardIcons';
 import { isMcpRemoteDeploymentMode } from '~/app/pages/mcpCatalog/utils/mcpCatalogUtils';
+import { useResolvedExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
+import { isMcpDeployButtonExtension } from '~/odh/extension-points';
 import McpServerDetailsView from './McpServerDetailsView';
-import McpDeployButton from '~/odh/components/McpDeployButton';
+
+const McpDeployButtonFromExtension: React.FC = () => {
+  const [extensions, loaded] = useResolvedExtensions(isMcpDeployButtonExtension);
+  if (!loaded || extensions.length === 0) {
+    return null;
+  }
+  return <LazyCodeRefComponent codeRef={extensions[0].properties.component} />;
+};
 
 const McpServerDetailsPage: React.FC = () => {
   const { serverId = '' } = useParams<{ serverId: string }>();
@@ -115,7 +124,7 @@ const McpServerDetailsPage: React.FC = () => {
             </EmptyState>
           ) : undefined
         }
-        headerAction={server?.artifacts?.some((a) => a.uri) ? <McpDeployButton /> : undefined}
+        headerAction={server?.artifacts?.some((a) => a.uri) ? <McpDeployButtonFromExtension /> : undefined}
         loadError={isNotFound ? undefined : serverLoadError}
         loaded={isNotFound || serverLoaded}
         errorMessage="Unable to load MCP server details"

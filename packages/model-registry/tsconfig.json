@@ -1,4 +1,12 @@
 {
   "extends": "@odh-dashboard/tsconfig/tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@mf/*": ["../../frontend/@mf-types/@mf/*"],
+      "mod-arch-core": ["./upstream/frontend/node_modules/mod-arch-core"],
+      "mod-arch-shared": ["./upstream/frontend/node_modules/mod-arch-shared"],
+      "mod-arch-kubeflow": ["./upstream/frontend/node_modules/mod-arch-kubeflow"]
+    }
+  },
   "exclude": ["node_modules", "upstream"]
 }

@@ -67,7 +67,7 @@ const initIntercepts = ({
 };
 
 const visitDeployments = () => {
-  cy.visitWithLogin(`${MCP_DEPLOYMENTS_URL}?namespace=test-project`);
+  cy.visitWithLogin(`${MCP_DEPLOYMENTS_URL}/test-project`);
 };
 
 const withNewestCreationTime = (deployments: McpDeployment[]): McpDeployment =>
