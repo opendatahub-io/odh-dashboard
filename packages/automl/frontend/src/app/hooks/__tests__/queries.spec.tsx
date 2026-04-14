@@ -558,6 +558,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     expect(result.current.featureImportance).toEqual(mockFeatureImportance);
     expect(result.current.confusionMatrix).toBeUndefined();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   it('should load both artifacts for classification runs (isClassification=true)', async () => {
@@ -576,6 +577,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     expect(result.current.featureImportance).toEqual(mockFeatureImportance);
     expect(result.current.confusionMatrix).toEqual(mockConfusionMatrix);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
   it('should be disabled when namespace is missing', () => {
