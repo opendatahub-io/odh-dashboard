@@ -139,7 +139,7 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
 
       cy.step('Verify LLMInferenceService exists in the project namespace');
       cy.get<string>('@resourceName').then((resourceName) => {
-        checkLLMInferenceServiceState(resourceName, projectName, {});
+        checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
 
       cy.step('Verify LLMInferenceServiceConfig was copied to the project namespace');

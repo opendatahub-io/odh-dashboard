@@ -157,7 +157,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       cy.step('Verify that the Model is created Successfully on the backend');
       cy.get<string>('@resourceName').then((resourceName) => {
-        checkInferenceServiceState(resourceName, projectName, {});
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
 
       // Test stop/start functionality
@@ -197,13 +197,13 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       // //Verify the model is running again
       cy.step('Verify the model is running again');
       cy.get<string>('@resourceName').then((resourceName) => {
-        checkInferenceServiceState(resourceName, projectName, {});
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
-      // TODO: Uncomment once RHOAIENG-56694 is resolved (model never reaches ready/started).
-      // kServeRow
-      //   .findStatusLabel()
-      //   .invoke('text')
-      //   .should('match', new RegExp(`${ModelStateLabel.STARTING}|${ModelStateLabel.STARTED}`));
+
+      kServeRow
+        .findStatusLabel()
+        .invoke('text')
+        .should('match', new RegExp(`${ModelStateLabel.STARTING}|${ModelStateLabel.READY}`));
 
       cy.step('Stop the model before editing');
       kServeRow.findStateActionToggle().click();
