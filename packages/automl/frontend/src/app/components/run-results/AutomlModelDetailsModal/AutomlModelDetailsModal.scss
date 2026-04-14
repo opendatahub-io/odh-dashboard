@@ -85,6 +85,22 @@
 /* Confusion matrix — theme-aware cell colors.
    Palette tokens (--pf-t--color--green--10 etc.) are NOT dark-mode-aware,
    so we define custom properties and override them for dark theme. */
+@mixin cm-cell-colors($prefix) {
+  background-color: var(--automl-cm--cell--#{$prefix}--base);
+
+  &.m-intensity-low {
+    background-color: var(--automl-cm--cell--#{$prefix}--low);
+  }
+
+  &.m-intensity-medium {
+    background-color: var(--automl-cm--cell--#{$prefix}--medium);
+  }
+
+  &.m-intensity-high {
+    background-color: var(--automl-cm--cell--#{$prefix}--high);
+  }
+}
+
 .automl-confusion-matrix {
   --automl-cm--cell--bg: var(--pf-t--global--background--color--secondary--default);
   --automl-cm--cell--diagonal--base: var(--pf-t--color--green--10);
@@ -99,6 +115,19 @@
 
   /* Grid lines between all cells */
   --pf-v6-c-table__tr--BorderBlockEndColor: var(--automl-cm--border--color);
+
+  :root:where(.pf-v6-theme-dark) & {
+    --automl-cm--cell--bg: var(--pf-v6-c-table--BackgroundColor);
+    --automl-cm--cell--diagonal--base: var(--pf-v6-c-table--BackgroundColor);
+    --automl-cm--cell--diagonal--low: var(--pf-t--color--green--50);
+    --automl-cm--cell--diagonal--medium: var(--pf-t--color--green--50);
+    --automl-cm--cell--diagonal--high: var(--pf-t--color--green--40);
+    --automl-cm--cell--off-diagonal--base: var(--pf-v6-c-table--BackgroundColor);
+    --automl-cm--cell--off-diagonal--low: var(--pf-t--color--blue--50);
+    --automl-cm--cell--off-diagonal--medium: var(--pf-t--color--blue--50);
+    --automl-cm--cell--off-diagonal--high: var(--pf-t--color--blue--40);
+    --automl-cm--border--color: var(--pf-t--global--border--color--default);
+  }
 
   th,
   td {
@@ -117,61 +146,30 @@
     vertical-align: middle;
   }
 
-  tbody tr:last-child th {
+  tbody th {
     font-weight: var(--pf-t--global--font--weight--body--bold);
   }
-}
 
-:root:where(.pf-v6-theme-dark) .automl-confusion-matrix {
-  --automl-cm--cell--bg: var(--pf-v6-c-table--BackgroundColor);
-  --automl-cm--cell--diagonal--base: var(--pf-v6-c-table--BackgroundColor);
-  --automl-cm--cell--diagonal--low: var(--pf-t--color--green--50);
-  --automl-cm--cell--diagonal--medium: var(--pf-t--color--green--50);
-  --automl-cm--cell--diagonal--high: var(--pf-t--color--green--40);
-  --automl-cm--cell--off-diagonal--base: var(--pf-v6-c-table--BackgroundColor);
-  --automl-cm--cell--off-diagonal--low: var(--pf-t--color--blue--50);
-  --automl-cm--cell--off-diagonal--medium: var(--pf-t--color--blue--50);
-  --automl-cm--cell--off-diagonal--high: var(--pf-t--color--blue--40);
-  --automl-cm--border--color: var(--pf-t--global--border--color--default);
-}
-
-/* Confusion matrix data cell colors */
-.automl-confusion-matrix__cell--diagonal {
-  font-weight: var(--pf-t--global--font--weight--body--bold);
-  background-color: var(--automl-cm--cell--diagonal--base);
-
-  &.m-intensity-low {
-    background-color: var(--automl-cm--cell--diagonal--low);
+  /* Center skeleton loading bars within table cells */
+  .pf-v6-c-skeleton {
+    margin-inline: auto;
   }
 
-  &.m-intensity-medium {
-    background-color: var(--automl-cm--cell--diagonal--medium);
+  /* Data cell colors */
+  &__cell--diagonal {
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+
+    @include cm-cell-colors('diagonal');
   }
 
-  &.m-intensity-high {
-    background-color: var(--automl-cm--cell--diagonal--high);
-  }
-}
-
-.automl-confusion-matrix__cell--off-diagonal {
-  background-color: var(--automl-cm--cell--off-diagonal--base);
-
-  &.m-intensity-low {
-    background-color: var(--automl-cm--cell--off-diagonal--low);
+  &__cell--off-diagonal {
+    @include cm-cell-colors('off-diagonal');
   }
 
-  &.m-intensity-medium {
-    background-color: var(--automl-cm--cell--off-diagonal--medium);
+  /* View selector */
+  &-view {
+    margin-bottom: var(--pf-t--global--spacer--md);
   }
-
-  &.m-intensity-high {
-    background-color: var(--automl-cm--cell--off-diagonal--high);
-  }
-}
-
-/* Confusion matrix view selector */
-.automl-confusion-matrix-view {
-  margin-bottom: var(--pf-t--global--spacer--md);
 }
 
 /* Confusion matrix gradient bar */
@@ -188,14 +186,14 @@
   font-size: var(--pf-t--global--font--size--sm);
   color: var(--pf-t--global--text--color--subtle);
 
+  :root:where(.pf-v6-theme-dark) & {
+    --automl-cm--gradient--start: var(--pf-t--color--blue--50);
+    --automl-cm--gradient--end: var(--pf-t--color--green--40);
+  }
+
   span {
     padding: 0 var(--pf-t--global--spacer--sm);
   }
-}
-
-:root:where(.pf-v6-theme-dark) .automl-confusion-gradient {
-  --automl-cm--gradient--start: var(--pf-t--color--blue--50);
-  --automl-cm--gradient--end: var(--pf-t--color--green--40);
 }
 
 /* Header row styling */
@@ -204,7 +202,7 @@
   align-items: flex-end;
   gap: var(--pf-t--global--spacer--xl);
   padding-bottom: var(--pf-t--global--spacer--md);
-  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+  border-bottom: var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default);
   margin-bottom: var(--pf-t--global--spacer--lg);
 }
 
@@ -304,7 +302,7 @@
     font-size: var(--pf-t--global--font--size--xl);
     margin-bottom: var(--pf-t--global--spacer--md);
     padding-bottom: var(--pf-t--global--spacer--sm);
-    border-bottom: 1px solid var(--pf-t--global--border--color--default);
+    border-bottom: var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default);
   }
 }
 
@@ -314,7 +312,7 @@
   .pf-v6-c-description-list__group {
     gap: var(--pf-t--global--spacer--xs);
     padding-bottom: var(--pf-t--global--spacer--sm);
-    border-bottom: 1px solid var(--pf-t--global--border--color--default);
+    border-bottom: var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default);
   }
 
   .pf-v6-c-description-list__term,
