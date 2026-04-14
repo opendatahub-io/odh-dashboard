@@ -28,6 +28,10 @@ func TestNewRealS3Client_WrapsErrEndpointValidation(t *testing.T) {
 	assert.True(t, errors.Is(err, ErrEndpointValidation))
 }
 
+// ---------------------------------------------------------------------------
+// NewRealS3Client — transport / TLS tests
+// ---------------------------------------------------------------------------
+
 func TestNewRealS3Client_DefaultTransport(t *testing.T) {
 	t.Parallel()
 	client, err := NewRealS3Client(&S3Credentials{
@@ -86,6 +90,10 @@ func TestNewRealS3Client_DevModeFallback(t *testing.T) {
 	assert.True(t, transport.TLSClientConfig.InsecureSkipVerify, "InsecureSkipVerify should be true in dev mode")
 	assert.Equal(t, 30*time.Second, transport.ResponseHeaderTimeout, "ResponseHeaderTimeout should be 30s")
 }
+
+// ---------------------------------------------------------------------------
+// validateAndNormalizeEndpoint — SSRF protection tests
+// ---------------------------------------------------------------------------
 
 func TestValidateAndNormalizeEndpoint_AcceptsValidHTTPS(t *testing.T) {
 	c := newTestClient()
