@@ -29,9 +29,9 @@ import {
   MultipleFileUpload,
   MultipleFileUploadMain,
   NumberInput,
-  Spinner,
   Split,
   SplitItem,
+  Spinner,
   Stack,
   StackItem,
   ToggleGroup,
@@ -40,8 +40,8 @@ import {
   Truncate,
   type DropEvent,
 } from '@patternfly/react-core';
-import { CubesIcon, EllipsisVIcon, TimesIcon, UploadIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { CubesIcon, EllipsisVIcon, TimesIcon, UploadIcon } from '@patternfly/react-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { findKey } from 'es-toolkit';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -49,8 +49,8 @@ import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
-import type { File as S3ExplorerFile } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
+import type { File as S3ExplorerFile } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
@@ -72,9 +72,9 @@ import {
 } from '~/app/utilities/const';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
-import './AutomlConfigure.css';
 import ConfigureTabularForm from './ConfigureTabularForm';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
+import './AutomlConfigure.css';
 
 const PREDICTION_TYPES: {
   value: ConfigureSchema['task_type'];
@@ -343,8 +343,7 @@ function AutomlConfigure(): React.JSX.Element {
       } catch (err) {
         if (uploadRequestId === trainingDataUploadSeqRef.current) {
           const errorMessage = err instanceof Error ? err.message : String(err);
-          // Check for 409 Conflict status code (filename collision)
-          const isConflict = err instanceof Error && 'statusCode' in err && err.statusCode === 409;
+          const isConflict = errorMessage.toLowerCase().includes('unique filename');
 
           notification.error(
             'Failed to upload file',

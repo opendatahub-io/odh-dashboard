@@ -1,9 +1,15 @@
 // Modules -------------------------------------------------------------------->
 
-import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import * as z from 'zod';
-import type { S3ListObjectsResponse } from '~/app/types';
+import {
+  APIOptions,
+  handleRestFailures,
+  isModArchResponse,
+  restCREATE,
+  restGET,
+} from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import type { S3ListObjectsResponse } from '~/app/types';
 
 // Globals -------------------------------------------------------------------->
 
@@ -68,7 +74,6 @@ export type GetFilesOptions = {
  * @param params - namespace, secretName, key (required); bucket (optional, uses secret default if omitted)
  * @param file - The file to upload (sent as multipart form field "file")
  * @returns Promise that resolves when upload succeeds; throws on non-2xx response or malformed 2xx body
- * @throws Error with statusCode property for HTTP error responses (e.g., 409 for filename collision)
  */
 export async function uploadFileToS3(
   hostPath: string,
@@ -87,32 +92,16 @@ export async function uploadFileToS3(
   const formData = new FormData();
   formData.append('file', file, file.name);
 
-  const searchParams = new URLSearchParams(queryParams).toString();
   const path = `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/file`;
-  const url = `${hostPath}${path}?${searchParams}`;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    body: formData,
-  });
+  const response = await handleRestFailures(restCREATE(hostPath, path, formData, queryParams));
 
-  const responseData = await response.json();
-
-  if (!response.ok) {
-    // Extract error message from BFF error envelope
-    const errorMessage =
-      responseData?.error?.message || `Upload failed with status ${response.status}`;
-    // Attach statusCode to error for UI to discriminate error types
-    const error = Object.assign(new Error(errorMessage), { statusCode: response.status });
-    throw error;
-  }
-
-  if (!isS3UploadSuccessPayload(responseData)) {
+  if (!isS3UploadSuccessPayload(response)) {
     throw new Error(
       'Invalid upload response: expected uploaded: true and a non-empty key from server',
     );
   }
-  return responseData;
+  return response;
 }
 
 /**
