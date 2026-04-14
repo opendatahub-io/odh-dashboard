@@ -30,6 +30,7 @@ const STREAMING_ERROR_MAP: Record<string, string> = {
   stream_lost: 'stream:connection_lost',
   stream_timeout: 'stream:timeout',
   stream_context: 'stream:context_length',
+  context_length: 'stream:context_length',
   /* eslint-enable camelcase */
 };
 
@@ -52,6 +53,14 @@ const STREAM_TIMEOUT_KEYWORDS = [
   'stopped responding',
 ];
 
+// Keywords in error messages that indicate context length exceeded during streaming
+const STREAM_CONTEXT_KEYWORDS = [
+  'context length exceeded',
+  'context exceeded',
+  'maximum context',
+  'exceeded at token',
+];
+
 function detectStreamingErrorFromMessage(message: string): string | null {
   const lowerMessage = message.toLowerCase();
 
@@ -65,6 +74,11 @@ function detectStreamingErrorFromMessage(message: string): string | null {
     return 'stream:timeout';
   }
 
+  // Check for context length exceeded
+  if (STREAM_CONTEXT_KEYWORDS.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))) {
+    return 'stream:context_length';
+  }
+
   return null;
 }
 
@@ -73,20 +87,21 @@ function resolveTemplateKey(error: ApiError): string {
   const code = error.error?.code;
   const message = error.error?.message ?? error.message ?? '';
 
-  if (component && code) {
-    // Check if this is a streaming error disguised as a timeout
-    if (code === 'timeout' && message) {
-      const streamingKey = detectStreamingErrorFromMessage(message);
-      if (streamingKey) {
-        return streamingKey;
-      }
-    }
-    return `${component}:${code}`;
+  // Check for streaming errors first (they can have component + code)
+  if (code && code in STREAMING_ERROR_MAP) {
+    return STREAMING_ERROR_MAP[code];
   }
 
-  // Handle streaming errors
-  if (code && STREAMING_ERROR_MAP[code]) {
-    return STREAMING_ERROR_MAP[code];
+  // Check message for streaming keywords
+  if (message) {
+    const streamingKey = detectStreamingErrorFromMessage(message);
+    if (streamingKey) {
+      return streamingKey;
+    }
+  }
+
+  if (component && code) {
+    return `${component}:${code}`;
   }
 
   if (error.status === 429) {
