@@ -246,6 +246,33 @@ describe('errorClassifier', () => {
         expect(result.description).toBe('The connection to the model was lost during generation.');
       });
 
+      it('should detect context_length error from BFF', () => {
+        const error = {
+          error: {
+            component: 'model',
+            code: 'context_length',
+            message: '{"error": "context length 8192 exceeded at token 8191"}',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Streaming error — context length exceeded');
+        expect(result.description).toBe("The response exceeded the model's context length.");
+      });
+
+      it('should detect context length from message keywords', () => {
+        const error = {
+          error: {
+            component: 'model',
+            code: 'some_error',
+            message: '{"error": "context length exceeded at token 8191"}',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Streaming error — context length exceeded');
+      });
+
       it('should use generic title for unknown errors', () => {
         const error = { error: { code: 'unknown_code', message: 'Unknown error' } };
         const result = classifyError(error);
