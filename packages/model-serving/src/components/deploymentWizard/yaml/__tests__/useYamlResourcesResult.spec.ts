@@ -66,6 +66,29 @@ describe('useFormYamlResources', () => {
     expect(renderResult.result.current.resources).not.toBe(resources);
   });
 
+  it('should include formResources server in resources when in editor mode', () => {
+    const mockServer: DeploymentAssemblyResources['server'] = {
+      apiVersion: 'serving.kserve.io/v1alpha1',
+      kind: 'ServingRuntime',
+      metadata: {
+        name: 'test-server',
+        namespace: 'test-ns',
+      },
+    };
+    const resources: DeploymentAssemblyResources = { model: mockModel, server: mockServer };
+    const renderResult = testHook(useFormYamlResources)(resources);
+
+    const editedModel = { ...mockModel, metadata: { ...mockModel.metadata, name: 'edited' } };
+    act(() => {
+      renderResult.result.current.setYaml(stringify(editedModel));
+    });
+
+    expect(renderResult.result.current.resources).toStrictEqual({
+      model: editedModel,
+      server: mockServer,
+    });
+  });
+
   it('should return editor yaml after setYaml is called', () => {
     const resources: DeploymentAssemblyResources = { model: mockModel };
     const renderResult = testHook(useFormYamlResources)(resources);
