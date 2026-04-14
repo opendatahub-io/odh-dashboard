@@ -5,7 +5,16 @@ import {
   restDELETE,
   handleRestFailures,
 } from 'mod-arch-core';
-import { McpDeploymentList } from '../types/mcpDeploymentTypes';
+import { McpDeployment, McpDeploymentList, McpDeploymentPhase } from '../types/mcpDeploymentTypes';
+
+const validPhases = new Set(Object.values(McpDeploymentPhase));
+
+const validatePhase = (deployment: McpDeployment): McpDeployment => {
+  if (!validPhases.has(deployment.phase)) {
+    return { ...deployment, phase: McpDeploymentPhase.PENDING };
+  }
+  return deployment;
+};
 
 export const deleteMcpDeployment =
   (hostPath: string, queryParams: Record<string, unknown> = {}) =>
@@ -24,7 +33,10 @@ export const getListMcpDeployments =
     handleRestFailures(restGET(hostPath, `/mcp_deployments`, queryParams, opts)).then(
       (response) => {
         if (isModArchResponse<McpDeploymentList>(response)) {
-          return response.data;
+          return {
+            ...response.data,
+            items: response.data.items.map(validatePhase),
+          };
         }
         throw new Error('Invalid response format');
       },
