@@ -67,5 +67,11 @@ patchesJson6902:
       version: v1
       kind: NetworkPolicy
       name: odh-dashboard-allow-ports
+  - path: modules-cluster-role-binding.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: odh-dashboard-modules
 patchesStrategicMerge:
   - federation-configmap.yaml
