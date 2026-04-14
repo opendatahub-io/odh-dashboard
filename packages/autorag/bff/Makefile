@@ -91,7 +91,7 @@ run: fmt vet envtest ## Runs the project.
 		--log-level="$(LOG_LEVEL)" \
 		--allowed-origins="$(ALLOWED_ORIGINS)" \
 		--insecure-skip-verify="$(INSECURE_SKIP_VERIFY)" \
-		$(if $(BUNDLE_PATHS),--bundle-paths=$(BUNDLE_PATHS))
+		$(if $(BUNDLE_PATHS),--bundle-paths="$(BUNDLE_PATHS)")
 
 ##@ Dependencies
 
