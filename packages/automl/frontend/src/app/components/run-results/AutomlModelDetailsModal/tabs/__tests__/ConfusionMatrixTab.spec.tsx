@@ -141,6 +141,13 @@ describe('ConfusionMatrixTab', () => {
       expect(screen.getByText('Multi-class')).toBeInTheDocument();
     });
 
+    it('should not show view selector for non-multiclass tasks even with 3+ classes', () => {
+      render(
+        <ConfusionMatrixTab {...defaultProps} taskType="binary" confusionMatrix={matrix3x3} />,
+      );
+      expect(screen.queryByTestId('confusion-matrix-view-toggle')).not.toBeInTheDocument();
+    });
+
     it('should not show view selector for 2-class matrices', () => {
       const matrix2x2: ConfusionMatrixData = {
         Cat: { Cat: 8, Dog: 2 },
@@ -259,10 +266,13 @@ describe('computeOneVsRest', () => {
 
   it('should preserve total count across all cells', () => {
     const result = computeOneVsRest(matrix3x3, labels3, 'Ghost');
-    const ghostRow = result.Ghost!;
-    const notGhostRow = result['Not Ghost']!;
+    const ghostRow = result.Ghost ?? {};
+    const notGhostRow = result['Not Ghost'] ?? {};
     const total =
-      ghostRow.Ghost! + ghostRow['Not Ghost']! + notGhostRow.Ghost! + notGhostRow['Not Ghost']!;
+      (ghostRow.Ghost ?? 0) +
+      (ghostRow['Not Ghost'] ?? 0) +
+      (notGhostRow.Ghost ?? 0) +
+      (notGhostRow['Not Ghost'] ?? 0);
     // Sum of all cells in original matrix = 10+0+2+1+10+2+2+6+5 = 38
     expect(total).toBe(38);
   });

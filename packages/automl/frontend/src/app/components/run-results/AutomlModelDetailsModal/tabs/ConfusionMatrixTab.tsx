@@ -76,6 +76,13 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
   const [selectedView, setSelectedView] = React.useState(MULTI_CLASS_VIEW);
   const [isViewOpen, setIsViewOpen] = React.useState(false);
 
+  const effectiveMatrix = React.useMemo(() => {
+    if (!confusionMatrix || selectedView === MULTI_CLASS_VIEW) {
+      return confusionMatrix;
+    }
+    return computeOneVsRest(confusionMatrix, Object.keys(confusionMatrix), selectedView);
+  }, [selectedView, confusionMatrix]);
+
   if (isArtifactsLoading) {
     return (
       <Table
@@ -143,13 +150,12 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
   const originalLabels = Object.keys(confusionMatrix);
   const showViewSelector = taskType === TASK_TYPE_MULTICLASS && originalLabels.length > 2;
 
-  // Compute the effective matrix based on the selected view
-  const effectiveMatrix =
-    selectedView !== MULTI_CLASS_VIEW
-      ? computeOneVsRest(confusionMatrix, originalLabels, selectedView)
-      : confusionMatrix;
-  const labels = Object.keys(effectiveMatrix);
-  const getCell = (row: string, col: string): number => effectiveMatrix[row]?.[col] ?? 0;
+  // effectiveMatrix is always defined here: the useMemo returns confusionMatrix
+  // (guaranteed non-null past the guard above) or the computeOneVsRest result.
+  // The ?? fallback satisfies TypeScript without a non-null assertion.
+  const matrix = effectiveMatrix ?? confusionMatrix;
+  const labels = Object.keys(matrix);
+  const getCell = (row: string, col: string): number => matrix[row]?.[col] ?? 0;
 
   // Find max value for color scaling
   const allValues = labels.flatMap((row) => labels.map((col) => getCell(row, col)));
