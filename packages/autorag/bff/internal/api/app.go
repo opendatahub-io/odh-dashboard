@@ -157,8 +157,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		s3ClientFactory = s3mocks.NewMockClientFactory()
 	} else {
 		logger.Info("Using real S3 client factory")
-		s3ClientOptions := s3int.S3ClientOptions{DevMode: cfg.DevMode}
-		s3ClientFactory = s3int.NewRealClientFactory(s3ClientOptions)
+		// TLS verification uses the operator-mounted CA bundles (rootCAs) so that
+		// self-signed MinIO certificates are validated properly rather than skipped.
+		// The RHOAI operator passes --bundle-paths with cluster CA, service-ca, and
+		// odh-trusted-ca-bundle paths, which are loaded into rootCAs above.
+		// HTTPS is always required; plain HTTP is rejected to prevent credentials
+		// from being transmitted in cleartext.
+		// RFC-1918 private IPs are allowed (MinIO runs in-cluster); loopback,
+		// link-local, and reserved ranges are always blocked.
+		s3ClientFactory = s3int.NewRealClientFactory(s3int.S3ClientOptions{
+			DevMode: cfg.DevMode,
+			RootCAs: rootCAs,
+		})
 	}
 
 	app := &App{
