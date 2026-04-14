@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 # Script to sync local upstream repository content into monorepo using patch-based incremental updates
 # This is the local variant of package-subtree.sh — reads from a local repository path instead of cloning.
@@ -125,7 +125,7 @@ clean_exit() {
   fi
 
   if [ "$is_user_error" = "true" ] && [ -n "${npm_config_user_agent:-}" ]; then
-    exit 0
+    warning_msg "Exiting with code 0 for npm compatibility (original exit code: $exit_code)"
   fi
 
   exit $exit_code
@@ -203,6 +203,54 @@ get_repo_commit_url() {
   else
     echo "  (view commit locally: git -C $repo_path log -1 $commit_sha)"
   fi
+}
+
+show_do_not_merge_warning() {
+  echo ""
+  echo -e "${RED}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
+  echo -e "${RED}║                                                                          ║${NC}"
+  echo -e "${RED}║  WARNING: DO NOT MERGE THESE COMMITS!                                    ║${NC}"
+  echo -e "${RED}║                                                                          ║${NC}"
+  echo -e "${RED}║  These commits sync from a LOCAL repository and may reference commits    ║${NC}"
+  echo -e "${RED}║  that don't exist in the official upstream.                              ║${NC}"
+  echo -e "${RED}║                                                                          ║${NC}"
+  echo -e "${RED}║  All commits created during this sync have the prefix:                   ║${NC}"
+  echo -e "${RED}║  [DO NOT MERGE - LOCAL SYNC]                                             ║${NC}"
+  echo -e "${RED}║                                                                          ║${NC}"
+  echo -e "${RED}║  Local repo: $(printf '%-58s' "$LOCAL_REPO_RESOLVED")║${NC}"
+  echo -e "${RED}║  Branch: $(printf '%-62s' "$LOCAL_BRANCH")║${NC}"
+  echo -e "${RED}║                                                                          ║${NC}"
+  echo -e "${RED}║  Next steps:                                                             ║${NC}"
+  echo -e "${RED}║  1. Test the changes from the local repository                           ║${NC}"
+  echo -e "${RED}║  2. After the changes are merged upstream, start a fresh branch from     ║${NC}"
+  echo -e "${RED}║     odh-dashboard main                                                   ║${NC}"
+  echo -e "${RED}║  3. Run the sync script again WITHOUT the --local-repo option to get     ║${NC}"
+  echo -e "${RED}║     the official merged changes                                          ║${NC}"
+  echo -e "${RED}║                                                                          ║${NC}"
+  echo -e "${RED}║  DO NOT merge this branch into odh-dashboard main!                       ║${NC}"
+  echo -e "${RED}║                                                                          ║${NC}"
+  echo -e "${RED}╚══════════════════════════════════════════════════════════════════════════╝${NC}"
+  echo ""
+}
+
+is_binary_file() {
+  local filepath="$1"
+  if [ ! -f "$filepath" ]; then
+    return 1
+  fi
+  if grep -qP '\x00' "$filepath" 2>/dev/null; then
+    return 0
+  fi
+  local mime_type
+  mime_type=$(file --mime-type -b "$filepath" 2>/dev/null || echo "text/plain")
+  case "$mime_type" in
+    text/*|application/json|application/xml|application/javascript)
+      return 1
+      ;;
+    *)
+      return 0
+      ;;
+  esac
 }
 
 show_usage() {
@@ -376,6 +424,36 @@ if [ "$CONTINUE_MODE" = true ]; then
     fi
   done < <(git diff --name-only --diff-filter=U -z)
 
+  staged_files_with_markers=()
+  while IFS= read -r -d '' staged_file; do
+    [ -z "$staged_file" ] && continue
+
+    case "$staged_file" in
+      "$WORKSPACE_LOCATION"/*|"$PACKAGE_JSON")
+        ;;
+      *)
+        error_msg "Staged file '$staged_file' is outside the allowed scope ($WORKSPACE_LOCATION or $PACKAGE_JSON)"
+        clean_exit 1 "" true
+        ;;
+    esac
+
+    local_blob_content=$(git show ":$staged_file" 2>/dev/null || echo "")
+    if echo "$local_blob_content" | grep -qE '^<<<<<<< |^=======$|^>>>>>>> |^<<<<<<< PATCH FAILED TO APPLY'; then
+      staged_files_with_markers+=("$staged_file")
+    fi
+  done < <(git diff --cached --name-only -z)
+
+  if [ "${#staged_files_with_markers[@]}" -gt 0 ]; then
+    error_msg "Staged files still contain conflict markers"
+    echo "The following staged files contain unresolved conflict or patch markers:"
+    for file in "${staged_files_with_markers[@]}"; do
+      echo "  $file"
+    done
+    echo ""
+    echo -e "${INFO_ICON} Please resolve all conflicts before using ${CYAN}--continue${NC}"
+    clean_exit 1 "" true
+  fi
+
   if [ "${#files_with_markers[@]}" -gt 0 ]; then
     error_msg "There are still unresolved conflicts"
     echo "The following files still contain conflict markers:"
@@ -502,59 +580,6 @@ else
 fi
 echo ""
 
-warning_msg "Temporarily updating package.json with local sync overrides"
-echo -e "${RED}⚠️  DO NOT MERGE these changes!${NC}"
-echo ""
-
-temp_file="$PACKAGE_JSON.tmp"
-if ! jq --arg local_repo "$LOCAL_REPO_RESOLVED" \
-        --arg branch "$LOCAL_BRANCH" \
-        '.subtree = {
-          DO_NOT_MERGE_SYNCED_FROM_LOCAL: {
-            local_repo: $local_repo,
-            branch: $branch
-          },
-          repo: .subtree.repo,
-          branch: $branch,
-          src: .subtree.src,
-          target: .subtree.target,
-          commit: .subtree.commit
-        } |
-        if .subtree.src == null then del(.subtree.src) else . end |
-        if .subtree.repo == null then del(.subtree.repo) else . end' \
-        "$PACKAGE_JSON" > "$temp_file"; then
-  error_msg "Failed to update package.json with local sync overrides"
-  rm -f "$temp_file"
-  clean_exit 1 "" true
-fi
-
-if ! mv "$temp_file" "$PACKAGE_JSON"; then
-  error_msg "Failed to write updated package.json"
-  rm -f "$temp_file"
-  clean_exit 1 "" true
-fi
-
-success_msg "Updated package.json with DO_NOT_MERGE_SYNCED_FROM_LOCAL flag"
-
-if ! git add "$PACKAGE_JSON"; then
-  error_msg "Failed to stage package.json"
-  clean_exit 1 "" true
-fi
-
-commit_msg="${COMMIT_PREFIX}Override subtree config for local sync
-
-Syncing from local repository: $LOCAL_REPO_RESOLVED
-Branch: $LOCAL_BRANCH
-
-This commit should NOT be merged. It exists only to test changes from a local repository."
-
-if ! git commit -q -m "$commit_msg"; then
-  warning_msg "Failed to commit package.json changes (assuming changes were already present)"
-else
-  success_msg "Committed package.json changes with DO NOT MERGE warning"
-fi
-echo ""
-
 CURRENT_COMMIT=$(jq -r '.subtree.commit // ""' "$PACKAGE_JSON")
 
 if [ -n "$COMMIT_SHA" ]; then
@@ -621,6 +646,68 @@ if [ "$SINGLE_COMMIT_MODE" != true ] && [ "$CURRENT_COMMIT" = "$TARGET_COMMIT" ]
   exit 0
 fi
 
+needs_sync_work=false
+if [ "$SINGLE_COMMIT_MODE" = true ]; then
+  needs_sync_work=true
+elif [ "$CURRENT_COMMIT" != "$TARGET_COMMIT" ]; then
+  needs_sync_work=true
+fi
+
+if [ "$needs_sync_work" = true ]; then
+  warning_msg "Temporarily updating package.json with local sync overrides"
+  echo -e "${RED}⚠️  DO NOT MERGE these changes!${NC}"
+  echo ""
+
+  temp_file="$PACKAGE_JSON.tmp"
+  if ! jq --arg local_repo "$LOCAL_REPO_RESOLVED" \
+          --arg branch "$LOCAL_BRANCH" \
+          '.subtree = {
+            DO_NOT_MERGE_SYNCED_FROM_LOCAL: {
+              local_repo: $local_repo,
+              branch: $branch
+            },
+            repo: .subtree.repo,
+            branch: $branch,
+            src: .subtree.src,
+            target: .subtree.target,
+            commit: .subtree.commit
+          } |
+          if .subtree.src == null then del(.subtree.src) else . end |
+          if .subtree.repo == null then del(.subtree.repo) else . end' \
+          "$PACKAGE_JSON" > "$temp_file"; then
+    error_msg "Failed to update package.json with local sync overrides"
+    rm -f "$temp_file"
+    clean_exit 1 "" true
+  fi
+
+  if ! mv "$temp_file" "$PACKAGE_JSON"; then
+    error_msg "Failed to write updated package.json"
+    rm -f "$temp_file"
+    clean_exit 1 "" true
+  fi
+
+  success_msg "Updated package.json with DO_NOT_MERGE_SYNCED_FROM_LOCAL flag"
+
+  if ! git add "$PACKAGE_JSON"; then
+    error_msg "Failed to stage package.json"
+    clean_exit 1 "" true
+  fi
+
+  commit_msg="${COMMIT_PREFIX}Override subtree config for local sync
+
+Syncing from local repository: $LOCAL_REPO_RESOLVED
+Branch: $LOCAL_BRANCH
+
+This commit should NOT be merged. It exists only to test changes from a local repository."
+
+  if ! git commit -q -m "$commit_msg"; then
+    warning_msg "Failed to commit package.json changes (assuming changes were already present)"
+  else
+    success_msg "Committed package.json changes with DO NOT MERGE warning"
+  fi
+  echo ""
+fi
+
 inject_conflict_markers() {
   local patch_file="$1"
   local commit_sha="$2"
@@ -656,7 +743,35 @@ inject_conflict_markers() {
       ' "$patch_file" > "$temp_patch"
 
       if [ -s "$temp_patch" ]; then
-        cat >> "$target_file" << EOF
+        if is_binary_file "$target_file"; then
+          local patch_sidecar="$MONOREPO_ROOT/$WORKSPACE_LOCATION/$TARGET_RELATIVE/${rel_file}.patch"
+          local meta_sidecar="$MONOREPO_ROOT/$WORKSPACE_LOCATION/$TARGET_RELATIVE/${rel_file}.patch-info.txt"
+
+          mkdir -p "$(dirname "$patch_sidecar")"
+          cp "$temp_patch" "$patch_sidecar"
+
+          cat > "$meta_sidecar" << METAEOF
+PATCH INFO — Binary file conflict
+==================================
+UPSTREAM COMMIT: $commit_sha
+COMMIT MESSAGE: $commit_msg
+FILE: $rel_file
+WORKSPACE: $WORKSPACE_LOCATION
+PACKAGE: $PACKAGE_NAME
+LOCAL REPO: $LOCAL_REPO_RESOLVED
+BRANCH: $LOCAL_BRANCH
+
+This file is binary and cannot have conflict markers embedded.
+The patch content has been saved to: ${rel_file}.patch
+Review the patch and apply changes manually.
+
+For more details, view the upstream commit at:
+$commit_url
+METAEOF
+
+          warning_msg "Binary file '$rel_file' — patch saved to ${rel_file}.patch and ${rel_file}.patch-info.txt"
+        else
+          cat >> "$target_file" << EOF
 
 <<<<<<< PATCH FAILED TO APPLY
 UPSTREAM COMMIT: $commit_sha
@@ -669,9 +784,9 @@ This usually means the file content differs from what upstream expects.
 WHAT THE PATCH WANTS TO DO:
 ────────────────────────────────────────────────────────────
 EOF
-        cat "$temp_patch" >> "$target_file"
+          cat "$temp_patch" >> "$target_file"
 
-        cat >> "$target_file" << EOF
+          cat >> "$target_file" << EOF
 ────────────────────────────────────────────────────────────
 
 INSTRUCTIONS:
@@ -686,6 +801,7 @@ For more details, view the upstream commit at:
 $commit_url
 >>>>>>> END PATCH FAILED
 EOF
+        fi
       fi
       rm -f "$temp_patch"
     fi
@@ -933,10 +1049,12 @@ apply_patch_based_update() {
         clean_exit 1 "" true
       fi
 
+      set +e
       safe_git_commit_if_changes "${COMMIT_PREFIX}Update $PACKAGE_NAME: $commit_msg
 
 Upstream commit: $commit" "$WORKSPACE_LOCATION/$TARGET_RELATIVE"
       local commit_exit_code=$?
+      set -e
 
       if [ $commit_exit_code -eq 0 ]; then
         if update_package_json_commit "$commit"; then
@@ -949,9 +1067,10 @@ Upstream commit: $commit" "$WORKSPACE_LOCATION/$TARGET_RELATIVE"
       elif [ $commit_exit_code -eq 2 ]; then
         if update_package_json_commit "$commit"; then
           local tracking_msg="${COMMIT_PREFIX}Update $PACKAGE_NAME tracking to $commit (no file changes)"
-          if safe_git_commit_if_changes "$tracking_msg" "$PACKAGE_JSON" >/dev/null; then
-            info_msg "No changes from commit $commit_count/$total_commits"
-          fi
+          set +e
+          safe_git_commit_if_changes "$tracking_msg" "$PACKAGE_JSON" >/dev/null
+          set -e
+          info_msg "No changes from commit $commit_count/$total_commits"
         else
           warning_msg "Failed to update package.json tracking for commit $commit_count/$total_commits"
         fi
@@ -965,7 +1084,9 @@ Upstream commit: $commit" "$WORKSPACE_LOCATION/$TARGET_RELATIVE"
       cd "$MONOREPO_ROOT"
       if update_package_json_commit "$commit"; then
         local tracking_msg="${COMMIT_PREFIX}Update $PACKAGE_NAME tracking to $commit (no file changes)"
+        set +e
         safe_git_commit_if_changes "$tracking_msg" "$PACKAGE_JSON" >/dev/null
+        set -e
       else
         warning_msg "Failed to update package.json tracking for commit $commit_count/$total_commits"
       fi
@@ -1048,34 +1169,6 @@ filter_and_transform_patch() {
       if (in_relevant_file && !skip_file) print $0
     }
   ' "$input_patch" > "$output_patch"
-}
-
-show_do_not_merge_warning() {
-  echo ""
-  echo -e "${RED}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
-  echo -e "${RED}║                                                                          ║${NC}"
-  echo -e "${RED}║  WARNING: DO NOT MERGE THESE COMMITS!                                    ║${NC}"
-  echo -e "${RED}║                                                                          ║${NC}"
-  echo -e "${RED}║  These commits sync from a LOCAL repository and may reference commits    ║${NC}"
-  echo -e "${RED}║  that don't exist in the official upstream.                              ║${NC}"
-  echo -e "${RED}║                                                                          ║${NC}"
-  echo -e "${RED}║  All commits created during this sync have the prefix:                   ║${NC}"
-  echo -e "${RED}║  [DO NOT MERGE - LOCAL SYNC]                                             ║${NC}"
-  echo -e "${RED}║                                                                          ║${NC}"
-  echo -e "${RED}║  Local repo: $(printf '%-58s' "$LOCAL_REPO_RESOLVED")║${NC}"
-  echo -e "${RED}║  Branch: $(printf '%-62s' "$LOCAL_BRANCH")║${NC}"
-  echo -e "${RED}║                                                                          ║${NC}"
-  echo -e "${RED}║  Next steps:                                                             ║${NC}"
-  echo -e "${RED}║  1. Test the changes from the local repository                           ║${NC}"
-  echo -e "${RED}║  2. After the changes are merged upstream, start a fresh branch from     ║${NC}"
-  echo -e "${RED}║     odh-dashboard main                                                   ║${NC}"
-  echo -e "${RED}║  3. Run the sync script again WITHOUT the --local-repo option to get     ║${NC}"
-  echo -e "${RED}║     the official merged changes                                          ║${NC}"
-  echo -e "${RED}║                                                                          ║${NC}"
-  echo -e "${RED}║  DO NOT merge this branch into odh-dashboard main!                       ║${NC}"
-  echo -e "${RED}║                                                                          ║${NC}"
-  echo -e "${RED}╚══════════════════════════════════════════════════════════════════════════╝${NC}"
-  echo ""
 }
 
 if [ ! -d "$TARGET_DIR" ]; then
