@@ -111,12 +111,11 @@ const streamingTemplates: Record<string, MicrocopyTemplate> = {
   },
   'stream:timeout': {
     title: 'Streaming error — response timed out',
-    description:
-      'The model stopped responding during generation. The response above is incomplete.',
+    description: 'The model stopped responding during generation.',
   },
   'stream:context_length': {
     title: 'Streaming error — context length exceeded',
-    description: "The response exceeded the model's context length and was cut short.",
+    description: "The response exceeded the model's context length.",
   },
 };
 
