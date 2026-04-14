@@ -5,6 +5,8 @@ interface ClassifyContext {
   modelName?: string;
   maxTokens?: number;
   toolName?: string;
+  wasStreamStarted?: boolean;
+  wasResponseGenerated?: boolean;
 }
 
 const COMPONENT_DISPLAY_NAMES: Record<string, string> = {
@@ -19,15 +21,72 @@ const COMPONENT_DISPLAY_NAMES: Record<string, string> = {
 
 const PARTIAL_COMPONENTS = new Set(['rag', 'guardrails', 'mcp']);
 
-const RETRIABLE_CODES = new Set(['timeout', 'server_error']);
+const RETRIABLE_CODES = new Set(['timeout', 'server_error', 'stream_lost', 'stream_timeout']);
 const RETRIABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
+
+// Map streaming error codes to template keys
+const STREAMING_ERROR_MAP: Record<string, string> = {
+  /* eslint-disable camelcase */
+  stream_lost: 'stream:connection_lost',
+  stream_timeout: 'stream:timeout',
+  stream_context: 'stream:context_length',
+  /* eslint-enable camelcase */
+};
+
+// Keywords in error messages that indicate streaming connection loss
+const STREAM_LOST_KEYWORDS = [
+  'stream terminated',
+  'connection reset',
+  'connection lost',
+  'stream closed',
+  'connection closed',
+  'EOF',
+  'broken pipe',
+];
+
+// Keywords in error messages that indicate streaming timeout
+const STREAM_TIMEOUT_KEYWORDS = [
+  'stream timeout',
+  'stream timed out',
+  'no response',
+  'stopped responding',
+];
+
+function detectStreamingErrorFromMessage(message: string): string | null {
+  const lowerMessage = message.toLowerCase();
+
+  // Check for connection loss
+  if (STREAM_LOST_KEYWORDS.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))) {
+    return 'stream:connection_lost';
+  }
+
+  // Check for timeout
+  if (STREAM_TIMEOUT_KEYWORDS.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))) {
+    return 'stream:timeout';
+  }
+
+  return null;
+}
 
 function resolveTemplateKey(error: ApiError): string {
   const component = error.error?.component;
   const code = error.error?.code;
+  const message = error.error?.message ?? error.message ?? '';
 
   if (component && code) {
+    // Check if this is a streaming error disguised as a timeout
+    if (code === 'timeout' && message) {
+      const streamingKey = detectStreamingErrorFromMessage(message);
+      if (streamingKey) {
+        return streamingKey;
+      }
+    }
     return `${component}:${code}`;
+  }
+
+  // Handle streaming errors
+  if (code && STREAMING_ERROR_MAP[code]) {
+    return STREAMING_ERROR_MAP[code];
   }
 
   if (error.status === 429) {
@@ -49,6 +108,13 @@ function resolveRetriable(error: ApiError): boolean {
   }
 
   const code = error.error?.code;
+  const message = error.error?.message ?? error.message ?? '';
+
+  // Streaming errors are retriable
+  if (detectStreamingErrorFromMessage(message)) {
+    return true;
+  }
+
   if (code && RETRIABLE_CODES.has(code)) {
     return true;
   }
@@ -71,6 +137,8 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
   const rawMessage = error.error?.message ?? error.message ?? '';
 
   const isPartial = component ? PARTIAL_COMPONENTS.has(component) : false;
+  const isStreamingError =
+    (code && code in STREAMING_ERROR_MAP) || detectStreamingErrorFromMessage(rawMessage) !== null;
 
   const effectiveContext = {
     ...context,
@@ -90,15 +158,23 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
       : displayComponent;
 
   let pattern: ClassifiedError['pattern'];
-  if (isPartial) {
+  let variant: ClassifiedError['variant'];
+
+  if (isStreamingError && context.wasStreamStarted) {
+    // Streaming interruptions: error occurred during streaming (with or without partial content)
+    pattern = 'streaming-interruption';
+    variant = 'danger'; // Streaming interruptions are always danger
+  } else if (isPartial || context.wasResponseGenerated) {
     pattern = 'partial-failure';
+    variant = 'warning'; // Partial failures are warnings
   } else {
     pattern = 'full-failure';
+    variant = 'danger'; // Full failures are danger
   }
 
   return {
     pattern,
-    variant: isPartial ? 'warning' : 'danger',
+    variant,
     title: microcopy.title,
     description: microcopy.description,
     details: {

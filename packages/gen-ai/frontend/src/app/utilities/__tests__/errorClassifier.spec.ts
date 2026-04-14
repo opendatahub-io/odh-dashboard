@@ -5,26 +5,26 @@ import { classifyError } from '~/app/utilities/errorClassifier';
 describe('errorClassifier', () => {
   describe('classifyError', () => {
     describe('error pattern determination', () => {
-      it('should classify as full_failure when no response was generated', () => {
+      it('should classify as full-failure when no response was generated', () => {
         const error = { error: { code: 'timeout', message: 'Request timed out' } };
         const result = classifyError(error, {
           wasResponseGenerated: false,
           wasStreamStarted: false,
         });
 
-        expect(result.pattern).toBe('full_failure' as ErrorPattern);
-        expect(result.severity).toBe('danger' as ErrorSeverity);
+        expect(result.pattern).toBe('full-failure' as ErrorPattern);
+        expect(result.variant).toBe('danger' as ErrorSeverity);
       });
 
-      it('should classify as partial_failure when response was generated', () => {
+      it('should classify as partial-failure when response was generated', () => {
         const error = { error: { code: 'rag_down', message: 'RAG retrieval failed' } };
         const result = classifyError(error, {
           wasResponseGenerated: true,
           wasStreamStarted: false,
         });
 
-        expect(result.pattern).toBe('partial_failure' as ErrorPattern);
-        expect(result.severity).toBe('warning' as ErrorSeverity);
+        expect(result.pattern).toBe('partial-failure' as ErrorPattern);
+        expect(result.variant).toBe('warning' as ErrorSeverity);
       });
 
       it('should classify as streaming_interruption when stream started but no full response', () => {
@@ -34,8 +34,19 @@ describe('errorClassifier', () => {
           wasStreamStarted: true,
         });
 
-        expect(result.pattern).toBe('streaming_interruption' as ErrorPattern);
-        expect(result.severity).toBe('danger' as ErrorSeverity);
+        expect(result.pattern).toBe('streaming-interruption' as ErrorPattern);
+        expect(result.variant).toBe('danger' as ErrorSeverity);
+      });
+
+      it('should classify as streaming_interruption when stream started with partial response', () => {
+        const error = { error: { code: 'stream_lost', message: 'Connection lost' } };
+        const result = classifyError(error, {
+          wasResponseGenerated: true,
+          wasStreamStarted: true,
+        });
+
+        expect(result.pattern).toBe('streaming-interruption' as ErrorPattern);
+        expect(result.variant).toBe('danger' as ErrorSeverity);
       });
     });
 
@@ -46,7 +57,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.retriable).toBe(true);
+        expect(result.isRetriable).toBe(true);
       });
 
       it('should mark as non-retriable when error has explicit retriable flag set to false', () => {
@@ -55,44 +66,50 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.retriable).toBe(false);
+        expect(result.isRetriable).toBe(false);
       });
 
       it('should mark timeout errors as retriable', () => {
         const error = { error: { code: 'timeout', message: 'Request timed out' } };
         const result = classifyError(error);
 
-        expect(result.retriable).toBe(true);
+        expect(result.isRetriable).toBe(true);
       });
 
       it('should mark server errors as retriable', () => {
         const error = { error: { code: 'server_error', message: 'Server error' } };
         const result = classifyError(error);
 
-        expect(result.retriable).toBe(true);
+        expect(result.isRetriable).toBe(true);
       });
 
-      it('should mark rate limit errors as retriable', () => {
-        const error = { error: { code: 'rate_limit', message: 'Rate limited' } };
+      it('should mark streaming errors as retriable', () => {
+        const error = { error: { code: 'stream_lost', message: 'Stream lost' } };
         const result = classifyError(error);
 
-        expect(result.retriable).toBe(true);
+        expect(result.isRetriable).toBe(true);
       });
 
       it('should mark 429 HTTP status as retriable', () => {
-        const error = { error: { message: 'Too many requests' } };
-        const result = classifyError(error, { httpStatus: 429 });
+        const error = { status: 429, error: { message: 'Too many requests' } };
+        const result = classifyError(error);
 
-        expect(result.retriable).toBe(true);
+        expect(result.isRetriable).toBe(true);
       });
 
       it('should mark 5xx HTTP statuses as retriable', () => {
-        const error = { error: { message: 'Server error' } };
-
-        expect(classifyError(error, { httpStatus: 500 }).retriable).toBe(true);
-        expect(classifyError(error, { httpStatus: 502 }).retriable).toBe(true);
-        expect(classifyError(error, { httpStatus: 503 }).retriable).toBe(true);
-        expect(classifyError(error, { httpStatus: 504 }).retriable).toBe(true);
+        expect(classifyError({ status: 500, error: { message: 'Server error' } }).isRetriable).toBe(
+          true,
+        );
+        expect(classifyError({ status: 502, error: { message: 'Bad gateway' } }).isRetriable).toBe(
+          true,
+        );
+        expect(
+          classifyError({ status: 503, error: { message: 'Service unavailable' } }).isRetriable,
+        ).toBe(true);
+        expect(
+          classifyError({ status: 504, error: { message: 'Gateway timeout' } }).isRetriable,
+        ).toBe(true);
       });
 
       it('should mark configuration errors as non-retriable', () => {
@@ -104,7 +121,7 @@ describe('errorClassifier', () => {
         ];
 
         errors.forEach((error) => {
-          expect(classifyError(error).retriable).toBe(false);
+          expect(classifyError(error).isRetriable).toBe(false);
         });
       });
     });
@@ -213,6 +230,20 @@ describe('errorClassifier', () => {
           const result = classifyError(error, { wasStreamStarted: true });
           expect(result.title).toBe(expected);
         });
+      });
+
+      it('should detect streaming errors from timeout with message keywords', () => {
+        const error = {
+          error: {
+            component: 'llama_stack',
+            code: 'timeout',
+            message: '{"error": "stream terminated: connection reset by peer"}',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Streaming error — connection lost');
+        expect(result.description).toBe('The connection to the model was lost during generation.');
       });
 
       it('should use generic title for unknown errors', () => {

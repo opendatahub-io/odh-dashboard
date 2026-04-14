@@ -675,9 +675,16 @@ const useChatbotMessages = ({
         return; // Exit early - this is not an error to classify
       }
 
+      // Check if there's partial content in the bot message (for streaming interruptions)
+      const currentBotMessage = messages.find((msg) => msg.id === botMessageId);
+      const hadPartialContent =
+        isStreamingEnabled && currentBotMessage?.content && currentBotMessage.content.length > 0;
+
       // Classify the error for UI rendering
       const errorClassification = classifyError(error, {
         modelName: modelDisplayName,
+        wasStreamStarted: isStreamingEnabled,
+        wasResponseGenerated: hadPartialContent,
         // TODO: Add maxTokens from model config when available
         // TODO: Add toolName if error is from MCP tool call
       });
