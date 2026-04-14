@@ -12,6 +12,7 @@ import {
   isValueFromEnvVar,
   isPVCUri,
   getPVCNameFromURI,
+  translateModelServingError,
 } from '#~/pages/modelServing/screens/projects/utils';
 import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '#~/types';
@@ -611,5 +612,47 @@ describe('getPVCNameFromURI', () => {
   it('should return an empty string if the URI is not a PVC URI', () => {
     const uri = 'http://pvc-1/model-path';
     expect(getPVCNameFromURI(uri)).toEqual('');
+  });
+});
+
+describe('translateModelServingError', () => {
+  it('should return a friendly message when a duplicate name error includes a quoted name', () => {
+    const k8sError = 'servingruntimes.serving.kserve.io "test-model" already exists';
+    expect(translateModelServingError(k8sError)).toBe(
+      'A model deployment with the name "test-model" already exists. Please choose a different Model deployment name.',
+    );
+  });
+
+  it('should return a friendly message for inferenceservices duplicate name errors', () => {
+    const k8sError = 'inferenceservices.serving.kserve.io "my-deployment" already exists';
+    expect(translateModelServingError(k8sError)).toBe(
+      'A model deployment with the name "my-deployment" already exists. Please choose a different Model deployment name.',
+    );
+  });
+
+  it('should return a friendly message when a duplicate name error has no quoted name', () => {
+    const k8sError = 'the resource already exists';
+    expect(translateModelServingError(k8sError)).toBe(
+      'A model deployment with this name already exists. Please choose a different Model deployment name.',
+    );
+  });
+
+  it('should replace K8s resource group references in non-duplicate errors', () => {
+    const k8sError = 'servingruntimes.serving.kserve.io is forbidden: User cannot create';
+    expect(translateModelServingError(k8sError)).toBe(
+      'model deployment is forbidden: User cannot create',
+    );
+  });
+
+  it('should replace inferenceservices resource group references in non-duplicate errors', () => {
+    const k8sError = 'inferenceservices.serving.kserve.io is forbidden: User cannot update';
+    expect(translateModelServingError(k8sError)).toBe(
+      'model deployment is forbidden: User cannot update',
+    );
+  });
+
+  it('should pass through unrelated error messages unchanged', () => {
+    const genericError = 'Network error: connection refused';
+    expect(translateModelServingError(genericError)).toBe(genericError);
   });
 });
