@@ -62,7 +62,9 @@
     },
     "./mocks/*": [
       "./upstream/frontend/src/__mocks__/*",
-      "./upstream/frontend/src/__mocks__/*.ts"
+      "./upstream/frontend/src/__mocks__/*.ts",
+      "./src/__mocks__/*",
+      "./src/__mocks__/*.ts"
     ],
     "./types/modelCatalogTypes": "./upstream/frontend/src/app/modelCatalogTypes.ts",
     "./types/mcpDeploymentTypes": "./src/types/mcpDeploymentTypes.ts",
