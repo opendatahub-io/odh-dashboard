@@ -17,7 +17,13 @@ describe('errorClassifier', () => {
       });
 
       it('should classify as partial-failure when response was generated', () => {
-        const error = { error: { code: 'rag_down', message: 'RAG retrieval failed' } };
+        const error = {
+          error: {
+            component: 'rag' as const,
+            code: 'unreachable',
+            message: 'RAG retrieval failed',
+          },
+        };
         const result = classifyError(error, {
           wasResponseGenerated: true,
           wasStreamStarted: false,
@@ -151,42 +157,78 @@ describe('errorClassifier', () => {
 
     describe('error title generation', () => {
       it('should generate title for max_tokens error', () => {
-        const error = { error: { code: 'max_tokens', message: 'Token limit exceeded' } };
+        const error = {
+          error: {
+            component: 'model' as const,
+            code: 'max_tokens',
+            message: 'Token limit exceeded',
+          },
+        };
         const result = classifyError(error);
 
         expect(result.title).toBe('Token limit exceeds model capacity');
       });
 
       it('should generate title for chat_template error', () => {
-        const error = { error: { code: 'chat_template', message: 'Invalid template' } };
+        const error = {
+          error: {
+            component: 'model' as const,
+            code: 'chat_template',
+            message: 'Invalid template',
+          },
+        };
         const result = classifyError(error);
 
         expect(result.title).toBe('Model configuration error');
       });
 
       it('should generate title for no_tools error', () => {
-        const error = { error: { code: 'no_tools', message: 'Tools not supported' } };
+        const error = {
+          error: {
+            component: 'model' as const,
+            code: 'no_tools',
+            message: 'Tools not supported',
+          },
+        };
         const result = classifyError(error);
 
         expect(result.title).toBe("This model doesn't support tool calling");
       });
 
       it('should generate title for no_images error', () => {
-        const error = { error: { code: 'no_images', message: 'Images not supported' } };
+        const error = {
+          error: {
+            component: 'model' as const,
+            code: 'no_images',
+            message: 'Images not supported',
+          },
+        };
         const result = classifyError(error);
 
         expect(result.title).toBe("This model doesn't support image input");
       });
 
       it('should generate title for timeout error', () => {
-        const error = { error: { code: 'timeout', message: 'Request timed out' } };
+        const error = {
+          error: {
+            component: 'llama_stack' as const,
+            code: 'timeout',
+            message: 'Request timed out',
+          },
+        };
         const result = classifyError(error);
 
         expect(result.title).toBe('Model inference failed');
       });
 
       it('should generate title for server_error', () => {
-        const error = { error: { code: 'server_error', message: 'Internal error' } };
+        const error = {
+          error: {
+            component: 'llama_stack' as const,
+            code: 'server_error',
+            message: 'Internal error',
+          },
+        };
         const result = classifyError(error);
 
         expect(result.title).toBe('Model server error');
@@ -201,33 +243,42 @@ describe('errorClassifier', () => {
 
       it('should generate title for RAG errors', () => {
         const errors = [
-          { code: 'rag_down', expected: 'Knowledge source retrieval failed' },
-          { code: 'rag_embed', expected: 'Knowledge source retrieval failed' },
-          { code: 'rag_empty', expected: 'No matching knowledge found' },
+          { code: 'unreachable', expected: 'Knowledge source retrieval failed' },
+          { code: 'embedding_failure', expected: 'Knowledge source retrieval failed' },
+          { code: 'no_results', expected: 'No matching knowledge found' },
         ];
 
         errors.forEach(({ code, expected }) => {
-          const error = { error: { code, message: 'RAG error' } };
+          const error = {
+            error: { component: 'rag' as const, code, message: 'RAG error' },
+          };
           expect(classifyError(error).title).toBe(expected);
         });
       });
 
       it('should generate title for guardrails errors', () => {
         const errors = [
-          { code: 'guardrail_flagged', expected: 'Content was flagged by guardrails' },
-          { code: 'guardrail_down', expected: 'Guardrail check was not applied' },
+          { code: 'content_flagged', expected: 'Content was flagged by guardrails' },
+          { code: 'service_down', expected: 'Guardrail check was not applied' },
         ];
 
         errors.forEach(({ code, expected }) => {
-          const error = { error: { code, message: 'Guardrails error' } };
+          const error = {
+            error: { component: 'guardrails' as const, code, message: 'Guardrails error' },
+          };
           expect(classifyError(error).title).toBe(expected);
         });
       });
 
       it('should generate title for MCP errors with tool name', () => {
         const error = {
-          // eslint-disable-next-line camelcase
-          error: { code: 'mcp_down', message: 'Tool failed', tool_name: 'GitHub' },
+          error: {
+            component: 'mcp' as const,
+            code: 'unreachable',
+            message: 'Tool failed',
+            // eslint-disable-next-line camelcase
+            tool_name: 'GitHub',
+          },
         };
         const result = classifyError(error);
 
@@ -235,7 +286,9 @@ describe('errorClassifier', () => {
       });
 
       it('should generate title for MCP errors without tool name', () => {
-        const error = { error: { code: 'mcp_down', message: 'Tool failed' } };
+        const error = {
+          error: { component: 'mcp' as const, code: 'unreachable', message: 'Tool failed' },
+        };
         const result = classifyError(error);
 
         expect(result.title).toBe('Tool call failed');
@@ -346,7 +399,13 @@ describe('errorClassifier', () => {
       });
 
       it('should generate description for timeout error', () => {
-        const error = { error: { code: 'timeout', message: 'Request timed out' } };
+        const error = {
+          error: {
+            component: 'llama_stack' as const,
+            code: 'timeout',
+            message: 'Request timed out',
+          },
+        };
         const result = classifyError(error);
 
         expect(result.description).toBe(
@@ -355,17 +414,27 @@ describe('errorClassifier', () => {
       });
 
       it('should generate description for server_error', () => {
-        const error = { error: { code: 'server_error', message: 'Server error' } };
+        const error = {
+          error: {
+            component: 'llama_stack' as const,
+            code: 'server_error',
+            message: 'Server error',
+          },
+        };
         const result = classifyError(error);
 
-        expect(result.description).toBe('The model server encountered an internal error.');
+        expect(result.description).toBe(
+          "The model server encountered an internal error and couldn't generate a response.",
+        );
       });
 
       it('should generate description for rate_limit error', () => {
-        const error = { error: { code: 'rate_limit', message: 'Rate limited' } };
+        const error = { status: 429, error: { message: 'Rate limited' } };
         const result = classifyError(error);
 
-        expect(result.description).toBe('Too many requests to the model server. Wait a moment.');
+        expect(result.description).toBe(
+          'Too many requests to the model server. Wait a moment before trying again.',
+        );
       });
 
       it('should generate description for service_unavailable error', () => {
@@ -376,62 +445,108 @@ describe('errorClassifier', () => {
       });
 
       it('should generate description for RAG partial failures', () => {
-        const error = { error: { code: 'rag_down', message: 'RAG failed' } };
+        const error = {
+          error: { component: 'rag' as const, code: 'unreachable', message: 'RAG failed' },
+        };
         const result = classifyError(error, { wasResponseGenerated: true });
 
-        expect(result.description).toBe('Generated without context from your knowledge sources.');
+        expect(result.description).toBe(
+          'This response was generated without context from your knowledge sources. Results may be less accurate.',
+        );
         expect(result.pattern).toBe('partial-failure' as ErrorPattern);
       });
 
       it('should generate description for rag_embed error', () => {
-        const error = { error: { code: 'rag_embed', message: 'Embedding failed' } };
-        const result = classifyError(error);
-
-        expect(result.description).toBe("Embedding model couldn't process your query.");
-      });
-
-      it('should generate description for rag_empty error', () => {
-        const error = { error: { code: 'rag_empty', message: 'No results' } };
-        const result = classifyError(error);
-
-        expect(result.description).toBe("Knowledge sources didn't return relevant results.");
-      });
-
-      it('should generate description for guardrail_flagged error', () => {
-        const error = { error: { code: 'guardrail_flagged', message: 'Content flagged' } };
-        const result = classifyError(error);
-
-        expect(result.description).toBe('A guardrail flagged this response. Review carefully.');
-      });
-
-      it('should generate description for guardrail_down error', () => {
-        const error = { error: { code: 'guardrail_down', message: 'Guardrails down' } };
-        const result = classifyError(error);
-
-        expect(result.description).toBe("Safety filter couldn't process this response.");
-      });
-
-      it('should generate description for mcp_down error', () => {
-        const error = { error: { code: 'mcp_down', message: 'MCP server down' } };
+        const error = {
+          error: {
+            component: 'rag' as const,
+            code: 'embedding_failure',
+            message: 'Embedding failed',
+          },
+        };
         const result = classifyError(error);
 
         expect(result.description).toBe(
-          "Server didn't respond. Response generated without tool output.",
+          "The embedding model couldn't process your query for retrieval. The response doesn't include knowledge source context.",
+        );
+      });
+
+      it('should generate description for rag_empty error', () => {
+        const error = {
+          error: { component: 'rag' as const, code: 'no_results', message: 'No results' },
+        };
+        const result = classifyError(error);
+
+        expect(result.description).toBe(
+          "Your knowledge sources didn't return any relevant results. The response was generated without additional context.",
+        );
+      });
+
+      it('should generate description for guardrail_flagged error', () => {
+        const error = {
+          error: {
+            component: 'guardrails' as const,
+            code: 'content_flagged',
+            message: 'Content flagged',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.description).toBe(
+          'A guardrail flagged this response. Review the output carefully.',
+        );
+      });
+
+      it('should generate description for guardrail_down error', () => {
+        const error = {
+          error: {
+            component: 'guardrails' as const,
+            code: 'service_down',
+            message: 'Guardrails down',
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.description).toBe(
+          "The safety filter couldn't process this response. Review the output carefully.",
+        );
+      });
+
+      it('should generate description for mcp_down error', () => {
+        const error = {
+          error: { component: 'mcp' as const, code: 'unreachable', message: 'MCP server down' },
+        };
+        const result = classifyError(error);
+
+        expect(result.description).toBe(
+          "The model attempted to use the A tool tool but the server didn't respond. The response was generated without this tool's output.",
         );
       });
 
       it('should generate description for mcp_auth error', () => {
-        const error = { error: { code: 'mcp_auth', message: 'Auth failed' } };
+        const error = {
+          error: { component: 'mcp' as const, code: 'auth_failure', message: 'Auth failed' },
+        };
         const result = classifyError(error);
 
-        expect(result.description).toBe('Auth error. Check credentials in Build panel.');
+        expect(result.description).toBe(
+          "The A tool tool server rejected the request due to an authentication error. Check the server's credentials in the Build panel.",
+        );
       });
 
       it('should generate description for mcp_exec error', () => {
-        const error = { error: { code: 'mcp_exec', message: 'Execution failed' } };
+        const error = {
+          error: {
+            component: 'mcp' as const,
+            code: 'execution_error',
+            message: 'Execution failed',
+          },
+        };
         const result = classifyError(error);
 
-        expect(result.description).toBe('Tool encountered an error during execution.');
+        expect(result.description).toBe(
+          'The A tool tool encountered an error during execution. The response may be incomplete.',
+        );
       });
 
       it('should generate description for stream_lost error', () => {
@@ -613,7 +728,7 @@ describe('errorClassifier', () => {
       it('should prefer code over component for RAG errors', () => {
         const error = {
           error: {
-            code: 'rag_empty',
+            code: 'no_results',
             component: 'rag' as const,
             message: 'No results',
           },

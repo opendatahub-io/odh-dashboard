@@ -37,14 +37,6 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
   const { variant, title, description, details, isRetriable } = classifiedError;
   const [copied, setCopied] = React.useState(false);
 
-  // eslint-disable-next-line no-console
-  console.log('[ChatbotErrorAlert] Props:', {
-    classifiedError,
-    isRetriable,
-    onRetry: !!onRetry,
-    retryCount,
-  });
-
   const handleCopy = () => {
     const rawError = `[${details.errorCode}] ${details.rawMessage}`;
     navigator.clipboard.writeText(rawError);
