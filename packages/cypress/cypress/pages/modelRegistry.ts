@@ -63,6 +63,10 @@ class ModelRegistry {
     cy.findByTestId('app-page-title', { timeout: 60000 }).should('exist');
   }
 
+  visitWithRegistry(registryName: string) {
+    this.visit(registryName);
+  }
+
   navigate() {
     appChrome
       .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
