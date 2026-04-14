@@ -11,6 +11,7 @@ import {
   ModalHeader,
   TextInput,
 } from '@patternfly/react-core';
+import PasswordInput from '@odh-dashboard/internal/components/PasswordInput';
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
 import { createSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 import { translateDisplayNameForK8s } from '@odh-dashboard/internal/concepts/k8s/utils';
@@ -120,12 +121,13 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
             </FormHelperText>
           </FormGroup>
           <FormGroup fieldId="lls-connection-api-key" label="API key">
-            <TextInput
+            <PasswordInput
               id="lls-connection-api-key"
               data-testid="lls-connection-api-key"
-              type="password"
               value={apiKey}
               onChange={(_e, val) => setApiKey(val)}
+              ariaLabelShow="Show API key"
+              ariaLabelHide="Hide API key"
             />
           </FormGroup>
         </Form>

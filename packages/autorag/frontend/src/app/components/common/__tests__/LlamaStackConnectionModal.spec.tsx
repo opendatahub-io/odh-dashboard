@@ -418,6 +418,31 @@ describe('LlamaStackConnectionModal', () => {
     expect(alert).toHaveTextContent('Refresh failed');
   });
 
+  it('should toggle API key visibility when eyeball button is clicked', async () => {
+    render(
+      <LlamaStackConnectionModal
+        namespace={TEST_NAMESPACE}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+      />,
+    );
+
+    const apiKeyInput = screen.getByTestId('lls-connection-api-key');
+    expect(apiKeyInput).toHaveAttribute('type', 'password');
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'Show API key' }).click();
+    });
+
+    expect(apiKeyInput).toHaveAttribute('type', 'text');
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'Hide API key' }).click();
+    });
+
+    expect(apiKeyInput).toHaveAttribute('type', 'password');
+  });
+
   it('should clear validation error when base URL is corrected', async () => {
     render(
       <LlamaStackConnectionModal
