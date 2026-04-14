@@ -98,6 +98,7 @@ function AutoragCreate(): React.JSX.Element {
                 <Button
                   data-testid="add-lls-connection-button"
                   variant="tertiary"
+                  aria-label="Add new Llama Stack connection"
                   onClick={() => setIsConnectionModalOpen(true)}
                 >
                   Add new connection

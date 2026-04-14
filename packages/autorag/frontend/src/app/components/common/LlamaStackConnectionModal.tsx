@@ -22,29 +22,28 @@ type Props = {
   onSubmit: (secretName: string) => void;
 };
 
+const isValidUrl = (url: string): boolean => {
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) => {
   const [name, setName] = React.useState('');
   const [baseUrl, setBaseUrl] = React.useState('');
   const [apiKey, setApiKey] = React.useState('');
   const [submitError, setSubmitError] = React.useState<Error>();
   const [isSaving, setIsSaving] = React.useState(false);
-  const [isModified, setIsModified] = React.useState(false);
   const [baseUrlTouched, setBaseUrlTouched] = React.useState(false);
-
-  const isValidUrl = (url: string): boolean => {
-    try {
-      const parsed = new URL(url.trim());
-      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-    } catch {
-      return false;
-    }
-  };
 
   const baseUrlValid = isValidUrl(baseUrl);
   const showBaseUrlError = baseUrlTouched && baseUrl.trim() !== '' && !baseUrlValid;
   const isFormValid = name.trim() !== '' && baseUrlValid;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsSaving(true);
     setSubmitError(undefined);
 
@@ -66,21 +65,14 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
       },
     };
 
-    createSecret(secret)
-      .then(() => {
-        setIsSaving(false);
-        onSubmit(k8sName);
-        onClose();
-      })
-      .catch((e) => {
-        setSubmitError(e);
-        setIsSaving(false);
-      });
-  };
-
-  const handleFieldChange = () => {
-    if (!isModified) {
-      setIsModified(true);
+    try {
+      await createSecret(secret);
+      onSubmit(k8sName);
+      onClose();
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e : new Error(String(e)));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -97,10 +89,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
               id="lls-connection-name"
               data-testid="lls-connection-name"
               value={name}
-              onChange={(_e, val) => {
-                setName(val);
-                handleFieldChange();
-              }}
+              onChange={(_e, val) => setName(val)}
               isRequired
             />
           </FormGroup>
@@ -109,10 +98,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
               id="lls-connection-base-url"
               data-testid="lls-connection-base-url"
               value={baseUrl}
-              onChange={(_e, val) => {
-                setBaseUrl(val);
-                handleFieldChange();
-              }}
+              onChange={(_e, val) => setBaseUrl(val)}
               onBlur={() => setBaseUrlTouched(true)}
               validated={showBaseUrlError ? 'error' : 'default'}
               isRequired
@@ -133,10 +119,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
               data-testid="lls-connection-api-key"
               type="password"
               value={apiKey}
-              onChange={(_e, val) => {
-                setApiKey(val);
-                handleFieldChange();
-              }}
+              onChange={(_e, val) => setApiKey(val)}
             />
           </FormGroup>
         </Form>
@@ -147,7 +130,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
           onCancel={onClose}
           onSubmit={handleSubmit}
           error={submitError}
-          isSubmitDisabled={!isFormValid || !isModified || isSaving}
+          isSubmitDisabled={!isFormValid || isSaving}
           isSubmitLoading={isSaving}
           alertTitle="Failed to create connection"
         />
