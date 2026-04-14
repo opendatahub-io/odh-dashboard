@@ -323,18 +323,6 @@ describe('FileExplorer', () => {
       fireEvent.click(row);
       expect(checkbox).not.toBeChecked();
     });
-    it('should make selected rows not clickable in radio mode', () => {
-      const files = mockFiles(3);
-      render(<FileExplorer {...defaultProps} files={files} selection="radio" />);
-
-      const row = screen.getByTestId('file-explorer-row--file-1-json');
-      const radio = within(row).getByRole('radio');
-      fireEvent.click(radio);
-
-      // Row should not be clickable in radio mode after selection
-      expect(row).not.toHaveClass('pf-m-clickable');
-      expect(row).toHaveClass('pf-m-selected');
-    });
     it('should replace selection when clicking different row in radio mode', () => {
       const files = mockFiles(3);
       render(<FileExplorer {...defaultProps} files={files} selection="radio" />);
@@ -351,9 +339,8 @@ describe('FileExplorer', () => {
       expect(within(row1).getByRole('radio')).not.toBeChecked();
       expect(within(row2).getByRole('radio')).toBeChecked();
 
-      // Second row should now be selected but not clickable
+      // Second row should now be selected
       expect(row2).toHaveClass('pf-m-selected');
-      expect(row2).not.toHaveClass('pf-m-clickable');
     });
     it('should have file-specific aria-label on kebab menu toggle', () => {
       const files = mockFiles(3);
