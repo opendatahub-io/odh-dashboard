@@ -1,4 +1,5 @@
 import {
+  Form,
   FormGroup,
   FormHelperText,
   HelperText,
@@ -14,7 +15,7 @@ function AutomlCreate(): React.JSX.Element {
   const form = useFormContext<ConfigureSchema>();
 
   return (
-    <>
+    <Form isWidthLimited>
       <Controller
         control={form.control}
         name="display_name"
@@ -46,7 +47,7 @@ function AutomlCreate(): React.JSX.Element {
           </FormGroup>
         )}
       />
-    </>
+    </Form>
   );
 }
 

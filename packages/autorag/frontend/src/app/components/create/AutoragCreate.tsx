@@ -1,22 +1,30 @@
 import {
+  Button,
+  Form,
   FormGroup,
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Split,
+  SplitItem,
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import LlamaStackConnectionModal from '~/app/components/common/LlamaStackConnectionModal';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { SecretListItem } from '~/app/types';
 
 function AutoragCreate(): React.JSX.Element {
   const { namespace } = useParams();
   const [selectedLlamaStackSecret, setSelectedLlamaStackSecret] = React.useState<
     SecretSelection | undefined
   >();
+  const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
+  const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
 
   const form = useFormContext<ConfigureSchema>();
   const { setValue } = form;
@@ -31,7 +39,7 @@ function AutoragCreate(): React.JSX.Element {
   }, [setValue]);
 
   return (
-    <>
+    <Form isWidthLimited>
       <Controller
         control={form.control}
         name="display_name"
@@ -67,22 +75,56 @@ function AutoragCreate(): React.JSX.Element {
         control={form.control}
         name="llama_stack_secret_name"
         render={({ field }) => (
-          <FormGroup fieldId={field.name} label="Llama Stack instance" isRequired>
-            <SecretSelector
-              dataTestId="lls-secret-selector"
-              placeholder="Select Llama Stack secret"
-              type="lls"
-              namespace={namespace ?? ''}
-              value={selectedLlamaStackSecret?.uuid}
-              onChange={(secret) => {
-                setSelectedLlamaStackSecret(secret);
-                field.onChange(!secret || secret.invalid ? '' : secret.name);
-              }}
-            />
+          <FormGroup fieldId={field.name} label="Llama Stack connection" isRequired>
+            <Split hasGutter>
+              <SplitItem isFilled>
+                <SecretSelector
+                  dataTestId="lls-secret-selector"
+                  placeholder="Select Llama Stack secret"
+                  type="lls"
+                  namespace={namespace ?? ''}
+                  value={selectedLlamaStackSecret?.uuid}
+                  onChange={(secret) => {
+                    setSelectedLlamaStackSecret(secret);
+                    field.onChange(!secret || secret.invalid ? '' : secret.name);
+                  }}
+                  onRefreshReady={(refresh) => {
+                    secretsRefreshRef.current = refresh;
+                  }}
+                />
+              </SplitItem>
+              <SplitItem>
+                <Button
+                  data-testid="add-lls-connection-button"
+                  variant="tertiary"
+                  onClick={() => setIsConnectionModalOpen(true)}
+                >
+                  Add new connection
+                </Button>
+              </SplitItem>
+            </Split>
           </FormGroup>
         )}
       />
-    </>
+      {isConnectionModalOpen && (
+        <LlamaStackConnectionModal
+          namespace={namespace ?? ''}
+          onClose={() => setIsConnectionModalOpen(false)}
+          onSubmit={async (secretName) => {
+            const refresh = secretsRefreshRef.current;
+            if (!refresh) {
+              return;
+            }
+            const list = await refresh();
+            const secret = list?.find((s) => s.name === secretName);
+            if (secret) {
+              setSelectedLlamaStackSecret({ ...secret, invalid: false });
+              setValue('llama_stack_secret_name', secret.name, { shouldValidate: true });
+            }
+          }}
+        />
+      )}
+    </Form>
   );
 }
 

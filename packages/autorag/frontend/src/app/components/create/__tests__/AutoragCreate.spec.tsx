@@ -55,6 +55,28 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
   ),
 }));
 
+// Mock LlamaStackConnectionModal
+jest.mock('~/app/components/common/LlamaStackConnectionModal', () => ({
+  __esModule: true,
+  default: ({
+    onClose,
+    onSubmit,
+  }: {
+    namespace: string;
+    onClose: () => void;
+    onSubmit: (secretName: string) => void;
+  }) => (
+    <div data-testid="lls-connection-modal">
+      <button data-testid="lls-modal-submit" onClick={() => onSubmit('new-lls-secret')}>
+        Add connection
+      </button>
+      <button data-testid="lls-modal-cancel" onClick={onClose}>
+        Cancel
+      </button>
+    </div>
+  ),
+}));
+
 const configureSchema = createConfigureSchema();
 
 const FormWrapper: React.FC<{
@@ -203,6 +225,34 @@ describe('AutoragCreate', () => {
       renderComponent();
       const nameInput = screen.getByLabelText(/Name/i);
       expect(nameInput).toHaveAttribute('type', 'text');
+    });
+  });
+
+  describe('Add new connection', () => {
+    it('should render the Add new connection button', () => {
+      renderComponent();
+      expect(screen.getByTestId('add-lls-connection-button')).toBeInTheDocument();
+    });
+
+    it('should open the LlamaStackConnectionModal when button is clicked', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      expect(screen.queryByTestId('lls-connection-modal')).not.toBeInTheDocument();
+
+      await user.click(screen.getByTestId('add-lls-connection-button'));
+      expect(screen.getByTestId('lls-connection-modal')).toBeInTheDocument();
+    });
+
+    it('should close the modal when cancel is clicked', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+
+      await user.click(screen.getByTestId('add-lls-connection-button'));
+      expect(screen.getByTestId('lls-connection-modal')).toBeInTheDocument();
+
+      await user.click(screen.getByTestId('lls-modal-cancel'));
+      expect(screen.queryByTestId('lls-connection-modal')).not.toBeInTheDocument();
     });
   });
 
