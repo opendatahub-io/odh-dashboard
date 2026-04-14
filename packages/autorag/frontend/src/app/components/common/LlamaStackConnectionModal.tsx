@@ -19,7 +19,7 @@ import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
 type Props = {
   namespace: string;
   onClose: () => void;
-  onSubmit: (secretName: string) => void;
+  onSubmit: (secretName: string) => void | Promise<void>;
 };
 
 const isValidUrl = (url: string): boolean => {
@@ -67,7 +67,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
 
     try {
       await createSecret(secret);
-      onSubmit(k8sName);
+      await onSubmit(k8sName);
       onClose();
     } catch (e) {
       setSubmitError(e instanceof Error ? e : new Error(String(e)));
