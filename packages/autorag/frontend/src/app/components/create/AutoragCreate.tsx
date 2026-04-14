@@ -1,6 +1,5 @@
 import {
   Button,
-  Form,
   FormGroup,
   FormHelperText,
   HelperText,
@@ -38,8 +37,10 @@ function AutoragCreate(): React.JSX.Element {
     setValue('llama_stack_secret_name', '');
   }, [setValue]);
 
+  // Use a div instead of PF's <Form> to avoid nested <form> elements,
+  // since AutoragConfigurePage already renders <Stack component="form">.
   return (
-    <Form isWidthLimited>
+    <div className="pf-v6-c-form pf-m-limit-width">
       <Controller
         control={form.control}
         name="display_name"
@@ -124,7 +125,7 @@ function AutoragCreate(): React.JSX.Element {
           }}
         />
       )}
-    </Form>
+    </div>
   );
 }
 
