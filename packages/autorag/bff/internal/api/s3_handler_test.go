@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -1675,7 +1676,7 @@ func (c *connectivityErrorS3Client) ObjectExists(_ context.Context, _ string, _ 
 }
 
 func (c *connectivityErrorS3Client) UploadObject(_ context.Context, _ string, _ string, _ io.Reader, _ string) error {
-	return &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("i/o timeout")}
+	return errors.New("unexpected: UploadObject should not be called")
 }
 
 func newTestS3Secret(name, namespace string) corev1.Secret {
@@ -1867,6 +1868,7 @@ func TestGetS3FilesHandler_SetsMetadataTimeout(t *testing.T) {
 	s3Factory.SetMockClient(capturingClient)
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
+	requestStart := time.Now()
 	rr := setupS3ApiTestWithBody(
 		http.MethodGet,
 		"/api/v1/s3/files?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
@@ -1887,7 +1889,7 @@ func TestGetS3FilesHandler_SetsMetadataTimeout(t *testing.T) {
 	require.NotNil(t, capturingClient.capturedCtx, "ListObjects should have been called")
 	deadline, hasDeadline := capturingClient.capturedCtx.Deadline()
 	assert.True(t, hasDeadline, "context passed to ListObjects should have a deadline from s3MetadataTimeout")
-	assert.WithinDuration(t, time.Now().Add(s3MetadataTimeout), deadline, 5*time.Second,
+	assert.WithinDuration(t, requestStart.Add(s3MetadataTimeout), deadline, 5*time.Second,
 		"deadline should be approximately s3MetadataTimeout from request time")
 }
 
@@ -1935,6 +1937,7 @@ func TestPostS3FileHandler_SetsMetadataTimeoutForResolveKey(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 	body, contentType := buildMultipartFileUpload(t, "file", "data.csv", []byte("a,b\n1,2\n"))
 
+	requestStart := time.Now()
 	rr := setupS3ApiTestWithBody(
 		http.MethodPost,
 		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=data.csv",
@@ -1956,6 +1959,6 @@ func TestPostS3FileHandler_SetsMetadataTimeoutForResolveKey(t *testing.T) {
 	require.NotNil(t, capturingClient.capturedCtx, "ObjectExists should have been called")
 	deadline, hasDeadline := capturingClient.capturedCtx.Deadline()
 	assert.True(t, hasDeadline, "context passed to ObjectExists should have a deadline from s3MetadataTimeout")
-	assert.WithinDuration(t, time.Now().Add(s3MetadataTimeout), deadline, 5*time.Second,
+	assert.WithinDuration(t, requestStart.Add(s3MetadataTimeout), deadline, 5*time.Second,
 		"deadline should be approximately s3MetadataTimeout from request time")
 }
