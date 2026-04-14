@@ -471,17 +471,13 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         flexWrap={{ default: 'nowrap' }}
                       >
                         <FlexItem>
-                          {isFolder(file) && (
-                            <Truncate
-                              href="#"
-                              onClick={(e: React.MouseEvent) => {
-                                e.preventDefault();
-                                onFolderClick?.(file);
-                              }}
-                              content={file.name}
-                            />
+                          {isFolder(file) ? (
+                            <Button variant="link" isInline onClick={() => onFolderClick?.(file)}>
+                              <Truncate content={file.name} />
+                            </Button>
+                          ) : (
+                            <Truncate content={file.name} />
                           )}
-                          {!isFolder(file) && <Truncate content={file.name} />}
                         </FlexItem>
                         {!isSelected && isFileBeingViewed && (
                           <FlexItem>
