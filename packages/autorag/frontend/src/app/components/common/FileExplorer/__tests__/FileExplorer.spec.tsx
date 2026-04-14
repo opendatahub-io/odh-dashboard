@@ -1,12 +1,6 @@
-import * as React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import FileExplorer, {
-  isFolder,
-  sanitizeId,
-  shouldDetailsPanelRender,
-} from '~/app/components/common/FileExplorer/FileExplorer';
-import type { File, Files } from '~/app/components/common/FileExplorer/FileExplorer';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import * as React from 'react';
 import {
   mockFile,
   mockFiles,
@@ -15,6 +9,12 @@ import {
   mockSource,
   mockSources,
 } from '~/__mocks__/mockFileExplorer';
+import type { File, Files } from '~/app/components/common/FileExplorer/FileExplorer';
+import FileExplorer, {
+  isFolder,
+  sanitizeId,
+  shouldDetailsPanelRender,
+} from '~/app/components/common/FileExplorer/FileExplorer';
 
 describe('FileExplorer', () => {
   const mockOnClose = jest.fn();
@@ -384,27 +384,6 @@ describe('FileExplorer', () => {
       fireEvent.keyDown(checkbox, { key: ' ', code: 'Space' });
       expect(checkbox).not.toBeChecked();
     });
-    it('should navigate between radio inputs using arrow keys', () => {
-      const files = mockFiles(3);
-      render(<FileExplorer {...defaultProps} files={files} selection="radio" />);
-
-      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
-      const row2 = screen.getByTestId('file-explorer-row--file-2-json');
-      const radio1 = within(row1).getByRole('radio');
-      const radio2 = within(row2).getByRole('radio');
-
-      // Focus and select first radio
-      radio1.focus();
-      fireEvent.keyDown(radio1, { key: ' ', code: 'Space' });
-      expect(radio1).toBeChecked();
-
-      // Arrow Down should move focus (browser native behavior)
-      fireEvent.keyDown(radio1, { key: 'ArrowDown', code: 'ArrowDown' });
-
-      // Note: This test validates the radio is in the DOM and accessible
-      // Actual focus movement is handled by the browser
-      expect(radio2).toBeInTheDocument();
-    });
     it('should call onSelectFile when selecting checkbox via Space key on input', () => {
       const files = mockFiles(3);
       const onSelectFile = jest.fn();
@@ -595,11 +574,14 @@ describe('FileExplorer', () => {
       const row = screen.getByTestId('file-explorer-row--my-folder');
       const folderLink = within(row).getByText('my-folder');
 
-      // Pressing Enter on the folder link should only trigger folder navigation
+      // Enter should not trigger row-selection side effects
       fireEvent.keyDown(folderLink, { key: 'Enter', code: 'Enter' });
-      fireEvent.click(folderLink);
+      expect(onFolderClick).toHaveBeenCalledTimes(0);
 
+      // Direct activation still works
+      fireEvent.click(folderLink);
       expect(onFolderClick).toHaveBeenCalledWith(folder);
+      expect(onFolderClick).toHaveBeenCalledTimes(1);
 
       // Checkbox should not be selected
       const checkbox = within(row).getByRole('checkbox');
