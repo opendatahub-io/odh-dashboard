@@ -5,7 +5,9 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ConfusionMatrixData } from '~/app/types';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
-import ConfusionMatrixTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/ConfusionMatrixTab';
+import ConfusionMatrixTab, {
+  computeOneVsRest,
+} from '~/app/components/run-results/AutomlModelDetailsModal/tabs/ConfusionMatrixTab';
 
 const baseModel: AutomlModel = {
   name: 'TestModel',
@@ -213,6 +215,80 @@ describe('ConfusionMatrixTab', () => {
       expect(within(table).getAllByText('Ghost')).toHaveLength(2);
       expect(within(table).getAllByText('Ghoul')).toHaveLength(2);
       expect(within(table).getAllByText('Goblin')).toHaveLength(2);
+    });
+  });
+});
+
+describe('computeOneVsRest', () => {
+  const matrix3x3: ConfusionMatrixData = {
+    Ghost: { Ghost: 10, Ghoul: 0, Goblin: 2 },
+    Ghoul: { Ghost: 1, Ghoul: 10, Goblin: 2 },
+    Goblin: { Ghost: 2, Ghoul: 6, Goblin: 5 },
+  };
+  const labels3 = ['Ghost', 'Ghoul', 'Goblin'];
+
+  it('should compute correct TP, FN, FP, TN for Ghost', () => {
+    const result = computeOneVsRest(matrix3x3, labels3, 'Ghost');
+    // TP = Ghost→Ghost = 10
+    // FN = Ghost→Ghoul + Ghost→Goblin = 0 + 2 = 2
+    // FP = Ghoul→Ghost + Goblin→Ghost = 1 + 2 = 3
+    // TN = Ghoul→Ghoul + Ghoul→Goblin + Goblin→Ghoul + Goblin→Goblin = 10+2+6+5 = 23
+    expect(result).toEqual({
+      Ghost: { Ghost: 10, 'Not Ghost': 2 },
+      'Not Ghost': { Ghost: 3, 'Not Ghost': 23 },
+    });
+  });
+
+  it('should compute correct TP, FN, FP, TN for Ghoul', () => {
+    const result = computeOneVsRest(matrix3x3, labels3, 'Ghoul');
+    // TP = 10, FN = 1+2 = 3, FP = 0+6 = 6, TN = 10+2+2+5 = 19
+    expect(result).toEqual({
+      Ghoul: { Ghoul: 10, 'Not Ghoul': 3 },
+      'Not Ghoul': { Ghoul: 6, 'Not Ghoul': 19 },
+    });
+  });
+
+  it('should compute correct TP, FN, FP, TN for Goblin', () => {
+    const result = computeOneVsRest(matrix3x3, labels3, 'Goblin');
+    // TP = 5, FN = 2+6 = 8, FP = 2+2 = 4, TN = 10+0+1+10 = 21
+    expect(result).toEqual({
+      Goblin: { Goblin: 5, 'Not Goblin': 8 },
+      'Not Goblin': { Goblin: 4, 'Not Goblin': 21 },
+    });
+  });
+
+  it('should preserve total count across all cells', () => {
+    const result = computeOneVsRest(matrix3x3, labels3, 'Ghost');
+    const ghostRow = result.Ghost!;
+    const notGhostRow = result['Not Ghost']!;
+    const total =
+      ghostRow.Ghost! + ghostRow['Not Ghost']! + notGhostRow.Ghost! + notGhostRow['Not Ghost']!;
+    // Sum of all cells in original matrix = 10+0+2+1+10+2+2+6+5 = 38
+    expect(total).toBe(38);
+  });
+
+  it('should handle a matrix with all zeros', () => {
+    const zeroMatrix: ConfusionMatrixData = {
+      A: { A: 0, B: 0 },
+      B: { A: 0, B: 0 },
+    };
+    const result = computeOneVsRest(zeroMatrix, ['A', 'B'], 'A');
+    expect(result).toEqual({
+      A: { A: 0, 'Not A': 0 },
+      'Not A': { A: 0, 'Not A': 0 },
+    });
+  });
+
+  it('should handle missing cells gracefully', () => {
+    const sparseMatrix: ConfusionMatrixData = {
+      X: { X: 5 },
+      Y: { Y: 3 },
+    };
+    const result = computeOneVsRest(sparseMatrix, ['X', 'Y'], 'X');
+    // TP=5, FN=0 (X→Y missing → 0), FP=0 (Y→X missing → 0), TN=3
+    expect(result).toEqual({
+      X: { X: 5, 'Not X': 0 },
+      'Not X': { X: 0, 'Not X': 3 },
     });
   });
 });

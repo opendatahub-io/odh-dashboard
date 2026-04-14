@@ -45,7 +45,7 @@ function getCellIntensityClass(value: number, maxValue: number): string {
  *   [targetLabel, `Not ${targetLabel}`]
  * with cells: TP, FN, FP, TN.
  */
-function computeOneVsRest(
+export function computeOneVsRest(
   matrix: ConfusionMatrixData,
   labels: string[],
   targetLabel: string,
