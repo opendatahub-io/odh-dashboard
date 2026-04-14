@@ -292,6 +292,132 @@ describe('LlamaStackConnectionModal', () => {
     expect(screen.getByText('Enter a valid URL (e.g. https://example.com).')).toBeInTheDocument();
   });
 
+  it('should keep button disabled when name contains only spaces', async () => {
+    render(
+      <LlamaStackConnectionModal
+        namespace={TEST_NAMESPACE}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('lls-connection-name'), {
+        target: { value: '   ' },
+      });
+      fireEvent.change(screen.getByTestId('lls-connection-base-url'), {
+        target: { value: 'http://localhost:8080' },
+      });
+    });
+
+    expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
+  });
+
+  it('should trim name on blur', async () => {
+    render(
+      <LlamaStackConnectionModal
+        namespace={TEST_NAMESPACE}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+      />,
+    );
+
+    const nameInput = screen.getByTestId('lls-connection-name');
+
+    await act(async () => {
+      fireEvent.change(nameInput, { target: { value: '  My Connection  ' } });
+      fireEvent.blur(nameInput);
+    });
+
+    expect(nameInput).toHaveValue('My Connection');
+  });
+
+  it('should trim base URL on blur', async () => {
+    render(
+      <LlamaStackConnectionModal
+        namespace={TEST_NAMESPACE}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+      />,
+    );
+
+    const baseUrlInput = screen.getByTestId('lls-connection-base-url');
+
+    await act(async () => {
+      fireEvent.change(baseUrlInput, { target: { value: '  http://localhost:8080  ' } });
+      fireEvent.blur(baseUrlInput);
+    });
+
+    expect(baseUrlInput).toHaveValue('http://localhost:8080');
+  });
+
+  it.each([
+    ['https://localhost:8080', true],
+    ['http://example.com:9090/path', true],
+    ['https://subdomain.example.com', true],
+    ['javascript:alert(1)', false],
+    ['file:///etc/passwd', false],
+    ['ftp://example.com', false],
+    ['//example.com', false],
+  ])('should treat URL "%s" as %s', async (url, valid) => {
+    render(
+      <LlamaStackConnectionModal
+        namespace={TEST_NAMESPACE}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('lls-connection-name'), {
+        target: { value: 'Test' },
+      });
+      fireEvent.change(screen.getByTestId('lls-connection-base-url'), {
+        target: { value: url },
+      });
+    });
+
+    const addButton = screen.getByRole('button', { name: 'Add connection' });
+    if (valid) {
+      expect(addButton).toBeEnabled();
+    } else {
+      expect(addButton).toBeDisabled();
+    }
+  });
+
+  it('should display error when async onSubmit rejects', async () => {
+    onSubmitMock.mockRejectedValueOnce(new Error('Refresh failed'));
+
+    render(
+      <LlamaStackConnectionModal
+        namespace={TEST_NAMESPACE}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('lls-connection-name'), {
+        target: { value: 'My Connection' },
+      });
+      fireEvent.change(screen.getByTestId('lls-connection-base-url'), {
+        target: { value: 'http://localhost:8080' },
+      });
+    });
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'Add connection' }).click();
+    });
+
+    expect(createSecretMock).toHaveBeenCalled();
+    expect(onSubmitMock).toHaveBeenCalled();
+    expect(onCloseMock).not.toHaveBeenCalled();
+
+    const alert = await screen.findByTestId('error-message-alert');
+    expect(alert).toHaveTextContent('Failed to create connection');
+    expect(alert).toHaveTextContent('Refresh failed');
+  });
+
   it('should clear validation error when base URL is corrected', async () => {
     render(
       <LlamaStackConnectionModal

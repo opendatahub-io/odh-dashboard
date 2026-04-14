@@ -39,7 +39,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
   const [isSaving, setIsSaving] = React.useState(false);
   const [baseUrlTouched, setBaseUrlTouched] = React.useState(false);
 
-  const baseUrlValid = isValidUrl(baseUrl);
+  const baseUrlValid = React.useMemo(() => isValidUrl(baseUrl), [baseUrl]);
   const showBaseUrlError = baseUrlTouched && baseUrl.trim() !== '' && !baseUrlValid;
   const isFormValid = name.trim() !== '' && baseUrlValid;
 
@@ -90,6 +90,8 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
               data-testid="lls-connection-name"
               value={name}
               onChange={(_e, val) => setName(val)}
+              onBlur={() => setName((prev) => prev.trim())}
+              maxLength={253}
               isRequired
             />
           </FormGroup>
@@ -99,7 +101,11 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
               data-testid="lls-connection-base-url"
               value={baseUrl}
               onChange={(_e, val) => setBaseUrl(val)}
-              onBlur={() => setBaseUrlTouched(true)}
+              onBlur={() => {
+                setBaseUrlTouched(true);
+                setBaseUrl((prev) => prev.trim());
+              }}
+              maxLength={2048}
               validated={showBaseUrlError ? 'error' : 'default'}
               isRequired
             />
