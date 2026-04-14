@@ -142,19 +142,6 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
     },
   },
   {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.DS_PIPELINES],
-    },
-    properties: {
-      id: 'experiments',
-      title: 'Experiments',
-      href: '/develop-train/experiments',
-      section: 'develop-and-train',
-      path: '/develop-train/experiments/*',
-    },
-  },
-  {
     type: 'app.navigation/section',
     properties: {
       id: 'observe-and-monitor',

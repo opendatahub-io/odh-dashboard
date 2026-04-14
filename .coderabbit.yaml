@@ -45,7 +45,7 @@ reviews:
            (or in __tests__/ subdirectory).
         2. Test behavior, not implementation details. Test names must describe the verified behavior.
         3. Tests must be deterministic — no flaky tests, no timing dependencies.
-        4. Follow conventions in docs/agent-rules/unit-tests.md.
+        4. Follow conventions in .claude/rules/unit-tests.md.
 
     # ── Main backend (Node.js/TypeScript) ─────────────────────────
     - path: "backend/src/**/*.{ts,js}"
@@ -129,7 +129,7 @@ reviews:
         3. Use data-testid selectors, not CSS classes (resilient to style changes).
         4. Avoid cy.wait(ms) with fixed delays — use cy.intercept() for API readiness.
         5. Tests must be idempotent: runnable in any order without shared state.
-        6. Follow conventions in docs/agent-rules/cypress-e2e.md and docs/agent-rules/cypress-mock.md.
+        6. Follow conventions in .claude/rules/cypress-e2e.md and .claude/rules/cypress-mock.md.
 
     # ── Package-level Cypress tests ───────────────────────────────
     - path: "packages/*/frontend/src/__tests__/cypress/**/*.{ts,js}"
@@ -146,7 +146,7 @@ reviews:
         1. Contracts must match the OpenAPI spec in the corresponding api/ directory.
         2. Provider verification tests must run against actual BFF endpoints.
         3. No mocking of the provider in contract verification (defeats the purpose).
-        4. Follow conventions in docs/agent-rules/contract-tests.md.
+        4. Follow conventions in .claude/rules/contract-tests.md.
 
     - path: "packages/contract-tests/**/*.{ts,js}"
       instructions: |

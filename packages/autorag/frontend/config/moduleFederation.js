@@ -13,9 +13,9 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@patternfly/react-core'],
     },
-    '@odh-dashboard/plugin-core': {
+    '@patternfly/react-component-groups': {
       singleton: true,
-      requiredVersion: '0.0.0',
+      requiredVersion: deps['@patternfly/react-component-groups'],
     },
     '@openshift/dynamic-plugin-sdk': {
       singleton: true,
@@ -25,6 +25,8 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@openshift/dynamic-plugin-sdk-utils'],
     },
+    '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
+    '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
   },
   exposes: {
     './extensions': './src/odh/extensions',

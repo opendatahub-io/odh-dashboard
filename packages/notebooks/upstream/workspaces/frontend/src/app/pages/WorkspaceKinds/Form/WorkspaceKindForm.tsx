@@ -5,15 +5,15 @@ import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { PageGroup, PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { useNotification } from 'mod-arch-core';
+import useGenericObjectState from 'mod-arch-core/dist/utilities/useGenericObjectState';
 import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
 import { useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
-import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceKindFormData } from '~/app/types';
 import { extractErrorMessage, safeApiCall } from '~/shared/api/apiUtils';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
-import { CONTENT_TYPE_KEY } from '~/shared/utilities/const';
+import { CONTENT_TYPE_KEY, WORKSPACE_KIND_EXAMPLES_URL } from '~/shared/utilities/const';
 import { ContentType } from '~/shared/utilities/types';
 import { LoadError } from '~/app/components/LoadError';
 import { ApiErrorEnvelope, WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
@@ -129,10 +129,19 @@ export const WorkspaceKindForm: React.FC = () => {
                   {`${mode === 'create' ? 'Create' : 'Edit'} workspace kind`}
                 </Content>
                 <Content component={ContentVariants.p}>
-                  {mode === 'create'
-                    ? `Please upload or drag and drop a Workspace Kind YAML file.`
-                    : `View and edit the Workspace Kind's information. Some fields may not be
-                      represented in this form`}
+                  {mode === 'create' ? (
+                    <p>
+                      Please upload or drag and drop a Workspace Kind YAML file. Sample Workspace
+                      Kind YAML files can be downloaded from the{' '}
+                      <a href={WORKSPACE_KIND_EXAMPLES_URL} target="_blank" rel="noreferrer">
+                        Kubeflow Notebooks
+                      </a>{' '}
+                      repository.
+                    </p>
+                  ) : (
+                    `View and edit the Workspace Kind's information. Some fields may not be
+                      represented in this form`
+                  )}
                 </Content>
               </FlexItem>
             </Flex>

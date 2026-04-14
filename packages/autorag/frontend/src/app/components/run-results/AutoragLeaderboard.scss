@@ -46,4 +46,44 @@
       white-space: normal !important;
     }
   }
+
+  &__optimized-indicator {
+    font-weight: normal;
+    font-size: var(--pf-t--global--font--size--xs);
+  }
+
+  // Center-align the rank column so plain numbers align with the starred rank label
+  &__rank-cell {
+    text-align: center;
+  }
+
+  &__metric-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--pf-t--global--spacer--sm);
+    min-width: 10rem;
+  }
+
+  &__metric-bar-track {
+    flex: 1;
+    height: 1rem;
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    border-radius: var(--pf-t--global--border--radius--tiny);
+    overflow: hidden;
+  }
+
+  &__metric-bar-fill {
+    height: 100%;
+    background-color: var(--pf-t--global--color--brand--default);
+    border-radius: var(--pf-t--global--border--radius--tiny);
+  }
+
+  &__metric-value {
+    flex-shrink: 0;
+  }
+
+  &__model-secondary {
+    color: var(--pf-t--global--text--color--subtle);
+    font-size: var(--pf-t--global--font--size--xs);
+  }
 }

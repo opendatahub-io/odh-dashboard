@@ -34,13 +34,6 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
 
   const hideUpload = !!props.selected;
 
-  const handleFileChange = (event: unknown, file: File) => {
-    setUploadedFile(file);
-    setUploadProgress(0);
-    setUploadStatus(undefined);
-    void props.onUpload(file, setUploadProgress, setUploadStatus);
-  };
-
   return (
     <div className="pf-v6-c-multiple-file-upload pf-v6-u-display-block">
       <TextInputGroup>
@@ -62,8 +55,10 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
         )}
       </TextInputGroup>
       <FileUpload
-        id={props.id}
         className="pf-v6-u-mt-sm"
+        onClearClick={() => setUploadedFile(undefined)}
+        {...props.fileUploadProps}
+        id={props.id}
         style={{
           maxHeight: hideUpload ? '0' : '6rem',
           padding: hideUpload ? '0' : undefined,
@@ -91,9 +86,20 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
         hidden={hideUpload}
         isDisabled={!!uploadedFile && !uploadStatus}
         filename={uploadedFile?.name}
-        onFileInputChange={handleFileChange}
-        onClearClick={() => setUploadedFile(undefined)}
-        {...props.fileUploadProps}
+        dropzoneProps={{
+          ...props.fileUploadProps?.dropzoneProps,
+          onDropAccepted: (files) => {
+            if (files.length === 0) {
+              return;
+            }
+
+            const [file] = files;
+            setUploadedFile(file);
+            setUploadProgress(0);
+            setUploadStatus(undefined);
+            void props.onUpload(file, setUploadProgress, setUploadStatus);
+          },
+        }}
       >
         {uploadedFile ? (
           <FileUploadHelperText>

@@ -172,9 +172,19 @@ describe('API Keys Page', () => {
 
   it('should not display the username filter for non-MaaS admins', () => {
     asProjectAdminUser();
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
     apiKeysPage.visit();
+    cy.wait('@initialSearch');
     apiKeysPage.findFilterInput().should('not.exist');
     apiKeysPage.findUsernameFilterTooltip().should('not.exist');
+  });
+
+  it('should not display the username column for non-MaaS admins', () => {
+    asProjectAdminUser();
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
+    apiKeysPage.visit();
+    cy.wait('@initialSearch');
+    apiKeysPage.findTable().should('not.contain.text', 'Owner');
   });
 
   it('should filter api keys by status', () => {

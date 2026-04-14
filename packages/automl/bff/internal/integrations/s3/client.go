@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"log/slog"
 	"math"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"strconv"
@@ -95,6 +97,35 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 	cfg := aws.Config{
 		Region:      creds.Region,
 		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
+	}
+
+	// Clone the default transport to preserve connection pooling and set a
+	// transport-level timeout unconditionally, regardless of TLS configuration.
+	transport := cloneDefaultTransport()
+	transport.ResponseHeaderTimeout = 30 * time.Second
+
+	if c.options.RootCAs != nil {
+		// Supply the custom CA pool so that self-signed or cluster-issued
+		// certificates (e.g. MinIO) are verified against the operator-mounted
+		// CA bundles rather than the system default.
+		transport.TLSClientConfig = &tls.Config{
+			RootCAs:    c.options.RootCAs,
+			MinVersion: tls.VersionTLS12,
+		}
+	} else if c.options.DevMode {
+		// In dev mode without CA bundles, skip TLS verification so developers
+		// can test against clusters with self-signed certificates from their
+		// local machine. In production the operator always provides CA bundles
+		// via --bundle-paths, so this path is never reached.
+		slog.Warn("S3 TLS certificate verification disabled (dev mode, no CA bundles provided)")
+		transport.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true, //nolint:gosec // dev-mode only fallback
+			MinVersion:         tls.VersionTLS12,
+		}
+	}
+
+	cfg.HTTPClient = &http.Client{
+		Transport: transport,
 	}
 
 	c.s3Client = awss3.NewFromConfig(cfg, func(o *awss3.Options) {
@@ -422,8 +453,26 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 	}, nil
 }
 
+// cloneDefaultTransport returns a clone of http.DefaultTransport if it is an
+// *http.Transport, or a fresh *http.Transport otherwise. This avoids a panic
+// if DefaultTransport has been replaced with a non-standard implementation
+// (e.g. in test environments).
+func cloneDefaultTransport() *http.Transport {
+	if t, ok := http.DefaultTransport.(*http.Transport); ok {
+		return t.Clone()
+	}
+	return &http.Transport{}
+}
+
 // validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
-// Requires HTTPS and blocks private/reserved IP ranges.
+//
+// HTTPS is required — plain HTTP is rejected because S3 credentials would be
+// transmitted in cleartext. Self-signed or cluster-issued certificates are
+// supported via the RootCAs option (populated from operator-mounted CA bundles).
+//
+// RFC-1918 private IPs are permitted because MinIO commonly runs on the same
+// cluster using service IPs (e.g. 10.x). Loopback, link-local, and reserved
+// IP ranges are always blocked.
 func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, error) {
 	if endpoint == "" {
 		return "", fmt.Errorf("endpoint URL cannot be empty")
@@ -472,21 +521,26 @@ func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, er
 }
 
 // validateIPAddress checks if an IP address is in a blocked range.
+//
+// RFC-1918 private ranges (10/8, 172.16/12, 192.168/16), Carrier-Grade NAT
+// (100.64/10, RFC 6598), and IPv6 unique local addresses (fc00::/7) are
+// permitted because MinIO and other S3-compatible stores commonly run on the
+// same cluster using service or pod IPs in these ranges.
+// Loopback, link-local, and reserved ranges are always blocked to prevent
+// SSRF targeting the node or cloud metadata services.
 func (c *RealS3Client) validateIPAddress(ip net.IP) error {
-	blockedRanges := []struct {
+	type blockedRange struct {
 		cidr        string
 		description string
-	}{
+	}
+
+	blockedRanges := []blockedRange{
 		{"0.0.0.0/8", "reserved 'this network' range (RFC 1122)"},
-		{"10.0.0.0/8", "RFC-1918 private range (10.0.0.0/8)"},
-		{"172.16.0.0/12", "RFC-1918 private range (172.16.0.0/12)"},
-		{"192.168.0.0/16", "RFC-1918 private range (192.168.0.0/16)"},
 		{"169.254.0.0/16", "link-local range (169.254.0.0/16)"},
 		{"127.0.0.0/8", "loopback range (127.0.0.0/8)"},
 		{"240.0.0.0/4", "reserved for future use (RFC 1112)"},
 		{"::1/128", "IPv6 loopback"},
 		{"fe80::/10", "IPv6 link-local"},
-		{"fc00::/7", "IPv6 unique local addresses"},
 	}
 
 	for _, blocked := range blockedRanges {

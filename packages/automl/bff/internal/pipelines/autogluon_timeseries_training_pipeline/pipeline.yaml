@@ -1,0 +1,1092 @@
+# PIPELINE DEFINITION
+# Name: autogluon-timeseries-training-pipeline
+# Description: End-to-end AutoGluon time series forecasting pipeline. Loads time series data from S3 in TimeSeriesDataFrame format (item_id, timestamp, target), trains multiple AutoGluon TimeSeries models (local statistical and global deep learning), ranks them by the chosen eval metric, and produces a leaderboard and the top N trained predictors for deployment. Supports optional known covariates and configurable prediction_length.
+# Inputs:
+#    id_column: str
+#    known_covariates_names: list
+#    prediction_length: int [Default: 1.0]
+#    target: str
+#    timestamp_column: str
+#    top_n: int [Default: 3.0]
+#    train_data_bucket_name: str
+#    train_data_file_key: str
+#    train_data_secret_name: str
+components:
+  comp-autogluon-timeseries-models-full-refit:
+    executorLabel: exec-autogluon-timeseries-models-full-refit
+    inputDefinitions:
+      artifacts:
+        test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          description: Test dataset artifact for evaluation.
+      parameters:
+        extra_train_data_path:
+          description: Path to the extra train split CSV (later segment of the train
+            portion).
+          parameterType: STRING
+        model_config:
+          description: Model configuration from selection phase.
+          parameterType: STRUCT
+        model_name:
+          description: Name of the model to refit.
+          parameterType: STRING
+        models_selection_train_data_path:
+          description: 'Path to the model-selection train split CSV
+
+            (earlier segment of the train portion).'
+          parameterType: STRING
+        pipeline_name:
+          description: Pipeline name for metadata.
+          parameterType: STRING
+        predictor_path:
+          description: Path to the predictor from selection phase.
+          parameterType: STRING
+        run_id:
+          description: Pipeline run ID for metadata.
+          parameterType: STRING
+        sample_rows:
+          description: Sample rows from test dataset as JSON string.
+          parameterType: STRING
+        sampling_config:
+          description: Configuration used for data sampling.
+          parameterType: STRUCT
+        split_config:
+          description: Configuration used for data splitting.
+          parameterType: STRUCT
+    outputDefinitions:
+      artifacts:
+        model_artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+  comp-autogluon-timeseries-models-selection:
+    executorLabel: exec-autogluon-timeseries-models-selection
+    inputDefinitions:
+      artifacts:
+        test_data:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          description: Test dataset artifact for evaluation.
+      parameters:
+        id_column:
+          description: Name of the column identifying each time series (item_id).
+          parameterType: STRING
+        known_covariates_names:
+          description: Optional list of known covariate column names.
+          isOptional: true
+          parameterType: LIST
+        prediction_length:
+          defaultValue: 1.0
+          description: Forecast horizon (number of timesteps).
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        target:
+          description: Name of the target column to forecast.
+          parameterType: STRING
+        timestamp_column:
+          description: Name of the timestamp/datetime column.
+          parameterType: STRING
+        top_n:
+          description: Number of top models to select for refitting.
+          parameterType: NUMBER_INTEGER
+        train_data_path:
+          description: Path to the selection training CSV file.
+          parameterType: STRING
+        workspace_path:
+          description: Workspace directory where predictor will be saved.
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        eval_metric_name:
+          parameterType: STRING
+        model_config:
+          parameterType: STRUCT
+        predictor_path:
+          parameterType: STRING
+        top_models:
+          parameterType: LIST
+  comp-for-loop-1:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--autogluon-timeseries-models-full-refit-model_artifact:
+            artifactSelectors:
+            - outputArtifactKey: model_artifact
+              producerSubtask: autogluon-timeseries-models-full-refit
+      tasks:
+        autogluon-timeseries-models-full-refit:
+          cachingOptions: {}
+          componentRef:
+            name: comp-autogluon-timeseries-models-full-refit
+          inputs:
+            artifacts:
+              test_dataset:
+                componentInputArtifact: pipelinechannel--timeseries-data-loader-sampled_test_dataset
+            parameters:
+              extra_train_data_path:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-extra_train_data_path
+              model_config:
+                componentInputParameter: pipelinechannel--autogluon-timeseries-models-selection-model_config
+              model_name:
+                componentInputParameter: pipelinechannel--autogluon-timeseries-models-selection-top_models-loop-item
+              models_selection_train_data_path:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-models_selection_train_data_path
+              pipeline_name:
+                runtimeValue:
+                  constant: '{{$.pipeline_job_resource_name}}'
+              predictor_path:
+                componentInputParameter: pipelinechannel--autogluon-timeseries-models-selection-predictor_path
+              run_id:
+                runtimeValue:
+                  constant: '{{$.pipeline_job_uuid}}'
+              sample_rows:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-sample_rows
+              sampling_config:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-sample_config
+              split_config:
+                componentInputParameter: pipelinechannel--timeseries-data-loader-split_config
+          taskInfo:
+            name: autogluon-timeseries-models-full-refit
+    inputDefinitions:
+      artifacts:
+        pipelinechannel--timeseries-data-loader-sampled_test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        pipelinechannel--autogluon-timeseries-models-selection-model_config:
+          parameterType: STRUCT
+        pipelinechannel--autogluon-timeseries-models-selection-predictor_path:
+          parameterType: STRING
+        pipelinechannel--autogluon-timeseries-models-selection-top_models:
+          parameterType: LIST
+        pipelinechannel--autogluon-timeseries-models-selection-top_models-loop-item:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-extra_train_data_path:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-models_selection_train_data_path:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-sample_config:
+          parameterType: STRUCT
+        pipelinechannel--timeseries-data-loader-sample_rows:
+          parameterType: STRING
+        pipelinechannel--timeseries-data-loader-split_config:
+          parameterType: STRUCT
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--autogluon-timeseries-models-full-refit-model_artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+          isArtifactList: true
+  comp-timeseries-data-loader:
+    executorLabel: exec-timeseries-data-loader
+    inputDefinitions:
+      parameters:
+        bucket_name:
+          description: S3 bucket name containing the file.
+          parameterType: STRING
+        file_key:
+          description: S3 object key of the CSV file containing time series data.
+          parameterType: STRING
+        id_column:
+          description: Name of the column identifying each time series (item_id).
+          parameterType: STRING
+        selection_train_size:
+          defaultValue: 0.3
+          description: 'Fraction of train portion for model selection (default: 0.3).'
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        target:
+          description: Name of the target column to forecast.
+          parameterType: STRING
+        timestamp_column:
+          description: Name of the timestamp/datetime column.
+          parameterType: STRING
+        workspace_path:
+          description: PVC workspace directory where train CSVs will be written.
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        sampled_test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        extra_train_data_path:
+          parameterType: STRING
+        models_selection_train_data_path:
+          parameterType: STRING
+        sample_config:
+          parameterType: STRUCT
+        sample_rows:
+          parameterType: STRING
+        split_config:
+          parameterType: STRUCT
+  comp-timeseries-leaderboard-evaluation:
+    executorLabel: exec-timeseries-leaderboard-evaluation
+    inputDefinitions:
+      artifacts:
+        models:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+          description: 'List of model artifacts from ``autogluon_timeseries_models_full_refit``
+
+            collected via ``dsl.Collected``. Each artifact provides metrics and location
+
+            metadata for one refitted model.'
+          isArtifactList: true
+      parameters:
+        eval_metric:
+          description: 'Metric name for ranking (e.g. ``"MASE"``, ``"WAPE"``);
+
+            leaderboard is sorted descending (AutoGluon uses higher-is-better convention
+
+            so metrics like MASE are negated - higher value means better model).'
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        html_artifact:
+          artifactType:
+            schemaTitle: system.HTML
+            schemaVersion: 0.0.1
+      parameters:
+        best_model:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-autogluon-timeseries-models-full-refit:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - autogluon_timeseries_models_full_refit
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\n__KFP_EMBEDDED_ARCHIVE_B64 = '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'\n\
+          \nimport base64 as __kfp_b64\nimport io as __kfp_io\nimport os as __kfp_os\n\
+          import sys as __kfp_sys\nimport tarfile as __kfp_tarfile\nimport tempfile\
+          \ as __kfp_tempfile\n\n# Extract embedded archive at import time to ensure\
+          \ sys.path and globals are set\n__kfp_tmpdir = __kfp_tempfile.TemporaryDirectory()\n\
+          __KFP_EMBEDDED_ASSET_DIR = __kfp_tmpdir.name\ntry:\n    __kfp_bytes = __kfp_b64.b64decode(__KFP_EMBEDDED_ARCHIVE_B64.encode('ascii'))\n\
+          \    with __kfp_tarfile.open(fileobj=__kfp_io.BytesIO(__kfp_bytes), mode='r:gz')\
+          \ as __kfp_tar:\n        __kfp_tar.extractall(path=__KFP_EMBEDDED_ASSET_DIR)\n\
+          except Exception as __kfp_e:\n    raise RuntimeError(f'Failed to extract\
+          \ embedded archive: {__kfp_e}')\n\n# Always prepend the extracted directory\
+          \ to sys.path for import resolution\nif __KFP_EMBEDDED_ASSET_DIR not in\
+          \ __kfp_sys.path:\n    __kfp_sys.path.insert(0, __KFP_EMBEDDED_ASSET_DIR)\n\
+          \n\n\n\ndef autogluon_timeseries_models_full_refit(\n    model_name: str,\n\
+          \    test_dataset: dsl.Input[dsl.Dataset],\n    predictor_path: str,\n \
+          \   sampling_config: dict,\n    split_config: dict,\n    model_config: dict,\n\
+          \    pipeline_name: str,\n    run_id: str,\n    models_selection_train_data_path:\
+          \ str,\n    extra_train_data_path: str,\n    sample_rows: str,\n    notebooks:\
+          \ dsl.EmbeddedInput[dsl.Dataset],\n    model_artifact: dsl.Output[dsl.Model],\n\
+          ):\n    \"\"\"Refit a single AutoGluon timeseries model on full training\
+          \ data.\n\n    This component takes a model selected during the selection\
+          \ phase and\n    refits it on the full training dataset (selection + extra\
+          \ train data)\n    for improved performance. The refitted model is optimized\
+          \ and saved\n    for deployment. Each model directory contains a ``model.json``\
+          \ file\n    with model metadata (name, base model, location, metrics).\n\
+          \n    Args:\n        model_name: Name of the model to refit.\n        test_dataset:\
+          \ Test dataset artifact for evaluation.\n        predictor_path: Path to\
+          \ the predictor from selection phase.\n        sampling_config: Configuration\
+          \ used for data sampling.\n        split_config: Configuration used for\
+          \ data splitting.\n        model_config: Model configuration from selection\
+          \ phase.\n        pipeline_name: Pipeline name for metadata.\n        run_id:\
+          \ Pipeline run ID for metadata.\n        models_selection_train_data_path:\
+          \ Path to the model-selection train split CSV\n            (earlier segment\
+          \ of the train portion).\n        extra_train_data_path: Path to the extra\
+          \ train split CSV (later segment of the train portion).\n        sample_rows:\
+          \ Sample rows from test dataset as JSON string.\n        model_artifact:\
+          \ Output artifact for the refitted model.\n        notebooks: Embedded notebook\
+          \ templates (injected by the runtime from the component's embedded_artifact_path).\n\
+          \    \"\"\"\n    import json\n    import logging\n    import math\n    import\
+          \ os\n    from pathlib import Path\n\n    import pandas as pd\n    from\
+          \ autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor\n\
+          \    from autogluon.timeseries.metrics import AVAILABLE_METRICS\n    from\
+          \ autogluon.timeseries.models.ensemble import AbstractTimeSeriesEnsembleModel\n\
+          \n    logger = logging.getLogger(__name__)\n\n    logger.info(\"Timeseries\
+          \ refit: model=%s\", model_name)\n\n    # Load the predictor from selection\
+          \ phase\n    try:\n        predictor = TimeSeriesPredictor.load(predictor_path)\n\
+          \    except Exception as e:\n        logger.error(\"Failed to load predictor:\
+          \ %s\", e)\n        raise ValueError(f\"Could not load predictor from {predictor_path}:\
+          \ {e}\") from e\n    logger.debug(\n        \"Loaded selection predictor\
+          \ from %s; selection_train=%s extra_train=%s\",\n        predictor_path,\n\
+          \        models_selection_train_data_path,\n        extra_train_data_path,\n\
+          \    )\n\n    id_column = model_config.get(\"id_column\")\n    timestamp_column\
+          \ = model_config.get(\"timestamp_column\")\n\n    selection_ts_df = TimeSeriesDataFrame.from_path(\n\
+          \        path=models_selection_train_data_path,\n        id_column=id_column,\n\
+          \        timestamp_column=timestamp_column,\n    )\n    extra_train_ts_df\
+          \ = TimeSeriesDataFrame.from_path(\n        path=extra_train_data_path,\n\
+          \        id_column=id_column,\n        timestamp_column=timestamp_column,\n\
+          \    )\n    # Full train portion (excluding held-out test) = selection split\
+          \ then extra split, in time order.\n    full_train_ts_df = TimeSeriesDataFrame(\n\
+          \        pd.concat([selection_ts_df, extra_train_ts_df], axis=0),\n    )\n\
+          \    test_ts_df = TimeSeriesDataFrame.from_path(\n        path=test_dataset.path,\n\
+          \        id_column=id_column,\n        timestamp_column=timestamp_column,\n\
+          \    )\n    logger.debug(\n        \"Train rows=%s (selection=%s extra=%s)\
+          \ test rows=%s (id=%s ts=%s)\",\n        len(full_train_ts_df),\n      \
+          \  len(selection_ts_df),\n        len(extra_train_ts_df),\n        len(test_ts_df),\n\
+          \        id_column,\n        timestamp_column,\n    )\n\n    # Create model\
+          \ output directory\n    model_name_full = f\"{model_name}_FULL\"\n    output_path\
+          \ = Path(model_artifact.path) / model_name_full\n    output_path.mkdir(parents=True,\
+          \ exist_ok=True)\n\n    # Save the predictor with the selected model\n \
+          \   predictor_output = output_path / \"predictor\"\n\n    def is_ensemble_model(predictor,\
+          \ model_name: str) -> bool:\n        \"\"\"Return True if the named model\
+          \ is an ensemble.\"\"\"\n        model_type = predictor._trainer.get_model_attribute(model_name,\
+          \ \"type\")\n        return issubclass(model_type, AbstractTimeSeriesEnsembleModel)\n\
+          \n    is_ensemble = is_ensemble_model(predictor, model_name)\n\n    predictor_refit\
+          \ = TimeSeriesPredictor(\n        prediction_length=model_config.get(\"\
+          prediction_length\"),  # 7 days\n        path=predictor_output,\n      \
+          \  target=model_config.get(\"target\"),\n        eval_metric=model_config.get(\"\
+          eval_metric\", \"MASE\"),\n    )\n\n    hyperparams_option = \"ensemble_hyperparameters\"\
+          \ if is_ensemble else \"hyperparameters\"\n    # TODO: Save model_hyperparams\
+          \ in the output of the previous step & remove the predictor usage here\n\
+          \    additional_fit_params = {hyperparams_option: {model_name: predictor.fit_summary()[\"\
+          model_hyperparams\"][model_name]}}\n    logger.debug(\"Refit hyperparameters:\
+          \ %s\", additional_fit_params)\n\n    predictor_refit.fit(\n        train_data=full_train_ts_df,\n\
+          \        **additional_fit_params,\n        # exclude deep learning models\
+          \ pretrained on large time series datasets\n        excluded_model_types=[\n\
+          \            \"Chronos\",\n            \"Chronos2\",\n            \"Toto\"\
+          ,\n        ],\n    )\n\n    try:\n        predictor_refit.save()\n    except\
+          \ Exception as e:\n        logger.error(\"Failed to save predictor: %s\"\
+          , e)\n        raise ValueError(f\"Could not save predictor to {predictor_output}:\
+          \ {e}\") from e\n\n    try:\n        metrics = predictor_refit.evaluate(test_ts_df,\
+          \ metrics=list(AVAILABLE_METRICS.keys()))\n    except Exception as e:\n\
+          \        logger.error(\"Evaluation failed: %s\", e)\n        raise ValueError(f\"\
+          Failed to evaluate model: {e}\") from e\n    logger.debug(\"Evaluation metrics:\
+          \ %s\", metrics)\n\n    # Save additional metadata about the selected model\n\
+          \    predictor_metadata = {\n        \"model_name\": model_name_full,\n\
+          \        \"base_model\": model_name,\n        \"selected_model\": model_name,\n\
+          \        \"prediction_length\": model_config.get(\"prediction_length\",\
+          \ 1),\n        \"eval_metric\": model_config.get(\"eval_metric\", \"MASE\"\
+          ),\n        \"target\": model_config.get(\"target\"),\n        \"id_column\"\
+          : model_config.get(\"id_column\"),\n        \"timestamp_column\": model_config.get(\"\
+          timestamp_column\"),\n    }\n\n    with open(predictor_output / \"predictor_metadata.json\"\
+          , \"w\") as f:\n        json.dump(predictor_metadata, f, indent=2)\n\n \
+          \   metrics_path = output_path / \"metrics\"\n    metrics_path.mkdir(parents=True,\
+          \ exist_ok=True)\n\n    # Convert metrics to JSON-serializable format; drop\
+          \ NaN/Inf which break Protobuf Struct serialization\n    metrics_dict =\
+          \ {\n        k: float(v) if hasattr(v, \"item\") else v\n        for k,\
+          \ v in metrics.items()\n        if not (isinstance(v, float) and (math.isnan(v)\
+          \ or math.isinf(v)))\n    }\n\n    with open(metrics_path / \"metrics.json\"\
+          , \"w\") as f:\n        json.dump(metrics_dict, f, indent=2)\n\n    # Notebook\
+          \ generation\n\n    notebook_file = \"timeseries_notebook.ipynb\"\n\n  \
+          \  with open(os.path.join(notebooks.path, notebook_file), \"r\", encoding=\"\
+          utf-8\") as f:\n        notebook = json.load(f)\n\n        # Improved retrieve_pipeline_name:\
+          \ trims only the run id or suffix\n        def retrieve_pipeline_name(pipeline_name:\
+          \ str) -> str:\n            \"\"\"Attempts to infer the original pipeline\
+          \ name from a name that may have a run id or suffix at the end.\n\n    \
+          \        Removes only the last dash-separated element (the run id or variant),\n\
+          \            handling trailing dashes gracefully to avoid dropping real\
+          \ name segments.\n            If only a single element exists, returns as\
+          \ is.\n            \"\"\"\n            if not pipeline_name:\n         \
+          \       return pipeline_name\n            # Strip trailing dashes for robust\
+          \ splitting\n            name = pipeline_name.rstrip(\"-\")\n          \
+          \  if \"-\" not in name:\n                return name\n            tokens\
+          \ = name.split(\"-\")\n            if len(tokens) <= 1:\n              \
+          \  return tokens[0] if tokens else \"\"\n            return \"-\".join(tokens[:-1])\n\
+          \n        pipeline_name = retrieve_pipeline_name(pipeline_name)\n\n    \
+          \    # Replace <REPLACE_* placeholders (run id, pipeline name, model, sample\
+          \ row, extra pip index, \u2026) in code cells. # noqa: E501\n        def\
+          \ replace_placeholder_in_notebook(notebook, replacements):\n           \
+          \ for cell in notebook.get(\"cells\", []):\n                if cell.get(\"\
+          cell_type\") != \"code\":\n                    continue\n              \
+          \  # Replace in every string of the source list\n                new_source\
+          \ = []\n                for line in cell.get(\"source\", []):\n        \
+          \            for placeholder, value in replacements.items():\n         \
+          \               line = line.replace(placeholder, value)\n              \
+          \      new_source.append(line)\n                cell[\"source\"] = new_source\n\
+          \            return notebook\n\n        sample_row_list = json.loads(sample_rows)\n\
+          \n        replacements = {\n            \"<REPLACE_RUN_ID>\": run_id,\n\
+          \            \"<REPLACE_PIPELINE_NAME>\": pipeline_name,\n            \"\
+          <REPLACE_MODEL_NAME>\": model_name_full,\n            \"<REPLACE_SAMPLE_ROW>\"\
+          : str(sample_row_list),\n            \"<REPLACE_ID_COLUMN>\": model_config.get(\"\
+          id_column\"),\n            \"<REPLACE_TIMESTAMP_COLUMN>\": model_config.get(\"\
+          timestamp_column\"),\n            \"<REPLACE_KNOWN_COVARIATES_NAMES>\":\
+          \ str(model_config.get(\"known_covariates_names\") or []),\n        }\n\
+          \        notebook = replace_placeholder_in_notebook(notebook, replacements)\n\
+          \n    notebook_path = output_path / \"notebooks\"\n    notebook_path.mkdir(parents=True,\
+          \ exist_ok=True)\n    with (notebook_path / \"automl_predictor_notebook.ipynb\"\
+          ).open(\"w\", encoding=\"utf-8\") as f:\n        json.dump(notebook, f)\n\
+          \n    # Write model.json alongside predictor/, metrics/, notebooks/\n  \
+          \  model_metadata = {\n        \"name\": model_name_full,\n        \"base_model\"\
+          : model_name,\n        \"location\": {\n            \"model_directory\"\
+          : model_name_full,\n            \"predictor\": f\"{model_name_full}/predictor\"\
+          ,\n            \"metrics\": f\"{model_name_full}/metrics\",\n          \
+          \  \"notebooks\": f\"{model_name_full}/notebooks\",\n        },\n      \
+          \  \"metrics\": {\n            \"test_data\": metrics_dict,\n        },\n\
+          \    }\n    with (output_path / \"model.json\").open(\"w\", encoding=\"\
+          utf-8\") as f:\n        json.dump(model_metadata, f, indent=2)\n\n    #\
+          \ Set artifact metadata\n    model_artifact.metadata[\"display_name\"] =\
+          \ model_name_full\n    model_artifact.metadata[\"context\"] = {\n      \
+          \  \"model_config\": model_config,\n        \"sampling_config\": sampling_config,\n\
+          \        \"split_config\": split_config,\n        \"metrics\": {\"test_data\"\
+          : metrics_dict},\n        \"location\": {\n            \"model_directory\"\
+          : model_name_full,\n            \"predictor\": f\"{model_name_full}/predictor\"\
+          ,\n            \"metrics\": f\"{model_name_full}/metrics\",\n          \
+          \  \"notebooks\": f\"{model_name_full}/notebooks\",\n        },\n      \
+          \  \"pipeline_info\": {\n            \"pipeline_name\": pipeline_name,\n\
+          \            \"run_id\": run_id,\n        },\n    }\n\n    logger.info(\"\
+          Timeseries refit done: %s (artifact under %s)\", model_name_full, output_path)\n\
+          \n"
+        image: quay.io/rhoai/odh-automl-rhel9:rhoai-3.4@sha256:ee8d0d339fb4e7d8f140fb680c9656ccff013fa5a5840ca8e01fdb9709568e57
+        resources:
+          cpuRequest: 2.0
+          memoryRequest: 8.589934592
+          resourceCpuRequest: '2'
+          resourceMemoryRequest: 8Gi
+    exec-autogluon-timeseries-models-selection:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - autogluon_timeseries_models_selection
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef autogluon_timeseries_models_selection(\n    target: str,\n  \
+          \  id_column: str,\n    timestamp_column: str,\n    train_data_path: str,\n\
+          \    test_data: dsl.Input[dsl.Dataset],\n    top_n: int,\n    workspace_path:\
+          \ str,\n    prediction_length: int = 1,\n    known_covariates_names: Optional[List[str]]\
+          \ = None,\n) -> NamedTuple(\n    \"outputs\",\n    top_models=List[str],\n\
+          \    predictor_path=str,\n    eval_metric_name=str,\n    model_config=dict,\n\
+          ):\n    \"\"\"Train and select top N AutoGluon timeseries models based on\
+          \ leaderboard.\n\n    This component trains multiple AutoGluon TimeSeries\
+          \ models using TimeSeriesPredictor\n    on the selection training data,\
+          \ evaluates them on the test set, and selects the\n    top N performers\
+          \ based on the leaderboard ranking. Training uses the ``fast_training``\n\
+          \    preset for shorter wall-clock time versus ``medium_quality`` (trade-off:\
+          \ accuracy).\n\n    The TimeSeriesPredictor automatically trains various\
+          \ model types (DeepAR, TFT,\n    ARIMA, ETS, Theta, etc.) and ranks them\
+          \ by the evaluation metric. This component\n    selects the top N models\
+          \ from the leaderboard for refitting on the full dataset.\n\n    Args:\n\
+          \        target: Name of the target column to forecast.\n        id_column:\
+          \ Name of the column identifying each time series (item_id).\n        timestamp_column:\
+          \ Name of the timestamp/datetime column.\n        train_data_path: Path\
+          \ to the selection training CSV file.\n        test_data: Test dataset artifact\
+          \ for evaluation.\n        top_n: Number of top models to select for refitting.\n\
+          \        workspace_path: Workspace directory where predictor will be saved.\n\
+          \        prediction_length: Forecast horizon (number of timesteps).\n  \
+          \      known_covariates_names: Optional list of known covariate column names.\n\
+          \n    Returns:\n        NamedTuple: top_models list, predictor_path, eval_metric_name,\
+          \ model_config.\n    \"\"\"\n    import logging\n    from pathlib import\
+          \ Path\n\n    import pandas as pd\n    from autogluon.timeseries import\
+          \ TimeSeriesDataFrame, TimeSeriesPredictor\n\n    logger = logging.getLogger(__name__)\n\
+          \n    # Set constants\n    DEFAULT_PRESETS = \"fast_training\"\n    DEFAULT_EVAL_METRIC\
+          \ = \"MASE\"\n    DEFAULT_TIME_LIMIT = 600  # 10 minutes\n\n    TOP_N_MAX\
+          \ = 7\n\n    # Input validation\n    for param, value in (\n        (\"\
+          target\", target),\n        (\"id_column\", id_column),\n        (\"timestamp_column\"\
+          , timestamp_column),\n        (\"train_data_path\", train_data_path),\n\
+          \        (\"workspace_path\", workspace_path),\n    ):\n        if not isinstance(value,\
+          \ str) or not value.strip():\n            raise TypeError(f\"{param} must\
+          \ be a non-empty string.\")\n    if not isinstance(top_n, int):\n      \
+          \  raise TypeError(\"top_n must be an integer.\")\n    if top_n <= 0 or\
+          \ top_n > TOP_N_MAX:\n        raise ValueError(f\"top_n must be an integer\
+          \ in the range (0, {TOP_N_MAX}]; got {top_n}.\")\n    if not isinstance(prediction_length,\
+          \ int):\n        raise TypeError(\"prediction_length must be an integer.\"\
+          )\n    if prediction_length <= 0:\n        raise ValueError(\"prediction_length\
+          \ must be greater than 0.\")\n    if known_covariates_names is not None:\n\
+          \        if not isinstance(known_covariates_names, list) or any(\n     \
+          \       (not isinstance(v, str) or not v.strip()) for v in known_covariates_names\n\
+          \        ):\n            raise TypeError(\"known_covariates_names must be\
+          \ a list of non-empty strings or None.\")\n\n    train_df = pd.read_csv(train_data_path)\n\
+          \    test_df = pd.read_csv(test_data.path)\n    logger.info(\"Loaded train=%s\
+          \ test=%s rows\", len(train_df), len(test_df))\n\n    train_ts = TimeSeriesDataFrame.from_data_frame(\n\
+          \        train_df,\n        id_column=id_column,\n        timestamp_column=timestamp_column,\n\
+          \    )\n    logger.info(\"Train TimeSeriesDataFrame: %s rows, %s items\"\
+          , len(train_ts), train_ts.num_items)\n\n    # Convert test data to TimeSeriesDataFrame\n\
+          \    test_ts = TimeSeriesDataFrame.from_data_frame(\n        test_df,\n\
+          \        id_column=id_column,\n        timestamp_column=timestamp_column,\n\
+          \    )\n\n    # Create predictor path in workspace\n    predictor_path =\
+          \ Path(workspace_path) / \"timeseries_predictor\"\n\n    eval_metric = DEFAULT_EVAL_METRIC\n\
+          \    # Create TimeSeriesPredictor\n    predictor = TimeSeriesPredictor(\n\
+          \        prediction_length=prediction_length,\n        target=target,\n\
+          \        eval_metric=eval_metric,\n        path=str(predictor_path),\n \
+          \       verbosity=2,\n        known_covariates_names=known_covariates_names,\n\
+          \    )\n\n    logger.info(\n        \"Timeseries selection: training (preset=%s,\
+          \ time_limit=%ss, prediction_length=%s)...\",\n        DEFAULT_PRESETS,\n\
+          \        DEFAULT_TIME_LIMIT,\n        prediction_length,\n    )\n    try:\n\
+          \        predictor.fit(\n            train_data=train_ts,\n            presets=DEFAULT_PRESETS,\n\
+          \            time_limit=DEFAULT_TIME_LIMIT,\n            # exclude deep\
+          \ learning models pretrained on large time series datasets\n           \
+          \ excluded_model_types=[\"Chronos\", \"Toto\", \"Chronos2\"],\n        )\n\
+          \    except Exception as e:\n        logger.error(f\"Training failed: {str(e)}\"\
+          )\n        raise ValueError(f\"TimeSeriesPredictor training failed: {str(e)}\"\
+          ) from e\n\n    try:\n        leaderboard = predictor.leaderboard(test_ts)\n\
+          \    except Exception as e:\n        logger.error(f\"Leaderboard generation\
+          \ failed: {str(e)}\")\n        raise ValueError(f\"Failed to generate leaderboard:\
+          \ {str(e)}\") from e\n\n    if top_n > len(leaderboard):\n        raise\
+          \ ValueError(\n            f\"top_n must be less than or equal to number_of_models_trained\
+          \ ({len(leaderboard)}); got {top_n}.\"\n        )\n\n    top_models = leaderboard.head(top_n)[\"\
+          model\"].values.tolist()\n    logger.info(\n        \"Timeseries selection\
+          \ done: top_%s=%s best_score_test=%s\",\n        top_n,\n        top_models,\n\
+          \        leaderboard.iloc[0][\"score_test\"],\n    )\n\n    # Create model\
+          \ config\n    model_config = {\n        \"prediction_length\": prediction_length,\n\
+          \        \"eval_metric\": eval_metric,\n        \"target\": target,\n  \
+          \      \"id_column\": id_column,\n        \"timestamp_column\": timestamp_column,\n\
+          \        \"presets\": DEFAULT_PRESETS,\n        \"time_limit\": DEFAULT_TIME_LIMIT,\n\
+          \        \"known_covariates_names\": known_covariates_names or [],\n   \
+          \     \"num_models_trained\": len(leaderboard),\n    }\n\n    outputs =\
+          \ NamedTuple(\n        \"outputs\",\n        top_models=List[str],\n   \
+          \     predictor_path=str,\n        eval_metric_name=str,\n        model_config=dict,\n\
+          \    )\n    return outputs(\n        top_models=top_models,\n        predictor_path=str(predictor_path),\n\
+          \        eval_metric_name=eval_metric,\n        model_config=model_config,\n\
+          \    )\n\n"
+        image: quay.io/rhoai/odh-automl-rhel9:rhoai-3.4@sha256:ee8d0d339fb4e7d8f140fb680c9656ccff013fa5a5840ca8e01fdb9709568e57
+        resources:
+          cpuRequest: 4.0
+          memoryRequest: 17.179869184
+          resourceCpuRequest: '4'
+          resourceMemoryRequest: 16Gi
+    exec-timeseries-data-loader:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - timeseries_data_loader
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef timeseries_data_loader(\n    file_key: str,\n    bucket_name:\
+          \ str,\n    workspace_path: str,\n    target: str,\n    id_column: str,\n\
+          \    timestamp_column: str,\n    sampled_test_dataset: dsl.Output[dsl.Dataset],\n\
+          \    selection_train_size: float = 0.3,\n) -> NamedTuple(\n    \"outputs\"\
+          ,\n    sample_config=dict,\n    split_config=dict,\n    sample_rows=str,\n\
+          \    models_selection_train_data_path=str,\n    extra_train_data_path=str,\n\
+          ):\n    \"\"\"Load and split timeseries data from S3 for AutoGluon training.\n\
+          \n    This component loads time series data from S3, samples it (up to 100\
+          \ MB),\n    and performs a two-stage **per-series temporal** split for efficient\
+          \ AutoGluon training:\n    1. Primary split (default 80/20): for each distinct\
+          \ ``id_column`` value, the earliest\n       (1 - test_size) fraction of\
+          \ rows by ``timestamp_column`` goes to the train portion and\n       the\
+          \ remainder to the test set (so every series with at least two rows contributes\n\
+          \       holdout data; single-row series stay in train only).\n    2. Secondary\
+          \ split (default 30/70 of each series' train rows): early segment to\n \
+          \      selection-train, later segment to extra-train.\n\n    The test set\
+          \ is written to S3 artifact, while train CSVs are written\n    to the PVC\
+          \ workspace for sharing across pipeline steps.\n\n    Args:\n        file_key:\
+          \ S3 object key of the CSV file containing time series data.\n        bucket_name:\
+          \ S3 bucket name containing the file.\n        workspace_path: PVC workspace\
+          \ directory where train CSVs will be written.\n        target: Name of the\
+          \ target column to forecast.\n        id_column: Name of the column identifying\
+          \ each time series (item_id).\n        timestamp_column: Name of the timestamp/datetime\
+          \ column.\n        sampled_test_dataset: Output dataset artifact for the\
+          \ test split.\n        selection_train_size: Fraction of train portion for\
+          \ model selection (default: 0.3).\n\n    Returns:\n        NamedTuple: sample_config,\
+          \ split_config, sample_rows, models_selection_train_data_path, extra_train_data_path.\n\
+          \    \"\"\"\n    import io\n    import logging\n    import os\n    from\
+          \ pathlib import Path\n\n    import boto3\n    import pandas as pd\n\n \
+          \   logger = logging.getLogger(__name__)\n\n    MAX_SIZE_BYTES = 100 * 1024\
+          \ * 1024  # 100 MB limit in bytes\n    PANDAS_CHUNK_SIZE = 10000  # Rows\
+          \ per batch for streaming read\n    DEFAULT_TEST_SIZE = 0.2\n\n    # Input\
+          \ validation\n    for param, value in (\n        (\"bucket_name\", bucket_name),\n\
+          \        (\"file_key\", file_key),\n        (\"workspace_path\", workspace_path),\n\
+          \        (\"target\", target),\n        (\"id_column\", id_column),\n  \
+          \      (\"timestamp_column\", timestamp_column),\n    ):\n        if not\
+          \ isinstance(value, str) or not value.strip():\n            raise ValueError(f\"\
+          {param} must be a non-empty string.\")\n    if selection_train_size <= 0\
+          \ or selection_train_size >= 1:\n        raise ValueError(\"selection_train_size\
+          \ must be in a range 0 to 1.\")\n\n    if file_key.startswith(\"/\") or\
+          \ file_key.endswith(\"/\") or \"//\" in file_key:\n        raise ValueError(\"\
+          file_key must be a valid S3 object key and must not start/end with '/' or\
+          \ contain '//'.\")\n\n    def get_s3_client(verify=True):\n        \"\"\"\
+          Create and return an S3 client using credentials from environment variables.\"\
+          \"\"\n        access_key = os.environ.get(\"AWS_ACCESS_KEY_ID\")\n     \
+          \   secret_key = os.environ.get(\"AWS_SECRET_ACCESS_KEY\")\n        endpoint_url\
+          \ = os.environ.get(\"AWS_S3_ENDPOINT\")\n        region_name = os.environ.get(\"\
+          AWS_DEFAULT_REGION\")\n\n        if (access_key and not secret_key) or (secret_key\
+          \ and not access_key):\n            raise ValueError(\n                \"\
+          S3 credentials misconfigured: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY\
+          \ must either \"\n                \"both be set and non-empty, or both be\
+          \ unset. Check the Kubernetes secret or environment configuration.\"\n \
+          \           )\n        if not access_key and not secret_key:\n         \
+          \   raise ValueError(\n                \"S3 credentials missing: AWS_ACCESS_KEY_ID\
+          \ and AWS_SECRET_ACCESS_KEY must be provided via \"\n                \"\
+          a Kubernetes secret or environment configuration when using s3:// dataset\
+          \ URIs.\"\n            )\n\n        if not endpoint_url:\n            raise\
+          \ ValueError(\n                \"S3 credentials missing: AWS_S3_ENDPOINT\
+          \ must be provided via \"\n                \"a Kubernetes secret or environment\
+          \ configuration.\"\n            )\n\n        return boto3.client(\n    \
+          \        \"s3\",\n            endpoint_url=endpoint_url,\n            region_name=region_name,\n\
+          \            aws_access_key_id=access_key,\n            aws_secret_access_key=secret_key,\n\
+          \            verify=verify,\n        )\n\n    def load_timeseries_data_truncate(bucket_name,\
+          \ file_key, max_size_bytes, chunk_size):\n        \"\"\"Load time series\
+          \ CSV from S3, truncating to max_size_bytes while preserving order.\"\"\"\
+          \n        from botocore.exceptions import SSLError\n\n        s3_client\
+          \ = get_s3_client()\n        try:\n            response = s3_client.get_object(Bucket=bucket_name,\
+          \ Key=file_key)\n        except SSLError:\n            logger.warning(\n\
+          \                \"SSL error when downloading s3://%s/%s, retrying with\
+          \ verify=False\",\n                bucket_name,\n                file_key,\n\
+          \            )\n            no_verify_client = get_s3_client(verify=False)\n\
+          \            response = no_verify_client.get_object(Bucket=bucket_name,\
+          \ Key=file_key)\n        text_stream = io.TextIOWrapper(response[\"Body\"\
+          ], encoding=\"utf-8\")\n\n        chunk_list = []\n        accumulated_size\
+          \ = 0\n        total_rows_read = 0\n\n        try:\n            for chunk_df\
+          \ in pd.read_csv(text_stream, chunksize=chunk_size):\n                chunk_memory\
+          \ = chunk_df.memory_usage(deep=True).sum()\n\n                if accumulated_size\
+          \ + chunk_memory > max_size_bytes:\n                    remaining_bytes\
+          \ = max_size_bytes - accumulated_size\n                    if remaining_bytes\
+          \ <= 0:\n                        break\n                    bytes_per_row\
+          \ = chunk_memory / len(chunk_df) if len(chunk_df) > 0 else 0\n         \
+          \           if bytes_per_row > 0:\n                        rows_to_take\
+          \ = int(remaining_bytes / bytes_per_row)\n                        if rows_to_take\
+          \ > 0:\n                            chunk_df = chunk_df.head(rows_to_take)\n\
+          \                            chunk_list.append(chunk_df)\n             \
+          \               total_rows_read += len(chunk_df)\n                    break\n\
+          \n                chunk_list.append(chunk_df)\n                accumulated_size\
+          \ += chunk_memory\n                total_rows_read += len(chunk_df)\n\n\
+          \                if accumulated_size >= max_size_bytes:\n              \
+          \      break\n\n        except Exception as e:\n            if not chunk_list:\n\
+          \                raise ValueError(f\"Error reading CSV from S3: {str(e)}\"\
+          ) from e\n\n        if not chunk_list:\n            raise ValueError(\"\
+          No data was loaded from S3. The file may be empty or inaccessible.\")\n\n\
+          \        logger.debug(\n            \"S3 chunk read: %s rows (~%.2f MB)\"\
+          ,\n            total_rows_read,\n            accumulated_size / (1024**2),\n\
+          \        )\n        return pd.concat(chunk_list, ignore_index=True)\n\n\
+          \    df = load_timeseries_data_truncate(bucket_name, file_key, MAX_SIZE_BYTES,\
+          \ PANDAS_CHUNK_SIZE)\n\n    required_columns = {id_column, timestamp_column,\
+          \ target}\n    missing_columns = required_columns - set(df.columns)\n  \
+          \  if missing_columns:\n        raise ValueError(\n            f\"Missing\
+          \ required columns in dataset: {missing_columns}. Available columns: {list(df.columns)}\"\
+          \n        )\n\n    if len(df) == 0:\n        raise ValueError(\n       \
+          \     \"The loaded dataset has no data rows. Provide at least one row per\
+          \ time series \"\n            f\"with columns {sorted(required_columns)}.\"\
+          \n        )\n\n    # Create workspace datasets directory\n    datasets_dir\
+          \ = Path(workspace_path) / \"datasets\"\n    datasets_dir.mkdir(parents=True,\
+          \ exist_ok=True)\n\n    # Stable ordering for downstream I/O\n    df = df.sort_values(by=[id_column,\
+          \ timestamp_column]).reset_index(drop=True)\n\n    test_size = DEFAULT_TEST_SIZE\n\
+          \n    def _early_late_split(group: pd.DataFrame, early_fraction: float)\
+          \ -> tuple[pd.DataFrame, pd.DataFrame]:\n        \"\"\"Split one series\
+          \ by time: first ``early_fraction`` of rows (by time) vs remainder.\n\n\
+          \        Ensures at least one row in each side when len >= 2. A single-row\
+          \ series is kept\n        entirely in the early (train/selection) part.\n\
+          \        \"\"\"\n        g = group.sort_values(by=timestamp_column)\n  \
+          \      n = len(g)\n        if n == 0:\n            return g.iloc[:0].copy(),\
+          \ g.iloc[:0].copy()\n        if n == 1:\n            return g.copy(), g.iloc[:0].copy()\n\
+          \        split_idx = int(n * early_fraction)\n        split_idx = max(1,\
+          \ min(split_idx, n - 1))\n        return g.iloc[:split_idx].copy(), g.iloc[split_idx:].copy()\n\
+          \n    def _concat_sorted(parts: list, sort_by: list) -> pd.DataFrame:\n\
+          \        if not parts:\n            return pd.DataFrame(columns=df.columns)\n\
+          \        out = pd.concat(parts, ignore_index=True)\n        return out.sort_values(by=sort_by).reset_index(drop=True)\n\
+          \n    train_parts: list = []\n    test_parts: list = []\n    for _, series_df\
+          \ in df.groupby(id_column, sort=False):\n        tr, te = _early_late_split(series_df,\
+          \ 1.0 - test_size)\n        train_parts.append(tr)\n        test_parts.append(te)\n\
+          \n    train_df = _concat_sorted(train_parts, [id_column, timestamp_column])\n\
+          \    test_df = _concat_sorted(test_parts, [id_column, timestamp_column])\n\
+          \n    selection_parts: list = []\n    extra_parts: list = []\n    for _,\
+          \ series_train in train_df.groupby(id_column, sort=False):\n        sel,\
+          \ ext = _early_late_split(series_train, selection_train_size)\n        selection_parts.append(sel)\n\
+          \        extra_parts.append(ext)\n\n    selection_train_df = _concat_sorted(selection_parts,\
+          \ [id_column, timestamp_column])\n    extra_train_df = _concat_sorted(extra_parts,\
+          \ [id_column, timestamp_column])\n\n    # Validate split outputs:\n    if\
+          \ len(train_df) == 0:\n        raise ValueError(\n            \"Primary\
+          \ temporal split produced no train rows. The dataset may be too small for\
+          \ \"\n            \"the configured splits. Add more rows per time series,\
+          \ or reduce test_size \"\n            f\"(default is {DEFAULT_TEST_SIZE}).\"\
+          \n        )\n    if len(selection_train_df) == 0:\n        raise ValueError(\n\
+          \            \"Secondary split produced an empty selection-train dataset;\
+          \ \"\n            \"models_selection_train_dataset.csv would be empty and\
+          \ downstream training would fail. \"\n            \"Increase rows per time\
+          \ series and/or selection_train_size, or reduce test_size so \"\n      \
+          \      \"each series has enough train rows for the selection segment.\"\n\
+          \        )\n\n    # Save test dataset to artifact\n    test_df.to_csv(sampled_test_dataset.path,\
+          \ index=False)\n\n    selection_path = datasets_dir / \"models_selection_train_dataset.csv\"\
+          \n    extra_path = datasets_dir / \"extra_train_dataset.csv\"\n\n    selection_train_df.to_csv(selection_path,\
+          \ index=False)\n    extra_train_df.to_csv(extra_path, index=False)\n\n \
+          \   logger.info(\n        \"Timeseries loader: %s rows from s3://%s/%s;\
+          \ split selection=%s extra=%s test=%s\",\n        len(df),\n        bucket_name,\n\
+          \        file_key,\n        len(selection_train_df),\n        len(extra_train_df),\n\
+          \        len(test_df),\n    )\n\n    # Create sample config and split config\n\
+          \    sample_config = {\"sampling_method\": \"first_n_rows\", \"total_rows_loaded\"\
+          : len(df), \"sampled_rows\": len(df)}\n\n    split_config = {\n        \"\
+          test_size\": test_size,\n        \"selection_train_size\": selection_train_size,\n\
+          \    }\n\n    # Sample row for downstream use (JSON string to avoid NaN\
+          \ issues)\n    sample_rows = test_df.tail(min(5, len(test_df))).to_json(orient=\"\
+          records\")\n\n    return NamedTuple(\n        \"outputs\",\n        sample_config=dict,\n\
+          \        split_config=dict,\n        sample_rows=str,\n        models_selection_train_data_path=str,\n\
+          \        extra_train_data_path=str,\n    )(\n        sample_config=sample_config,\n\
+          \        split_config=split_config,\n        sample_rows=sample_rows,\n\
+          \        models_selection_train_data_path=str(selection_path),\n       \
+          \ extra_train_data_path=str(extra_path),\n    )\n\n"
+        image: quay.io/rhoai/odh-automl-rhel9:rhoai-3.4@sha256:ee8d0d339fb4e7d8f140fb680c9656ccff013fa5a5840ca8e01fdb9709568e57
+        resources:
+          cpuRequest: 2.0
+          memoryRequest: 8.589934592
+          resourceCpuRequest: '2'
+          resourceMemoryRequest: 8Gi
+    exec-timeseries-leaderboard-evaluation:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - timeseries_leaderboard_evaluation
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\n__KFP_EMBEDDED_ARCHIVE_B64 = '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'\n\
+          \nimport base64 as __kfp_b64\nimport io as __kfp_io\nimport os as __kfp_os\n\
+          import sys as __kfp_sys\nimport tarfile as __kfp_tarfile\nimport tempfile\
+          \ as __kfp_tempfile\n\n# Extract embedded archive at import time to ensure\
+          \ sys.path and globals are set\n__kfp_tmpdir = __kfp_tempfile.TemporaryDirectory()\n\
+          __KFP_EMBEDDED_ASSET_DIR = __kfp_tmpdir.name\ntry:\n    __kfp_bytes = __kfp_b64.b64decode(__KFP_EMBEDDED_ARCHIVE_B64.encode('ascii'))\n\
+          \    with __kfp_tarfile.open(fileobj=__kfp_io.BytesIO(__kfp_bytes), mode='r:gz')\
+          \ as __kfp_tar:\n        __kfp_tar.extractall(path=__KFP_EMBEDDED_ASSET_DIR)\n\
+          except Exception as __kfp_e:\n    raise RuntimeError(f'Failed to extract\
+          \ embedded archive: {__kfp_e}')\n\n# Always prepend the extracted directory\
+          \ to sys.path for import resolution\nif __KFP_EMBEDDED_ASSET_DIR not in\
+          \ __kfp_sys.path:\n    __kfp_sys.path.insert(0, __KFP_EMBEDDED_ASSET_DIR)\n\
+          \n\n\n\ndef timeseries_leaderboard_evaluation(\n    models: List[dsl.Model],\n\
+          \    eval_metric: str,\n    html_artifact: dsl.Output[dsl.HTML],\n    embedded_artifact:\
+          \ dsl.EmbeddedInput[dsl.Artifact],\n) -> NamedTuple(\"outputs\", best_model=str):\n\
+          \    \"\"\"Evaluate refitted AutoGluon timeseries models and generate a\
+          \ leaderboard.\n\n    This component aggregates metrics from a list of model\
+          \ artifacts produced by\n    ``autogluon_timeseries_models_full_refit``\
+          \ (collected via ``dsl.Collected``) and\n    generates an HTML-formatted\
+          \ leaderboard ranking the models by their performance metric.\n\n    Each\
+          \ artifact in ``models`` must have been produced by\n    ``autogluon_timeseries_models_full_refit``,\
+          \ which writes the following layout under\n    the artifact path::\n\n \
+          \       {artifact.path}/{model_name_full}/metrics/metrics.json\n       \
+          \ {artifact.path}/{model_name_full}/predictor/\n        {artifact.path}/{model_name_full}/notebooks/\n\
+          \n    Note: KFP does not propagate artifact metadata through executor inputs\
+          \ for collected\n    artifact lists, so metrics are read from ``metrics/metrics.json``\
+          \ on the filesystem\n    rather than from ``artifact.metadata``.\n\n   \
+          \ Args:\n        models: List of model artifacts from ``autogluon_timeseries_models_full_refit``\n\
+          \            collected via ``dsl.Collected``. Each artifact provides metrics\
+          \ and location\n            metadata for one refitted model.\n        eval_metric:\
+          \ Metric name for ranking (e.g. ``\"MASE\"``, ``\"WAPE\"``);\n         \
+          \   leaderboard is sorted descending (AutoGluon uses higher-is-better convention\n\
+          \            so metrics like MASE are negated - higher value means better\
+          \ model).\n        html_artifact: Output artifact for the HTML-formatted\
+          \ leaderboard.\n        embedded_artifact: Embedded shared files injected\
+          \ by the KFP runtime;\n            provides ``leaderboard_html_template.html``.\n\
+          \n    Returns:\n        NamedTuple with ``best_model`` (str): display name\
+          \ of the top-ranked model.\n\n    Raises:\n        TypeError: If ``eval_metric``\
+          \ is empty or not a string.\n        ValueError: If ``models`` list is empty,\
+          \ or if no artifact produced a ``metrics.json``.\n\n    Note:\n        Artifacts\
+          \ without a ``metrics/metrics.json`` file are skipped with a warning\n \
+          \       (e.g. when the corresponding refit task failed).\n\n    Example:\n\
+          \        from kfp import dsl\n        from components.training.automl.autogluon_timeseries_leaderboard_evaluation\
+          \ import (\n            timeseries_leaderboard_evaluation\n        )\n\n\
+          \        @dsl.pipeline(name=\"ts-evaluation-pipeline\")\n        def evaluation_pipeline():\n\
+          \            with dsl.ParallelFor(items=selection_task.outputs[\"top_models\"\
+          ]) as model_name:\n                refit_task = autogluon_timeseries_models_full_refit(model_name=model_name,\
+          \ ...)\n            leaderboard = timeseries_leaderboard_evaluation(\n \
+          \               models=dsl.Collected(refit_task.outputs[\"model_artifact\"\
+          ]),\n                eval_metric=\"MASE\",\n            )\n    \"\"\"  #\
+          \ noqa: E501\n    import json\n    import logging\n    from pathlib import\
+          \ Path\n\n    import pandas as pd\n    from leaderboard_utils import _build_leaderboard_html,\
+          \ _build_leaderboard_table, _round_metrics\n\n    logger = logging.getLogger(__name__)\n\
+          \n    # Input validation\n    if not isinstance(eval_metric, str) or not\
+          \ eval_metric.strip():\n        raise TypeError(\"eval_metric must be a\
+          \ non-empty string.\")\n    if not models:\n        raise ValueError(\"\
+          models list must not be empty.\")\n\n    results = []\n    for artifact\
+          \ in models:\n        artifact_path = Path(artifact.path)\n        base_uri\
+          \ = artifact.uri.rstrip(\"/\")\n\n        # KFP does not propagate artifact\
+          \ metadata through executor inputs for collected\n        # artifact lists\
+          \ \u2014 artifact.metadata is always empty here. Read from the files\n \
+          \       # written by autogluon_timeseries_models_full_refit instead.\n \
+          \       #\n        # Layout written by the refit component:\n        # \
+          \  {artifact.path}/{model_name_full}/metrics/metrics.json\n        #   {artifact.path}/{model_name_full}/predictor/\n\
+          \        #   {artifact.path}/{model_name_full}/notebooks/\n        metrics_file\
+          \ = next(artifact_path.glob(\"*/metrics/metrics.json\"), None)\n       \
+          \ if metrics_file is None:\n            logger.warning(\n              \
+          \  \"Skipping artifact at '%s': no metrics/metrics.json found. \"\n    \
+          \            \"The refit task may have failed for this model.\",\n     \
+          \           artifact.uri,\n            )\n            continue\n       \
+          \ model_name = metrics_file.relative_to(artifact_path).parts[0]\n\n    \
+          \    with open(metrics_file, \"r\", encoding=\"utf-8\") as f:\n        \
+          \    metrics_dict = json.load(f)\n\n        predictor_uri = f\"{base_uri}/{model_name}/predictor\"\
+          \n        notebook_uri = f\"{base_uri}/{model_name}/notebooks/automl_predictor_notebook.ipynb\"\
+          \n\n        results.append(\n            {\n                \"model\": model_name,\n\
+          \                **_round_metrics(metrics_dict),\n                \"notebook\"\
+          : notebook_uri,\n                \"predictor\": predictor_uri,\n       \
+          \     }\n        )\n\n    if not results:\n        raise ValueError(\n \
+          \           \"No valid model artifacts found. All refit tasks may have failed\
+          \ \"\n            \"or produced no metrics/metrics.json output.\"\n    \
+          \    )\n\n    # Notice: AutoGluon follows the \"higher is better\" strategy\
+          \ for all metrics.\n    # Metrics like MASE and WAPE have their signs flipped\
+          \ so that higher value = better model.\n    leaderboard_df = pd.DataFrame(results).sort_values(by=eval_metric,\
+          \ ascending=False)\n    n = len(leaderboard_df)\n    leaderboard_df.index\
+          \ = pd.RangeIndex(start=1, stop=n + 1, name=\"rank\")\n\n    html_table\
+          \ = _build_leaderboard_table(leaderboard_df)\n\n    best_model_name = leaderboard_df.iloc[0][\"\
+          model\"]\n    template_path = Path(embedded_artifact.path) / \"leaderboard_html_template.html\"\
+          \n    html_content = _build_leaderboard_html(\n        template_path=template_path,\n\
+          \        table_html=html_table,\n        eval_metric=eval_metric,\n    \
+          \    best_model_name=best_model_name,\n        num_models=len(leaderboard_df),\n\
+          \    )\n    with open(html_artifact.path, \"w\", encoding=\"utf-8\") as\
+          \ f:\n        f.write(html_content)\n\n    html_artifact.metadata[\"data\"\
+          ] = leaderboard_df.to_dict()\n    html_artifact.metadata[\"display_name\"\
+          ] = \"automl_timeseries_leaderboard\"\n    return NamedTuple(\"outputs\"\
+          , best_model=str)(best_model=best_model_name)\n\n"
+        image: quay.io/rhoai/odh-automl-rhel9:rhoai-3.4@sha256:ee8d0d339fb4e7d8f140fb680c9656ccff013fa5a5840ca8e01fdb9709568e57
+        resources:
+          cpuRequest: 1.0
+          memoryRequest: 4.294967296
+          resourceCpuRequest: '1'
+          resourceMemoryRequest: 4Gi
+pipelineInfo:
+  description: End-to-end AutoGluon time series forecasting pipeline. Loads time series
+    data from S3 in TimeSeriesDataFrame format (item_id, timestamp, target), trains
+    multiple AutoGluon TimeSeries models (local statistical and global deep learning),
+    ranks them by the chosen eval metric, and produces a leaderboard and the top N
+    trained predictors for deployment. Supports optional known covariates and configurable
+    prediction_length.
+  name: autogluon-timeseries-training-pipeline
+root:
+  dag:
+    tasks:
+      autogluon-timeseries-models-selection:
+        cachingOptions: {}
+        componentRef:
+          name: comp-autogluon-timeseries-models-selection
+        dependentTasks:
+        - timeseries-data-loader
+        inputs:
+          artifacts:
+            test_data:
+              taskOutputArtifact:
+                outputArtifactKey: sampled_test_dataset
+                producerTask: timeseries-data-loader
+          parameters:
+            id_column:
+              componentInputParameter: id_column
+            known_covariates_names:
+              componentInputParameter: known_covariates_names
+            prediction_length:
+              componentInputParameter: prediction_length
+            target:
+              componentInputParameter: target
+            timestamp_column:
+              componentInputParameter: timestamp_column
+            top_n:
+              componentInputParameter: top_n
+            train_data_path:
+              taskOutputParameter:
+                outputParameterKey: models_selection_train_data_path
+                producerTask: timeseries-data-loader
+            workspace_path:
+              runtimeValue:
+                constant: '{{$.workspace_path}}'
+        taskInfo:
+          name: autogluon-timeseries-models-selection
+      for-loop-1:
+        componentRef:
+          name: comp-for-loop-1
+        dependentTasks:
+        - autogluon-timeseries-models-selection
+        - timeseries-data-loader
+        inputs:
+          artifacts:
+            pipelinechannel--timeseries-data-loader-sampled_test_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: sampled_test_dataset
+                producerTask: timeseries-data-loader
+          parameters:
+            pipelinechannel--autogluon-timeseries-models-selection-model_config:
+              taskOutputParameter:
+                outputParameterKey: model_config
+                producerTask: autogluon-timeseries-models-selection
+            pipelinechannel--autogluon-timeseries-models-selection-predictor_path:
+              taskOutputParameter:
+                outputParameterKey: predictor_path
+                producerTask: autogluon-timeseries-models-selection
+            pipelinechannel--autogluon-timeseries-models-selection-top_models:
+              taskOutputParameter:
+                outputParameterKey: top_models
+                producerTask: autogluon-timeseries-models-selection
+            pipelinechannel--timeseries-data-loader-extra_train_data_path:
+              taskOutputParameter:
+                outputParameterKey: extra_train_data_path
+                producerTask: timeseries-data-loader
+            pipelinechannel--timeseries-data-loader-models_selection_train_data_path:
+              taskOutputParameter:
+                outputParameterKey: models_selection_train_data_path
+                producerTask: timeseries-data-loader
+            pipelinechannel--timeseries-data-loader-sample_config:
+              taskOutputParameter:
+                outputParameterKey: sample_config
+                producerTask: timeseries-data-loader
+            pipelinechannel--timeseries-data-loader-sample_rows:
+              taskOutputParameter:
+                outputParameterKey: sample_rows
+                producerTask: timeseries-data-loader
+            pipelinechannel--timeseries-data-loader-split_config:
+              taskOutputParameter:
+                outputParameterKey: split_config
+                producerTask: timeseries-data-loader
+        iteratorPolicy:
+          parallelismLimit: 1
+        parameterIterator:
+          itemInput: pipelinechannel--autogluon-timeseries-models-selection-top_models-loop-item
+          items:
+            inputParameter: pipelinechannel--autogluon-timeseries-models-selection-top_models
+        taskInfo:
+          name: for-loop-1
+      timeseries-data-loader:
+        cachingOptions: {}
+        componentRef:
+          name: comp-timeseries-data-loader
+        inputs:
+          parameters:
+            bucket_name:
+              componentInputParameter: train_data_bucket_name
+            file_key:
+              componentInputParameter: train_data_file_key
+            id_column:
+              componentInputParameter: id_column
+            target:
+              componentInputParameter: target
+            timestamp_column:
+              componentInputParameter: timestamp_column
+            workspace_path:
+              runtimeValue:
+                constant: '{{$.workspace_path}}'
+        taskInfo:
+          name: timeseries-data-loader
+      timeseries-leaderboard-evaluation:
+        cachingOptions: {}
+        componentRef:
+          name: comp-timeseries-leaderboard-evaluation
+        dependentTasks:
+        - autogluon-timeseries-models-selection
+        - for-loop-1
+        inputs:
+          artifacts:
+            models:
+              taskOutputArtifact:
+                outputArtifactKey: pipelinechannel--autogluon-timeseries-models-full-refit-model_artifact
+                producerTask: for-loop-1
+          parameters:
+            eval_metric:
+              taskOutputParameter:
+                outputParameterKey: eval_metric_name
+                producerTask: autogluon-timeseries-models-selection
+        taskInfo:
+          name: timeseries-leaderboard-evaluation
+  inputDefinitions:
+    parameters:
+      id_column:
+        parameterType: STRING
+      known_covariates_names:
+        isOptional: true
+        parameterType: LIST
+      prediction_length:
+        defaultValue: 1.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      target:
+        parameterType: STRING
+      timestamp_column:
+        parameterType: STRING
+      top_n:
+        defaultValue: 3.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      train_data_bucket_name:
+        parameterType: STRING
+      train_data_file_key:
+        parameterType: STRING
+      train_data_secret_name:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-timeseries-data-loader:
+          secretAsEnv:
+          - keyToEnv:
+            - envVar: AWS_ACCESS_KEY_ID
+              secretKey: AWS_ACCESS_KEY_ID
+            - envVar: AWS_SECRET_ACCESS_KEY
+              secretKey: AWS_SECRET_ACCESS_KEY
+            - envVar: AWS_S3_ENDPOINT
+              secretKey: AWS_S3_ENDPOINT
+            - envVar: AWS_DEFAULT_REGION
+              secretKey: AWS_DEFAULT_REGION
+            optional: true
+            secretNameParameter:
+              componentInputParameter: train_data_secret_name
+    pipelineConfig:
+      workspace:
+        kubernetes:
+          pvcSpecPatch:
+            accessModes:
+            - ReadWriteOnce
+        size: 12Gi

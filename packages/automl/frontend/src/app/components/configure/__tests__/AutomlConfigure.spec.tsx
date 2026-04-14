@@ -117,8 +117,7 @@ jest.mock('~/app/components/common/SecretSelector', () => {
             onChange({
               uuid: 'secret-1',
               name: 'Test Secret 1',
-              // eslint-disable-next-line camelcase
-              data: { aws_s3_bucket: 'test-bucket-1' },
+              data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
               type: 's3',
               invalid: false,
             })
@@ -132,8 +131,7 @@ jest.mock('~/app/components/common/SecretSelector', () => {
             onChange({
               uuid: 'secret-2',
               name: 'Test Secret 2',
-              // eslint-disable-next-line camelcase
-              data: { aws_s3_bucket: 'test-bucket-2' },
+              data: { AWS_S3_BUCKET: 'test-bucket-2', AWS_DEFAULT_REGION: 'us-east-1' },
               type: 's3',
               invalid: false,
             })
@@ -577,6 +575,10 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Verify selections took effect
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
+      expect(screen.getByRole('button', { name: 'Remove selection' })).toBeInTheDocument();
     };
 
     /** Click a prediction type tile via its hidden radio input */
@@ -789,6 +791,11 @@ describe('AutomlConfigure', () => {
         // Select a secret but no file — configure details shows empty state
         fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
 
+        // Empty state should be rendered
+        expect(
+          screen.getByText('Select an S3 connection or upload a file to get started'),
+        ).toBeInTheDocument();
+
         // Label column should not exist since configure details is hidden
         expect(screen.queryByTestId('label_column-select')).not.toBeInTheDocument();
       });
@@ -813,25 +820,170 @@ describe('AutomlConfigure', () => {
         expect(input).toHaveValue(3);
       });
 
-      it('should show error message when top N exceeds the maximum', async () => {
-        renderComponent();
-        selectSecretAndFile();
-        const input = screen.getByTestId('top-n-input').querySelector('input')!;
-        fireEvent.change(input, { target: { value: '6' } });
-
-        await waitFor(() => {
-          expect(screen.getByText('Maximum number of top models is 5')).toBeInTheDocument();
-        });
-      });
-
       it('should show error message when top N is below the minimum', async () => {
         renderComponent();
         selectSecretAndFile();
+
         const input = screen.getByTestId('top-n-input').querySelector('input')!;
         fireEvent.change(input, { target: { value: '0' } });
 
         await waitFor(() => {
           expect(screen.getByText('Minimum number of top models is 1')).toBeInTheDocument();
+        });
+      });
+
+      describe('Dynamic max validation based on task type', () => {
+        it('should accept top N at maximum (10) for binary classification', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('binary');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '10' } });
+          fireEvent.blur(input); // Trigger validation
+
+          // Should not show any error message for value at max
+          expect(screen.queryByText('Maximum number of top models is 10')).not.toBeInTheDocument();
+          expect(screen.queryByText('Maximum number of top models is 7')).not.toBeInTheDocument();
+        });
+
+        it('should reject top N exceeding maximum (10) for binary classification', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('binary');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '11' } });
+
+          await waitFor(() => {
+            expect(screen.getByText('Maximum number of top models is 10')).toBeInTheDocument();
+          });
+        });
+
+        it('should accept top N at maximum (10) for multiclass classification', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('multiclass');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '10' } });
+          fireEvent.blur(input);
+
+          expect(screen.queryByText('Maximum number of top models is 10')).not.toBeInTheDocument();
+          expect(screen.queryByText('Maximum number of top models is 7')).not.toBeInTheDocument();
+        });
+
+        it('should reject top N exceeding maximum (10) for multiclass classification', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('multiclass');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '11' } });
+
+          await waitFor(() => {
+            expect(screen.getByText('Maximum number of top models is 10')).toBeInTheDocument();
+          });
+        });
+
+        it('should accept top N at maximum (10) for regression', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('regression');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '10' } });
+          fireEvent.blur(input);
+
+          expect(screen.queryByText('Maximum number of top models is 10')).not.toBeInTheDocument();
+          expect(screen.queryByText('Maximum number of top models is 7')).not.toBeInTheDocument();
+        });
+
+        it('should reject top N exceeding maximum (10) for regression', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('regression');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '11' } });
+
+          await waitFor(() => {
+            expect(screen.getByText('Maximum number of top models is 10')).toBeInTheDocument();
+          });
+        });
+
+        it('should accept top N at maximum (7) for timeseries', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('timeseries');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '7' } });
+          fireEvent.blur(input);
+
+          expect(screen.queryByText('Maximum number of top models is 10')).not.toBeInTheDocument();
+          expect(screen.queryByText('Maximum number of top models is 7')).not.toBeInTheDocument();
+        });
+
+        it('should reject top N exceeding maximum (7) for timeseries', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('timeseries');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '8' } });
+
+          await waitFor(() => {
+            expect(screen.getByText('Maximum number of top models is 7')).toBeInTheDocument();
+          });
+        });
+
+        it('should automatically show error when switching from tabular to timeseries with top N exceeding new max', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('binary');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          // Set to 8 (valid for tabular max 10, invalid for timeseries max 7)
+          fireEvent.change(input, { target: { value: '8' } });
+          fireEvent.blur(input);
+
+          // Should be valid for binary (max 10)
+          expect(screen.queryByText('Maximum number of top models is 10')).not.toBeInTheDocument();
+          expect(screen.queryByText('Maximum number of top models is 7')).not.toBeInTheDocument();
+
+          // Switch to timeseries - error should appear automatically without touching the field
+          selectPredictionType('timeseries');
+
+          await waitFor(() => {
+            expect(screen.getByText('Maximum number of top models is 7')).toBeInTheDocument();
+          });
+        });
+
+        it('should automatically clear error when switching from timeseries to tabular with top N within new max', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('timeseries');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          // Set to 8 (invalid for timeseries max 7)
+          fireEvent.change(input, { target: { value: '8' } });
+          fireEvent.blur(input);
+
+          // Should show error for timeseries (max 7)
+          await waitFor(() => {
+            expect(screen.getByText('Maximum number of top models is 7')).toBeInTheDocument();
+          });
+
+          // Switch to binary - error should clear automatically without touching the field
+          selectPredictionType('binary');
+
+          await waitFor(() => {
+            expect(
+              screen.queryByText('Maximum number of top models is 10'),
+            ).not.toBeInTheDocument();
+            expect(screen.queryByText('Maximum number of top models is 7')).not.toBeInTheDocument();
+          });
         });
       });
     });

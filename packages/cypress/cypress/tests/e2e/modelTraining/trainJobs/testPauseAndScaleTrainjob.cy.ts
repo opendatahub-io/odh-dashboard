@@ -110,7 +110,6 @@ describe('Verify Pause, Scale Node Count, and Resume Training Job', () => {
 
     cy.step('Delete Kueue resources');
     deleteKueueResources(localQueueName, clusterQueueName, flavorName, projectName, {
-      wait: false,
       ignoreNotFound: true,
     });
   });

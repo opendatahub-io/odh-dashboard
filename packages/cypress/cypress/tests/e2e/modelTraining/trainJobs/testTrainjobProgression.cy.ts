@@ -101,7 +101,6 @@ describe('Verify a Training Job with Progression Tracking', () => {
 
     cy.step('delete Kueue resources');
     deleteKueueResources(localQueueName, clusterQueueName, flavorName, projectName, {
-      wait: false,
       ignoreNotFound: true,
     });
   });

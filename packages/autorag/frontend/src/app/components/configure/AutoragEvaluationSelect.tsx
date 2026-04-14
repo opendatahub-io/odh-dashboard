@@ -49,6 +49,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         }}
         onClear={() => field.onChange('')}
         fileUploadProps={{
+          dropzoneProps: { accept: { 'application/json': ['.json'] } },
           filenamePlaceholder: 'Drag and drop or browse from...',
           // @ts-expect-error: bypass ts error to allow icon
           browseButtonText: (

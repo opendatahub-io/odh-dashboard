@@ -40,8 +40,9 @@ const (
 	MediaTypeJson = "application/json"
 	MediaTypeYaml = "application/yaml"
 
-	NamespacePathParam    = "namespace"
-	ResourceNamePathParam = "name"
+	NamespacePathParam        = "namespace"
+	ResourceNamePathParam     = "name"
+	NamespaceFilterQueryParam = "namespaceFilter"
 
 	// healthcheck
 	HealthCheckPath = PathPrefix + "/healthcheck"
@@ -64,9 +65,15 @@ const (
 	SecretsByNamespacePath = PathPrefix + "/secrets/:" + NamespacePathParam
 	SecretsByNamePath      = SecretsByNamespacePath + "/:" + ResourceNamePathParam
 
+	// storageclasses
+	AllStorageClassesPath = PathPrefix + "/storageclasses"
+
+	// persistentvolumeclaims
+	PVCsByNamespacePath = PathPrefix + "/persistentvolumeclaims/:" + NamespacePathParam
+	PVCsByNamePath      = PVCsByNamespacePath + "/:" + ResourceNamePathParam
+
 	// swagger
-	SwaggerPath    = PathPrefix + "/swagger/*any"
-	SwaggerDocPath = PathPrefix + "/swagger/doc.json"
+	SwaggerPath = PathPrefix + "/swagger/*any"
 )
 
 type App struct {
@@ -137,8 +144,18 @@ func (a *App) Routes() http.Handler {
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
 	router.POST(AllWorkspaceKindsPath, a.CreateWorkspaceKindHandler)
 
+	// storageclasses
+	router.GET(AllStorageClassesPath, a.GetStorageClassesHandler)
+
+	// persistentvolumeclaims
+	router.GET(PVCsByNamespacePath, a.GetPVCsByNamespaceHandler)
+	router.POST(PVCsByNamespacePath, a.CreatePVCHandler)
+	router.DELETE(PVCsByNamePath, a.DeletePVCHandler)
+
 	// swagger
-	router.GET(SwaggerPath, a.GetSwaggerHandler)
+	if a.Config.SwaggerEnabled {
+		router.GET(SwaggerPath, a.GetSwaggerHandler)
+	}
 
 	return a.recoverPanic(a.enableCORS(router))
 }

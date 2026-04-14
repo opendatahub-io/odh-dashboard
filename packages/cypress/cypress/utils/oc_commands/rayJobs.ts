@@ -1,4 +1,5 @@
 import { createTrainingKueueResources } from './trainingJobs';
+import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /** Kubernetes DNS label (used for oc resource/namespace arguments). */
@@ -71,6 +72,40 @@ export const createRayJob = (
     cy.exec(`oc apply -f ${shQuote(tempFile)}`, { failOnNonZeroExit: false, timeout: 60000 }).then(
       (result) => {
         cy.exec(`rm -f ${shQuote(tempFile)}`, { failOnNonZeroExit: false }).then(() => {
+          if (result.code !== 0) {
+            const maskedStderr = maskSensitiveInfo(result.stderr);
+            throw new Error(`Failed to create RayJob: ${maskedStderr}`);
+          }
+          cy.log(`RayJob created: ${result.stdout}`);
+        });
+      },
+    );
+  });
+};
+
+/**
+ * Creates a basic RayJob using the simplified ray-job.yaml template.
+ * Used by the project-access permission test (RHOAIENG-56127).
+ */
+export const createBasicRayJob = (
+  namespace: string,
+  rayJobName: string,
+  rayImage: string,
+  localQueueName: string,
+): void => {
+  cy.fixture('resources/yaml/ray-job.yaml').then((yamlTemplate) => {
+    let yamlContent = yamlTemplate.replace(/\$\{namespace\}/g, namespace);
+    yamlContent = yamlContent.replace(/\$\{rayJobName\}/g, rayJobName);
+    yamlContent = yamlContent.replace(/\$\{rayImage\}/g, rayImage);
+    yamlContent = yamlContent.replace(/\$\{localQueueName\}/g, localQueueName);
+
+    cy.log(`Creating RayJob ${rayJobName} in namespace: ${namespace}`);
+
+    const tempFile = `/tmp/ray-job-${Date.now()}.yaml`;
+    cy.writeFile(tempFile, yamlContent);
+    cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: false, timeout: 60000 }).then(
+      (result) => {
+        cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false }).then(() => {
           if (result.code !== 0) {
             const maskedStderr = maskSensitiveInfo(result.stderr);
             throw new Error(`Failed to create RayJob: ${maskedStderr}`);
@@ -174,5 +209,28 @@ export const verifyRayJobDeleted = (rayJobName: string, namespace: string): void
     const out = `${result.stderr}\n${result.stdout}`;
     expect(out).to.match(/not found/i);
     cy.log('RayJob successfully deleted');
+  });
+};
+
+/**
+ * Deletes a RayJob resource.
+ */
+export const deleteRayJob = (
+  rayJobName: string,
+  namespace: string,
+  options: { ignoreNotFound?: boolean } = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const { ignoreNotFound = false } = options;
+
+  const ocCommand = `oc delete RayJob ${rayJobName} -n ${namespace} --ignore-not-found=${ignoreNotFound} --wait=false`;
+
+  cy.log(`Deleting RayJob: ${rayJobName}`);
+
+  return cy.exec(ocCommand, { failOnNonZeroExit: false, timeout: 120000 }).then((result) => {
+    if (result.code !== 0 && !ignoreNotFound) {
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      throw new Error(`Failed to delete RayJob: ${maskedStderr}`);
+    }
+    return result;
   });
 };

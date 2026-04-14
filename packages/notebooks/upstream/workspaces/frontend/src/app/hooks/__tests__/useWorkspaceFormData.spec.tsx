@@ -69,15 +69,26 @@ describe('useWorkspaceFormData', () => {
     await waitForNextUpdate();
 
     const workspaceFormData = result.current[0];
+    const expectedHomeVolume = mockWorkspace.podTemplate.volumes.home
+      ? {
+          pvcName: mockWorkspaceUpdate.podTemplate.volumes.home,
+          mountPath: '',
+          readOnly: false,
+          isAttached: true,
+        }
+      : undefined;
     expect(workspaceFormData).toEqual({
       kind: mockWorkspaceKind,
       imageConfig: mockWorkspace.podTemplate.options.imageConfig.current.id,
       podConfig: mockWorkspace.podTemplate.options.podConfig.current.id,
       properties: {
         workspaceName: mockWorkspace.name,
-        volumes: mockWorkspace.podTemplate.volumes.data,
-        secrets: mockWorkspace.podTemplate.volumes.secrets,
-        homeDirectory: mockWorkspace.podTemplate.volumes.home?.mountPath,
+        volumes: mockWorkspace.podTemplate.volumes.data.map((v) => ({ ...v, isAttached: true })),
+        secrets: (mockWorkspace.podTemplate.volumes.secrets ?? []).map((s) => ({
+          ...s,
+          isAttached: true,
+        })),
+        homeVolume: expectedHomeVolume,
       },
       revision: mockWorkspaceUpdate.revision,
     });

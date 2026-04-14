@@ -85,7 +85,9 @@ import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 import EvaluationTemplateModal from './EvaluationTemplateModal';
 import './AutoragConfigure.css';
 
-const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
+const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = {
+  s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
+};
 
 /** MIME types and extensions for the knowledge document upload dropzone (react-dropzone `accept` format). */
 const INPUT_DATA_FILE_ACCEPT: Record<string, string[]> = {
@@ -236,10 +238,7 @@ function AutoragConfigure(): React.JSX.Element {
       return;
     }
 
-    const bucketKey = findKey(
-      selectedSecret.data,
-      (value, key) => key.toLowerCase() === 'aws_s3_bucket',
-    );
+    const bucketKey = findKey(selectedSecret.data, (value, key) => key === 'AWS_S3_BUCKET');
     setValue('input_data_bucket_name', bucketKey ? selectedSecret.data[bucketKey] : '', {
       shouldValidate: true,
     });

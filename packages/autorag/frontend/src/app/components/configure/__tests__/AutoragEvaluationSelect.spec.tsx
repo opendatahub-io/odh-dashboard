@@ -38,66 +38,6 @@ jest.mock('~/app/hooks/useNotification', () => ({
   })),
 }));
 
-jest.mock('~/app/components/common/FileSelector', () => ({
-  __esModule: true,
-  default: ({
-    id,
-    selected,
-    onUpload,
-    onClear,
-    fileUploadProps,
-    fileUploadHelperText,
-  }: {
-    id: string;
-    selected?: string;
-    onUpload: (
-      file: File,
-      setProgress: (progress: number) => void,
-      setStatus: (status: 'success' | 'danger') => void,
-    ) => void;
-    onClear: () => void;
-    fileUploadProps?: {
-      onClearClick?: () => void;
-      browseButtonText?: React.ReactNode;
-      clearButtonText?: React.ReactNode;
-      isClearButtonDisabled?: boolean;
-    };
-    fileUploadHelperText?: string;
-  }) => (
-    <div data-testid="file-selector">
-      <input data-testid={id} value={selected || ''} readOnly />
-      {selected && (
-        <button data-testid="file-selector-clear" onClick={onClear}>
-          Clear
-        </button>
-      )}
-      <input
-        data-testid="file-selector-upload"
-        type="file"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            onUpload(file, jest.fn(), jest.fn());
-          }
-        }}
-      />
-      {fileUploadProps?.browseButtonText && (
-        <div data-testid="file-selector-browse-button">{fileUploadProps.browseButtonText}</div>
-      )}
-      <button
-        data-testid="file-selector-s3-button"
-        onClick={() => fileUploadProps?.onClearClick?.()}
-        disabled={fileUploadProps?.isClearButtonDisabled}
-      >
-        {fileUploadProps?.clearButtonText || 'S3'}
-      </button>
-      {fileUploadHelperText && (
-        <div data-testid="file-selector-helper-text">{fileUploadHelperText}</div>
-      )}
-    </div>
-  ),
-}));
-
 jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
@@ -212,15 +152,18 @@ describe('AutoragEvaluationSelect', () => {
   it('should render FileSelector component', () => {
     renderWithProviders(<AutoragEvaluationSelect />);
 
-    expect(screen.getByTestId('file-selector')).toBeInTheDocument();
+    // FileSelector renders a TextInputGroup with a file input
+    expect(screen.getByPlaceholderText('No file selected')).toBeInTheDocument();
   });
 
   it('should render helper text for FileSelector', () => {
     renderWithProviders(<AutoragEvaluationSelect />);
 
-    expect(screen.getByTestId('file-selector-helper-text')).toHaveTextContent(
-      'Supply a JSON file with test questions and answers to evaluate the quality of Q&A responses.',
-    );
+    expect(
+      screen.getByText(
+        'Supply a JSON file with test questions and answers to evaluate the quality of Q&A responses.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('should display selected file in FileSelector', () => {
@@ -229,7 +172,7 @@ describe('AutoragEvaluationSelect', () => {
       defaultValues: { test_data_key: 'my-test-file.json' },
     });
 
-    expect(screen.getByTestId('test_data_key')).toHaveValue('my-test-file.json');
+    expect(screen.getByDisplayValue('my-test-file.json')).toBeInTheDocument();
   });
 
   it('should clear selected file when clear button is clicked', async () => {
@@ -245,7 +188,7 @@ describe('AutoragEvaluationSelect', () => {
       defaultValues: { test_data_key: 'my-test-file.json' },
     });
 
-    const clearButton = screen.getByTestId('file-selector-clear');
+    const clearButton = screen.getByRole('button', { name: /clear file/i });
     await user.click(clearButton);
 
     await waitFor(() => {
@@ -265,10 +208,11 @@ describe('AutoragEvaluationSelect', () => {
 
     mockUploadMutateAsync.mockResolvedValue({ key: 'test.json' });
 
-    renderWithProviders(<AutoragEvaluationSelect />, { onFormChange });
+    const { container } = renderWithProviders(<AutoragEvaluationSelect />, { onFormChange });
 
-    const uploadInput = screen.getByTestId('file-selector-upload');
-    await user.upload(uploadInput, file);
+    const uploadInput = container.querySelector('input[type="file"]');
+    expect(uploadInput).not.toBeNull();
+    await user.upload(uploadInput as HTMLInputElement, file);
 
     await waitFor(() => {
       expect(mockUploadMutateAsync).toHaveBeenCalledWith({
@@ -291,10 +235,11 @@ describe('AutoragEvaluationSelect', () => {
 
     mockUploadMutateAsync.mockRejectedValue(error);
 
-    renderWithProviders(<AutoragEvaluationSelect />);
+    const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 
-    const uploadInput = screen.getByTestId('file-selector-upload');
-    await user.upload(uploadInput, file);
+    const uploadInput = container.querySelector('input[type="file"]');
+    expect(uploadInput).not.toBeNull();
+    await user.upload(uploadInput as HTMLInputElement, file);
 
     await waitFor(() => {
       expect(mockNotificationError).toHaveBeenCalledWith('Failed to upload file', 'Upload failed');
@@ -307,10 +252,11 @@ describe('AutoragEvaluationSelect', () => {
 
     mockUploadMutateAsync.mockRejectedValue('String error');
 
-    renderWithProviders(<AutoragEvaluationSelect />);
+    const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 
-    const uploadInput = screen.getByTestId('file-selector-upload');
-    await user.upload(uploadInput, file);
+    const uploadInput = container.querySelector('input[type="file"]');
+    expect(uploadInput).not.toBeNull();
+    await user.upload(uploadInput as HTMLInputElement, file);
 
     await waitFor(() => {
       expect(mockNotificationError).toHaveBeenCalledWith('Failed to upload file', 'String error');
@@ -328,7 +274,8 @@ describe('AutoragEvaluationSelect', () => {
 
     renderWithProviders(<AutoragEvaluationSelect />);
 
-    const s3Button = screen.getByTestId('file-selector-s3-button');
+    // The FileUpload's clear button displays "S3" text
+    const s3Button = screen.getByRole('button', { name: /s3/i });
     await user.click(s3Button);
 
     expect(screen.getByTestId('s3-file-explorer')).toBeInTheDocument();
@@ -339,7 +286,7 @@ describe('AutoragEvaluationSelect', () => {
 
     renderWithProviders(<AutoragEvaluationSelect />);
 
-    const s3Button = screen.getByTestId('file-selector-s3-button');
+    const s3Button = screen.getByRole('button', { name: /s3/i });
     await user.click(s3Button);
 
     expect(screen.getByTestId('s3-file-explorer')).toBeInTheDocument();
@@ -359,7 +306,7 @@ describe('AutoragEvaluationSelect', () => {
 
     renderWithProviders(<AutoragEvaluationSelect />, { onFormChange });
 
-    const s3Button = screen.getByTestId('file-selector-s3-button');
+    const s3Button = screen.getByRole('button', { name: /s3/i });
     await user.click(s3Button);
 
     const selectButton = screen.getByTestId('s3-select-file');
@@ -381,7 +328,7 @@ describe('AutoragEvaluationSelect', () => {
 
     renderWithProviders(<AutoragEvaluationSelect />, { onFormChange });
 
-    const s3Button = screen.getByTestId('file-selector-s3-button');
+    const s3Button = screen.getByRole('button', { name: /s3/i });
     await user.click(s3Button);
 
     const selectButton = screen.getByTestId('s3-select-nested-file');
@@ -399,7 +346,7 @@ describe('AutoragEvaluationSelect', () => {
 
     renderWithProviders(<AutoragEvaluationSelect />);
 
-    const s3Button = screen.getByTestId('file-selector-s3-button');
+    const s3Button = screen.getByRole('button', { name: /s3/i });
     await user.click(s3Button);
 
     expect(screen.getByTestId('s3-namespace')).toHaveTextContent('test-namespace');
@@ -426,7 +373,7 @@ describe('AutoragEvaluationSelect', () => {
     renderWithProviders(<AutoragEvaluationSelect />);
 
     // Verify the browse button contains the "Computer" text
-    const browseButton = screen.getByTestId('file-selector-browse-button');
+    const browseButton = screen.getByRole('button', { name: /computer/i });
     expect(browseButton).toBeInTheDocument();
     expect(browseButton).toHaveTextContent('Computer');
   });
@@ -435,7 +382,7 @@ describe('AutoragEvaluationSelect', () => {
     renderWithProviders(<AutoragEvaluationSelect />);
 
     // Verify S3 button is rendered with correct text
-    const s3Button = screen.getByTestId('file-selector-s3-button');
+    const s3Button = screen.getByRole('button', { name: /s3/i });
     expect(s3Button).toBeInTheDocument();
     expect(s3Button).toHaveTextContent('S3');
   });
@@ -444,7 +391,7 @@ describe('AutoragEvaluationSelect', () => {
     renderWithProviders(<AutoragEvaluationSelect />);
 
     // S3 button should be enabled
-    const s3Button = screen.getByTestId('file-selector-s3-button');
+    const s3Button = screen.getByRole('button', { name: /s3/i });
     expect(s3Button).not.toBeDisabled();
   });
 
@@ -456,7 +403,7 @@ describe('AutoragEvaluationSelect', () => {
       defaultValues: { test_data_secret_name: 'test-secret-1' },
     });
 
-    const s3Button = screen.getByTestId('file-selector-s3-button');
+    const s3Button = screen.getByRole('button', { name: /s3/i });
     await user.click(s3Button);
 
     // The S3FileExplorer should be rendered with the correct secret

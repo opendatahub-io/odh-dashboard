@@ -1,4 +1,9 @@
-import { McpDeployment, McpDeploymentPhase, MCPServerCR } from '~/app/mcpDeploymentTypes';
+import {
+  McpDeployment,
+  McpDeploymentList,
+  McpDeploymentPhase,
+  MCPServerCR,
+} from '../app/mcpDeploymentTypes';
 
 export const mockMcpDeployment = (overrides?: Partial<McpDeployment>): McpDeployment => ({
   name: 'kubernetes-mcp',
@@ -25,4 +30,12 @@ export const mockMcpServerCR = (overrides?: Partial<MCPServerCR>): MCPServerCR =
     config: { port: 8080, path: '/sse' },
   },
   ...overrides,
+});
+
+export const mockMcpDeploymentList = (
+  partial?: Partial<McpDeploymentList>,
+): McpDeploymentList => ({
+  items: [mockMcpDeployment()],
+  size: 1,
+  ...partial,
 });

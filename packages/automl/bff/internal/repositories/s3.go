@@ -2,7 +2,9 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
@@ -10,9 +12,61 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
 
+// secretKeyEntry stores an original-case key and its value from secret data.
+type secretKeyEntry struct {
+	originalKey string
+	value       string
+}
+
+// newSecretLookup builds a deterministic, case-insensitive lookup function from
+// Kubernetes secret data. The returned function:
+//  1. Prefers an exact-case match if present.
+//  2. Falls back to a single case-insensitive variant.
+//  3. Returns an error if multiple case-variants collide (non-deterministic).
+func newSecretLookup(secretData map[string][]byte) func(targetKeys ...string) (string, error) {
+	// Build a normalized map: lowercased key → all original-case entries.
+	normalized := make(map[string][]secretKeyEntry, len(secretData))
+	for k, v := range secretData {
+		lower := strings.ToLower(k)
+		normalized[lower] = append(normalized[lower], secretKeyEntry{originalKey: k, value: string(v)})
+	}
+
+	return func(targetKeys ...string) (string, error) {
+		for _, targetKey := range targetKeys {
+			// 1. Prefer exact-case match.
+			if val, ok := secretData[targetKey]; ok {
+				return string(val), nil
+			}
+
+			// 2. Case-insensitive fallback.
+			lower := strings.ToLower(targetKey)
+			entries, ok := normalized[lower]
+			if !ok || len(entries) == 0 {
+				continue
+			}
+
+			// 3. Exactly one case-variant → return it.
+			if len(entries) == 1 {
+				return entries[0].value, nil
+			}
+
+			// 4. Multiple case-variants → ambiguous, return error.
+			keys := make([]string, len(entries))
+			for i, e := range entries {
+				keys[i] = e.originalKey
+			}
+			slices.Sort(keys)
+			return "", fmt.Errorf("%w %q: multiple case-variants found: %v", ErrAmbiguousSecretKey, targetKey, keys)
+		}
+		return "", nil
+	}
+}
+
 // S3Credentials is a type alias for the s3 integration package's credentials type,
 // re-exported so callers in the repositories package don't need an extra import.
 type S3Credentials = s3int.S3Credentials
+
+var ErrAmbiguousSecretKey = errors.New("ambiguous secret key")
 
 type S3Repository struct{}
 
@@ -35,26 +89,38 @@ func (r *S3Repository) GetS3Credentials(
 		return nil, fmt.Errorf("error fetching secret '%s' from namespace %s: %w", secretName, namespace, err)
 	}
 
-	secretData := secret.Data
+	// Case-insensitive credential extraction with deterministic collision detection.
+	// More lenient than the case-sensitive classification in secret.go to maximize
+	// compatibility with existing secrets.
+	getValue := newSecretLookup(secret.Data)
 
-	getValue := func(targetKeys ...string) string {
-		for secretKey, secretValue := range secretData {
-			secretKeyLower := strings.ToLower(secretKey)
-			for _, targetKey := range targetKeys {
-				if secretKeyLower == strings.ToLower(targetKey) {
-					return string(secretValue)
-				}
-			}
-		}
-		return ""
+	accessKeyID, err := getValue("AWS_ACCESS_KEY_ID")
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
+	}
+	secretAccessKey, err := getValue("AWS_SECRET_ACCESS_KEY")
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
+	}
+	region, err := getValue("AWS_DEFAULT_REGION")
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
+	}
+	endpointURL, err := getValue("AWS_S3_ENDPOINT")
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
+	}
+	bucket, err := getValue("AWS_S3_BUCKET")
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
 	}
 
 	creds := &S3Credentials{
-		AccessKeyID:     getValue("AWS_ACCESS_KEY_ID"),
-		SecretAccessKey: getValue("AWS_SECRET_ACCESS_KEY"),
-		Region:          getValue("AWS_DEFAULT_REGION"),
-		EndpointURL:     getValue("AWS_S3_ENDPOINT"),
-		Bucket:          getValue("AWS_S3_BUCKET"),
+		AccessKeyID:     accessKeyID,
+		SecretAccessKey: secretAccessKey,
+		Region:          region,
+		EndpointURL:     endpointURL,
+		Bucket:          bucket,
 	}
 
 	if creds.AccessKeyID == "" {
@@ -98,23 +164,24 @@ func (r *S3Repository) GetS3CredentialsFromDSPA(
 			dspaStorage.SecretName, namespace, err)
 	}
 
-	getValue := func(targetKey string) string {
-		targetLower := strings.ToLower(targetKey)
-		for secretKey, secretValue := range secret.Data {
-			if strings.ToLower(secretKey) == targetLower {
-				return string(secretValue)
-			}
-		}
-		return ""
-	}
+	// Case-insensitive credential extraction with deterministic collision detection.
+	// More lenient than the case-sensitive classification in secret.go to maximize
+	// compatibility with existing secrets.
+	getValue := newSecretLookup(secret.Data)
 
-	accessKeyID := getValue(dspaStorage.AccessKeyField)
+	accessKeyID, err := getValue(dspaStorage.AccessKeyField)
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s': %w", dspaStorage.SecretName, err)
+	}
 	if accessKeyID == "" {
 		return nil, fmt.Errorf("secret '%s' missing required field: %s",
 			dspaStorage.SecretName, dspaStorage.AccessKeyField)
 	}
 
-	secretAccessKey := getValue(dspaStorage.SecretKeyField)
+	secretAccessKey, err := getValue(dspaStorage.SecretKeyField)
+	if err != nil {
+		return nil, fmt.Errorf("secret '%s': %w", dspaStorage.SecretName, err)
+	}
 	if secretAccessKey == "" {
 		return nil, fmt.Errorf("secret '%s' missing required field: %s",
 			dspaStorage.SecretName, dspaStorage.SecretKeyField)

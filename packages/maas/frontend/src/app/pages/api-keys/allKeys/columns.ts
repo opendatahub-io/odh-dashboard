@@ -55,3 +55,6 @@ export const apiKeyColumns: ApiKeyColumn[] = [
     serverSortField: 'expires_at',
   },
 ];
+
+export const getVisibleApiKeyColumns = (isMaasAdmin: boolean): ApiKeyColumn[] =>
+  isMaasAdmin ? apiKeyColumns : apiKeyColumns.filter((col) => col.field !== 'username');

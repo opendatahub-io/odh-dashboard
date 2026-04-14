@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
@@ -200,6 +201,10 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		if value > constants.MaxRagPatterns {
 			return NewValidationError(fmt.Sprintf("optimization_max_rag_patterns must be at most %d, got %d", constants.MaxRagPatterns, value))
 		}
+	}
+
+	if utf8.RuneCountInString(req.DisplayName) > 250 {
+		return NewValidationError("display_name must be at most 250 characters")
 	}
 
 	return nil

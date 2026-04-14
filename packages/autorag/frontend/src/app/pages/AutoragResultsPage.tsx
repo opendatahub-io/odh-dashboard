@@ -6,6 +6,7 @@ import {
   DrawerContent,
   DrawerContentBody,
   Skeleton,
+  Truncate,
 } from '@patternfly/react-core';
 import { OpenDrawerRightIcon } from '@patternfly/react-icons';
 import { useNamespaceSelector } from 'mod-arch-core';
@@ -82,7 +83,7 @@ function AutoragResultsPage(): React.JSX.Element {
           <AutoragInputParametersPanel
             onClose={handleDrawerClose}
             parameters={contextValue.parameters}
-            isLoading={contextValue.pipelineRunLoading}
+            isLoading={pipelineRunPending}
           />
         }
       >
@@ -91,7 +92,15 @@ function AutoragResultsPage(): React.JSX.Element {
             title={<AutoragHeader />}
             subtext={
               <h2 className="pf-v6-u-mt-sm">
-                {pipelineRun ? `"${pipelineRun.display_name}" results` : <Skeleton width="300px" />}
+                {pipelineRun ? (
+                  <span>
+                    &quot;
+                    <Truncate content={pipelineRun.display_name || ''} />
+                    &quot; results
+                  </span>
+                ) : (
+                  <Skeleton width="300px" />
+                )}
               </h2>
             }
             headerAction={
@@ -110,7 +119,9 @@ function AutoragResultsPage(): React.JSX.Element {
                 <BreadcrumbItem>
                   <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
                 </BreadcrumbItem>
-                <BreadcrumbItem isActive>{pipelineRun?.display_name}</BreadcrumbItem>
+                <BreadcrumbItem isActive>
+                  <Truncate content={pipelineRun?.display_name || ''} />
+                </BreadcrumbItem>
               </Breadcrumb>
             }
             empty={noNamespaces || invalidNamespace || invalidPipelineRunId}

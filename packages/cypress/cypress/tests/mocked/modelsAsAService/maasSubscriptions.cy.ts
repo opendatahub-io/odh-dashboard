@@ -243,7 +243,19 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findModelsTable().findByTestId('add-token-limit-0').click();
     editRateLimitsModal.shouldBeOpen();
     editRateLimitsModal.findCountInput(0).clear();
+    editRateLimitsModal.findCountInput(0).type('100000');
+    editRateLimitsModal.findSaveButton().should('be.disabled');
+    editRateLimitsModal
+      .findHelperText(0)
+      .should('contain.text', 'Token count exceeds maximum allowed value');
+    editRateLimitsModal.findCountInput(0).clear();
     editRateLimitsModal.findCountInput(0).type('5000');
+    editRateLimitsModal.findTimeInput(0).clear();
+    editRateLimitsModal.findTimeInput(0).type('100000');
+    editRateLimitsModal.findSaveButton().should('be.disabled');
+    editRateLimitsModal
+      .findHelperText(0)
+      .should('contain.text', 'Time value exceeds maximum allowed value');
     editRateLimitsModal.findTimeInput(0).clear();
     editRateLimitsModal.findTimeInput(0).type('1');
     editRateLimitsModal.findSaveButton().click();

@@ -197,7 +197,9 @@ export function useS3ListFilesQuery(
   });
 }
 
-const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED']);
+const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED', 'CACHED']);
+
+export const isTerminalState = (state: string): boolean => TERMINAL_STATES.has(state);
 const POLL_INTERVAL_MS = 10000;
 
 export function usePipelineRunQuery(
@@ -211,7 +213,7 @@ export function usePipelineRunQuery(
     placeholderData: (previousData) => previousData,
     refetchInterval: (query) => {
       const state = query.state.data?.state;
-      if (!state || TERMINAL_STATES.has(state)) {
+      if (!state || isTerminalState(state)) {
         return false;
       }
       return POLL_INTERVAL_MS;
@@ -285,12 +287,14 @@ export async function fetchS3Json<T>(
 }
 
 /**
- * Zod schema to validate AutomlModel shape from model.json files.
- * Validates location (predictor/notebook paths) and metrics (numeric test_data values).
+ * Zod schemas to validate AutomlModel shape from model.json files.
+ * Tabular and timeseries models have different location structures:
+ *   - Tabular:     location.notebook  (singular, full path to notebook file)
+ *   - Timeseries:  location.notebooks (plural, directory containing notebooks)
  * model_directory is optional in the raw file since it gets rewritten after parsing.
  */
 /* eslint-disable camelcase */
-export const AutomlModelSchema = z.object({
+const AutomlTabularModelSchema = z.object({
   name: z.string(),
   location: z.object({
     model_directory: z.string().optional(),
@@ -301,6 +305,29 @@ export const AutomlModelSchema = z.object({
     test_data: z.record(z.string(), z.number()),
   }),
 });
+
+const AutomlTimeseriesModelSchema = z.object({
+  name: z.string(),
+  base_model: z.string(),
+  location: z.object({
+    model_directory: z.string().optional(),
+    predictor: z.string(),
+    notebooks: z.string(),
+    metrics: z.string(),
+  }),
+  metrics: z.object({
+    test_data: z.record(z.string(), z.number()),
+  }),
+});
+
+export const AutomlModelSchema = z.union([AutomlTabularModelSchema, AutomlTimeseriesModelSchema]);
+
+export type AutomlRawTabularModel = z.infer<typeof AutomlTabularModelSchema>;
+export type AutomlRawTimeseriesModel = z.infer<typeof AutomlTimeseriesModelSchema>;
+export type AutomlRawModel = AutomlRawTabularModel | AutomlRawTimeseriesModel;
+
+export const isRawTimeseriesModel = (model: AutomlRawModel): model is AutomlRawTimeseriesModel =>
+  'base_model' in model;
 /* eslint-enable camelcase */
 
 export function useModelEvaluationArtifactsQuery(
@@ -343,7 +370,7 @@ export function useModelEvaluationArtifactsQuery(
     combine: (results) => ({
       featureImportance: results[0].data,
       confusionMatrix: results[1].data,
-      isLoading: results.some((r) => r.isPending),
+      isLoading: results.some((r) => r.isLoading),
     }),
   });
 }
