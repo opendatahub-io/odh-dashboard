@@ -42,6 +42,7 @@ describe('MaaS Deployment Wizard', () => {
           [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
           [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
         },
+        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
     );
     cy.interceptOdh(
