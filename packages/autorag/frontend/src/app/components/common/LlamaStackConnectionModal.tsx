@@ -29,8 +29,20 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
   const [submitError, setSubmitError] = React.useState<Error>();
   const [isSaving, setIsSaving] = React.useState(false);
   const [isModified, setIsModified] = React.useState(false);
+  const [baseUrlTouched, setBaseUrlTouched] = React.useState(false);
 
-  const isFormValid = name.trim() !== '' && baseUrl.trim() !== '';
+  const isValidUrl = (url: string): boolean => {
+    try {
+      const parsed = new URL(url.trim());
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  const baseUrlValid = isValidUrl(baseUrl);
+  const showBaseUrlError = baseUrlTouched && baseUrl.trim() !== '' && !baseUrlValid;
+  const isFormValid = name.trim() !== '' && baseUrlValid;
 
   const handleSubmit = () => {
     setIsSaving(true);
@@ -100,11 +112,17 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
                 setBaseUrl(val);
                 handleFieldChange();
               }}
+              onBlur={() => setBaseUrlTouched(true)}
+              validated={showBaseUrlError ? 'error' : undefined}
               isRequired
             />
             <FormHelperText>
               <HelperText>
-                <HelperTextItem>The base URL of the Llama Stack instance.</HelperTextItem>
+                <HelperTextItem variant={showBaseUrlError ? 'error' : 'default'}>
+                  {showBaseUrlError
+                    ? 'Enter a valid URL (e.g. https://example.com).'
+                    : 'The base URL of the Llama Stack instance.'}
+                </HelperTextItem>
               </HelperText>
             </FormHelperText>
           </FormGroup>
@@ -130,7 +148,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
           error={submitError}
           isSubmitDisabled={!isFormValid || !isModified || isSaving}
           isSubmitLoading={isSaving}
-          alertTitle=""
+          alertTitle="Failed to create connection"
         />
       </ModalFooter>
     </Modal>

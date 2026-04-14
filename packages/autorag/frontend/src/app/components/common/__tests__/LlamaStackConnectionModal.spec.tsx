@@ -247,4 +247,72 @@ describe('LlamaStackConnectionModal', () => {
 
     expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
   });
+
+  it('should keep button disabled when base URL is invalid', async () => {
+    render(
+      <LlamaStackConnectionModal
+        namespace={TEST_NAMESPACE}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('lls-connection-name'), {
+        target: { value: 'My Connection' },
+      });
+      fireEvent.change(screen.getByTestId('lls-connection-base-url'), {
+        target: { value: 'not-a-url' },
+      });
+    });
+
+    expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
+  });
+
+  it('should show validation error after blurring base URL with invalid value', async () => {
+    render(
+      <LlamaStackConnectionModal
+        namespace={TEST_NAMESPACE}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+      />,
+    );
+
+    const baseUrlInput = screen.getByTestId('lls-connection-base-url');
+
+    await act(async () => {
+      fireEvent.change(baseUrlInput, { target: { value: 'not-a-url' } });
+      fireEvent.blur(baseUrlInput);
+    });
+
+    expect(screen.getByText('Enter a valid URL (e.g. https://example.com).')).toBeInTheDocument();
+  });
+
+  it('should clear validation error when base URL is corrected', async () => {
+    render(
+      <LlamaStackConnectionModal
+        namespace={TEST_NAMESPACE}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+      />,
+    );
+
+    const baseUrlInput = screen.getByTestId('lls-connection-base-url');
+
+    await act(async () => {
+      fireEvent.change(baseUrlInput, { target: { value: 'not-a-url' } });
+      fireEvent.blur(baseUrlInput);
+    });
+
+    expect(screen.getByText('Enter a valid URL (e.g. https://example.com).')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.change(baseUrlInput, { target: { value: 'https://example.com' } });
+    });
+
+    expect(
+      screen.queryByText('Enter a valid URL (e.g. https://example.com).'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('The base URL of the Llama Stack instance.')).toBeInTheDocument();
+  });
 });
