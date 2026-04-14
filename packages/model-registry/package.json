@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "update-subtree": "package-subtree --package=@odh-dashboard/model-registry",
+    "update-subtree-local": "package-subtree-local --package=@odh-dashboard/model-registry",
     "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff",
     "cypress:server:build": "cd upstream/frontend && cross-env DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
