@@ -118,6 +118,10 @@
   tbody tr td:last-child {
     background-color: var(--pf-t--global--background--color--secondary--default);
   }
+
+  tbody tr:last-child th {
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+  }
 }
 
 :root:where(.pf-v6-theme-dark) .automl-confusion-matrix {
