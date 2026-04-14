@@ -1,6 +1,7 @@
 package s3
 
 import (
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"testing"
@@ -27,6 +28,29 @@ func TestNewRealS3Client_WrapsErrEndpointValidation(t *testing.T) {
 // ---------------------------------------------------------------------------
 // validateAndNormalizeEndpoint — SSRF protection tests
 // ---------------------------------------------------------------------------
+
+func TestNewRealS3Client_WithRootCAs(t *testing.T) {
+	t.Parallel()
+	pool := x509.NewCertPool()
+	_, err := NewRealS3Client(&S3Credentials{
+		AccessKeyID:     "a",
+		SecretAccessKey: "b",
+		Region:          "us-east-1",
+		EndpointURL:     "https://s3.amazonaws.com",
+	}, S3ClientOptions{RootCAs: pool})
+	assert.NoError(t, err)
+}
+
+func TestNewRealS3Client_DevModeFallback(t *testing.T) {
+	t.Parallel()
+	_, err := NewRealS3Client(&S3Credentials{
+		AccessKeyID:     "a",
+		SecretAccessKey: "b",
+		Region:          "us-east-1",
+		EndpointURL:     "https://s3.amazonaws.com",
+	}, S3ClientOptions{DevMode: true})
+	assert.NoError(t, err)
+}
 
 func TestValidateAndNormalizeEndpoint_AcceptsValidHTTPS(t *testing.T) {
 	c := newTestClient()
