@@ -23,13 +23,13 @@ describe('Verify that admin users can edit model registry database configuration
   let registryName: string;
   let originalRegistryName: string;
   let deploymentName: string;
-  let databaseName: string;
   let newDatabaseHost: string;
   let newDatabasePort: string;
   let newDatabaseName: string;
   let newDatabaseUsername: string;
   let newDatabasePassword: string;
   const uuid = generateTestUUID();
+  const databaseName = `model-registry-db-${uuid}`;
 
   before(() => {
     cy.step('Load test data from fixture');
@@ -38,7 +38,6 @@ describe('Verify that admin users can edit model registry database configuration
       registryName = `${testData.registryNamePrefix}-${uuid}`;
       originalRegistryName = registryName;
       deploymentName = testData.operatorDeploymentName;
-      databaseName = testData.databaseName;
       newDatabaseHost = testData.newDatabaseHost;
       newDatabasePort = testData.newDatabasePort;
       newDatabaseName = testData.newDatabaseName;
@@ -70,9 +69,9 @@ describe('Verify that admin users can edit model registry database configuration
       tags: [
         '@Dashboard',
         '@ModelRegistry',
+        '@ModelRegistryCI',
         '@Sanity',
         '@SanitySet4',
-        '@NonConcurrent',
         '@DatabaseConfig',
       ],
     },

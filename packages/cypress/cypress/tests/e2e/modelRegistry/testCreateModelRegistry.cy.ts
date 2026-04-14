@@ -17,22 +17,24 @@ import {
   waitForDefaultDatabase,
 } from '../../../utils/oc_commands/modelRegistry';
 import { loadModelRegistryFixture } from '../../../utils/dataLoader';
+import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { ModelRegistryTestData } from '../../../types';
 
 describe('Verify a model registry can be created and deleted', () => {
   let testData: ModelRegistryTestData;
   let deploymentName: string;
   let registryName: string;
-  const sqlDbName = `mysql-db-registry-${Date.now()}`;
-  const postgresDbName = `postgres-db-registry-${Date.now()}`;
-  const postgresRegistryName = `postgres-registry-${Date.now()}`;
-  const defaultDbName = `default-db-registry-${Date.now()}`;
+  const uuid = generateTestUUID();
+  const sqlDbName = `mysql-db-registry-${uuid}`;
+  const postgresDbName = `postgres-db-registry-${uuid}`;
+  const postgresRegistryName = `postgres-registry-${uuid}`;
+  const defaultDbName = `default-db-registry-${uuid}`;
 
   before(() => {
     cy.step('Load test data from fixture');
     loadModelRegistryFixture('e2e/modelRegistry/testModelRegistry.yaml').then((fixtureData) => {
       testData = fixtureData;
-      registryName = testData.createRegistryName;
+      registryName = `${testData.createRegistryName}-${uuid}`;
       deploymentName = testData.operatorDeploymentName;
 
       // ensure operator has optimal memory
@@ -57,7 +59,7 @@ describe('Verify a model registry can be created and deleted', () => {
   it(
     'Creates a model registry with mysql database and then deletes it',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@Smoke', '@SmokeSet4', '@NonConcurrent'],
+      tags: ['@Dashboard', '@ModelRegistry', '@ModelRegistryCI', '@Smoke', '@SmokeSet4'],
     },
     () => {
       cy.step('Login as an Admin');
@@ -104,7 +106,7 @@ describe('Verify a model registry can be created and deleted', () => {
   it(
     'Creates a model registry with PostgreSQL database and then deletes it',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@Smoke', '@SmokeSet4', '@NonConcurrent'],
+      tags: ['@Dashboard', '@ModelRegistry', '@ModelRegistryCI', '@Smoke', '@SmokeSet4'],
     },
     () => {
       cy.step('Login as an Admin');
@@ -163,7 +165,7 @@ describe('Verify a model registry can be created and deleted', () => {
   it(
     'Creates a model registry with default database and then deletes it',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@Smoke', '@SmokeSet4', '@NonConcurrent'],
+      tags: ['@Dashboard', '@ModelRegistry', '@ModelRegistryCI', '@Smoke', '@SmokeSet4'],
     },
     () => {
       cy.step('Login as an Admin');
