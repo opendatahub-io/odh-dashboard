@@ -68,6 +68,13 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
 
     try {
       await createSecret(secret);
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e : new Error(String(e)));
+      setIsSaving(false);
+      return;
+    }
+
+    try {
       await onSubmit(k8sName);
       onClose();
     } catch (e) {
@@ -78,7 +85,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
   };
 
   return (
-    <Modal isOpen onClose={onClose} variant="medium">
+    <Modal isOpen onClose={isSaving ? undefined : onClose} variant="medium">
       <ModalHeader
         title="Add Llama Stack connection"
         description="Provide credentials for accessing an external Llama Stack server. The generation and embedding models registered in the Llama Stack server will be considered when generating RAG patterns. Vector I/O providers in the Llama Stack server can be used to store a collection for the retrieval."
@@ -139,6 +146,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
           onSubmit={handleSubmit}
           error={submitError}
           isSubmitDisabled={!isFormValid || isSaving}
+          isCancelDisabled={isSaving}
           isSubmitLoading={isSaving}
           alertTitle="Failed to create connection"
         />
