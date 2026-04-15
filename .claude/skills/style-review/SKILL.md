@@ -11,7 +11,7 @@ Audits custom styling changes against the project's conventions. The core princi
 
 The user may provide:
 
-- **No arguments** — review all `*.scss`, `*.css`, and `*.tsx` under `frontend/src/` and `packages/`, **excluding** any `**/upstream/**` directories (these are synced from external repos and not subject to local conventions).
+- **No arguments** — review files changed versus `main` by running `git diff main --name-only -- '*.scss' '*.css' '*.tsx'`, **excluding** any `**/upstream/**` paths.
 - **A file or directory path** — review only those files (still exclude `**/upstream/**` paths).
 - **A PR number (`#N`)** — run `gh pr diff N` to get changed files and review only those (skip any paths under `upstream/`).
 - **A branch name** — validate the branch ref matches `^[A-Za-z0-9._/][A-Za-z0-9._/-]*$` (anchored, no leading hyphens, no whitespace or shell metacharacters), then resolve it with `git rev-parse --verify <branch>` before use; if it resolves cleanly, run `git diff "main...<branch>" -- '*.scss' '*.css' '*.tsx'` using the validated ref and filter out any `upstream/` paths from the results.
@@ -30,7 +30,11 @@ For every custom SCSS block or inline style introduced, verify the **"Priority o
 
 Flag SCSS or inline styles where a PF prop, layout component, or utility class would have been sufficient. For SCSS that IS appropriate (step 4), also flag any hardcoded values that should be PF tokens.
 
-**If PF genuinely cannot do it:** flag as Info. Action: 1) open a PF upstream issue, 2) open a RHOAIENG follow-up linking it, 3) add a comment directly above the custom style referencing both:
+**If PF genuinely cannot do it:** flag as Info in the report. Do NOT create GitHub issues, Jira tickets, or modify source files — only report the gap. The report entry should recommend the developer:
+
+1. Open a PF upstream issue describing the gap
+2. Open a RHOAIENG follow-up Jira linking it
+3. Add a tracking comment above the custom style, e.g.:
 
 ```scss
 // TODO: PF gap — remove when https://github.com/patternfly/patternfly/issues/XXXX is resolved
@@ -73,7 +77,7 @@ Flag class names where:
 
 ### Critical (must fix)
 ### Warning (should fix)
-### Info (PF gap — follow up)
+### Info (PF gap — developer follow-up needed)
 
 ---
 
@@ -83,6 +87,11 @@ Flag class names where:
 - Found: `the problematic code`
 - Fix: `the corrected code`
 - Why: Brief explanation referencing the specific rule
+
+For each Info finding, include a **Developer action** block:
+- [ ] Open a PatternFly upstream issue at https://github.com/patternfly/patternfly/issues describing the gap
+- [ ] Open a RHOAIENG Jira linking the PF issue
+- [ ] Add a tracking comment above the custom style (see template in Check 1)
 ```
 
 ### Severity classification
@@ -91,6 +100,6 @@ Flag class names where:
 |---|---|
 | Critical | Hardcoded tokenizable values in SCSS or inline styles where PF tokens exist (e.g., colors, spacing, sizing, typography, radii) |
 | Warning | Custom SCSS/inline styles where a PF prop, layout component, or utility class would suffice; missing wrapper where one clearly applies; custom class name that doesn't follow the naming convention |
-| Info | Genuine PF gap — open a PF upstream issue, then open a RHOAIENG follow-up linking it |
+| Info | Genuine PF gap — report the gap and recommend the developer open a PF upstream issue and RHOAIENG follow-up (do not create them) |
 
 If there are no violations, confirm the files pass and note any well-structured patterns worth preserving.
