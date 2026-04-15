@@ -20,6 +20,7 @@ describe('NavigationBlockerModal', () => {
     hash: '',
     state: null,
     key: 'default',
+    unstable_mask: undefined,
   };
 
   beforeEach(() => {
