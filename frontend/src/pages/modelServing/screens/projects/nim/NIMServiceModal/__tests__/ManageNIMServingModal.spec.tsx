@@ -491,7 +491,7 @@ describe('ManageNIMServingModal', () => {
       expect(mockOnClose).toHaveBeenCalledWith(false);
     });
 
-    it('handles form submission', () => {
+    it('renders submit button', () => {
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
       expect(screen.getByTestId('modal-submit-button')).toBeInTheDocument();
     });
