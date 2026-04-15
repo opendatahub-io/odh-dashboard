@@ -11,7 +11,7 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import { RateLimit, TokenRateLimit } from '~/app/types/subscriptions';
-import { UNIT_OPTIONS, toRateLimit, toTokenRateLimit } from '~/app/utilities/rateLimits';
+import { toRateLimit, toTokenRateLimit } from '~/app/utilities/rateLimits';
 import { RateLimitRow } from './RateLimitRow';
 
 type EditRateLimitsModalProps = {
@@ -81,8 +81,6 @@ const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
   );
   const [submitted, setSubmitted] = React.useState(false);
 
-  const usedUnits = localLimits.map((l) => l.unit);
-  const availableUnits = UNIT_OPTIONS.map((opt) => opt.value).filter((u) => !usedUnits.includes(u));
   const validation = rateLimitsSchema.safeParse(localLimits);
   const hasDigitLimitError = localLimits.some(rateLimitExceedsMaxDigits);
   const canSave = validation.success && !hasDigitLimitError;
@@ -96,9 +94,7 @@ const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
   };
 
   const handleAdd = () => {
-    if (availableUnits.length > 0) {
-      setLocalLimits((prev) => [...prev, { ...DEFAULT_RATE_LIMIT, unit: availableUnits[0] }]);
-    }
+    setLocalLimits((prev) => [...prev, { ...DEFAULT_RATE_LIMIT }]);
   };
 
   const handleSave = () => {
@@ -127,7 +123,6 @@ const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
                 onChange={(updated) => handleRowChange(index, updated)}
                 onRemove={() => handleRemove(index)}
                 showRemove={localLimits.length > 1}
-                availableUnits={availableUnits}
                 countError={submitted ? getCountError(limit) : undefined}
                 timeError={submitted ? getTimeError(limit) : undefined}
                 countDigitError={getCountDigitError(limit)}
@@ -135,18 +130,16 @@ const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
               />
             </StackItem>
           ))}
-          {availableUnits.length > 0 && (
-            <StackItem>
-              <Button
-                variant="link"
-                icon={<PlusCircleIcon />}
-                onClick={handleAdd}
-                data-testid="add-token-rate-limit"
-              >
-                Add token rate limit
-              </Button>
-            </StackItem>
-          )}
+          <StackItem>
+            <Button
+              variant="link"
+              icon={<PlusCircleIcon />}
+              onClick={handleAdd}
+              data-testid="add-token-rate-limit"
+            >
+              Add token rate limit
+            </Button>
+          </StackItem>
         </Stack>
       </ModalBody>
       <ModalFooter>

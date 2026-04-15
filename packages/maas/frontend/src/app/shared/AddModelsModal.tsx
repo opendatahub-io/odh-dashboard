@@ -237,7 +237,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                   <Th sort={getSortParams('name')}>Model name</Th>
                   <Th sort={getSortParams('namespace')}>Project</Th>
                   <Th sort={getSortParams('modelId')}>Model ID</Th>
-                  <Th>Subscriptions</Th>
+                  <Th width={20}>Subscriptions</Th>
                   <Th>Policies</Th>
                   <Th screenReaderText="Actions" />
                 </Tr>
@@ -258,7 +258,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                       </Td>
                       <Td dataLabel="Project">{ref.namespace}</Td>
                       <Td dataLabel="Model ID">{ref.modelRef.name}</Td>
-                      <Td dataLabel="Subscriptions">
+                      <Td dataLabel="Subscriptions" width={20} modifier="breakWord">
                         {selected && fromSubscription && (
                           <Label color="green" isCompact>
                             {currentSelectionLabel}
@@ -270,7 +270,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                         {(fromSubscription ? !selected && subs.length === 0 : subs.length === 0) &&
                           'None'}
                       </Td>
-                      <Td dataLabel="Policies">
+                      <Td dataLabel="Policies" width={20} modifier="breakWord">
                         {selected && !fromSubscription && (
                           <Label color="green" isCompact>
                             {currentSelectionLabel}
