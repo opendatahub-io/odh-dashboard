@@ -288,15 +288,41 @@ func cloneDefaultTransport() *http.Transport {
 	return &http.Transport{}
 }
 
+// isInternalHost reports whether a hostname is a trusted internal host
+// (Kubernetes in-cluster service). These legitimately use HTTP internally and
+// resolve to private IPs, so HTTP scheme and SSRF validation is skipped for them.
+// All other hosts are subject to HTTPS requirement and SSRF checks.
+//
+// Requires exactly the Kubernetes service FQDN format: <service>.<namespace>.svc.cluster.local
+// (exactly 5 dot-separated labels), preventing overly-broad matches like "evil.cluster.local".
+func isInternalHost(hostname string) bool {
+	parts := strings.Split(hostname, ".")
+	if len(parts) != 5 {
+		return false
+	}
+	if parts[2] != "svc" || parts[3] != "cluster" || parts[4] != "local" {
+		return false
+	}
+	if parts[0] == "" || parts[1] == "" {
+		return false
+	}
+	return true
+}
+
 // validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
 //
-// HTTPS is required — plain HTTP is rejected because S3 credentials would be
-// transmitted in cleartext. Self-signed or cluster-issued certificates are
-// supported via the RootCAs option (populated from operator-mounted CA bundles).
+// HTTPS is required for external endpoints — plain HTTP is rejected because S3
+// credentials would be transmitted in cleartext. However, HTTP is permitted for
+// in-cluster endpoints (*.svc.cluster.local) since traffic never leaves the cluster
+// network and HTTPS overhead is unnecessary for internal-only communication.
+// In-cluster endpoints skip DNS resolution and IP validation because they are
+// trusted cluster-internal services.
 //
-// RFC-1918 private IPs are permitted because MinIO commonly runs on the same
-// cluster using service IPs (e.g. 10.x). Loopback, link-local, and reserved
-// IP ranges are always blocked.
+// For external endpoints, self-signed or cluster-issued certificates are supported
+// via the RootCAs option (populated from operator-mounted CA bundles). RFC-1918
+// private IPs are permitted because MinIO commonly runs on the same cluster using
+// service IPs (e.g. 10.x). Loopback, link-local, and reserved IP ranges are always
+// blocked.
 func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, error) {
 	if endpoint == "" {
 		return "", fmt.Errorf("endpoint URL cannot be empty")
@@ -308,16 +334,29 @@ func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, er
 		return "", fmt.Errorf("invalid endpoint URL format: %w", err)
 	}
 
-	if parsedURL.Scheme != "https" {
-		return "", fmt.Errorf("endpoint URL must use HTTPS scheme, got: %s", parsedURL.Scheme)
-	}
-
 	// Extract hostname (may be hostname or IP)
 	hostname := parsedURL.Hostname()
 	if hostname == "" {
 		return "", fmt.Errorf("endpoint URL must have a valid hostname")
 	}
 
+	// Allow HTTP only for in-cluster endpoints (.svc.cluster.local)
+	// All external endpoints must use HTTPS to prevent credentials in cleartext
+	isInCluster := isInternalHost(hostname)
+	if parsedURL.Scheme == "http" && !isInCluster {
+		return "", fmt.Errorf("endpoint URL must use HTTPS scheme for external endpoints, got: %s", parsedURL.Scheme)
+	}
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return "", fmt.Errorf("endpoint URL must use http or https scheme, got: %s", parsedURL.Scheme)
+	}
+
+	// Skip DNS resolution and IP validation for in-cluster endpoints
+	// (.svc.cluster.local domains are cluster-internal and trusted)
+	if isInCluster {
+		return parsedURL.String(), nil
+	}
+
+	// For external endpoints, perform DNS resolution and IP validation
 	// Check if the hostname is an IP address
 	ip := net.ParseIP(hostname)
 	if ip != nil {

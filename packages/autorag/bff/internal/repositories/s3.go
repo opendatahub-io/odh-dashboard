@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 
@@ -192,11 +193,36 @@ func (r *S3Repository) GetS3CredentialsFromDSPA(
 		region = "us-east-1" // MinIO and other compatible stores ignore region; SDK requires a value
 	}
 
+	// Try to read endpoint URL from the secret first (allows custom configurations).
+	// AWS_S3_ENDPOINT and AWS_S3_BUCKET are optional override keys that follow the
+	// DSPA operator convention for MinIO secrets. When present in the secret, they
+	// take precedence over the DSPA spec values.
+	// See: https://github.com/opendatahub-io/data-science-pipelines-operator
+	endpointURL := dspaStorage.EndpointURL
+	secretEndpoint, err := getValue("AWS_S3_ENDPOINT")
+	if err != nil {
+		// Log ambiguous key error but continue with DSPA-specified endpoint
+		slog.Warn("ignoring ambiguous AWS_S3_ENDPOINT in secret, using DSPA spec",
+			"secret", dspaStorage.SecretName, "error", err)
+	} else if secretEndpoint != "" {
+		endpointURL = secretEndpoint
+	}
+
+	// Similarly, try to read bucket from the secret (optional override)
+	bucket := dspaStorage.Bucket
+	secretBucket, err := getValue("AWS_S3_BUCKET")
+	if err != nil {
+		slog.Warn("ignoring ambiguous AWS_S3_BUCKET in secret, using DSPA spec",
+			"secret", dspaStorage.SecretName, "error", err)
+	} else if secretBucket != "" {
+		bucket = secretBucket
+	}
+
 	return &S3Credentials{
 		AccessKeyID:     accessKeyID,
 		SecretAccessKey: secretAccessKey,
-		EndpointURL:     dspaStorage.EndpointURL,
-		Bucket:          dspaStorage.Bucket,
+		EndpointURL:     endpointURL,
+		Bucket:          bucket,
 		Region:          region,
 	}, nil
 }
