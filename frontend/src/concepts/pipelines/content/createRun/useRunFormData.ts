@@ -16,7 +16,6 @@ import {
   PipelineRecurringRunKF,
   PipelineRunKF,
   RuntimeConfigParameters,
-  StorageStateKF,
 } from '#~/concepts/pipelines/kfTypes';
 
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
@@ -108,18 +107,10 @@ const useUpdateRunGroupFormData = (
   const [formData, setFormValue] = formState;
 
   React.useEffect(() => {
-    if (formData.experiment) {
-      if (formData.experiment.storage_state === StorageStateKF.ARCHIVED) {
-        setFormValue('experiment', null);
-      }
-    } else if (runGroup) {
-      if (runGroup.storage_state === StorageStateKF.ARCHIVED) {
-        setFormValue('experiment', null);
-      } else {
-        setFormValue('experiment', runGroup);
-      }
+    if (!formData.experiment && runGroup) {
+      setFormValue('experiment', runGroup);
     }
-  }, [formData.experiment, setFormValue, runGroup, formData.runType.type]);
+  }, [formData.experiment, setFormValue, runGroup]);
 };
 
 const useUpdateDuplicateData = (

@@ -418,7 +418,7 @@ describe('Pipeline runs', () => {
             .click();
 
           verifyRelativeURL(
-            `/develop-train/experiments/${projectName}/test-experiment-1/runs/duplicate/${mockActiveRuns[0].run_id}`,
+            `/develop-train/pipelines/runs/${projectName}/runs/duplicate/${mockActiveRuns[0].run_id}`,
           );
         });
 
@@ -1032,7 +1032,6 @@ describe('Pipeline runs', () => {
 
         cy.wait('@getScheduledRuns').then((interception) => {
           expect(interception.request.query).to.eql({
-            filter: encodeURIComponent('{"predicates":[]}'),
             sort_by: 'created_at desc',
             page_size: '10',
           });
@@ -1059,7 +1058,6 @@ describe('Pipeline runs', () => {
 
         cy.wait('@refreshScheduledRuns').then((interception) => {
           expect(interception.request.query).to.eql({
-            filter: encodeURIComponent('{"predicates":[]}'),
             sort_by: 'created_at desc',
             page_size: '10',
             page_token: 'page-2-token',
@@ -1105,7 +1103,6 @@ describe('Pipeline runs', () => {
 
         cy.wait('@refreshPipelineRecurringRuns').then((interception) => {
           expect(interception.request.query).to.eql({
-            filter: encodeURIComponent('{"predicates":[]}'),
             sort_by: 'created_at desc',
             page_size: '10',
             page_token: 'new-page-token',
@@ -1204,7 +1201,7 @@ describe('Pipeline runs', () => {
             .click();
 
           verifyRelativeURL(
-            `/develop-train/experiments/${projectName}/test-experiment-1/schedules/duplicate/${mockRecurringRuns[0].recurring_run_id}`,
+            `/develop-train/pipelines/runs/${projectName}/schedules/duplicate/${mockRecurringRuns[0].recurring_run_id}`,
           );
         });
 

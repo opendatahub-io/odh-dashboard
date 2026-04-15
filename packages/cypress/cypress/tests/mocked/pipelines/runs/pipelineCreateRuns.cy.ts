@@ -365,8 +365,8 @@ describe('Pipeline create runs', () => {
       paramsSection.fillParamInputById('neighbors', '2');
       paramsSection.fillParamInputById('standard_scaler', 'yes');
 
-      createRunPage.runGroupSelect.findToggleButton().should('contain.text', 'Select a run group');
-      createRunPage.findSubmitButton().should('be.disabled');
+      createRunPage.runGroupSelect.findToggleButton().should('contain.text', 'Default');
+      createRunPage.findSubmitButton().should('be.enabled');
     });
 
     it('switches to scheduled runs from triggered', () => {
@@ -448,7 +448,7 @@ describe('Pipeline create runs', () => {
       cy.findByTestId('duplicate-name-help-text').should('be.visible');
       createRunPage.fillName('New run');
       createRunPage.fillDescription(veryLongDesc);
-      createRunPage.runGroupSelect.findToggleButton().should('contain.text', 'Select a run group');
+      createRunPage.runGroupSelect.findToggleButton().should('contain.text', 'Default');
       createRunPage.fillRunGroup('Test experiment 1');
       createRunPage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
       createRunPage.selectPipelineByName('Test pipeline');
@@ -931,7 +931,7 @@ describe('Pipeline create runs', () => {
       createRunPage.runGroupSelect
         .findToggleButton()
         .should('be.visible')
-        .and('contain.text', 'Select a run group');
+        .and('contain.text', 'Default');
     });
   });
 
@@ -959,9 +959,7 @@ describe('Pipeline create runs', () => {
 
     it('creates a schedule', () => {
       createScheduleRunCommonTest();
-      createSchedulePage.runGroupSelect
-        .findToggleButton()
-        .should('contain.text', 'Select a run group');
+      createSchedulePage.runGroupSelect.findToggleButton().should('contain.text', 'Default');
       createSchedulePage.fillRunGroup('Test experiment 1');
       createSchedulePage
         .mockCreateRecurringRun(projectName, mockPipelineVersion, createRecurringRunParams)

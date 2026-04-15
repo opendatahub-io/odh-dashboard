@@ -257,8 +257,6 @@ export const listPipelineRecurringRuns: ListPipelineRecurringRunsAPI =
           ...pipelineParamsToQuery(params),
           // eslint-disable-next-line camelcase
           experiment_id: params?.experimentId,
-          // eslint-disable-next-line camelcase
-          pipeline_version_id: params?.pipelineVersionId,
         },
         opts,
       ),

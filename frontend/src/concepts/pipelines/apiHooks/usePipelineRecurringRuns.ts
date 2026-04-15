@@ -11,7 +11,6 @@ const usePipelineRecurringRuns = (
 ): FetchState<PipelineListPaged<PipelineRecurringRunKF>> => {
   const { api } = usePipelinesAPI();
   const experimentId = options?.experimentId;
-  const pipelineVersionId = options?.pipelineVersionId;
 
   const fetchLatestVersionId = React.useCallback(
     async (pipelineId: string, opts: K8sAPIOptions) => {
@@ -27,24 +26,19 @@ const usePipelineRecurringRuns = (
   return usePipelineQuery<PipelineRecurringRunKF>(
     React.useCallback(
       async (opts, params) => {
-        const unsupportedKeys = new Set(['experiment_id', 'pipeline_version_id']);
-        const unsupported = new Map(
-          params?.filter?.predicates
-            ?.filter((p) => unsupportedKeys.has(p.key))
-            .map((p) => [p.key, p.string_value]) ?? [],
+        const versionIdPredicate = params?.filter?.predicates?.find(
+          (p) => p.key === 'pipeline_version_id',
+        )?.string_value;
+        const predicatesWithoutVersion = params?.filter?.predicates?.filter(
+          (p) => p.key !== 'pipeline_version_id',
         );
-        const supportedPredicates = params?.filter?.predicates?.filter(
-          (p) => !unsupportedKeys.has(p.key),
-        );
-        const resolvedExperimentId = experimentId || unsupported.get('experiment_id');
-        const resolvedPipelineVersionId =
-          pipelineVersionId || unsupported.get('pipeline_version_id');
 
         const response = await api.listPipelineRecurringRuns(opts, {
           ...params,
-          ...(resolvedExperimentId && { experimentId: resolvedExperimentId }),
-          ...(resolvedPipelineVersionId && { pipelineVersionId: resolvedPipelineVersionId }),
-          filter: supportedPredicates ? { predicates: supportedPredicates } : params?.filter,
+          ...(experimentId && { experimentId }),
+          filter: predicatesWithoutVersion
+            ? { predicates: predicatesWithoutVersion }
+            : params?.filter,
         });
 
         if (!response.recurringRuns) {
@@ -71,9 +65,21 @@ const usePipelineRecurringRuns = (
             };
           }),
         );
-        return { ...response, items: completeRecurringRuns };
+
+        const filteredRuns = versionIdPredicate
+          ? completeRecurringRuns.filter(
+              (r) => r.pipeline_version_reference.pipeline_version_id === versionIdPredicate,
+            )
+          : completeRecurringRuns;
+
+        return {
+          ...response,
+          items: filteredRuns,
+          // eslint-disable-next-line camelcase
+          total_size: versionIdPredicate ? filteredRuns.length : response.total_size,
+        };
       },
-      [api, experimentId, pipelineVersionId, fetchLatestVersionId],
+      [api, experimentId, fetchLatestVersionId],
     ),
     options,
   );

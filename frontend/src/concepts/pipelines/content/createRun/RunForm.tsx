@@ -144,7 +144,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
 
         <FormGroup
           label="Run group"
-          fieldId="run-group-selector-toggle"
+          fieldId="run-group-selector"
           isRequired
           labelHelp={<DashboardHelpTooltip content={runGroupCreateModalPopoverText} />}
         >
