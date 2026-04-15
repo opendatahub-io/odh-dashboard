@@ -9,6 +9,7 @@ import {
   CATALOG_SETTINGS_PAGE_TITLE,
   catalogSettingsUrl,
 } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
+import { mcpCatalogUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import { McpServerDeployModalExtension } from './extension-points';
 
 const reliantAreas = ['model-registry'];
@@ -148,7 +149,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | TabRouteTabEx
       path: '/ai-hub/mcp-catalog/*',
       component: createRedirectComponent({
         from: '/ai-hub/mcp-catalog/*',
-        to: '/ai-hub/mcp-servers/catalog/*',
+        to: `${mcpCatalogUrl()}/*`,
       }),
     },
   },

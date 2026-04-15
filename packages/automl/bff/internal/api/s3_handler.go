@@ -20,6 +20,7 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	s3int "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
+	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -102,6 +103,10 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 			return nil, false
 		}
 		if strings.Contains(err.Error(), "missing required field") {
+			app.badRequestResponse(w, r, err)
+			return nil, false
+		}
+		if errors.Is(err, repositories.ErrAmbiguousSecretKey) {
 			app.badRequestResponse(w, r, err)
 			return nil, false
 		}
@@ -273,7 +278,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 	mr, err := r.MultipartReader()
 	if err != nil {
 		if isS3PostRequestBodyTooLarge(err) {
-			app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)")
+			app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
 			return
 		}
 		app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart request: %w", err))
@@ -292,7 +297,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		}
 		if nextErr != nil {
 			if isS3PostRequestBodyTooLarge(nextErr) {
-				app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)")
+				app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
 				return
 			}
 			app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", nextErr))
@@ -305,7 +310,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		_, copyErr := io.Copy(io.Discard, part)
 		if copyErr != nil {
 			if isS3PostRequestBodyTooLarge(copyErr) {
-				app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)")
+				app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
 				return
 			}
 			app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", copyErr))
@@ -333,7 +338,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 	if err := s3.client.UploadObject(ctx, bucket, resolvedKey, limitedFile, contentType); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			app.payloadTooLargeResponse(w, r, "file exceeds maximum size of 1 GiB")
+			app.payloadTooLargeResponse(w, r, s3FilePartTooLargeMsg)
 			return
 		}
 		if errors.Is(err, s3int.ErrObjectAlreadyExists) {
@@ -432,7 +437,7 @@ func splitStemAndNextIndex(stem string) (base string, nextIndex int) {
 func (app *App) rejectDeclaredOversizedS3Post(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		if app.s3PostDeclaredBodyExceedsLimit(r) {
-			app.payloadTooLargeResponse(w, r, "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)")
+			app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
 			return
 		}
 		next(w, r, ps)

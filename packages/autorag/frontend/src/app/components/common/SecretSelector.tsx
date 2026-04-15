@@ -39,11 +39,11 @@ type SecretSelectorProps = Omit<
    * Additional keys that must be present in the secret for this specific use case.
    * These are beyond the keys required for secret type classification (handled by the BFF).
    *
-   * For example, S3 secrets are classified by keys like 'aws_access_key_id', 'aws_secret_access_key',
-   * etc., but a specific use case might additionally require 'aws_s3_bucket' to be present.
+   * For example, S3 secrets are classified by keys like 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY',
+   * etc., but a specific use case might additionally require 'AWS_S3_BUCKET' to be present.
    *
    * @example
-   * additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+   * additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
    */
   additionalRequiredKeys?: { [type: string]: string[] };
   /**
@@ -203,7 +203,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   );
 
   if (isLoading) {
-    return <Skeleton width={toggleWidth} />;
+    return <Skeleton />;
   }
 
   return (

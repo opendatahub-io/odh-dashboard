@@ -1,11 +1,15 @@
 package s3
 
 import (
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func newTestClient() *RealS3Client {
@@ -22,6 +26,69 @@ func TestNewRealS3Client_WrapsErrEndpointValidation(t *testing.T) {
 	}, S3ClientOptions{})
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, ErrEndpointValidation))
+}
+
+// ---------------------------------------------------------------------------
+// NewRealS3Client — transport / TLS tests
+// ---------------------------------------------------------------------------
+
+func TestNewRealS3Client_DefaultTransport(t *testing.T) {
+	t.Parallel()
+	client, err := NewRealS3Client(&S3Credentials{
+		AccessKeyID:     "a",
+		SecretAccessKey: "b",
+		Region:          "us-east-1",
+		EndpointURL:     "https://10.0.0.1:9000",
+	}, S3ClientOptions{})
+	assert.NoError(t, err)
+
+	httpClient, ok := client.s3Client.Options().HTTPClient.(*http.Client)
+	require.True(t, ok, "HTTPClient should be *http.Client")
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok, "Transport should be *http.Transport")
+	assert.Equal(t, 30*time.Second, transport.ResponseHeaderTimeout, "ResponseHeaderTimeout should be 30s")
+	if transport.TLSClientConfig != nil {
+		assert.Nil(t, transport.TLSClientConfig.RootCAs, "RootCAs should be nil when no custom CAs provided")
+		assert.False(t, transport.TLSClientConfig.InsecureSkipVerify, "InsecureSkipVerify should be false")
+	}
+}
+
+func TestNewRealS3Client_WithRootCAs(t *testing.T) {
+	t.Parallel()
+	pool := x509.NewCertPool()
+	client, err := NewRealS3Client(&S3Credentials{
+		AccessKeyID:     "a",
+		SecretAccessKey: "b",
+		Region:          "us-east-1",
+		EndpointURL:     "https://10.0.0.1:9000",
+	}, S3ClientOptions{RootCAs: pool})
+	assert.NoError(t, err)
+
+	httpClient, ok := client.s3Client.Options().HTTPClient.(*http.Client)
+	require.True(t, ok, "HTTPClient should be *http.Client")
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok, "Transport should be *http.Transport")
+	assert.Same(t, pool, transport.TLSClientConfig.RootCAs, "RootCAs should match the provided pool")
+	assert.False(t, transport.TLSClientConfig.InsecureSkipVerify, "InsecureSkipVerify should be false")
+	assert.Equal(t, 30*time.Second, transport.ResponseHeaderTimeout, "ResponseHeaderTimeout should be 30s")
+}
+
+func TestNewRealS3Client_DevModeFallback(t *testing.T) {
+	t.Parallel()
+	client, err := NewRealS3Client(&S3Credentials{
+		AccessKeyID:     "a",
+		SecretAccessKey: "b",
+		Region:          "us-east-1",
+		EndpointURL:     "https://10.0.0.1:9000",
+	}, S3ClientOptions{DevMode: true})
+	assert.NoError(t, err)
+
+	httpClient, ok := client.s3Client.Options().HTTPClient.(*http.Client)
+	require.True(t, ok, "HTTPClient should be *http.Client")
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok, "Transport should be *http.Transport")
+	assert.True(t, transport.TLSClientConfig.InsecureSkipVerify, "InsecureSkipVerify should be true in dev mode")
+	assert.Equal(t, 30*time.Second, transport.ResponseHeaderTimeout, "ResponseHeaderTimeout should be 30s")
 }
 
 // ---------------------------------------------------------------------------
@@ -56,25 +123,19 @@ func TestValidateAndNormalizeEndpoint_RejectsEmpty(t *testing.T) {
 	assert.Contains(t, err.Error(), "empty")
 }
 
-func TestValidateAndNormalizeEndpoint_RejectsPrivateIP_10(t *testing.T) {
+func TestValidateAndNormalizeEndpoint_AcceptsPrivateIPs(t *testing.T) {
 	c := newTestClient()
-	_, err := c.validateAndNormalizeEndpoint("https://10.0.0.1:9000")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "RFC-1918")
-}
-
-func TestValidateAndNormalizeEndpoint_RejectsPrivateIP_172(t *testing.T) {
-	c := newTestClient()
-	_, err := c.validateAndNormalizeEndpoint("https://172.16.0.1:9000")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "RFC-1918")
-}
-
-func TestValidateAndNormalizeEndpoint_RejectsPrivateIP_192(t *testing.T) {
-	c := newTestClient()
-	_, err := c.validateAndNormalizeEndpoint("https://192.168.1.1:9000")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "RFC-1918")
+	for _, endpoint := range []string{
+		"https://10.0.0.1:9000",
+		"https://100.64.0.1:9000",
+		"https://172.16.0.1:9000",
+		"https://192.168.1.1:9000",
+		"https://[fd00::1]:9000",
+	} {
+		result, err := c.validateAndNormalizeEndpoint(endpoint)
+		assert.NoError(t, err, "should accept %s", endpoint)
+		assert.Equal(t, endpoint, result)
+	}
 }
 
 func TestValidateAndNormalizeEndpoint_RejectsLoopback(t *testing.T) {
@@ -119,11 +180,11 @@ func TestValidateAndNormalizeEndpoint_RejectsIPv6LinkLocal(t *testing.T) {
 	assert.Contains(t, err.Error(), "IPv6 link-local")
 }
 
-func TestValidateAndNormalizeEndpoint_RejectsIPv6UniqueLocal(t *testing.T) {
+func TestValidateAndNormalizeEndpoint_AcceptsIPv6UniqueLocal(t *testing.T) {
 	c := newTestClient()
-	_, err := c.validateAndNormalizeEndpoint("https://[fc00::1]:9000")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "IPv6 unique local")
+	result, err := c.validateAndNormalizeEndpoint("https://[fc00::1]:9000")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://[fc00::1]:9000", result)
 }
 
 // ---------------------------------------------------------------------------

@@ -42,7 +42,7 @@ const AIAssetsVectorStoresTab: React.FC = () => {
     return (
       <NoData
         title="No vector stores available"
-        description="A vector store configuration exists, but no vector stores were found. Contact your cluster administrator to update the configuration."
+        description="Contact your cluster administrator to add a vector store configuration."
       />
     );
   }

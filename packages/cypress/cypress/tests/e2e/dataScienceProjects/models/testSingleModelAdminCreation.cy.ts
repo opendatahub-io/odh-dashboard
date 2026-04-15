@@ -29,6 +29,7 @@ const STOP_MODAL_PREFERENCE_KEY = 'odh.dashboard.modelServing.stop.modal.prefere
 
 let testData: DataScienceProjectData;
 let projectName: string;
+let resourceName: string;
 let modelName: string;
 let modelFilePath: string;
 let modelFormat: string;
@@ -113,7 +114,9 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .as('resourceName');
+        .then((val) => {
+          resourceName = val as string;
+        });
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
@@ -133,9 +136,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
       // Verify model deployment is ready
-      cy.get<string>('@resourceName').then((resourceName) => {
-        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
-      });
+      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
       modelServingSection.findModelMetricsLink(testData.singleModelAdminName);
@@ -173,12 +174,10 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       //Verify the model is stopped
       cy.step('Verify the model is stopped');
-      cy.get<string>('@resourceName').then((resourceName) => {
-        checkInferenceServiceState(resourceName, projectName, {
-          checkReady: false,
-          checkStopped: true,
-          requireLoadedState: false,
-        });
+      checkInferenceServiceState(resourceName, projectName, {
+        checkReady: false,
+        checkStopped: true,
+        requireLoadedState: false,
       });
       kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
 
@@ -189,9 +188,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       //Verify the model is running again
       cy.step('Verify the model is running again');
-      cy.get<string>('@resourceName').then((resourceName) => {
-        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
-      });
+      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       kServeRow
         .findStatusLabel()
         .invoke('text')

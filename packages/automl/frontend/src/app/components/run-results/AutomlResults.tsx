@@ -31,7 +31,7 @@ function AutomlResults(): React.JSX.Element {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
-  const nodes = useAutoMLTaskTopology(pipelineRun?.pipeline_spec, runDetails);
+  const nodes = useAutoMLTaskTopology(pipelineRun?.pipeline_spec, runDetails, pipelineRun?.state);
   const [modalState, setModalState] = React.useState<ModalState | null>(null);
   const [registerModelName, setRegisterModelName] = React.useState<string | null>(null);
   const [downloadError, setDownloadError] = React.useState<NotebookDownloadError | null>(null);
@@ -142,6 +142,7 @@ function AutomlResults(): React.JSX.Element {
           modelName={modalState.modelName}
           rank={modalState.rank}
           onClickSaveNotebook={handleSaveNotebook}
+          onRegisterModel={handleRegisterModel}
         />
       )}
       {registerModelName && (

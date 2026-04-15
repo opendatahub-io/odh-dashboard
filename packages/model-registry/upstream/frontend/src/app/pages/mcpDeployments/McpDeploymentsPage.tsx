@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useNamespaceSelector, useModularArchContext } from 'mod-arch-core';
 import {
@@ -20,6 +21,7 @@ import DeleteMcpDeploymentModal from './DeleteMcpDeploymentModal';
 import { getDeploymentDisplayName } from './utils';
 
 const McpDeploymentsPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [deployments, loaded, loadError, refresh] = useMcpDeployments();
   const [filterText, setFilterText] = React.useState('');
   const [deleteTarget, setDeleteTarget] = React.useState<McpDeployment | undefined>();
@@ -29,6 +31,23 @@ const McpDeploymentsPage: React.FC = () => {
 
   const isMandatoryNamespace = Boolean(config.mandatoryNamespace);
   const selectedProject = preferredNamespace?.name || '';
+
+  // If a namespace query param is present (e.g. after deploying from the catalog),
+  // use it to pre-select the project, then remove it from the URL.
+  // TODO: Remove this when the page switches to ProjectsContext (RHOAIENG-56566).
+  const namespaceParamConsumedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (namespaceParamConsumedRef.current) {
+      return;
+    }
+    const ns = searchParams.get('namespace');
+    if (ns) {
+      namespaceParamConsumedRef.current = true;
+      updatePreferredNamespace({ name: ns });
+      searchParams.delete('namespace');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, updatePreferredNamespace]);
 
   const handleProjectChange = React.useCallback(
     (projectName: string) => {
@@ -56,7 +75,8 @@ const McpDeploymentsPage: React.FC = () => {
     return deployments.items.filter(
       (d) =>
         d.name.toLowerCase().includes(lower) ||
-        getDeploymentDisplayName(d).toLowerCase().includes(lower),
+        getDeploymentDisplayName(d).toLowerCase().includes(lower) ||
+        (d.serverName ?? '').toLowerCase().includes(lower),
     );
   }, [deployments.items, filterText]);
 
@@ -80,7 +100,6 @@ const McpDeploymentsPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="MCP server deployments"
       noTitle
       description="Manage and view the health and performance of your deployed MCP servers."
       headerContent={headerContent}

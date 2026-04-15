@@ -4,6 +4,9 @@
   "description": "Gen AI",
   "license": "MIT",
   "private": true,
+  "overrides": {
+    "axios": "^1.15.0"
+  },
   "scripts": {
     "prebuild:standalone": "npm run test:type-check:standalone && npm run clean",
     "build": "run-s build:prod",

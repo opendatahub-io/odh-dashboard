@@ -216,13 +216,6 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
     ) : null,
 }));
 
-// Mock PatternFly Truncate – its useEffect measures text via canvas/getComputedStyle,
-// which JSDOM does not support, causing "Cannot read properties of undefined" errors.
-jest.mock('@patternfly/react-core', () => ({
-  ...jest.requireActual('@patternfly/react-core'),
-  Truncate: ({ content }: { content: string }) => <span>{content}</span>,
-}));
-
 // Mock useWatchConnectionTypes used by AutoragConfigure
 jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
   useWatchConnectionTypes: jest.fn(() => [[]]),
@@ -264,7 +257,7 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
           uuid: 'aws-secret-1',
           name: 'Test AWS Secret',
           displayName: 'Test AWS Secret',
-          data: { aws_s3_bucket: 'test-bucket' },
+          data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
           type: 's3',
           invalid: false,
         });
@@ -453,7 +446,8 @@ describe('AutoragConfigurePage', () => {
     });
 
     it('should display experiment name in subtitle in configure step', async () => {
-      expect(await screen.findByText('"My Experiment" configurations')).toBeInTheDocument();
+      const subtitle = await screen.findByTestId('configure-step-subtitle');
+      expect(subtitle).toHaveTextContent('"My Experiment" configurations');
     });
 
     it('should NOT display description text in configure step', async () => {
@@ -466,13 +460,12 @@ describe('AutoragConfigurePage', () => {
 
     it('should display breadcrumb in configure step', async () => {
       expect(await screen.findByText('AutoRAG: test-namespace')).toBeInTheDocument();
-      expect(await screen.findByText('My Experiment')).toBeInTheDocument();
+      const breadcrumbName = await screen.findByTestId('configure-breadcrumb-name');
+      expect(breadcrumbName).toHaveTextContent('My Experiment');
     });
 
-    it('should render "Create optimization run" button', async () => {
-      expect(
-        await screen.findByRole('button', { name: 'Create optimization run' }),
-      ).toBeInTheDocument();
+    it('should render "Create run" button', async () => {
+      expect(await screen.findByRole('button', { name: 'Create run' })).toBeInTheDocument();
     });
 
     it('should render "Back" button', async () => {
@@ -543,8 +536,8 @@ describe('AutoragConfigurePage', () => {
     });
   });
 
-  describe('Configure step - Create optimization run', () => {
-    it('should call mutateAsync when Create optimization run button is clicked with valid form', async () => {
+  describe('Configure step - Create run', () => {
+    it('should call mutateAsync when Create run button is clicked with valid form', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
 
@@ -577,12 +570,14 @@ describe('AutoragConfigurePage', () => {
       // Vector store value is auto-set by the mocked AutoragVectorStoreSelector.
 
       // Wait for form to be valid and Run button to be enabled
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
 
-      // Click Create optimization run button
+      // Click Create run button
       await user.click(runButton);
 
       // Assert that the payload contains the .json evaluation dataset
@@ -624,8 +619,10 @@ describe('AutoragConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Create optimization run button
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -667,8 +664,10 @@ describe('AutoragConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Create optimization run button
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -711,8 +710,10 @@ describe('AutoragConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Create optimization run button
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -763,7 +764,9 @@ describe('AutoragConfigurePage', () => {
       });
       expect(mockS3UploadMutateAsync).toHaveBeenCalledTimes(1);
 
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -867,7 +870,8 @@ describe('AutoragConfigurePage', () => {
       await user.click(await screen.findByRole('button', { name: 'Next' }));
 
       // Verify we're in configure step with correct subtitle
-      expect(await screen.findByText('"Persistent Experiment" configurations')).toBeInTheDocument();
+      const subtitle = await screen.findByTestId('configure-step-subtitle');
+      expect(subtitle).toHaveTextContent('"Persistent Experiment" configurations');
     });
   });
 });

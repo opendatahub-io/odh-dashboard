@@ -1,7 +1,14 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useS3GetFileSchemaQuery, fetchS3File } from '~/app/hooks/queries';
+import {
+  useS3GetFileSchemaQuery,
+  useModelEvaluationArtifactsQuery,
+  fetchS3File,
+  AutomlModelSchema,
+  isRawTimeseriesModel,
+} from '~/app/hooks/queries';
+import type { AutomlRawTabularModel, AutomlRawTimeseriesModel } from '~/app/hooks/queries';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -411,3 +418,188 @@ describe('fetchS3File', () => {
     );
   });
 });
+
+/* eslint-disable camelcase */
+describe('AutomlModelSchema', () => {
+  const validTabularModel: AutomlRawTabularModel = {
+    name: 'WeightedEnsemble_L5_FULL',
+    location: {
+      predictor: 'WeightedEnsemble_L5_FULL/predictor.pkl',
+      notebook: 'WeightedEnsemble_L5_FULL/automl_predictor_notebook.ipynb',
+    },
+    metrics: {
+      test_data: { accuracy: 0.95, f1: 0.93 },
+    },
+  };
+
+  const validTimeseriesModel: AutomlRawTimeseriesModel = {
+    name: 'TemporalFusionTransformer_FULL',
+    base_model: 'TemporalFusionTransformer',
+    location: {
+      predictor: 'TemporalFusionTransformer_FULL/predictor.pkl',
+      notebooks: 'TemporalFusionTransformer_FULL/notebooks',
+      metrics: 'TemporalFusionTransformer_FULL/metrics',
+    },
+    metrics: {
+      test_data: { mase: 1.2, rmse: 0.05 },
+    },
+  };
+
+  it('should validate a tabular model', () => {
+    const result = AutomlModelSchema.safeParse(validTabularModel);
+    expect(result.success).toBe(true);
+  });
+
+  it('should validate a timeseries model', () => {
+    const result = AutomlModelSchema.safeParse(validTimeseriesModel);
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept optional model_directory', () => {
+    const tabularWithDir = {
+      ...validTabularModel,
+      location: { ...validTabularModel.location, model_directory: 'some/dir/' },
+    };
+    const timeseriesWithDir = {
+      ...validTimeseriesModel,
+      location: { ...validTimeseriesModel.location, model_directory: 'some/dir/' },
+    };
+
+    expect(AutomlModelSchema.safeParse(tabularWithDir).success).toBe(true);
+    expect(AutomlModelSchema.safeParse(timeseriesWithDir).success).toBe(true);
+  });
+
+  it('should reject a model missing required fields', () => {
+    const invalid = { name: 'bad-model' };
+    const result = AutomlModelSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject non-numeric metric values', () => {
+    const invalid = {
+      ...validTabularModel,
+      metrics: { test_data: { accuracy: 'high' } },
+    };
+    const result = AutomlModelSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('isRawTimeseriesModel', () => {
+  it('should return true for a timeseries model with base_model', () => {
+    const model: AutomlRawTimeseriesModel = {
+      name: 'TemporalFusionTransformer_FULL',
+      base_model: 'TemporalFusionTransformer',
+      location: {
+        predictor: 'predictor.pkl',
+        notebooks: 'notebooks',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { mase: 1.2 } },
+    };
+    expect(isRawTimeseriesModel(model)).toBe(true);
+  });
+
+  it('should return false for a tabular model without base_model', () => {
+    const model: AutomlRawTabularModel = {
+      name: 'WeightedEnsemble_L5_FULL',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawTimeseriesModel(model)).toBe(false);
+  });
+});
+/* eslint-enable camelcase */
+
+/* eslint-disable camelcase */
+describe('useModelEvaluationArtifactsQuery', () => {
+  const mockFeatureImportance = {
+    importance: { feature_a: 0.8, feature_b: 0.2 },
+  };
+
+  const mockConfusionMatrix = {
+    cat: { cat: 10, dog: 2 },
+    dog: { cat: 1, dog: 15 },
+  };
+
+  /**
+   * Creates a mock fetch response that returns JSON parsed from a Blob,
+   * matching the fetchS3Json → fetchS3File → fetch call chain.
+   */
+  const mockBlobJsonResponse = (data: unknown) => {
+    const json = JSON.stringify(data);
+    return {
+      ok: true,
+      blob: async () => ({ text: async () => json }),
+    };
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should not get stuck loading for regression runs (isClassification=false)', async () => {
+    // The confusion matrix query is disabled for regression. Previously, using
+    // isPending (which is true for disabled queries) caused isLoading to be
+    // stuck at true. The fix uses isLoading instead.
+    (global.fetch as jest.Mock).mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.featureImportance).toEqual(mockFeatureImportance);
+    expect(result.current.confusionMatrix).toBeUndefined();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should load both artifacts for classification runs (isClassification=true)', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.featureImportance).toEqual(mockFeatureImportance);
+    expect(result.current.confusionMatrix).toEqual(mockConfusionMatrix);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('should be disabled when namespace is missing', () => {
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery(undefined, 'models/best/', true),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.featureImportance).toBeUndefined();
+    expect(result.current.confusionMatrix).toBeUndefined();
+  });
+
+  it('should be disabled when modelDirectory is missing', () => {
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', undefined, true),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.featureImportance).toBeUndefined();
+    expect(result.current.confusionMatrix).toBeUndefined();
+  });
+});
+/* eslint-enable camelcase */

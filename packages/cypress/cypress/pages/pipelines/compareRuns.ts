@@ -2,11 +2,9 @@ import { TableRow } from '../components/table';
 import { Contextual } from '../components/Contextual';
 
 class CompareRunsGlobal {
-  visit(projectName: string, experimentId: string, runIds: string[] = []) {
+  visit(projectName: string, runIds: string[] = []) {
     cy.visitWithLogin(
-      `/develop-train/experiments/${projectName}/${experimentId}/compare-runs?compareRuns=${runIds.join(
-        ',',
-      )}`,
+      `/develop-train/pipelines/runs/${projectName}/compare-runs?compareRuns=${runIds.join(',')}`,
     );
   }
 

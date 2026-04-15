@@ -109,7 +109,20 @@ const buildEvaluationRequest = ({
       ...(resolvedAuth ? { auth: { secret_ref: resolvedAuth } } : {}),
     },
     ...(isCollectionFlow
-      ? { collection: { id: collection.resource.id } }
+      ? {
+          collection: {
+            id: collection.resource.id,
+            benchmarks: collection.benchmarks?.map((b) => ({
+              id: b.id,
+              // eslint-disable-next-line camelcase
+              provider_id: b.provider_id,
+              // eslint-disable-next-line camelcase
+              primary_score: b.primary_score,
+              // eslint-disable-next-line camelcase
+              pass_criteria: b.pass_criteria,
+            })),
+          },
+        }
       : { benchmarks: benchmarkEntries }),
     ...restOverrides,
     ...(experiment ? { experiment } : {}),

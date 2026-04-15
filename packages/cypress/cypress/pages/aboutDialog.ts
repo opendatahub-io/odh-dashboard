@@ -56,28 +56,27 @@ export class AboutDialog {
 
   getComponentReleasesText(name: string): Cypress.Chainable<string[]> {
     return this.findTable().then(($table) => {
-      // Find all rows and filter based on full text content
-      const $matchingRow = $table
-        .find('tr')
-        .filter((_, row) => {
-          const rowText = Cypress.$(row).find('td').text().toLowerCase();
-          return rowText.includes(name.toLowerCase());
-        })
-        .first();
+      // Find all rows that match the component name
+      const $matchingRows = $table.find('tr').filter((_, row) => {
+        const rowText = Cypress.$(row).find('td').text().toLowerCase();
+        return rowText.includes(name.toLowerCase());
+      });
 
-      // If no matching row, return empty array
-      if (!$matchingRow.length) {
+      // If no matching rows, return empty array
+      if (!$matchingRows.length) {
         return cy.wrap([] as string[]);
       }
 
-      // Get the td elements from the matching row and map their text
-      return cy
-        .wrap($matchingRow)
-        .find('td')
-        .then(($cells) => {
-          const texts = Cypress._.map($cells, 'innerText') as string[];
-          return cy.wrap(texts);
-        });
+      // Collect text from all matching rows (handles components with multiple sub-components)
+      const texts: string[] = [];
+      $matchingRows.each((_, row) => {
+        Cypress.$(row)
+          .find('td')
+          .each((__, cell) => {
+            texts.push((cell as HTMLElement).innerText);
+          });
+      });
+      return cy.wrap(texts);
     });
   }
 

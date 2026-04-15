@@ -418,7 +418,7 @@ describe('AutoRAG API Contract Tests', () => {
     });
 
     describe('Secret Value Sanitization', () => {
-      it('should return actual values only for aws_s3_bucket keys', async () => {
+      it('should return actual values only for AWS_S3_BUCKET keys', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default&type=storage');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
@@ -427,20 +427,33 @@ describe('AutoRAG API Contract Tests', () => {
 
         if (result.success) {
           const responseData = result.response.data as SecretsResponseData;
+
+          // Find the secret that has both canonical and non-canonical bucket keys
+          const mixedCaseSecret = responseData.data?.find(
+            (s) => s.name === 'test-secret-mixed-case-bucket',
+          );
+          expect(mixedCaseSecret).toBeDefined();
+
+          const mixedCaseData = mixedCaseSecret?.data ?? {};
+
+          // Verify canonical key exists and is NOT redacted
+          expect(mixedCaseData).toHaveProperty('AWS_S3_BUCKET');
+          expect(mixedCaseData.AWS_S3_BUCKET).not.toBe('[REDACTED]');
+          expect(typeof mixedCaseData.AWS_S3_BUCKET).toBe('string');
+          expect(mixedCaseData.AWS_S3_BUCKET.length).toBeGreaterThan(0);
+
+          // Verify non-canonical (lowercase) variant exists and IS redacted
+          expect(mixedCaseData).toHaveProperty('aws_s3_bucket');
+          expect(mixedCaseData.aws_s3_bucket).toBe('[REDACTED]');
+
+          // Also verify all secrets follow the sanitization rule generically
           responseData.data?.forEach((secret) => {
-            const keys = Object.keys(secret.data);
-
-            // Check each key-value pair
-            keys.forEach((key) => {
-              const value = secret.data[key];
-
-              // aws_s3_bucket (case-insensitive) should have actual value
-              if (key.toLowerCase() === 'aws_s3_bucket') {
+            Object.entries(secret.data).forEach(([key, value]) => {
+              if (key === 'AWS_S3_BUCKET') {
                 expect(value).not.toBe('[REDACTED]');
                 expect(typeof value).toBe('string');
                 expect(value.length).toBeGreaterThan(0);
               } else {
-                // All other keys should be sanitized
                 expect(value).toBe('[REDACTED]');
               }
             });
@@ -448,7 +461,7 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should sanitize all secret values except aws_s3_bucket', async () => {
+      it('should sanitize all secret values except AWS_S3_BUCKET', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result.success).toBe(true);
 
@@ -463,8 +476,8 @@ describe('AutoRAG API Contract Tests', () => {
           if (secretsWithKeys && secretsWithKeys.length > 0) {
             secretsWithKeys.forEach((secret) => {
               Object.entries(secret.data).forEach(([key, value]) => {
-                // Only aws_s3_bucket (case-insensitive) should have actual values
-                const isAllowedKey = key.toLowerCase() === 'aws_s3_bucket';
+                // Only AWS_S3_BUCKET (case-sensitive, uppercase) should have actual values
+                const isAllowedKey = key === 'AWS_S3_BUCKET';
 
                 if (!isAllowedKey) {
                   expect(value).toBe('[REDACTED]');
@@ -475,7 +488,7 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should handle aws_s3_bucket key with different casing', async () => {
+      it('should only allow uppercase AWS_S3_BUCKET key', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result.success).toBe(true);
 
@@ -484,10 +497,12 @@ describe('AutoRAG API Contract Tests', () => {
 
           responseData.data?.forEach((secret) => {
             Object.entries(secret.data).forEach(([key, value]) => {
-              // Check various casings of aws_s3_bucket
-              if (['aws_s3_bucket', 'AWS_S3_BUCKET', 'Aws_S3_Bucket'].includes(key)) {
-                // Should return actual value, not [REDACTED]
+              // Only exact uppercase AWS_S3_BUCKET should return actual value
+              if (key === 'AWS_S3_BUCKET') {
                 expect(value).not.toBe('[REDACTED]');
+              } else {
+                // Lowercase or mixed case variants should be redacted
+                expect(value).toBe('[REDACTED]');
               }
             });
           });
@@ -1165,6 +1180,39 @@ describe('AutoRAG API Contract Tests', () => {
         });
       });
 
+      it('display_name 250 chars accepted', async () => {
+        const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+          display_name: 'a'.repeat(250),
+          test_data_secret_name: 'minio-secret',
+          test_data_bucket_name: 'autorag',
+          test_data_key: 'test_data.json',
+          input_data_secret_name: 'minio-secret',
+          input_data_bucket_name: 'autorag',
+          input_data_key: 'documents/',
+          llama_stack_secret_name: 'llama-secret',
+        });
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('display_name 251 chars rejected', async () => {
+        const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+          display_name: 'a'.repeat(251),
+          test_data_secret_name: 'minio-secret',
+          test_data_bucket_name: 'autorag',
+          test_data_key: 'test_data.json',
+          input_data_secret_name: 'minio-secret',
+          input_data_bucket_name: 'autorag',
+          input_data_key: 'documents/',
+          llama_stack_secret_name: 'llama-secret',
+        });
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
+
       it('should return 400 for missing required fields', async () => {
         const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
           display_name: 'incomplete-run',
@@ -1283,8 +1331,8 @@ describe('AutoRAG API Contract Tests', () => {
     });
 
     describe('Error Cases - Declared Content-Length', () => {
-      /** Matches bff s3_upload_limit.go: 1 GiB file max + 64 MiB multipart envelope. */
-      const s3PostMaxDeclaredBodyBytes = (1 << 30) + (64 << 20);
+      /** Matches bff s3_upload_limit.go: 32 MiB file max + 64 MiB multipart envelope. */
+      const s3PostMaxDeclaredBodyBytes = (32 << 20) + (64 << 20);
 
       const postS3WithDeclaredContentLength = async (
         pathWithQuery: string,

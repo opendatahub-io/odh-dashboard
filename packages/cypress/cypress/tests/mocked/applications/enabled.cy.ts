@@ -1,6 +1,8 @@
 import type { RoleBindingSubject } from '@odh-dashboard/internal/k8sTypes';
+import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { mockComponents } from '@odh-dashboard/internal/__mocks__/mockComponents';
 import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
 import { enabledPage } from '../../../pages/enabled';
 import { jupyterCard } from '../../../pages/components/JupyterCard';
@@ -62,22 +64,25 @@ describe('Enabled Page', () => {
   });
 
   describe('MLflow card', () => {
-    it('should show mlflow card with Red Hat managed badge when mlflow is enabled', () => {
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
+    it('should show mlflow card with Red Hat managed badge when mlflow component is present', () => {
       enabledPage.visit();
       mlflowCard.find().should('be.visible');
       mlflowCard.findCardTitle().should('have.text', 'MLflow');
       mlflowCard.findPartnerBadge().should('have.text', 'Red Hat managed');
     });
 
-    it('should not show mlflow card when mlflow is disabled', () => {
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: false }));
+    it('should not show mlflow card when mlflow component is not installed', () => {
+      const dscStatus = mockDscStatus({});
+      dscStatus.components = {
+        ...dscStatus.components,
+        [DataScienceStackComponent.MLFLOW]: { managementState: 'Removed' },
+      };
+      cy.interceptOdh('GET /api/dsc/status', dscStatus);
       enabledPage.visit();
       mlflowCard.find().should('not.exist');
     });
 
     it('should navigate to mlflow experiments page', () => {
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
       enabledPage.visit();
       mlflowCard.findApplicationLink().click();
       cy.url().should('include', '/develop-train/mlflow/experiments');

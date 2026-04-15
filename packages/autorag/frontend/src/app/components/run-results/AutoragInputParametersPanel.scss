@@ -1,0 +1,17 @@
+.odh-autorag-input-parameters-panel {
+  flex: 1;
+  overflow-y: auto;
+
+  &__head {
+    border-block-end: 1px solid var(--pf-t--global--border--color--default);
+  }
+
+  &__value {
+    color: var(--pf-t--global--text--color--subtle);
+  }
+}
+
+.odh-autorag-input-parameters-panel__tooltip-text {
+  text-decoration: underline dotted;
+  cursor: default;
+}

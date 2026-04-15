@@ -20,6 +20,12 @@ jest.mock('react-router', () => ({
   ),
 }));
 
+// Truncate relies on DOM measurement APIs (scrollWidth) unavailable in JSDOM.
+jest.mock('@patternfly/react-core', () => ({
+  ...jest.requireActual('@patternfly/react-core'),
+  Truncate: ({ content }: { content: string }) => <span>{content}</span>,
+}));
+
 jest.mock('mod-arch-core', () => ({
   useNamespaceSelector: jest.fn().mockReturnValue({
     namespaces: [{ name: 'test-namespace' }, { name: 'other-namespace' }],
@@ -166,7 +172,7 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
           uuid: 'aws-secret-1',
           name: 'Test AWS Secret',
           displayName: 'Test AWS Secret',
-          data: { aws_s3_bucket: 'test-bucket' },
+          data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
           type: 's3',
           invalid: false,
         });
@@ -228,9 +234,9 @@ describe('AutomlConfigurePage', () => {
       expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
     });
 
-    it('should display "Create AutoML experiment" subtitle in create step', async () => {
+    it('should display "Create AutoML optimization run" subtitle in create step', async () => {
       renderWithProviders(<AutomlConfigurePage />);
-      expect(await screen.findByText('Create AutoML experiment')).toBeInTheDocument();
+      expect(await screen.findByText('Create AutoML optimization run')).toBeInTheDocument();
     });
 
     it('should display description text in create step', async () => {
@@ -329,7 +335,8 @@ describe('AutomlConfigurePage', () => {
     });
 
     it('should display experiment name in subtitle in configure step', async () => {
-      expect(await screen.findByText('"My Experiment" configurations')).toBeInTheDocument();
+      const subtitle = await screen.findByTestId('configure-step-subtitle');
+      expect(subtitle).toHaveTextContent('"My Experiment" configurations');
     });
 
     it('should NOT display description text in configure step', async () => {
@@ -340,13 +347,12 @@ describe('AutomlConfigurePage', () => {
 
     it('should display breadcrumb in configure step', async () => {
       expect(await screen.findByText('AutoML: test-namespace')).toBeInTheDocument();
-      expect(await screen.findByText('My Experiment')).toBeInTheDocument();
+      const breadcrumbName = await screen.findByTestId('configure-breadcrumb-name');
+      expect(breadcrumbName).toHaveTextContent('My Experiment');
     });
 
-    it('should render "Create optimization run" button', async () => {
-      expect(
-        await screen.findByRole('button', { name: 'Create optimization run' }),
-      ).toBeInTheDocument();
+    it('should render "Create run" button', async () => {
+      expect(await screen.findByRole('button', { name: 'Create run' })).toBeInTheDocument();
     });
 
     it('should render "Back" button', async () => {
@@ -419,8 +425,8 @@ describe('AutomlConfigurePage', () => {
     });
   });
 
-  describe('Configure step - Create optimization run', () => {
-    it('should call mutateAsync when Create optimization run button is clicked with valid form', async () => {
+  describe('Configure step - Create run', () => {
+    it('should call mutateAsync when Create run button is clicked with valid form', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
 
@@ -463,7 +469,9 @@ describe('AutomlConfigurePage', () => {
       await user.click(columnOption);
 
       // Wait for form to be valid and Run button to be enabled
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -471,7 +479,7 @@ describe('AutomlConfigurePage', () => {
         { timeout: 3000 },
       );
 
-      // Click Create optimization run button
+      // Click Create run button
       await user.click(runButton);
 
       await waitFor(() => {
@@ -518,8 +526,10 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Create optimization run button
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -574,8 +584,10 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Create optimization run button
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -631,8 +643,10 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      // Click Create optimization run button
-      const runButton = await screen.findByRole('button', { name: 'Create optimization run' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(
         () => {
           expect(runButton).toBeEnabled();
@@ -730,7 +744,8 @@ describe('AutomlConfigurePage', () => {
       await user.click(nextButton);
 
       // Verify we're in configure step with correct subtitle
-      expect(await screen.findByText('"Persistent Experiment" configurations')).toBeInTheDocument();
+      const subtitle = await screen.findByTestId('configure-step-subtitle');
+      expect(subtitle).toHaveTextContent('"Persistent Experiment" configurations');
     });
   });
 });

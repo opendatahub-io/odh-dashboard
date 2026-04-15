@@ -503,6 +503,30 @@ export type ModelRegistryTestData = {
 
   // Object storage paths
   objectStoragePathV2: string;
+
+  // OCI Register and Store
+  ociModelName: string;
+  ociModelDescription: string;
+  ociVersionName: string;
+  ociVersionDescription: string;
+  ociModelFormat: string;
+  ociModelFormatVersion: string;
+  ociJobName: string;
+  ociSourceEndpoint: string;
+  ociSourceBucket: string;
+  ociSourceRegion: string;
+  ociSourcePath: string;
+  ociTransferJobStartedNotification: string;
+  ociTransferJobFailedNotification: string;
+  ociDestinationRegistry: string;
+  ociDestinationUri: string;
+  ociDestinationUsername: string;
+  ociDestinationPassword: string;
+
+  // OCI Register and Store — URI origin variant
+  ociUriModelName: string;
+  ociUriJobName: string;
+  ociUriOriginUri: string;
 };
 
 export type ManageRegistryPermissionsTestData = {
@@ -593,6 +617,33 @@ export type TrainJobTestData = {
   projectName: string;
   trainJobName: string;
   trainingRuntimeName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+};
+
+/** E2E fixture for RayJob pause / scale / delete (RHOAIENG-56125). */
+export type RayJobE2eTestData = {
+  projectName: string;
+  rayJobName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+  workerGroupName: string;
+  rayImage: string;
+  rayVersion: string;
+};
+
+export type RayJobTestData = {
+  projectName: string;
+  rayJobName: string;
+  rayImage: string;
   flavorName: string;
   clusterQueueName: string;
   localQueueName: string;

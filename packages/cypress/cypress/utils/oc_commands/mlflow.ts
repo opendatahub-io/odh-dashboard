@@ -5,7 +5,6 @@ import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 const DSC_RESOURCE = 'datasciencecluster default-dsc';
-const DASHBOARD_CONFIG = 'odhdashboardconfig odh-dashboard-config';
 const K8S_NAMESPACE_RE = /^[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?$/;
 
 const UI_POLL_CONFIG = {
@@ -133,38 +132,6 @@ const waitForMlflowCRReady = (namespace: string): Cypress.Chainable<Cypress.Exec
   );
 
 /**
- * Set the `mlflow` feature flag in OdhDashboardConfig.
- *
- * @param enabled - Whether to enable or disable the mlflow feature flag.
- * @param namespace - The namespace of the OdhDashboardConfig resource.
- * @returns A Cypress.Chainable that resolves when the patch is applied.
- */
-const setMlflowEnabled = (
-  enabled: boolean,
-  namespace: string,
-): Cypress.Chainable<CommandLineResult> => {
-  const patchSpec = { spec: { dashboardConfig: { mlflow: enabled } } };
-  return cy.exec(buildPatchCommand(DASHBOARD_CONFIG, patchSpec, namespace)).then((result) => {
-    if (result.code !== 0) {
-      const maskedStderr = maskSensitiveInfo(result.stderr);
-      throw new Error(`Failed to set mlflow enabled to ${enabled}: ${maskedStderr}`);
-    }
-    return result;
-  });
-};
-
-/**
- * Poll until the `mlflow` feature flag is true in OdhDashboardConfig.
- */
-const waitForMlflowFeatureFlag = (): Cypress.Chainable<Cypress.Exec> => {
-  const checkCommand = `oc get OdhDashboardConfig -A -o json | jq -e '.items[].spec.dashboardConfig.mlflow == true'`;
-  return pollUntilSuccess(checkCommand, 'mlflow feature flag to be true', {
-    maxAttempts: 30,
-    pollIntervalMs: 2000,
-  });
-};
-
-/**
  * Check if the Prompts nav item is visible in the sidebar.
  */
 const isPromptsNavVisible = (): Cypress.Chainable<boolean> =>
@@ -214,23 +181,11 @@ const waitForPromptsInSidebar = (): Cypress.Chainable<boolean> => {
 };
 
 /**
- * Check whether the `mlflow` feature flag is enabled in OdhDashboardConfig.
- */
-export const isMlflowFeatureFlagEnabled = (): Cypress.Chainable<boolean> => {
-  const command = `oc get OdhDashboardConfig -A -o json | jq -r '.items[].spec.dashboardConfig.mlflow // false'`;
-  return cy.exec(command, { failOnNonZeroExit: false }).then((result) => {
-    const value = result.stdout.trim();
-    return cy.wrap(value === 'true');
-  });
-};
-
-/**
  * Enable all features required for Prompt Management:
  * 1. Enable Gen AI features (LlamaStack operator, genAiStudio flag, sidebar)
  * 2. Set mlflowoperator to Managed and wait for it
  * 3. Create an MLflow CR and wait for it to be ready
- * 4. Enable the mlflow feature flag in OdhDashboardConfig
- * 5. Wait for Prompts nav item in the sidebar
+ * 4. Wait for Prompts nav item in the sidebar
  */
 export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => {
   const namespace = getApplicationsNamespace();
@@ -254,14 +209,6 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
       return waitForMlflowCRReady(namespace);
     })
     .then(() => {
-      cy.step('Enable mlflow feature flag in OdhDashboardConfig');
-      return setMlflowEnabled(true, namespace);
-    })
-    .then(() => {
-      cy.step('Wait for mlflow feature flag in OdhDashboardConfig');
-      return waitForMlflowFeatureFlag();
-    })
-    .then(() => {
       cy.step('Wait for Prompts nav item in sidebar');
       return waitForPromptsInSidebar();
     });
@@ -269,13 +216,13 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
 
 /**
  * Disable MLflow and Gen AI features.
- * Disables mlflow feature flag, sets mlflowoperator to Removed, and disables Gen AI features.
+ * Sets mlflowoperator to Removed and disables Gen AI features.
  */
 export const disablePromptManagementFeatures = (): Cypress.Chainable<CommandLineResult> => {
   const namespace = getApplicationsNamespace();
 
-  cy.step('Disable mlflow feature flag');
-  return setMlflowEnabled(false, namespace)
+  cy.step('Delete MLflow CR');
+  return deleteMlflowCR(namespace)
     .then(() => {
       cy.step('Set MLflow operator to Removed');
       return setMlflowOperatorState('Removed');

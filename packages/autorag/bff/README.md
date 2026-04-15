@@ -59,7 +59,7 @@ make run LOG_LEVEL=DEBUG
 | `-mock-pipeline-server-client` | `MOCK_PIPELINE_SERVER_CLIENT` | Use mock client for Kubeflow Pipelines API calls                                       |
 | `-mock-s3-client` | `MOCK_S3_CLIENT` | Use mock client for S3 SDK calls                                                       |
 | `-pipeline-server-url` | `PIPELINE_SERVER_URL` | Override Kubeflow Pipelines URL for local testing (e.g., `http://localhost:8888`)      |
-| `-autorag-pipeline-name-prefix` | `AUTORAG_PIPELINE_NAME_PREFIX` | Prefix for identifying AutoRAG managed pipelines during discovery (default: `autorag`) |
+| `-autorag-pipeline-name-prefix` | `AUTORAG_PIPELINE_NAME_PREFIX` | Prefix for identifying AutoRAG managed pipelines during discovery (default: `documents-rag-optimization-pipeline`) |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets                                         |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO)                                                |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins                                                           |
@@ -400,7 +400,7 @@ PIPELINE_SERVER_URL=https://localhost:8443 make dev-start-federated
 
 This starts both the BFF (port 4001) and the frontend webpack dev server (port 9107) in federated mode. The BFF connects to your port-forwarded pipeline server and uses your cluster credentials for RBAC.
 
-**Pipeline name prefix:** The BFF discovers AutoRAG pipelines by matching display names that start with a configurable prefix. The default is `autorag`. If your pipelines use a different naming convention, override it:
+**Pipeline name prefix:** The BFF discovers AutoRAG pipelines by matching display names that start with a configurable prefix. The default is `documents-rag-optimization-pipeline`. If your pipelines use a different naming convention, override it:
 
 ```shell
 PIPELINE_SERVER_URL=https://localhost:8443 \

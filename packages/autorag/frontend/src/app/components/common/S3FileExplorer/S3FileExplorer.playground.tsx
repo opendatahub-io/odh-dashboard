@@ -25,6 +25,8 @@ const AUTORAG_PLAYGROUND_S3_NAMESPACE = process.env.AUTORAG_PLAYGROUND_S3_NAMESP
 const AUTORAG_PLAYGROUND_S3_SECRET_NAME = process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME ?? '';
 const AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET =
   process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET ?? '';
+const AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP =
+  process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP ?? '';
 
 // Mocks ---------------------------------------------------------------------->
 
@@ -66,6 +68,16 @@ const scenarioGroups: Record<string, Scenario[]> = {
       s3Secret: {
         uuid: 'no-bucket-secret-uuid',
         name: AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET,
+        type: 'storage',
+        data: {},
+      },
+    },
+    {
+      label: 'Connection using HTTP',
+      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
+      s3Secret: {
+        uuid: 'http-secret-uuid',
+        name: AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP,
         type: 'storage',
         data: {},
       },
@@ -156,6 +168,16 @@ const App: React.FC = () => {
               <span className="pf-v6-u-text-color-status-success">
                 &nbsp;
                 {AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET || <em>not set</em>}
+              </span>
+            </p>
+            <p className="pf-v6-u-font-family-monospace">
+              <span className="pf-v6-u-text-color-status-danger">
+                AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP
+              </span>
+              :
+              <span className="pf-v6-u-text-color-status-success">
+                &nbsp;
+                {AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP || <em>not set</em>}
               </span>
             </p>
           </CardBody>

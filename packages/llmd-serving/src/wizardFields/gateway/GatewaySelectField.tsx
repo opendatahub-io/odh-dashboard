@@ -93,7 +93,7 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
   }, [externalData, initialMissingKey, hiddenOptions]);
 
   return (
-    <FormGroup fieldId="gateway-select" label="Gateway Selection">
+    <FormGroup fieldId="gateway-select" label="Gateway">
       <Stack hasGutter>
         <StackItem>
           <Content component="p">

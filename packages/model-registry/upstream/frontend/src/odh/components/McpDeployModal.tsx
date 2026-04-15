@@ -27,7 +27,6 @@ import useMcpServerConverter from '~/app/hooks/mcpCatalogDeployment/useMcpServer
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { useNotification } from '~/app/hooks/useNotification';
 import { createMcpDeployment, updateMcpDeployment } from '~/app/api/mcpCatalogDeployment/service';
 import { mcpDeploymentsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import { mcpServerCRToYaml } from '~/app/utils/mcpServerYaml';
@@ -48,7 +47,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   const navigate = useNavigate();
   const queryParams = useQueryParamNamespaces();
   const { theme } = useThemeContext();
-  const notification = useNotification();
   const [crData, crLoaded, crError] = useMcpServerConverter(existingDeployment ? '' : serverId);
 
   const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
@@ -66,7 +64,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
     existingDeployment?.namespace ?? '',
   );
   const [yamlContent, setYamlContent] = React.useState(existingDeployment?.yaml ?? '');
-  const [initialYaml, setInitialYaml] = React.useState(existingDeployment?.yaml ?? '');
   const [ociImageValue, setOciImageValue] = React.useState(existingDeployment?.image ?? '');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error>();
@@ -80,7 +77,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
       crInitializedRef.current = true;
       const yaml = mcpServerCRToYaml(crData);
       setYamlContent(yaml);
-      setInitialYaml(yaml);
       setOciImageValue(crData.spec.source.containerImage?.ref ?? '');
     }
   }, [existingDeployment, crData]);
@@ -95,17 +91,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   const handleNamespaceSelect = React.useCallback((projectName: string) => {
     setSelectedNamespace(projectName);
   }, []);
-
-  const handleReset = React.useCallback(() => {
-    setYamlContent(initialYaml);
-    if (existingDeployment) {
-      onNameDescChange('name', existingDeployment.displayName ?? existingDeployment.name);
-    } else {
-      setSelectedNamespace('');
-      onNameDescChange('name', '');
-    }
-    setSubmitError(undefined);
-  }, [initialYaml, existingDeployment, onNameDescChange]);
 
   const displayName = nameDescData.name;
   const k8sName = nameDescData.k8sName.value;
@@ -135,10 +120,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
           },
         );
         onClose(true);
-        notification.success(
-          'MCP server updated successfully',
-          `${displayName || k8sName} has been updated.`,
-        );
       } else {
         await createMcpDeployment('', { ...queryParams, namespace: selectedNamespace })(opts, {
           name: k8sName,
@@ -148,11 +129,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
           yaml: yamlContent,
         });
         onClose(true);
-        notification.success(
-          'MCP server deployed successfully',
-          `${displayName || k8sName} has been deployed to ${selectedNamespace}.`,
-        );
-        navigate(mcpDeploymentsUrl());
+        navigate(mcpDeploymentsUrl(selectedNamespace));
       }
     } catch (e) {
       setSubmitError(
@@ -172,7 +149,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
     crData,
     queryParams,
     onClose,
-    notification,
     navigate,
     existingDeployment,
   ]);
@@ -193,9 +169,9 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   if (!existingDeployment && !crLoaded && !crError) {
     return (
       <Modal isOpen={isOpen} variant="medium" onClose={() => onClose()} data-testid="mcp-deploy-modal">
-        <ModalHeader title={modalTitle} />
+        <ModalHeader title={modalTitle} data-testid="mcp-deploy-modal-title" />
         <ModalBody>
-          <Spinner aria-label="Loading MCP server configuration" />
+          <Spinner aria-label="Loading MCP server configuration" data-testid="mcp-deploy-modal-spinner" />
         </ModalBody>
       </Modal>
     );
@@ -203,7 +179,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} variant="medium" onClose={() => onClose()} data-testid="mcp-deploy-modal">
-      <ModalHeader title={modalTitle} />
+      <ModalHeader title={modalTitle} data-testid="mcp-deploy-modal-title" />
       <ModalBody>
         {crError && (
           <Alert
@@ -232,7 +208,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
             labelHelp={
               <Popover
                 triggerRef={ociImageLabelHelpRef}
-                bodyContent="The container image reference for this MCP server, sourced from the catalog artifact."
+                bodyContent="This is the container image associated with the MCP server that you selected from the catalog. This cannot be edited."
                 aria-label="OCI image help"
               >
                 <FormGroupLabelHelp
@@ -267,12 +243,12 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
           )}
 
           <FormGroup
-            label="Configuration (YAML)"
+            label="YAML configuration"
             fieldId="mcp-deploy-yaml"
             labelHelp={
               <Popover
                 triggerRef={configLabelHelpRef}
-                bodyContent="Prefilled from catalog metadata when available; you can adjust before deploying. This block is the spec fragment only (not the full CRD); it is merged into the MCPServer resource—image and project are set by the form. For more options, see the server documentation on the details page."
+                bodyContent="For more information about the prefilled YAML configuration, check the details page of the selected server."
                 aria-label="Configuration help"
               >
                 <FormGroupLabelHelp
@@ -283,8 +259,8 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
             }
           >
             <Content component="small" className="pf-v6-u-mb-sm">
-              Prefilled from catalog metadata. Adjust runtime, config, and environment settings as
-              needed.
+              This YAML has been prefilled from the selected server&apos;s metadata in the catalog.
+              Edit as needed.
             </Content>
             <CodeEditor
               code={yamlContent}
@@ -321,16 +297,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
                 </Button>
               </SplitItem>
               <SplitItem isFilled />
-              <SplitItem>
-                <Button
-                  variant="secondary"
-                  onClick={handleReset}
-                  isDisabled={isSubmitting}
-                  data-testid="mcp-deploy-reset-button"
-                >
-                  Reset
-                </Button>
-              </SplitItem>
               <SplitItem>
                 <Button
                   variant="primary"

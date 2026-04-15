@@ -410,7 +410,7 @@ describe('Pipeline runs', () => {
         it('navigate to duplicate run page', () => {
           duplicateRunPage.mockGetExperiments(projectName, mockExperiments);
           duplicateRunPage.mockGetExperiment(projectName, mockExperiments[0]);
-          cy.visitWithLogin(`/develop-train/experiments/${projectName}/test-experiment-1/runs`);
+          pipelineRunsGlobal.visit(projectName, 'active');
 
           activeRunsTable
             .getRowByName(mockActiveRuns[0].display_name)
@@ -418,7 +418,7 @@ describe('Pipeline runs', () => {
             .click();
 
           verifyRelativeURL(
-            `/develop-train/experiments/${projectName}/test-experiment-1/runs/duplicate/${mockActiveRuns[0].run_id}`,
+            `/develop-train/pipelines/runs/${projectName}/runs/duplicate/${mockActiveRuns[0].run_id}`,
           );
         });
 
@@ -445,10 +445,7 @@ describe('Pipeline runs', () => {
         });
 
         it('navigate to MLflow experiment details from active run row', () => {
-          cy.interceptOdh(
-            'GET /api/config',
-            mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
-          );
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
           const runWithMlflow = buildMockRunKF({
             display_name: 'Run with mlflow',
             run_id: 'run-with-mlflow',
@@ -481,10 +478,7 @@ describe('Pipeline runs', () => {
         });
 
         it('shows the MLflow experiment column when MLflow is enabled', () => {
-          cy.interceptOdh(
-            'GET /api/config',
-            mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
-          );
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
           activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
           pipelineRunsGlobal.visit(projectName, 'active');
 
@@ -548,10 +542,7 @@ describe('Pipeline runs', () => {
         });
 
         it('filter by MLflow experiment', () => {
-          cy.interceptOdh(
-            'GET /api/config',
-            mockDashboardConfig({ mlflow: true, mlflowPipelines: true }),
-          );
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
           const runsWithMlflow = [
             buildMockRunKF({
               display_name: 'Run with mlflow first',
@@ -1204,16 +1195,15 @@ describe('Pipeline runs', () => {
         it('navigate to duplicate scheduled run page', () => {
           duplicateSchedulePage.mockGetExperiments(projectName, mockExperiments);
           duplicateSchedulePage.mockGetExperiment(projectName, mockExperiments[0]);
-          cy.visitWithLogin(`/develop-train/experiments/${projectName}/test-experiment-1/runs`);
+          pipelineRunsGlobal.visit(projectName, 'scheduled');
 
-          pipelineRunsGlobal.findSchedulesTab().click();
           pipelineRecurringRunTable
             .getRowByName(mockRecurringRuns[0].display_name)
             .findKebabAction('Duplicate')
             .click();
 
           verifyRelativeURL(
-            `/develop-train/experiments/${projectName}/test-experiment-1/schedules/duplicate/${mockRecurringRuns[0].recurring_run_id}`,
+            `/develop-train/pipelines/runs/${projectName}/schedules/duplicate/${mockRecurringRuns[0].recurring_run_id}`,
           );
         });
 

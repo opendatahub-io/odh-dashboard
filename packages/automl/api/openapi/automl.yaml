@@ -133,11 +133,12 @@ paths:
 
             Type detection uses:
             1. The 'opendatahub.io/connection-type' annotation value if present
-            2. Otherwise, key-based classification (case-insensitive):
-               - S3 requires: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint
+            2. Otherwise, key-based classification (case-sensitive, keys must be uppercase):
+               - S3 requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
+               - AWS_DEFAULT_REGION is optional for classification; validate it from the 'data' field when needed
 
             The 'data' field in the response contains all secret keys. Use it to validate additional requirements
-            for your use case (e.g., checking for aws_s3_bucket). Allowed keys show actual values; others show "[REDACTED]".
+            for your use case (e.g., checking for AWS_S3_BUCKET or AWS_DEFAULT_REGION). Allowed keys show actual values; others show "[REDACTED]".
           schema:
             type: string
             enum:
@@ -160,12 +161,12 @@ paths:
       summary: Get filtered secrets
       description: >-
         Retrieves secrets from a specified namespace with optional filtering by type.
-        All key matching is case-insensitive.
+        Key matching is case-sensitive; keys must be uppercase.
 
         Secret Type Detection:
         1. First checks for the 'opendatahub.io/connection-type' annotation. If present, its value is used as the type.
         2. Otherwise, performs key-based classification using required classification keys:
-           - 's3': S3 storage secrets (classification keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
+           - 's3': S3 storage secrets (classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT; AWS_DEFAULT_REGION is optional)
 
         Type Filtering:
         - 'storage': Returns only secrets classified as storage types (currently: s3)
@@ -173,10 +174,8 @@ paths:
 
         Data Security:
         The 'data' field contains all secret keys with redacted or actual values:
-        - Allowed keys (currently: aws_s3_bucket) return actual values
+        - Allowed keys (currently: AWS_S3_BUCKET) return actual values
         - All other keys return "[REDACTED]"
-        Key matching for allowed keys is case-insensitive.
-
         Metadata:
         - 'displayName': Extracted from 'openshift.io/display-name' annotation if present
         - 'description': Extracted from 'openshift.io/description' annotation if present
@@ -373,7 +372,7 @@ paths:
 
         Only CSV uploads are allowed: Content-Type `text/csv`, or `application/octet-stream` (or empty)
         when the part filename ends with `.csv`. The body is size-limited (declared Content-Length
-        and total multipart size caps; file part max 1 GiB). Rejects with 413 when limits are exceeded.
+        and total multipart size caps; file part max 32 MiB). Rejects with 413 when limits are exceeded.
 
         On success, returns JSON with `uploaded: true` and the resolved `key` (which may differ
         from the requested key if a collision was avoided by probing existing keys).
@@ -922,7 +921,7 @@ components:
           type: array
           items:
             type: string
-          description: Keys required for BFF to classify a secret as this type via key-based detection (case-insensitive matching)
+          description: Keys required for BFF to classify a secret as this type via key-based detection (case-sensitive, uppercase)
         commonOptionalKeys:
           type: array
           items:
@@ -941,9 +940,9 @@ components:
             - type: object
               properties:
                 classificationKeys:
-                  example: ["aws_access_key_id", "aws_secret_access_key", "aws_default_region", "aws_s3_endpoint"]
+                  example: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_ENDPOINT"]
                 commonOptionalKeys:
-                  example: ["aws_s3_bucket"]
+                  example: ["AWS_S3_BUCKET", "AWS_DEFAULT_REGION"]
 
     ModelRegistry:
       description: A Model Registry instance discovered from the cluster
@@ -1037,15 +1036,14 @@ components:
             type: string
           description: >-
             Map of all keys in the secret with their values. Security redaction applies:
-            - Keys in the allowed list (currently: aws_s3_bucket) return their actual values
+            - Keys in the allowed list (currently: AWS_S3_BUCKET) return their actual values
             - All other keys return the value "[REDACTED]"
-            Key matching for allowed keys is case-insensitive.
           example:
-            aws_access_key_id: "[REDACTED]"
-            aws_default_region: "[REDACTED]"
-            aws_s3_endpoint: "[REDACTED]"
-            aws_secret_access_key: "[REDACTED]"
-            aws_s3_bucket: "my-bucket-name"
+            AWS_ACCESS_KEY_ID: "[REDACTED]"
+            AWS_DEFAULT_REGION: "[REDACTED]"
+            AWS_S3_ENDPOINT: "[REDACTED]"
+            AWS_SECRET_ACCESS_KEY: "[REDACTED]"
+            AWS_S3_BUCKET: "my-bucket-name"
         displayName:
           type: string
           description: Display name from the 'openshift.io/display-name' annotation (if present)
@@ -1133,6 +1131,7 @@ components:
         display_name:
           type: string
           minLength: 1
+          maxLength: 250
           description: Human-readable name for the run
           example: "AutoML Optimization Run 1"
         description:
@@ -1723,7 +1722,7 @@ components:
                     example: "413"
                   message:
                     type: string
-                    example: "request body exceeds maximum upload size (1 GiB plus allowance for multipart framing)"
+                    example: "request body exceeds maximum upload size (32 MiB plus allowance for multipart framing)"
 
     Unauthorized:
       description: Unauthorized

@@ -75,6 +75,7 @@ import {
   RAG_METRIC_CONTEXT_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
 } from '~/app/schemas/configure.schema';
+import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
@@ -84,7 +85,9 @@ import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 import EvaluationTemplateModal from './EvaluationTemplateModal';
 import './AutoragConfigure.css';
 
-const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
+const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = {
+  s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
+};
 
 /** MIME types and extensions for the knowledge document upload dropzone (react-dropzone `accept` format). */
 const INPUT_DATA_FILE_ACCEPT: Record<string, string[]> = {
@@ -100,8 +103,8 @@ const INPUT_DATA_UPLOAD_NATIVE_ACCEPT = [
   ...new Set(Object.values(INPUT_DATA_FILE_ACCEPT).flat()),
 ].join(',');
 
-/** Matches MultipleFileUpload dropzone `maxSize` (1 GiB). */
-const INPUT_DATA_UPLOAD_MAX_BYTES = 1024 * 1024 * 1024;
+/** Matches MultipleFileUpload dropzone `maxSize` (32 MiB). */
+const INPUT_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
 
 /** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
 function isAllowedInputDataUploadFile(file: File): boolean {
@@ -124,17 +127,17 @@ const OPTIMIZATION_METRICS: {
 }[] = [
   {
     value: RAG_METRIC_FAITHFULNESS,
-    label: 'Answer faithfulness',
+    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_FAITHFULNESS],
     description: 'How factually grounded the answer is in the retrieved context.',
   },
   {
     value: RAG_METRIC_ANSWER_CORRECTNESS,
-    label: 'Answer correctness',
+    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_ANSWER_CORRECTNESS],
     description: 'How correct the generated answer is compared to the ground truth.',
   },
   {
     value: RAG_METRIC_CONTEXT_CORRECTNESS,
-    label: 'Context correctness',
+    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_CONTEXT_CORRECTNESS],
     description: 'How precisely the retrieval step identifies relevant chunks.',
   },
 ];
@@ -235,10 +238,7 @@ function AutoragConfigure(): React.JSX.Element {
       return;
     }
 
-    const bucketKey = findKey(
-      selectedSecret.data,
-      (value, key) => key.toLowerCase() === 'aws_s3_bucket',
-    );
+    const bucketKey = findKey(selectedSecret.data, (value, key) => key === 'AWS_S3_BUCKET');
     setValue('input_data_bucket_name', bucketKey ? selectedSecret.data[bucketKey] : '', {
       shouldValidate: true,
     });
@@ -301,7 +301,7 @@ function AutoragConfigure(): React.JSX.Element {
         return;
       }
       if (file.size > INPUT_DATA_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', 'File size must be 1 GiB or less.');
+        notification.error('File too large', 'File size must be 32 MiB or less.');
         return;
       }
       if (!isAllowedInputDataUploadFile(file)) {
@@ -647,7 +647,7 @@ function AutoragConfigure(): React.JSX.Element {
                 <Content component="h3">Configure details</Content>
               </CardHeader>
               <CardBody>
-                {!inputDataSecretName ? (
+                {!inputDataKey ? (
                   <EmptyState
                     variant="xs"
                     titleText="Select an S3 connection or upload a file to get started"

@@ -37,9 +37,9 @@ type WorkspaceSpec struct {
 	Paused *bool `json:"paused,omitempty"`
 
 	// the WorkspaceKind to use
-	// +kubebuilder:validation:MinLength:=2
-	// +kubebuilder:validation:MaxLength:=63
-	// +kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Workspace 'kind' is immutable"
 	// +kubebuilder:example="jupyterlab"
 	Kind string `json:"kind"`
@@ -77,9 +77,9 @@ type WorkspacePodVolumes struct {
 	//  - the mount path is defined in the WorkspaceKind under
 	//    `spec.podTemplate.volumeMounts.home`
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:MinLength:=2
-	// +kubebuilder:validation:MaxLength:=63
-	// +kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	// +kubebuilder:example="my-home-pvc"
 	Home *string `json:"home,omitempty"`
 
@@ -104,9 +104,9 @@ type WorkspacePodVolumes struct {
 
 type PodVolumeMount struct {
 	// the name of the PVC to mount
-	// +kubebuilder:validation:MinLength:=2
-	// +kubebuilder:validation:MaxLength:=63
-	// +kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	// +kubebuilder:example="my-data-pvc"
 	PVCName string `json:"pvcName"`
 
@@ -125,8 +125,8 @@ type PodVolumeMount struct {
 
 type PodSecretMount struct {
 	// the name of the Secret to mount
-	// +kubebuilder:validation:MinLength:=2
-	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	// +kubebuilder:example="my-secret"
 	SecretName string `json:"secretName"`
@@ -257,6 +257,9 @@ type WorkspacePodStatus struct {
 	// the name of the Pod resource
 	Name string `json:"name"`
 
+	// the name of the node on which the Pod is scheduled
+	NodeName string `json:"nodeName"`
+
 	// information about the Pod's containers
 	// +kubebuilder:validation:Optional
 	Containers []WorkspacePodContainer `json:"containers,omitempty"`
@@ -292,6 +295,7 @@ const (
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state",description="The current state of the Workspace"
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=ws
 
 // Workspace is the Schema for the Workspaces API
 type Workspace struct {

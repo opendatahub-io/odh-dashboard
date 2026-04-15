@@ -168,25 +168,19 @@ export const getNotebookImageNames = (namespace: string): Cypress.Chainable<Note
       }
       const imageNames = result.stdout.trim().split(' ');
       const imageInfos: NotebookImageInfo[] = [];
+      const filteredNames = imageNames.filter((imageName) => imageName.includes('notebook'));
 
-      // Create a chain of promises for each notebook image
-      const imagePromises = imageNames
-        .filter((imageName) => imageName.includes('notebook'))
-        .map((imageName) =>
-          cy
-            .exec(
-              `oc get imagestream ${imageName} -n ${namespace} -o jsonpath='{.spec.tags[*].name}'`,
-            )
-            .then((tagResult: ExecResult) => {
-              if (tagResult.code !== 0) {
-                const maskedStderr = maskSensitiveInfo(tagResult.stderr);
-                throw new Error(`Failed to get image stream tags: ${maskedStderr}`);
-              }
-              const versions = tagResult.stdout.trim().split(' ');
-              imageInfos.push({ image: imageName, name: imageName, versions });
-            }),
-        );
-
-      // Wait for all image version queries to complete
-      return cy.wrap(Promise.all(imagePromises)).then(() => imageInfos);
+      cy.wrap(filteredNames).each((imageName: string) => {
+        cy.exec(
+          `oc get imagestream ${imageName} -n ${namespace} -o jsonpath='{.spec.tags[*].name}'`,
+        ).then((tagResult: ExecResult) => {
+          if (tagResult.code !== 0) {
+            const maskedStderr = maskSensitiveInfo(tagResult.stderr);
+            throw new Error(`Failed to get image stream tags: ${maskedStderr}`);
+          }
+          const versions = tagResult.stdout.trim().split(' ');
+          imageInfos.push({ image: imageName, name: imageName, versions });
+        });
+      });
+      return cy.wrap(imageInfos);
     });
