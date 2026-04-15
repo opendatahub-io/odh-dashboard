@@ -60,7 +60,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
         name: k8sName,
         namespace,
         annotations: {
-          'openshift.io/display-name': nameDescData.name,
+          'openshift.io/display-name': nameDescData.name.trim(),
         },
       },
       stringData: {
