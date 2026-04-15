@@ -630,11 +630,21 @@ describe('translateModelServingError', () => {
     );
   });
 
-  it('should return a friendly message when a duplicate name error has no quoted name', () => {
+  it('should return the original message for non-KServe already exists errors', () => {
     const k8sError = 'the resource already exists';
+    expect(translateModelServingError(k8sError)).toBe(k8sError);
+  });
+
+  it('should return a friendly message for KServe already exists without quoted name', () => {
+    const k8sError = 'servingruntimes.serving.kserve.io already exists';
     expect(translateModelServingError(k8sError)).toBe(
       'A model deployment with this name already exists. Please choose a different Model deployment name.',
     );
+  });
+
+  it('should not rewrite already exists errors for non-serving resources', () => {
+    const k8sError = 'secrets "my-secret" already exists';
+    expect(translateModelServingError(k8sError)).toBe(k8sError);
   });
 
   it('should replace K8s resource group references in non-duplicate errors', () => {
