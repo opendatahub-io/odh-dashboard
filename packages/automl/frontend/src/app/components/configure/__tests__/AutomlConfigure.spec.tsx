@@ -433,9 +433,16 @@ describe('AutomlConfigure', () => {
       // Configure details fields should be visible
       expect(screen.getByText('Prediction type')).toBeInTheDocument();
       expect(screen.getByText('Binary classification')).toBeInTheDocument();
-      expect(screen.getByText('Top models to consider')).toBeInTheDocument();
-      // Label column should NOT be visible until a prediction type is selected
+      // Top models and Label column should NOT be visible until a prediction type is selected
+      expect(screen.queryByText('Top models to consider')).not.toBeInTheDocument();
       expect(screen.queryByText('Label column')).not.toBeInTheDocument();
+
+      // Select a prediction type — Top models to consider should now appear
+      const binaryRadio = document.getElementById('task-type-binary');
+      if (binaryRadio) {
+        fireEvent.click(binaryRadio);
+      }
+      expect(screen.getByText('Top models to consider')).toBeInTheDocument();
     });
   });
 
@@ -816,6 +823,7 @@ describe('AutomlConfigure', () => {
       it('should render the top N input with default value 3', () => {
         renderComponent();
         selectSecretAndFile();
+        selectPredictionType('binary');
         const input = screen.getByTestId('top-n-input').querySelector('input');
         expect(input).toHaveValue(3);
       });
@@ -823,6 +831,7 @@ describe('AutomlConfigure', () => {
       it('should show error message when top N is below the minimum', async () => {
         renderComponent();
         selectSecretAndFile();
+        selectPredictionType('binary');
 
         const input = screen.getByTestId('top-n-input').querySelector('input')!;
         fireEvent.change(input, { target: { value: '0' } });

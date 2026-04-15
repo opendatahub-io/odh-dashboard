@@ -61,7 +61,7 @@ describe('AutomlModelDetailsModalHeader', () => {
     expect(screen.getByText('-0.123')).toBeInTheDocument();
   });
 
-  it('should use absolute value for error metrics like mase', () => {
+  it('should display negated error metric values as-is', () => {
     const errorModel = buildModel('Model', { mase: -0.082 });
     render(
       <AutomlModelDetailsModalHeader
@@ -71,7 +71,7 @@ describe('AutomlModelDetailsModalHeader', () => {
         currentModelName="Model"
       />,
     );
-    expect(screen.getByText('0.082')).toBeInTheDocument();
+    expect(screen.getByText('-0.082')).toBeInTheDocument();
   });
 
   it('should display N/A when eval_metric is missing from test_data', () => {

@@ -138,48 +138,23 @@ export function getOptimizedMetricForTask(taskType: string): string {
   }
 }
 
-/** Metrics where lower values indicate better performance. */
-const ERROR_METRICS = new Set(['mase', 'mse', 'mae', 'rmse', 'mape']);
-
-/**
- * Check whether a metric is an error metric (lower-is-better).
- * AutoGluon reports these as negative values; callers should use Math.abs()
- * only for these metrics to recover the true value.
- */
-export function isErrorMetric(metric: string): boolean {
-  return ERROR_METRICS.has(metric.toLowerCase());
-}
-
 /**
  * Build a mapping from model name → leaderboard rank (1-based).
- * Ranks are assigned by sorting on the optimized metric for the task type,
+ * Ranks are assigned by sorting on the optimized metric descending (higher is better).
+ * AutoGluon negates error/loss metrics so all metrics are uniformly "higher is better".
  */
 export function computeRankMap(
   models: Record<string, { metrics: { test_data?: Record<string, unknown> } }>,
   taskType: string,
 ): Record<string, number> {
   const optimizedMetric = getOptimizedMetricForTask(taskType);
-  const useAbs = isErrorMetric(optimizedMetric);
-
-  // Use worst-case for missing metrics so they sort last
-  const worstCase = useAbs ? Infinity : -Infinity;
 
   const sorted = Object.keys(models).toSorted((a, b) => {
     const aMetric = models[a].metrics.test_data?.[optimizedMetric];
     const bMetric = models[b].metrics.test_data?.[optimizedMetric];
-    const aVal =
-      aMetric != null
-        ? useAbs
-          ? Math.abs(toNumericMetric(aMetric))
-          : toNumericMetric(aMetric)
-        : worstCase;
-    const bVal =
-      bMetric != null
-        ? useAbs
-          ? Math.abs(toNumericMetric(bMetric))
-          : toNumericMetric(bMetric)
-        : worstCase;
-    return useAbs ? aVal - bVal : bVal - aVal;
+    const aVal = aMetric != null ? toNumericMetric(aMetric) : -Infinity;
+    const bVal = bMetric != null ? toNumericMetric(bMetric) : -Infinity;
+    return bVal - aVal;
   });
 
   return Object.fromEntries(sorted.map((name, i) => [name, i + 1]));
