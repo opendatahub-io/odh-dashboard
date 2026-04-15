@@ -58,17 +58,14 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
     error: experimentError,
   } = usePipelineRunExperimentInfo(recurringRun);
   const [searchParams] = useSearchParams();
-  const handleRunGroupClick = React.useMemo(() => {
+  const handleRunGroupClick = React.useCallback(() => {
     if (!experiment) {
-      return undefined;
+      return;
     }
-
-    return () => {
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.delete(LEGACY_EXPERIMENT_FILTER_PARAM);
-      nextParams.set(FilterOptions.RUN_GROUP, experiment.experiment_id);
-      navigate(`${globalPipelineRecurringRunsRoute(namespace)}?${nextParams.toString()}`);
-    };
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete(LEGACY_EXPERIMENT_FILTER_PARAM);
+    nextParams.set(FilterOptions.RUN_GROUP, experiment.experiment_id);
+    navigate(`${globalPipelineRecurringRunsRoute(namespace)}?${nextParams.toString()}`);
   }, [experiment, namespace, navigate, searchParams]);
 
   return (
@@ -109,8 +106,7 @@ const PipelineRecurringRunTableRow: React.FC<PipelineRecurringRunTableRowProps> 
             experiment={experiment}
             error={experimentError}
             loaded={isExperimentLoaded}
-            isClickable={!!handleRunGroupClick}
-            onClick={handleRunGroupClick}
+            onClick={experiment ? handleRunGroupClick : undefined}
           />
         </Td>
       )}

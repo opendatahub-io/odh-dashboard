@@ -153,7 +153,7 @@ describe('usePipelineFilterSearchParams', () => {
       [FilterOptions.NAME]: 'test',
       [FilterOptions.CREATED_AT]: '2024-11-21',
       [FilterOptions.STATUS]: 'success',
-      [FilterOptions.RUN_GROUP]: { value: 'test-experiment', label: 'Loading...' },
+      [FilterOptions.RUN_GROUP]: { value: 'test-experiment', label: 'test-experiment' },
       [FilterOptions.PIPELINE_VERSION]: 'test-version',
       [FilterOptions.MLFLOW_EXPERIMENT]: '',
     });

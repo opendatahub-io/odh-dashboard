@@ -9,7 +9,6 @@ type PipelineRunTableRowExperimentProps = {
   isExperimentArchived?: boolean;
   loaded: boolean;
   error?: Error;
-  isClickable?: boolean;
   onClick?: () => void;
 };
 
@@ -18,7 +17,6 @@ const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps
   isExperimentArchived,
   loaded,
   error,
-  isClickable = false,
   onClick,
 }) => {
   if (!loaded && !error) {
@@ -29,14 +27,12 @@ const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps
     return <NoRunContent />;
   }
 
-  const showClickableStyles = isClickable || !!onClick;
-
   const runGroupLabel = (
     <Label
-      {...(showClickableStyles
+      {...(onClick
         ? {
             isClickable: true,
-            ...(onClick ? { onClick } : {}),
+            onClick,
           }
         : {})}
       isCompact

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Form, FormGroup, FormSection, Stack, StackItem } from '@patternfly/react-core';
+import { Form, FormGroup, FormSection } from '@patternfly/react-core';
 import NameDescriptionField from '#~/concepts/k8s/NameDescriptionField';
 import {
   MlflowFormData,
@@ -144,18 +144,15 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
 
         <FormGroup
           label="Run group"
-          aria-label="Run group"
+          fieldId="run-group-selector-toggle"
           isRequired
           labelHelp={<DashboardHelpTooltip content={runGroupCreateModalPopoverText} />}
         >
-          <Stack hasGutter>
-            <StackItem>
-              <ActiveExperimentSelector
-                selection={data.experiment?.display_name}
-                onSelect={(runGroup) => onValueChange('experiment', runGroup)}
-              />
-            </StackItem>
-          </Stack>
+          <ActiveExperimentSelector
+            dataTestId="run-group-selector"
+            selection={data.experiment?.display_name}
+            onSelect={(runGroup) => onValueChange('experiment', runGroup)}
+          />
         </FormGroup>
 
         {isSchedule && data.runType.type === RunTypeOption.SCHEDULED && (

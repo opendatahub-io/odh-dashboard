@@ -64,14 +64,15 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
   } = useCheckboxTable(pageRunIds, selectedRunIds, true);
   const updateHref = compareRunsRoute(namespace, selections, experiment?.experiment_id);
   const isUpdateDisabled = selections.length < 1 || selections.length > 10;
+  const { onFilterUpdate } = filterProps;
   const handleRunGroupClick = React.useCallback(
     (clickedExperiment: ExperimentKF) => {
-      filterProps.onFilterUpdate(FilterOptions.RUN_GROUP, {
+      onFilterUpdate(FilterOptions.RUN_GROUP, {
         value: clickedExperiment.experiment_id,
         label: clickedExperiment.display_name,
       });
     },
-    [filterProps],
+    [onFilterUpdate],
   );
 
   const rowRenderer = React.useCallback(

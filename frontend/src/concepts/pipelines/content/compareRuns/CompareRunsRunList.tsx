@@ -80,14 +80,15 @@ const CompareRunsRunList: React.FC = () => {
     runs.map((r) => r.run_id),
     experiment?.experiment_id,
   );
+  const { onFilterUpdate } = filterToolbarProps;
   const handleRunGroupClick = React.useCallback(
     (clickedExperiment: ExperimentKF) => {
-      filterToolbarProps.onFilterUpdate(FilterOptions.RUN_GROUP, {
+      onFilterUpdate(FilterOptions.RUN_GROUP, {
         value: clickedExperiment.experiment_id,
         label: clickedExperiment.display_name,
       });
     },
-    [filterToolbarProps],
+    [onFilterUpdate],
   );
 
   return (

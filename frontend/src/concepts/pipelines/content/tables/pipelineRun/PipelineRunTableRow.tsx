@@ -80,25 +80,22 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const [mlmdData] = useFetchRunArtifact(modelRegistryAvailable ? run.run_id : undefined); // Prevent API call when model registry is not available
   const isRegistered = isPipelineRunRegistered(mlmdData);
   const [searchParams] = useSearchParams();
-  const handleRunGroupClick = React.useMemo(() => {
+  const handleRunGroupClick = React.useCallback(() => {
     if (!experiment) {
-      return undefined;
+      return;
     }
-
     if (onRunGroupClick) {
-      return () => onRunGroupClick(experiment);
+      onRunGroupClick(experiment);
+      return;
     }
-
-    return () => {
-      const basePath =
-        runType === PipelineRunType.ARCHIVED
-          ? globalArchivedPipelineRunsRoute(namespace)
-          : globalPipelineRunsRoute(namespace);
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.delete(LEGACY_EXPERIMENT_FILTER_PARAM);
-      nextParams.set(FilterOptions.RUN_GROUP, experiment.experiment_id);
-      navigate(`${basePath}?${nextParams.toString()}`);
-    };
+    const basePath =
+      runType === PipelineRunType.ARCHIVED
+        ? globalArchivedPipelineRunsRoute(namespace)
+        : globalPipelineRunsRoute(namespace);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete(LEGACY_EXPERIMENT_FILTER_PARAM);
+    nextParams.set(FilterOptions.RUN_GROUP, experiment.experiment_id);
+    navigate(`${basePath}?${nextParams.toString()}`);
   }, [experiment, namespace, navigate, onRunGroupClick, runType, searchParams]);
 
   const { isExperimentArchived: isContextExperimentArchived } =
@@ -210,8 +207,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
             isExperimentArchived={isExperimentArchived}
             error={experimentError}
             loaded={isExperimentLoaded}
-            isClickable={!!handleRunGroupClick}
-            onClick={handleRunGroupClick}
+            onClick={experiment ? handleRunGroupClick : undefined}
           />
         </Td>
       )}

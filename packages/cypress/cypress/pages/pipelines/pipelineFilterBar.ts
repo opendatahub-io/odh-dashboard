@@ -17,7 +17,10 @@ class PipelineRunFilterBar extends PipelineFilterBar {
 
   selectRunGroupByName(name: string) {
     this.findRunGroupSelect().click();
-    cy.findByTestId('run-group-selector-table-list').find('td').contains(name).click();
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    cy.findByTestId('run-group-selector-table-list')
+      .contains('td', new RegExp(`^${escaped}$`))
+      .click();
     return this;
   }
 
