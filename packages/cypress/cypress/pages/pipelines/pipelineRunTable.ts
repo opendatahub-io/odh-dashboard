@@ -24,6 +24,10 @@ class PipelineRunTableRow extends PipelineRunsRow {
   findModelRegisteredLabel() {
     return this.find().findByTestId('model-registered-label');
   }
+
+  findMlflowExperimentLink() {
+    return this.find().findByTestId('mlflow-experiment-link');
+  }
 }
 
 class PipelineRecurringRunTableRow extends PipelineRunsRow {
@@ -181,6 +185,10 @@ class ActiveRunsTable extends PipelineRunsTable {
 
   findModelRegisteredLabel(name: string) {
     return this.getLabelInRowByName(name).findModelRegisteredLabel();
+  }
+
+  findMlflowExperimentLink(name: string) {
+    return this.getLabelInRowByName(name).findMlflowExperimentLink();
   }
 }
 class ArchivedRunsTable extends PipelineRunsTable {

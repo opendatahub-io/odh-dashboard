@@ -87,7 +87,7 @@ describe('Workbench Kueue Integration Tests', () => {
 
       cy.step('Wait for workbench to reach Running status');
       const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 300000);
+      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 300000);
 
       cy.step('Verify Kueue Workload CR exists and is admitted');
       verifyWorkloadAdmitted(projectName);

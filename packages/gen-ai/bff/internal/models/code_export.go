@@ -20,12 +20,19 @@ type FileUpload struct {
 	Purpose string `json:"purpose"`
 }
 
-// VectorStoreConfig represents vector store configuration
+// VectorStoreConfig represents vector store configuration.
+// If ID is set, the vector store is external (pre-existing) and will be referenced by ID rather than created.
 type VectorStoreConfig struct {
+	ID                 string `json:"id,omitempty"`
 	Name               string `json:"name"`
 	EmbeddingModel     string `json:"embedding_model"`
 	EmbeddingDimension int    `json:"embedding_dimension"`
 	ProviderID         string `json:"provider_id"`
+}
+
+type PromptConfig struct {
+	Name    string `json:"name"`
+	Version int    `json:"version"`
 }
 
 type CodeExportRequest struct {
@@ -38,6 +45,7 @@ type CodeExportRequest struct {
 	Tools        []CodeExportTool   `json:"tools,omitempty"`
 	VectorStore  *VectorStoreConfig `json:"vector_store,omitempty"`
 	Files        []FileUpload       `json:"files,omitempty"`
+	Prompt       *PromptConfig      `json:"prompt,omitempty"`
 }
 
 type CodeExportResponse struct {

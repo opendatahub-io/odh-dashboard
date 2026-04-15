@@ -115,7 +115,7 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
           // Wait for workbench to run
           cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
           const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
 
           // Use dynamic image name verification based on what was actually selected
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {

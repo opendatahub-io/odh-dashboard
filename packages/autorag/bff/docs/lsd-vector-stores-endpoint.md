@@ -1,8 +1,8 @@
-# LSD Vector Stores Endpoint Documentation
+# LSD Vector Store Providers Endpoint Documentation
 
 ## Overview
 
-This document describes the GET endpoint for retrieving available vector stores from a LlamaStack server using credentials stored in a Kubernetes secret.
+This document describes the GET endpoint for retrieving available vector store providers from a LlamaStack server using credentials stored in a Kubernetes secret.
 
 ## Endpoint
 
@@ -22,9 +22,9 @@ The endpoint:
 2. Reads the specified Kubernetes secret from the namespace
 3. Extracts `llama_stack_client_base_url` and `llama_stack_client_api_key` from the secret (exact key match, case-sensitive)
 4. Creates a LlamaStack client using those credentials
-5. Calls the LlamaStack server to list available vector stores via the OpenAI-compatible `GET /v1/vector_stores` endpoint
-6. Extracts `provider_id` from each vector store's `metadata` field (LlamaStack stores provider info in OpenAI metadata)
-7. Returns the vector stores wrapped in a data envelope
+5. Calls the LlamaStack server's native `GET /v1/providers` endpoint to list all registered providers
+6. Filters the response to include only providers with `api == "vector_io"`
+7. Returns the filtered providers wrapped in a data envelope
 
 ### Secret Requirements
 
@@ -61,18 +61,14 @@ The response follows the envelope pattern:
 ```json
 {
   "data": {
-    "vector_stores": [
+    "vector_store_providers": [
       {
-        "id": "vs_136a08ec-60da-4f68-b587-54f3def2a84c",
-        "name": "Milvus Vector Store",
-        "status": "completed",
-        "provider": "milvus"
+        "provider_id": "milvus",
+        "provider_type": "remote::milvus"
       },
       {
-        "id": "vs_abc12345-def6-7890-abcd-ef1234567890",
-        "name": "FAISS In-Memory Store",
-        "status": "completed",
-        "provider": "faiss"
+        "provider_id": "faiss",
+        "provider_type": "inline::faiss"
       }
     ]
   }
@@ -83,10 +79,8 @@ The response follows the envelope pattern:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | string | Unique vector store identifier (e.g., `vs_136a08ec-...`) |
-| `name` | string | Human-readable name |
-| `status` | string | Vector store status: `expired`, `in_progress`, or `completed` |
-| `provider` | string | Database provider identifier (e.g., `milvus`, `faiss`, `chromadb`). Extracted from LlamaStack's `metadata.provider_id` field. |
+| `provider_id` | string | Provider identifier (e.g., `milvus`, `faiss`) |
+| `provider_type` | string | Provider implementation type (e.g., `remote::milvus`, `inline::faiss`) |
 
 ## Error Responses
 
@@ -94,13 +88,13 @@ The response follows the envelope pattern:
 |-------------|-------------|
 | 400 | Bad Request - Missing or invalid `namespace` or `secretName`, or secret missing required keys |
 | 401 | Unauthorized - Missing authentication |
-| 404 | Not Found - Secret does not exist in the namespace |
+| 404 | Not Found - Secret does not exist in the namespace, or LlamaStack /v1/providers not available |
 | 500 | Internal Server Error |
 | 502 | Bad Gateway - LlamaStack server connection failed |
 
 ## Examples
 
-### Retrieve vector stores using a secret
+### Retrieve vector store providers using a secret
 
 ```bash
 curl -s -H "Authorization: Bearer $(oc whoami -t)" \
@@ -191,6 +185,7 @@ curl -s -H "Authorization: Bearer $(oc whoami -t)" \
 - The `secretName` parameter is validated as a DNS-1123 label to prevent injection
 - The LlamaStack base URL from the secret is validated to reject loopback, link-local, and unspecified addresses (SSRF protection)
 - Secret values (API keys) are not logged
+- Authorization header is only sent over HTTPS to prevent token leakage
 
 ## Implementation Details
 
@@ -200,14 +195,17 @@ curl -s -H "Authorization: Bearer $(oc whoami -t)" \
 |------|---------|
 | `internal/api/middleware.go` | `AttachLlamaStackClientFromSecret` middleware — reads secret, creates client |
 | `internal/api/lsd_vector_stores_handler.go` | HTTP handler — calls repository, returns envelope response |
-| `internal/repositories/lsd_vector_stores.go` | Repository — calls LlamaStack client, extracts provider from metadata |
-| `internal/integrations/llamastack/llamastack_client.go` | LlamaStack client — wraps OpenAI SDK for vector store listing |
+| `internal/repositories/lsd_vector_stores.go` | Repository — calls LlamaStack client, filters for vector_io providers |
+| `internal/integrations/llamastack/llamastack_client.go` | LlamaStack client — calls native /v1/providers endpoint |
+| `internal/models/lsd_vector_stores.go` | Models — LlamaStackProvider, LSDVectorStoreProvider, LSDVectorStoreProvidersData |
 | `internal/helpers/llamastack.go` | Context helper — retrieves LlamaStack client from request context |
 | `api/openapi/autorag.yaml` | OpenAPI specification |
 
-### Provider ID Source
+### Provider Filtering
 
-LlamaStack stores the vector database provider identifier in the `metadata` field of the OpenAI-compatible vector store response, not as a top-level field. The BFF extracts it via `metadata["provider_id"]`. Known provider values include `milvus`, `faiss`, and `chromadb`.
+The BFF calls LlamaStack's native `/v1/providers` endpoint which returns all registered providers across all API types (inference, vector_io, agents, etc.). The repository filters for providers where `api == "vector_io"` and returns only the `provider_id` and `provider_type` fields.
+
+The frontend further filters by `provider_type` (e.g., `remote::milvus`) using the `SUPPORTED_VECTOR_STORE_PROVIDER_TYPES` allowlist.
 
 ### Testing
 

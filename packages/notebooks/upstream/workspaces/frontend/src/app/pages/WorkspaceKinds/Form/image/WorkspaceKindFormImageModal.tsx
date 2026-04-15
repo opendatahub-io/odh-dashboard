@@ -15,7 +15,7 @@ import {
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { WorkspaceKindImageConfigValue, ImagePullPolicy } from '~/app/types';
-import { EditableLabels } from '~/app/pages/WorkspaceKinds/Form/EditableLabels';
+import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import { emptyImage } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { WorkspaceKindFormImageRedirect } from './WorkspaceKindFormImageRedirect';
@@ -129,11 +129,11 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
               name="workspace-kind-image-hidden-switch"
             />
           </FormGroup>
-          <EditableLabels
+          <EditableRowsTable
             rows={image.labels}
             setRows={(labels) => setImage({ ...image, labels })}
           />
-          <FormGroup
+          <ThemeAwareFormGroupWrapper
             label="Image Pull Policy"
             isRequired
             fieldId="workspace-kind-image-pull-policy"
@@ -156,7 +156,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
                 />
               ))}
             </FormSelect>
-          </FormGroup>
+          </ThemeAwareFormGroupWrapper>
           <WorkspaceKindFormImagePort
             ports={image.ports || []}
             setPorts={(ports) => setImage({ ...image, ports })}

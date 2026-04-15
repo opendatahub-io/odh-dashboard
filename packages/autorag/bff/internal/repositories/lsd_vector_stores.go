@@ -7,44 +7,38 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
+const vectorIOAPI = "vector_io"
+
 type LSDVectorStoresRepository struct{}
 
 func NewLSDVectorStoresRepository() *LSDVectorStoresRepository {
 	return &LSDVectorStoresRepository{}
 }
 
-// GetLSDVectorStores retrieves all vector stores from LlamaStack.
-// LlamaStack stores provider_id in the metadata field of the OpenAI-compatible response.
-func (r *LSDVectorStoresRepository) GetLSDVectorStores(ctx context.Context) (*models.LSDVectorStoresData, error) {
+// GetLSDVectorStoreProviders retrieves vector store providers from LlamaStack
+// by calling the native /v1/providers endpoint and filtering for vector_io API type.
+func (r *LSDVectorStoresRepository) GetLSDVectorStoreProviders(ctx context.Context) (*models.LSDVectorStoreProvidersData, error) {
 	client, err := helper.GetContextLlamaStackClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	rawStores, err := client.ListVectorStores(ctx)
+	allProviders, err := client.ListProviders(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	logger := helper.GetContextLogger(ctx)
-
-	vectorStores := make([]models.LSDVectorStore, 0, len(rawStores))
-	for _, raw := range rawStores {
-		provider := raw.Metadata["provider_id"]
-		if provider == "" {
-			logger.Debug("vector store has no provider_id in metadata, it will be excluded from supported provider filtering",
-				"id", raw.ID, "name", raw.Name)
+	vectorStoreProviders := make([]models.LSDVectorStoreProvider, 0)
+	for _, p := range allProviders {
+		if p.API == vectorIOAPI {
+			vectorStoreProviders = append(vectorStoreProviders, models.LSDVectorStoreProvider{
+				ProviderID:   p.ProviderID,
+				ProviderType: p.ProviderType,
+			})
 		}
-
-		vectorStores = append(vectorStores, models.LSDVectorStore{
-			ID:       raw.ID,
-			Name:     raw.Name,
-			Status:   string(raw.Status),
-			Provider: provider,
-		})
 	}
 
-	return &models.LSDVectorStoresData{
-		VectorStores: vectorStores,
+	return &models.LSDVectorStoreProvidersData{
+		VectorStoreProviders: vectorStoreProviders,
 	}, nil
 }

@@ -6,10 +6,9 @@ import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import ModelEvaluationTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/ModelEvaluationTab';
 
 const buildModel = (metrics: Record<string, unknown>): AutomlModel => ({
-  display_name: 'TestModel',
-  model_config: { eval_metric: 'accuracy' },
-  location: { model_directory: '/', predictor: '/p.pkl', notebook: '/n.ipynb' },
-  metrics: { test_data: metrics },
+  name: 'TestModel',
+  location: { model_directory: '/', predictor: '/predictor', notebook: '/n.ipynb' },
+  metrics: { test_data: metrics as Record<string, number> },
 });
 
 const defaultProps = {
@@ -23,7 +22,7 @@ describe('ModelEvaluationTab', () => {
     render(<ModelEvaluationTab {...defaultProps} model={model} />);
 
     expect(screen.getByText('Accuracy')).toBeInTheDocument();
-    expect(screen.getByText('F1')).toBeInTheDocument();
+    expect(screen.getByText('F₁')).toBeInTheDocument();
     expect(screen.getByText('Precision')).toBeInTheDocument();
   });
 

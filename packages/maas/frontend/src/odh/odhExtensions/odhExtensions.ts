@@ -5,6 +5,7 @@ import {
 } from '@odh-dashboard/plugin-core/extension-points';
 
 export const MODEL_AS_SERVICE_ID = 'modelAsService';
+export const MAAS_AUTH_POLICIES = 'maasAuthPolicies';
 
 export type ODHExtensions = NavExtension | RouteExtension | AreaExtension;
 const ADMIN_USER = 'ADMIN_USER';
@@ -18,6 +19,13 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     },
   },
   {
+    type: 'app.area',
+    properties: {
+      id: MAAS_AUTH_POLICIES,
+      featureFlags: ['maasAuthPolicies'],
+    },
+  },
+  {
     type: 'app.navigation/href',
     flags: {
       required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
@@ -28,6 +36,19 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
       href: '/maas/subscriptions',
       section: 'settings',
       path: '/maas/subscriptions/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID, ADMIN_USER, MAAS_AUTH_POLICIES],
+    },
+    properties: {
+      id: 'maas-auth-policies-view',
+      title: 'Policies',
+      href: '/maas/auth-policies',
+      section: 'settings',
+      path: '/maas/auth-policies/*',
     },
   },
   {
@@ -62,6 +83,16 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     },
     properties: {
       path: '/maas/subscriptions/*',
+      component: () => import('./MaaSWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID, ADMIN_USER, MAAS_AUTH_POLICIES],
+    },
+    properties: {
+      path: '/maas/auth-policies/*',
       component: () => import('./MaaSWrapper'),
     },
   },

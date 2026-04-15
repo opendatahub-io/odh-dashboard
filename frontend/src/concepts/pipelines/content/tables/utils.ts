@@ -2,7 +2,34 @@ import {
   PipelineRecurringRunKF,
   PipelineRunKF,
   PipelineSpecVariable,
+  RuntimeStateKF,
 } from '#~/concepts/pipelines/kfTypes';
+
+/**
+ * Minimal shape accepted by getRunStartTime so it works with both PipelineRunKF
+ * (main dashboard) and PipelineRun (automl / autorag) without coupling their types.
+ */
+type RunWithStateHistory = { created_at: string; state_history?: object[] };
+
+type StateHistoryEntry = { state: unknown; update_time: unknown };
+
+const isValidHistoryEntry = (entry: unknown): entry is StateHistoryEntry =>
+  typeof entry === 'object' && entry !== null && 'state' in entry && 'update_time' in entry;
+
+/**
+ * Find the actual execution start time from the last RUNNING entry in state_history,
+ * falling back to created_at for runs without history.
+ */
+export const getRunStartTime = (run: RunWithStateHistory): Date => {
+  const history = run.state_history ?? [];
+  for (let i = history.length - 1; i >= 0; i--) {
+    const entry = history[i];
+    if (isValidHistoryEntry(entry) && String(entry.state) === RuntimeStateKF.RUNNING) {
+      return new Date(String(entry.update_time));
+    }
+  }
+  return new Date(run.created_at);
+};
 
 export const getRunDuration = (run: PipelineRunKF): number => {
   const finishedDate = new Date(run.finished_at);
@@ -11,8 +38,7 @@ export const getRunDuration = (run: PipelineRunKF): number => {
     return 0;
   }
 
-  const createdDate = new Date(run.created_at);
-  return finishedDate.getTime() - createdDate.getTime();
+  return finishedDate.getTime() - getRunStartTime(run).getTime();
 };
 
 export const getPipelineRecurringRunStartTime = (

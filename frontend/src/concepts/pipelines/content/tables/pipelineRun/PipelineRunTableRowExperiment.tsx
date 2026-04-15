@@ -1,11 +1,7 @@
 import React from 'react';
 import { Label, Skeleton, Split, SplitItem } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
-import { usePipelinesAPI } from '#~/concepts/pipelines/context';
-import { experimentRunsRoute } from '#~/routes/pipelines/experiments';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 import { NoRunContent } from '#~/concepts/pipelines/content/tables/renderUtils';
-import TruncatedText from '#~/components/TruncatedText';
 
 type PipelineRunTableRowExperimentProps = {
   experiment?: ExperimentKF | null;
@@ -20,8 +16,6 @@ const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps
   loaded,
   error,
 }) => {
-  const { namespace } = usePipelinesAPI();
-
   if (!loaded && !error) {
     return <Skeleton />;
   }
@@ -32,13 +26,15 @@ const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps
   return (
     <Split hasGutter>
       <SplitItem>
-        <Link to={experimentRunsRoute(namespace, experiment.experiment_id)}>
-          <TruncatedText content={experiment.display_name} maxLines={1} />
-        </Link>
+        <Label isCompact variant="outline">
+          {experiment.display_name}
+        </Label>
       </SplitItem>
       {isExperimentArchived && (
         <SplitItem>
-          <Label isCompact>Archived</Label>
+          <Label variant="outline" isCompact>
+            Archived
+          </Label>
         </SplitItem>
       )}
     </Split>

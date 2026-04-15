@@ -161,6 +161,9 @@ export const useDeploymentWizardReducer = (
       const isDependenciesChanged = !isEqual(dependencies, prevDependencies);
 
       if (isNew || isDependenciesChanged) {
+        if (isDependenciesChanged && field.shouldResetOnDependencyChange) {
+          dispatch({ type: 'clearFieldData', payload: { id: field.id } });
+        }
         dispatch({
           type: 'initFieldData',
           payload: {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { PageSection } from '@patternfly/react-core';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ExperimentKF, PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import GenericSidebar from '#~/components/GenericSidebar';
 import {
@@ -22,7 +23,6 @@ import { ValueOf } from '#~/typeHelpers';
 import { useGetSearchParamValues } from '#~/utilities/useGetSearchParamValues';
 import { PipelineRunSearchParam } from '#~/concepts/pipelines/content/types';
 import { asEnumMember } from '#~/utilities/utils';
-import useDefaultExperiment from '#~/pages/pipelines/global/experiments/useDefaultExperiment';
 
 type RunPageProps = {
   duplicateRun?: PipelineRunKF | PipelineRecurringRunKF | null;
@@ -48,21 +48,21 @@ const RunPage: React.FC<RunPageProps> = ({
     nameDesc: locationNameDesc,
     pipeline: locationPipeline,
     version: locationVersion,
-    experiment: locationExperiment,
+    runGroup: locationRunGroup,
+    mlflow: locationMlflow,
   } = location.state?.locationData || {};
   const { triggerType: triggerTypeString } = useGetSearchParamValues([
     PipelineRunSearchParam.TriggerType,
   ]);
   const triggerType = asEnumMember(triggerTypeString, ScheduledType);
   const isSchedule = runType === RunTypeOption.SCHEDULED;
-
-  const [defaultExperiment] = useDefaultExperiment();
-
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
   const jumpToSections = Object.values(CreateRunPageSections).filter(
     (section) =>
       !(
         (section === CreateRunPageSections.SCHEDULE_DETAILS && !isSchedule) ||
-        (section === CreateRunPageSections.RUN_DETAILS && isSchedule)
+        (section === CreateRunPageSections.RUN_DETAILS && isSchedule) ||
+        (section === CreateRunPageSections.MLFLOW_INTEGRATION && !isMlflowAvailable)
       ),
   );
 
@@ -99,7 +99,8 @@ const RunPage: React.FC<RunPageProps> = ({
     pipeline: locationPipeline || contextPipeline,
     version: locationVersion || contextPipelineVersion,
     versionToUse: versionToUseData,
-    experiment: locationExperiment || contextExperiment || defaultExperiment,
+    runGroup: locationRunGroup || contextExperiment?.display_name || '',
+    ...(locationMlflow ? { mlflow: locationMlflow } : {}),
   });
 
   const onValueChange = React.useCallback(

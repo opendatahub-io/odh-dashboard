@@ -30,7 +30,7 @@ const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
             <Button
               variant="primary"
               component={(props: React.ComponentProps<'a'>) => (
-                <Link {...props} to="/ai-hub/deployments/" />
+                <Link {...props} to="/ai-hub/models/deployments/" />
               )}
             >
               Return to deployments

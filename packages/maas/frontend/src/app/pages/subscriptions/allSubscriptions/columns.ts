@@ -19,4 +19,11 @@ export const subscriptionsColumns: SortableData<MaaSSubscription>[] = [
     sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
       a.modelRefs.length - b.modelRefs.length,
   },
+  {
+    label: 'Priority',
+    field: 'priority',
+    width: 10,
+    sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
+      (a.priority ?? 0) - (b.priority ?? 0),
+  },
 ];

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import * as PluginCore from '@odh-dashboard/plugin-core';
 import { isAIAssetsTabExtension } from '~/odh/extension-points';
 import { AIAssetsPage } from '~/app/AIAssets/AIAssetsPage';
@@ -136,6 +136,90 @@ describe('AIAssetsPage', () => {
     );
 
     expect(mockUseExtensions).toHaveBeenCalledWith(isAIAssetsTabExtension);
+  });
+
+  it('should activate the tab matching a valid :tab path param', () => {
+    const mockExtensions = [
+      {
+        type: 'gen-ai.ai-assets/tab',
+        properties: {
+          id: 'models',
+          title: 'Models',
+          component: () => Promise.resolve({ default: () => <div>Models Tab</div> }),
+        },
+        uid: 'models-uid',
+        pluginName: 'gen-ai',
+        flags: {},
+      },
+      {
+        type: 'gen-ai.ai-assets/tab',
+        properties: {
+          id: 'vectorstores',
+          title: 'Vector stores',
+          component: () => Promise.resolve({ default: () => <div>Vector Stores Tab</div> }),
+        },
+        uid: 'vectorstores-uid',
+        pluginName: 'gen-ai',
+        flags: {},
+      },
+    ];
+
+    mockUseExtensions.mockReturnValue(mockExtensions);
+
+    render(
+      <MemoryRouter initialEntries={['/assets/my-project/vectorstores']}>
+        <Routes>
+          <Route path="/assets/:namespace" element={<AIAssetsPage />} />
+          <Route path="/assets/:namespace/:tab" element={<AIAssetsPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('ai-assets-tab-vectorstores')).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByTestId('ai-assets-tab-models')).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('should fall back to the first tab when :tab path param is invalid', () => {
+    const mockExtensions = [
+      {
+        type: 'gen-ai.ai-assets/tab',
+        properties: {
+          id: 'models',
+          title: 'Models',
+          component: () => Promise.resolve({ default: () => <div>Models Tab</div> }),
+        },
+        uid: 'models-uid',
+        pluginName: 'gen-ai',
+        flags: {},
+      },
+      {
+        type: 'gen-ai.ai-assets/tab',
+        properties: {
+          id: 'vectorstores',
+          title: 'Vector stores',
+          component: () => Promise.resolve({ default: () => <div>Vector Stores Tab</div> }),
+        },
+        uid: 'vectorstores-uid',
+        pluginName: 'gen-ai',
+        flags: {},
+      },
+    ];
+
+    mockUseExtensions.mockReturnValue(mockExtensions);
+
+    render(
+      <MemoryRouter initialEntries={['/assets/my-project/not-a-real-tab']}>
+        <Routes>
+          <Route path="/assets/:namespace" element={<AIAssetsPage />} />
+          <Route path="/assets/:namespace/:tab" element={<AIAssetsPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('ai-assets-tab-models')).toHaveAttribute('aria-selected', 'true');
   });
 
   it('should set first tab as active by default', () => {

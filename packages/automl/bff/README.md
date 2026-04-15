@@ -17,6 +17,8 @@ This service exposes the following endpoints:
 - GET `/api/v1/pipeline-runs` – query merged pipeline runs from all auto-discovered AutoML pipelines
 - GET `/api/v1/pipeline-runs/:runId` – get a single pipeline run with full task details
 - POST `/api/v1/pipeline-runs` – create a new AutoML pipeline run
+- GET `/api/v1/model-registries` – list Model Registry instances (Kubernetes CRs) with `id` and `server_url` for routing
+- POST `/api/v1/model-registries/:registryId/models` – register a model binary in a specific Model Registry instance
 
 ## Development
 
@@ -104,7 +106,11 @@ GET  /api/v1/secrets             (filter secrets by type, e.g., ?namespace=defau
 GET  /api/v1/pipeline-runs       (query merged runs from all auto-discovered AutoML pipelines)
 GET  /api/v1/pipeline-runs/:runId
 POST /api/v1/pipeline-runs       (create a new AutoML pipeline run)
+GET  /api/v1/model-registries    (list Model Registry instances: id, server_url, readiness)
+POST /api/v1/model-registries/:registryId/models  (register model in a specific registry)
 ```
+
+For Model Registry integration details (configuration, authentication, S3), see [docs/model-registry-integration.md](docs/model-registry-integration.md).
 
 For detailed information about the secrets endpoint, see [docs/secrets-endpoint.md](docs/secrets-endpoint.md).
 
@@ -239,4 +245,66 @@ As a workaround you can pass `secretName` explicitly:
 curl -H "kubeflow-userid: user@example.com" \
   -H "Authorization: Bearer $(oc whoami -t)" \
   "http://localhost:4003/api/v1/s3/file?namespace=<namespace>&secretName=<secret>&bucket=<bucket>&key=<key>"
+```
+
+### Federated development with a live cluster
+
+To run the AutoML module as a federated micro-frontend against the main ODH Dashboard with a real pipeline server, you need three things running:
+
+1. A port-forward to the KFP pipeline server in your cluster
+2. The AutoML BFF + frontend in federated mode
+3. The main ODH Dashboard
+
+#### 1. Port-forward the pipeline server
+
+```shell
+# Find your pipeline server service
+oc get svc -n <namespace> | grep ds-pipeline
+
+# Port-forward (8443 is the kube-rbac-proxy HTTPS port)
+oc port-forward -n <namespace> svc/ds-pipeline-dspa 8443:8443
+```
+
+#### 2. Start AutoML in federated mode with the pipeline server URL
+
+From the `packages/automl/` directory:
+
+```shell
+PIPELINE_SERVER_URL=https://localhost:8443 make dev-start-federated
+```
+
+This starts both the BFF (port 4003) and the frontend webpack dev server (port 9108) in federated mode. The BFF connects to your port-forwarded pipeline server and uses your cluster credentials for RBAC.
+
+**Pipeline name prefixes:** The BFF discovers AutoML pipelines by matching display names that start with configurable prefixes. AutoML has two pipeline types with separate prefixes:
+
+| Pipeline type | Env var | Default |
+|---|---|---|
+| Tabular (classification + regression) | `AUTOML_TABULAR_PIPELINE_NAME_PREFIX` | `autogluon-tabular-training-pipeline` |
+| Time series | `AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX` | `autogluon-timeseries-training-pipeline` |
+
+If your pipelines use different naming conventions, override them:
+
+```shell
+PIPELINE_SERVER_URL=https://localhost:8443 \
+  AUTOML_TABULAR_PIPELINE_NAME_PREFIX=my-tabular \
+  AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX=my-timeseries \
+  make dev-start-federated
+```
+
+#### 3. Start the main ODH Dashboard
+
+In a separate terminal, from the repo root:
+
+```shell
+npm run dev
+```
+
+Then access the dashboard at **http://localhost:4010** and navigate to the AutoML section.
+
+#### Mock mode (no cluster required)
+
+If you don't have a cluster available, you can run with fully mocked backends:
+
+```shell
+make dev-start
 ```

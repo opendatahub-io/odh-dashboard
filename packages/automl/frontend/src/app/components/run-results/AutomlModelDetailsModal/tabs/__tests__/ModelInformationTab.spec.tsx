@@ -7,13 +7,14 @@ import type { MockAutomlParameters } from '~/app/mocks/mockAutomlResultsContext'
 import ModelInformationTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/ModelInformationTab';
 
 const baseModel: AutomlModel = {
-  display_name: 'TestModel',
-  model_config: { eval_metric: 'accuracy' },
-  location: { model_directory: '/', predictor: '/p.pkl', notebook: '/n.ipynb' },
+  name: 'TestModel',
+  location: { model_directory: '/', predictor: '/predictor', notebook: '/n.ipynb' },
   metrics: { test_data: { accuracy: 0.8 } },
 };
 
 const baseParameters: MockAutomlParameters = {
+  display_name: 'My Experiment',
+  description: 'A test experiment',
   task_type: 'multiclass',
   label_column: 'type',
   top_n: 3,
@@ -43,13 +44,15 @@ describe('ModelInformationTab', () => {
     render(<ModelInformationTab {...defaultProps} />);
 
     // These keys are in HIDDEN_KEYS and should not render
+    expect(screen.queryByText('Display Name')).not.toBeInTheDocument();
+    expect(screen.queryByText('Description')).not.toBeInTheDocument();
     expect(screen.queryByText('Task Type')).not.toBeInTheDocument();
     expect(screen.queryByText('Train Data Secret Name')).not.toBeInTheDocument();
     expect(screen.queryByText('Train Data Bucket Name')).not.toBeInTheDocument();
     expect(screen.queryByText('Train Data File Key')).not.toBeInTheDocument();
   });
 
-  it('should render the evaluation metric from model config', () => {
+  it('should render the evaluation metric derived from task type', () => {
     render(<ModelInformationTab {...defaultProps} />);
 
     expect(screen.getByText('Evaluation metric')).toBeInTheDocument();
@@ -69,6 +72,33 @@ describe('ModelInformationTab', () => {
 
     expect(screen.getByText('Created on')).toBeInTheDocument();
     expect(screen.getByText('-')).toBeInTheDocument();
+  });
+
+  it('should hide parameters with empty values', () => {
+    const tabularParams: MockAutomlParameters = {
+      task_type: 'multiclass',
+      label_column: 'type',
+      top_n: 3,
+      target: '',
+      id_column: '',
+      timestamp_column: '',
+      known_covariates_names: [],
+      train_data_bucket_name: 'bucket',
+      train_data_file_key: 'data.csv',
+      train_data_secret_name: 'secret',
+    };
+
+    render(<ModelInformationTab {...defaultProps} parameters={tabularParams} />);
+
+    // Tabular fields should be shown
+    expect(screen.getByText('Label Column')).toBeInTheDocument();
+    expect(screen.getByText('Top N')).toBeInTheDocument();
+
+    // Timeseries fields with empty values should not render
+    expect(screen.queryByText('Target')).not.toBeInTheDocument();
+    expect(screen.queryByText('Id Column')).not.toBeInTheDocument();
+    expect(screen.queryByText('Timestamp Column')).not.toBeInTheDocument();
+    expect(screen.queryByText('Known Covariates Names')).not.toBeInTheDocument();
   });
 
   it('should render timeseries-specific parameters', () => {

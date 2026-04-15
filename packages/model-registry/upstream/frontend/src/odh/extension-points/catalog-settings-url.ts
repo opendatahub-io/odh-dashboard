@@ -1,7 +1,7 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 
 /**
- * Extension point for providing the AI catalog settings URL.
+ * Extension point for providing the Model catalog settings URL.
  * This allows ODH to inject its own settings URL for the catalog settings page
  * without hardcoding the path in the model registry package.
  */

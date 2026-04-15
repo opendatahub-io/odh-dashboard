@@ -1035,7 +1035,24 @@ describe('EditModelRegistry', () => {
     modelRegistrySettings.findSubmitButton().click();
 
     cy.wait('@updateModelRegistry').then((interception) => {
-      expect(interception.request.body).to.containSubset({});
+      expect(interception.request.body).to.containSubset({
+        modelRegistry: {
+          metadata: {
+            annotations: {
+              'openshift.io/display-name': 'test-2',
+            },
+          },
+          spec: {
+            mysql: {
+              host: 'model-registry-db',
+              port: 5432,
+              database: 'model-registry',
+              username: 'mlmduser',
+            },
+          },
+        },
+        databasePassword: 'test-password',
+      });
     });
   });
 
@@ -1430,6 +1447,6 @@ describe('DeleteModelRegistryModal', () => {
 it('redirect from v2 to v3 route', () => {
   setupMocksForMRSettingAccess({});
   cy.visitWithLogin('/modelRegistrySettings');
-  cy.findByTestId('app-page-title').contains('AI registry settings');
+  cy.findByTestId('app-page-title').contains('Model registry settings');
   cy.url().should('include', '/settings/model-resources-operations/model-registry');
 });

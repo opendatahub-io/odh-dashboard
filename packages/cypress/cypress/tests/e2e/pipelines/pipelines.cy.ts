@@ -68,8 +68,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
 
       cy.step('Run the pipeline from the Actions button in the pipeline detail view');
       pipelineDetails.selectActionDropdownItem('Create run');
-      createRunPage.experimentSelect.findToggleButton().click();
-      createRunPage.selectExperimentByName(testData.experimentName);
+      createRunPage.fillRunGroup(testData.runGroupName);
       createRunPage.fillName(testData.runName);
       createRunPage.fillDescription(testData.runDescription);
       createRunPage.findSubmitButton().click();

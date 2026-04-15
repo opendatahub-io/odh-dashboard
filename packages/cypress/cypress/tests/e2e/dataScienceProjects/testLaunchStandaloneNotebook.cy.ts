@@ -1,5 +1,6 @@
 import yaml from 'js-yaml';
 import type { StandaloneNotebookTestData } from '../../../types';
+import { NotebookStatusLabel } from '../../../types';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { projectListPage } from '../../../pages/projects';
 import { notebookServer } from '../../../pages/notebookServer';
@@ -51,9 +52,9 @@ describe('Verify a Jupyter Notebook can be launched directly from the Project Li
       cy.step('Expand the Event log');
       notebookServer.findEventlog().should('be.visible').click();
 
-      // Wait for the success alert
+      // Wait for the workbench to be ready
       cy.step('Waits for the Success alert');
-      notebookServer.findSuccessAlert().should('exist');
+      notebookServer.expectStatusLabelToBe(NotebookStatusLabel.Ready);
 
       // Open the server in a new tab
       cy.step('Opens the server in a new tab');

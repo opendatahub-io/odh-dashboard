@@ -33,7 +33,7 @@ import (
 //
 // +kubebuilder:validation:MinLength:=1
 // +kubebuilder:validation:MaxLength:=32
-// +kubebuilder:validation:Pattern:=^[a-z0-9][a-z0-9_-]*[a-z0-9]$
+// +kubebuilder:validation:Pattern:=^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$
 type PortId string
 
 // WorkspaceKindSpec defines the desired state of WorkspaceKind
@@ -97,9 +97,15 @@ type WorkspaceKindIcon struct {
 
 type WorkspaceKindConfigMap struct {
 	// +kubebuilder:example="my-logos"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Name string `json:"name"`
 
 	// +kubebuilder:example="apple-touch-icon-152x152.png"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
 	Key string `json:"key"`
 }
 
@@ -204,6 +210,9 @@ type WorkspaceKindServiceAccount struct {
 	//    if the SA does not exist in the Namespace
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ServiceAccount 'name' is immutable"
 	// +kubebuilder:example="default-editor"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Name string `json:"name"`
 }
 
@@ -575,7 +584,7 @@ type OptionMetric struct {
 // +kubebuilder:printcolumn:name="Deprecated",type="boolean",JSONPath=".spec.spawner.deprecated",description="If this WorkspaceKind is deprecated"
 // +kubebuilder:printcolumn:name="Hidden",type="boolean",JSONPath=".spec.spawner.hidden",description="If this WorkspaceKind is hidden from the spawner UI"
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster
+// +kubebuilder:resource:scope=Cluster,shortName=wsk
 
 // WorkspaceKind is the Schema for the WorkspaceKinds API
 type WorkspaceKind struct {

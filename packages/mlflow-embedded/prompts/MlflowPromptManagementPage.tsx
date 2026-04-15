@@ -43,7 +43,7 @@ const MlflowPromptManagementPage: React.FC = () => {
       title={
         isTopLevel ? (
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
-            <FlexItem>
+            <FlexItem data-testid="prompt-management-page-title">
               <TitleWithIcon
                 title={PROMPT_MANAGEMENT_PAGE_TITLE}
                 objectType={ProjectObjectType.promptManagement}

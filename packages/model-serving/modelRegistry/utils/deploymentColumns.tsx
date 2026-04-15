@@ -44,11 +44,11 @@ const getVersionLink = (
     const encodedVersionId = encodeURIComponent(versionId);
 
     if (preferredModelRegistryName) {
-      // With registry name: /ai-hub/registry/encodedRegistryName/registered-models/encodedId/versions/encodedVersionId/deployments
+      // With registry name: /ai-hub/models/registry/encodedRegistryName/registered-models/encodedId/versions/encodedVersionId/deployments
       const encodedRegistryName = encodeURIComponent(preferredModelRegistryName);
-      return `/ai-hub/registry/${encodedRegistryName}/registered-models/${encodedRegisteredModelId}/versions/${encodedVersionId}/deployments`;
-    } // Without registry name: /ai-hub/registry/registered-models/encodedId/versions/encodedVersionId/deployments
-    return `/ai-hub/registry/registered-models/${encodedRegisteredModelId}/versions/${encodedVersionId}/deployments`;
+      return `/ai-hub/models/registry/${encodedRegistryName}/registered-models/${encodedRegisteredModelId}/versions/${encodedVersionId}/deployments`;
+    } // Without registry name: /ai-hub/models/registry/registered-models/encodedId/versions/encodedVersionId/deployments
+    return `/ai-hub/models/registry/registered-models/${encodedRegisteredModelId}/versions/${encodedVersionId}/deployments`;
   }
 
   return null;

@@ -116,7 +116,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
                       data-testid="storage-class-deleted"
                       isCompact
                       icon={<ExclamationTriangleIcon />}
-                      color="yellow"
+                      status="warning"
                     >
                       Deleted
                     </Label>
@@ -131,7 +131,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
                         data-testid="storage-class-deprecated"
                         isCompact
                         icon={<ExclamationTriangleIcon />}
-                        color="yellow"
+                        status="warning"
                       >
                         Deprecated
                       </Label>

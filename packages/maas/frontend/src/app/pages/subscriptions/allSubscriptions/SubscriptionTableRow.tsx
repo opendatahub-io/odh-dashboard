@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import { Label } from '@patternfly/react-core';
+import { Content, Label } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
@@ -36,17 +36,23 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         <TableRowTitleDescription
           title={
             <Link to={`${URL_PREFIX}/subscriptions/view/${subscription.name}`}>
-              {subscription.name}
+              {subscription.displayName ?? subscription.name}
             </Link>
           }
+          description={subscription.description ?? ''}
           truncateDescriptionLines={2}
         />
       </Td>
       <Td dataLabel={subscriptionsColumns[1].label}>
-        <Label color="grey">{`${subscription.owner.groups.length.toString()} Groups`}</Label>
+        <Label color="grey">{`${subscription.owner.groups.length} Group${subscription.owner.groups.length === 1 ? '' : 's'}`}</Label>
       </Td>
       <Td dataLabel={subscriptionsColumns[2].label}>
-        <Label color="grey">{`${subscription.modelRefs.length.toString()} Models`}</Label>
+        <Label color="grey">{`${subscription.modelRefs.length} Model${subscription.modelRefs.length === 1 ? '' : 's'}`}</Label>
+      </Td>
+      <Td dataLabel={subscriptionsColumns[3].label} style={{ textAlign: 'center' }}>
+        <Content component="p" style={{ fontWeight: 'bold' }}>
+          {subscription.priority ?? '-'}
+        </Content>
       </Td>
       <Td isActionCell>
         <ActionsColumn

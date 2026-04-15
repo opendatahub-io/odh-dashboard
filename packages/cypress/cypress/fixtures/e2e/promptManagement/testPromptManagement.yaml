@@ -1,0 +1,9 @@
+projectName: 'prompt-mgmt-test'
+prompts:
+  - name: 'e2e-test-prompt'
+    versionLabel: 'Version 1'
+    template: 'Summarize the following text: {{ input }}'
+    commitMessage: 'Initial prompt version'
+  - template: 'Updated summary prompt: {{ input }}'
+    versionLabel: 'Version 2'
+    commitMessage: 'Second version'

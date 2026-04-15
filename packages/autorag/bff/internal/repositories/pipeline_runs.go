@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
@@ -202,6 +203,10 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		}
 	}
 
+	if utf8.RuneCountInString(req.DisplayName) > 250 {
+		return NewValidationError("display_name must be at most 250 characters")
+	}
+
 	return nil
 }
 
@@ -242,8 +247,8 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipeline
 	}
 	params["optimization_metric"] = metric
 
-	if req.LlamaStackVectorDatabaseID != "" {
-		params["llama_stack_vector_database_id"] = req.LlamaStackVectorDatabaseID
+	if req.LlamaStackVectorIOProviderID != "" {
+		params["llama_stack_vector_io_provider_id"] = req.LlamaStackVectorIOProviderID
 	}
 
 	if req.OptimizationMaxRagPatterns != nil {

@@ -11,8 +11,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { DatasourceResource, DatasourceSelector, GlobalDatasourceResource } from '@perses-dev/core';
-import { BuildDatasourceProxyUrlFunc, DatasourceApi } from '@perses-dev/dashboards';
+import {
+  DatasourceResource,
+  DatasourceSelector,
+  GlobalDatasourceResource,
+  BuildDatasourceProxyUrlFunc,
+  DatasourceApi,
+} from '@perses-dev/core';
 import { fetchDatasourceList } from './datasource-client';
 import { fetchGlobalDatasourceList } from './global-datasource-client';
 import { PERSES_PROXY_BASE_PATH } from './perses-client';

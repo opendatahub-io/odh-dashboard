@@ -40,7 +40,7 @@ const buildLocation = (
   const base = `${pipelineName}/${runId}/autogluon-models-full-refit/${taskId}/model_artifact/${modelName}`;
   return {
     model_directory: `${base}/`,
-    predictor: `${base}/predictor/predictor.pkl`,
+    predictor: `${base}/predictor`,
     notebook: `${base}/notebooks/automl_predictor_notebook.ipynb`,
   };
 };
@@ -59,6 +59,7 @@ const mockPipelineRun: PipelineRun = {
   finished_at: '2026-03-19T19:30:00Z',
   runtime_config: {
     parameters: {
+      display_name: 'test-run',
       label_column: 'type',
       task_type: 'multiclass',
       top_n: 3,
@@ -78,8 +79,7 @@ const TASK_ID = '22ab3456-7890-cdef-1234-567890abcdef';
 
 const mockModels: Record<string, AutomlModel> = {
   CatBoost_BAG_L2_FULL: {
-    display_name: 'CatBoost_BAG_L2_FULL',
-    model_config: { eval_metric: 'accuracy' },
+    name: 'CatBoost_BAG_L2_FULL',
     location: buildLocation(
       'autogluon-tabular-training-pipeline',
       RUN_ID,
@@ -98,8 +98,7 @@ const mockModels: Record<string, AutomlModel> = {
     },
   },
   RandomForest_BAG_L1_FULL: {
-    display_name: 'RandomForest_BAG_L1_FULL',
-    model_config: { eval_metric: 'accuracy' },
+    name: 'RandomForest_BAG_L1_FULL',
     location: buildLocation(
       'autogluon-tabular-training-pipeline',
       RUN_ID,
@@ -118,8 +117,7 @@ const mockModels: Record<string, AutomlModel> = {
     },
   },
   NeuralNet_BAG_L1_FULL: {
-    display_name: 'NeuralNet_BAG_L1_FULL',
-    model_config: { eval_metric: 'accuracy' },
+    name: 'NeuralNet_BAG_L1_FULL',
     location: buildLocation(
       'autogluon-tabular-training-pipeline',
       RUN_ID,
@@ -172,6 +170,7 @@ const mockTimeseriesPipelineRun: PipelineRun = {
   finished_at: '2026-03-20T15:30:00Z',
   runtime_config: {
     parameters: {
+      display_name: 'test-run',
       task_type: 'timeseries',
       target: 'sales',
       id_column: 'store_id',
@@ -197,18 +196,17 @@ const buildTimeseriesLocation = (
   taskId: string,
   modelName: string,
 ): AutomlModel['location'] => {
-  const base = `autogluon-timeseries-training-pipeline/${runId}/timeseries-models-full-refit/${taskId}/model_artifact/${modelName}`;
+  const base = `autogluon-timeseries-training-pipeline/${runId}/autogluon-timeseries-models-full-refit/${taskId}/model_artifact/${modelName}`;
   return {
     model_directory: `${base}/`,
-    predictor: `${base}/predictor/predictor.pkl`,
+    predictor: `${base}/predictor`,
     notebook: `${base}/notebooks/automl_predictor_notebook.ipynb`,
   };
 };
 
 const mockTimeseriesModels: Record<string, AutomlModel> = {
   TemporalFusionTransformer: {
-    display_name: 'TemporalFusionTransformer',
-    model_config: { eval_metric: 'mase' },
+    name: 'TemporalFusionTransformer',
     location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'TemporalFusionTransformer'),
     metrics: {
       test_data: {
@@ -221,8 +219,7 @@ const mockTimeseriesModels: Record<string, AutomlModel> = {
     },
   },
   DeepAR: {
-    display_name: 'DeepAR',
-    model_config: { eval_metric: 'mase' },
+    name: 'DeepAR',
     location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'DeepAR'),
     metrics: {
       test_data: {
@@ -235,8 +232,7 @@ const mockTimeseriesModels: Record<string, AutomlModel> = {
     },
   },
   AutoETS: {
-    display_name: 'AutoETS',
-    model_config: { eval_metric: 'mase' },
+    name: 'AutoETS',
     location: buildTimeseriesLocation(TS_RUN_ID, TS_TASK_ID, 'AutoETS'),
     metrics: {
       test_data: {

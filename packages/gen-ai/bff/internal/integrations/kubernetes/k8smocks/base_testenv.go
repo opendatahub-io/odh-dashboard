@@ -431,9 +431,10 @@ func createLlamaStackConfigMap(k8sClient client.Client, ctx context.Context, nam
 		},
 		Data: map[string]string{
 			"config.yaml": `version: "2"
-image_name: rh
+distro_name: rh
 apis:
 - inference
+- responses
 - vector_io
 providers:
   inference:
@@ -445,6 +446,19 @@ providers:
     provider_type: inline::milvus
     config:
       db_path: /opt/app-root/src/.llama/distributions/rh/milvus.db
+  responses:
+  - provider_id: builtin
+    provider_type: inline::builtin
+    config:
+      persistence:
+        agent_state:
+          namespace: agents
+          backend: kv_default
+        responses:
+          table_name: responses
+          backend: sql_default
+          max_write_queue_size: 10000
+          num_writers: 4
 registered_resources:
   models:
     - metadata:
@@ -462,9 +476,6 @@ registered_resources:
   datasets: []
   scoring_fns: []
   benchmarks: []
-  tool_groups:
-    - toolgroup_id: builtin::rag
-      provider_id: rag-runtime
 server:
   port: 8321`,
 		},

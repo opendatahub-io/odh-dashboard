@@ -2,7 +2,7 @@ import React from 'react';
 import { UpdateObjectAtPropAndValue } from 'mod-arch-shared';
 import FormSection from '~/app/pages/modelRegistry/components/pf-overrides/FormSection';
 import K8sNameDescriptionField from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import NamespaceSelectorField from '~/concepts/k8s/NamespaceSelectorField/NamespaceSelectorField';
+import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFieldWrapper';
 import {
   handleUpdateLogic,
   translateDisplayNameForK8s,
@@ -84,7 +84,7 @@ const RegisterAndStoreFields = <D extends RegistrationCommonFormData>({
         onDataChange={onDataChange}
         hideDescription
       />
-      <NamespaceSelectorField
+      <NamespaceSelectorFieldWrapper
         selectedNamespace={formData.namespace}
         onSelect={handleNamespaceSelect}
         hasAccess={namespaceHasAccess}

@@ -1,34 +1,58 @@
 import {
-  Checkbox,
   Label,
+  Pagination,
+  Popover,
   Spinner,
   Tab,
+  TabAction,
   TabContentBody,
   Tabs,
   TabTitleText,
-  Title,
 } from '@patternfly/react-core';
-import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { Table, Tbody, Td, Th, ThProps, Thead, Tr } from '@patternfly/react-table';
+import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
+import './AutoragExperimentSettingsModelSelection.scss';
 import { useParams } from 'react-router';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
+import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { LlamaStackModelType } from '~/app/types';
 
 type ModelTab = {
   modelType: LlamaStackModelType;
   label: string;
+  popoverHeader: string;
+  description: string;
   testId: string;
 };
 
 const MODEL_TABS: ModelTab[] = [
-  { modelType: 'llm', label: 'Foundation Models', testId: 'foundation-models-tab' },
-  { modelType: 'embedding', label: 'Embedding Models', testId: 'embedding-models-tab' },
+  {
+    modelType: 'llm',
+    label: 'Foundation models',
+    popoverHeader: 'Foundation models',
+    description: 'Generates responses using retrieved context.',
+    testId: 'foundation-models-tab',
+  },
+  {
+    modelType: 'embedding',
+    label: 'Embedding models',
+    popoverHeader: 'Embedding models',
+    description: 'Converts documents and queries into vectors for retrieval.',
+    testId: 'embedding-models-tab',
+  },
 ];
+
+const DEFAULT_PER_PAGE = 5;
 
 const AutoragExperimentSettingsModelSelection: React.FC = () => {
   const [activeModelType, setActiveModelType] = React.useState<LlamaStackModelType>('llm');
+  const [page, setPage] = React.useState(1);
+  const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
+  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const { namespace = '' } = useParams();
 
   const form = useFormContext<ConfigureSchema>();
@@ -38,18 +62,30 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
     name: 'llama_stack_secret_name',
   });
 
-  const { data: llmModelsData, isLoading: isLlmLoading } = useLlamaStackModelsQuery(
-    namespace,
-    llamaStackSecretName,
-    'llm',
-  );
-  const { data: embeddingModelsData, isLoading: isEmbeddingLoading } = useLlamaStackModelsQuery(
-    namespace,
-    llamaStackSecretName,
-    'embedding',
-  );
+  const {
+    data: llmModelsData,
+    isLoading: isLlmLoading,
+    isError: isLlmError,
+  } = useLlamaStackModelsQuery(namespace, llamaStackSecretName, 'llm');
+  const {
+    data: embeddingModelsData,
+    isLoading: isEmbeddingLoading,
+    isError: isEmbeddingError,
+  } = useLlamaStackModelsQuery(namespace, llamaStackSecretName, 'embedding');
 
   const isLoading = isLlmLoading || isEmbeddingLoading;
+  const isError = isLlmError || isEmbeddingError;
+
+  const notification = useNotification();
+
+  React.useEffect(() => {
+    if (isError) {
+      notification.error(
+        'Failed to load models',
+        'Check that the LlamaStack secret is valid and try again.',
+      );
+    }
+  }, [isError, notification]);
 
   const { field: generationModelField } = useController({
     control: form.control,
@@ -66,14 +102,26 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
     embedding: { field: embeddingModelField, models: embeddingModelsData?.models ?? [] },
   };
 
+  const activeModels = tabData[activeModelType].models;
+
+  const sortedAndPaginatedModels = React.useMemo(() => {
+    const sorted = activeModels.toSorted((a, b) =>
+      sortDirection === 'asc' ? a.id.localeCompare(b.id) : b.id.localeCompare(a.id),
+    );
+    return sorted.slice((page - 1) * perPage, page * perPage);
+  }, [activeModels, sortDirection, page, perPage]);
+
+  const getSortParams = (): ThProps['sort'] => ({
+    sortBy: { index: 0, direction: sortDirection },
+    onSort: (_e, _index, direction) => {
+      setSortDirection(direction);
+      setPage(1);
+    },
+    columnIndex: 0,
+  });
+
   return (
     <div data-testid="model-selection-section">
-      <Title headingLevel="h6">
-        Models to test
-        <span className="pf-v6-u-text-color-required" aria-hidden="true">
-          {' *'}
-        </span>
-      </Title>
       {isLoading ? (
         <Spinner size="md" aria-label="Loading models" />
       ) : (
@@ -82,11 +130,13 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
           onSelect={(_, key) => {
             if (key === 'llm' || key === 'embedding') {
               setActiveModelType(key);
+              setPage(1);
+              setSortDirection('asc');
             }
           }}
           aria-label="Model selection tabs"
         >
-          {MODEL_TABS.map(({ modelType, label, testId }) => {
+          {MODEL_TABS.map(({ modelType, label, popoverHeader, description, testId }) => {
             const { field, models } = tabData[modelType];
             const selectedModels = field.value;
             const selectedCount = selectedModels.filter((id) =>
@@ -124,11 +174,23 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                       variant="outline"
                       color="blue"
                       isCompact
+                      className="pf-v6-u-ml-xs"
                       data-testid={`${modelType}-selected-count`}
                     >
                       {selectedCount}
                     </Label>
                   </TabTitleText>
+                }
+                actions={
+                  <TabAction>
+                    <Popover headerContent={popoverHeader} bodyContent={description}>
+                      <DashboardPopupIconButton
+                        aria-label={`More info for ${label.toLowerCase()}`}
+                        icon={<OutlinedQuestionCircleIcon />}
+                        hasNoPadding
+                      />
+                    </Popover>
+                  </TabAction>
                 }
                 data-testid={testId}
               >
@@ -137,42 +199,55 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                     <p>No models available.</p>
                   ) : (
                     <>
-                      <Checkbox
-                        id={`select-all-${modelType}`}
-                        label="All available models"
-                        isChecked={allSelected}
-                        onChange={(_, checked) => handleSelectAll(checked)}
-                        className="pf-v6-u-mb-sm"
-                        data-testid={`select-all-${modelType}`}
+                      <Pagination
+                        itemCount={models.length}
+                        perPage={perPage}
+                        page={page}
+                        onSetPage={(_e, newPage) => setPage(newPage)}
+                        onPerPageSelect={(_e, newPerPage) => {
+                          setPerPage(newPerPage);
+                          setPage(1);
+                        }}
+                        variant="top"
+                        isCompact
+                        data-testid={`${modelType}-pagination`}
                       />
-                      <Table
-                        aria-label={`${label} table`}
-                        data-testid={`${modelType}-models-table`}
-                      >
-                        <Thead>
-                          <Tr>
-                            <Th />
-                            <Th>Name</Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {models.map((model, rowIndex) => (
-                            <Tr key={model.id} data-testid={`model-row-${model.id}`}>
-                              <Td
+                      <div className="autorag-model-selection__table-container">
+                        <Table
+                          aria-label={`${label} table`}
+                          data-testid={`${modelType}-models-table`}
+                          isStickyHeader
+                        >
+                          <Thead>
+                            <Tr>
+                              <Th
                                 select={{
-                                  rowIndex,
-                                  isSelected: selectedModels.some(
-                                    (selectedModel) => selectedModel === model.id,
-                                  ),
-                                  onSelect: (_, isSelecting) =>
-                                    handleToggleModel(model.id, isSelecting),
+                                  onSelect: (_e, isSelecting) => handleSelectAll(isSelecting),
+                                  isSelected: allSelected,
                                 }}
                               />
-                              <Td dataLabel="Name">{model.id}</Td>
+                              <Th sort={getSortParams()}>Model name</Th>
                             </Tr>
-                          ))}
-                        </Tbody>
-                      </Table>
+                          </Thead>
+                          <Tbody>
+                            {sortedAndPaginatedModels.map((model, rowIndex) => (
+                              <Tr key={model.id} data-testid={`model-row-${model.id}`}>
+                                <Td
+                                  select={{
+                                    rowIndex,
+                                    isSelected: selectedModels.some(
+                                      (selectedModel) => selectedModel === model.id,
+                                    ),
+                                    onSelect: (_, isSelecting) =>
+                                      handleToggleModel(model.id, isSelecting),
+                                  }}
+                                />
+                                <Td dataLabel="Model name">{model.id}</Td>
+                              </Tr>
+                            ))}
+                          </Tbody>
+                        </Table>
+                      </div>
                     </>
                   )}
                 </TabContentBody>

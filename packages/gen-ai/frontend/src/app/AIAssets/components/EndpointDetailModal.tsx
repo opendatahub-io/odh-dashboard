@@ -95,6 +95,8 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
       assetType: isMaaS ? 'maas_model' : 'model',
       endpointType,
       copyTarget: 'endpoint',
+      modelType: model.model_type === 'embedding' ? 'embedding' : 'inference',
+      endpointSource: model.model_source_type,
     });
 
   const handleClose = () => {

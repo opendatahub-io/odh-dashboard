@@ -1,13 +1,15 @@
 import * as React from 'react';
 import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
 import { PluginStore } from '@odh-dashboard/plugin-core';
-import extensions from './extensions';
-
-const PLUGIN_GEN_AI = 'plugin-gen-ai';
-const MODEL_AS_SERVICE = 'model-as-service';
-const MODEL_AS_SERVICE_CAMEL = 'modelAsService';
-const GUARDRAILS = 'guardrails';
-const PROMPT_MANAGEMENT = 'promptManagement';
+import extensions, {
+  AI_ASSET_CUSTOM_ENDPOINTS,
+  EXTERNAL_VECTOR_STORES,
+  GUARDRAILS,
+  MODEL_AS_SERVICE,
+  MODEL_AS_SERVICE_CAMEL,
+  PLUGIN_GEN_AI,
+  PROMPT_MANAGEMENT,
+} from './extensions';
 
 export const PluginStoreContextProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const store = React.useMemo(() => {
@@ -18,6 +20,8 @@ export const PluginStoreContextProvider: React.FC<React.PropsWithChildren> = ({ 
       [MODEL_AS_SERVICE_CAMEL]: true,
       [GUARDRAILS]: true,
       [PROMPT_MANAGEMENT]: true,
+      [EXTERNAL_VECTOR_STORES]: true,
+      [AI_ASSET_CUSTOM_ENDPOINTS]: true,
     };
 
     const params = new URLSearchParams(window.location.search);

@@ -1,97 +1,127 @@
-# BOOKMARKS.md - ODH Dashboard Quick Reference
+# Documentation Bookmarks
 
-This file serves as a context anchor for AI agents, providing quick links to key documentation and resources.
-
-## 📋 Project Documentation
-
-### Getting Started
-- [AGENTS.md](AGENTS.md) - Comprehensive AI agent guidance
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
-- [README.md](README.md) - Project overview
-- [docs/dev-setup.md](docs/dev-setup.md) - Development environment setup
-
-### Architecture & Design
-- [docs/architecture.md](docs/architecture.md) - Overall system architecture
-- [docs/architecture-decisions.md](docs/architecture-decisions.md) - Key architecture decisions (monorepo, Module Federation, Turbo)
-- [docs/module-federation.md](docs/module-federation.md) - Module Federation implementation
-- [docs/extensibility.md](docs/extensibility.md) - Plugin/extension system
-- [docs/modular-architecture-quality-gates.md](docs/modular-architecture-quality-gates.md) - Quality standards
-
-### Development Workflows
-- [docs/pr-review-guidelines.md](docs/pr-review-guidelines.md) - PR review process
-- [docs/PRE-COMMIT.md](docs/PRE-COMMIT.md) - Pre-commit hook details
-- [docs/best-practices.md](docs/best-practices.md) - Coding best practices
-- [docs/code_examples.md](docs/code_examples.md) - Code examples and patterns
-
-### Testing
-- [docs/testing.md](docs/testing.md) - Comprehensive testing guide
-- [docs/cypress-tutorial.md](docs/cypress-tutorial.md) - Cypress testing tutorial
-- [docs/agent-rules/unit-tests.md](docs/agent-rules/unit-tests.md) - Unit testing rules
-- [docs/agent-rules/cypress-e2e.md](docs/agent-rules/cypress-e2e.md) - E2E testing rules
-- [docs/agent-rules/cypress-mock.md](docs/agent-rules/cypress-mock.md) - Mock testing rules
-- [docs/agent-rules/contract-tests.md](docs/agent-rules/contract-tests.md) - Contract testing rules
-
-### Process & Collaboration
-- [docs/adding-owners-and-reviewers.md](docs/adding-owners-and-reviewers.md) - OWNERS file management
-- [docs/definition-of-ready.md](docs/definition-of-ready.md) - DoR for features
-- [docs/definition-of-done.md](docs/definition-of-done.md) - DoD for tasks
-- [docs/smes.md](docs/smes.md) - Subject matter experts
-- [docs/agent-rules/jira-creation.md](docs/agent-rules/jira-creation.md) - Jira ticket creation
-
-### Deployment & Operations
-- [docs/release-steps.md](docs/release-steps.md) - Release process
-- [docs/dashboard-environment-variables.md](docs/dashboard-environment-variables.md) - Environment configuration
-- [docs/observability.md](docs/observability.md) - Monitoring and observability
-
-### Feature-Specific
-- [docs/SDK.md](docs/SDK.md) - OpenShift SDK integration
-- [docs/user-interaction.md](docs/user-interaction.md) - User interaction patterns
-- [docs/external-redirects.md](docs/external-redirects.md) - External link handling
-- [docs/admin-dashboard.md](docs/admin-dashboard.md) - Admin features
-- [docs/onboard-modular-architecture.md](docs/onboard-modular-architecture.md) - Onboarding new modules
-
-## 📦 Key Package Locations
-
-### Main Applications
-- [frontend/](frontend/) - Main dashboard frontend
-- [backend/](backend/) - Main dashboard backend
-
-### Feature Packages
-- [packages/gen-ai/](packages/gen-ai/) - Generative AI features
-- [packages/model-registry/](packages/model-registry/) - Model Registry UI
-- [packages/model-serving/](packages/model-serving/) - Model Serving UI
-- [packages/model-training/](packages/model-training/) - Model Training UI
-- [packages/maas/](packages/maas/) - Model-as-a-Service
-- [packages/observability/](packages/observability/) - Observability features
-
-### Infrastructure Packages
-- [packages/cypress/](packages/cypress/) - Cypress testing framework
-- [packages/contract-tests/](packages/contract-tests/) - API contract tests
-- [packages/tsconfig/](packages/tsconfig/) - Shared TypeScript configuration
-- [packages/eslint-config/](packages/eslint-config/) - Shared ESLint configuration
-- [packages/jest-config/](packages/jest-config/) - Shared Jest configuration
-
-### Plugin System
-- [packages/plugin-core/](packages/plugin-core/) - Plugin core utilities
-- [packages/plugin-template/](packages/plugin-template/) - Plugin template
-
-## 🚀 Common Tasks Quick Reference
-
-| Task | Command | Documentation |
-|------|---------|---------------|
-| Setup project | `npm install` | [docs/dev-setup.md](docs/dev-setup.md) |
-| Start dev server | `npm run dev` | [AGENTS.md](AGENTS.md#common-commands) |
-| Run tests | `npm run test` | [docs/testing.md](docs/testing.md) |
-| Lint code | `npm run lint` | [docs/best-practices.md](docs/best-practices.md) |
-| Type check | `npm run type-check` | [AGENTS.md](AGENTS.md#typescript) |
-| Build all | `npm run build` | [AGENTS.md](AGENTS.md#common-commands) |
-| Create Jira | Follow template | [docs/agent-rules/jira-creation.md](docs/agent-rules/jira-creation.md) |
-| Write unit test | Follow patterns | [docs/agent-rules/unit-tests.md](docs/agent-rules/unit-tests.md) |
-| Write E2E test | Follow patterns | [docs/agent-rules/cypress-e2e.md](docs/agent-rules/cypress-e2e.md) |
-| Add new package | Follow module guide | [docs/onboard-modular-architecture.md](docs/onboard-modular-architecture.md) |
+Central index of key documentation in the ODH Dashboard monorepo.
 
 ---
 
-**Tip for AI Agents**: This file is designed to help you quickly navigate to relevant documentation. Always check the linked docs before making changes to understand context and conventions.
+## Getting Started
 
-**Last Updated**: 2026-03-11
+| Doc | Description |
+|-----|-------------|
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
+| [README.md](README.md) | Project overview |
+| [Dev Setup](docs/dev-setup.md) | Development environment setup |
+
+---
+
+## Architecture & Design
+
+| Doc | Description |
+|-----|-------------|
+| [Architecture](docs/architecture.md) | Overall system architecture |
+| [Architecture Decisions](docs/architecture-decisions.md) | Key architecture decisions (monorepo, Module Federation, Turbo) |
+| [Module Federation](docs/module-federation.md) | Module Federation implementation |
+| [Extensibility](docs/extensibility.md) | Plugin/extension system |
+| [Quality Gates](docs/modular-architecture-quality-gates.md) | Modular architecture quality standards |
+
+---
+
+## Development Workflows
+
+| Doc | Description |
+|-----|-------------|
+| [PR Review Guidelines](docs/pr-review-guidelines.md) | PR review process |
+| [Pre-Commit Hooks](docs/PRE-COMMIT.md) | Pre-commit hook details |
+| [Best Practices](docs/best-practices.md) | Coding best practices |
+| [Code Examples](docs/code_examples.md) | Code examples and patterns |
+
+---
+
+## Testing
+
+| Doc | Description |
+|-----|-------------|
+| [Testing Guide](docs/testing.md) | Comprehensive testing guide |
+| [Cypress Tutorial](docs/cypress-tutorial.md) | Cypress testing tutorial |
+
+---
+
+## Process & Collaboration
+
+| Doc | Description |
+|-----|-------------|
+| [OWNERS Management](docs/adding-owners-and-reviewers.md) | OWNERS file management |
+| [Definition of Ready](docs/definition-of-ready.md) | DoR for features |
+| [Definition of Done](docs/definition-of-done.md) | DoD for tasks |
+| [SMEs](docs/smes.md) | Subject matter experts |
+
+---
+
+## Deployment & Operations
+
+| Doc | Description |
+|-----|-------------|
+| [Release Steps](docs/release-steps.md) | Release process |
+| [Environment Variables](docs/dashboard-environment-variables.md) | Environment configuration |
+| [Observability](docs/observability.md) | Monitoring and observability |
+| [Onboarding Modules](docs/onboard-modular-architecture.md) | Onboarding new modules |
+
+---
+
+## Frontend Areas
+
+> Active frontend areas in `frontend/src/pages/`. Model Registry, Model Serving, and Model Catalog are deprecated in the main frontend — see Package docs below.
+
+| Doc | Description |
+|-----|-------------|
+| [Pipelines](frontend/docs/pipelines.md) | Pipeline runs, DAG viewing, artifact tracking, Kubeflow Pipelines integration |
+| [Workbenches](frontend/docs/workbenches.md) | Notebook creation, JupyterLab, gateway-based routing (v3.0+), notebookController |
+| [Projects](frontend/docs/projects.md) | Data Science Projects hub — primary entry point for workbenches, pipelines, serving, storage, connections |
+| [Distributed Workloads](frontend/docs/distributed-workloads.md) | Kueue workload management, distributed training job monitoring |
+| [Gen AI / LLM](frontend/docs/gen-ai.md) | Host-side LLM feature flags and type definitions; actual UI lives in federated packages (gen-ai, eval-hub) |
+| [Home / Applications](frontend/docs/home-applications.md) | Application tile dashboard, enabled apps, learning center |
+| [Admin Settings](frontend/docs/admin-settings.md) | Cluster settings, group management, storage classes, hardware profiles, BYON images, connection types |
+
+---
+
+## Backend
+
+| Doc | Description |
+|-----|-------------|
+| [Backend Overview](backend/docs/overview.md) | Authentication strategies, proxy/pass-through architecture, k8s integration, service account calls, environment config |
+
+---
+
+## Packages
+
+### Full Docs
+
+| Doc | Description |
+|-----|-------------|
+| [Model Registry](packages/model-registry/docs/overview.md) | Model Registry UI — canonical doc (replaces deprecated frontend area); upstream Go BFF, model versioning |
+| [Model Serving](packages/model-serving/docs/overview.md) | Model Serving UI — canonical doc (replaces deprecated frontend area); KServe/ModelMesh runtimes |
+| [KServe](packages/kserve/docs/overview.md) | KServe-specific serving package; InferenceService CRDs, serving runtime management |
+| [AutoML](packages/automl/docs/overview.md) | AutoML pipeline optimization; Go BFF; Kubeflow Pipelines orchestration |
+| [AutoRAG](packages/autorag/docs/overview.md) | Automated RAG configuration optimization; Go BFF; three deployment modes |
+| [Eval Hub](packages/eval-hub/docs/overview.md) | Model evaluation hub; Go BFF; eval metrics; model-registry integration |
+| [Gen AI](packages/gen-ai/docs/overview.md) | Gen AI / LLM chatbot package; Go BFF with MCP/LSD clients; model serving interactions |
+| [MaaS](packages/maas/docs/overview.md) | Model as a Service; Material UI (Kubeflow); Go BFF; LLM endpoint management |
+| [MLflow](packages/mlflow/docs/overview.md) | MLflow experiment tracking integration; experiment/run browsing UI |
+| [MLflow Embedded](packages/mlflow-embedded/docs/overview.md) | Embedded MLflow UI variant; Module Federation config |
+| [Model Training](packages/model-training/docs/overview.md) | Training job management; pipeline integration; resource configuration |
+| [Notebooks](packages/notebooks/docs/overview.md) | Notebook management package; workbenches frontend area interactions |
+| [Observability](packages/observability/docs/overview.md) | Metrics, logging, tracing integration; Prometheus endpoint patterns |
+| [Feature Store](packages/feature-store/docs/overview.md) | Feature store management UI; dataset versioning |
+| [LLMD Serving](packages/llmd-serving/docs/overview.md) | LLM-dedicated serving; interactions with gen-ai frontend area |
+
+### Stubs (tooling-only packages)
+
+| Doc | Description |
+|-----|-------------|
+| [App Config](packages/app-config/README.md) | Shared runtime and build-time configuration utilities |
+| [ESLint Config](packages/eslint-config/README.md) | Shared ESLint rules and configurations |
+| [ESLint Plugin](packages/eslint-plugin/README.md) | Custom ESLint plugin rules |
+| [Jest Config](packages/jest-config/README.md) | Shared Jest test runner configurations |
+| [Plugin Core](packages/plugin-core/README.md) | Core plugin infrastructure and extension-point definitions |
+| [Plugin Template](packages/plugin-template/README.md) | Starter template for new modular packages |
+| [TSConfig](packages/tsconfig/README.md) | Shared TypeScript compiler configurations |

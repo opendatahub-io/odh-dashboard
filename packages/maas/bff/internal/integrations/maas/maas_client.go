@@ -140,6 +140,19 @@ func (c *MaasClient) ListModels(ctx context.Context) ([]models.MaaSModel, error)
 	return apiResponse.Data, nil
 }
 
+func (c *MaasClient) ListSubscriptionsForApiKeys(ctx context.Context) ([]models.SubscriptionListItem, error) {
+	endpoint := c.prefix.JoinPath("subscriptions")
+
+	var apiResponse []models.SubscriptionListItem
+	err := c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return apiResponse, nil
+}
+
 func (c *MaasClient) sendRequest(ctx context.Context, method string, endpoint *url.URL, requestBody []byte, apiResponse any) error {
 	var bodyReader io.Reader
 	if requestBody != nil {

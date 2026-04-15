@@ -54,7 +54,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
             const redirectProject =
               preferredProject ?? projects.length > 0 ? projects[0] : undefined;
             if (redirectProject) {
-              navigate(`/ai-hub/deployments/${redirectProject.metadata.name}`);
+              navigate(`/ai-hub/models/deployments/${redirectProject.metadata.name}`);
             }
           }}
         />
@@ -91,10 +91,11 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
           )}
         </Flex>
       }
+      noTitle // rendered inside a TabRoutePage which provides the title
       title={<TitleWithIcon title="Deployments" objectType={ProjectObjectType.deployedModels} />}
       headerContent={
         <ModelServingProjectSelection
-          getRedirectPath={(ns: string) => `/ai-hub/deployments/${ns}`}
+          getRedirectPath={(ns: string) => `/ai-hub/models/deployments/${ns}`}
         />
       }
       provideChildrenPadding

@@ -39,7 +39,10 @@ const ChatbotMain: React.FunctionComponent = () => {
     aiModelsError,
     maasModels,
     maasModelsLoaded,
+    maasModelsError,
     models,
+    modelsLoaded,
+    modelsError,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
   const { data: bffConfig } = useFetchBFFConfig();
@@ -75,7 +78,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     useChatbotConfigStore.getState().removeConfiguration(configIdToClose);
     // Set active pane to the remaining config (or default if somehow none remain)
     setActivePaneConfigId(remainingConfigId || DEFAULT_CONFIG_ID);
-    fireSimpleTrackingEvent('Playground Compare Mode Exited');
+    fireMiscTrackingEvent('Playground Compare Mode Exited', { success: true });
   }, []);
 
   // Handle compare chat confirmation - clears messages and enters compare mode
@@ -87,7 +90,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     // Enter compare mode by duplicating the first config
     const firstConfigId = useChatbotConfigStore.getState().configIds[0] || DEFAULT_CONFIG_ID;
     useChatbotConfigStore.getState().duplicateConfiguration(firstConfigId);
-    fireSimpleTrackingEvent('Playground Compare Mode Entered');
+    fireMiscTrackingEvent('Playground Compare Mode Entered', { success: true });
   }, []);
 
   // Check if there are any models in the project or if no model is selected
@@ -102,7 +105,12 @@ const ChatbotMain: React.FunctionComponent = () => {
     <>
       <ApplicationsPage
         title={<ChatbotHeader />}
-        loaded={lsdStatusLoaded && (aiModelsLoaded || maasModelsLoaded)}
+        loaded={
+          lsdStatusLoaded &&
+          (aiModelsLoaded || !!aiModelsError) &&
+          (maasModelsLoaded || !!maasModelsError) &&
+          (lsdStatus?.phase !== 'Ready' || !!modelsLoaded || !!modelsError)
+        }
         empty={!lsdStatus}
         emptyStatePage={
           !hasModels ? (
@@ -138,6 +146,7 @@ const ChatbotMain: React.FunctionComponent = () => {
             />
           ) : (
             <ChatbotEmptyState
+              data-testid="create-playground-empty-state"
               title="Create your playground"
               description="Create a playground to interact with and test available generative models in this project."
               actionButtonText="Create playground"
@@ -166,7 +175,6 @@ const ChatbotMain: React.FunctionComponent = () => {
               }}
               onCompareChat={() => {
                 setIsCompareChatModalOpen(true);
-                fireSimpleTrackingEvent('Playground Compare Chat Selected');
               }}
               onSettingsClick={() => setIsDrawerExpanded((prev) => !prev)}
               isSettingsOpen={isDrawerExpanded}

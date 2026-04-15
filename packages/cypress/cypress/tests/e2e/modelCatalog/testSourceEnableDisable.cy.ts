@@ -11,7 +11,7 @@ import {
 import { retryableBefore } from '../../../utils/retryableHooks';
 import type { ModelCatalogSourceTestData } from '../../../types';
 
-describe('[product bug: RHOAIENG-53704] Verify Model Catalog Source Enable/Disable', () => {
+describe('Verify Model Catalog Source Enable/Disable', () => {
   let testData: ModelCatalogSourceTestData;
 
   retryableBefore(() => {
@@ -36,12 +36,12 @@ describe('[product bug: RHOAIENG-53704] Verify Model Catalog Source Enable/Disab
 
   it(
     'Admin can enable and disable model catalog sources',
-    { tags: ['@Sanity', '@SanitySet4', '@Dashboard', '@ModelCatalog', '@NonConcurrent', '@Bug'] },
+    { tags: ['@Sanity', '@SanitySet4', '@Dashboard', '@ModelCatalog', '@NonConcurrent'] },
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      cy.step('Navigate to AI catalog sources');
+      cy.step('Navigate to Model catalog settings');
       modelCatalogSettings.visit();
 
       cy.step('Verify configmap shows source as enabled');
@@ -56,7 +56,7 @@ describe('[product bug: RHOAIENG-53704] Verify Model Catalog Source Enable/Disab
       cy.step('Verify model catalog cards are visible');
       modelCatalog.findModelCatalogCards().should('exist');
 
-      cy.step('Navigate back to AI catalog sources');
+      cy.step('Navigate back to Model catalog settings');
       modelCatalogSettings.visit();
 
       cy.intercept('PATCH', '**/source_configs/*').as('toggleSource');

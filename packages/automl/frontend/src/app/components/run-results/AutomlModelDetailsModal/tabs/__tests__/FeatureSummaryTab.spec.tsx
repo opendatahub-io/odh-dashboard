@@ -8,9 +8,8 @@ import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import FeatureSummaryTab from '~/app/components/run-results/AutomlModelDetailsModal/tabs/FeatureSummaryTab';
 
 const baseModel: AutomlModel = {
-  display_name: 'TestModel',
-  model_config: { eval_metric: 'accuracy' },
-  location: { model_directory: '/', predictor: '/p.pkl', notebook: '/n.ipynb' },
+  name: 'TestModel',
+  location: { model_directory: '/', predictor: '/predictor', notebook: '/n.ipynb' },
   metrics: { test_data: { accuracy: 0.8 } },
 };
 
@@ -194,6 +193,29 @@ describe('FeatureSummaryTab', () => {
     const featureNames = dataRows.map((row) => within(row).getByText(/feat_/).textContent);
     // Descending by value: 0.5 > 0.1 > -0.3 > -0.8
     expect(featureNames).toEqual(['feat_a', 'feat_c', 'feat_b', 'feat_d']);
+  });
+
+  it('should display near-zero negative values as 0.00% instead of -0.00%', () => {
+    const nearZeroImportance: FeatureImportanceData = {
+      importance: {
+        large_positive: 0.75,
+        tiny_negative: -1.7133e-6,
+        tiny_positive: 4.066e-7,
+      },
+    };
+
+    render(<FeatureSummaryTab {...defaultProps} featureImportance={nearZeroImportance} />);
+
+    expect(screen.getByText('75.00%')).toBeInTheDocument();
+    // Near-zero values should show as 0.00%, not -0.00%
+    const rows = screen.getAllByRole('row').slice(1);
+    const percentages = rows.map((row) => within(row).getAllByRole('cell')[1].textContent);
+    expect(percentages).toEqual(['75.00%', '0.00%', '0.00%']);
+    expect(screen.queryByText('-0.00%')).not.toBeInTheDocument();
+
+    // Near-zero negative bar should not be styled as negative
+    const tinyNegativeBar = screen.getByTestId('feature-importance-bar-tiny_negative');
+    expect(tinyNegativeBar).not.toHaveClass('m-negative');
   });
 
   it('should handle a single feature with only negative importance', () => {

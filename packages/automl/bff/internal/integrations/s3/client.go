@@ -4,12 +4,15 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"math"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"strconv"
@@ -21,8 +24,17 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
+
+// ErrEndpointValidation is returned when the configured S3 endpoint fails URL or SSRF validation.
+// Use errors.Is to classify CreateClient / NewRealS3Client failures.
+var ErrEndpointValidation = errors.New("endpoint validation failed")
+
+// ErrObjectAlreadyExists is returned by UploadObject when the object key already exists.
+// Uploads use S3 conditional create (If-None-Match: *): 412 Precondition Failed or 409 ConditionalRequestConflict.
+var ErrObjectAlreadyExists = errors.New("s3 object already exists at key")
 
 // S3Credentials contains the credentials needed to connect to S3.
 type S3Credentials struct {
@@ -57,8 +69,10 @@ type CSVSchemaResult struct {
 // S3ClientInterface defines the operations available on an S3 client.
 type S3ClientInterface interface {
 	GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error)
+	UploadObject(ctx context.Context, bucket, key string, body io.Reader, contentType string) error
 	ListObjects(ctx context.Context, bucket string, options ListObjectsOptions) (*models.S3ListObjectsResponse, error)
 	GetCSVSchema(ctx context.Context, bucket, key string) (CSVSchemaResult, error)
+	ObjectExists(ctx context.Context, bucket, key string) (bool, error)
 }
 
 // RealS3Client implements S3ClientInterface using the AWS SDK.
@@ -77,12 +91,41 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 
 	validatedEndpoint, err := c.validateAndNormalizeEndpoint(creds.EndpointURL)
 	if err != nil {
-		return nil, fmt.Errorf("endpoint validation failed: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrEndpointValidation, err)
 	}
 
 	cfg := aws.Config{
 		Region:      creds.Region,
 		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
+	}
+
+	// Clone the default transport to preserve connection pooling and set a
+	// transport-level timeout unconditionally, regardless of TLS configuration.
+	transport := cloneDefaultTransport()
+	transport.ResponseHeaderTimeout = 30 * time.Second
+
+	if c.options.RootCAs != nil {
+		// Supply the custom CA pool so that self-signed or cluster-issued
+		// certificates (e.g. MinIO) are verified against the operator-mounted
+		// CA bundles rather than the system default.
+		transport.TLSClientConfig = &tls.Config{
+			RootCAs:    c.options.RootCAs,
+			MinVersion: tls.VersionTLS12,
+		}
+	} else if c.options.DevMode {
+		// In dev mode without CA bundles, skip TLS verification so developers
+		// can test against clusters with self-signed certificates from their
+		// local machine. In production the operator always provides CA bundles
+		// via --bundle-paths, so this path is never reached.
+		slog.Warn("S3 TLS certificate verification disabled (dev mode, no CA bundles provided)")
+		transport.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true, //nolint:gosec // dev-mode only fallback
+			MinVersion:         tls.VersionTLS12,
+		}
+	}
+
+	cfg.HTTPClient = &http.Client{
+		Transport: transport,
 	}
 
 	c.s3Client = awss3.NewFromConfig(cfg, func(o *awss3.Options) {
@@ -122,6 +165,68 @@ func (c *RealS3Client) GetObject(ctx context.Context, bucket, key string) (io.Re
 	}
 
 	return body, contentType, nil
+}
+
+// UploadObject uploads an object to S3 using the transfer manager (same client/endpoint config as GetObject).
+// Returns ErrObjectAlreadyExists when S3 reports a conditional write conflict.
+func (c *RealS3Client) UploadObject(ctx context.Context, bucket, key string, body io.Reader, contentType string) error {
+	transferClient := transfermanager.New(c.s3Client)
+
+	_, err := transferClient.UploadObject(ctx, &transfermanager.UploadObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		Body:        body,
+		ContentType: aws.String(contentType),
+		IfNoneMatch: aws.String("*"),
+	}, func(o *transfermanager.Options) {
+		o.Concurrency = c.options.Concurrency
+		o.PartSizeBytes = c.options.PartSizeBytes
+	})
+	if err != nil {
+		if isS3ConditionalCreateConflict(err) {
+			return ErrObjectAlreadyExists
+		}
+		return fmt.Errorf("error uploading object to S3: %w", err)
+	}
+	return nil
+}
+
+func isS3ConditionalCreateConflict(err error) bool {
+	var codedError interface{ ErrorCode() string }
+	if errors.As(err, &codedError) {
+		switch codedError.ErrorCode() {
+		case "PreconditionFailed", "ConditionalRequestConflict":
+			return true
+		}
+	}
+	return false
+}
+
+// ObjectExists checks whether an object key already exists in the given bucket.
+func (c *RealS3Client) ObjectExists(ctx context.Context, bucket, key string) (bool, error) {
+	_, err := c.s3Client.HeadObject(ctx, &awss3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err == nil {
+		return true, nil
+	}
+
+	var notFound *types.NotFound
+	var noSuchKey *types.NoSuchKey
+	if errors.As(err, &notFound) || errors.As(err, &noSuchKey) {
+		return false, nil
+	}
+
+	var codedError interface{ ErrorCode() string }
+	if errors.As(err, &codedError) {
+		switch codedError.ErrorCode() {
+		case "NotFound", "NoSuchKey", "404":
+			return false, nil
+		}
+	}
+
+	return false, fmt.Errorf("error checking object existence in S3: %w", err)
 }
 
 // ListObjects retrieves a listing of objects from S3 using ListObjectsV2.
@@ -227,7 +332,8 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 			contentType := strings.ToLower(*result.ContentType)
 			if !strings.Contains(contentType, "csv") &&
 				!strings.Contains(contentType, "text/plain") &&
-				!strings.Contains(contentType, "application/vnd.ms-excel") {
+				!strings.Contains(contentType, "application/vnd.ms-excel") &&
+				!strings.Contains(contentType, "application/octet-stream") {
 				slog.Warn("CSV file has unexpected content type", "key", key, "contentType", contentType)
 			}
 		}
@@ -255,7 +361,7 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 		accumulated.Write(chunkData)
 		bytesFetched += len(chunkData)
 
-		csvReader := csv.NewReader(bytes.NewReader(accumulated.Bytes()))
+		csvReader := csv.NewReader(bytes.NewReader(normalizeLineEndings(accumulated.Bytes())))
 		csvReader.TrimLeadingSpace = true
 		csvReader.LazyQuotes = true
 
@@ -284,7 +390,7 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 		}
 	}
 
-	data := accumulated.Bytes()
+	data := normalizeLineEndings(accumulated.Bytes())
 
 	if !utf8.Valid(data) {
 		return CSVSchemaResult{}, fmt.Errorf("file does not appear to be a valid text/CSV file (invalid UTF-8)")
@@ -347,8 +453,26 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 	}, nil
 }
 
+// cloneDefaultTransport returns a clone of http.DefaultTransport if it is an
+// *http.Transport, or a fresh *http.Transport otherwise. This avoids a panic
+// if DefaultTransport has been replaced with a non-standard implementation
+// (e.g. in test environments).
+func cloneDefaultTransport() *http.Transport {
+	if t, ok := http.DefaultTransport.(*http.Transport); ok {
+		return t.Clone()
+	}
+	return &http.Transport{}
+}
+
 // validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
-// Requires HTTPS and blocks private/reserved IP ranges.
+//
+// HTTPS is required — plain HTTP is rejected because S3 credentials would be
+// transmitted in cleartext. Self-signed or cluster-issued certificates are
+// supported via the RootCAs option (populated from operator-mounted CA bundles).
+//
+// RFC-1918 private IPs are permitted because MinIO commonly runs on the same
+// cluster using service IPs (e.g. 10.x). Loopback, link-local, and reserved
+// IP ranges are always blocked.
 func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, error) {
 	if endpoint == "" {
 		return "", fmt.Errorf("endpoint URL cannot be empty")
@@ -397,21 +521,26 @@ func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, er
 }
 
 // validateIPAddress checks if an IP address is in a blocked range.
+//
+// RFC-1918 private ranges (10/8, 172.16/12, 192.168/16), Carrier-Grade NAT
+// (100.64/10, RFC 6598), and IPv6 unique local addresses (fc00::/7) are
+// permitted because MinIO and other S3-compatible stores commonly run on the
+// same cluster using service or pod IPs in these ranges.
+// Loopback, link-local, and reserved ranges are always blocked to prevent
+// SSRF targeting the node or cloud metadata services.
 func (c *RealS3Client) validateIPAddress(ip net.IP) error {
-	blockedRanges := []struct {
+	type blockedRange struct {
 		cidr        string
 		description string
-	}{
+	}
+
+	blockedRanges := []blockedRange{
 		{"0.0.0.0/8", "reserved 'this network' range (RFC 1122)"},
-		{"10.0.0.0/8", "RFC-1918 private range (10.0.0.0/8)"},
-		{"172.16.0.0/12", "RFC-1918 private range (172.16.0.0/12)"},
-		{"192.168.0.0/16", "RFC-1918 private range (192.168.0.0/16)"},
 		{"169.254.0.0/16", "link-local range (169.254.0.0/16)"},
 		{"127.0.0.0/8", "loopback range (127.0.0.0/8)"},
 		{"240.0.0.0/4", "reserved for future use (RFC 1112)"},
 		{"::1/128", "IPv6 loopback"},
 		{"fe80::/10", "IPv6 link-local"},
-		{"fc00::/7", "IPv6 unique local addresses"},
 	}
 
 	for _, blocked := range blockedRanges {
@@ -431,6 +560,20 @@ func (c *RealS3Client) validateIPAddress(ip net.IP) error {
 // ---------------------------------------------------------------------------
 // CSV helper functions
 // ---------------------------------------------------------------------------
+
+// normalizeLineEndings converts bare \r (old Mac-style) line endings to \n
+// so that Go's csv.Reader can parse them. \r\n pairs are left intact.
+func normalizeLineEndings(data []byte) []byte {
+	// Fast path: if there are no \r bytes, nothing to do.
+	if !bytes.ContainsRune(data, '\r') {
+		return data
+	}
+	// First collapse \r\n → \n, then convert any remaining bare \r → \n.
+	// Order matters: doing \r\n first prevents double-converting to \n\n.
+	out := bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
+	out = bytes.ReplaceAll(out, []byte("\r"), []byte("\n"))
+	return out
+}
 
 func inferColumnType(rows [][]string, colIndex int) string {
 	if len(rows) == 0 {

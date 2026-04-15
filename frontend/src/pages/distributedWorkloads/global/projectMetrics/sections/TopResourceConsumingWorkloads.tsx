@@ -139,7 +139,7 @@ export const TopResourceConsumingWorkloads: React.FC = () => {
     !topWorkloadsByUsage.memoryBytesUsed.totalUsage
   ) {
     const workloadStatuses = [];
-    if (workloads.data.some((wl) => getStatusInfo(wl).status === WorkloadStatusType.Succeeded)) {
+    if (workloads.data.some((wl) => getStatusInfo(wl).status === WorkloadStatusType.Complete)) {
       workloadStatuses.push('completed');
     }
     if (workloads.data.some((wl) => getStatusInfo(wl).status === WorkloadStatusType.Failed)) {

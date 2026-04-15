@@ -1,10 +1,15 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"mime"
+	"mime/multipart"
 	"net/http"
+	"path"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -15,6 +20,7 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	s3int "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
+	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -23,6 +29,8 @@ type resolvedS3 struct {
 	client s3int.S3ClientInterface
 	bucket string
 }
+
+var trailingNumberPattern = regexp.MustCompile(`^(.*)-(\d+)$`)
 
 // resolveS3Client resolves S3 credentials (from DSPA context or an explicit secretName),
 // creates an S3 client via the factory, and resolves the bucket.
@@ -98,6 +106,10 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 			app.badRequestResponse(w, r, err)
 			return nil, false
 		}
+		if errors.Is(err, repositories.ErrAmbiguousSecretKey) {
+			app.badRequestResponse(w, r, err)
+			return nil, false
+		}
 		app.serverErrorResponse(w, r, err)
 		return nil, false
 	}
@@ -132,6 +144,10 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 
 	s3Client, err := app.s3ClientFactory.CreateClient(creds)
 	if err != nil {
+		if errors.Is(err, s3int.ErrEndpointValidation) {
+			app.badRequestResponse(w, r, err)
+			return nil, false
+		}
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to create S3 client: %w", err))
 		return nil, false
 	}
@@ -148,13 +164,19 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	queryParams := r.URL.Query()
 
-	key := queryParams.Get("key")
-	if key == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'key' is required and cannot be empty"))
+	secretName := queryParams.Get("secretName")
+	if secretName != "" && !isValidDNS1123Subdomain(secretName) {
+		app.badRequestResponse(w, r, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
 		return
 	}
 
-	s3, ok := app.resolveS3Client(w, r, strings.TrimSpace(queryParams.Get("secretName")), queryParams.Get("bucket"))
+	key := strings.TrimSpace(queryParams.Get("key"))
+	if key == "" {
+		app.badRequestResponse(w, r, errors.New("query parameter 'key' is required and cannot be empty"))
+		return
+	}
+
+	s3, ok := app.resolveS3Client(w, r, strings.TrimSpace(secretName), queryParams.Get("bucket"))
 	if !ok {
 		return
 	}
@@ -187,12 +209,307 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 
 	defer objectReader.Close()
 
-	w.Header().Set("Content-Type", contentType)
+	sanitizedContentType := sanitizeS3ResponseContentType(contentType)
+	w.Header().Set("Content-Type", sanitizedContentType)
+	if !s3GetResponseTypeAllowsInlineViewing(sanitizedContentType) {
+		w.Header().Set("Content-Disposition", "attachment")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+	}
 	w.WriteHeader(http.StatusOK)
 	_, err = io.Copy(w, objectReader)
 	if err != nil {
 		app.logger.Error("error streaming S3 object to response",
 			"error", err, "bucket", s3.bucket, "key", key)
+	}
+}
+
+const defaultS3PostMaxCollisionAttempts = 10
+
+func (app *App) effectivePostS3CollisionAttempts() int {
+	if app != nil && app.s3PostMaxCollisionAttempts > 0 {
+		return app.s3PostMaxCollisionAttempts
+	}
+	return defaultS3PostMaxCollisionAttempts
+}
+
+// PostS3FileHandler uploads a CSV file to S3 storage using credentials from a Kubernetes secret.
+// Query parameters: namespace, secretName, key (required); bucket (optional, uses AWS_S3_BUCKET from secret if not provided).
+// Request body: multipart/form-data with a file part named "file". Only CSV uploads are allowed: Content-Type
+// text/csv, or application/octet-stream with a .csv filename (or empty Content-Type with a .csv filename).
+// Candidate keys are chosen via HeadObject; the file is streamed to S3 once with If-None-Match (no full-file buffer).
+// If HeadObject and PUT disagree (concurrent writer), the handler returns 409 Conflict without retrying.
+//
+// Note: namespace is provided via the AttachNamespace middleware
+func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	queryParams := r.URL.Query()
+
+	secretName := queryParams.Get("secretName")
+	if secretName == "" {
+		app.badRequestResponse(w, r, errors.New("query parameter 'secretName' is required and cannot be empty"))
+		return
+	}
+	if !isValidDNS1123Subdomain(secretName) {
+		app.badRequestResponse(w, r, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
+		return
+	}
+
+	key := strings.TrimSpace(queryParams.Get("key"))
+	if key == "" {
+		app.badRequestResponse(w, r, errors.New("query parameter 'key' is required and cannot be empty"))
+		return
+	}
+
+	s3, ok := app.resolveS3Client(w, r, secretName, queryParams.Get("bucket"))
+	if !ok {
+		return
+	}
+
+	ctx := r.Context()
+	bucket := s3.bucket
+	resolvedKey, err := resolveNonCollidingS3Key(ctx, s3.client, bucket, key, app.effectivePostS3CollisionAttempts())
+	if err != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("error resolving S3 key for upload: %w", err))
+		return
+	}
+
+	maxUploadSize := app.s3PostMaxTotalBodyBytes()
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+
+	mr, err := r.MultipartReader()
+	if err != nil {
+		if isS3PostRequestBodyTooLarge(err) {
+			app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
+			return
+		}
+		app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart request: %w", err))
+		return
+	}
+	if mr == nil {
+		app.badRequestResponse(w, r, errors.New("request must be multipart/form-data with a boundary"))
+		return
+	}
+
+	var filePart *multipart.Part
+	for {
+		part, nextErr := mr.NextPart()
+		if nextErr == io.EOF {
+			break
+		}
+		if nextErr != nil {
+			if isS3PostRequestBodyTooLarge(nextErr) {
+				app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
+				return
+			}
+			app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", nextErr))
+			return
+		}
+		if part.FormName() == "file" {
+			filePart = part
+			break
+		}
+		_, copyErr := io.Copy(io.Discard, part)
+		if copyErr != nil {
+			if isS3PostRequestBodyTooLarge(copyErr) {
+				app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
+				return
+			}
+			app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", copyErr))
+			return
+		}
+	}
+
+	if filePart == nil {
+		app.badRequestResponse(w, r, errors.New("missing 'file' part in multipart form"))
+		return
+	}
+
+	contentType, ctypeErr := resolveCsvMultipartContentType(filePart)
+	if ctypeErr != nil {
+		app.badRequestResponse(w, r, ctypeErr)
+		return
+	}
+
+	maxFilePartBytes := s3MaxUploadFileBytes
+	if app.s3PostMaxFilePartBytes > 0 {
+		maxFilePartBytes = app.s3PostMaxFilePartBytes
+	}
+	limitedFile := http.MaxBytesReader(nil, filePart, maxFilePartBytes)
+	defer limitedFile.Close()
+	if err := s3.client.UploadObject(ctx, bucket, resolvedKey, limitedFile, contentType); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			app.payloadTooLargeResponse(w, r, s3FilePartTooLargeMsg)
+			return
+		}
+		if errors.Is(err, s3int.ErrObjectAlreadyExists) {
+			app.conflictResponse(w, r, fmt.Sprintf("object key %q already exists in S3 (upload conflict); retry with a different key", resolvedKey))
+			return
+		}
+		var accessDenied interface{ ErrorCode() string }
+		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
+			app.forbiddenResponse(w, r, fmt.Sprintf("access denied uploading to S3 '%s/%s'", bucket, resolvedKey))
+			return
+		}
+		app.serverErrorResponse(w, r, fmt.Errorf("error uploading file to S3: %w", err))
+		return
+	}
+
+	body := map[string]any{
+		"uploaded": true,
+		"key":      resolvedKey,
+	}
+	_ = app.WriteJSON(w, http.StatusCreated, body, nil)
+}
+
+// resolveNonCollidingS3Key picks a candidate object key using HeadObject only (no upload body read).
+// When the requested key exists, it tries name-1, name-2, … up to maxSuffixAttempts times.
+func resolveNonCollidingS3Key(
+	ctx context.Context,
+	client s3int.S3ClientInterface,
+	bucket string,
+	requestedKey string,
+	maxCollisionAttempts int,
+) (string, error) {
+	exists, err := client.ObjectExists(ctx, bucket, requestedKey)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		return requestedKey, nil
+	}
+
+	dir, name := splitS3ObjectPath(requestedKey)
+	stem, ext := splitNameAndExtension(name)
+	stemBase, nextIndex := splitStemAndNextIndex(stem)
+
+	for range maxCollisionAttempts {
+		candidateName := fmt.Sprintf("%s-%d%s", stemBase, nextIndex, ext)
+		candidateKey := dir + candidateName
+
+		candidateExists, checkErr := client.ObjectExists(ctx, bucket, candidateKey)
+		if checkErr != nil {
+			return "", checkErr
+		}
+		if !candidateExists {
+			return candidateKey, nil
+		}
+		nextIndex++
+	}
+	return "", fmt.Errorf("failed to resolve non-colliding S3 key after %d attempts", maxCollisionAttempts)
+}
+
+func splitS3ObjectPath(key string) (dir string, name string) {
+	lastSlashIndex := strings.LastIndex(key, "/")
+	if lastSlashIndex == -1 {
+		return "", key
+	}
+	return key[:lastSlashIndex+1], key[lastSlashIndex+1:]
+}
+
+func splitNameAndExtension(fileName string) (stem string, ext string) {
+	ext = path.Ext(fileName)
+	if ext == "" {
+		return fileName, ""
+	}
+	stem = strings.TrimSuffix(fileName, ext)
+	if stem == "" {
+		return fileName, ""
+	}
+	return stem, ext
+}
+
+func splitStemAndNextIndex(stem string) (base string, nextIndex int) {
+	match := trailingNumberPattern.FindStringSubmatch(stem)
+	if len(match) != 3 {
+		return stem, 1
+	}
+
+	parsedIndex, err := strconv.Atoi(match[2])
+	if err != nil {
+		return stem, 1
+	}
+	return match[1], parsedIndex + 1
+}
+
+// rejectDeclaredOversizedS3Post returns 413 when Content-Length is set and exceeds
+// s3PostMaxTotalBodyBytes. Chunked or unknown length passes here; PostS3FileHandler still wraps
+// r.Body with http.MaxBytesReader before MultipartReader so total bytes read are capped.
+func (app *App) rejectDeclaredOversizedS3Post(next httprouter.Handle) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		if app.s3PostDeclaredBodyExceedsLimit(r) {
+			app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
+			return
+		}
+		next(w, r, ps)
+	}
+}
+
+func isS3PostRequestBodyTooLarge(err error) bool {
+	var maxBytesErr *http.MaxBytesError
+	return err != nil && errors.As(err, &maxBytesErr)
+}
+
+// resolveCsvMultipartContentType validates CSV-only uploads and returns text/csv for S3 storage.
+// Accepts text/csv; application/octet-stream or missing Content-Type when the filename ends with .csv.
+func resolveCsvMultipartContentType(part *multipart.Part) (string, error) {
+	raw := strings.TrimSpace(part.Header.Get("Content-Type"))
+	fn := strings.ToLower(strings.TrimSpace(part.FileName()))
+
+	if raw == "" {
+		if strings.HasSuffix(fn, ".csv") {
+			return "text/csv", nil
+		}
+		return "", errors.New("only CSV files are supported: use a .csv filename or Content-Type text/csv")
+	}
+
+	mediaType, _, err := mime.ParseMediaType(raw)
+	if err != nil {
+		return "", fmt.Errorf("invalid Content-Type: %w", err)
+	}
+	mediaType = strings.ToLower(mediaType)
+
+	switch mediaType {
+	case "text/csv":
+		return "text/csv", nil
+	case "application/octet-stream":
+		if strings.HasSuffix(fn, ".csv") {
+			return "text/csv", nil
+		}
+		return "", errors.New("only CSV files are supported (application/octet-stream requires a .csv filename)")
+	default:
+		return "", errors.New("only CSV files are supported (Content-Type must be text/csv, or application/octet-stream with a .csv filename)")
+	}
+}
+
+// sanitizeS3ResponseContentType normalizes S3 metadata on GET. text/csv and application/json are
+// echoed for AutoML pipelines; other types become application/octet-stream so arbitrary S3
+// metadata cannot set executable types under the dashboard origin.
+func sanitizeS3ResponseContentType(v string) string {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return "application/octet-stream"
+	}
+	mediaType, _, err := mime.ParseMediaType(v)
+	if err != nil {
+		return "application/octet-stream"
+	}
+	mediaType = strings.ToLower(mediaType)
+	switch mediaType {
+	case "text/csv":
+		return "text/csv"
+	case "application/json":
+		return "application/json"
+	default:
+		return "application/octet-stream"
+	}
+}
+
+func s3GetResponseTypeAllowsInlineViewing(sanitizedContentType string) bool {
+	switch sanitizedContentType {
+	case "text/csv", "application/json":
+		return true
+	default:
+		return false
 	}
 }
 
@@ -205,13 +522,19 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	queryParams := r.URL.Query()
 
-	key := queryParams.Get("key")
-	if key == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'key' is required and cannot be empty"))
+	secretName := queryParams.Get("secretName")
+	if secretName != "" && !isValidDNS1123Subdomain(secretName) {
+		app.badRequestResponse(w, r, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
 		return
 	}
 
-	s3, ok := app.resolveS3Client(w, r, strings.TrimSpace(queryParams.Get("secretName")), queryParams.Get("bucket"))
+	key := strings.TrimSpace(queryParams.Get("key"))
+	if key == "" {
+		app.badRequestResponse(w, r, errors.New("query parameter 'key' is required and cannot be empty"))
+		return
+	}
+
+	s3, ok := app.resolveS3Client(w, r, secretName, queryParams.Get("bucket"))
 	if !ok {
 		return
 	}

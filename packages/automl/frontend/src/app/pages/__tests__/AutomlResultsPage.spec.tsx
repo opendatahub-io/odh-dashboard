@@ -86,23 +86,23 @@ jest.mock('mod-arch-shared', () => ({
       {loaded && !empty ? children : null}
     </div>
   ),
-  TitleWithIcon: ({ title }: { title: string }) => <span>{title}</span>,
-  ProjectObjectType: { pipelineExperiment: 'pipelineExperiment' },
+}));
+
+jest.mock('~/app/components/common/AutomlHeader/AutomlHeader', () => ({
+  __esModule: true,
+  default: () => <span>AutoML</span>,
 }));
 
 // ============================================================================
 // Test Helpers
 // ============================================================================
 
-const createMockModel = (name: string, metrics: Record<string, number>): AutomlModel => ({
-  display_name: name,
-  model_config: {
-    eval_metric: 'accuracy',
-  },
+const createMockModel = (modelName: string, metrics: Record<string, number>): AutomlModel => ({
+  name: modelName,
   location: {
-    model_directory: `/models/${name}`,
-    predictor: `/models/${name}/predictor.pkl`,
-    notebook: `/models/${name}/notebook.ipynb`,
+    model_directory: `/models/${modelName}`,
+    predictor: `/models/${modelName}/predictor`,
+    notebook: `/models/${modelName}/notebook.ipynb`,
   },
   metrics: {
     test_data: metrics,

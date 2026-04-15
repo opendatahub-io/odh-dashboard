@@ -6,6 +6,8 @@ import {
   filterLiveModels,
   filterLiveVersions,
   getLastCreatedItem,
+  getServerAddress,
+  isRedHatRegistryUri,
   objectStorageFieldsToUri,
   uriToConnectionTypeName,
   uriToModelLocation,
@@ -19,6 +21,7 @@ import {
   ModelVersion,
   ModelSourceKind,
 } from '#~/concepts/modelRegistry/types';
+import { ServiceKind } from '#~/k8sTypes';
 
 describe('objectStorageFieldsToUri', () => {
   it('converts fields to URI with all fields present', () => {
@@ -379,5 +382,56 @@ describe('modelSourcePropertiesToPipelineRunRef', () => {
       modelSourceName: 'name1',
     };
     expect(modelSourcePropertiesToPipelineRunRef(properties)).toBeNull();
+  });
+});
+
+describe('getServerAddress', () => {
+  it('returns the external address annotation', () => {
+    const resource = {
+      metadata: {
+        annotations: {
+          'routing.opendatahub.io/external-address-rest': 'https://model-server.example.com',
+        },
+      },
+    } as unknown as ServiceKind;
+    expect(getServerAddress(resource)).toBe('https://model-server.example.com');
+  });
+
+  it('returns empty string when annotation is missing', () => {
+    const resource = {
+      metadata: {
+        annotations: {},
+      },
+    } as unknown as ServiceKind;
+    expect(getServerAddress(resource)).toBe('');
+  });
+
+  it('returns empty string when annotations object is undefined', () => {
+    const resource = {
+      metadata: {},
+    } as unknown as ServiceKind;
+    expect(getServerAddress(resource)).toBe('');
+  });
+});
+
+describe('isRedHatRegistryUri', () => {
+  it('returns true for Red Hat registry OCI URIs', () => {
+    expect(isRedHatRegistryUri('oci://registry.redhat.io/some-model')).toBe(true);
+  });
+
+  it('returns true for nested paths', () => {
+    expect(isRedHatRegistryUri('oci://registry.redhat.io/rhoai/model:latest')).toBe(true);
+  });
+
+  it('returns false for non-Red Hat registry URIs', () => {
+    expect(isRedHatRegistryUri('oci://quay.io/some-model')).toBe(false);
+  });
+
+  it('returns false for non-OCI URIs', () => {
+    expect(isRedHatRegistryUri('https://registry.redhat.io/some-model')).toBe(false);
+  });
+
+  it('returns false for empty string', () => {
+    expect(isRedHatRegistryUri('')).toBe(false);
   });
 });

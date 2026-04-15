@@ -20,7 +20,7 @@ import { ContentType, HttpClient, RequestParams } from './http-client';
 
 export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
   /**
-   * @description Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.
+   * @description Returns a list of all workspace kinds in the cluster. When namespaceFilter is provided, authorization checks whether the user can create workspaces in that namespace instead of requiring workspace kind list permission.
    *
    * @tags workspacekinds
    * @name ListWorkspaceKinds
@@ -29,12 +29,20 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
    * @response `200` `ApiWorkspaceKindListEnvelope` Successful operation. Returns a list of all available workspace kinds.
    * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
    * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to list workspace kinds.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
    */
-  listWorkspaceKinds = (params: RequestParams = {}) =>
+  listWorkspaceKinds = (
+    query?: {
+      /** Namespace used for workspace creation authorization */
+      namespaceFilter?: string;
+    },
+    params: RequestParams = {},
+  ) =>
     this.request<ApiWorkspaceKindListEnvelope, ApiErrorEnvelope>({
       path: `/workspacekinds`,
       method: 'GET',
+      query: query,
       type: ContentType.Json,
       format: 'json',
       ...params,
@@ -65,7 +73,7 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
       ...params,
     });
   /**
-   * @description Returns details of a specific workspace kind identified by its name. Workspace kinds define the available types of workspaces that can be created.
+   * @description Returns details of a specific workspace kind identified by its name.
    *
    * @tags workspacekinds
    * @name GetWorkspaceKind

@@ -21,7 +21,7 @@ describe('Verify that a pipeline can be scheduled to run', { testIsolation: fals
   let scheduleName = '';
   let scheduleDescription = '';
   let pipelineUrl = '';
-  let experimentName = '';
+  let runGroupName = '';
   let runEveryUnit = '';
 
   retryableBefore(() => {
@@ -33,7 +33,7 @@ describe('Verify that a pipeline can be scheduled to run', { testIsolation: fals
       scheduleName = cfg.scheduleName;
       scheduleDescription = cfg.scheduleDescription;
       pipelineUrl = cfg.pipelineUrl;
-      experimentName = cfg.experimentName;
+      runGroupName = cfg.runGroupName;
       runEveryUnit = cfg.runEveryUnit;
       provisionProjectForPipelines(projectName, cfg.dspaSecretName, awsBucket);
     });
@@ -78,8 +78,7 @@ describe('Verify that a pipeline can be scheduled to run', { testIsolation: fals
       pipelineRunsGlobal.findScheduleRunButton().click();
 
       cy.step('Schedule the pipeline to run every 1 minute');
-      createSchedulePage.experimentSelect.findToggleButton().click();
-      createSchedulePage.selectExperimentByName(experimentName);
+      createSchedulePage.fillRunGroup(runGroupName);
       createSchedulePage.fillName(scheduleName);
       createSchedulePage.fillDescription(scheduleDescription);
 

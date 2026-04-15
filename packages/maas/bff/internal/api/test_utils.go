@@ -59,9 +59,10 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 
 	// Tests use real K8s repos backed by envtest (not mocks)
 	subscriptionsRepo := repositories.NewSubscriptionsRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
+	policiesRepo := repositories.NewPoliciesRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
 	modelRefsRepo := repositories.NewMaaSModelRefsRepository(logger, k8Factory)
 
-	repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, subscriptionsRepo, modelRefsRepo)
+	repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, subscriptionsRepo, policiesRepo, modelRefsRepo)
 	if err != nil {
 		return empty, nil, err
 	}

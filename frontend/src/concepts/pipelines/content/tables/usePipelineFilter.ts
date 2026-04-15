@@ -1,21 +1,29 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PipelinesFilterOp, PipelinesFilterPredicate } from '#~/concepts/pipelines/kfTypes';
+import {
+  ExperimentKF,
+  PipelinesFilterOp,
+  PipelinesFilterPredicate,
+} from '#~/concepts/pipelines/kfTypes';
 
 import { PipelinesFilter } from '#~/concepts/pipelines/types';
 import useDebounceCallback from '#~/utilities/useDebounceCallback';
 import FilterToolbar from '#~/components/FilterToolbar';
 import { PipelineRunVersionsContext } from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 export enum FilterOptions {
   NAME = 'name',
   CREATED_AT = 'create_at',
   STATUS = 'status',
-  EXPERIMENT = 'experiment',
+  RUN_GROUP = 'run_group',
   PIPELINE_VERSION = 'pipeline_version',
+  MLFLOW_EXPERIMENT = 'mlflow_experiment',
 }
+
+const LEGACY_EXPERIMENT_FILTER_PARAM = 'experiment';
 
 export const getDataValue = (data: string | { value: string } | undefined): string | undefined => {
   if (typeof data === 'string' || typeof data === 'undefined') {
@@ -33,13 +41,53 @@ const defaultFilterData: FilterProps['filterData'] = {
   [FilterOptions.NAME]: '',
   [FilterOptions.CREATED_AT]: '',
   [FilterOptions.STATUS]: '',
-  [FilterOptions.EXPERIMENT]: undefined,
+  [FilterOptions.RUN_GROUP]: '',
   [FilterOptions.PIPELINE_VERSION]: undefined,
+  [FilterOptions.MLFLOW_EXPERIMENT]: '',
 };
+
+const resolveExperimentPredicate = (
+  runGroupName: string | undefined,
+  experiments: ExperimentKF[],
+  legacyExperimentRawId?: string,
+  legacyExperimentId?: string,
+): PipelinesFilterPredicate | undefined => {
+  if (legacyExperimentRawId) {
+    return {
+      key: 'experiment_id',
+      operation: PipelinesFilterOp.EQUALS,
+      string_value: legacyExperimentRawId,
+    };
+  }
+  if (legacyExperimentId) {
+    return {
+      key: 'experiment_id',
+      operation: PipelinesFilterOp.EQUALS,
+      string_value: legacyExperimentId,
+    };
+  }
+  if (!runGroupName) {
+    return undefined;
+  }
+  const lowerName = runGroupName.toLowerCase();
+  const matchingIds = experiments
+    .filter((e) => e.display_name.toLowerCase().includes(lowerName))
+    .map((e) => e.experiment_id);
+  return {
+    key: 'experiment_id',
+    operation: PipelinesFilterOp.IN,
+    string_values: { values: matchingIds },
+  };
+};
+
+const EMPTY_EXPERIMENTS: ExperimentKF[] = [];
 
 const useSetFilter = (
   setFilter: (filter?: PipelinesFilter) => void,
   filterData: FilterProps['filterData'],
+  experiments: ExperimentKF[] = EMPTY_EXPERIMENTS,
+  legacyExperimentRawId?: string,
+  legacyExperimentId?: string,
 ) => {
   const doSetFilter = React.useCallback(
     (data: FilterProps['filterData']) => {
@@ -47,7 +95,7 @@ const useSetFilter = (
       const runName = getDataValue(data[FilterOptions.NAME]);
       const startedDateTime = getDataValue(data[FilterOptions.CREATED_AT]);
       const state = getDataValue(data[FilterOptions.STATUS]);
-      const experimentId = getDataValue(data[FilterOptions.EXPERIMENT]);
+      const runGroupName = getDataValue(data[FilterOptions.RUN_GROUP]);
       const pipelineVersionId = getDataValue(data[FilterOptions.PIPELINE_VERSION]);
 
       if (runName) {
@@ -74,12 +122,14 @@ const useSetFilter = (
         });
       }
 
-      if (experimentId) {
-        predicates.push({
-          key: 'experiment_id',
-          operation: PipelinesFilterOp.EQUALS,
-          string_value: experimentId,
-        });
+      const experimentPredicate = resolveExperimentPredicate(
+        runGroupName,
+        experiments,
+        legacyExperimentRawId,
+        legacyExperimentId,
+      );
+      if (experimentPredicate) {
+        predicates.push(experimentPredicate);
       }
 
       if (pipelineVersionId) {
@@ -98,7 +148,7 @@ const useSetFilter = (
           : undefined,
       );
     },
-    [setFilter],
+    [setFilter, experiments, legacyExperimentRawId, legacyExperimentId],
   );
 
   const doSetFilterDebounced = useDebounceCallback(doSetFilter);
@@ -108,23 +158,22 @@ const useSetFilter = (
     [FilterOptions.CREATED_AT]: createdAt,
     [FilterOptions.STATUS]: state,
     [FilterOptions.PIPELINE_VERSION]: pipelineVersion,
-    [FilterOptions.EXPERIMENT]: experiment,
+    [FilterOptions.RUN_GROUP]: runGroup,
   } = filterData;
 
   const pipelineVersionId = getDataValue(pipelineVersion);
-  const experimentId = getDataValue(experiment);
 
   React.useEffect(() => {
     doSetFilterDebounced(filterData);
-    // debounce filter change for name changes
+    // debounce filter change for text input changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doSetFilterDebounced, name]);
+  }, [doSetFilterDebounced, name, runGroup]);
 
   React.useEffect(() => {
     doSetFilterDebounced.cancel();
     doSetFilter(filterData);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createdAt, state, pipelineVersionId, experimentId, doSetFilter]);
+  }, [createdAt, state, pipelineVersionId, doSetFilter]);
 };
 
 const usePipelineFilter = (setFilter: (filter?: PipelinesFilter) => void): FilterProps => {
@@ -153,34 +202,65 @@ export const usePipelineFilterSearchParams = (
   const [searchParams, setSearchParams] = useSearchParams();
   const { versions } = React.useContext(PipelineRunVersionsContext);
   const { experiments } = React.useContext(PipelineRunExperimentsContext);
+  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
 
-  const filterDataFromSearchParams = React.useMemo(() => {
+  const isLegacyParam =
+    !searchParams.has(FilterOptions.RUN_GROUP) && searchParams.has(LEGACY_EXPERIMENT_FILTER_PARAM);
+
+  const {
+    filterData: filterDataFromSearchParams,
+    legacyExperimentRawId,
+    legacyExperimentId,
+  } = React.useMemo(() => {
+    const runGroupFromParams =
+      searchParams.get(FilterOptions.RUN_GROUP) || searchParams.get(LEGACY_EXPERIMENT_FILTER_PARAM);
+    const legacyExperimentRawIdFromParams = isLegacyParam
+      ? searchParams.get(LEGACY_EXPERIMENT_FILTER_PARAM) || undefined
+      : undefined;
     const versionFound = versions.find(
       (v) => v.pipeline_version_id === searchParams.get(FilterOptions.PIPELINE_VERSION),
     );
-    const experimentFound = experiments.find(
-      (e) => e.experiment_id === searchParams.get(FilterOptions.EXPERIMENT),
-    );
+    const experimentFoundById = experiments.find((e) => e.experiment_id === runGroupFromParams);
     return {
-      [FilterOptions.NAME]: searchParams.get(FilterOptions.NAME) || '',
-      [FilterOptions.CREATED_AT]: searchParams.get(FilterOptions.CREATED_AT) || '',
-      [FilterOptions.STATUS]: searchParams.get(FilterOptions.STATUS) || '',
-      [FilterOptions.PIPELINE_VERSION]: versionFound
-        ? {
-            value: versionFound.pipeline_version_id,
-            label: versionFound.display_name,
-          }
-        : searchParams.get(FilterOptions.PIPELINE_VERSION) || undefined,
-      [FilterOptions.EXPERIMENT]: experimentFound
-        ? {
-            value: experimentFound.experiment_id,
-            label: experimentFound.display_name,
-          }
-        : searchParams.get(FilterOptions.EXPERIMENT) || undefined,
+      legacyExperimentRawId: legacyExperimentRawIdFromParams,
+      legacyExperimentId:
+        isLegacyParam && experimentFoundById ? experimentFoundById.experiment_id : undefined,
+      filterData: {
+        [FilterOptions.NAME]: searchParams.get(FilterOptions.NAME) || '',
+        [FilterOptions.CREATED_AT]: searchParams.get(FilterOptions.CREATED_AT) || '',
+        [FilterOptions.STATUS]: searchParams.get(FilterOptions.STATUS) || '',
+        [FilterOptions.PIPELINE_VERSION]: versionFound
+          ? {
+              value: versionFound.pipeline_version_id,
+              label: versionFound.display_name,
+            }
+          : searchParams.get(FilterOptions.PIPELINE_VERSION) || undefined,
+        [FilterOptions.RUN_GROUP]: experimentFoundById
+          ? experimentFoundById.display_name
+          : runGroupFromParams || '',
+        [FilterOptions.MLFLOW_EXPERIMENT]: isMlflowAvailable
+          ? searchParams.get(FilterOptions.MLFLOW_EXPERIMENT) || ''
+          : '',
+      },
     };
-  }, [experiments, searchParams, versions]);
+  }, [experiments, isLegacyParam, isMlflowAvailable, searchParams, versions]);
 
-  useSetFilter(setFilter, filterDataFromSearchParams);
+  React.useEffect(() => {
+    if (isMlflowAvailable || !searchParams.has(FilterOptions.MLFLOW_EXPERIMENT)) {
+      return;
+    }
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete(FilterOptions.MLFLOW_EXPERIMENT);
+    setSearchParams(nextParams, { replace: true });
+  }, [isMlflowAvailable, searchParams, setSearchParams]);
+
+  useSetFilter(
+    setFilter,
+    filterDataFromSearchParams,
+    experiments,
+    legacyExperimentRawId,
+    legacyExperimentId,
+  );
 
   const toolbarProps: FilterProps = {
     filterData: filterDataFromSearchParams,
@@ -192,6 +272,9 @@ export const usePipelineFilterSearchParams = (
         } else {
           searchParams.set(key, data);
         }
+        if (key === FilterOptions.RUN_GROUP) {
+          searchParams.delete(LEGACY_EXPERIMENT_FILTER_PARAM);
+        }
         setSearchParams(searchParams, { replace: true });
       },
       [setSearchParams, searchParams],
@@ -199,6 +282,7 @@ export const usePipelineFilterSearchParams = (
     onClearFilters: React.useCallback(() => {
       // In case of deleting manage run search params
       Object.values(FilterOptions).forEach((value) => searchParams.delete(value));
+      searchParams.delete(LEGACY_EXPERIMENT_FILTER_PARAM);
       setSearchParams(searchParams, { replace: true });
     }, [setSearchParams, searchParams]),
   };

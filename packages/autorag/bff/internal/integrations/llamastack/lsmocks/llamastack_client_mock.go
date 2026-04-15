@@ -6,6 +6,7 @@ import (
 
 	"github.com/openai/openai-go/v2"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
 // MockLlamaStackClient provides a mock implementation of the LlamaStackClientInterface for testing
@@ -37,49 +38,13 @@ func (m *MockLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, 
 	}, nil
 }
 
-// ListVectorStores returns mock vector store data with LlamaStack native fields in RawJSON
-func (m *MockLlamaStackClient) ListVectorStores(ctx context.Context) ([]openai.VectorStore, error) {
-	return []openai.VectorStore{
-		createMockVectorStore("ls_milvus", "Milvus Vector Store", "completed", "milvus"),
-		createMockVectorStore("ls_faiss", "FAISS In-Memory Store", "completed", "faiss"),
+// ListProviders returns mock provider data matching LlamaStack's /v1/providers response format.
+func (m *MockLlamaStackClient) ListProviders(ctx context.Context) ([]models.LlamaStackProvider, error) {
+	return []models.LlamaStackProvider{
+		{API: "vector_io", ProviderID: "milvus", ProviderType: "remote::milvus"},
+		{API: "vector_io", ProviderID: "faiss", ProviderType: "inline::faiss"},
+		{API: "inference", ProviderID: "ollama", ProviderType: "remote::ollama"},
 	}, nil
-}
-
-// createMockVectorStore creates an openai.VectorStore matching LlamaStack's real response format.
-// LlamaStack stores provider_id inside the metadata field, not as a top-level field.
-// Uses marshal/unmarshal so the SDK's Metadata field is populated correctly.
-func createMockVectorStore(id, name, status, providerID string) openai.VectorStore {
-	native := map[string]interface{}{
-		"id":             id,
-		"object":         "vector_store",
-		"name":           name,
-		"status":         status,
-		"created_at":     1700000000,
-		"last_active_at": 1700000000,
-		"usage_bytes":    0,
-		"file_counts": map[string]interface{}{
-			"cancelled":   0,
-			"completed":   0,
-			"failed":      0,
-			"in_progress": 0,
-			"total":       0,
-		},
-		"metadata": map[string]interface{}{
-			"provider_id": providerID,
-		},
-	}
-
-	rawJSONBytes, err := json.Marshal(native)
-	if err != nil {
-		panic("lsmocks: failed to marshal mock vector store: " + err.Error())
-	}
-
-	var vs openai.VectorStore
-	if err := json.Unmarshal(rawJSONBytes, &vs); err != nil {
-		panic("lsmocks: failed to unmarshal mock vector store: " + err.Error())
-	}
-
-	return vs
 }
 
 // createMockModel creates an openai.Model with LlamaStack native format in RawJSON

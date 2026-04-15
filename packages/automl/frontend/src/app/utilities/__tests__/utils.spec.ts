@@ -12,13 +12,14 @@ describe('formatMetricName', () => {
   it('should return special-cased acronyms as-is', () => {
     expect(formatMetricName('roc_auc')).toBe('ROC AUC');
     expect(formatMetricName('mcc')).toBe('MCC');
-    expect(formatMetricName('f1')).toBe('F1');
+    expect(formatMetricName('f1')).toBe('F₁');
     expect(formatMetricName('r2')).toBe('R²');
     expect(formatMetricName('mae')).toBe('MAE');
     expect(formatMetricName('mse')).toBe('MSE');
     expect(formatMetricName('rmse')).toBe('RMSE');
     expect(formatMetricName('mape')).toBe('MAPE');
     expect(formatMetricName('mase')).toBe('MASE');
+    expect(formatMetricName('smape')).toBe('SMAPE');
   });
 
   it('should convert snake_case to Title Case', () => {
@@ -26,7 +27,7 @@ describe('formatMetricName', () => {
     expect(formatMetricName('root_mean_squared_error')).toBe('Root Mean Squared Error');
   });
 
-  it('should capitalize a single word', () => {
+  it('should title-case a single-word key not in the display names map', () => {
     expect(formatMetricName('accuracy')).toBe('Accuracy');
     expect(formatMetricName('precision')).toBe('Precision');
   });
@@ -110,9 +111,9 @@ describe('getOptimizedMetricForTask', () => {
     expect(getOptimizedMetricForTask('timeseries')).toBe('mase');
   });
 
-  it('should return undefined for unknown task types', () => {
-    expect(getOptimizedMetricForTask('unknown')).toBeUndefined();
-    expect(getOptimizedMetricForTask('')).toBeUndefined();
+  it('should return Unknown metric for unknown task types', () => {
+    expect(getOptimizedMetricForTask('unknown')).toBe('Unknown metric');
+    expect(getOptimizedMetricForTask('')).toBe('Unknown metric');
   });
 });
 
@@ -261,17 +262,19 @@ describe('computeRankMap', () => {
     });
   });
 
-  it('should fall back to accuracy for unknown task types', () => {
+  it('should assign insertion-order ranking for unknown task types', () => {
     const models = {
       ModelA: buildModel(0.7),
       ModelB: buildModel(0.85),
     };
 
+    // Unknown task types map to 'Unknown metric', which no model has,
+    // so all models tie and receive insertion-order ranking.
     const rankMap = computeRankMap(models, 'unknown');
 
     expect(rankMap).toEqual({
-      ModelB: 1,
-      ModelA: 2,
+      ModelA: 1,
+      ModelB: 2,
     });
   });
 });

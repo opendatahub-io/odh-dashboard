@@ -1,16 +1,17 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
-	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/kubeflow/model-registry/ui/bff/internal/api"
+	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
 	"github.com/kubeflow/model-registry/ui/bff/internal/models"
 	redhatrepos "github.com/kubeflow/model-registry/ui/bff/internal/redhat/repositories"
 )
@@ -19,8 +20,6 @@ type McpDeploymentListEnvelope api.Envelope[models.McpDeploymentList, api.None]
 type McpDeploymentEnvelope api.Envelope[models.McpDeployment, api.None]
 type McpDeploymentCreateEnvelope api.Envelope[models.McpDeploymentCreateRequest, api.None]
 type McpDeploymentUpdateEnvelope api.Envelope[models.McpDeploymentUpdateRequest, api.None]
-
-var k8sNameRegexp = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$`)
 
 const (
 	mcpDeploymentListHandlerID   = api.HandlerID("mcpDeployment:list")
@@ -31,26 +30,18 @@ const (
 )
 
 type mcpDeploymentRepository interface {
-	List(namespace string, pageSize int32, nextPageToken string) (models.McpDeploymentList, error)
-	Get(namespace string, name string) (models.McpDeployment, error)
-	Create(namespace string, req models.McpDeploymentCreateRequest) (models.McpDeployment, error)
-	Update(namespace string, name string, req models.McpDeploymentUpdateRequest) (models.McpDeployment, error)
-	Delete(namespace string, name string) error
+	List(ctx context.Context, client k8s.KubernetesClientInterface, namespace string) (models.McpDeploymentList, error)
+	Get(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, name string) (models.McpDeployment, error)
+	Create(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, req models.McpDeploymentCreateRequest) (models.McpDeployment, error)
+	Update(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, name string, req models.McpDeploymentUpdateRequest) (models.McpDeployment, error)
+	Delete(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, name string) error
 }
 
-var newMcpDeploymentRepository = func() mcpDeploymentRepository {
-	return redhatrepos.NewMcpDeploymentRepository()
-}
-
-// sharedMcpDeploymentRepo holds the lazily-initialized singleton so all CRUD
-// handlers operate on the same in-memory data store.
-var sharedMcpDeploymentRepo mcpDeploymentRepository
-
-func getSharedMcpDeploymentRepo() mcpDeploymentRepository {
-	if sharedMcpDeploymentRepo == nil {
-		sharedMcpDeploymentRepo = newMcpDeploymentRepository()
+var newMcpDeploymentRepository = func(app *api.App) mcpDeploymentRepository {
+	if app == nil {
+		return redhatrepos.NewMcpDeploymentRepository(nil)
 	}
-	return sharedMcpDeploymentRepo
+	return redhatrepos.NewMcpDeploymentRepository(app.Logger())
 }
 
 func init() {
@@ -61,8 +52,12 @@ func init() {
 	api.RegisterHandlerOverride(mcpDeploymentDeleteHandlerID, overrideMcpDeploymentDelete)
 }
 
-func overrideMcpDeploymentList(app *api.App, _ func() httprouter.Handle) httprouter.Handle {
-	repo := getSharedMcpDeploymentRepo()
+func overrideMcpDeploymentList(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
+	if !shouldUseRedHatOverrides(app) {
+		return buildDefault()
+	}
+
+	repo := newMcpDeploymentRepository(app)
 
 	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		namespace, ok := namespaceFromContext(app, w, r)
@@ -70,24 +65,18 @@ func overrideMcpDeploymentList(app *api.App, _ func() httprouter.Handle) httprou
 			return
 		}
 
-		var pageSize int32
-		if ps := r.URL.Query().Get("pageSize"); ps != "" {
-			parsed, err := strconv.ParseInt(ps, 10, 32)
-			if err != nil {
-				app.BadRequest(w, r, fmt.Errorf("invalid pageSize: %w", err))
-				return
-			}
-			if parsed <= 0 {
-				app.BadRequest(w, r, fmt.Errorf("pageSize must be > 0"))
-				return
-			}
-			pageSize = int32(parsed)
+		if !requireMcpDeploymentAccess(app, w, r, namespace, "list") {
+			return
 		}
-		nextPageToken := r.URL.Query().Get("nextPageToken")
 
-		result, err := repo.List(namespace, pageSize, nextPageToken)
+		client, ok := getKubernetesClient(app, w, r)
+		if !ok {
+			return
+		}
+
+		result, err := repo.List(r.Context(), client, namespace)
 		if err != nil {
-			app.ServerError(w, r, err)
+			handleMcpDeploymentError(app, w, r, err)
 			return
 		}
 
@@ -98,12 +87,20 @@ func overrideMcpDeploymentList(app *api.App, _ func() httprouter.Handle) httprou
 	})
 }
 
-func overrideMcpDeploymentGet(app *api.App, _ func() httprouter.Handle) httprouter.Handle {
-	repo := getSharedMcpDeploymentRepo()
+func overrideMcpDeploymentGet(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
+	if !shouldUseRedHatOverrides(app) {
+		return buildDefault()
+	}
+
+	repo := newMcpDeploymentRepository(app)
 
 	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		namespace, ok := namespaceFromContext(app, w, r)
 		if !ok {
+			return
+		}
+
+		if !requireMcpDeploymentAccess(app, w, r, namespace, "get") {
 			return
 		}
 
@@ -113,13 +110,14 @@ func overrideMcpDeploymentGet(app *api.App, _ func() httprouter.Handle) httprout
 			return
 		}
 
-		result, err := repo.Get(namespace, name)
+		client, ok := getKubernetesClient(app, w, r)
+		if !ok {
+			return
+		}
+
+		result, err := repo.Get(r.Context(), client, namespace, name)
 		if err != nil {
-			if errors.Is(err, redhatrepos.ErrMcpDeploymentNotFound) {
-				app.NotFound(w, r)
-				return
-			}
-			app.ServerError(w, r, err)
+			handleMcpDeploymentError(app, w, r, err)
 			return
 		}
 
@@ -130,21 +128,39 @@ func overrideMcpDeploymentGet(app *api.App, _ func() httprouter.Handle) httprout
 	})
 }
 
-func validateMcpDeploymentName(name string) error {
-	if len(name) > 253 {
-		return fmt.Errorf("name must be no more than 253 characters")
+func handleMcpDeploymentError(app *api.App, w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case errors.Is(err, redhatrepos.ErrMcpDeploymentValidation):
+		app.BadRequest(w, r, err)
+	case errors.Is(err, redhatrepos.ErrMcpDeploymentNotFound):
+		app.NotFound(w, r)
+	case errors.Is(err, redhatrepos.ErrMcpDeploymentConflict):
+		app.Conflict(w, r, err.Error())
+	case apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err):
+		app.Forbidden(w, r, err.Error())
+	default:
+		app.ServerError(w, r, err)
 	}
-	if !k8sNameRegexp.MatchString(name) {
-		return fmt.Errorf("name must consist of lowercase alphanumeric characters or '-', and must start and end with an alphanumeric character")
-	}
-	return nil
 }
 
-func overrideMcpDeploymentCreate(app *api.App, _ func() httprouter.Handle) httprouter.Handle {
-	repo := getSharedMcpDeploymentRepo()
+func overrideMcpDeploymentCreate(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
+	if !shouldUseRedHatOverrides(app) {
+		return buildDefault()
+	}
+
+	repo := newMcpDeploymentRepository(app)
 
 	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		namespace, ok := namespaceFromContext(app, w, r)
+		if !ok {
+			return
+		}
+
+		if !requireMcpDeploymentAccess(app, w, r, namespace, "create") {
+			return
+		}
+
+		client, ok := getKubernetesClient(app, w, r)
 		if !ok {
 			return
 		}
@@ -155,32 +171,9 @@ func overrideMcpDeploymentCreate(app *api.App, _ func() httprouter.Handle) httpr
 			return
 		}
 
-		req := envelope.Data
-
-		if strings.TrimSpace(req.Image) == "" {
-			app.BadRequest(w, r, fmt.Errorf("image is required"))
-			return
-		}
-
-		if req.Name != "" {
-			if err := validateMcpDeploymentName(req.Name); err != nil {
-				app.BadRequest(w, r, fmt.Errorf("invalid name: %w", err))
-				return
-			}
-		}
-
-		if req.Port != 0 && (req.Port < 1 || req.Port > 65535) {
-			app.BadRequest(w, r, fmt.Errorf("port must be between 1 and 65535"))
-			return
-		}
-
-		result, err := repo.Create(namespace, req)
+		result, err := repo.Create(r.Context(), client, namespace, envelope.Data)
 		if err != nil {
-			if errors.Is(err, redhatrepos.ErrMcpDeploymentConflict) {
-				app.Conflict(w, r, err.Error())
-				return
-			}
-			app.ServerError(w, r, err)
+			handleMcpDeploymentError(app, w, r, err)
 			return
 		}
 
@@ -191,12 +184,20 @@ func overrideMcpDeploymentCreate(app *api.App, _ func() httprouter.Handle) httpr
 	})
 }
 
-func overrideMcpDeploymentUpdate(app *api.App, _ func() httprouter.Handle) httprouter.Handle {
-	repo := getSharedMcpDeploymentRepo()
+func overrideMcpDeploymentUpdate(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
+	if !shouldUseRedHatOverrides(app) {
+		return buildDefault()
+	}
+
+	repo := newMcpDeploymentRepository(app)
 
 	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		namespace, ok := namespaceFromContext(app, w, r)
 		if !ok {
+			return
+		}
+
+		if !requireMcpDeploymentAccess(app, w, r, namespace, "update") {
 			return
 		}
 
@@ -206,31 +207,20 @@ func overrideMcpDeploymentUpdate(app *api.App, _ func() httprouter.Handle) httpr
 			return
 		}
 
+		client, ok := getKubernetesClient(app, w, r)
+		if !ok {
+			return
+		}
+
 		var envelope McpDeploymentUpdateEnvelope
 		if err := app.ReadJSON(w, r, &envelope); err != nil {
 			app.BadRequest(w, r, err)
 			return
 		}
 
-		req := envelope.Data
-
-		if req.Image != nil && strings.TrimSpace(*req.Image) == "" {
-			app.BadRequest(w, r, fmt.Errorf("image must not be empty"))
-			return
-		}
-
-		if req.Port != nil && (*req.Port < 1 || *req.Port > 65535) {
-			app.BadRequest(w, r, fmt.Errorf("port must be between 1 and 65535"))
-			return
-		}
-
-		result, err := repo.Update(namespace, name, req)
+		result, err := repo.Update(r.Context(), client, namespace, name, envelope.Data)
 		if err != nil {
-			if errors.Is(err, redhatrepos.ErrMcpDeploymentNotFound) {
-				app.NotFound(w, r)
-				return
-			}
-			app.ServerError(w, r, err)
+			handleMcpDeploymentError(app, w, r, err)
 			return
 		}
 
@@ -241,12 +231,20 @@ func overrideMcpDeploymentUpdate(app *api.App, _ func() httprouter.Handle) httpr
 	})
 }
 
-func overrideMcpDeploymentDelete(app *api.App, _ func() httprouter.Handle) httprouter.Handle {
-	repo := getSharedMcpDeploymentRepo()
+func overrideMcpDeploymentDelete(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
+	if !shouldUseRedHatOverrides(app) {
+		return buildDefault()
+	}
+
+	repo := newMcpDeploymentRepository(app)
 
 	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		namespace, ok := namespaceFromContext(app, w, r)
 		if !ok {
+			return
+		}
+
+		if !requireMcpDeploymentAccess(app, w, r, namespace, "delete") {
 			return
 		}
 
@@ -256,12 +254,13 @@ func overrideMcpDeploymentDelete(app *api.App, _ func() httprouter.Handle) httpr
 			return
 		}
 
-		if err := repo.Delete(namespace, name); err != nil {
-			if errors.Is(err, redhatrepos.ErrMcpDeploymentNotFound) {
-				app.NotFound(w, r)
-				return
-			}
-			app.ServerError(w, r, err)
+		client, ok := getKubernetesClient(app, w, r)
+		if !ok {
+			return
+		}
+
+		if err := repo.Delete(r.Context(), client, namespace, name); err != nil {
+			handleMcpDeploymentError(app, w, r, err)
 			return
 		}
 

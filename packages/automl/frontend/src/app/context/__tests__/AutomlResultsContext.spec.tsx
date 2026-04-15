@@ -14,15 +14,12 @@ import type { PipelineRun } from '~/app/types';
 // Mock Data
 // ============================================================================
 
-const createMockModel = (name: string, metrics: Record<string, number>): AutomlModel => ({
-  display_name: name,
-  model_config: {
-    eval_metric: 'accuracy',
-  },
+const createMockModel = (modelName: string, metrics: Record<string, number>): AutomlModel => ({
+  name: modelName,
   location: {
-    model_directory: `/models/${name}`,
-    predictor: `/models/${name}/predictor.pkl`,
-    notebook: `/models/${name}/notebook.ipynb`,
+    model_directory: `/models/${modelName}`,
+    predictor: `/models/${modelName}/predictor`,
+    notebook: `/models/${modelName}/notebook.ipynb`,
   },
   metrics: {
     test_data: metrics,
@@ -417,7 +414,7 @@ describe('AutomlResultsContext and useAutomlResultsContext', () => {
             <div data-testid="models-count">{Object.keys(context.models).length}</div>
             <div data-testid="model-names">
               {Object.keys(context.models)
-                .map((key) => context.models[key].display_name)
+                .map((key) => context.models[key].name)
                 .join(', ')}
             </div>
           </div>

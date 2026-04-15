@@ -1,0 +1,9 @@
+projectName: rayjob-access-test
+rayJobName: test-ray-job
+rayImage: rayproject/ray:2.9.0
+flavorName: default-flavor
+clusterQueueName: default
+localQueueName: default
+cpuQuota: 100
+memoryQuota: 200
+gpuQuota: 8

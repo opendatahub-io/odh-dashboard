@@ -108,11 +108,7 @@ export default function PromptDrawer({
               style={{ minHeight: '200px' }}
               resizeOrientation="vertical"
               aria-label="prompt template"
-              value={JSON.stringify(
-                template || messages?.find((m) => m.role === 'system')?.content,
-                null,
-                2,
-              )}
+              value={template || messages?.find((m) => m.role === 'system')?.content}
               readOnlyVariant="default"
             />
           </div>
@@ -120,7 +116,11 @@ export default function PromptDrawer({
             <DescriptionListGroup>
               <DescriptionListTerm>Last Modified:</DescriptionListTerm>
               <DescriptionListDescription>
-                <Timestamp date={new Date(updatedAt)} dateFormat={TimestampFormat.full} />
+                <Timestamp
+                  date={new Date(updatedAt)}
+                  dateFormat={TimestampFormat.full}
+                  style={{ fontSize: '14px' }}
+                />
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>

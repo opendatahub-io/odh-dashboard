@@ -378,7 +378,7 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 | `embeddings_models` | string[] | No | List of embedding model identifiers |
 | `generation_models` | string[] | No | List of generation model identifiers |
 | `optimization_metric` | string | No | Metric to optimize: `faithfulness` (default), `answer_correctness`, or `context_correctness` |
-| `llama_stack_vector_database_id` | string | No | Vector database identifier as registered in llama-stack (e.g. llama-stack Milvus) |
+| `llama_stack_vector_io_provider_id` | string | No | Vector I/O provider identifier as registered in llama-stack (e.g. llama-stack Milvus) |
 
 **Notes:**
 - Unknown JSON fields are rejected (strict decoding)

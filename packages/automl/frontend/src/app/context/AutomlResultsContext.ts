@@ -1,25 +1,44 @@
 import * as React from 'react';
-import type { PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-import { getBaseSchema } from '~/app/schemas/configure.schema';
+import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import type { PipelineRun } from '~/app/types';
 
-// Based on the artifact schema from Model artitfact metadata.
-// See https://github.com/LukaszCmielowski/pipelines-components/blob/rhoai_automl/pipelines/training/automl/autogluon_tabular_training_pipeline/README.md#model-artifact-metadata
-export type AutomlModel = {
-  display_name: string;
-  model_config: {
-    eval_metric: string;
-    // time_limit: number;
-  };
+const configureSchema = createConfigureSchema();
+
+// Normalized model types after rewriting relative S3 paths to absolute paths.
+// Tabular and timeseries models have different shapes; downstream code should
+// use the `AutomlModel` union and narrow via `isTimeseriesModel()` when needed.
+
+export type AutomlTabularModel = {
+  name: string;
   location: {
     model_directory: string;
     predictor: string;
     notebook: string;
   };
   metrics: {
-    test_data?: Record<string, unknown>;
+    test_data: Record<string, number>;
   };
 };
+
+export type AutomlTimeseriesModel = {
+  name: string;
+  base_model: string;
+  location: {
+    model_directory: string;
+    predictor: string;
+    notebook: string;
+    metrics: string;
+  };
+  metrics: {
+    test_data: Record<string, number>;
+  };
+};
+
+export type AutomlModel = AutomlTabularModel | AutomlTimeseriesModel;
+
+export const isTimeseriesModel = (model: AutomlModel): model is AutomlTimeseriesModel =>
+  'base_model' in model;
 
 export type AutomlResultsContextProps = {
   pipelineRun?: PipelineRun;
@@ -55,7 +74,7 @@ export function getAutomlContext({
   const inputParams = pipelineRun?.runtime_config?.parameters;
 
   // Validate runtime_config.parameters against ConfigureSchema to ensure type safety
-  const baseSchema = getBaseSchema();
+  const baseSchema = configureSchema.base;
   const parseResult = baseSchema.partial().safeParse(inputParams ?? {});
 
   let parameters: Partial<ConfigureSchema> = {};

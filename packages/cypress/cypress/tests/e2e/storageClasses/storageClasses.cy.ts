@@ -1,4 +1,3 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
   AccessMode,
   StorageProvisioner,
@@ -198,7 +197,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
       storageClassEditModal.findAccessModeCheckbox(AccessMode.ROX).should('not.be.checked');
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWOP)
-        .should('be.disabled')
+        .should('be.enabled')
         .and('not.be.checked');
 
       cy.step('Change access modes - enable ReadWriteMany and ReadOnlyMany');

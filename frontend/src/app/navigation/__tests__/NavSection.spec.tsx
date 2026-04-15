@@ -60,6 +60,20 @@ const mockUseAccessReviewExtensions = useAccessReviewExtensions as jest.MockedFu
 >;
 const mockMatchPath = matchPath as jest.MockedFunction<typeof matchPath>;
 
+/**
+ * Helper to set up the useExtensions mock with a backing array.
+ * NavSection calls useExtensions twice (nav extensions + tab-route pages),
+ * so the mock applies the provided type guard filter to return matching extensions.
+ */
+const setMockExtensions = (extensions: LoadedExtension[]): void => {
+  mockUseExtensions.mockImplementation(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ((typeGuard?: (e: any) => boolean) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      typeGuard ? extensions.filter(typeGuard) : extensions) as any,
+  );
+};
+
 describe('NavSection', () => {
   const renderWithRouter = (component: React.ReactElement) => {
     return render(<MemoryRouter>{component}</MemoryRouter>);
@@ -69,6 +83,7 @@ describe('NavSection', () => {
     jest.clearAllMocks();
     jest.restoreAllMocks();
     mockMatchPath.mockReturnValue(null);
+    setMockExtensions([]);
   });
 
   describe('Empty section scenarios', () => {
@@ -85,7 +100,7 @@ describe('NavSection', () => {
     };
 
     it('should hide section when no children exist', () => {
-      mockUseExtensions.mockReturnValue([]);
+      setMockExtensions([]);
       mockUseAccessReviewExtensions.mockReturnValue([[], true]);
 
       renderWithRouter(<NavSection extension={settingsSection} />);
@@ -113,7 +128,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       // Return empty array indicating no access granted
       mockUseAccessReviewExtensions.mockReturnValue([[], true]);
 
@@ -137,7 +152,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       // isLoaded = false
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], false]);
 
@@ -175,7 +190,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
 
       renderWithRouter(<NavSection extension={settingsSection} />);
@@ -213,7 +228,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([child1, child2]);
+      setMockExtensions([child1, child2]);
       mockUseAccessReviewExtensions.mockReturnValue([[child1, child2], true]);
 
       renderWithRouter(<NavSection extension={settingsSection} />);
@@ -257,7 +272,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([child1, child2]);
+      setMockExtensions([child1, child2]);
       // Only child1 has access
       mockUseAccessReviewExtensions.mockReturnValue([[child1], true]);
 
@@ -310,7 +325,7 @@ describe('NavSection', () => {
       };
 
       // Mock useExtensions to return all extensions - the component will filter them
-      mockUseExtensions.mockReturnValue([subSection, hrefItem]);
+      setMockExtensions([subSection, hrefItem]);
 
       // All descendants accessible
       mockUseAccessReviewExtensions.mockReturnValue([[hrefItem], true]);
@@ -334,7 +349,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([subSection]);
+      setMockExtensions([subSection]);
       // No descendants accessible
       mockUseAccessReviewExtensions.mockReturnValue([[], true]);
 
@@ -383,7 +398,7 @@ describe('NavSection', () => {
       };
 
       // Mock useExtensions to return all extensions
-      mockUseExtensions.mockReturnValue([subSection1, subSection2, hrefItem]);
+      setMockExtensions([subSection1, subSection2, hrefItem]);
       // Href is deeply nested but accessible
       mockUseAccessReviewExtensions.mockReturnValue([[hrefItem], true]);
 
@@ -451,7 +466,7 @@ describe('NavSection', () => {
       };
 
       // Mock useExtensions to return all extensions
-      mockUseExtensions.mockReturnValue([subSection1, subSection2, href1, href2]);
+      setMockExtensions([subSection1, subSection2, href1, href2]);
       // Only href1 has access (in compute subsection)
       mockUseAccessReviewExtensions.mockReturnValue([[href1], true]);
 
@@ -491,7 +506,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
       mockMatchPath.mockReturnValue({
         pathname: '/hardwareProfiles',
@@ -527,7 +542,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
       mockMatchPath.mockReturnValue(null);
 
@@ -567,7 +582,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
       mockMatchPath.mockReturnValue({
         pathname: '/hardwareProfiles',
@@ -601,7 +616,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
       mockMatchPath.mockReturnValue(null);
 
@@ -627,7 +642,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
       mockMatchPath.mockReturnValue(null);
 
@@ -684,7 +699,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
 
       renderWithRouter(<NavSection extension={settingsSection} />);
@@ -757,7 +772,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([groupSettings, computeSection]);
+      setMockExtensions([groupSettings, computeSection]);
       // Both direct child and nested child have access
       mockUseAccessReviewExtensions.mockReturnValue([[groupSettings, hardwareProfiles], true]);
 
@@ -792,7 +807,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([computeSection]);
+      setMockExtensions([computeSection]);
       // No access to the nested href item
       mockUseAccessReviewExtensions.mockReturnValue([[], true]);
 
@@ -835,7 +850,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
 
       renderWithRouter(<NavSection extension={sectionWithIcon} />);
@@ -871,7 +886,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
 
       renderWithRouter(<NavSection extension={sectionWithoutIcon} />);
@@ -909,7 +924,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
 
       // Mock NavItem to verify onNotifyStatus is passed
@@ -970,7 +985,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([child1, child2]);
+      setMockExtensions([child1, child2]);
       mockUseAccessReviewExtensions.mockReturnValue([[child1, child2], true]);
 
       // Mock NavItem to count calls
@@ -1020,7 +1035,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
 
       renderWithRouter(<NavSection extension={settingsSection} />);
@@ -1063,7 +1078,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
       mockMatchPath.mockReturnValue(null);
 
@@ -1129,7 +1144,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childWithoutPath]);
+      setMockExtensions([childWithoutPath]);
       mockUseAccessReviewExtensions.mockReturnValue([[childWithoutPath], true]);
 
       // matchPath should be called with href when path is undefined
@@ -1214,7 +1229,7 @@ describe('NavSection', () => {
       };
 
       // Return children in wrong order
-      mockUseExtensions.mockReturnValue([child3, child1, child2]);
+      setMockExtensions([child3, child1, child2]);
       mockUseAccessReviewExtensions.mockReturnValue([[child3, child1, child2], true]);
       mockMatchPath.mockReturnValue(null);
 
@@ -1276,7 +1291,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childWithoutGroup, childWithGroup]);
+      setMockExtensions([childWithoutGroup, childWithGroup]);
       mockUseAccessReviewExtensions.mockReturnValue([[childWithoutGroup, childWithGroup], true]);
 
       renderWithRouter(<NavSection extension={settingsSection} />);
@@ -1324,7 +1339,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
 
       renderWithRouter(<NavSection extension={sectionWithoutDataAttrs} />);
@@ -1372,7 +1387,7 @@ describe('NavSection', () => {
       };
 
       // Start with one child
-      mockUseExtensions.mockReturnValue([child1]);
+      setMockExtensions([child1]);
       mockUseAccessReviewExtensions.mockReturnValue([[child1], true]);
 
       const { rerender } = renderWithRouter(<NavSection extension={settingsSection} />);
@@ -1389,7 +1404,7 @@ describe('NavSection', () => {
       expect(screen.queryByText('Child 2')).not.toBeInTheDocument();
 
       // Add second child
-      mockUseExtensions.mockReturnValue([child1, child2]);
+      setMockExtensions([child1, child2]);
       mockUseAccessReviewExtensions.mockReturnValue([[child1, child2], true]);
 
       rerender(
@@ -1431,7 +1446,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
       mockMatchPath.mockReturnValue(null);
 
@@ -1491,7 +1506,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([child1, child2]);
+      setMockExtensions([child1, child2]);
       // Initially both accessible
       mockUseAccessReviewExtensions.mockReturnValue([[child1, child2], true]);
       mockMatchPath.mockReturnValue(null);
@@ -1551,7 +1566,7 @@ describe('NavSection', () => {
         flags: {},
       };
 
-      mockUseExtensions.mockReturnValue([childExtension]);
+      setMockExtensions([childExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[childExtension], true]);
 
       const { container } = renderWithRouter(<NavSection extension={sectionWithEmptyTitle} />);
@@ -1657,7 +1672,7 @@ describe('NavSection', () => {
         flags: {},
       } as unknown as LoadedExtension<HrefNavItemExtension>;
 
-      mockUseExtensions.mockReturnValue([validChild, unknownExtension]);
+      setMockExtensions([validChild, unknownExtension]);
       mockUseAccessReviewExtensions.mockReturnValue([[validChild], true]);
 
       renderWithRouter(<NavSection extension={settingsSection} />);

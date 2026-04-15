@@ -168,10 +168,33 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
           },
         },
       },
+      MuiAutocomplete: {
+        styleOverrides: {
+          option: {
+            paddingRight: 'var(--pf-t--global--spacer--lg) !important',
+          },
+        },
+      },
       MuiSelect: {
         styleOverrides: {
           icon: {
             color: primaryTextColor,
+          },
+        },
+      },
+      MuiCheckbox: {
+        styleOverrides: {
+          root: {
+            color: 'var(--pf-t--global--border--color--default)',
+            '& .MuiSvgIcon-root': {
+              color: 'inherit',
+            },
+            '&.Mui-checked': {
+              color: 'var(--pf-t--global--color--brand--default)',
+            },
+            '&.MuiCheckbox-indeterminate': {
+              color: 'var(--pf-t--global--color--brand--default)',
+            },
           },
         },
       },
@@ -394,8 +417,8 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
             '&[aria-label*="query view" i]': {
               display: 'none',
             },
-            // Hide Export CSV button
-            '&[aria-label="Export time series data as CSV"]': {
+            // Hide panel notices (eg warning: PromQL info: metric might not be a counter, name does not end in _total/_sum/_count/_bucket: "...")
+            '&[aria-label="panel notices"]': {
               display: 'none',
             },
           },

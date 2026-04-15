@@ -13,7 +13,10 @@
       "dimensions": 128
     },
     "endpoint": "/v1/embeddings",
-    "model": "models/gemini-embedding-001"
+    "model": "models/gemini-embedding-001",
+    "provider_metadata": {
+      "openai_sdk_version": "2.6.1"
+    }
   },
   "response": {
     "body": {

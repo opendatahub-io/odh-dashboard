@@ -499,6 +499,7 @@ export enum DeploymentMode {
 export type InferenceServiceAnnotations = DisplayNameAnnotations &
   Partial<{
     'security.opendatahub.io/enable-auth': string;
+    'security.opendatahub.io/auth-proxy-type': 'kube-rbac-proxy' | 'oauth-proxy' | string;
     'serving.kserve.io/deploymentMode': DeploymentMode;
     'serving.knative.openshift.io/enablePassthrough': 'true';
     'sidecar.istio.io/inject': 'true';
@@ -529,6 +530,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
       annotations?: Record<string, string>;
       tolerations?: Toleration[];
       nodeSelector?: NodeSelector;
+      timeout?: number;
       deploymentStrategy?: {
         type: 'RollingUpdate' | 'Recreate';
       };
@@ -1150,7 +1152,7 @@ export type AccessReviewResourceAttributes = {
   /** Plural resource name, omit for all */
   resource?: string;
   /** TODO: Not a full list, could be expanded, "" means none */
-  subresource?: '' | 'spec' | 'status';
+  subresource?: '' | 'api' | 'spec' | 'status';
   /** Must provide the verb you are trying to do; '*' means all verbs */
   verb: '*' | K8sVerb;
   /** A resource name, omit when not interested in a specific resource */
@@ -1301,8 +1303,9 @@ export type DashboardCommonConfig = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  maasAuthPolicies?: boolean;
   aiAssetCustomEndpoints?: boolean;
-  mlflow?: boolean;
+  mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
@@ -1310,6 +1313,8 @@ export type DashboardCommonConfig = {
   deploymentWizardYAMLViewer?: boolean;
   externalVectorStores?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
+  llmGatewayField?: boolean;
+  promptManagement?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition
@@ -1538,10 +1543,6 @@ export type DataScienceClusterInitializationKindStatus = {
   };
   components?: Record<string, never>;
   phase?: string;
-  // Added by the backend to identify the monitoring namespace
-  monitoring?: {
-    namespace?: string;
-  };
 };
 
 export type ModelRegistryKind = K8sResourceCommon & {

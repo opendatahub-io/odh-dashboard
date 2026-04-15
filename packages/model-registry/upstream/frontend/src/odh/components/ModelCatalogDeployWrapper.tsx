@@ -45,7 +45,7 @@ const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ m
     () => ({
       modelName: model.name,
       modelUri: uri,
-      returnRouteValue: '/ai-hub/deployments/',
+      returnRouteValue: '/ai-hub/models/deployments/',
       cancelReturnRouteValue: cancelReturnRoute,
       wizardStartIndex: 1,
       prefillAlertText: `The ${model.name} model details have been imported from the model catalog.`,

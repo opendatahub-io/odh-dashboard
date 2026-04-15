@@ -4,8 +4,8 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/
 import type { Deployment } from '../../../extension-points';
 
 const getMetricsUrl = (currentPath: string, deployment: Deployment) => {
-  if (matchPath('/ai-hub/deployments/*', currentPath)) {
-    return `/ai-hub/deployments/${deployment.model.metadata.namespace}/metrics/${deployment.model.metadata.name}`;
+  if (matchPath('/ai-hub/models/deployments/*', currentPath)) {
+    return `/ai-hub/models/deployments/${deployment.model.metadata.namespace}/metrics/${deployment.model.metadata.name}`;
   }
   return `/projects/${deployment.model.metadata.namespace}/metrics/model/${deployment.model.metadata.name}`;
 };

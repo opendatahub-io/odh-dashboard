@@ -68,7 +68,7 @@ Wait for both the backend (port `4000`) and the frontend dev server (port `4010`
 
 Use the browser MCP's navigation tool to open:
 
-```
+```text
 http://localhost:4010/<path>
 ```
 

@@ -6,19 +6,14 @@ import userEvent from '@testing-library/user-event';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import AutomlModelDetailsModalHeader from '~/app/components/run-results/AutomlModelDetailsModal/AutomlModelDetailsModalHeader';
 
-const buildModel = (
-  name: string,
-  evalMetric: string,
-  metrics: Record<string, unknown>,
-): AutomlModel => ({
-  display_name: name,
-  model_config: { eval_metric: evalMetric },
-  location: { model_directory: '/', predictor: '/p.pkl', notebook: '/n.ipynb' },
+const buildModel = (modelName: string, metrics: Record<string, number>): AutomlModel => ({
+  name: modelName,
+  location: { model_directory: '/', predictor: '/predictor', notebook: '/n.ipynb' },
   metrics: { test_data: metrics },
 });
 
-const modelA = buildModel('CatBoost', 'accuracy', { accuracy: 0.658 });
-const modelB = buildModel('RandomForest', 'accuracy', { accuracy: 0.632 });
+const modelA = buildModel('CatBoost', { accuracy: 0.658 });
+const modelB = buildModel('RandomForest', { accuracy: 0.632 });
 
 describe('AutomlModelDetailsModalHeader', () => {
   const defaultProps = {
@@ -26,9 +21,11 @@ describe('AutomlModelDetailsModalHeader', () => {
     currentModelName: 'CatBoost',
     rank: 1,
     rankMap: { CatBoost: 1, RandomForest: 2 },
+    evalMetric: 'accuracy',
     onSelectModel: jest.fn(),
     onDownload: jest.fn(),
     onSaveNotebook: jest.fn(),
+    onRegisterModel: jest.fn(),
   };
 
   beforeEach(() => {
@@ -52,10 +49,11 @@ describe('AutomlModelDetailsModalHeader', () => {
   });
 
   it('should display raw value for non-error metrics like r2', () => {
-    const negativeModel = buildModel('Model', 'r2', { r2: -0.123 });
+    const negativeModel = buildModel('Model', { r2: -0.123 });
     render(
       <AutomlModelDetailsModalHeader
         {...defaultProps}
+        evalMetric="r2"
         models={[negativeModel]}
         currentModelName="Model"
       />,
@@ -64,10 +62,11 @@ describe('AutomlModelDetailsModalHeader', () => {
   });
 
   it('should use absolute value for error metrics like mase', () => {
-    const errorModel = buildModel('Model', 'mase', { mase: -0.082 });
+    const errorModel = buildModel('Model', { mase: -0.082 });
     render(
       <AutomlModelDetailsModalHeader
         {...defaultProps}
+        evalMetric="mase"
         models={[errorModel]}
         currentModelName="Model"
       />,
@@ -76,21 +75,22 @@ describe('AutomlModelDetailsModalHeader', () => {
   });
 
   it('should display N/A when eval_metric is missing from test_data', () => {
-    const noMetricModel = buildModel('Model', 'f1', { accuracy: 0.9 });
+    const noMetricModel = buildModel('Model', { accuracy: 0.9 });
     render(
       <AutomlModelDetailsModalHeader
         {...defaultProps}
+        evalMetric="f1"
         models={[noMetricModel]}
         currentModelName="Model"
       />,
     );
-    expect(screen.getByText('F1 (Optimized)')).toBeInTheDocument();
+    expect(screen.getByText('F₁ (Optimized)')).toBeInTheDocument();
     expect(screen.getByText('N/A')).toBeInTheDocument();
   });
 
   it('should render dropdown models sorted by rank', async () => {
     const user = userEvent.setup();
-    const modelC = buildModel('Worst', 'accuracy', { accuracy: 0.5 });
+    const modelC = buildModel('Worst', { accuracy: 0.5 });
     const models = [modelC, modelA, modelB]; // unsorted order
     render(
       <AutomlModelDetailsModalHeader
@@ -118,17 +118,79 @@ describe('AutomlModelDetailsModalHeader', () => {
     expect(defaultProps.onDownload).toHaveBeenCalledTimes(1);
   });
 
-  it('should render Save as notebook button', () => {
+  it('should render Save as dropdown toggle', () => {
     render(<AutomlModelDetailsModalHeader {...defaultProps} />);
-    const saveButton = screen.getByTestId('model-details-save-notebook');
-    expect(saveButton).toBeInTheDocument();
-    expect(saveButton).toBeEnabled();
+    expect(screen.getByTestId('model-details-actions-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('model-details-actions-toggle')).toHaveTextContent('Save as');
   });
 
-  it('should call onSaveNotebook when Save as notebook is clicked', () => {
+  it('should render Save as notebook item in dropdown', async () => {
+    const user = userEvent.setup();
     render(<AutomlModelDetailsModalHeader {...defaultProps} />);
-    screen.getByTestId('model-details-save-notebook').click();
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    const saveItem = screen.getByTestId('model-details-save-notebook');
+    expect(saveItem).toBeInTheDocument();
+    expect(saveItem).toHaveTextContent('Save as notebook');
+  });
+
+  it('should render Register model item in dropdown', async () => {
+    const user = userEvent.setup();
+    render(<AutomlModelDetailsModalHeader {...defaultProps} />);
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    const registerItem = screen.getByTestId('model-details-register-model');
+    expect(registerItem).toBeInTheDocument();
+    expect(registerItem).toHaveTextContent('Register model');
+  });
+
+  it('should call onSaveNotebook when Save as notebook is clicked', async () => {
+    const user = userEvent.setup();
+    render(<AutomlModelDetailsModalHeader {...defaultProps} />);
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    await user.click(screen.getByRole('menuitem', { name: 'Save as notebook' }));
     expect(defaultProps.onSaveNotebook).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onRegisterModel when Register model is clicked', async () => {
+    const user = userEvent.setup();
+    render(<AutomlModelDetailsModalHeader {...defaultProps} />);
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    await user.click(screen.getByRole('menuitem', { name: 'Register model' }));
+    expect(defaultProps.onRegisterModel).toHaveBeenCalledTimes(1);
+  });
+
+  it('should disable Save as notebook when onSaveNotebook is not provided', async () => {
+    const user = userEvent.setup();
+    render(<AutomlModelDetailsModalHeader {...defaultProps} onSaveNotebook={undefined} />);
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    expect(screen.getByRole('menuitem', { name: 'Save as notebook' })).toBeDisabled();
+  });
+
+  it('should disable Register model when onRegisterModel is not provided', async () => {
+    const user = userEvent.setup();
+    render(<AutomlModelDetailsModalHeader {...defaultProps} onRegisterModel={undefined} />);
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    expect(screen.getByRole('menuitem', { name: 'Register model' })).toBeDisabled();
+  });
+
+  it('should show dropdown when only onSaveNotebook is provided', () => {
+    render(<AutomlModelDetailsModalHeader {...defaultProps} onRegisterModel={undefined} />);
+    expect(screen.getByTestId('model-details-actions-toggle')).toBeInTheDocument();
+  });
+
+  it('should show dropdown when only onRegisterModel is provided', () => {
+    render(<AutomlModelDetailsModalHeader {...defaultProps} onSaveNotebook={undefined} />);
+    expect(screen.getByTestId('model-details-actions-toggle')).toBeInTheDocument();
+  });
+
+  it('should not render dropdown when neither callback is provided', () => {
+    render(
+      <AutomlModelDetailsModalHeader
+        {...defaultProps}
+        onSaveNotebook={undefined}
+        onRegisterModel={undefined}
+      />,
+    );
+    expect(screen.queryByTestId('model-details-actions-toggle')).not.toBeInTheDocument();
   });
 
   it('should render model name as plain text when only one model', () => {

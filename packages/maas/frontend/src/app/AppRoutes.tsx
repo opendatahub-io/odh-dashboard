@@ -7,11 +7,26 @@ import EditSubscriptionPage from '~/app/pages/subscriptions/EditSubscriptionPage
 import CreateSubscriptionPage from '~/app/pages/subscriptions/CreateSubscriptionPage';
 import AllApiKeysPage from '~/app/pages/api-keys/AllApiKeysPage';
 import { URL_PREFIX } from '~/app/utilities/const';
+import AllAuthPoliciesPage from '~/app/pages/auth-policies/AllAuthPoliciesPage';
+import CreateAuthPolicyPage from '~/app/pages/auth-policies/CreateAuthPolicyPage';
+import EditAuthPolicyPage from '~/app/pages/auth-policies/EditAuthPolicyPage';
+import ViewAuthPoliciesPage from '~/app/pages/auth-policies/ViewAuthPoliciesPage';
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();
   const isSubscriptions = pathname.startsWith(`${URL_PREFIX}/subscriptions`);
-
+  const isAuthPolicies = pathname.startsWith(`${URL_PREFIX}/auth-policies`);
+  if (isAuthPolicies) {
+    return (
+      <Routes>
+        <Route path="/" element={<AllAuthPoliciesPage />} />
+        <Route path="/create" element={<CreateAuthPolicyPage />} />
+        <Route path="/view/:authPolicyName" element={<ViewAuthPoliciesPage />} />
+        <Route path="/edit/:authPolicyName" element={<EditAuthPolicyPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    );
+  }
   if (isSubscriptions) {
     return (
       <Routes>

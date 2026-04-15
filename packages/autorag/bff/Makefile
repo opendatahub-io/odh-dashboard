@@ -12,6 +12,7 @@ AUTH_METHOD ?= user_token
 AUTH_TOKEN_HEADER ?= Authorization
 AUTH_TOKEN_PREFIX ?= Bearer
 INSECURE_SKIP_VERIFY ?= false
+BUNDLE_PATHS ?=
 LLAMA_STACK_URL ?= ""
 #frontend static assets root directory
 STATIC_ASSETS_DIR ?= ./static
@@ -89,7 +90,8 @@ run: fmt vet envtest ## Runs the project.
 		--deployment-mode="$(DEPLOYMENT_MODE)" \
 		--log-level="$(LOG_LEVEL)" \
 		--allowed-origins="$(ALLOWED_ORIGINS)" \
-		--insecure-skip-verify="$(INSECURE_SKIP_VERIFY)"
+		--insecure-skip-verify="$(INSECURE_SKIP_VERIFY)" \
+		$(if $(BUNDLE_PATHS),--bundle-paths="$(BUNDLE_PATHS)")
 
 ##@ Dependencies
 

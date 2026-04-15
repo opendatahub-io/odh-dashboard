@@ -1,4 +1,5 @@
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
+import { MLflowPromptVersion } from '~/app/types';
 
 /**
  * MCP tool selections map structure:
@@ -31,6 +32,8 @@ export interface ChatbotConfiguration {
   /** The vector store ID selected for RAG in this pane */
   selectedVectorStoreId: string | null;
   selectedSubscription: string;
+  activePrompt: MLflowPromptVersion | null;
+  dirtyPrompt: MLflowPromptVersion | null;
 }
 
 /**
@@ -52,6 +55,8 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   knowledgeMode: 'inline',
   selectedVectorStoreId: null,
   selectedSubscription: '',
+  activePrompt: null,
+  dirtyPrompt: null,
 };
 
 /**
@@ -101,11 +106,17 @@ export interface ChatbotConfigStoreActions {
   updateKnowledgeMode: (id: string, value: 'inline' | 'external') => void;
   updateSelectedVectorStoreId: (id: string, value: string | null) => void;
 
+  updateActivePrompt: (id: string, prompt: MLflowPromptVersion | null) => void;
+  updateDirtyPrompt: (id: string, prompt: MLflowPromptVersion | null) => void;
+  resetDirtyPrompt: (id: string) => void;
+  clearPromptState: (id: string, newDirtyPrompt: MLflowPromptVersion | null) => void;
+
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;
 
   // Utility
   getConfiguration: (id: string) => ChatbotConfiguration | undefined;
+  getPromptSourceType: (id: string) => string;
 }
 
 /**

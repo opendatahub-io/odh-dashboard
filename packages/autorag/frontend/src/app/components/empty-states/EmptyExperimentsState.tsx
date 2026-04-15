@@ -1,15 +1,14 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router';
 
-import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateFooter,
-  EmptyStateActions,
-  Button,
-} from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
+import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
+import { Button } from '@patternfly/react-core';
 
+/**
+ * Empty State B — pipeline server and managed AutoRAG pipeline are OK; zero runs.
+ * Shown only after successful loads (`!loadError && loaded && totalSize === 0`).
+ */
 interface EmptyExperimentsStateProps {
   createExperimentRoute: string;
   dataTestId?: string;
@@ -18,33 +17,24 @@ interface EmptyExperimentsStateProps {
 const EmptyExperimentsState: React.FC<EmptyExperimentsStateProps> = ({
   createExperimentRoute,
   dataTestId = 'empty-experiments-state',
-}) => {
-  const navigate = useNavigate();
-
-  return (
-    <EmptyState
-      data-testid={dataTestId}
-      titleText="No experiments yet"
-      icon={PlusCircleIcon}
-      headingLevel="h2"
-    >
-      <EmptyStateBody>
-        To get started, create an AutoRAG experiment to configure and run your RAG pipeline.
-      </EmptyStateBody>
-
-      <EmptyStateFooter>
-        <EmptyStateActions>
-          <Button
-            data-testid="create-experiment-button"
-            variant="primary"
-            onClick={() => navigate(createExperimentRoute)}
-          >
-            Create AutoRAG experiment
-          </Button>
-        </EmptyStateActions>
-      </EmptyStateFooter>
-    </EmptyState>
-  );
-};
+}) => (
+  <div data-testid={dataTestId}>
+    <EmptyDetailsView
+      title="Create an AutoRAG optimization run"
+      description="Test different retrieval and model configurations to find the best-performing setup."
+      iconImage={typedEmptyImage(ProjectObjectType.pipeline)}
+      imageAlt=""
+      createButton={
+        <Button
+          data-testid="create-run-button"
+          variant="primary"
+          component={(props) => <Link {...props} to={createExperimentRoute} />}
+        >
+          Create run
+        </Button>
+      }
+    />
+  </div>
+);
 
 export default EmptyExperimentsState;

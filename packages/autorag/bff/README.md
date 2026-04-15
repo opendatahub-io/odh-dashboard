@@ -59,7 +59,7 @@ make run LOG_LEVEL=DEBUG
 | `-mock-pipeline-server-client` | `MOCK_PIPELINE_SERVER_CLIENT` | Use mock client for Kubeflow Pipelines API calls                                       |
 | `-mock-s3-client` | `MOCK_S3_CLIENT` | Use mock client for S3 SDK calls                                                       |
 | `-pipeline-server-url` | `PIPELINE_SERVER_URL` | Override Kubeflow Pipelines URL for local testing (e.g., `http://localhost:8888`)      |
-| `-autorag-pipeline-name-prefix` | `AUTORAG_PIPELINE_NAME_PREFIX` | Prefix for identifying AutoRAG managed pipelines during discovery (default: `autorag`) |
+| `-autorag-pipeline-name-prefix` | `AUTORAG_PIPELINE_NAME_PREFIX` | Prefix for identifying AutoRAG managed pipelines during discovery (default: `documents-rag-optimization-pipeline`) |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets                                         |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO)                                                |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins                                                           |
@@ -231,6 +231,79 @@ This will configure the BFF to extract the raw token from the following header:
 X-Forwarded-Access-Token: <your-token>
 ```
 
+### Setting up a LlamaStack secret
+
+The AutoRAG BFF requires a Kubernetes secret with LlamaStack credentials to access models and vector stores. The secret must contain the LlamaStack server URL and an API key (OAuth2 token from Keycloak).
+
+#### Secret format
+
+```yaml
+kind: Secret
+apiVersion: v1
+metadata:
+  name: my-lls-secret
+  namespace: <your-namespace>
+type: Opaque
+data:
+  llama_stack_client_base_url: <base64-encoded URL>
+  llama_stack_client_api_key: <base64-encoded token>
+```
+
+The secret keys `llama_stack_client_base_url` and `llama_stack_client_api_key` are required (exact match, case-sensitive). The BFF reads these to create the LlamaStack client.
+
+#### Generating the API key
+
+The LlamaStack server uses Keycloak for authentication. To obtain an OAuth2 access token:
+
+```shell
+# 1. Retrieve Keycloak client credentials from the cluster
+CLIENT_ID=$(oc get secret llama-stack-client-secret -n keycloak -o jsonpath='{.data.client-id}' | base64 -d)
+CLIENT_SECRET=$(oc get secret llama-stack-client-secret -n keycloak -o jsonpath='{.data.client-secret}' | base64 -d)
+
+# 2. Request a token via the Keycloak token endpoint (from inside the cluster)
+TOKEN=$(oc exec -n llama-stack $(oc get pods -n llama-stack -l app=llama-stack -o jsonpath='{.items[0].metadata.name}') -- \
+  curl -s -X POST 'http://keycloak-service.keycloak.svc.cluster.local:8080/realms/llamastack/protocol/openid-connect/token' \
+  -d "client_id=${CLIENT_ID}&grant_type=client_credentials&client_secret=${CLIENT_SECRET}" | jq -r '.access_token')
+
+# 3. Verify the token works
+curl -s -H "Authorization: Bearer ${TOKEN}" \
+  'https://<llamastack-route>/v1/vector_stores' | jq
+```
+
+#### Creating the secret
+
+Once you have the token and know your LlamaStack server URL, create the secret:
+
+```shell
+oc create secret generic my-lls-secret \
+  --namespace=<your-namespace> \
+  --from-literal=llama_stack_client_base_url=https://<llamastack-route> \
+  --from-literal=llama_stack_client_api_key=${TOKEN}
+```
+
+**Note:** OAuth2 tokens expire. You will need to regenerate the token and update the secret when it expires. To update an existing secret:
+
+```shell
+oc create secret generic my-lls-secret \
+  --namespace=<your-namespace> \
+  --from-literal=llama_stack_client_base_url=https://<llamastack-route> \
+  --from-literal=llama_stack_client_api_key=${TOKEN} \
+  --dry-run=client -o yaml | oc apply -f -
+```
+
+#### Using the secret with the BFF
+
+The secret name is passed as a query parameter to the LlamaStack endpoints:
+
+```shell
+curl -H "Authorization: Bearer $(oc whoami -t)" \
+  'http://localhost:4000/api/v1/lsd/models?namespace=<your-namespace>&secretName=my-lls-secret'
+```
+
+For more details on the LlamaStack endpoints, see:
+- [LSD Models API](docs/lsd-models-endpoint.md)
+- [LSD Vector Stores API](docs/lsd-vector-stores-endpoint.md)
+
 ### Enabling CORS
 
 When serving the UI directly from the BFF there is no need for any CORS headers to be served, by default they are turned off for security reasons.
@@ -292,3 +365,63 @@ export INSECURE_SKIP_VERIFY=true
 ```
 
 > **Warning:** Only use in development. Keep TLS verification enabled in production.
+
+### Federated development with a live cluster
+
+To run the AutoRAG module as a federated micro-frontend against the main ODH Dashboard with a real pipeline server, you need three things running:
+
+1. A port-forward to the KFP pipeline server in your cluster
+2. The AutoRAG BFF + frontend in federated mode
+3. The main ODH Dashboard
+
+#### Prerequisites
+
+Before starting, ensure you have:
+- Port-forward access to the pipeline server (see [Local testing with port-forward](#local-testing-with-port-forward))
+- A LlamaStack secret created in your namespace (see [Setting up a LlamaStack secret](#setting-up-a-llamastack-secret))
+
+#### 1. Port-forward the pipeline server
+
+```shell
+# Find your pipeline server service
+oc get svc -n <namespace> | grep ds-pipeline
+
+# Port-forward (8443 is the kube-rbac-proxy HTTPS port)
+oc port-forward -n <namespace> svc/ds-pipeline-dspa 8443:8443
+```
+
+#### 2. Start AutoRAG in federated mode with the pipeline server URL
+
+From the `packages/autorag/` directory:
+
+```shell
+PIPELINE_SERVER_URL=https://localhost:8443 make dev-start-federated
+```
+
+This starts both the BFF (port 4001) and the frontend webpack dev server (port 9107) in federated mode. The BFF connects to your port-forwarded pipeline server and uses your cluster credentials for RBAC.
+
+**Pipeline name prefix:** The BFF discovers AutoRAG pipelines by matching display names that start with a configurable prefix. The default is `documents-rag-optimization-pipeline`. If your pipelines use a different naming convention, override it:
+
+```shell
+PIPELINE_SERVER_URL=https://localhost:8443 \
+  AUTORAG_PIPELINE_NAME_PREFIX=my-custom-prefix \
+  make dev-start-federated
+```
+
+#### 3. Start the main ODH Dashboard
+
+In a separate terminal, from the repo root:
+
+```shell
+npm run dev
+```
+
+Then access the dashboard at **http://localhost:4010** and navigate to the AutoRAG section.
+
+#### Mock mode (no cluster required)
+
+If you don't have a cluster available, you can run with fully mocked backends:
+
+```shell
+make dev-start-federated-mock
+```

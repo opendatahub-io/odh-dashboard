@@ -85,16 +85,65 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 	})
 }
 
+// evalHubServiceURL resolves the EvalHub service URL and the caller's auth token for the
+// current request. It is shared between AttachEvalHubClient and EvalHubServiceHealthHandler.
+//
+// Return values:
+//   - serviceURL  — the URL to use for the EvalHub REST client.
+//   - authToken   — the caller's bearer token (empty when using an env-override URL and no
+//     identity is present, e.g. in dev mode).
+//   - crNotFound  — true when no EvalHub CR exists in the dashboard namespace (not an error;
+//     callers should surface this as a distinct state rather than 500).
+//   - err         — a real unexpected error (K8s API failure, missing identity, etc.).
+//
+// Priority (evaluated per-request):
+//  1. EVAL_HUB_URL env override — used directly; no K8s call needed.
+//  2. CR discovery              — lists evalhubs.trustyai.opendatahub.io in
+//     app.dashboardNamespace via the caller's bearer token.
+//
+// Mock mode is NOT handled here; callers must short-circuit before calling this function.
+func (app *App) evalHubServiceURL(ctx context.Context) (serviceURL, authToken string, crNotFound bool, err error) {
+	// Check the env override first so auth-disabled dev mode works without an identity in context.
+	if app.config.EvalHubURL != "" {
+		identity, _ := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+		if identity != nil {
+			authToken = identity.Token
+		}
+		return app.config.EvalHubURL, authToken, false, nil
+	}
+
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+	if !ok || identity == nil {
+		return "", "", false, fmt.Errorf("missing RequestIdentity in context")
+	}
+	authToken = identity.Token
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		return "", "", false, fmt.Errorf("failed to get Kubernetes client: %w", err)
+	}
+
+	crStatus, err := k8sClient.GetEvalHubCRStatus(ctx, identity, app.dashboardNamespace)
+	if err != nil {
+		return "", "", false, fmt.Errorf("EvalHub CR lookup failed: %w", err)
+	}
+	if crStatus == nil || strings.TrimSpace(crStatus.URL) == "" {
+		return "", authToken, true, nil
+	}
+	return crStatus.URL, authToken, false, nil
+}
+
 // AttachEvalHubClient middleware creates an EvalHub client and attaches it to context.
 //
-// The EvalHub service URL is resolved once at startup (see resolveEvalHubURL in app.go)
-// and stored in app.evalHubURL. This mirrors the MLflow BFF pattern: discovery runs
-// with the pod's service account at boot time rather than per-request with the user token.
+// The EvalHub service URL is resolved on every request (per-request discovery) using the
+// caller's bearer token to list EvalHub CRs in the dashboard namespace. This ensures the
+// BFF always reflects the current cluster state without requiring a pod restart.
 //
-// Priority for resolving the URL (evaluated at startup, not per-request):
+// Priority for resolving the URL (evaluated per-request):
 //  1. MOCK_EVAL_HUB_CLIENT=true  → mock client (test/dev mode, no URL needed)
-//  2. EVAL_HUB_URL env var set   → developer override
-//  3. CR auto-discovery          → evalhubs.trustyai.opendatahub.io status.url in dashboard namespace
+//  2. EVAL_HUB_URL env var set   → developer override, used directly (no K8s call)
+//  3. CR discovery               → lists evalhubs.trustyai.opendatahub.io in dashboard
+//     namespace via the caller's bearer token
 func (app *App) AttachEvalHubClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) func(http.ResponseWriter, *http.Request, httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
@@ -106,27 +155,17 @@ func (app *App) AttachEvalHubClient(next func(http.ResponseWriter, *http.Request
 			logger.Debug("MOCK MODE: creating mock EvalHub client")
 			client = app.evalHubClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs, "/api/v1")
 		} else {
-			identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
-			if !ok || identity == nil {
-				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+			serviceURL, authToken, crNotFound, err := app.evalHubServiceURL(ctx)
+			if err != nil {
+				app.serverErrorResponse(w, r, err)
 				return
 			}
-
-			serviceURL := app.evalHubURL
-			if serviceURL == "" {
-				app.serviceUnavailableResponse(w, r, fmt.Errorf("EvalHub service URL is not available: CR auto-discovery failed at startup"))
+			if crNotFound {
+				app.serviceUnavailableResponse(w, r, fmt.Errorf("EvalHub CR not found in namespace %q — operator not configured", app.dashboardNamespace))
 				return
 			}
-
-			logger.Debug("Using startup-resolved EvalHub service URL", "serviceURL", serviceURL)
-
-			client = app.evalHubClientFactory.CreateClient(
-				serviceURL,
-				identity.Token,
-				app.config.InsecureSkipVerify,
-				app.rootCAs,
-				"/api/v1",
-			)
+			logger.Debug("Resolved EvalHub service URL", "serviceURL", serviceURL)
+			client = app.evalHubClientFactory.CreateClient(serviceURL, authToken, app.config.InsecureSkipVerify, app.rootCAs, "/api/v1")
 		}
 
 		ctx = context.WithValue(ctx, constants.EvalHubClientKey, client)

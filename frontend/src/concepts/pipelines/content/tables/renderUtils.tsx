@@ -16,13 +16,13 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { printSeconds, relativeDuration, relativeTime } from '#~/utilities/time';
 import {
   PipelineRunKF,
-  runtimeStateLabels,
   PipelineRecurringRunKF,
   RecurringRunStatus as RecurringRunStatusType,
   ExperimentKF,
 } from '#~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
+  getRunStartTime,
   getPipelineRecurringRunScheduledState,
   ScheduledState,
 } from '#~/concepts/pipelines/content/tables/utils';
@@ -41,29 +41,43 @@ export const RunStatus: RunUtil<{ hasNoLabel?: boolean; isCompact?: boolean }> =
   isCompact = true,
   run,
 }) => {
-  const { icon, status, color, label, details, createdAt } = computeRunStatus(run);
-  let tooltipContent: React.ReactNode = details;
-  let content = (
-    <Label color={color} icon={icon} isCompact={isCompact}>
-      {label}
-    </Label>
-  );
+  const { icon, status, color, labelStatus, label, details, createdAt } = computeRunStatus(run);
+  const tooltipContent: React.ReactNode = details;
 
-  if (hasNoLabel && !tooltipContent) {
-    content = (
+  if (hasNoLabel) {
+    const iconContent = (
       <Icon isInline status={status}>
         {icon}
       </Icon>
     );
 
-    // If we are just an icon with no tooltip -- make it the status for ease of understanding
-    tooltipContent = (
-      <Stack>
-        <StackItem>{`Status: ${runtimeStateLabels[run.state]}`}</StackItem>
-        <StackItem>{`Started: ${createdAt ?? ''}`}</StackItem>
-      </Stack>
+    return (
+      <Tooltip
+        content={
+          tooltipContent || (
+            <Stack>
+              <StackItem>{`Status: ${label}`}</StackItem>
+              <StackItem>{`Started: ${createdAt ?? ''}`}</StackItem>
+            </Stack>
+          )
+        }
+      >
+        {iconContent}
+      </Tooltip>
     );
   }
+
+  const content = (
+    <Label
+      variant={tooltipContent ? 'filled' : 'outline'}
+      color={color}
+      status={labelStatus}
+      icon={icon}
+      isCompact={isCompact}
+    >
+      {label}
+    </Label>
+  );
 
   if (tooltipContent) {
     return <Tooltip content={tooltipContent}>{content}</Tooltip>;
@@ -83,8 +97,11 @@ export const RunDuration: RunUtil = ({ run }) => {
 };
 
 export const RunCreated: RunUtil = ({ run }) => {
-  const createdDate = new Date(run.created_at);
-  return <PipelinesTableRowTime date={createdDate} />;
+  const date = getRunStartTime(run);
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return <NoRunContent />;
+  }
+  return <PipelinesTableRowTime date={date} />;
 };
 
 export const RecurringRunCreated: RecurringRunUtil = ({ recurringRun }) => {

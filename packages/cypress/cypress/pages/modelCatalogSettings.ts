@@ -24,12 +24,12 @@ class ModelCatalogSettings {
 
   private findHeading() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('AI catalog sources');
+    cy.findByTestId('app-page-title').contains('Model catalog settings');
   }
 
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'AI catalog sources',
+      name: 'Model catalog settings',
       rootSection: 'Settings',
       subSection: 'Model resources and operations',
     });

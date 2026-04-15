@@ -6,11 +6,9 @@ import { FilterOptions } from '#~/concepts/pipelines/content/tables/usePipelineF
 import { RuntimeStateKF, runtimeStateLabels } from '#~/concepts/pipelines/kfTypes';
 import DashboardDatePicker from '#~/components/DashboardDatePicker';
 import { PipelineRunVersionsContext } from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
-import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
-import {
-  ExperimentFilterSelector,
-  PipelineVersionFilterSelector,
-} from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
+import { PipelineVersionFilterSelector } from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
+import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -30,7 +28,7 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
   ...toolbarProps
 }) => {
   const { versions } = React.useContext(PipelineRunVersionsContext);
-  const { experiments } = React.useContext(PipelineRunExperimentsContext);
+  const { namespace } = usePipelinesAPI();
   /* eslint-disable @typescript-eslint/no-unused-vars */
   const {
     [RuntimeStateKF.RUNTIME_STATE_UNSPECIFIED]: unspecifiedState,
@@ -54,11 +52,13 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
             onChange={(_event, value) => onChange(value)}
           />
         ),
-        [FilterOptions.EXPERIMENT]: ({ onChange, label }) => (
-          <ExperimentFilterSelector
-            resources={experiments}
-            selection={label}
-            onSelect={(experiment) => onChange(experiment.experiment_id, experiment.display_name)}
+        [FilterOptions.RUN_GROUP]: ({ onChange, ...props }) => (
+          <TextInput
+            {...props}
+            data-testid="search-for-run-group-name"
+            aria-label="Search for a run group name"
+            placeholder="Search..."
+            onChange={(_event, value) => onChange(value)}
           />
         ),
         [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (
@@ -66,6 +66,13 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
             resources={versions}
             selection={label}
             onSelect={(version) => onChange(version.pipeline_version_id, version.display_name)}
+          />
+        ),
+        [FilterOptions.MLFLOW_EXPERIMENT]: ({ onChange, value }) => (
+          <MlflowExperimentSelector
+            workspace={namespace}
+            selection={value}
+            onSelect={(experiment) => onChange(experiment.name)}
           />
         ),
         [FilterOptions.CREATED_AT]: ({ onChange, ...props }) => (

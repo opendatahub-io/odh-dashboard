@@ -43,6 +43,7 @@ type App struct {
 	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
 	mlflowClientFactory     mlflowpkg.MLflowClientFactory
+	mlflowExternalURL       string
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
@@ -183,6 +184,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	// Initialize MLflow client factory
 	var mlflowFactory mlflowpkg.MLflowClientFactory
+	var mlflowExternalURL string
 	if cfg.MockMLflowClient {
 		mlflowState, err := mlflowmocks.SetupMLflow(logger)
 		if err != nil {
@@ -205,6 +207,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		} else {
 			logger.Warn("MLflow URL not configured and auto-discovery failed, MLflow endpoints will return 503")
 			mlflowFactory = mlflowpkg.NewUnavailableClientFactory()
+		}
+
+		if externalURL, err := mlflowpkg.DiscoverMLflowExternalURL(); err != nil {
+			logger.Warn("Failed to discover MLflow external URL for code export", "error", err)
+		} else {
+			mlflowExternalURL = externalURL
+			logger.Info("Discovered MLflow external URL for code export", "url", mlflowExternalURL)
 		}
 	}
 
@@ -237,6 +246,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
 		mlflowClientFactory:     mlflowFactory,
+		mlflowExternalURL:       mlflowExternalURL,
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,

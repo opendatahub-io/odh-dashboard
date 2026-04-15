@@ -10,7 +10,6 @@ import {
   Form,
   Stack,
   StackItem,
-  Alert,
   FormGroup,
   FormHelperText,
   FormSection,
@@ -23,9 +22,9 @@ import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { DeploymentStrategyField } from '../fields/DeploymentStrategyField';
+import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 import { type UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
-import { showAuthWarning } from '../hooks/useAuthWarning';
 import type { ExternalDataMap } from '../ExternalDataLoader';
 
 export const accessReviewResource: AccessReviewResourceAttributes = {
@@ -142,6 +141,11 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 </FormGroup>
               </StackItem>
             )}
+            <GenericFieldRenderer
+              wizardState={wizardState}
+              externalData={externalData}
+              parentId="networking"
+            />
             {isExternalRouteVisible && (
               <StackItem>
                 <FormGroup
@@ -167,26 +171,12 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                   tokens={tokenAuthData}
                   allowCreate={allowCreate && !wizardState.state.tokenAuthentication.isDisabled}
                   onChange={wizardState.state.tokenAuthentication.setData}
+                  shouldAutoCheck={shouldAutoCheckTokens}
+                  isExternalRouteVisible={isExternalRouteVisible}
+                  externalRouteData={externalRouteData}
                 />
               </FormGroup>
             </StackItem>
-
-            {showAuthWarning({
-              shouldAutoCheckTokens,
-              isExternalRouteVisible,
-              externalRouteData,
-              tokenAuthData,
-            }) && (
-              <StackItem>
-                <Alert
-                  id="no-auth-alert"
-                  data-testid="no-auth-alert"
-                  variant="warning"
-                  isInline
-                  title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
-                />
-              </StackItem>
-            )}
 
             <StackItem>
               <FormGroup
@@ -226,6 +216,13 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 </FormGroup>
               </StackItem>
             )}
+            {/* Timeout field rendered via extension system */}
+            <GenericFieldRenderer
+              fieldId="kserve/timeout"
+              wizardState={wizardState}
+              externalData={externalData}
+              isEditing={wizardState.initialData?.isEditing}
+            />
           </Stack>
         </FormSection>
       </Form>

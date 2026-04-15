@@ -41,15 +41,21 @@ export const isTabularRun = (pipelineRun?: PipelineRun): boolean => {
  */
 /* eslint-disable camelcase */
 const METRIC_DISPLAY_NAMES: Record<string, string> = {
-  roc_auc: 'ROC AUC',
-  mcc: 'MCC',
-  f1: 'F1',
-  r2: 'R²',
+  f1: 'F₁',
   mae: 'MAE',
-  mse: 'MSE',
-  rmse: 'RMSE',
   mape: 'MAPE',
   mase: 'MASE',
+  mcc: 'MCC',
+  mse: 'MSE',
+  r2: 'R²',
+  rmse: 'RMSE',
+  rmsle: 'RMSLE',
+  rmsse: 'RMSSE',
+  roc_auc: 'ROC AUC',
+  smape: 'SMAPE',
+  sql: 'SQL',
+  wape: 'WAPE',
+  wql: 'WQL',
 };
 /* eslint-enable camelcase */
 
@@ -57,6 +63,7 @@ export function formatMetricName(key: string): string {
   if (METRIC_DISPLAY_NAMES[key]) {
     return METRIC_DISPLAY_NAMES[key];
   }
+  // Title-case: capitalize the first letter of each word separated by '_'.
   return key
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -97,9 +104,9 @@ export function toNumericMetric(value: unknown): number {
 /**
  * Gets the optimized metric for a given task type.
  * @param taskType - The task type to get the metric for
- * @returns The optimized metric name, or undefined if not found
+ * @returns The optimized metric name, or 'Unknown metric' if no mapping exists
  */
-export function getOptimizedMetricForTask(taskType: string): string | undefined {
+export function getOptimizedMetricForTask(taskType: string): string {
   switch (taskType) {
     case TASK_TYPE_BINARY:
     case TASK_TYPE_MULTICLASS:
@@ -109,7 +116,7 @@ export function getOptimizedMetricForTask(taskType: string): string | undefined 
     case TASK_TYPE_TIMESERIES:
       return 'mase';
     default:
-      return undefined;
+      return 'Unknown metric';
   }
 }
 
@@ -133,7 +140,7 @@ export function computeRankMap(
   models: Record<string, { metrics: { test_data?: Record<string, unknown> } }>,
   taskType: string,
 ): Record<string, number> {
-  const optimizedMetric = getOptimizedMetricForTask(taskType) ?? 'accuracy';
+  const optimizedMetric = getOptimizedMetricForTask(taskType);
   const useAbs = isErrorMetric(optimizedMetric);
 
   // Use worst-case for missing metrics so they sort last

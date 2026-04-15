@@ -1,5 +1,4 @@
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
-import { HomeModelCatalog } from './homeModelCatalog';
 import { HomeAdminSection } from './homeAdmin';
 import { HomeProject } from './homeProject';
 import { HomeResource } from './homeResource';
@@ -27,10 +26,6 @@ class HomePage {
 
   getHomeAdminSection() {
     return new HomeAdminSection(() => cy.findByTestId('landing-page-admin'));
-  }
-
-  getHomeModelCatalogSection() {
-    return new HomeModelCatalog(() => cy.findByTestId('homepage-ai-hub-catalog'));
   }
 
   getHomeProjectSection() {

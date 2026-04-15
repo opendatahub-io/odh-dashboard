@@ -2,6 +2,8 @@ import React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { useDeployMethod } from './useDeployMethod';
+import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
+import { useWizardFieldPostDeploy } from './useWizardFieldPostDeploy';
 import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidation';
 import { useWizardFieldApply } from '../useWizardFieldApply';
 import { deployModel } from '../utils';
@@ -37,6 +39,8 @@ export const useModelDeploymentSubmit = (
     formState,
     initialWizardData?.navSourceMetadata,
   );
+  const { runPreDeploy, preDeployExtensionsLoaded } = useWizardFieldPreDeploy(formState);
+  const { runPostDeploy, postDeployExtensionsLoaded } = useWizardFieldPostDeploy(formState);
 
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -62,7 +66,13 @@ export const useModelDeploymentSubmit = (
             'Invalid YAML: Kind must be LLMInferenceService and apiVersion must be serving.kserve.io/v1alpha1',
           );
         }
-        if (!deployMethodLoaded || !deployMethod || !applyExtensionsLoaded) {
+        if (
+          !deployMethodLoaded ||
+          !deployMethod ||
+          !applyExtensionsLoaded ||
+          !preDeployExtensionsLoaded ||
+          !postDeployExtensionsLoaded
+        ) {
           throw new Error(
             'Deploy method or extensions not loaded or could not be inferred from resources',
           );
@@ -89,6 +99,8 @@ export const useModelDeploymentSubmit = (
           overwrite,
           initialWizardData,
           applyFieldData,
+          runPreDeploy,
+          runPostDeploy,
         );
         exitWizardOnSubmit();
       } catch (error) {
@@ -103,12 +115,16 @@ export const useModelDeploymentSubmit = (
       deployMethodLoaded,
       deployMethod,
       applyExtensionsLoaded,
+      preDeployExtensionsLoaded,
+      postDeployExtensionsLoaded,
       formState,
       resources,
       connectionSecretName,
       existingDeployment,
       initialWizardData,
       applyFieldData,
+      runPreDeploy,
+      runPostDeploy,
       exitWizardOnSubmit,
       yamlError,
     ],

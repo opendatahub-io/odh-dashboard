@@ -13,6 +13,8 @@ const MANDATORY_NAMESPACE = process.env.MANDATORY_NAMESPACE || undefined;
 const MODEL_REGISTRY_NAMESPACE = process.env.MODEL_REGISTRY_NAMESPACE || undefined;
 const URL_PREFIX = '/model-registry';
 const BFF_API_VERSION = 'v1';
+/** Base path for model-registry BFF REST calls (list/delete MCP deployments, etc.). */
+const BFF_HOST_PATH = `${URL_PREFIX}/api/${BFF_API_VERSION}`;
 const COMPANY_URI = process.env.COMPANY_URI || 'oci://kubeflow.io';
 
 export {
@@ -25,6 +27,7 @@ export {
   URL_PREFIX,
   DEPLOYMENT_MODE,
   BFF_API_VERSION,
+  BFF_HOST_PATH,
   MANDATORY_NAMESPACE,
   MODEL_REGISTRY_NAMESPACE,
   COMPANY_URI,

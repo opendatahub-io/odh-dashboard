@@ -24,6 +24,9 @@ const withWorkspace = (basePath: string, namespace?: string): string => {
 export const mlflowExperimentsBaseRoute = (namespace?: string): string =>
   withWorkspace(mlflowExperimentsPath, namespace);
 
+export const mlflowExperimentRoute = (experimentId: string, namespace?: string): string =>
+  withWorkspace(`${mlflowExperimentsPath}/${encodeURIComponent(experimentId)}`, namespace);
+
 export const promptManagementPath = '/gen-ai-studio/prompts';
 export const globPromptManagementAll = `${promptManagementPath}/*`;
 

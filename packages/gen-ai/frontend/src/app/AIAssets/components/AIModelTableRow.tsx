@@ -32,7 +32,9 @@ import {
   VectorStore,
 } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
-import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
+import { genAiAiAssetsTabRoute, genAiChatPlaygroundRoute } from '~/app/utilities/routes';
+import { isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
+import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import AIModelsTableRowInfo from './AIModelsTableRowInfo';
 import EndpointDetailModal from './EndpointDetailModal';
@@ -62,7 +64,8 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
 }) => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
-  const enabledModel = playgroundModels.find((m) => m.modelId === model.model_id);
+  const isVectorStoresEnabled = useAiAssetVectorStoresEnabled();
+  const enabledModel = playgroundModels.find((m) => isPlaygroundModelMatchForAIModel(m, model));
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
   const [isEndpointModalOpen, setIsEndpointModalOpen] = React.useState(false);
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
@@ -111,26 +114,41 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
           <TruncatedText maxLines={2} content={model.usecase} />
         </Td>
         <Td dataLabel="Status">
-          {model.status === 'Running' ? (
-            <Label status="success" variant="outline">
-              Ready
-            </Label>
-          ) : model.status === 'Stop' ? (
-            <Label status="danger" variant="outline">
-              Inactive
-            </Label>
-          ) : (
-            <Label color="grey" icon={<OutlinedQuestionCircleIcon />}>
-              Unknown
-            </Label>
-          )}
+          {(() => {
+            switch (model.status) {
+              case 'Running':
+                return (
+                  <Label status="success" variant="outline">
+                    Ready
+                  </Label>
+                );
+              case 'Stop':
+                return (
+                  <Label status="danger" variant="outline">
+                    Inactive
+                  </Label>
+                );
+              default:
+                return (
+                  <Label variant="outline" color="grey" icon={<OutlinedQuestionCircleIcon />}>
+                    Unknown
+                  </Label>
+                );
+            }
+          })()}
         </Td>
         <Td dataLabel="Endpoints">
           {model.externalEndpoint || model.internalEndpoint ? (
             <Button
               data-testid="endpoint-view-button"
               variant={ButtonVariant.link}
-              onClick={() => setIsEndpointModalOpen(true)}
+              onClick={() => {
+                fireMiscTrackingEvent('Available Endpoints Endpoint Viewed', {
+                  modelType: model.model_type === 'embedding' ? 'embedding' : 'inference',
+                  endpointSource: model.model_source_type,
+                });
+                setIsEndpointModalOpen(true);
+              }}
             >
               View
             </Button>
@@ -146,29 +164,48 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
         </Td>
         <Td dataLabel="Playground">
           {enabledModel ? (
-            <Button
-              data-testid="try-playground-button"
-              variant={ButtonVariant.secondary}
-              onClick={() => {
-                fireMiscTrackingEvent('Available Endpoints Playground Launched', {
-                  assetType,
-                  assetId: model.model_id,
-                });
-                navigate(genAiChatPlaygroundRoute(namespace?.name), {
-                  state: {
-                    model: enabledModel.id,
-                  },
-                });
-              }}
-              // Embedding models cannot be tried in the chat playground (vector output is not supported)
-              // Custom endpoint models are always available if they're in the list
-              isDisabled={
-                model.model_type === 'embedding' ||
-                (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running')
-              }
-            >
-              Try in playground
-            </Button>
+            <>
+              {model.model_type === 'embedding' && isVectorStoresEnabled ? (
+                <Button
+                  data-testid="see-vector-stores-button"
+                  variant={ButtonVariant.link}
+                  onClick={() => {
+                    fireMiscTrackingEvent('Available Endpoints See Vector Stores Clicked', {
+                      modelId: model.model_id,
+                    });
+                    if (namespace?.name) {
+                      navigate(genAiAiAssetsTabRoute(namespace.name, 'vectorstores'));
+                    }
+                  }}
+                >
+                  See vector stores
+                </Button>
+              ) : (
+                <Button
+                  data-testid="try-playground-button"
+                  variant={ButtonVariant.secondary}
+                  onClick={() => {
+                    fireMiscTrackingEvent('Available Endpoints Playground Launched', {
+                      assetType,
+                      assetId: model.model_id,
+                    });
+                    navigate(genAiChatPlaygroundRoute(namespace?.name), {
+                      state: {
+                        model: enabledModel.id,
+                      },
+                    });
+                  }}
+                  // Embedding models cannot be tried in the chat playground (vector output is not supported)
+                  // Custom endpoint models are always available if they're in the list
+                  isDisabled={
+                    model.model_type === 'embedding' ||
+                    (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running')
+                  }
+                >
+                  Try in playground
+                </Button>
+              )}
+            </>
           ) : (
             <Button
               variant={ButtonVariant.link}

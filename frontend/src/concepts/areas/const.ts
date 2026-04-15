@@ -2,19 +2,21 @@ import { DashboardCommonConfig } from '#~/k8sTypes';
 import { SupportedArea, SupportedAreasState, DataScienceStackComponent } from './types';
 
 export const techPreviewFlags = {
-  disableModelRegistry: true,
   genAiStudio: false,
   automl: false,
   autorag: false,
-  modelAsService: false,
+  modelAsService: true,
+  maasAuthPolicies: true,
   aiAssetCustomEndpoints: false,
-  mlflow: false,
+  mlflowPipelines: false,
   mcpCatalog: false,
   projectRBAC: true,
   observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   vLLMDeploymentOnMaaS: false,
+  llmGatewayField: false,
+  promptManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -64,6 +66,7 @@ export const advancedAIMLFlags = {
   disablePipelines: false,
   disableDistributedWorkloads: false,
   disableModelCatalog: false,
+  disableModelRegistry: false,
   disableModelRegistrySecureDB: false,
   disableFeatureStore: false,
   disableFineTuning: true,
@@ -200,7 +203,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.LM_EVAL]: {
     featureFlags: ['disableLMEval'],
-    reliantAreas: [SupportedArea.MODEL_REGISTRY, SupportedArea.MODEL_SERVING],
+    requiredComponents: [DataScienceStackComponent.TRUSTY_AI],
   },
   [SupportedArea.FEATURE_STORE]: {
     featureFlags: ['disableFeatureStore'],
@@ -215,8 +218,11 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     requiredComponents: [DataScienceStackComponent.RAY],
   },
   [SupportedArea.MLFLOW]: {
-    featureFlags: ['mlflow'],
     requiredComponents: [DataScienceStackComponent.MLFLOW],
+  },
+  [SupportedArea.MLFLOW_PIPELINES]: {
+    featureFlags: ['mlflowPipelines'],
+    requiredComponents: [DataScienceStackComponent.DS_PIPELINES, DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
@@ -227,6 +233,14 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.VLLM_ON_MAAS]: {
     featureFlags: ['vLLMDeploymentOnMaaS'],
+    reliantAreas: [SupportedArea.LLMD_SERVING],
+  },
+  [SupportedArea.LLMD_GATEWAY_FIELD]: {
+    featureFlags: ['llmGatewayField'],
+    reliantAreas: [SupportedArea.LLMD_SERVING],
+  },
+  [SupportedArea.MAAS_AUTH_POLICIES]: {
+    featureFlags: ['maasAuthPolicies'],
   },
 };
 

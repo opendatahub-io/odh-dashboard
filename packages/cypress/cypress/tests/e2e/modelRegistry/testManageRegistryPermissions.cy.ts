@@ -116,10 +116,10 @@ describe('Verify model registry permissions can be managed', () => {
     },
     () => {
       cy.step('Log into the application as non-admin');
-      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify contributor user can access model registry');
-      cy.url({ timeout: 30000 }).should('include', `/ai-hub/registry/${registryName}`);
+      cy.url({ timeout: 30000 }).should('include', `/ai-hub/models/registry/${registryName}`);
       cy.contains(registryName, { timeout: 30000 }).should('be.visible');
     },
   );
@@ -160,7 +160,7 @@ describe('Verify model registry permissions can be managed', () => {
     },
     () => {
       cy.step('Log into the application as non-admin');
-      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify contributor user sees request access message');
       cy.contains('Request access to model registries', { timeout: 30000 }).should('be.visible');
@@ -211,10 +211,10 @@ describe('Verify model registry permissions can be managed', () => {
     },
     () => {
       cy.step('Log into the application as non-admin');
-      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify user can access model registry through group membership');
-      cy.url({ timeout: 30000 }).should('include', `/ai-hub/registry/${registryName}`);
+      cy.url({ timeout: 30000 }).should('include', `/ai-hub/models/registry/${registryName}`);
       cy.contains(registryName, { timeout: 30000 }).should('be.visible');
     },
   );
@@ -255,7 +255,7 @@ describe('Verify model registry permissions can be managed', () => {
     },
     () => {
       cy.step('Log into the application as non-admin');
-      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
+      cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify user sees request access message after group removal');
       cy.contains('Request access to model registries', { timeout: 10000 }).should('be.visible');

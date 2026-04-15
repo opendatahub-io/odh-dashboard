@@ -1,15 +1,30 @@
 import 'cypress-axe';
 
+type A11yOptions = {
+  context?: Parameters<cy['checkA11y']>[0];
+  axeOptions?: Parameters<cy['checkA11y']>[1];
+};
+
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Cypress {
     interface Chainable {
-      testA11y: (context?: Parameters<cy['checkA11y']>[0]) => void;
+      testA11y: (contextOrOptions?: A11yOptions['context'] | A11yOptions) => void;
     }
   }
 }
 
-Cypress.Commands.add('testA11y', { prevSubject: 'optional' }, (subject, context) => {
+Cypress.Commands.add('testA11y', { prevSubject: 'optional' }, (subject, contextOrOptions) => {
+  const isOptionsObject = (v: A11yOptions['context'] | A11yOptions | undefined): v is A11yOptions =>
+    v != null && typeof v === 'object' && ('context' in v || 'axeOptions' in v);
+
+  const resolvedContext = isOptionsObject(contextOrOptions)
+    ? contextOrOptions.context
+    : contextOrOptions;
+  const extraAxeOptions = isOptionsObject(contextOrOptions)
+    ? contextOrOptions.axeOptions
+    : undefined;
+
   const test = (c: Parameters<typeof cy.checkA11y>[0]) => {
     cy.window({ log: false }).then((win) => {
       // inject on demand
@@ -20,6 +35,7 @@ Cypress.Commands.add('testA11y', { prevSubject: 'optional' }, (subject, context)
         c,
         {
           includedImpacts: ['serious', 'critical'],
+          ...extraAxeOptions,
         },
         (violations) => {
           cy.task(
@@ -56,13 +72,13 @@ Cypress.Commands.add('testA11y', { prevSubject: 'optional' }, (subject, context)
       );
     });
   };
-  if (!context && subject) {
+  if (!resolvedContext && subject) {
     cy.wrap(subject).each(($el) => {
       Cypress.log({ displayName: 'testA11y', $el });
       test($el[0]);
     });
   } else {
     Cypress.log({ displayName: 'testA11y' });
-    test(context);
+    test(resolvedContext);
   }
 });

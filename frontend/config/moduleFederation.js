@@ -1,5 +1,6 @@
 const { execSync } = require('child_process');
 const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
+const { getRuntimeOdhPackages } = require('./getRuntimeOdhPackages');
 const deps = require('../package.json').dependencies;
 
 const updateTypes = !!process.env.MF_UPDATE_TYPES;
@@ -79,6 +80,13 @@ const getWorkspacePackages = () => {
 };
 
 const workspacePackages = getWorkspacePackages();
+
+const odhDashboardShared = Object.fromEntries(
+  [...getRuntimeOdhPackages(workspacePackages, require('../src/package.json'))].map((name) => [
+    name,
+    { singleton: true, requiredVersion: '*', eager: true },
+  ]),
+);
 
 // Function to read module federation config from workspace packages
 const readModuleFederationConfigFromPackages = () => {
@@ -172,11 +180,7 @@ module.exports = {
                 requiredVersion: deps['@openshift/dynamic-plugin-sdk-utils'],
                 eager: true,
               },
-              '@odh-dashboard/plugin-core': {
-                singleton: true,
-                requiredVersion: deps['@odh-dashboard/plugin-core'],
-                eager: true,
-              },
+              ...odhDashboardShared,
             },
             exposes: {},
             dts: updateTypes,

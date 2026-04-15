@@ -116,6 +116,7 @@ describe('ProjectSection', () => {
       );
       expect(screen.getByTestId('project-name')).toBeInTheDocument();
       expect(screen.getByTestId('project-name')).toHaveValue(mockProject.metadata.name);
+      expect(screen.getByTestId('project-name')).toHaveAttribute('id', 'project-name');
     });
   });
 });

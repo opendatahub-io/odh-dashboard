@@ -1,22 +1,20 @@
-import * as React from 'react';
 import {
   FormHelperText,
   HelperText,
   HelperTextItem,
-  Skeleton,
-  SelectOptionProps,
-  Form,
-  FormGroup,
   Label,
   LabelGroup,
+  SelectOptionProps,
+  Skeleton,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { useFetchState, APIOptions, FetchStateCallbackPromise } from 'mod-arch-core';
+import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
 import { TypeaheadSelect } from 'mod-arch-shared';
 import type { TypeaheadSelectProps } from 'mod-arch-shared/dist/components/TypeaheadSelect';
+import * as React from 'react';
 import { getSecrets } from '~/app/api/k8s';
 import { SecretListItem } from '~/app/types';
-import { getMissingRequiredKeys, formatMissingKeysMessage } from '~/app/utilities/secretValidation';
+import { formatMissingKeysMessage, getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 
 export interface SecretSelection extends SecretListItem {
   invalid?: boolean;
@@ -37,16 +35,15 @@ type SecretSelectorProps = Omit<
   type?: 'storage'; // | 'lls';
   value?: string; // The UUID of the selected secret
   onChange: (selection: SecretSelection | undefined) => void;
-  label?: string;
   /**
    * Additional keys that must be present in the secret for this specific use case.
    * These are beyond the keys required for secret type classification (handled by the BFF).
    *
-   * For example, S3 secrets are classified by keys like 'aws_access_key_id', 'aws_secret_access_key',
-   * etc., but a specific use case might additionally require 'aws_s3_bucket' to be present.
+   * For example, S3 secrets are classified by keys like 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY',
+   * etc., but a specific use case might additionally require 'AWS_S3_BUCKET' to be present.
    *
    * @example
-   * additionalRequiredKeys={{ s3: ['aws_s3_bucket'] }}
+   * additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
    */
   additionalRequiredKeys?: { [type: string]: string[] };
   /**
@@ -63,7 +60,6 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   type,
   value,
   onChange,
-  label = '',
   placeholder = 'Select a secret',
   isDisabled = false,
   isRequired = false,
@@ -74,9 +70,9 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   onRefreshReady,
   showDescription = false,
   showType = false,
+  toggleProps: userToggleProps,
   ...props
 }) => {
-  const uniqueId = React.useId();
   const [validationError, setValidationError] = React.useState<string>('');
 
   const callback = React.useCallback<FetchStateCallbackPromise<SecretListItem[]>>(
@@ -130,7 +126,6 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
 
     // If secrets list becomes empty, clear the selection
     if (secretsList.length === 0) {
-      onChange(undefined);
       setValidationError('');
       return;
     }
@@ -148,23 +143,24 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
     } else {
       setValidationError('');
     }
-  }, [value, secretsList, validateSecretKeys, onChange]);
+  }, [value, secretsList, validateSecretKeys]);
 
   // Clear stale selection when secrets refresh and current value is no longer valid
   React.useEffect(() => {
-    if (value) {
-      // Clear selection if secrets list is empty
-      if (secretsList.length === 0) {
-        onChange(undefined);
-        return;
-      }
-      // Clear selection if value is no longer in the list
-      const isValueInList = secretsList.some((secret) => secret.uuid === value);
-      if (!isValueInList) {
-        onChange(undefined);
-      }
+    if (!loaded || error || !value) {
+      return;
     }
-  }, [secretsList, value, onChange]);
+    // Clear selection if secrets list is empty
+    if (secretsList.length === 0) {
+      onChange(undefined);
+      return;
+    }
+    // Clear selection if value is no longer in the list
+    const isValueInList = secretsList.some((secret) => secret.uuid === value);
+    if (!isValueInList) {
+      onChange(undefined);
+    }
+  }, [loaded, error, secretsList, value, onChange]);
 
   const options: TypeaheadSelectOption[] = React.useMemo(
     () =>
@@ -181,11 +177,9 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
           labels.push(
             <div
               key="desc"
+              className="pf-v6-u-text-truncate"
               style={{
                 width: '250px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
               }}
               title={secret.description}
             >
@@ -199,7 +193,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
           value: secret.uuid,
           isSelected: secret.uuid === value,
           description: labels.length ? (
-            <LabelGroup style={{ marginTop: '0.5rem' }}>{labels}</LabelGroup>
+            <LabelGroup className="pf-v6-u-mt-sm">{labels}</LabelGroup>
           ) : undefined,
         };
       }),
@@ -207,10 +201,10 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   );
 
   if (isLoading) {
-    return <Skeleton width={toggleWidth} />;
+    return <Skeleton />;
   }
 
-  const typeahead = (
+  return (
     <>
       <TypeaheadSelect
         {...props}
@@ -223,7 +217,8 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         previewDescription={previewDescription}
         toggleWidth={toggleWidth}
         toggleProps={{
-          status: hasError ? 'danger' : undefined,
+          ...userToggleProps,
+          status: hasError ? 'danger' : userToggleProps?.status,
         }}
         onSelect={(
           _:
@@ -270,16 +265,6 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         </FormHelperText>
       )}
     </>
-  );
-
-  return label ? (
-    <Form>
-      <FormGroup label={label} isRequired={isRequired} fieldId={uniqueId}>
-        {typeahead}
-      </FormGroup>
-    </Form>
-  ) : (
-    typeahead
   );
 };
 

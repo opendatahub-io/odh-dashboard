@@ -16,21 +16,24 @@ export const DEFAULT_PERIODIC_DATA: RunTypeScheduledData = {
 export const DATE_FORMAT = 'YYYY-MM-DD';
 export const DEFAULT_TIME = '12:00 AM';
 export const RUN_OPTION_LABEL_SIZE = 100;
+export const DEFAULT_RUN_GROUP = 'Default';
 
 export enum CreateRunPageSections {
   RUN_TYPE = 'run-section-run-type',
-  PROJECT_AND_EXPERIMENT = 'run-section-project-and-experiment',
+  PROJECT = 'run-section-project',
   RUN_DETAILS = 'run-section-details',
   SCHEDULE_DETAILS = 'run-section-schedule-details',
   PIPELINE = 'run-section-pipeline',
+  MLFLOW_INTEGRATION = 'run-section-mlflow-integration',
   PARAMS = 'run-section-params',
 }
 
 export const runPageSectionTitles: Record<CreateRunPageSections, string> = {
   [CreateRunPageSections.RUN_TYPE]: 'Run type',
-  [CreateRunPageSections.PROJECT_AND_EXPERIMENT]: 'Project and experiment',
+  [CreateRunPageSections.PROJECT]: 'Project',
   [CreateRunPageSections.RUN_DETAILS]: 'Run details',
   [CreateRunPageSections.SCHEDULE_DETAILS]: 'Schedule details',
   [CreateRunPageSections.PIPELINE]: 'Pipeline',
+  [CreateRunPageSections.MLFLOW_INTEGRATION]: 'MLflow integration',
   [CreateRunPageSections.PARAMS]: 'Parameters',
 };

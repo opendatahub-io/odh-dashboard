@@ -1,11 +1,10 @@
 import * as React from 'react';
 import { Label, LabelProps } from '@patternfly/react-core';
 import {
+  CheckCircleIcon,
   ExclamationCircleIcon,
   InProgressIcon,
   OffIcon,
-  PlayIcon,
-  SyncAltIcon,
 } from '@patternfly/react-icons';
 import { EventStatus, NotebookStatus } from '#~/types';
 import { getKueueStatusInfo } from '#~/concepts/kueue';
@@ -44,14 +43,18 @@ const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
 
   const labelSettings = React.useMemo<StatusLabelSettings>(() => {
     if (isError) {
-      return { label: 'Failed', status: 'danger', icon: <ExclamationCircleIcon /> };
+      return {
+        label: 'Failed',
+        status: 'danger',
+        icon: <ExclamationCircleIcon />,
+      };
     }
 
     if (isStopping) {
       return {
         label: 'Stopping',
         color: 'grey',
-        icon: <SyncAltIcon className="odh-u-spin" />,
+        icon: <InProgressIcon className="odh-u-spin" />,
       };
     }
     if (kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status)) {
@@ -71,13 +74,22 @@ const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
       };
     }
     if (isRunning) {
-      return { label: 'Running', status: 'success', icon: <PlayIcon /> };
+      return {
+        label: 'Ready',
+        status: 'success',
+        icon: <CheckCircleIcon />,
+      };
     }
-    return { label: 'Stopped', color: 'grey', icon: <OffIcon /> };
+    return {
+      label: 'Stopped',
+      color: 'grey',
+      icon: <OffIcon />,
+    };
   }, [kueueStatus, isError, isRunning, isStarting, isStopping]);
 
   return (
     <Label
+      variant={onClick ? 'filled' : 'outline'}
       isCompact={isCompact}
       color={labelSettings.color}
       status={labelSettings.status}

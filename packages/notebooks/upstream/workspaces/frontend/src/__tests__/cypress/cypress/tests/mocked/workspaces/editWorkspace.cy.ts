@@ -2,6 +2,10 @@ import { mockModArchResponse } from 'mod-arch-core';
 import { editWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/editWorkspace';
 import { workspaces } from '~/__tests__/cypress/cypress/pages/workspaces/workspaces';
 import {
+  volumesManagement,
+  volumesDetachModal,
+} from '~/__tests__/cypress/cypress/pages/workspaces/volumesManagement';
+import {
   buildMockNamespace,
   buildMockWorkspace,
   buildMockWorkspaceKind,
@@ -9,7 +13,7 @@ import {
   buildMockWorkspaceUpdate,
 } from '~/shared/mock/mockBuilder';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
+import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
 import { toastNotification } from '~/__tests__/cypress/cypress/pages/components/toastNotification';
 
 const DEFAULT_NAMESPACE = 'default';
@@ -31,7 +35,7 @@ const setupEditWorkspace = (): EditWorkspaceSetup => {
     name: TEST_WORKSPACE_NAME,
     namespace: mockNamespace.name,
     workspaceKind: buildMockWorkspaceKindInfo({ name: WORKSPACE_KIND_NAME }),
-    state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
     podTemplate: {
       podMetadata: {
         labels: { testLabel: 'testValue' },
@@ -237,6 +241,8 @@ describe('Edit workspace', () => {
       editWorkspace.clickNext();
 
       // Step 2: Image Selection - change to a different image
+      editWorkspace.checkExtraFilter('showRedirected');
+      editWorkspace.checkExtraFilter('showHidden');
       editWorkspace.selectImage(newImageConfigId);
       editWorkspace.clickNext();
 
@@ -272,6 +278,7 @@ describe('Edit workspace', () => {
       cy.wait('@getWorkspaceKind');
       editWorkspace.clickNext();
 
+      editWorkspace.checkExtraFilter('showRedirected');
       editWorkspace.assertImageSelected(IMAGE_CONFIG_ID);
     });
 
@@ -326,7 +333,7 @@ describe('Edit workspace', () => {
         name: TEST_WORKSPACE_NAME,
         namespace: mockNamespace.name,
         workspaceKind: buildMockWorkspaceKindInfo({ name: WORKSPACE_KIND_NAME }),
-        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
       });
       const mockWorkspaceUpdateResponse = buildMockWorkspaceUpdate({
         podTemplate: {
@@ -426,6 +433,7 @@ describe('Edit workspace', () => {
       editWorkspace.clickNext();
 
       // Step 2: Image Selection
+      editWorkspace.checkExtraFilter('showRedirected');
       editWorkspace.assertImageSelected(IMAGE_CONFIG_ID);
       editWorkspace.assertNextButtonEnabled();
       editWorkspace.clickNext();
@@ -463,5 +471,54 @@ describe('Edit workspace', () => {
       cy.wait('@getWorkspaceKind');
       editWorkspace.assertPreviousButtonDisabled();
     });
+  });
+});
+
+describe('Edit workspace — volume detach behavior', () => {
+  beforeEach(() => {
+    setupEditWorkspace();
+
+    // Stub the PVC list so the volumes section loads without network errors.
+    cy.interceptApi(
+      'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: DEFAULT_NAMESPACE } },
+      mockModArchResponse([]),
+    ).as('listPVCs');
+
+    visitEditWorkspace();
+    cy.wait('@getWorkspaceKind');
+    editWorkspace.clickNext(); // workspace kind → image
+    editWorkspace.clickNext(); // image → pod config
+    editWorkspace.clickNext(); // pod config → properties
+
+    volumesManagement.expandVolumesSection();
+    cy.wait('@listPVCs');
+  });
+
+  it('should not show a danger alert when detaching a pre-existing volume', () => {
+    volumesManagement.clickDetachAction('data-volume-1');
+    volumesDetachModal.assertModalVisible();
+    volumesDetachModal.assertDangerAlertNotExists();
+  });
+
+  it('should not call the delete PVC API when confirming detach of a pre-existing volume', () => {
+    cy.interceptApi(
+      'DELETE /api/:apiVersion/persistentvolumeclaims/:namespace/:pvcName',
+      {
+        path: {
+          apiVersion: NOTEBOOKS_API_VERSION,
+          namespace: DEFAULT_NAMESPACE,
+          pvcName: 'data-volume-1',
+        },
+      },
+      undefined,
+    ).as('deletePVC');
+
+    volumesManagement.clickDetachAction('data-volume-1');
+    volumesDetachModal.clickConfirm();
+
+    // Volume is removed from the table; delete API must not have been called.
+    volumesManagement.assertVolumeRowNotExists('data-volume-1');
+    cy.get('@deletePVC.all').should('have.length', 0);
   });
 });

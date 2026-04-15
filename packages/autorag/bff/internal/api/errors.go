@@ -54,6 +54,17 @@ func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, messag
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) conflictResponse(w http.ResponseWriter, r *http.Request, message string) {
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusConflict,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusConflict),
+			Message: message,
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, message string) {
 	// Log unauthorized access without sensitive details
 	app.logger.Warn("Unauthorized access attempt", "method", r.Method, "uri", r.URL.Path)
