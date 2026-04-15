@@ -18,6 +18,9 @@ function AutoragEvaluationSelect(): React.JSX.Element {
   const [fileExplorerOpen, setFileExplorerOpen] = useState(false);
 
   const form = useFormContext<ConfigureSchema>();
+  const {
+    formState: { isSubmitting },
+  } = form;
   const controller = useController({ control: form.control, name: 'test_data_key' });
   const { field } = controller;
 
@@ -31,6 +34,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
       <FileSelector
         id={field.name}
         selected={field.value}
+        isDisabled={isSubmitting}
         onUpload={async (file, setProgress, setStatus) => {
           let response;
           try {
