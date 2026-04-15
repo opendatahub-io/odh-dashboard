@@ -202,13 +202,21 @@ func updateAuthPolicySpec(obj *unstructured.Unstructured, modelRefs []models.Mod
 
 	// Merge fields instead of overwriting the entire spec
 	spec["modelRefs"] = mrList
-	spec["subjects"] = map[string]interface{}{
-		"groups": groupList,
-	}
+	existingSubjects, _ := spec["subjects"].(map[string]interface{})
+	spec["subjects"] = mergeSubjectGroups(existingSubjects, groupList)
 
 	if meteringMetadata != nil {
 		spec["meteringMetadata"] = buildTokenMetadata(meteringMetadata)
 	}
 
 	obj.Object["spec"] = spec
+}
+
+// mergeSubjectGroups updates only the groups key in the existing subjects map preserving unmanaged fields like users.
+func mergeSubjectGroups(existing map[string]interface{}, groups []interface{}) map[string]interface{} {
+	if existing == nil {
+		existing = map[string]interface{}{}
+	}
+	existing["groups"] = groups
+	return existing
 }

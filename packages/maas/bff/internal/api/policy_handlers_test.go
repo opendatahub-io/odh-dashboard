@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,7 +11,10 @@ import (
 	"github.com/julienschmidt/httprouter"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
@@ -412,6 +416,75 @@ var _ = Describe("PolicyHandlers", Ordered, func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("preserves spec.subjects.users set outside the UI when updating via the API", func() {
+			policyName := fmt.Sprintf("preserve-users-policy-%d", GinkgoRandomSeed())
+
+			// Create a policy via the API (groups only — as the UI does)
+			_, rs, err := setupApiTest[Envelope[models.MaaSAuthPolicy, None]](
+				http.MethodPost,
+				"/api/v1/new-policy",
+				Envelope[models.CreatePolicyRequest, None]{Data: models.CreatePolicyRequest{
+					Name: policyName,
+					ModelRefs: []models.ModelRef{
+						{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+					},
+					Subjects: models.SubjectSpec{
+						Groups: []models.GroupReference{{Name: "users"}},
+					},
+				}},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated))
+
+			// Directly inject spec.subjects.users into the live K8s object (simulating a YAML apply)
+			ctx := context.Background()
+			existing, err := dynamicClient.Resource(constants.MaaSAuthPolicyGvr).Namespace("maas-system").Get(ctx, policyName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			subjects, _, _ := unstructured.NestedMap(existing.Object, "spec", "subjects")
+			if subjects == nil {
+				subjects = map[string]interface{}{}
+			}
+			subjects["users"] = []interface{}{
+				map[string]interface{}{"name": "injected-user"},
+			}
+			Expect(unstructured.SetNestedMap(existing.Object, subjects, "spec", "subjects")).To(Succeed())
+			_, err = dynamicClient.Resource(constants.MaaSAuthPolicyGvr).Namespace("maas-system").Update(ctx, existing, metav1.UpdateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Update via the API (groups only — simulating a normal UI save)
+			_, rs, err = setupApiTest[Envelope[models.MaaSAuthPolicy, None]](
+				http.MethodPut,
+				"/api/v1/update-policy/"+policyName,
+				Envelope[models.UpdatePolicyRequest, None]{Data: models.UpdatePolicyRequest{
+					ModelRefs: []models.ModelRef{
+						{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
+					},
+					Subjects: models.SubjectSpec{
+						Groups: []models.GroupReference{{Name: "premium-users"}},
+					},
+				}},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+
+			// Read the raw K8s object and verify spec.subjects.users was not removed
+			updated, err := dynamicClient.Resource(constants.MaaSAuthPolicyGvr).Namespace("maas-system").Get(ctx, policyName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			users, found, err := unstructured.NestedSlice(updated.Object, "spec", "subjects", "users")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue(), "spec.subjects.users should still be present after UI update")
+			Expect(users).To(HaveLen(1))
+			if userMap, ok := users[0].(map[string]interface{}); ok {
+				Expect(userMap["name"]).To(Equal("injected-user"))
+			}
 		})
 	})
 

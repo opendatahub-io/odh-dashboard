@@ -620,6 +620,15 @@ func buildOwnerSpec(owner models.OwnerSpec) map[string]interface{} {
 	}
 }
 
+// mergeOwnerSpec updates only groups, preserving unmanaged fields like users.
+func mergeOwnerSpec(existing map[string]interface{}, owner models.OwnerSpec) map[string]interface{} {
+	if existing == nil {
+		existing = map[string]interface{}{}
+	}
+	existing["groups"] = buildOwnerSpec(owner)["groups"]
+	return existing
+}
+
 func buildModelSubscriptionRefs(refs []models.ModelSubscriptionRef) []interface{} {
 	result := make([]interface{}, len(refs))
 	for i, ref := range refs {
@@ -687,7 +696,8 @@ func updateSubscriptionSpec(obj *unstructured.Unstructured, displayName, descrip
 		existingSpec = map[string]interface{}{}
 	}
 	existingSpec["priority"] = int64(priority)
-	existingSpec["owner"] = buildOwnerSpec(owner)
+	existingOwner, _ := existingSpec["owner"].(map[string]interface{})
+	existingSpec["owner"] = mergeOwnerSpec(existingOwner, owner)
 	existingSpec["modelRefs"] = buildModelSubscriptionRefs(modelRefs)
 
 	if tokenMetadata != nil {

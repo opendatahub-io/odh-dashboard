@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -8,7 +9,10 @@ import (
 	"github.com/julienschmidt/httprouter"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
@@ -412,6 +416,79 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("preserves spec.owner.users set outside the UI when updating via the API", func() {
+			subName := fmt.Sprintf("preserve-users-sub-%d", GinkgoRandomSeed())
+
+			// Create a subscription via the API (groups only — as the UI does)
+			_, rs, err := setupApiTest[Envelope[*models.CreateSubscriptionResponse, None]](
+				http.MethodPost,
+				"/api/v1/new-subscription",
+				Envelope[models.CreateSubscriptionRequest, None]{
+					Data: models.CreateSubscriptionRequest{
+						Name: subName,
+						Owner: models.OwnerSpec{
+							Groups: []models.GroupReference{{Name: "users"}},
+						},
+						ModelRefs: []models.ModelSubscriptionRef{
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
+						},
+					},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated))
+
+			// Directly inject spec.owner.users into the live K8s object (simulating a YAML apply)
+			ctx := context.Background()
+			existing, err := dynamicClient.Resource(constants.MaaSSubscriptionGvr).Namespace("maas-system").Get(ctx, subName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			owner, _, _ := unstructured.NestedMap(existing.Object, "spec", "owner")
+			if owner == nil {
+				owner = map[string]interface{}{}
+			}
+			owner["users"] = []interface{}{
+				map[string]interface{}{"name": "injected-user"},
+			}
+			Expect(unstructured.SetNestedMap(existing.Object, owner, "spec", "owner")).To(Succeed())
+			_, err = dynamicClient.Resource(constants.MaaSSubscriptionGvr).Namespace("maas-system").Update(ctx, existing, metav1.UpdateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Update via the API (groups only — simulating a normal UI save)
+			_, rs, err = setupApiTest[Envelope[*models.CreateSubscriptionResponse, None]](
+				http.MethodPut,
+				"/api/v1/update-subscription/"+subName,
+				Envelope[models.UpdateSubscriptionRequest, None]{
+					Data: models.UpdateSubscriptionRequest{
+						Owner: models.OwnerSpec{
+							Groups: []models.GroupReference{{Name: "premium-users"}},
+						},
+						ModelRefs: []models.ModelSubscriptionRef{
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 2000, Window: "1h"}}},
+						},
+					},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+
+			// Read the raw K8s object and verify spec.owner.users was not removed
+			updated, err := dynamicClient.Resource(constants.MaaSSubscriptionGvr).Namespace("maas-system").Get(ctx, subName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			users, found, err := unstructured.NestedSlice(updated.Object, "spec", "owner", "users")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue(), "spec.owner.users should still be present after UI update")
+			Expect(users).To(HaveLen(1))
+			if userMap, ok := users[0].(map[string]interface{}); ok {
+				Expect(userMap["name"]).To(Equal("injected-user"))
+			}
 		})
 	})
 
