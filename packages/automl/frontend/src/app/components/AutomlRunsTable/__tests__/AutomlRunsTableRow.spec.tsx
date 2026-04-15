@@ -112,12 +112,52 @@ describe('AutomlRunsTableRow', () => {
     render(
       <MemoryRouter>
         <AutomlRunsTableRow
-          run={{ ...mockRun, description: undefined }}
+          run={{
+            ...mockRun,
+            description: undefined,
+            runtime_config: { parameters: { task_type: 'binary' } as never },
+          }}
           namespace={mockNamespace}
         />
       </MemoryRouter>,
     );
     expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
+  it('should render friendly prediction type label', () => {
+    render(
+      <MemoryRouter>
+        <AutomlRunsTableRow
+          run={{ ...mockRun, runtime_config: { parameters: { task_type: 'binary' } as never } }}
+          namespace={mockNamespace}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Binary classification')).toBeInTheDocument();
+  });
+
+  it('should render em dash when runtime_config is missing', () => {
+    render(
+      <MemoryRouter>
+        <AutomlRunsTableRow
+          run={{ ...mockRun, runtime_config: undefined }}
+          namespace={mockNamespace}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getAllByText('—')).toHaveLength(1);
+  });
+
+  it('should default prediction type to time series forecasting when task_type is missing', () => {
+    render(
+      <MemoryRouter>
+        <AutomlRunsTableRow
+          run={{ ...mockRun, runtime_config: { parameters: {} as never } }}
+          namespace={mockNamespace}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Time series forecasting')).toBeInTheDocument();
   });
 
   it('should render state with Label', () => {
