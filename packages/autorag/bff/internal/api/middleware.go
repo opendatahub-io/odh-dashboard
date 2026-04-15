@@ -560,19 +560,20 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			// Extract the full object storage configuration from the DSPA spec and store in
 			// context. This allows downstream handlers to connect to S3 (or compatible stores
 			// like managed MinIO) without an additional Kubernetes API call.
-			if dspaObjectStorage := resolveDSPAObjectStorage(dspa, namespace, logger); dspaObjectStorage != nil {
+			dspaObjectStorage, storageType := resolveDSPAObjectStorage(dspa, namespace, logger)
+			if dspaObjectStorage != nil {
 				ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
 
 				// Log appropriate message based on storage type
-				if dspa.Spec.ObjectStorage.ExternalStorage != nil &&
-					dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil {
+				switch storageType {
+				case dspaStorageExternal:
 					logger.Debug("Found DSPA external storage config",
 						"secretName", dspaObjectStorage.SecretName,
 						"namespace", namespace,
 						"hasEndpoint", dspaObjectStorage.EndpointURL != "",
 						"hasBucket", dspaObjectStorage.Bucket != "",
 					)
-				} else if dspa.Spec.ObjectStorage.Minio != nil && dspa.Spec.ObjectStorage.Minio.Deploy {
+				case dspaStorageMinIO:
 					logger.Debug("Found managed MinIO storage config",
 						"secretName", dspaObjectStorage.SecretName,
 						"namespace", namespace,
@@ -671,6 +672,10 @@ func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespac
 			d.Spec.ObjectStorage.Minio.Deploy {
 			minioDSPA = d
 		}
+		// Break early if we've found both types
+		if externalDSPA != nil && minioDSPA != nil {
+			break
+		}
 	}
 	dspa := externalDSPA
 	if dspa == nil {
@@ -683,19 +688,20 @@ func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespac
 	}
 
 	// Resolve and inject DSPA object storage config
-	if dspaObjectStorage := resolveDSPAObjectStorage(dspa, namespace, logger); dspaObjectStorage != nil {
+	dspaObjectStorage, storageType := resolveDSPAObjectStorage(dspa, namespace, logger)
+	if dspaObjectStorage != nil {
 		ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
 
 		// Log appropriate message based on storage type
-		if dspa.Spec.ObjectStorage.ExternalStorage != nil &&
-			dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil {
+		switch storageType {
+		case dspaStorageExternal:
 			logger.Debug("Injected DSPA external storage config (override-URL mode)",
 				"secretName", dspaObjectStorage.SecretName,
 				"namespace", namespace,
 				"hasEndpoint", dspaObjectStorage.EndpointURL != "",
 				"hasBucket", dspaObjectStorage.Bucket != "",
 			)
-		} else if dspa.Spec.ObjectStorage.Minio != nil && dspa.Spec.ObjectStorage.Minio.Deploy {
+		case dspaStorageMinIO:
 			logger.Debug("Injected managed MinIO storage config (override-URL mode)",
 				"secretName", dspaObjectStorage.SecretName,
 				"namespace", namespace,
@@ -716,6 +722,15 @@ func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespac
 const (
 	dsPipelineGroup    = "datasciencepipelinesapplications.opendatahub.io"
 	dsPipelineResource = "datasciencepipelinesapplications"
+)
+
+// dspaStorageType indicates the type of object storage configured in a DSPA.
+type dspaStorageType string
+
+const (
+	dspaStorageExternal dspaStorageType = "external"
+	dspaStorageMinIO    dspaStorageType = "minio"
+	dspaStorageNone     dspaStorageType = "none"
 )
 
 // buildMinIOObjectStorage constructs DSPAObjectStorage for managed MinIO deployments.
@@ -739,7 +754,8 @@ func buildMinIOObjectStorage(dspaName, namespace, bucket string) *models.DSPAObj
 // It handles both external storage (e.g., AWS S3) and managed MinIO, with external storage
 // preferred when both are configured.
 //
-// Returns nil if the DSPA has no valid object storage configuration.
+// Returns the DSPAObjectStorage config and its type. Returns (nil, dspaStorageNone) if the DSPA
+// has no valid object storage configuration.
 //
 // For external storage:
 //   - Validates scheme (must be "http" or "https")
@@ -757,9 +773,9 @@ func resolveDSPAObjectStorage(
 	dspa *models.DSPipelineApplication,
 	namespace string,
 	logger *slog.Logger,
-) *models.DSPAObjectStorage {
+) (*models.DSPAObjectStorage, dspaStorageType) {
 	if dspa == nil || dspa.Spec == nil || dspa.Spec.ObjectStorage == nil {
-		return nil
+		return nil, dspaStorageNone
 	}
 
 	// Handle external storage (preferred)
@@ -805,7 +821,7 @@ func resolveDSPAObjectStorage(
 			EndpointURL:    endpointURL,
 			Bucket:         ext.Bucket,
 			Region:         ext.Region,
-		}
+		}, dspaStorageExternal
 	}
 
 	// Handle managed MinIO (fallback)
@@ -814,11 +830,11 @@ func resolveDSPAObjectStorage(
 			dspa.Metadata.Name,
 			namespace,
 			dspa.Spec.ObjectStorage.Minio.Bucket,
-		)
+		), dspaStorageMinIO
 	}
 
 	// No valid storage configuration
-	return nil
+	return nil, dspaStorageNone
 }
 
 // isDSPAReady checks if the Pipeline Server is fully ready by looking for

@@ -469,13 +469,20 @@ func cloneDefaultTransport() *http.Transport {
 // resolve to private IPs, so HTTP scheme and SSRF validation is skipped for them.
 // All other hosts are subject to HTTPS requirement and SSRF checks.
 //
-// Requires a fully-qualified Kubernetes service DNS name: <service>.<namespace>.svc.cluster.local
-// (5 dot-separated labels minimum), preventing overly-broad matches like "evil.cluster.local".
+// Requires exactly the Kubernetes service FQDN format: <service>.<namespace>.svc.cluster.local
+// (exactly 5 dot-separated labels), preventing overly-broad matches like "evil.cluster.local".
 func isInternalHost(hostname string) bool {
-	// Require a fully-qualified Kubernetes service DNS name: <service>.<namespace>.svc.cluster.local
-	// (5 dot-separated labels minimum), preventing overly-broad matches like "evil.cluster.local".
-	isK8sService := strings.HasSuffix(hostname, ".svc.cluster.local") && len(strings.Split(hostname, ".")) >= 5
-	return isK8sService
+	parts := strings.Split(hostname, ".")
+	if len(parts) != 5 {
+		return false
+	}
+	if parts[2] != "svc" || parts[3] != "cluster" || parts[4] != "local" {
+		return false
+	}
+	if parts[0] == "" || parts[1] == "" {
+		return false
+	}
+	return true
 }
 
 // validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
