@@ -192,11 +192,24 @@ func (r *S3Repository) GetS3CredentialsFromDSPA(
 		region = "us-east-1" // MinIO and other compatible stores ignore region; SDK requires a value
 	}
 
+	// Try to read endpoint URL from the secret first (allows custom configurations)
+	// Fall back to the constructed endpoint from the DSPA spec if not present
+	endpointURL := dspaStorage.EndpointURL
+	if secretEndpoint, err := getValue("AWS_S3_ENDPOINT"); err == nil && secretEndpoint != "" {
+		endpointURL = secretEndpoint
+	}
+
+	// Similarly, try to read bucket from the secret (optional override)
+	bucket := dspaStorage.Bucket
+	if secretBucket, err := getValue("AWS_S3_BUCKET"); err == nil && secretBucket != "" {
+		bucket = secretBucket
+	}
+
 	return &S3Credentials{
 		AccessKeyID:     accessKeyID,
 		SecretAccessKey: secretAccessKey,
-		EndpointURL:     dspaStorage.EndpointURL,
-		Bucket:          dspaStorage.Bucket,
+		EndpointURL:     endpointURL,
+		Bucket:          bucket,
 		Region:          region,
 	}, nil
 }
