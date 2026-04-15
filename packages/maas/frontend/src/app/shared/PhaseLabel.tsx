@@ -33,15 +33,9 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase, statusMessage }) => {
     <Label
       variant={hasPopover ? 'filled' : 'outline'}
       isCompact
+      isClickable={hasPopover}
       data-testid="phase-label"
       {...phaseProps}
-      {...(hasPopover
-        ? {
-            onClick: () => {
-              /* Click handled by Popover parent */
-            },
-          }
-        : {})}
     >
       {normalized}
     </Label>
