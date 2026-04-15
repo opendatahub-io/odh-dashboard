@@ -23,6 +23,7 @@ import { ValueOf } from '#~/typeHelpers';
 import { useGetSearchParamValues } from '#~/utilities/useGetSearchParamValues';
 import { PipelineRunSearchParam } from '#~/concepts/pipelines/content/types';
 import { asEnumMember } from '#~/utilities/utils';
+import useDefaultExperiment from '#~/pages/pipelines/global/experiments/useDefaultExperiment';
 
 type RunPageProps = {
   duplicateRun?: PipelineRunKF | PipelineRecurringRunKF | null;
@@ -48,7 +49,7 @@ const RunPage: React.FC<RunPageProps> = ({
     nameDesc: locationNameDesc,
     pipeline: locationPipeline,
     version: locationVersion,
-    runGroup: locationRunGroup,
+    experiment: locationRunGroup,
     mlflow: locationMlflow,
   } = location.state?.locationData || {};
   const { triggerType: triggerTypeString } = useGetSearchParamValues([
@@ -57,6 +58,7 @@ const RunPage: React.FC<RunPageProps> = ({
   const triggerType = asEnumMember(triggerTypeString, ScheduledType);
   const isSchedule = runType === RunTypeOption.SCHEDULED;
   const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
+  const [defaultExperiment] = useDefaultExperiment();
   const jumpToSections = Object.values(CreateRunPageSections).filter(
     (section) =>
       !(
@@ -99,7 +101,7 @@ const RunPage: React.FC<RunPageProps> = ({
     pipeline: locationPipeline || contextPipeline,
     version: locationVersion || contextPipelineVersion,
     versionToUse: versionToUseData,
-    runGroup: locationRunGroup || contextExperiment?.display_name || '',
+    experiment: locationRunGroup || contextExperiment || defaultExperiment,
     ...(locationMlflow ? { mlflow: locationMlflow } : {}),
   });
 

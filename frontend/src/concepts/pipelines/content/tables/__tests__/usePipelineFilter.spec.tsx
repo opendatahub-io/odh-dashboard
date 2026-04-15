@@ -22,7 +22,7 @@ describe('usePipelineFilter', () => {
       [FilterOptions.NAME]: '',
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: '',
-      [FilterOptions.RUN_GROUP]: '',
+      [FilterOptions.RUN_GROUP]: undefined,
       [FilterOptions.PIPELINE_VERSION]: undefined,
       [FilterOptions.MLFLOW_EXPERIMENT]: '',
     });
@@ -34,7 +34,7 @@ describe('usePipelineFilter', () => {
       [FilterOptions.NAME]: 'test',
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: '',
-      [FilterOptions.RUN_GROUP]: '',
+      [FilterOptions.RUN_GROUP]: undefined,
       [FilterOptions.PIPELINE_VERSION]: undefined,
       [FilterOptions.MLFLOW_EXPERIMENT]: '',
     });
@@ -46,7 +46,7 @@ describe('usePipelineFilter', () => {
       [FilterOptions.NAME]: '',
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: '',
-      [FilterOptions.RUN_GROUP]: '',
+      [FilterOptions.RUN_GROUP]: undefined,
       [FilterOptions.PIPELINE_VERSION]: undefined,
       [FilterOptions.MLFLOW_EXPERIMENT]: '',
     });
@@ -153,7 +153,7 @@ describe('usePipelineFilterSearchParams', () => {
       [FilterOptions.NAME]: 'test',
       [FilterOptions.CREATED_AT]: '2024-11-21',
       [FilterOptions.STATUS]: 'success',
-      [FilterOptions.RUN_GROUP]: 'test-experiment',
+      [FilterOptions.RUN_GROUP]: { value: 'test-experiment', label: 'test-experiment' },
       [FilterOptions.PIPELINE_VERSION]: 'test-version',
       [FilterOptions.MLFLOW_EXPERIMENT]: '',
     });
@@ -201,7 +201,10 @@ describe('usePipelineFilterSearchParams', () => {
       [FilterOptions.NAME]: 'test',
       [FilterOptions.CREATED_AT]: '2024-11-21',
       [FilterOptions.STATUS]: 'success',
-      [FilterOptions.RUN_GROUP]: 'Test Experiment',
+      [FilterOptions.RUN_GROUP]: {
+        label: 'Test Experiment',
+        value: 'test-experiment',
+      },
       [FilterOptions.PIPELINE_VERSION]: {
         label: 'Test Version',
         value: 'test-version',
@@ -222,7 +225,7 @@ describe('usePipelineFilterSearchParams', () => {
       [FilterOptions.NAME]: '',
       [FilterOptions.CREATED_AT]: '',
       [FilterOptions.STATUS]: '',
-      [FilterOptions.RUN_GROUP]: '',
+      [FilterOptions.RUN_GROUP]: undefined,
       [FilterOptions.PIPELINE_VERSION]: undefined,
       [FilterOptions.MLFLOW_EXPERIMENT]: '',
     });
@@ -356,10 +359,6 @@ describe('usePipelineFilterSearchParams', () => {
       experiment_id: 'exp-alpha',
       display_name: 'Alpha Test',
     });
-    const experimentBeta = buildMockExperimentKF({
-      experiment_id: 'exp-beta',
-      display_name: 'Beta Test',
-    });
     const experimentGamma = buildMockExperimentKF({
       experiment_id: 'exp-gamma',
       display_name: 'Gamma',
@@ -367,7 +366,7 @@ describe('usePipelineFilterSearchParams', () => {
 
     const versionsContextValue = { versions: [] as never[], loaded: true };
     const experimentsContextValue = {
-      experiments: [experimentAlpha, experimentBeta, experimentGamma],
+      experiments: [experimentAlpha, experimentGamma],
       loaded: true,
     };
 
@@ -382,10 +381,10 @@ describe('usePipelineFilterSearchParams', () => {
       return Wrapper;
     };
 
-    it('should produce IN predicate when run group matches a single experiment', () => {
+    it('should produce EQUALS predicate when run group filter matches an experiment by ID', () => {
       const setFilterMock = jest.fn();
       renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
-        wrapper: wrapperWithExperiments('/?run_group=Gamma'),
+        wrapper: wrapperWithExperiments('/?run_group=exp-gamma'),
       });
 
       jest.runAllTimers();
@@ -394,49 +393,8 @@ describe('usePipelineFilterSearchParams', () => {
         predicates: expect.arrayContaining([
           {
             key: 'experiment_id',
-            operation: PipelinesFilterOp.IN,
-            string_values: { values: ['exp-gamma'] },
-          },
-        ]),
-      });
-    });
-
-    it('should produce IN predicate when run group matches multiple experiments', () => {
-      const setFilterMock = jest.fn();
-      renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
-        wrapper: wrapperWithExperiments('/?run_group=Test'),
-      });
-
-      jest.runAllTimers();
-
-      expect(setFilterMock).toHaveBeenLastCalledWith({
-        predicates: expect.arrayContaining([
-          {
-            key: 'experiment_id',
-            operation: PipelinesFilterOp.IN,
-            // eslint-disable-next-line camelcase
-            string_values: {
-              values: expect.arrayContaining(['exp-alpha', 'exp-beta']),
-            },
-          },
-        ]),
-      });
-    });
-
-    it('should produce empty IN predicate when run group matches no experiments', () => {
-      const setFilterMock = jest.fn();
-      renderHook(() => usePipelineFilterSearchParams(setFilterMock), {
-        wrapper: wrapperWithExperiments('/?run_group=NoMatch'),
-      });
-
-      jest.runAllTimers();
-
-      expect(setFilterMock).toHaveBeenLastCalledWith({
-        predicates: expect.arrayContaining([
-          {
-            key: 'experiment_id',
-            operation: PipelinesFilterOp.IN,
-            string_values: { values: [] },
+            operation: PipelinesFilterOp.EQUALS,
+            string_value: 'exp-gamma',
           },
         ]),
       });

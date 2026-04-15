@@ -410,7 +410,7 @@ describe('Pipeline runs', () => {
         it('navigate to duplicate run page', () => {
           duplicateRunPage.mockGetExperiments(projectName, mockExperiments);
           duplicateRunPage.mockGetExperiment(projectName, mockExperiments[0]);
-          pipelineRunsGlobal.visit(projectName, 'active');
+          cy.visitWithLogin(`/develop-train/experiments/${projectName}/test-experiment-1/runs`);
 
           activeRunsTable
             .getRowByName(mockActiveRuns[0].display_name)
@@ -532,8 +532,8 @@ describe('Pipeline runs', () => {
             projectName,
           );
 
-          // Type a run group name to filter by
-          pipelineRunFilterBar.findRunGroupInput().type('Test Experiment 1');
+          // Select an experiment to filter by
+          pipelineRunFilterBar.selectRunGroupByName('Test Experiment 1');
 
           // Verify only rows with selected experiment exist
           activeRunsTable.findRows().should('have.length', 2);
@@ -812,8 +812,8 @@ describe('Pipeline runs', () => {
             projectName,
           );
 
-          // Type a run group name to filter by
-          pipelineRunFilterBar.findRunGroupInput().type('Test Experiment 1');
+          // Select an experiment to filter by
+          pipelineRunFilterBar.selectRunGroupByName('Test Experiment 1');
 
           // Verify only rows with selected experiment exist
           archivedRunsTable.findRows().should('have.length', 1);
@@ -1032,7 +1032,6 @@ describe('Pipeline runs', () => {
 
         cy.wait('@getScheduledRuns').then((interception) => {
           expect(interception.request.query).to.eql({
-            filter: encodeURIComponent('{"predicates":[]}'),
             sort_by: 'created_at desc',
             page_size: '10',
           });
@@ -1059,7 +1058,6 @@ describe('Pipeline runs', () => {
 
         cy.wait('@refreshScheduledRuns').then((interception) => {
           expect(interception.request.query).to.eql({
-            filter: encodeURIComponent('{"predicates":[]}'),
             sort_by: 'created_at desc',
             page_size: '10',
             page_token: 'page-2-token',
@@ -1105,7 +1103,6 @@ describe('Pipeline runs', () => {
 
         cy.wait('@refreshPipelineRecurringRuns').then((interception) => {
           expect(interception.request.query).to.eql({
-            filter: encodeURIComponent('{"predicates":[]}'),
             sort_by: 'created_at desc',
             page_size: '10',
             page_token: 'new-page-token',
@@ -1195,8 +1192,9 @@ describe('Pipeline runs', () => {
         it('navigate to duplicate scheduled run page', () => {
           duplicateSchedulePage.mockGetExperiments(projectName, mockExperiments);
           duplicateSchedulePage.mockGetExperiment(projectName, mockExperiments[0]);
-          pipelineRunsGlobal.visit(projectName, 'scheduled');
+          cy.visitWithLogin(`/develop-train/experiments/${projectName}/test-experiment-1/runs`);
 
+          pipelineRunsGlobal.findSchedulesTab().click();
           pipelineRecurringRunTable
             .getRowByName(mockRecurringRuns[0].display_name)
             .findKebabAction('Duplicate')

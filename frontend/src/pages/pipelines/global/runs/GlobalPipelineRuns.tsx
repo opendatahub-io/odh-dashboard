@@ -8,7 +8,7 @@ import { pipelineRunsBaseRoute } from '#~/routes/pipelines/runs';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import {
-  experimentRunsPageDescription,
+  runGroupRunsPageDescription,
   pipelineRunsPageTitle,
 } from '#~/pages/pipelines/global/runs/const';
 import GlobalPipelineRunsTabs from '#~/pages/pipelines/global/runs/GlobalPipelineRunsTabs';
@@ -29,7 +29,7 @@ const GlobalPipelineRuns: React.FC<GlobalPipelineRunsProps> = ({ tab }) => {
       title={
         <TitleWithIcon title={pipelineRunsPageTitle} objectType={ProjectObjectType.pipelineRun} />
       }
-      description={experimentRunsPageDescription}
+      description={runGroupRunsPageDescription}
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
       getRedirectPath={pipelineRunsBaseRoute}
       overrideTimeout
