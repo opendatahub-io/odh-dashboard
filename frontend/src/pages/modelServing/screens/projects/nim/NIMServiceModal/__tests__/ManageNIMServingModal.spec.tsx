@@ -13,6 +13,7 @@ import * as StorageClassSelectModule from '#~/pages/projects/screens/spawner/sto
 import * as useDefaultStorageClassModule from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import * as useAssignHardwareProfileModule from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 
+// Mock dependencies
 jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
   createNIMPVC: jest.fn(),
   createNIMSecret: jest.fn(),
@@ -75,6 +76,7 @@ jest.mock('#~/pages/projects/screens/spawner/storage/StorageClassSelect', () => 
       storageClassesLoaded,
     } = props;
 
+    // If storage classes are not loaded, render a Skeleton (like the real component)
     if (!storageClassesLoaded) {
       return <div data-testid="storage-class-skeleton">Loading...</div>;
     }
@@ -109,6 +111,7 @@ jest.mock('#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig', 
   useGetStorageClassConfig: jest.fn(),
 }));
 
+// Mock child components
 jest.mock('../NIMModelDeploymentNameSection', () => ({
   __esModule: true,
   default: jest.fn(() => (
@@ -312,6 +315,7 @@ describe('ManageNIMServingModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    // Setup default mocks
     mockUseCreateInferenceServiceObject.mockReturnValue([
       defaultMockInferenceServiceData,
       jest.fn(),
@@ -329,6 +333,7 @@ describe('ManageNIMServingModal', () => {
       defaultMockUseAssignHardwareProfileResult,
     );
 
+    // Setup default storage class mocks with correct FetchState format
     mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
     mockUseGetStorageClassConfig.mockReturnValue({
       storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
@@ -459,13 +464,14 @@ describe('ManageNIMServingModal', () => {
       mockUseCreateInferenceServiceObject.mockReturnValue([
         {
           ...defaultMockInferenceServiceData,
-          name: '',
+          name: '', // Invalid: empty name
         },
         jest.fn(),
         jest.fn(),
       ]);
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
       expect(screen.getByTestId('modal-submit-button')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
     });
 
     it('enables submit button when form is valid', () => {
@@ -521,20 +527,26 @@ describe('ManageNIMServingModal', () => {
         return { status: true };
       });
 
+      // Mock serving runtime params as enabled
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
 
+      // Find the environment variables section
       const envVarsSection = screen.getByText('Additional environment variables');
       expect(envVarsSection).toBeInTheDocument();
 
+      // Find the add button for environment variables
       const addButton = screen.getByRole('button', { name: /add environment variable/i });
       expect(addButton).toBeInTheDocument();
 
+      // Click to add an environment variable
       fireEvent.click(addButton);
 
+      // Wait for the inputs to appear after clicking add
       await waitFor(() => {
         expect(screen.getByLabelText(/environment variable name/i)).toBeInTheDocument();
       });
 
+      // Find the name and value inputs
       const nameInput = screen.getByLabelText(/environment variable name/i);
       const valueInput = screen.getByLabelText(/environment variable value/i);
 
@@ -554,25 +566,32 @@ describe('ManageNIMServingModal', () => {
         return { status: true };
       });
 
+      // Mock serving runtime params as enabled
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
 
+      // Add an environment variable
       const addButton = screen.getByRole('button', { name: /add environment variable/i });
       fireEvent.click(addButton);
 
+      // Wait for the inputs to appear after clicking add
       await waitFor(() => {
         expect(screen.getByLabelText(/environment variable name/i)).toBeInTheDocument();
       });
 
       const nameInput = screen.getByLabelText(/environment variable name/i);
 
+      // Test invalid name starting with digit
       fireEvent.change(nameInput, { target: { value: '1INVALID' } });
       fireEvent.blur(nameInput);
 
+      // Check for validation error
       expect(screen.getByText('Must not start with a digit.')).toBeInTheDocument();
 
+      // Test valid name
       fireEvent.change(nameInput, { target: { value: 'LOG_LEVEL' } });
       fireEvent.blur(nameInput);
 
+      // Validation error should be gone
       expect(screen.queryByText('Must not start with a digit.')).not.toBeInTheDocument();
     });
 
@@ -585,8 +604,10 @@ describe('ManageNIMServingModal', () => {
         return { status: true };
       });
 
+      // Mock serving runtime params as disabled
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
 
+      // Environment variables section should not be present
       expect(screen.queryByText('Additional environment variables')).not.toBeInTheDocument();
     });
   });
@@ -678,6 +699,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    // Setup default mocks
     mockUseCreateInferenceServiceObject.mockReturnValue([
       defaultMockInferenceServiceData,
       jest.fn(),
@@ -695,6 +717,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
       defaultMockUseAssignHardwareProfileResult,
     );
 
+    // Setup default storage class mocks with correct FetchState format
     mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
     mockUseGetStorageClassConfig.mockReturnValue({
       storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
@@ -705,6 +728,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
   describe('Storage Class Default Selection Logic', () => {
     it('prefers ODH default over OpenShift default', () => {
+      // Mock ODH default available
       mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
@@ -717,13 +741,14 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
       expect(mockStorageClassSelect).toHaveBeenCalledWith(
         expect.objectContaining({
-          storageClassName: 'openshift-default-sc',
+          storageClassName: 'openshift-default-sc', // Should use ODH default
         }),
         expect.anything(),
       );
     });
 
     it('falls back to OpenShift default when no ODH default is available', () => {
+      // Mock no ODH default, but OpenShift default available
       mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
@@ -736,7 +761,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
       expect(mockStorageClassSelect).toHaveBeenCalledWith(
         expect.objectContaining({
-          storageClassName: 'openshift-default-sc',
+          storageClassName: 'openshift-default-sc', // Should fall back to OpenShift default
         }),
         expect.anything(),
       );
@@ -749,6 +774,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
       useIsAreaAvailable.mockReturnValue({ status: true });
       mockUseDefaultStorageClass.mockReturnValue([null, true, null, jest.fn()]);
 
+      // Mock no ODH configs but OpenShift default available
       const noConfigStorageClass = {
         ...mockStorageClasses[0],
         metadata: {
@@ -757,6 +783,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
         },
       };
 
+      // Create a storage class with no ODH config annotation
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [noConfigStorageClass],
         storageClassesLoaded: true,
@@ -773,6 +800,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
     });
 
     it('shows enabled select when ODH storage class configs exist', () => {
+      // Mock ODH configs available
       mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
@@ -785,8 +813,8 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
       expect(mockStorageClassSelect).toHaveBeenCalledWith(
         expect.objectContaining({
-          disableStorageClassSelect: false,
-          showDefaultWhenNoConfig: true,
+          disableStorageClassSelect: false, // Should be enabled when ODH configs exist
+          showDefaultWhenNoConfig: true, // Should still show default when no config
         }),
         expect.anything(),
       );
@@ -809,6 +837,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
         pvcSize: '50Gi',
       });
 
+      // Mock defaults available
       mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
@@ -821,8 +850,8 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
       expect(mockStorageClassSelect).toHaveBeenCalledWith(
         expect.objectContaining({
-          storageClassName: 'deployed-storage-class',
-          disableStorageClassSelect: true,
+          storageClassName: 'deployed-storage-class', // Should use deployed storage class
+          disableStorageClassSelect: true, // Should be disabled in edit mode
         }),
         expect.anything(),
       );
@@ -843,6 +872,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
         pvcSize: '100Gi',
       });
 
+      // Mock defaults available
       mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
@@ -855,7 +885,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
       expect(mockStorageClassSelect).toHaveBeenCalledWith(
         expect.objectContaining({
-          storageClassName: 'updated-storage-class',
+          storageClassName: 'updated-storage-class', // Should use updated storage class
         }),
         expect.anything(),
       );
@@ -903,7 +933,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
-        storageClassesLoaded: false,
+        storageClassesLoaded: false, // Not loaded yet, but available
         selectedStorageClassConfig: undefined,
       });
 
