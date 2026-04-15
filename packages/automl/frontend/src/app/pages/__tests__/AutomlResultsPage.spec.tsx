@@ -35,6 +35,7 @@ const mockUseAutomlResults = jest.fn();
 
 jest.mock('~/app/hooks/queries', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
+  isTerminalState: (state: string) => ['SUCCEEDED', 'FAILED', 'CANCELED'].includes(state),
 }));
 
 jest.mock('~/app/hooks/useAutomlResults', () => ({
@@ -139,6 +140,7 @@ describe('AutomlResultsPage', () => {
       models: {},
       isLoading: false,
       isError: false,
+      modelsBasePath: undefined,
     });
   });
 
@@ -197,6 +199,7 @@ describe('AutomlResultsPage', () => {
         models: mockModels,
         isLoading: false,
         isError: false,
+        modelsBasePath: 's3://bucket/models',
       });
 
       render(<AutomlResultsPage />);
@@ -207,6 +210,7 @@ describe('AutomlResultsPage', () => {
         models: mockModels,
         pipelineRunLoading: false,
         modelsLoading: false,
+        modelsBasePath: 's3://bucket/models',
         parameters: {
           task_type: 'binary',
           train_data_secret_name: 'my-secret',
@@ -267,6 +271,7 @@ describe('AutomlResultsPage', () => {
         models: {},
         isLoading: true,
         isError: false,
+        modelsBasePath: undefined,
       });
 
       render(<AutomlResultsPage />);
@@ -345,6 +350,7 @@ describe('AutomlResultsPage', () => {
         models: {},
         isLoading: false,
         isError: false,
+        modelsBasePath: undefined,
       });
 
       render(<AutomlResultsPage />);

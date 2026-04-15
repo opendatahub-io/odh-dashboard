@@ -35,6 +35,7 @@ const mockUseAutoragResults = jest.fn();
 
 jest.mock('~/app/hooks/queries', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
+  isTerminalState: (state: string) => ['SUCCEEDED', 'FAILED', 'CANCELED'].includes(state),
 }));
 
 jest.mock('~/app/hooks/useAutoragResults', () => ({
@@ -190,6 +191,7 @@ describe('AutoragResultsPage', () => {
       patterns: {},
       isLoading: false,
       isError: false,
+      ragPatternsBasePath: undefined,
     });
   });
 
@@ -254,6 +256,7 @@ describe('AutoragResultsPage', () => {
         patterns: mockPatterns,
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: 's3://bucket/rag-patterns',
       });
 
       render(<AutoragResultsPage />);
@@ -264,6 +267,7 @@ describe('AutoragResultsPage', () => {
         patterns: mockPatterns,
         pipelineRunLoading: false,
         patternsLoading: false,
+        ragPatternsBasePath: 's3://bucket/rag-patterns',
         parameters: {
           display_name: 'My RAG Run',
           input_data_secret_name: 'my-secret',
@@ -330,6 +334,7 @@ describe('AutoragResultsPage', () => {
         patterns: {},
         isLoading: true,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
       render(<AutoragResultsPage />);
@@ -354,6 +359,7 @@ describe('AutoragResultsPage', () => {
         patterns: mockPatterns,
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
       render(<AutoragResultsPage />);
@@ -378,6 +384,7 @@ describe('AutoragResultsPage', () => {
         patterns: {},
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
       render(<AutoragResultsPage />);

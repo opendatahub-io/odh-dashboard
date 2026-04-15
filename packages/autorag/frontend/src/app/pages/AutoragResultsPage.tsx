@@ -77,73 +77,71 @@ function AutoragResultsPage(): React.JSX.Element {
   );
 
   return (
-    <Drawer isExpanded={isDrawerOpen}>
-      <DrawerContent
-        panelContent={
-          <AutoragInputParametersPanel
-            onClose={handleDrawerClose}
-            parameters={contextValue.parameters}
-            isLoading={pipelineRunPending}
-          />
-        }
-      >
-        <DrawerContentBody>
-          <ApplicationsPage
-            title={<AutoragHeader />}
-            subtext={
-              <h2 className="pf-v6-u-mt-sm">
-                {pipelineRun ? (
-                  <span>
-                    &quot;
-                    <Truncate content={pipelineRun.display_name || ''} />
-                    &quot; results
-                  </span>
+    <AutoragResultsContext.Provider value={contextValue}>
+      <Drawer isExpanded={isDrawerOpen}>
+        <DrawerContent
+          panelContent={
+            <AutoragInputParametersPanel
+              onClose={handleDrawerClose}
+              parameters={contextValue.parameters}
+              isLoading={pipelineRunPending}
+            />
+          }
+        >
+          <DrawerContentBody>
+            <ApplicationsPage
+              title={<AutoragHeader />}
+              subtext={
+                <h2 className="pf-v6-u-mt-sm">
+                  {pipelineRun ? (
+                    <span>
+                      &quot;
+                      <Truncate content={pipelineRun.display_name || ''} />
+                      &quot; results
+                    </span>
+                  ) : (
+                    <Skeleton width="300px" />
+                  )}
+                </h2>
+              }
+              headerAction={
+                <Button
+                  variant="link"
+                  icon={<OpenDrawerRightIcon />}
+                  onClick={() => setIsDrawerOpen((prev) => !prev)}
+                  aria-expanded={isDrawerOpen}
+                  data-testid="run-details-button"
+                >
+                  Run details
+                </Button>
+              }
+              breadcrumb={
+                <Breadcrumb>
+                  <BreadcrumbItem>
+                    <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
+                  </BreadcrumbItem>
+                  <BreadcrumbItem isActive>
+                    <Truncate content={pipelineRun?.display_name || ''} />
+                  </BreadcrumbItem>
+                </Breadcrumb>
+              }
+              empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
+              emptyStatePage={
+                invalidPipelineRunId ? (
+                  <InvalidPipelineRun />
                 ) : (
-                  <Skeleton width="300px" />
-                )}
-              </h2>
-            }
-            headerAction={
-              <Button
-                variant="link"
-                icon={<OpenDrawerRightIcon />}
-                onClick={() => setIsDrawerOpen((prev) => !prev)}
-                aria-expanded={isDrawerOpen}
-                data-testid="run-details-button"
-              >
-                Run details
-              </Button>
-            }
-            breadcrumb={
-              <Breadcrumb>
-                <BreadcrumbItem>
-                  <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
-                </BreadcrumbItem>
-                <BreadcrumbItem isActive>
-                  <Truncate content={pipelineRun?.display_name || ''} />
-                </BreadcrumbItem>
-              </Breadcrumb>
-            }
-            empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
-            emptyStatePage={
-              invalidPipelineRunId ? (
-                <InvalidPipelineRun />
-              ) : (
-                <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
-              )
-            }
-            loadError={patternsLoadError ?? pipelineRunLoadError ?? namespacesLoadError}
-            loaded={namespacesLoaded && !pipelineRunPending}
-          >
-            {!patternsError && (
-              <AutoragResultsContext.Provider value={contextValue}>
-                <AutoragResults />
-              </AutoragResultsContext.Provider>
-            )}
-          </ApplicationsPage>
-        </DrawerContentBody>
-      </DrawerContent>
-    </Drawer>
+                  <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
+                )
+              }
+              loadError={patternsLoadError ?? pipelineRunLoadError ?? namespacesLoadError}
+              loaded={namespacesLoaded && !pipelineRunPending}
+            >
+              {!patternsError && <AutoragResults />}
+            </ApplicationsPage>
+          </DrawerContentBody>
+        </DrawerContent>
+      </Drawer>
+    </AutoragResultsContext.Provider>
   );
 }
 

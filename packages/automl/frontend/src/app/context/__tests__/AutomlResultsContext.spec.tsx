@@ -61,6 +61,7 @@ describe('getAutomlContext', () => {
         pipelineRunLoading: true,
         models,
         modelsLoading: false,
+        modelsBasePath: undefined,
         parameters: {
           display_name: expect.any(String), // Dynamic timestamp
           description: '',
@@ -90,6 +91,7 @@ describe('getAutomlContext', () => {
         pipelineRunLoading: undefined,
         models: mockModels,
         modelsLoading: undefined,
+        modelsBasePath: undefined,
         parameters: {
           display_name: expect.any(String), // Dynamic timestamp
           description: '',
@@ -127,6 +129,27 @@ describe('getAutomlContext', () => {
       });
 
       expect(context.models).toEqual({});
+    });
+
+    it('should pass through modelsBasePath when provided', () => {
+      const pipelineRun = createMockPipelineRun({ task_type: 'binary' });
+
+      const context = getAutomlContext({
+        pipelineRun,
+        modelsBasePath: 's3://bucket/path/to/models',
+      });
+
+      expect(context.modelsBasePath).toBe('s3://bucket/path/to/models');
+    });
+
+    it('should default modelsBasePath to undefined when not provided', () => {
+      const pipelineRun = createMockPipelineRun();
+
+      const context = getAutomlContext({
+        pipelineRun,
+      });
+
+      expect(context.modelsBasePath).toBeUndefined();
     });
   });
 

@@ -54,6 +54,7 @@ function AutomlResultsPage(): React.JSX.Element {
     isLoading: modelsLoading,
     isError: modelsError,
     error: modelsLoadError,
+    modelsBasePath,
   } = useAutomlResults(runId, namespace, pipelineRun);
 
   const contextValue = React.useMemo(
@@ -63,78 +64,77 @@ function AutomlResultsPage(): React.JSX.Element {
         models,
         pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
         modelsLoading,
+        modelsBasePath,
       }),
-    [pipelineRun, models, pipelineRunPending, pipelineRunFetching, modelsLoading],
+    [pipelineRun, models, pipelineRunPending, pipelineRunFetching, modelsLoading, modelsBasePath],
   );
 
   return (
-    <Drawer isExpanded={isDrawerOpen}>
-      <DrawerContent
-        panelContent={
-          <AutomlInputParametersPanel
-            onClose={handleDrawerClose}
-            parameters={contextValue.parameters}
-            isLoading={pipelineRunPending}
-          />
-        }
-      >
-        <DrawerContentBody>
-          <ApplicationsPage
-            title={<AutomlHeader />}
-            subtext={
-              <h2 className="pf-v6-u-mt-sm">
-                {pipelineRun ? (
-                  <span>
-                    &quot;
-                    <Truncate content={pipelineRun.display_name || ''} />
-                    &quot; results
-                  </span>
+    <AutomlResultsContext.Provider value={contextValue}>
+      <Drawer isExpanded={isDrawerOpen}>
+        <DrawerContent
+          panelContent={
+            <AutomlInputParametersPanel
+              onClose={handleDrawerClose}
+              parameters={contextValue.parameters}
+              isLoading={pipelineRunPending}
+            />
+          }
+        >
+          <DrawerContentBody>
+            <ApplicationsPage
+              title={<AutomlHeader />}
+              subtext={
+                <h2 className="pf-v6-u-mt-sm">
+                  {pipelineRun ? (
+                    <span>
+                      &quot;
+                      <Truncate content={pipelineRun.display_name || ''} />
+                      &quot; results
+                    </span>
+                  ) : (
+                    <Skeleton width="300px" />
+                  )}
+                </h2>
+              }
+              headerAction={
+                <Button
+                  variant="link"
+                  icon={<OpenDrawerRightIcon />}
+                  onClick={() => setIsDrawerOpen((prev) => !prev)}
+                  aria-expanded={isDrawerOpen}
+                  data-testid="run-details-button"
+                >
+                  Run details
+                </Button>
+              }
+              breadcrumb={
+                <Breadcrumb>
+                  <BreadcrumbItem>
+                    <Link to={getRedirectPath(namespace!)}>AutoML: {namespace}</Link>
+                  </BreadcrumbItem>
+                  <BreadcrumbItem isActive>
+                    <Truncate content={pipelineRun?.display_name || ''} />
+                  </BreadcrumbItem>
+                </Breadcrumb>
+              }
+              empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
+              emptyStatePage={
+                invalidPipelineRunId ? (
+                  <InvalidPipelineRun />
                 ) : (
-                  <Skeleton width="300px" />
-                )}
-              </h2>
-            }
-            headerAction={
-              <Button
-                variant="link"
-                icon={<OpenDrawerRightIcon />}
-                onClick={() => setIsDrawerOpen((prev) => !prev)}
-                aria-expanded={isDrawerOpen}
-                data-testid="run-details-button"
-              >
-                Run details
-              </Button>
-            }
-            breadcrumb={
-              <Breadcrumb>
-                <BreadcrumbItem>
-                  <Link to={getRedirectPath(namespace!)}>AutoML: {namespace}</Link>
-                </BreadcrumbItem>
-                <BreadcrumbItem isActive>
-                  <Truncate content={pipelineRun?.display_name || ''} />
-                </BreadcrumbItem>
-              </Breadcrumb>
-            }
-            empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
-            emptyStatePage={
-              invalidPipelineRunId ? (
-                <InvalidPipelineRun />
-              ) : (
-                <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
-              )
-            }
-            loadError={modelsLoadError ?? pipelineRunLoadError ?? namespacesLoadError}
-            loaded={namespacesLoaded && !pipelineRunPending}
-          >
-            {!modelsError && (
-              <AutomlResultsContext.Provider value={contextValue}>
-                <AutomlResults />
-              </AutomlResultsContext.Provider>
-            )}
-          </ApplicationsPage>
-        </DrawerContentBody>
-      </DrawerContent>
-    </Drawer>
+                  <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
+                )
+              }
+              loadError={modelsLoadError ?? pipelineRunLoadError ?? namespacesLoadError}
+              loaded={namespacesLoaded && !pipelineRunPending}
+            >
+              {!modelsError && <AutomlResults />}
+            </ApplicationsPage>
+          </DrawerContentBody>
+        </DrawerContent>
+      </Drawer>
+    </AutomlResultsContext.Provider>
   );
 }
 
