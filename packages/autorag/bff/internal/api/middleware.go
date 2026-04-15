@@ -327,7 +327,7 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 		if app.config.MockLSClient {
 			// Mock mode: skip secret lookup entirely
 			logger.Debug("MOCK MODE: creating mock LlamaStack client (secret-based)", "namespace", namespace, "secretName", secretName)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs, "/v1")
+			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs)
 		} else if app.config.AuthMethod == config.AuthMethodDisabled {
 			// When auth is disabled, no RequestIdentity is injected into the context.
 			// LLAMA_STACK_URL must be explicitly configured as the service endpoint.
@@ -338,7 +338,7 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 			logger.Debug("AUTH DISABLED: using LLAMA_STACK_URL with empty token",
 				"namespace", namespace,
 				"serviceURL", app.config.LlamaStackURL)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, "", app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, "", app.config.InsecureSkipVerify, app.rootCAs)
 		} else if app.config.LlamaStackURL != "" {
 			// Developer override: use LLAMA_STACK_URL, skip secret lookup.
 			// Use identity token if available; empty token is acceptable for local dev.
@@ -349,7 +349,7 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 			logger.Debug("Using LLAMA_STACK_URL environment variable (developer override)",
 				"namespace", namespace,
 				"serviceURL", app.config.LlamaStackURL)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, authToken, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, authToken, app.config.InsecureSkipVerify, app.rootCAs)
 		} else {
 			// Production: read credentials from Kubernetes secret
 			identity, identityOk := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
@@ -411,7 +411,7 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 				"secretName", secretName,
 				"serviceURL", baseURL)
 
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs)
 		}
 
 		// Attach ready-to-use client to context

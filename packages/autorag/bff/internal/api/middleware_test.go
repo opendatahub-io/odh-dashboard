@@ -30,7 +30,7 @@ type CapturingMockClientFactory struct {
 	CapturedURL string
 }
 
-func (f *CapturingMockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string) ls.LlamaStackClientInterface {
+func (f *CapturingMockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) ls.LlamaStackClientInterface {
 	f.CapturedURL = baseURL
 	return lsmocks.NewMockLlamaStackClient()
 }

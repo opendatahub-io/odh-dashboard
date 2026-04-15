@@ -2,8 +2,6 @@ package repositories
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log/slog"
 
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
@@ -24,16 +22,15 @@ func (r *LSDModelsRepository) GetLSDModels(ctx context.Context) (*models.LSDMode
 		return nil, err
 	}
 
-	rawModels, err := client.ListModels(ctx)
+	nativeModels, err := client.ListModels(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	allModels := make([]models.LSDModel, 0, len(rawModels))
-	for _, rawModel := range rawModels {
-		lsdModel, err := parseLlamaStackModel(rawModel.RawJSON())
-		if err != nil {
-			slog.Warn("skipping unparseable LlamaStack model", "error", err, "raw_json", rawModel.RawJSON())
+	allModels := make([]models.LSDModel, 0, len(nativeModels))
+	for _, native := range nativeModels {
+		lsdModel, ok := translateLlamaStackModel(native)
+		if !ok {
 			continue
 		}
 		allModels = append(allModels, lsdModel)
@@ -44,36 +41,39 @@ func (r *LSDModelsRepository) GetLSDModels(ctx context.Context) (*models.LSDMode
 	}, nil
 }
 
-// parseLlamaStackModel parses LlamaStack's native JSON format and translates it to our stable public API format.
-// This translation layer isolates our public API from changes in LlamaStack's response structure.
-// LlamaStack native format: {id, custom_metadata: {model_type, provider_id, provider_resource_id}}
-// Our public API format: {id, type, provider, resource_path}
-func parseLlamaStackModel(rawJSON string) (models.LSDModel, error) {
-	if rawJSON == "" {
-		return models.LSDModel{}, fmt.Errorf("empty raw JSON")
-	}
-
-	var native models.LlamaStackNativeModel
-	if err := json.Unmarshal([]byte(rawJSON), &native); err != nil {
-		return models.LSDModel{}, fmt.Errorf("failed to parse LlamaStack model: %w", err)
-	}
-
+// translateLlamaStackModel translates a LlamaStack native model into our stable public API format.
+// It degrades gracefully when upstream fields are missing:
+//   - ID is required — models without an ID are skipped entirely.
+//   - model_type is the most critical field (used by the UI to filter between embedding and
+//     generation models). If missing, it defaults to "unknown" so the model still appears.
+//   - provider and resource_path are optional — empty strings are acceptable.
+//
+// Returns false if the model should be skipped (missing ID).
+func translateLlamaStackModel(native models.LlamaStackNativeModel) (models.LSDModel, bool) {
 	if native.ID == "" {
-		return models.LSDModel{}, fmt.Errorf("LlamaStack model missing required 'id' field")
+		slog.Warn("skipping LlamaStack model with empty ID")
+		return models.LSDModel{}, false
 	}
 
-	if native.CustomMetadata.ModelType != "llm" && native.CustomMetadata.ModelType != "embedding" {
-		return models.LSDModel{}, fmt.Errorf("LlamaStack model %q has unsupported model_type %q: must be 'llm' or 'embedding'", native.ID, native.CustomMetadata.ModelType)
+	result := models.LSDModel{ID: native.ID}
+
+	if native.CustomMetadata == nil {
+		// custom_metadata is absent — upstream schema may have changed.
+		slog.Warn("LlamaStack model missing custom_metadata — upstream schema may have changed",
+			"model_id", native.ID)
+		result.Type = "unknown"
+		return result, true
 	}
 
-	if native.CustomMetadata.ProviderID == "" {
-		return models.LSDModel{}, fmt.Errorf("LlamaStack model %q missing required 'provider_id' field", native.ID)
+	result.Type = native.CustomMetadata.ModelType
+	result.Provider = native.CustomMetadata.ProviderID
+	result.ResourcePath = native.CustomMetadata.ProviderResourceID
+
+	if result.Type == "" {
+		slog.Warn("LlamaStack model missing model_type — defaulting to unknown",
+			"model_id", native.ID)
+		result.Type = "unknown"
 	}
 
-	return models.LSDModel{
-		ID:           native.ID,
-		Type:         native.CustomMetadata.ModelType,
-		Provider:     native.CustomMetadata.ProviderID,
-		ResourcePath: native.CustomMetadata.ProviderResourceID,
-	}, nil
+	return result, true
 }
