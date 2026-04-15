@@ -3,28 +3,39 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { ERROR_CATEGORIES } from '~/app/Chatbot/const';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import * as errorClassifierModule from '~/app/utilities/errorClassifier';
+import { classifyError } from '~/app/utilities';
 
 // Mock dependencies
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
 }));
-jest.mock('~/app/utilities/utils', () => ({
-  getId: jest.fn(() => 'mock-id'),
-  getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
-}));
+jest.mock('~/app/utilities', () => {
+  const actual = jest.requireActual('~/app/utilities');
+  return {
+    ...actual,
+    getId: jest.fn(() => 'mock-id'),
+    getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
+    splitLlamaModelId: jest.fn((modelId: string) => {
+      const slashIndex = modelId.indexOf('/');
+      if (slashIndex === -1) {
+        return { providerId: '', id: modelId };
+      }
+      const providerId = modelId.substring(0, slashIndex);
+      const id = modelId.substring(slashIndex + 1);
+      return { providerId, id };
+    }),
+    classifyError: jest.fn(),
+  };
+});
 jest.mock('react', () => ({
   ...jest.requireActual('react'),
   useContext: jest.fn(),
 }));
-jest.mock('~/app/utilities/errorClassifier', () => ({
-  classifyError: jest.fn(),
-}));
 
 const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
 const mockUseGenAiAPI = jest.mocked(useGenAiAPI);
-const mockClassifyError = jest.mocked(errorClassifierModule.classifyError);
+const mockClassifyError = jest.mocked(classifyError);
 
 describe('useChatbotMessages - Error Handling', () => {
   const defaultProps = {
@@ -49,17 +60,21 @@ describe('useChatbotMessages - Error Handling', () => {
     mockUseContext.mockReturnValue({ namespace: 'test-namespace', aiModels: [] });
 
     // Default mock for classifyError - tests can override as needed
-    mockClassifyError.mockReturnValue({
-      pattern: 'full-failure',
-      variant: 'danger',
-      isRetriable: false,
-      title: 'Error',
-      description: 'An error occurred',
-      details: {
-        component: 'Unknown',
-        errorCode: 'UNKNOWN',
-        rawMessage: 'Error message',
-      },
+    mockClassifyError.mockImplementation(() => {
+      // eslint-disable-next-line no-console
+      console.log('[MOCK] classifyError called');
+      return {
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: false,
+        title: 'Error',
+        description: 'An error occurred',
+        details: {
+          component: 'Unknown',
+          errorCode: 'UNKNOWN',
+          rawMessage: 'Error message',
+        },
+      };
     });
   });
 
