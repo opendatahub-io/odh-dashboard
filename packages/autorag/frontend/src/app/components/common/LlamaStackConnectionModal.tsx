@@ -13,8 +13,11 @@ import {
 } from '@patternfly/react-core';
 import PasswordInput from '@odh-dashboard/internal/components/PasswordInput';
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { createSecret } from '@odh-dashboard/internal/api/k8s/secrets';
-import { translateDisplayNameForK8s } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
 
 type Props = {
@@ -33,7 +36,7 @@ const isValidUrl = (url: string): boolean => {
 };
 
 const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) => {
-  const [name, setName] = React.useState('');
+  const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
   const [baseUrl, setBaseUrl] = React.useState('');
   const [apiKey, setApiKey] = React.useState('');
   const [submitError, setSubmitError] = React.useState<Error>();
@@ -42,13 +45,13 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
 
   const baseUrlValid = React.useMemo(() => isValidUrl(baseUrl), [baseUrl]);
   const showBaseUrlError = baseUrlTouched && baseUrl.trim() !== '' && !baseUrlValid;
-  const isFormValid = name.trim() !== '' && baseUrlValid;
+  const isFormValid = isK8sNameDescriptionDataValid(nameDescData) && baseUrlValid;
 
   const handleSubmit = async () => {
     setIsSaving(true);
     setSubmitError(undefined);
 
-    const k8sName = translateDisplayNameForK8s(name);
+    const k8sName = nameDescData.k8sName.value;
 
     const secret: SecretKind = {
       apiVersion: 'v1',
@@ -57,7 +60,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
         name: k8sName,
         namespace,
         annotations: {
-          'openshift.io/display-name': name.trim(),
+          'openshift.io/display-name': nameDescData.name,
         },
       },
       stringData: {
@@ -92,17 +95,13 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
       />
       <ModalBody>
         <Form>
-          <FormGroup fieldId="lls-connection-name" label="Name" isRequired>
-            <TextInput
-              id="lls-connection-name"
-              data-testid="lls-connection-name"
-              value={name}
-              onChange={(_e, val) => setName(val)}
-              onBlur={() => setName((prev) => prev.trim())}
-              maxLength={253}
-              isRequired
-            />
-          </FormGroup>
+          <K8sNameDescriptionField
+            dataTestId="lls-connection"
+            data={nameDescData}
+            onDataChange={setNameDescData}
+            nameLabel="Connection name"
+            hideDescription
+          />
           <FormGroup fieldId="lls-connection-base-url" label="Base URL" isRequired>
             <TextInput
               id="lls-connection-base-url"

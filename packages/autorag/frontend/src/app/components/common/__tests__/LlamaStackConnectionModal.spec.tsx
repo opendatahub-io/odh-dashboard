@@ -313,7 +313,7 @@ describe('LlamaStackConnectionModal', () => {
     expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
   });
 
-  it('should trim name on blur', async () => {
+  it('should show auto-generated resource name when connection name is entered', async () => {
     render(
       <LlamaStackConnectionModal
         namespace={TEST_NAMESPACE}
@@ -322,14 +322,63 @@ describe('LlamaStackConnectionModal', () => {
       />,
     );
 
-    const nameInput = screen.getByTestId('lls-connection-name');
-
     await act(async () => {
-      fireEvent.change(nameInput, { target: { value: '  My Connection  ' } });
-      fireEvent.blur(nameInput);
+      fireEvent.change(screen.getByTestId('lls-connection-name'), {
+        target: { value: 'My Connection' },
+      });
     });
 
-    expect(nameInput).toHaveValue('My Connection');
+    expect(screen.getByText('my-connection')).toBeInTheDocument();
+  });
+
+  it('should use manually edited resource name in the created secret', async () => {
+    render(
+      <LlamaStackConnectionModal
+        namespace={TEST_NAMESPACE}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('lls-connection-name'), {
+        target: { value: 'My Connection' },
+      });
+    });
+
+    // Click "Edit resource name" and override the auto-generated value
+    await act(async () => {
+      screen.getByTestId('lls-connection-editResourceLink').click();
+    });
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('lls-connection-resourceName'), {
+        target: { value: 'custom-resource-name' },
+      });
+    });
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('lls-connection-base-url'), {
+        target: { value: 'http://localhost:8080' },
+      });
+    });
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'Add connection' }).click();
+    });
+
+    expect(createSecretMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          name: 'custom-resource-name',
+          namespace: TEST_NAMESPACE,
+          annotations: expect.objectContaining({
+            'openshift.io/display-name': 'My Connection',
+          }),
+        }),
+      }),
+    );
+    expect(onSubmitMock).toHaveBeenCalledWith('custom-resource-name');
   });
 
   it('should trim base URL on blur', async () => {
