@@ -20,7 +20,7 @@ import { MCPServer } from '~/app/types';
 interface MCPServerConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
-  server: MCPServer;
+  server?: MCPServer;
   currentToken?: string;
   onTokenSave: (serverUrl: string, token: string) => Promise<{ success: boolean; error?: string }>;
   isValidating?: boolean;
@@ -54,14 +54,14 @@ const MCPServerConfigModal: React.FC<MCPServerConfigModalProps> = ({
   }, [validationError]);
 
   const handleSave = React.useCallback(async () => {
-    if (!accessToken.trim()) {
+    if (!accessToken.trim() || !server) {
       return;
     }
 
     setHasAttemptedValidation(true);
     await onTokenSave(server.connectionUrl, accessToken.trim());
     // Parent component handles modal transitions on success/error
-  }, [server.connectionUrl, accessToken, onTokenSave]);
+  }, [server, accessToken, onTokenSave]);
 
   const handleClear = React.useCallback(() => {
     setAccessToken('');
@@ -77,7 +77,7 @@ const MCPServerConfigModal: React.FC<MCPServerConfigModalProps> = ({
       <ModalHeader title="Authorize MCP server" />
       <ModalBody>
         <Form>
-          <p>{`Enter the access token for the ${server.name} MCP Server.`}</p>
+          <p>{`Enter the access token for the ${server?.name} MCP Server.`}</p>
           {validationError && <Alert variant="danger" title="Authorization failed. Try again." />}
           <FormGroup
             label="Access token"

@@ -14,11 +14,11 @@ import { MCPServer } from '~/app/types';
 interface MCPServerSuccessModalProps {
   isOpen: boolean;
   onClose: () => void;
-  server: MCPServer;
+  server?: MCPServer;
   selectedToolsCount?: number;
   totalToolsCount?: number;
-  onEditTools: () => void;
-  onDisconnect: () => void;
+  onEditTools?: () => void;
+  onDisconnect?: () => void;
 }
 
 const MCPServerSuccessModal: React.FC<MCPServerSuccessModalProps> = ({
@@ -43,7 +43,7 @@ const MCPServerSuccessModal: React.FC<MCPServerSuccessModalProps> = ({
       <ModalHeader title="Connection successful" titleIconVariant="success" />
       <ModalBody>
         <p className="pf-v6-u-mb-md">
-          You are now connected to <strong>{server.name}</strong>. You can use it directly in the
+          You are now connected to <strong>{server?.name}</strong>. You can use it directly in the
           playground chat.
         </p>
         {displaySelectedCount > 40 && (

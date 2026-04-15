@@ -30,7 +30,7 @@ interface MCPServerToolsModalProps {
   configId: string;
   isOpen: boolean;
   onClose: () => void;
-  server: MCPServer;
+  server?: MCPServer;
   mcpBearerToken?: string;
 }
 
@@ -45,17 +45,23 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
 }) => {
   const { namespace } = React.useContext(GenAiContext);
 
+  const serverUrl = server?.connectionUrl ?? '';
+  const serverName = server?.name ?? '';
+  const serverId = server?.id ?? '';
+
   // Get tool selections functions from store
   const getToolSelections = React.useCallback(
-    (namespaceName: string, serverUrl: string) =>
-      useChatbotConfigStore.getState().getToolSelections(configId, namespaceName, serverUrl),
+    (namespaceName: string, serverConnectionUrl: string) =>
+      useChatbotConfigStore
+        .getState()
+        .getToolSelections(configId, namespaceName, serverConnectionUrl),
     [configId],
   );
   const saveToolSelections = React.useCallback(
-    (namespaceName: string, serverUrl: string, toolNames: string[] | undefined) => {
+    (namespaceName: string, serverConnectionUrl: string, toolNames: string[] | undefined) => {
       useChatbotConfigStore
         .getState()
-        .saveToolSelections(configId, namespaceName, serverUrl, toolNames);
+        .saveToolSelections(configId, namespaceName, serverConnectionUrl, toolNames);
     },
     [configId],
   );
@@ -66,7 +72,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
     toolsLoadError,
     toolsStatus,
     isLoading,
-  } = useMCPServerTools(server.connectionUrl, mcpBearerToken, isOpen);
+  } = useMCPServerTools(serverUrl, mcpBearerToken, isOpen);
 
   const [searchValue, setSearchValue] = React.useState('');
   const hasTrackedSearch = React.useRef(false);
@@ -77,12 +83,12 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
       // Track search usage once per modal open when user starts typing
       if (value && !hasTrackedSearch.current) {
         fireMiscTrackingEvent('Playground MCP Tools Search', {
-          mcpServerName: server.name,
+          mcpServerName: serverName,
         });
         hasTrackedSearch.current = true;
       }
     },
-    [server.name],
+    [serverName],
   );
 
   // Reset search tracking when modal closes/opens
@@ -95,13 +101,13 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
   const tools: MCPTool[] = React.useMemo(
     () =>
       apiTools.map((apiTool, index) => ({
-        id: `${server.id}-tool-${index}`,
+        id: `${serverId}-tool-${index}`,
         name: apiTool.name,
         description: apiTool.description,
         permissions: [],
         enabled: true,
       })),
-    [apiTools, server.id],
+    [apiTools, serverId],
   );
 
   const filteredTools = React.useMemo(
@@ -116,7 +122,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
       return null;
     }
 
-    const savedTools = getToolSelections(namespaceName, server.connectionUrl);
+    const savedTools = getToolSelections(namespaceName, serverUrl);
 
     // If undefined (never saved), select all tools by default
     if (savedTools === undefined) {
@@ -128,7 +134,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
       .filter((tool): tool is MCPTool => tool !== undefined);
 
     return savedToolObjects;
-  }, [namespaceName, server.connectionUrl, toolsLoaded, getToolSelections, tools]);
+  }, [namespaceName, serverUrl, toolsLoaded, getToolSelections, tools]);
 
   const [selectedTools, setSelectedTools] = React.useState<MCPTool[]>([]);
 
@@ -162,35 +168,27 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
 
     saveToolSelections(
       namespaceName,
-      server.connectionUrl,
+      serverUrl,
       isAllToolsSelected ? undefined : selectedToolNames,
     );
 
     fireFormTrackingEvent(MCP_TOOLS_EVENT_NAME, {
       outcome: TrackingOutcome.submit,
-      mcpServerName: server.name,
+      mcpServerName: serverName,
       selectedToolsCount: selectedToolNames.length,
       totalToolsCount: tools.length,
     });
 
     onClose();
-  }, [
-    namespaceName,
-    selections,
-    tools.length,
-    saveToolSelections,
-    server.connectionUrl,
-    server.name,
-    onClose,
-  ]);
+  }, [namespaceName, selections, tools.length, saveToolSelections, serverUrl, serverName, onClose]);
 
   const handleCancel = React.useCallback(() => {
     fireFormTrackingEvent(MCP_TOOLS_EVENT_NAME, {
       outcome: TrackingOutcome.cancel,
-      mcpServerName: server.name,
+      mcpServerName: serverName,
     });
     onClose();
-  }, [server.name, onClose]);
+  }, [serverName, onClose]);
 
   return (
     <Modal
@@ -202,7 +200,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
     >
       <ModalHeader>
         <Title headingLevel="h2" size="xl" id="mcp-tools-modal-title">
-          {server.name}
+          {serverName}
         </Title>
       </ModalHeader>
       <ModalBody className="pf-v6-u-pt-md">
@@ -215,7 +213,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
         {toolsLoadError && (
           <Alert
             variant="danger"
-            title={`Failed to load tools from ${server.name}`}
+            title={`Failed to load tools from ${serverName}`}
             className="pf-v6-u-mb-md"
           >
             {toolsLoadError.message}

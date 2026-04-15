@@ -2,7 +2,7 @@ import * as React from 'react';
 
 export interface UseModalStateReturn<T> {
   isOpen: boolean;
-  selectedItem: T | null;
+  selectedItem: T | undefined;
   openModal: (item: T) => void;
   closeModal: () => void;
 }
@@ -16,7 +16,7 @@ export interface UseModalStateReturn<T> {
  */
 const useModalState = <T>(): UseModalStateReturn<T> => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [selectedItem, setSelectedItem] = React.useState<T | null>(null);
+  const [selectedItem, setSelectedItem] = React.useState<T | undefined>(undefined);
 
   const openModal = React.useCallback((item: T) => {
     setSelectedItem(item);
@@ -25,7 +25,6 @@ const useModalState = <T>(): UseModalStateReturn<T> => {
 
   const closeModal = React.useCallback(() => {
     setIsOpen(false);
-    setSelectedItem(null);
   }, []);
 
   return {

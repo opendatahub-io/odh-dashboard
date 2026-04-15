@@ -362,35 +362,39 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
           data-testid="mcp-servers-panel-table"
         />
       </div>
-      {configModal.selectedItem && (
-        <MCPServerConfigModal
-          isOpen={configModal.isOpen}
-          onClose={handleConfigModalClose}
-          server={configModal.selectedItem}
-          currentToken={
-            tokenManagement.getToken(configModal.selectedItem.connectionUrl)?.token || ''
-          }
-          onTokenSave={validation.validateServerToken}
-          isValidating={validation.validatingServers.has(configModal.selectedItem.connectionUrl)}
-          validationError={validation.validationErrors.get(configModal.selectedItem.connectionUrl)}
-        />
-      )}
-      {toolsModal.selectedItem && (
-        <MCPServerToolsModal
-          configId={configId}
-          isOpen={toolsModal.isOpen}
-          onClose={handleToolsModalClose}
-          server={toolsModal.selectedItem}
-          mcpBearerToken={tokenManagement.getToken(toolsModal.selectedItem.connectionUrl)?.token}
-        />
-      )}
-      {successModalProps && (
-        <MCPServerSuccessModal
-          isOpen={successModal.isOpen}
-          onClose={handleSuccessModalClose}
-          {...successModalProps}
-        />
-      )}
+      <MCPServerConfigModal
+        isOpen={configModal.isOpen}
+        onClose={handleConfigModalClose}
+        server={configModal.selectedItem}
+        currentToken={
+          tokenManagement.getToken(configModal.selectedItem?.connectionUrl ?? '')?.token ?? ''
+        }
+        onTokenSave={validation.validateServerToken}
+        isValidating={Boolean(
+          validation.validatingServers.has(configModal.selectedItem?.connectionUrl ?? ''),
+        )}
+        validationError={validation.validationErrors.get(
+          configModal.selectedItem?.connectionUrl ?? '',
+        )}
+      />
+      <MCPServerToolsModal
+        configId={configId}
+        isOpen={toolsModal.isOpen}
+        onClose={handleToolsModalClose}
+        server={toolsModal.selectedItem}
+        mcpBearerToken={
+          tokenManagement.getToken(toolsModal.selectedItem?.connectionUrl ?? '')?.token
+        }
+      />
+      <MCPServerSuccessModal
+        isOpen={successModal.isOpen}
+        onClose={handleSuccessModalClose}
+        server={successModal.selectedItem}
+        selectedToolsCount={successModalProps?.selectedToolsCount}
+        totalToolsCount={successModalProps?.totalToolsCount}
+        onEditTools={successModalProps?.onEditTools}
+        onDisconnect={successModalProps?.onDisconnect}
+      />
     </>
   );
 };
