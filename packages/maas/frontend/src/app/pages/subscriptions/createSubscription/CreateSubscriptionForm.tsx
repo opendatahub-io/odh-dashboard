@@ -113,7 +113,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     editLimitsTarget,
     setEditLimitsTarget,
     editingModel,
-    rateLimitErrorIndices,
     allModelsHaveRateLimits,
     handleAddModels,
     handleRemoveModel,
@@ -375,7 +374,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
               tokenRateLimits: m.tokenRateLimits,
             }))}
             editable
-            rateLimitErrorIndices={rateLimitErrorIndices}
             onAddModels={canAddModels ? () => setIsAddModelsModalOpen(true) : undefined}
             onEditLimits={(index) => setEditLimitsTarget(index)}
             onRemoveModel={handleRemoveModel}
