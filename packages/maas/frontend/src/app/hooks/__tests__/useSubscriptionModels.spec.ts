@@ -121,21 +121,18 @@ describe('useSubscriptionModels', () => {
     expect(renderResult.result.current.allModelsHaveRateLimits).toBe(false);
   });
 
-  it('should track rateLimitErrorIndices after closing the modal', () => {
+  it('should include rows with no token limits in rateLimitErrorIndices', () => {
     const initial = [makeEntry('model-a', 'ns', [])];
     const renderResult = testHook(useSubscriptionModels)(initial);
 
-    expect(renderResult.result.current.rateLimitErrorIndices.size).toBe(0);
+    expect(renderResult.result.current.rateLimitErrorIndices.has(0)).toBe(true);
 
     act(() => {
-      renderResult.result.current.setEditLimitsTarget(0);
-    });
-    act(() => {
-      renderResult.result.current.handleCloseRateLimitsModal();
+      renderResult.result.current.handleAddModels([makeModelRef('model-b')]);
     });
 
     expect(renderResult.result.current.rateLimitErrorIndices.has(0)).toBe(true);
-    expect(renderResult.result.current.editLimitsTarget).toBeNull();
+    expect(renderResult.result.current.rateLimitErrorIndices.has(1)).toBe(true);
   });
 
   it('should return the editingModel when editLimitsTarget is set', () => {

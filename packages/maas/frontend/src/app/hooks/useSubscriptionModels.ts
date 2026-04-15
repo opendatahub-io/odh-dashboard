@@ -27,7 +27,6 @@ export const useSubscriptionModels = (
   const [models, setModels] = React.useState<SubscriptionModelEntry[]>(initialModels);
   const [isAddModelsModalOpen, setIsAddModelsModalOpen] = React.useState(false);
   const [editLimitsTarget, setEditLimitsTarget] = React.useState<number | null>(null);
-  const [rateLimitsTouched, setRateLimitsTouched] = React.useState<Set<number>>(new Set());
 
   const allModelsHaveRateLimits = models.every((m) => m.tokenRateLimits.length > 0);
 
@@ -35,13 +34,13 @@ export const useSubscriptionModels = (
     () =>
       new Set(
         models.reduce<number[]>((acc, m, i) => {
-          if (rateLimitsTouched.has(i) && m.tokenRateLimits.length === 0) {
+          if (m.tokenRateLimits.length === 0) {
             acc.push(i);
           }
           return acc;
         }, []),
       ),
-    [models, rateLimitsTouched],
+    [models],
   );
 
   const editingModel = editLimitsTarget != null ? models[editLimitsTarget] : null;
@@ -63,42 +62,15 @@ export const useSubscriptionModels = (
 
   const handleRemoveModel = React.useCallback((index: number) => {
     setModels((prev) => prev.filter((_, i) => i !== index));
-    setRateLimitsTouched((prev) => {
-      const next = new Set<number>();
-      prev.forEach((i) => {
-        if (i < index) {
-          next.add(i);
-        } else if (i > index) {
-          next.add(i - 1);
-        }
-      });
-      return next;
-    });
   }, []);
 
   const handleRemoveModelsByRef = React.useCallback((refs: MaaSModelRefSummary[]) => {
     const keysToRemove = new Set(refs.map((r) => `${r.namespace}/${r.name}`));
-    setModels((prev) => {
-      const removedIndices = new Set<number>();
-      prev.forEach((m, i) => {
-        if (keysToRemove.has(`${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`)) {
-          removedIndices.add(i);
-        }
-      });
-      setRateLimitsTouched((prevTouched) => {
-        const next = new Set<number>();
-        let offset = 0;
-        for (let i = 0; i < prev.length; i++) {
-          if (removedIndices.has(i)) {
-            offset++;
-          } else if (prevTouched.has(i)) {
-            next.add(i - offset);
-          }
-        }
-        return next;
-      });
-      return prev.filter((_, i) => !removedIndices.has(i));
-    });
+    setModels((prev) =>
+      prev.filter(
+        (m) => !keysToRemove.has(`${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`),
+      ),
+    );
   }, []);
 
   const handleSaveRateLimits = React.useCallback(
@@ -116,14 +88,8 @@ export const useSubscriptionModels = (
   );
 
   const handleCloseRateLimitsModal = React.useCallback(() => {
-    setRateLimitsTouched((prev) => {
-      if (editLimitsTarget == null) {
-        return prev;
-      }
-      return new Set(prev).add(editLimitsTarget);
-    });
     setEditLimitsTarget(null);
-  }, [editLimitsTarget]);
+  }, []);
 
   return {
     models,
