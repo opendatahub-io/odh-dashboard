@@ -516,8 +516,9 @@ describe('API Keys Page', () => {
   });
 
   it('should create an API key with a custom expiration and show the correct label in the success view', () => {
+    const created = mockCreateAPIKeyResponse();
     cy.interceptOdh('POST /maas/api/v1/api-keys', {
-      data: mockCreateAPIKeyResponse(),
+      data: created,
     }).as('createApiKey');
 
     apiKeysPage.findCreateApiKeyButton().click();
@@ -537,7 +538,24 @@ describe('API Keys Page', () => {
     });
 
     copyApiKeyModal.shouldBeOpen();
+    copyApiKeyModal.findApiKeyName().should('contain.text', 'my-key');
     copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '45 days');
+
+    copyApiKeyModal.findApiKeyTokenExpandToggle().should('be.visible').click();
+    copyApiKeyModal
+      .findApiKeyTokenExpandedContent()
+      .should('be.visible')
+      .invoke('text')
+      .then((raw) => {
+        expect(raw.trim()).to.equal(created.key);
+      });
+
+    cy.window().then((win) => {
+      cy.stub(win.navigator.clipboard, 'writeText').as('clipboardWrite');
+    });
+    copyApiKeyModal.findApiKeyTokenCopyButton().click();
+    cy.get('@clipboardWrite').should('have.been.calledOnce');
+    cy.get('@clipboardWrite').should('have.been.calledWith', created.key);
   });
 
   it('should show a validation error for an out-of-range custom days value', () => {

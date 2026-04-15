@@ -1,0 +1,6 @@
+# testMaaSSubscriptions.cy.ts Test Data #
+modelLocationURI: 'hf://openai-community/gpt2'
+projectResourceName: 'maas-subs-project'
+hardwareProfileName: 'cypress-llmd-hardware-profile-model'
+singleModelName: 'gpt2'
+connectionNameSuffix: '-connection'

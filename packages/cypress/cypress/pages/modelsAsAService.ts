@@ -897,6 +897,12 @@ class EditSubscriptionPage {
     return cy.findByTestId('policy-change-warning');
   }
 
+  typeCustomGroup(name: string): void {
+    this.findGroupsSelect().find('input').type(name);
+    cy.findByRole('option', { name: `Add group "${name}"` }).click();
+    this.findGroupsSelect().click();
+  }
+
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('update-subscription-button');
   }
