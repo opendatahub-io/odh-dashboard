@@ -65,3 +65,27 @@ newDatabasePassword: "NewTestPassword123"
 
 # Object storage paths for v2
 objectStoragePathV2: "models/test-model/v2.0"
+
+# OCI Register and Store
+ociModelName: "test-oci-model"
+ociModelDescription: "E2E test model using OCI register and store"
+ociVersionName: "v1.0"
+ociVersionDescription: "First version via OCI transfer job"
+ociModelFormat: "onnx"
+ociModelFormatVersion: "1.0"
+ociJobName: "oci-transfer-job"
+ociSourceEndpoint: "http://minio.example.com:9000"
+ociSourceBucket: "test-models"
+ociSourceRegion: "us-east-1"
+ociSourcePath: "models/oci-test-model/v1.0"
+ociTransferJobStartedNotification: "Model transfer job started"
+ociTransferJobFailedNotification: "Model transfer job failed"
+ociDestinationRegistry: "quay.io"
+ociDestinationUri: "quay.io/test-org/test-oci-model:v1"
+ociDestinationUsername: "dummy-oci-user"
+ociDestinationPassword: "dummy-oci-pass"
+
+# OCI Register and Store — URI origin variant
+ociUriModelName: "test-oci-uri-model"
+ociUriJobName: "oci-uri-transfer-job"
+ociUriOriginUri: "s3://test-models/models/oci-test-model/v1.0?endpoint=http%3A%2F%2Fminio.example.com%3A9000&defaultRegion=us-east-1"

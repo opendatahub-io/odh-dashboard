@@ -28,6 +28,7 @@ import { attemptToClickTooltip } from '../../../../utils/models';
 
 let testData: DataScienceProjectData;
 let projectName: string;
+let resourceName: string;
 let modelName: string;
 let modelFilePath: string;
 let pvStorageName: string;
@@ -170,7 +171,9 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .as('resourceName');
+        .then((val) => {
+          resourceName = val as string;
+        });
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
@@ -185,9 +188,7 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
       // Verify the model created and is running
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
-      cy.get<string>('@resourceName').then((resourceName) => {
-        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
-      });
+      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       modelServingSection.findModelMetricsLink(modelName);
       // Note reload is required as status tooltip was not found due to a stale element
       attemptToClickTooltip();

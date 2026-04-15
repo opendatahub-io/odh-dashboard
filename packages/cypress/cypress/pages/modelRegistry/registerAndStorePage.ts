@@ -22,8 +22,16 @@ class RegisterAndStorePage {
     return cy.findByTestId('namespace-form-group');
   }
 
-  findProjectSelectorToggle() {
-    return cy.findByTestId('project-selector-toggle');
+  findProjectSelectorToggle(timeout?: number) {
+    return cy.findByTestId('project-selector-toggle', { timeout });
+  }
+
+  findProjectSelectorSearch() {
+    return cy.findByTestId('project-selector-search');
+  }
+
+  findProjectSelectorMenuList() {
+    return cy.findByTestId('project-selector-menuList');
   }
 
   findNoAccessAlert() {
