@@ -482,9 +482,9 @@ var _ = Describe("PolicyHandlers", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue(), "spec.subjects.users should still be present after UI update")
 			Expect(users).To(HaveLen(1))
-			if userMap, ok := users[0].(map[string]interface{}); ok {
-				Expect(userMap["name"]).To(Equal("injected-user"))
-			}
+			userMap, ok := users[0].(map[string]interface{})
+			Expect(ok).To(BeTrue(), "user entry should be a map")
+			Expect(userMap["name"]).To(Equal("injected-user"))
 		})
 	})
 
