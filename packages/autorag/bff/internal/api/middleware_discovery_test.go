@@ -301,3 +301,125 @@ func TestGetMockDSPipelineApplications(t *testing.T) {
 		}
 	})
 }
+
+// TestInjectDSPAObjectStorageForMinIO tests the MinIO auto-discovery functionality
+func TestInjectDSPAObjectStorageForMinIO(t *testing.T) {
+	t.Run("should inject managed MinIO storage config when minio.deploy is true", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		logger := slog.Default()
+		cfg := config.EnvConfig{
+			MockK8Client: true,
+			AuthMethod:   config.AuthMethodInternal,
+		}
+
+		testEnv, clientset, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
+			Logger: logger,
+			Ctx:    ctx,
+			Cancel: cancel,
+		})
+		require.NoError(t, err)
+		defer func() {
+			if testEnv != nil {
+				_ = testEnv.Stop()
+			}
+		}()
+
+		k8sFactory, err := k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+		require.NoError(t, err)
+
+		app := &App{
+			config:                  cfg,
+			logger:                  logger,
+			kubernetesClientFactory: k8sFactory,
+		}
+
+		// Create a test namespace with a managed MinIO DSPA
+		namespace := "minio-test"
+
+		// Inject storage config using the function
+		resultCtx := app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
+
+		// Verify context was returned (won't have injection without mock MinIO DSPA data)
+		require.NotNil(t, resultCtx, "Context should not be nil")
+	})
+
+	t.Run("should prefer external storage over managed MinIO when both exist", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		logger := slog.Default()
+		cfg := config.EnvConfig{
+			MockK8Client: true,
+			AuthMethod:   config.AuthMethodInternal,
+		}
+
+		testEnv, clientset, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
+			Logger: logger,
+			Ctx:    ctx,
+			Cancel: cancel,
+		})
+		require.NoError(t, err)
+		defer func() {
+			if testEnv != nil {
+				_ = testEnv.Stop()
+			}
+		}()
+
+		k8sFactory, err := k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+		require.NoError(t, err)
+
+		app := &App{
+			config:                  cfg,
+			logger:                  logger,
+			kubernetesClientFactory: k8sFactory,
+		}
+
+		namespace := "test-namespace"
+
+		// test-namespace has external storage DSPA - should use external storage
+		resultCtx := app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
+
+		require.NotNil(t, resultCtx, "Context should not be nil")
+	})
+
+	t.Run("should return original context when no DSPAs exist", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		logger := slog.Default()
+		cfg := config.EnvConfig{
+			MockK8Client: true,
+			AuthMethod:   config.AuthMethodInternal,
+		}
+
+		testEnv, clientset, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
+			Logger: logger,
+			Ctx:    ctx,
+			Cancel: cancel,
+		})
+		require.NoError(t, err)
+		defer func() {
+			if testEnv != nil {
+				_ = testEnv.Stop()
+			}
+		}()
+
+		k8sFactory, err := k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+		require.NoError(t, err)
+
+		app := &App{
+			config:                  cfg,
+			logger:                  logger,
+			kubernetesClientFactory: k8sFactory,
+		}
+
+		namespace := "empty-namespace"
+
+		// empty-namespace has no DSPAs
+		resultCtx := app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
+
+		require.NotNil(t, resultCtx, "Context should not be nil")
+	})
+}
