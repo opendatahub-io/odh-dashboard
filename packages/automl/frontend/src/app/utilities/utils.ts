@@ -1,4 +1,4 @@
-import type { PipelineRun } from '~/app/types';
+import type { PipelineRun, TaskType } from '~/app/types';
 import {
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
@@ -25,12 +25,30 @@ export function parseErrorStatus(error: Error): number | undefined {
 }
 
 /**
+ * Extracts the task type from a pipeline run's runtime parameters.
+ * - Returns the task_type value when present.
+ * - Defaults to timeseries when parameters exist but task_type is missing
+ *   (timeseries is the only task that omits this parameter).
+ * - Returns undefined when runtime_config.parameters is absent.
+ */
+export const getTaskType = (pipelineRun?: PipelineRun): TaskType | undefined => {
+  const params = pipelineRun?.runtime_config?.parameters;
+  if (!params) {
+    return undefined;
+  }
+  if (!Object.prototype.hasOwnProperty.call(params, 'task_type')) {
+    return TASK_TYPE_TIMESERIES;
+  }
+  return params.task_type;
+};
+
+/**
  * Determines if a task type is tabular.
  * @param pipelineRun - The pipeline run to check
  * @returns true if the task type is tabular, false otherwise
  */
 export const isTabularRun = (pipelineRun?: PipelineRun): boolean => {
-  const taskType = pipelineRun?.runtime_config?.parameters?.task_type ?? TASK_TYPE_TIMESERIES;
+  const taskType = getTaskType(pipelineRun) ?? TASK_TYPE_TIMESERIES;
 
   return [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS, TASK_TYPE_REGRESSION].includes(taskType);
 };
