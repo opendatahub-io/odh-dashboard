@@ -356,11 +356,8 @@ function AutomlLeaderboard({
       };
     });
 
-    // Initial ranking by optimized metric value
-    // Error metrics (mase, mse, mae, etc.) where lower is better
-    const errorMetrics = ['mase', 'mse', 'mae', 'rmse', 'mape'];
-    const isErrorMetric = errorMetrics.includes(optimizedMetric.toLowerCase());
-
+    // Initial ranking by optimized metric value (higher is better).
+    // AutoGluon negates error/loss metrics so all metrics are uniformly "higher is better".
     const sortedByMetric = entries.toSorted((a, b) => {
       const aVal = a.optimizedMetricValue;
       const bVal = b.optimizedMetricValue;
@@ -376,12 +373,10 @@ function AutomlLeaderboard({
         return -1;
       }
 
-      // Both are numbers
+      // Both are numbers — descending (higher is better)
       const aNum = typeof aVal === 'number' ? aVal : 0;
       const bNum = typeof bVal === 'number' ? bVal : 0;
-      return isErrorMetric
-        ? aNum - bNum // Lower is better
-        : bNum - aNum; // Higher is better
+      return bNum - aNum;
     });
 
     // Assign initial rank
