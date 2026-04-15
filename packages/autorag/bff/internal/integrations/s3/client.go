@@ -288,6 +288,20 @@ func cloneDefaultTransport() *http.Transport {
 	return &http.Transport{}
 }
 
+// isInternalHost reports whether a hostname is a trusted internal host
+// (Kubernetes in-cluster service). These legitimately use HTTP internally and
+// resolve to private IPs, so HTTP scheme and SSRF validation is skipped for them.
+// All other hosts are subject to HTTPS requirement and SSRF checks.
+//
+// Requires a fully-qualified Kubernetes service DNS name: <service>.<namespace>.svc.cluster.local
+// (5 dot-separated labels minimum), preventing overly-broad matches like "evil.cluster.local".
+func isInternalHost(hostname string) bool {
+	// Require a fully-qualified Kubernetes service DNS name: <service>.<namespace>.svc.cluster.local
+	// (5 dot-separated labels minimum), preventing overly-broad matches like "evil.cluster.local".
+	isK8sService := strings.HasSuffix(hostname, ".svc.cluster.local") && len(strings.Split(hostname, ".")) >= 5
+	return isK8sService
+}
+
 // validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
 //
 // HTTPS is required for external endpoints — plain HTTP is rejected because S3
@@ -321,7 +335,7 @@ func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, er
 
 	// Allow HTTP only for in-cluster endpoints (.svc.cluster.local)
 	// All external endpoints must use HTTPS to prevent credentials in cleartext
-	isInCluster := strings.HasSuffix(hostname, ".svc.cluster.local")
+	isInCluster := isInternalHost(hostname)
 	if parsedURL.Scheme == "http" && !isInCluster {
 		return "", fmt.Errorf("endpoint URL must use HTTPS scheme for external endpoints, got: %s", parsedURL.Scheme)
 	}

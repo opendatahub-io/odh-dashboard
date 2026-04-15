@@ -145,6 +145,40 @@ func TestValidateAndNormalizeEndpoint_AcceptsHTTPForInClusterEndpoints(t *testin
 	}
 }
 
+func TestValidateAndNormalizeEndpoint_RejectsInvalidClusterLocalHostnames(t *testing.T) {
+	c := newTestClient()
+	testCases := []struct {
+		name     string
+		endpoint string
+		reason   string
+	}{
+		{
+			name:     "Too few labels (4) - missing namespace",
+			endpoint: "http://evil.svc.cluster.local",
+			reason:   "should reject .svc.cluster.local with fewer than 5 labels",
+		},
+		{
+			name:     "Too few labels (3) - just svc.cluster.local",
+			endpoint: "http://svc.cluster.local:9000",
+			reason:   "should reject partial cluster domain",
+		},
+		{
+			name:     "Malicious cluster.local suffix",
+			endpoint: "http://evil.cluster.local",
+			reason:   "should reject non-service cluster.local domains",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := c.validateAndNormalizeEndpoint(tc.endpoint)
+			assert.Error(t, err, tc.reason)
+			assert.Contains(t, err.Error(), "HTTPS scheme for external endpoints",
+				"should treat invalid cluster hostnames as external and require HTTPS")
+		})
+	}
+}
+
 func TestValidateAndNormalizeEndpoint_RejectsEmpty(t *testing.T) {
 	c := newTestClient()
 	_, err := c.validateAndNormalizeEndpoint("")
