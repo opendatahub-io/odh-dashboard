@@ -77,18 +77,13 @@ class ProjectListPage {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title');
+    this.findPageTitle().should('be.visible', { timeout: 15000 });
+    this.getTableToolbar().find().should('be.visible', { timeout: 30000 });
     cy.testA11y();
   }
 
   findPageTitle() {
     return cy.findByTestId('app-page-title');
-  }
-
-  waitForPageAndToolbar() {
-    this.findPageTitle().should('be.visible', { timeout: 15000 });
-    this.getTableToolbar().find().should('be.visible', { timeout: 30000 });
-    return this;
   }
 
   shouldHaveProjects() {

@@ -46,10 +46,10 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
     { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
     () => {
       // Authentication and navigation
-      cy.visitWithLogin('/projects', LDAP_CONTRIBUTOR_USER);
-      projectListPage.waitForPageAndToolbar();
+      cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
       // Open the project
       cy.step(`Navigate to the Project list tab and search for ${dspName}`);
+      projectListPage.navigate();
       projectListPage.filterProjectByName(dspName);
       projectListPage.findProjectLink(dspName).click();
       cy.step('Navigate to the Cluster Storage tab and disable all non-default storage classes');
