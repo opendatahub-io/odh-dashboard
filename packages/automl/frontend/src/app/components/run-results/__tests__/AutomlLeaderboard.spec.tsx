@@ -95,28 +95,28 @@ const mockRegressionModels: Record<string, AutomlModel> = {
   }),
 };
 
-// Timeseries models
+// Timeseries models — AutoGluon negates error/loss metrics so higher (closer to 0) is better
 const mockTimeseriesModels: Record<string, AutomlModel> = {
   'model-1': createMockModel('ARIMA', {
-    mase: 0.15,
-    mape: 0.18,
-    mae: 5.2,
-    mse: 45.3,
-    rmse: 6.73,
+    mase: -0.15,
+    mape: -0.18,
+    mae: -5.2,
+    mse: -45.3,
+    rmse: -6.73,
   }),
   'model-2': createMockModel('Prophet', {
-    mase: 0.12,
-    mape: 0.14,
-    mae: 4.1,
-    mse: 32.1,
-    rmse: 5.67,
+    mase: -0.12,
+    mape: -0.14,
+    mae: -4.1,
+    mse: -32.1,
+    rmse: -5.67,
   }),
   'model-3': createMockModel('LSTM', {
-    mase: 0.09,
-    mape: 0.11,
-    mae: 3.5,
-    mse: 25.6,
-    rmse: 5.06,
+    mase: -0.09,
+    mape: -0.11,
+    mae: -3.5,
+    mse: -25.6,
+    rmse: -5.06,
   }),
 };
 
@@ -616,13 +616,13 @@ describe('AutomlLeaderboard component', () => {
       expect(within(rank1Row).getByTestId('top-rank-label')).toBeInTheDocument();
     });
 
-    it('should rank models correctly for timeseries (lower MASE is better)', () => {
+    it('should rank models correctly for timeseries (higher negated MASE is better)', () => {
       renderWithContext({
         models: mockTimeseriesModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'timeseries'),
       });
 
-      // LSTM has lowest MASE (0.09), should be rank 1
+      // LSTM has highest negated MASE (-0.09, closest to 0), should be rank 1
       const rank1Row = screen.getByTestId('leaderboard-row-1');
       expect(within(rank1Row).getByText('LSTM')).toBeInTheDocument();
       expect(within(rank1Row).getByTestId('top-rank-label')).toBeInTheDocument();
