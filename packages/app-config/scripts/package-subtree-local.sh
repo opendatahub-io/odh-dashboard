@@ -365,6 +365,7 @@ if [ ! -d "$LOCAL_REPO" ]; then
 fi
 
 LOCAL_REPO_RESOLVED=$(cd "$LOCAL_REPO" && pwd)
+LOCAL_REPO_LABEL=$(git -C "$LOCAL_REPO_RESOLVED" remote get-url origin 2>/dev/null || echo "local-repository")
 
 if ! git -C "$LOCAL_REPO_RESOLVED" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   clean_exit 1 "Path '$LOCAL_REPO_RESOLVED' is not a valid Git repository" true
@@ -659,7 +660,7 @@ if [ "$needs_sync_work" = true ]; then
   echo ""
 
   temp_file="$PACKAGE_JSON.tmp"
-  if ! jq --arg local_repo "$LOCAL_REPO_RESOLVED" \
+  if ! jq --arg local_repo "$LOCAL_REPO_LABEL" \
           --arg branch "$LOCAL_BRANCH" \
           '.subtree = {
             DO_NOT_MERGE_SYNCED_FROM_LOCAL: {
@@ -695,7 +696,7 @@ if [ "$needs_sync_work" = true ]; then
 
   commit_msg="${COMMIT_PREFIX}Override subtree config for local sync
 
-Syncing from local repository: $LOCAL_REPO_RESOLVED
+Syncing from local repository: $LOCAL_REPO_LABEL
 Branch: $LOCAL_BRANCH
 
 This commit should NOT be merged. It exists only to test changes from a local repository."
@@ -723,12 +724,6 @@ inject_conflict_markers() {
 
     local target_file="$MONOREPO_ROOT/$WORKSPACE_LOCATION/$TARGET_RELATIVE/$rel_file"
 
-    if [ ! -f "$target_file" ]; then
-      mkdir -p "$(dirname "$target_file")"
-      touch "$target_file"
-      info_msg "Created new file for conflict markers: $rel_file"
-    fi
-
     if ! grep -q '^<<<<<<< ' "$target_file" 2>/dev/null; then
 
       local temp_patch="$TMP_DIR/file_patch_$$.txt"
@@ -743,7 +738,12 @@ inject_conflict_markers() {
       ' "$patch_file" > "$temp_patch"
 
       if [ -s "$temp_patch" ]; then
-        if is_binary_file "$target_file"; then
+        local is_binary_patch=false
+        if grep -q "^GIT binary patch" "$temp_patch" 2>/dev/null || grep -q "^Binary files" "$temp_patch" 2>/dev/null; then
+          is_binary_patch=true
+        fi
+
+        if [ "$is_binary_patch" = true ] || { [ -f "$target_file" ] && is_binary_file "$target_file"; }; then
           local patch_sidecar="$MONOREPO_ROOT/$WORKSPACE_LOCATION/$TARGET_RELATIVE/${rel_file}.patch"
           local meta_sidecar="$MONOREPO_ROOT/$WORKSPACE_LOCATION/$TARGET_RELATIVE/${rel_file}.patch-info.txt"
 
@@ -758,7 +758,7 @@ COMMIT MESSAGE: $commit_msg
 FILE: $rel_file
 WORKSPACE: $WORKSPACE_LOCATION
 PACKAGE: $PACKAGE_NAME
-LOCAL REPO: $LOCAL_REPO_RESOLVED
+LOCAL REPO: $LOCAL_REPO_LABEL
 BRANCH: $LOCAL_BRANCH
 
 This file is binary and cannot have conflict markers embedded.
@@ -771,6 +771,12 @@ METAEOF
 
           warning_msg "Binary file '$rel_file' — patch saved to ${rel_file}.patch and ${rel_file}.patch-info.txt"
         else
+          if [ ! -f "$target_file" ]; then
+            mkdir -p "$(dirname "$target_file")"
+            touch "$target_file"
+            info_msg "Created new file for conflict markers: $rel_file"
+          fi
+
           cat >> "$target_file" << EOF
 
 <<<<<<< PATCH FAILED TO APPLY
@@ -794,7 +800,7 @@ INSTRUCTIONS:
 2. Manually apply the intended changes to this file
 3. Remove this entire conflict marker block (from <<<<<<< to >>>>>>>)
 4. Stage the file: git add $WORKSPACE_LOCATION
-5. Continue: npm run update-subtree-local -- --package=$PACKAGE_NAME --local-repo=$LOCAL_REPO_RESOLVED --branch=$LOCAL_BRANCH --continue
+5. Continue: npm run update-subtree-local -- --package=$PACKAGE_NAME --local-repo=<local-repo-path> --branch=$LOCAL_BRANCH --continue
 
 
 For more details, view the upstream commit at:
@@ -1069,7 +1075,11 @@ Upstream commit: $commit" "$WORKSPACE_LOCATION/$TARGET_RELATIVE"
           local tracking_msg="${COMMIT_PREFIX}Update $PACKAGE_NAME tracking to $commit (no file changes)"
           set +e
           safe_git_commit_if_changes "$tracking_msg" "$PACKAGE_JSON" >/dev/null
+          local tracking_exit_code=$?
           set -e
+          if [ $tracking_exit_code -ne 0 ] && [ $tracking_exit_code -ne 2 ]; then
+            clean_exit 1 "Failed to commit tracking update for commit $commit_count/$total_commits"
+          fi
           info_msg "No changes from commit $commit_count/$total_commits"
         else
           warning_msg "Failed to update package.json tracking for commit $commit_count/$total_commits"
@@ -1086,7 +1096,11 @@ Upstream commit: $commit" "$WORKSPACE_LOCATION/$TARGET_RELATIVE"
         local tracking_msg="${COMMIT_PREFIX}Update $PACKAGE_NAME tracking to $commit (no file changes)"
         set +e
         safe_git_commit_if_changes "$tracking_msg" "$PACKAGE_JSON" >/dev/null
+        local tracking_exit_code=$?
         set -e
+        if [ $tracking_exit_code -ne 0 ] && [ $tracking_exit_code -ne 2 ]; then
+          clean_exit 1 "Failed to commit tracking update for commit $commit_count/$total_commits"
+        fi
       else
         warning_msg "Failed to update package.json tracking for commit $commit_count/$total_commits"
       fi
