@@ -9,7 +9,7 @@ import { type Deployment } from '../../../../extension-points';
 
 type DeploymentHardwareProfileCellProps = {
   deployment: Deployment;
-  hardwareProfilePaths?: CrPathConfig;
+  hardwareProfilePaths: CrPathConfig;
 };
 
 export const DeploymentHardwareProfileCell: React.FC<DeploymentHardwareProfileCellProps> =
@@ -19,8 +19,7 @@ export const DeploymentHardwareProfileCell: React.FC<DeploymentHardwareProfileCe
       paths: hardwareProfilePaths,
     });
 
-    const containerResources =
-      hardwareProfileOptions.podSpecOptionsState.hardwareProfile.formData.resources;
+    const containerResources = hardwareProfileOptions.podSpecOptionsState.podSpecOptions.resources;
     const [bindingStateInfo, bindingStateLoaded, bindingStateLoadError] =
       useHardwareProfileBindingState(deployment.model, MODEL_SERVING_VISIBILITY);
 
