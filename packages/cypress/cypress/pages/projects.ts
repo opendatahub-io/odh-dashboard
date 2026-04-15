@@ -78,7 +78,6 @@ class ProjectListPage {
 
   private wait() {
     cy.findByTestId('app-page-title', { timeout: 15000 }).should('be.visible');
-    cy.findByTestId('projects-table-toolbar', { timeout: 30000 }).should('be.visible');
     cy.testA11y();
   }
 
@@ -146,6 +145,7 @@ class ProjectListPage {
    * @param projectName Project Name
    */
   filterProjectByName = (projectName: string) => {
+    cy.findByTestId('projects-table-toolbar', { timeout: 30000 }).should('be.visible');
     const projectListToolbar = projectListPage.getTableToolbar();
     projectListToolbar.findNameFilter().type(projectName);
   };
