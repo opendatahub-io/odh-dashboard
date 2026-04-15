@@ -254,8 +254,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     onClose(submitted);
   };
 
-  const setErrorModal = (e: Error) => {
-    setError(new Error(translateModelServingError(e.message)));
+  const setErrorModal = (e: unknown) => {
+    const msg = e instanceof Error ? e.message : String(e || 'Unknown error');
+    setError(new Error(translateModelServingError(msg)));
     setActionInProgress(false);
   };
 
