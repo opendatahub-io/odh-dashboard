@@ -5,6 +5,20 @@ import {
   TokenRateLimit,
 } from '~/app/types/subscriptions';
 
+/** Returns the corrected edit-modal row index after deletions, or null if that row was removed. */
+export const reindexAfterRemove = (
+  targetIndex: number | null,
+  removedIndices: number[],
+): number | null => {
+  if (targetIndex === null || removedIndices.length === 0) {
+    return targetIndex;
+  }
+  if (removedIndices.includes(targetIndex)) {
+    return null;
+  }
+  return targetIndex - removedIndices.filter((i) => i < targetIndex).length;
+};
+
 type UseSubscriptionModelsReturn = {
   models: SubscriptionModelEntry[];
   isAddModelsModalOpen: boolean;
@@ -12,7 +26,6 @@ type UseSubscriptionModelsReturn = {
   editLimitsTarget: number | null;
   setEditLimitsTarget: React.Dispatch<React.SetStateAction<number | null>>;
   editingModel: SubscriptionModelEntry | null;
-  rateLimitErrorIndices: Set<number>;
   allModelsHaveRateLimits: boolean;
   handleAddModels: (refs: MaaSModelRefSummary[]) => void;
   handleRemoveModel: (index: number) => void;
@@ -29,19 +42,6 @@ export const useSubscriptionModels = (
   const [editLimitsTarget, setEditLimitsTarget] = React.useState<number | null>(null);
 
   const allModelsHaveRateLimits = models.every((m) => m.tokenRateLimits.length > 0);
-
-  const rateLimitErrorIndices = React.useMemo(
-    () =>
-      new Set(
-        models.reduce<number[]>((acc, m, i) => {
-          if (m.tokenRateLimits.length === 0) {
-            acc.push(i);
-          }
-          return acc;
-        }, []),
-      ),
-    [models],
-  );
 
   const editingModel = editLimitsTarget != null ? models[editLimitsTarget] : null;
 
@@ -62,16 +62,27 @@ export const useSubscriptionModels = (
 
   const handleRemoveModel = React.useCallback((index: number) => {
     setModels((prev) => prev.filter((_, i) => i !== index));
+    setEditLimitsTarget((current) => reindexAfterRemove(current, [index]));
   }, []);
 
-  const handleRemoveModelsByRef = React.useCallback((refs: MaaSModelRefSummary[]) => {
-    const keysToRemove = new Set(refs.map((r) => `${r.namespace}/${r.name}`));
-    setModels((prev) =>
-      prev.filter(
-        (m) => !keysToRemove.has(`${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`),
-      ),
-    );
-  }, []);
+  const handleRemoveModelsByRef = React.useCallback(
+    (refs: MaaSModelRefSummary[]) => {
+      const keysToRemove = new Set(refs.map((r) => `${r.namespace}/${r.name}`));
+      const removedIndices = models.reduce<number[]>((acc, m, i) => {
+        if (keysToRemove.has(`${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`)) {
+          acc.push(i);
+        }
+        return acc;
+      }, []);
+      setModels((prev) =>
+        prev.filter(
+          (m) => !keysToRemove.has(`${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`),
+        ),
+      );
+      setEditLimitsTarget((current) => reindexAfterRemove(current, removedIndices));
+    },
+    [models],
+  );
 
   const handleSaveRateLimits = React.useCallback(
     (rateLimits: TokenRateLimit[]) => {
@@ -98,7 +109,6 @@ export const useSubscriptionModels = (
     editLimitsTarget,
     setEditLimitsTarget,
     editingModel,
-    rateLimitErrorIndices,
     allModelsHaveRateLimits,
     handleAddModels,
     handleRemoveModel,
