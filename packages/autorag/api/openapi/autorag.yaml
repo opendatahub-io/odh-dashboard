@@ -1551,7 +1551,7 @@ components:
                     type: lls
                     data: {"LLAMA_STACK_CLIENT_API_KEY": "[REDACTED]", "LLAMA_STACK_CLIENT_BASE_URL": "[REDACTED]"}
                     displayName: Development LLS
-                    description: Llama Stack instance for development and testing
+                    description: Llama Stack connection for development and testing
                   - uuid: d2e3f4a5-b6c7-8901-defa-bc2345678901
                     name: llama-stack-secret-2
                     type: lls
