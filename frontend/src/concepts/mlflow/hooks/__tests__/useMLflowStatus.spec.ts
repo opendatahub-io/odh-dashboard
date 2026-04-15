@@ -4,7 +4,6 @@ import type { MLflowStatus } from '#~/concepts/mlflow/hooks/useMLflowStatus';
 
 jest.useFakeTimers();
 
-const STATUS_ENDPOINT = '/_bff/mlflow/api/v1/status';
 const POLL_INTERVAL = 30000;
 const TEARDOWN_GRACE_MS = 1000;
 
@@ -25,10 +24,12 @@ const loadFreshModule = () => {
 
   const axios = require('#~/utilities/axios');
   const mod = require('#~/concepts/mlflow/hooks/useMLflowStatus');
+  const { STATUS_ENDPOINT } = require('#~/concepts/mlflow/const');
 
   return {
     useMLflowStatus: mod.useMLflowStatus as (shouldFetch: boolean) => MLflowStatus,
     mockAxiosGet: axios.get as jest.Mock,
+    STATUS_ENDPOINT: STATUS_ENDPOINT as string,
   };
 };
 
@@ -110,7 +111,7 @@ describe('useMLflowStatus', () => {
   });
 
   it('should call the correct status endpoint', async () => {
-    const { useMLflowStatus, mockAxiosGet } = loadFreshModule();
+    const { useMLflowStatus, mockAxiosGet, STATUS_ENDPOINT } = loadFreshModule();
     mockAxiosGet.mockResolvedValue({ data: { configured: true } });
     testHook(useMLflowStatus)(true);
 
