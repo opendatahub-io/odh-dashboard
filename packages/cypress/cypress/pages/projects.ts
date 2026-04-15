@@ -77,8 +77,8 @@ class ProjectListPage {
   }
 
   private wait() {
-    this.findPageTitle().should('be.visible', { timeout: 15000 });
-    this.getTableToolbar().find().should('be.visible', { timeout: 30000 });
+    cy.findByTestId('app-page-title', { timeout: 15000 }).should('be.visible');
+    cy.findByTestId('projects-table-toolbar', { timeout: 30000 }).should('be.visible');
     cy.testA11y();
   }
 
