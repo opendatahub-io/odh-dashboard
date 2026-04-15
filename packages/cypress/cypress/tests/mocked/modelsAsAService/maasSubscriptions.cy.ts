@@ -29,6 +29,7 @@ const setupCommonIntercepts = () => {
       components: {
         [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
       },
+      conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
     }),
   );
 };
