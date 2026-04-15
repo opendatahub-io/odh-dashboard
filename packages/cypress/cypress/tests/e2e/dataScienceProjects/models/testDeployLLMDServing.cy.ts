@@ -171,7 +171,8 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Verify that the Model is ready');
       // Image was patched in YAML editor before submit, so no post-deployment patching needed
-      cy.get<string>('@resourceName').then((resourceName) => {
+      cy.get<string>('@resourceName').then((resName) => {
+        resourceName = resName;
         checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
 

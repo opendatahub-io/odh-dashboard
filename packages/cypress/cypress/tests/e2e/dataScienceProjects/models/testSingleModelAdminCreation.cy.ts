@@ -155,7 +155,8 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       modelServingSection.findModelServerDeployedName(modelName);
 
       cy.step('Verify that the Model is created Successfully on the backend');
-      cy.get<string>('@resourceName').then((resourceName) => {
+      cy.get<string>('@resourceName').then((resName) => {
+        resourceName = resName;
         checkInferenceServiceState(resourceName, projectName, {});
       });
 
@@ -181,10 +182,13 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       //Verify the model is stopped
       cy.step('Verify the model is stopped');
-      checkInferenceServiceState(resourceName, projectName, {
-        checkReady: false,
-        checkStopped: true,
-        requireLoadedState: false,
+      cy.get<string>('@resourceName').then((resName) => {
+        resourceName = resName;
+        checkInferenceServiceState(resourceName, projectName, {
+          checkReady: false,
+          checkStopped: true,
+          requireLoadedState: false,
+        });
       });
       kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
 
@@ -195,7 +199,8 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       // //Verify the model is running again
       cy.step('Verify the model is running again');
-      cy.get<string>('@resourceName').then((resourceName) => {
+      cy.get<string>('@resourceName').then((resName) => {
+        resourceName = resName;
         checkInferenceServiceState(resourceName, projectName, {});
       });
       // kServeRow
@@ -205,7 +210,8 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       cy.step('Stop the model before editing');
       kServeRow.findStateActionToggle().click();
-      cy.get<string>('@resourceName').then((resourceName) => {
+      cy.get<string>('@resourceName').then((resName) => {
+        resourceName = resName;
         checkInferenceServiceState(resourceName, projectName, {
           checkReady: false,
           checkStopped: true,
