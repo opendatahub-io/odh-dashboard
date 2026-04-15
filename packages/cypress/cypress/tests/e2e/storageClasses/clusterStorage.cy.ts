@@ -47,6 +47,7 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
     () => {
       // Authentication and navigation
       cy.visitWithLogin('/projects', LDAP_CONTRIBUTOR_USER);
+      projectListPage.waitForPageAndToolbar();
       // Open the project
       cy.step(`Navigate to the Project list tab and search for ${dspName}`);
       projectListPage.filterProjectByName(dspName);
