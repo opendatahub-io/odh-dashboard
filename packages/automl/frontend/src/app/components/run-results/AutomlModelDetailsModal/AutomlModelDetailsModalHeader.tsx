@@ -10,7 +10,7 @@ import {
 import type { MenuToggleElement } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
-import { formatMetricName, formatMetricValue, isErrorMetric } from '~/app/utilities/utils';
+import { formatMetricName, formatMetricValue } from '~/app/utilities/utils';
 import './AutomlModelDetailsModal.scss';
 
 type AutomlModelDetailsModalHeaderProps = {
@@ -50,7 +50,7 @@ function getOptimizedMetric(
   const numericMetricValue = metrics[metricKey];
   return {
     name: evalMetric,
-    value: isErrorMetric(evalMetric) ? Math.abs(numericMetricValue) : numericMetricValue,
+    value: numericMetricValue,
   };
 }
 
