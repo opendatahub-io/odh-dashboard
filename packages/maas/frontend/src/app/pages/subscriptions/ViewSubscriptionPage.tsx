@@ -64,7 +64,7 @@ const ViewSubscriptionPage: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [subscriptionInfo, loaded, loadError] = useGetSubscriptionInfo(subscriptionName);
   const displaySubscriptionName =
-    subscriptionInfo?.subscription.displayName?.trim() ?? subscriptionName;
+    subscriptionInfo?.subscription.displayName?.trim() || subscriptionName;
 
   const breadcrumb = (
     <Breadcrumb>
