@@ -28,9 +28,9 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
     <StackItem>
       <DescriptionList columnModifier={{ default: '2Col' }}>
         <DescriptionListGroup>
-          <DescriptionListTerm>Display name</DescriptionListTerm>
+          <DescriptionListTerm>Name</DescriptionListTerm>
           <DescriptionListDescription>
-            {subscription.displayName ?? subscription.name}
+            {subscription.displayName?.trim() || subscription.name}
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
@@ -44,11 +44,11 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
           <DescriptionListDescription>{subscription.description ?? '—'}</DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
-          <DescriptionListTerm>Name</DescriptionListTerm>
+          <DescriptionListTerm>Resource name</DescriptionListTerm>
           <DescriptionListDescription>{subscription.name}</DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
-          <DescriptionListTerm>Date created</DescriptionListTerm>
+          <DescriptionListTerm>Created</DescriptionListTerm>
           <DescriptionListDescription>
             {subscription.creationTimestamp ? (
               <Timestamp

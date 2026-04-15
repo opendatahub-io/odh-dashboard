@@ -62,15 +62,15 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findRows().should('have.length', 5);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
-    const premiumRow = subscriptionsPage.getRow('premium-team-sub');
-    premiumRow.findName().should('contain.text', 'premium-team-sub');
+    const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
     premiumRow.findPhase().should('contain.text', 'Active');
+    premiumRow.findName().should('contain.text', 'Premium Team Subscription');
     premiumRow.findGroups().should('contain.text', '1 Group');
     premiumRow.findModels().should('contain.text', '2 Models');
     premiumRow.findPriority().should('contain.text', '10');
 
-    const basicRow = subscriptionsPage.getRow('basic-team-sub');
-    basicRow.findName().should('contain.text', 'basic-team-sub');
+    const basicRow = subscriptionsPage.getRow('Basic Team Subscription');
+    basicRow.findName().should('contain.text', 'Basic Team Subscription');
     basicRow.findPhase().should('contain.text', 'Active');
     basicRow.findGroups().should('contain.text', '1 Group');
     basicRow.findModels().should('contain.text', '1 Model');
@@ -108,7 +108,10 @@ describe('Subscriptions Page', () => {
       { data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" } },
     ).as('deleteSubscription');
 
-    subscriptionsPage.getRow('premium-team-sub').findKebabAction('Delete subscription').click();
+    subscriptionsPage
+      .getRow('Premium Team Subscription')
+      .findKebabAction('Delete subscription')
+      .click();
     deleteSubscriptionModal.findInput().type('premium-team-sub');
 
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
@@ -141,18 +144,20 @@ describe('View Subscription Page', () => {
   it('should display the page content with title, breadcrumb, details, groups, and models', () => {
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
     subscriptionsPage.visit();
-    subscriptionsPage.getRow(subscriptionName).findKebabAction('View details').click();
+    subscriptionsPage.getRow('Premium Team Subscription').findKebabAction('View details').click();
     cy.url().should('include', `/maas/subscriptions/view/${subscriptionName}`);
 
-    viewSubscriptionPage.findTitle().should('contain.text', subscriptionName);
+    viewSubscriptionPage.findTitle().should('contain.text', 'Premium Team Subscription');
 
     viewSubscriptionPage
       .findDetailsSection()
-      .should('contain.text', subscriptionName)
       .and('contain.text', 'Phase')
       .and('contain.text', 'Active')
+      .should('contain.text', 'Premium Team Subscription')
       .and('contain.text', 'Name')
-      .and('contain.text', 'Date created');
+      .and('contain.text', 'Resource name')
+      .and('contain.text', 'premium-team-sub')
+      .and('contain.text', 'Created');
 
     viewSubscriptionPage.findGroupsSection().should('exist');
     viewSubscriptionPage.findGroupsTable().should('contain.text', 'premium-users');
@@ -331,7 +336,7 @@ describe('Edit Subscription Page', () => {
     editSubscriptionPage.visit(subscriptionName);
     editSubscriptionPage.findTitle().should('contain.text', 'Edit subscription');
 
-    editSubscriptionPage.findNameInput().should('have.value', 'basic-team-sub');
+    editSubscriptionPage.findNameInput().should('have.value', 'Basic Team Subscription');
     editSubscriptionPage.findPriorityInput().should('have.value', '0');
     editSubscriptionPage.findGroupsSelect().should('contain.text', 'system:authenticated');
     editSubscriptionPage.findModelsTable().should('contain.text', 'flan-t5-small');
