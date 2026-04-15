@@ -59,31 +59,42 @@ describe('Subscriptions Page', () => {
       );
 
     subscriptionsPage.findTable().should('exist');
-    subscriptionsPage.findRows().should('have.length', 3);
+    subscriptionsPage.findRows().should('have.length', 5);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
     const premiumRow = subscriptionsPage.getRow('premium-team-sub');
     premiumRow.findName().should('contain.text', 'premium-team-sub');
+    premiumRow.findPhase().should('contain.text', 'Active');
     premiumRow.findGroups().should('contain.text', '1 Group');
     premiumRow.findModels().should('contain.text', '2 Models');
     premiumRow.findPriority().should('contain.text', '10');
 
     const basicRow = subscriptionsPage.getRow('basic-team-sub');
     basicRow.findName().should('contain.text', 'basic-team-sub');
+    basicRow.findPhase().should('contain.text', 'Active');
     basicRow.findGroups().should('contain.text', '1 Group');
     basicRow.findModels().should('contain.text', '1 Model');
     basicRow.findPriority().should('contain.text', '0');
 
     const negativePriorityRow = subscriptionsPage.getRow('negative-priority-sub');
     negativePriorityRow.findName().should('contain.text', 'negative-priority-sub');
+    negativePriorityRow.findPhase().should('contain.text', 'Active');
     negativePriorityRow.findGroups().should('contain.text', '1 Group');
     negativePriorityRow.findModels().should('contain.text', '1 Model');
     negativePriorityRow.findPriority().should('contain.text', '-10000');
 
+    const failedRow = subscriptionsPage.getRow('failed-sub');
+    failedRow.findPhase().should('contain.text', 'Failed');
+    failedRow.findPhaseLabel().click();
+    failedRow.findPhasePopover().should('contain.text', 'Failed');
+
+    const pendingRow = subscriptionsPage.getRow('pending-sub');
+    pendingRow.findPhase().should('contain.text', 'Pending');
+
     subscriptionsPage.findFilterInput().should('exist').type('premium');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().should('exist').click();
-    subscriptionsPage.findRows().should('have.length', 3);
+    subscriptionsPage.findRows().should('have.length', 5);
 
     premiumRow.findKebabAction('View details').should('exist');
     premiumRow.findKebabAction('Edit subscription').should('exist');
@@ -110,7 +121,7 @@ describe('Subscriptions Page', () => {
         data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" },
       });
     });
-    subscriptionsPage.findRows().should('have.length', 2);
+    subscriptionsPage.findRows().should('have.length', 4);
     subscriptionsPage.findTable().should('not.contain', 'premium-team-sub');
   });
 });
@@ -138,6 +149,8 @@ describe('View Subscription Page', () => {
     viewSubscriptionPage
       .findDetailsSection()
       .should('contain.text', subscriptionName)
+      .and('contain.text', 'Phase')
+      .and('contain.text', 'Active')
       .and('contain.text', 'Name')
       .and('contain.text', 'Date created');
 

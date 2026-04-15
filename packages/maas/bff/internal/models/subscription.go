@@ -77,6 +77,7 @@ type MaaSSubscription struct {
 	Description       string                 `json:"description,omitempty"`
 	Namespace         string                 `json:"namespace"`
 	Phase             string                 `json:"phase,omitempty"`
+	StatusMessage     string                 `json:"statusMessage,omitempty"`
 	Priority          int32                  `json:"priority"`
 	Owner             OwnerSpec              `json:"owner"`
 	ModelRefs         []ModelSubscriptionRef `json:"modelRefs"`
@@ -102,6 +103,7 @@ type MaaSAuthPolicy struct {
 	DisplayName       string         `json:"displayName,omitempty"`
 	Description       string         `json:"description,omitempty"`
 	Phase             string         `json:"phase,omitempty"`
+	StatusMessage     string         `json:"statusMessage,omitempty"`
 	CreationTimestamp *time.Time     `json:"creationTimestamp,omitempty"`
 	ModelRefs         []ModelRef     `json:"modelRefs"`
 	Subjects          SubjectSpec    `json:"subjects"`

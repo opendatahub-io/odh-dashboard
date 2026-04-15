@@ -10,6 +10,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { MaaSSubscription } from '~/app/types/subscriptions';
+import PhaseLabel from '~/app/shared/PhaseLabel';
 
 type SubscriptionDetailsSectionProps = {
   subscription: MaaSSubscription;
@@ -30,6 +31,12 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
           <DescriptionListTerm>Display name</DescriptionListTerm>
           <DescriptionListDescription>
             {subscription.displayName ?? subscription.name}
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+        <DescriptionListGroup>
+          <DescriptionListTerm>Phase</DescriptionListTerm>
+          <DescriptionListDescription data-testid="subscription-phase">
+            <PhaseLabel phase={subscription.phase} statusMessage={subscription.statusMessage} />
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
