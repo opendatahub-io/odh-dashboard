@@ -346,89 +346,31 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			// Extract the full object storage configuration from the DSPA spec and store in
 			// context. This allows downstream handlers to connect to S3 (or compatible stores
 			// like managed MinIO) without an additional Kubernetes API call.
-			if dspa.Spec != nil && dspa.Spec.ObjectStorage != nil {
-				// Handle external storage
+			if dspaObjectStorage := resolveDSPAObjectStorage(dspa, namespace, logger); dspaObjectStorage != nil {
+				ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
+
+				// Log appropriate message based on storage type
 				if dspa.Spec.ObjectStorage.ExternalStorage != nil &&
-					dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
-					dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
-					ext := dspa.Spec.ObjectStorage.ExternalStorage
-					cred := ext.S3CredentialsSecret
-
-					// Construct the endpoint URL from scheme, host, and optional port.
-					// Only "http" and "https" schemes are accepted; any other value is
-					// logged as a warning and the endpoint URL is left empty so that
-					// GetS3CredentialsFromDSPA surfaces a clear error to the caller.
-					endpointURL := ""
-					scheme := strings.ToLower(ext.Scheme)
-					if ext.Host != "" && (scheme == "http" || scheme == "https") {
-						if ext.Port != "" {
-							endpointURL = fmt.Sprintf("%s://%s:%s", scheme, ext.Host, ext.Port)
-						} else {
-							endpointURL = fmt.Sprintf("%s://%s", scheme, ext.Host)
-						}
-					} else if ext.Scheme != "" && ext.Host != "" {
-						logger.Warn("DSPA external storage has unrecognised scheme; endpoint URL will be omitted",
-							"scheme", ext.Scheme,
-							"namespace", namespace,
-						)
-					}
-
-					accessKeyField := cred.AccessKey
-					if accessKeyField == "" {
-						accessKeyField = "AWS_ACCESS_KEY_ID"
-					}
-					secretKeyField := cred.SecretKey
-					if secretKeyField == "" {
-						secretKeyField = "AWS_SECRET_ACCESS_KEY"
-					}
-
-					dspaObjectStorage := &models.DSPAObjectStorage{
-						SecretName:     cred.SecretName,
-						AccessKeyField: accessKeyField,
-						SecretKeyField: secretKeyField,
-						EndpointURL:    endpointURL,
-						Bucket:         ext.Bucket,
-						Region:         ext.Region,
-					}
-					ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
+					dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil {
 					logger.Debug("Found DSPA external storage config",
-						"secretName", cred.SecretName,
+						"secretName", dspaObjectStorage.SecretName,
 						"namespace", namespace,
-						"hasEndpoint", endpointURL != "",
-						"hasBucket", ext.Bucket != "",
+						"hasEndpoint", dspaObjectStorage.EndpointURL != "",
+						"hasBucket", dspaObjectStorage.Bucket != "",
 					)
 				} else if dspa.Spec.ObjectStorage.Minio != nil && dspa.Spec.ObjectStorage.Minio.Deploy {
-					// Handle managed MinIO
-					minio := dspa.Spec.ObjectStorage.Minio
-
-					// Convention: DSPA operator creates secret named "ds-pipeline-s3-<dspa-name>"
-					secretName := fmt.Sprintf("ds-pipeline-s3-%s", dspa.Metadata.Name)
-
-					// MinIO endpoint URL: http://minio-{dspa-name}.{namespace}.svc.cluster.local:9000
-					endpointURL := fmt.Sprintf("http://minio-%s.%s.svc.cluster.local:9000",
-						dspa.Metadata.Name, namespace)
-
-					dspaObjectStorage := &models.DSPAObjectStorage{
-						SecretName:     secretName,
-						AccessKeyField: "accesskey", // MinIO secret uses lowercase key names
-						SecretKeyField: "secretkey", // MinIO secret uses lowercase key names
-						EndpointURL:    endpointURL,
-						Bucket:         minio.Bucket,
-						Region:         "us-east-1", // Default region for MinIO
-					}
-					ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
 					logger.Debug("Found managed MinIO storage config",
-						"secretName", secretName,
+						"secretName", dspaObjectStorage.SecretName,
 						"namespace", namespace,
-						"bucket", minio.Bucket,
-						"endpoint", endpointURL,
-					)
-				} else {
-					logger.Warn("DSPA found but has no storage config; S3 endpoints require explicit secretName",
-						"dspa", dspa.Metadata.Name,
-						"namespace", namespace,
+						"bucket", dspaObjectStorage.Bucket,
+						"endpoint", dspaObjectStorage.EndpointURL,
 					)
 				}
+			} else {
+				logger.Warn("DSPA found but has no storage config; S3 endpoints require explicit secretName",
+					"dspa", dspa.Metadata.Name,
+					"namespace", namespace,
+				)
 			}
 
 			// Extract auth token from request identity to forward to Pipeline Server
@@ -498,24 +440,29 @@ func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespac
 		return ctx
 	}
 
-	// Use the first DSPA that has external storage OR managed MinIO configured.
-	var dspa *models.DSPipelineApplication
+	// Prefer external storage globally, then fall back to managed MinIO.
+	var externalDSPA *models.DSPipelineApplication
+	var minioDSPA *models.DSPipelineApplication
 	for i := range dspaItems {
 		d := &dspaItems[i]
-		if d.Spec != nil && d.Spec.ObjectStorage != nil {
-			// Check for external storage first
-			if d.Spec.ObjectStorage.ExternalStorage != nil &&
-				d.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
-				d.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
-				dspa = d
-				break
-			}
-			// Also check for managed MinIO
-			if d.Spec.ObjectStorage.Minio != nil && d.Spec.ObjectStorage.Minio.Deploy {
-				dspa = d
-				break
-			}
+		if d.Spec == nil || d.Spec.ObjectStorage == nil {
+			continue
 		}
+		if externalDSPA == nil &&
+			d.Spec.ObjectStorage.ExternalStorage != nil &&
+			d.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
+			d.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
+			externalDSPA = d
+		}
+		if minioDSPA == nil &&
+			d.Spec.ObjectStorage.Minio != nil &&
+			d.Spec.ObjectStorage.Minio.Deploy {
+			minioDSPA = d
+		}
+	}
+	dspa := externalDSPA
+	if dspa == nil {
+		dspa = minioDSPA
 	}
 	if dspa == nil {
 		logger.Warn("DSPA found but has no storage config; S3 requires explicit secretName",
@@ -523,7 +470,87 @@ func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespac
 		return ctx
 	}
 
-	// Handle external storage case
+	// Resolve and inject DSPA object storage config
+	if dspaObjectStorage := resolveDSPAObjectStorage(dspa, namespace, logger); dspaObjectStorage != nil {
+		ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
+
+		// Log appropriate message based on storage type
+		if dspa.Spec.ObjectStorage.ExternalStorage != nil &&
+			dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil {
+			logger.Debug("Injected DSPA external storage config (override-URL mode)",
+				"secretName", dspaObjectStorage.SecretName,
+				"namespace", namespace,
+				"hasEndpoint", dspaObjectStorage.EndpointURL != "",
+				"hasBucket", dspaObjectStorage.Bucket != "",
+			)
+		} else if dspa.Spec.ObjectStorage.Minio != nil && dspa.Spec.ObjectStorage.Minio.Deploy {
+			logger.Debug("Injected managed MinIO storage config (override-URL mode)",
+				"secretName", dspaObjectStorage.SecretName,
+				"namespace", namespace,
+				"bucket", dspaObjectStorage.Bucket,
+				"endpoint", dspaObjectStorage.EndpointURL,
+			)
+		}
+		return ctx
+	}
+
+	logger.Warn("DSPA found but has no storage config; S3 requires explicit secretName",
+		"dspa", dspa.Metadata.Name,
+		"namespace", namespace,
+	)
+	return ctx
+}
+
+const (
+	dsPipelineGroup    = "datasciencepipelinesapplications.opendatahub.io"
+	dsPipelineResource = "datasciencepipelinesapplications"
+)
+
+// buildMinIOObjectStorage constructs DSPAObjectStorage for managed MinIO deployments.
+// It follows the DSPA operator conventions:
+//   - Secret name: "ds-pipeline-s3-{dspaName}"
+//   - Endpoint: http://minio-{dspaName}.{namespace}.svc.cluster.local:9000
+//   - Lowercase credential key names: "accesskey", "secretkey"
+//   - Default region: "us-east-1"
+func buildMinIOObjectStorage(dspaName, namespace, bucket string) *models.DSPAObjectStorage {
+	return &models.DSPAObjectStorage{
+		SecretName:     fmt.Sprintf("ds-pipeline-s3-%s", dspaName),
+		AccessKeyField: "accesskey",
+		SecretKeyField: "secretkey",
+		EndpointURL:    fmt.Sprintf("http://minio-%s.%s.svc.cluster.local:9000", dspaName, namespace),
+		Bucket:         bucket,
+		Region:         "us-east-1",
+	}
+}
+
+// resolveDSPAObjectStorage extracts S3-compatible object storage configuration from a DSPA spec.
+// It handles both external storage (e.g., AWS S3) and managed MinIO, with external storage
+// preferred when both are configured.
+//
+// Returns nil if the DSPA has no valid object storage configuration.
+//
+// For external storage:
+//   - Validates scheme (must be "http" or "https")
+//   - Constructs endpoint URL from scheme://host[:port]
+//   - Defaults accessKeyField to "AWS_ACCESS_KEY_ID" if empty
+//   - Defaults secretKeyField to "AWS_SECRET_ACCESS_KEY" if empty
+//   - Uses bucket and region from DSPA spec
+//
+// For managed MinIO:
+//   - Secret name follows convention: "ds-pipeline-s3-{dspa-name}"
+//   - Endpoint URL: http://minio-{dspa-name}.{namespace}.svc.cluster.local:9000
+//   - Uses lowercase key names: "accesskey", "secretkey"
+//   - Defaults region to "us-east-1"
+func resolveDSPAObjectStorage(
+	dspa *models.DSPipelineApplication,
+	namespace string,
+	logger *slog.Logger,
+) *models.DSPAObjectStorage {
+	if dspa == nil || dspa.Spec == nil || dspa.Spec.ObjectStorage == nil {
+		return nil
+	}
+
+	// Handle external storage (preferred)
 	if dspa.Spec.ObjectStorage.ExternalStorage != nil &&
 		dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret != nil &&
 		dspa.Spec.ObjectStorage.ExternalStorage.S3CredentialsSecret.SecretName != "" {
@@ -531,6 +558,10 @@ func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespac
 		ext := dspa.Spec.ObjectStorage.ExternalStorage
 		cred := ext.S3CredentialsSecret
 
+		// Construct the endpoint URL from scheme, host, and optional port.
+		// Only "http" and "https" schemes are accepted; any other value is
+		// logged as a warning and the endpoint URL is left empty so that
+		// GetS3CredentialsFromDSPA surfaces a clear error to the caller.
 		endpointURL := ""
 		scheme := strings.ToLower(ext.Scheme)
 		if ext.Host != "" && (scheme == "http" || scheme == "https") {
@@ -555,7 +586,7 @@ func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespac
 			secretKeyField = "AWS_SECRET_ACCESS_KEY"
 		}
 
-		dspaObjectStorage := &models.DSPAObjectStorage{
+		return &models.DSPAObjectStorage{
 			SecretName:     cred.SecretName,
 			AccessKeyField: accessKeyField,
 			SecretKeyField: secretKeyField,
@@ -563,56 +594,20 @@ func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespac
 			Bucket:         ext.Bucket,
 			Region:         ext.Region,
 		}
-		ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
-		logger.Debug("Injected DSPA external storage config (override-URL mode)",
-			"secretName", cred.SecretName,
-			"namespace", namespace,
-			"hasEndpoint", endpointURL != "",
-			"hasBucket", ext.Bucket != "",
-		)
-		return ctx
 	}
 
-	// Handle managed MinIO case
+	// Handle managed MinIO (fallback)
 	if dspa.Spec.ObjectStorage.Minio != nil && dspa.Spec.ObjectStorage.Minio.Deploy {
-		minio := dspa.Spec.ObjectStorage.Minio
-
-		// Convention: DSPA operator creates secret named "ds-pipeline-s3-<dspa-name>"
-		secretName := fmt.Sprintf("ds-pipeline-s3-%s", dspa.Metadata.Name)
-
-		// MinIO endpoint URL: http://minio-{dspa-name}.{namespace}.svc.cluster.local:9000
-		endpointURL := fmt.Sprintf("http://minio-%s.%s.svc.cluster.local:9000",
-			dspa.Metadata.Name, namespace)
-
-		dspaObjectStorage := &models.DSPAObjectStorage{
-			SecretName:     secretName,
-			AccessKeyField: "accesskey", // MinIO secret uses lowercase key names
-			SecretKeyField: "secretkey", // MinIO secret uses lowercase key names
-			EndpointURL:    endpointURL,
-			Bucket:         minio.Bucket,
-			Region:         "us-east-1", // Default region for MinIO
-		}
-		ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
-		logger.Debug("Injected managed MinIO storage config (override-URL mode)",
-			"secretName", secretName,
-			"namespace", namespace,
-			"bucket", minio.Bucket,
-			"endpoint", endpointURL,
+		return buildMinIOObjectStorage(
+			dspa.Metadata.Name,
+			namespace,
+			dspa.Spec.ObjectStorage.Minio.Bucket,
 		)
-		return ctx
 	}
 
-	logger.Warn("DSPA found but has no storage config; S3 requires explicit secretName",
-		"dspa", dspa.Metadata.Name,
-		"namespace", namespace,
-	)
-	return ctx
+	// No valid storage configuration
+	return nil
 }
-
-const (
-	dsPipelineGroup    = "datasciencepipelinesapplications.opendatahub.io"
-	dsPipelineResource = "datasciencepipelinesapplications"
-)
 
 // isDSPAReady checks if the Pipeline Server is fully ready by looking for
 // the Ready condition. Ready is the aggregate condition set by the DSPA
@@ -926,6 +921,115 @@ func getMockDSPipelineApplications(namespace string) []models.DSPipelineApplicat
 					APIServer: &models.DSPipelineApplicationAPIServerStatus{
 						URL:         "https://ds-pipeline-pipelines.minio-test.svc.cluster.local:8443",
 						ExternalURL: "https://ds-pipeline-ui-pipelines-minio-test.apps.cluster.local",
+					},
+				},
+			},
+		},
+		// Ready DSPA with external storage in external-storage-test namespace
+		{
+			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
+			Kind:       "DSPipelineApplication",
+			Metadata: models.DSPipelineApplicationMetadata{
+				Name:      "dspa-external",
+				Namespace: "external-storage-test",
+			},
+			Spec: &models.DSPipelineApplicationSpec{
+				APIServer: &models.APIServer{
+					Deploy: true,
+				},
+				ObjectStorage: &models.ObjectStorage{
+					ExternalStorage: &models.ExternalStorage{
+						Host:   "s3.amazonaws.com",
+						Port:   "",
+						Scheme: "https",
+						Region: "us-west-2",
+						Bucket: "my-external-bucket",
+						S3CredentialsSecret: &models.S3CredentialsSecret{
+							SecretName: "aws-s3-credentials",
+							AccessKey:  "", // Empty means use default AWS_ACCESS_KEY_ID
+							SecretKey:  "", // Empty means use default AWS_SECRET_ACCESS_KEY
+						},
+					},
+				},
+			},
+			Status: &models.DSPipelineApplicationStatus{
+				Ready: true,
+				Conditions: []models.DSPipelineApplicationCondition{
+					{
+						Type:    "Ready",
+						Status:  "True",
+						Reason:  "MinimumReplicasAvailable",
+						Message: "All components are ready",
+					},
+					{
+						Type:    "APIServerReady",
+						Status:  "True",
+						Reason:  "Deployed",
+						Message: "API Server is ready",
+					},
+				},
+				Components: &models.DSPipelineApplicationComponents{
+					APIServer: &models.DSPipelineApplicationAPIServerStatus{
+						URL:         "https://ds-pipeline-dspa-external.external-storage-test.svc.cluster.local:8443",
+						ExternalURL: "https://ds-pipeline-ui-dspa-external-external-storage-test.apps.cluster.local",
+					},
+				},
+			},
+		},
+		// Ready DSPA with BOTH external storage AND managed MinIO in both-storage-test namespace
+		// This tests that external storage is preferred when both are configured
+		{
+			APIVersion: "datasciencepipelinesapplications.opendatahub.io/v1",
+			Kind:       "DSPipelineApplication",
+			Metadata: models.DSPipelineApplicationMetadata{
+				Name:      "dspa-both",
+				Namespace: "both-storage-test",
+			},
+			Spec: &models.DSPipelineApplicationSpec{
+				APIServer: &models.APIServer{
+					Deploy: true,
+				},
+				ObjectStorage: &models.ObjectStorage{
+					ExternalStorage: &models.ExternalStorage{
+						Host:   "s3.amazonaws.com",
+						Port:   "",
+						Scheme: "https",
+						Region: "us-west-2",
+						Bucket: "my-external-bucket",
+						S3CredentialsSecret: &models.S3CredentialsSecret{
+							SecretName: "aws-s3-credentials",
+							AccessKey:  "", // Empty means use default AWS_ACCESS_KEY_ID
+							SecretKey:  "", // Empty means use default AWS_SECRET_ACCESS_KEY
+						},
+					},
+					Minio: &models.MinioStorage{
+						Deploy:  true,
+						Bucket:  "mlpipeline-minio",
+						Image:   "quay.io/opendatahub/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance",
+						PvcSize: "10Gi",
+					},
+				},
+			},
+			Status: &models.DSPipelineApplicationStatus{
+				Ready: true,
+				Conditions: []models.DSPipelineApplicationCondition{
+					{
+						Type:    "Ready",
+						Status:  "True",
+						Reason:  "MinimumReplicasAvailable",
+						Message: "All components are ready",
+					},
+					{
+						Type:    "APIServerReady",
+						Status:  "True",
+						Reason:  "Deployed",
+						Message: "API Server is ready",
+					},
+				},
+				Components: &models.DSPipelineApplicationComponents{
+					APIServer: &models.DSPipelineApplicationAPIServerStatus{
+						URL:         "https://ds-pipeline-dspa-both.both-storage-test.svc.cluster.local:8443",
+						ExternalURL: "https://ds-pipeline-ui-dspa-both-both-storage-test.apps.cluster.local",
 					},
 				},
 			},
