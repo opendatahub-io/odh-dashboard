@@ -91,7 +91,7 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
     <Modal isOpen onClose={isSaving ? undefined : onClose} variant="medium">
       <ModalHeader
         title="Add Llama Stack connection"
-        description="Provide credentials for accessing an external Llama Stack server. The generation and embedding models registered in the Llama Stack server will be considered when generating RAG patterns. Vector I/O providers in the Llama Stack server can be used to store a collection for the retrieval."
+        description="Provide credentials for accessing an external Llama Stack server. The generation and embedding models registered in the Llama Stack server will be considered when generating RAG patterns. Vector I/O providers in the Llama Stack server can be used to create a collection for retrieval."
       />
       <ModalBody>
         <Form>
