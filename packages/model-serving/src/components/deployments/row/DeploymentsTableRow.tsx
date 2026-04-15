@@ -1,4 +1,5 @@
 import React from 'react';
+import { Spinner } from '@patternfly/react-core';
 import { Td, Tbody } from '@patternfly/react-table';
 import ResourceActionsColumn from '@odh-dashboard/internal/components/ResourceActionsColumn';
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
@@ -139,10 +140,16 @@ export const DeploymentRow: React.FC<{
             stoppedStates={deployment.status?.stoppedStates}
           />
         </Td>
-        <DeploymentHardwareProfileCell
-          deployment={deployment}
-          hardwareProfilePaths={hardwareProfilePaths}
-        />
+        {pathsLoaded ? (
+          <DeploymentHardwareProfileCell
+            deployment={deployment}
+            hardwareProfilePaths={hardwareProfilePaths}
+          />
+        ) : (
+          <Td dataLabel="Hardware profile">
+            <Spinner size="md" />
+          </Td>
+        )}
         <Td dataLabel="Last deployed">
           <DeploymentLastDeployed deployment={deployment} />
         </Td>
