@@ -625,11 +625,11 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 
 					dspaObjectStorage := &models.DSPAObjectStorage{
 						SecretName:     secretName,
-						AccessKeyField: "accesskey",   // MinIO secret uses lowercase key names
-						SecretKeyField: "secretkey",   // MinIO secret uses lowercase key names
+						AccessKeyField: "accesskey", // MinIO secret uses lowercase key names
+						SecretKeyField: "secretkey", // MinIO secret uses lowercase key names
 						EndpointURL:    endpointURL,
 						Bucket:         minio.Bucket,
-						Region:         "us-east-1",   // Default region for MinIO
+						Region:         "us-east-1", // Default region for MinIO
 					}
 					ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
 					logger.Debug("Found managed MinIO storage config",
@@ -799,11 +799,11 @@ func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespac
 
 		dspaObjectStorage := &models.DSPAObjectStorage{
 			SecretName:     secretName,
-			AccessKeyField: "accesskey",   // MinIO secret uses lowercase key names
-			SecretKeyField: "secretkey",   // MinIO secret uses lowercase key names
+			AccessKeyField: "accesskey", // MinIO secret uses lowercase key names
+			SecretKeyField: "secretkey", // MinIO secret uses lowercase key names
 			EndpointURL:    endpointURL,
 			Bucket:         minio.Bucket,
-			Region:         "us-east-1",   // Default region for MinIO
+			Region:         "us-east-1", // Default region for MinIO
 		}
 		ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
 		logger.Debug("Injected managed MinIO storage config (override-URL mode)",

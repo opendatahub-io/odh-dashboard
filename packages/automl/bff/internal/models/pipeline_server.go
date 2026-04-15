@@ -51,9 +51,9 @@ type S3CredentialsSecret struct {
 // When deploy is true, the DSPA operator creates a MinIO instance with a secret
 // named "ds-pipeline-s3-{dspa-name}" containing S3-compatible credentials.
 type MinioStorage struct {
-	Deploy bool   `json:"deploy,omitempty"`
-	Bucket string `json:"bucket,omitempty"`
-	Image  string `json:"image,omitempty"`
+	Deploy  bool   `json:"deploy,omitempty"`
+	Bucket  string `json:"bucket,omitempty"`
+	Image   string `json:"image,omitempty"`
 	PvcSize string `json:"pvcSize,omitempty"`
 }
 
