@@ -5,7 +5,3 @@ singleModelAdminName: "cy-openvino-model"
 modelOpenVinoPath: "kserve-openvino-test/openvino-example-model"
 modelFormat: 'openvino_ir - opset13'
 servingRuntime: 'OpenVINO Model Server'
-# Legacy KServe deployment test data
-legacyModelLocationURI: 'hf://facebook/opt-125m'
-legacyServingRuntime: 'vLLM CPU .x86. ServingRuntime for KServe'
-legacyHardwareProfileName: 'cypress-llmd-hardware-profile-model'

@@ -124,7 +124,9 @@ describe('A user can deploy an LLMD model', () => {
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .as('resourceName');
+        .then((val) => {
+          resourceName = val as string;
+        });
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
 
       cy.step('Verify YAML Viewer');
@@ -171,10 +173,7 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Verify that the Model is ready');
       // Image was patched in YAML editor before submit, so no post-deployment patching needed
-      cy.get<string>('@resourceName').then((resName) => {
-        resourceName = resName;
-        checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
-      });
+      checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
 
       cy.step('Verify the model Row');
       const llmdRow = modelServingGlobal.getDeploymentRow(modelName);
@@ -205,6 +204,7 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Deploy LLMD Model From YAML Editor');
       projectDetails.findSectionTab('model-server').click();
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Enter Manual YAML editor Mode');

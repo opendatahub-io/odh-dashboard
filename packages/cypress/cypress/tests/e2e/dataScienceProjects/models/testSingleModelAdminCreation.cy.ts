@@ -13,18 +13,14 @@ import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
-  modelServingWizardEdit,
-  inferenceServiceActions,
 } from '../../../../pages/modelServing';
 import {
   checkInferenceServiceState,
   provisionProjectForModelServing,
+  modelExternalTester,
 } from '../../../../utils/oc_commands/modelServing';
-import {
-  createCleanHardwareProfile,
-  cleanupHardwareProfiles,
-} from '../../../../utils/oc_commands/hardwareProfiles';
 import { retryableBefore } from '../../../../utils/retryableHooks';
+import { attemptToClickTooltip } from '../../../../utils/models';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
 
@@ -35,32 +31,23 @@ let testData: DataScienceProjectData;
 let projectName: string;
 let resourceName: string;
 let modelName: string;
-let modelURI: string;
+let modelFilePath: string;
+let modelFormat: string;
 let servingRuntime: string;
-let hardwareProfileResourceName: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
 describe('Verify Admin Single Model Creation and Validation using the UI', () => {
   retryableBefore(() =>
     // Setup: Load test data and ensure clean state
-    loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml')
-      .then((fixtureData: DataScienceProjectData) => {
+    loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
+      (fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = `${testData.projectSingleModelAdminResourceName}-${uuid}`;
         modelName = testData.singleModelAdminName;
-        if (
-          !testData.legacyModelLocationURI ||
-          !testData.legacyServingRuntime ||
-          !testData.legacyHardwareProfileName
-        ) {
-          throw new Error(
-            'Legacy fields (legacyModelLocationURI, legacyServingRuntime, legacyHardwareProfileName) are required in the fixture',
-          );
-        }
-        modelURI = testData.legacyModelLocationURI;
-        servingRuntime = testData.legacyServingRuntime;
-        hardwareProfileResourceName = testData.legacyHardwareProfileName;
+        modelFilePath = testData.modelOpenVinoPath;
+        modelFormat = testData.modelFormat;
+        servingRuntime = testData.servingRuntime;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -72,15 +59,10 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
           awsBucket,
           'resources/yaml/data_connection_model_serving.yaml',
         );
-      })
-      .then(() => {
-        cy.log(`Load Hardware Profile Name: ${hardwareProfileResourceName}`);
-        createCleanHardwareProfile('resources/yaml/llmd-hardware-profile.yaml');
-      }),
+      },
+    ),
   );
   after(() => {
-    cy.log(`Cleaning up Hardware Profile: ${hardwareProfileResourceName}`);
-    cleanupHardwareProfiles(hardwareProfileResourceName);
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
@@ -103,7 +85,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       cy.log('Model Name:', modelName);
       // Authentication and navigation
       cy.step('Log into the application as admin');
-      cy.visitWithLogin('/?devFeatureFlags=vLLMDeploymentOnMaaS=true', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Project navigation
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);
@@ -120,14 +102,9 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Step 1: Model details');
-      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
-      modelServingWizard.findUrilocationInput().clear().type(modelURI);
-      modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-      modelServingWizard.findSaveConnectionInput().clear().type(`${modelName}-connection`);
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-      modelServingWizard.findLegacyModeCheckbox().should('exist').should('not.be.checked');
-      modelServingWizard.findLegacyModeCheckbox().check();
-      modelServingWizard.findLegacyModeCheckbox().should('be.checked');
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
+      modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 2: Model deployment');
@@ -137,8 +114,10 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .as('resourceName');
-      modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
+        .then((val) => {
+          resourceName = val as string;
+        });
+      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
 
@@ -152,16 +131,29 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
-      modelServingSection.findModelServerDeployedName(modelName);
+      modelServingSection.findModelServerDeployedName(testData.singleModelAdminName);
 
-      cy.step('Verify that the Model is created Successfully on the backend');
-      cy.get<string>('@resourceName').then((resName) => {
-        resourceName = resName;
-        checkInferenceServiceState(resourceName, projectName, {});
+      //Verify the model created
+      cy.step('Verify that the Model is created Successfully on the backend and frontend');
+      // Verify model deployment is ready
+      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      // Note reload is required as status tooltip was not found due to a stale element
+      cy.reload();
+      modelServingSection.findModelMetricsLink(testData.singleModelAdminName);
+      attemptToClickTooltip();
+
+      //Verify the Model is accessible externally
+      cy.step('Verify the model is accessible externally');
+      modelExternalTester(modelName, projectName).then(({ url, response }) => {
+        expect(response.status).to.equal(200);
+
+        //verify the External URL Matches the Backend
+        modelServingSection.findInternalExternalServiceButton().click();
+        modelServingSection.findExternalServicePopoverTable().should('contain', url);
       });
 
       // Test stop/start functionality
-      const kServeRow = modelServingSection.getKServeRow(modelName);
+      const kServeRow = modelServingSection.getKServeRow(testData.singleModelAdminName);
 
       //Stop the model with the modal
       cy.step('Stop the model');
@@ -182,13 +174,10 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       //Verify the model is stopped
       cy.step('Verify the model is stopped');
-      cy.get<string>('@resourceName').then((resName) => {
-        resourceName = resName;
-        checkInferenceServiceState(resourceName, projectName, {
-          checkReady: false,
-          checkStopped: true,
-          requireLoadedState: false,
-        });
+      checkInferenceServiceState(resourceName, projectName, {
+        checkReady: false,
+        checkStopped: true,
+        requireLoadedState: false,
       });
       kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
 
@@ -197,42 +186,19 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.START).click();
       kServeRow.findStatusLabel(ModelStateLabel.STARTING, MODEL_STATUS_TIMEOUT).should('exist');
 
-      // //Verify the model is running again
+      //Verify the model is running again
       cy.step('Verify the model is running again');
-      cy.get<string>('@resourceName').then((resName) => {
-        resourceName = resName;
-        checkInferenceServiceState(resourceName, projectName, {});
+      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      kServeRow
+        .findStatusLabel()
+        .invoke('text')
+        .should('match', new RegExp(`${ModelStateLabel.STARTING}|${ModelStateLabel.READY}`));
+
+      //Verify external access still works after restart
+      cy.step('Verify the model is still accessible externally after restart');
+      modelExternalTester(modelName, projectName).then(({ response }) => {
+        expect(response.status).to.equal(200);
       });
-      // kServeRow
-      //   .findStatusLabel()
-      //   .invoke('text')
-      //   .should('match', new RegExp(`${ModelStateLabel.STARTING}|${ModelStateLabel.READY}`));
-
-      cy.step('Stop the model before editing');
-      kServeRow.findStateActionToggle().click();
-      cy.get<string>('@resourceName').then((resName) => {
-        resourceName = resName;
-        checkInferenceServiceState(resourceName, projectName, {
-          checkReady: false,
-          checkStopped: true,
-          requireLoadedState: false,
-        });
-      });
-      kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
-
-      // Verify legacy fields are locked in the edit form
-      cy.step('Edit the deployment and verify legacy fields are locked');
-      const deploymentRow = modelServingGlobal.getDeploymentRow(modelName);
-      deploymentRow.findKebab().click();
-      inferenceServiceActions.findEditInferenceServiceAction().click();
-
-      modelServingWizardEdit
-        .findModelTypeSelect()
-        .should('have.text', ModelTypeLabel.GENERATIVE)
-        .should('be.disabled');
-      modelServingWizardEdit.findLegacyModeCheckbox().should('be.checked').should('be.disabled');
-      modelServingWizardEdit.findCancelButton().click();
-      cy.findByRole('button', { name: 'Discard' }).click();
     },
   );
 });
