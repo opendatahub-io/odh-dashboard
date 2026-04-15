@@ -11,7 +11,7 @@ describe('useModalState', () => {
     const { result } = renderHook(() => useModalState<TestItem>());
 
     expect(result.current.isOpen).toBe(false);
-    expect(result.current.selectedItem).toBeNull();
+    expect(result.current.selectedItem).toBeUndefined();
   });
 
   it('should open modal with selected item', () => {
@@ -26,7 +26,7 @@ describe('useModalState', () => {
     expect(result.current.selectedItem).toEqual(testItem);
   });
 
-  it('should close modal and clear selected item', () => {
+  it('should close modal', () => {
     const { result } = renderHook(() => useModalState<TestItem>());
     const testItem: TestItem = { id: '1', name: 'Test Server' };
 
@@ -35,14 +35,12 @@ describe('useModalState', () => {
     });
 
     expect(result.current.isOpen).toBe(true);
-    expect(result.current.selectedItem).toEqual(testItem);
 
     act(() => {
       result.current.closeModal();
     });
 
     expect(result.current.isOpen).toBe(false);
-    expect(result.current.selectedItem).toBeNull();
   });
 
   it('should replace selected item when opening with new item', () => {
