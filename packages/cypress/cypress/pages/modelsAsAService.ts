@@ -649,6 +649,10 @@ class CopyApiKeyModal extends Modal {
   findApiKeyExpirationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-display-expiration');
   }
+
+  findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('close-api-key-button');
+  }
 }
 
 class AdminBulkRevokeAPIKeyModal extends Modal {

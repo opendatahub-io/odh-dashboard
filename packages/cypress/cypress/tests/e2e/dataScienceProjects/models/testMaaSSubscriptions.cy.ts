@@ -28,6 +28,7 @@ import {
   subscriptionsPage,
   editSubscriptionPage,
   deleteSubscriptionModal,
+  revokeAPIKeyModal,
 } from '../../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import type { DataScienceProjectData } from '../../../../types';
@@ -345,6 +346,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
           if (token.length === 0) {
             throw new Error('Expected a non-empty API key from expanded ClipboardCopy content');
           }
+          cy.wrap(token).as('maasApiKeyToken');
           cy.step('Inference with the model using the API key');
           return cy.get<string>('@resourceName').then((resourceName) =>
             verifyMaaSModelInferencing(resourceName, projectName, token).then(({ response }) => {
@@ -355,6 +357,35 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
             }),
           );
         });
+
+      cy.step('Revoke the API key');
+      copyApiKeyModal.findCloseButton().click();
+      apiKeysPage.findColumnSortButton('Name').click();
+
+      // Filter by the admin username to find the API key, there could be a lot of keys
+      apiKeysPage.findFilterInput().find('input').type(HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
+      apiKeysPage.findFilterSearchButton().click();
+      apiKeysPage.getRow(`maas-api-key-${uuid}`).findKebabAction('Revoke API key').click();
+
+      revokeAPIKeyModal.shouldBeOpen();
+      revokeAPIKeyModal.findRevokeButton().should('be.disabled');
+      revokeAPIKeyModal.findRevokeConfirmationInput().clear().type(`maas-api-key-${uuid}`);
+      revokeAPIKeyModal.findRevokeButton().should('be.enabled');
+      revokeAPIKeyModal.findRevokeButton().click();
+
+      cy.step('Try and inference with the model using the revoked API key');
+      cy.get<string>('@maasApiKeyToken').then((revokedToken) =>
+        cy.get<string>('@resourceName').then((resourceName) =>
+          verifyMaaSModelInferencing(resourceName, projectName, revokedToken).then(
+            ({ response }) => {
+              expect(response.status).to.equal(403);
+              cy.log(`❌ Inference with the model using the revoked API key failed`);
+              cy.log(`Response status: ${response.status}`);
+              cy.log(`Response body: ${JSON.stringify(response.body)}`);
+            },
+          ),
+        ),
+      );
     },
   );
 });
