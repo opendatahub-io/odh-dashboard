@@ -132,7 +132,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     localQueueName ?? undefined,
     notebook != null ? notebook.metadata.name : undefined,
   );
-  const quotaSource = clusterQueue?.spec.cohort ?? '-';
+  const quotaSource = clusterQueue?.spec.cohortName ?? '-';
   const consumedResources = clusterQueue
     ? getAllConsumedResources(clusterQueue, assignedFlavorName)
     : [];
