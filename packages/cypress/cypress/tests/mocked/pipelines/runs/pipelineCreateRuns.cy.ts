@@ -7,6 +7,7 @@ import {
   InputDefinitionParameterType,
   StorageStateKF,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
+import { DSPAMlflowIntegrationMode } from '@odh-dashboard/internal/k8sTypes';
 import {
   buildMockRunKF,
   buildMockPipeline,
@@ -29,6 +30,10 @@ import {
 } from '../../../../pages/pipelines';
 import { verifyRelativeURL } from '../../../../utils/url';
 import { configIntercept, dspaIntercepts, projectsIntercept } from '../intercepts';
+import {
+  interceptDSPAMlflowIntegration,
+  interceptMlflowStatus,
+} from '../../../../utils/mlflowUtils';
 
 const projectName = 'test-project-name';
 const mockPipeline = buildMockPipeline();
@@ -131,6 +136,7 @@ describe('Pipeline create runs', () => {
     describe('MLflow integration', () => {
       beforeEach(() => {
         cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+        interceptMlflowStatus();
         pipelineRunsGlobal.visit(projectName);
 
         createRunPage.mockGetExperiments(projectName, mockExperiments);
@@ -339,6 +345,109 @@ describe('Pipeline create runs', () => {
             },
           });
         });
+      });
+    });
+
+    describe('MLflow integration hidden', () => {
+      it('hides the MLflow integration section and sidebar link when MLflow is disabled', () => {
+        pipelineRunsGlobal.visit(projectName);
+
+        createRunPage.mockGetExperiments(projectName, mockExperiments);
+        createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+        createRunPage.mockGetPipelineVersions(
+          projectName,
+          [mockPipelineVersion],
+          mockPipelineVersion.pipeline_id,
+        );
+
+        pipelineRunsGlobal.findCreateRunButton().click();
+        createRunPage.find();
+
+        createRunPage.findMlflowIntegrationSection().should('not.exist');
+        createRunPage.findMlflowIntegrationJumpLink().should('not.exist');
+      });
+
+      it('hides the MLflow integration section when mlflowPipelines is disabled', () => {
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: false }));
+        pipelineRunsGlobal.visit(projectName);
+
+        createRunPage.mockGetExperiments(projectName, mockExperiments);
+        createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+        createRunPage.mockGetPipelineVersions(
+          projectName,
+          [mockPipelineVersion],
+          mockPipelineVersion.pipeline_id,
+        );
+
+        pipelineRunsGlobal.findCreateRunButton().click();
+        createRunPage.find();
+
+        createRunPage.findMlflowIntegrationSection().should('not.exist');
+        createRunPage.findMlflowIntegrationJumpLink().should('not.exist');
+      });
+
+      it('hides the MLflow integration section when BFF status is not configured', () => {
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+        interceptMlflowStatus(false);
+        pipelineRunsGlobal.visit(projectName);
+
+        createRunPage.mockGetExperiments(projectName, mockExperiments);
+        createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+        createRunPage.mockGetPipelineVersions(
+          projectName,
+          [mockPipelineVersion],
+          mockPipelineVersion.pipeline_id,
+        );
+
+        pipelineRunsGlobal.findCreateRunButton().click();
+        createRunPage.find();
+
+        createRunPage.findMlflowIntegrationSection().should('not.exist');
+        createRunPage.findMlflowIntegrationJumpLink().should('not.exist');
+      });
+
+      it('hides the MLflow integration section when DSPA has MLflow integration disabled', () => {
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+        interceptMlflowStatus();
+        interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
+        pipelineRunsGlobal.visit(projectName);
+
+        createRunPage.mockGetExperiments(projectName, mockExperiments);
+        createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+        createRunPage.mockGetPipelineVersions(
+          projectName,
+          [mockPipelineVersion],
+          mockPipelineVersion.pipeline_id,
+        );
+
+        pipelineRunsGlobal.findCreateRunButton().click();
+        createRunPage.find();
+
+        createRunPage.findMlflowIntegrationSection().should('not.exist');
+        createRunPage.findMlflowIntegrationJumpLink().should('not.exist');
+      });
+
+      it('shows the MLflow integration section and sidebar link when MLflow is enabled', () => {
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+        interceptMlflowStatus();
+        pipelineRunsGlobal.visit(projectName);
+
+        createRunPage.mockGetExperiments(projectName, mockExperiments);
+        createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+        createRunPage.mockGetPipelineVersions(
+          projectName,
+          [mockPipelineVersion],
+          mockPipelineVersion.pipeline_id,
+        );
+        createRunPage.mockGetMlflowExperiments(projectName, [
+          { id: 'mlflow-exp-1', name: 'MLflow experiment 1' },
+        ]);
+
+        pipelineRunsGlobal.findCreateRunButton().click();
+        createRunPage.find();
+
+        createRunPage.findMlflowIntegrationSection().should('exist');
+        createRunPage.findMlflowIntegrationJumpLink().should('exist');
       });
     });
 
@@ -995,6 +1104,7 @@ describe('Pipeline create runs', () => {
 
     it('creates a schedule with MLflow plugin payload', () => {
       cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+      interceptMlflowStatus();
       pipelineRunsGlobal.visit(projectName);
       pipelineRunsGlobal.findSchedulesTab().click();
 
@@ -1044,6 +1154,94 @@ describe('Pipeline create runs', () => {
             experiment_name: 'MLflow experiment 1',
           },
         });
+      });
+    });
+
+    describe('MLflow integration hidden in schedule form', () => {
+      it('hides the MLflow integration section when MLflow is disabled', () => {
+        pipelineRunsGlobal.visit(projectName);
+        pipelineRunsGlobal.findSchedulesTab().click();
+
+        createSchedulePage.mockGetExperiments(projectName, mockExperiments);
+        createSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
+        createSchedulePage.mockGetPipelineVersions(
+          projectName,
+          [mockPipelineVersion],
+          mockPipelineVersion.pipeline_id,
+        );
+
+        pipelineRunsGlobal.findScheduleRunButton().click();
+        createSchedulePage.find();
+
+        createSchedulePage.findMlflowIntegrationSection().should('not.exist');
+        createSchedulePage.findMlflowIntegrationJumpLink().should('not.exist');
+      });
+
+      it('hides the MLflow integration section when BFF status is not configured', () => {
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+        interceptMlflowStatus(false);
+        pipelineRunsGlobal.visit(projectName);
+        pipelineRunsGlobal.findSchedulesTab().click();
+
+        createSchedulePage.mockGetExperiments(projectName, mockExperiments);
+        createSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
+        createSchedulePage.mockGetPipelineVersions(
+          projectName,
+          [mockPipelineVersion],
+          mockPipelineVersion.pipeline_id,
+        );
+
+        pipelineRunsGlobal.findScheduleRunButton().click();
+        createSchedulePage.find();
+
+        createSchedulePage.findMlflowIntegrationSection().should('not.exist');
+        createSchedulePage.findMlflowIntegrationJumpLink().should('not.exist');
+      });
+
+      it('hides the MLflow integration section when DSPA has MLflow integration disabled', () => {
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+        interceptMlflowStatus();
+        interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
+        pipelineRunsGlobal.visit(projectName);
+        pipelineRunsGlobal.findSchedulesTab().click();
+
+        createSchedulePage.mockGetExperiments(projectName, mockExperiments);
+        createSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
+        createSchedulePage.mockGetPipelineVersions(
+          projectName,
+          [mockPipelineVersion],
+          mockPipelineVersion.pipeline_id,
+        );
+
+        pipelineRunsGlobal.findScheduleRunButton().click();
+        createSchedulePage.find();
+
+        createSchedulePage.findMlflowIntegrationSection().should('not.exist');
+        createSchedulePage.findMlflowIntegrationJumpLink().should('not.exist');
+      });
+
+      it('shows the MLflow integration section when MLflow is enabled', () => {
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+        interceptMlflowStatus();
+        pipelineRunsGlobal.visit(projectName);
+        pipelineRunsGlobal.findSchedulesTab().click();
+
+        createSchedulePage.mockGetExperiments(projectName, mockExperiments);
+        createSchedulePage.mockGetPipelines(projectName, [mockPipeline]);
+        createSchedulePage.mockGetPipelineVersions(
+          projectName,
+          [mockPipelineVersion],
+          mockPipelineVersion.pipeline_id,
+        );
+        createSchedulePage.mockGetMlflowExperiments(projectName, [
+          { id: 'mlflow-exp-1', name: 'MLflow experiment 1' },
+        ]);
+
+        pipelineRunsGlobal.findScheduleRunButton().click();
+        createSchedulePage.find();
+
+        createSchedulePage.findMlflowIntegrationSection().should('exist');
+        createSchedulePage.findMlflowIntegrationJumpLink().should('exist');
       });
     });
 

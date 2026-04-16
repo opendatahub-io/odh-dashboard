@@ -1,4 +1,4 @@
-import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
+import { DSPAMlflowIntegrationMode, DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
 
 type MockResourceConfigType = {
   name?: string;
@@ -10,6 +10,7 @@ type MockResourceConfigType = {
   dspaSecretName?: string;
   pipelineStore?: DSPipelineAPIServerStore;
   cacheEnabled?: boolean;
+  mlflowIntegrationMode?: DSPAMlflowIntegrationMode;
 };
 
 export const mockDataSciencePipelineApplicationK8sResource = ({
@@ -21,6 +22,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
   dspaSecretName = 'aws-connection-testdb',
   pipelineStore,
   cacheEnabled = true,
+  mlflowIntegrationMode,
 }: MockResourceConfigType): DSPipelineKind => ({
   apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1',
   kind: 'DataSciencePipelinesApplication',
@@ -42,6 +44,9 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
         username: 'mlpipeline',
       },
     },
+    ...(mlflowIntegrationMode !== undefined && {
+      mlflow: { integrationMode: mlflowIntegrationMode },
+    }),
     objectStorage: {
       externalStorage: {
         region: 'us-east-2',

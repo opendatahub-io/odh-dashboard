@@ -28,6 +28,10 @@ class CompareRunsListTable {
     return cy.findByTestId('compare-runs-table');
   }
 
+  findColumnHeaders() {
+    return this.find().find('thead th');
+  }
+
   getRowByName(name: string) {
     return new CompareRunsListTableRow(() =>
       this.find().find(`[data-label=Name]`).contains(name).parents('tr'),

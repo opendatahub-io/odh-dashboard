@@ -18,8 +18,8 @@ import { ExperimentContext } from '#~/pages/pipelines/global/experiments/Experim
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { filterByMlflowExperiment } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import useMlflowExperiments from '#~/concepts/mlflow/useMlflowExperiments';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
+import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';
 import PipelineRecurringRunTableRow from './PipelineRecurringRunTableRow';
 import PipelineRecurringRunTableToolbar from './PipelineRecurringRunTableToolbar';
 
@@ -53,7 +53,7 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
 }) => {
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const { experiment } = React.useContext(ExperimentContext);
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
     workspace: isMlflowAvailable ? namespace : '',
   });

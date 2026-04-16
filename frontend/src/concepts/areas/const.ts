@@ -8,7 +8,6 @@ export const techPreviewFlags = {
   modelAsService: true,
   maasAuthPolicies: true,
   aiAssetCustomEndpoints: false,
-  mlflowPipelines: false,
   mcpCatalog: false,
   projectRBAC: true,
   observabilityDashboard: false,
@@ -22,6 +21,7 @@ export const techPreviewFlags = {
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
+  mlflowPipelines: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features

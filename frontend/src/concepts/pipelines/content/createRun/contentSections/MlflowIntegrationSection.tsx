@@ -93,6 +93,7 @@ const MlflowIntegrationSection: React.FC<MlflowIntegrationSectionProps> = ({
   return (
     <FormSection
       id={CreateRunPageSections.MLFLOW_INTEGRATION}
+      data-testid={CreateRunPageSections.MLFLOW_INTEGRATION}
       title={runPageSectionTitles[CreateRunPageSections.MLFLOW_INTEGRATION]}
     >
       <Checkbox
