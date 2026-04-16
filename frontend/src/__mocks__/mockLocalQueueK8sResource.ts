@@ -40,7 +40,7 @@ export const mockLocalQueueK8sResource = ({
         type: 'Active',
       },
     ],
-    flavorUsage: [
+    flavorsUsage: [
       {
         name: 'test-flavor',
         resources: [
