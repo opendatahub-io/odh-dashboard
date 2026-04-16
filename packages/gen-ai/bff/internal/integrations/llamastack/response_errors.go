@@ -79,7 +79,7 @@ var errorPatterns = []ErrorPattern{
 	{regexp.MustCompile(`(?i)timeout|timed out|deadline exceeded`), CategoryModelTimeout},
 	{regexp.MustCompile(`(?i)model.*overloaded|too many requests|rate.*limit|capacity.*exceeded`), CategoryModelOverloaded},
 	{regexp.MustCompile(`(?i)model.*not found|model.*unavailable|model.*not loaded`), CategoryModelInvocationError},
-	{regexp.MustCompile(`(?i)cuda.*out of memory|oom|memory.*allocation.*failed`), CategoryModelOverloaded},
+	{regexp.MustCompile(`(?i)(cuda.*out of memory|\boom\b|memory.*allocation.*failed)`), CategoryModelOverloaded},
 }
 
 // CategorizeResponseError analyzes an error message and returns the most specific category
@@ -182,5 +182,9 @@ func NewEnhancedLlamaStackError(baseError *LlamaStackError) *EnhancedLlamaStackE
 
 // Error implements the error interface
 func (e *EnhancedLlamaStackError) Error() string {
+	// Guard against nil receiver or nil embedded error
+	if e == nil || e.LlamaStackError == nil {
+		return "unknown error"
+	}
 	return e.LlamaStackError.Error()
 }

@@ -272,9 +272,9 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		app.handleLlamaStackClientError(rr, req, lsErr)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		// Generic error gets generic_error category
+		// Generic error gets generic_error category with sanitized message
 		assert.Contains(t, rr.Body.String(), `"code": "generic_error"`)
-		assert.Contains(t, rr.Body.String(), "input is required")
+		assert.Contains(t, rr.Body.String(), "unexpected error occurred")
 	})
 
 	t.Run("should handle LlamaStackError with parameter validation error", func(t *testing.T) {
@@ -301,7 +301,8 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 		assert.Contains(t, rr.Body.String(), `"code": "not_found"`)
-		assert.Contains(t, rr.Body.String(), "resource not found")
+		// Not found errors also get sanitized for security
+		assert.Contains(t, rr.Body.String(), "unexpected error occurred")
 	})
 
 	t.Run("should fall back to serverErrorResponse for unknown error type", func(t *testing.T) {
