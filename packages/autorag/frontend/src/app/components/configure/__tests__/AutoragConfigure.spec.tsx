@@ -694,6 +694,23 @@ describe('AutoragConfigure', () => {
     });
   });
 
+  describe('Model error handling', () => {
+    it('should show error notification when model loading fails', () => {
+      mockUseLlamaStackModelsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+
+      renderComponent();
+
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Failed to load models',
+        'Check that the LlamaStack secret is valid and try again.',
+      );
+    });
+  });
+
   describe('selected input data file table', () => {
     it('should NOT display the selected file table when no file is selected', () => {
       renderComponent();
