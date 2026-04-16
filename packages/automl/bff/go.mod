@@ -1,6 +1,6 @@
 module github.com/opendatahub-io/automl-library/bff
 
-go 1.25.0
+go 1.24.3
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.3
@@ -12,7 +12,7 @@ require (
 	github.com/kubeflow/model-registry/pkg/openapi v0.3.2
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.11.0
-	golang.org/x/sync v0.20.0
+	golang.org/x/sync v0.16.0
 	k8s.io/api v0.34.3
 	k8s.io/apimachinery v0.34.3
 	k8s.io/client-go v0.34.3
