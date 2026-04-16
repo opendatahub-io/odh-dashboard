@@ -10,7 +10,7 @@ import {
   SplitItem,
   Truncate,
 } from '@patternfly/react-core';
-import { OpenDrawerRightIcon } from '@patternfly/react-icons';
+import { OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
@@ -80,10 +80,7 @@ function AutoragResultsPage(): React.JSX.Element {
   const handleRetry = React.useCallback(async () => {
     try {
       await retryMutation.mutateAsync();
-      notification.success('Run retry initiated successfully');
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      window.location.reload();
     } catch (error) {
       notification.error(
         'Failed to retry run',
@@ -158,7 +155,8 @@ function AutoragResultsPage(): React.JSX.Element {
                   <SplitItem>
                     {isRunActive && (
                       <Button
-                        variant="danger"
+                        variant="secondary"
+                        icon={<StopCircleIcon />}
                         onClick={() => setIsStopModalOpen(true)}
                         data-testid="stop-run-button"
                       >
@@ -167,7 +165,8 @@ function AutoragResultsPage(): React.JSX.Element {
                     )}
                     {isRunFailed && (
                       <Button
-                        variant="primary"
+                        variant="secondary"
+                        icon={<RedoIcon />}
                         onClick={handleRetry}
                         isDisabled={retryMutation.isPending}
                         isLoading={retryMutation.isPending}

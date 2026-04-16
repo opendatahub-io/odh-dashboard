@@ -129,8 +129,9 @@ function AutomlResults(): React.JSX.Element {
             </Alert>
           </StackItem>
         )}
-        <StackItem>
+        <StackItem className="automl-topology-wrapper">
           <Flex
+            className="automl-topology-overlay"
             spaceItems={{ default: 'spaceItemsSm' }}
             alignItems={{ default: 'alignItemsCenter' }}
           >
@@ -139,7 +140,7 @@ function AutomlResults(): React.JSX.Element {
             </FlexItem>
             {pipelineRun?.state.toUpperCase() === RuntimeStateKF.CANCELED && (
               <FlexItem>
-                <Label status="warning" data-testid="run-canceled-label">
+                <Label variant="outline" status="warning" data-testid="run-canceled-label">
                   Canceled
                 </Label>
               </FlexItem>

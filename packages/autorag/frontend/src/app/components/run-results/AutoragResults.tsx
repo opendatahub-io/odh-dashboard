@@ -108,6 +108,9 @@ function AutoragResults(): React.JSX.Element {
     [namespace, ragPatternsBasePath, pipelineRun?.display_name],
   );
 
+  const isCanceled = pipelineRun?.state.toUpperCase() === RuntimeStateKF.CANCELED;
+  const isFailed = pipelineRun?.state.toUpperCase() === RuntimeStateKF.FAILED;
+
   return (
     <>
       <Stack hasGutter>
@@ -124,18 +127,23 @@ function AutoragResults(): React.JSX.Element {
             </Alert>
           </StackItem>
         )}
-        <StackItem>
+        <StackItem className="autorag-topology-wrapper">
           <Flex
+            className="autorag-topology-overlay"
             spaceItems={{ default: 'spaceItemsSm' }}
             alignItems={{ default: 'alignItemsCenter' }}
           >
             <FlexItem>
               <Title headingLevel="h3">Experiment pipeline</Title>
             </FlexItem>
-            {pipelineRun?.state.toUpperCase() === RuntimeStateKF.CANCELED && (
+            {(isCanceled || isFailed) && (
               <FlexItem>
-                <Label status="warning" data-testid="run-canceled-label">
-                  Canceled
+                <Label
+                  variant="outline"
+                  status={isCanceled ? 'warning' : 'danger'}
+                  data-testid="run-canceled-label"
+                >
+                  {pipelineRun.state}
                 </Label>
               </FlexItem>
             )}
