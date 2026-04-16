@@ -6,7 +6,7 @@ createRegistryName: "e2e-test-registry"
 operatorDeploymentName: "model-registry-operator-controller-manager"
 
 # First model (Object Storage)
-objectStorageModelName: "test-object-model"
+objectStorageModelName: "test-obj-model"
 objectStorageModelDescription: "E2E test model using object storage"
 version1Name: "v1.0"
 version1Description: "First version of the object storage test model"
@@ -37,7 +37,7 @@ uriVersion2: "s3://test-bucket/models/tensorflow-model-v2?endpoint=http%3A%2F%2F
 
 newNameSuffix: "-edited"
 newDescription: "Updated description for e2e test"
-deployProjectNamePrefix: "test-deploy-project"
+deployProjectNamePrefix: "test-deploy-prj"
 
 # Permissions management configuration
 permissionsRegistryNamePrefix: "test-mr-permissions-registry"
