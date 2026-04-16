@@ -121,6 +121,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
   {
     name: 'premium-team-sub',
     displayName: 'Premium Team Subscription',
+    description: 'Access to premium AI models for enterprise teams',
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
@@ -149,6 +150,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
   {
     name: 'basic-team-sub',
     displayName: 'Basic Team Subscription',
+    description: 'Standard access for general users',
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',

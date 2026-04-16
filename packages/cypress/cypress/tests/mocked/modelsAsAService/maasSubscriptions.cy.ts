@@ -102,6 +102,23 @@ describe('Subscriptions Page', () => {
     premiumRow.findKebabAction('Delete subscription').should('exist');
   });
 
+  it('should filter subscriptions by display name and description', () => {
+    subscriptionsPage.findFilterInput().type('Team Subscription');
+    subscriptionsPage.findRows().should('have.length', 2);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 5);
+
+    subscriptionsPage.findFilterInput().type('enterprise');
+    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 5);
+
+    subscriptionsPage.findFilterInput().type('general users');
+    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 5);
+  });
+
   it('should delete a subscription', () => {
     cy.interceptOdh(
       'DELETE /maas/api/v1/subscription/:name',
