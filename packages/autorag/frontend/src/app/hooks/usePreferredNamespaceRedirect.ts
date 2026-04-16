@@ -9,7 +9,8 @@ export function usePreferredNamespaceRedirect(): void {
   const { namespaces, preferredNamespace } = useNamespaceSelector({ storeLastNamespace: true });
 
   useEffect(() => {
-    const preferredOrFirstNamespace = preferredNamespace?.name ?? namespaces[0]?.name;
+    const validPreferredName = namespaces.find((n) => n.name === preferredNamespace?.name)?.name;
+    const preferredOrFirstNamespace = validPreferredName ?? namespaces[0]?.name;
     if (!namespace && preferredOrFirstNamespace) {
       navigate(preferredOrFirstNamespace, { replace: true });
     }
