@@ -239,6 +239,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['llmGatewayField'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
+  [SupportedArea.PLUGIN_GEN_AI]: {
+    featureFlags: ['genAiStudio'],
+  },
   [SupportedArea.MAAS_AUTH_POLICIES]: {
     featureFlags: ['maasAuthPolicies'],
   },
