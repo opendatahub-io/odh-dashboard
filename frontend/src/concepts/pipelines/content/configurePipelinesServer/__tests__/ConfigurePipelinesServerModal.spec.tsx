@@ -10,6 +10,7 @@ import { NotificationWatcherContext } from '#~/concepts/notificationWatcher/Noti
 import { createPipelinesCR, deleteSecret } from '#~/api';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { configureDSPipelineResourceSpec } from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
+import { useAppContext } from '#~/app/AppContext';
 
 // Mock dependencies
 jest.mock('#~/concepts/pipelines/context', () => ({
@@ -43,6 +44,10 @@ jest.mock('#~/concepts/pipelines/content/configurePipelinesServer/utils', () => 
   objectStorageIsValid: jest.fn(),
 }));
 
+jest.mock('#~/app/AppContext', () => ({
+  useAppContext: jest.fn(),
+}));
+
 // Mock child components
 jest.mock('#~/concepts/pipelines/content/configurePipelinesServer/ObjectStorageSection', () => ({
   ObjectStorageSection: () => <div>Object storage connection</div>,
@@ -52,14 +57,6 @@ jest.mock(
   '#~/concepts/pipelines/content/configurePipelinesServer/PipelinesDatabaseSection',
   () => ({
     PipelinesDatabaseSection: () => <div>Database</div>,
-  }),
-);
-
-jest.mock(
-  '#~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection',
-  () => ({
-    __esModule: true,
-    default: () => <div>Sample pipeline settings</div>,
   }),
 );
 
@@ -76,6 +73,7 @@ const mockFireFormTrackingEvent = fireFormTrackingEvent as jest.MockedFunction<
 const mockConfigureDSPipelineResourceSpec = configureDSPipelineResourceSpec as jest.MockedFunction<
   typeof configureDSPipelineResourceSpec
 >;
+const mockUseAppContext = useAppContext as jest.MockedFunction<typeof useAppContext>;
 
 describe('ConfigurePipelinesServerModal', () => {
   const mockOnClose = jest.fn();
@@ -129,6 +127,17 @@ describe('ConfigurePipelinesServerModal', () => {
       customCondition: jest.fn(),
     } as ReturnType<typeof useIsAreaAvailable>);
 
+    mockUseAppContext.mockReturnValue({
+      dashboardConfig: {
+        spec: {
+          dashboardConfig: {
+            automl: false,
+            autorag: false,
+          },
+        },
+      },
+    } as ReturnType<typeof useAppContext>);
+
     mockConfigureDSPipelineResourceSpec.mockResolvedValue(
       {} as Awaited<ReturnType<typeof configureDSPipelineResourceSpec>>,
     );
@@ -173,38 +182,6 @@ describe('ConfigurePipelinesServerModal', () => {
     expect(
       screen.getByText('Allow caching to be configured per pipeline and task'),
     ).toBeInTheDocument();
-  });
-
-  it('should show fine-tuning section when available', () => {
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: true,
-      featureFlags: {},
-      devFlags: {},
-      reliantAreas: {},
-      requiredComponents: {},
-      requiredCapabilities: {},
-      customCondition: jest.fn(),
-    } as ReturnType<typeof useIsAreaAvailable>);
-
-    renderModal();
-
-    expect(screen.getByText('Sample pipeline settings')).toBeInTheDocument();
-  });
-
-  it('should not show fine-tuning section when not available', () => {
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: false,
-      featureFlags: {},
-      devFlags: {},
-      reliantAreas: {},
-      requiredComponents: {},
-      requiredCapabilities: {},
-      customCondition: jest.fn(),
-    } as ReturnType<typeof useIsAreaAvailable>);
-
-    renderModal();
-
-    expect(screen.queryByText('Sample pipeline settings')).not.toBeInTheDocument();
   });
 
   it('should have caching enabled by default', () => {
@@ -293,7 +270,6 @@ describe('ConfigurePipelinesServerModal', () => {
     expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Pipeline Server Configured', {
       outcome: 'submit',
       success: true,
-      isILabEnabled: false,
     });
 
     expect(mockOnClose).toHaveBeenCalled();

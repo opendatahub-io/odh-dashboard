@@ -142,9 +142,7 @@ export const createDSPipelineResourceSpec = (
     apiServer: {
       enableSamplePipeline: false,
       cacheEnabled: config.enableCaching,
-      managedPipelines: {
-        instructLab: { state: config.enableInstructLab ? 'Managed' : 'Removed' },
-      },
+      managedPipelines: config.enableManagedPipelines ? {} : undefined,
       pipelineStore: config.storeYamlInKubernetes
         ? DSPipelineAPIServerStore.KUBERNETES
         : DSPipelineAPIServerStore.DATABASE,

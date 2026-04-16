@@ -17,8 +17,6 @@ import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
-import SamplePipelineSettingsSection from '#~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   NotificationResponseStatus,
   NotificationWatcherContext,
@@ -32,6 +30,7 @@ import {
   hasServerTimedOut,
   isDspaAllReady,
 } from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
+import { useAppContext } from '#~/app/AppContext';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { PipelineCachingSection } from './PipelineCachingSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
@@ -43,6 +42,7 @@ import {
 import { configureDSPipelineResourceSpec, objectStorageIsValid } from './utils';
 import { PipelineServerConfigType } from './types';
 import PipelinesDefinitionStorageSection from './PipelinesDefinitionStorageSection';
+import ManagedPipelinesSettingsSection from './ManagedPipelinesSettingsSection';
 
 type ConfigurePipelinesServerModalProps = {
   onClose: () => void;
@@ -51,9 +51,9 @@ type ConfigurePipelinesServerModalProps = {
 const FORM_DEFAULTS: PipelineServerConfigType = {
   database: { useDefault: true, value: EMPTY_DATABASE_CONNECTION },
   objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
-  enableInstructLab: false,
   storeYamlInKubernetes: true,
   enableCaching: true,
+  enableManagedPipelines: false,
 };
 
 const serverConfiguredEvent = 'Pipeline Server Configured';
@@ -67,9 +67,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = React.useState(false);
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
   const { registerNotification } = React.useContext(NotificationWatcherContext);
-  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
   const advancedSettingsRef = React.useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { dashboardConfig } = useAppContext();
+  const isManagedPipelinesAvailable =
+    dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
 
   const databaseIsValid = config.database.useDefault
     ? true
@@ -189,7 +191,6 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
             fireFormTrackingEvent(serverConfiguredEvent, {
               outcome: TrackingOutcome.submit,
               success: true,
-              isILabEnabled: config.enableInstructLab,
             });
           })
           .catch((e) => {
@@ -264,14 +265,16 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               >
                 <div ref={advancedSettingsRef}>
                   <PipelinesDatabaseSection setConfig={setConfig} config={config} />
-                  {isFineTuningAvailable && (
-                    <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
-                  )}
                   <PipelinesDefinitionStorageSection setConfig={setConfig} config={config} />
-                  <PipelineCachingSection
-                    enableCaching={config.enableCaching}
-                    setEnableCaching={(enableCaching) => setConfig({ ...config, enableCaching })}
-                  />
+                  <div className="pf-v6-u-mt-lg">
+                    <PipelineCachingSection
+                      enableCaching={config.enableCaching}
+                      setEnableCaching={(enableCaching) => setConfig({ ...config, enableCaching })}
+                    />
+                  </div>
+                  {isManagedPipelinesAvailable ? (
+                    <ManagedPipelinesSettingsSection setConfig={setConfig} config={config} />
+                  ) : null}
                 </div>
               </ExpandableSection>
             </Form>

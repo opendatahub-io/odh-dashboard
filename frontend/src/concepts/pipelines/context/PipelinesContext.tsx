@@ -11,7 +11,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { DSPipelineKind, DSPipelineManagedPipelinesKind, ProjectKind } from '#~/k8sTypes';
+import { DSPipelineKind, ProjectKind } from '#~/k8sTypes';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '#~/concepts/pipelines/content/DeletePipelineServerModal';
 import { ConfigurePipelinesServerModal } from '#~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
@@ -49,7 +49,7 @@ type PipelineContext = {
   getRecurringRunInformation: GetRecurringRunInformationType;
   apiState: PipelineAPIState;
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
-  managedPipelines: DSPipelineManagedPipelinesKind | undefined;
+  managedPipelines: NonNullable<DSPipelineKind['spec']['apiServer']>['managedPipelines'];
   isStarting?: boolean;
   startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
   /** Error from loading pipeline CR or route */
@@ -205,7 +205,7 @@ type UsePipelinesAPI = PipelineAPIState & {
   refreshAllAPI: () => void;
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   refreshState: () => void;
-  managedPipelines: DSPipelineManagedPipelinesKind | undefined;
+  managedPipelines: NonNullable<DSPipelineKind['spec']['apiServer']>['managedPipelines'];
 
   startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
 };

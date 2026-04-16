@@ -19,11 +19,13 @@ import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
 import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret';
 import { ExternalDatabaseSecret } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
 import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
-import { updatePipelineCaching } from '#~/api/pipelines/k8s';
+import { updatePipelineSettings } from '#~/api/pipelines/k8s';
 import useNotification from '#~/utilities/useNotification';
+import { useAppContext } from '#~/app/AppContext';
 import PipelineKubernetesStoreCheckbox from './PipelineKubernetesStoreCheckbox';
 import { MANAGE_PIPELINE_SERVER_TITLE } from './const';
 import { PipelineCachingSection } from './configurePipelinesServer/PipelineCachingSection';
+import ManagedPipelinesSettingsSection from './configurePipelinesServer/ManagedPipelinesSettingsSection';
 
 type ManagePipelineServerModalProps = {
   onClose: () => void;
@@ -35,6 +37,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   pipelineNamespaceCR,
 }) => {
   const { namespace } = usePipelinesAPI();
+  const { dashboardConfig } = useAppContext();
   const notification = useNotification();
   const [pipelineResult] = useNamespaceSecret(
     namespace,
@@ -45,40 +48,67 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   const databaseSecret = dataEntryToRecord(result?.values?.data ?? []);
 
   const initCachingEnabled = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled || false;
+  const initManagedPipelinesEnabled =
+    !!pipelineNamespaceCR?.spec.apiServer?.managedPipelines &&
+    !('instructLab' in pipelineNamespaceCR.spec.apiServer.managedPipelines);
+
+  const isManagedPipelinesAvailable =
+    dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
 
   // State for caching configuration
   const [enableCaching, setEnableCaching] = React.useState<boolean>(initCachingEnabled);
 
+  // State for managed pipelines
+  const [enableManagedPipelines, setEnableManagedPipelines] = React.useState<boolean>(
+    initManagedPipelinesEnabled,
+  );
+
   // Track if changes have been made
-  const hasChanges = enableCaching !== initCachingEnabled;
+  const hasChanges =
+    enableCaching !== initCachingEnabled ||
+    (isManagedPipelinesAvailable && enableManagedPipelines !== initManagedPipelinesEnabled);
 
   const [isUpdating, setIsUpdating] = React.useState(false);
 
   React.useEffect(() => {
-    const value = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled ?? false;
+    const cachingValue = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled ?? false;
+    const managedPipelinesValue =
+      !!pipelineNamespaceCR?.spec.apiServer?.managedPipelines &&
+      !('instructLab' in pipelineNamespaceCR.spec.apiServer.managedPipelines);
 
-    setEnableCaching(value);
+    setEnableCaching(cachingValue);
+    setEnableManagedPipelines(managedPipelinesValue);
   }, [pipelineNamespaceCR]);
 
-  const updateCaching = () => {
+  const updateSettings = () => {
     setIsUpdating(true);
 
-    updatePipelineCaching(namespace, enableCaching)
+    const settings: Parameters<typeof updatePipelineSettings>[1] = {};
+
+    if (enableCaching !== initCachingEnabled) {
+      settings.cacheEnabled = enableCaching;
+    }
+
+    if (isManagedPipelinesAvailable && enableManagedPipelines !== initManagedPipelinesEnabled) {
+      settings.managedPipelines = enableManagedPipelines ? {} : undefined;
+    }
+
+    updatePipelineSettings(namespace, settings, pipelineNamespaceCR?.metadata.name ?? 'dspa')
       .then(() => {
         notification.success(
-          'Pipeline caching updated',
-          `Caching has been ${enableCaching ? 'enabled' : 'disabled'} successfully.`,
+          'Pipeline server settings updated',
+          'Settings have been updated successfully.',
         );
 
         setIsUpdating(false);
         onClose();
       })
       .catch((error: unknown) => {
-        console.error('Failed to update caching:', error);
+        console.error('Failed to update pipeline settings:', error);
 
         notification.error(
-          'Failed to update pipeline caching',
-          'An unexpected error occurred while updating caching settings.',
+          'Failed to update pipeline server settings',
+          'An unexpected error occurred while updating settings.',
         );
 
         setIsUpdating(false);
@@ -198,6 +228,13 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
                   setEnableCaching={setEnableCaching}
                   variant="description"
                 />
+                {isManagedPipelinesAvailable && (
+                  <ManagedPipelinesSettingsSection
+                    enableManagedPipelines={enableManagedPipelines}
+                    setEnableManagedPipelines={setEnableManagedPipelines}
+                    variant="description"
+                  />
+                )}
               </DescriptionList>
             </>
           </DescriptionList>
@@ -207,7 +244,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
         <ActionGroup>
           <Button
             variant="primary"
-            onClick={updateCaching}
+            onClick={updateSettings}
             isLoading={isUpdating}
             isDisabled={!hasChanges || isUpdating}
             data-testid="managePipelineServer-modal-saveBtn"

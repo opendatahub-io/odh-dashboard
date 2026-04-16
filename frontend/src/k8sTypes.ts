@@ -717,12 +717,6 @@ export type DSPipelineExternalStorageKind = {
   };
 };
 
-export type DSPipelineManagedPipelinesKind = {
-  instructLab?: {
-    state: 'Removed' | 'Managed';
-  };
-};
-
 export enum DSPipelineAPIServerStore {
   KUBERNETES = 'kubernetes',
   DATABASE = 'database',
@@ -744,7 +738,24 @@ export type DSPipelineKind = K8sResourceCommon & {
       }>;
       enableSamplePipeline: boolean;
       cacheEnabled: boolean;
-      managedPipelines?: DSPipelineManagedPipelinesKind;
+      /**
+       * Managed pipelines configuration.
+       *
+       * CURRENT (AutoML/AutoRAG pattern):
+       * - The UI sends an empty object {} to enable managed pipelines.
+       * - The operator injects the image and other fields.
+       *
+       * DEPRECATED (InstructLab pattern):
+       * - instructLab.state: Legacy pattern for single InstructLab pipeline management
+       * - Use the new pattern for all new implementations
+       */
+      managedPipelines?:
+        | Record<string, unknown>
+        | {
+            instructLab?: {
+              state: 'Removed' | 'Managed';
+            };
+          };
       pipelineStore?: DSPipelineAPIServerStore;
     }>;
     database?: Partial<{

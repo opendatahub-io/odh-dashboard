@@ -19,7 +19,7 @@ const deleteSecretMock = deleteSecret as jest.Mock;
 
 describe('configure pipeline server utils', () => {
   describe('createDSPipelineResourceSpec', () => {
-    const createPipelineServerConfig = (enableCaching = true) =>
+    const createPipelineServerConfig = (enableCaching = true, enableManagedPipelines = false) =>
       ({
         database: {
           useDefault: true,
@@ -28,9 +28,9 @@ describe('configure pipeline server utils', () => {
         objectStorage: {
           newValue: [{ key: 'AWS_S3_ENDPOINT', value: '' }],
         },
-        enableInstructLab: false,
         storeYamlInKubernetes: false,
         enableCaching,
+        enableManagedPipelines,
       } as PipelineServerConfigType);
 
     type SecretsResponse = Parameters<typeof createDSPipelineResourceSpec>[1];
@@ -64,11 +64,7 @@ describe('configure pipeline server utils', () => {
         apiServer: {
           enableSamplePipeline: false,
           cacheEnabled: true,
-          managedPipelines: {
-            instructLab: {
-              state: 'Removed',
-            },
-          },
+          managedPipelines: undefined,
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
       });
@@ -98,11 +94,37 @@ describe('configure pipeline server utils', () => {
         apiServer: {
           enableSamplePipeline: false,
           cacheEnabled: false,
-          managedPipelines: {
-            instructLab: {
-              state: 'Removed',
+          managedPipelines: undefined,
+          pipelineStore: DSPipelineAPIServerStore.DATABASE,
+        },
+      });
+    });
+
+    it('should create resource spec with managed pipelines enabled', () => {
+      const spec = createDSPipelineResourceSpec(
+        createPipelineServerConfig(true, true),
+        createSecretsResponse(),
+      );
+      expect(spec).toEqual({
+        dspVersion: 'v2',
+        database: undefined,
+        objectStorage: {
+          externalStorage: {
+            bucket: '',
+            host: '',
+            region: 'us-east-1',
+            s3CredentialsSecret: {
+              accessKey: 'AWS_ACCESS_KEY_ID',
+              secretKey: 'AWS_SECRET_ACCESS_KEY',
+              secretName: '',
             },
+            scheme: 'https',
           },
+        },
+        apiServer: {
+          enableSamplePipeline: false,
+          cacheEnabled: true,
+          managedPipelines: {},
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
       });
@@ -206,11 +228,7 @@ describe('configure pipeline server utils', () => {
         apiServer: {
           enableSamplePipeline: false,
           cacheEnabled: true,
-          managedPipelines: {
-            instructLab: {
-              state: 'Removed',
-            },
-          },
+          managedPipelines: undefined,
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
       });
