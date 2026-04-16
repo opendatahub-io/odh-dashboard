@@ -893,6 +893,46 @@ paths:
       summary: Get Pipeline Run by ID
       description: Returns a single pipeline run by its unique identifier
 
+  /api/v1/pipeline-runs/{runId}/terminate:
+    summary: Terminate an active pipeline run
+    description: >-
+      Terminates an active pipeline run, cancelling all running tasks and marking the run
+      as terminated. The run must belong to one of the discovered AutoML pipelines in the namespace.
+      Returns 404 if the run doesn't exist or belongs to a different pipeline.
+    post:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the pipeline run to terminate
+          example: "abc123-def456-ghi789"
+      responses:
+        "200":
+          description: Run terminated successfully
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: terminatePipelineRun
+      summary: Terminate Pipeline Run
+      description: >-
+        Terminates an active AutoML pipeline run. The BFF validates that the run belongs to one
+        of the discovered AutoML managed pipelines in the namespace before terminating it.
+        This prevents users from terminating runs from other pipelines in the same namespace.
+
 components:
   schemas:
     Config:

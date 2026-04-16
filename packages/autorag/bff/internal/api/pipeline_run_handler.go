@@ -9,6 +9,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
+	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
@@ -133,4 +134,80 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+// TerminatePipelineRunHandler handles POST /api/v1/pipeline-runs/:runId/terminate
+//
+// Terminates an active AutoRAG pipeline run. The run must belong to the discovered
+// AutoRAG pipeline in the namespace (same ownership validation as PipelineRunHandler).
+//
+// Security: This endpoint validates that the requested run belongs to the AutoRAG pipeline
+// in the namespace before terminating it. This prevents users from terminating runs from
+// other pipelines that may exist in the same namespace.
+//
+// Error Responses:
+//   - 400: Missing runId or pipeline server client
+//   - 404: Run not found, run belongs to a different pipeline, or no AutoRAG pipeline discovered
+//   - 500: Pipeline Server error
+func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	ctx := r.Context()
+
+	client, ok := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
+	if !ok {
+		app.serverErrorResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
+		return
+	}
+
+	discoveredPipelines, ok2 := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok2 {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
+		return
+	}
+	discovered := discoveredPipelines[constants.PipelineTypeAutoRAG]
+
+	runID := params.ByName("runId")
+	if runID == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+		return
+	}
+
+	// Fetch the run first to validate ownership before terminating
+	run, err := app.repositories.PipelineRuns.GetPipelineRun(client, ctx, runID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
+			app.notFoundResponse(w, r)
+			return
+		}
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline run: %w", err))
+		return
+	}
+
+	// Verify that the run belongs to the discovered AutoRAG pipeline
+	if run.PipelineVersionReference == nil {
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Warn("Run missing PipelineVersionReference - possible data integrity issue",
+			"runId", runID,
+			"namespace", ctx.Value(constants.NamespaceHeaderParameterKey))
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	if discovered == nil ||
+		run.PipelineVersionReference.PipelineID != discovered.PipelineID ||
+		run.PipelineVersionReference.PipelineVersionID != discovered.PipelineVersionID {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	// Ownership confirmed — terminate the run
+	if err := app.repositories.PipelineRuns.TerminatePipelineRun(client, ctx, runID); err != nil {
+		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
+			app.notFoundResponse(w, r)
+			return
+		}
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to terminate pipeline run: %w", err))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

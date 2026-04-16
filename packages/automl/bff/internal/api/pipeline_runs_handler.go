@@ -214,3 +214,78 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+// TerminatePipelineRunHandler handles POST /api/v1/pipeline-runs/:runId/terminate
+//
+// Terminates an active AutoML pipeline run. The run must belong to one of the
+// discovered AutoML pipelines (timeseries or tabular) in the namespace.
+//
+// Security: This endpoint validates that the requested run belongs to a discovered
+// AutoML pipeline before terminating it. This prevents users from terminating runs
+// from other pipelines in the same namespace.
+//
+// Error Responses:
+//   - 400: Missing runId
+//   - 404: Run not found, run belongs to a different pipeline, or no pipelines discovered
+//   - 500: Pipeline Server error
+func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	ctx := r.Context()
+
+	client, ok := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
+	if !ok {
+		app.serverErrorResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
+		return
+	}
+
+	runID := params.ByName("runId")
+	if runID == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+		return
+	}
+
+	// Fetch the run first to validate ownership before terminating
+	run, err := app.repositories.PipelineRuns.GetPipelineRun(client, ctx, runID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
+			app.notFoundResponse(w, r)
+			return
+		}
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline run: %w", err))
+		return
+	}
+
+	// Validate the run belongs to one of the discovered AutoML pipelines
+	if run.PipelineVersionReference == nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	discoveredPipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines missing from context: check middleware configuration"))
+		return
+	}
+	matched := false
+	for _, discovered := range discoveredPipelines {
+		if run.PipelineVersionReference.PipelineID == discovered.PipelineID &&
+			run.PipelineVersionReference.PipelineVersionID == discovered.PipelineVersionID {
+			matched = true
+			break
+		}
+	}
+	if !matched {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	// Ownership confirmed — terminate the run
+	if err := app.repositories.PipelineRuns.TerminatePipelineRun(client, ctx, runID); err != nil {
+		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
+			app.notFoundResponse(w, r)
+			return
+		}
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to terminate pipeline run: %w", err))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}

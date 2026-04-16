@@ -17,12 +17,14 @@ The Pipeline Runs API allows querying and creating Kubeflow Pipeline runs with a
 GET  /api/v1/pipeline-runs
 GET  /api/v1/pipeline-runs/{runId}
 POST /api/v1/pipeline-runs
+POST /api/v1/pipeline-runs/{runId}/terminate
 ```
 
-The API provides three endpoints:
+The API provides four endpoints:
 - **List Runs**: Query multiple pipeline runs with optional filtering and pagination
 - **Get Run**: Retrieve a single pipeline run by its ID with full task details
 - **Create Run**: Submit a new AutoRAG pipeline run with optimization parameters
+- **Terminate Run**: Stop an active pipeline run that is currently in progress
 
 ## Authentication
 
@@ -474,6 +476,74 @@ Returns `200 OK` with the created pipeline run:
 }
 ```
 
+## Terminate Pipeline Run
+
+### Endpoint
+
+```http
+POST /api/v1/pipeline-runs/{runId}/terminate
+```
+
+Terminates an active pipeline run, cancelling all running tasks and marking the run as terminated. The run must belong to the discovered AutoRAG pipeline in the namespace.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+| `runId` | path parameter | Yes | Unique identifier of the pipeline run to terminate |
+
+### Security & Filtering
+
+This endpoint enforces the same ownership validation as the Get Run endpoint:
+
+- Fetches the run and validates it belongs to the discovered AutoRAG pipeline before terminating
+- Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
+- Prevents users from terminating runs from other pipelines in the same namespace
+
+### Request Example
+
+```bash
+curl -X POST "http://localhost:4000/api/v1/pipeline-runs/abc123-def456-ghi789/terminate?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+### Response Format
+
+Returns `200 OK` with an empty body on success.
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing `runId` parameter |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `404 Not Found` | Run not found, or run belongs to a different pipeline |
+| `500 Internal Server Error` | Pipeline Server error or internal error |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
+
+### Frontend Integration Example
+
+```javascript
+// Terminate a running pipeline run
+async function terminatePipelineRun(namespace, runId, token) {
+  const params = new URLSearchParams({ namespace });
+
+  const response = await fetch(`/api/v1/pipeline-runs/${runId}/terminate?${params}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'Failed to terminate run');
+  }
+}
+```
+
 ## Pipeline Discovery
 
 The API always filters runs to the auto-discovered AutoRAG managed pipeline:
@@ -649,6 +719,7 @@ The AutoRAG frontend can use these endpoints to:
 5. Access run state history and metadata
 6. View detailed task execution information for each run
 7. Track individual task progress and status
+8. Terminate runs that are currently in progress
 
 ### Example Frontend Integration
 
