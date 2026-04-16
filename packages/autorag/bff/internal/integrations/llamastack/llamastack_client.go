@@ -136,6 +136,11 @@ func (c *LlamaStackClient) ListProviders(ctx context.Context) ([]models.LlamaSta
 		Data []models.LlamaStackProvider `json:"data"`
 	}
 	if err := json.Unmarshal(body, &envelope); err != nil {
+		// If the envelope format changed, try parsing as a bare array as a fallback.
+		var bare []models.LlamaStackProvider
+		if errBare := json.Unmarshal(body, &bare); errBare == nil {
+			return bare, nil
+		}
 		return nil, NewLlamaStackError(ErrCodeInternalError,
 			fmt.Sprintf("failed to parse LlamaStack providers response: %s", err.Error()),
 			http.StatusInternalServerError)
