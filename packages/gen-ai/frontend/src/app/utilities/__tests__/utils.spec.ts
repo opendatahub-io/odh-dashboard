@@ -1,8 +1,11 @@
 /* eslint-disable camelcase */
-import type { AIModel, MaaSModel } from '~/app/types';
+import type { AIModel, LlamaModel, MaaSModel } from '~/app/types';
 import {
   convertMaaSModelToAIModel,
+  getLlamaModelDisplayName,
   getSourceLabel,
+  isLlamaModelEnabled,
+  isPlaygroundModelMatchForAIModel,
   splitLlamaModelId,
 } from '~/app/utilities/utils';
 
@@ -235,5 +238,256 @@ describe('splitLlamaModelId', () => {
       providerId: 'provider-123',
       id: 'model_name-v2.0',
     });
+  });
+});
+
+const makeMaaSModel = (overrides: Partial<MaaSModel> = {}): MaaSModel => ({
+  id: 'test-maas-model',
+  object: 'model',
+  created: Date.now(),
+  owned_by: 'maas',
+  ready: true,
+  url: 'https://maas.example.com/model',
+  display_name: 'Test MaaS Model',
+  ...overrides,
+});
+
+const makeLlamaModel = (overrides: Partial<LlamaModel> = {}): LlamaModel => ({
+  id: 'test-provider/test-model',
+  object: 'model',
+  created: Date.now(),
+  owned_by: 'test',
+  modelId: 'test-model',
+  ...overrides,
+});
+
+describe('getLlamaModelDisplayName', () => {
+  it('should return modelId when aiModels is null', () => {
+    const result = getLlamaModelDisplayName('test-model', null);
+    expect(result).toBe('test-model');
+  });
+
+  it('should return modelId when aiModels is undefined', () => {
+    const result = getLlamaModelDisplayName('test-model', undefined);
+    expect(result).toBe('test-model');
+  });
+
+  it('should return modelId when aiModels is empty array', () => {
+    const result = getLlamaModelDisplayName('test-model', []);
+    expect(result).toBe('test-model');
+  });
+
+  it('should return model display name when model found without provider', () => {
+    const aiModels = [makeModel({ model_id: 'test-model', display_name: 'Test Display Name' })];
+    const result = getLlamaModelDisplayName('test-model', aiModels);
+    expect(result).toBe('Test Display Name');
+  });
+
+  it('should return provider/display_name when model found with provider', () => {
+    const aiModels = [makeModel({ model_id: 'test-model', display_name: 'Test Display Name' })];
+    const result = getLlamaModelDisplayName('provider/test-model', aiModels);
+    expect(result).toBe('provider/Test Display Name');
+  });
+
+  it('should return original modelId when no matching model found', () => {
+    const aiModels = [makeModel({ model_id: 'other-model', display_name: 'Other Model' })];
+    const result = getLlamaModelDisplayName('test-model', aiModels);
+    expect(result).toBe('test-model');
+  });
+
+  it('should handle complex provider/model ID correctly', () => {
+    const aiModels = [makeModel({ model_id: 'llama-2-7b-chat', display_name: 'Llama 2 7B Chat' })];
+    const result = getLlamaModelDisplayName('anthropic-vertex/llama-2-7b-chat', aiModels);
+    expect(result).toBe('anthropic-vertex/Llama 2 7B Chat');
+  });
+});
+
+describe('isLlamaModelEnabled', () => {
+  describe('with null/undefined aiModels and maasModels', () => {
+    it('should return false when aiModels is null and maasModels is null', () => {
+      const result = isLlamaModelEnabled('test-model', null, null, false);
+      expect(result).toBe(false);
+    });
+
+    it('should return false when aiModels is undefined and maasModels is undefined', () => {
+      const result = isLlamaModelEnabled('test-model', undefined, undefined, false);
+      expect(result).toBe(false);
+    });
+
+    it('should return false when aiModels is empty and maasModels is empty', () => {
+      const result = isLlamaModelEnabled('test-model', [], [], false);
+      expect(result).toBe(false);
+    });
+
+    it('should return true when isCustomLSD is true regardless of null models', () => {
+      const result = isLlamaModelEnabled('test-model', null, null, true);
+      expect(result).toBe(true);
+    });
+
+    it('should return true when isCustomLSD is true regardless of undefined models', () => {
+      const result = isLlamaModelEnabled('test-model', undefined, undefined, true);
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('with valid aiModels', () => {
+    it('should return true when aiModel found and status is Running', () => {
+      const aiModels = [makeModel({ model_id: 'test-model', status: 'Running' })];
+      const result = isLlamaModelEnabled('test-model', aiModels, null, false);
+      expect(result).toBe(true);
+    });
+
+    it('should return true when aiModel found and model_source_type is custom_endpoint', () => {
+      const aiModels = [
+        makeModel({
+          model_id: 'test-model',
+          status: 'Stop',
+          model_source_type: 'custom_endpoint',
+        }),
+      ];
+      const result = isLlamaModelEnabled('test-model', aiModels, null, false);
+      expect(result).toBe(true);
+    });
+
+    it('should return false when aiModel found but status is not Running and not custom_endpoint', () => {
+      const aiModels = [
+        makeModel({
+          model_id: 'test-model',
+          status: 'Stop',
+          model_source_type: 'namespace',
+        }),
+      ];
+      const result = isLlamaModelEnabled('test-model', aiModels, null, false);
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('with valid maasModels', () => {
+    it('should return true when maasModel found and ready is true', () => {
+      const maasModels = [makeMaaSModel({ id: 'test-model', ready: true })];
+      const result = isLlamaModelEnabled('test-model', null, maasModels, false);
+      expect(result).toBe(true);
+    });
+
+    it('should return false when maasModel found but ready is false', () => {
+      const maasModels = [makeMaaSModel({ id: 'test-model', ready: false })];
+      const result = isLlamaModelEnabled('test-model', null, maasModels, false);
+      expect(result).toBe(false);
+    });
+
+    it('should handle maasModels when aiModels is null', () => {
+      const maasModels = [makeMaaSModel({ id: 'test-model', ready: true })];
+      const result = isLlamaModelEnabled('test-model', null, maasModels, false);
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('with complex modelIds (provider/model format)', () => {
+    it('should extract model ID correctly from provider/model format for aiModels', () => {
+      const aiModels = [makeModel({ model_id: 'llama-2-7b-chat', status: 'Running' })];
+      const result = isLlamaModelEnabled('anthropic-vertex/llama-2-7b-chat', aiModels, null, false);
+      expect(result).toBe(true);
+    });
+
+    it('should extract model ID correctly from provider/model format for maasModels', () => {
+      const maasModels = [makeMaaSModel({ id: 'llama-2-7b-chat', ready: true })];
+      const result = isLlamaModelEnabled(
+        'anthropic-vertex/llama-2-7b-chat',
+        null,
+        maasModels,
+        false,
+      );
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('edge cases that caused the original null reference error', () => {
+    it('should not crash when dipanshu namespace scenario (aiModels=null, maasModels=null)', () => {
+      // This is the exact scenario that caused the original crash in dipanshu namespace
+      expect(() => {
+        const result = isLlamaModelEnabled('test-model', null, null, false);
+        expect(result).toBe(false);
+      }).not.toThrow();
+    });
+
+    it('should not crash when both arrays are undefined', () => {
+      expect(() => {
+        const result = isLlamaModelEnabled('test-model', undefined, undefined, false);
+        expect(result).toBe(false);
+      }).not.toThrow();
+    });
+
+    it('should handle mixed null and undefined gracefully', () => {
+      expect(() => {
+        const result = isLlamaModelEnabled('test-model', null, undefined, false);
+        expect(result).toBe(false);
+      }).not.toThrow();
+    });
+  });
+});
+
+describe('isPlaygroundModelMatchForAIModel', () => {
+  it('should return false when modelIds do not match', () => {
+    const playgroundModel = makeLlamaModel({ modelId: 'model-1' });
+    const aiModel = makeModel({ model_id: 'model-2' });
+
+    const result = isPlaygroundModelMatchForAIModel(playgroundModel, aiModel);
+    expect(result).toBe(false);
+  });
+
+  it('should return true for MaaS models with maas- provider prefix', () => {
+    const playgroundModel = makeLlamaModel({
+      modelId: 'test-model',
+      id: 'maas-vllm-inference-1/test-model',
+    });
+    const aiModel = makeModel({
+      model_id: 'test-model',
+      model_source_type: 'maas',
+    });
+
+    const result = isPlaygroundModelMatchForAIModel(playgroundModel, aiModel);
+    expect(result).toBe(true);
+  });
+
+  it('should return false for MaaS models without maas- provider prefix', () => {
+    const playgroundModel = makeLlamaModel({
+      modelId: 'test-model',
+      id: 'regular-provider/test-model',
+    });
+    const aiModel = makeModel({
+      model_id: 'test-model',
+      model_source_type: 'maas',
+    });
+
+    const result = isPlaygroundModelMatchForAIModel(playgroundModel, aiModel);
+    expect(result).toBe(false);
+  });
+
+  it('should return true for non-MaaS models without maas- provider prefix', () => {
+    const playgroundModel = makeLlamaModel({
+      modelId: 'test-model',
+      id: 'regular-provider/test-model',
+    });
+    const aiModel = makeModel({
+      model_id: 'test-model',
+      model_source_type: 'namespace',
+    });
+
+    const result = isPlaygroundModelMatchForAIModel(playgroundModel, aiModel);
+    expect(result).toBe(true);
+  });
+
+  it('should return false for non-MaaS models with maas- provider prefix', () => {
+    const playgroundModel = makeLlamaModel({
+      modelId: 'test-model',
+      id: 'maas-vllm-inference-1/test-model',
+    });
+    const aiModel = makeModel({
+      model_id: 'test-model',
+      model_source_type: 'namespace',
+    });
+
+    const result = isPlaygroundModelMatchForAIModel(playgroundModel, aiModel);
+    expect(result).toBe(false);
   });
 });
