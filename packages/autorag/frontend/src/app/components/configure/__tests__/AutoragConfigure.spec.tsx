@@ -96,6 +96,7 @@ jest.mock('~/app/hooks/queries', () => ({
   useLlamaStackModelsQuery: jest.fn().mockReturnValue({
     data: { models: [] },
     isLoading: false,
+    isError: false,
   }),
   useLlamaStackVectorStoreProvidersQuery: jest.fn().mockReturnValue({
     data: { vector_store_providers: [] }, // eslint-disable-line camelcase
@@ -842,6 +843,17 @@ describe('AutoragConfigure', () => {
     });
 
     it('should enable "Edit" button when a file/folder is selected', () => {
+      mockUseLlamaStackModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm' },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+
       renderComponent();
 
       // Select a valid secret
