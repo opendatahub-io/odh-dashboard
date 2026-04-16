@@ -64,6 +64,7 @@ describe('API Keys Page', () => {
         components: {
           [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
         },
+        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
     );
     cy.interceptOdh(
@@ -590,6 +591,7 @@ describe('API Keys Page (Admin)', () => {
         components: {
           [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
         },
+        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
     );
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(

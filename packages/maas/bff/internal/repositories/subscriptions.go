@@ -287,7 +287,7 @@ func (r *SubscriptionsRepository) GetModelRefSummaries(ctx context.Context, refs
 		refSet[ref.Namespace+"/"+ref.Name] = true
 	}
 
-	var result []models.MaaSModelRefSummary
+	result := make([]models.MaaSModelRefSummary, 0)
 	for _, ref := range allRefs {
 		if refSet[ref.Namespace+"/"+ref.Name] {
 			result = append(result, ref)
@@ -361,6 +361,7 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		}
 	}
 
+	sub.Owner.Groups = []models.GroupReference{}
 	ownerGroups, _, _ := unstructured.NestedSlice(content, "spec", "owner", "groups")
 	for _, g := range ownerGroups {
 		if gMap, ok := g.(map[string]interface{}); ok {
@@ -370,6 +371,7 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		}
 	}
 
+	sub.ModelRefs = []models.ModelSubscriptionRef{}
 	modelRefs, _, _ := unstructured.NestedSlice(content, "spec", "modelRefs")
 	for _, mr := range modelRefs {
 		if mrMap, ok := mr.(map[string]interface{}); ok {
@@ -454,6 +456,7 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 
 	policy.StatusMessage = extractReadyConditionMessage(content)
 
+	policy.ModelRefs = []models.ModelRef{}
 	modelRefs, _, _ := unstructured.NestedSlice(content, "spec", "modelRefs")
 	for _, mr := range modelRefs {
 		if mrMap, ok := mr.(map[string]interface{}); ok {
@@ -468,6 +471,7 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 		}
 	}
 
+	policy.Subjects.Groups = []models.GroupReference{}
 	subjectGroups, _, _ := unstructured.NestedSlice(content, "spec", "subjects", "groups")
 	for _, g := range subjectGroups {
 		if gMap, ok := g.(map[string]interface{}); ok {

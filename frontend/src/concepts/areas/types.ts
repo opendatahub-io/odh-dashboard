@@ -181,14 +181,24 @@ export type SupportedComponentFlagValue = {
        */
       featureFlags: FeatureFlag[];
     },
-    {
-      /**
-       * Refers to the related stack component names. If a backend component is not installed, this
-       * can prevent the feature flag from enabling the item. Omit to not be reliant on a backend
-       * component.
-       */
-      requiredComponents: DataScienceStackComponent[];
-    }
+    EitherOrBoth<
+      {
+        /**
+         * Refers to the related stack component names. If a backend component is not installed, this
+         * can prevent the feature flag from enabling the item. Omit to not be reliant on a backend
+         * component.
+         */
+        requiredComponents: DataScienceStackComponent[];
+      },
+      {
+        /**
+         * Optional function to check for a condition that is not covered by other checks.
+         *
+         * Example, checking there exists a specific condition in the DSC status.
+         */
+        customCondition: CustomConditionFunction;
+      }
+    >
   >
 >;
 

@@ -109,11 +109,74 @@ func TestValidateAndNormalizeEndpoint_AcceptsHTTPSWithPort(t *testing.T) {
 	assert.Equal(t, "https://s3.amazonaws.com:9000", result)
 }
 
-func TestValidateAndNormalizeEndpoint_RejectsHTTP(t *testing.T) {
+func TestValidateAndNormalizeEndpoint_RejectsHTTPForExternalEndpoints(t *testing.T) {
 	c := newTestClient()
 	_, err := c.validateAndNormalizeEndpoint("http://s3.amazonaws.com")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "HTTPS")
+	assert.Contains(t, err.Error(), "HTTPS scheme for external endpoints")
+}
+
+func TestValidateAndNormalizeEndpoint_AcceptsHTTPForInClusterEndpoints(t *testing.T) {
+	c := newTestClient()
+	testCases := []struct {
+		name     string
+		endpoint string
+	}{
+		{
+			name:     "MinIO service with namespace",
+			endpoint: "http://minio-pipelines.yamcha.svc.cluster.local:9000",
+		},
+		{
+			name:     "MinIO service without port",
+			endpoint: "http://minio-dspa.default.svc.cluster.local",
+		},
+		{
+			name:     "Generic cluster service",
+			endpoint: "http://my-service.my-namespace.svc.cluster.local:8080",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := c.validateAndNormalizeEndpoint(tc.endpoint)
+			assert.NoError(t, err, "should accept in-cluster HTTP endpoint")
+			assert.Equal(t, tc.endpoint, result)
+		})
+	}
+}
+
+func TestValidateAndNormalizeEndpoint_RejectsInvalidClusterLocalHostnames(t *testing.T) {
+	c := newTestClient()
+	testCases := []struct {
+		name     string
+		endpoint string
+		reason   string
+	}{
+		{
+			name:     "Too few labels (4) - missing namespace",
+			endpoint: "http://evil.svc.cluster.local",
+			reason:   "should reject .svc.cluster.local with fewer than 5 labels",
+		},
+		{
+			name:     "Too few labels (3) - just svc.cluster.local",
+			endpoint: "http://svc.cluster.local:9000",
+			reason:   "should reject partial cluster domain",
+		},
+		{
+			name:     "Malicious cluster.local suffix",
+			endpoint: "http://evil.cluster.local",
+			reason:   "should reject non-service cluster.local domains",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := c.validateAndNormalizeEndpoint(tc.endpoint)
+			assert.Error(t, err, tc.reason)
+			assert.Contains(t, err.Error(), "HTTPS scheme for external endpoints",
+				"should treat invalid cluster hostnames as external and require HTTPS")
+		})
+	}
 }
 
 func TestValidateAndNormalizeEndpoint_RejectsEmpty(t *testing.T) {

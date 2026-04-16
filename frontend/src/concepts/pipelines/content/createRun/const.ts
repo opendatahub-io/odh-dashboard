@@ -16,7 +16,6 @@ export const DEFAULT_PERIODIC_DATA: RunTypeScheduledData = {
 export const DATE_FORMAT = 'YYYY-MM-DD';
 export const DEFAULT_TIME = '12:00 AM';
 export const RUN_OPTION_LABEL_SIZE = 100;
-export const DEFAULT_RUN_GROUP = 'Default';
 
 export enum CreateRunPageSections {
   RUN_TYPE = 'run-section-run-type',
