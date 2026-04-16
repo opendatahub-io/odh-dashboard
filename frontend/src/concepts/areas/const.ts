@@ -8,7 +8,6 @@ export const techPreviewFlags = {
   modelAsService: true,
   maasAuthPolicies: true,
   aiAssetCustomEndpoints: false,
-  mlflowPipelines: false,
   mcpCatalog: false,
   projectRBAC: true,
   observabilityDashboard: false,
@@ -22,6 +21,7 @@ export const techPreviewFlags = {
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
+  mlflowPipelines: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -238,6 +238,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.LLMD_GATEWAY_FIELD]: {
     featureFlags: ['llmGatewayField'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
+  },
+  [SupportedArea.PLUGIN_GEN_AI]: {
+    featureFlags: ['genAiStudio'],
   },
   [SupportedArea.MAAS_AUTH_POLICIES]: {
     featureFlags: ['maasAuthPolicies'],

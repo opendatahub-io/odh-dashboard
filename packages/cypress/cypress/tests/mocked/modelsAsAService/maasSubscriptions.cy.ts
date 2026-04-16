@@ -13,6 +13,7 @@ import {
 import {
   mockSubscriptions,
   mockSubscriptionInfo,
+  mockSubscriptionInfoMissingModelSummaries,
   mockSubscriptionFormData,
   mockCreateSubscriptionResponse,
   mockUpdateSubscriptionResponse,
@@ -173,6 +174,22 @@ describe('View Subscription Page', () => {
 
     viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
     cy.url().should('include', '/maas/subscriptions');
+  });
+
+  it("should list models from the subscription when model ref doesn't exist", () => {
+    const orphanSubName = 'missing-model-summary-sub';
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: orphanSubName } },
+      { data: mockSubscriptionInfoMissingModelSummaries() },
+    );
+    viewSubscriptionPage.visit(orphanSubName);
+    viewSubscriptionPage.findModelsSection().should('exist');
+    viewSubscriptionPage
+      .findModelsTable()
+      .should('contain.text', 'deleted-model-ref')
+      .and('contain.text', 'maas-models')
+      .and('contain.text', '50,000');
   });
 
   it('should show error state when the subscription-info API fails', () => {

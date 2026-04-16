@@ -728,6 +728,15 @@ export enum DSPipelineAPIServerStore {
   DATABASE = 'database',
 }
 
+export enum DSPAMlflowIntegrationMode {
+  DISABLED = 'DISABLED',
+  AUTODETECT = 'AUTODETECT',
+}
+
+export type DSPipelineMlflowKind = {
+  integrationMode?: DSPAMlflowIntegrationMode;
+};
+
 export type DSPipelineKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -795,6 +804,7 @@ export type DSPipelineKind = K8sResourceCommon & {
     viewerCRD?: Partial<{
       image: string;
     }>;
+    mlflow?: DSPipelineMlflowKind;
   };
   status?: {
     conditions?: K8sCondition[];

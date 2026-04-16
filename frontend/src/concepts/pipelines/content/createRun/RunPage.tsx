@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { PageSection } from '@patternfly/react-core';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import { ExperimentKF, PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import GenericSidebar from '#~/components/GenericSidebar';
 import {
@@ -57,8 +57,8 @@ const RunPage: React.FC<RunPageProps> = ({
   ]);
   const triggerType = asEnumMember(triggerTypeString, ScheduledType);
   const isSchedule = runType === RunTypeOption.SCHEDULED;
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
   const [defaultExperiment] = useDefaultExperiment();
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const jumpToSections = Object.values(CreateRunPageSections).filter(
     (section) =>
       !(
