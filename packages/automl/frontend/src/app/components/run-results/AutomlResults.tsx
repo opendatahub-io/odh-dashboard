@@ -113,6 +113,9 @@ function AutomlResults(): React.JSX.Element {
     [namespace, models, pipelineRun?.display_name],
   );
 
+  const isCanceled = pipelineRun?.state.toUpperCase() === RuntimeStateKF.CANCELED;
+  const isFailed = pipelineRun?.state.toUpperCase() === RuntimeStateKF.FAILED;
+
   return (
     <>
       <Stack hasGutter>
@@ -138,10 +141,14 @@ function AutomlResults(): React.JSX.Element {
             <FlexItem>
               <Title headingLevel="h3">Experiment pipeline</Title>
             </FlexItem>
-            {pipelineRun?.state.toUpperCase() === RuntimeStateKF.CANCELED && (
+            {(isCanceled || isFailed) && (
               <FlexItem>
-                <Label variant="outline" status="warning" data-testid="run-canceled-label">
-                  Canceled
+                <Label
+                  variant="outline"
+                  status={isCanceled ? 'warning' : 'danger'}
+                  data-testid="run-canceled-label"
+                >
+                  {pipelineRun.state}
                 </Label>
               </FlexItem>
             )}

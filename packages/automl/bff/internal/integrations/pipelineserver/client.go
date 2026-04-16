@@ -435,10 +435,11 @@ func (c *RealPipelineServerClient) TerminateRun(ctx context.Context, runID strin
 
 	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs/%s:terminate", c.baseURL, url.PathEscape(runID))
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader([]byte("{}")))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	if c.authToken != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
@@ -450,15 +451,19 @@ func (c *RealPipelineServerClient) TerminateRun(ctx context.Context, runID strin
 	}
 	defer resp.Body.Close()
 
-	// Drain body to allow connection reuse
-	_, _ = io.Copy(io.Discard, resp.Body)
-
 	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		respBody, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+
 		return &HTTPError{
 			StatusCode: resp.StatusCode,
-			Message:    fmt.Sprintf("failed to terminate run %s", runID),
+			Message:    fmt.Sprintf("failed to terminate run %s: %s", runID, string(respBody)),
 		}
 	}
+
+	// Drain body to allow connection reuse
+	_, _ = io.Copy(io.Discard, resp.Body)
 
 	return nil
 }
@@ -473,10 +478,11 @@ func (c *RealPipelineServerClient) RetryRun(ctx context.Context, runID string) e
 
 	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs/%s:retry", c.baseURL, url.PathEscape(runID))
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader([]byte("{}")))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	if c.authToken != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
@@ -488,15 +494,19 @@ func (c *RealPipelineServerClient) RetryRun(ctx context.Context, runID string) e
 	}
 	defer resp.Body.Close()
 
-	// Drain body to allow connection reuse
-	_, _ = io.Copy(io.Discard, resp.Body)
-
 	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		respBody, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+
 		return &HTTPError{
 			StatusCode: resp.StatusCode,
-			Message:    fmt.Sprintf("failed to retry run %s", runID),
+			Message:    fmt.Sprintf("failed to retry run %s: %s", runID, string(respBody)),
 		}
 	}
+
+	// Drain body to allow connection reuse
+	_, _ = io.Copy(io.Discard, resp.Body)
 
 	return nil
 }
