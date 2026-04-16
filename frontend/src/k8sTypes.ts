@@ -815,6 +815,12 @@ export type ClusterQueueKind = K8sResourceCommon & {
   apiVersion: 'kueue.x-k8s.io/v1beta2';
   kind: 'ClusterQueue';
   spec: {
+    admissionChecksStrategy?: {
+      admissionChecks: {
+        name: string;
+        onFlavors?: string[];
+      }[];
+    };
     cohortName?: string;
     flavorFungibility?: {
       whenCanBorrow: 'Borrow' | 'TryNextFlavor';
@@ -886,7 +892,7 @@ export type LocalQueueKind = K8sResourceCommon & {
   };
   status?: {
     flavorsReservation?: LocalQueueFlavorUsage[];
-    flavorUsage?: LocalQueueFlavorUsage[];
+    flavorsUsage?: LocalQueueFlavorUsage[];
     pendingWorkloads?: number;
     reservingWorkloads?: number;
     admittedWorkloads?: number;
