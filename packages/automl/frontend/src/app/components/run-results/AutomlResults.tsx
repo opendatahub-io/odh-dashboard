@@ -1,10 +1,20 @@
-import { Stack, StackItem, Alert, AlertActionCloseButton } from '@patternfly/react-core';
+import {
+  Alert,
+  AlertActionCloseButton,
+  Flex,
+  FlexItem,
+  Label,
+  Stack,
+  StackItem,
+  Title,
+} from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
 import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useAutoMLTaskTopology } from '~/app/topology/useAutoMLTaskTopology';
+import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { downloadBlob } from '~/app/utilities/utils';
 import AutomlLeaderboard from './AutomlLeaderboard';
@@ -120,6 +130,21 @@ function AutomlResults(): React.JSX.Element {
           </StackItem>
         )}
         <StackItem>
+          <Flex
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <Title headingLevel="h3">Experiment pipeline</Title>
+            </FlexItem>
+            {pipelineRun?.state.toUpperCase() === RuntimeStateKF.CANCELED && (
+              <FlexItem>
+                <Label status="warning" data-testid="run-canceled-label">
+                  Canceled
+                </Label>
+              </FlexItem>
+            )}
+          </Flex>
           <PipelineTopology
             nodes={nodes}
             selectedIds={selectedIds}

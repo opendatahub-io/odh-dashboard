@@ -30,6 +30,22 @@ export function useS3FileUploadMutation(
   });
 }
 
+export function useTerminatePipelineRunMutation(
+  namespace: string,
+  runId: string,
+): UseMutationResult<void, Error, void, unknown> {
+  return useMutation({
+    mutationKey: ['autorag', 'terminatePipelineRun', runId],
+    mutationFn: async () => {
+      const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(runId)}/terminate?namespace=${encodeURIComponent(namespace)}`;
+      const response = await fetch(url, { method: 'POST' });
+      if (!response.ok) {
+        throw new Error(`Failed to terminate run (${response.status})`);
+      }
+    },
+  });
+}
+
 export function useCreatePipelineRunMutation(
   namespace: string,
 ): UseMutationResult<PipelineRun, Error, ConfigureSchema, unknown> {

@@ -30,6 +30,22 @@ export function useS3FileUploadMutation(
   });
 }
 
+export function useTerminatePipelineRunMutation(
+  namespace: string,
+  runId: string,
+): UseMutationResult<void, Error, void, unknown> {
+  return useMutation({
+    mutationKey: ['automl', 'terminatePipelineRun', runId],
+    mutationFn: async () => {
+      const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(runId)}/terminate?namespace=${encodeURIComponent(namespace)}`;
+      const response = await fetch(url, { method: 'POST' });
+      if (!response.ok) {
+        throw new Error(`Failed to terminate run (${response.status})`);
+      }
+    },
+  });
+}
+
 /**
  * Creates a new pipeline run via the AutoML BFF API.
  * @see packages/automl/docs/pipeline-runs-api.md

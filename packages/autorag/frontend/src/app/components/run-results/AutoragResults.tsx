@@ -1,8 +1,18 @@
 import React from 'react';
-import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Alert,
+  AlertActionCloseButton,
+  Flex,
+  FlexItem,
+  Label,
+  Stack,
+  StackItem,
+  Title,
+} from '@patternfly/react-core';
 import { useParams } from 'react-router';
 import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useAutoRAGTaskTopology } from '~/app/topology/useAutoRAGTaskTopology';
+import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
@@ -115,6 +125,21 @@ function AutoragResults(): React.JSX.Element {
           </StackItem>
         )}
         <StackItem>
+          <Flex
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <Title headingLevel="h3">Experiment pipeline</Title>
+            </FlexItem>
+            {pipelineRun?.state.toUpperCase() === RuntimeStateKF.CANCELED && (
+              <FlexItem>
+                <Label status="warning" data-testid="run-canceled-label">
+                  Canceled
+                </Label>
+              </FlexItem>
+            )}
+          </Flex>
           <PipelineTopology
             nodes={nodes}
             selectedIds={selectedIds}
