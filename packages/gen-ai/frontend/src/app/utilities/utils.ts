@@ -83,9 +83,14 @@ export const isPlaygroundModelMatchForAIModel = (
     : !isMaasLlamaModelId(playgroundModel.id);
 };
 
-export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): string => {
+export const getLlamaModelDisplayName = (
+  modelId: string,
+  aiModels: AIModel[] | null | undefined,
+): string => {
   const { id, providerId } = splitLlamaModelId(modelId);
-  const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);
+  // Add defensive null check to prevent "Cannot read properties of null" errors
+  const safeAiModels = aiModels || [];
+  const enabledModel = safeAiModels.find((aiModel) => aiModel.model_id === id);
   if (!enabledModel) {
     return modelId;
   }
@@ -97,8 +102,8 @@ export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): 
 
 export const isLlamaModelEnabled = (
   modelId: string,
-  aiModels: AIModel[],
-  maasModels: MaaSModel[],
+  aiModels: AIModel[] | null | undefined,
+  maasModels: MaaSModel[] | null | undefined,
   isCustomLSD: boolean,
 ): boolean => {
   if (isCustomLSD) {
@@ -107,7 +112,11 @@ export const isLlamaModelEnabled = (
 
   const { id } = splitLlamaModelId(modelId);
 
-  const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);
+  // Add defensive null checks to prevent "Cannot read properties of null" errors
+  const safeAiModels = aiModels || [];
+  const safeMaasModels = maasModels || [];
+
+  const enabledModel = safeAiModels.find((aiModel) => aiModel.model_id === id);
 
   if (enabledModel) {
     return (
@@ -115,7 +124,7 @@ export const isLlamaModelEnabled = (
     );
   }
 
-  const maasModel = maasModels.find((m) => m.id === id);
+  const maasModel = safeMaasModels.find((m) => m.id === id);
   if (maasModel) {
     return maasModel.ready;
   }
@@ -305,19 +314,23 @@ export const DEFAULT_EMBEDDING_NORMALIZED_ID = splitLlamaModelId(DEFAULT_EMBEDDI
  */
 export const computeEmbeddingModelStatus = (
   embeddingModel: string,
-  assetModels: AIModel[],
-  playgroundModels: LlamaModel[],
+  assetModels: AIModel[] | null | undefined,
+  playgroundModels: LlamaModel[] | null | undefined,
 ): EmbeddingModelStatus => {
   const { id: normalizedId } = splitLlamaModelId(embeddingModel);
 
-  const isRegistered = playgroundModels.some(
+  // Add defensive null checks to prevent "Cannot read properties of null" errors
+  const safePlaygroundModels = playgroundModels || [];
+  const safeAssetModels = assetModels || [];
+
+  const isRegistered = safePlaygroundModels.some(
     (m) => m.modelId === embeddingModel || m.modelId === normalizedId,
   );
   if (isRegistered) {
     return 'registered';
   }
 
-  const isAvailable = assetModels.some((m) => {
+  const isAvailable = safeAssetModels.some((m) => {
     const { id: normalizedModelId } = splitLlamaModelId(m.model_id);
     return m.model_id === embeddingModel || normalizedModelId === normalizedId;
   });
