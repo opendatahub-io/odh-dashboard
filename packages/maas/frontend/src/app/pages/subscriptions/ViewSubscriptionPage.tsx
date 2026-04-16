@@ -63,9 +63,14 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription 
   );
 };
 
-const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSummary[] =>
-  info.subscription.modelRefs.map((ref) => {
-    const summary = info.modelRefs.find(
+const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSummary[] => {
+  const subscriptionRefs = Array.isArray(info.subscription.modelRefs)
+    ? info.subscription.modelRefs
+    : [];
+  const modelRefSummaries = Array.isArray(info.modelRefs) ? info.modelRefs : [];
+
+  return subscriptionRefs.map((ref) => {
+    const summary = modelRefSummaries.find(
       (s) => s.name === ref.name && s.namespace === ref.namespace,
     );
     return (
@@ -76,6 +81,7 @@ const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSumm
       }
     );
   });
+};
 
 const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
