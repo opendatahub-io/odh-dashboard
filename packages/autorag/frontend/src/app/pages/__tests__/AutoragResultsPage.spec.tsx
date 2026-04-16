@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import AutoragResultsPage from '~/app/pages/AutoragResultsPage';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
@@ -76,6 +77,34 @@ jest.mock('~/app/components/empty-states/InvalidProject', () => ({
   default: () => <div data-testid="invalid-project">Invalid Project</div>,
 }));
 
+jest.mock('~/app/components/run-results/StopRunModal', () => ({
+  __esModule: true,
+  default: ({
+    isOpen,
+    onConfirm,
+    onClose,
+  }: {
+    isOpen: boolean;
+    onConfirm: () => void;
+    onClose: () => void;
+  }) =>
+    isOpen ? (
+      <div data-testid="stop-run-modal">
+        <button data-testid="confirm-stop-run-button" onClick={onConfirm}>
+          Stop
+        </button>
+        <button data-testid="cancel-stop-run-button" onClick={onClose}>
+          Cancel
+        </button>
+      </div>
+    ) : null,
+}));
+
+const mockNotification = { success: jest.fn(), error: jest.fn() };
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => mockNotification,
+}));
+
 jest.mock('mod-arch-shared', () => ({
   ApplicationsPage: ({
     children,
@@ -83,16 +112,19 @@ jest.mock('mod-arch-shared', () => ({
     loaded,
     emptyStatePage,
     breadcrumb,
+    headerAction,
   }: {
     children: React.ReactNode;
     empty: boolean;
     loaded: boolean;
     emptyStatePage: React.ReactNode;
     breadcrumb?: React.ReactNode;
+    headerAction?: React.ReactNode;
     [key: string]: unknown;
   }) => (
     <div data-testid="applications-page">
       {breadcrumb}
+      {headerAction}
       {empty ? emptyStatePage : null}
       {loaded && !empty ? children : null}
     </div>
@@ -493,6 +525,165 @@ describe('AutoragResultsPage', () => {
       expect(screen.getByText(/test-ns/)).toBeInTheDocument();
       // Breadcrumb should show run display name
       expect(screen.getByText('My Test Run')).toBeInTheDocument();
+    });
+  });
+
+  describe('stop and retry actions', () => {
+    const setupWithRunState = (state: string) => {
+      const mockPipelineRun = createMockPipelineRun({ state });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+    };
+
+    it('should show Stop button when run is RUNNING', () => {
+      setupWithRunState('RUNNING');
+      render(<AutoragResultsPage />);
+
+      expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
+      expect(screen.queryByTestId('retry-run-button')).not.toBeInTheDocument();
+    });
+
+    it('should show Stop button when run is PENDING', () => {
+      setupWithRunState('PENDING');
+      render(<AutoragResultsPage />);
+
+      expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
+    });
+
+    it('should show Stop button when run is CANCELING', () => {
+      setupWithRunState('CANCELING');
+      render(<AutoragResultsPage />);
+
+      expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
+    });
+
+    it('should show Retry button when run is FAILED', () => {
+      setupWithRunState('FAILED');
+      render(<AutoragResultsPage />);
+
+      expect(screen.getByTestId('retry-run-button')).toBeInTheDocument();
+      expect(screen.queryByTestId('stop-run-button')).not.toBeInTheDocument();
+    });
+
+    it('should not show Stop or Retry buttons when run is SUCCEEDED', () => {
+      setupWithRunState('SUCCEEDED');
+      render(<AutoragResultsPage />);
+
+      expect(screen.queryByTestId('stop-run-button')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('retry-run-button')).not.toBeInTheDocument();
+    });
+
+    it('should open StopRunModal when Stop button is clicked', async () => {
+      setupWithRunState('RUNNING');
+      render(<AutoragResultsPage />);
+
+      expect(screen.queryByTestId('stop-run-modal')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+
+      expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
+    });
+
+    it('should call terminate mutation when stop is confirmed', async () => {
+      setupWithRunState('RUNNING');
+      const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
+      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      useTerminatePipelineRunMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+      });
+
+      render(<AutoragResultsPage />);
+
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
+
+      await waitFor(() => {
+        expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('should show success notification after successful stop', async () => {
+      setupWithRunState('RUNNING');
+      const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
+      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      useTerminatePipelineRunMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+      });
+
+      render(<AutoragResultsPage />);
+
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
+
+      await waitFor(() => {
+        expect(mockNotification.success).toHaveBeenCalledWith('Run stopped successfully');
+      });
+    });
+
+    it('should show error notification when stop fails', async () => {
+      setupWithRunState('RUNNING');
+      const mockMutateAsync = jest.fn().mockRejectedValue(new Error('Network error'));
+      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      useTerminatePipelineRunMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+      });
+
+      render(<AutoragResultsPage />);
+
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
+
+      await waitFor(() => {
+        expect(mockNotification.error).toHaveBeenCalledWith('Failed to stop run', 'Network error');
+      });
+    });
+
+    it('should close StopRunModal after stop completes', async () => {
+      setupWithRunState('RUNNING');
+      const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
+      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      useTerminatePipelineRunMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+      });
+
+      render(<AutoragResultsPage />);
+
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('stop-run-modal')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should show error notification when retry fails', async () => {
+      setupWithRunState('FAILED');
+      const mockMutateAsync = jest.fn().mockRejectedValue(new Error('Retry failed'));
+      const { useRetryPipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      useRetryPipelineRunMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+      });
+
+      render(<AutoragResultsPage />);
+
+      await userEvent.click(screen.getByTestId('retry-run-button'));
+
+      await waitFor(() => {
+        expect(mockNotification.error).toHaveBeenCalledWith('Failed to retry run', 'Retry failed');
+      });
     });
   });
 });

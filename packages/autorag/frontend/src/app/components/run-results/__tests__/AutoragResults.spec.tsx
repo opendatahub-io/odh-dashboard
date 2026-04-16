@@ -332,4 +332,44 @@ describe('AutoragResults', () => {
       expect(screen.getByText('An unknown error occurred', { exact: false })).toBeInTheDocument();
     });
   });
+
+  describe('run state label', () => {
+    it('should show Canceled label when run state is CANCELED', () => {
+      const canceledRun: PipelineRun = {
+        ...mockPipelineRun,
+        state: 'CANCELED',
+      };
+      renderWithContext({ pipelineRun: canceledRun });
+
+      expect(screen.getByTestId('run-canceled-label')).toBeInTheDocument();
+      expect(screen.getByTestId('run-canceled-label')).toHaveTextContent('CANCELED');
+    });
+
+    it('should show Failed label when run state is FAILED', () => {
+      const failedRun: PipelineRun = {
+        ...mockPipelineRun,
+        state: 'FAILED',
+      };
+      renderWithContext({ pipelineRun: failedRun });
+
+      expect(screen.getByTestId('run-canceled-label')).toBeInTheDocument();
+      expect(screen.getByTestId('run-canceled-label')).toHaveTextContent('FAILED');
+    });
+
+    it('should not show state label when run state is SUCCEEDED', () => {
+      renderWithContext();
+
+      expect(screen.queryByTestId('run-canceled-label')).not.toBeInTheDocument();
+    });
+
+    it('should not show state label when run state is RUNNING', () => {
+      const runningRun: PipelineRun = {
+        ...mockPipelineRun,
+        state: 'RUNNING',
+      };
+      renderWithContext({ pipelineRun: runningRun });
+
+      expect(screen.queryByTestId('run-canceled-label')).not.toBeInTheDocument();
+    });
+  });
 });

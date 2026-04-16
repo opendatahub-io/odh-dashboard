@@ -312,4 +312,33 @@ describe('AutomlResults', () => {
       expect(screen.queryByText('Notebook download failed')).not.toBeInTheDocument();
     });
   });
+
+  describe('run state label', () => {
+    it('should show Canceled label when run state is CANCELED', () => {
+      const canceledRun: PipelineRun = {
+        ...mockPipelineRun,
+        state: 'CANCELED',
+      };
+      renderWithContext(canceledRun);
+
+      expect(screen.getByTestId('run-canceled-label')).toBeInTheDocument();
+      expect(screen.getByTestId('run-canceled-label')).toHaveTextContent('Canceled');
+    });
+
+    it('should not show Canceled label when run state is SUCCEEDED', () => {
+      renderWithContext(mockPipelineRun);
+
+      expect(screen.queryByTestId('run-canceled-label')).not.toBeInTheDocument();
+    });
+
+    it('should not show Canceled label when run state is RUNNING', () => {
+      const runningRun: PipelineRun = {
+        ...mockPipelineRun,
+        state: 'RUNNING',
+      };
+      renderWithContext(runningRun);
+
+      expect(screen.queryByTestId('run-canceled-label')).not.toBeInTheDocument();
+    });
+  });
 });
