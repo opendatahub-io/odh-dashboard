@@ -29,9 +29,9 @@ import {
   NAME_CHARACTER_LIMIT,
   DESCRIPTION_CHARACTER_LIMIT,
 } from '#~/concepts/pipelines/content/const';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { runGroupCreateModalPopoverText } from '#~/pages/pipelines/global/runs/const';
 import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import MlflowIntegrationSection from './contentSections/MlflowIntegrationSection';
 import PipelineSection from './contentSections/PipelineSection';
 import { RunTypeSection } from './contentSections/RunTypeSection';
@@ -46,7 +46,7 @@ type RunFormProps = {
 
 const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) => {
   const { api, namespace } = usePipelinesAPI();
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const [latestVersion, latestVersionLoaded] = useLatestPipelineVersion(data.pipeline?.pipeline_id);
   // Use this state to avoid the pipeline version being set as the latest version at the initial load
   const [initialLoadedState, setInitialLoadedState] = React.useState(true);
