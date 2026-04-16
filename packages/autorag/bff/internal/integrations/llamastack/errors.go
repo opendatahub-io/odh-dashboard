@@ -3,6 +3,7 @@ package llamastack
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 )
@@ -80,18 +81,30 @@ func wrapClientError(err error, operation string) *LlamaStackError {
 // mapHTTPStatusToError maps a non-200 HTTP status code from LlamaStack into a typed LlamaStackError.
 // The resource parameter describes what was being accessed (e.g. "models", "providers") for error messages.
 func mapHTTPStatusToError(statusCode int, body []byte, resource string) *LlamaStackError {
+	// Log the raw upstream body server-side for debugging, but keep it out of
+	// the error message returned to callers — upstream responses may contain
+	// internal details, stack traces, or credentials.
+	slog.Debug("LlamaStack upstream error",
+		"status", statusCode,
+		"resource", resource,
+		"body", string(body))
+
 	switch statusCode {
 	case http.StatusBadRequest:
-		return NewInvalidRequestError(fmt.Sprintf("invalid request to LlamaStack %s: %s", resource, string(body)))
+		return NewInvalidRequestError(fmt.Sprintf("invalid request to LlamaStack %s (status %d)", resource, statusCode))
 	case http.StatusUnauthorized:
 		return NewUnauthorizedError(fmt.Sprintf("unauthorized to access LlamaStack %s", resource))
 	case http.StatusNotFound:
 		return NewNotFoundError(fmt.Sprintf("LlamaStack %s not found — ensure LlamaStack version supports /v1/%s", resource, resource))
-	case http.StatusRequestTimeout, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+	case http.StatusRequestTimeout, http.StatusGatewayTimeout:
+		return NewLlamaStackError(ErrCodeTimeout,
+			fmt.Sprintf("LlamaStack request timed out while listing %s", resource),
+			statusCode)
+	case http.StatusServiceUnavailable:
 		return NewServerUnavailableError(fmt.Sprintf("LlamaStack service unavailable while listing %s", resource))
 	default:
 		return NewLlamaStackError(ErrCodeInternalError,
-			fmt.Sprintf("unexpected status %d from LlamaStack %s: %s", statusCode, resource, string(body)),
+			fmt.Sprintf("unexpected status %d from LlamaStack %s", statusCode, resource),
 			statusCode)
 	}
 }

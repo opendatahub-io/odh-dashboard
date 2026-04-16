@@ -212,11 +212,11 @@ func TestListModelsHTTPErrors(t *testing.T) {
 			expectedStatus: 503,
 		},
 		{
-			name:           "should return ServerUnavailable for 504",
+			name:           "should return Timeout for 504",
 			statusCode:     http.StatusGatewayTimeout,
 			body:           "gateway timeout",
-			expectedCode:   ErrCodeServerUnavailable,
-			expectedStatus: 503,
+			expectedCode:   ErrCodeTimeout,
+			expectedStatus: http.StatusGatewayTimeout,
 		},
 		{
 			name:           "should return InternalError for unexpected status",
@@ -272,9 +272,9 @@ func TestMapHTTPStatusToError(t *testing.T) {
 		{"400 maps to InvalidRequest", http.StatusBadRequest, []byte("bad"), "models", ErrCodeInvalidRequest},
 		{"401 maps to Unauthorized", http.StatusUnauthorized, nil, "providers", ErrCodeUnauthorized},
 		{"404 maps to NotFound", http.StatusNotFound, nil, "models", ErrCodeNotFound},
-		{"408 maps to ServerUnavailable", http.StatusRequestTimeout, nil, "models", ErrCodeServerUnavailable},
+		{"408 maps to Timeout", http.StatusRequestTimeout, nil, "models", ErrCodeTimeout},
 		{"503 maps to ServerUnavailable", http.StatusServiceUnavailable, nil, "models", ErrCodeServerUnavailable},
-		{"504 maps to ServerUnavailable", http.StatusGatewayTimeout, nil, "providers", ErrCodeServerUnavailable},
+		{"504 maps to Timeout", http.StatusGatewayTimeout, nil, "providers", ErrCodeTimeout},
 		{"500 maps to InternalError", http.StatusInternalServerError, []byte("oops"), "models", ErrCodeInternalError},
 		{"418 maps to InternalError", 418, []byte("teapot"), "models", ErrCodeInternalError},
 	}
@@ -286,6 +286,12 @@ func TestMapHTTPStatusToError(t *testing.T) {
 			require.NotNil(t, err)
 			assert.Equal(t, tt.expectedCode, err.Code)
 			assert.Contains(t, err.Message, tt.resource)
+
+			// Upstream body must NOT leak into client-facing error messages
+			if len(tt.body) > 0 {
+				assert.NotContains(t, err.Message, string(tt.body),
+					"raw upstream body should not appear in error message")
+			}
 		})
 	}
 }
