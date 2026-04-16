@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	"golang.org/x/sync/singleflight"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -30,6 +32,7 @@ import (
 type PortForwardManager struct {
 	mu         sync.Mutex
 	forwards   map[string]*activeForward
+	sfGroup    singleflight.Group
 	restConfig *rest.Config
 	clientset  kubernetes.Interface
 	logger     *slog.Logger
@@ -64,13 +67,11 @@ func (m *PortForwardManager) ForwardURL(ctx context.Context, rawURL string) (str
 	}
 
 	hostname := parsed.Hostname()
-	if !strings.HasSuffix(hostname, ".svc.cluster.local") {
-		return rawURL, nil
-	}
 
-	// Parse <service>.<namespace>.svc.cluster.local
-	labels := strings.SplitN(hostname, ".", 5)
-	if len(labels) < 5 {
+	// Require exact Kubernetes service FQDN: <service>.<namespace>.svc.cluster.local
+	labels := strings.Split(hostname, ".")
+	if len(labels) != 5 || labels[0] == "" || labels[1] == "" ||
+		labels[2] != "svc" || labels[3] != "cluster" || labels[4] != "local" {
 		return rawURL, nil
 	}
 	serviceName := labels[0]
@@ -101,12 +102,14 @@ func (m *PortForwardManager) ForwardURL(ctx context.Context, rawURL string) (str
 }
 
 // getOrCreateForward returns the local port for an active forward, or creates one.
+// Concurrent requests for the same key are coalesced via singleflight so only
+// one forward is created even when the browser fires multiple requests at once.
 func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, serviceName string, remotePort int) (uint16, error) {
 	key := fmt.Sprintf("%s/%s:%d", namespace, serviceName, remotePort)
 
+	// Fast path: check cache under lock.
 	m.mu.Lock()
 	if fwd, ok := m.forwards[key]; ok {
-		// Check if still alive
 		select {
 		case err := <-fwd.errChan:
 			m.logger.Warn("port-forward died, re-establishing",
@@ -119,27 +122,41 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 	}
 	m.mu.Unlock()
 
-	m.logger.Info("establishing port-forward", "key", key)
+	// Slow path: create forward, deduplicated across concurrent callers.
+	val, err, _ := m.sfGroup.Do(key, func() (interface{}, error) {
+		// Re-check cache — another caller in the singleflight group may have
+		// populated it between our cache miss and winning the Do race.
+		m.mu.Lock()
+		if fwd, ok := m.forwards[key]; ok {
+			m.mu.Unlock()
+			return fwd.localPort, nil
+		}
+		m.mu.Unlock()
 
-	// Resolve service to pod
-	podName, err := m.resolvePod(ctx, namespace, serviceName)
+		m.logger.Info("establishing port-forward", "key", key)
+
+		podName, err := m.resolvePod(ctx, namespace, serviceName)
+		if err != nil {
+			return nil, fmt.Errorf("resolving pod for %s/%s: %w", namespace, serviceName, err)
+		}
+
+		fwd, err := m.createForward(namespace, podName, remotePort)
+		if err != nil {
+			return nil, fmt.Errorf("creating port-forward %s: %w", key, err)
+		}
+
+		m.mu.Lock()
+		m.forwards[key] = fwd
+		m.mu.Unlock()
+
+		m.logger.Info("port-forward established",
+			"key", key, "localPort", fwd.localPort)
+		return fwd.localPort, nil
+	})
 	if err != nil {
-		return 0, fmt.Errorf("resolving pod for %s/%s: %w", namespace, serviceName, err)
+		return 0, err
 	}
-
-	// Create forward
-	fwd, err := m.createForward(namespace, podName, remotePort)
-	if err != nil {
-		return 0, fmt.Errorf("creating port-forward %s: %w", key, err)
-	}
-
-	m.mu.Lock()
-	m.forwards[key] = fwd
-	m.mu.Unlock()
-
-	m.logger.Info("port-forward established",
-		"key", key, "localPort", fwd.localPort)
-	return fwd.localPort, nil
+	return val.(uint16), nil
 }
 
 // resolvePod finds a ready pod backing the given service.
