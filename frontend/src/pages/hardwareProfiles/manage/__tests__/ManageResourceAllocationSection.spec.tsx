@@ -36,21 +36,21 @@ describe('ManageResourceAllocationSection', () => {
   // Mock workload priority classes data
   const mockWorkloadPriorityClasses = [
     {
-      apiVersion: 'kueue.x-k8s.io/v1beta1',
+      apiVersion: 'kueue.x-k8s.io/v1beta2',
       kind: 'WorkloadPriorityClass',
       metadata: { name: 'high-priority', namespace: 'default' },
       description: 'High priority workloads',
       value: 100,
     },
     {
-      apiVersion: 'kueue.x-k8s.io/v1beta1',
+      apiVersion: 'kueue.x-k8s.io/v1beta2',
       kind: 'WorkloadPriorityClass',
       metadata: { name: 'medium-priority', namespace: 'default' },
       description: 'Medium priority workloads',
       value: 50,
     },
     {
-      apiVersion: 'kueue.x-k8s.io/v1beta1',
+      apiVersion: 'kueue.x-k8s.io/v1beta2',
       kind: 'WorkloadPriorityClass',
       metadata: { name: 'low-priority', namespace: 'default' },
       description: 'Low priority workloads',

@@ -168,7 +168,7 @@ export const mockWorkloadK8sResource = ({
   podSets = [],
   mockStatusEmptyWorkload = false,
 }: MockResourceConfigType): WorkloadKind => ({
-  apiVersion: 'kueue.x-k8s.io/v1beta1',
+  apiVersion: 'kueue.x-k8s.io/v1beta2',
   kind: 'Workload',
   metadata: {
     creationTimestamp: '2024-03-18T19:15:28Z',

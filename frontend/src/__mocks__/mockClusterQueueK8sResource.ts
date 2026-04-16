@@ -15,7 +15,7 @@ export const mockClusterQueueK8sResource = ({
   isCpuOverQuota = false,
   isMemoryOverQuota = false,
 }: MockResourceConfigType): ClusterQueueKind => ({
-  apiVersion: 'kueue.x-k8s.io/v1beta1',
+  apiVersion: 'kueue.x-k8s.io/v1beta2',
   kind: 'ClusterQueue',
   metadata: {
     creationTimestamp: '2024-02-22T17:26:19Z',
