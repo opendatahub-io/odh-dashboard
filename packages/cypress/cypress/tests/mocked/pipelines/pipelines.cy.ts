@@ -849,7 +849,11 @@ describe('Pipelines', () => {
     pipelineImportModal.shouldBeOpen();
     pipelineImportModal.fillPipelineName('New pipeline');
     pipelineImportModal.fillPipelineDescription('New pipeline description');
+    // Safety net: intercept the upload endpoint so the test never hangs if the
+    // client-side argo detection is bypassed due to a stale-closure race.
+    pipelineImportModal.mockUploadPipeline({}, projectName);
     pipelineImportModal.uploadPipelineYaml(argoWorkflowPipeline);
+    pipelineImportModal.findSubmitButton().should('be.enabled');
     pipelineImportModal.submit();
 
     pipelineImportModal.findImportModalError().should('exist');
@@ -868,6 +872,7 @@ describe('Pipelines', () => {
     pipelineImportModal.fillPipelineName('New pipeline');
     pipelineImportModal.fillPipelineDescription('New pipeline description');
     pipelineImportModal.uploadPipelineYaml(v1PipelineYamlPath);
+    pipelineImportModal.findSubmitButton().should('be.enabled');
     pipelineImportModal.submit();
 
     pipelineImportModal.findImportModalError().should('exist');
@@ -1107,7 +1112,11 @@ describe('Pipelines', () => {
     pipelineVersionImportModal.selectPipelineByName('Test pipeline');
     pipelineVersionImportModal.fillVersionName('Argo workflow version');
     pipelineVersionImportModal.fillVersionDescription('Argo workflow version description');
+    // Safety net: intercept the upload endpoint so the test never hangs if the
+    // client-side argo detection is bypassed due to a stale-closure race.
+    pipelineVersionImportModal.mockUploadVersion({}, projectName);
     pipelineVersionImportModal.uploadPipelineYaml(argoWorkflowPipeline);
+    pipelineVersionImportModal.findSubmitButton().should('be.enabled');
     pipelineVersionImportModal.submit();
 
     pipelineVersionImportModal.findImportModalError().should('exist');
