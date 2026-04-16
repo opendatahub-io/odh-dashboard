@@ -46,6 +46,22 @@ export function useTerminatePipelineRunMutation(
   });
 }
 
+export function useRetryPipelineRunMutation(
+  namespace: string,
+  runId: string,
+): UseMutationResult<void, Error, void, unknown> {
+  return useMutation({
+    mutationKey: ['autorag', 'retryPipelineRun', runId],
+    mutationFn: async () => {
+      const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(runId)}/retry?namespace=${encodeURIComponent(namespace)}`;
+      const response = await fetch(url, { method: 'POST' });
+      if (!response.ok) {
+        throw new Error(`Failed to retry run (${response.status})`);
+      }
+    },
+  });
+}
+
 export function useCreatePipelineRunMutation(
   namespace: string,
 ): UseMutationResult<PipelineRun, Error, ConfigureSchema, unknown> {

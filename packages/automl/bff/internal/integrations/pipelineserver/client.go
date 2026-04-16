@@ -36,6 +36,7 @@ type PipelineServerClientInterface interface {
 	GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error)
 	CreateRun(ctx context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error)
 	TerminateRun(ctx context.Context, runID string) error
+	RetryRun(ctx context.Context, runID string) error
 	ListPipelines(ctx context.Context, filter string) (*models.KFPipelinesResponse, error)
 	ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error)
 	GetPipelineVersion(ctx context.Context, pipelineID, versionID string) (*models.KFPipelineVersion, error)
@@ -456,6 +457,44 @@ func (c *RealPipelineServerClient) TerminateRun(ctx context.Context, runID strin
 		return &HTTPError{
 			StatusCode: resp.StatusCode,
 			Message:    fmt.Sprintf("failed to terminate run %s", runID),
+		}
+	}
+
+	return nil
+}
+
+// RetryRun re-initiates a failed or terminated pipeline run via the KFP v2beta1 API.
+// It calls POST /apis/v2beta1/runs/{runID}:retry which signals the pipeline
+// server to retry the run from the point of failure.
+func (c *RealPipelineServerClient) RetryRun(ctx context.Context, runID string) error {
+	if runID == "" {
+		return fmt.Errorf("runID is required")
+	}
+
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs/%s:retry", c.baseURL, url.PathEscape(runID))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Drain body to allow connection reuse
+	_, _ = io.Copy(io.Discard, resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    fmt.Sprintf("failed to retry run %s", runID),
 		}
 	}
 

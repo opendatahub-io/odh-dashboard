@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
@@ -284,6 +285,96 @@ func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Reque
 			return
 		}
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to terminate pipeline run: %w", err))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// retryableStates lists the run states that are eligible for retry.
+var retryableStates = map[string]bool{
+	"FAILED":   true,
+	"CANCELED": true,
+}
+
+// RetryPipelineRunHandler handles POST /api/v1/pipeline-runs/:runId/retry
+//
+// Re-initiates a failed or terminated AutoML pipeline run. The run must belong to one of the
+// discovered AutoML pipelines (timeseries or tabular) in the namespace.
+//
+// Security: This endpoint validates that the requested run belongs to a discovered
+// AutoML pipeline before retrying it. This prevents users from retrying runs
+// from other pipelines in the same namespace.
+//
+// Only runs in FAILED or CANCELED state can be retried.
+//
+// Error Responses:
+//   - 400: Missing runId or run is not in a retryable state
+//   - 404: Run not found, run belongs to a different pipeline, or no pipelines discovered
+//   - 500: Pipeline Server error
+func (app *App) RetryPipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	ctx := r.Context()
+
+	client, ok := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
+	if !ok {
+		app.serverErrorResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
+		return
+	}
+
+	runID := params.ByName("runId")
+	if runID == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+		return
+	}
+
+	// Fetch the run first to validate ownership before retrying
+	run, err := app.repositories.PipelineRuns.GetPipelineRun(client, ctx, runID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
+			app.notFoundResponse(w, r)
+			return
+		}
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline run: %w", err))
+		return
+	}
+
+	// Validate the run belongs to one of the discovered AutoML pipelines
+	if run.PipelineVersionReference == nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	discoveredPipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines missing from context: check middleware configuration"))
+		return
+	}
+	matched := false
+	for _, discovered := range discoveredPipelines {
+		if run.PipelineVersionReference.PipelineID == discovered.PipelineID &&
+			run.PipelineVersionReference.PipelineVersionID == discovered.PipelineVersionID {
+			matched = true
+			break
+		}
+	}
+	if !matched {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	// Validate the run is in a retryable state
+	runState := strings.ToUpper(run.State)
+	if !retryableStates[runState] {
+		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be retried; only FAILED or CANCELED runs can be retried", runID, run.State))
+		return
+	}
+
+	// Ownership and state confirmed — retry the run
+	if err := app.repositories.PipelineRuns.RetryPipelineRun(client, ctx, runID); err != nil {
+		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
+			app.notFoundResponse(w, r)
+			return
+		}
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to retry pipeline run: %w", err))
 		return
 	}
 

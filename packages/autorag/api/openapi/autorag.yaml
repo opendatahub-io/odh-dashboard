@@ -714,6 +714,48 @@ paths:
         discovered AutoRAG managed pipeline in the namespace before terminating it. This prevents
         users from terminating runs from other pipelines in the same namespace.
 
+  /api/v1/pipeline-runs/{runId}/retry:
+    summary: Retry a failed or canceled pipeline run
+    description: >-
+      Re-initiates a failed or canceled pipeline run from the point of failure. The run must
+      belong to the discovered AutoRAG pipeline in the namespace and must be in FAILED or
+      CANCELED state. Returns 400 if the run is not in a retryable state, or 404 if the run
+      doesn't exist or belongs to a different pipeline.
+    post:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the pipeline run to retry
+          example: "abc123-def456-ghi789"
+      responses:
+        "200":
+          description: Run retry initiated successfully
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: retryPipelineRun
+      summary: Retry Pipeline Run
+      description: >-
+        Re-initiates a failed or canceled AutoRAG pipeline run. The BFF validates that the run
+        belongs to the discovered AutoRAG managed pipeline in the namespace and that it is in a
+        retryable state (FAILED or CANCELED) before retrying it. This prevents users from
+        retrying runs from other pipelines in the same namespace.
+
 components:
   schemas:
     Config:

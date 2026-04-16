@@ -41,6 +41,17 @@ jest.mock('~/app/hooks/useAutoragResults', () => ({
   useAutoragResults: (...args: unknown[]) => mockUseAutoragResults(...args),
 }));
 
+jest.mock('~/app/hooks/mutations', () => ({
+  useTerminatePipelineRunMutation: jest.fn().mockReturnValue({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
+  useRetryPipelineRunMutation: jest.fn().mockReturnValue({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
+}));
+
 // Mock AutoragResults to capture context
 let capturedContext: unknown = null;
 jest.mock('~/app/components/run-results/AutoragResults', () => ({

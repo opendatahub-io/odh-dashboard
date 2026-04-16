@@ -879,3 +879,193 @@ func TestTerminatePipelineRunHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 }
+
+// failedRunMockClient returns runs with FAILED state for retry testing
+type failedRunMockClient struct {
+	psmocks.MockPipelineServerClient
+}
+
+func (m *failedRunMockClient) GetRun(_ context.Context, runID string) (*models.KFPipelineRun, error) {
+	ids := psmocks.DeriveMockIDs(m.Namespace)
+	return &models.KFPipelineRun{
+		RunID:       runID,
+		DisplayName: "Failed AutoML Run",
+		State:       "FAILED",
+		PipelineVersionReference: &models.PipelineVersionReference{
+			PipelineID:        ids.PipelineID,
+			PipelineVersionID: ids.LatestVersionID,
+		},
+		CreatedAt: "2024-01-01T00:00:00Z",
+	}, nil
+}
+
+// TestRetryPipelineRunHandler tests the POST /api/v1/pipeline-runs/:runId/retry endpoint
+func TestRetryPipelineRunHandler_Success(t *testing.T) {
+	app := newTestApp(t)
+
+	t.Run("should retry a failed pipeline run", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-abc123-def456"
+		req, err := http.NewRequest(
+			http.MethodPost,
+			"/api/v1/pipeline-runs/"+runID+"/retry",
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := &failedRunMockClient{
+			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
+		}
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.RetryPipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, runID, mockClient.LastRetryRunID,
+			"Handler should have called RetryRun with the requested runID")
+	})
+}
+
+func TestRetryPipelineRunHandler_ErrorCases(t *testing.T) {
+	app := newTestApp(t)
+
+	t.Run("should fail without pipeline server client in context", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-test-123"
+		req, err := http.NewRequest(
+			http.MethodPost,
+			"/api/v1/pipeline-runs/"+runID+"/retry",
+			nil,
+		)
+		require.NoError(t, err)
+
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.RetryPipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+
+	t.Run("should fail with empty runId", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(
+			http.MethodPost,
+			"/api/v1/pipeline-runs//retry",
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: ""},
+		}
+
+		app.RetryPipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("should return 404 for non-existent run ID", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "non-existent-run-id"
+		req, err := http.NewRequest(
+			http.MethodPost,
+			"/api/v1/pipeline-runs/"+runID+"/retry",
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.RetryPipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("should return 400 when run is not in a retryable state", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-succeeded"
+		req, err := http.NewRequest(
+			http.MethodPost,
+			"/api/v1/pipeline-runs/"+runID+"/retry",
+			nil,
+		)
+		require.NoError(t, err)
+
+		// Default mock returns SUCCEEDED state (not retryable)
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.RetryPipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		var response struct {
+			Error struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+
+		assert.Contains(t, response.Error.Message, "cannot be retried")
+	})
+
+	t.Run("should return 404 when no pipelines discovered", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-test-123"
+		req, err := http.NewRequest(
+			http.MethodPost,
+			"/api/v1/pipeline-runs/"+runID+"/retry",
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{})
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.RetryPipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+}

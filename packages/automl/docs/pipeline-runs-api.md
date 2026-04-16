@@ -19,13 +19,15 @@ GET  /api/v1/pipeline-runs
 GET  /api/v1/pipeline-runs/{runId}
 POST /api/v1/pipeline-runs
 POST /api/v1/pipeline-runs/{runId}/terminate
+POST /api/v1/pipeline-runs/{runId}/retry
 ```
 
-The API provides four endpoints:
+The API provides five endpoints:
 - **List Runs**: Query multiple pipeline runs with optional filtering and pagination
 - **Get Run**: Retrieve a single pipeline run by its ID with full task details
 - **Create Run**: Submit a new AutoML pipeline run with training parameters
 - **Terminate Run**: Stop an active pipeline run that is currently in progress
+- **Retry Run**: Re-initiate a failed or canceled pipeline run from the point of failure
 
 ## Pipeline Types
 
@@ -612,6 +614,55 @@ Returns `200 OK` with an empty body on success.
 | Status | Condition |
 |--------|-----------|
 | `400 Bad Request` | Missing `runId` parameter |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `404 Not Found` | Run not found, or run belongs to a different pipeline |
+| `500 Internal Server Error` | Pipeline Server error or internal error |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
+
+## Retry Pipeline Run
+
+### Endpoint
+
+```http
+POST /api/v1/pipeline-runs/{runId}/retry
+```
+
+Re-initiates a failed or canceled pipeline run from the point of failure. The run must belong to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace and must be in a retryable state (FAILED or CANCELED).
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+| `runId` | path parameter | Yes | Unique identifier of the pipeline run to retry |
+
+### Security & Filtering
+
+This endpoint enforces the same ownership validation as the Terminate Run endpoint:
+
+- Fetches the run and validates it belongs to one of the discovered AutoML pipelines before retrying
+- Validates the run is in FAILED or CANCELED state before retrying
+- Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
+- Returns `400 Bad Request` if the run is not in a retryable state
+- Prevents users from retrying runs from other pipelines in the same namespace
+
+### Request Example
+
+```bash
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs/abc123-def456-ghi789/retry?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+### Response Format
+
+Returns `200 OK` with an empty body on success.
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing `runId` parameter, or run is not in FAILED or CANCELED state |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
 | `404 Not Found` | Run not found, or run belongs to a different pipeline |

@@ -46,6 +46,22 @@ export function useTerminatePipelineRunMutation(
   });
 }
 
+export function useRetryPipelineRunMutation(
+  namespace: string,
+  runId: string,
+): UseMutationResult<void, Error, void, unknown> {
+  return useMutation({
+    mutationKey: ['automl', 'retryPipelineRun', runId],
+    mutationFn: async () => {
+      const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(runId)}/retry?namespace=${encodeURIComponent(namespace)}`;
+      const response = await fetch(url, { method: 'POST' });
+      if (!response.ok) {
+        throw new Error(`Failed to retry run (${response.status})`);
+      }
+    },
+  });
+}
+
 /**
  * Creates a new pipeline run via the AutoML BFF API.
  * @see packages/automl/docs/pipeline-runs-api.md

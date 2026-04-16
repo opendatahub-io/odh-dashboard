@@ -14,7 +14,7 @@ import { OpenDrawerRightIcon } from '@patternfly/react-icons';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
@@ -23,27 +23,25 @@ import AutomlInputParametersPanel from '~/app/components/run-results/AutomlInput
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutomlResultsContext, getAutomlContext } from '~/app/context/AutomlResultsContext';
 import {
-  useCreatePipelineRunMutation,
+  useRetryPipelineRunMutation,
   useTerminatePipelineRunMutation,
 } from '~/app/hooks/mutations';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useNotification } from '~/app/hooks/useNotification';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutomlResults } from '~/app/hooks/useAutomlResults';
 import { RuntimeStateKF } from '~/app/types/pipeline';
-import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
+import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { parseErrorStatus } from '~/app/utilities/utils';
 
 function AutomlResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
-  const navigate = useNavigate();
   const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector();
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const handleDrawerClose = React.useCallback(() => setIsDrawerOpen(false), []);
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
   const notification = useNotification();
   const terminateMutation = useTerminatePipelineRunMutation(namespace ?? '', runId ?? '');
-  const createRunMutation = useCreatePipelineRunMutation(namespace ?? '');
+  const retryMutation = useRetryPipelineRunMutation(namespace ?? '', runId ?? '');
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -79,32 +77,19 @@ function AutomlResultsPage(): React.JSX.Element {
   const isRunFailed = runState === RuntimeStateKF.FAILED;
 
   const handleRetry = React.useCallback(async () => {
-    if (!pipelineRun?.runtime_config?.parameters) {
-      notification.error('Cannot retry', 'Run parameters are not available.');
-      return;
-    }
-    const params = pipelineRun.runtime_config.parameters;
-    const currentName = pipelineRun.display_name;
-    const match = currentName.match(/^(.*) - (\d+)$/);
-    const retryName = match ? `${match[1]} - ${Number(match[2]) + 1}` : `${currentName} - 1`;
-
     try {
-      const newRun = await createRunMutation.mutateAsync({
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        ...(params as ConfigureSchema),
-        // eslint-disable-next-line camelcase
-        display_name: retryName,
-        description: pipelineRun.description ?? '',
-      });
-      notification.success('Run restarted successfully');
-      navigate(`${automlResultsPathname}/${namespace}/${newRun.run_id}`);
+      await retryMutation.mutateAsync();
+      notification.success('Run retry initiated successfully');
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (error) {
       notification.error(
         'Failed to retry run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
     }
-  }, [pipelineRun, createRunMutation, navigate, namespace, notification]);
+  }, [retryMutation, notification]);
 
   const handleConfirmStop = React.useCallback(async () => {
     try {
@@ -175,8 +160,8 @@ function AutomlResultsPage(): React.JSX.Element {
                       <Button
                         variant="primary"
                         onClick={handleRetry}
-                        isDisabled={createRunMutation.isPending}
-                        isLoading={createRunMutation.isPending}
+                        isDisabled={retryMutation.isPending}
+                        isLoading={retryMutation.isPending}
                         spinnerAriaValueText="Retrying run"
                         data-testid="retry-run-button"
                       >

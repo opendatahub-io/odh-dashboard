@@ -41,6 +41,17 @@ jest.mock('~/app/hooks/useAutomlResults', () => ({
   useAutomlResults: (...args: unknown[]) => mockUseAutomlResults(...args),
 }));
 
+jest.mock('~/app/hooks/mutations', () => ({
+  useTerminatePipelineRunMutation: jest.fn().mockReturnValue({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
+  useRetryPipelineRunMutation: jest.fn().mockReturnValue({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
+}));
+
 // Mock AutomlResults to capture context
 let capturedContext: unknown = null;
 jest.mock('~/app/components/run-results/AutomlResults', () => ({
