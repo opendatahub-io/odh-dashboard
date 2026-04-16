@@ -36,13 +36,40 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
 }) => {
   const { variant, title, description, details, isRetriable } = classifiedError;
   const [copied, setCopied] = React.useState(false);
+  const copyTimeoutRef = React.useRef<number>();
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     const rawError = `[${details.errorCode}] ${details.rawMessage}`;
-    navigator.clipboard.writeText(rawError);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(rawError);
+      setCopied(true);
+      copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = rawError;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setCopied(true);
+        copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
+      } catch {
+        // Silently fail - clipboard functionality is non-critical
+      }
+    }
   };
+
+  // Cleanup timeout on unmount
+  React.useEffect(
+    () => () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   // Action link for retry (single ReactNode, not array - matches prototype)
   const actionLinks = React.useMemo(() => {

@@ -60,22 +60,18 @@ describe('useChatbotMessages - Error Handling', () => {
     mockUseContext.mockReturnValue({ namespace: 'test-namespace', aiModels: [] });
 
     // Default mock for classifyError - tests can override as needed
-    mockClassifyError.mockImplementation(() => {
-      // eslint-disable-next-line no-console
-      console.log('[MOCK] classifyError called');
-      return {
-        pattern: 'full-failure',
-        variant: 'danger',
-        isRetriable: false,
-        title: 'Error',
-        description: 'An error occurred',
-        details: {
-          component: 'Unknown',
-          errorCode: 'UNKNOWN',
-          rawMessage: 'Error message',
-        },
-      };
-    });
+    mockClassifyError.mockImplementation(() => ({
+      pattern: 'full-failure',
+      variant: 'danger',
+      isRetriable: false,
+      title: 'Error',
+      description: 'An error occurred',
+      details: {
+        component: 'Unknown',
+        errorCode: 'UNKNOWN',
+        rawMessage: 'Error message',
+      },
+    }));
   });
 
   describe('Structured Error Handling', () => {
@@ -284,7 +280,9 @@ describe('useChatbotMessages - Error Handling', () => {
       await waitFor(() => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
-        expect(lastMessage.content).toBe('Network connection failed');
+        // Error details are in errorClassification, not content
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.content).toBe('');
       });
     });
 
@@ -618,14 +616,8 @@ describe('useChatbotMessages - Error Handling', () => {
       await waitFor(() => {
         expect(mockCreateResponse).toHaveBeenCalledTimes(2);
         const secondCall = mockCreateResponse.mock.calls[1];
-        expect(secondCall[0].messages).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              role: 'user',
-              content: 'Original message',
-            }),
-          ]),
-        );
+        // BFF expects input, not messages
+        expect(secondCall[0].input).toBe('Original message');
       });
     });
 
@@ -710,21 +702,26 @@ describe('useChatbotMessages - Error Handling', () => {
 
       const initialCallCount = mockCreateResponse.mock.calls.length;
 
-      // Clear messages to simulate no user message scenario
+      // Get retry callback before clearing messages
       const retryCallback = result.current.messages.find((msg) => msg.role === 'bot')?.onRetryError;
 
-      // Manually clear user messages to test edge case
-      result.current.messages.forEach((msg) => {
-        if (msg.role === 'user') {
-          result.current.messages.splice(result.current.messages.indexOf(msg), 1);
-        }
+      // Rerender with no user messages to test edge case
+      result.current.handleMessageSend('temp message to add bot');
+      await waitFor(() => result.current.messages.length > 2);
+
+      // Clear conversation to remove user messages
+      act(() => {
+        result.current.clearConversation();
       });
 
-      retryCallback?.();
+      // Now retry should do nothing because there's no user message
+      act(() => {
+        retryCallback?.();
+      });
 
       // Should not make additional API calls if no user message
       await waitFor(() => {
-        expect(mockCreateResponse).toHaveBeenCalledTimes(initialCallCount);
+        expect(mockCreateResponse).toHaveBeenCalledTimes(initialCallCount + 1); // +1 for temp message
       });
     });
 

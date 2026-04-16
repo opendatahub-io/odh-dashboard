@@ -2,7 +2,6 @@ package llamastack
 
 import (
 	"regexp"
-	"strings"
 )
 
 // ResponseErrorCategory represents the category of error encountered when creating a response
@@ -144,11 +143,9 @@ func GetUserFriendlyErrorMessage(category ResponseErrorCategory, originalError s
 		return "An error occurred while invoking the model. Please check the model configuration and try again."
 
 	default:
-		// For generic errors, provide the original message with context
-		if strings.TrimSpace(originalError) == "" {
-			return "An unexpected error occurred. Please try again or contact support if the issue persists."
-		}
-		return originalError
+		// For generic errors, return a safe user-facing message
+		// The original error is logged via telemetry, not exposed to users
+		return "An unexpected error occurred. Please try again or contact support if the issue persists."
 	}
 }
 
@@ -161,6 +158,18 @@ type EnhancedLlamaStackError struct {
 
 // NewEnhancedLlamaStackError creates an enhanced error with categorization
 func NewEnhancedLlamaStackError(baseError *LlamaStackError) *EnhancedLlamaStackError {
+	// Nil guard - return generic error if baseError is nil
+	if baseError == nil {
+		return &EnhancedLlamaStackError{
+			LlamaStackError: &LlamaStackError{
+				Code:    "UNKNOWN",
+				Message: "Unknown error",
+			},
+			Category:        CategoryGenericError,
+			UserFriendlyMsg: "An unexpected error occurred. Please try again or contact support if the issue persists.",
+		}
+	}
+
 	category := CategorizeResponseError(baseError.Message)
 	userFriendlyMsg := GetUserFriendlyErrorMessage(category, baseError.Message)
 
