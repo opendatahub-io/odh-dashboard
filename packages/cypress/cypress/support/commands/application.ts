@@ -446,10 +446,15 @@ Cypress.Commands.add(
         if ($el.attr('aria-expanded') === 'false') {
           // Re-query the kebab button before clicking to avoid detached element issues
           // Use force: true to handle React re-renders that can cause element detachment
-          cy.wrap(subject).findKebab(isDropdownToggle).should('exist').click({ force: true });
+          return cy
+            .wrap(subject)
+            .findKebab(isDropdownToggle)
+            .should('exist')
+            .click({ force: true });
         }
+        return cy.wrap($el);
       })
-      .then(() => cy.findByRole('menuitem', { name }));
+      .findByRole('menuitem', { name });
   },
 );
 
