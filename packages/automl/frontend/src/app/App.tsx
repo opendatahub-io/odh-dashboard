@@ -30,7 +30,9 @@ const App: React.FC = () => {
     loadError: configError,
   } = useSettings();
 
-  const { namespacesLoaded, namespacesLoadError, initializationError } = useNamespaceSelector();
+  const { namespacesLoaded, namespacesLoadError, initializationError } = useNamespaceSelector({
+    storeLastNamespace: true,
+  });
 
   const { config } = useModularArchContext();
   const { deploymentMode } = config;

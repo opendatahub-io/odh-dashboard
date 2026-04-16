@@ -6,7 +6,7 @@ export function usePreferredNamespaceRedirect(): void {
   const { namespace } = useParams();
   const navigate = useNavigate();
 
-  const { namespaces, preferredNamespace } = useNamespaceSelector();
+  const { namespaces, preferredNamespace } = useNamespaceSelector({ storeLastNamespace: true });
 
   useEffect(() => {
     const preferredOrFirstNamespace = preferredNamespace?.name ?? namespaces[0]?.name;
