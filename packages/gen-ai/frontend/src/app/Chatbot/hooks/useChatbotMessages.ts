@@ -126,32 +126,64 @@ const getErrorCategory = (error: unknown): string | undefined => {
   return undefined;
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
 /**
  * Safely normalizes an unknown error to ApiError format
- * Note: Type assertions are needed here for runtime type checking
  */
 const normalizeToApiError = (error: unknown): ApiError => {
-  // Check if error has the required ApiError properties
+  if (!error || typeof error !== 'object') {
+    // Primitive or null/undefined - create fallback ApiError
+    return {
+      status: 500,
+      message: String(error),
+      error: { code: 'unknown', message: String(error) },
+    };
+  }
+
+  if (!isRecord(error)) {
+    return {
+      status: 500,
+      message: 'An error occurred',
+      error: { code: 'unknown', message: 'An error occurred' },
+    };
+  }
+
+  // Check if error has top-level ApiError shape (status + message)
   if (
-    error &&
-    typeof error === 'object' &&
     'status' in error &&
     'message' in error &&
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    typeof (error as { status: unknown }).status === 'number' &&
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    typeof (error as { message: unknown }).message === 'string'
+    typeof error.status === 'number' &&
+    typeof error.message === 'string'
   ) {
     // Error has ApiError shape, return it
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return error as ApiError;
   }
 
-  // Convert unknown error to ApiError format
+  // Check if error has nested error object (mod-arch format)
+  if ('error' in error && isRecord(error.error)) {
+    const nestedMessage =
+      typeof error.error.message === 'string' ? error.error.message : 'An error occurred';
+    // Has nested error - preserve it and add top-level defaults if missing
+    return {
+      status: typeof error.status === 'number' ? error.status : 500,
+      message: typeof error.message === 'string' ? error.message : nestedMessage,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      error: error.error as ApiError['error'],
+    };
+  }
+
+  // Fallback for unknown shape - preserve any nested info
+  const fallbackMessage = typeof error.message === 'string' ? error.message : 'An error occurred';
   return {
-    status: 500,
-    message: String(error),
-    error: { code: 'unknown', message: String(error) },
+    status: typeof error.status === 'number' ? error.status : 500,
+    message: fallbackMessage,
+    error: isRecord(error.error)
+      ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        (error.error as ApiError['error'])
+      : { code: 'unknown', message: fallbackMessage },
   };
 };
 
@@ -597,19 +629,14 @@ const useChatbotMessages = ({
       } else {
         // Handle non-streaming response
 
-        // Check for mock error scenarios (trigger words)
-        const mockScenario = findMockScenario(message);
-        if (mockScenario) {
-          // eslint-disable-next-line no-console
-          console.log(
-            '[Mock Error] Triggering scenario (non-streaming):',
-            mockScenario.trigger,
-            mockScenario.apiError,
-          );
-
-          // For non-streaming, we don't support partial responses
-          // Just throw the error immediately
-          throw mockScenario.apiError;
+        // Check for mock error scenarios (trigger words) - DEVELOPMENT ONLY
+        if (process.env.NODE_ENV === 'development') {
+          const mockScenario = findMockScenario(message);
+          if (mockScenario) {
+            // For non-streaming, we don't support partial responses
+            // Just throw the error immediately
+            throw mockScenario.apiError;
+          }
         }
 
         const response = await api.createResponse(responsesPayload, {
@@ -772,8 +799,9 @@ const useChatbotMessages = ({
         );
       } else {
         // For non-streaming, add error message as new bot message
+        const newBotId = getId();
         const botErrorMessage: ChatbotMessageProps = {
-          id: getId(),
+          id: newBotId,
           role: 'bot',
           content: '', // No content, error alert will be shown
           name: modelDisplayName,
@@ -782,6 +810,8 @@ const useChatbotMessages = ({
           errorClassification,
           onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
         };
+        // Set botMessageId so handleRetry can filter it out on retry
+        botMessageId = newBotId;
         setMessages((prevMessages) => [...prevMessages, botErrorMessage]);
       }
     } finally {

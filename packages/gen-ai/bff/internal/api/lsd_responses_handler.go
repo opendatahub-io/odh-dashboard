@@ -490,7 +490,9 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		var errorMessage string
 		var errorCode string
 
-		if lsErr, ok := err.(*llamastack.LlamaStackError); ok {
+		// Use errors.As to detect underlying LlamaStackError (supports error wrapping)
+		var lsErr *llamastack.LlamaStackError
+		if errors.As(err, &lsErr) {
 			enhancedErr := llamastack.NewEnhancedLlamaStackError(lsErr)
 			errorMessage = enhancedErr.UserFriendlyMsg
 			// Use lowercase category code to match non-streaming JSON responses

@@ -184,7 +184,7 @@ describe('ChatbotMessages', () => {
         />,
       );
 
-      expect(screen.getByTestId('error-variant')).toHaveTextContent('warning');
+      expect(screen.getByTestId('error-severity')).toHaveTextContent('warning');
     });
 
     it('should pass onRetryError to ChatbotErrorAlert', () => {
