@@ -42,48 +42,18 @@ jobs:
       review_matrix: ${{ steps.review_tickets.outputs.matrix }}
       has_review_tickets: ${{ steps.review_tickets.outputs.has_tickets }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: .github/scripts/jira-autofix
+
       - name: Query Jira for new autofix tickets
         id: new_tickets
         env:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           MANUAL_TICKETS: ${{ inputs.tickets }}
-        run: |
-          set -euo pipefail
-
-          if [[ -n "${MANUAL_TICKETS}" ]]; then
-            matrix=$(echo "$MANUAL_TICKETS" | tr ',' '\n' | \
-              jq -R '{key: .}' | jq -sc '{include: .}')
-            echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-            echo "has_tickets=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          jql="project = ${JIRA_PROJECT} \
-            AND labels = \"${LABEL_TRIGGER}\" \
-            AND labels not in (\"${LABEL_PENDING}\", \"${LABEL_DONE}\", \"${LABEL_NEEDS_INFO}\", \"${LABEL_REVIEW}\") \
-            AND status != Closed"
-
-          response=$(curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            "$JIRA_BASE_URL/rest/api/2/search" \
-            -G --data-urlencode "jql=$jql" \
-            --data-urlencode "fields=key" \
-            --data-urlencode "maxResults=10")
-
-          count=$(echo "$response" | jq '.total')
-          echo "Found $count new ticket(s)"
-
-          if [[ "$count" -eq 0 ]]; then
-            echo "has_tickets=false" >> "$GITHUB_OUTPUT"
-            echo 'matrix={"include":[]}' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          matrix=$(echo "$response" | jq -c '{include: [.issues[] | {key: .key}]}')
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-          echo "has_tickets=true" >> "$GITHUB_OUTPUT"
+        run: .github/scripts/jira-autofix/fetch-tickets.sh --new
 
       - name: Label new tickets as pending
         if: steps.new_tickets.outputs.has_tickets == 'true'
@@ -92,12 +62,9 @@ jobs:
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           MATRIX_JSON: ${{ steps.new_tickets.outputs.matrix }}
         run: |
+          source .github/scripts/jira-autofix/common.sh
           for key in $(echo "$MATRIX_JSON" | jq -r '.include[].key'); do
-            curl -sf \
-              -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-              -H "Content-Type: application/json" \
-              -X PUT "$JIRA_BASE_URL/rest/api/2/issue/$key" \
-              -d "{\"update\":{\"labels\":[{\"add\":\"${LABEL_PENDING}\"}]}}"
+            jira_labels "$key" "$LABEL_PENDING"
             echo "Labeled $key as $LABEL_PENDING"
           done
 
@@ -107,33 +74,7 @@ jobs:
         env:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-        run: |
-          set -euo pipefail
-
-          jql="project = ${JIRA_PROJECT} \
-            AND labels = \"${LABEL_REVIEW}\" \
-            AND status != Closed"
-
-          response=$(curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            "$JIRA_BASE_URL/rest/api/2/search" \
-            -G --data-urlencode "jql=$jql" \
-            --data-urlencode "fields=key" \
-            --data-urlencode "maxResults=10")
-
-          count=$(echo "$response" | jq '.total')
-          echo "Found $count review ticket(s)"
-
-          if [[ "$count" -eq 0 ]]; then
-            echo "has_tickets=false" >> "$GITHUB_OUTPUT"
-            echo 'matrix={"include":[]}' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          matrix=$(echo "$response" | jq -c '{include: [.issues[] | {key: .key}]}')
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-          echo "has_tickets=true" >> "$GITHUB_OUTPUT"
+        run: .github/scripts/jira-autofix/fetch-tickets.sh --review
 
   autofix:
     needs: prepare
@@ -148,92 +89,23 @@ jobs:
       TICKET_KEY: ${{ matrix.key }}
       WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - name: Fetch ticket details
         id: ticket
         env:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-        run: |
-          set -euo pipefail
-
-          response=$(curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY" \
-            -G --data-urlencode "fields=summary,description,issuetype,comment")
-
-          echo "$response" | jq -r '.fields.summary' > /tmp/summary.txt
-          echo "$response" | jq -r '.fields.description // "No description provided"' > /tmp/description.txt
-          echo "$response" | jq -r '.fields.issuetype.name' > /tmp/issuetype.txt
-
-          echo "$response" | jq -r '
-            [.fields.comment.comments[]
-             | select(.author.emailAddress // "" | test("@redhat\\.com$"; "i"))
-             | "[\(.author.displayName)]: \(.body)"]
-            | join("\n---\n")' > /tmp/comments.txt
-
-          echo "summary=$(cat /tmp/summary.txt)" >> "$GITHUB_OUTPUT"
-          echo "issue_type=$(cat /tmp/issuetype.txt)" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+        run: .github/scripts/jira-autofix/fetch-ticket.sh "$TICKET_KEY"
 
       - name: Create branch
         run: git checkout -b "jira-autofix/$TICKET_KEY"
 
-      - name: Prepare ticket context
-        run: |
-          {
-            echo "# ${TICKET_KEY}: $(cat /tmp/summary.txt)"
-            echo ""
-            echo "## Issue Type"
-            cat /tmp/issuetype.txt
-            echo ""
-            echo "## Description"
-            cat /tmp/description.txt
-            echo ""
-            echo "## Comments (Red Hat employees only)"
-            cat /tmp/comments.txt
-          } > .jira-ticket-context.md
-
       - name: Build prompt
         id: prompt
-        run: |
-          issue_type=$(cat /tmp/issuetype.txt)
-
-          case "$issue_type" in
-            Bug)
-              instruction="This is a bug report. Find the root cause and fix the bug. If an existing test suite covers this area, add a test that reproduces the issue. Do not create a new test suite if none exists."
-              ;;
-            Spike)
-              instruction="This is a research spike. Investigate the topic and write your findings to a file called .jira-findings.md. Do NOT make any code changes."
-              ;;
-            *)
-              instruction="This is a feature request / task. Implement the feature as described."
-              ;;
-          esac
-
-          {
-            echo 'value<<PROMPT_EOF'
-            echo "You are resolving Jira ticket ${TICKET_KEY}. ${instruction}"
-            echo ""
-            echo "Read the file .jira-ticket-context.md in the repository root for full ticket details including description and comments."
-            echo ""
-            echo "INSTRUCTIONS:"
-            echo "1. Read CLAUDE.md and/or AGENTS.md first if they exist in the repository."
-            echo "2. You MUST produce a git commit before finishing. The working tree MUST be clean when done."
-            echo "3. Commit message format:"
-            echo "   Subject: ${TICKET_KEY}: <short description>"
-            echo "   Body: At least one sentence explaining the purpose and impact."
-            echo "   Trailers (each on its own line):"
-            echo "     Closes ${TICKET_KEY}"
-            echo "     Co-Authored-By: Claude <noreply@anthropic.com>"
-            echo "4. Do NOT commit the .jira-ticket-context.md file."
-            echo "5. Stage your changes and commit."
-            echo "6. Verify the working tree is clean with 'git status'."
-            echo 'PROMPT_EOF'
-          } >> "$GITHUB_OUTPUT"
+        run: .github/scripts/jira-autofix/build-prompt.sh "$TICKET_KEY" --mode autofix
 
       - name: Authenticate to Google Cloud
         id: gcp-auth
@@ -273,11 +145,7 @@ jobs:
         id: changes
         run: |
           commit_count=$(git rev-list --count HEAD ^origin/main 2>/dev/null || echo "0")
-          if [[ "$commit_count" -gt 0 ]]; then
-            echo "has_changes=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_changes=false" >> "$GITHUB_OUTPUT"
-          fi
+          echo "has_changes=$([[ "$commit_count" -gt 0 ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
       - name: Handle spike findings
         if: steps.ticket.outputs.issue_type == 'Spike'
@@ -285,22 +153,11 @@ jobs:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: |
-          findings="Claude completed the investigation. See the workflow run for full details: ${WORKFLOW_URL}"
-          if [[ -f .jira-findings.md ]]; then
-            findings=$(cat .jira-findings.md)
-          fi
-
-          curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            -X POST "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY/comment" \
-            -d "$(jq -n --arg body "$findings" '{body: $body}')"
-
-          curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            -X PUT "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY" \
-            -d "{\"update\":{\"labels\":[{\"add\":\"${LABEL_DONE}\"},{\"remove\":\"${LABEL_PENDING}\"}]}}"
+          source .github/scripts/jira-autofix/common.sh
+          findings="Claude completed the investigation. See: ${WORKFLOW_URL}"
+          if [[ -f .jira-findings.md ]]; then findings=$(cat .jira-findings.md); fi
+          jira_comment "$TICKET_KEY" "$findings"
+          jira_labels "$TICKET_KEY" "$LABEL_DONE" "$LABEL_PENDING"
 
       - name: Push branch and create PR
         if: steps.changes.outputs.has_changes == 'true' && steps.ticket.outputs.issue_type != 'Spike'
@@ -310,14 +167,11 @@ jobs:
           TICKET_SUMMARY: ${{ steps.ticket.outputs.summary }}
         run: |
           git push -u origin "jira-autofix/$TICKET_KEY"
-
           title="${TICKET_KEY}: ${TICKET_SUMMARY:0:240}"
-
           body=$(git log --format='%b' -1 HEAD)
           if [[ -z "$body" ]]; then
             body="Automated fix for Jira ticket [${TICKET_KEY}](${JIRA_BASE_URL}/browse/${TICKET_KEY})."
           fi
-
           pr_url=$(gh pr create \
             --title "$title" \
             --body "$(cat <<EOF
@@ -329,7 +183,6 @@ jobs:
           )" \
             --head "jira-autofix/$TICKET_KEY" \
             --base main)
-
           echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
 
       - name: Update Jira with PR link
@@ -339,17 +192,9 @@ jobs:
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           PR_URL: ${{ steps.pr.outputs.pr_url }}
         run: |
-          curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            -X POST "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY/comment" \
-            -d "$(jq -n --arg body "Pull request created: ${PR_URL}" '{body: $body}')"
-
-          curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            -X PUT "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY" \
-            -d "{\"update\":{\"labels\":[{\"add\":\"${LABEL_REVIEW}\"},{\"remove\":\"${LABEL_PENDING}\"}]}}"
+          source .github/scripts/jira-autofix/common.sh
+          jira_comment "$TICKET_KEY" "Pull request created: ${PR_URL}"
+          jira_labels "$TICKET_KEY" "$LABEL_REVIEW" "$LABEL_PENDING"
 
       - name: Handle no changes
         if: steps.changes.outputs.has_changes == 'false' && steps.ticket.outputs.issue_type != 'Spike'
@@ -357,17 +202,9 @@ jobs:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: |
-          curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            -X POST "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY/comment" \
-            -d "$(jq -n --arg body "Claude analyzed the ticket but was unable to produce a code fix. Manual investigation may be needed.\n\nWorkflow run: ${WORKFLOW_URL}" '{body: $body}')"
-
-          curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            -X PUT "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY" \
-            -d "{\"update\":{\"labels\":[{\"add\":\"${LABEL_NEEDS_INFO}\"},{\"remove\":\"${LABEL_PENDING}\"}]}}"
+          source .github/scripts/jira-autofix/common.sh
+          jira_comment "$TICKET_KEY" "Claude analyzed the ticket but was unable to produce a code fix. Manual investigation may be needed.\n\nWorkflow run: ${WORKFLOW_URL}"
+          jira_labels "$TICKET_KEY" "$LABEL_NEEDS_INFO" "$LABEL_PENDING"
 
       - name: Handle failure
         if: failure()
@@ -375,17 +212,9 @@ jobs:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: |
-          curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            -X POST "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY/comment" \
-            -d "$(jq -n --arg body "Autofix workflow failed. See: ${WORKFLOW_URL}" '{body: $body}')"
-
-          curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            -X PUT "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY" \
-            -d "{\"update\":{\"labels\":[{\"add\":\"${LABEL_NEEDS_INFO}\"},{\"remove\":\"${LABEL_PENDING}\"}]}}" || true
+          source .github/scripts/jira-autofix/common.sh
+          jira_comment "$TICKET_KEY" "Autofix workflow failed. See: ${WORKFLOW_URL}"
+          jira_labels "$TICKET_KEY" "$LABEL_NEEDS_INFO" "$LABEL_PENDING" || true
 
   iterate:
     needs: prepare
@@ -400,6 +229,10 @@ jobs:
       TICKET_KEY: ${{ matrix.key }}
       WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - name: Pre-flight checks
         id: preflight
         env:
@@ -407,216 +240,7 @@ jobs:
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_OWNER: ${{ github.repository_owner }}
-        run: |
-          set -euo pipefail
-          repo_name="${GITHUB_REPOSITORY#*/}"
-
-          # Check PR state before fetching ticket details (avoids unnecessary Jira call)
-          pr_json=$(gh pr list \
-            --head "jira-autofix/$TICKET_KEY" \
-            --state open \
-            --json number,url \
-            --limit 1)
-
-          if [[ $(echo "$pr_json" | jq 'length') -eq 0 ]]; then
-            merged_json=$(gh pr list \
-              --head "jira-autofix/$TICKET_KEY" \
-              --state merged \
-              --json number \
-              --limit 1)
-
-            if [[ $(echo "$merged_json" | jq 'length') -gt 0 ]]; then
-              echo "PR was merged for $TICKET_KEY"
-              curl -sf -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-                -H "Content-Type: application/json" \
-                -X POST "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY/comment" \
-                -d '{"body": "The pull request has been merged."}'
-              curl -sf -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-                -H "Content-Type: application/json" \
-                -X PUT "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY" \
-                -d "{\"update\":{\"labels\":[{\"add\":\"${LABEL_DONE}\"},{\"remove\":\"${LABEL_REVIEW}\"}]}}"
-              echo "proceed=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-
-            echo "No open PR found for $TICKET_KEY"
-            curl -sf -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-              -H "Content-Type: application/json" \
-              -X POST "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY/comment" \
-              -d '{"body": "No open pull request found. Cannot iterate."}'
-            curl -sf -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-              -H "Content-Type: application/json" \
-              -X PUT "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY" \
-              -d "{\"update\":{\"labels\":[{\"add\":\"${LABEL_NEEDS_INFO}\"},{\"remove\":\"${LABEL_REVIEW}\"}]}}"
-            echo "proceed=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          pr_number=$(echo "$pr_json" | jq -r '.[0].number')
-          pr_url=$(echo "$pr_json" | jq -r '.[0].url')
-          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
-          echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
-
-          # Fetch ticket details (only reached if PR is open)
-          response=$(curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY" \
-            -G --data-urlencode "fields=summary,description,issuetype,comment")
-
-          echo "$response" | jq -r '.fields.summary' > /tmp/summary.txt
-          echo "$response" | jq -r '.fields.description // "No description provided"' > /tmp/description.txt
-          echo "$response" | jq -r '.fields.issuetype.name' > /tmp/issuetype.txt
-          echo "$response" | jq -r '
-            [.fields.comment.comments[]
-             | select(.author.emailAddress // "" | test("@redhat\\.com$"; "i"))
-             | "[\(.author.displayName)]: \(.body)"]
-            | join("\n---\n")' > /tmp/comments.txt
-
-          echo "summary=$(cat /tmp/summary.txt)" >> "$GITHUB_OUTPUT"
-          echo "issue_type=$(cat /tmp/issuetype.txt)" >> "$GITHUB_OUTPUT"
-
-          # Count previous iterations
-          iteration_count=$(echo "$response" | jq \
-            '[.fields.comment.comments[] | select(.body | test("Iteration [0-9]+/[0-9]+"))] | length')
-
-          if [[ "$iteration_count" -ge "$MAX_ITERATIONS" ]]; then
-            echo "Max iterations ($MAX_ITERATIONS) reached for $TICKET_KEY"
-            curl -sf -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-              -H "Content-Type: application/json" \
-              -X POST "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY/comment" \
-              -d "$(jq -n --arg body "Reached maximum of ${MAX_ITERATIONS} iterations. Unresolved feedback remains on the PR — a human should take over.\n\n${pr_url}" '{body: $body}')"
-            curl -sf -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-              -H "Content-Type: application/json" \
-              -X PUT "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY" \
-              -d "{\"update\":{\"labels\":[{\"add\":\"${LABEL_NEEDS_INFO}\"},{\"remove\":\"${LABEL_REVIEW}\"}]}}"
-            echo "proceed=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          next_iteration=$((iteration_count + 1))
-          echo "next_iteration=$next_iteration" >> "$GITHUB_OUTPUT"
-
-          # Throttle: first iteration runs immediately; subsequent ones wait ITERATION_INTERVAL.
-          if [[ "$iteration_count" -gt 0 ]]; then
-            last_ts=$(echo "$response" | jq -r \
-              '[.fields.comment.comments[] | select(.body | test("Iteration [0-9]+/[0-9]+")) | .created] | sort | last')
-            last_epoch=$(date -d "$last_ts" +%s 2>/dev/null || echo "0")
-            now_epoch=$(date +%s)
-            elapsed=$((now_epoch - last_epoch))
-
-            if [[ "$elapsed" -lt "$ITERATION_INTERVAL" ]]; then
-              remaining_min=$(( (ITERATION_INTERVAL - elapsed) / 60 ))
-              echo "Throttled: next iteration for $TICKET_KEY in ~${remaining_min}m"
-              echo "proceed=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          fi
-
-          # Collect unresolved review threads
-          review_data=$(gh api graphql -f query='
-            query($owner: String!, $repo: String!, $number: Int!) {
-              repository(owner: $owner, name: $repo) {
-                pullRequest(number: $number) {
-                  reviewThreads(first: 100) {
-                    nodes {
-                      id
-                      isResolved
-                      comments(first: 1) {
-                        nodes {
-                          databaseId
-                          body
-                          author { login }
-                          path
-                          line
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }' -f owner="$REPO_OWNER" \
-               -f repo="$repo_name" \
-               -F number="$pr_number")
-
-          echo "$review_data" | jq '[
-            .data.repository.pullRequest.reviewThreads.nodes[]
-            | select(.isResolved == false)
-            | {
-                thread_id: .id,
-                comment_id: .comments.nodes[0].databaseId,
-                file: .comments.nodes[0].path,
-                line: .comments.nodes[0].line,
-                body: .comments.nodes[0].body,
-                author: .comments.nodes[0].author.login
-              }
-          ]' > /tmp/review_threads.json
-
-          review_count=$(jq 'length' /tmp/review_threads.json)
-          echo "review_count=$review_count" >> "$GITHUB_OUTPUT"
-
-          if [[ "$review_count" -gt 0 ]]; then
-            jq -r '.[] | "File: \(.file) (line \(.line))\nComment by \(.author): \(.body)\n---"' \
-              /tmp/review_threads.json > /tmp/review_comments.txt
-          else
-            : > /tmp/review_comments.txt
-          fi
-
-          # Collect CI failures (cap total output to avoid oversized prompts)
-          ci_failures=""
-          failed_runs=$(gh run list \
-            --branch "jira-autofix/$TICKET_KEY" \
-            --status failure \
-            --json databaseId,name \
-            --limit 3 2>/dev/null || echo "[]")
-
-          for run_id in $(echo "$failed_runs" | jq -r '.[].databaseId'); do
-            run_name=$(echo "$failed_runs" | jq -r ".[] | select(.databaseId == $run_id) | .name")
-            log=$(gh run view "$run_id" --log-failed 2>&1 | tail -200 || echo "Could not fetch logs")
-            ci_failures="${ci_failures}Job: ${run_name} (FAILED)
-          ${log}
-          ---
-          "
-          done
-          echo "${ci_failures:0:50000}" > /tmp/ci_failures.txt
-
-          has_ci_failures="false"
-          if [[ -n "$ci_failures" ]]; then
-            has_ci_failures="true"
-          fi
-          echo "has_ci_failures=$has_ci_failures" >> "$GITHUB_OUTPUT"
-
-          # No-op check
-          if [[ "$review_count" -eq 0 ]] && [[ "$has_ci_failures" == "false" ]]; then
-            latest_conclusion=$(gh run list \
-              --branch "jira-autofix/$TICKET_KEY" \
-              --limit 1 \
-              --json conclusion \
-              --jq '.[0].conclusion // "unknown"' 2>/dev/null || echo "unknown")
-
-            if [[ "$latest_conclusion" == "success" ]]; then
-              echo "CI green, no review feedback — marking $TICKET_KEY done"
-              curl -sf -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-                -H "Content-Type: application/json" \
-                -X POST "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY/comment" \
-                -d "$(jq -n --arg body "CI is green and there are no unresolved review comments. Marking as done.\n\n${pr_url}" '{body: $body}')"
-              curl -sf -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-                -H "Content-Type: application/json" \
-                -X PUT "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY" \
-                -d "{\"update\":{\"labels\":[{\"add\":\"${LABEL_DONE}\"},{\"remove\":\"${LABEL_REVIEW}\"}]}}"
-            else
-              echo "No review feedback, CI not done yet — skipping $TICKET_KEY"
-            fi
-            echo "proceed=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "proceed=true" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/checkout@v4
-        if: steps.preflight.outputs.proceed == 'true'
-        with:
-          fetch-depth: 1
+        run: .github/scripts/jira-autofix/preflight.sh "$TICKET_KEY"
 
       # Clean-rewrite strategy: branch from main so each iteration starts
       # fresh, then force-push so the PR auto-updates.
@@ -624,73 +248,10 @@ jobs:
         if: steps.preflight.outputs.proceed == 'true'
         run: git checkout -B "jira-autofix/$TICKET_KEY"
 
-      - name: Prepare iteration context and prompt
+      - name: Build prompt
         if: steps.preflight.outputs.proceed == 'true'
         id: prompt
-        run: |
-          issue_type=$(cat /tmp/issuetype.txt)
-
-          case "$issue_type" in
-            Bug)
-              instruction="This is a bug report. Find the root cause and fix the bug. If an existing test suite covers this area, add a test that reproduces the issue."
-              ;;
-            *)
-              instruction="Implement the changes as described."
-              ;;
-          esac
-
-          {
-            echo "# ${TICKET_KEY}: $(cat /tmp/summary.txt)"
-            echo ""
-            echo "## Issue Type"
-            cat /tmp/issuetype.txt
-            echo ""
-            echo "## Description"
-            cat /tmp/description.txt
-            echo ""
-            echo "## Comments (Red Hat employees only)"
-            cat /tmp/comments.txt
-          } > .jira-ticket-context.md
-
-          {
-            echo 'value<<PROMPT_EOF'
-            echo "You are resolving Jira ticket ${TICKET_KEY}. ${instruction}"
-            echo ""
-            echo "An automated fix was previously submitted as a pull request, but it received feedback that needs to be addressed. Your job is to produce an improved fix that addresses ALL of the feedback below."
-            echo ""
-            echo "Read the file .jira-ticket-context.md for the original ticket details."
-            echo ""
-            echo "INSTRUCTIONS:"
-            echo "1. Read CLAUDE.md and/or AGENTS.md first if they exist."
-            echo "2. If the feedback requires code changes, you MUST commit before finishing."
-            echo "   If the feedback is minor or already addressed, it is OK to make no changes."
-            echo "3. Commit message format:"
-            echo "   Subject: ${TICKET_KEY}: <short description>"
-            echo "   Body: At least one sentence explaining the changes."
-            echo "   Trailers:"
-            echo "     Closes ${TICKET_KEY}"
-            echo "     Co-Authored-By: Claude <noreply@anthropic.com>"
-            echo "4. Do NOT commit the .jira-ticket-context.md file."
-            echo ""
-
-            review_comments=$(cat /tmp/review_comments.txt)
-            if [[ -n "$review_comments" ]]; then
-              echo "--- Review Comments to Address ---"
-              echo "$review_comments"
-              echo "Address every comment. If you cannot address one, explain why in a code comment."
-              echo ""
-            fi
-
-            ci_failures=$(cat /tmp/ci_failures.txt)
-            if [[ -n "$ci_failures" ]]; then
-              echo "--- CI Failures to Fix ---"
-              echo "$ci_failures"
-              echo "Fix the issues that caused these failures."
-              echo ""
-            fi
-
-            echo 'PROMPT_EOF'
-          } >> "$GITHUB_OUTPUT"
+        run: .github/scripts/jira-autofix/build-prompt.sh "$TICKET_KEY" --mode iterate
 
       - name: Authenticate to Google Cloud
         if: steps.preflight.outputs.proceed == 'true'
@@ -743,13 +304,8 @@ jobs:
             echo "pushed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-
           if ! git push --force -u origin "jira-autofix/$TICKET_KEY" 2>&1; then
-            merged=$(gh pr list \
-              --head "jira-autofix/$TICKET_KEY" \
-              --state merged \
-              --json number \
-              --limit 1)
+            merged=$(gh pr list --head "jira-autofix/$TICKET_KEY" --state merged --json number --limit 1)
             if [[ $(echo "$merged" | jq 'length') -gt 0 ]]; then
               echo "PR was merged (detected during push)"
               echo "pushed=false" >> "$GITHUB_OUTPUT"
@@ -770,43 +326,7 @@ jobs:
           NEXT_ITERATION: ${{ steps.preflight.outputs.next_iteration }}
           REVIEW_COUNT: ${{ steps.preflight.outputs.review_count }}
           HAS_CI_FAILURES: ${{ steps.preflight.outputs.has_ci_failures }}
-        run: |
-          set -euo pipefail
-
-          # Resolve each review thread: batch reply + resolve into a single GraphQL call per thread
-          for thread_id in $(jq -r '.[].thread_id' /tmp/review_threads.json 2>/dev/null); do
-            gh api graphql -f query='
-              mutation($id: ID!, $body: String!) {
-                reply: addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $id, body: $body}) {
-                  comment { id }
-                }
-                resolve: resolveReviewThread(input: {threadId: $id}) {
-                  thread { isResolved }
-                }
-              }' -f id="$thread_id" \
-                 -f body="Addressed in the latest revision — please re-review." || true
-          done
-
-          # Build summary
-          summary_parts=""
-          if [[ "$REVIEW_COUNT" -gt 0 ]]; then
-            summary_parts="addressed ${REVIEW_COUNT} review comment(s)"
-          fi
-          if [[ "$HAS_CI_FAILURES" == "true" ]]; then
-            if [[ -n "$summary_parts" ]]; then
-              summary_parts="${summary_parts} and CI failures"
-            else
-              summary_parts="addressed CI failures"
-            fi
-          fi
-
-          curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            -X POST "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY/comment" \
-            -d "$(jq -n \
-              --arg body "Iteration ${NEXT_ITERATION}/${MAX_ITERATIONS}: ${summary_parts}.\n\n${PR_URL}" \
-              '{body: $body}')"
+        run: .github/scripts/jira-autofix/resolve-threads.sh "$TICKET_KEY"
 
       - name: Handle failure
         if: failure()
@@ -814,14 +334,6 @@ jobs:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: |
-          curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            -X POST "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY/comment" \
-            -d "$(jq -n --arg body "Iteration failed. See: ${WORKFLOW_URL}" '{body: $body}')" || true
-
-          curl -sf \
-            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-            -H "Content-Type: application/json" \
-            -X PUT "$JIRA_BASE_URL/rest/api/2/issue/$TICKET_KEY" \
-            -d "{\"update\":{\"labels\":[{\"add\":\"${LABEL_NEEDS_INFO}\"},{\"remove\":\"${LABEL_REVIEW}\"}]}}" || true
+          source .github/scripts/jira-autofix/common.sh
+          jira_comment "$TICKET_KEY" "Iteration failed. See: ${WORKFLOW_URL}" || true
+          jira_labels "$TICKET_KEY" "$LABEL_NEEDS_INFO" "$LABEL_REVIEW" || true
