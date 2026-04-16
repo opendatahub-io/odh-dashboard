@@ -53,7 +53,7 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
             placeholder="Filter by phase"
             options={PHASE_OPTIONS}
             onChange={(v) => onChange(v)}
-            data-testid="auth-policies-filter-phase-select"
+            dataTestId="auth-policies-filter-phase-select"
             popperProps={{ maxWidth: undefined }}
           />
         ),
