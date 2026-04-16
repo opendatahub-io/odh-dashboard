@@ -1,0 +1,91 @@
+name: Dependabot Auto-merge
+
+on:
+  check_suite:
+    types:
+      - completed
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.check_suite.conclusion == 'success' &&
+      github.event.check_suite.app.slug == 'github-actions'
+    steps:
+      - name: Find Dependabot PR from check suite
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          HEAD_BRANCH="${{ github.event.check_suite.head_branch }}"
+
+          if [[ ! "$HEAD_BRANCH" =~ ^dependabot/ ]]; then
+            echo "Not a Dependabot branch, skipping"
+            exit 0
+          fi
+
+          PR_NUMBER=$(gh pr list \
+            --head "$HEAD_BRANCH" \
+            --json number,author --jq '.[] | select(.author.login == "dependabot[bot]") | .number' \
+            --repo "${{ github.repository }}" | head -1)
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No Dependabot PR found for branch $HEAD_BRANCH"
+            exit 0
+          fi
+          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Verify all required checks passed
+        id: checks
+        if: steps.pr.outputs.number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          HEAD_SHA="${{ github.event.check_suite.head_sha }}"
+
+          CHECKS=$(gh api \
+            "repos/${{ github.repository }}/commits/${HEAD_SHA}/check-runs" \
+            --paginate \
+            --jq '.check_runs[] | "\(.name)\t\(.conclusion // "pending")"')
+
+          echo "All check runs:"
+          echo "$CHECKS"
+
+          READY=true
+          for REQUIRED in "Tests" "audit" "override-consistency"; do
+            STATUS=$(echo "$CHECKS" | grep -E "(^|/)${REQUIRED}	" | head -1 | cut -f2)
+            if [ -z "$STATUS" ]; then
+              echo "Required check '$REQUIRED' not found yet"
+              READY=false
+            elif [ "$STATUS" != "success" ]; then
+              echo "Required check '$REQUIRED' has status: $STATUS"
+              READY=false
+            fi
+          done
+
+          echo "ready=$READY" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.checks.outputs.ready == 'true'
+
+      - name: Fetch Dependabot metadata
+        if: steps.checks.outputs.ready == 'true'
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply lgtm and approved labels for patch updates
+        if: steps.checks.outputs.ready == 'true' && steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.pr.outputs.number }}"
+          REPO="${{ github.repository }}"
+
+          gh pr edit "$PR_NUMBER" --repo "$REPO" \
+            --add-label "lgtm,approved"
