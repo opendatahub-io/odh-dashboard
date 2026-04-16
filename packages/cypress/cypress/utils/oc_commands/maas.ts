@@ -111,7 +111,7 @@ export const verifyMaaSModelInferencing = (
       prompt: 'Today is',
       temperature: 1,
     };
-    requestBody[maxTokensField] = 512;
+    requestBody[maxTokensField] = 256;
 
     const makeRequest = (
       attemptNumber = 1,
