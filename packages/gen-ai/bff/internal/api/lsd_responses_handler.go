@@ -493,7 +493,8 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		if lsErr, ok := err.(*llamastack.LlamaStackError); ok {
 			enhancedErr := llamastack.NewEnhancedLlamaStackError(lsErr)
 			errorMessage = enhancedErr.UserFriendlyMsg
-			errorCode = string(enhancedErr.Category)
+			// Use lowercase category code to match non-streaming JSON responses
+			errorCode = strings.ToLower(string(enhancedErr.Category))
 		} else {
 			errorMessage = "An error occurred during streaming. Please try again."
 			errorCode = "streaming_error"

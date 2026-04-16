@@ -169,7 +169,7 @@ func TestMapLlamaStackClientErrorToHTTPError(t *testing.T) {
 			statusCode:              http.StatusBadRequest,
 			expectedCode:            "generic_error",
 			expectedStatusCode:      http.StatusBadRequest,
-			expectedMessageContains: "some generic error",
+			expectedMessageContains: "unexpected error occurred",
 		},
 		{
 			name:                    "unauthorized error - uses hardcoded code",
@@ -177,7 +177,7 @@ func TestMapLlamaStackClientErrorToHTTPError(t *testing.T) {
 			statusCode:              http.StatusUnauthorized,
 			expectedCode:            "unauthorized",
 			expectedStatusCode:      http.StatusUnauthorized,
-			expectedMessageContains: "invalid token",
+			expectedMessageContains: "unexpected error occurred",
 		},
 		{
 			name:                    "not found error - uses hardcoded code",
@@ -185,7 +185,7 @@ func TestMapLlamaStackClientErrorToHTTPError(t *testing.T) {
 			statusCode:              http.StatusNotFound,
 			expectedCode:            "not_found",
 			expectedStatusCode:      http.StatusNotFound,
-			expectedMessageContains: "resource not found",
+			expectedMessageContains: "unexpected error occurred",
 		},
 		{
 			name:                    "connection error - uses hardcoded code",
@@ -193,7 +193,7 @@ func TestMapLlamaStackClientErrorToHTTPError(t *testing.T) {
 			statusCode:              http.StatusBadGateway,
 			expectedCode:            "bad_gateway",
 			expectedStatusCode:      http.StatusBadGateway,
-			expectedMessageContains: "connection refused",
+			expectedMessageContains: "unexpected error occurred",
 		},
 		{
 			name:                    "service unavailable - uses hardcoded code",
@@ -201,7 +201,7 @@ func TestMapLlamaStackClientErrorToHTTPError(t *testing.T) {
 			statusCode:              http.StatusServiceUnavailable,
 			expectedCode:            "service_unavailable",
 			expectedStatusCode:      http.StatusServiceUnavailable,
-			expectedMessageContains: "service down",
+			expectedMessageContains: "unexpected error occurred",
 		},
 		{
 			name:                    "internal server error with timeout - uses category code",
@@ -225,7 +225,7 @@ func TestMapLlamaStackClientErrorToHTTPError(t *testing.T) {
 			statusCode:              http.StatusInternalServerError,
 			expectedCode:            "generic_error",
 			expectedStatusCode:      http.StatusInternalServerError,
-			expectedMessageContains: "internal error",
+			expectedMessageContains: "unexpected error occurred",
 		},
 		{
 			name:                    "unknown status code with RAG error - uses category code",

@@ -349,3 +349,15 @@ func TestEnhancedLlamaStackErrorImplementsError(t *testing.T) {
 	// This compiles only if EnhancedLlamaStackError implements error interface
 	var _ error = enhanced
 }
+
+func TestNewEnhancedLlamaStackErrorWithNil(t *testing.T) {
+	// Test that nil input is handled gracefully
+	enhanced := NewEnhancedLlamaStackError(nil)
+
+	assert.NotNil(t, enhanced)
+	assert.NotNil(t, enhanced.LlamaStackError)
+	assert.Equal(t, CategoryGenericError, enhanced.Category)
+	assert.Equal(t, "An unexpected error occurred. Please try again or contact support if the issue persists.", enhanced.UserFriendlyMsg)
+	assert.Equal(t, "UNKNOWN", enhanced.LlamaStackError.Code)
+	assert.Equal(t, "Unknown error", enhanced.LlamaStackError.Message)
+}

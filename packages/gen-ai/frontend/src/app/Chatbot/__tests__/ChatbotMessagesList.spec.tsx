@@ -5,17 +5,24 @@ import type { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages
 
 jest.mock('../components/ChatbotErrorAlert', () => ({
   __esModule: true,
-  default: jest.fn(({ errorClassification, onRetry, 'data-testid': dataTestId }) => (
-    <div data-testid={dataTestId}>
-      <span data-testid="error-title">{errorClassification.title}</span>
-      <span data-testid="error-severity">{errorClassification.severity}</span>
-      {onRetry && (
-        <button data-testid="retry-button" onClick={onRetry}>
-          Retry
-        </button>
-      )}
-    </div>
-  )),
+  default: jest.fn(({ classifiedError, onRetry, 'data-testid': dataTestId }) => {
+    if (!classifiedError) {
+      return null;
+    }
+    return (
+      <div data-testid={dataTestId}>
+        <span data-testid="error-title">{classifiedError.title}</span>
+        <span data-testid="error-severity">
+          {classifiedError.severity || classifiedError.variant}
+        </span>
+        {onRetry && (
+          <button data-testid="retry-button" onClick={onRetry}>
+            Retry
+          </button>
+        )}
+      </div>
+    );
+  }),
 }));
 
 jest.mock('../ChatbotMessagesMetrics', () => ({
@@ -108,8 +115,9 @@ describe('ChatbotMessages', () => {
         />,
       );
 
-      expect(screen.getByTestId('message-error')).toBeInTheDocument();
-      expect(screen.getByTestId('error-variant')).toHaveTextContent('danger');
+      // Error is injected into beforeMainContent, not as error prop
+      expect(screen.getByTestId('chatbot-error-alert-msg-1')).toBeInTheDocument();
+      expect(screen.getByTestId('error-severity')).toHaveTextContent('danger');
       expect(screen.getByTestId('error-title')).toHaveTextContent('Model inference failed');
       expect(screen.queryByTestId('message-content')).not.toBeInTheDocument();
     });

@@ -162,12 +162,27 @@ describe('ChatbotErrorAlert', () => {
   });
 
   describe('code block clipboard functionality', () => {
+    let originalClipboard: Clipboard;
+
     beforeEach(() => {
+      // Save original clipboard
+      originalClipboard = navigator.clipboard;
       // Mock clipboard API
-      Object.assign(navigator, {
-        clipboard: {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: {
           writeText: jest.fn().mockResolvedValue(undefined),
         },
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    afterEach(() => {
+      // Restore original clipboard
+      Object.defineProperty(navigator, 'clipboard', {
+        value: originalClipboard,
+        writable: true,
+        configurable: true,
       });
     });
 

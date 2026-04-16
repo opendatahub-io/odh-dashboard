@@ -255,8 +255,12 @@ export const MOCK_SCENARIOS: MockScenario[] = [
 /**
  * Check if a message matches any mock error scenario.
  * Returns the first matching scenario, or undefined if no match.
+ * Uses exact match or opt-in token to prevent accidental triggering.
  */
 export function findMockScenario(message: string): MockScenario | undefined {
   const lower = message.toLowerCase().trim();
-  return MOCK_SCENARIOS.find((s) => lower === s.trigger || lower.includes(s.trigger));
+  // Only match if exact trigger or if message starts with "MOCK:" prefix
+  return MOCK_SCENARIOS.find(
+    (s) => lower === s.trigger || (lower.startsWith('mock:') && lower.includes(s.trigger)),
+  );
 }

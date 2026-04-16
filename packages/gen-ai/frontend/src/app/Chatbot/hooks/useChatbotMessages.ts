@@ -126,6 +126,35 @@ const getErrorCategory = (error: unknown): string | undefined => {
   return undefined;
 };
 
+/**
+ * Safely normalizes an unknown error to ApiError format
+ * Note: Type assertions are needed here for runtime type checking
+ */
+const normalizeToApiError = (error: unknown): ApiError => {
+  // Check if error has the required ApiError properties
+  if (
+    error &&
+    typeof error === 'object' &&
+    'status' in error &&
+    'message' in error &&
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    typeof (error as { status: unknown }).status === 'number' &&
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    typeof (error as { message: unknown }).message === 'string'
+  ) {
+    // Error has ApiError shape, return it
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return error as ApiError;
+  }
+
+  // Convert unknown error to ApiError format
+  return {
+    status: 500,
+    message: String(error),
+    error: { code: 'unknown', message: String(error) },
+  };
+};
+
 const useChatbotMessages = ({
   configId,
   modelId,
@@ -153,6 +182,9 @@ const useChatbotMessages = ({
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+
+  // Track whether streaming content has been received (avoids stale messages in error handler)
+  const streamingReceivedRef = React.useRef(false);
   const [isStreamingWithoutContent, setIsStreamingWithoutContent] = React.useState(false);
   const [lastResponseMetrics, setLastResponseMetrics] = React.useState<ResponseMetrics | null>(
     null,
@@ -315,6 +347,9 @@ const useChatbotMessages = ({
   }, [modelDisplayName]);
 
   const handleMessageSend = async (message: string, compareID?: string) => {
+    // Reset streaming content tracker for new message
+    streamingReceivedRef.current = false;
+
     const userMessage: MessageProps = {
       id: getId(),
       role: 'user',
@@ -435,30 +470,25 @@ const useChatbotMessages = ({
           );
         };
 
-        // Check for mock error scenarios (trigger words)
-        const mockScenario = findMockScenario(message);
-        if (mockScenario) {
-          // eslint-disable-next-line no-console
-          console.log(
-            '[Mock Error] Triggering scenario:',
-            mockScenario.trigger,
-            mockScenario.apiError,
-          );
+        // Check for mock error scenarios (trigger words) - DEVELOPMENT ONLY
+        if (process.env.NODE_ENV === 'development') {
+          const mockScenario = findMockScenario(message);
+          if (mockScenario) {
+            // Simulate partial response if provided
+            if (mockScenario.partialResponse) {
+              // Simulate streaming of partial response
+              await new Promise((resolve) => {
+                setTimeout(() => {
+                  completeLines.push(mockScenario.partialResponse!);
+                  updateMessage(true, true);
+                  resolve(undefined);
+                }, 500);
+              });
+            }
 
-          // Simulate partial response if provided
-          if (mockScenario.partialResponse) {
-            // Simulate streaming of partial response
-            await new Promise((resolve) => {
-              setTimeout(() => {
-                completeLines.push(mockScenario.partialResponse!);
-                updateMessage(true, true);
-                resolve(undefined);
-              }, 500);
-            });
+            // Throw the mock error after partial response (or immediately if no partial)
+            throw mockScenario.apiError;
           }
-
-          // Throw the mock error after partial response (or immediately if no partial)
-          throw mockScenario.apiError;
         }
 
         const streamingResponse = await api.createResponse(responsesPayload, {
@@ -489,6 +519,9 @@ const useChatbotMessages = ({
               // Add all complete lines except the last one (which might be partial)
               completeLines.push(...lines.slice(0, -1));
               currentPartialLine = lines[lines.length - 1]; // Keep the last line as partial
+
+              // Mark that we've received streaming content
+              streamingReceivedRef.current = true;
 
               // Update immediately when we have a new complete line
               updateMessage(true, hasAnyContent);
@@ -676,15 +709,13 @@ const useChatbotMessages = ({
         return; // Exit early - this is not an error to classify
       }
 
-      // Check if there's partial content in the bot message (for streaming interruptions)
-      const currentBotMessage = messages.find((msg) => msg.id === botMessageId);
-      const hadPartialContent = Boolean(
-        isStreamingEnabled && currentBotMessage?.content && currentBotMessage.content.length > 0,
-      );
+      // Use ref to track streaming content (avoids stale messages snapshot)
+      const hadPartialContent = streamingReceivedRef.current;
 
-      // Classify the error for UI rendering
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      const errorClassification = classifyError(error as ApiError, {
+      // Classify the error for UI rendering - normalize to ApiError format
+      const normalizedError = normalizeToApiError(error);
+
+      const errorClassification = classifyError(normalizedError, {
         modelName: modelDisplayName,
         wasStreamStarted: isStreamingEnabled,
         wasResponseGenerated: hadPartialContent,
@@ -692,28 +723,22 @@ const useChatbotMessages = ({
         // TODO: Add toolName if error is from MCP tool call
       });
 
-      // eslint-disable-next-line no-console
-      console.log('[Error Classification]', {
-        pattern: errorClassification.pattern,
-        variant: errorClassification.variant,
-        isRetriable: errorClassification.isRetriable,
-        title: errorClassification.title,
-        hasOnRetry: !!errorClassification.isRetriable,
-      });
-
-      // Retry handler - resends the same prompt
+      // Retry handler - resends the same prompt (uses functional state to avoid stale closure)
       const handleRetry = () => {
-        // Find the last user message to retry
-        const lastUserMessage = messages
-          .slice()
-          .reverse()
-          .find((msg) => msg.role === 'user');
+        setMessages((prevMessages) => {
+          // Find the last user message from current state
+          const lastUserMessage = prevMessages
+            .slice()
+            .reverse()
+            .find((msg) => msg.role === 'user');
 
-        if (lastUserMessage?.content) {
-          // Remove the error message and retry
-          setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== botMessageId));
-          handleMessageSend(lastUserMessage.content);
-        }
+          if (lastUserMessage?.content) {
+            // Remove the error message and schedule retry
+            setTimeout(() => handleMessageSend(lastUserMessage.content), 0);
+            return prevMessages.filter((msg) => msg.id !== botMessageId);
+          }
+          return prevMessages;
+        });
       };
 
       if (isStreamingEnabled && botMessageId) {
@@ -739,14 +764,6 @@ const useChatbotMessages = ({
                     errorClassification,
                     onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
                   };
-
-              // eslint-disable-next-line no-console
-              console.log('[Updated Bot Message]', {
-                hadContent,
-                isRetriable: errorClassification.isRetriable,
-                hasOnRetryError: !!updatedMessage.onRetryError,
-                pattern: errorClassification.pattern,
-              });
 
               return updatedMessage;
             }

@@ -40,14 +40,6 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
           errorClassification &&
           errorClassification.pattern === 'full-failure'
         ) {
-          // eslint-disable-next-line no-console
-          console.log('[ChatbotMessagesList] Rendering full-failure error', {
-            pattern: errorClassification.pattern,
-            isRetriable: errorClassification.isRetriable,
-            hasOnRetry: !!onRetryError,
-            messageId: message.id,
-          });
-
           extraContent.beforeMainContent = (
             <ChatbotErrorAlert
               classifiedError={errorClassification}
