@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { ERROR_CATEGORIES } from '~/app/Chatbot/const';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
@@ -12,9 +12,10 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 }));
 jest.mock('~/app/utilities', () => {
   const actual = jest.requireActual('~/app/utilities');
+  let idCounter = 0;
   return {
     ...actual,
-    getId: jest.fn(() => 'mock-id'),
+    getId: jest.fn(() => `mock-id-${idCounter++}`),
     getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
     splitLlamaModelId: jest.fn((modelId: string) => {
       const slashIndex = modelId.indexOf('/');
@@ -97,7 +98,9 @@ describe('useChatbotMessages - Error Handling', () => {
       await waitFor(() => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
-        expect(lastMessage.content).toContain('model configuration is invalid');
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.errorClassification.variant).toBe('danger');
+        expect(lastMessage.errorClassification.details.rawMessage).toBeDefined();
       });
     });
 
@@ -123,8 +126,9 @@ describe('useChatbotMessages - Error Handling', () => {
       await waitFor(() => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
-        expect(lastMessage.content).toContain('vector store');
-        expect(lastMessage.content).toContain('not found');
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.errorClassification.variant).toBe('danger');
+        expect(lastMessage.errorClassification.details.rawMessage).toBeDefined();
       });
     });
 
@@ -150,7 +154,9 @@ describe('useChatbotMessages - Error Handling', () => {
       await waitFor(() => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
-        expect(lastMessage.content).toContain('blocked by guardrails');
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.errorClassification.variant).toBe('danger');
+        expect(lastMessage.errorClassification.details.rawMessage).toBeDefined();
       });
     });
 
@@ -176,8 +182,9 @@ describe('useChatbotMessages - Error Handling', () => {
       await waitFor(() => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
-        expect(lastMessage.content).toContain('MCP tool');
-        expect(lastMessage.content).toContain('tool configuration');
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.errorClassification.variant).toBe('danger');
+        expect(lastMessage.errorClassification.details.rawMessage).toBeDefined();
       });
     });
 
@@ -203,8 +210,9 @@ describe('useChatbotMessages - Error Handling', () => {
       await waitFor(() => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
-        expect(lastMessage.content).toContain('timed out');
-        expect(lastMessage.content).toContain('try again');
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.errorClassification.variant).toBe('danger');
+        expect(lastMessage.errorClassification.details.rawMessage).toBeDefined();
       });
     });
 
@@ -230,8 +238,9 @@ describe('useChatbotMessages - Error Handling', () => {
       await waitFor(() => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
-        expect(lastMessage.content).toContain('overloaded');
-        expect(lastMessage.content).toContain('resources');
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.errorClassification.variant).toBe('danger');
+        expect(lastMessage.errorClassification.details.rawMessage).toBeDefined();
       });
     });
 
@@ -257,8 +266,9 @@ describe('useChatbotMessages - Error Handling', () => {
       await waitFor(() => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
-        expect(lastMessage.content).toContain('does not support');
-        expect(lastMessage.content).toContain('different model');
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.errorClassification.variant).toBe('danger');
+        expect(lastMessage.errorClassification.details.rawMessage).toBeDefined();
       });
     });
   });
@@ -302,8 +312,9 @@ describe('useChatbotMessages - Error Handling', () => {
       await waitFor(() => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
-        expect(lastMessage.content).toContain('encountered an error');
-        expect(lastMessage.content).toContain('try again');
+        expect(lastMessage.errorClassification).toBeDefined();
+        // For unknown errors, classifyError would provide a generic message
+        expect(lastMessage.content).toBe(''); // Error shown via errorClassification, not content
       });
     });
   });
@@ -368,7 +379,7 @@ describe('useChatbotMessages - Error Handling', () => {
 
   describe('Error Classification Integration', () => {
     beforeEach(() => {
-      mockClassifyError.mockReturnValue({
+      mockClassifyError.mockImplementation(() => ({
         pattern: 'full-failure',
         variant: 'danger',
         isRetriable: true,
@@ -379,7 +390,7 @@ describe('useChatbotMessages - Error Handling', () => {
           errorCode: 'timeout',
           rawMessage: 'Request timed out',
         },
-      });
+      }));
     });
 
     it('should call classifyError with correct context for non-streaming error', async () => {
@@ -408,7 +419,11 @@ describe('useChatbotMessages - Error Handling', () => {
 
       await waitFor(() => {
         expect(mockClassifyError).toHaveBeenCalledWith(
-          mockError,
+          expect.objectContaining({
+            error: mockError.error,
+            status: expect.any(Number),
+            message: expect.any(String),
+          }),
           expect.objectContaining({
             wasResponseGenerated: false,
             wasStreamStarted: false,
@@ -426,7 +441,7 @@ describe('useChatbotMessages - Error Handling', () => {
         },
       };
 
-      mockClassifyError.mockReturnValue({
+      mockClassifyError.mockImplementation(() => ({
         pattern: 'streaming-interruption',
         variant: 'danger',
         isRetriable: true,
@@ -437,7 +452,7 @@ describe('useChatbotMessages - Error Handling', () => {
           errorCode: 'stream_lost',
           rawMessage: 'Connection lost',
         },
-      });
+      }));
 
       const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
       mockUseGenAiAPI.mockReturnValue({
@@ -457,7 +472,11 @@ describe('useChatbotMessages - Error Handling', () => {
 
       await waitFor(() => {
         expect(mockClassifyError).toHaveBeenCalledWith(
-          mockError,
+          expect.objectContaining({
+            error: mockError.error,
+            status: expect.any(Number),
+            message: expect.any(String),
+          }),
           expect.objectContaining({
             wasStreamStarted: true,
             modelName: 'streaming-model',
@@ -480,7 +499,7 @@ describe('useChatbotMessages - Error Handling', () => {
         },
       };
 
-      mockClassifyError.mockReturnValue(mockErrorClassification);
+      mockClassifyError.mockImplementation(() => mockErrorClassification);
 
       const mockError = {
         error: {
@@ -501,13 +520,13 @@ describe('useChatbotMessages - Error Handling', () => {
 
       await waitFor(() => {
         const { messages } = result.current;
-        const botMessage = messages.find((msg) => msg.role === 'bot');
+        const botMessage = messages.filter((msg) => msg.role === 'bot').pop();
         expect(botMessage?.errorClassification).toEqual(mockErrorClassification);
       });
     });
 
     it('should add onRetryError callback when error is retriable', async () => {
-      mockClassifyError.mockReturnValue({
+      mockClassifyError.mockImplementation(() => ({
         pattern: 'full-failure',
         variant: 'danger',
         isRetriable: true,
@@ -518,7 +537,7 @@ describe('useChatbotMessages - Error Handling', () => {
           errorCode: 'timeout',
           rawMessage: 'Timeout',
         },
-      });
+      }));
 
       const mockError = { error: { code: 'timeout', message: 'Timeout' } };
       const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
@@ -533,14 +552,14 @@ describe('useChatbotMessages - Error Handling', () => {
 
       await waitFor(() => {
         const { messages } = result.current;
-        const botMessage = messages.find((msg) => msg.role === 'bot');
+        const botMessage = messages.filter((msg) => msg.role === 'bot').pop();
         expect(botMessage?.onRetryError).toBeDefined();
         expect(typeof botMessage?.onRetryError).toBe('function');
       });
     });
 
     it('should not add onRetryError callback when error is not retriable', async () => {
-      mockClassifyError.mockReturnValue({
+      mockClassifyError.mockImplementation(() => ({
         pattern: 'full-failure',
         variant: 'danger',
         isRetriable: false,
@@ -551,7 +570,7 @@ describe('useChatbotMessages - Error Handling', () => {
           errorCode: 'max_tokens',
           rawMessage: 'Token limit exceeded',
         },
-      });
+      }));
 
       const mockError = { error: { code: 'max_tokens', message: 'Token limit exceeded' } };
       const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
@@ -566,13 +585,13 @@ describe('useChatbotMessages - Error Handling', () => {
 
       await waitFor(() => {
         const { messages } = result.current;
-        const botMessage = messages.find((msg) => msg.role === 'bot');
+        const botMessage = messages.filter((msg) => msg.role === 'bot').pop();
         expect(botMessage?.onRetryError).toBeUndefined();
       });
     });
 
     it('should retry by resending last user message when onRetryError is called', async () => {
-      mockClassifyError.mockReturnValue({
+      mockClassifyError.mockImplementation(() => ({
         pattern: 'full-failure',
         variant: 'danger',
         isRetriable: true,
@@ -583,7 +602,7 @@ describe('useChatbotMessages - Error Handling', () => {
           errorCode: '',
           rawMessage: 'Error',
         },
-      });
+      }));
 
       const mockError = { error: { message: 'Error' } };
       const mockCreateResponse = jest.fn().mockRejectedValueOnce(mockError).mockResolvedValueOnce({
@@ -603,11 +622,13 @@ describe('useChatbotMessages - Error Handling', () => {
 
       await waitFor(() => {
         const { messages } = result.current;
-        const botMessage = messages.find((msg) => msg.role === 'bot');
+        const botMessage = messages.filter((msg) => msg.role === 'bot').pop();
         expect(botMessage?.errorClassification).toBeDefined();
       });
 
-      const retryCallback = result.current.messages.find((msg) => msg.role === 'bot')?.onRetryError;
+      const retryCallback = result.current.messages
+        .filter((msg) => msg.role === 'bot')
+        .pop()?.onRetryError;
 
       // Trigger retry
       retryCallback?.();
@@ -622,7 +643,7 @@ describe('useChatbotMessages - Error Handling', () => {
     });
 
     it('should remove failed bot message before retry', async () => {
-      mockClassifyError.mockReturnValue({
+      mockClassifyError.mockImplementation(() => ({
         pattern: 'full-failure',
         variant: 'danger',
         isRetriable: true,
@@ -633,7 +654,7 @@ describe('useChatbotMessages - Error Handling', () => {
           errorCode: '',
           rawMessage: 'Error',
         },
-      });
+      }));
 
       const mockError = { error: { message: 'Error' } };
       const mockCreateResponse = jest.fn().mockRejectedValueOnce(mockError).mockResolvedValueOnce({
@@ -652,12 +673,14 @@ describe('useChatbotMessages - Error Handling', () => {
 
       let failedBotMessageId: string | undefined;
       await waitFor(() => {
-        const botMessage = result.current.messages.find((msg) => msg.role === 'bot');
+        const botMessage = result.current.messages.filter((msg) => msg.role === 'bot').pop();
         expect(botMessage?.errorClassification).toBeDefined();
         failedBotMessageId = botMessage?.id;
       });
 
-      const retryCallback = result.current.messages.find((msg) => msg.role === 'bot')?.onRetryError;
+      const retryCallback = result.current.messages
+        .filter((msg) => msg.role === 'bot')
+        .pop()?.onRetryError;
       retryCallback?.();
 
       await waitFor(() => {
@@ -670,7 +693,7 @@ describe('useChatbotMessages - Error Handling', () => {
     });
 
     it('should not retry if no user message exists', async () => {
-      mockClassifyError.mockReturnValue({
+      mockClassifyError.mockImplementation(() => ({
         pattern: 'full-failure',
         variant: 'danger',
         isRetriable: true,
@@ -681,7 +704,7 @@ describe('useChatbotMessages - Error Handling', () => {
           errorCode: '',
           rawMessage: 'Error',
         },
-      });
+      }));
 
       const mockError = { error: { message: 'Error' } };
       const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
@@ -696,14 +719,16 @@ describe('useChatbotMessages - Error Handling', () => {
       await result.current.handleMessageSend('Test');
 
       await waitFor(() => {
-        const botMessage = result.current.messages.find((msg) => msg.role === 'bot');
+        const botMessage = result.current.messages.filter((msg) => msg.role === 'bot').pop();
         expect(botMessage?.errorClassification).toBeDefined();
       });
 
       const initialCallCount = mockCreateResponse.mock.calls.length;
 
       // Get retry callback before clearing messages
-      const retryCallback = result.current.messages.find((msg) => msg.role === 'bot')?.onRetryError;
+      const retryCallback = result.current.messages
+        .filter((msg) => msg.role === 'bot')
+        .pop()?.onRetryError;
 
       // Rerender with no user messages to test edge case
       result.current.handleMessageSend('temp message to add bot');
@@ -743,8 +768,13 @@ describe('useChatbotMessages - Error Handling', () => {
       await result.current.handleMessageSend('Test');
 
       await waitFor(() => {
+        // normalizeToApiError adds status and message to the error
         expect(mockClassifyError).toHaveBeenCalledWith(
-          mockError,
+          expect.objectContaining({
+            error: mockError.error,
+            status: expect.any(Number),
+            message: expect.any(String),
+          }),
           expect.objectContaining({
             modelName: 'llama-3.1-8b', // getLlamaModelDisplayName is mocked to return modelId
           }),
@@ -753,7 +783,7 @@ describe('useChatbotMessages - Error Handling', () => {
     });
 
     it('should handle partial-failure pattern classification', async () => {
-      mockClassifyError.mockReturnValue({
+      mockClassifyError.mockImplementation(() => ({
         pattern: 'partial-failure',
         variant: 'warning',
         isRetriable: false,
@@ -764,7 +794,7 @@ describe('useChatbotMessages - Error Handling', () => {
           errorCode: 'rag_down',
           rawMessage: 'RAG service unavailable',
         },
-      });
+      }));
 
       const mockError = { error: { code: 'rag_down', message: 'RAG service unavailable' } };
       const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
@@ -778,14 +808,14 @@ describe('useChatbotMessages - Error Handling', () => {
       await result.current.handleMessageSend('Test');
 
       await waitFor(() => {
-        const botMessage = result.current.messages.find((msg) => msg.role === 'bot');
+        const botMessage = result.current.messages.filter((msg) => msg.role === 'bot').pop();
         expect(botMessage?.errorClassification?.pattern).toBe('partial-failure');
         expect(botMessage?.errorClassification?.variant).toBe('warning');
       });
     });
 
     it('should handle streaming-interruption pattern classification', async () => {
-      mockClassifyError.mockReturnValue({
+      mockClassifyError.mockImplementation(() => ({
         pattern: 'streaming-interruption',
         variant: 'danger',
         isRetriable: true,
@@ -796,7 +826,7 @@ describe('useChatbotMessages - Error Handling', () => {
           errorCode: 'stream_lost',
           rawMessage: 'Connection reset',
         },
-      });
+      }));
 
       const mockError = { error: { code: 'stream_lost', message: 'Connection reset' } };
       const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
@@ -815,7 +845,7 @@ describe('useChatbotMessages - Error Handling', () => {
       await result.current.handleMessageSend('Test');
 
       await waitFor(() => {
-        const botMessage = result.current.messages.find((msg) => msg.role === 'bot');
+        const botMessage = result.current.messages.filter((msg) => msg.role === 'bot').pop();
         expect(botMessage?.errorClassification?.pattern).toBe('streaming-interruption');
         expect(botMessage?.errorClassification?.isRetriable).toBe(true);
       });
