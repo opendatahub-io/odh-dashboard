@@ -88,9 +88,7 @@ export const getLlamaModelDisplayName = (
   aiModels: AIModel[] | null | undefined,
 ): string => {
   const { id, providerId } = splitLlamaModelId(modelId);
-  // Add defensive null check to prevent "Cannot read properties of null" errors
-  const safeAiModels = aiModels || [];
-  const enabledModel = safeAiModels.find((aiModel) => aiModel.model_id === id);
+  const enabledModel = (aiModels || []).find((aiModel) => aiModel.model_id === id);
   if (!enabledModel) {
     return modelId;
   }
@@ -112,11 +110,7 @@ export const isLlamaModelEnabled = (
 
   const { id } = splitLlamaModelId(modelId);
 
-  // Add defensive null checks to prevent "Cannot read properties of null" errors
-  const safeAiModels = aiModels || [];
-  const safeMaasModels = maasModels || [];
-
-  const enabledModel = safeAiModels.find((aiModel) => aiModel.model_id === id);
+  const enabledModel = (aiModels || []).find((aiModel) => aiModel.model_id === id);
 
   if (enabledModel) {
     return (
@@ -124,7 +118,7 @@ export const isLlamaModelEnabled = (
     );
   }
 
-  const maasModel = safeMaasModels.find((m) => m.id === id);
+  const maasModel = (maasModels || []).find((m) => m.id === id);
   if (maasModel) {
     return maasModel.ready;
   }
@@ -319,18 +313,14 @@ export const computeEmbeddingModelStatus = (
 ): EmbeddingModelStatus => {
   const { id: normalizedId } = splitLlamaModelId(embeddingModel);
 
-  // Add defensive null checks to prevent "Cannot read properties of null" errors
-  const safePlaygroundModels = playgroundModels || [];
-  const safeAssetModels = assetModels || [];
-
-  const isRegistered = safePlaygroundModels.some(
+  const isRegistered = (playgroundModels || []).some(
     (m) => m.modelId === embeddingModel || m.modelId === normalizedId,
   );
   if (isRegistered) {
     return 'registered';
   }
 
-  const isAvailable = safeAssetModels.some((m) => {
+  const isAvailable = (assetModels || []).some((m) => {
     const { id: normalizedModelId } = splitLlamaModelId(m.model_id);
     return m.model_id === embeddingModel || normalizedModelId === normalizedId;
   });
