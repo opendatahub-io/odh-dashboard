@@ -291,10 +291,11 @@ func TestMapHTTPStatusToError(t *testing.T) {
 }
 
 // TestListModelsFixture verifies that the full parse pipeline handles a real
-// LlamaStack v0.4.0+ response. When LlamaStack releases a new version, capture
-// the new response as a fixture file to catch regressions immediately.
+// LlamaStack OpenAI-compatible response (the format served at /v1/models).
+// When upgrading LlamaStack, capture the new response as a fixture to catch
+// regressions immediately.
 func TestListModelsFixture(t *testing.T) {
-	fixtureBytes, err := os.ReadFile("testdata/llamastack_v0.4_models.json")
+	fixtureBytes, err := os.ReadFile("testdata/llamastack_openai_models.json")
 	require.NoError(t, err, "fixture file must exist — run tests from the llamastack package directory")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -308,7 +309,7 @@ func TestListModelsFixture(t *testing.T) {
 	result, err := client.ListModels(context.Background())
 
 	require.NoError(t, err)
-	require.Len(t, result, 5, "fixture contains 5 models")
+	require.Len(t, result, 4, "fixture contains 4 models")
 
 	// Verify LLM vs embedding breakdown
 	llmCount := 0
@@ -326,8 +327,8 @@ func TestListModelsFixture(t *testing.T) {
 		}
 		assert.NotEmpty(t, m.CustomMetadata.ProviderID, "model %q should have provider_id", m.ID)
 	}
-	assert.Equal(t, 3, llmCount, "fixture should contain 3 LLM models")
-	assert.Equal(t, 2, embeddingCount, "fixture should contain 2 embedding models")
+	assert.Equal(t, 1, llmCount, "fixture should contain 1 LLM model")
+	assert.Equal(t, 3, embeddingCount, "fixture should contain 3 embedding models")
 }
 
 func TestListProviders(t *testing.T) {
