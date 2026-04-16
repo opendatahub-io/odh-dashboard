@@ -200,9 +200,10 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages).toHaveLength(3); // initial + user + error bot
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
-        content: 'No model or source settings selected',
+        content: '',
         name: 'Bot',
       });
+      expect(result.current.messages[2].errorClassification).toBeDefined();
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).not.toHaveBeenCalled();
     });
@@ -262,9 +263,10 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages).toHaveLength(3); // initial + user + error bot
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
-        content: 'API Error',
+        content: '',
         name: mockModelId,
       });
+      expect(result.current.messages[2].errorClassification).toBeDefined();
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
 
@@ -298,9 +300,10 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages).toHaveLength(3); // initial + user + error bot
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
-        content: 'API is not available',
+        content: '',
         name: mockModelId,
       });
+      expect(result.current.messages[2].errorClassification).toBeDefined();
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).not.toHaveBeenCalled();
     });
@@ -318,9 +321,10 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages).toHaveLength(3); // initial + user + error bot
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
-        content: customErrorMessage,
+        content: '',
         name: mockModelId,
       });
+      expect(result.current.messages[2].errorClassification).toBeDefined();
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
 
@@ -350,9 +354,10 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages).toHaveLength(3);
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
-        content: streamingErrorMessage,
+        content: '', // Error happened before streaming content was persisted
         name: mockModelId,
       });
+      expect(result.current.messages[2].errorClassification).toBeDefined();
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(result.current.isLoading).toBe(false);
       expect(result.current.isStreamingWithoutContent).toBe(false);

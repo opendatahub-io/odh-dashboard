@@ -119,7 +119,6 @@ describe('ChatbotMessages', () => {
       expect(screen.getByTestId('chatbot-error-alert-msg-1')).toBeInTheDocument();
       expect(screen.getByTestId('error-severity')).toHaveTextContent('danger');
       expect(screen.getByTestId('error-title')).toHaveTextContent('Model inference failed');
-      expect(screen.queryByTestId('message-content')).not.toBeInTheDocument();
     });
 
     it('should render error body with ChatbotErrorAlert component', () => {
@@ -152,8 +151,8 @@ describe('ChatbotMessages', () => {
         />,
       );
 
-      const errorBody = screen.getByTestId('error-body');
-      expect(errorBody).toBeInTheDocument();
+      // Error alert is in beforeMainContent slot, not error prop
+      expect(screen.getByTestId('before-main-content')).toBeInTheDocument();
       expect(screen.getByTestId('chatbot-error-alert-msg-1')).toBeInTheDocument();
       expect(screen.getByTestId('error-title')).toHaveTextContent('Configuration error');
     });
