@@ -9,3 +9,28 @@ updates:
     target-branch: "main"
     labels:
       - "build"
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    target-branch: "main"
+    labels:
+      - "dependencies"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      patternfly:
+        patterns:
+          - "@patternfly/*"
+      production-deps:
+        dependency-type: production
+        exclude-patterns:
+          - "@patternfly/*"
+      dev-deps:
+        dependency-type: development
+        exclude-patterns:
+          - "@patternfly/*"

@@ -1,0 +1,209 @@
+name: Dependency Validation
+
+on:
+  pull_request:
+    paths:
+      - "package.json"
+      - "package-lock.json"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  NODE_VERSION: 22.x
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-audit') }}
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        id: audit
+        run: |
+          set +e
+          npm audit --audit-level=high --json > audit-head.json 2>&1
+          AUDIT_EXIT=$?
+          set -e
+
+          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-head.json)
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-head.json)
+          TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit-head.json)
+
+          echo "high=$HIGH" >> "$GITHUB_OUTPUT"
+          echo "critical=$CRITICAL" >> "$GITHUB_OUTPUT"
+          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+          echo "exit_code=$AUDIT_EXIT" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout base for comparison
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Run npm audit on base
+        id: audit-base
+        run: |
+          cd base
+          npm ci
+          set +e
+          npm audit --audit-level=high --json > ../audit-base.json 2>&1
+          set -e
+
+          HIGH=$(jq '.metadata.vulnerabilities.high // 0' ../audit-base.json)
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' ../audit-base.json)
+          TOTAL=$(jq '.metadata.vulnerabilities.total // 0' ../audit-base.json)
+
+          echo "high=$HIGH" >> "$GITHUB_OUTPUT"
+          echo "critical=$CRITICAL" >> "$GITHUB_OUTPUT"
+          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if new high/critical CVEs introduced
+        if: fromJSON(steps.audit.outputs.high) > fromJSON(steps.audit-base.outputs.high) || fromJSON(steps.audit.outputs.critical) > fromJSON(steps.audit-base.outputs.critical)
+        run: |
+          echo "::error::This PR introduces new high/critical vulnerabilities."
+          echo "Base: ${{ steps.audit-base.outputs.high }} high, ${{ steps.audit-base.outputs.critical }} critical"
+          echo "Head: ${{ steps.audit.outputs.high }} high, ${{ steps.audit.outputs.critical }} critical"
+          exit 1
+
+  override-consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check override consistency
+        run: |
+          node -e "
+          const fs = require('fs');
+          const paths = ['package.json', 'frontend/package.json', 'backend/package.json'];
+          const overrides = {};
+          let hasError = false;
+
+          for (const p of paths) {
+            if (!fs.existsSync(p)) continue;
+            const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
+            if (!pkg.overrides) continue;
+
+            for (const [key, value] of Object.entries(pkg.overrides)) {
+              if (typeof value === 'string') {
+                if (!overrides[key]) overrides[key] = {};
+                overrides[key][p] = value;
+              }
+            }
+          }
+
+          for (const [dep, locations] of Object.entries(overrides)) {
+            const values = Object.values(locations);
+            if (new Set(values).size > 1) {
+              console.error('Override mismatch for ' + dep + ':');
+              for (const [file, ver] of Object.entries(locations)) {
+                console.error('  ' + file + ': ' + ver);
+              }
+              hasError = true;
+            }
+          }
+
+          if (hasError) {
+            console.error('Override ranges diverge across package.json files.');
+            process.exit(1);
+          } else {
+            console.log('All shared overrides are consistent.');
+          }
+          "
+
+  dependency-summary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+
+      - name: Checkout base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Generate dependency diff summary
+        id: diff
+        run: |
+          node -e "
+          const fs = require('fs');
+          const baseLock = JSON.parse(fs.readFileSync('base/package-lock.json', 'utf8'));
+          const headLock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+
+          const basePkgs = baseLock.packages || {};
+          const headPkgs = headLock.packages || {};
+
+          const changes = [];
+          for (const [name, info] of Object.entries(headPkgs)) {
+            const basePkg = basePkgs[name];
+            if (!basePkg) {
+              changes.push('| \`' + name.replace('node_modules/', '') + '\` | — | ' + info.version + ' | Added |');
+            } else if (basePkg.version !== info.version) {
+              changes.push('| \`' + name.replace('node_modules/', '') + '\` | ' + basePkg.version + ' | ' + info.version + ' | Updated |');
+            }
+          }
+          for (const name of Object.keys(basePkgs)) {
+            if (!headPkgs[name]) {
+              const shortName = name.replace('node_modules/', '');
+              changes.push('| \`' + shortName + '\` | ' + basePkgs[name].version + ' | — | Removed |');
+            }
+          }
+
+          if (changes.length === 0) {
+            fs.writeFileSync('dep-summary.md', 'No dependency version changes detected.\n');
+          } else {
+            const header = '## Dependency Changes\n\n| Package | Before | After | Status |\n|---------|--------|-------|--------|\n';
+            const limited = changes.slice(0, 50);
+            let body = header + limited.join('\n') + '\n';
+            if (changes.length > 50) {
+              body += '\n*...and ' + (changes.length - 50) + ' more changes.*\n';
+            }
+            fs.writeFileSync('dep-summary.md', body);
+          }
+          "
+
+      - name: Post PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('dep-summary.md', 'utf8');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('## Dependency Changes')
+            );
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
