@@ -90,7 +90,7 @@ describe('MaaS Auth Policies', () => {
   });
 
   it('should display the auth policies table with correct page content', () => {
-    authPoliciesPage.findTitle().should('contain.text', 'Policies');
+    authPoliciesPage.findTitle().should('contain.text', 'Authorization policies');
     authPoliciesPage.findTable().should('exist');
     authPoliciesPage.findRows().should('have.length', 5);
     const premiumRow = authPoliciesPage.getRow('premium-team-policy');

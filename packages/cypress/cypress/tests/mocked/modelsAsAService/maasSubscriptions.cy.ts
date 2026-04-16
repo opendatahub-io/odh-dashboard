@@ -99,8 +99,8 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findRows().should('have.length', 5);
 
     premiumRow.findKebabAction('View details').should('exist');
-    premiumRow.findKebabAction('Edit subscription').should('exist');
-    premiumRow.findKebabAction('Delete subscription').should('exist');
+    premiumRow.findKebabAction('Edit').should('exist');
+    premiumRow.findKebabAction('Delete').should('exist');
   });
 
   it('should filter subscriptions by display name and description', () => {
@@ -127,10 +127,7 @@ describe('Subscriptions Page', () => {
       { data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" } },
     ).as('deleteSubscription');
 
-    subscriptionsPage
-      .getRow('Premium Team Subscription')
-      .findKebabAction('Delete subscription')
-      .click();
+    subscriptionsPage.getRow('Premium Team Subscription').findKebabAction('Delete').click();
     deleteSubscriptionModal.findInput().type('premium-team-sub');
 
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
@@ -174,8 +171,6 @@ describe('View Subscription Page', () => {
       .and('contain.text', 'Active')
       .should('contain.text', 'Premium Team Subscription')
       .and('contain.text', 'Name')
-      .and('contain.text', 'Resource name')
-      .and('contain.text', 'premium-team-sub')
       .and('contain.text', 'Created');
 
     viewSubscriptionPage.findGroupsSection().should('exist');
@@ -405,7 +400,7 @@ describe('Edit Subscription Page', () => {
     editSubscriptionPage.findPolicyChangeWarning().should('exist');
     editSubscriptionPage
       .findPolicyChangeWarning()
-      .should('contain.text', 'Authorization policy may need updating');
+      .should('contain.text', 'Policies are not automatically updated');
   });
 
   it('should navigate to subscriptions list on cancel', () => {

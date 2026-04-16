@@ -3,6 +3,7 @@ import {
   Bullseye,
   Button,
   Content,
+  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
@@ -184,6 +185,7 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
                           Edit token limits
                         </DropdownItem>
                       )}
+                      {onRemoveModel && <Divider component="li" />}
                       <DropdownItem
                         key="remove"
                         isDanger
@@ -192,7 +194,7 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
                           setOpenKebabIndex(null);
                         }}
                       >
-                        Remove model
+                        Remove
                       </DropdownItem>
                     </DropdownList>
                   </Dropdown>
@@ -210,7 +212,12 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
       <FormGroup label="Models" fieldId={formGroupFieldId} isRequired data-testid={sectionTestId}>
         <Stack hasGutter>
           <StackItem>
-            {helperText ?? <Content>Add models that subscribers will be able to use.</Content>}
+            {helperText ?? (
+              <Content>
+                Select models to make available to members of this subscription, then set token
+                limits for each one.
+              </Content>
+            )}
           </StackItem>
           {table && <StackItem>{table}</StackItem>}
           <StackItem>

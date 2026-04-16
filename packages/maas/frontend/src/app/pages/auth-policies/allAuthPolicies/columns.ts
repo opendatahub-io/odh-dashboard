@@ -19,6 +19,9 @@ export const authPoliciesColumns: SortableData<MaaSAuthPolicy>[] = [
     field: 'subjects.groups',
     sortable: (a: MaaSAuthPolicy, b: MaaSAuthPolicy): number =>
       (a.subjects.groups?.length ?? 0) - (b.subjects.groups?.length ?? 0),
+    info: {
+      popover: 'The number of user groups assigned to each authorization policy.',
+    },
   },
   {
     label: 'Models',

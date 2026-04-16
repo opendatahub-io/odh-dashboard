@@ -12,9 +12,7 @@ import {
   HelperTextItem,
   NumberInput,
   PageSection,
-  Popover,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   MultiSelection,
   SelectionOptions,
@@ -273,6 +271,14 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         />
 
         <FormGroup label="Priority" fieldId="subscription-priority">
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem variant={priorityValidationError ? 'error' : 'default'}>
+                {priorityValidationError ||
+                  'Score this subscription’s priority from 1-10, with 10 being the highest priority. When users with more than 1 subscription create API keys, the highest priority subscription will be selected by default.'}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
           <NumberInput
             id="subscription-priority"
             data-testid="subscription-priority"
@@ -308,30 +314,18 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             }}
             validated={priorityValidationError ? 'error' : 'default'}
           />
+        </FormGroup>
+
+        <FormGroup label="Groups" fieldId="subscription-groups" isRequired>
           <FormHelperText>
             <HelperText>
-              <HelperTextItem variant={priorityValidationError ? 'error' : 'default'}>
-                {priorityValidationError ||
-                  'Higher numbers indicate higher priority. Users with access to multiple subscriptions will use the highest priority subscription available to them.'}
+              <HelperTextItem>
+                Select user groups that can access models in this subscription.
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
-        </FormGroup>
-
-        <FormGroup
-          label="Groups"
-          fieldId="subscription-groups"
-          isRequired
-          labelHelp={
-            <Popover bodyContent="Select groups that will be able to access this subscription. You can also add the name of an OIDC group.">
-              <Button variant="plain" aria-label="Groups help" style={{ padding: 0 }}>
-                <OutlinedQuestionCircleIcon />
-              </Button>
-            </Popover>
-          }
-        >
           <MultiSelection
-            ariaLabel="Select groups or type to add a new group"
+            ariaLabel="Select groups"
             value={selectedGroups}
             setValue={(newValue) => {
               setGroupsTouched(true);
@@ -340,16 +334,13 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             toggleTestId="subscription-groups"
             isCreatable
             createOptionMessage={(value) => `Add group "${value}"`}
-            placeholder="Select groups or type to add a new group"
+            placeholder="Select groups"
             selectionRequired={groupsTouched}
             noSelectedOptionsMessage="One or more groups must be selected"
           />
           <FormHelperText>
             <HelperText>
-              <HelperTextItem>
-                {groupsValidationError ||
-                  'Select groups that will be able to access this subscription. You can also add the name of an OIDC group.'}
-              </HelperTextItem>
+              <HelperTextItem>{groupsValidationError || undefined}</HelperTextItem>
             </HelperText>
           </FormHelperText>
         </FormGroup>
@@ -409,38 +400,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             <Checkbox
               id="subscription-create-auth-policy"
               data-testid="subscription-create-auth-policy"
-              label={
-                <>
-                  Create a matching authorization policy{' '}
-                  <Popover
-                    headerContent="Why create a policy?"
-                    bodyContent={
-                      <>
-                        <p>
-                          A <b>subscription</b> (MaaSSubscription) defines which models should be
-                          available to certain groups on request, but it does not grant access to
-                          those models on its own.
-                        </p>
-                        <br />
-                        <p>
-                          A <b>policy</b> (MaaSAuthPolicy) is a separate resource that authorizes
-                          specific groups to be able to access model endpoints through the API
-                          gateway.
-                        </p>
-                        <br />
-                        <p>
-                          Both resources are needed in order to consume model endpoints through the
-                          API gateway.
-                        </p>
-                      </>
-                    }
-                  >
-                    <Button variant="plain" aria-label="Auth policy help" style={{ padding: 0 }}>
-                      <OutlinedQuestionCircleIcon />
-                    </Button>
-                  </Popover>
-                </>
-              }
+              label={<>Create a matching authorization policy </>}
               isChecked={createAuthPolicy}
               onChange={(_event, checked) => setCreateAuthPolicy(checked)}
             />
@@ -451,12 +411,13 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           <Alert
             variant="warning"
             isInline
-            title="Authorization policy may need updating"
+            title="Policies are not automatically updated"
             data-testid="policy-change-warning"
           >
-            You may have an associated authorization policy. Changing the groups or models here will
-            not automatically update it. You may need to update it separately on the{' '}
-            <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies page</Link>.
+            If this subscription has associated authorization policies, you must manually update
+            them from the{' '}
+            <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies page</Link> after saving{' '}
+            your changes.
           </Alert>
         )}
 
