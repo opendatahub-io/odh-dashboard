@@ -427,9 +427,46 @@ describe('API Keys Page', () => {
     });
 
     copyApiKeyModal.shouldBeOpen();
-    copyApiKeyModal.findApiKeyTokenInput().should('have.value', mockCreateAPIKeyResponse().key);
     copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
     copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '30 days');
+  });
+
+  it('should show/hide the token when the visibility toggle is clicked', () => {
+    cy.interceptOdh('POST /maas/api/v1/api-keys', {
+      data: mockCreateAPIKeyResponse(),
+    }).as('createApiKey');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    cy.wait('@getSubscriptions');
+    createApiKeyModal.findExpirationToggle().should('contain.text', '30 days');
+    createApiKeyModal.findSubmitButton().should('be.disabled');
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
+    createApiKeyModal.findNameInput().type('production-backend');
+    createApiKeyModal.findDescriptionInput().type('Production API key for backend service');
+    createApiKeyModal.findSubmitButton().should('be.enabled');
+    createApiKeyModal.findSubmitButton().click();
+    cy.wait('@createApiKey').then((interception) => {
+      expect(interception.request.body?.data).to.include({ expiresIn: '30d' });
+      expect(interception.response?.body?.data).to.include({
+        name: 'production-backend',
+        expiresAt: '2026-01-20T11:54:34.521671447-05:00',
+      });
+    });
+    copyApiKeyModal.shouldBeOpen();
+    copyApiKeyModal.findApiKeyTokenInput().should('have.value', '•'.repeat(40));
+    copyApiKeyModal.findApiKeyTokenVisibilityToggle().should('be.visible').click();
+    copyApiKeyModal.findApiKeyTokenInput().should('have.value', mockCreateAPIKeyResponse().key);
+
+    cy.window().then((win) => {
+      cy.stub(win.navigator.clipboard, 'writeText').as('clipboardWrite');
+    });
+    copyApiKeyModal.findApiKeyTokenCopyButton().click();
+    cy.get('@clipboardWrite').should('have.been.calledOnce');
+    cy.get('@clipboardWrite').should('have.been.calledWith', mockCreateAPIKeyResponse().key);
+    copyApiKeyModal.findApiKeyTokenVisibilityToggle().should('be.visible').click();
+    copyApiKeyModal.findApiKeyTokenInput().should('have.value', '•'.repeat(40));
   });
 
   it('should show the custom days input when Custom (days) is selected and hide it when switching back', () => {

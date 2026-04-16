@@ -4,8 +4,7 @@ import {
   Card,
   CardBody,
   CardTitle,
-  ClipboardCopy,
-  ClipboardCopyVariant,
+  ClipboardCopyButton,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -17,6 +16,8 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  InputGroup,
+  InputGroupItem,
   MenuToggle,
   MenuToggleElement,
   Modal,
@@ -36,7 +37,7 @@ import {
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/internal/components/TypeaheadSelect';
-import { CheckCircleIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
@@ -181,6 +182,10 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
   const expirationLabel =
     formData.expirationOption === 'custom' ? `${formData.customDays} days` : selectedOption?.label;
 
+  const [isTokenVisible, setIsTokenVisible] = React.useState(false);
+  const [isCopyTipCopied, setIsCopyTipCopied] = React.useState(false);
+  const hiddenToken = '•'.repeat(Math.min(createdToken?.length ?? 0, 40));
+
   return (
     <Modal variant={ModalVariant.medium} isOpen onClose={onClose}>
       <ModalHeader title={createdToken ? 'API key created' : 'Create API key'} />
@@ -213,17 +218,43 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                   </Flex>
                 </CardTitle>
                 <CardBody>
-                  <ClipboardCopy
-                    variant={ClipboardCopyVariant.expansion}
-                    hoverTip="Copy"
-                    clickTip="Copied"
-                    data-testid="api-key-token-copy"
-                    onCopy={() => {
-                      navigator.clipboard.writeText(createdToken);
-                    }}
-                  >
-                    {createdToken}
-                  </ClipboardCopy>
+                  <InputGroup data-testid="api-key-token-copy-section">
+                    <InputGroupItem isFill>
+                      <TextInput
+                        readOnly
+                        aria-label="API key"
+                        value={isTokenVisible ? createdToken : hiddenToken}
+                        dir="ltr"
+                      />
+                    </InputGroupItem>
+                    <InputGroupItem>
+                      <Button
+                        variant="control"
+                        data-testid="api-key-visibility-toggle"
+                        aria-label={isTokenVisible ? 'Hide API key' : 'Show API key'}
+                        icon={isTokenVisible ? <EyeSlashIcon /> : <EyeIcon />}
+                        onClick={() => setIsTokenVisible((v) => !v)}
+                      />
+                    </InputGroupItem>
+                    <InputGroupItem>
+                      <ClipboardCopyButton
+                        id="api-key-created-copy"
+                        data-testid="api-key-token-copy-button"
+                        variant="control"
+                        aria-label="Copy API key"
+                        hasNoPadding
+                        onClick={() => {
+                          if (createdToken) {
+                            navigator.clipboard.writeText(createdToken);
+                          }
+                          setIsCopyTipCopied(true);
+                        }}
+                        onTooltipHidden={() => setIsCopyTipCopied(false)}
+                      >
+                        {isCopyTipCopied ? 'Copied' : 'Copy'}
+                      </ClipboardCopyButton>
+                    </InputGroupItem>
+                  </InputGroup>
                 </CardBody>
               </Card>
             </StackItem>
