@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -287,4 +288,119 @@ func TestMapHTTPStatusToError(t *testing.T) {
 			assert.Contains(t, err.Message, tt.resource)
 		})
 	}
+}
+
+// TestListModelsFixture verifies that the full parse pipeline handles a real
+// LlamaStack v0.4.0+ response. When LlamaStack releases a new version, capture
+// the new response as a fixture file to catch regressions immediately.
+func TestListModelsFixture(t *testing.T) {
+	fixtureBytes, err := os.ReadFile("testdata/llamastack_v0.4_models.json")
+	require.NoError(t, err, "fixture file must exist — run tests from the llamastack package directory")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, writeErr := w.Write(fixtureBytes)
+		require.NoError(t, writeErr)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL)
+	result, err := client.ListModels(context.Background())
+
+	require.NoError(t, err)
+	require.Len(t, result, 5, "fixture contains 5 models")
+
+	// Verify LLM vs embedding breakdown
+	llmCount := 0
+	embeddingCount := 0
+	for _, m := range result {
+		assert.NotEmpty(t, m.ID)
+		require.NotNil(t, m.CustomMetadata, "model %q should have custom_metadata", m.ID)
+		switch m.CustomMetadata.ModelType {
+		case "llm":
+			llmCount++
+		case "embedding":
+			embeddingCount++
+		default:
+			t.Errorf("unexpected model_type %q for model %q", m.CustomMetadata.ModelType, m.ID)
+		}
+		assert.NotEmpty(t, m.CustomMetadata.ProviderID, "model %q should have provider_id", m.ID)
+	}
+	assert.Equal(t, 3, llmCount, "fixture should contain 3 LLM models")
+	assert.Equal(t, 2, embeddingCount, "fixture should contain 2 embedding models")
+}
+
+func TestListProviders(t *testing.T) {
+	t.Run("should parse envelope format", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/v1/providers", r.URL.Path)
+			resp := map[string]any{
+				"data": []map[string]any{
+					{"provider_id": "ollama", "provider_type": "remote::ollama", "api": "inference"},
+					{"provider_id": "pgvector", "provider_type": "remote::pgvector", "api": "vector_io"},
+				},
+			}
+			writeJSON(t, w, resp)
+		}))
+		defer server.Close()
+
+		client := newTestClient(server.URL)
+		result, err := client.ListProviders(context.Background())
+
+		require.NoError(t, err)
+		require.Len(t, result, 2)
+		assert.Equal(t, "ollama", result[0].ProviderID)
+		assert.Equal(t, "pgvector", result[1].ProviderID)
+	})
+
+	t.Run("should fall back to bare array format", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			resp := []map[string]any{
+				{"provider_id": "bare-provider", "provider_type": "inline", "api": "inference"},
+			}
+			writeJSON(t, w, resp)
+		}))
+		defer server.Close()
+
+		client := newTestClient(server.URL)
+		result, err := client.ListProviders(context.Background())
+
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, "bare-provider", result[0].ProviderID)
+	})
+
+	t.Run("should return error for invalid JSON", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, writeErr := w.Write([]byte(`{invalid`))
+			require.NoError(t, writeErr)
+		}))
+		defer server.Close()
+
+		client := newTestClient(server.URL)
+		_, err := client.ListProviders(context.Background())
+
+		require.Error(t, err)
+		var lsErr *LlamaStackError
+		require.ErrorAs(t, err, &lsErr)
+		assert.Equal(t, ErrCodeInternalError, lsErr.Code)
+	})
+
+	t.Run("should return error for non-200 status", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, writeErr := w.Write([]byte("unavailable"))
+			require.NoError(t, writeErr)
+		}))
+		defer server.Close()
+
+		client := newTestClient(server.URL)
+		_, err := client.ListProviders(context.Background())
+
+		require.Error(t, err)
+		var lsErr *LlamaStackError
+		require.ErrorAs(t, err, &lsErr)
+		assert.Equal(t, ErrCodeServerUnavailable, lsErr.Code)
+	})
 }

@@ -28,12 +28,24 @@ func (r *LSDModelsRepository) GetLSDModels(ctx context.Context) (*models.LSDMode
 	}
 
 	allModels := make([]models.LSDModel, 0, len(nativeModels))
+	var skipped, degraded int
 	for _, native := range nativeModels {
 		lsdModel, ok := translateLlamaStackModel(native)
 		if !ok {
+			skipped++
 			continue
 		}
+		if lsdModel.Type == "unknown" {
+			degraded++
+		}
 		allModels = append(allModels, lsdModel)
+	}
+
+	if skipped > 0 || degraded > 0 {
+		slog.Warn("LlamaStack schema drift detected — some models could not be fully parsed",
+			"total", len(nativeModels),
+			"skipped", skipped,
+			"degraded_to_unknown_type", degraded)
 	}
 
 	return &models.LSDModelsData{
