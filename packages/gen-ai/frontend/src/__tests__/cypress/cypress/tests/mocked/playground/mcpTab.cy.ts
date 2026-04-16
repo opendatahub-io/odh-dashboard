@@ -70,10 +70,15 @@ describe('Playground - MCP Servers', () => {
       mcpServerSuccessModal.find().should('not.exist');
 
       cy.step('Verify server is now authenticated and tools button is enabled');
-      serverRow.findToolsButton().should('exist').should('not.have.attr', 'aria-disabled');
+      // Re-query server row after modal closes to avoid stale reference
+      const authenticatedServerRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
+      authenticatedServerRow
+        .findToolsButton()
+        .should('exist')
+        .should('not.have.attr', 'aria-disabled');
 
       cy.step('Open tools modal');
-      serverRow.findToolsButton().click();
+      authenticatedServerRow.findToolsButton().click();
 
       cy.step('Wait for tools API call');
       cy.wait('@toolsRequest', { timeout: 10000 });
@@ -419,7 +424,7 @@ describe('Playground - MCP Servers', () => {
           mcpToolsModal.find().should('not.exist');
 
           cy.step('Re-open tools modal to verify persistence');
-          serverRow.findToolsButton().click();
+          freshServerRow.findToolsButton().click();
           mcpToolsModal.find().should('be.visible');
 
           cy.step('Verify tool selection persisted (2 tools deselected)');
