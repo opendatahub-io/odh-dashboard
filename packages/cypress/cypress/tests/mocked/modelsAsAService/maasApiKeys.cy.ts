@@ -1,6 +1,7 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import type { APIKey, SubscriptionDetail } from '@odh-dashboard/maas/types/api-key';
+import { formatApiKeyHiddenPreview } from '@odh-dashboard/maas/utils/api-keys';
 import {
   asClusterAdminUser,
   asProductAdminUser,
@@ -455,18 +456,23 @@ describe('API Keys Page', () => {
       });
     });
     copyApiKeyModal.shouldBeOpen();
-    copyApiKeyModal.findApiKeyTokenInput().should('have.value', '•'.repeat(40));
+    const createdApiKey = mockCreateAPIKeyResponse().key;
+    copyApiKeyModal
+      .findApiKeyTokenInput()
+      .should('have.value', formatApiKeyHiddenPreview(createdApiKey));
     copyApiKeyModal.findApiKeyTokenVisibilityToggle().should('be.visible').click();
-    copyApiKeyModal.findApiKeyTokenInput().should('have.value', mockCreateAPIKeyResponse().key);
+    copyApiKeyModal.findApiKeyTokenInput().should('have.value', createdApiKey);
 
     cy.window().then((win) => {
       cy.stub(win.navigator.clipboard, 'writeText').as('clipboardWrite');
     });
     copyApiKeyModal.findApiKeyTokenCopyButton().click();
     cy.get('@clipboardWrite').should('have.been.calledOnce');
-    cy.get('@clipboardWrite').should('have.been.calledWith', mockCreateAPIKeyResponse().key);
+    cy.get('@clipboardWrite').should('have.been.calledWith', createdApiKey);
     copyApiKeyModal.findApiKeyTokenVisibilityToggle().should('be.visible').click();
-    copyApiKeyModal.findApiKeyTokenInput().should('have.value', '•'.repeat(40));
+    copyApiKeyModal
+      .findApiKeyTokenInput()
+      .should('have.value', formatApiKeyHiddenPreview(createdApiKey));
   });
 
   it('should show the custom days input when Custom (days) is selected and hide it when switching back', () => {

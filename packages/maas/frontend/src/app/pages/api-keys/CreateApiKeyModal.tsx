@@ -42,7 +42,7 @@ import React from 'react';
 import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import TruncatedText from '@odh-dashboard/internal/components/TruncatedText';
-import { formatApiKeyError } from '~/app/pages/api-keys/utils';
+import { formatApiKeyError, formatApiKeyHiddenPreview } from '~/app/pages/api-keys/utils';
 import { createApiKey } from '~/app/api/api-keys';
 import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
 import { MaaSModelRefSummary, ModelSubscriptionRef } from '~/app/types/subscriptions';
@@ -184,7 +184,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
 
   const [isTokenVisible, setIsTokenVisible] = React.useState(false);
   const [isCopyTipCopied, setIsCopyTipCopied] = React.useState(false);
-  const hiddenToken = '•'.repeat(Math.min(createdToken?.length ?? 0, 40));
+  const hiddenToken = createdToken ? formatApiKeyHiddenPreview(createdToken) : '';
 
   return (
     <Modal variant={ModalVariant.medium} isOpen onClose={onClose}>
