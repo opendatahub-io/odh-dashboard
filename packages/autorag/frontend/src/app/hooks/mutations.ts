@@ -154,7 +154,16 @@ export function useUploadToStorageMutation(
               reject(new Error(`Failed to parse upload response: ${parseError}`));
             }
           } else {
-            reject(new Error(`Upload failed with status ${xhr.status}`));
+            // Parse error response from BFF to get the actual error message
+            try {
+              const errorResponse = JSON.parse(xhr.responseText);
+              const errorMessage =
+                errorResponse?.error?.message || `Upload failed with status ${xhr.status}`;
+              reject(new Error(errorMessage));
+            } catch {
+              // If parsing fails, use generic error with status code
+              reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
           }
         });
 
