@@ -120,9 +120,9 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 //   - Pipeline version ID must match discovered AutoRAG pipeline version
 //
 // Error Responses:
-//   - 400: Missing runId or pipeline server client
+//   - 400: Missing runId
 //   - 404: Run not found, run belongs to a different pipeline, or missing pipeline reference
-//   - 500: Pipeline Server error or no AutoRAG pipeline discovered
+//   - 500: Missing pipeline server client (middleware misconfiguration), Pipeline Server error, or no AutoRAG pipeline discovered
 func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	ctx := r.Context()
 
@@ -218,9 +218,9 @@ var terminatableStates = map[string]bool{
 // other pipelines that may exist in the same namespace.
 //
 // Error Responses:
-//   - 400: Missing runId, pipeline server client, or run is not in a terminatable state
+//   - 400: Missing runId or run is not in a terminatable state
 //   - 404: Run not found, run belongs to a different pipeline, or no AutoRAG pipeline discovered
-//   - 500: Pipeline Server error
+//   - 500: Missing pipeline server client (middleware misconfiguration) or Pipeline Server error
 func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	ctx := r.Context()
 
@@ -314,9 +314,9 @@ var retryableStates = map[string]bool{
 // Only runs in FAILED or CANCELED state can be retried.
 //
 // Error Responses:
-//   - 400: Missing runId, pipeline server client, or run is not in a retryable state
+//   - 400: Missing runId or run is not in a retryable state
 //   - 404: Run not found, run belongs to a different pipeline, or no AutoRAG pipeline discovered
-//   - 500: Pipeline Server error
+//   - 500: Missing pipeline server client (middleware misconfiguration) or Pipeline Server error
 func (app *App) RetryPipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	ctx := r.Context()
 

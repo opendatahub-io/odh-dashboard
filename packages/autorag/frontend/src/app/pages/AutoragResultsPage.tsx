@@ -75,7 +75,8 @@ function AutoragResultsPage(): React.JSX.Element {
     runState === RuntimeStateKF.RUNNING ||
     runState === RuntimeStateKF.PENDING ||
     runState === RuntimeStateKF.CANCELING;
-  const isRunFailed = runState === RuntimeStateKF.FAILED;
+  const isRunRetryable =
+    runState === RuntimeStateKF.FAILED || runState === RuntimeStateKF.CANCELED;
 
   const handleRetry = React.useCallback(async () => {
     try {
@@ -166,7 +167,7 @@ function AutoragResultsPage(): React.JSX.Element {
                         Stop
                       </Button>
                     )}
-                    {isRunFailed && (
+                    {isRunRetryable && (
                       <Button
                         variant="secondary"
                         icon={<RedoIcon />}

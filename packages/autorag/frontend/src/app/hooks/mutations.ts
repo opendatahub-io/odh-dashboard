@@ -30,18 +30,34 @@ export function useS3FileUploadMutation(
   });
 }
 
+async function postPipelineRunAction(url: string, action: string): Promise<void> {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    let serverMessage = body;
+    try {
+      const json = JSON.parse(body);
+      serverMessage = json.error?.message || json.message || body;
+    } catch {
+      // body is not JSON, use as-is
+    }
+    throw new Error(`Failed to ${action} run (${response.status}): ${serverMessage}`);
+  }
+}
+
 export function useTerminatePipelineRunMutation(
   namespace: string,
   runId: string,
 ): UseMutationResult<void, Error, void, unknown> {
   return useMutation({
     mutationKey: ['autorag', 'terminatePipelineRun', runId],
-    mutationFn: async () => {
+    mutationFn: () => {
       const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(runId)}/terminate?namespace=${encodeURIComponent(namespace)}`;
-      const response = await fetch(url, { method: 'POST' });
-      if (!response.ok) {
-        throw new Error(`Failed to terminate run (${response.status})`);
-      }
+      return postPipelineRunAction(url, 'terminate');
     },
   });
 }
@@ -52,12 +68,9 @@ export function useRetryPipelineRunMutation(
 ): UseMutationResult<void, Error, void, unknown> {
   return useMutation({
     mutationKey: ['autorag', 'retryPipelineRun', runId],
-    mutationFn: async () => {
+    mutationFn: () => {
       const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(runId)}/retry?namespace=${encodeURIComponent(namespace)}`;
-      const response = await fetch(url, { method: 'POST' });
-      if (!response.ok) {
-        throw new Error(`Failed to retry run (${response.status})`);
-      }
+      return postPipelineRunAction(url, 'retry');
     },
   });
 }

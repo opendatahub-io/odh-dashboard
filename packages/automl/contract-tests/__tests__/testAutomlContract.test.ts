@@ -1204,11 +1204,20 @@ describe('AutoML API Contract Tests', () => {
     });
 
     describe('Retry Pipeline Run', () => {
-      it('should return 400 for a non-retryable run', async () => {
+      it('should retry a failed pipeline run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-mno345-pqr678/retry?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should return 400 when attempting to retry a non-retryable (SUCCEEDED) run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-abc123-def456/retry?namespace=test-namespace',
         );
-        // The mock returns a SUCCEEDED run, so the BFF should reject it as not retryable (400)
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.status).toBe(400);
