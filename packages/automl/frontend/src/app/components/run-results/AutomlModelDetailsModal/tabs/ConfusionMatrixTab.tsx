@@ -106,20 +106,20 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
         >
           <Thead>
             <Tr>
-              <Th rowSpan={2}>Observed</Th>
+              <Th />
               <Th colSpan={3} textCenter>
                 Predicted
               </Th>
-              <Th rowSpan={2} textCenter>
-                Percent correct
-              </Th>
+              <Th />
             </Tr>
             <Tr>
+              <Th>Observed</Th>
               {Array.from({ length: 3 }, (_, i) => (
                 <Th key={i} textCenter>
                   <Skeleton screenreaderText="Loading column label" />
                 </Th>
               ))}
+              <Th textCenter>Percent correct</Th>
             </Tr>
           </Thead>
           <Tbody>
@@ -248,20 +248,20 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
         >
           <Thead>
             <Tr>
-              <Th rowSpan={2}>Observed</Th>
+              <Th />
               <Th colSpan={labels.length} textCenter>
                 Predicted
               </Th>
-              <Th rowSpan={2} textCenter>
-                Percent correct
-              </Th>
+              <Th />
             </Tr>
             <Tr>
+              <Th>Observed</Th>
               {labels.map((label) => (
-                <Th key={label} textCenter>
+                <Th key={label} textCenter modifier="truncate">
                   {label}
                 </Th>
               ))}
+              <Th textCenter>Percent correct</Th>
             </Tr>
           </Thead>
           <Tbody>

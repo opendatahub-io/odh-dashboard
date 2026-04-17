@@ -133,6 +133,7 @@
   td {
     border: var(--pf-t--global--border--width--divider--default) solid
       var(--automl-cm--border--color);
+    min-width: 9rem;
   }
 
   th,
@@ -141,10 +142,6 @@
     background-color: var(--automl-cm--cell--bg);
   }
 
-  /* Vertical alignment for row-spanning headers ("Observed", "Percent correct") */
-  thead th[rowspan] {
-    vertical-align: middle;
-  }
 
   tbody th {
     font-weight: var(--pf-t--global--font--weight--body--bold);
