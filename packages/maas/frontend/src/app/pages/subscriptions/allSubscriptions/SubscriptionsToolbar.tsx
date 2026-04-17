@@ -30,8 +30,9 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
         [SubscriptionsFilterOptions.keyword]: ({ onChange, ...props }) => (
           <SearchInput
             {...props}
-            aria-label="Filter by keyword"
-            placeholder="Filter by keyword"
+            style={{ minWidth: '300px' }}
+            aria-label="Filter by name or description"
+            placeholder="Filter by name or description"
             onChange={(_event, value) => onChange(value)}
             data-testid="subscriptions-filter-input"
           />
