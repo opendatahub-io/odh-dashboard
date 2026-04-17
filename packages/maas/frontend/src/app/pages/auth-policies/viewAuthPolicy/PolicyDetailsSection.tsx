@@ -10,6 +10,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
+import PhaseLabel from '~/app/shared/PhaseLabel';
 
 type PolicyDetailsSectionProps = {
   policy: MaaSAuthPolicy;
@@ -28,6 +29,12 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy }) =
           <DescriptionListTerm>Name</DescriptionListTerm>
           <DescriptionListDescription>
             {policy.displayName ?? policy.name}
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+        <DescriptionListGroup>
+          <DescriptionListTerm>Phase</DescriptionListTerm>
+          <DescriptionListDescription data-testid="policy-phase">
+            <PhaseLabel phase={policy.phase} statusMessage={policy.statusMessage} />
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>

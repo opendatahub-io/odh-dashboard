@@ -11,10 +11,8 @@ import {
   CreatePipelineRecurringRunKFData,
   CreatePipelineRunKFData,
   DateTimeKF,
-  ExperimentKF,
   InputDefinitionParameterType,
   PipelineRecurringRunKF,
-  PipelinesFilterOp,
   PipelineRunKF,
   PipelineVersionKF,
   RecurringRunMode,
@@ -28,59 +26,6 @@ import {
   isFilledRunFormData,
 } from '#~/concepts/pipelines/content/createRun/utils';
 import { convertPeriodicTimeToSeconds, convertToDate } from '#~/utilities/time';
-
-const listRunGroupExperiments = async (
-  runGroupName: string,
-  api: Pick<PipelineAPIs, 'listExperiments'>,
-): Promise<ExperimentKF[]> => {
-  if (!runGroupName) {
-    return [];
-  }
-
-  const { experiments } = await api.listExperiments(
-    {},
-    {
-      filter: {
-        predicates: [
-          {
-            key: 'name',
-            operation: PipelinesFilterOp.EQUALS,
-            // eslint-disable-next-line camelcase
-            string_value: runGroupName,
-          },
-        ],
-      },
-    },
-  );
-
-  return experiments || [];
-};
-
-const getPreferredRunGroupExperiment = (experiments: ExperimentKF[]): ExperimentKF | undefined => {
-  const active = experiments
-    .filter((experiment) => experiment.storage_state !== StorageStateKF.ARCHIVED)
-    .toSorted((a, b) => a.experiment_id.localeCompare(b.experiment_id));
-  return active[0] ?? experiments[0];
-};
-
-const findOrCreateRunGroupExperiment = async (
-  runGroupName: string,
-  api: PipelineAPIs,
-  dryRun = false,
-): Promise<ExperimentKF | null> => {
-  const trimmed = runGroupName.trim();
-  const experiments = await listRunGroupExperiments(trimmed, api);
-  const preferredExperiment = getPreferredRunGroupExperiment(experiments);
-  if (preferredExperiment) {
-    return preferredExperiment;
-  }
-  if (dryRun) {
-    return null;
-  }
-
-  // eslint-disable-next-line camelcase
-  return api.createExperiment({}, { display_name: trimmed, description: '' });
-};
 
 const buildMlflowPluginsInput = (
   mlflow: MlflowFormData,
@@ -111,41 +56,13 @@ const buildMlflowPluginsInput = (
   };
 };
 
-const resolveRunFormContext = async (
-  formData: SafeRunFormData,
-  api: PipelineAPIs,
-  isMlflowAvailable: boolean,
-  dryRun = false,
-) => {
-  const runGroupExperiment = formData.runGroup.trim()
-    ? await findOrCreateRunGroupExperiment(formData.runGroup, api, dryRun)
-    : null;
-
-  const pluginsInput = buildMlflowPluginsInput(formData.mlflow, isMlflowAvailable);
-
-  return { runGroupExperiment, pluginsInput };
-};
-
 const createRun = async (
   formData: SafeRunFormData,
   api: PipelineAPIs,
   isMlflowAvailable: boolean,
   dryRun?: boolean,
 ): Promise<PipelineRunKF> => {
-  const { runGroupExperiment, pluginsInput } = await resolveRunFormContext(
-    formData,
-    api,
-    isMlflowAvailable,
-    dryRun,
-  );
-
-  if (runGroupExperiment?.storage_state === StorageStateKF.ARCHIVED) {
-    throw new Error(
-      `Run group "${formData.runGroup.trim()}" is archived. Use a different run group name or restore the archived run group.`,
-    );
-  }
-
-  const runGroupExperimentId = runGroupExperiment?.experiment_id || '';
+  const pluginsInput = buildMlflowPluginsInput(formData.mlflow, isMlflowAvailable);
 
   /* eslint-disable camelcase */
   const data: CreatePipelineRunKFData = {
@@ -159,7 +76,7 @@ const createRun = async (
       parameters: normalizeInputParams(formData.params, formData.version),
     },
     service_account: '',
-    experiment_id: runGroupExperimentId,
+    experiment_id: formData.experiment?.experiment_id || '',
     ...(pluginsInput && { plugins_input: pluginsInput }),
   };
 
@@ -185,12 +102,7 @@ const createRecurringRun = async (
     return Promise.reject(new Error('Cannot create a schedule with incomplete data.'));
   }
 
-  const { runGroupExperiment, pluginsInput } = await resolveRunFormContext(
-    formData,
-    api,
-    isMlflowAvailable,
-    dryRun,
-  );
+  const pluginsInput = buildMlflowPluginsInput(formData.mlflow, isMlflowAvailable);
   const startDate = convertDateDataToKFDateTime(formData.runType.data.start) ?? undefined;
   const endDate = convertDateDataToKFDateTime(formData.runType.data.end) ?? undefined;
   const periodicScheduleIntervalTime = convertPeriodicTimeToSeconds(formData.runType.data.value);
@@ -231,12 +143,12 @@ const createRecurringRun = async (
     },
     max_concurrency: String(formData.runType.data.maxConcurrency),
     mode:
-      runGroupExperiment?.storage_state === StorageStateKF.ARCHIVED
+      formData.experiment?.storage_state === StorageStateKF.ARCHIVED
         ? RecurringRunMode.DISABLE
         : RecurringRunMode.ENABLE,
     no_catchup: !formData.runType.data.catchUp,
     service_account: '',
-    experiment_id: runGroupExperiment?.experiment_id || '',
+    experiment_id: formData.experiment?.experiment_id || '',
     ...(pluginsInput && { plugins_input: pluginsInput }),
   };
   /* eslint-enable camelcase */

@@ -182,6 +182,16 @@ describe('listSubscriptions', () => {
 
     await expect(listSubscriptions()({} as never)).rejects.toThrow('Invalid response format');
   });
+
+  it('should filter out invalid items and return only valid ones', async () => {
+    const validSub = validSubscriptionInfoResponse.subscription;
+    const invalid = { name: 'bad-sub', namespace: 'ns' }; // missing owner, modelRefs
+    mockRestGET.mockResolvedValue({ data: [validSub, invalid] });
+
+    const result = await listSubscriptions()({} as never);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('test-sub');
+  });
 });
 
 describe('listUserSubscriptions', () => {
@@ -238,21 +248,32 @@ describe('listUserSubscriptions', () => {
     await expect(listUserSubscriptions()({} as never)).rejects.toThrow('Invalid response format');
   });
 
-  it('should throw when subscription_id_header is missing', async () => {
+  it('should filter out items where subscription_id_header is missing', async () => {
     const invalid = [{ subscription_description: 'desc', priority: 1, model_refs: [] }];
     mockRestGET.mockResolvedValue({ data: invalid });
 
-    await expect(listUserSubscriptions()({} as never)).rejects.toThrow('Invalid response format');
+    const result = await listUserSubscriptions()({} as never);
+    expect(result).toHaveLength(0);
   });
 
-  it('should throw when priority is not a number', async () => {
+  it('should filter out items where priority is not a number', async () => {
     const invalid = [{ ...validItem, priority: '10' }];
     mockRestGET.mockResolvedValue({ data: invalid });
 
-    await expect(listUserSubscriptions()({} as never)).rejects.toThrow('Invalid response format');
+    const result = await listUserSubscriptions()({} as never);
+    expect(result).toHaveLength(0);
   });
 
-  it('should throw when model_refs contains an item with an invalid token_rate_limit entry', async () => {
+  it('should return valid items while filtering out those that fail the guard', async () => {
+    const invalid = { subscription_description: 'desc', priority: 1, model_refs: [] }; // missing subscription_id_header
+    mockRestGET.mockResolvedValue({ data: [validItem, invalid] });
+
+    const result = await listUserSubscriptions()({} as never);
+    expect(result).toHaveLength(1);
+    expect(result[0].subscription_id_header).toBe('premium-team-sub');
+  });
+
+  it('should filter out items where model_refs contains an invalid token_rate_limit entry', async () => {
     const invalid = [
       {
         ...validItem,
@@ -263,7 +284,8 @@ describe('listUserSubscriptions', () => {
     ];
     mockRestGET.mockResolvedValue({ data: invalid });
 
-    await expect(listUserSubscriptions()({} as never)).rejects.toThrow('Invalid response format');
+    const result = await listUserSubscriptions()({} as never);
+    expect(result).toHaveLength(0);
   });
 });
 

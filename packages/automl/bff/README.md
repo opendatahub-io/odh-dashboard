@@ -247,6 +247,45 @@ curl -H "kubeflow-userid: user@example.com" \
   "http://localhost:4003/api/v1/s3/file?namespace=<namespace>&secretName=<secret>&bucket=<bucket>&key=<key>"
 ```
 
+#### Managed MinIO in port-forward mode
+
+When the DSPA uses managed MinIO (`minio.deploy: true`) instead of external S3, the BFF auto-discovers the MinIO configuration and constructs an in-cluster endpoint URL of the form `http://minio-<dspa-name>.<namespace>.svc.cluster.local:9000`. For this to work locally you need to port-forward the MinIO service and add a `/etc/hosts` entry so the BFF can resolve the in-cluster hostname.
+
+**1. Identify the MinIO service and DSPA name**
+
+```shell
+# Find the MinIO service in your namespace
+oc get svc -n <namespace> | grep minio
+
+# The service is typically named "minio-<dspa-name>", e.g. "minio-dspa"
+```
+
+**2. Port-forward the MinIO service**
+
+```shell
+oc port-forward -n <namespace> svc/minio-<dspa-name> 9000:9000
+```
+
+**3. Add a `/etc/hosts` entry**
+
+The BFF constructs the MinIO endpoint using the in-cluster DNS name. Add an entry to `/etc/hosts` so this resolves to your local port-forward:
+
+```shell
+# Add to /etc/hosts (requires sudo)
+echo "127.0.0.1 minio-<dspa-name>.<namespace>.svc.cluster.local" | sudo tee -a /etc/hosts
+```
+
+For example, if your DSPA is named `dspa` in namespace `my-project`:
+
+```shell
+oc port-forward -n my-project svc/minio-dspa 9000:9000
+echo "127.0.0.1 minio-dspa.my-project.svc.cluster.local" | sudo tee -a /etc/hosts
+```
+
+After this, the BFF will auto-discover the MinIO storage config from the DSPA spec and connect to MinIO via your port-forward. No `secretName` query parameter is needed.
+
+> **Cleanup:** Remember to remove the `/etc/hosts` entry when you're done testing.
+
 ### Federated development with a live cluster
 
 To run the AutoML module as a federated micro-frontend against the main ODH Dashboard with a real pipeline server, you need three things running:

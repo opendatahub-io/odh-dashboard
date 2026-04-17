@@ -4,6 +4,7 @@ export type MaaSSubscription = {
   description?: string;
   namespace: string;
   phase?: string;
+  statusMessage?: string;
   priority?: number;
   owner: OwnerSpec;
   modelRefs: ModelSubscriptionRef[];
@@ -107,6 +108,7 @@ export type MaaSAuthPolicy = {
   name: string;
   namespace: string;
   phase?: string;
+  statusMessage?: string;
   creationTimestamp?: string;
   modelRefs: ModelRef[];
   subjects: SubjectSpec;
@@ -155,5 +157,5 @@ export type UserSubscription = {
 export type RateLimit = {
   count: number;
   time: number;
-  unit: 'day' | 'hour' | 'minute' | 'second';
+  unit: 'hour' | 'minute' | 'second';
 };

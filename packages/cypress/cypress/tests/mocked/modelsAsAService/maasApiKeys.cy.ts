@@ -64,6 +64,7 @@ describe('API Keys Page', () => {
         components: {
           [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
         },
+        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
     );
     cy.interceptOdh(
@@ -108,10 +109,10 @@ describe('API Keys Page', () => {
   });
 
   it('should display all API keys when the status filter is cleared', () => {
+    apiKeysPage.findRows().should('have.length', 2);
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
       'clearAllFilters',
     );
-    apiKeysPage.findRows().should('have.length', 2); // active keys show on page load
 
     apiKeysPage.clearAllFilters();
     cy.wait('@clearAllFilters');
@@ -150,14 +151,15 @@ describe('API Keys Page', () => {
 
   it('should filter api keys by username', () => {
     const aliceKeys = mockAPIKeys().filter((k) => k.username === 'alice');
+    apiKeysPage.findRows().should('have.length', 2);
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(aliceKeys)).as(
       'searchByUsername',
     );
 
-    apiKeysPage.findFilterInput().type('alice');
+    apiKeysPage.findFilterInput().find('input').type('alice');
     apiKeysPage.findUsernameFilterTooltip().should('be.visible');
-    apiKeysPage.findFilterInput().type('{enter}');
+    apiKeysPage.findFilterSearchButton().click();
 
     cy.wait('@searchByUsername').then((interception) => {
       expect(interception.request.body.data.filters.username).to.eq('alice');
@@ -191,6 +193,7 @@ describe('API Keys Page', () => {
     const filteredKeys = mockAPIKeys().filter(
       (k) => k.status === 'active' || k.status === 'expired',
     );
+    apiKeysPage.findRows().should('have.length', 2);
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(filteredKeys)).as(
       'filterByStatus',
@@ -218,6 +221,8 @@ describe('API Keys Page', () => {
 
   it('should sort api keys by name', () => {
     const keys = mockAPIKeys();
+
+    apiKeysPage.findRows().should('have.length', 2);
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortNameAsc',
@@ -248,6 +253,8 @@ describe('API Keys Page', () => {
   it('should sort api keys by creation date', () => {
     const keys = mockAPIKeys();
 
+    apiKeysPage.findRows().should('have.length', 2);
+
     // Creation date is the default active sort (desc). First click toggles to asc.
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortCreationDateAsc',
@@ -277,6 +284,8 @@ describe('API Keys Page', () => {
   it('should sort api keys by expiration date', () => {
     const keys = mockAPIKeys();
 
+    apiKeysPage.findRows().should('have.length', 2);
+
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortExpirationAsc',
     );
@@ -304,6 +313,8 @@ describe('API Keys Page', () => {
 
   it('should sort api keys by last used', () => {
     const keys = mockAPIKeys();
+
+    apiKeysPage.findRows().should('have.length', 2);
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortLastUsedAsc',
@@ -511,7 +522,10 @@ describe('API Keys Page', () => {
     createApiKeyModal.shouldBeOpen();
     cy.wait('@getSubscriptions');
 
-    createApiKeyModal.findSubscriptionToggle().should('contain.text', 'Select a subscription');
+    createApiKeyModal
+      .findSubscriptionToggle()
+      .find('input')
+      .should('have.attr', 'placeholder', 'Select a subscription');
     createApiKeyModal.findSubmitButton().should('be.disabled');
 
     createApiKeyModal.findSubscriptionToggle().click();
@@ -590,6 +604,7 @@ describe('API Keys Page (Admin)', () => {
         components: {
           [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
         },
+        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
     );
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(

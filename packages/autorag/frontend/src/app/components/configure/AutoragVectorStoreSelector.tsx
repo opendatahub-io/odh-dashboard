@@ -64,7 +64,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
       notification.error(
         'Failed to load vector I/O providers.',
         <>
-          Check that the secret for the provided Llama Stack instance is valid and the API key has
+          Check that the secret for the provided Llama Stack connection is valid and the API key has
           not expired.
         </>,
       );

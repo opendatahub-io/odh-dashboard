@@ -91,6 +91,23 @@ paths:
       operationId: listMLflowExperiments
       summary: List MLflow Experiments
       description: Returns a paginated list of experiments from the MLflow tracking server.
+  /api/v1/status:
+    summary: Path used to check MLflow availability status.
+    description: >-
+      Reports whether the BFF has successfully discovered an MLflow CR in the cluster.
+    get:
+      tags:
+        - MLflowOperation
+      responses:
+        "200":
+          $ref: "#/components/responses/StatusResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getStatus
+      summary: Get MLflow status
+      description: Returns whether MLflow is configured and available.
   /api/v1/user:
     summary: Path used to Retrieve a user based on the header.
     description: >-
@@ -274,6 +291,16 @@ components:
       properties:
         error:
           $ref: "#/components/schemas/Error"
+    MLflowStatus:
+      description: MLflow availability status.
+      type: object
+      required:
+        - configured
+      properties:
+        configured:
+          type: boolean
+          description: Whether the BFF has discovered a running MLflow CR in the cluster.
+          example: true
     SortOrder:
       description: Supported sort direction for ordering result entities.
       enum:
@@ -373,6 +400,12 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
       description: Bad gateway - unexpected error from the MLflow tracking server
+    StatusResponse:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MLflowStatus"
+      description: MLflow availability status.
     ServiceUnavailable:
       content:
         application/json:

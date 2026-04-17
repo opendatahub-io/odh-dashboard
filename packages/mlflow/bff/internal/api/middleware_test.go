@@ -370,3 +370,29 @@ func TestAttachMLflowClientWorkspaceFromContext(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 	mockFactory.AssertExpectations(t)
 }
+
+// --- InjectRequestIdentity tests ---
+
+func TestInjectRequestIdentityEnforcesAuth(t *testing.T) {
+	k8sMock := &mockK8sFactory{}
+	k8sMock.On("ExtractRequestIdentity", mock.Anything).
+		Return(nil, fmt.Errorf("missing auth headers"))
+	app := newTestAppWithFactories(nil, k8sMock)
+
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, ExperimentsPath, nil)
+
+	app.InjectRequestIdentity(next).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+
+	var errResp HTTPError
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
+	assert.Equal(t, "Access unauthorized", errResp.Error.Message)
+
+	k8sMock.AssertExpectations(t)
+}
