@@ -213,68 +213,68 @@ func TestGetUserFriendlyErrorMessage(t *testing.T) {
 	tests := []struct {
 		name           string
 		category       ResponseErrorCategory
-		originalError  string
+		errorCode      string
 		expectContains []string
 	}{
 		{
 			name:           "invalid model config",
 			category:       CategoryInvalidModelConfig,
-			originalError:  "max_tokens exceeds limit",
+			errorCode:      "max_tokens exceeds limit",
 			expectContains: []string{"configuration is invalid", "max_tokens", "chat_template"},
 		},
 		{
 			name:           "unsupported feature",
 			category:       CategoryUnsupportedFeature,
-			originalError:  "tools not supported",
+			errorCode:      "tools not supported",
 			expectContains: []string{"does not support", "different model"},
 		},
 		{
 			name:           "RAG vector store not found",
 			category:       CategoryRAGVectorStoreNotFound,
-			originalError:  "vector store not found",
+			errorCode:      "vector store not found",
 			expectContains: []string{"vector store", "not found", "verify"},
 		},
 		{
 			name:           "guardrails error",
 			category:       CategoryGuardrailsError,
-			originalError:  "shield unavailable",
+			errorCode:      "shield unavailable",
 			expectContains: []string{"Guardrails", "configuration"},
 		},
 		{
 			name:           "MCP tool not found",
 			category:       CategoryMCPToolNotFound,
-			originalError:  "tool not found",
+			errorCode:      "tool not found",
 			expectContains: []string{"MCP tool", "not found", "verify"},
 		},
 		{
 			name:           "model timeout",
 			category:       CategoryModelTimeout,
-			originalError:  "request timed out",
+			errorCode:      "request timed out",
 			expectContains: []string{"timed out", "overloaded", "try again"},
 		},
 		{
 			name:           "model overloaded",
 			category:       CategoryModelOverloaded,
-			originalError:  "too many requests",
+			errorCode:      "too many requests",
 			expectContains: []string{"overloaded", "resources", "try again"},
 		},
 		{
 			name:           "generic error with message",
 			category:       CategoryGenericError,
-			originalError:  "unexpected error occurred",
+			errorCode:      "unexpected error occurred",
 			expectContains: []string{"unexpected error occurred"},
 		},
 		{
 			name:           "generic error empty message",
 			category:       CategoryGenericError,
-			originalError:  "",
+			errorCode:      "",
 			expectContains: []string{"unexpected error", "try again", "support"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			message := GetUserFriendlyErrorMessage(tt.category, tt.originalError)
+			message := GetUserFriendlyErrorMessage(tt.category, tt.errorCode)
 			for _, expectedSubstring := range tt.expectContains {
 				assert.Contains(t, message, expectedSubstring,
 					"Expected message to contain '%s' but got: %s",
