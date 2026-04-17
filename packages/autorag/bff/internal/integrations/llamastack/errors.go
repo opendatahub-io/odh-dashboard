@@ -81,13 +81,13 @@ func wrapClientError(err error, operation string) *LlamaStackError {
 // mapHTTPStatusToError maps a non-200 HTTP status code from LlamaStack into a typed LlamaStackError.
 // The resource parameter describes what was being accessed (e.g. "models", "providers") for error messages.
 func mapHTTPStatusToError(statusCode int, body []byte, resource string) *LlamaStackError {
-	// Log the raw upstream body server-side for debugging, but keep it out of
-	// the error message returned to callers — upstream responses may contain
-	// internal details, stack traces, or credentials.
+	// Log a truncated, length-only summary of the upstream body for debugging.
+	// Never log the raw payload — upstream responses may contain auth headers
+	// echoed back, tokens in URLs, stack traces, or PII.
 	slog.Debug("LlamaStack upstream error",
 		"status", statusCode,
 		"resource", resource,
-		"body", string(body))
+		"bodyLen", len(body))
 
 	switch statusCode {
 	case http.StatusBadRequest:
