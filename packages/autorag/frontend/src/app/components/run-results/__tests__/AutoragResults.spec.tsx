@@ -341,8 +341,8 @@ describe('AutoragResults', () => {
       };
       renderWithContext({ pipelineRun: canceledRun });
 
-      expect(screen.getByTestId('run-canceled-label')).toBeInTheDocument();
-      expect(screen.getByTestId('run-canceled-label')).toHaveTextContent('CANCELED');
+      expect(screen.getByTestId('run-status-label')).toBeInTheDocument();
+      expect(screen.getByTestId('run-status-label')).toHaveTextContent('CANCELED');
     });
 
     it('should show Failed label when run state is FAILED', () => {
@@ -352,14 +352,14 @@ describe('AutoragResults', () => {
       };
       renderWithContext({ pipelineRun: failedRun });
 
-      expect(screen.getByTestId('run-canceled-label')).toBeInTheDocument();
-      expect(screen.getByTestId('run-canceled-label')).toHaveTextContent('FAILED');
+      expect(screen.getByTestId('run-status-label')).toBeInTheDocument();
+      expect(screen.getByTestId('run-status-label')).toHaveTextContent('FAILED');
     });
 
     it('should not show state label when run state is SUCCEEDED', () => {
       renderWithContext();
 
-      expect(screen.queryByTestId('run-canceled-label')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('run-status-label')).not.toBeInTheDocument();
     });
 
     it('should not show state label when run state is RUNNING', () => {
@@ -369,7 +369,7 @@ describe('AutoragResults', () => {
       };
       renderWithContext({ pipelineRun: runningRun });
 
-      expect(screen.queryByTestId('run-canceled-label')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('run-status-label')).not.toBeInTheDocument();
     });
   });
 });

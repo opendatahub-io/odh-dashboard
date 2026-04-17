@@ -146,7 +146,7 @@ function AutomlResults(): React.JSX.Element {
                 <Label
                   variant="outline"
                   status={isCanceled ? 'warning' : 'danger'}
-                  data-testid="run-canceled-label"
+                  data-testid="run-status-label"
                 >
                   {pipelineRun.state}
                 </Label>

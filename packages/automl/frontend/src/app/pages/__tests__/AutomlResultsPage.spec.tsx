@@ -711,7 +711,10 @@ describe('AutomlResultsPage', () => {
       await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
 
       await waitFor(() => {
-        expect(mockNotification.success).toHaveBeenCalledWith('Run stopped successfully');
+        expect(mockNotification.success).toHaveBeenCalledWith(
+          'Stop submitted successfully',
+          'The process is asynchronous and may take some time to take effect',
+        );
       });
     });
 

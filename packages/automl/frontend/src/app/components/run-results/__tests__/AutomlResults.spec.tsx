@@ -321,14 +321,14 @@ describe('AutomlResults', () => {
       };
       renderWithContext(canceledRun);
 
-      expect(screen.getByTestId('run-canceled-label')).toBeInTheDocument();
-      expect(screen.getByTestId('run-canceled-label')).toHaveTextContent('Canceled');
+      expect(screen.getByTestId('run-status-label')).toBeInTheDocument();
+      expect(screen.getByTestId('run-status-label')).toHaveTextContent('CANCELED');
     });
 
     it('should not show Canceled label when run state is SUCCEEDED', () => {
       renderWithContext(mockPipelineRun);
 
-      expect(screen.queryByTestId('run-canceled-label')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('run-status-label')).not.toBeInTheDocument();
     });
 
     it('should not show Canceled label when run state is RUNNING', () => {
@@ -338,7 +338,7 @@ describe('AutomlResults', () => {
       };
       renderWithContext(runningRun);
 
-      expect(screen.queryByTestId('run-canceled-label')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('run-status-label')).not.toBeInTheDocument();
     });
   });
 });
