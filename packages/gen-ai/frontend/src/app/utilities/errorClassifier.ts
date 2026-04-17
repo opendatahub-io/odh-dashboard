@@ -1,4 +1,5 @@
 import { ApiError, ClassifiedError } from '~/app/types';
+import { RETRIABLE_HTTP_STATUSES, RETRIABLE_ERROR_CODES } from '~/app/Chatbot/const';
 import { getMicrocopy } from './microcopy';
 
 interface ClassifyContext {
@@ -20,9 +21,6 @@ const COMPONENT_DISPLAY_NAMES: Record<string, string> = {
 };
 
 const PARTIAL_COMPONENTS = new Set(['rag', 'guardrails', 'mcp']);
-
-const RETRIABLE_CODES = new Set(['timeout', 'server_error', 'stream_lost', 'stream_timeout']);
-const RETRIABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
 
 // Map streaming error codes to template keys
 const STREAMING_ERROR_MAP: Record<string, string> = {
@@ -136,10 +134,10 @@ function resolveRetriable(error: ApiError): boolean {
     return true;
   }
 
-  if (code && RETRIABLE_CODES.has(code)) {
+  if (code && RETRIABLE_ERROR_CODES.includes(code)) {
     return true;
   }
-  if (error.status && RETRIABLE_STATUSES.has(error.status)) {
+  if (error.status && RETRIABLE_HTTP_STATUSES.includes(error.status)) {
     return true;
   }
 
