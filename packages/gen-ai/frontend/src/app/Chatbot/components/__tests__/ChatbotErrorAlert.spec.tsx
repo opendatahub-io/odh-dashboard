@@ -76,7 +76,7 @@ describe('ChatbotErrorAlert', () => {
       expect(screen.getByText('[TEST_CODE] Test error message')).toBeInTheDocument();
     });
 
-    it('should render code block without code prefix when code is undefined', () => {
+    it('should render code block without code prefix when code is empty', () => {
       const errorClassification = createErrorClassification({
         details: { component: 'Unknown', errorCode: '', rawMessage: 'Test error message' },
       });
@@ -84,8 +84,8 @@ describe('ChatbotErrorAlert', () => {
 
       expandAlert();
 
-      // When errorCode is empty, the component still shows brackets: "[] Test error message"
-      expect(screen.getByText('[] Test error message')).toBeInTheDocument();
+      // When errorCode is empty, the component omits brackets
+      expect(screen.getByText('Test error message')).toBeInTheDocument();
     });
 
     it('should render with custom data-testid', () => {
@@ -207,7 +207,7 @@ describe('ChatbotErrorAlert', () => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('[TEST_CODE] Test error message');
     });
 
-    it('should copy error without code prefix when code is undefined', async () => {
+    it('should copy error without code prefix when code is empty', async () => {
       const errorClassification = createErrorClassification({
         details: { component: 'Unknown', errorCode: '', rawMessage: 'Test error message' },
       });
@@ -218,8 +218,8 @@ describe('ChatbotErrorAlert', () => {
       const copyButton = screen.getByLabelText('Copy error to clipboard');
       fireEvent.click(copyButton);
 
-      // When errorCode is empty, the component still includes brackets
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('[] Test error message');
+      // When errorCode is empty, the component omits brackets
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Test error message');
     });
   });
 

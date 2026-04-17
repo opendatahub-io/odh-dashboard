@@ -606,7 +606,7 @@ describe('useChatbotMessages - Error Handling', () => {
 
       const mockError = { error: { message: 'Error' } };
       const mockCreateResponse = jest.fn().mockRejectedValueOnce(mockError).mockResolvedValueOnce({
-        response: 'Success on retry',
+        content: 'Success on retry',
         metadata: {},
       });
 
@@ -731,8 +731,13 @@ describe('useChatbotMessages - Error Handling', () => {
         .pop()?.onRetryError;
 
       // Rerender with no user messages to test edge case
-      result.current.handleMessageSend('temp message to add bot');
-      await waitFor(() => result.current.messages.length > 2);
+      await act(async () => {
+        await result.current.handleMessageSend('temp message to add bot');
+      });
+
+      await waitFor(() => {
+        expect(result.current.messages.length).toBeGreaterThan(2);
+      });
 
       // Clear conversation to remove user messages
       act(() => {

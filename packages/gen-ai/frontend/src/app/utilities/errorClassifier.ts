@@ -41,9 +41,11 @@ const STREAM_LOST_KEYWORDS = [
   'connection lost',
   'stream closed',
   'connection closed',
-  'EOF',
   'broken pipe',
 ];
+
+// Pattern for EOF with word boundaries (to avoid matching "EOF" in unrelated contexts)
+const EOF_PATTERN = /\bEOF\b/i;
 
 // Keywords in error messages that indicate streaming timeout
 const STREAM_TIMEOUT_KEYWORDS = [
@@ -64,8 +66,11 @@ const STREAM_CONTEXT_KEYWORDS = [
 function detectStreamingErrorFromMessage(message: string): string | null {
   const lowerMessage = message.toLowerCase();
 
-  // Check for connection loss
-  if (STREAM_LOST_KEYWORDS.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))) {
+  // Check for connection loss (keywords + EOF pattern)
+  if (
+    STREAM_LOST_KEYWORDS.some((keyword) => lowerMessage.includes(keyword.toLowerCase())) ||
+    EOF_PATTERN.test(message)
+  ) {
     return 'stream:connection_lost';
   }
 
@@ -88,7 +93,7 @@ function resolveTemplateKey(error: ApiError): string {
   const message = error.error?.message ?? error.message ?? '';
 
   // Check for streaming errors first (they can have component + code)
-  if (code && code in STREAMING_ERROR_MAP) {
+  if (code && Object.prototype.hasOwnProperty.call(STREAMING_ERROR_MAP, code)) {
     return STREAMING_ERROR_MAP[code];
   }
 
@@ -171,7 +176,8 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
 
   const isPartial = component ? PARTIAL_COMPONENTS.has(component) : false;
   const isStreamingError =
-    (code && code in STREAMING_ERROR_MAP) || detectStreamingErrorFromMessage(rawMessage) !== null;
+    (code && Object.prototype.hasOwnProperty.call(STREAMING_ERROR_MAP, code)) ||
+    detectStreamingErrorFromMessage(rawMessage) !== null;
 
   const effectiveContext = {
     ...context,
