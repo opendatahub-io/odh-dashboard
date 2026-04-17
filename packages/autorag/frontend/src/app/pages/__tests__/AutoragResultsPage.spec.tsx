@@ -582,8 +582,23 @@ describe('AutoragResultsPage', () => {
       expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
     });
 
+    it('should show Stop button when run is PAUSED', () => {
+      setupWithRunState('PAUSED');
+      renderPage();
+
+      expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
+    });
+
     it('should show Retry button when run is FAILED', () => {
       setupWithRunState('FAILED');
+      renderPage();
+
+      expect(screen.getByTestId('retry-run-button')).toBeInTheDocument();
+      expect(screen.queryByTestId('stop-run-button')).not.toBeInTheDocument();
+    });
+
+    it('should show Retry button when run is CANCELED', () => {
+      setupWithRunState('CANCELED');
       renderPage();
 
       expect(screen.getByTestId('retry-run-button')).toBeInTheDocument();
@@ -688,6 +703,39 @@ describe('AutoragResultsPage', () => {
       await waitFor(() => {
         expect(screen.queryByTestId('stop-run-modal')).not.toBeInTheDocument();
       });
+    });
+
+    it('should show success notification and invalidate queries when retry succeeds', async () => {
+      setupWithRunState('FAILED');
+      const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
+      const { useRetryPipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      useRetryPipelineRunMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+      });
+
+      const invalidateQueriesSpy = jest.spyOn(QueryClient.prototype, 'invalidateQueries');
+
+      renderPage();
+
+      await userEvent.click(screen.getByTestId('retry-run-button'));
+
+      await waitFor(() => {
+        expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+      });
+
+      await waitFor(() => {
+        expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+          queryKey: ['autorag', 'pipelineRun', 'run-123', 'test-ns'],
+        });
+      });
+
+      expect(mockNotification.success).toHaveBeenCalledWith(
+        'Retry submitted successfully',
+        'The process is asynchronous and may take some time to take effect',
+      );
+
+      invalidateQueriesSpy.mockRestore();
     });
 
     it('should show error notification when retry fails', async () => {

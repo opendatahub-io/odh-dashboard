@@ -1118,7 +1118,9 @@ func TestTerminatePipelineRunHandler_ErrorCases(t *testing.T) {
 // but returns a configurable error from TerminateRun so that mapMutationError is exercised.
 type terminateErrorMockClient struct {
 	psmocks.MockPipelineServerClient
-	terminateErr error
+	terminateErr       error
+	terminateCalled    bool
+	terminateCalledFor string
 }
 
 func (m *terminateErrorMockClient) GetRun(_ context.Context, runID string) (*models.KFPipelineRun, error) {
@@ -1135,7 +1137,9 @@ func (m *terminateErrorMockClient) GetRun(_ context.Context, runID string) (*mod
 	}, nil
 }
 
-func (m *terminateErrorMockClient) TerminateRun(_ context.Context, _ string) error {
+func (m *terminateErrorMockClient) TerminateRun(_ context.Context, runID string) error {
+	m.terminateCalled = true
+	m.terminateCalledFor = runID
 	return m.terminateErr
 }
 
@@ -1225,6 +1229,8 @@ func TestTerminatePipelineRunHandler_MutationErrors(t *testing.T) {
 			app.TerminatePipelineRunHandler(rr, req, params)
 
 			assert.Equal(t, tt.expectedStatus, rr.Code)
+			assert.True(t, mockClient.terminateCalled, "TerminateRun should have been invoked")
+			assert.Equal(t, runID, mockClient.terminateCalledFor, "TerminateRun should have been called with the correct run ID")
 		})
 	}
 }

@@ -371,7 +371,7 @@ Returned when the specified run ID does not exist:
 ```json
 {
   "error": {
-    "code": "NOT_FOUND",
+    "code": "404",
     "message": "the requested resource could not be found"
   }
 }
@@ -579,7 +579,7 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 POST /api/v1/pipeline-runs/{runId}/terminate
 ```
 
-Terminates an active pipeline run, cancelling all running tasks and transitioning the run to CANCELING and then CANCELED state. The run must be in an active state (PENDING, RUNNING, PAUSED, or CANCELING) and belong to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace.
+Sends an asynchronous request to cancel an active pipeline run. The run must be in an active state (PENDING, RUNNING, PAUSED, or CANCELING) and belong to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace. The API requests a transition to CANCELING and attempts to cancel running tasks, which may result in a CANCELED final state if successful. However, the final state is not guaranteed — races or failures during cancellation may cause the run to end in a different terminal state.
 
 ### Parameters
 
@@ -693,8 +693,10 @@ Returned when:
 
 ```json
 {
-  "code": "BAD_REQUEST",
-  "message": "missing required query parameter: namespace"
+  "error": {
+    "code": "400",
+    "message": "missing required query parameter: namespace"
+  }
 }
 ```
 
@@ -708,8 +710,10 @@ Returned when the authenticated user does not have permission to access pipeline
 
 ```json
 {
-  "code": "FORBIDDEN",
-  "message": "user does not have permission to access pipeline servers in this namespace"
+  "error": {
+    "code": "403",
+    "message": "user does not have permission to access pipeline servers in this namespace"
+  }
 }
 ```
 

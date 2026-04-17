@@ -346,8 +346,10 @@ Returned when the specified run ID does not exist:
 
 ```json
 {
-  "code": "NOT_FOUND",
-  "message": "the requested resource could not be found"
+  "error": {
+    "code": "404",
+    "message": "the requested resource could not be found"
+  }
 }
 ```
 
@@ -488,7 +490,7 @@ Returns `200 OK` with the created pipeline run:
 POST /api/v1/pipeline-runs/{runId}/terminate
 ```
 
-Terminates an active pipeline run, cancelling all running tasks and transitioning the run to CANCELING and then CANCELED state. The run must be in an active state (PENDING, RUNNING, PAUSED, or CANCELING) and belong to the discovered AutoRAG pipeline in the namespace.
+Sends an asynchronous request to cancel an active pipeline run. The run must be in an active state (PENDING, RUNNING, PAUSED, or CANCELING) and belong to the discovered AutoRAG pipeline in the namespace. The API requests a transition to CANCELING and attempts to cancel running tasks, which may result in a CANCELED final state if successful. However, the final state is not guaranteed — races or failures during cancellation may cause the run to end in a different terminal state.
 
 ### Parameters
 
@@ -622,9 +624,9 @@ async function retryPipelineRun(namespace, runId, token) {
 
 ## Pipeline Discovery
 
-The API always filters runs to the auto-discovered AutoRAG managed pipeline:
+The API always filters runs to the auto-discovered AutoRAG-managed pipeline:
 
-1. Discovers the AutoRAG managed pipeline in the namespace (cached for 5 minutes)
+1. Discovers the AutoRAG-managed pipeline in the namespace (cached for 5 minutes)
 2. Filters runs to show only those from the discovered AutoRAG pipeline version
 3. The List endpoint returns 200 with an empty runs list if no AutoRAG pipeline is found; other endpoints (Create, Get, Terminate, Retry) return a 500 error
 
@@ -647,8 +649,10 @@ Returned when:
 
 ```json
 {
-  "code": "BAD_REQUEST",
-  "message": "missing required query parameter: namespace"
+  "error": {
+    "code": "400",
+    "message": "missing required query parameter: namespace"
+  }
 }
 ```
 
@@ -658,12 +662,14 @@ Returned when authentication fails or is missing.
 
 ### 403 Forbidden
 
-Returned when the authenticated user does not have permission to access pipeline servers in the specified namespace.
+Returned when the authenticated user does not have permission to access services in the specified namespace.
 
 ```json
 {
-  "code": "FORBIDDEN",
-  "message": "user does not have permission to access pipeline servers in this namespace"
+  "error": {
+    "code": "403",
+    "message": "user does not have permission to access services in this namespace"
+  }
 }
 ```
 
