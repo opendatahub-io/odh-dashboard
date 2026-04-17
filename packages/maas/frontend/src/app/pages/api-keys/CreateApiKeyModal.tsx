@@ -16,7 +16,6 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
-  Icon,
   InputGroup,
   InputGroupItem,
   MenuToggle,
@@ -29,7 +28,6 @@ import {
   Select,
   SelectList,
   SelectOption,
-  Spinner,
   Stack,
   StackItem,
   TextArea,
@@ -40,6 +38,10 @@ import { CheckCircleIcon, EyeIcon, EyeSlashIcon } from '@patternfly/react-icons'
 import React from 'react';
 import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/internal/components/TypeaheadSelect';
+import TruncatedText from '@odh-dashboard/internal/components/TruncatedText';
 import { formatApiKeyError, formatApiKeyHiddenPreview } from '~/app/pages/api-keys/utils';
 import { createApiKey } from '~/app/api/api-keys';
 import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
@@ -104,7 +106,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
     subscription: '',
   });
   const [isSelectOpen, setIsSelectOpen] = React.useState(false);
-  const [isSubscriptionSelectOpen, setIsSubscriptionSelectOpen] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [createdToken, setCreatedToken] = React.useState<string | undefined>();
@@ -368,52 +369,31 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                 </FormGroup>
 
                 <FormGroup label="Subscription" isRequired fieldId="api-key-subscription">
-                  <Select
+                  <TypeaheadSelect
                     id="api-key-subscription"
-                    isOpen={isSubscriptionSelectOpen}
-                    onOpenChange={(open) => setIsSubscriptionSelectOpen(open)}
+                    selectOptions={subscriptions.map<TypeaheadSelectOption>((sub) => ({
+                      value: sub.subscription_id_header,
+                      content: sub.display_name || sub.subscription_id_header,
+                      description: (
+                        <TruncatedText
+                          maxLines={2}
+                          content={`${sub.subscription_description} · ${sub.model_refs.length} ${sub.model_refs.length === 1 ? 'model' : 'models'}`}
+                        />
+                      ),
+                      'data-testid': `api-key-subscription-option-${sub.subscription_id_header}`,
+                    }))}
                     selected={formData.subscription}
-                    onSelect={(_event, value) => {
-                      if (typeof value === 'string') {
-                        setFormData({ ...formData, subscription: value });
-                      }
-                      setIsSubscriptionSelectOpen(false);
-                    }}
-                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                      <MenuToggle
-                        ref={toggleRef}
-                        onClick={() => setIsSubscriptionSelectOpen(!isSubscriptionSelectOpen)}
-                        isExpanded={isSubscriptionSelectOpen}
-                        isFullWidth
-                        isDisabled={!subscriptionsLoaded || subscriptions.length === 0}
-                        icon={
-                          !subscriptionsLoaded && !subscriptionsError ? (
-                            <Icon>
-                              <Spinner size="sm" aria-label="Loading subscriptions" />
-                            </Icon>
-                          ) : undefined
-                        }
-                        data-testid="api-key-subscription-toggle"
-                      >
-                        {selectedSubscription?.display_name ??
-                          selectedSubscription?.subscription_id_header ??
-                          'Select a subscription'}
-                      </MenuToggle>
-                    )}
-                  >
-                    <SelectList>
-                      {subscriptions.map((sub) => (
-                        <SelectOption
-                          key={sub.subscription_id_header}
-                          value={sub.subscription_id_header}
-                          description={`${sub.subscription_description} · ${sub.model_refs.length} ${sub.model_refs.length === 1 ? 'model' : 'models'}`}
-                          data-testid={`api-key-subscription-option-${sub.subscription_id_header}`}
-                        >
-                          {sub.display_name || sub.subscription_id_header}
-                        </SelectOption>
-                      ))}
-                    </SelectList>
-                  </Select>
+                    onSelect={(_e, value) =>
+                      setFormData({ ...formData, subscription: String(value) })
+                    }
+                    isDisabled={!subscriptionsLoaded || subscriptions.length === 0}
+                    placeholder="Select a subscription"
+                    dataTestId="api-key-subscription-toggle"
+                    previewDescription={false}
+                    isRequired={false}
+                    popperProps={{ maxWidth: 'trigger' }}
+                    isScrollable
+                  />
                   <FormHelperText>
                     <HelperText>
                       <HelperTextItem>
