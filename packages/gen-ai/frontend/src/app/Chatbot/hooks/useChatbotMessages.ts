@@ -229,6 +229,12 @@ const useChatbotMessages = ({
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const isStoppingStreamRef = React.useRef<boolean>(false);
   const isClearingRef = React.useRef<boolean>(false);
+  // Keep messages in a ref for handleRetry to access latest state
+  const messagesRef = React.useRef<ChatbotMessageProps[]>(messages);
+  // Keep handleMessageSend in a ref for handleRetry to access latest function
+  const handleMessageSendRef = React.useRef<
+    ((message: string, compareID?: string) => Promise<void>) | null
+  >(null);
   const { api, apiAvailable } = useGenAiAPI();
   const { aiModels } = React.useContext(ChatbotContext);
 
@@ -299,6 +305,20 @@ const useChatbotMessages = ({
     },
     [],
   );
+
+  // Sync messagesRef with messages state for handleRetry
+  React.useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Update initial message name with the initially selected model (runs once on mount)
+  React.useEffect(() => {
+    setMessages((prev) =>
+      prev.length === 1 && prev[0].role === 'bot' && prev[0].name !== modelDisplayName
+        ? [{ ...prev[0], name: modelDisplayName }]
+        : prev,
+    );
+  }, [modelDisplayName]);
 
   // Auto-scroll to bottom when messages change
   React.useEffect(() => {
@@ -375,6 +395,9 @@ const useChatbotMessages = ({
   }, []);
 
   const handleMessageSend = async (message: string, compareID?: string) => {
+    // Store this function in ref for handleRetry (avoids stale closure)
+    handleMessageSendRef.current = handleMessageSend;
+
     // Reset streaming content tracker for new message
     streamingReceivedRef.current = false;
 
@@ -767,10 +790,10 @@ const useChatbotMessages = ({
         // TODO: Add toolName if error is from MCP tool call
       });
 
-      // Retry handler - resends the same prompt (uses functional state to avoid stale closure)
+      // Retry handler - resends the same prompt (uses refs to avoid stale closure)
       const handleRetry = () => {
-        // Find last user message first (outside state updater)
-        const currentMessages = messages;
+        // Read latest messages from ref (avoid stale closure)
+        const currentMessages = messagesRef.current;
         const lastUserMessage = currentMessages
           .slice()
           .reverse()
@@ -788,12 +811,13 @@ const useChatbotMessages = ({
         // Schedule retry outside the updater, with guard against clearing
         setTimeout(() => {
           if (!isClearingRef.current) {
-            // Verify messages still exist and include the user message
-            const stillHasUserMessage = messages.some(
+            // Verify messages still exist and include the user message (read from ref)
+            const stillHasUserMessage = messagesRef.current.some(
               (msg) => msg.id === lastUserMessage.id && msg.role === 'user',
             );
-            if (stillHasUserMessage) {
-              handleMessageSend(userContent);
+            // Call latest handleMessageSend from ref
+            if (stillHasUserMessage && handleMessageSendRef.current) {
+              handleMessageSendRef.current(userContent);
             }
           }
         }, 0);
