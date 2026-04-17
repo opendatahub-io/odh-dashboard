@@ -469,11 +469,11 @@ class APIKeyTableRow extends TableRow {
   }
 
   findCreationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Creation date"]');
+    return this.find().find('[data-label="Created"]');
   }
 
   findExpirationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Expiration date"]');
+    return this.find().find('[data-label="Expires"]');
   }
 }
 
@@ -912,7 +912,7 @@ class EditSubscriptionPage {
 
 class AddModelsToSubscriptionModal extends Modal {
   constructor() {
-    super('Add models to subscription');
+    super('Add models');
   }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -938,11 +938,11 @@ class AddModelsToSubscriptionModal extends Modal {
 
 class EditRateLimitsModal extends Modal {
   constructor() {
-    super(/Edit token limits/);
+    super(/Edit subscription token limits/);
   }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('dialog', { name: /Edit token limits/ });
+    return cy.findByRole('dialog', { name: /Edit subscription token limits/ });
   }
 
   findCountInput(index: number): Cypress.Chainable<JQuery<HTMLElement>> {

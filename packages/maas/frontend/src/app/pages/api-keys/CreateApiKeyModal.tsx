@@ -352,11 +352,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                     {...getFieldValidationProps(['name'])}
                     data-testid="api-key-name-input"
                   />
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>A descriptive name for this API key</HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
                   {getFieldValidation(['name']).length > 0 && (
                     <FormHelperText>
                       <HelperText>
@@ -377,16 +372,17 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                     rows={5}
                     data-testid="api-key-description-input"
                   />
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>
-                        Optional description of how this key will be used
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
                 </FormGroup>
 
                 <FormGroup label="Subscription" isRequired fieldId="api-key-subscription">
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        Select a subscription to scope this API key to. The key will work only with
+                        models that belong to the selected subscription.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
                   <TypeaheadSelect
                     id="api-key-subscription"
                     selectOptions={subscriptionSelectOptions}
@@ -402,14 +398,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                     popperProps={{ maxWidth: 'trigger' }}
                     isScrollable
                   />
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>
-                        Select a subscription to scope this API key. The key will only work with
-                        models in the selected subscription.
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
                 </FormGroup>
 
                 {selectedSubscription && (
@@ -442,7 +430,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                   </>
                 )}
 
-                <FormGroup label="Expiration" fieldId="api-key-expiration">
+                <FormGroup label="Expiration" fieldId="api-key-expiration" isRequired>
                   <Select
                     id="api-key-expiration"
                     isOpen={isSelectOpen}
@@ -479,6 +467,11 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                       ))}
                     </SelectList>
                   </Select>
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>Must be between 1 and 365, inclusive</HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
                 </FormGroup>
 
                 {formData.expirationOption === 'custom' && (

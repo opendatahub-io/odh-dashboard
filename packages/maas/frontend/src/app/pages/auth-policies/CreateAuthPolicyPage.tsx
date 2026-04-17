@@ -11,12 +11,14 @@ const CreateAuthPolicyPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Create policy"
+      title="Create authorization policy"
       description="Create a new authorization policy to control which groups can access AI model endpoints."
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to={`${URL_PREFIX}/auth-policies`}>Policies</Link>} />
-          <BreadcrumbItem isActive>Create policy</BreadcrumbItem>
+          <BreadcrumbItem
+            render={() => <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies</Link>}
+          />
+          <BreadcrumbItem isActive>Create authorization policy</BreadcrumbItem>
         </Breadcrumb>
       }
       loaded={loaded}
