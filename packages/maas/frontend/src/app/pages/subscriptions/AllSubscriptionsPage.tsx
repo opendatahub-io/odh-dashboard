@@ -41,7 +41,7 @@ const AllSubscriptionsPage: React.FC = () => {
   return (
     <ApplicationsPage
       title="Subscriptions"
-      description="Subscriptions control access and entitlements to AI model endpoints that are available as a service."
+      description="Create subscriptions to manage group access to MaaS endpoints, and to set token limits for each model."
       empty={loaded && !error && subscriptions.length === 0}
       emptyStatePage={<EmptySubscriptionsPage />}
       loaded={loaded}

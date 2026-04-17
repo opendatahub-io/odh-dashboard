@@ -107,7 +107,7 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({
         data-testid="api-key-actions"
         items={[
           {
-            title: 'Revoke API key',
+            title: 'Revoke',
             onClick: () => onRevokeApiKey(apiKey),
             isDisabled: apiKey.status !== 'active',
           },
