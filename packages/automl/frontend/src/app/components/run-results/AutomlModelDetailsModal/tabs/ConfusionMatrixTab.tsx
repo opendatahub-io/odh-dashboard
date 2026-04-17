@@ -11,7 +11,7 @@ import {
   SelectOption,
   Skeleton,
 } from '@patternfly/react-core';
-import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { InnerScrollContainer, Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import type { ConfusionMatrixData } from '~/app/types';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 import { TASK_TYPE_MULTICLASS } from '~/app/utilities/const';
@@ -238,74 +238,76 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
           </Select>
         </FormGroup>
       )}
-      <Table
-        aria-label="Confusion matrix"
-        variant="compact"
-        className="automl-confusion-matrix"
-        gridBreakPoint=""
-        data-testid="confusion-matrix-table"
-      >
-        <Thead>
-          <Tr>
-            <Th rowSpan={2}>Observed</Th>
-            <Th colSpan={labels.length} textCenter>
-              Predicted
-            </Th>
-            <Th rowSpan={2} textCenter>
-              Percent correct
-            </Th>
-          </Tr>
-          <Tr>
-            {labels.map((label) => (
-              <Th key={label} textCenter>
-                {label}
+      <InnerScrollContainer>
+        <Table
+          aria-label="Confusion matrix"
+          variant="compact"
+          className="automl-confusion-matrix"
+          gridBreakPoint=""
+          data-testid="confusion-matrix-table"
+        >
+          <Thead>
+            <Tr>
+              <Th rowSpan={2}>Observed</Th>
+              <Th colSpan={labels.length} textCenter>
+                Predicted
               </Th>
-            ))}
-          </Tr>
-        </Thead>
-        <Tbody>
-          {labels.map((rowLabel, rowIdx) => {
-            const rowCorrect = getCell(rowLabel, rowLabel);
-            const rowTotal = rowTotals[rowIdx];
-            const pct = rowTotal > 0 ? ((rowCorrect / rowTotal) * 100).toFixed(1) : '0.0';
+              <Th rowSpan={2} textCenter>
+                Percent correct
+              </Th>
+            </Tr>
+            <Tr>
+              {labels.map((label) => (
+                <Th key={label} textCenter>
+                  {label}
+                </Th>
+              ))}
+            </Tr>
+          </Thead>
+          <Tbody>
+            {labels.map((rowLabel, rowIdx) => {
+              const rowCorrect = getCell(rowLabel, rowLabel);
+              const rowTotal = rowTotals[rowIdx];
+              const pct = rowTotal > 0 ? ((rowCorrect / rowTotal) * 100).toFixed(1) : '0.0';
 
-            return (
-              <Tr key={rowLabel}>
-                <Th dataLabel="Observed">{rowLabel}</Th>
-                {labels.map((colLabel) => {
-                  const val = getCell(rowLabel, colLabel);
-                  const cellClass = [
-                    getCellClassName(rowLabel, colLabel),
-                    getCellIntensityClass(val, maxValue),
-                  ]
-                    .filter(Boolean)
-                    .join(' ');
-                  return (
-                    <Td key={colLabel} className={cellClass} textCenter>
-                      {val}
-                    </Td>
-                  );
-                })}
-                <Td textCenter>{pct}%</Td>
-              </Tr>
-            );
-          })}
-          <Tr>
-            <Th>Percent correct</Th>
-            {labels.map((colLabel, colIdx) => {
-              const colCorrect = getCell(colLabel, colLabel);
-              const colTotal = colTotals[colIdx];
-              const pct = colTotal > 0 ? ((colCorrect / colTotal) * 100).toFixed(1) : '0.0';
               return (
-                <Td key={colLabel} textCenter>
-                  {pct}%
-                </Td>
+                <Tr key={rowLabel}>
+                  <Th dataLabel="Observed">{rowLabel}</Th>
+                  {labels.map((colLabel) => {
+                    const val = getCell(rowLabel, colLabel);
+                    const cellClass = [
+                      getCellClassName(rowLabel, colLabel),
+                      getCellIntensityClass(val, maxValue),
+                    ]
+                      .filter(Boolean)
+                      .join(' ');
+                    return (
+                      <Td key={colLabel} className={cellClass} textCenter>
+                        {val}
+                      </Td>
+                    );
+                  })}
+                  <Td textCenter>{pct}%</Td>
+                </Tr>
               );
             })}
-            <Td textCenter>{overallPct}%</Td>
-          </Tr>
-        </Tbody>
-      </Table>
+            <Tr>
+              <Th>Percent correct</Th>
+              {labels.map((colLabel, colIdx) => {
+                const colCorrect = getCell(colLabel, colLabel);
+                const colTotal = colTotals[colIdx];
+                const pct = colTotal > 0 ? ((colCorrect / colTotal) * 100).toFixed(1) : '0.0';
+                return (
+                  <Td key={colLabel} textCenter>
+                    {pct}%
+                  </Td>
+                );
+              })}
+              <Td textCenter>{overallPct}%</Td>
+            </Tr>
+          </Tbody>
+        </Table>
+      </InnerScrollContainer>
       <div className="automl-confusion-gradient" data-testid="confusion-matrix-gradient">
         <span>Less correct</span>
         <span>More correct</span>
