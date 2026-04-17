@@ -759,6 +759,9 @@ const useChatbotMessages = ({
       });
 
       // Retry handler - resends the same prompt (uses refs to avoid stale closure)
+      // NOTE: botMessageId may be undefined at definition time for non-streaming errors
+      // (assigned after handleRetry on line ~837), but handleRetry captures the variable
+      // reference, not its value, so it reads the correct ID when invoked by the user.
       const handleRetry = () => {
         // Read latest messages from ref (avoid stale closure)
         const currentMessages = messagesRef.current;
@@ -833,7 +836,9 @@ const useChatbotMessages = ({
           errorClassification,
           onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
         };
-        // Set botMessageId so handleRetry can filter it out on retry
+        // Assign botMessageId so handleRetry can filter it out on retry.
+        // This assignment is late (after handleRetry is defined), but handleRetry captures
+        // the variable reference, not the value, so it reads the correct ID when invoked.
         botMessageId = newBotId;
         setMessages((prevMessages) => [...prevMessages, botErrorMessage]);
       }
