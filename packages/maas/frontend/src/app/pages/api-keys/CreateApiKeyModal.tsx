@@ -115,6 +115,24 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
     [subscriptions, formData.subscription],
   );
 
+  const subscriptionSelectOptions = React.useMemo(
+    () =>
+      subscriptions
+        .toSorted((a, b) => b.priority - a.priority)
+        .map<TypeaheadSelectOption>((sub) => ({
+          value: sub.subscription_id_header,
+          content: sub.display_name || sub.subscription_id_header,
+          description: (
+            <TruncatedText
+              maxLines={2}
+              content={`${sub.subscription_description} · ${sub.model_refs.length} ${sub.model_refs.length === 1 ? 'model' : 'models'}`}
+            />
+          ),
+          'data-testid': `api-key-subscription-option-${sub.subscription_id_header}`,
+        })),
+    [subscriptions],
+  );
+
   const modelRefSummaries = React.useMemo<MaaSModelRefSummary[]>(
     () =>
       selectedSubscription?.model_refs.map((ref) => ({
@@ -371,17 +389,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                 <FormGroup label="Subscription" isRequired fieldId="api-key-subscription">
                   <TypeaheadSelect
                     id="api-key-subscription"
-                    selectOptions={subscriptions.map<TypeaheadSelectOption>((sub) => ({
-                      value: sub.subscription_id_header,
-                      content: sub.display_name || sub.subscription_id_header,
-                      description: (
-                        <TruncatedText
-                          maxLines={2}
-                          content={`${sub.subscription_description} · ${sub.model_refs.length} ${sub.model_refs.length === 1 ? 'model' : 'models'}`}
-                        />
-                      ),
-                      'data-testid': `api-key-subscription-option-${sub.subscription_id_header}`,
-                    }))}
+                    selectOptions={subscriptionSelectOptions}
                     selected={formData.subscription}
                     onSelect={(_e, value) =>
                       setFormData({ ...formData, subscription: String(value) })
