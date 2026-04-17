@@ -69,6 +69,7 @@
   margin-top: var(--pf-t--global--spacer--lg);
   font-size: var(--pf-t--global--font--size--md);
   padding-left: var(--pf-t--global--spacer--xl);
+  overflow-x: auto;
 
   /* Bold sub-section headers within tab content */
   .pf-v6-c-title {
