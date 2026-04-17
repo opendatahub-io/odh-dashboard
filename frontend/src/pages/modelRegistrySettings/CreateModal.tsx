@@ -603,7 +603,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                                 <HelperTextItem variant="error" data-testid="mr-database-error">
                                   {!hasContent(database)
                                     ? 'Database cannot be empty'
-                                    : 'Database name must not contain "?" characters'}
+                                    : 'Database name must not contain the "?" character'}
                                 </HelperTextItem>
                               </HelperText>
                             )}
