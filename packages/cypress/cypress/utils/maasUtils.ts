@@ -60,7 +60,7 @@ export const mockAPIKeys = (): APIKey[] => [
 
 export const mockCreateAPIKeyResponse = (): CreateAPIKeyResponse => {
   return {
-    key: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtYWFzLWFwaSIsInN1YiI6InRlc3QtdXNlciIsImF1ZCI6WyJtYWFzLWFwaSJdLCJleHAiOjE2NzI1NDU2MDAsIm5iZiI6MTY3MjUzMTIwMCwiaWF0IjoxNjcyNTMxMjAwfQ.mock-signature',
+    key: 'sk-oai-1JO088RHrhLvlwNqT_LDEQgy7IbnbyoSYQCjuMqLpzRI8xns9gBFo0bZsaSat',
     keyPrefix: 'sk-oai-abc',
     id: 'key-prod-backend-001',
     expiresAt: '2026-01-20T11:54:34.521671447-05:00',
