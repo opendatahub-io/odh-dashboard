@@ -331,10 +331,10 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 					app.effectivePostS3CollisionAttempts()))
 			return
 		}
-    if isS3ConnectivityError(err) {
-      app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
-      return
-    }
+		if isS3ConnectivityError(err) {
+			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
+			return
+		}
 		app.serverErrorResponse(w, r, fmt.Errorf("error resolving S3 key for upload: %w", err))
 		return
 	}
