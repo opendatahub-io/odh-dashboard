@@ -5,12 +5,11 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"path"
 	"strings"
+	"sync"
 
 	k8s "github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes/k8mocks"
@@ -31,6 +30,7 @@ const (
 	PathPrefix      = "/mlflow"
 	APIPathPrefix   = "/api/v1"
 	HealthCheckPath = "/healthcheck"
+	StatusPath      = APIPathPrefix + "/status"
 	UserPath        = APIPathPrefix + "/user"
 	NamespacePath   = APIPathPrefix + "/namespaces"
 	ExperimentsPath = APIPathPrefix + "/experiments"
@@ -40,7 +40,14 @@ type App struct {
 	config                  config.EnvConfig
 	logger                  *slog.Logger
 	kubernetesClientFactory k8s.KubernetesClientFactory
+	mlflowMu                sync.RWMutex
 	mlflowClientFactory     mlflowpkg.MLflowClientFactory
+	mlflowConfigured        bool
+	mlflowTrackingURL       string
+	mlflowWatcherDone       chan struct{}
+	mlflowWatcherWg         sync.WaitGroup
+	shutdownOnce            sync.Once
+	shutdownErr             error
 	repositories            *repositories.Repositories
 	testEnv                 *envtest.Environment     // used only with mocked k8s client
 	rootCAs                 *x509.CertPool           // custom CA pool for outbound TLS connections
@@ -62,21 +69,29 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	mlflowFactory, mlflowState, err := initMLflowFactory(cfg, logger, rootCAs)
+	mlflowFactory, mlflowState, trackingURL, mlflowConfigured, err := initMLflowFactory(cfg, logger, rootCAs)
 	if err != nil {
 		return nil, err
 	}
 
-	return &App{
+	app := &App{
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
 		mlflowClientFactory:     mlflowFactory,
+		mlflowConfigured:        mlflowConfigured,
+		mlflowTrackingURL:       trackingURL,
 		repositories:            repositories.NewRepositories(),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		mlflowState:             mlflowState,
-	}, nil
+	}
+
+	if app.shouldWatchMLflow() {
+		app.startMLflowWatcher()
+	}
+
+	return app, nil
 }
 
 func initRootCAs(bundlePaths []string, logger *slog.Logger) *x509.CertPool {
@@ -137,137 +152,26 @@ func initK8sFactory(cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesCl
 	return factory, nil, nil
 }
 
-func initMLflowFactory(cfg config.EnvConfig, logger *slog.Logger, rootCAs *x509.CertPool) (mlflowpkg.MLflowClientFactory, *mlflowmocks.MLflowState, error) {
-	if cfg.MockHTTPClient {
-		return initMockMLflowFactory(cfg, logger)
-	}
-
-	trackingURL := resolveMLflowURL(cfg, logger)
-	if trackingURL == "" {
-		return mlflowpkg.NewUnavailableClientFactory(), nil, nil
-	}
-	return newRealClientFactory(trackingURL, rootCAs, cfg.InsecureSkipVerify, logger), nil, nil
-}
-
-func initMockMLflowFactory(cfg config.EnvConfig, logger *slog.Logger) (mlflowpkg.MLflowClientFactory, *mlflowmocks.MLflowState, error) {
-	if cfg.MLflowURL != "" {
-		if err := validateLoopbackURL(cfg.MLflowURL, cfg.DevMode); err != nil {
-			return nil, nil, err
-		}
-		logger.Info("Using external MLflow (no auth)", slog.String("url", cfg.MLflowURL))
-		return mlflowmocks.NewMockClientFactory(cfg.MLflowURL), nil, nil
-	}
-
-	if cfg.StaticMLflowMock {
-		logger.Info("Using static in-memory MLflow mock data")
-		return mlflowmocks.NewStaticMockClientFactory(), nil, nil
-	}
-
-	state, err := mlflowmocks.SetupMLflow(logger)
-	if err != nil {
-		logger.Info("MLflow mock server not available, using static mock data", slog.Any("error", err))
-		return mlflowmocks.NewStaticMockClientFactory(), nil, nil
-	}
-	return mlflowmocks.NewMockClientFactory(state.TrackingURI), state, nil
-}
-
-func validateLoopbackURL(rawURL string, devMode bool) error {
-	parsed, err := url.Parse(rawURL)
-	if err != nil {
-		return fmt.Errorf("invalid MLflow URL: %w", err)
-	}
-	host := parsed.Hostname()
-	ip := net.ParseIP(host)
-	if !devMode || (host != "localhost" && (ip == nil || !ip.IsLoopback())) {
-		return fmt.Errorf("external no-auth MLflow is only allowed in dev mode for loopback hosts")
-	}
-	return nil
-}
-
-func sanitizeURL(rawURL string) string {
-	parsed, err := url.Parse(rawURL)
-	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-		return "<invalid-url>"
-	}
-	return (&url.URL{
-		Scheme: parsed.Scheme,
-		Host:   parsed.Host,
-		Path:   parsed.Path,
-	}).String()
-}
-
-func normalizeTrackingURL(rawURL string) (string, error) {
-	parsed, err := url.Parse(strings.TrimSpace(rawURL))
-	if err != nil {
-		return "", fmt.Errorf("invalid MLflow URL: %s", sanitizeURL(rawURL))
-	}
-	if parsed.Scheme == "" || parsed.Host == "" {
-		return "", fmt.Errorf("invalid MLflow URL: missing scheme or host")
-	}
-	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return "", fmt.Errorf("unsupported MLflow URL scheme %q", parsed.Scheme)
-	}
-	return (&url.URL{
-		Scheme: parsed.Scheme,
-		Host:   parsed.Host,
-		Path:   parsed.Path,
-	}).String(), nil
-}
-
-func resolveMLflowURL(cfg config.EnvConfig, logger *slog.Logger) string {
-	if cfg.MLflowURL != "" {
-		normalized, err := normalizeTrackingURL(cfg.MLflowURL)
-		if err != nil {
-			logger.Warn("Configured MLflow URL is invalid, MLflow endpoints will return 503", slog.String("url", sanitizeURL(cfg.MLflowURL)))
-			return ""
-		}
-		logger.Info("Using MLflow URL from configuration", slog.String("url", sanitizeURL(normalized)))
-		return normalized
-	}
-	if cfg.AuthMethod == config.AuthMethodDisabled {
-		logger.Info("Auth disabled, skipping MLflow URL discovery")
-		return ""
-	}
-	discoveredURL, err := mlflowpkg.DiscoverMLflowURL()
-	if err != nil {
-		logger.Warn("MLflow CR auto-discovery failed, MLflow endpoints will return 503", slog.Any("error", err))
-		return ""
-	}
-	if discoveredURL == "" {
-		logger.Warn("MLflow CR auto-discovery returned empty URL, MLflow endpoints will return 503")
-		return ""
-	}
-	normalized, err := normalizeTrackingURL(discoveredURL)
-	if err != nil {
-		logger.Warn("Discovered MLflow URL is invalid, MLflow endpoints will return 503", slog.String("url", sanitizeURL(discoveredURL)))
-		return ""
-	}
-	logger.Info("Discovered MLflow URL from CR", slog.String("url", sanitizeURL(normalized)))
-	return normalized
-}
-
-func newRealClientFactory(trackingURL string, rootCAs *x509.CertPool, insecureSkipVerify bool, logger *slog.Logger) mlflowpkg.MLflowClientFactory {
-	return mlflowpkg.NewRealClientFactory(mlflowpkg.RealClientFactoryConfig{
-		TrackingURL:        trackingURL,
-		RootCAs:            rootCAs,
-		InsecureSkipVerify: insecureSkipVerify,
-		Logger:             logger,
-	})
-}
-
 func (app *App) Shutdown() error {
-	app.logger.Info("shutting down app...")
+	app.shutdownOnce.Do(func() {
+		app.logger.Info("shutting down app...")
 
-	if app.mlflowState != nil {
-		app.logger.Info("stopping MLflow server...")
-		mlflowmocks.CleanupMLflowState(app.mlflowState, app.logger)
-	}
+		if app.mlflowWatcherDone != nil {
+			close(app.mlflowWatcherDone)
+			app.mlflowWatcherWg.Wait()
+		}
 
-	if app.testEnv == nil {
-		return nil
-	}
-	app.logger.Info("shutting env test...")
-	return app.testEnv.Stop()
+		if app.mlflowState != nil {
+			app.logger.Info("stopping MLflow server...")
+			mlflowmocks.CleanupMLflowState(app.mlflowState, app.logger)
+		}
+
+		if app.testEnv != nil {
+			app.logger.Info("shutting env test...")
+			app.shutdownErr = app.testEnv.Stop()
+		}
+	})
+	return app.shutdownErr
 }
 
 func (app *App) Routes() http.Handler {
@@ -282,6 +186,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 
 	// MLflow API routes
+	apiRouter.GET(StatusPath, app.RequireValidIdentity(app.StatusHandler))
 	apiRouter.GET(ExperimentsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowListExperimentsHandler))))
 
 	// App Router

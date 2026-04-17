@@ -1889,6 +1889,10 @@ components:
           enum: [Pending, Active, Failed]
           description: Current phase of the subscription (from status)
           example: Active
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+          example: "successfully reconciled"
         priority:
           type: integer
           format: int32
@@ -1966,6 +1970,10 @@ components:
           enum: [Pending, Active, Failed]
           description: Current phase of the auth policy (from status)
           example: Active
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+          example: "successfully reconciled"
         creationTimestamp:
           type: string
           format: date-time

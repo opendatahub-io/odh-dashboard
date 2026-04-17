@@ -1,4 +1,4 @@
-import type { PipelineRun } from '~/app/types';
+import type { PipelineRun, TaskType } from '~/app/types';
 import {
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
@@ -25,12 +25,30 @@ export function parseErrorStatus(error: Error): number | undefined {
 }
 
 /**
+ * Extracts the task type from a pipeline run's runtime parameters.
+ * - Returns the task_type value when present.
+ * - Defaults to timeseries when parameters exist but task_type is missing
+ *   (timeseries is the only task that omits this parameter).
+ * - Returns undefined when runtime_config.parameters is absent.
+ */
+export const getTaskType = (pipelineRun?: PipelineRun): TaskType | undefined => {
+  const params = pipelineRun?.runtime_config?.parameters;
+  if (!params) {
+    return undefined;
+  }
+  if (!Object.prototype.hasOwnProperty.call(params, 'task_type')) {
+    return TASK_TYPE_TIMESERIES;
+  }
+  return params.task_type;
+};
+
+/**
  * Determines if a task type is tabular.
  * @param pipelineRun - The pipeline run to check
  * @returns true if the task type is tabular, false otherwise
  */
 export const isTabularRun = (pipelineRun?: PipelineRun): boolean => {
-  const taskType = pipelineRun?.runtime_config?.parameters?.task_type ?? TASK_TYPE_TIMESERIES;
+  const taskType = getTaskType(pipelineRun) ?? TASK_TYPE_TIMESERIES;
 
   return [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS, TASK_TYPE_REGRESSION].includes(taskType);
 };
@@ -120,48 +138,23 @@ export function getOptimizedMetricForTask(taskType: string): string {
   }
 }
 
-/** Metrics where lower values indicate better performance. */
-const ERROR_METRICS = new Set(['mase', 'mse', 'mae', 'rmse', 'mape']);
-
-/**
- * Check whether a metric is an error metric (lower-is-better).
- * AutoGluon reports these as negative values; callers should use Math.abs()
- * only for these metrics to recover the true value.
- */
-export function isErrorMetric(metric: string): boolean {
-  return ERROR_METRICS.has(metric.toLowerCase());
-}
-
 /**
  * Build a mapping from model name → leaderboard rank (1-based).
- * Ranks are assigned by sorting on the optimized metric for the task type,
+ * Ranks are assigned by sorting on the optimized metric descending (higher is better).
+ * AutoGluon negates error/loss metrics so all metrics are uniformly "higher is better".
  */
 export function computeRankMap(
   models: Record<string, { metrics: { test_data?: Record<string, unknown> } }>,
   taskType: string,
 ): Record<string, number> {
   const optimizedMetric = getOptimizedMetricForTask(taskType);
-  const useAbs = isErrorMetric(optimizedMetric);
-
-  // Use worst-case for missing metrics so they sort last
-  const worstCase = useAbs ? Infinity : -Infinity;
 
   const sorted = Object.keys(models).toSorted((a, b) => {
     const aMetric = models[a].metrics.test_data?.[optimizedMetric];
     const bMetric = models[b].metrics.test_data?.[optimizedMetric];
-    const aVal =
-      aMetric != null
-        ? useAbs
-          ? Math.abs(toNumericMetric(aMetric))
-          : toNumericMetric(aMetric)
-        : worstCase;
-    const bVal =
-      bMetric != null
-        ? useAbs
-          ? Math.abs(toNumericMetric(bMetric))
-          : toNumericMetric(bMetric)
-        : worstCase;
-    return useAbs ? aVal - bVal : bVal - aVal;
+    const aVal = aMetric != null ? toNumericMetric(aMetric) : -Infinity;
+    const bVal = bMetric != null ? toNumericMetric(bMetric) : -Infinity;
+    return bVal - aVal;
   });
 
   return Object.fromEntries(sorted.map((name, i) => [name, i + 1]));

@@ -231,7 +231,7 @@ const createGPUClusterQueue = () => {
     ...baseMock,
     spec: {
       ...baseMock.spec,
-      cohort: 'ml-training-cohort',
+      cohortName: 'ml-training-cohort',
       resourceGroups: [
         {
           coveredResources: [

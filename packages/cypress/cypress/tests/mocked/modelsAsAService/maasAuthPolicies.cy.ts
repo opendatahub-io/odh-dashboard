@@ -31,6 +31,7 @@ const setupAuthPoliciesCommon = () => {
       components: {
         [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
       },
+      conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
     }),
   );
 };
@@ -91,15 +92,25 @@ describe('MaaS Auth Policies', () => {
   it('should display the auth policies table with correct page content', () => {
     authPoliciesPage.findTitle().should('contain.text', 'Policies');
     authPoliciesPage.findTable().should('exist');
-    authPoliciesPage.findRows().should('have.length', 3);
+    authPoliciesPage.findRows().should('have.length', 5);
     const premiumRow = authPoliciesPage.getRow('premium-team-policy');
     premiumRow.findName().should('contain.text', 'premium-team-policy');
+    premiumRow.findPhase().should('contain.text', 'Active');
     premiumRow.findGroups().should('contain.text', '1 Group');
     premiumRow.findModels().should('contain.text', '2 Models');
     const basicRow = authPoliciesPage.getRow('basic-team-policy');
     basicRow.findName().should('contain.text', 'basic-team-policy');
+    basicRow.findPhase().should('contain.text', 'Active');
     basicRow.findGroups().should('contain.text', '1 Group');
     basicRow.findModels().should('contain.text', '1 Model');
+
+    const failedRow = authPoliciesPage.getRow('failed-policy');
+    failedRow.findPhase().should('contain.text', 'Failed');
+    failedRow.findPhaseLabel().click();
+    failedRow.findPhasePopover().should('contain.text', 'Failed');
+
+    const pendingRow = authPoliciesPage.getRow('pending-policy');
+    pendingRow.findPhase().should('contain.text', 'Pending');
   });
 
   it('should delete an auth policy', () => {
@@ -205,6 +216,8 @@ describe('View Auth Policy Page', () => {
     viewAuthPolicyPage
       .findDetailsSection()
       .should('contain.text', policyName)
+      .and('contain.text', 'Phase')
+      .and('contain.text', 'Active')
       .and('contain.text', 'Name')
       .and('contain.text', 'Resource name')
       .and('contain.text', 'Date created');

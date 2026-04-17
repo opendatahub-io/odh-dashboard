@@ -503,6 +503,30 @@ export type ModelRegistryTestData = {
 
   // Object storage paths
   objectStoragePathV2: string;
+
+  // OCI Register and Store
+  ociModelName: string;
+  ociModelDescription: string;
+  ociVersionName: string;
+  ociVersionDescription: string;
+  ociModelFormat: string;
+  ociModelFormatVersion: string;
+  ociJobName: string;
+  ociSourceEndpoint: string;
+  ociSourceBucket: string;
+  ociSourceRegion: string;
+  ociSourcePath: string;
+  ociTransferJobStartedNotification: string;
+  ociTransferJobFailedNotification: string;
+  ociDestinationRegistry: string;
+  ociDestinationUri: string;
+  ociDestinationUsername: string;
+  ociDestinationPassword: string;
+
+  // OCI Register and Store — URI origin variant
+  ociUriModelName: string;
+  ociUriJobName: string;
+  ociUriOriginUri: string;
 };
 
 export type ManageRegistryPermissionsTestData = {
@@ -634,7 +658,7 @@ export type PipelineTestData = {
   pipelineDescription: string;
   runName: string;
   runDescription: string;
-  runGroupName: string;
+  experimentName: string;
   dspaSecretName: string;
   pipelineUrl: string;
 };

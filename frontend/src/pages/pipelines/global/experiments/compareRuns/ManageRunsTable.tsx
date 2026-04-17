@@ -5,15 +5,15 @@ import { Button, Flex, ToolbarGroup, ToolbarItem, Tooltip } from '@patternfly/re
 import { TableVariant } from '@patternfly/react-table';
 
 import { TableBase, getTableColumnSort, useCheckboxTable } from '#~/components/table';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import useMlflowExperiments from '#~/concepts/mlflow/useMlflowExperiments';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
+import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import { pipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
 import PipelineRunTable from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import PipelineRunTableRow from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import PipelineRunTableToolbar from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import { filterByMlflowExperiment } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
-import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { ExperimentKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { compareRunsRoute } from '#~/routes/pipelines/runs';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
@@ -40,7 +40,7 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
 }) => {
   const { namespace } = usePipelinesAPI();
   const { experiment } = React.useContext(ExperimentContext);
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
     workspace: isMlflowAvailable ? namespace : '',
   });
@@ -64,6 +64,16 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
   } = useCheckboxTable(pageRunIds, selectedRunIds, true);
   const updateHref = compareRunsRoute(namespace, selections, experiment?.experiment_id);
   const isUpdateDisabled = selections.length < 1 || selections.length > 10;
+  const { onFilterUpdate } = filterProps;
+  const handleRunGroupClick = React.useCallback(
+    (clickedExperiment: ExperimentKF) => {
+      onFilterUpdate(FilterOptions.RUN_GROUP, {
+        value: clickedExperiment.experiment_id,
+        label: clickedExperiment.display_name,
+      });
+    },
+    [onFilterUpdate],
+  );
 
   const rowRenderer = React.useCallback(
     (run: PipelineRunKF) => {
@@ -81,6 +91,7 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
           }}
           hasRowActions={false}
           run={run}
+          onRunGroupClick={handleRunGroupClick}
           mlflow={{
             isAvailable: isMlflowAvailable,
             experiments: mlflowExperiments,
@@ -89,7 +100,14 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
         />
       );
     },
-    [selections, toggleSelection, isMlflowAvailable, mlflowExperiments, mlflowExperimentsLoaded],
+    [
+      selections,
+      toggleSelection,
+      handleRunGroupClick,
+      isMlflowAvailable,
+      mlflowExperiments,
+      mlflowExperimentsLoaded,
+    ],
   );
 
   return (

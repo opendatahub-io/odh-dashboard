@@ -78,11 +78,52 @@ export const mockCreateAPIKeyRequest = (): CreateAPIKeyRequest => {
   };
 };
 
+export const mockFailedSubscription = (): MaaSSubscription => ({
+  name: 'failed-sub',
+  namespace: 'maas-system',
+  phase: 'Failed',
+  statusMessage:
+    'failed to reconcile TokenRateLimitPolicies: token rate limit exceeds maximum allowed value',
+  priority: 99,
+  owner: {
+    groups: [{ name: 'system:authenticated' }],
+  },
+  modelRefs: [
+    {
+      name: 'granite-3-8b-instruct',
+      namespace: 'maas-models',
+      tokenRateLimits: [{ limit: 9999999, window: '24h' }],
+    },
+  ],
+  creationTimestamp: '2025-04-01T12:00:00Z',
+});
+
+export const mockPendingSubscription = (): MaaSSubscription => ({
+  name: 'pending-sub',
+  namespace: 'maas-system',
+  phase: 'Pending',
+  statusMessage: '',
+  priority: 99,
+  owner: {
+    groups: [{ name: 'beta-testers' }],
+  },
+  modelRefs: [
+    {
+      name: 'flan-t5-small',
+      namespace: 'maas-models',
+      tokenRateLimits: [{ limit: 5000, window: '1h' }],
+    },
+  ],
+  creationTimestamp: '2025-04-05T09:00:00Z',
+});
+
 export const mockSubscriptions = (): MaaSSubscription[] => [
   {
     name: 'premium-team-sub',
+    displayName: 'Premium Team Subscription',
     namespace: 'maas-system',
     phase: 'Active',
+    statusMessage: 'successfully reconciled',
     priority: 10,
     owner: {
       groups: [{ name: 'premium-users' }],
@@ -107,8 +148,10 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
   },
   {
     name: 'basic-team-sub',
+    displayName: 'Basic Team Subscription',
     namespace: 'maas-system',
     phase: 'Active',
+    statusMessage: 'successfully reconciled',
     owner: {
       groups: [{ name: 'system:authenticated' }],
     },
@@ -126,6 +169,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     name: 'negative-priority-sub',
     namespace: 'maas-system',
     phase: 'Active',
+    statusMessage: 'successfully reconciled',
     priority: -10000,
     owner: {
       groups: [{ name: 'system:authenticated' }],
@@ -139,6 +183,8 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     ],
     creationTimestamp: '2025-03-18T03:00:00Z',
   },
+  mockFailedSubscription(),
+  mockPendingSubscription(),
 ];
 
 export const mockSubscriptionListItems = (): UserSubscription[] => [
@@ -190,6 +236,34 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
   },
 ];
 
+export const mockSubscriptionInfoMissingModelSummaries = (): SubscriptionInfoResponse => {
+  const subscription: MaaSSubscription = {
+    name: 'missing-model-summary-sub',
+    displayName: "Subscription with model refs that don't exist",
+    namespace: 'maas-system',
+    phase: 'Active',
+    statusMessage: 'successfully reconciled',
+    priority: 7,
+    owner: {
+      groups: [{ name: 'premium-users' }],
+    },
+    modelRefs: [
+      {
+        name: 'deleted-model-ref',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 50000, window: '24h' }],
+      },
+    ],
+    creationTimestamp: '2025-03-01T10:00:00Z',
+  };
+
+  return {
+    subscription,
+    modelRefs: [],
+    authPolicies: [],
+  };
+};
+
 export const mockSubscriptionInfo = (name = 'premium-team-sub'): SubscriptionInfoResponse => {
   const subscription = mockSubscriptions().find((s) => s.name === name) ?? mockSubscriptions()[0];
   return {
@@ -207,6 +281,7 @@ export const mockSubscriptionInfo = (name = 'premium-team-sub'): SubscriptionInf
         name: `${name}-policy`,
         namespace: subscription.namespace,
         phase: 'Active',
+        statusMessage: 'successfully reconciled',
         modelRefs: subscription.modelRefs.map((ref) => ({
           name: ref.name,
           namespace: ref.namespace,
@@ -253,6 +328,7 @@ export const mockCreateSubscriptionResponse = (): CreateSubscriptionResponse => 
     description: 'A test subscription',
     namespace: 'maas-system',
     phase: 'Active',
+    statusMessage: 'successfully reconciled',
     priority: 5,
     owner: {
       groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }],
@@ -270,6 +346,7 @@ export const mockCreateSubscriptionResponse = (): CreateSubscriptionResponse => 
     name: 'test-subscription-policy',
     namespace: 'maas-system',
     phase: 'Active',
+    statusMessage: 'successfully reconciled',
     modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
     subjects: { groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }] },
   },
@@ -286,8 +363,27 @@ export const mockCreatePolicyResponse = (name = 'new-policy-from-test'): MaaSAut
   name,
   namespace: 'maas-system',
   phase: 'Pending',
+  statusMessage: '',
   modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
   subjects: { groups: [{ name: 'premium-users' }] },
+});
+
+export const mockFailedAuthPolicy = (): MaaSAuthPolicy => ({
+  name: 'failed-policy',
+  namespace: 'maas-system',
+  phase: 'Failed',
+  statusMessage: 'all 2 model references are invalid or missing',
+  modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+  subjects: { groups: [{ name: 'system:authenticated' }] },
+});
+
+export const mockPendingAuthPolicy = (): MaaSAuthPolicy => ({
+  name: 'pending-policy',
+  namespace: 'maas-system',
+  phase: 'Pending',
+  statusMessage: '',
+  modelRefs: [{ name: 'flan-t5-small', namespace: 'maas-models' }],
+  subjects: { groups: [{ name: 'beta-testers' }] },
 });
 
 export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
@@ -295,6 +391,7 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
     name: 'test-subscription-policy',
     namespace: 'maas-system',
     phase: 'Active',
+    statusMessage: 'successfully reconciled',
     modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
     subjects: { groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }] },
   },
@@ -302,6 +399,7 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
     name: 'premium-team-policy',
     namespace: 'maas-system',
     phase: 'Active',
+    statusMessage: 'successfully reconciled',
     modelRefs: mockSubscriptions()[0].modelRefs,
     subjects: {
       groups: mockSubscriptions()[0].owner.groups,
@@ -311,11 +409,14 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
     name: 'basic-team-policy',
     namespace: 'maas-system',
     phase: 'Active',
+    statusMessage: 'successfully reconciled',
     modelRefs: mockSubscriptions()[1].modelRefs,
     subjects: {
       groups: mockSubscriptions()[1].owner.groups,
     },
   },
+  mockFailedAuthPolicy(),
+  mockPendingAuthPolicy(),
 ];
 
 export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {

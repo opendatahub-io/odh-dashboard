@@ -27,6 +27,7 @@ type APIServer struct {
 // ObjectStorage captures the DSPA objectStorage spec fields needed to connect to S3.
 type ObjectStorage struct {
 	ExternalStorage *ExternalStorage `json:"externalStorage,omitempty"`
+	Minio           *MinioStorage    `json:"minio,omitempty"`
 }
 
 // ExternalStorage holds the external S3-compatible storage configuration.
@@ -44,6 +45,16 @@ type S3CredentialsSecret struct {
 	SecretName string `json:"secretName,omitempty"`
 	AccessKey  string `json:"accessKey,omitempty"` // field NAME inside the secret
 	SecretKey  string `json:"secretKey,omitempty"` // field NAME inside the secret
+}
+
+// MinioStorage holds the managed MinIO storage configuration.
+// When deploy is true, the DSPA operator creates a MinIO instance with a secret
+// named "ds-pipeline-s3-{dspa-name}" containing S3-compatible credentials.
+type MinioStorage struct {
+	Deploy  bool   `json:"deploy,omitempty"`
+	Bucket  string `json:"bucket,omitempty"`
+	Image   string `json:"image,omitempty"`
+	PvcSize string `json:"pvcSize,omitempty"`
 }
 
 // DSPAObjectStorage is the resolved object-storage configuration extracted from a

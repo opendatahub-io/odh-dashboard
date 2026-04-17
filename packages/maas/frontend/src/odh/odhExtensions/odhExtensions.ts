@@ -9,6 +9,7 @@ export const MAAS_AUTH_POLICIES = 'maasAuthPolicies';
 
 export type ODHExtensions = NavExtension | RouteExtension | AreaExtension;
 const ADMIN_USER = 'ADMIN_USER';
+const MODELS_AS_SERVICE_READY = 'ModelsAsServiceReady';
 
 const ODH_EXTENSIONS: ODHExtensions[] = [
   {
@@ -16,6 +17,10 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     properties: {
       id: MODEL_AS_SERVICE_ID,
       featureFlags: ['modelAsService'],
+      customCondition: ({ dscStatus }) =>
+        !!dscStatus?.conditions.some(
+          (c) => c.type === MODELS_AS_SERVICE_READY && c.status === 'True',
+        ),
     },
   },
   {
@@ -23,6 +28,10 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     properties: {
       id: MAAS_AUTH_POLICIES,
       featureFlags: ['maasAuthPolicies'],
+      customCondition: ({ dscStatus }) =>
+        !!dscStatus?.conditions.some(
+          (c) => c.type === MODELS_AS_SERVICE_READY && c.status === 'True',
+        ),
     },
   },
   {

@@ -6,6 +6,7 @@ import * as React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
+import PhaseLabel from '~/app/shared/PhaseLabel';
 
 type AuthPoliciesTableRowProps = {
   authPolicy: MaaSAuthPolicy;
@@ -51,8 +52,11 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
           truncateDescriptionLines={2}
         />
       </Td>
-      <Td dataLabel={columns[1].label}>{labelHelper(groupsCount, 'Group', 'Groups')}</Td>
-      <Td dataLabel={columns[2].label}>{labelHelper(modelsCount, 'Model', 'Models')}</Td>
+      <Td dataLabel={columns[1].label}>
+        <PhaseLabel phase={authPolicy.phase} statusMessage={authPolicy.statusMessage} />
+      </Td>
+      <Td dataLabel={columns[2].label}>{labelHelper(groupsCount, 'Group', 'Groups')}</Td>
+      <Td dataLabel={columns[3].label}>{labelHelper(modelsCount, 'Model', 'Models')}</Td>
       <Td isActionCell>
         <ActionsColumn
           data-testid="auth-policy-actions"

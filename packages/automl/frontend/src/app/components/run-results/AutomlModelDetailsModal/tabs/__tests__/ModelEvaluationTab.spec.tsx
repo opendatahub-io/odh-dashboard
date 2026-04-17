@@ -33,14 +33,14 @@ describe('ModelEvaluationTab', () => {
     expect(screen.getByText('0.658')).toBeInTheDocument();
   });
 
-  it('should display absolute values for error metrics like mse', () => {
+  it('should display negated error metric values as-is', () => {
     const model = buildModel({ mse: -12.45 });
     render(<ModelEvaluationTab {...defaultProps} model={model} />);
 
-    expect(screen.getByText('12.450')).toBeInTheDocument();
+    expect(screen.getByText('-12.450')).toBeInTheDocument();
   });
 
-  it('should preserve negative values for non-error metrics like r2', () => {
+  it('should display negative values for non-error metrics like r2', () => {
     const model = buildModel({ r2: -0.123 });
     render(<ModelEvaluationTab {...defaultProps} model={model} />);
 

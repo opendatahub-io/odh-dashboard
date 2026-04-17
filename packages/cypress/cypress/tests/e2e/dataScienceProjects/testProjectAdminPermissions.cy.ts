@@ -129,7 +129,6 @@ describe('Verify that users can provide admin project permissions to non-admin u
 
       cy.step('Verify that the user has access to the created project and can access Permissions');
       projectListPage.navigate();
-      projectListPage.waitForPageAndToolbar();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
       projectDetails.findSectionTab('permissions').click();
