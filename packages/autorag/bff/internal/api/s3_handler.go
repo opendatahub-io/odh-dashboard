@@ -45,10 +45,18 @@ type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
 
 var trailingNumberPattern = regexp.MustCompile(`^(.*)-(\d+)$`)
 
-// isS3ConnectivityError checks whether an error is caused by a network-level
-// failure to reach the S3 endpoint (e.g. connection timeout, DNS failure,
-// connection refused). This lets handlers return an actionable 503 instead of
-// a generic 500 when the endpoint is unreachable — common in air-gapped or
+// isS3ConnectivityError checks whether an error indicates a failure to
+// establish a connection to the S3 endpoint. It detects pre-request network
+// failures such as context deadline exceeded, DNS resolution errors, dial
+// timeouts, and connection refused. It also catches general network timeouts
+// (net.Error.Timeout()) and closed-connection errors (net.ErrClosed), which
+// may occur slightly after dial but still indicate connectivity problems.
+//
+// It does NOT cover post-connection errors like TLS handshake failures or
+// mid-request connection resets — those remain as 500s.
+//
+// Matched errors let handlers return an actionable 503 instead of a generic
+// 500 when the endpoint is unreachable — common in air-gapped or
 // misconfigured environments.
 func isS3ConnectivityError(err error) bool {
 	if errors.Is(err, context.DeadlineExceeded) {
