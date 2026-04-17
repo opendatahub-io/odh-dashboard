@@ -1147,7 +1147,9 @@ func (m *terminateErrorMockClient) TerminateRun(_ context.Context, runID string)
 // but returns a configurable error from RetryRun so that mapMutationError is exercised.
 type retryErrorMockClient struct {
 	psmocks.MockPipelineServerClient
-	retryErr error
+	retryErr       error
+	retryCalled    bool
+	retryCalledFor string
 }
 
 func (m *retryErrorMockClient) GetRun(_ context.Context, runID string) (*models.KFPipelineRun, error) {
@@ -1164,7 +1166,9 @@ func (m *retryErrorMockClient) GetRun(_ context.Context, runID string) (*models.
 	}, nil
 }
 
-func (m *retryErrorMockClient) RetryRun(_ context.Context, _ string) error {
+func (m *retryErrorMockClient) RetryRun(_ context.Context, runID string) error {
+	m.retryCalled = true
+	m.retryCalledFor = runID
 	return m.retryErr
 }
 
@@ -1296,6 +1300,8 @@ func TestRetryPipelineRunHandler_MutationErrors(t *testing.T) {
 			app.RetryPipelineRunHandler(rr, req, params)
 
 			assert.Equal(t, tt.expectedStatus, rr.Code)
+			assert.True(t, mockClient.retryCalled, "RetryRun should have been invoked")
+			assert.Equal(t, runID, mockClient.retryCalledFor, "RetryRun should have been called with the correct run ID")
 		})
 	}
 }

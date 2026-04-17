@@ -193,6 +193,10 @@ const renderPage = () => {
 };
 
 describe('AutomlResultsPage', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     capturedContext = null;
@@ -821,8 +825,6 @@ describe('AutomlResultsPage', () => {
         'Retry submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
-
-      invalidateQueriesSpy.mockRestore();
     });
 
     it('should show error notification when retry fails', async () => {
