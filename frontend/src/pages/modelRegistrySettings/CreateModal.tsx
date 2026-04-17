@@ -54,6 +54,7 @@ import {
   DEFAULT_DATABASE_NAME,
   DEFAULT_MYSQL_PORT,
   DEFAULT_POSTGRES_PORT,
+  INVALID_DATABASE_CHARS,
   MAX_MODEL_REGISTRY_NAME_LENGTH,
   ResourceType,
   SecureDBRType,
@@ -391,6 +392,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
 
   const hasContent = (value: string): boolean => !!value.trim().length;
 
+  const hasDatabaseInvalidChars = (value: string): boolean => INVALID_DATABASE_CHARS.test(value);
+
   const canSubmit = () => {
     const isValidName = isK8sNameDescriptionDataValid(nameDesc);
 
@@ -407,6 +410,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
       isValidPort(port) &&
       hasContent(username) &&
       hasContent(database) &&
+      !hasDatabaseInvalidChars(database) &&
       (!addSecureDB || (secureDBInfo.isValid && !configSecretsError))
     );
   };
@@ -587,16 +591,22 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                             onBlur={() => setIsDatabaseTouched(true)}
                             onChange={(_e, value) => setDatabase(value)}
                             validated={
-                              isDatabaseTouched && !hasContent(database) ? 'error' : 'default'
+                              isDatabaseTouched &&
+                              (!hasContent(database) || hasDatabaseInvalidChars(database))
+                                ? 'error'
+                                : 'default'
                             }
                           />
-                          {isDatabaseTouched && !hasContent(database) && (
-                            <HelperText>
-                              <HelperTextItem variant="error" data-testid="mr-database-error">
-                                Database cannot be empty
-                              </HelperTextItem>
-                            </HelperText>
-                          )}
+                          {isDatabaseTouched &&
+                            (!hasContent(database) || hasDatabaseInvalidChars(database)) && (
+                              <HelperText>
+                                <HelperTextItem variant="error" data-testid="mr-database-error">
+                                  {!hasContent(database)
+                                    ? 'Database cannot be empty'
+                                    : 'Database name must not contain "?" characters'}
+                                </HelperTextItem>
+                              </HelperText>
+                            )}
                         </FormGroup>
                         {secureDbEnabled && (
                           <FormGroup>
