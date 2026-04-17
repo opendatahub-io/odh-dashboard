@@ -39,7 +39,9 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
   const copyTimeoutRef = React.useRef<number>();
 
   const handleCopy = async () => {
-    const rawError = `[${details.errorCode}] ${details.rawMessage}`;
+    const rawError = details.errorCode
+      ? `[${details.errorCode}] ${details.rawMessage}`
+      : details.rawMessage;
     try {
       await navigator.clipboard.writeText(rawError);
       setCopied(true);
@@ -87,7 +89,9 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
     return undefined;
   }, [isRetriable, onRetry, retryCount, dataTestId]);
 
-  const rawErrorText = `[${details.errorCode}] ${details.rawMessage}`;
+  const rawErrorText = details.errorCode
+    ? `[${details.errorCode}] ${details.rawMessage}`
+    : details.rawMessage;
 
   return (
     <Alert

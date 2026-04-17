@@ -59,6 +59,9 @@ var errorPatterns = []ErrorPattern{
 	{regexp.MustCompile(`(?i)temperature.*invalid|temperature.*out of range|temperature.*between`), CategoryInvalidParameter},
 	{regexp.MustCompile(`(?i)top_p.*invalid|top_p.*out of range`), CategoryInvalidParameter},
 	{regexp.MustCompile(`(?i)invalid.*parameter|parameter.*validation.*failed`), CategoryInvalidParameter},
+	{regexp.MustCompile(`(?i)\b(input|request body|body)\s+is\s+required\b`), CategoryInvalidParameter},
+	{regexp.MustCompile(`(?i)missing\s+required\s+field`), CategoryInvalidParameter},
+	{regexp.MustCompile(`(?i)\bmust\s+be\s+provided\b`), CategoryInvalidParameter},
 
 	// RAG errors
 	{regexp.MustCompile(`(?i)vector.*store.*not found|vectorstore.*does not exist`), CategoryRAGVectorStoreNotFound},
@@ -70,13 +73,14 @@ var errorPatterns = []ErrorPattern{
 	{regexp.MustCompile(`(?i)shield.*error|guardrail.*failed|moderation.*error`), CategoryGuardrailsError},
 	{regexp.MustCompile(`(?i)content.*blocked|guardrail.*violation|input.*rejected`), CategoryGuardrailsViolation},
 
-	// MCP errors
+	// MCP errors (check these before model timeouts to avoid misclassification)
 	{regexp.MustCompile(`(?i)tool.*not found|mcp.*tool.*unavailable`), CategoryMCPToolNotFound},
 	{regexp.MustCompile(`(?i)mcp.*authentication|mcp.*unauthorized|tool.*authorization.*failed`), CategoryMCPAuthError},
+	{regexp.MustCompile(`(?i)mcp.*(timeout|timed out)|tool.*(timeout|timed out)`), CategoryMCPError},
 	{regexp.MustCompile(`(?i)mcp.*error|tool.*execution.*failed|tool.*invocation.*failed`), CategoryMCPError},
 
-	// Model invocation errors
-	{regexp.MustCompile(`(?i)timeout|timed out|deadline exceeded`), CategoryModelTimeout},
+	// Model invocation errors (more specific timeout pattern to avoid matching connection/tool timeouts)
+	{regexp.MustCompile(`(?i)(model|request|inference).*(timeout|timed out)|deadline exceeded`), CategoryModelTimeout},
 	{regexp.MustCompile(`(?i)model.*overloaded|too many requests|rate.*limit|capacity.*exceeded`), CategoryModelOverloaded},
 	{regexp.MustCompile(`(?i)model.*not found|model.*unavailable|model.*not loaded`), CategoryModelInvocationError},
 	{regexp.MustCompile(`(?i)(cuda.*out of memory|\boom\b|memory.*allocation.*failed)`), CategoryModelOverloaded},
@@ -99,9 +103,9 @@ func CategorizeResponseError(errorMessage string) ResponseErrorCategory {
 	return CategoryGenericError
 }
 
-// GetUserFriendlyErrorMessage returns a user-friendly error message based on category
+// GetUserFriendlyErrorMessage returns a user-friendly error message based on category and error code
 // This provides guidance to users on how to fix the issue
-func GetUserFriendlyErrorMessage(category ResponseErrorCategory, originalError string) string {
+func GetUserFriendlyErrorMessage(category ResponseErrorCategory, errorCode string) string {
 	switch category {
 	case CategoryInvalidModelConfig:
 		return "The model configuration is invalid. Please check parameters like max_tokens, chat_template, or prompt length."
@@ -143,9 +147,20 @@ func GetUserFriendlyErrorMessage(category ResponseErrorCategory, originalError s
 		return "An error occurred while invoking the model. Please check the model configuration and try again."
 
 	default:
-		// For generic errors, return a safe user-facing message
-		// The original error is logged via telemetry, not exposed to users
-		return "An unexpected error occurred. Please try again or contact support if the issue persists."
+		// For generic errors, check if we can provide a more specific message based on error code
+		switch errorCode {
+		case ErrCodeUnauthorized:
+			return "Your session is invalid. Please sign in again."
+		case ErrCodeNotFound:
+			return "The requested resource was not found. Please verify the resource exists."
+		case ErrCodeConnectionFailed:
+			return "Unable to connect to the service. Please check your connection and try again."
+		case ErrCodeServerUnavailable:
+			return "The service is temporarily unavailable. Please try again in a few moments."
+		default:
+			// Truly generic fallback
+			return "An unexpected error occurred. Please try again or contact support if the issue persists."
+		}
 	}
 }
 
@@ -171,7 +186,7 @@ func NewEnhancedLlamaStackError(baseError *LlamaStackError) *EnhancedLlamaStackE
 	}
 
 	category := CategorizeResponseError(baseError.Message)
-	userFriendlyMsg := GetUserFriendlyErrorMessage(category, baseError.Message)
+	userFriendlyMsg := GetUserFriendlyErrorMessage(category, baseError.Code)
 
 	return &EnhancedLlamaStackError{
 		LlamaStackError: baseError,

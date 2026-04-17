@@ -127,26 +127,18 @@ const getErrorCategory = (error: unknown): string | undefined => {
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * Safely normalizes an unknown error to ApiError format
  */
 const normalizeToApiError = (error: unknown): ApiError => {
-  if (!error || typeof error !== 'object') {
-    // Primitive or null/undefined - create fallback ApiError
+  // Handle primitives, null, undefined, and arrays
+  if (!isRecord(error)) {
     return {
       status: 500,
       message: String(error),
       error: { code: 'unknown', message: String(error) },
-    };
-  }
-
-  if (!isRecord(error)) {
-    return {
-      status: 500,
-      message: 'An error occurred',
-      error: { code: 'unknown', message: 'An error occurred' },
     };
   }
 
@@ -752,20 +744,34 @@ const useChatbotMessages = ({
 
       // Retry handler - resends the same prompt (uses functional state to avoid stale closure)
       const handleRetry = () => {
-        setMessages((prevMessages) => {
-          // Find the last user message from current state
-          const lastUserMessage = prevMessages
-            .slice()
-            .reverse()
-            .find((msg) => msg.role === 'user');
+        // Find last user message first (outside state updater)
+        const currentMessages = messages;
+        const lastUserMessage = currentMessages
+          .slice()
+          .reverse()
+          .find((msg) => msg.role === 'user');
 
-          if (lastUserMessage?.content) {
-            // Remove the error message and schedule retry
-            setTimeout(() => handleMessageSend(lastUserMessage.content), 0);
-            return prevMessages.filter((msg) => msg.id !== botMessageId);
+        if (!lastUserMessage?.content) {
+          return; // No user message to retry
+        }
+
+        const userContent = lastUserMessage.content;
+
+        // Remove the error message (pure state update)
+        setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== botMessageId));
+
+        // Schedule retry outside the updater, with guard against clearing
+        setTimeout(() => {
+          if (!isClearingRef.current) {
+            // Verify messages still exist and include the user message
+            const stillHasUserMessage = messages.some(
+              (msg) => msg.id === lastUserMessage.id && msg.role === 'user',
+            );
+            if (stillHasUserMessage) {
+              handleMessageSend(userContent);
+            }
           }
-          return prevMessages;
-        });
+        }, 0);
       };
 
       if (isStreamingEnabled && botMessageId) {
