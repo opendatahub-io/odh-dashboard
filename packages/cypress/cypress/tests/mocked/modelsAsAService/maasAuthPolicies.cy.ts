@@ -173,7 +173,7 @@ describe('Auth policy create and edit pages', () => {
 
     it('should update a policy', () => {
       policyPage.visit('premium-team-policy');
-      policyPage.findTitle().should('contain.text', 'Edit policy');
+      policyPage.findTitle().should('contain.text', 'Edit authorization policy');
 
       policyPage.findCancelButton().click();
       cy.url().should('match', /\/maas\/auth-policies$/);

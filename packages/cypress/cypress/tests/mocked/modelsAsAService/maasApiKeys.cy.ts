@@ -399,7 +399,7 @@ describe('API Keys Page', () => {
 
   it('should revoke a specific API key', () => {
     apiKeysPage.findTitle().should('contain.text', 'API keys');
-    apiKeysPage.getRow('development-testing').findKebabAction('Revoke API key').click();
+    apiKeysPage.getRow('development-testing').findKebabAction('Revoke').click();
 
     revokeAPIKeyModal.shouldBeOpen();
     revokeAPIKeyModal.findRevokeButton().should('be.disabled');
