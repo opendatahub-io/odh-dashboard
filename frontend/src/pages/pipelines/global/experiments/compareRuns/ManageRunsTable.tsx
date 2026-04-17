@@ -5,8 +5,8 @@ import { Button, Flex, ToolbarGroup, ToolbarItem, Tooltip } from '@patternfly/re
 import { TableVariant } from '@patternfly/react-table';
 
 import { TableBase, getTableColumnSort, useCheckboxTable } from '#~/components/table';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import useMlflowExperiments from '#~/concepts/mlflow/useMlflowExperiments';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
+import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import { pipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
 import PipelineRunTable from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
@@ -40,7 +40,7 @@ export const ManageRunsTable: React.FC<ManageRunsTableProps> = ({
 }) => {
   const { namespace } = usePipelinesAPI();
   const { experiment } = React.useContext(ExperimentContext);
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
     workspace: isMlflowAvailable ? namespace : '',
   });

@@ -1,7 +1,7 @@
 import { waitFor } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import axios from '#~/utilities/axios';
-import useMlflowExperiments from '#~/concepts/mlflow/useMlflowExperiments';
+import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';
 import { MlflowExperiment } from '#~/concepts/mlflow/types';
 
 jest.mock('#~/utilities/axios', () => ({

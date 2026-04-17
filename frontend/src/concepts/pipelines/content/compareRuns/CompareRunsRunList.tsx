@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { TableVariant } from '@patternfly/react-table';
 import { PipelinesFilter } from '#~/concepts/pipelines/types';
 import { Table } from '#~/components/table';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import usePipelineFilter, {
   FilterOptions,
@@ -19,13 +19,13 @@ import PipelineRunTableToolbar from '#~/concepts/pipelines/content/tables/pipeli
 import { manageCompareRunsRoute } from '#~/routes/pipelines/runs';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
-import useMlflowExperiments from '#~/concepts/mlflow/useMlflowExperiments';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
+import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';
 
 const CompareRunsRunList: React.FC = () => {
   const { namespace } = usePipelinesAPI();
   const { experiment } = React.useContext(ExperimentContext);
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const { runs, loaded } = useCompareRuns();
   const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
     workspace: isMlflowAvailable ? namespace : '',

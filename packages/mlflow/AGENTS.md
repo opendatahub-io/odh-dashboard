@@ -175,12 +175,13 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ### Current Endpoints
 
-| Method | Path                                 | Description                          |
-| ------ | ------------------------------------ | ------------------------------------ |
-| GET    | `/healthcheck`                       | Liveness probe                       |
-| GET    | `/api/v1/user`                       | Returns authenticated user info      |
-| GET    | `/api/v1/namespaces`                 | List namespaces (dev/mock mode only) |
-| GET    | `/api/v1/experiments?workspace=<ns>` | List MLflow experiments              |
+| Method | Path                                 | Description                                    |
+| ------ | ------------------------------------ | ---------------------------------------------- |
+| GET    | `/healthcheck`                       | Liveness probe                                 |
+| GET    | `/api/v1/status`                     | MLflow availability status                     |
+| GET    | `/api/v1/user`                       | Returns authenticated user info                |
+| GET    | `/api/v1/namespaces`                 | List namespaces (dev/mock mode only)           |
+| GET    | `/api/v1/experiments?workspace=<ns>` | List MLflow experiments                        |
 
 ---
 
