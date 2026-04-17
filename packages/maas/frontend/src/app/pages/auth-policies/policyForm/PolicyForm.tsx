@@ -152,6 +152,14 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
             </Popover>
           }
         >
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem variant={groupsValidationError ? 'error' : 'default'}>
+                {groupsValidationError ||
+                  'Select user groups that can access models in this authorization policy.'}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
           <MultiSelection
             ariaLabel="Select groups or type to add a new group"
             value={selectedGroups}
@@ -166,14 +174,6 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
             selectionRequired={groupsTouched}
             noSelectedOptionsMessage="One or more groups must be selected"
           />
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem variant={groupsValidationError ? 'error' : 'default'}>
-                {groupsValidationError ||
-                  'Select groups that will be able to access this policy. You can also add the name of an OIDC group.'}
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
         </FormGroup>
 
         {formData.modelRefs.length === 0 ? (
