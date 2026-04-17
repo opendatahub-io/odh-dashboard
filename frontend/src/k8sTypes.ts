@@ -820,13 +820,18 @@ type ClusterQueueFlavorUsage = {
   }[];
 };
 
-// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta1/#kueue-x-k8s-io-v1beta1-ClusterQueue
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#kueue-x-k8s-io-v1beta2-ClusterQueue
 export type ClusterQueueKind = K8sResourceCommon & {
-  apiVersion: 'kueue.x-k8s.io/v1beta1';
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
   kind: 'ClusterQueue';
   spec: {
-    admissionChecks?: string[];
-    cohort?: string;
+    admissionChecksStrategy?: {
+      admissionChecks: {
+        name: string;
+        onFlavors?: string[];
+      }[];
+    };
+    cohortName?: string;
     flavorFungibility?: {
       whenCanBorrow: 'Borrow' | 'TryNextFlavor';
       whenCanPreempt: 'Preempt' | 'TryNextFlavor';
@@ -888,16 +893,16 @@ type LocalQueueFlavorUsage = {
   }[];
 };
 
-// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta1/#kueue-x-k8s-io-v1beta1-LocalQueue
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#kueue-x-k8s-io-v1beta2-LocalQueue
 export type LocalQueueKind = K8sResourceCommon & {
-  apiVersion: 'kueue.x-k8s.io/v1beta1';
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
   kind: 'LocalQueue';
   spec: {
     clusterQueue: string;
   };
   status?: {
     flavorsReservation?: LocalQueueFlavorUsage[];
-    flavorUsage?: LocalQueueFlavorUsage[];
+    flavorsUsage?: LocalQueueFlavorUsage[];
     pendingWorkloads?: number;
     reservingWorkloads?: number;
     admittedWorkloads?: number;
@@ -1082,18 +1087,19 @@ export enum WorkloadOwnerType {
   Job = 'Job',
 }
 
-// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta1/#kueue-x-k8s-io-v1beta1-Workload
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#kueue-x-k8s-io-v1beta2-Workload
 export type WorkloadKind = K8sResourceCommon & {
-  apiVersion: 'kueue.x-k8s.io/v1beta1';
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
   kind: 'Workload';
   spec: {
     active?: boolean;
     podSets: WorkloadPodSet[];
     priority?: number;
-    priorityClassName?: string;
-    priorityClassSource?:
-      | 'kueue.x-k8s.io/workloadpriorityclass'
-      | 'scheduling.k8s.io/priorityclass';
+    priorityClassRef?: {
+      group: string;
+      kind: string;
+      name: string;
+    };
     queueName?: string;
   };
   status?: {

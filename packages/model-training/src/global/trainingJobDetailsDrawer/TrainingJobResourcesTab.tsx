@@ -49,7 +49,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
 
   const { clusterQueue, loaded: clusterQueueDataLoaded } = useClusterQueue(clusterQueueName);
 
-  const quotaSource = clusterQueue?.spec.cohort || '-';
+  const quotaSource = clusterQueue?.spec.cohortName || '-';
 
   const consumedResources = clusterQueue ? getAllConsumedResources(clusterQueue) : [];
 
