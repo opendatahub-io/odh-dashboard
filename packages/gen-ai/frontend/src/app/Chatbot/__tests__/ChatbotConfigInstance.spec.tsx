@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act, render } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { useChatbotConfigStore } from '~/app/Chatbot/store/useChatbotConfigStore';
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
@@ -7,17 +7,23 @@ import { ChatbotConfigInstance } from '~/app/Chatbot/ChatbotConfigInstance';
 
 jest.mock('@patternfly/chatbot', () => ({
   MessageBox: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  ChatbotWelcomePrompt: () => null,
+  ChatbotWelcomePrompt: (props: Record<string, unknown>) => (
+    <div data-testid={props['data-testid']}>Welcome</div>
+  ),
 }));
 
 jest.mock('~/app/Chatbot/ChatbotMessagesList', () => ({
   ChatbotMessages: () => null,
 }));
 
+let mockMessages: unknown[] = [];
+
 jest.mock('~/app/Chatbot/hooks/useChatbotMessages', () => ({
   __esModule: true,
   default: () => ({
-    messages: [],
+    get messages() {
+      return mockMessages;
+    },
     isLoading: false,
     isStreamingWithoutContent: false,
     modelDisplayName: '',
@@ -115,6 +121,33 @@ describe('ChatbotConfigInstance', () => {
       expect(
         useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedVectorStoreId,
       ).toBe('vs-inline-new');
+    });
+  });
+
+  describe('welcome prompt visibility', () => {
+    beforeEach(() => {
+      mockMessages = [];
+    });
+
+    it('should show welcome prompt when showWelcomePrompt is true and no real messages exist', () => {
+      mockMessages = [{ id: '1', role: 'bot', content: 'placeholder' }];
+      render(<ChatbotConfigInstance {...defaultProps} showWelcomePrompt />);
+      expect(screen.getByTestId('chatbot-welcome-prompt')).toBeInTheDocument();
+    });
+
+    it('should hide welcome prompt when real messages exist', () => {
+      mockMessages = [
+        { id: '1', role: 'bot', content: 'placeholder' },
+        { id: '2', role: 'user', content: 'Hello' },
+      ];
+      render(<ChatbotConfigInstance {...defaultProps} showWelcomePrompt />);
+      expect(screen.queryByTestId('chatbot-welcome-prompt')).not.toBeInTheDocument();
+    });
+
+    it('should not show welcome prompt when showWelcomePrompt is false', () => {
+      mockMessages = [];
+      render(<ChatbotConfigInstance {...defaultProps} showWelcomePrompt={false} />);
+      expect(screen.queryByTestId('chatbot-welcome-prompt')).not.toBeInTheDocument();
     });
   });
 });
