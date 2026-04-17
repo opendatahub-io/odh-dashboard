@@ -514,19 +514,22 @@ func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, er
 		return "", fmt.Errorf("endpoint URL must have a valid hostname")
 	}
 
-	// Allow HTTP only for in-cluster endpoints (.svc.cluster.local)
-	// All external endpoints must use HTTPS to prevent credentials in cleartext
+	// Allow HTTP only for in-cluster endpoints (.svc.cluster.local) and for
+	// localhost in dev mode (dynamic port-forwarding rewrites in-cluster URLs
+	// to localhost). The DevMode guard (default: false) ensures this bypass
+	// is impossible in production deployments.
 	isInCluster := isInternalHost(hostname)
-	if parsedURL.Scheme == "http" && !isInCluster {
+	isDevLocalhost := c.options.DevMode && (hostname == "localhost" || hostname == "127.0.0.1")
+	isTrusted := isInCluster || isDevLocalhost
+	if parsedURL.Scheme == "http" && !isTrusted {
 		return "", fmt.Errorf("endpoint URL must use HTTPS scheme for external endpoints, got: %s", parsedURL.Scheme)
 	}
 	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
 		return "", fmt.Errorf("endpoint URL must use http or https scheme, got: %s", parsedURL.Scheme)
 	}
 
-	// Skip DNS resolution and IP validation for in-cluster endpoints
-	// (.svc.cluster.local domains are cluster-internal and trusted)
-	if isInCluster {
+	// Skip DNS resolution and IP validation for trusted endpoints
+	if isTrusted {
 		return parsedURL.String(), nil
 	}
 
