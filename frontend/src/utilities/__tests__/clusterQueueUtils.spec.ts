@@ -7,7 +7,7 @@ import {
 const COVERED_RESOURCES = ['cpu', 'memory', 'nvidia.com/gpu'];
 const DEFAULT_FLAVOR = 'default-flavor';
 const OTHER_FLAVOR = 'other-flavor';
-const KUEUE_API_VERSION = 'kueue.x-k8s.io/v1beta1';
+const KUEUE_API_VERSION = 'kueue.x-k8s.io/v1beta2';
 
 const DEFAULT_SPEC_RESOURCES = [
   { name: 'cpu', nominalQuota: 100 },
