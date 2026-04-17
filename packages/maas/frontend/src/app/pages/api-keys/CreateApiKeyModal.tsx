@@ -365,7 +365,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                       </HelperTextItem>
                     </HelperText>
                   </FormHelperText>
-                  <Select
+                  <TypeaheadSelect
                     id="api-key-subscription"
                     selectOptions={subscriptions.map<TypeaheadSelectOption>((sub) => ({
                       value: sub.subscription_id_header,
@@ -379,47 +379,17 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                       'data-testid': `api-key-subscription-option-${sub.subscription_id_header}`,
                     }))}
                     selected={formData.subscription}
-                    onSelect={(_event, value) => {
-                      if (typeof value === 'string') {
-                        setFormData({ ...formData, subscription: value });
-                      }
-                      setIsSubscriptionSelectOpen(false);
-                    }}
-                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                      <MenuToggle
-                        ref={toggleRef}
-                        onClick={() => setIsSubscriptionSelectOpen(!isSubscriptionSelectOpen)}
-                        isExpanded={isSubscriptionSelectOpen}
-                        isFullWidth
-                        isDisabled={!subscriptionsLoaded || subscriptions.length === 0}
-                        icon={
-                          !subscriptionsLoaded && !subscriptionsError ? (
-                            <Icon>
-                              <Spinner size="sm" aria-label="Loading subscriptions" />
-                            </Icon>
-                          ) : undefined
-                        }
-                        data-testid="api-key-subscription-toggle"
-                      >
-                        {selectedSubscription?.display_name ??
-                          selectedSubscription?.subscription_id_header ??
-                          'Select a subscription'}
-                      </MenuToggle>
-                    )}
-                  >
-                    <SelectList>
-                      {subscriptions.map((sub) => (
-                        <SelectOption
-                          key={sub.subscription_id_header}
-                          value={sub.subscription_id_header}
-                          description={`${sub.subscription_description} · ${sub.model_refs.length} ${sub.model_refs.length === 1 ? 'model' : 'models'}`}
-                          data-testid={`api-key-subscription-option-${sub.subscription_id_header}`}
-                        >
-                          {sub.display_name || sub.subscription_id_header}
-                        </SelectOption>
-                      ))}
-                    </SelectList>
-                  </Select>
+                    onSelect={(_e, value) =>
+                      setFormData({ ...formData, subscription: String(value) })
+                    }
+                    isDisabled={!subscriptionsLoaded || subscriptions.length === 0}
+                    placeholder="Select a subscription"
+                    dataTestId="api-key-subscription-toggle"
+                    previewDescription={false}
+                    isRequired={false}
+                    popperProps={{ maxWidth: 'trigger' }}
+                    isScrollable
+                  />
                 </FormGroup>
 
                 {selectedSubscription && (
@@ -452,7 +422,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                   </>
                 )}
 
-                <FormGroup label="Expiration" fieldId="api-key-expiration">
+                <FormGroup label="Expiration" fieldId="api-key-expiration" isRequired>
                   <Select
                     id="api-key-expiration"
                     isOpen={isSelectOpen}

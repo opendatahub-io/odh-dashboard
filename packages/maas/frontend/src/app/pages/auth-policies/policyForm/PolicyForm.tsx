@@ -128,7 +128,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
     }
   };
 
-  const primaryLabel = initialPolicy ? 'Save changes' : 'Create policy';
+  const primaryLabel = initialPolicy ? 'Save changes' : 'Create authorization policy';
   const primaryLoadingLabel = initialPolicy ? 'Saving...' : 'Creating...';
 
   return (

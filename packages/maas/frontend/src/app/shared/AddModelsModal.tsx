@@ -45,8 +45,8 @@ const modelRefKey = (namespace: string, name: string): string => `${namespace}/$
 
 const defaultDescription = (
   <>
-    Select models to make available to members of the <b>SubName</b> subscription, then set token
-    limits for each one.
+    Select models to make available to members of this subscription, then set token limits for each
+    one.
   </>
 );
 

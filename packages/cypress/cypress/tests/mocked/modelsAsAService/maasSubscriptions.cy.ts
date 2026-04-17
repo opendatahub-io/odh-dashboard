@@ -57,7 +57,7 @@ describe('Subscriptions Page', () => {
       .findDescription()
       .should(
         'contain.text',
-        'Subscriptions control access and entitlements to AI model endpoints that are available as a service.',
+        'Create subscriptions to manage group access to MaaS endpoints, and to set token limits for each model.',
       );
 
     subscriptionsPage.findTable().should('exist');

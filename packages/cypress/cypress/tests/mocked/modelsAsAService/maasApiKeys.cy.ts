@@ -83,7 +83,7 @@ describe('API Keys Page', () => {
   });
 
   it('should display the API keys table page with active keys on initial load', () => {
-    apiKeysPage.findTitle().should('contain.text', 'API Keys');
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage
       .findDescription()
       .should(
@@ -372,7 +372,7 @@ describe('API Keys Page', () => {
     cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
     apiKeysPage.visit();
 
-    apiKeysPage.findTitle().should('contain.text', 'API Keys');
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage.findActionsToggle().click();
     apiKeysPage.findRevokeAllAPIKeysAction().click();
 
@@ -398,7 +398,7 @@ describe('API Keys Page', () => {
   });
 
   it('should revoke a specific API key', () => {
-    apiKeysPage.findTitle().should('contain.text', 'API Keys');
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage.getRow('development-testing').findKebabAction('Revoke API key').click();
 
     revokeAPIKeyModal.shouldBeOpen();

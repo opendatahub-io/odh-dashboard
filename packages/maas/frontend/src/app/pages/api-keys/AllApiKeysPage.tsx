@@ -116,7 +116,7 @@ const AllApiKeysPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="API Keys"
+      title="API keys"
       description="Manage API keys that can be used to authenticate with model endpoints."
       empty={
         loaded && !error && apiKeys.length === 0 && page === 1 && !hasActiveFilters && !isFetching

@@ -938,11 +938,11 @@ class AddModelsToSubscriptionModal extends Modal {
 
 class EditRateLimitsModal extends Modal {
   constructor() {
-    super(/Edit access profile token limits/);
+    super(/Edit subscription token limits/);
   }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('dialog', { name: /Edit access profile token limits/ });
+    return cy.findByRole('dialog', { name: /Edit subscription token limits/ });
   }
 
   findCountInput(index: number): Cypress.Chainable<JQuery<HTMLElement>> {

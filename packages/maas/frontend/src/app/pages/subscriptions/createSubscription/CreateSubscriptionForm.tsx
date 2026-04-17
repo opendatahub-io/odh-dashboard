@@ -12,6 +12,7 @@ import {
   HelperTextItem,
   NumberInput,
   PageSection,
+  Popover,
 } from '@patternfly/react-core';
 import {
   MultiSelection,
@@ -22,6 +23,7 @@ import K8sNameDescriptionField, {
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { APIOptions } from 'mod-arch-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { getLowestAvailablePriority } from '~/app/utilities/subscriptions';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
@@ -270,12 +272,11 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           dataTestId="subscription-name-desc"
         />
 
-        <FormGroup label="Priority" fieldId="subscription-priority">
+        <FormGroup label="Priority" fieldId="subscription-priority" isRequired>
           <FormHelperText>
             <HelperText>
               <HelperTextItem variant={priorityValidationError ? 'error' : 'default'}>
-                {priorityValidationError ||
-                  'Score this subscription’s priority from 1-10, with 10 being the highest priority. When users with more than 1 subscription create API keys, the highest priority subscription will be selected by default.'}
+                {priorityValidationError || 'Higher numbers indicate higher priority.'}
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
@@ -338,11 +339,13 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             selectionRequired={groupsTouched}
             noSelectedOptionsMessage="One or more groups must be selected"
           />
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem>{groupsValidationError || undefined}</HelperTextItem>
-            </HelperText>
-          </FormHelperText>
+          {groupsValidationError && (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>{groupsValidationError}</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
         </FormGroup>
 
         {showNoModelsWarning ? (
@@ -396,14 +399,53 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         )}
 
         {!isEditing && (
-          <FormGroup fieldId="subscription-create-auth-policy">
+          <FormGroup fieldId="subscription-create-auth-policy" label="Authorization Policy">
             <Checkbox
               id="subscription-create-auth-policy"
               data-testid="subscription-create-auth-policy"
-              label={<>Create a matching authorization policy </>}
+              label={
+                <>
+                  Create a matching authorization policy{' '}
+                  <Popover
+                    headerContent="Why create a policy?"
+                    bodyContent={
+                      <>
+                        <p>
+                          A <b>subscription</b> (MaaSSubscription) defines which models should be
+                          available to certain groups on request, but it does not grant access to
+                          those models on its own.
+                        </p>
+                        <br />
+                        <p>
+                          An <b>authorization policy</b> (MaaSAuthPolicy) is a separate resource
+                          that authorizes specific groups to be able to access model endpoints
+                          through the API gateway.
+                        </p>
+                        <br />
+                        <p>
+                          Both resources are needed in order to consume model endpoints through the
+                          API gateway.
+                        </p>
+                      </>
+                    }
+                  >
+                    <Button variant="plain" aria-label="Auth policy help" style={{ padding: 0 }}>
+                      <OutlinedQuestionCircleIcon />
+                    </Button>
+                  </Popover>
+                </>
+              }
               isChecked={createAuthPolicy}
               onChange={(_event, checked) => setCreateAuthPolicy(checked)}
             />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  To consume model endpoints through the API gateway, users must have both a
+                  subscription and an authorization policy.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
           </FormGroup>
         )}
 

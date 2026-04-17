@@ -119,7 +119,7 @@ describe('MaaS Auth Policies', () => {
       { path: { name: 'premium-team-policy' } },
       { data: { message: "MaaSAuthPolicy 'premium-team-policy' deleted successfully" } },
     ).as('deleteAuthPolicy');
-    authPoliciesPage.getRow('premium-team-policy').findKebabAction('Delete policy').click();
+    authPoliciesPage.getRow('premium-team-policy').findKebabAction('Delete').click();
     deleteAuthPolicyModal.findInput().type('premium-team-policy');
     deleteAuthPolicyModal.findSubmitButton().click();
     cy.wait('@deleteAuthPolicy').then((response) => {
@@ -131,14 +131,14 @@ describe('MaaS Auth Policies', () => {
 });
 
 describe('Auth policy create and edit pages', () => {
-  describe('create policy page', () => {
+  describe('create authorization policy page', () => {
     beforeEach(() => {
       setupAuthPolicyCreatePageIntercepts();
     });
 
     it('should create a policy with groups and models', () => {
       policyPage.visit();
-      policyPage.findTitle().should('contain.text', 'Create policy');
+      policyPage.findTitle().should('contain.text', 'Create authorization policy');
       policyPage.findSubmitButton().should('be.disabled');
 
       policyPage.findDisplayNameInput().type('New Test Policy');

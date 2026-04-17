@@ -246,7 +246,7 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
             </Title>
           </FlexItem>
           <FlexItem>
-            <Content component="p">Models that subscribers will be able to use.</Content>
+            <Content component="p">Models available to members of this subscription</Content>
           </FlexItem>
         </Flex>
       </StackItem>

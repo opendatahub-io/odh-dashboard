@@ -106,11 +106,11 @@ const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
     onClose();
   };
 
-  const title = `Edit access profile token limits`;
+  const title = `Edit subscription token limits`;
   const description = (
     <>
       Set limits on the number of tokens that can be consumed by each member of the{' '}
-      <b>{modelName}</b> access profile.
+      <b>{modelName}</b> in this subscription.
     </>
   );
 

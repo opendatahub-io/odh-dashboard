@@ -19,7 +19,7 @@ const EmptyAuthPoliciesPage: React.FC = () => {
             onClick={() => navigate(`${URL_PREFIX}/auth-policies/create`)}
             data-testid="create-auth-policy-button"
           >
-            Create policy
+            Create authorization policy
           </Button>
         }
       />
