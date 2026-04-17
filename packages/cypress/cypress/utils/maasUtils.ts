@@ -236,6 +236,34 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
   },
 ];
 
+export const mockSubscriptionInfoMissingModelSummaries = (): SubscriptionInfoResponse => {
+  const subscription: MaaSSubscription = {
+    name: 'missing-model-summary-sub',
+    displayName: "Subscription with model refs that don't exist",
+    namespace: 'maas-system',
+    phase: 'Active',
+    statusMessage: 'successfully reconciled',
+    priority: 7,
+    owner: {
+      groups: [{ name: 'premium-users' }],
+    },
+    modelRefs: [
+      {
+        name: 'deleted-model-ref',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 50000, window: '24h' }],
+      },
+    ],
+    creationTimestamp: '2025-03-01T10:00:00Z',
+  };
+
+  return {
+    subscription,
+    modelRefs: [],
+    authPolicies: [],
+  };
+};
+
 export const mockSubscriptionInfo = (name = 'premium-team-sub'): SubscriptionInfoResponse => {
   const subscription = mockSubscriptions().find((s) => s.name === name) ?? mockSubscriptions()[0];
   return {
