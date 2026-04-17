@@ -13,6 +13,7 @@ import {
 import { OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import { Link, useParams } from 'react-router';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
@@ -41,6 +42,7 @@ function AutoragResultsPage(): React.JSX.Element {
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const handleDrawerClose = React.useCallback(() => setIsDrawerOpen(false), []);
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
+  const queryClient = useQueryClient();
   const notification = useNotification();
   const terminateMutation = useTerminatePipelineRunMutation(namespace ?? '', runId ?? '');
   const retryMutation = useRetryPipelineRunMutation(namespace ?? '', runId ?? '');
@@ -76,21 +78,28 @@ function AutoragResultsPage(): React.JSX.Element {
   const isRunActive =
     runState === RuntimeStateKF.RUNNING ||
     runState === RuntimeStateKF.PENDING ||
-    runState === RuntimeStateKF.CANCELING;
+    runState === RuntimeStateKF.CANCELING ||
+    runState === RuntimeStateKF.PAUSED;
   const isRunRetryable =
     runState === RuntimeStateKF.FAILED || runState === RuntimeStateKF.CANCELED;
 
   const handleRetry = React.useCallback(async () => {
     try {
       await retryMutation.mutateAsync();
-      window.location.reload();
+      await queryClient.invalidateQueries({
+        queryKey: ['autorag', 'pipelineRun', runId, namespace],
+      });
+      notification.success(
+        'Retry submitted successfully',
+        'The process is asynchronous and may take some time to take effect',
+      );
     } catch (error) {
       notification.error(
         'Failed to retry run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
     }
-  }, [retryMutation, notification]);
+  }, [retryMutation, queryClient, runId, namespace, notification]);
 
   const handleConfirmStop = React.useCallback(async () => {
     try {

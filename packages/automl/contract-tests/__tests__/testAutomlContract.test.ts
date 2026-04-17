@@ -1192,6 +1192,16 @@ describe('AutoML API Contract Tests', () => {
         }
       });
 
+      it('should return 400 when attempting to terminate a non-terminatable (SUCCEEDED) run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-abc123-def456/terminate?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
       it('should return 404 for non-existent run ID', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/non-existent-run-id/terminate?namespace=test-namespace',

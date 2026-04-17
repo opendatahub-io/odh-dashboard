@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -173,6 +174,24 @@ const createMockPipelineRun = (
 // Tests
 // ============================================================================
 
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderPage = () => {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AutomlResultsPage />
+    </QueryClientProvider>,
+  );
+};
+
 describe('AutomlResultsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -195,7 +214,7 @@ describe('AutomlResultsPage', () => {
         error: null,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(mockUsePipelineRunQuery).toHaveBeenCalledWith('run-123', 'test-ns');
     });
@@ -211,7 +230,7 @@ describe('AutomlResultsPage', () => {
         error: null,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(mockUseAutomlResults).toHaveBeenCalledWith('run-123', 'test-ns', mockPipelineRun);
     });
@@ -242,7 +261,7 @@ describe('AutomlResultsPage', () => {
         isError: false,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('automl-results')).toBeInTheDocument();
       expect(capturedContext).toMatchObject({
@@ -270,7 +289,7 @@ describe('AutomlResultsPage', () => {
         error: null,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       // Page should still be loading
       expect(screen.queryByTestId('automl-results')).not.toBeInTheDocument();
@@ -287,7 +306,7 @@ describe('AutomlResultsPage', () => {
         error: null,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('automl-results')).toBeInTheDocument();
       expect(capturedContext).toMatchObject({
@@ -312,7 +331,7 @@ describe('AutomlResultsPage', () => {
         isError: false,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('automl-results')).toBeInTheDocument();
       expect(capturedContext).toMatchObject({
@@ -331,7 +350,7 @@ describe('AutomlResultsPage', () => {
         error: null,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(capturedContext).toMatchObject({
         parameters: {
@@ -363,7 +382,7 @@ describe('AutomlResultsPage', () => {
           error: null,
         });
 
-        render(<AutomlResultsPage />);
+        renderPage();
 
         expect(capturedContext).toMatchObject({
           parameters: expect.objectContaining({
@@ -390,7 +409,7 @@ describe('AutomlResultsPage', () => {
         isError: false,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(capturedContext).toMatchObject({
         models: {},
@@ -408,7 +427,7 @@ describe('AutomlResultsPage', () => {
         error: new Error('Pipeline run not found: status code 404'),
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('invalid-run')).toBeInTheDocument();
       expect(screen.queryByTestId('automl-results')).not.toBeInTheDocument();
@@ -431,7 +450,7 @@ describe('AutomlResultsPage', () => {
         error: null,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('invalid-project')).toBeInTheDocument();
       expect(screen.queryByTestId('automl-results')).not.toBeInTheDocument();
@@ -454,7 +473,7 @@ describe('AutomlResultsPage', () => {
         error: null,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('invalid-project')).toBeInTheDocument();
       expect(screen.queryByTestId('automl-results')).not.toBeInTheDocument();
@@ -479,7 +498,7 @@ describe('AutomlResultsPage', () => {
         error: null,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.queryByTestId('automl-results')).not.toBeInTheDocument();
     });
@@ -493,7 +512,7 @@ describe('AutomlResultsPage', () => {
         error: null,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.queryByTestId('automl-results')).not.toBeInTheDocument();
     });
@@ -526,7 +545,7 @@ describe('AutomlResultsPage', () => {
         error: null,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('automl-results')).toBeInTheDocument();
       expect(capturedContext).toMatchObject({
@@ -568,7 +587,7 @@ describe('AutomlResultsPage', () => {
         error: null,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('automl-results')).toBeInTheDocument();
       expect(capturedContext).toMatchObject({
@@ -607,7 +626,7 @@ describe('AutomlResultsPage', () => {
         error: null,
       });
 
-      const { container } = render(<AutomlResultsPage />);
+      const { container } = renderPage();
 
       // The breadcrumb should show the display name
       // It's rendered as part of ApplicationsPage which we mocked, so check the raw render
@@ -630,7 +649,7 @@ describe('AutomlResultsPage', () => {
 
     it('should show Stop button when run is RUNNING', () => {
       setupWithRunState('RUNNING');
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
       expect(screen.queryByTestId('retry-run-button')).not.toBeInTheDocument();
@@ -638,21 +657,21 @@ describe('AutomlResultsPage', () => {
 
     it('should show Stop button when run is PENDING', () => {
       setupWithRunState('PENDING');
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
     });
 
     it('should show Stop button when run is CANCELING', () => {
       setupWithRunState('CANCELING');
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
     });
 
     it('should show Retry button when run is FAILED', () => {
       setupWithRunState('FAILED');
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('retry-run-button')).toBeInTheDocument();
       expect(screen.queryByTestId('stop-run-button')).not.toBeInTheDocument();
@@ -660,7 +679,7 @@ describe('AutomlResultsPage', () => {
 
     it('should not show Stop or Retry buttons when run is SUCCEEDED', () => {
       setupWithRunState('SUCCEEDED');
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.queryByTestId('stop-run-button')).not.toBeInTheDocument();
       expect(screen.queryByTestId('retry-run-button')).not.toBeInTheDocument();
@@ -668,7 +687,7 @@ describe('AutomlResultsPage', () => {
 
     it('should open StopRunModal when Stop button is clicked', async () => {
       setupWithRunState('RUNNING');
-      render(<AutomlResultsPage />);
+      renderPage();
 
       expect(screen.queryByTestId('stop-run-modal')).not.toBeInTheDocument();
 
@@ -686,7 +705,7 @@ describe('AutomlResultsPage', () => {
         isPending: false,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       await userEvent.click(screen.getByTestId('stop-run-button'));
       await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
@@ -705,7 +724,7 @@ describe('AutomlResultsPage', () => {
         isPending: false,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       await userEvent.click(screen.getByTestId('stop-run-button'));
       await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
@@ -727,7 +746,7 @@ describe('AutomlResultsPage', () => {
         isPending: false,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       await userEvent.click(screen.getByTestId('stop-run-button'));
       await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
@@ -746,7 +765,7 @@ describe('AutomlResultsPage', () => {
         isPending: false,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       await userEvent.click(screen.getByTestId('stop-run-button'));
       expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
@@ -767,7 +786,7 @@ describe('AutomlResultsPage', () => {
         isPending: false,
       });
 
-      render(<AutomlResultsPage />);
+      renderPage();
 
       await userEvent.click(screen.getByTestId('retry-run-button'));
 

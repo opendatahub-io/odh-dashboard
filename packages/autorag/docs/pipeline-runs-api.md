@@ -172,6 +172,7 @@ The endpoint returns a JSON response with the following structure:
 | `error` | object | Optional error information if the run failed (contains `code` and `message` fields) |
 | `state_history` | array | History of state changes (see below) |
 | `run_details` | object | Detailed task execution information (see below) |
+| `pipeline_type` | string | Type of pipeline that produced this run (e.g., `autorag`) |
 
 #### PipelineVersionReference Object
 
@@ -383,6 +384,7 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 | `generation_models` | string[] | No | List of generation model identifiers |
 | `optimization_metric` | string | No | Metric to optimize: `faithfulness` (default), `answer_correctness`, or `context_correctness` |
 | `llama_stack_vector_io_provider_id` | string | No | Vector I/O provider identifier as registered in llama-stack (e.g. llama-stack Milvus) |
+| `optimization_max_rag_patterns` | integer | No | Maximum number of RAG patterns to evaluate during optimization (min: 4, max: 20) |
 
 **Notes:**
 - Unknown JSON fields are rejected (strict decoding)
@@ -624,7 +626,7 @@ The API always filters runs to the auto-discovered AutoRAG managed pipeline:
 
 1. Discovers the AutoRAG managed pipeline in the namespace (cached for 5 minutes)
 2. Filters runs to show only those from the discovered AutoRAG pipeline version
-3. Returns a 500 error if no AutoRAG pipeline is found
+3. The List endpoint returns 200 with an empty runs list if no AutoRAG pipeline is found; other endpoints (Create, Get, Terminate, Retry) return a 500 error
 
 This ensures users see only AutoRAG-related runs and prevents accidentally displaying unrelated pipeline runs from the namespace.
 
@@ -684,12 +686,12 @@ Returned when:
 ### 500 Internal Server Error
 
 Returned when:
-- No AutoRAG pipeline found in namespace
+- No AutoRAG pipeline found in namespace (for Create, Get, Terminate, and Retry endpoints — the List endpoint returns 200 with an empty runs list instead)
 - Internal processing error occurs
 - Unable to communicate with Kubernetes API
 - Unable to communicate with Pipeline Server API
 
-**Example response (no AutoRAG pipeline):**
+**Example response (no AutoRAG pipeline — Create/Get/Terminate/Retry only):**
 ```json
 {
   "error": {
@@ -794,6 +796,7 @@ The AutoRAG frontend can use these endpoints to:
 6. View detailed task execution information for each run
 7. Track individual task progress and status
 8. Terminate runs that are currently in progress
+9. Retry failed or canceled runs
 
 ### Example Frontend Integration
 

@@ -49,7 +49,7 @@ type PipelineServerClientInterface interface {
 const maxPipelineErrorBodySize = 64 * 1024 // 64 KB
 
 // maxSuccessBodySize limits the size of success response bodies to prevent memory exhaustion.
-// Pipeline server responses are capped at 10 MB, mirroring the bound applied to error bodies.
+// Pipeline server success responses are capped at 10 MB.
 const maxSuccessBodySize = 10 << 20 // 10 MB
 
 // ListRunsParams contains parameters for listing pipeline runs
@@ -456,9 +456,13 @@ func (c *RealPipelineServerClient) TerminateRun(ctx context.Context, runID strin
 		respBody, _ := io.ReadAll(limitedReader)
 		_, _ = io.Copy(io.Discard, resp.Body)
 
+		errorMsg := fmt.Sprintf("failed to terminate run %s: %s", runID, string(respBody))
+		if len(respBody) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
 		return &HTTPError{
 			StatusCode: resp.StatusCode,
-			Message:    fmt.Sprintf("failed to terminate run %s: %s", runID, string(respBody)),
+			Message:    errorMsg,
 		}
 	}
 
@@ -499,9 +503,13 @@ func (c *RealPipelineServerClient) RetryRun(ctx context.Context, runID string) e
 		respBody, _ := io.ReadAll(limitedReader)
 		_, _ = io.Copy(io.Discard, resp.Body)
 
+		errorMsg := fmt.Sprintf("failed to retry run %s: %s", runID, string(respBody))
+		if len(respBody) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
 		return &HTTPError{
 			StatusCode: resp.StatusCode,
-			Message:    fmt.Sprintf("failed to retry run %s: %s", runID, string(respBody)),
+			Message:    errorMsg,
 		}
 	}
 

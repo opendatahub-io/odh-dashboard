@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -214,6 +215,24 @@ const createMockPipelineRun = (
 // Tests
 // ============================================================================
 
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderPage = () => {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AutoragResultsPage />
+    </QueryClientProvider>,
+  );
+};
+
 describe('AutoragResultsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -246,7 +265,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(mockUsePipelineRunQuery).toHaveBeenCalledWith('run-123', 'test-ns');
     });
@@ -262,7 +281,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(mockUseAutoragResults).toHaveBeenCalledWith('run-123', 'test-ns', mockPipelineRun);
     });
@@ -299,7 +318,7 @@ describe('AutoragResultsPage', () => {
         isError: false,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('autorag-results')).toBeInTheDocument();
       expect(capturedContext).toMatchObject({
@@ -333,7 +352,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       // Page should still be loading
       expect(screen.queryByTestId('autorag-results')).not.toBeInTheDocument();
@@ -350,7 +369,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('autorag-results')).toBeInTheDocument();
       expect(capturedContext).toMatchObject({
@@ -375,7 +394,7 @@ describe('AutoragResultsPage', () => {
         isError: false,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(capturedContext).toMatchObject({
         patternsLoading: true,
@@ -399,7 +418,7 @@ describe('AutoragResultsPage', () => {
         isError: false,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(capturedContext).toMatchObject({
         patterns: mockPatterns,
@@ -423,7 +442,7 @@ describe('AutoragResultsPage', () => {
         isError: false,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(capturedContext).toMatchObject({
         patterns: {},
@@ -444,7 +463,7 @@ describe('AutoragResultsPage', () => {
         error,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('invalid-run')).toBeInTheDocument();
       expect(screen.queryByTestId('autorag-results')).not.toBeInTheDocument();
@@ -466,7 +485,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('invalid-project')).toBeInTheDocument();
       expect(screen.queryByTestId('autorag-results')).not.toBeInTheDocument();
@@ -483,7 +502,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.queryByTestId('autorag-results')).not.toBeInTheDocument();
     });
@@ -499,7 +518,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('autorag-results')).toBeInTheDocument();
     });
@@ -519,7 +538,7 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       // Breadcrumb should show namespace
       expect(screen.getByText(/test-ns/)).toBeInTheDocument();
@@ -543,7 +562,7 @@ describe('AutoragResultsPage', () => {
 
     it('should show Stop button when run is RUNNING', () => {
       setupWithRunState('RUNNING');
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
       expect(screen.queryByTestId('retry-run-button')).not.toBeInTheDocument();
@@ -551,21 +570,21 @@ describe('AutoragResultsPage', () => {
 
     it('should show Stop button when run is PENDING', () => {
       setupWithRunState('PENDING');
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
     });
 
     it('should show Stop button when run is CANCELING', () => {
       setupWithRunState('CANCELING');
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
     });
 
     it('should show Retry button when run is FAILED', () => {
       setupWithRunState('FAILED');
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.getByTestId('retry-run-button')).toBeInTheDocument();
       expect(screen.queryByTestId('stop-run-button')).not.toBeInTheDocument();
@@ -573,7 +592,7 @@ describe('AutoragResultsPage', () => {
 
     it('should not show Stop or Retry buttons when run is SUCCEEDED', () => {
       setupWithRunState('SUCCEEDED');
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.queryByTestId('stop-run-button')).not.toBeInTheDocument();
       expect(screen.queryByTestId('retry-run-button')).not.toBeInTheDocument();
@@ -581,7 +600,7 @@ describe('AutoragResultsPage', () => {
 
     it('should open StopRunModal when Stop button is clicked', async () => {
       setupWithRunState('RUNNING');
-      render(<AutoragResultsPage />);
+      renderPage();
 
       expect(screen.queryByTestId('stop-run-modal')).not.toBeInTheDocument();
 
@@ -599,7 +618,7 @@ describe('AutoragResultsPage', () => {
         isPending: false,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       await userEvent.click(screen.getByTestId('stop-run-button'));
       await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
@@ -618,7 +637,7 @@ describe('AutoragResultsPage', () => {
         isPending: false,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       await userEvent.click(screen.getByTestId('stop-run-button'));
       await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
@@ -640,7 +659,7 @@ describe('AutoragResultsPage', () => {
         isPending: false,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       await userEvent.click(screen.getByTestId('stop-run-button'));
       await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
@@ -659,7 +678,7 @@ describe('AutoragResultsPage', () => {
         isPending: false,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       await userEvent.click(screen.getByTestId('stop-run-button'));
       expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
@@ -680,7 +699,7 @@ describe('AutoragResultsPage', () => {
         isPending: false,
       });
 
-      render(<AutoragResultsPage />);
+      renderPage();
 
       await userEvent.click(screen.getByTestId('retry-run-button'));
 

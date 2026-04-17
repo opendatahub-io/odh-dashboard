@@ -151,12 +151,10 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 // PipelineRunHandler handles GET /api/v1/pipeline-runs/:runId
 // Returns a single pipeline run by ID
 func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	_, run, _, pipelineType, ok := app.resolveOwnedRun(w, r, params)
+	_, run, ok := app.resolveOwnedRun(w, r, params)
 	if !ok {
 		return
 	}
-
-	run.PipelineType = pipelineType
 
 	// Wrap in envelope response
 	response := PipelineRunEnvelope{
@@ -170,47 +168,47 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 
 // resolveOwnedRun extracts the pipeline-server client, validates the runId
 // parameter, fetches the run, and verifies it belongs to one of the discovered
-// AutoML pipelines. On success it returns the matched pipeline type key
-// (e.g. "timeseries" or "tabular"). On any validation failure it writes the
-// appropriate HTTP error response and returns ok=false.
+// AutoML pipelines. On success it sets run.PipelineType to the matched pipeline
+// type key (e.g. "timeseries" or "tabular"). On any validation failure it
+// writes the appropriate HTTP error response and returns ok=false.
 func (app *App) resolveOwnedRun(
 	w http.ResponseWriter,
 	r *http.Request,
 	params httprouter.Params,
-) (ps.PipelineServerClientInterface, *models.PipelineRun, string, string, bool) {
+) (ps.PipelineServerClientInterface, *models.PipelineRun, bool) {
 	ctx := r.Context()
 
 	client, clientOk := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
 	if !clientOk {
 		app.serverErrorResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
-		return nil, nil, "", "", false
+		return nil, nil, false
 	}
 
 	runID := params.ByName("runId")
 	if runID == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
-		return nil, nil, "", "", false
+		return nil, nil, false
 	}
 
 	run, err := app.repositories.PipelineRuns.GetPipelineRun(client, ctx, runID)
 	if err != nil {
 		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
 			app.notFoundResponse(w, r)
-			return nil, nil, "", "", false
+			return nil, nil, false
 		}
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline run: %w", err))
-		return nil, nil, "", "", false
+		return nil, nil, false
 	}
 
 	if run.PipelineVersionReference == nil {
 		app.notFoundResponse(w, r)
-		return nil, nil, "", "", false
+		return nil, nil, false
 	}
 
 	discoveredPipelines, dpOk := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
 	if !dpOk {
 		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines missing from context: check middleware configuration"))
-		return nil, nil, "", "", false
+		return nil, nil, false
 	}
 	matchedPipelineType := ""
 	for pipelineType, discovered := range discoveredPipelines {
@@ -222,10 +220,12 @@ func (app *App) resolveOwnedRun(
 	}
 	if matchedPipelineType == "" {
 		app.notFoundResponse(w, r)
-		return nil, nil, "", "", false
+		return nil, nil, false
 	}
 
-	return client, run, runID, matchedPipelineType, true
+	run.PipelineType = matchedPipelineType
+
+	return client, run, true
 }
 
 // mapMutationError maps the error from a pipeline run mutation (terminate/retry)
@@ -268,7 +268,7 @@ var terminatableStates = map[string]bool{
 //   - 404: Run not found, run belongs to a different pipeline, or no pipelines discovered
 //   - 500: Pipeline Server error
 func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	client, run, runID, _, ok := app.resolveOwnedRun(w, r, params)
+	client, run, ok := app.resolveOwnedRun(w, r, params)
 	if !ok {
 		return
 	}
@@ -276,12 +276,12 @@ func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Reque
 	// Validate the run is in a terminatable state
 	runState := strings.ToUpper(run.State)
 	if !terminatableStates[runState] {
-		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be terminated; only PENDING, RUNNING, PAUSED, or CANCELING runs can be terminated", runID, runState))
+		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be terminated; only PENDING, RUNNING, PAUSED, or CANCELING runs can be terminated", run.RunID, runState))
 		return
 	}
 
 	// Ownership and state confirmed — terminate the run
-	if err := app.repositories.PipelineRuns.TerminatePipelineRun(client, r.Context(), runID); err != nil {
+	if err := app.repositories.PipelineRuns.TerminatePipelineRun(client, r.Context(), run.RunID); err != nil {
 		app.mapMutationError(w, r, err, "terminate")
 		return
 	}
@@ -311,7 +311,7 @@ var retryableStates = map[string]bool{
 //   - 404: Run not found, run belongs to a different pipeline, or no pipelines discovered
 //   - 500: Pipeline Server error
 func (app *App) RetryPipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	client, run, runID, _, ok := app.resolveOwnedRun(w, r, params)
+	client, run, ok := app.resolveOwnedRun(w, r, params)
 	if !ok {
 		return
 	}
@@ -319,12 +319,12 @@ func (app *App) RetryPipelineRunHandler(w http.ResponseWriter, r *http.Request, 
 	// Validate the run is in a retryable state
 	runState := strings.ToUpper(run.State)
 	if !retryableStates[runState] {
-		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be retried; only FAILED or CANCELED runs can be retried", runID, runState))
+		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be retried; only FAILED or CANCELED runs can be retried", run.RunID, runState))
 		return
 	}
 
 	// Ownership and state confirmed — retry the run
-	if err := app.repositories.PipelineRuns.RetryPipelineRun(client, r.Context(), runID); err != nil {
+	if err := app.repositories.PipelineRuns.RetryPipelineRun(client, r.Context(), run.RunID); err != nil {
 		app.mapMutationError(w, r, err, "retry")
 		return
 	}

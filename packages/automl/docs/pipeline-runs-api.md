@@ -195,8 +195,7 @@ The endpoint returns a JSON response with the following structure:
         }
       }
     ],
-    "total_size": 1,
-    "next_page_token": ""
+    "total_size": 1
   }
 }
 ```
@@ -270,8 +269,7 @@ The endpoint returns a JSON response with the following structure:
 | Field | Type | Description |
 |-------|------|-------------|
 | `runs` | array | Array of PipelineRun objects |
-| `total_size` | integer | Total number of runs matching the filter |
-| `next_page_token` | string | Token for retrieving the next page (empty if no more pages) |
+| `total_size` | integer | Total number of runs across all discovered AutoML pipelines |
 
 ## Get Single Pipeline Run
 
@@ -683,7 +681,7 @@ The API automatically discovers all managed AutoML pipelines (time-series and ta
 **Discovery Details:**
 - Time-series prefix: configurable via `AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX` (default: "autogluon-timeseries-training-pipeline")
 - Tabular prefix: configurable via `AUTOML_TABULAR_PIPELINE_NAME_PREFIX` (default: "autogluon-tabular-training-pipeline")
-- Returns 500 if no managed AutoML pipelines are found in the namespace
+- Returns 200 with an empty runs list if no managed AutoML pipelines are found in the namespace (pipelines are auto-created when the user submits their first experiment)
 
 ## Error Responses
 
@@ -834,6 +832,8 @@ The AutoML frontend can use these endpoints to:
 4. Access run state history and metadata
 5. View detailed task execution information for each run
 6. Track individual task progress and status
+7. Terminate runs that are currently in progress
+8. Retry failed or canceled runs
 
 ### Example Frontend Integration
 

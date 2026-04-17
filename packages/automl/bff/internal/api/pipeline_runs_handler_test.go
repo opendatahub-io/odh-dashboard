@@ -3,12 +3,14 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
+	pipelineserver "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
@@ -938,6 +940,174 @@ func TestTerminatePipelineRunHandler_ErrorCases(t *testing.T) {
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
+}
+
+// terminateErrorMockClient returns a RUNNING run from GetRun (ownership passes)
+// but returns a configurable error from TerminateRun so that mapMutationError is exercised.
+type terminateErrorMockClient struct {
+	psmocks.MockPipelineServerClient
+	terminateErr error
+}
+
+func (m *terminateErrorMockClient) GetRun(_ context.Context, runID string) (*models.KFPipelineRun, error) {
+	ids := psmocks.DeriveMockIDs(m.Namespace)
+	return &models.KFPipelineRun{
+		RunID:       runID,
+		DisplayName: "Running AutoML Run",
+		State:       "RUNNING",
+		PipelineVersionReference: &models.PipelineVersionReference{
+			PipelineID:        ids.PipelineID,
+			PipelineVersionID: ids.LatestVersionID,
+		},
+		CreatedAt: "2024-01-01T00:00:00Z",
+	}, nil
+}
+
+func (m *terminateErrorMockClient) TerminateRun(_ context.Context, _ string) error {
+	return m.terminateErr
+}
+
+// retryErrorMockClient returns a FAILED run from GetRun (ownership passes)
+// but returns a configurable error from RetryRun so that mapMutationError is exercised.
+type retryErrorMockClient struct {
+	psmocks.MockPipelineServerClient
+	retryErr error
+}
+
+func (m *retryErrorMockClient) GetRun(_ context.Context, runID string) (*models.KFPipelineRun, error) {
+	ids := psmocks.DeriveMockIDs(m.Namespace)
+	return &models.KFPipelineRun{
+		RunID:       runID,
+		DisplayName: "Failed AutoML Run",
+		State:       "FAILED",
+		PipelineVersionReference: &models.PipelineVersionReference{
+			PipelineID:        ids.PipelineID,
+			PipelineVersionID: ids.LatestVersionID,
+		},
+		CreatedAt: "2024-01-01T00:00:00Z",
+	}, nil
+}
+
+func (m *retryErrorMockClient) RetryRun(_ context.Context, _ string) error {
+	return m.retryErr
+}
+
+func TestTerminatePipelineRunHandler_MutationErrors(t *testing.T) {
+	app := newTestApp(t)
+
+	tests := []struct {
+		name           string
+		terminateErr   error
+		expectedStatus int
+	}{
+		{
+			name:           "should return 404 when TerminateRun returns not-found",
+			terminateErr:   repositories.ErrPipelineRunNotFound,
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name: "should return 400 when TerminateRun returns bad-request",
+			terminateErr: &pipelineserver.HTTPError{
+				StatusCode: http.StatusBadRequest,
+				Message:    "run is not in a valid state for termination",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "should return 500 when TerminateRun returns unexpected error",
+			terminateErr:   fmt.Errorf("connection refused"),
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			runID := "run-abc123-def456"
+			req, err := http.NewRequest(
+				http.MethodPost,
+				"/api/v1/pipeline-runs/"+runID+"/terminate",
+				nil,
+			)
+			require.NoError(t, err)
+
+			mockClient := &terminateErrorMockClient{
+				MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
+				terminateErr:             tt.terminateErr,
+			}
+			ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+			ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+			req = req.WithContext(ctx)
+			req = withDiscoveredPipelinesAutoML(req)
+
+			params := httprouter.Params{
+				httprouter.Param{Key: "runId", Value: runID},
+			}
+
+			app.TerminatePipelineRunHandler(rr, req, params)
+
+			assert.Equal(t, tt.expectedStatus, rr.Code)
+		})
+	}
+}
+
+func TestRetryPipelineRunHandler_MutationErrors(t *testing.T) {
+	app := newTestApp(t)
+
+	tests := []struct {
+		name           string
+		retryErr       error
+		expectedStatus int
+	}{
+		{
+			name:           "should return 404 when RetryRun returns not-found",
+			retryErr:       repositories.ErrPipelineRunNotFound,
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name: "should return 400 when RetryRun returns bad-request",
+			retryErr: &pipelineserver.HTTPError{
+				StatusCode: http.StatusBadRequest,
+				Message:    "run is not in a valid state for retry",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "should return 500 when RetryRun returns unexpected error",
+			retryErr:       fmt.Errorf("connection refused"),
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			runID := "run-abc123-def456"
+			req, err := http.NewRequest(
+				http.MethodPost,
+				"/api/v1/pipeline-runs/"+runID+"/retry",
+				nil,
+			)
+			require.NoError(t, err)
+
+			mockClient := &retryErrorMockClient{
+				MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
+				retryErr:                 tt.retryErr,
+			}
+			ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+			ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+			req = req.WithContext(ctx)
+			req = withDiscoveredPipelinesAutoML(req)
+
+			params := httprouter.Params{
+				httprouter.Param{Key: "runId", Value: runID},
+			}
+
+			app.RetryPipelineRunHandler(rr, req, params)
+
+			assert.Equal(t, tt.expectedStatus, rr.Code)
+		})
+	}
 }
 
 // failedRunMockClient returns runs with FAILED state for retry testing

@@ -158,8 +158,7 @@ func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.Pipe
 }
 
 // TerminatePipelineRun terminates an active pipeline run by ID.
-// It first retrieves the run to verify it exists, then sends a terminate request
-// to the pipeline server.
+// It sends a terminate request to the pipeline server.
 func (r *PipelineRunsRepository) TerminatePipelineRun(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
