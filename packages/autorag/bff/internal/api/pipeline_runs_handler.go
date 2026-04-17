@@ -199,17 +199,26 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 	}
 }
 
+// terminatableStates lists the run states that are eligible for termination.
+var terminatableStates = map[string]bool{
+	"PENDING":   true,
+	"RUNNING":   true,
+	"PAUSED":    true,
+	"CANCELING": true,
+}
+
 // TerminatePipelineRunHandler handles POST /api/v1/pipeline-runs/:runId/terminate
 //
-// Terminates an active AutoRAG pipeline run. The run must belong to the discovered
-// AutoRAG pipeline in the namespace (same ownership validation as PipelineRunHandler).
+// Terminates an active AutoRAG pipeline run. The run must be in an active state
+// (PENDING, RUNNING, PAUSED, or CANCELING) and belong to the discovered AutoRAG
+// pipeline in the namespace. The run transitions to CANCELING and then CANCELED state.
 //
 // Security: This endpoint validates that the requested run belongs to the AutoRAG pipeline
 // in the namespace before terminating it. This prevents users from terminating runs from
 // other pipelines that may exist in the same namespace.
 //
 // Error Responses:
-//   - 400: Missing runId or pipeline server client
+//   - 400: Missing runId, pipeline server client, or run is not in a terminatable state
 //   - 404: Run not found, run belongs to a different pipeline, or no AutoRAG pipeline discovered
 //   - 500: Pipeline Server error
 func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -262,10 +271,22 @@ func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Ownership confirmed — terminate the run
+	// Validate the run is in a terminatable state
+	runState := strings.ToUpper(run.State)
+	if !terminatableStates[runState] {
+		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be terminated; only PENDING, RUNNING, PAUSED, or CANCELING runs can be terminated", runID, runState))
+		return
+	}
+
+	// Ownership and state confirmed — terminate the run
 	if err := app.repositories.PipelineRuns.TerminatePipelineRun(client, ctx, runID); err != nil {
 		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
 			app.notFoundResponse(w, r)
+			return
+		}
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) && httpErr.Status() == http.StatusBadRequest {
+			app.badRequestResponse(w, r, err)
 			return
 		}
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to terminate pipeline run: %w", err))
@@ -349,7 +370,7 @@ func (app *App) RetryPipelineRunHandler(w http.ResponseWriter, r *http.Request, 
 	// Validate the run is in a retryable state
 	runState := strings.ToUpper(run.State)
 	if !retryableStates[runState] {
-		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be retried; only FAILED or CANCELED runs can be retried", runID, run.State))
+		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be retried; only FAILED or CANCELED runs can be retried", runID, runState))
 		return
 	}
 
@@ -357,6 +378,11 @@ func (app *App) RetryPipelineRunHandler(w http.ResponseWriter, r *http.Request, 
 	if err := app.repositories.PipelineRuns.RetryPipelineRun(client, ctx, runID); err != nil {
 		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
 			app.notFoundResponse(w, r)
+			return
+		}
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) && httpErr.Status() == http.StatusBadRequest {
+			app.badRequestResponse(w, r, err)
 			return
 		}
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to retry pipeline run: %w", err))

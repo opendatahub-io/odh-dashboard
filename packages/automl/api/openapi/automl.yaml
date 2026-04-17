@@ -896,9 +896,11 @@ paths:
   /api/v1/pipeline-runs/{runId}/terminate:
     summary: Terminate an active pipeline run
     description: >-
-      Terminates an active pipeline run, cancelling all running tasks and marking the run
-      as terminated. The run must belong to one of the discovered AutoML pipelines in the namespace.
-      Returns 404 if the run doesn't exist or belongs to a different pipeline.
+      Terminates an active pipeline run, cancelling all running tasks and transitioning the run
+      to CANCELING and then CANCELED state. The run must be in an active state (PENDING, RUNNING,
+      PAUSED, or CANCELING) and belong to one of the discovered AutoML pipelines in the namespace.
+      Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist or
+      belongs to a different pipeline.
     post:
       tags:
         - PipelineOperation
@@ -929,9 +931,11 @@ paths:
       operationId: terminatePipelineRun
       summary: Terminate Pipeline Run
       description: >-
-        Terminates an active AutoML pipeline run. The BFF validates that the run belongs to one
-        of the discovered AutoML managed pipelines in the namespace before terminating it.
-        This prevents users from terminating runs from other pipelines in the same namespace.
+        Terminates an active AutoML pipeline run by transitioning it to CANCELING and then
+        CANCELED state. The run must be in an active state (PENDING, RUNNING, PAUSED, or
+        CANCELING). The BFF validates that the run belongs to one of the discovered AutoML
+        managed pipelines in the namespace and that it is in a terminatable state before
+        proceeding. Returns 400 if the run is not in a terminatable state.
 
   /api/v1/pipeline-runs/{runId}/retry:
     summary: Retry a failed or canceled pipeline run

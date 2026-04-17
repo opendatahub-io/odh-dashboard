@@ -314,7 +314,7 @@ describe('AutomlResults', () => {
   });
 
   describe('run state label', () => {
-    it('should show Canceled label when run state is CANCELED', () => {
+    it('should show state label when run state is CANCELED', () => {
       const canceledRun: PipelineRun = {
         ...mockPipelineRun,
         state: 'CANCELED',
@@ -325,13 +325,24 @@ describe('AutomlResults', () => {
       expect(screen.getByTestId('run-status-label')).toHaveTextContent('CANCELED');
     });
 
-    it('should not show Canceled label when run state is SUCCEEDED', () => {
+    it('should show state label when run state is FAILED', () => {
+      const failedRun: PipelineRun = {
+        ...mockPipelineRun,
+        state: 'FAILED',
+      };
+      renderWithContext(failedRun);
+
+      expect(screen.getByTestId('run-status-label')).toBeInTheDocument();
+      expect(screen.getByTestId('run-status-label')).toHaveTextContent('FAILED');
+    });
+
+    it('should not show state label when run state is SUCCEEDED', () => {
       renderWithContext(mockPipelineRun);
 
       expect(screen.queryByTestId('run-status-label')).not.toBeInTheDocument();
     });
 
-    it('should not show Canceled label when run state is RUNNING', () => {
+    it('should not show state label when run state is RUNNING', () => {
       const runningRun: PipelineRun = {
         ...mockPipelineRun,
         state: 'RUNNING',

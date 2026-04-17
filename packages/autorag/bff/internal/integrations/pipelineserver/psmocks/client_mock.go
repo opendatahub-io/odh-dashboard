@@ -484,7 +484,15 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 		}
 	}
 
-	// Return mock data based on the run ID, using namespace-derived IDs
+	// Look up the run from the base mock data so that state-dependent
+	// logic (terminate / retry) sees the correct State value.
+	for _, run := range getBaseMockRuns(m.Namespace) {
+		if run.RunID == runID {
+			return &run, nil
+		}
+	}
+
+	// Fallback for unknown run IDs: return a generic SUCCEEDED run
 	ids := DeriveMockIDs(m.Namespace)
 	mockRun := &models.KFPipelineRun{
 		RunID:        runID,

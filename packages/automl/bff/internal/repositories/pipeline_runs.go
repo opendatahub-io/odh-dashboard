@@ -259,8 +259,13 @@ func (r *PipelineRunsRepository) TerminatePipelineRun(
 
 	if err := client.TerminateRun(ctx, runID); err != nil {
 		var httpErr *ps.HTTPError
-		if errors.As(err, &httpErr) && httpErr.Status() == http.StatusNotFound {
-			return ErrPipelineRunNotFound
+		if errors.As(err, &httpErr) {
+			switch httpErr.Status() {
+			case http.StatusNotFound:
+				return ErrPipelineRunNotFound
+			case http.StatusBadRequest:
+				return err
+			}
 		}
 		return fmt.Errorf("failed to terminate pipeline run: %w", err)
 	}
@@ -281,8 +286,13 @@ func (r *PipelineRunsRepository) RetryPipelineRun(
 
 	if err := client.RetryRun(ctx, runID); err != nil {
 		var httpErr *ps.HTTPError
-		if errors.As(err, &httpErr) && httpErr.Status() == http.StatusNotFound {
-			return ErrPipelineRunNotFound
+		if errors.As(err, &httpErr) {
+			switch httpErr.Status() {
+			case http.StatusNotFound:
+				return ErrPipelineRunNotFound
+			case http.StatusBadRequest:
+				return err
+			}
 		}
 		return fmt.Errorf("failed to retry pipeline run: %w", err)
 	}

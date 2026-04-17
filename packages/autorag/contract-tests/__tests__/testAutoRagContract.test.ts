@@ -1256,7 +1256,7 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Terminate Pipeline Run', () => {
       it('should terminate an active pipeline run', async () => {
         const result = await apiClient.post(
-          '/api/v1/pipeline-runs/run-abc123-def456/terminate?namespace=test-namespace',
+          '/api/v1/pipeline-runs/run-ghi789-jkl012/terminate?namespace=test-namespace',
         );
         expect(result.success).toBe(true);
         if (result.success) {

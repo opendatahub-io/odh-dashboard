@@ -581,7 +581,7 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 POST /api/v1/pipeline-runs/{runId}/terminate
 ```
 
-Terminates an active pipeline run, cancelling all running tasks and marking the run as terminated. The run must belong to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace.
+Terminates an active pipeline run, cancelling all running tasks and transitioning the run to CANCELING and then CANCELED state. The run must be in an active state (PENDING, RUNNING, PAUSED, or CANCELING) and belong to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace.
 
 ### Parameters
 
@@ -592,9 +592,11 @@ Terminates an active pipeline run, cancelling all running tasks and marking the 
 
 ### Security & Filtering
 
-This endpoint enforces the same ownership validation as the Get Run endpoint:
+This endpoint enforces ownership and state validation:
 
 - Fetches the run and validates it belongs to one of the discovered AutoML pipelines before terminating
+- Validates the run is in an active state (PENDING, RUNNING, PAUSED, or CANCELING) before proceeding
+- Returns `400 Bad Request` if the run is not in a terminatable state
 - Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
 - Prevents users from terminating runs from other pipelines in the same namespace
 
@@ -613,7 +615,7 @@ Returns `200 OK` with an empty body on success.
 
 | Status | Condition |
 |--------|-----------|
-| `400 Bad Request` | Missing `runId` parameter |
+| `400 Bad Request` | Missing `runId` parameter, or run is not in an active state (PENDING, RUNNING, PAUSED, or CANCELING) |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
 | `404 Not Found` | Run not found, or run belongs to a different pipeline |

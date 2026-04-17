@@ -748,6 +748,25 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 	})
 }
 
+// runningRunMockClient returns runs with RUNNING state for terminate testing
+type runningRunMockClient struct {
+	psmocks.MockPipelineServerClient
+}
+
+func (m *runningRunMockClient) GetRun(_ context.Context, runID string) (*models.KFPipelineRun, error) {
+	ids := psmocks.DeriveMockIDs(m.Namespace)
+	return &models.KFPipelineRun{
+		RunID:       runID,
+		DisplayName: "Running AutoML Run",
+		State:       "RUNNING",
+		PipelineVersionReference: &models.PipelineVersionReference{
+			PipelineID:        ids.PipelineID,
+			PipelineVersionID: ids.LatestVersionID,
+		},
+		CreatedAt: "2024-01-01T00:00:00Z",
+	}, nil
+}
+
 // TestTerminatePipelineRunHandler tests the POST /api/v1/pipeline-runs/:runId/terminate endpoint
 func TestTerminatePipelineRunHandler_Success(t *testing.T) {
 	app := newTestApp(t)
@@ -762,7 +781,9 @@ func TestTerminatePipelineRunHandler_Success(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		mockClient := &runningRunMockClient{
+			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
+		}
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 		req = req.WithContext(ctx)
@@ -852,6 +873,45 @@ func TestTerminatePipelineRunHandler_ErrorCases(t *testing.T) {
 		app.TerminatePipelineRunHandler(rr, req, params)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("should return 400 when run is not in a terminatable state", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-succeeded"
+		req, err := http.NewRequest(
+			http.MethodPost,
+			"/api/v1/pipeline-runs/"+runID+"/terminate",
+			nil,
+		)
+		require.NoError(t, err)
+
+		// Default mock returns SUCCEEDED state (not terminatable)
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+		req = withDiscoveredPipelinesAutoML(req)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.TerminatePipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		var response struct {
+			Error struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+
+		assert.Contains(t, response.Error.Message, "cannot be terminated")
+		assert.Empty(t, mockClient.LastTerminateRunID,
+			"TerminateRun should not have been called for a non-terminatable run")
 	})
 
 	t.Run("should return 404 when no pipelines discovered", func(t *testing.T) {
