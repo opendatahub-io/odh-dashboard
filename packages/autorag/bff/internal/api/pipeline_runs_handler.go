@@ -124,64 +124,8 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 //   - 404: Run not found, run belongs to a different pipeline, or missing pipeline reference
 //   - 500: Missing pipeline server client (middleware misconfiguration), Pipeline Server error, or no AutoRAG pipeline discovered
 func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	ctx := r.Context()
-
-	// Get pipeline server client from context (added by middleware)
-	client, ok := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
+	_, run, _, ok := app.resolveOwnedRun(w, r, params)
 	if !ok {
-		app.serverErrorResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
-		return
-	}
-
-	// Get discovered pipeline from context — may be nil if no pipeline exists yet
-	discoveredPipelines, ok2 := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
-	if !ok2 {
-		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
-		return
-	}
-	discovered := discoveredPipelines[constants.PipelineTypeAutoRAG]
-
-	// Get run ID from URL path parameter
-	runID := params.ByName("runId")
-	if runID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
-		return
-	}
-
-	// Call repository to get the pipeline run
-	run, err := app.repositories.PipelineRuns.GetPipelineRun(client, ctx, runID)
-	if err != nil {
-		// Check if this is a "not found" error and return 404
-		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
-			app.notFoundResponse(w, r)
-			return
-		}
-		// For all other errors, return 500
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline run: %w", err))
-		return
-	}
-
-	// Verify that the run belongs to the discovered AutoRAG pipeline
-	// This ensures users can only access runs from the AutoRAG pipeline in their namespace
-
-	// Defense-in-depth: Validate that PipelineVersionReference exists
-	// KFP should always set this field, but we check explicitly for data integrity
-	if run.PipelineVersionReference == nil {
-		logger := helper.GetContextLoggerFromReq(r)
-		logger.Warn("Run missing PipelineVersionReference - possible data integrity issue",
-			"runId", runID,
-			"namespace", ctx.Value(constants.NamespaceHeaderParameterKey))
-		// Return 404 for security (don't leak that run exists with invalid data)
-		app.notFoundResponse(w, r)
-		return
-	}
-
-	// Validate that the run belongs to the discovered AutoRAG pipeline
-	if discovered == nil ||
-		run.PipelineVersionReference.PipelineID != discovered.PipelineID ||
-		run.PipelineVersionReference.PipelineVersionID != discovered.PipelineVersionID {
-		// Run exists but belongs to a different pipeline - return 404 for security
-		app.notFoundResponse(w, r)
 		return
 	}
 
@@ -193,10 +137,84 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 		Data: run,
 	}
 
-	err = app.WriteJSON(w, http.StatusOK, response, nil)
-	if err != nil {
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+// resolveOwnedRun extracts the pipeline-server client, validates the runId
+// parameter, fetches the run, and verifies it belongs to the discovered
+// AutoRAG pipeline. On any validation failure it writes the appropriate
+// HTTP error response and returns ok=false.
+func (app *App) resolveOwnedRun(
+	w http.ResponseWriter,
+	r *http.Request,
+	params httprouter.Params,
+) (ps.PipelineServerClientInterface, *models.PipelineRun, string, bool) {
+	ctx := r.Context()
+
+	client, clientOk := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
+	if !clientOk {
+		app.serverErrorResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
+		return nil, nil, "", false
+	}
+
+	discoveredPipelines, dpOk := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !dpOk {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
+		return nil, nil, "", false
+	}
+	discovered := discoveredPipelines[constants.PipelineTypeAutoRAG]
+
+	runID := params.ByName("runId")
+	if runID == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+		return nil, nil, "", false
+	}
+
+	run, err := app.repositories.PipelineRuns.GetPipelineRun(client, ctx, runID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
+			app.notFoundResponse(w, r)
+			return nil, nil, "", false
+		}
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline run: %w", err))
+		return nil, nil, "", false
+	}
+
+	if run.PipelineVersionReference == nil {
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Warn("Run missing PipelineVersionReference - possible data integrity issue",
+			"runId", runID,
+			"namespace", ctx.Value(constants.NamespaceHeaderParameterKey))
+		app.notFoundResponse(w, r)
+		return nil, nil, "", false
+	}
+
+	if discovered == nil ||
+		run.PipelineVersionReference.PipelineID != discovered.PipelineID ||
+		run.PipelineVersionReference.PipelineVersionID != discovered.PipelineVersionID {
+		app.notFoundResponse(w, r)
+		return nil, nil, "", false
+	}
+
+	return client, run, runID, true
+}
+
+// mapMutationError maps the error from a pipeline run mutation (terminate/retry)
+// to the appropriate HTTP response: 404 for not-found, 400 for bad-request
+// from the Pipeline Server, and 500 for everything else.
+func (app *App) mapMutationError(w http.ResponseWriter, r *http.Request, err error, action string) {
+	if errors.Is(err, repositories.ErrPipelineRunNotFound) {
+		app.notFoundResponse(w, r)
+		return
+	}
+	var httpErr *ps.HTTPError
+	if errors.As(err, &httpErr) && httpErr.Status() == http.StatusBadRequest {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	app.serverErrorResponse(w, r, fmt.Errorf("failed to %s pipeline run: %w", action, err))
 }
 
 // terminatableStates lists the run states that are eligible for termination.
@@ -222,52 +240,8 @@ var terminatableStates = map[string]bool{
 //   - 404: Run not found, run belongs to a different pipeline, or no AutoRAG pipeline discovered
 //   - 500: Missing pipeline server client (middleware misconfiguration) or Pipeline Server error
 func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	ctx := r.Context()
-
-	client, ok := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
+	client, run, runID, ok := app.resolveOwnedRun(w, r, params)
 	if !ok {
-		app.serverErrorResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
-		return
-	}
-
-	discoveredPipelines, ok2 := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
-	if !ok2 {
-		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
-		return
-	}
-	discovered := discoveredPipelines[constants.PipelineTypeAutoRAG]
-
-	runID := params.ByName("runId")
-	if runID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
-		return
-	}
-
-	// Fetch the run first to validate ownership before terminating
-	run, err := app.repositories.PipelineRuns.GetPipelineRun(client, ctx, runID)
-	if err != nil {
-		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
-			app.notFoundResponse(w, r)
-			return
-		}
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline run: %w", err))
-		return
-	}
-
-	// Verify that the run belongs to the discovered AutoRAG pipeline
-	if run.PipelineVersionReference == nil {
-		logger := helper.GetContextLoggerFromReq(r)
-		logger.Warn("Run missing PipelineVersionReference - possible data integrity issue",
-			"runId", runID,
-			"namespace", ctx.Value(constants.NamespaceHeaderParameterKey))
-		app.notFoundResponse(w, r)
-		return
-	}
-
-	if discovered == nil ||
-		run.PipelineVersionReference.PipelineID != discovered.PipelineID ||
-		run.PipelineVersionReference.PipelineVersionID != discovered.PipelineVersionID {
-		app.notFoundResponse(w, r)
 		return
 	}
 
@@ -279,17 +253,8 @@ func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Ownership and state confirmed — terminate the run
-	if err := app.repositories.PipelineRuns.TerminatePipelineRun(client, ctx, runID); err != nil {
-		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
-			app.notFoundResponse(w, r)
-			return
-		}
-		var httpErr *ps.HTTPError
-		if errors.As(err, &httpErr) && httpErr.Status() == http.StatusBadRequest {
-			app.badRequestResponse(w, r, err)
-			return
-		}
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to terminate pipeline run: %w", err))
+	if err := app.repositories.PipelineRuns.TerminatePipelineRun(client, r.Context(), runID); err != nil {
+		app.mapMutationError(w, r, err, "terminate")
 		return
 	}
 
@@ -318,52 +283,8 @@ var retryableStates = map[string]bool{
 //   - 404: Run not found, run belongs to a different pipeline, or no AutoRAG pipeline discovered
 //   - 500: Missing pipeline server client (middleware misconfiguration) or Pipeline Server error
 func (app *App) RetryPipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	ctx := r.Context()
-
-	client, ok := ctx.Value(constants.PipelineServerClientKey).(ps.PipelineServerClientInterface)
+	client, run, runID, ok := app.resolveOwnedRun(w, r, params)
 	if !ok {
-		app.serverErrorResponse(w, r, fmt.Errorf("pipeline server client not found in context"))
-		return
-	}
-
-	discoveredPipelines, ok2 := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
-	if !ok2 {
-		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
-		return
-	}
-	discovered := discoveredPipelines[constants.PipelineTypeAutoRAG]
-
-	runID := params.ByName("runId")
-	if runID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
-		return
-	}
-
-	// Fetch the run first to validate ownership before retrying
-	run, err := app.repositories.PipelineRuns.GetPipelineRun(client, ctx, runID)
-	if err != nil {
-		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
-			app.notFoundResponse(w, r)
-			return
-		}
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline run: %w", err))
-		return
-	}
-
-	// Verify that the run belongs to the discovered AutoRAG pipeline
-	if run.PipelineVersionReference == nil {
-		logger := helper.GetContextLoggerFromReq(r)
-		logger.Warn("Run missing PipelineVersionReference - possible data integrity issue",
-			"runId", runID,
-			"namespace", ctx.Value(constants.NamespaceHeaderParameterKey))
-		app.notFoundResponse(w, r)
-		return
-	}
-
-	if discovered == nil ||
-		run.PipelineVersionReference.PipelineID != discovered.PipelineID ||
-		run.PipelineVersionReference.PipelineVersionID != discovered.PipelineVersionID {
-		app.notFoundResponse(w, r)
 		return
 	}
 
@@ -375,17 +296,8 @@ func (app *App) RetryPipelineRunHandler(w http.ResponseWriter, r *http.Request, 
 	}
 
 	// Ownership and state confirmed — retry the run
-	if err := app.repositories.PipelineRuns.RetryPipelineRun(client, ctx, runID); err != nil {
-		if errors.Is(err, repositories.ErrPipelineRunNotFound) {
-			app.notFoundResponse(w, r)
-			return
-		}
-		var httpErr *ps.HTTPError
-		if errors.As(err, &httpErr) && httpErr.Status() == http.StatusBadRequest {
-			app.badRequestResponse(w, r, err)
-			return
-		}
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to retry pipeline run: %w", err))
+	if err := app.repositories.PipelineRuns.RetryPipelineRun(client, r.Context(), runID); err != nil {
+		app.mapMutationError(w, r, err, "retry")
 		return
 	}
 
