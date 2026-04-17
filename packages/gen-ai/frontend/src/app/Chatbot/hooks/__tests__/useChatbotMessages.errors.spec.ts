@@ -99,8 +99,8 @@ describe('useChatbotMessages - Error Handling', () => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
         expect(lastMessage.errorClassification).toBeDefined();
-        expect(lastMessage.errorClassification.variant).toBe('danger');
-        expect(lastMessage.errorClassification.details.rawMessage).toBeDefined();
+        expect(lastMessage.errorClassification!.variant).toBe('danger');
+        expect(lastMessage.errorClassification!.details.rawMessage).toBeDefined();
       });
     });
 
@@ -127,8 +127,8 @@ describe('useChatbotMessages - Error Handling', () => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
         expect(lastMessage.errorClassification).toBeDefined();
-        expect(lastMessage.errorClassification.variant).toBe('danger');
-        expect(lastMessage.errorClassification.details.rawMessage).toBeDefined();
+        expect(lastMessage.errorClassification!.variant).toBe('danger');
+        expect(lastMessage.errorClassification!.details.rawMessage).toBeDefined();
       });
     });
 
@@ -155,8 +155,8 @@ describe('useChatbotMessages - Error Handling', () => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
         expect(lastMessage.errorClassification).toBeDefined();
-        expect(lastMessage.errorClassification.variant).toBe('danger');
-        expect(lastMessage.errorClassification.details.rawMessage).toBeDefined();
+        expect(lastMessage.errorClassification!.variant).toBe('danger');
+        expect(lastMessage.errorClassification!.details.rawMessage).toBeDefined();
       });
     });
 
@@ -183,8 +183,8 @@ describe('useChatbotMessages - Error Handling', () => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
         expect(lastMessage.errorClassification).toBeDefined();
-        expect(lastMessage.errorClassification.variant).toBe('danger');
-        expect(lastMessage.errorClassification.details.rawMessage).toBeDefined();
+        expect(lastMessage.errorClassification!.variant).toBe('danger');
+        expect(lastMessage.errorClassification!.details.rawMessage).toBeDefined();
       });
     });
 
@@ -211,8 +211,8 @@ describe('useChatbotMessages - Error Handling', () => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
         expect(lastMessage.errorClassification).toBeDefined();
-        expect(lastMessage.errorClassification.variant).toBe('danger');
-        expect(lastMessage.errorClassification.details.rawMessage).toBeDefined();
+        expect(lastMessage.errorClassification!.variant).toBe('danger');
+        expect(lastMessage.errorClassification!.details.rawMessage).toBeDefined();
       });
     });
 
@@ -239,8 +239,8 @@ describe('useChatbotMessages - Error Handling', () => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
         expect(lastMessage.errorClassification).toBeDefined();
-        expect(lastMessage.errorClassification.variant).toBe('danger');
-        expect(lastMessage.errorClassification.details.rawMessage).toBeDefined();
+        expect(lastMessage.errorClassification!.variant).toBe('danger');
+        expect(lastMessage.errorClassification!.details.rawMessage).toBeDefined();
       });
     });
 
@@ -267,8 +267,8 @@ describe('useChatbotMessages - Error Handling', () => {
         const { messages } = result.current;
         const lastMessage = messages[messages.length - 1];
         expect(lastMessage.errorClassification).toBeDefined();
-        expect(lastMessage.errorClassification.variant).toBe('danger');
-        expect(lastMessage.errorClassification.details.rawMessage).toBeDefined();
+        expect(lastMessage.errorClassification!.variant).toBe('danger');
+        expect(lastMessage.errorClassification!.details.rawMessage).toBeDefined();
       });
     });
   });

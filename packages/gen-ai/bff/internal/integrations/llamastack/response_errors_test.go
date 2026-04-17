@@ -358,6 +358,6 @@ func TestNewEnhancedLlamaStackErrorWithNil(t *testing.T) {
 	assert.NotNil(t, enhanced.LlamaStackError)
 	assert.Equal(t, CategoryGenericError, enhanced.Category)
 	assert.Equal(t, "An unexpected error occurred. Please try again or contact support if the issue persists.", enhanced.UserFriendlyMsg)
-	assert.Equal(t, "UNKNOWN", enhanced.LlamaStackError.Code)
-	assert.Equal(t, "Unknown error", enhanced.LlamaStackError.Message)
+	assert.Equal(t, "UNKNOWN", enhanced.Code)
+	assert.Equal(t, "Unknown error", enhanced.Message)
 }
