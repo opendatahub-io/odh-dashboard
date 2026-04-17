@@ -101,6 +101,7 @@ type ChatbotPlaygroundProps = {
   setActivePaneConfigId?: (configId: string) => void;
   onClosePane?: (configId: string) => void;
   clearAllMessagesRef?: React.MutableRefObject<(() => void) | null>;
+  hasAnyMessagesRef?: React.MutableRefObject<(() => boolean) | null>;
   isDrawerExpanded?: boolean;
   setIsDrawerExpanded?: (expanded: boolean) => void;
 };
@@ -114,6 +115,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   setActivePaneConfigId,
   onClosePane,
   clearAllMessagesRef,
+  hasAnyMessagesRef,
   isDrawerExpanded: isDrawerExpandedProp,
   setIsDrawerExpanded: setIsDrawerExpandedProp,
 }) => {
@@ -369,6 +371,20 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       }
     };
   }, [clearAllMessagesRef]);
+
+  // Expose hasAnyMessages to parent (messages beyond the initial bot greeting)
+  React.useEffect(() => {
+    const ref = hasAnyMessagesRef;
+    if (ref) {
+      ref.current = () =>
+        Array.from(messageHooksRef.current.values()).some((hook) => hook.messages.length > 1);
+    }
+    return () => {
+      if (ref) {
+        ref.current = null;
+      }
+    };
+  }, [hasAnyMessagesRef]);
 
   // Alerts
   const alerts = {

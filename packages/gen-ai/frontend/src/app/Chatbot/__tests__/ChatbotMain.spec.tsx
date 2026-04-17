@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import type { FetchStateObject, Namespace } from 'mod-arch-core';
 import { ChatbotMain } from '~/app/Chatbot/ChatbotMain';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
@@ -32,14 +32,22 @@ jest.mock('~/app/Chatbot/ChatbotHeader', () => ({
   default: () => <div data-testid="chatbot-header">Chatbot Header</div>,
 }));
 
+let capturedPlaygroundProps: Record<string, unknown> = {};
 jest.mock('~/app/Chatbot/ChatbotPlayground', () => ({
   __esModule: true,
-  default: () => <div data-testid="chatbot-playground">Chatbot Playground</div>,
+  default: (props: Record<string, unknown>) => {
+    capturedPlaygroundProps = props;
+    return <div data-testid="chatbot-playground">Chatbot Playground</div>;
+  },
 }));
 
+let capturedHeaderActionsProps: Record<string, unknown> = {};
 jest.mock('~/app/Chatbot/ChatbotHeaderActions', () => ({
   __esModule: true,
-  default: () => <div data-testid="chatbot-header-actions">Header Actions</div>,
+  default: (props: Record<string, unknown>) => {
+    capturedHeaderActionsProps = props;
+    return <div data-testid="chatbot-header-actions">Header Actions</div>;
+  },
 }));
 
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal', () => ({
@@ -54,7 +62,28 @@ jest.mock('~/app/Chatbot/components/DeletePlaygroundModal', () => ({
 
 jest.mock('~/app/Chatbot/components/ChatModal', () => ({
   __esModule: true,
-  default: () => null,
+  default: ({
+    isOpen,
+    onConfirm,
+    onClose,
+  }: {
+    isOpen: boolean;
+    onConfirm: () => void;
+    onClose: () => void;
+  }) =>
+    isOpen ? (
+      <div data-testid="compare-chat-modal">
+        <button
+          data-testid="confirm-compare-button"
+          onClick={() => {
+            onConfirm();
+            onClose();
+          }}
+        >
+          Confirm
+        </button>
+      </div>
+    ) : null,
 }));
 
 type ApplicationsPageProps = {
@@ -90,9 +119,80 @@ const mockIsLlamaModelEnabled = isLlamaModelEnabled as jest.MockedFunction<
 >;
 const mockUseFetchBFFConfig = useFetchBFFConfig as jest.MockedFunction<typeof useFetchBFFConfig>;
 
+const defaultStoreState = {
+  configIds: ['default'],
+  configurations: {
+    default: {
+      selectedModel: 'test-model',
+      systemInstruction: '',
+      temperature: 0.1,
+      isStreamingEnabled: true,
+      selectedMcpServerIds: [],
+      mcpToolSelections: {},
+      guardrail: '',
+      guardrailUserInputEnabled: false,
+      guardrailModelOutputEnabled: false,
+      isRagEnabled: false,
+    },
+  },
+  duplicateConfiguration: jest.fn(),
+  removeConfiguration: jest.fn(),
+};
+
+const setupMockStore = (overrides: Partial<typeof defaultStoreState> = {}) => {
+  const state = { ...defaultStoreState, ...overrides };
+  mockUseChatbotConfigStore.mockImplementation((selector: unknown) => {
+    if (typeof selector === 'function') {
+      return selector(state);
+    }
+    return undefined;
+  });
+  (useChatbotConfigStore as unknown as { getState: () => typeof state }).getState = () => state;
+};
+
+const defaultChatbotContext = {
+  lsdStatus: { phase: 'Ready' } as LlamaStackDistributionModel,
+  modelsLoaded: true,
+  lsdStatusLoaded: true,
+  lsdStatusError: undefined,
+  refresh: jest.fn(),
+  aiModels: [{ id: 'test-model' }],
+  aiModelsLoaded: true,
+  aiModelsError: undefined,
+  maasModels: [] as MaaSModel[],
+  maasModelsLoaded: true,
+  maasModelsError: undefined,
+  models: [{ id: 'test-model' }],
+  modelsError: undefined,
+  lastInput: '',
+  setLastInput: jest.fn(),
+};
+
+const defaultGenAiContext = {
+  namespace: { name: 'test-namespace' } as Namespace,
+  apiState: {
+    apiAvailable: false,
+    api: null as unknown as never,
+  },
+  refreshAPIState: jest.fn(),
+};
+
+const renderChatbotMain = (chatbotContextOverrides: Partial<typeof defaultChatbotContext> = {}) => {
+  const chatbotContext = { ...defaultChatbotContext, ...chatbotContextOverrides };
+  return render(
+    <ChatbotContext.Provider value={chatbotContext}>
+      <GenAiContext.Provider value={defaultGenAiContext}>
+        <ChatbotMain />
+      </GenAiContext.Provider>
+    </ChatbotContext.Provider>,
+  );
+};
+
 describe('ChatbotMain - Empty State Logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    capturedPlaygroundProps = {};
+    capturedHeaderActionsProps = {};
     mockUseFetchBFFConfig.mockReturnValue({
       data: { isCustomLSD: false },
       loaded: false,
@@ -101,68 +201,89 @@ describe('ChatbotMain - Empty State Logic', () => {
     } as FetchStateObject<BFFConfig | null>);
     mockIsLlamaModelEnabled.mockReturnValue(true);
 
-    // Simple mock that returns values based on selector
-    mockUseChatbotConfigStore.mockImplementation((selector: unknown) => {
-      if (typeof selector === 'function') {
-        return selector({
-          configIds: ['default'],
-          configurations: {
-            default: {
-              selectedModel: '',
-              systemInstruction: '',
-              temperature: 0.1,
-              isStreamingEnabled: true,
-              selectedMcpServerIds: [],
-              mcpToolSelections: {},
-              guardrail: '',
-              guardrailUserInputEnabled: false,
-              guardrailModelOutputEnabled: false,
-              isRagEnabled: false,
-            },
-          },
-        });
-      }
-      return undefined;
-    });
+    setupMockStore();
   });
 
   it('should display empty state when no models are available in the project', () => {
-    const chatbotContext = {
-      lsdStatus: { phase: 'Ready' } as LlamaStackDistributionModel,
+    renderChatbotMain({
       modelsLoaded: false,
-      lsdStatusLoaded: true,
-      lsdStatusError: undefined,
-      refresh: jest.fn(),
       aiModels: [],
-      aiModelsLoaded: true,
-      aiModelsError: undefined,
-      maasModels: [] as MaaSModel[],
-      maasModelsLoaded: true,
-      maasModelsError: undefined,
       models: [],
-      modelsError: undefined,
-      lastInput: '',
-      setLastInput: jest.fn(),
-    };
-
-    const genAiContext = {
-      namespace: { name: 'test-namespace' } as Namespace,
-      apiState: {
-        apiAvailable: false,
-        api: null as unknown as never,
-      },
-      refreshAPIState: jest.fn(),
-    };
-
-    render(
-      <ChatbotContext.Provider value={chatbotContext}>
-        <GenAiContext.Provider value={genAiContext}>
-          <ChatbotMain />
-        </GenAiContext.Provider>
-      </ChatbotContext.Provider>,
-    );
+    });
 
     expect(screen.getByTestId('no-models-empty-state')).toBeInTheDocument();
     expect(screen.queryByTestId('header-action')).not.toBeInTheDocument();
+  });
+});
+
+describe('ChatbotMain - Compare Mode Modal', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    capturedPlaygroundProps = {};
+    capturedHeaderActionsProps = {};
+    mockUseFetchBFFConfig.mockReturnValue({
+      data: { isCustomLSD: false },
+      loaded: false,
+      error: undefined,
+      refresh: jest.fn(),
+    } as FetchStateObject<BFFConfig | null>);
+    mockIsLlamaModelEnabled.mockReturnValue(true);
+
+    setupMockStore();
+  });
+
+  it('should not show compare modal when no messages exist', () => {
+    renderChatbotMain();
+
+    const hasAnyMessagesRef = capturedPlaygroundProps.hasAnyMessagesRef as React.MutableRefObject<
+      (() => boolean) | null
+    >;
+    hasAnyMessagesRef.current = () => false;
+
+    const onCompareChat = capturedHeaderActionsProps.onCompareChat as () => void;
+    act(() => {
+      onCompareChat();
+    });
+
+    expect(screen.queryByTestId('compare-chat-modal')).not.toBeInTheDocument();
+    expect(defaultStoreState.duplicateConfiguration).toHaveBeenCalled();
+  });
+
+  it('should show compare modal when messages exist', () => {
+    renderChatbotMain();
+
+    const hasAnyMessagesRef = capturedPlaygroundProps.hasAnyMessagesRef as React.MutableRefObject<
+      (() => boolean) | null
+    >;
+    hasAnyMessagesRef.current = () => true;
+
+    const onCompareChat = capturedHeaderActionsProps.onCompareChat as () => void;
+    act(() => {
+      onCompareChat();
+    });
+
+    expect(screen.getByTestId('compare-chat-modal')).toBeInTheDocument();
+    expect(defaultStoreState.duplicateConfiguration).not.toHaveBeenCalled();
+  });
+
+  it('should enter compare mode after confirming modal when messages exist', () => {
+    renderChatbotMain();
+
+    const hasAnyMessagesRef = capturedPlaygroundProps.hasAnyMessagesRef as React.MutableRefObject<
+      (() => boolean) | null
+    >;
+    hasAnyMessagesRef.current = () => true;
+
+    const onCompareChat = capturedHeaderActionsProps.onCompareChat as () => void;
+    act(() => {
+      onCompareChat();
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByTestId('confirm-compare-button'));
+    });
+
+    expect(defaultStoreState.duplicateConfiguration).toHaveBeenCalled();
+    expect(screen.queryByTestId('compare-chat-modal')).not.toBeInTheDocument();
   });
 });
