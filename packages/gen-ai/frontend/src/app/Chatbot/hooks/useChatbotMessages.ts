@@ -549,6 +549,11 @@ const useChatbotMessages = ({
             // Add chunk to current partial line
             currentPartialLine += chunk;
 
+            // Mark that we've received streaming content (any non-empty chunk counts)
+            if (chunk) {
+              streamingReceivedRef.current = true;
+            }
+
             // Check if we have complete lines (ending with newline characters)
             const lines = currentPartialLine.split('\n');
 
@@ -557,9 +562,6 @@ const useChatbotMessages = ({
               // Add all complete lines except the last one (which might be partial)
               completeLines.push(...lines.slice(0, -1));
               currentPartialLine = lines[lines.length - 1]; // Keep the last line as partial
-
-              // Mark that we've received streaming content
-              streamingReceivedRef.current = true;
 
               // Update immediately when we have a new complete line
               updateMessage(true, hasAnyContent);
