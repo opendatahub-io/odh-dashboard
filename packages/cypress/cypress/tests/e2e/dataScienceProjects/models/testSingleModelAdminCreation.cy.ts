@@ -144,11 +144,13 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      // Verify model deployment is ready
-      checkInferenceServiceState(resourceName, projectName, {
-        checkReady: false,
-        requireLoadedState: false,
+      cy.then(() => {
+        checkInferenceServiceState(resourceName, projectName, {
+          checkReady: false,
+          requireLoadedState: false,
+        });
       });
+
       // Test stop/start functionality
       const kServeRow = modelServingSection.getKServeRow(testData.singleModelAdminName);
 
@@ -171,9 +173,11 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       //Verify the model is stopped
       cy.step('Verify the model is stopped');
-      checkInferenceServiceState(resourceName, projectName, {
-        checkReady: false,
-        requireLoadedState: false,
+      cy.then(() => {
+        checkInferenceServiceState(resourceName, projectName, {
+          checkReady: false,
+          requireLoadedState: false,
+        });
       });
       kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
     },
