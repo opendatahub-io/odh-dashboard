@@ -43,6 +43,10 @@ type resolvedS3 struct {
 
 var trailingNumberPattern = regexp.MustCompile(`^(.*)-(\d+)$`)
 
+// ErrMaxCollisionsExceeded is returned when resolveNonCollidingS3Key exhausts all attempts
+// to find a unique object key due to naming collisions.
+var ErrMaxCollisionsExceeded = errors.New("max collision attempts exceeded")
+
 // resolveS3Client resolves S3 credentials (from DSPA context or an explicit secretName),
 // creates an S3 client via the factory, and resolves the bucket.
 // Returns false if an error response was already written to w.
@@ -321,10 +325,16 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 	defer metadataCancel()
 	resolvedKey, err := resolveNonCollidingS3Key(metadataCtx, s3.client, bucket, key, app.effectivePostS3CollisionAttempts())
 	if err != nil {
-		if isS3ConnectivityError(err) {
-			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
+		if errors.Is(err, ErrMaxCollisionsExceeded) {
+			app.conflictResponse(w, r,
+				fmt.Sprintf("unable to find unique filename after %d attempts; try a different base name",
+					app.effectivePostS3CollisionAttempts()))
 			return
 		}
+    if isS3ConnectivityError(err) {
+      app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
+      return
+    }
 		app.serverErrorResponse(w, r, fmt.Errorf("error resolving S3 key for upload: %w", err))
 		return
 	}
@@ -456,7 +466,7 @@ func resolveNonCollidingS3Key(
 		}
 		nextIndex++
 	}
-	return "", fmt.Errorf("failed to resolve non-colliding S3 key after %d attempts", maxCollisionAttempts)
+	return "", ErrMaxCollisionsExceeded
 }
 
 func splitS3ObjectPath(key string) (dir string, name string) {

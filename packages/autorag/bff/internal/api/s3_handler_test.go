@@ -1368,6 +1368,50 @@ func TestPostS3FileHandler_ResolvesCollidingNumericSuffix(t *testing.T) {
 	assert.Equal(t, "file-6.pdf", collisionClient.uploadedKey)
 }
 
+func TestPostS3FileHandler_CollisionResolutionExhausted_Returns409(t *testing.T) {
+	t.Parallel()
+	secret := validS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&alwaysExistsS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	body, contentType := buildMultipartFileUpload(t, "file", "a.pdf", []byte("x"))
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=a.pdf",
+		body,
+		contentType,
+		k8sFactory,
+		s3Factory,
+		identity,
+		&s3HandlerTestAppOptions{S3PostMaxCollisionAttempts: 5},
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusConflict, res.StatusCode)
+	var env ErrorEnvelope
+	err := json.Unmarshal(rr.Body.Bytes(), &env)
+	assert.NoError(t, err)
+	assert.NotNil(t, env.Error)
+	assert.Equal(t, "409", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "unable to find unique filename")
+	assert.Contains(t, env.Error.Message, "5 attempts")
+}
+
+// alwaysExistsS3Client always returns true for ObjectExists to simulate exhausting collision attempts.
+type alwaysExistsS3Client struct{ s3mocks.MockS3Client }
+
+func (*alwaysExistsS3Client) ObjectExists(context.Context, string, string) (bool, error) {
+	return true, nil
+}
+
+func (*alwaysExistsS3Client) UploadObject(context.Context, string, string, io.Reader, string) error {
+	return s3int.ErrObjectAlreadyExists
+}
+
 func TestResolveNonCollidingS3Key_PreservesDirectoryPrefix(t *testing.T) {
 	t.Parallel()
 	client := newKeyCollisionS3Client("folder/sub/file.pdf", "folder/sub/file-1.pdf")

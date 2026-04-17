@@ -35,6 +35,10 @@ import (
 // because legitimate large payloads can exceed any static timeout.
 const s3MetadataTimeout = 15 * time.Second
 
+// ErrMaxCollisionsExceeded is returned when resolveNonCollidingS3Key exhausts all attempts
+// to find a unique object key due to naming collisions.
+var ErrMaxCollisionsExceeded = errors.New("max collision attempts exceeded")
+
 // resolvedS3 holds a ready-to-use S3 client and the resolved bucket name.
 type resolvedS3 struct {
 	client s3int.S3ClientInterface
@@ -345,6 +349,12 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 	defer metadataCancel()
 	resolvedKey, err := resolveNonCollidingS3Key(metadataCtx, s3.client, bucket, key, app.effectivePostS3CollisionAttempts())
 	if err != nil {
+		if errors.Is(err, ErrMaxCollisionsExceeded) {
+			app.conflictResponse(w, r,
+				fmt.Sprintf("unable to find unique filename after %d attempts; try a different base name",
+					app.effectivePostS3CollisionAttempts()))
+			return
+		}
 		if isS3ConnectivityError(err) {
 			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
 			return
@@ -484,7 +494,7 @@ func resolveNonCollidingS3Key(
 		}
 		nextIndex++
 	}
-	return "", fmt.Errorf("failed to resolve non-colliding S3 key after %d attempts", maxCollisionAttempts)
+	return "", ErrMaxCollisionsExceeded
 }
 
 func splitS3ObjectPath(key string) (dir string, name string) {

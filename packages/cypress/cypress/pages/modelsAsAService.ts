@@ -614,7 +614,7 @@ class CopyApiKeyModal extends Modal {
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
     // Find the dialog that contains the API key token copy (unique to this modal)
-    return cy.findByTestId('api-key-token-copy').closest('[role="dialog"]');
+    return cy.findByTestId('api-key-token-copy-section').closest('[role="dialog"]');
   }
 
   shouldBeOpen(open = true): void {
@@ -626,24 +626,28 @@ class CopyApiKeyModal extends Modal {
   }
 
   findApiKeyTokenCopy(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('api-key-token-copy');
+    return this.find().findByTestId('api-key-token-copy-section');
   }
 
   findApiKeyTokenCopyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findApiKeyTokenCopy().findByRole('button', { name: 'Copy' });
+    return this.find().findByTestId('api-key-token-copy-button');
   }
 
-  findApiKeyTokenInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
-    // Find the read-only input field inside the ClipboardCopy component
-    return this.findApiKeyTokenCopy().find('input[type="text"]');
+  findApiKeyTokenInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // input/textarea holds the value; PF wraps TextInput in a span, value on the span is undefined).
+    return this.find().find('input[aria-label="API key"], textarea[aria-label="API key"]');
+  }
+
+  findApiKeyTokenVisibilityToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-visibility-toggle');
   }
 
   findApiKeyName(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('api-key-display-name');
+    return this.find().findByTestId('api-key-display-name');
   }
 
   findApiKeyExpirationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('api-key-display-expiration');
+    return this.find().findByTestId('api-key-display-expiration');
   }
 }
 

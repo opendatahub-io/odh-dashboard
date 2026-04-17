@@ -30,7 +30,12 @@ const AllSubscriptionsPage: React.FC = () => {
   const filteredSubscriptions = React.useMemo(() => {
     const keyword = filterData[SubscriptionsFilterOptions.keyword]?.toLowerCase();
     return keyword
-      ? subscriptions.filter((sub) => sub.name.toLowerCase().includes(keyword))
+      ? subscriptions.filter(
+          (sub) =>
+            sub.name.toLowerCase().includes(keyword) ||
+            sub.displayName?.toLowerCase().includes(keyword) ||
+            sub.description?.toLowerCase().includes(keyword),
+        )
       : subscriptions;
   }, [subscriptions, filterData]);
 
