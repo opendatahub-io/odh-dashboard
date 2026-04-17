@@ -62,6 +62,8 @@ type App struct {
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
+	// portForwardManager manages on-demand port-forwards for local dev (nil in production)
+	portForwardManager *k8s.PortForwardManager
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -130,6 +132,30 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	// LOCAL DEVELOPMENT ONLY: Enable dynamic port-forwarding when DevMode is true
+	// and a real K8s client is in use. This rewrites in-cluster service URLs
+	// (*.svc.cluster.local) to localhost via SPDY tunnels, eliminating the need
+	// for manual oc port-forward commands and /etc/hosts entries.
+	// Production deployments never set DevMode, so pfManager stays nil and all
+	// ForwardURL call sites in the middleware are no-ops.
+	// Uses the BFF's own kubeconfig credentials (not per-request user tokens)
+	// since port-forwards are long-lived and shared across requests.
+	var pfManager *k8s.PortForwardManager
+	if cfg.DevMode && !cfg.MockK8Client {
+		restCfg, pfErr := helper.GetKubeconfig()
+		if pfErr != nil {
+			logger.Warn("could not initialize dynamic port-forwarding", "error", pfErr)
+		} else {
+			clientset, csErr := kubernetes.NewForConfig(restCfg)
+			if csErr != nil {
+				logger.Warn("could not initialize dynamic port-forwarding", "error", csErr)
+			} else {
+				pfManager = k8s.NewPortForwardManager(restCfg, clientset, logger)
+				logger.Info("dynamic port-forwarding enabled — in-cluster URLs will be forwarded to localhost")
+			}
+		}
+	}
+
 	// Initialize LlamaStack client factory
 	var llamaStackClientFactory ls.LlamaStackClientFactory
 	if cfg.MockLSClient {
@@ -181,12 +207,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		repositories:                repositories.NewRepositories(logger),
 		testEnv:                     testEnv,
 		rootCAs:                     rootCAs,
+		portForwardManager:          pfManager,
 	}
 	return app, nil
 }
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+	if app.portForwardManager != nil {
+		app.portForwardManager.Close()
+	}
 	if app.testEnv == nil {
 		return nil
 	}
