@@ -3,8 +3,8 @@ import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { deleteMcpDeployment } from '~/app/api/mcpDeploymentService';
+import DeleteMcpDeploymentModal from '~/app/pages/mcpDeployments/DeleteMcpDeploymentModal';
 import { createMockDeployment } from './mcpDeploymentTestUtils';
-import DeleteMcpDeploymentModal from '../DeleteMcpDeploymentModal';
 
 jest.mock('~/app/api/mcpDeploymentService', () => ({
   deleteMcpDeployment: jest.fn(),

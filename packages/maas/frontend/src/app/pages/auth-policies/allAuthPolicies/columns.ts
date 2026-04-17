@@ -8,6 +8,13 @@ export const authPoliciesColumns: SortableData<MaaSAuthPolicy>[] = [
     sortable: (a: MaaSAuthPolicy, b: MaaSAuthPolicy): number => a.name.localeCompare(b.name),
   },
   {
+    label: 'Phase',
+    field: 'phase',
+    width: 10,
+    sortable: (a: MaaSAuthPolicy, b: MaaSAuthPolicy): number =>
+      (a.phase ?? '').localeCompare(b.phase ?? ''),
+  },
+  {
     label: 'Groups',
     field: 'subjects.groups',
     sortable: (a: MaaSAuthPolicy, b: MaaSAuthPolicy): number =>

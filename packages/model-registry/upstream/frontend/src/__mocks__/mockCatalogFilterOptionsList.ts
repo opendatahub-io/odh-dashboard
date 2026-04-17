@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { CatalogFilterOptionsList, NamedQuery, FilterOperator } from '../app/modelCatalogTypes';
+import { CatalogFilterOptionsList, NamedQuery, FilterOperator } from '~/app/modelCatalogTypes';
 import {
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
@@ -10,7 +10,7 @@ import {
   UseCaseOptionValue,
   DEFAULT_PERFORMANCE_FILTERS_QUERY_NAME,
   ModelCatalogTensorType,
-} from '../concepts/modelCatalog/const';
+} from '~/concepts/modelCatalog/const';
 
 export const mockNamedQueries: Record<string, NamedQuery> = {
   // Default performance filters applied when performance toggle is turned on

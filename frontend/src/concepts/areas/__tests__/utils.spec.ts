@@ -242,5 +242,72 @@ describe('isAreaAvailable', () => {
         expect(isAvailable.devFlags).toEqual({ [testDevFlag]: 'on' });
       });
     });
+
+    describe('customCondition', () => {
+      const testArea = 'TestCustomConditionArea';
+
+      it('should enable area when customCondition returns true', () => {
+        const mockAreasStateMap = {
+          [testArea]: {
+            customCondition: () => true,
+          },
+        };
+
+        const isAvailable = isAreaAvailable(
+          testArea,
+          mockDashboardConfig({}).spec,
+          mockDscStatus({}),
+          mockDsciStatus({}),
+          { internalStateMap: mockAreasStateMap, flagState: {} },
+        );
+
+        expect(isAvailable.status).toBe(true);
+      });
+
+      it('should disable area when customCondition returns false', () => {
+        const mockAreasStateMap = {
+          [testArea]: {
+            customCondition: () => false,
+          },
+        };
+
+        const isAvailable = isAreaAvailable(
+          testArea,
+          mockDashboardConfig({}).spec,
+          mockDscStatus({}),
+          mockDsciStatus({}),
+          { internalStateMap: mockAreasStateMap, flagState: {} },
+        );
+
+        expect(isAvailable.status).toBe(false);
+      });
+
+      it('should pass dscStatus to customCondition', () => {
+        const dscStatus = mockDscStatus({});
+        const customCondition = jest.fn(() => true);
+        const mockAreasStateMap = { [testArea]: { customCondition } };
+
+        isAreaAvailable(testArea, mockDashboardConfig({}).spec, dscStatus, mockDsciStatus({}), {
+          internalStateMap: mockAreasStateMap,
+          flagState: {},
+        });
+
+        expect(customCondition).toHaveBeenCalledWith(expect.objectContaining({ dscStatus }));
+      });
+
+      it('should not affect status when customCondition is absent', () => {
+        const mockAreasStateMap = { [testArea]: {} };
+
+        const isAvailable = isAreaAvailable(
+          testArea,
+          mockDashboardConfig({}).spec,
+          mockDscStatus({}),
+          mockDsciStatus({}),
+          { internalStateMap: mockAreasStateMap, flagState: {} },
+        );
+
+        expect(isAvailable.status).toBe(true);
+      });
+    });
   });
 });

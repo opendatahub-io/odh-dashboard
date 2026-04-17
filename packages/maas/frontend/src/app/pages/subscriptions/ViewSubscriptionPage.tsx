@@ -11,7 +11,11 @@ import {
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
-import { MaaSSubscription } from '~/app/types/subscriptions';
+import {
+  MaaSModelRefSummary,
+  MaaSSubscription,
+  SubscriptionInfoResponse,
+} from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import DeleteSubscriptionModal from './DeleteSubscriptionModal';
@@ -59,10 +63,32 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription 
   );
 };
 
+const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSummary[] => {
+  const subscriptionRefs = Array.isArray(info.subscription.modelRefs)
+    ? info.subscription.modelRefs
+    : [];
+  const modelRefSummaries = Array.isArray(info.modelRefs) ? info.modelRefs : [];
+
+  return subscriptionRefs.map((ref) => {
+    const summary = modelRefSummaries.find(
+      (s) => s.name === ref.name && s.namespace === ref.namespace,
+    );
+    return (
+      summary ?? {
+        name: ref.name,
+        namespace: ref.namespace,
+        modelRef: { kind: '', name: '' },
+      }
+    );
+  });
+};
+
 const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [subscriptionInfo, loaded, loadError] = useGetSubscriptionInfo(subscriptionName);
+  const displaySubscriptionName =
+    subscriptionInfo?.subscription.displayName?.trim() || subscriptionName;
 
   const breadcrumb = (
     <Breadcrumb>
@@ -71,13 +97,13 @@ const ViewSubscriptionPage: React.FC = () => {
           Subscriptions
         </Link>
       </BreadcrumbItem>
-      <BreadcrumbItem isActive>{subscriptionName}</BreadcrumbItem>
+      <BreadcrumbItem isActive>{displaySubscriptionName}</BreadcrumbItem>
     </Breadcrumb>
   );
 
   return (
     <ApplicationsPage
-      title={subscriptionName}
+      title={displaySubscriptionName}
       breadcrumb={breadcrumb}
       headerAction={
         subscriptionInfo && <SubscriptionActions subscription={subscriptionInfo.subscription} />
@@ -108,7 +134,7 @@ const ViewSubscriptionPage: React.FC = () => {
             </PageSection>
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
               <MaasModelsSection
-                modelRefSummaries={subscriptionInfo.modelRefs}
+                modelRefSummaries={viewModelRefSummaries(subscriptionInfo)}
                 modelRefsWithRateLimits={subscriptionInfo.subscription.modelRefs}
               />
             </PageSection>

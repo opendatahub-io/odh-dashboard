@@ -9,6 +9,7 @@ import {
   Flex,
   FlexItem,
   FormGroup,
+  FormHelperText,
   HelperText,
   HelperTextItem,
   MenuToggle,
@@ -37,7 +38,6 @@ export type MaasModelsSectionProps = {
   titleHeadingLevel?: React.ComponentProps<typeof Title>['headingLevel'];
   titleSize?: React.ComponentProps<typeof Title>['size'];
   editable?: boolean;
-  rateLimitErrorIndices?: Set<number>;
   onAddModels?: () => void;
   onEditLimits?: (index: number) => void;
   onRemoveModel?: (index: number) => void;
@@ -57,7 +57,6 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
   titleHeadingLevel = 'h2',
   titleSize = 'xl',
   editable = false,
-  rateLimitErrorIndices,
   onAddModels,
   onEditLimits,
   onRemoveModel,
@@ -135,13 +134,13 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
                         </Button>
                       </StackItem>
                       <StackItem>
-                        <HelperText>
-                          <HelperTextItem
-                            variant={rateLimitErrorIndices?.has(index) ? 'error' : 'indeterminate'}
-                          >
-                            At least one token limit is required
-                          </HelperTextItem>
-                        </HelperText>
+                        <FormHelperText>
+                          <HelperText>
+                            <HelperTextItem variant="error">
+                              At least one token limit is required
+                            </HelperTextItem>
+                          </HelperText>
+                        </FormHelperText>
                       </StackItem>
                     </Stack>
                   )

@@ -1,10 +1,8 @@
 import yaml from 'js-yaml';
 import type { MCPServerCR } from '~/app/mcpDeploymentTypes';
-import { mcpServerCRToYaml } from '../mcpServerYaml';
+import { mcpServerCRToYaml } from '~/app/utils/mcpServerYaml';
 
-const makeCR = (
-  specOverrides: Partial<MCPServerCR['spec']> = {},
-): MCPServerCR => ({
+const makeCR = (specOverrides: Partial<MCPServerCR['spec']> = {}): MCPServerCR => ({
   apiVersion: 'mcp.x-k8s.io/v1alpha1',
   kind: 'MCPServer',
   metadata: { name: 'test-server' },

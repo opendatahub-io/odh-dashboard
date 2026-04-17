@@ -94,7 +94,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
           pipelineRunsGlobal.findCreateRunButton().click();
 
           cy.step('Run the pipeline from the Runs view');
-          createRunPage.fillRunGroup(testData.runGroupName);
+          createRunPage.fillRunGroup(testData.experimentName);
           createRunPage.fillName(testData.runName);
           createRunPage.fillDescription(testData.runDescription);
           createRunPage.pipelineSelect.openAndSelectItem(testData.pipelineName);

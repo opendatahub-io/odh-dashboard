@@ -38,6 +38,7 @@ describe('Verify models can be deployed from model registry', () => {
   let registryName: string;
   let modelName: string;
   let projectName: string;
+  let resourceName: string;
   let deploymentName: string;
   let modelFormat: string;
   let servingRuntime: string;
@@ -196,7 +197,9 @@ describe('Verify models can be deployed from model registry', () => {
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .as('resourceName');
+        .then((val) => {
+          resourceName = val as string;
+        });
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
@@ -212,9 +215,7 @@ describe('Verify models can be deployed from model registry', () => {
 
       // Verify model deployment is ready
       cy.step('Verify the model is deployed and started in backend');
-      cy.get<string>('@resourceName').then((resourceName) => {
-        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
-      });
+      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       // Check deployment link and verify status in deployments view
       modelRegistry.visitWithRegistry(registryName);
       cy.contains('1 deployment', { timeout: 30000 }).should('be.visible').click();
