@@ -384,6 +384,14 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 				return
 			}
 
+			// Dev-only: rewrite LlamaStack URL to localhost via dynamic port-forward.
+			// portForwardManager is nil in production (requires DevMode=true).
+			if app.portForwardManager != nil {
+				if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, baseURL); pfErr == nil {
+					baseURL = rewritten
+				}
+			}
+
 			logger.Debug("Creating LlamaStack client from secret",
 				"namespace", namespace,
 				"secretName", secretName,

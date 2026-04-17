@@ -144,6 +144,14 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 	//   A new AWS S3 client is created on every request. The AWS SDK client
 	//   is designed for reuse (connection pooling, TLS session caching). Consider caching
 	//   clients by credential identity (e.g. namespace/secretName) with a sync.Map or TTL cache.
+	// Dev-only: rewrite S3 endpoint to localhost via dynamic port-forward.
+	// portForwardManager is nil in production (requires DevMode=true).
+	if app.portForwardManager != nil && creds.EndpointURL != "" {
+		if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, creds.EndpointURL); pfErr == nil {
+			creds.EndpointURL = rewritten
+		}
+	}
+
 	s3Client, err := app.s3ClientFactory.CreateClient(creds)
 	if err != nil {
 		if errors.Is(err, s3int.ErrEndpointValidation) {

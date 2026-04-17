@@ -146,6 +146,14 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 		}
 	}
 
+	// Dev-only: rewrite S3 endpoint to localhost via dynamic port-forward.
+	// portForwardManager is nil in production (requires DevMode=true).
+	if app.portForwardManager != nil && creds.EndpointURL != "" {
+		if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, creds.EndpointURL); pfErr == nil {
+			creds.EndpointURL = rewritten
+		}
+	}
+
 	s3Client, err := app.s3ClientFactory.CreateClient(creds)
 	if err != nil {
 		if errors.Is(err, s3int.ErrEndpointValidation) {
