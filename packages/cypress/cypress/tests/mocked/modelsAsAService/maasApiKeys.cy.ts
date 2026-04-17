@@ -83,12 +83,12 @@ describe('API Keys Page', () => {
   });
 
   it('should display the API keys table page with active keys on initial load', () => {
-    apiKeysPage.findTitle().should('contain.text', 'API Keys');
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage
       .findDescription()
       .should(
         'contain.text',
-        'Manage personal API keys that can be used to access AI asset endpoints.',
+        'Manage API keys that can be used to authenticate with model endpoints.',
       );
 
     apiKeysPage.findTable().should('exist');
@@ -116,7 +116,7 @@ describe('API Keys Page', () => {
     apiKeysPage.visit();
     cy.wait('@emptySearch');
 
-    apiKeysPage.findTitle().should('contain.text', 'API Keys');
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage.findDescription().should('exist');
 
     // Table renders empty with no results found message
@@ -286,7 +286,7 @@ describe('API Keys Page', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortCreationDateAsc',
     );
-    apiKeysPage.findColumnSortButton('Creation date').click();
+    apiKeysPage.findColumnSortButton('Created').click();
 
     cy.wait('@sortCreationDateAsc').then((interception) => {
       expect(interception.request.body.data).to.have.deep.property('sort', {
@@ -298,7 +298,7 @@ describe('API Keys Page', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortCreationDateDesc',
     );
-    apiKeysPage.findColumnSortButton('Creation date').click();
+    apiKeysPage.findColumnSortButton('Created').click();
 
     cy.wait('@sortCreationDateDesc').then((interception) => {
       expect(interception.request.body.data).to.have.deep.property('sort', {
@@ -316,7 +316,7 @@ describe('API Keys Page', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortExpirationAsc',
     );
-    apiKeysPage.findColumnSortButton('Expiration date').click();
+    apiKeysPage.findColumnSortButton('Expires').click();
 
     cy.wait('@sortExpirationAsc').then((interception) => {
       expect(interception.request.body.data).to.have.deep.property('sort', {
@@ -328,7 +328,7 @@ describe('API Keys Page', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortExpirationDesc',
     );
-    apiKeysPage.findColumnSortButton('Expiration date').click();
+    apiKeysPage.findColumnSortButton('Expires').click();
 
     cy.wait('@sortExpirationDesc').then((interception) => {
       expect(interception.request.body.data).to.have.deep.property('sort', {
@@ -372,7 +372,7 @@ describe('API Keys Page', () => {
     cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
     apiKeysPage.visit();
 
-    apiKeysPage.findTitle().should('contain.text', 'API Keys');
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage.findActionsToggle().click();
     apiKeysPage.findRevokeAllAPIKeysAction().click();
 
@@ -398,8 +398,8 @@ describe('API Keys Page', () => {
   });
 
   it('should revoke a specific API key', () => {
-    apiKeysPage.findTitle().should('contain.text', 'API Keys');
-    apiKeysPage.getRow('development-testing').findKebabAction('Revoke API key').click();
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
+    apiKeysPage.getRow('development-testing').findKebabAction('Revoke').click();
 
     revokeAPIKeyModal.shouldBeOpen();
     revokeAPIKeyModal.findRevokeButton().should('be.disabled');
