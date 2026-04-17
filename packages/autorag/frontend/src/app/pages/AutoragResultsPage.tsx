@@ -92,7 +92,10 @@ function AutoragResultsPage(): React.JSX.Element {
   const handleConfirmStop = React.useCallback(async () => {
     try {
       await terminateMutation.mutateAsync();
-      notification.success('Run stopped successfully');
+      notification.success(
+        'Stop submitted successfully',
+        'The process is asynchronous and may take some time to take effect',
+      );
     } catch (error) {
       notification.error(
         'Failed to stop run',
