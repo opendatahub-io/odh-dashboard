@@ -1,10 +1,5 @@
 import * as React from 'react';
-import {
-  SearchInput,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-} from '@patternfly/react-core';
+import { SearchInput, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 
 type McpDeploymentsToolbarProps = {
   filterText: string;
