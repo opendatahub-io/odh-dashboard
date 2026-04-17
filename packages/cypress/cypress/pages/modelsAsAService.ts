@@ -402,8 +402,8 @@ class APIKeysPage {
     return cy.findByTestId('revoke-all-api-keys-action');
   }
 
-  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('empty-state-title');
+  findEmptyTableState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 
   findCreateApiKeyButton(): Cypress.Chainable<JQuery<HTMLElement>> {

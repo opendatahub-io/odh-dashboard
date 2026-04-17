@@ -21,6 +21,9 @@ const DIST_DIR = process.env._ODH_DIST_DIR;
 const HOST = process.env._ODH_HOST;
 const PORT = process.env._ODH_PORT;
 const BACKEND_PORT = process.env._BACKEND_PORT;
+// When set, replaces the admin token for any federated module proxy paths (e.g. /maas/api).
+// Useful for testing impersonation locally: set to a non-admin user's `oc whoami --show-token`.
+const { DEV_IMPERSONATE_TOKEN } = process.env;
 
 const mfProxies = moduleFederationConfig
   .map((config) => config.proxyService?.map((p) => p.path))
@@ -230,11 +233,17 @@ module.exports = smp.wrap(
                 secure: false,
                 changeOrigin: true,
                 headers,
-                onProxyReq: (proxyReq) => {
+                onProxyReq: (proxyReq, req) => {
                   const currentToken = getCurrentToken();
-                  proxyReq.setHeader('Authorization', `Bearer ${currentToken}`);
+                  // For federated module proxy paths (e.g. /maas/api), substitute the
+                  // impersonated token when DEV_IMPERSONATE_TOKEN is set so the downstream
+                  // BFF authenticates as the impersonated user rather than the cluster admin.
+                  const isMfProxyPath =
+                    DEV_IMPERSONATE_TOKEN && mfProxies.some((p) => req.url?.startsWith(p));
+                  const tokenToUse = isMfProxyPath ? DEV_IMPERSONATE_TOKEN : currentToken;
+                  proxyReq.setHeader('Authorization', `Bearer ${tokenToUse}`);
                   if (shouldFwdAccessToken) {
-                    proxyReq.setHeader('x-forwarded-access-token', currentToken);
+                    proxyReq.setHeader('x-forwarded-access-token', tokenToUse);
                   }
                 },
               },

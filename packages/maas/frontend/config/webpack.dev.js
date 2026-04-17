@@ -35,6 +35,15 @@ const getProxyHeaders = () => {
     };
   }
   if (AUTH_METHOD === 'user_token') {
+    // DEV_IMPERSONATE_TOKEN overrides the kubectl user token so the local BFF
+    // authenticates as a different user.  Get a token with:
+    //   oc login -u <user> -p <password> && oc whoami --show-token
+    if (process.env.DEV_IMPERSONATE_TOKEN) {
+      console.info('Using DEV_IMPERSONATE_TOKEN for BFF proxy authentication');
+      return {
+        'x-forwarded-access-token': process.env.DEV_IMPERSONATE_TOKEN,
+      };
+    }
     try {
       const token = execSync(
         "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
