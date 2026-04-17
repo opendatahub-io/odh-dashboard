@@ -113,24 +113,15 @@ describe('MaaS Auth Policies', () => {
     pendingRow.findPhase().should('contain.text', 'Pending');
   });
 
-  it('should filter policies by keyword and by phase', () => {
+  it('should filter policies by keyword', () => {
     authPoliciesPage.findRows().should('have.length', 5);
 
-    authPoliciesPage.selectFilterType('Keyword');
     authPoliciesPage.findKeywordFilterInput().type('premium');
     authPoliciesPage.findRows().should('have.length', 1);
     authPoliciesPage
       .getRow('premium-team-policy')
       .findName()
       .should('contain.text', 'premium-team-policy');
-
-    authPoliciesPage.clearAllFilters();
-    authPoliciesPage.findRows().should('have.length', 5);
-
-    authPoliciesPage.selectFilterType('Phase');
-    authPoliciesPage.selectPhaseOption('Failed');
-    authPoliciesPage.findRows().should('have.length', 1);
-    authPoliciesPage.getRow('failed-policy').findPhase().should('contain.text', 'Failed');
 
     authPoliciesPage.clearAllFilters();
     authPoliciesPage.findRows().should('have.length', 5);

@@ -1142,26 +1142,8 @@ class AuthPoliciesPage {
     return cy.findByTestId('empty-state-title');
   }
 
-  findFilterDropdownToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('filter-toolbar-dropdown');
-  }
-
   findKeywordFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('auth-policies-filter-name-input');
-  }
-
-  findPhaseFilterSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('auth-policies-filter-phase-select');
-  }
-
-  selectFilterType(name: string): void {
-    this.findFilterDropdownToggle().click();
-    cy.findByRole('menuitem', { name }).click();
-  }
-
-  selectPhaseOption(name: string): void {
-    this.findPhaseFilterSelect().click();
-    cy.findByRole('option', { name }).click();
   }
 
   clearAllFilters(): void {

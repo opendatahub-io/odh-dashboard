@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
 import { PlusIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
@@ -10,12 +9,6 @@ import {
   AuthPoliciesFilterOptions,
   authPoliciesFilterOptions,
 } from './const';
-
-const PHASE_OPTIONS: SimpleSelectOption[] = [
-  { key: 'Pending', label: 'Pending' },
-  { key: 'Active', label: 'Active' },
-  { key: 'Failed', label: 'Failed' },
-];
 
 type AuthPoliciesToolbarProps = {
   filterData: AuthPoliciesFilterDataType;
@@ -43,18 +36,6 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
             onChange={(_event, value) => onChange(value)}
             data-testid="auth-policies-filter-name-input"
             style={{ width: '30ch' }}
-          />
-        ),
-        [AuthPoliciesFilterOptions.phase]: ({ value, onChange, ...props }) => (
-          <SimpleSelect
-            {...props}
-            value={value}
-            aria-label="Filter by phase"
-            placeholder="Filter by phase"
-            options={PHASE_OPTIONS}
-            onChange={(v) => onChange(v)}
-            dataTestId="auth-policies-filter-phase-select"
-            popperProps={{ maxWidth: undefined }}
           />
         ),
       }}

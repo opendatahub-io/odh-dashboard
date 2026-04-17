@@ -32,20 +32,14 @@ const AllAuthPoliciesPage: React.FC = () => {
 
   const filteredAuthPolicies = React.useMemo(() => {
     const keyword = filterData[AuthPoliciesFilterOptions.keyword]?.toLowerCase();
-    const phase = filterData[AuthPoliciesFilterOptions.phase]?.toLowerCase();
 
     return authPolicies.filter((policy) => {
       if (keyword) {
         const displayedName = (policy.displayName ?? policy.name).toLowerCase();
-        const keywordMatch =
+        return (
           displayedName.includes(keyword) ||
-          (policy.description ?? '').toLowerCase().includes(keyword);
-        if (!keywordMatch) {
-          return false;
-        }
-      }
-      if (phase && !(policy.phase ?? '').toLowerCase().includes(phase)) {
-        return false;
+          (policy.description ?? '').toLowerCase().includes(keyword)
+        );
       }
       return true;
     });
