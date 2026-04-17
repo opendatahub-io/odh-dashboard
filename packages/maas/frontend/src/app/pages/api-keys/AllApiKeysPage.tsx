@@ -14,7 +14,6 @@ import {
 import { ApiKeySortField } from './allKeys/columns';
 import CreateApiKeyModal from './CreateApiKeyModal';
 import ApiKeysTable from './allKeys/ApiKeysTable';
-import EmptyApiKeysPage from './EmptyApiKeysPage';
 import RevokeApiKeyModal from './RevokeApiKeyModal';
 import ApiKeysToolbar from './allKeys/ApiKeysToolbar';
 
@@ -108,11 +107,6 @@ const AllApiKeysPage: React.FC = () => {
     setPage(Math.max(1, newPage));
     setIsFetching(true);
   }, []);
-  const hasActiveFilters =
-    filterData.username !== initialApiKeyFilterData.username ||
-    JSON.stringify([...filterData.statuses].toSorted()) !==
-      JSON.stringify([...initialApiKeyFilterData.statuses].toSorted());
-
   const onClearFilters = React.useCallback(() => {
     setFilterData(emptyApiKeyFilterData);
     setPage(1);
@@ -124,12 +118,9 @@ const AllApiKeysPage: React.FC = () => {
     <ApplicationsPage
       title="API Keys"
       description="Manage personal API keys that can be used to access AI asset endpoints."
-      empty={
-        loaded && !error && apiKeys.length === 0 && page === 1 && !hasActiveFilters && !isFetching
-      }
       loaded={loaded}
       loadError={error}
-      emptyStatePage={<EmptyApiKeysPage onRefresh={() => refresh()} />}
+      empty={false}
     >
       {isModalOpen && (
         <CreateApiKeyModal

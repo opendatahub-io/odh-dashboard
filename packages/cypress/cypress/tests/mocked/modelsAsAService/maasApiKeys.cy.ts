@@ -109,6 +109,32 @@ describe('API Keys Page', () => {
     developmentTestingRow.findExpirationDate().should('contain.text', 'Jan 15, 2026');
   });
 
+  it('should display an empty table with toolbar when user has no active keys', () => {
+    asProjectAdminUser();
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse([])).as('emptySearch');
+    apiKeysPage.visit();
+    cy.wait('@emptySearch');
+
+    apiKeysPage.findTitle().should('contain.text', 'API Keys');
+    apiKeysPage.findDescription().should('exist');
+
+    // Table renders empty with no results found message
+    apiKeysPage.findTable().should('exist');
+    apiKeysPage.findEmptyTableState().should('exist');
+    apiKeysPage.findEmptyTableState().should('contain.text', 'No results found');
+
+    // Toolbar and create button are still accessible
+    apiKeysPage.findToolbar().should('exist');
+    apiKeysPage.findCreateApiKeyButton().should('exist').and('be.enabled');
+
+    // Status filter defaults to Active
+    apiKeysPage.findStatusFilterToggle().click();
+    apiKeysPage.findStatusFilterOptionCheckbox('Active').should('be.checked');
+    apiKeysPage.findStatusFilterOptionCheckbox('Expired').should('not.be.checked');
+    apiKeysPage.findStatusFilterOptionCheckbox('Revoked').should('not.be.checked');
+  });
+
   it('should display all API keys when the status filter is cleared', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
       'clearAllFilters',
