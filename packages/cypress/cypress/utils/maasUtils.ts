@@ -117,6 +117,26 @@ export const mockPendingSubscription = (): MaaSSubscription => ({
   creationTimestamp: '2025-04-05T09:00:00Z',
 });
 
+export const mockDeletingSubscription = (): MaaSSubscription => ({
+  name: 'deleting-sub',
+  namespace: 'maas-system',
+  phase: 'Active',
+  statusMessage: 'successfully reconciled',
+  priority: 55,
+  owner: {
+    groups: [{ name: 'premium-users' }],
+  },
+  modelRefs: [
+    {
+      name: 'granite-3-8b-instruct',
+      namespace: 'maas-models',
+      tokenRateLimits: [{ limit: 50000, window: '24h' }],
+    },
+  ],
+  creationTimestamp: '2025-04-06T12:00:00Z',
+  isDeleting: true,
+});
+
 export const mockSubscriptions = (): MaaSSubscription[] => [
   {
     name: 'premium-team-sub',
@@ -187,6 +207,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
   },
   mockFailedSubscription(),
   mockPendingSubscription(),
+  mockDeletingSubscription(),
 ];
 
 export const mockSubscriptionListItems = (): UserSubscription[] => [
@@ -388,6 +409,16 @@ export const mockPendingAuthPolicy = (): MaaSAuthPolicy => ({
   subjects: { groups: [{ name: 'beta-testers' }] },
 });
 
+export const mockDeletingAuthPolicy = (): MaaSAuthPolicy => ({
+  name: 'deleting-policy',
+  namespace: 'maas-system',
+  phase: 'Active',
+  statusMessage: 'successfully reconciled',
+  modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+  subjects: { groups: [{ name: 'premium-users' }] },
+  isDeleting: true,
+});
+
 export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
   {
     name: 'test-subscription-policy',
@@ -419,6 +450,7 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
   },
   mockFailedAuthPolicy(),
   mockPendingAuthPolicy(),
+  mockDeletingAuthPolicy(),
 ];
 
 export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {

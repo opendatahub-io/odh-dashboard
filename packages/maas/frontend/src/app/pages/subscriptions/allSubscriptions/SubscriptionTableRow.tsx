@@ -61,6 +61,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
       <Td isActionCell>
         <ActionsColumn
           data-testid="subscription-actions"
+          isDisabled={subscription.isDeleting}
           items={[
             {
               title: 'View details',

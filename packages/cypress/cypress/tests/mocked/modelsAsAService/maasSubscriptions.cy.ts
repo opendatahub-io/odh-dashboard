@@ -61,7 +61,7 @@ describe('Subscriptions Page', () => {
       );
 
     subscriptionsPage.findTable().should('exist');
-    subscriptionsPage.findRows().should('have.length', 5);
+    subscriptionsPage.findRows().should('have.length', 6);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
     const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
@@ -96,7 +96,7 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findFilterInput().should('exist').type('premium');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().should('exist').click();
-    subscriptionsPage.findRows().should('have.length', 5);
+    subscriptionsPage.findRows().should('have.length', 6);
 
     premiumRow.findKebabAction('View details').should('exist');
     premiumRow.findKebabAction('Edit').should('exist');
@@ -120,6 +120,23 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findRows().should('have.length', 5);
   });
 
+  it('should disable the action buttons for a deleting subscription in the table and view page', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: mockSubscriptions(),
+    });
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: 'deleting-sub' } },
+      { data: mockSubscriptionInfo('deleting-sub') },
+    );
+    subscriptionsPage.visit();
+    subscriptionsPage.getRow('deleting-sub').findActionsToggle().should('be.disabled');
+    subscriptionsPage.getRow('deleting-sub').findTitleButton().click();
+    viewSubscriptionPage.findActionsToggle().click();
+    viewSubscriptionPage.findDeleteAction().should('be.disabled');
+    viewSubscriptionPage.findEditAction().should('be.disabled');
+  });
+
   it('should delete a subscription', () => {
     cy.interceptOdh(
       'DELETE /maas/api/v1/subscription/:name',
@@ -140,7 +157,7 @@ describe('Subscriptions Page', () => {
         data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" },
       });
     });
-    subscriptionsPage.findRows().should('have.length', 4);
+    subscriptionsPage.findRows().should('have.length', 5);
     subscriptionsPage.findTable().should('not.contain', 'premium-team-sub');
   });
 });

@@ -60,6 +60,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
       <Td isActionCell>
         <ActionsColumn
           data-testid="auth-policy-actions"
+          isDisabled={authPolicy.isDeleting}
           items={[
             {
               title: 'View details',

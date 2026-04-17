@@ -83,6 +83,7 @@ type MaaSSubscription struct {
 	ModelRefs         []ModelSubscriptionRef `json:"modelRefs"`
 	TokenMetadata     *TokenMetadata         `json:"tokenMetadata,omitempty"`
 	CreationTimestamp *time.Time             `json:"creationTimestamp,omitempty"`
+	IsDeleting        bool                   `json:"isDeleting,omitempty"`
 }
 
 // SubjectSpec defines subjects (groups) that have access.
@@ -108,6 +109,7 @@ type MaaSAuthPolicy struct {
 	ModelRefs         []ModelRef     `json:"modelRefs"`
 	Subjects          SubjectSpec    `json:"subjects"`
 	MeteringMetadata  *TokenMetadata `json:"meteringMetadata,omitempty"`
+	IsDeleting        bool           `json:"isDeleting,omitempty"`
 }
 
 // ModelReference references a model endpoint.

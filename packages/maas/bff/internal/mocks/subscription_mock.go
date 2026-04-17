@@ -85,6 +85,7 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 					{Name: "system:authenticated"},
 				},
 			},
+			IsDeleting: true,
 			ModelRefs: []models.ModelSubscriptionRef{
 				{
 					Name:      "flan-t5-small",
@@ -145,6 +146,7 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			Name:          "negative-priority-sub-policy",
 			Namespace:     "maas-system",
 			Phase:         "Active",
+			IsDeleting:    true,
 			StatusMessage: "successfully reconciled",
 			ModelRefs: []models.ModelRef{
 				{Name: "flan-t5-small", Namespace: "maas-models"},

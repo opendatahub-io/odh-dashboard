@@ -1913,6 +1913,10 @@ components:
           type: string
           format: date-time
           description: When the resource was created
+        isDeleting:
+          type: boolean
+          description: Whether the subscription is in the process of being deleted
+          example: false
       required:
         - name
         - namespace
@@ -1988,6 +1992,10 @@ components:
           $ref: '#/components/schemas/SubjectSpec'
         meteringMetadata:
           $ref: '#/components/schemas/TokenMetadata'
+        isDeleting:
+          type: boolean
+          description: Whether the policy is in the process of being deleted
+          example: false
       required:
         - name
         - namespace
