@@ -116,7 +116,7 @@ describe('API Keys Page', () => {
     apiKeysPage.visit();
     cy.wait('@emptySearch');
 
-    apiKeysPage.findTitle().should('contain.text', 'API Keys');
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage.findDescription().should('exist');
 
     // Table renders empty with no results found message
