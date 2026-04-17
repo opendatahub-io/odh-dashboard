@@ -26,7 +26,9 @@ import { parseErrorStatus } from '~/app/utilities/utils';
 
 function AutomlResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector();
+  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
+    storeLastNamespace: true,
+  });
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const handleDrawerClose = React.useCallback(() => setIsDrawerOpen(false), []);
 
