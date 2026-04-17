@@ -1,17 +1,18 @@
-import * as React from 'react';
 import { renderHook } from '@testing-library/react';
-import { useModelDeploymentDetection } from '../deploymentUtils';
-import { useDeploymentsState } from '../../hooks/useDeploymentsState';
-import { KnownLabels } from '../../k8sTypes';
 import { ModelVersion } from '~/app/types';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
+import { useModelDeploymentDetection } from '~/odh/utils/deploymentUtils';
+import { useDeploymentsState } from '~/odh/hooks/useDeploymentsState';
+import { KnownLabels } from '~/odh/k8sTypes';
 
 // Mock the useDeploymentsState hook
 jest.mock('../../hooks/useDeploymentsState');
-const mockUseDeploymentsState = useDeploymentsState as jest.MockedFunction<typeof useDeploymentsState>;
+const mockUseDeploymentsState = useDeploymentsState as jest.MockedFunction<
+  typeof useDeploymentsState
+>;
 
 // Mock deployment objects
-const createMockDeployment = (modelVersionId: string, kind: string = 'InferenceService') => ({
+const createMockDeployment = (modelVersionId: string, kind = 'InferenceService') => ({
   model: {
     kind,
     metadata: {
@@ -42,14 +43,20 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
+
       const modelVersionResult = result.current.hasModelVersionDeployment('mv-1');
       expect(modelVersionResult).toEqual({ hasDeployment: true, loaded: false });
-      
-      const registeredModelResult = result.current.hasRegisteredModelDeployment('rm-1', mockModelVersions);
+
+      const registeredModelResult = result.current.hasRegisteredModelDeployment(
+        'rm-1',
+        mockModelVersions,
+      );
       expect(registeredModelResult).toEqual({ hasDeployment: true, loaded: false });
-      
-      const versionIdsResult = result.current.hasRegisteredModelDeploymentByVersionIds(['mv-1', 'mv-2']);
+
+      const versionIdsResult = result.current.hasRegisteredModelDeploymentByVersionIds([
+        'mv-1',
+        'mv-2',
+      ]);
       expect(versionIdsResult).toEqual({ hasDeployment: true, loaded: false });
     });
 
@@ -60,7 +67,7 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
+
       const modelVersionResult = result.current.hasModelVersionDeployment('mv-1');
       expect(modelVersionResult).toEqual({ hasDeployment: true, loaded: false });
     });
@@ -74,16 +81,13 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
+
       const modelVersionResult = result.current.hasModelVersionDeployment('mv-1');
       expect(modelVersionResult).toEqual({ hasDeployment: false, loaded: true });
     });
 
     it('should return false when deployments exist but none match the model version ID', () => {
-      const deployments = [
-        createMockDeployment('mv-other'),
-        createMockDeployment('mv-different'),
-      ];
+      const deployments = [createMockDeployment('mv-other'), createMockDeployment('mv-different')];
 
       mockUseDeploymentsState.mockReturnValue({
         deployments,
@@ -91,7 +95,7 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
+
       const modelVersionResult = result.current.hasModelVersionDeployment('mv-1');
       expect(modelVersionResult).toEqual({ hasDeployment: false, loaded: true });
     });
@@ -109,7 +113,7 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
+
       const modelVersionResult = result.current.hasModelVersionDeployment('mv-1');
       expect(modelVersionResult).toEqual({ hasDeployment: true, loaded: true });
     });
@@ -126,7 +130,7 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
+
       const modelVersionResult = result.current.hasModelVersionDeployment('mv-1');
       expect(modelVersionResult).toEqual({ hasDeployment: false, loaded: true });
     });
@@ -157,7 +161,7 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
+
       const modelVersionResult = result.current.hasModelVersionDeployment('mv-1');
       expect(modelVersionResult).toEqual({ hasDeployment: false, loaded: true });
     });
@@ -171,15 +175,16 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
-      const registeredModelResult = result.current.hasRegisteredModelDeployment('rm-nonexistent', mockModelVersions);
+
+      const registeredModelResult = result.current.hasRegisteredModelDeployment(
+        'rm-nonexistent',
+        mockModelVersions,
+      );
       expect(registeredModelResult).toEqual({ hasDeployment: false, loaded: true });
     });
 
     it('should return false when no deployments exist for any model version of the registered model', () => {
-      const deployments = [
-        createMockDeployment('mv-other'),
-      ];
+      const deployments = [createMockDeployment('mv-other')];
 
       mockUseDeploymentsState.mockReturnValue({
         deployments,
@@ -187,8 +192,11 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
-      const registeredModelResult = result.current.hasRegisteredModelDeployment('rm-1', mockModelVersions);
+
+      const registeredModelResult = result.current.hasRegisteredModelDeployment(
+        'rm-1',
+        mockModelVersions,
+      );
       expect(registeredModelResult).toEqual({ hasDeployment: false, loaded: true });
     });
 
@@ -204,8 +212,11 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
-      const registeredModelResult = result.current.hasRegisteredModelDeployment('rm-1', mockModelVersions);
+
+      const registeredModelResult = result.current.hasRegisteredModelDeployment(
+        'rm-1',
+        mockModelVersions,
+      );
       expect(registeredModelResult).toEqual({ hasDeployment: true, loaded: true });
     });
 
@@ -221,8 +232,11 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
-      const registeredModelResult = result.current.hasRegisteredModelDeployment('rm-1', mockModelVersions);
+
+      const registeredModelResult = result.current.hasRegisteredModelDeployment(
+        'rm-1',
+        mockModelVersions,
+      );
       expect(registeredModelResult).toEqual({ hasDeployment: true, loaded: true });
     });
   });
@@ -235,15 +249,13 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
+
       const versionIdsResult = result.current.hasRegisteredModelDeploymentByVersionIds([]);
       expect(versionIdsResult).toEqual({ hasDeployment: false, loaded: true });
     });
 
     it('should return false when no deployments match the provided version IDs', () => {
-      const deployments = [
-        createMockDeployment('mv-other'),
-      ];
+      const deployments = [createMockDeployment('mv-other')];
 
       mockUseDeploymentsState.mockReturnValue({
         deployments,
@@ -251,8 +263,11 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
-      const versionIdsResult = result.current.hasRegisteredModelDeploymentByVersionIds(['mv-1', 'mv-2']);
+
+      const versionIdsResult = result.current.hasRegisteredModelDeploymentByVersionIds([
+        'mv-1',
+        'mv-2',
+      ]);
       expect(versionIdsResult).toEqual({ hasDeployment: false, loaded: true });
     });
 
@@ -268,8 +283,12 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
-      const versionIdsResult = result.current.hasRegisteredModelDeploymentByVersionIds(['mv-1', 'mv-2', 'mv-3']);
+
+      const versionIdsResult = result.current.hasRegisteredModelDeploymentByVersionIds([
+        'mv-1',
+        'mv-2',
+        'mv-3',
+      ]);
       expect(versionIdsResult).toEqual({ hasDeployment: true, loaded: true });
     });
   });
@@ -298,20 +317,44 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
+
       // Test individual model version detection
-      expect(result.current.hasModelVersionDeployment('mv-1')).toEqual({ hasDeployment: true, loaded: true });
-      expect(result.current.hasModelVersionDeployment('mv-2')).toEqual({ hasDeployment: false, loaded: true });
-      expect(result.current.hasModelVersionDeployment('mv-3')).toEqual({ hasDeployment: true, loaded: true });
-      expect(result.current.hasModelVersionDeployment('mv-4')).toEqual({ hasDeployment: false, loaded: true }); // Not InferenceService
-      
+      expect(result.current.hasModelVersionDeployment('mv-1')).toEqual({
+        hasDeployment: true,
+        loaded: true,
+      });
+      expect(result.current.hasModelVersionDeployment('mv-2')).toEqual({
+        hasDeployment: false,
+        loaded: true,
+      });
+      expect(result.current.hasModelVersionDeployment('mv-3')).toEqual({
+        hasDeployment: true,
+        loaded: true,
+      });
+      expect(result.current.hasModelVersionDeployment('mv-4')).toEqual({
+        hasDeployment: false,
+        loaded: true,
+      }); // Not InferenceService
+
       // Test registered model detection (rm-1 has mv-1 and mv-2)
-      expect(result.current.hasRegisteredModelDeployment('rm-1', mockModelVersions)).toEqual({ hasDeployment: true, loaded: true }); // mv-1 is deployed
-      expect(result.current.hasRegisteredModelDeployment('rm-2', mockModelVersions)).toEqual({ hasDeployment: true, loaded: true }); // mv-3 is deployed
-      
+      expect(result.current.hasRegisteredModelDeployment('rm-1', mockModelVersions)).toEqual({
+        hasDeployment: true,
+        loaded: true,
+      }); // mv-1 is deployed
+      expect(result.current.hasRegisteredModelDeployment('rm-2', mockModelVersions)).toEqual({
+        hasDeployment: true,
+        loaded: true,
+      }); // mv-3 is deployed
+
       // Test version IDs detection
-      expect(result.current.hasRegisteredModelDeploymentByVersionIds(['mv-1', 'mv-2'])).toEqual({ hasDeployment: true, loaded: true }); // mv-1 is deployed
-      expect(result.current.hasRegisteredModelDeploymentByVersionIds(['mv-2', 'mv-4'])).toEqual({ hasDeployment: false, loaded: true }); // Neither deployed
+      expect(result.current.hasRegisteredModelDeploymentByVersionIds(['mv-1', 'mv-2'])).toEqual({
+        hasDeployment: true,
+        loaded: true,
+      }); // mv-1 is deployed
+      expect(result.current.hasRegisteredModelDeploymentByVersionIds(['mv-2', 'mv-4'])).toEqual({
+        hasDeployment: false,
+        loaded: true,
+      }); // Neither deployed
     });
 
     it('should maintain referential stability with memoization', () => {
@@ -321,20 +364,25 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result, rerender } = renderHook(() => useModelDeploymentDetection());
-      
+
       const firstRender = {
         hasModelVersionDeployment: result.current.hasModelVersionDeployment,
         hasRegisteredModelDeployment: result.current.hasRegisteredModelDeployment,
-        hasRegisteredModelDeploymentByVersionIds: result.current.hasRegisteredModelDeploymentByVersionIds,
+        hasRegisteredModelDeploymentByVersionIds:
+          result.current.hasRegisteredModelDeploymentByVersionIds,
       };
-      
+
       // Rerender with same data
       rerender();
-      
+
       // Functions should be the same reference (memoized)
       expect(result.current.hasModelVersionDeployment).toBe(firstRender.hasModelVersionDeployment);
-      expect(result.current.hasRegisteredModelDeployment).toBe(firstRender.hasRegisteredModelDeployment);
-      expect(result.current.hasRegisteredModelDeploymentByVersionIds).toBe(firstRender.hasRegisteredModelDeploymentByVersionIds);
+      expect(result.current.hasRegisteredModelDeployment).toBe(
+        firstRender.hasRegisteredModelDeployment,
+      );
+      expect(result.current.hasRegisteredModelDeploymentByVersionIds).toBe(
+        firstRender.hasRegisteredModelDeploymentByVersionIds,
+      );
     });
   });
 
@@ -346,9 +394,12 @@ describe('useModelDeploymentDetection', () => {
       });
 
       const { result } = renderHook(() => useModelDeploymentDetection());
-      
+
       // These should not throw and should return false
-      expect(result.current.hasModelVersionDeployment('')).toEqual({ hasDeployment: false, loaded: true });
+      expect(result.current.hasModelVersionDeployment('')).toEqual({
+        hasDeployment: false,
+        loaded: true,
+      });
     });
   });
 });

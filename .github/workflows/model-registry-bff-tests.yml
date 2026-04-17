@@ -1,0 +1,49 @@
+name: Test / Model Registry BFF Tests
+on:
+  push:
+    paths:
+      - 'packages/model-registry/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+  pull_request:
+    paths:
+      - 'packages/model-registry/**'
+      - '.github/workflows/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.0'
+
+      - name: Lint
+        working-directory: packages/model-registry/upstream/bff
+        run: make lint
+
+      - name: Build (BFF)
+        working-directory: packages/model-registry/upstream/bff
+        run: make build
+
+      - name: Check if there are uncommitted file changes
+        working-directory: packages/model-registry
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi

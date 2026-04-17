@@ -21,4 +21,3 @@ export type AdminCheckExtension = Extension<
 
 export const isAdminCheckExtension = (extension: Extension): extension is AdminCheckExtension =>
   extension.type === 'model-registry.admin/check';
-

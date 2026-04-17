@@ -114,9 +114,7 @@ const McpDeploymentsPage: React.FC = () => {
             variant={EmptyStateVariant.lg}
             data-testid="mcp-deployments-select-project"
           >
-            <EmptyStateBody>
-              Select a project to view MCP server deployments.
-            </EmptyStateBody>
+            <EmptyStateBody>Select a project to view MCP server deployments.</EmptyStateBody>
           </EmptyState>
         ) : (
           <McpDeploymentsEmptyState />

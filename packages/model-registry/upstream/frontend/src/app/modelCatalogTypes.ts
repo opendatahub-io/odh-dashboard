@@ -1,4 +1,5 @@
 import { APIOptions } from 'mod-arch-core';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths, import/order
 import {
   ModelCatalogTask,
   ModelCatalogProvider,

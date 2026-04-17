@@ -8,9 +8,9 @@ import {
   MetricsType,
   CatalogPerformanceMetricsArtifact,
   CatalogAccuracyMetricsArtifact,
-} from '../app/modelCatalogTypes';
-import { ModelRegistryMetadataType } from '../app/types';
-import { UseCaseOptionValue } from '../concepts/modelCatalog/const';
+} from '~/app/modelCatalogTypes';
+import { ModelRegistryMetadataType } from '~/app/types';
+import { UseCaseOptionValue } from '~/concepts/modelCatalog/const';
 
 export const mockCatalogModelArtifact = (
   partial?: Partial<CatalogModelArtifact>,

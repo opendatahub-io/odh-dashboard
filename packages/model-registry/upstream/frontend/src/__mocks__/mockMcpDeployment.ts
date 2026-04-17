@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
 import {
   McpDeployment,
   McpDeploymentList,
@@ -32,9 +33,7 @@ export const mockMcpServerCR = (overrides?: Partial<MCPServerCR>): MCPServerCR =
   ...overrides,
 });
 
-export const mockMcpDeploymentList = (
-  partial?: Partial<McpDeploymentList>,
-): McpDeploymentList => ({
+export const mockMcpDeploymentList = (partial?: Partial<McpDeploymentList>): McpDeploymentList => ({
   items: [mockMcpDeployment()],
   size: 1,
   ...partial,
