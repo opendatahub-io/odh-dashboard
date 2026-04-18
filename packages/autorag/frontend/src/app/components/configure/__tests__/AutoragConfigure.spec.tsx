@@ -268,6 +268,8 @@ describe('AutoragConfigure', () => {
     mockNotificationError.mockClear();
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+    // Reset the S3 upload mock to default resolved value
+    mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
   });
 
   describe('initial state - no secret selected', () => {
@@ -441,6 +443,30 @@ describe('AutoragConfigure', () => {
         );
       });
       expect(mockNotificationError).not.toHaveBeenCalled();
+    });
+
+    it('should show human-readable error for max collision attempts (409)', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const file = new File(['hello'], 'collision.txt', { type: 'text/plain' });
+      getMockS3MutateAsync().mockClear();
+      getMockS3MutateAsync().mockRejectedValue(
+        new Error('unable to find unique filename after 10 attempts'),
+      );
+
+      fireEvent.change(fileInput!, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Failed to upload file',
+          'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.',
+        );
+      });
     });
 
     it('should show the newly selected secret name when switching secrets', () => {

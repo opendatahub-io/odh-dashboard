@@ -66,11 +66,12 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
               onClick: () => onViewDetailsAuthPolicy(authPolicy.name),
             },
             {
-              title: 'Edit policy',
+              title: 'Edit',
               onClick: () => onEditAuthPolicy(authPolicy.name),
             },
+            { isSeparator: true },
             {
-              title: 'Delete policy',
+              title: 'Delete',
               onClick: () => onDeleteAuthPolicy(authPolicy),
             },
           ]}
