@@ -248,11 +248,11 @@ func (app *App) Routes() http.Handler {
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	// Minimal Kubernetes-backed starter endpoints
-	apiRouter.GET(UserPath, app.RequireAccessToService(app.UserHandler))
-	apiRouter.GET(NamespacePath, app.RequireAccessToService(app.GetNamespacesHandler))
+	apiRouter.GET(UserPath, app.UserHandler)
+	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 
 	// Secrets
-	apiRouter.GET(SecretsPath, app.AttachNamespace(app.RequireAccessToService(app.GetSecretsHandler)))
+	apiRouter.GET(SecretsPath, app.AttachNamespace(app.GetSecretsHandler))
 
 	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
 	// secretName (the handler resolves credentials directly in that case).
