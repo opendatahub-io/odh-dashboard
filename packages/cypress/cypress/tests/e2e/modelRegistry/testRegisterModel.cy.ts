@@ -186,7 +186,7 @@ describe('Verify models can be registered in a model registry', () => {
   it(
     'Registers a new version via versions view',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@ModelRegistryCI', '@Smoke', '@SmokeSet4'],
+      tags: ['@Dashboard', '@ModelRegistry', '@Smoke', '@SmokeSet4'],
     },
     () => {
       cy.step('Log into the application');

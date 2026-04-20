@@ -59,7 +59,7 @@ describe('Verify a model registry can be created and deleted', () => {
   it(
     'Creates a model registry with mysql database and then deletes it',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@ModelRegistryCI', '@Smoke', '@SmokeSet4'],
+      tags: ['@Dashboard', '@ModelRegistry', '@Smoke', '@SmokeSet4'],
     },
     () => {
       cy.step('Login as an Admin');
@@ -106,7 +106,7 @@ describe('Verify a model registry can be created and deleted', () => {
   it(
     'Creates a model registry with PostgreSQL database and then deletes it',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@ModelRegistryCI', '@Smoke', '@SmokeSet4'],
+      tags: ['@Dashboard', '@ModelRegistry', '@Smoke', '@SmokeSet4'],
     },
     () => {
       cy.step('Login as an Admin');
@@ -165,7 +165,7 @@ describe('Verify a model registry can be created and deleted', () => {
   it(
     'Creates a model registry with default database and then deletes it',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@ModelRegistryCI', '@Smoke', '@SmokeSet4'],
+      tags: ['@Dashboard', '@ModelRegistry', '@Smoke', '@SmokeSet4'],
     },
     () => {
       cy.step('Login as an Admin');
