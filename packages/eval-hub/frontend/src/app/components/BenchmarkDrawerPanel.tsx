@@ -39,9 +39,27 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
   const color = getCategoryColor(benchmark.category);
   const safeBenchmarkUrl = toSafeExternalUrl(benchmark.url);
 
+  const drawerHeadStyle: React.CSSProperties = {
+    // Tighten space before the scrollable body (PF default is --pf-t--global--spacer--sm)
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- PF drawer CSS vars are not in CSSProperties
+    ...({
+      '--pf-v6-c-drawer__head--PaddingBlockEnd': 'var(--pf-t--global--spacer--xs)',
+    } as React.CSSProperties),
+  };
+
+  const drawerScrollBodyStyle: React.CSSProperties = {
+    flex: 1,
+    overflowY: 'auto',
+    // Default panel body block-start padding is md; pull description up under the id line
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- PF drawer CSS vars are not in CSSProperties
+    ...({
+      '--pf-v6-c-drawer__panel__body--PaddingBlockStart': 'var(--pf-t--global--spacer--xs)',
+    } as React.CSSProperties),
+  };
+
   return (
     <DrawerPanelContent isResizable minSize="400px" data-testid="benchmark-drawer-panel">
-      <DrawerHead>
+      <DrawerHead style={drawerHeadStyle}>
         <Stack hasGutter>
           {benchmark.category && (
             <StackItem>
@@ -49,7 +67,46 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
             </StackItem>
           )}
           <StackItem>
-            <Title headingLevel="h2">{benchmark.name}</Title>
+            <Flex direction={{ default: 'column' }} gap={{ default: 'gapXs' }}>
+              <FlexItem>
+                <Title headingLevel="h2">{benchmark.name}</Title>
+              </FlexItem>
+              <FlexItem>
+                <Content
+                  component="p"
+                  style={{
+                    marginBlock: 0,
+                    color: 'var(--pf-t--global--text--color--subtle)',
+                    fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
+                  }}
+                >
+                  {safeBenchmarkUrl ? (
+                    <Button
+                      variant="link"
+                      isInline
+                      component="a"
+                      href={safeBenchmarkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      icon={<ExternalLinkAltIcon />}
+                      iconPosition="end"
+                      style={{ fontWeight: 'var(--pf-t--global--font--weight--heading--default)' }}
+                      onClick={() =>
+                        fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
+                          url: safeBenchmarkUrl,
+                          benchmarkId: benchmark.id,
+                          surface: 'benchmark_drawer',
+                        })
+                      }
+                    >
+                      {benchmark.id}
+                    </Button>
+                  ) : (
+                    benchmark.id
+                  )}
+                </Content>
+              </FlexItem>
+            </Flex>
           </StackItem>
         </Stack>
         <DrawerActions>
@@ -57,46 +114,13 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
         </DrawerActions>
       </DrawerHead>
 
-      <DrawerPanelBody style={{ flex: 1, overflowY: 'auto' }}>
+      <DrawerPanelBody style={drawerScrollBodyStyle}>
         <Stack hasGutter>
-          <StackItem>
-            <Content
-              component="p"
-              style={{
-                marginTop: 'var(--pf-t--global--spacer--xs)',
-                color: 'var(--pf-t--global--text--color--subtle)',
-                fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
-              }}
-            >
-              {safeBenchmarkUrl ? (
-                <Button
-                  variant="link"
-                  isInline
-                  component="a"
-                  href={safeBenchmarkUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  icon={<ExternalLinkAltIcon />}
-                  iconPosition="end"
-                  style={{ fontWeight: 'var(--pf-t--global--font--weight--heading--default)' }}
-                  onClick={() =>
-                    fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
-                      url: safeBenchmarkUrl,
-                      benchmarkId: benchmark.id,
-                      surface: 'benchmark_drawer',
-                    })
-                  }
-                >
-                  {benchmark.id}
-                </Button>
-              ) : (
-                benchmark.id
-              )}
-            </Content>
-          </StackItem>
           {benchmark.description && (
             <StackItem>
-              <Content component="p">{benchmark.description}</Content>
+              <Content component="p" style={{ marginBlockStart: 0 }}>
+                {benchmark.description}
+              </Content>
             </StackItem>
           )}
 
