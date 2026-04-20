@@ -9,7 +9,7 @@ export type DeployPrefillData = {
   wizardStartIndex?: number;
   modelType?: ServingRuntimeModelType;
   prefillAlertText?: string;
-}
+};
 
 export type NavigateToDeploymentWizardWithDataExtension = Extension<
   'model-catalog.deployment/navigate-wizard',

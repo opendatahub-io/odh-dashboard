@@ -46,19 +46,17 @@ const McpDeployModalExtension: React.FC<McpDeployModalExtensionProps> = ({ rende
 
   return (
     <>
-      {extensions.map((extension) =>
-        extension.properties.useIsDeployAvailable ? (
-          <HookNotify
-            key={extension.uid}
-            useHook={extension.properties.useIsDeployAvailable}
-            onNotify={(value) => {
-              if (value) {
-                setDeployAvailable(value);
-              }
-            }}
-          />
-        ) : null,
-      )}
+      {extensions.map((extension) => (
+        <HookNotify
+          key={extension.uid}
+          useHook={extension.properties.useIsDeployAvailable}
+          onNotify={(value) => {
+            if (value) {
+              setDeployAvailable(value);
+            }
+          }}
+        />
+      ))}
       {render(buttonState, onOpenModal, isModalAvailable)}
       {isModalAvailable && (
         <McpDeployModal isOpen={openModal} onClose={() => setOpenModal(false)} />

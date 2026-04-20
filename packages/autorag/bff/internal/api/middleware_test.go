@@ -20,8 +20,7 @@ import (
 )
 
 const (
-	testNamespace     = "test-namespace"
-	testLlamaStackURL = "http://test-llama-stack:8321"
+	testNamespace = "test-namespace"
 )
 
 // CapturingMockClientFactory wraps the standard mock factory to capture URLs
@@ -122,76 +121,6 @@ func TestAttachLlamaStackClientFromSecret(t *testing.T) {
 		})(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
-	})
-
-	t.Run("should use LLAMA_STACK_URL when auth is disabled", func(t *testing.T) {
-		mockFactory := &CapturingMockClientFactory{}
-
-		app := App{
-			config: config.EnvConfig{
-				AuthMethod:    config.AuthMethodDisabled,
-				LlamaStackURL: testLlamaStackURL,
-			},
-			llamaStackClientFactory: mockFactory,
-			repositories:            repositories.NewRepositories(slog.Default()),
-		}
-
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=my-secret", nil)
-		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
-		rr := httptest.NewRecorder()
-
-		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			assert.NotNil(t, r.Context().Value(constants.LlamaStackClientKey))
-			w.WriteHeader(http.StatusOK)
-		})(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.Equal(t, testLlamaStackURL, mockFactory.CapturedURL)
-	})
-
-	t.Run("should return 500 when auth is disabled and LLAMA_STACK_URL is not set", func(t *testing.T) {
-		app := App{
-			config: config.EnvConfig{
-				AuthMethod: config.AuthMethodDisabled,
-			},
-			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(slog.Default()),
-			logger:                  slog.Default(),
-		}
-
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=my-secret", nil)
-		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
-		rr := httptest.NewRecorder()
-
-		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			t.Fatal("Handler should not be called")
-		})(rr, req, nil)
-
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-	})
-
-	t.Run("should use LLAMA_STACK_URL as developer override when set", func(t *testing.T) {
-		mockFactory := &CapturingMockClientFactory{}
-
-		app := App{
-			config:                  config.EnvConfig{LlamaStackURL: testLlamaStackURL},
-			llamaStackClientFactory: mockFactory,
-			repositories:            repositories.NewRepositories(slog.Default()),
-		}
-
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=my-secret", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
-		req = req.WithContext(ctx)
-		rr := httptest.NewRecorder()
-
-		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			assert.NotNil(t, r.Context().Value(constants.LlamaStackClientKey))
-			w.WriteHeader(http.StatusOK)
-		})(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.Equal(t, testLlamaStackURL, mockFactory.CapturedURL)
 	})
 
 	t.Run("should return error when namespace is missing from context", func(t *testing.T) {

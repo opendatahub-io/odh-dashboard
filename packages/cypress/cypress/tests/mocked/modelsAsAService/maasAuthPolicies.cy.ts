@@ -90,7 +90,7 @@ describe('MaaS Auth Policies', () => {
   });
 
   it('should display the auth policies table with correct page content', () => {
-    authPoliciesPage.findTitle().should('contain.text', 'Policies');
+    authPoliciesPage.findTitle().should('contain.text', 'Authorization policies');
     authPoliciesPage.findTable().should('exist');
     authPoliciesPage.findRows().should('have.length', 5);
     const premiumRow = authPoliciesPage.getRow('premium-team-policy');
@@ -119,7 +119,7 @@ describe('MaaS Auth Policies', () => {
       { path: { name: 'premium-team-policy' } },
       { data: { message: "MaaSAuthPolicy 'premium-team-policy' deleted successfully" } },
     ).as('deleteAuthPolicy');
-    authPoliciesPage.getRow('premium-team-policy').findKebabAction('Delete policy').click();
+    authPoliciesPage.getRow('premium-team-policy').findKebabAction('Delete').click();
     deleteAuthPolicyModal.findInput().type('premium-team-policy');
     deleteAuthPolicyModal.findSubmitButton().click();
     cy.wait('@deleteAuthPolicy').then((response) => {
@@ -131,14 +131,14 @@ describe('MaaS Auth Policies', () => {
 });
 
 describe('Auth policy create and edit pages', () => {
-  describe('create policy page', () => {
+  describe('create authorization policy page', () => {
     beforeEach(() => {
       setupAuthPolicyCreatePageIntercepts();
     });
 
     it('should create a policy with groups and models', () => {
       policyPage.visit();
-      policyPage.findTitle().should('contain.text', 'Create policy');
+      policyPage.findTitle().should('contain.text', 'Create authorization policy');
       policyPage.findSubmitButton().should('be.disabled');
 
       policyPage.findDisplayNameInput().type('New Test Policy');
@@ -173,7 +173,7 @@ describe('Auth policy create and edit pages', () => {
 
     it('should update a policy', () => {
       policyPage.visit('premium-team-policy');
-      policyPage.findTitle().should('contain.text', 'Edit policy');
+      policyPage.findTitle().should('contain.text', 'Edit authorization policy');
 
       policyPage.findCancelButton().click();
       cy.url().should('match', /\/maas\/auth-policies$/);

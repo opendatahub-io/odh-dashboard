@@ -29,17 +29,13 @@ describe('NamespaceSelectorFieldWrapper', () => {
 
   it('should render the upstream NamespaceSelectorField when extensions are not loaded', () => {
     mockUseResolvedExtensions.mockReturnValue([[], false, []]);
-    render(
-      <NamespaceSelectorFieldWrapper selectedNamespace="test-ns" onSelect={jest.fn()} />,
-    );
+    render(<NamespaceSelectorFieldWrapper selectedNamespace="test-ns" onSelect={jest.fn()} />);
     expect(screen.getByTestId('upstream-selector')).toHaveTextContent('test-ns');
   });
 
   it('should render the upstream NamespaceSelectorField when extensions are loaded but empty', () => {
     mockUseResolvedExtensions.mockReturnValue([[], true, []]);
-    render(
-      <NamespaceSelectorFieldWrapper selectedNamespace="test-ns" onSelect={jest.fn()} />,
-    );
+    render(<NamespaceSelectorFieldWrapper selectedNamespace="test-ns" onSelect={jest.fn()} />);
     expect(screen.getByTestId('upstream-selector')).toHaveTextContent('test-ns');
   });
 
@@ -64,9 +60,7 @@ describe('NamespaceSelectorFieldWrapper', () => {
       [],
     ]);
 
-    render(
-      <NamespaceSelectorFieldWrapper selectedNamespace="custom-ns" onSelect={jest.fn()} />,
-    );
+    render(<NamespaceSelectorFieldWrapper selectedNamespace="custom-ns" onSelect={jest.fn()} />);
     expect(screen.queryByTestId('upstream-selector')).not.toBeInTheDocument();
     expect(screen.getByTestId('custom-selector')).toHaveTextContent('custom-ns');
   });
@@ -75,22 +69,23 @@ describe('NamespaceSelectorFieldWrapper', () => {
     const onSelect = jest.fn();
     const error = new Error('test error');
 
-    function CustomSelector(props: {
-      selectedNamespace: string;
-      onSelect: (ns: string) => void;
-      hasAccess?: boolean;
-      isLoading?: boolean;
-      error?: Error;
-      cannotCheck?: boolean;
-      registryName?: string;
-    }) {
+    function CustomSelector(
+      props: {
+        hasAccess?: boolean;
+        isLoading?: boolean;
+        error?: Error;
+        cannotCheck?: boolean;
+        registryName?: string;
+      } & Record<string, unknown>,
+    ) {
+      const { hasAccess, isLoading, error: propsError, cannotCheck, registryName } = props;
       return (
         <div data-testid="custom-selector">
-          <span data-testid="has-access">{String(props.hasAccess)}</span>
-          <span data-testid="is-loading">{String(props.isLoading)}</span>
-          <span data-testid="error-msg">{props.error?.message}</span>
-          <span data-testid="cannot-check">{String(props.cannotCheck)}</span>
-          <span data-testid="registry-name">{props.registryName}</span>
+          <span data-testid="has-access">{String(hasAccess)}</span>
+          <span data-testid="is-loading">{String(isLoading)}</span>
+          <span data-testid="error-msg">{propsError?.message}</span>
+          <span data-testid="cannot-check">{String(cannotCheck)}</span>
+          <span data-testid="registry-name">{registryName}</span>
         </div>
       );
     }
