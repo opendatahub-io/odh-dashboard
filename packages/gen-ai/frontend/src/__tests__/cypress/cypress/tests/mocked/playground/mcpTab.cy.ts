@@ -566,14 +566,15 @@ describe('Playground - MCP Servers', () => {
             mcpToolsModal.find().should('not.exist');
 
             cy.step('Re-open to verify all tools remain selected');
-            // Wait for MCP table to be visible and force immediate row query
+            // Wait for MCP table to be visible and force immediate element query
             playgroundPage.mcpTab
               .findMCPServersTable()
               .should('be.visible')
-              .then(() => {
-                const reopenedServerRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
-                reopenedServerRow
-                  .findToolsButton()
+              .then(($table) => {
+                // Force immediate query for the row and tools button
+                cy.wrap($table)
+                  .contains('tr', serverName)
+                  .findByTestId(`mcp-server-tools-button-${serverUrl}`)
                   .should('exist')
                   .and('not.have.attr', 'aria-disabled')
                   .click();
