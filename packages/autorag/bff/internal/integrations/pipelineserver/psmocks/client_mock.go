@@ -72,6 +72,10 @@ type MockPipelineServerClient struct {
 	LastListRunsParams *pipelineserver.ListRunsParams
 	// LastGetRunID records the last runID passed to GetRun for test assertions
 	LastGetRunID string
+	// LastTerminateRunID records the last runID passed to TerminateRun for test assertions
+	LastTerminateRunID string
+	// LastRetryRunID records the last runID passed to RetryRun for test assertions
+	LastRetryRunID string
 }
 
 // pipelineDisplayName returns the DisplayName used for the AutoRAG pipeline fixture,
@@ -480,7 +484,15 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 		}
 	}
 
-	// Return mock data based on the run ID, using namespace-derived IDs
+	// Look up the run from the base mock data so that state-dependent
+	// logic (terminate / retry) sees the correct State value.
+	for _, run := range getBaseMockRuns(m.Namespace) {
+		if run.RunID == runID {
+			return &run, nil
+		}
+	}
+
+	// Fallback for unknown run IDs: return a generic SUCCEEDED run
 	ids := DeriveMockIDs(m.Namespace)
 	mockRun := &models.KFPipelineRun{
 		RunID:        runID,
@@ -598,6 +610,54 @@ func (m *MockPipelineServerClient) CreateRun(_ context.Context, request models.C
 			},
 		},
 	}, nil
+}
+
+// TerminateRun simulates terminating a pipeline run.
+// Special run IDs for testing error conditions:
+// - "non-existent-run-id" returns 404 error
+// - "server-error-run-id" returns 500 error
+func (m *MockPipelineServerClient) TerminateRun(_ context.Context, runID string) error {
+	m.LastTerminateRunID = runID
+
+	if runID == "non-existent-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 404,
+			Message:    fmt.Sprintf("Failed to terminate run: Run %s not found", runID),
+		}
+	}
+
+	if runID == "server-error-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 500,
+			Message:    "Internal server error",
+		}
+	}
+
+	return nil
+}
+
+// RetryRun simulates retrying a failed or terminated pipeline run.
+// Special run IDs for testing error conditions:
+// - "non-existent-run-id" returns 404 error
+// - "server-error-run-id" returns 500 error
+func (m *MockPipelineServerClient) RetryRun(_ context.Context, runID string) error {
+	m.LastRetryRunID = runID
+
+	if runID == "non-existent-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 404,
+			Message:    fmt.Sprintf("Failed to retry run: Run %s not found", runID),
+		}
+	}
+
+	if runID == "server-error-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 500,
+			Message:    "Internal server error",
+		}
+	}
+
+	return nil
 }
 
 // ListPipelines returns mock pipeline data with namespace-derived IDs.
