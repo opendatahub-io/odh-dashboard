@@ -21,7 +21,13 @@ const createRedirectComponent = (args: { from: string; to: string }) => () =>
     default: () => module.buildV2RedirectElement(args),
   }));
 
-const extensions: (NavExtension | RouteExtension | AreaExtension | TabRouteTabExtension | McpServerDeployModalExtension)[] = [
+const extensions: (
+  | NavExtension
+  | RouteExtension
+  | AreaExtension
+  | TabRouteTabExtension
+  | McpServerDeployModalExtension
+)[] = [
   {
     type: 'app.area',
     properties: {
@@ -212,7 +218,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | TabRouteTabEx
     },
     properties: {
       useIsDeployAvailable: () =>
-        import('../app/hooks/mcpCatalogDeployment/useMcpServerDeployAvailable').then((m) => m.default),
+        import('../app/hooks/mcpCatalogDeployment/useMcpServerDeployAvailable').then(
+          (m) => m.default,
+        ),
     },
   },
 ];

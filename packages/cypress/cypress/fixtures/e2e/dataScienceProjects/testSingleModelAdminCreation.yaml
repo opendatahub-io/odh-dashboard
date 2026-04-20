@@ -1,7 +1,7 @@
 # testSingleModelAdminCreation.cy.ts Test Data #
-projectSingleModelAdminDisplayName: "Cypress Single Model Admin Test Project"
-projectSingleModelAdminResourceName: "cy-single-model-admin-test" 
-singleModelAdminName: "cy-openvino-model"
-modelOpenVinoPath: "kserve-openvino-test/openvino-example-model"
-modelFormat: 'openvino_ir - opset13'
-servingRuntime: 'OpenVINO Model Server'
+projectSingleModelAdminResourceName: "cy-single-model-admin-test"
+singleModelAdminName: "cy-vllm-legacy-model"
+modelLocationURI: "hf://facebook/opt-125m"
+servingRuntime: 'vLLM CPU .x86. ServingRuntime for KServe'
+hardwareProfileName: "cypress-llmd-hardware-profile-model"
+connectionNameSuffix: '-connection'
