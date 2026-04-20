@@ -76,6 +76,7 @@ export enum ProjectObjectType {
   resources = 'resources',
   featureStore = 'feature-store',
   promptManagement = 'prompt-management',
+  mcpCatalog = 'mcp-catalog',
 }
 
 export const typedIconColor = (objectType: ProjectObjectType): string => {
@@ -128,6 +129,7 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.resources:
       return 'var(--ai-general--IconColor)';
     case ProjectObjectType.distributedWorkload:
+    case ProjectObjectType.mcpCatalog:
       return 'var(--ai-serving--IconColor)';
     case ProjectObjectType.clusterSettings:
     case ProjectObjectType.hardwareProfile:
@@ -194,6 +196,7 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.resources:
       return 'var(--ai-general--BackgroundColor)';
     case ProjectObjectType.distributedWorkload:
+    case ProjectObjectType.mcpCatalog:
       return 'var(--ai-serving--BackgroundColor)';
     case ProjectObjectType.clusterSettings:
     case ProjectObjectType.hardwareProfile:
@@ -244,6 +247,8 @@ export const typedColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-user--Color)';
     case ProjectObjectType.group:
       return 'var(--ai-group--Color)';
+    case ProjectObjectType.mcpCatalog:
+      return 'var(--ai-serving--Color)';
     default:
       return '';
   }
