@@ -1,3 +1,5 @@
+import { K8sResourceCommon } from 'mod-arch-shared';
+import { MaaSSubscription } from '~/app/types/subscriptions';
 /**
  * Returns the lowest non-negative integer priority not already taken by existing subscriptions.
  * Starts scanning from `startFrom` (default 0) and increments until a free slot is found.
@@ -13,3 +15,11 @@ export const getLowestAvailablePriority = (
   }
   return p;
 };
+
+export const convertSubscriptionToK8sResource = (
+  subscription: MaaSSubscription,
+): K8sResourceCommon => ({
+  apiVersion: 'maas.opendatahub.io/v1alpha1',
+  kind: 'MaaSSubscription',
+  metadata: { name: subscription.name },
+});
