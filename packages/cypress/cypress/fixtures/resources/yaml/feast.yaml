@@ -7,6 +7,9 @@ stringData:
   AWS_ACCESS_KEY_ID: ${awsAccessKey}
   AWS_SECRET_ACCESS_KEY: ${awsSecretKey}
   AWS_DEFAULT_REGION: ${awsDefaultRegion}
+  dynamodb: |
+    type: dynamodb
+    region: ${awsDefaultRegion}
 ---
 apiVersion: feast.dev/v1
 kind: FeatureStore
@@ -16,9 +19,14 @@ metadata:
   labels:
     feature-store-ui: enabled
 spec:
-  feastProject: driver_ranking
+  feastProject: credit_scoring_local
   services:
     onlineStore:
+      persistence:
+        store:
+          type: dynamodb
+          secretRef:
+            name: s3-credentials-secret
       server:
         envFrom:
           - secretRef:
@@ -27,7 +35,7 @@ spec:
       local:
         persistence:
           file:
-            path: s3://${awsBucketName}/feast-test/feast-credit-score-remote-data/registry.pb
+            path: s3://${awsBucketName}/feast-test/credit_scoring_local/registry.pb
         server:
           envFrom:
           - secretRef:
