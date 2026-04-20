@@ -74,9 +74,7 @@ const ResourceNameField: React.FC<ResourceNameFieldProps> = ({
           </HelperTextItem>
         )}
         {k8sName.state.invalidCharacters && (
-          <HelperTextItem variant="error">
-            {INVALID_K8S_NAME_CHARACTERS_MESSAGE}
-          </HelperTextItem>
+          <HelperTextItem variant="error">{INVALID_K8S_NAME_CHARACTERS_MESSAGE}</HelperTextItem>
         )}
         {!k8sName.state.invalidLength && !k8sName.state.invalidCharacters && (
           <HelperTextItem>

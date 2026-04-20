@@ -187,10 +187,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   ]);
 
   const hasValidName =
-    !!displayName &&
-    !!k8sName &&
-    isValidK8sName(k8sName) &&
-    k8sName.length <= MAX_K8S_NAME_LENGTH;
+    !!displayName && !!k8sName && isValidK8sName(k8sName) && k8sName.length <= MAX_K8S_NAME_LENGTH;
 
   const dataReady = !!existingDeployment || crLoaded;
 
