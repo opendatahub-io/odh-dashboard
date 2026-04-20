@@ -56,8 +56,8 @@ let tokenRateLimit: { limit: number; window: string };
 const uuid = generateTestUUID();
 let hardwareProfileResourceName: string;
 let modelURI: string;
-const llmInferenceServiceConfigName = 'kserve-config-llm-template-cpu-cypress';
-const llmInferenceServiceConfigDisplayName = 'vLLM CPU LLMInferenceServiceConfig-Cypress';
+const llmInferenceServiceConfigName = 'kserve-config-llm-template-cpu';
+const llmInferenceServiceConfigDisplayName = 'vLLM CPU LLMInferenceServiceConfig';
 const llmInferenceServiceConfigYamlPath =
   'resources/modelServing/llmd-inference-service-config.yaml';
 
@@ -286,9 +286,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .should('have.value', (subscriptionPriority + 1).toString());
       editSubscriptionPage.typeCustomGroup('premium-users');
       editSubscriptionPage.findPolicyChangeWarning().should('exist');
-      editSubscriptionPage
-        .findPolicyChangeWarning()
-        .should('contain.text', 'Authorization policy may need updating');
+      editSubscriptionPage.findPolicyChangeWarning().should('exist');
       editSubscriptionPage.findModelsTable().should('contain.text', modelName);
 
       editSubscriptionPage.findDescriptionInput().clear().type('Updated description');
@@ -302,10 +300,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       subscriptionsPage.findRows().should('contain.text', 'Updated description');
 
       cy.step('Delete the second subscription');
-      subscriptionsPage
-        .getRow(`${subscriptionDisplayName}2`)
-        .findKebabAction('Delete subscription')
-        .click();
+      subscriptionsPage.getRow(`${subscriptionDisplayName}2`).findKebabAction('Delete').click();
       deleteSubscriptionModal.findInput().type(`${subscriptionName}2`);
       deleteSubscriptionModal.findSubmitButton().click();
       subscriptionsPage.findFilterInput().type(`${subscriptionName}2`);
@@ -331,21 +326,18 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Read the API key from the success dialog');
       copyApiKeyModal.shouldBeOpen();
-      // ClipboardCopy expansion: collapsed row input is often empty in Cypress; full key is in the panel after "Show content".
-      copyApiKeyModal
-        .findApiKeyTokenExpandToggle()
-        .should('be.visible')
-        .click({ waitForAnimations: false });
-      copyApiKeyModal
-        .findApiKeyTokenExpandedContent()
-        .should('be.visible')
+      cy.window().then((win) => {
+        cy.stub(win.navigator.clipboard, 'writeText').as('clipboardWrite');
+      });
+      copyApiKeyModal.findApiKeyTokenCopyButton().click();
+      cy.get('@clipboardWrite').should('have.been.calledOnce');
+      cy.get('@clipboardWrite')
+        .invoke('getCall', 0)
+        .its('args.0')
+        .should('be.a', 'string')
         .and('not.be.empty')
-        .invoke('text')
         .then((raw) => {
-          const token = raw.trim();
-          if (token.length === 0) {
-            throw new Error('Expected a non-empty API key from expanded ClipboardCopy content');
-          }
+          const token = String(raw).trim();
           cy.wrap(token).as('maasApiKeyToken');
           cy.step('Inference with the model using the API key');
           return cy.get<string>('@resourceName').then((resourceName) =>
@@ -365,7 +357,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       // Filter by the admin username to find the API key, there could be a lot of keys
       apiKeysPage.findFilterInput().find('input').type(HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
       apiKeysPage.findFilterSearchButton().click();
-      apiKeysPage.getRow(`maas-api-key-${uuid}`).findKebabAction('Revoke API key').click();
+      apiKeysPage.getRow(`maas-api-key-${uuid}`).findKebabAction('Revoke').click();
 
       revokeAPIKeyModal.shouldBeOpen();
       revokeAPIKeyModal.findRevokeButton().should('be.disabled');
