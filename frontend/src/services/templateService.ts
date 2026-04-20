@@ -102,14 +102,14 @@ export const updateServingRuntimeTemplateBackend = (
                     },
               ]
             : runtimeModelTypeValue
-            ? [
-                {
-                  op: 'add',
-                  path: '/metadata/annotations/opendatahub.io~1modelServingType',
-                  value: runtimeModelTypeValue,
-                },
-              ]
-            : []),
+              ? [
+                  {
+                    op: 'add',
+                    path: '/metadata/annotations/opendatahub.io~1modelServingType',
+                    value: runtimeModelTypeValue,
+                  },
+                ]
+              : []),
           existingTemplate.metadata.annotations?.['opendatahub.io/apiProtocol']
             ? {
                 op: 'replace',

@@ -37,7 +37,7 @@ const baseClusterQueue = (): ClusterQueueKind =>
     status: {
       flavorsUsage: [{ name: DEFAULT_FLAVOR, resources: DEFAULT_USAGE_RESOURCES }],
     },
-  } as ClusterQueueKind);
+  }) as ClusterQueueKind;
 
 describe('getAssignedFlavorFromWorkload', () => {
   const admittedWorkload = (flavors: Record<string, string>): WorkloadKind =>
@@ -52,7 +52,7 @@ describe('getAssignedFlavorFromWorkload', () => {
           podSetAssignments: [{ name: 'main', flavors }],
         },
       },
-    } as WorkloadKind);
+    }) as WorkloadKind;
 
   it('returns undefined when workload is null or undefined', () => {
     expect(getAssignedFlavorFromWorkload(null)).toBeUndefined();
