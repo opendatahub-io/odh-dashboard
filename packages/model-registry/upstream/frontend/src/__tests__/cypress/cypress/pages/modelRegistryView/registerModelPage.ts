@@ -1,3 +1,4 @@
+import { registerModelUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
 
 export enum FormFieldSelector {
@@ -23,7 +24,7 @@ class RegisterModelPage {
 
   visit() {
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visit(`/model-registry/${preferredModelRegistry}/register/model`);
+    cy.visit(registerModelUrl(preferredModelRegistry));
     this.wait();
   }
 

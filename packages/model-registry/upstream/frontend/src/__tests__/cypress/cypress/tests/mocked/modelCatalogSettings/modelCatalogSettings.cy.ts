@@ -17,6 +17,7 @@ import {
   type CatalogSourceConfigList,
 } from '~/app/modelCatalogTypes';
 import { EMPTY_CUSTOM_PROPERTY_VALUE } from '~/concepts/modelCatalog/const';
+import { manageSourceUrl } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
 
 const NAMESPACE = 'kubeflow';
 const userMock = {
@@ -277,7 +278,7 @@ describe('Catalog Source Configs Table', () => {
       const row = modelCatalogSettings.getRow('HuggingFace Google');
       row.findName().should('be.visible');
       row.findManageSourceButton().should('be.visible').click();
-      cy.url().should('include', '/model-catalog-settings/manage-source/hf-google');
+      cy.url().should('include', manageSourceUrl('hf-google'));
       manageSourcePage.findManageSourceTitle();
     });
 
@@ -286,7 +287,7 @@ describe('Catalog Source Configs Table', () => {
       const customRow = modelCatalogSettings.getRow('Custom YAML');
       customRow.findName().should('be.visible');
       customRow.findManageSourceButton().should('be.visible').click();
-      cy.url().should('include', '/model-catalog-settings/manage-source/custom-yaml');
+      cy.url().should('include', manageSourceUrl('custom-yaml'));
     });
   });
 
@@ -996,7 +997,7 @@ describe('Manage Source Page', () => {
     }).as('manageSourcewithYamlType');
 
     manageSourcePage.visitManageSource('source_2');
-    cy.url().should('include', '/model-catalog-settings/manage-source/source_2');
+    cy.url().should('include', manageSourceUrl('source_2'));
     manageSourcePage.findNameInput().should('have.value', 'Source 2');
     manageSourcePage.findSourceTypeHuggingFace().should('not.exist');
     manageSourcePage.findSourceTypeYaml().should('not.exist');
@@ -1046,7 +1047,7 @@ describe('Manage Source Page', () => {
     }).as('manageSourcewithYamlType');
 
     manageSourcePage.visitManageSource('sample_source_1');
-    cy.url().should('include', '/model-catalog-settings/manage-source/sample_source_1');
+    cy.url().should('include', manageSourceUrl('sample_source_1'));
     manageSourcePage.findNameInput().should('have.value', 'Sample source 1');
     manageSourcePage.findSourceTypeHuggingFace().should('not.exist');
     manageSourcePage.findSourceTypeYaml().should('not.exist');
