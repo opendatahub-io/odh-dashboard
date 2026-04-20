@@ -82,19 +82,21 @@ jest.mock('~/app/components/run-results/StopRunModal', () => ({
   __esModule: true,
   default: ({
     isOpen,
+    isTerminating,
     onConfirm,
     onClose,
   }: {
     isOpen: boolean;
+    isTerminating: boolean;
     onConfirm: () => void;
     onClose: () => void;
   }) =>
     isOpen ? (
       <div data-testid="stop-run-modal">
-        <button data-testid="confirm-stop-run-button" onClick={onConfirm}>
+        <button data-testid="confirm-stop-run-button" onClick={onConfirm} disabled={isTerminating}>
           Stop
         </button>
-        <button data-testid="cancel-stop-run-button" onClick={onClose}>
+        <button data-testid="cancel-stop-run-button" onClick={onClose} disabled={isTerminating}>
           Cancel
         </button>
       </div>
@@ -250,6 +252,18 @@ describe('AutoragResultsPage', () => {
       updatePreferredNamespace: jest.fn(),
       namespacesLoaded: true,
       namespacesLoadError: undefined,
+    });
+
+    // Reset mutation mocks to default state
+    const { useTerminatePipelineRunMutation, useRetryPipelineRunMutation } =
+      jest.requireMock('~/app/hooks/mutations');
+    useTerminatePipelineRunMutation.mockReturnValue({
+      mutateAsync: jest.fn(),
+      isPending: false,
+    });
+    useRetryPipelineRunMutation.mockReturnValue({
+      mutateAsync: jest.fn(),
+      isPending: false,
     });
 
     mockUseAutoragResults.mockReturnValue({
@@ -709,6 +723,23 @@ describe('AutoragResultsPage', () => {
       });
     });
 
+    it('should disable modal buttons while termination is pending', async () => {
+      setupWithRunState('RUNNING');
+      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      useTerminatePipelineRunMutation.mockReturnValue({
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        mutateAsync: jest.fn().mockReturnValue(new Promise(() => {})),
+        isPending: true,
+      });
+
+      renderPage();
+
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+
+      expect(screen.getByTestId('confirm-stop-run-button')).toBeDisabled();
+      expect(screen.getByTestId('cancel-stop-run-button')).toBeDisabled();
+    });
+
     it('should show success notification and invalidate queries when retry succeeds', async () => {
       setupWithRunState('FAILED');
       const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
@@ -726,18 +757,21 @@ describe('AutoragResultsPage', () => {
 
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledTimes(1);
-      });
-
-      await waitFor(() => {
         expect(invalidateQueriesSpy).toHaveBeenCalledWith({
           queryKey: ['autorag', 'pipelineRun', 'run-123', 'test-ns'],
         });
+        expect(mockNotification.success).toHaveBeenCalledWith(
+          'Retry submitted successfully',
+          'The process is asynchronous and may take some time to take effect',
+        );
       });
 
-      expect(mockNotification.success).toHaveBeenCalledWith(
-        'Retry submitted successfully',
-        'The process is asynchronous and may take some time to take effect',
-      );
+      // Verify call order: mutateAsync -> invalidateQueries -> success notification
+      const mutateOrder = mockMutateAsync.mock.invocationCallOrder[0];
+      const invalidateOrder = invalidateQueriesSpy.mock.invocationCallOrder[0];
+      const notifyOrder = mockNotification.success.mock.invocationCallOrder[0];
+      expect(mutateOrder).toBeLessThan(invalidateOrder);
+      expect(invalidateOrder).toBeLessThan(notifyOrder);
     });
 
     it('should show error notification when retry fails', async () => {

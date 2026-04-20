@@ -1284,6 +1284,8 @@ func TestRetryPipelineRunHandler_ErrorCases(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Contains(t, response.Error.Message, "cannot be retried")
+		assert.Empty(t, mockClient.LastRetryRunID,
+			"RetryRun should not have been called for a non-retryable run")
 	})
 
 	t.Run("should return 404 when no pipelines discovered", func(t *testing.T) {

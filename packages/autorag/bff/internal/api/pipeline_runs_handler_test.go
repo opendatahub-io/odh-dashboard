@@ -760,7 +760,7 @@ type failedRunMockClient struct {
 	psmocks.MockPipelineServerClient
 }
 
-func (m *failedRunMockClient) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
+func (m *failedRunMockClient) GetRun(_ context.Context, runID string) (*models.KFPipelineRun, error) {
 	ids := psmocks.DeriveMockIDs(m.Namespace)
 	run := &models.KFPipelineRun{
 		RunID:       runID,
@@ -780,7 +780,7 @@ type succeededRunMockClient struct {
 	psmocks.MockPipelineServerClient
 }
 
-func (m *succeededRunMockClient) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
+func (m *succeededRunMockClient) GetRun(_ context.Context, runID string) (*models.KFPipelineRun, error) {
 	ids := psmocks.DeriveMockIDs(m.Namespace)
 	run := &models.KFPipelineRun{
 		RunID:       runID,
@@ -800,7 +800,7 @@ type differentPipelineMockClient struct {
 	psmocks.MockPipelineServerClient
 }
 
-func (m *differentPipelineMockClient) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
+func (m *differentPipelineMockClient) GetRun(_ context.Context, runID string) (*models.KFPipelineRun, error) {
 	run := &models.KFPipelineRun{
 		RunID:       runID,
 		DisplayName: "Different Pipeline Run",
@@ -819,7 +819,7 @@ type nilPipelineReferenceMockClient struct {
 	psmocks.MockPipelineServerClient
 }
 
-func (m *nilPipelineReferenceMockClient) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
+func (m *nilPipelineReferenceMockClient) GetRun(_ context.Context, runID string) (*models.KFPipelineRun, error) {
 	run := &models.KFPipelineRun{
 		RunID:                    runID,
 		DisplayName:              "Run Without Pipeline Reference",
@@ -835,7 +835,7 @@ type runningRunMockClient struct {
 	psmocks.MockPipelineServerClient
 }
 
-func (m *runningRunMockClient) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
+func (m *runningRunMockClient) GetRun(_ context.Context, runID string) (*models.KFPipelineRun, error) {
 	ids := psmocks.DeriveMockIDs(m.Namespace)
 	return &models.KFPipelineRun{
 		RunID:       runID,
@@ -868,14 +868,8 @@ func TestTerminatePipelineRunHandler_Success(t *testing.T) {
 		}
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -926,14 +920,8 @@ func TestTerminatePipelineRunHandler_ErrorCases(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: ""},
@@ -957,14 +945,8 @@ func TestTerminatePipelineRunHandler_ErrorCases(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -990,14 +972,8 @@ func TestTerminatePipelineRunHandler_ErrorCases(t *testing.T) {
 		}
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -1024,14 +1000,8 @@ func TestTerminatePipelineRunHandler_ErrorCases(t *testing.T) {
 		}
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -1095,14 +1065,8 @@ func TestTerminatePipelineRunHandler_ErrorCases(t *testing.T) {
 		}
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -1217,14 +1181,8 @@ func TestTerminatePipelineRunHandler_MutationErrors(t *testing.T) {
 			}
 			ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 			ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-			discovered := &repositories.DiscoveredPipeline{
-				PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-				PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-				PipelineName:      "documents-rag-optimization-pipeline",
-				Namespace:         "test-namespace",
-			}
-			ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
 			req = req.WithContext(ctx)
+			req = withDiscoveredPipeline(req)
 
 			params := httprouter.Params{
 				httprouter.Param{Key: "runId", Value: runID},
@@ -1284,14 +1242,8 @@ func TestRetryPipelineRunHandler_MutationErrors(t *testing.T) {
 			}
 			ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 			ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-			discovered := &repositories.DiscoveredPipeline{
-				PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-				PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-				PipelineName:      "documents-rag-optimization-pipeline",
-				Namespace:         "test-namespace",
-			}
-			ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
 			req = req.WithContext(ctx)
+			req = withDiscoveredPipeline(req)
 
 			params := httprouter.Params{
 				httprouter.Param{Key: "runId", Value: runID},
@@ -1325,14 +1277,8 @@ func TestRetryPipelineRunHandler_Success(t *testing.T) {
 		}
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -1383,14 +1329,8 @@ func TestRetryPipelineRunHandler_ErrorCases(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: ""},
@@ -1414,14 +1354,8 @@ func TestRetryPipelineRunHandler_ErrorCases(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -1447,14 +1381,8 @@ func TestRetryPipelineRunHandler_ErrorCases(t *testing.T) {
 		}
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -1481,14 +1409,8 @@ func TestRetryPipelineRunHandler_ErrorCases(t *testing.T) {
 		}
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
@@ -1508,6 +1430,8 @@ func TestRetryPipelineRunHandler_ErrorCases(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Contains(t, response.Error.Message, "cannot be retried")
+		assert.Empty(t, mockClient.LastRetryRunID,
+			"RetryRun should not have been called for a non-retryable run")
 	})
 
 	t.Run("should return 404 when no discovered pipeline in context", func(t *testing.T) {
@@ -1550,14 +1474,8 @@ func TestRetryPipelineRunHandler_ErrorCases(t *testing.T) {
 		}
 		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
 		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
 		req = req.WithContext(ctx)
+		req = withDiscoveredPipeline(req)
 
 		params := httprouter.Params{
 			httprouter.Param{Key: "runId", Value: runID},
