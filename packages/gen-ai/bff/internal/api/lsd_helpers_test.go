@@ -25,10 +25,10 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 		expectedBodyContains string
 	}{
 		{
-			name:                 "LlamaStackError with InvalidRequest code - generic error",
+			name:                 "LlamaStackError with InvalidRequest code - input required",
 			inputError:           llamastack.NewInvalidRequestError("input is required"),
 			expectedStatusCode:   http.StatusBadRequest,
-			expectedBodyContains: "generic_error",
+			expectedBodyContains: "invalid_parameter",
 		},
 		{
 			name:                 "LlamaStackError with InvalidRequest code - parameter error",
@@ -274,21 +274,9 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		body := rr.Body.String()
 
-		// Required field error should map to invalid_parameter (after pattern implementation)
-		// or generic_error (current behavior) - accept both during transition
-		hasInvalidParam := assert.Contains(t, body, `"code": "invalid_parameter"`)
-		hasGenericError := assert.Contains(t, body, `"code": "generic_error"`)
-
-		// At least one should be true
-		assert.True(t, hasInvalidParam || hasGenericError, "Expected either invalid_parameter or generic_error code")
-
-		// Check appropriate message for each case
-		if hasInvalidParam {
-			assert.Contains(t, body, "parameters are invalid")
-		}
-		if hasGenericError {
-			assert.Contains(t, body, "unexpected error occurred")
-		}
+		// "input is required" should be categorized as invalid_parameter
+		assert.Contains(t, body, `"code": "invalid_parameter"`)
+		assert.Contains(t, body, "parameters are invalid")
 	})
 
 	t.Run("should handle LlamaStackError with parameter validation error", func(t *testing.T) {
