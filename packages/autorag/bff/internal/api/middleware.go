@@ -327,7 +327,7 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 		if app.config.MockLSClient {
 			// Mock mode: skip secret lookup entirely
 			logger.Debug("MOCK MODE: creating mock LlamaStack client (secret-based)", "namespace", namespace, "secretName", secretName)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs, "/v1")
+			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs)
 		} else {
 			// Production: read credentials from Kubernetes secret
 			identity, identityOk := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
@@ -389,7 +389,7 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 				"secretName", secretName,
 				"serviceURL", baseURL)
 
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs)
 		}
 
 		// Attach ready-to-use client to context
