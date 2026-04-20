@@ -39,6 +39,96 @@ import { UnavailableMetricValue } from './UnavailableMetricValue';
 import { useMetricColumns } from './useMetricColumns';
 import { filterByMlflowExperiment, getMetricsColumnsLocalStorageKey } from './utils';
 
+const METRIC_COLUMN_FIELD_PREFIX = 'metric:';
+
+const getMetricColumnField = (metricName: string): string =>
+  `${METRIC_COLUMN_FIELD_PREFIX}${metricName}`;
+
+const getMetricNameFromColumnField = (columnField: string): string =>
+  columnField.startsWith(METRIC_COLUMN_FIELD_PREFIX)
+    ? columnField.slice(METRIC_COLUMN_FIELD_PREFIX.length)
+    : columnField;
+
+type MetricColumnsApi = {
+  visibleMetricColumns: SortableData<PipelineRunKF>[];
+  visibleMetricColumnNames: string[];
+  openModal: () => void;
+};
+
+const EMPTY_METRIC_COLUMNS_API: MetricColumnsApi = {
+  visibleMetricColumns: [],
+  visibleMetricColumnNames: [],
+  openModal: () => undefined,
+};
+
+type PipelineRunMetricColumnManagerProps = {
+  metricsNames: Set<string>;
+  experimentId: string | undefined;
+  children: (api: MetricColumnsApi) => React.ReactNode;
+};
+
+/**
+ * Mounts useManageColumns only once MLMD metrics are known so browser storage is not
+ * bootstrapped with empty allColumns / defaultVisibleColumnIds before artifacts load.
+ */
+const PipelineRunMetricColumnManager: React.FC<PipelineRunMetricColumnManagerProps> = ({
+  metricsNames,
+  experimentId,
+  children,
+}) => {
+  const metricColumns: SortableData<PipelineRunKF>[] = React.useMemo(
+    () =>
+      [...metricsNames].map(
+        (metricName): SortableData<PipelineRunKF> => ({
+          label: metricName,
+          field: getMetricColumnField(metricName),
+          sortable: false,
+        }),
+      ),
+    [metricsNames],
+  );
+  const defaultVisibleMetricColumnIds = React.useMemo(() => {
+    const [firstDefaultMetricColumn, secondDefaultMetricColumn] = [...metricsNames];
+    return [
+      ...(firstDefaultMetricColumn ? [getMetricColumnField(firstDefaultMetricColumn)] : []),
+      ...(secondDefaultMetricColumn ? [getMetricColumnField(secondDefaultMetricColumn)] : []),
+    ];
+  }, [metricsNames]);
+  const manageColumnsResult = useManageColumns<PipelineRunKF>({
+    allColumns: metricColumns,
+    storageKey: getMetricsColumnsLocalStorageKey(experimentId),
+    defaultVisibleColumnIds: defaultVisibleMetricColumnIds,
+    maxVisibleColumns: 10,
+  });
+  const visibleMetricColumnNames = React.useMemo(
+    () =>
+      manageColumnsResult.visibleColumns.map((column) =>
+        getMetricNameFromColumnField(column.field),
+      ),
+    [manageColumnsResult.visibleColumns],
+  );
+  const api = React.useMemo(
+    (): MetricColumnsApi => ({
+      visibleMetricColumns: manageColumnsResult.visibleColumns,
+      visibleMetricColumnNames,
+      openModal: manageColumnsResult.openModal,
+    }),
+    [manageColumnsResult.openModal, manageColumnsResult.visibleColumns, visibleMetricColumnNames],
+  );
+
+  return (
+    <>
+      {children(api)}
+      <ManageColumnsModal
+        manageColumnsResult={manageColumnsResult}
+        maxSelections={10}
+        dataTestId="pipeline-runs-manage-columns-modal"
+        description="Select metrics columns to display in the pipeline runs table."
+      />
+    </>
+  );
+};
+
 type PipelineRunTableProps = {
   runs: PipelineRunKF[];
   loading?: boolean;
@@ -83,35 +173,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     [runs, mlflowFilter],
   );
   const effectiveTotalSize = mlflowFilter ? filteredRuns.length : totalSize;
-  const metricColumns: SortableData<PipelineRunKF>[] = React.useMemo(
-    () =>
-      [...metricsNames].map(
-        (metricName): SortableData<PipelineRunKF> => ({
-          label: metricName,
-          field: metricName,
-          sortable: false,
-        }),
-      ),
-    [metricsNames],
-  );
-  const defaultVisibleMetricColumnIds = React.useMemo(() => {
-    const [firstDefaultMetricColumn, secondDefaultMetricColumn] = [...metricsNames];
-    return [
-      ...(firstDefaultMetricColumn ? [firstDefaultMetricColumn] : []),
-      ...(secondDefaultMetricColumn ? [secondDefaultMetricColumn] : []),
-    ];
-  }, [metricsNames]);
-  const manageColumnsResult = useManageColumns<PipelineRunKF>({
-    allColumns: metricColumns,
-    storageKey: getMetricsColumnsLocalStorageKey(experiment?.experiment_id),
-    defaultVisibleColumnIds: defaultVisibleMetricColumnIds,
-    maxVisibleColumns: 10,
-  });
-  const visibleMetricColumns = manageColumnsResult.visibleColumns;
-  const visibleMetricColumnNames = React.useMemo(
-    () => visibleMetricColumns.map((column) => column.field),
-    [visibleMetricColumns],
-  );
+  const isMetricsReadyForManageColumns = runArtifactsLoaded && metricsNames.size > 0;
   const {
     selections: selectedIds,
     tableProps: checkboxTableProps,
@@ -238,161 +300,176 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     />
   );
 
-  const columns = experiment
-    ? getPipelineRunColumns(visibleMetricColumns, isMlflowAvailable).filter(
-        (column) => column.field !== 'run_group',
-      )
-    : getPipelineRunColumns(visibleMetricColumns, isMlflowAvailable);
+  const renderTableAndModals = (metricColumnsApi: MetricColumnsApi) => {
+    const { visibleMetricColumns, visibleMetricColumnNames, openModal } = metricColumnsApi;
+    const columns = experiment
+      ? getPipelineRunColumns(visibleMetricColumns, isMlflowAvailable).filter(
+          (column) => column.field !== 'run_group',
+        )
+      : getPipelineRunColumns(visibleMetricColumns, isMlflowAvailable);
 
-  return (
-    <>
-      <TableBase
-        {...checkboxTableProps}
-        hasStickyColumns
-        loading={loading}
-        page={page}
-        perPage={pageSize}
-        onSetPage={(_, newPage) => {
-          if (newPage < page || !loading) {
-            setPage(newPage);
-          }
-        }}
-        onPerPageSelect={(_, newSize) => setPageSize(newSize)}
-        itemCount={effectiveTotalSize}
-        data={filteredRuns}
-        columns={columns}
-        enablePagination="compact"
-        emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
-        onClearFilters={onClearFilters}
-        toolbarContent={
-          <PipelineRunTableToolbar
-            data-testid={`${runType}-runs-table-toolbar`}
-            {...filterToolbarProps}
-            actions={[
-              primaryToolbarAction,
-              ...(compareRunsAction ? [compareRunsAction] : []),
-              toolbarDropdownAction,
-              [
-                <Tooltip
-                  key="custom-metrics-columns"
-                  content={
-                    !runArtifactsLoaded
-                      ? 'Customize metrics columns: Loading metrics...'
-                      : !metricsNames.size
-                      ? 'Customize metrics columns: No metrics available'
-                      : 'Customize metrics columns'
-                  }
-                >
-                  <Button
-                    variant="plain"
-                    aria-label="Customize metrics column button"
-                    data-testid="customize-metrics-columns-button"
-                    isAriaDisabled={!runArtifactsLoaded || !metricsNames.size}
-                    onClick={manageColumnsResult.openModal}
-                    icon={<ColumnsIcon />}
-                  />
-                </Tooltip>,
-              ],
-            ]}
-          />
-        }
-        rowRenderer={(run) => (
-          <PipelineRunTableRow
-            key={run.run_id}
-            checkboxProps={{
-              isChecked: isSelected(run.run_id),
-              onToggle: () => toggleSelection(run.run_id),
-              isStickyColumn: true,
-              stickyMinWidth: '45px',
-            }}
-            onDelete={() => {
-              setSelectedIds([run.run_id]);
-              setIsDeleteModalOpen(true);
-            }}
-            run={run}
-            mlflow={{
-              isAvailable: isMlflowAvailable,
-              experiments: mlflowExperiments,
-              loaded: mlflowExperimentsLoaded,
-            }}
-            customCells={visibleMetricColumnNames.map((metricName: string) => (
-              <Td key={metricName} dataLabel={metricName}>
-                {!runArtifactsLoaded && !runArtifactsError && !contextsError ? (
-                  <Skeleton />
-                ) : (
-                  run.metrics.find((metric) => metric.name === metricName)?.value ?? (
-                    <UnavailableMetricValue />
-                  )
-                )}
-              </Td>
-            ))}
-            runType={runType}
-          />
-        )}
-        variant={TableVariant.compact}
-        getColumnSort={getTableColumnSort({
-          columns,
-          ...tableProps,
-        })}
-        data-testid={`${runType}-runs-table`}
-        id={`${runType}-runs-table`}
-      />
-      {isArchiveModalOpen && (
-        <ArchiveRunModal
-          runs={selectedRuns}
-          onCancel={() => {
-            setIsArchiveModalOpen(false);
-            setSelectedIds([]);
+    return (
+      <>
+        <TableBase
+          {...checkboxTableProps}
+          hasStickyColumns
+          loading={loading}
+          page={page}
+          perPage={pageSize}
+          onSetPage={(_, newPage) => {
+            if (newPage < page || !loading) {
+              setPage(newPage);
+            }
           }}
+          onPerPageSelect={(_, newSize) => setPageSize(newSize)}
+          itemCount={effectiveTotalSize}
+          data={filteredRuns}
+          columns={columns}
+          enablePagination="compact"
+          emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
+          onClearFilters={onClearFilters}
+          toolbarContent={
+            <PipelineRunTableToolbar
+              data-testid={`${runType}-runs-table-toolbar`}
+              {...filterToolbarProps}
+              actions={[
+                primaryToolbarAction,
+                ...(compareRunsAction ? [compareRunsAction] : []),
+                toolbarDropdownAction,
+                [
+                  <Tooltip
+                    key="custom-metrics-columns"
+                    content={
+                      runArtifactsError || contextsError
+                        ? 'Customize metrics columns: Error loading metrics'
+                        : !runArtifactsLoaded
+                        ? 'Customize metrics columns: Loading metrics...'
+                        : !metricsNames.size
+                        ? 'Customize metrics columns: No metrics available'
+                        : 'Customize metrics columns'
+                    }
+                  >
+                    <Button
+                      variant="plain"
+                      aria-label="Customize metrics column button"
+                      data-testid="customize-metrics-columns-button"
+                      isAriaDisabled={
+                        !!runArtifactsError ||
+                        !!contextsError ||
+                        !runArtifactsLoaded ||
+                        !metricsNames.size
+                      }
+                      onClick={openModal}
+                      icon={<ColumnsIcon />}
+                    />
+                  </Tooltip>,
+                ],
+              ]}
+            />
+          }
+          rowRenderer={(run) => (
+            <PipelineRunTableRow
+              key={run.run_id}
+              checkboxProps={{
+                isChecked: isSelected(run.run_id),
+                onToggle: () => toggleSelection(run.run_id),
+                isStickyColumn: true,
+                stickyMinWidth: '45px',
+              }}
+              onDelete={() => {
+                setSelectedIds([run.run_id]);
+                setIsDeleteModalOpen(true);
+              }}
+              run={run}
+              mlflow={{
+                isAvailable: isMlflowAvailable,
+                experiments: mlflowExperiments,
+                loaded: mlflowExperimentsLoaded,
+              }}
+              customCells={visibleMetricColumnNames.map((metricName: string) => (
+                <Td key={metricName} dataLabel={metricName}>
+                  {!runArtifactsLoaded && !runArtifactsError && !contextsError ? (
+                    <Skeleton />
+                  ) : (
+                    run.metrics.find((metric) => metric.name === metricName)?.value ?? (
+                      <UnavailableMetricValue />
+                    )
+                  )}
+                </Td>
+              ))}
+              runType={runType}
+            />
+          )}
+          variant={TableVariant.compact}
+          getColumnSort={getTableColumnSort({
+            columns,
+            ...tableProps,
+          })}
+          data-testid={`${runType}-runs-table`}
+          id={`${runType}-runs-table`}
         />
-      )}
-      {isRestoreModalOpen &&
-        (!archivedExperiments.length ? (
-          <RestoreRunModal
+        {isArchiveModalOpen && (
+          <ArchiveRunModal
             runs={selectedRuns}
             onCancel={() => {
-              setIsRestoreModalOpen(false);
+              setIsArchiveModalOpen(false);
               setSelectedIds([]);
             }}
           />
-        ) : (
-          <RestoreRunWithArchivedExperimentModal
-            selectedRuns={selectedRuns}
-            archivedExperiments={archivedExperiments}
-            onClose={(restored: boolean) => {
-              if (restored) {
+        )}
+        {isRestoreModalOpen &&
+          (!archivedExperiments.length ? (
+            <RestoreRunModal
+              runs={selectedRuns}
+              onCancel={() => {
+                setIsRestoreModalOpen(false);
+                setSelectedIds([]);
+              }}
+            />
+          ) : (
+            <RestoreRunWithArchivedExperimentModal
+              selectedRuns={selectedRuns}
+              archivedExperiments={archivedExperiments}
+              onClose={(restored: boolean) => {
+                if (restored) {
+                  refreshAllAPI();
+                }
+                setIsRestoreModalOpen(false);
+                setSelectedIds([]);
+              }}
+            />
+          ))}
+        {isDeleteModalOpen && (
+          <DeletePipelineRunsModal
+            toDeleteResources={selectedRuns}
+            type={PipelineRunType.ARCHIVED}
+            onClose={(deleted) => {
+              fireFormTrackingEvent('Archived Pipeline Run Deleted', {
+                outcome: TrackingOutcome.submit,
+                success: true,
+              });
+
+              if (deleted) {
                 refreshAllAPI();
               }
-              setIsRestoreModalOpen(false);
               setSelectedIds([]);
+              setIsDeleteModalOpen(false);
             }}
           />
-        ))}
-      {isDeleteModalOpen && (
-        <DeletePipelineRunsModal
-          toDeleteResources={selectedRuns}
-          type={PipelineRunType.ARCHIVED}
-          onClose={(deleted) => {
-            fireFormTrackingEvent('Archived Pipeline Run Deleted', {
-              outcome: TrackingOutcome.submit,
-              success: true,
-            });
+        )}
+      </>
+    );
+  };
 
-            if (deleted) {
-              refreshAllAPI();
-            }
-            setSelectedIds([]);
-            setIsDeleteModalOpen(false);
-          }}
-        />
-      )}
-      <ManageColumnsModal
-        manageColumnsResult={manageColumnsResult}
-        maxSelections={10}
-        dataTestId="pipeline-runs-manage-columns-modal"
-        description="Select metrics columns to display in the pipeline runs table."
-      />
-    </>
+  return isMetricsReadyForManageColumns ? (
+    <PipelineRunMetricColumnManager
+      metricsNames={metricsNames}
+      experimentId={experiment?.experiment_id}
+    >
+      {renderTableAndModals}
+    </PipelineRunMetricColumnManager>
+  ) : (
+    <>{renderTableAndModals(EMPTY_METRIC_COLUMNS_API)}</>
   );
 };
 

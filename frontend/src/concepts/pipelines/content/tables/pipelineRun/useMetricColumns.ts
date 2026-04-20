@@ -1,3 +1,4 @@
+import React from 'react';
 import { useGetArtifactsByRuns } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsByRuns';
 import { ArtifactType, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { getArtifactProperties } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
@@ -20,27 +21,32 @@ export const useMetricColumns = (
     runs,
     contexts,
   );
-  const metricsNames = new Set<string>();
+  const { runs: runsWithMetrics, metricsNames } = React.useMemo(() => {
+    const names = new Set<string>();
+    const runsData: RunWithMetrics[] = runs.map((run) => ({
+      ...run,
+      metrics: runArtifacts.reduce((acc: ArtifactProperty[], runArtifactsMap) => {
+        const artifacts = Object.entries(runArtifactsMap).find(
+          ([runId]) => run.run_id === runId,
+        )?.[1];
 
-  const runsWithMetrics: RunWithMetrics[] = runs.map((run) => ({
-    ...run,
-    metrics: runArtifacts.reduce((acc: ArtifactProperty[], runArtifactsMap) => {
-      const artifacts = Object.entries(runArtifactsMap).find(
-        ([runId]) => run.run_id === runId,
-      )?.[1];
+        artifacts?.forEach((artifact) => {
+          if (artifact.getType() === ArtifactType.METRICS) {
+            const artifactProperties = getArtifactProperties(artifact);
 
-      artifacts?.forEach((artifact) => {
-        if (artifact.getType() === ArtifactType.METRICS) {
-          const artifactProperties = getArtifactProperties(artifact);
+            artifactProperties.forEach((artifactProp) => {
+              names.add(artifactProp.name);
+            });
+            acc.push(...artifactProperties);
+          }
+        });
 
-          artifactProperties.forEach((artifactProp) => metricsNames.add(artifactProp.name));
-          acc.push(...artifactProperties);
-        }
-      });
+        return acc;
+      }, []),
+    }));
 
-      return acc;
-    }, []),
-  }));
+    return { runs: runsData, metricsNames: names };
+  }, [runs, runArtifacts]);
 
   return {
     runs: runsWithMetrics,

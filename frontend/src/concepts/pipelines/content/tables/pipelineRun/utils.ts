@@ -3,7 +3,8 @@ import { getArtifactModelData } from '#~/concepts/pipelines/content/pipelinesDet
 import { PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { isPipelineRun } from '#~/concepts/pipelines/content/utils';
 
-export const ALL_RUNS_METRICS_COLUMNS_STORAGE_KEY = 'all-runs-metrics-columns';
+/** v2: column ids are prefixed (see PipelineRunTable metric column fields) so keys must not reuse v1 values. */
+export const ALL_RUNS_METRICS_COLUMNS_STORAGE_KEY = 'all-runs-metrics-columns-v2';
 
 export const getMlflowExperimentNameFromRun = (
   run: PipelineRunKF | PipelineRecurringRunKF,
@@ -30,7 +31,7 @@ export const filterByMlflowExperiment = <T extends PipelineRunKF | PipelineRecur
 };
 
 export const getMetricsColumnsLocalStorageKey = (experimentId?: string): string =>
-  experimentId ? `metrics-columns-${experimentId}` : ALL_RUNS_METRICS_COLUMNS_STORAGE_KEY;
+  experimentId ? `metrics-columns-v2-${experimentId}` : ALL_RUNS_METRICS_COLUMNS_STORAGE_KEY;
 
 export const isPipelineRunRegistered = (artifact: Artifact[]): boolean => {
   const artifactModelData = artifact.map((a) => getArtifactModelData(a));
