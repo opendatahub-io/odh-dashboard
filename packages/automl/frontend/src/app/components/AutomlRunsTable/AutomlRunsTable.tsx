@@ -14,6 +14,7 @@ type AutomlRunsTableProps = {
   namespace: string;
   onPageChange: (page: number) => void;
   onPerPageChange: (pageSize: number) => void;
+  onRunActionComplete?: () => void;
   toolbarContent?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;
 };
 
@@ -25,6 +26,7 @@ const AutomlRunsTable: React.FC<AutomlRunsTableProps> = ({
   namespace,
   onPageChange,
   onPerPageChange,
+  onRunActionComplete,
   toolbarContent,
 }) => (
   <TableBase
@@ -35,7 +37,14 @@ const AutomlRunsTable: React.FC<AutomlRunsTableProps> = ({
     columns={automlRunsColumns}
     emptyTableView={<DashboardEmptyTableView onClearFilters={() => undefined} />}
     toolbarContent={toolbarContent}
-    rowRenderer={(run) => <AutomlRunsTableRow key={run.run_id} run={run} namespace={namespace} />}
+    rowRenderer={(run) => (
+      <AutomlRunsTableRow
+        key={run.run_id}
+        run={run}
+        namespace={namespace}
+        onActionComplete={onRunActionComplete}
+      />
+    )}
     itemCount={totalSize}
     page={page}
     perPage={pageSize}

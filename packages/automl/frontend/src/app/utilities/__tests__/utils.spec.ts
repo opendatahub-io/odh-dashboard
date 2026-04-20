@@ -1,11 +1,63 @@
 /* eslint-disable camelcase */
 import {
+  isRunActive,
+  isRunRetryable,
   formatMetricName,
   formatMetricValue,
   toNumericMetric,
   getOptimizedMetricForTask,
   computeRankMap,
 } from '~/app/utilities/utils';
+
+describe('isRunActive', () => {
+  it('should return true for active states', () => {
+    expect(isRunActive('RUNNING')).toBe(true);
+    expect(isRunActive('PENDING')).toBe(true);
+    expect(isRunActive('CANCELING')).toBe(true);
+    expect(isRunActive('PAUSED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunActive('running')).toBe(true);
+    expect(isRunActive('Running')).toBe(true);
+    expect(isRunActive('pending')).toBe(true);
+  });
+
+  it('should return false for terminal states', () => {
+    expect(isRunActive('SUCCEEDED')).toBe(false);
+    expect(isRunActive('FAILED')).toBe(false);
+    expect(isRunActive('CANCELED')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunActive(undefined)).toBe(false);
+    expect(isRunActive('')).toBe(false);
+  });
+});
+
+describe('isRunRetryable', () => {
+  it('should return true for retryable states', () => {
+    expect(isRunRetryable('FAILED')).toBe(true);
+    expect(isRunRetryable('CANCELED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunRetryable('failed')).toBe(true);
+    expect(isRunRetryable('Failed')).toBe(true);
+    expect(isRunRetryable('canceled')).toBe(true);
+  });
+
+  it('should return false for non-retryable states', () => {
+    expect(isRunRetryable('RUNNING')).toBe(false);
+    expect(isRunRetryable('SUCCEEDED')).toBe(false);
+    expect(isRunRetryable('PENDING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunRetryable(undefined)).toBe(false);
+    expect(isRunRetryable('')).toBe(false);
+  });
+});
 
 describe('formatMetricName', () => {
   it('should return special-cased acronyms as-is', () => {
