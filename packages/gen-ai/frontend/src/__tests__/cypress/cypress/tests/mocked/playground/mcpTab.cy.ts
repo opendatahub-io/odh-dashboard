@@ -566,6 +566,8 @@ describe('Playground - MCP Servers', () => {
             mcpToolsModal.find().should('not.exist');
 
             cy.step('Re-open to verify all tools remain selected');
+            // Wait for MCP table to be visible after potential tab remount
+            playgroundPage.mcpTab.verifyMCPTabVisible();
             const reopenedServerRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
             reopenedServerRow
               .findToolsButton()
