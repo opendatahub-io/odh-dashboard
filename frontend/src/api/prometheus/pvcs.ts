@@ -4,17 +4,25 @@ import { PrometheusQueryResponse } from '#~/types';
 import { POLL_INTERVAL } from '#~/utilities/const';
 import usePrometheusQuery from './usePrometheusQuery';
 
+/** Both fields may be NaN at runtime when Prometheus data is unavailable */
 export type PVCUsageInfo = {
-  usedInBytes: number | typeof NaN;
-  capacityInBytes: number | typeof NaN;
+  usedInBytes: number;
+  capacityInBytes: number;
 };
 
 type PVCMetricResult = PrometheusQueryResponse<{ metric: { __name__: string } }>;
 
 const PROM_FETCH_OPTIONS = { refreshRate: POLL_INTERVAL };
 
-const findMetricValue = (result: PVCMetricResult | null, metricName: string): string | undefined =>
-  result?.data.result.find((r) => r.metric.__name__ === metricName)?.value[1];
+const findMetricValue = (result: PVCMetricResult | null, metricName: string): number => {
+  const samples = result?.data.result ?? [];
+  const rawValue = samples.find((r) => r.metric.__name__ === metricName)?.value[1];
+  if (rawValue === undefined) {
+    return NaN;
+  }
+  const value = Number(rawValue);
+  return Number.isFinite(value) ? value : NaN;
+};
 
 export const usePVCFreeAmount = (
   pvc: PersistentVolumeClaimKind,
@@ -35,11 +43,8 @@ export const usePVCFreeAmount = (
 
   const info: PVCUsageInfo = React.useMemo(
     () => ({
-      usedInBytes: parseInt(findMetricValue(result, 'kubelet_volume_stats_used_bytes') || '', 10),
-      capacityInBytes: parseInt(
-        findMetricValue(result, 'kubelet_volume_stats_capacity_bytes') || '',
-        10,
-      ),
+      usedInBytes: findMetricValue(result, 'kubelet_volume_stats_used_bytes'),
+      capacityInBytes: findMetricValue(result, 'kubelet_volume_stats_capacity_bytes'),
     }),
     [result],
   );

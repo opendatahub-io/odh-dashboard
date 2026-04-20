@@ -33,6 +33,35 @@ const mockPvcMetricsResponse = (usedBytes: string, capacityBytes: string) => ({
   },
 });
 
+const mockPartialPvcMetricsResponse = (usedBytes: string) => ({
+  data: {
+    response: {
+      data: {
+        result: [
+          {
+            metric: { __name__: 'kubelet_volume_stats_used_bytes' },
+            value: [1704910625, usedBytes],
+          },
+        ],
+        resultType: 'vector',
+      },
+      status: 'success',
+    },
+  },
+});
+
+const mockEmptyPvcMetricsResponse = () => ({
+  data: {
+    response: {
+      data: {
+        result: [],
+        resultType: 'vector',
+      },
+      status: 'success',
+    },
+  },
+});
+
 describe('usePVCFreeAmount', () => {
   const pvcMock = mockPVCK8sResource({});
 
@@ -69,6 +98,39 @@ describe('usePVCFreeAmount', () => {
     expect(info).toEqual({ usedInBytes: NaN, capacityInBytes: NaN });
     expect(loaded).toBe(false);
     expect(err).toBeInstanceOf(Error);
+  });
+
+  it('should parse scientific notation byte values correctly', async () => {
+    // Prometheus can return large byte values in scientific notation, e.g. "1.0338218e9".
+    // Number() handles this correctly; parseInt() would have truncated to 1.
+    mockAxios.mockResolvedValue(mockPvcMetricsResponse('1.0338218e9', '5.36870912e9'));
+
+    const renderResult = await testHook(usePVCFreeAmount)(pvcMock);
+    await renderResult.waitForNextUpdate();
+
+    const [{ usedInBytes, capacityInBytes }] = renderResult.result.current;
+    expect(usedInBytes).toBeCloseTo(1033821800, 0);
+    expect(capacityInBytes).toBeCloseTo(5368709120, 0);
+  });
+
+  it('should return NaN for capacityInBytes when the capacity metric is missing', async () => {
+    mockAxios.mockResolvedValue(mockPartialPvcMetricsResponse('1024'));
+
+    const renderResult = await testHook(usePVCFreeAmount)(pvcMock);
+    await renderResult.waitForNextUpdate();
+
+    const [info] = renderResult.result.current;
+    expect(info).toEqual({ usedInBytes: 1024, capacityInBytes: NaN });
+  });
+
+  it('should return NaN for both fields when the result array is empty', async () => {
+    mockAxios.mockResolvedValue(mockEmptyPvcMetricsResponse());
+
+    const renderResult = await testHook(usePVCFreeAmount)(pvcMock);
+    await renderResult.waitForNextUpdate();
+
+    const [info] = renderResult.result.current;
+    expect(info).toEqual({ usedInBytes: NaN, capacityInBytes: NaN });
   });
 
   it('should refetch on interval via refreshRate', async () => {

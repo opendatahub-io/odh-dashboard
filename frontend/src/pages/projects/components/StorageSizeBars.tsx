@@ -46,7 +46,7 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
       ? getPvcPercentageUsed(pvc, inUseInBytes, capacityInBytes)
       : NaN;
 
-  if (!error && Number.isNaN(percentage)) {
+  if (loaded && !error && Number.isNaN(percentage)) {
     return (
       <div>
         <Tooltip content="No active storage information at this time, check back later">

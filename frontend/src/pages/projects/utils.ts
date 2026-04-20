@@ -24,7 +24,7 @@ export const getPvcRequestSize = (pvc: PersistentVolumeClaimKind): string =>
  */
 export const getEffectiveCapacityGiB = (
   pvc: PersistentVolumeClaimKind,
-  prometheusCapacityBytes: number | typeof NaN,
+  prometheusCapacityBytes: number,
 ): number => {
   const rawTotalSize = pvc.status?.capacity?.storage || pvc.spec.resources.requests.storage;
   if (!rawTotalSize) {
@@ -45,7 +45,7 @@ export const getEffectiveCapacityGiB = (
 export const getPvcPercentageUsed = (
   pvc: PersistentVolumeClaimKind,
   inUseInBytes: number,
-  prometheusCapacityBytes?: number | typeof NaN,
+  prometheusCapacityBytes?: number,
 ): number => {
   if (Number.isNaN(inUseInBytes)) {
     return NaN;
