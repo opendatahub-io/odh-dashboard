@@ -7,12 +7,44 @@ import AuthPoliciesTable from './allAuthPolicies/AuthPoliciesTable';
 import EmptyAuthPoliciesPage from './EmptyAuthPoliciesPage';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import AuthPoliciesToolbar from './allAuthPolicies/AuthPoliciesToolbar';
+import {
+  AuthPoliciesFilterDataType,
+  AuthPoliciesFilterOptions,
+  initialAuthPoliciesFilterData,
+} from './allAuthPolicies/const';
 
 const AllAuthPoliciesPage: React.FC = () => {
   const [authPolicies, loaded, error, refresh] = useListAuthPolicies();
   const [deleteAuthPolicy, setDeleteAuthPolicy] = React.useState<MaaSAuthPolicy | undefined>(
     undefined,
   );
+  const [filterData, setFilterData] = React.useState<AuthPoliciesFilterDataType>(
+    initialAuthPoliciesFilterData,
+  );
+
+  const onFilterUpdate = React.useCallback(
+    (key: string, value?: string | { label: string; value: string }) =>
+      setFilterData((prev) => ({ ...prev, [key]: value })),
+    [],
+  );
+
+  const onClearFilters = React.useCallback(() => setFilterData(initialAuthPoliciesFilterData), []);
+
+  const filteredAuthPolicies = React.useMemo(() => {
+    const keyword = filterData[AuthPoliciesFilterOptions.keyword]?.toLowerCase();
+
+    return authPolicies.filter((policy) => {
+      if (keyword) {
+        const displayedName = (policy.displayName ?? policy.name).toLowerCase();
+        return (
+          displayedName.includes(keyword) ||
+          (policy.description ?? '').toLowerCase().includes(keyword)
+        );
+      }
+      return true;
+    });
+  }, [authPolicies, filterData]);
+
   return (
     <ApplicationsPage
       title="Authorization policies"
@@ -25,9 +57,12 @@ const AllAuthPoliciesPage: React.FC = () => {
       {loaded && (
         <PageSection isFilled>
           <AuthPoliciesTable
-            authPolicies={authPolicies}
+            authPolicies={filteredAuthPolicies}
             setDeleteAuthPolicy={setDeleteAuthPolicy}
-            toolbarContent={<AuthPoliciesToolbar />}
+            onClearFilters={onClearFilters}
+            toolbarContent={
+              <AuthPoliciesToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
+            }
           />
         </PageSection>
       )}

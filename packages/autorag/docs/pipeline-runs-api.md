@@ -17,12 +17,16 @@ The Pipeline Runs API allows querying and creating Kubeflow Pipeline runs with a
 GET  /api/v1/pipeline-runs
 GET  /api/v1/pipeline-runs/{runId}
 POST /api/v1/pipeline-runs
+POST /api/v1/pipeline-runs/{runId}/terminate
+POST /api/v1/pipeline-runs/{runId}/retry
 ```
 
-The API provides three endpoints:
+The API provides five endpoints:
 - **List Runs**: Query multiple pipeline runs with optional filtering and pagination
 - **Get Run**: Retrieve a single pipeline run by its ID with full task details
 - **Create Run**: Submit a new AutoRAG pipeline run with optimization parameters
+- **Terminate Run**: Stop an active pipeline run that is currently in progress
+- **Retry Run**: Re-initiate a failed or canceled pipeline run from the point of failure
 
 ## Authentication
 
@@ -168,6 +172,7 @@ The endpoint returns a JSON response with the following structure:
 | `error` | object | Optional error information if the run failed (contains `code` and `message` fields) |
 | `state_history` | array | History of state changes (see below) |
 | `run_details` | object | Detailed task execution information (see below) |
+| `pipeline_type` | string | Type of pipeline that produced this run (e.g., `autorag`) |
 
 #### PipelineVersionReference Object
 
@@ -341,8 +346,10 @@ Returned when the specified run ID does not exist:
 
 ```json
 {
-  "code": "NOT_FOUND",
-  "message": "the requested resource could not be found"
+  "error": {
+    "code": "404",
+    "message": "the requested resource could not be found"
+  }
 }
 ```
 
@@ -379,6 +386,7 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 | `generation_models` | string[] | No | List of generation model identifiers |
 | `optimization_metric` | string | No | Metric to optimize: `faithfulness` (default), `answer_correctness`, or `context_correctness` |
 | `llama_stack_vector_io_provider_id` | string | No | Vector I/O provider identifier as registered in llama-stack (e.g. llama-stack Milvus) |
+| `optimization_max_rag_patterns` | integer | No | Maximum number of RAG patterns to evaluate during optimization (min: 4, max: 20) |
 
 **Notes:**
 - Unknown JSON fields are rejected (strict decoding)
@@ -474,13 +482,153 @@ Returns `200 OK` with the created pipeline run:
 }
 ```
 
+## Terminate Pipeline Run
+
+### Endpoint
+
+```http
+POST /api/v1/pipeline-runs/{runId}/terminate
+```
+
+Sends an asynchronous request to cancel an active pipeline run. The run must be in an active state (PENDING, RUNNING, PAUSED, or CANCELING) and belong to the discovered AutoRAG pipeline in the namespace. The API requests a transition to CANCELING and attempts to cancel running tasks, which may result in a CANCELED final state if successful. However, the final state is not guaranteed — races or failures during cancellation may cause the run to end in a different terminal state.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+| `runId` | path parameter | Yes | Unique identifier of the pipeline run to terminate |
+
+### Security & Filtering
+
+This endpoint enforces ownership and state validation:
+
+- Fetches the run and validates it belongs to the discovered AutoRAG pipeline before terminating
+- Validates the run is in an active state (PENDING, RUNNING, PAUSED, or CANCELING) before proceeding
+- Returns `400 Bad Request` if the run is not in a terminatable state
+- Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
+- Prevents users from terminating runs from other pipelines in the same namespace
+
+### Request Example
+
+```bash
+curl -X POST "http://localhost:4000/api/v1/pipeline-runs/abc123-def456-ghi789/terminate?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+### Response Format
+
+Returns `200 OK` with an empty body on success.
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing `runId` parameter, or run is not in an active state (PENDING, RUNNING, PAUSED, or CANCELING) |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `404 Not Found` | Run not found, or run belongs to a different pipeline |
+| `500 Internal Server Error` | Pipeline Server error or internal error |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
+
+### Frontend Integration Example
+
+```javascript
+// Terminate a running pipeline run
+async function terminatePipelineRun(namespace, runId, token) {
+  const params = new URLSearchParams({ namespace });
+
+  const response = await fetch(`/api/v1/pipeline-runs/${runId}/terminate?${params}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'Failed to terminate run');
+  }
+}
+```
+
+## Retry Pipeline Run
+
+### Endpoint
+
+```http
+POST /api/v1/pipeline-runs/{runId}/retry
+```
+
+Re-initiates a failed or canceled pipeline run from the point of failure. The run must belong to the discovered AutoRAG pipeline in the namespace and must be in a retryable state (FAILED or CANCELED).
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+| `runId` | path parameter | Yes | Unique identifier of the pipeline run to retry |
+
+### Security & Filtering
+
+This endpoint enforces the same ownership validation as the Terminate Run endpoint:
+
+- Fetches the run and validates it belongs to the discovered AutoRAG pipeline before retrying
+- Validates the run is in FAILED or CANCELED state before retrying
+- Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
+- Returns `400 Bad Request` if the run is not in a retryable state
+- Prevents users from retrying runs from other pipelines in the same namespace
+
+### Request Example
+
+```bash
+curl -X POST "http://localhost:4000/api/v1/pipeline-runs/abc123-def456-ghi789/retry?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+### Response Format
+
+Returns `200 OK` with an empty body on success.
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing `runId` parameter, or run is not in FAILED or CANCELED state |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `404 Not Found` | Run not found, or run belongs to a different pipeline |
+| `500 Internal Server Error` | Pipeline Server error or internal error |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
+
+### Frontend Integration Example
+
+```javascript
+// Retry a failed or canceled pipeline run
+async function retryPipelineRun(namespace, runId, token) {
+  const params = new URLSearchParams({ namespace });
+
+  const response = await fetch(`/api/v1/pipeline-runs/${runId}/retry?${params}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'Failed to retry run');
+  }
+}
+```
+
 ## Pipeline Discovery
 
-The API always filters runs to the auto-discovered AutoRAG managed pipeline:
+The API always filters runs to the auto-discovered AutoRAG-managed pipeline:
 
-1. Discovers the AutoRAG managed pipeline in the namespace (cached for 5 minutes)
+1. Discovers the AutoRAG-managed pipeline in the namespace (cached for 5 minutes)
 2. Filters runs to show only those from the discovered AutoRAG pipeline version
-3. Returns a 500 error if no AutoRAG pipeline is found
+3. The List endpoint returns 200 with an empty runs list if no AutoRAG pipeline is found; other endpoints (Create, Get, Terminate, Retry) return a 500 error
 
 This ensures users see only AutoRAG-related runs and prevents accidentally displaying unrelated pipeline runs from the namespace.
 
@@ -501,8 +649,10 @@ Returned when:
 
 ```json
 {
-  "code": "BAD_REQUEST",
-  "message": "missing required query parameter: namespace"
+  "error": {
+    "code": "400",
+    "message": "missing required query parameter: namespace"
+  }
 }
 ```
 
@@ -512,12 +662,14 @@ Returned when authentication fails or is missing.
 
 ### 403 Forbidden
 
-Returned when the authenticated user does not have permission to access pipeline servers in the specified namespace.
+Returned when the authenticated user does not have permission to access services in the specified namespace.
 
 ```json
 {
-  "code": "FORBIDDEN",
-  "message": "user does not have permission to access pipeline servers in this namespace"
+  "error": {
+    "code": "403",
+    "message": "user does not have permission to access services in this namespace"
+  }
 }
 ```
 
@@ -540,12 +692,12 @@ Returned when:
 ### 500 Internal Server Error
 
 Returned when:
-- No AutoRAG pipeline found in namespace
+- No AutoRAG pipeline found in namespace (for Create, Get, Terminate, and Retry endpoints — the List endpoint returns 200 with an empty runs list instead)
 - Internal processing error occurs
 - Unable to communicate with Kubernetes API
 - Unable to communicate with Pipeline Server API
 
-**Example response (no AutoRAG pipeline):**
+**Example response (no AutoRAG pipeline — Create/Get/Terminate/Retry only):**
 ```json
 {
   "error": {
@@ -649,6 +801,8 @@ The AutoRAG frontend can use these endpoints to:
 5. Access run state history and metadata
 6. View detailed task execution information for each run
 7. Track individual task progress and status
+8. Terminate runs that are currently in progress
+9. Retry failed or canceled runs
 
 ### Example Frontend Integration
 

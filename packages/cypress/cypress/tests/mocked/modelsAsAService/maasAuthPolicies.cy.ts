@@ -113,6 +113,20 @@ describe('MaaS Auth Policies', () => {
     pendingRow.findPhase().should('contain.text', 'Pending');
   });
 
+  it('should filter policies by keyword', () => {
+    authPoliciesPage.findRows().should('have.length', 5);
+
+    authPoliciesPage.findKeywordFilterInput().type('premium');
+    authPoliciesPage.findRows().should('have.length', 1);
+    authPoliciesPage
+      .getRow('premium-team-policy')
+      .findName()
+      .should('contain.text', 'premium-team-policy');
+
+    authPoliciesPage.clearAllFilters();
+    authPoliciesPage.findRows().should('have.length', 5);
+  });
+
   it('should delete an auth policy', () => {
     cy.interceptOdh(
       'DELETE /maas/api/v1/delete-policy/:name',

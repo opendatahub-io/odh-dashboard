@@ -1141,6 +1141,14 @@ class AuthPoliciesPage {
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('empty-state-title');
   }
+
+  findKeywordFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('auth-policies-filter-name-input');
+  }
+
+  clearAllFilters(): void {
+    cy.findByRole('button', { name: 'Clear all filters' }).click();
+  }
 }
 
 class AuthPolicyTableRow extends TableRow {
