@@ -142,10 +142,10 @@ func TestListModels(t *testing.T) {
 		assert.Nil(t, result[0].CustomMetadata)
 	})
 
-	t.Run("should not send auth token over HTTP", func(t *testing.T) {
+	t.Run("should send auth token over HTTP to localhost", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// httptest.NewServer uses http://, so token should NOT be sent
-			assert.Empty(t, r.Header.Get("Authorization"), "auth token should not be sent over HTTP")
+			// httptest.NewServer uses http://127.0.0.1, token should be sent for localhost
+			assert.Equal(t, "Bearer secret-token", r.Header.Get("Authorization"), "auth token should be sent over HTTP to localhost")
 			writeJSON(t, w, map[string]any{"data": []any{}})
 		}))
 		defer server.Close()
