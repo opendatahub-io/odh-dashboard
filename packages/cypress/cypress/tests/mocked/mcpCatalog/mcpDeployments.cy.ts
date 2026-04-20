@@ -502,6 +502,7 @@ describe('MCP Deploy from Catalog', () => {
     mcpDeployModal.findSubmitButton().should('be.disabled');
 
     mcpDeployModal.findNameInput().type('My Server');
+    mcpDeployModal.selectProject('test-project');
     mcpDeployModal.findSubmitButton().should('not.be.disabled');
     mcpDeployModal.findSubmitButton().click();
 
@@ -524,6 +525,7 @@ describe('MCP Deploy from Catalog', () => {
     mcpDeployModal.shouldBeOpen();
 
     mcpDeployModal.findNameInput().type('----');
+    mcpDeployModal.selectProject('test-project');
     mcpDeployModal.findResourceNameHelperText().should('contain.text', 'The resource name will be');
     mcpDeployModal.findSubmitButton().should('not.be.disabled');
     mcpDeployModal.findSubmitButton().click();

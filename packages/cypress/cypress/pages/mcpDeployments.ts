@@ -182,6 +182,15 @@ class McpDeployModal {
     return this.findModal().findByTestId('mcp-deploy-name-helper');
   }
 
+  findProjectSelectorToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModal().findByTestId('project-selector-toggle');
+  }
+
+  selectProject(name: string): void {
+    this.findProjectSelectorToggle().click();
+    cy.findByRole('menuitem', { name }).click();
+  }
+
   findSubmitError(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findModal().findByTestId('error-message-alert');
   }
