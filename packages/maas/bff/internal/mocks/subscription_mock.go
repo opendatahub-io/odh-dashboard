@@ -85,7 +85,7 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 					{Name: "system:authenticated"},
 				},
 			},
-			IsDeleting: true,
+			DeletionTimestamp: timePtr(time.Date(2025, 4, 1, 12, 0, 0, 0, time.UTC)),
 			ModelRefs: []models.ModelSubscriptionRef{
 				{
 					Name:      "flan-t5-small",
@@ -143,11 +143,11 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			},
 		},
 		{
-			Name:          "negative-priority-sub-policy",
-			Namespace:     "maas-system",
-			Phase:         "Active",
-			IsDeleting:    true,
-			StatusMessage: "successfully reconciled",
+			Name:              "negative-priority-sub-policy",
+			Namespace:         "maas-system",
+			Phase:             "Active",
+			DeletionTimestamp: timePtr(time.Date(2025, 4, 1, 12, 0, 0, 0, time.UTC)),
+			StatusMessage:     "successfully reconciled",
 			ModelRefs: []models.ModelRef{
 				{Name: "flan-t5-small", Namespace: "maas-models"},
 				{Name: "granite-3-8b-instruct", Namespace: "maas-models"},

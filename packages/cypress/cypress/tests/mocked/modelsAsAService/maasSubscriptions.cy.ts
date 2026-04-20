@@ -107,17 +107,17 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findFilterInput().type('Team Subscription');
     subscriptionsPage.findRows().should('have.length', 2);
     subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 5);
+    subscriptionsPage.findRows().should('have.length', 6);
 
     subscriptionsPage.findFilterInput().type('enterprise');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 5);
+    subscriptionsPage.findRows().should('have.length', 6);
 
     subscriptionsPage.findFilterInput().type('general users');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 5);
+    subscriptionsPage.findRows().should('have.length', 6);
   });
 
   it('should disable the action buttons for a deleting subscription in the table and view page', () => {
@@ -131,10 +131,10 @@ describe('Subscriptions Page', () => {
     );
     subscriptionsPage.visit();
     subscriptionsPage.getRow('deleting-sub').findActionsToggle().should('be.disabled');
-    subscriptionsPage.getRow('deleting-sub').findTitleButton().click();
+    cy.visit(`/maas/subscriptions/view/deleting-sub`);
     viewSubscriptionPage.findActionsToggle().click();
-    viewSubscriptionPage.findDeleteAction().should('be.disabled');
-    viewSubscriptionPage.findEditAction().should('be.disabled');
+    viewSubscriptionPage.findDeleteActionButton().should('be.disabled');
+    viewSubscriptionPage.findEditActionButton().should('be.disabled');
   });
 
   it('should delete a subscription', () => {

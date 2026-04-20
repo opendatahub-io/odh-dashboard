@@ -134,7 +134,7 @@ export const mockDeletingSubscription = (): MaaSSubscription => ({
     },
   ],
   creationTimestamp: '2025-04-06T12:00:00Z',
-  isDeleting: true,
+  deletionTimestamp: '2025-04-07T12:00:00Z',
 });
 
 export const mockSubscriptions = (): MaaSSubscription[] => [
@@ -416,7 +416,7 @@ export const mockDeletingAuthPolicy = (): MaaSAuthPolicy => ({
   statusMessage: 'successfully reconciled',
   modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
   subjects: { groups: [{ name: 'premium-users' }] },
-  isDeleting: true,
+  deletionTimestamp: '2025-04-07T12:00:00Z',
 });
 
 export const mockAuthPolicies = (): MaaSAuthPolicy[] => [

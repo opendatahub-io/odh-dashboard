@@ -1047,12 +1047,12 @@ class ViewSubscriptionPage {
     return cy.findByTestId('subscription-actions-toggle');
   }
 
-  findDeleteAction(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('menuitem', { name: 'Delete subscription' });
+  findDeleteActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Delete' });
   }
 
-  findEditAction(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('menuitem', { name: 'Edit subscription' });
+  findEditActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Edit' });
   }
 }
 
@@ -1266,12 +1266,12 @@ class ViewAuthPolicyPage {
     return cy.findByTestId('policy-actions-toggle');
   }
 
-  findDeleteAction(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('menuitem', { name: 'Delete policy' });
+  findDeleteActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Delete' });
   }
 
-  findEditAction(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('menuitem', { name: 'Edit policy' });
+  findEditActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Edit' });
   }
 
   findPageError(): Cypress.Chainable<JQuery<HTMLElement>> {

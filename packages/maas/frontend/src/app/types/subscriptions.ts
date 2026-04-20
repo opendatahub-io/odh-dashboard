@@ -10,7 +10,7 @@ export type MaaSSubscription = {
   modelRefs: ModelSubscriptionRef[];
   tokenMetadata?: TokenMetadata;
   creationTimestamp?: string;
-  isDeleting?: boolean;
+  deletionTimestamp?: string;
 };
 
 export type ModelSubscriptionRef = {
@@ -114,7 +114,7 @@ export type MaaSAuthPolicy = {
   modelRefs: ModelRef[];
   subjects: SubjectSpec;
   meteringMetadata?: TokenMetadata;
-  isDeleting?: boolean;
+  deletionTimestamp?: string;
 };
 
 export type SubscriptionInfoResponse = {

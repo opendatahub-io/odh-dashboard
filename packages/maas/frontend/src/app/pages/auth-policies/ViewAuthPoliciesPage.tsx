@@ -36,14 +36,14 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy }) => {
             label: 'Edit',
             onClick: () =>
               navigate(`${URL_PREFIX}/auth-policies/edit/${encodeURIComponent(policy.name)}`),
-            isDisabled: policy.isDeleting,
+            isDisabled: !!policy.deletionTimestamp,
           },
           { isSpacer: true },
           {
             key: 'delete',
             label: 'Delete',
             onClick: () => setIsDeleteOpen(true),
-            isDisabled: policy.isDeleting,
+            isDisabled: !!policy.deletionTimestamp,
           },
         ]}
       />

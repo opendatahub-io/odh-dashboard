@@ -138,9 +138,10 @@ describe('MaaS Auth Policies', () => {
     );
     authPoliciesPage.visit();
     authPoliciesPage.getRow('deleting-policy').findActionsToggle().should('be.disabled');
-    authPoliciesPage.getRow('deleting-policy').findTitleButton().click();
+    cy.visit(`/maas/auth-policies/view/deleting-policy`);
     viewAuthPolicyPage.findActionsToggle().click();
-    viewAuthPolicyPage.findDeleteAction().should('be.disabled');
+    viewAuthPolicyPage.findDeleteActionButton().should('be.disabled');
+    viewAuthPolicyPage.findEditActionButton().should('be.disabled');
   });
 
   it('should delete an auth policy', () => {

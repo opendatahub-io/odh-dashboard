@@ -39,14 +39,14 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription 
             key: 'edit',
             label: 'Edit',
             onClick: () => navigate(`${URL_PREFIX}/subscriptions/edit/${subscription.name}`),
-            isDisabled: subscription.isDeleting,
+            isDisabled: !!subscription.deletionTimestamp,
           },
           { isSpacer: true },
           {
             key: 'delete',
             label: 'Delete',
             onClick: () => setIsDeleteOpen(true),
-            isDisabled: subscription.isDeleting,
+            isDisabled: !!subscription.deletionTimestamp,
           },
         ]}
       />
