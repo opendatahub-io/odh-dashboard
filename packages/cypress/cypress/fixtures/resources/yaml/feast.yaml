@@ -7,6 +7,13 @@ stringData:
   AWS_ACCESS_KEY_ID: ${awsAccessKey}
   AWS_SECRET_ACCESS_KEY: ${awsSecretKey}
   AWS_DEFAULT_REGION: ${awsDefaultRegion}
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: feast-online-store-secret
+  namespace: ${namespace}
+stringData:
   dynamodb: |
     type: dynamodb
     region: ${awsDefaultRegion}
@@ -26,7 +33,7 @@ spec:
         store:
           type: dynamodb
           secretRef:
-            name: s3-credentials-secret
+            name: feast-online-store-secret
       server:
         envFrom:
           - secretRef:
