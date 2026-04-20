@@ -987,3 +987,157 @@ export const checkModelTransferJobPodStarted = (
       return cy.wrap(result.code === 0);
     });
 };
+
+/**
+ * Check if a registered model has specific custom properties in the database
+ * This is used to verify that custom properties are retained during model registry operations
+ *
+ * @param modelName Name of the registered model to check
+ * @param databaseName Name of the database deployment
+ * @param expectedPropertyKeys Array of custom property keys to verify existence
+ * @returns Cypress.Chainable<boolean> that resolves to true if all properties exist
+ */
+export const checkModelCustomPropertiesInDatabase = (
+  modelName: string,
+  databaseName: string,
+  expectedPropertyKeys: string[],
+): Cypress.Chainable<boolean> => {
+  const targetNamespace = getModelRegistryNamespace();
+
+  return cy
+    .exec(`oc get pod -n ${targetNamespace} -l name=${databaseName} -o name`, {
+      failOnNonZeroExit: false,
+    })
+    .then((podResult: CommandLineResult) => {
+      if (podResult.code !== 0 || !podResult.stdout.trim()) {
+        cy.log(
+          `No MySQL pod found for database '${databaseName}', cannot verify model custom properties`,
+        );
+        return cy.wrap(false);
+      }
+
+      const podName = podResult.stdout.trim().replace('pod/', '');
+      const escapedModelName = modelName.replace(/'/g, "''");
+      const sqlQuery = `SELECT cp.name FROM ContextProperty cp JOIN Context c ON cp.context_id = c.id WHERE c.name = '${escapedModelName}';`;
+      const verifyCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes --database="model-registry" -e "${sqlQuery}" --skip-column-names`;
+
+      cy.log(`Checking custom properties for model '${modelName}' in database '${databaseName}'`);
+      cy.log(`Expected property keys: ${expectedPropertyKeys.join(', ')}`);
+
+      return cy
+        .exec(verifyCommand, { failOnNonZeroExit: false })
+        .then((verifyResult: CommandLineResult) => {
+          if (verifyResult.code !== 0) {
+            cy.log(`Database query failed: ${verifyResult.stderr}`);
+            return cy.wrap(false);
+          }
+
+          const output = verifyResult.stdout.trim();
+          cy.log(`Retrieved property keys from database: ${output}`);
+
+          if (!output) {
+            if (expectedPropertyKeys.length === 0) {
+              cy.log('No custom properties found, and none were expected');
+              return cy.wrap(true);
+            }
+            cy.log(
+              `ERROR: No custom properties found in database, but expected: ${expectedPropertyKeys.join(
+                ', ',
+              )}`,
+            );
+            return cy.wrap(false);
+          }
+
+          const foundKeys = output.split('\n').map((line) => line.trim());
+          const hasAllKeys = expectedPropertyKeys.every((key) => foundKeys.includes(key));
+
+          if (hasAllKeys) {
+            cy.log(`SUCCESS: All expected custom property keys found for model '${modelName}'`);
+          } else {
+            const missingKeys = expectedPropertyKeys.filter((key) => !foundKeys.includes(key));
+            cy.log(`ERROR: Missing custom property keys: ${missingKeys.join(', ')}`);
+            cy.log(`Found keys: ${foundKeys.join(', ')}`);
+          }
+
+          return cy.wrap(hasAllKeys);
+        });
+    });
+};
+
+/**
+ * Check if a model version has specific custom properties in the database
+ * This is used to verify that custom properties are retained during model registry operations
+ *
+ * @param versionName Name of the model version to check
+ * @param databaseName Name of the database deployment
+ * @param expectedPropertyKeys Array of custom property keys to verify existence
+ * @returns Cypress.Chainable<boolean> that resolves to true if all properties exist
+ */
+export const checkVersionCustomPropertiesInDatabase = (
+  versionName: string,
+  databaseName: string,
+  expectedPropertyKeys: string[],
+): Cypress.Chainable<boolean> => {
+  const targetNamespace = getModelRegistryNamespace();
+
+  return cy
+    .exec(`oc get pod -n ${targetNamespace} -l name=${databaseName} -o name`, {
+      failOnNonZeroExit: false,
+    })
+    .then((podResult: CommandLineResult) => {
+      if (podResult.code !== 0 || !podResult.stdout.trim()) {
+        cy.log(
+          `No MySQL pod found for database '${databaseName}', cannot verify version custom properties`,
+        );
+        return cy.wrap(false);
+      }
+
+      const podName = podResult.stdout.trim().replace('pod/', '');
+      const escapedVersionName = versionName.replace(/'/g, "''");
+      const sqlQuery = `SELECT cp.name FROM ContextProperty cp JOIN Context c ON cp.context_id = c.id WHERE c.name LIKE '%${escapedVersionName}%';`;
+      const verifyCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes --database="model-registry" -e "${sqlQuery}" --skip-column-names`;
+
+      cy.log(
+        `Checking custom properties for version '${versionName}' in database '${databaseName}'`,
+      );
+      cy.log(`Expected property keys: ${expectedPropertyKeys.join(', ')}`);
+
+      return cy
+        .exec(verifyCommand, { failOnNonZeroExit: false })
+        .then((verifyResult: CommandLineResult) => {
+          if (verifyResult.code !== 0) {
+            cy.log(`Database query failed: ${verifyResult.stderr}`);
+            return cy.wrap(false);
+          }
+
+          const output = verifyResult.stdout.trim();
+          cy.log(`Retrieved property keys from database: ${output}`);
+
+          if (!output) {
+            if (expectedPropertyKeys.length === 0) {
+              cy.log('No custom properties found, and none were expected');
+              return cy.wrap(true);
+            }
+            cy.log(
+              `ERROR: No custom properties found in database, but expected: ${expectedPropertyKeys.join(
+                ', ',
+              )}`,
+            );
+            return cy.wrap(false);
+          }
+
+          const foundKeys = output.split('\n').map((line) => line.trim());
+          const hasAllKeys = expectedPropertyKeys.every((key) => foundKeys.includes(key));
+
+          if (hasAllKeys) {
+            cy.log(`SUCCESS: All expected custom property keys found for version '${versionName}'`);
+          } else {
+            const missingKeys = expectedPropertyKeys.filter((key) => !foundKeys.includes(key));
+            cy.log(`ERROR: Missing custom property keys: ${missingKeys.join(', ')}`);
+            cy.log(`Found keys: ${foundKeys.join(', ')}`);
+          }
+
+          return cy.wrap(hasAllKeys);
+        });
+    });
+};
