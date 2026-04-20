@@ -10,6 +10,18 @@ interface ClassifyContext {
   wasResponseGenerated?: boolean;
 }
 
+// Type guard helpers for readonly const arrays
+type RetriableCode = (typeof RETRIABLE_ERROR_CODES)[number];
+type RetriableStatus = (typeof RETRIABLE_HTTP_STATUSES)[number];
+
+function isRetriableCode(code: string): code is RetriableCode {
+  return RETRIABLE_ERROR_CODES.some((c) => c === code);
+}
+
+function isRetriableStatus(status: number): status is RetriableStatus {
+  return RETRIABLE_HTTP_STATUSES.some((s) => s === status);
+}
+
 const COMPONENT_DISPLAY_NAMES: Record<string, string> = {
   guardrails: 'Guardrails',
   rag: 'RAG',
@@ -134,10 +146,10 @@ function resolveRetriable(error: ApiError): boolean {
     return true;
   }
 
-  if (code && RETRIABLE_ERROR_CODES.includes(code)) {
+  if (code && isRetriableCode(code)) {
     return true;
   }
-  if (error.status && RETRIABLE_HTTP_STATUSES.includes(error.status)) {
+  if (error.status && isRetriableStatus(error.status)) {
     return true;
   }
 
