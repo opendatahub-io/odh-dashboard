@@ -71,7 +71,7 @@ class McpDeployModal {
   }
 
   findSubmitButton() {
-    return cy.findByTestId('mcp-deploy-submit-button');
+    return cy.findByTestId('modal-submit-button');
   }
 }
 
