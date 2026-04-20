@@ -85,7 +85,7 @@ describe('Choose Benchmark Page', () => {
 
   it('should display provider benchmarks in the gallery', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
-    chooseBenchmarkPage.findTitle().should('contain.text', 'Single benchmark');
+    chooseBenchmarkPage.findTitle().should('contain.text', 'Select single benchmark');
     chooseBenchmarkPage.findBenchmarksGallery().should('exist');
     chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('exist');
     chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-beta').should('exist');

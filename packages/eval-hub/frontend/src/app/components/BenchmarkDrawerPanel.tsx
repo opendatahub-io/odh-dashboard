@@ -7,6 +7,8 @@ import {
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
+  Flex,
+  FlexItem,
   Label,
   LabelGroup,
   Stack,
@@ -63,6 +65,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
               style={{
                 marginTop: 'var(--pf-t--global--spacer--xs)',
                 color: 'var(--pf-t--global--text--color--subtle)',
+                fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
               }}
             >
               {safeBenchmarkUrl ? (
@@ -75,6 +78,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
                   rel="noopener noreferrer"
                   icon={<ExternalLinkAltIcon />}
                   iconPosition="end"
+                  style={{ fontWeight: 'var(--pf-t--global--font--weight--heading--default)' }}
                   onClick={() =>
                     fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
                       url: safeBenchmarkUrl,
@@ -159,9 +163,18 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
       </DrawerPanelBody>
 
       <DrawerPanelBody style={{ flex: '0 0 auto' }}>
-        <Button variant="primary" onClick={() => onRunBenchmark(benchmark)}>
-          Use this benchmark
-        </Button>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+          <FlexItem>
+            <Button variant="primary" onClick={() => onRunBenchmark(benchmark)}>
+              Use this benchmark
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button variant="link" onClick={onClose} data-testid="benchmark-drawer-close-footer">
+              Close
+            </Button>
+          </FlexItem>
+        </Flex>
       </DrawerPanelBody>
     </DrawerPanelContent>
   );
