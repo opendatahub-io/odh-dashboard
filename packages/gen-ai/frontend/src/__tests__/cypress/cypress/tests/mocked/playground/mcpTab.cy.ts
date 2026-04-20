@@ -571,13 +571,15 @@ describe('Playground - MCP Servers', () => {
               .findMCPServersTable()
               .should('be.visible')
               .then(($table) => {
-                // Force immediate query for the row and tools button
+                // Force immediate query for the row and tools button within the table
                 cy.wrap($table)
                   .contains('tr', serverName)
-                  .findByTestId(`mcp-server-tools-button-${serverUrl}`)
-                  .should('exist')
-                  .and('not.have.attr', 'aria-disabled')
-                  .click();
+                  .within(() => {
+                    cy.findByTestId(`mcp-server-tools-button-${serverUrl}`)
+                      .should('exist')
+                      .and('not.have.attr', 'aria-disabled')
+                      .click();
+                  });
               });
             mcpToolsModal.find().should('be.visible');
             mcpToolsModal
