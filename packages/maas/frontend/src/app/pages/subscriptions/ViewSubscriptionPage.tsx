@@ -37,13 +37,13 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription 
         dropdownItems={[
           {
             key: 'edit',
-            label: 'Edit subscription',
+            label: 'Edit',
             onClick: () => navigate(`${URL_PREFIX}/subscriptions/edit/${subscription.name}`),
           },
           { isSpacer: true },
           {
             key: 'delete',
-            label: 'Delete subscription',
+            label: 'Delete',
             onClick: () => setIsDeleteOpen(true),
           },
         ]}

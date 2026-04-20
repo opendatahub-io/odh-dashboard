@@ -67,11 +67,12 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
               onClick: () => onViewDetailsSubscription(subscription.name),
             },
             {
-              title: 'Edit subscription',
+              title: 'Edit',
               onClick: () => onEditSubscription(subscription.name),
             },
+            { isSeparator: true },
             {
-              title: 'Delete subscription',
+              title: 'Delete',
               onClick: () => onDeleteSubscription(subscription),
             },
           ]}
