@@ -165,6 +165,8 @@ const defaults = {
 
     tableActionViewDetails: 'View details',
     tableActionRemoveSelection: 'Remove selection',
+    tableActionSelectFile: 'Select file',
+    tableActionSelectFolder: 'Select folder',
 
     detailsViewingDetailsOfThisFile: 'Viewing details',
     detailsPanelTitle: 'Details',
@@ -271,6 +273,7 @@ interface FilesTableProps {
   unselectableReason?: string;
   onFolderClick?: (folder: Folder) => void;
   onViewDetails: (file: File) => void;
+  onRemoveSelection: (file: File) => void;
   filesToView?: Files;
   isEmpty?: boolean;
   emptyStateProps?: FileExplorerEmptyStateConfig;
@@ -286,6 +289,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
   unselectableReason,
   onFolderClick,
   onViewDetails,
+  onRemoveSelection,
   filesToView,
   isEmpty: isEmptyProp,
   emptyStateProps,
@@ -393,22 +397,6 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   Array.isArray(filesToView) && filesToView.some((f) => f.path === file.path);
                 const isUnselectable = file.selectable === false;
 
-                const actions: IAction[] = [
-                  {
-                    title: defaults.labels.tableActionViewDetails,
-                    onClick: () => onViewDetails(file),
-                  },
-                ];
-                if (isSelected) {
-                  actions.push({
-                    title: defaults.labels.tableActionRemoveSelection,
-                    onClick: () => {
-                      setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path));
-                      onSelectFile?.(file, false);
-                    },
-                  });
-                }
-
                 const onSelect = (_event: unknown, isSelecting: boolean) => {
                   if (selection === 'radio') {
                     setSelectedFiles(isSelecting ? [file] : []);
@@ -427,6 +415,27 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   }
                   onSelectFile?.(file, isSelecting);
                 };
+
+                const actions: IAction[] = [];
+                if (!isFileBeingViewed) {
+                  actions.push({
+                    title: defaults.labels.tableActionViewDetails,
+                    onClick: () => onViewDetails(file),
+                  });
+                }
+                if (isSelected) {
+                  actions.push({
+                    title: defaults.labels.tableActionRemoveSelection,
+                    onClick: () => onRemoveSelection(file),
+                  });
+                } else {
+                  actions.push({
+                    title: isFolder(file)
+                      ? defaults.labels.tableActionSelectFolder
+                      : defaults.labels.tableActionSelectFile,
+                    onClick: (event) => onSelect(event, true),
+                  });
+                }
 
                 return (
                   <Tr
@@ -1203,6 +1212,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   unselectableReason={unselectableReason}
                   onFolderClick={handleFolderClick}
                   onViewDetails={handleViewDetails}
+                  onRemoveSelection={handleRemoveSelection}
                   filesToView={filesToView}
                   isEmpty={isEmpty}
                   emptyStateProps={emptyStateProps}
