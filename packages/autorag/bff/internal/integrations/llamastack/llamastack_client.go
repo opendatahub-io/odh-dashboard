@@ -109,9 +109,11 @@ func (c *LlamaStackClient) ListProviders(ctx context.Context) ([]models.LlamaSta
 		return nil, NewConnectionError(fmt.Sprintf("failed to create request for LlamaStack providers: %s", err.Error()))
 	}
 
-	// Set headers — omit Authorization over plain HTTP to avoid leaking tokens
+	// Set headers — omit Authorization over plain HTTP to avoid leaking tokens,
+	// except for localhost (dev-mode port-forwarding tunnels in-cluster traffic locally).
 	req.Header.Set("Accept", "application/json")
-	if c.authToken != "" && req.URL.Scheme == "https" {
+	isLocalhost := req.URL.Hostname() == "localhost" || req.URL.Hostname() == "127.0.0.1"
+	if c.authToken != "" && (req.URL.Scheme == "https" || isLocalhost) {
 		req.Header.Set("Authorization", "Bearer "+c.authToken)
 	}
 
