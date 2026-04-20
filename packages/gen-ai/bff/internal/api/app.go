@@ -366,7 +366,7 @@ func (app *App) Routes() http.Handler {
 	// Files (LlamaStack)
 	apiRouter.GET(constants.FilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListFilesHandler))))
 	apiRouter.POST(constants.FilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler))))
-	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackFileUploadStatusHandler)))
+	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.LlamaStackFileUploadStatusHandler))
 	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteFileHandler))))
 
 	// Vector Store Files (LlamaStack)
@@ -375,47 +375,47 @@ func (app *App) Routes() http.Handler {
 	apiRouter.DELETE(constants.VectorStoreFilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreFileHandler))))
 
 	// Code Exporter (Template-only)
-	apiRouter.POST(constants.CodeExporterPath, app.AttachNamespace(app.RequireAccessToService(app.CodeExporterHandler)))
+	apiRouter.POST(constants.CodeExporterPath, app.AttachNamespace(app.CodeExporterHandler))
 
 	// Kubernetes routes
 
 	// AI Assets Models (Kubernetes)
-	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.ModelsAAHandler)))
-	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateExternalModelHandler)))
-	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteExternalModelHandler)))
+	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.ModelsAAHandler))
+	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.CreateExternalModelHandler))
+	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.DeleteExternalModelHandler))
 
 	// External model verification (requires namespace for authorization)
-	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyExternalModelHandler)))
+	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.VerifyExternalModelHandler))
 
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
-	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.GetNamespaceHandler))
+	apiRouter.GET(constants.NamespacesPath, app.GetNamespaceHandler)
 
 	// Identity
-	apiRouter.GET(constants.UserPath, app.RequireAccessToService(app.GetCurrentUserHandler))
+	apiRouter.GET(constants.UserPath, app.GetCurrentUserHandler)
 
 	// BFF Configuration endpoint
-	apiRouter.GET(constants.ConfigPath, app.RequireAccessToService(app.BFFConfigHandler))
+	apiRouter.GET(constants.ConfigPath, app.BFFConfigHandler)
 
 	// Llama Stack Distribution status endpoint
-	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionStatusHandler)))
+	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.AttachNamespace(app.LlamaStackDistributionStatusHandler))
 
 	// Llama Stack Distribution install endpoint
-	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.AttachMaaSClient(app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionInstallHandler))))
+	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.AttachMaaSClient(app.AttachNamespace(app.LlamaStackDistributionInstallHandler)))
 
 	// Llama Stack Distribution delete endpoint
-	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionDeleteHandler)))
+	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.AttachNamespace(app.LlamaStackDistributionDeleteHandler))
 
 	// LSD Safety Config endpoint - returns configured guardrail models and shields
-	apiRouter.GET(constants.LSDSafetyPath, app.AttachNamespace(app.RequireAccessToService(app.LSDSafetyConfigHandler)))
+	apiRouter.GET(constants.LSDSafetyPath, app.AttachNamespace(app.LSDSafetyConfigHandler))
 
 	// MCP Client endpoints
-	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.RequireAccessToService(app.MCPToolsHandler)))
-	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.RequireAccessToService(app.MCPStatusHandler)))
-	apiRouter.GET(constants.MCPServersListPath, app.AttachNamespace(app.RequireAccessToService(app.MCPListHandler)))
+	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.MCPToolsHandler))
+	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.MCPStatusHandler))
+	apiRouter.GET(constants.MCPServersListPath, app.AttachNamespace(app.MCPListHandler))
 
 	// External Vector Stores
-	apiRouter.GET(constants.VectorStoresAAPath, app.AttachNamespace(app.RequireAccessToService(app.VectorStoresAAHandler)))
-	apiRouter.GET(constants.ExternalVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.ExternalVectorStoresListHandler)))
+	apiRouter.GET(constants.VectorStoresAAPath, app.AttachNamespace(app.VectorStoresAAHandler))
+	apiRouter.GET(constants.ExternalVectorStoresPath, app.AttachNamespace(app.ExternalVectorStoresListHandler))
 
 	// MaaS API routes
 

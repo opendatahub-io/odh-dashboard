@@ -20,7 +20,7 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy }) =
   <Stack hasGutter data-testid="policy-details-section">
     <StackItem>
       <Title headingLevel="h2" size="xl">
-        Policy details
+        Details
       </Title>
     </StackItem>
     <StackItem>
