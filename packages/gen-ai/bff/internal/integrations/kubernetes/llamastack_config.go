@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
 	"gopkg.in/yaml.v2"
 )

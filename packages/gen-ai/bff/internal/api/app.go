@@ -418,9 +418,6 @@ func (app *App) Routes() http.Handler {
 	// Llama Stack Distribution delete endpoint
 	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.AttachNamespace(app.LlamaStackDistributionDeleteHandler))
 
-	// LSD Safety Config endpoint - returns configured guardrail models and shields
-	apiRouter.GET(constants.LSDSafetyPath, app.AttachNamespace(app.LSDSafetyConfigHandler))
-
 	// NemoGuardrails init endpoint - creates placeholder ConfigMap and NemoGuardrails CR
 	apiRouter.POST(constants.NemoGuardrailsInitPath, app.AttachNamespace(app.NemoGuardrailsInitHandler))
 

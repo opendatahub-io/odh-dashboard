@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -362,6 +363,14 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 	// Track start time for metrics
 	streamStartTime := time.Now()
 
+	// Local state for event accumulation and streaming
+	var events []responses.ResponseStreamEventUnion
+	sequenceNum := 0
+	deltaSequenceNum := 0
+	var wordBuffer []string
+	var accumulatedText string
+	var streamedText string
+
 	// Determine response text
 	responseText := "This is a mock response to your query: " + params.Input
 	if len(params.VectorStoreIDs) > 0 {
@@ -529,6 +538,163 @@ func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.R
 				"text": responseText,
 			},
 		},
+	})
+
+	events = append(events, unmarshalEvent(map[string]interface{}{
+		"type":            "response.completed",
+		"sequence_number": sequenceNum,
+		"response": map[string]interface{}{
+			"id":         responseID,
+			"model":      params.Model,
+			"status":     "completed",
+			"created_at": 1234567890.0,
+			"output":     outputItems,
+			"usage": map[string]interface{}{
+				"input_tokens":  10,
+				"output_tokens": 25,
+				"total_tokens":  35,
+			},
+		},
+	}))
+
+	// Send all accumulated structural events (created, content_part, completed)
+	for _, ev := range events {
+		sendEvent(ev)
+		flusher.Flush()
+	}
+
+	// Send metrics event
+	latencyMs := time.Since(streamStartTime).Milliseconds()
+	sendEvent(map[string]interface{}{
+		"type": "response.metrics",
+		"metrics": map[string]interface{}{
+			"latency_ms": latencyMs,
+		},
+	})
+	flusher.Flush()
+}
+
+// CreateResponseStream builds mock streaming events and returns a MockStreamIterator.
+// The handler's normal streaming loop processes these events identically to real streams.
+func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params llamastack.CreateResponseParams) (llamastack.ResponseStreamIterator, error) {
+	responseID := "resp_mock_stream123"
+	itemID := "msg_mock_stream123"
+
+	responseText := "This is a mock response to your query: " + params.Input
+	if len(params.VectorStoreIDs) > 0 {
+		responseText = "Based on retrieved documents, this is a mock response to your query: " + params.Input
+	}
+	if params.PreviousResponseID != "" {
+		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
+	}
+
+	var events []responses.ResponseStreamEventUnion
+	sequenceNum := 0
+
+	events = append(events, unmarshalEvent(map[string]interface{}{
+		"type":            "response.created",
+		"sequence_number": sequenceNum,
+		"response": map[string]interface{}{
+			"id":         responseID,
+			"model":      params.Model,
+			"status":     "in_progress",
+			"created_at": 1234567890.0,
+		},
+	}))
+	sequenceNum++
+
+	if len(params.Tools) > 0 {
+		events = append(events, unmarshalEvent(map[string]interface{}{
+			"type":            "mcp_list_tools",
+			"sequence_number": sequenceNum,
+			"item_id":         "mcp_list_mock123",
+			"output_index":    0,
+			"server_label":    params.Tools[0].ServerLabel,
+		}))
+		sequenceNum++
+		mcpOutput := `{"tag_name":"v1.95.0","name":"Mock Release","body":"This is a mock GitHub release","published_at":"2025-09-17T15:00:00Z","author":{"login":"mock-user","id":12345}}`
+		events = append(events, unmarshalEvent(map[string]interface{}{
+			"type":            "mcp_call",
+			"sequence_number": sequenceNum,
+			"item_id":         "call_mock456",
+			"output_index":    0,
+			"server_label":    params.Tools[0].ServerLabel,
+			"name":            "get_latest_release",
+			"arguments":       `{"owner":"llamastack","repo":"llama-stack"}`,
+			"output":          mcpOutput,
+		}))
+		sequenceNum++
+		responseText = "Based on the GitHub MCP tool results, the latest release is v1.95.0. " + responseText
+	}
+
+	if len(params.VectorStoreIDs) > 0 {
+		sequenceNum += 3
+	}
+
+	events = append(events, unmarshalEvent(map[string]interface{}{
+		"type":            "response.content_part.added",
+		"sequence_number": sequenceNum,
+		"item_id":         itemID,
+		"output_index":    0,
+	}))
+	sequenceNum++
+
+	words := strings.Fields(responseText)
+	for i, word := range words {
+		chunk := word
+		if i > 0 {
+			chunk = " " + word
+		}
+		events = append(events, unmarshalEvent(map[string]interface{}{
+			"type":            "response.output_text.delta",
+			"sequence_number": sequenceNum,
+			"item_id":         itemID,
+			"output_index":    0,
+			"delta":           chunk,
+		}))
+		sequenceNum++
+	}
+
+	events = append(events, unmarshalEvent(map[string]interface{}{
+		"type":            "response.content_part.done",
+		"sequence_number": sequenceNum,
+		"item_id":         itemID,
+		"output_index":    0,
+	}))
+	sequenceNum++
+
+	var outputItems []map[string]interface{}
+	if len(params.Tools) > 0 {
+		outputItems = append(outputItems, map[string]interface{}{
+			"id": "mcp_list_mock123", "type": "mcp_list_tools", "role": "assistant",
+			"server_label": params.Tools[0].ServerLabel, "output": "",
+		})
+		mcpOut := `{"tag_name":"v1.95.0","name":"Mock Release","body":"This is a mock GitHub release","published_at":"2025-09-17T15:00:00Z","author":{"login":"mock-user","id":12345}}`
+		outputItems = append(outputItems, map[string]interface{}{
+			"id": "call_mock456", "type": "mcp_call", "role": "assistant",
+			"server_label": params.Tools[0].ServerLabel,
+			"name":         "get_latest_release",
+			"arguments":    `{"owner":"llamastack","repo":"llama-stack"}`,
+			"output":       mcpOut,
+		})
+	}
+	if len(params.VectorStoreIDs) > 0 {
+		outputItems = append(outputItems, map[string]interface{}{
+			"id": "call_mock123", "type": "file_search_call", "role": "assistant",
+			"status":  "completed",
+			"queries": []string{params.Input},
+			"results": []map[string]interface{}{
+				{
+					"filename": "mock_document.txt",
+					"score":    0.8542,
+					"text":     "This is mock retrieved content that relates to your query: " + params.Input + ". This content comes from the vector store and provides context for the AI response.",
+				},
+			},
+		})
+	}
+	outputItems = append(outputItems, map[string]interface{}{
+		"id": itemID, "type": "message", "role": "assistant", "status": "completed",
+		"content": []map[string]interface{}{{"type": "output_text", "text": responseText}},
 	})
 
 	events = append(events, unmarshalEvent(map[string]interface{}{
