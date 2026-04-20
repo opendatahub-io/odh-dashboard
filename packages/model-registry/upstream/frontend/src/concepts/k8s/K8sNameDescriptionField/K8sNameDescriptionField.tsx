@@ -105,7 +105,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
       <FormGroup label={nameLabel} isRequired fieldId={`${dataTestId}-name`}>
         <FormFieldset component={nameInput} field="Name" />
         {nameHelperText || (!showK8sField && !k8sName.state.immutable) ? (
-          <HelperText>
+          <HelperText data-testid={`${dataTestId}-name-helper`}>
             {nameHelperText && <HelperTextItem>{nameHelperText}</HelperTextItem>}
             {!showK8sField && !k8sName.state.immutable && (
               <>

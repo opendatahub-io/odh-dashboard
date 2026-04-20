@@ -178,6 +178,10 @@ class McpDeployModal {
     return this.findModal().findByTestId('modal-cancel-button');
   }
 
+  findResourceNameHelperText(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModal().findByTestId('mcp-deploy-name-helper');
+  }
+
   findSubmitError(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findModal().findByTestId('error-message-alert');
   }
