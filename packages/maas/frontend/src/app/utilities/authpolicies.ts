@@ -1,4 +1,4 @@
-import { K8sResourceCommon } from 'mod-arch-shared';
+import type { K8sResourceCommon } from '@odh-dashboard/internal/k8sTypes';
 import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
 
 export const convertAuthPolicyToK8sResource = (authPolicy: MaaSAuthPolicy): K8sResourceCommon => ({

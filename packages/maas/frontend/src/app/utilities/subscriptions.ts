@@ -1,4 +1,4 @@
-import { K8sResourceCommon } from 'mod-arch-shared';
+import type { K8sResourceCommon } from '@odh-dashboard/internal/k8sTypes';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 /**
  * Returns the lowest non-negative integer priority not already taken by existing subscriptions.
