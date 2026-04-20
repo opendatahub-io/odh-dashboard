@@ -46,7 +46,7 @@ export default function PromptDrawer({
   function buildContent() {
     if (isLoadingDetails) {
       return (
-        <DrawerPanelContent>
+        <DrawerPanelContent data-testid="prompt-drawer-loading">
           <DrawerHead>
             <Title headingLevel="h3">Loading Prompt Details...</Title>
             <DrawerActions>
@@ -86,11 +86,16 @@ export default function PromptDrawer({
       onVersionChange(Number(selection));
     }
     return (
-      <DrawerPanelContent>
+      <DrawerPanelContent data-testid="prompt-drawer-panel">
         <DrawerHead>
           <Title headingLevel="h2">{name}</Title>
           <DrawerActions>
-            <Button variant="plain" aria-label="Close drawer" onClick={onClose}>
+            <Button
+              data-testid="prompt-drawer-close"
+              variant="plain"
+              aria-label="Close drawer"
+              onClick={onClose}
+            >
               <CompressAltIcon />
             </Button>
           </DrawerActions>
@@ -102,9 +107,15 @@ export default function PromptDrawer({
             paddingRight: 'var(--pf-t--global--spacer--md)',
           }}
         >
-          <SimpleSelect isScrollable initialOptions={initialOptions} onSelect={onVersionSelect} />
+          <SimpleSelect
+            data-testid="prompt-version-select"
+            isScrollable
+            initialOptions={initialOptions}
+            onSelect={onVersionSelect}
+          />
           <div>
             <TextArea
+              data-testid="prompt-drawer-template"
               style={{ minHeight: '200px' }}
               resizeOrientation="vertical"
               aria-label="prompt template"

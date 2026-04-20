@@ -62,7 +62,7 @@ export default function PromptManagementModal(): React.ReactNode {
   }
 
   return (
-    <>
+    <div data-testid="prompt-management-modal">
       {modalMode === 'allPrompts' && (
         <PromptTable
           onClose={handleCloseLoad}
@@ -73,6 +73,6 @@ export default function PromptManagementModal(): React.ReactNode {
       {(modalMode === 'create' || modalMode === 'edit') && (
         <CreatePrompt configId={configId} displayText={displayText} onClose={handleCloseSave} />
       )}
-    </>
+    </div>
   );
 }

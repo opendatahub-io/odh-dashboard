@@ -137,9 +137,12 @@ export default function PromptAssistantFormGroup({
           }}
         >
           <Flex>
-            <Title headingLevel="h6">{dirtyPrompt?.name || 'New Prompt'}</Title>
+            <Title headingLevel="h6" data-testid="prompt-name-title">
+              {dirtyPrompt?.name || 'New Prompt'}
+            </Title>
             {!!activePrompt?.version && (
               <Label
+                data-testid="prompt-version-label"
                 isCompact
                 variant={isEdited ? 'filled' : 'outline'}
                 color={isEdited ? 'grey' : 'purple'}
@@ -148,7 +151,12 @@ export default function PromptAssistantFormGroup({
               </Label>
             )}
             {isEdited && (
-              <div className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}>Unsaved</div>
+              <div
+                data-testid="prompt-unsaved-indicator"
+                className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}
+              >
+                Unsaved
+              </div>
             )}
           </Flex>
           <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -175,6 +183,7 @@ export default function PromptAssistantFormGroup({
           {!editMode && (
             <Flex>
               <Button
+                data-testid="prompt-edit-button"
                 variant="primary"
                 onClick={() => {
                   setEditMode(true);
@@ -186,6 +195,7 @@ export default function PromptAssistantFormGroup({
                 Edit
               </Button>
               <Button
+                data-testid="prompt-reset-button"
                 variant="link"
                 isDisabled={!isEdited && !activePrompt}
                 onClick={() =>
@@ -210,11 +220,17 @@ export default function PromptAssistantFormGroup({
           )}
           {editMode && (
             <Flex>
-              <Button variant="primary" isDisabled={!isEdited} onClick={handleSaveClicked}>
+              <Button
+                data-testid="prompt-save-to-registry-button"
+                variant="primary"
+                isDisabled={!isEdited}
+                onClick={handleSaveClicked}
+              >
                 Save
               </Button>
               {activePrompt ? (
                 <Button
+                  data-testid="prompt-revert-button"
                   variant="link"
                   isDisabled={!isEdited}
                   onClick={() =>
@@ -235,6 +251,7 @@ export default function PromptAssistantFormGroup({
                 </Button>
               ) : (
                 <Button
+                  data-testid="prompt-reset-button"
                   variant="link"
                   isDisabled={!isEdited}
                   onClick={() =>
