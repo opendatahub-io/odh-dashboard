@@ -31,5 +31,5 @@ export const autoragRunsColumns: SortableData<PipelineRun>[] = [
       (a.state || '').toLocaleLowerCase().localeCompare((b.state || '').toLocaleLowerCase()),
     width: 15,
   },
-  { label: '', field: 'actions', sortable: false },
+  { label: '', field: 'actions', sortable: false, screenReaderText: 'Actions' },
 ];

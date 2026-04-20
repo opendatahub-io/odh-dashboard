@@ -8,7 +8,7 @@ import { useNotification } from '~/app/hooks/useNotification';
 
 type AutomlRunActionsOptions = {
   /** Called after a successful retry or stop to let the caller refresh data immediately. */
-  onActionComplete?: () => void;
+  onActionComplete?: () => void | Promise<void>;
 };
 
 type AutomlRunActions = {
@@ -27,6 +27,7 @@ export const useAutomlRunActions = (
   runId: string,
   options?: AutomlRunActionsOptions,
 ): AutomlRunActions => {
+  const { onActionComplete } = options ?? {};
   const queryClient = useQueryClient();
   const notification = useNotification();
   const retryMutation = useRetryPipelineRunMutation(namespace, runId);
@@ -36,7 +37,7 @@ export const useAutomlRunActions = (
     try {
       await retryMutation.mutateAsync();
       await queryClient.invalidateQueries({ queryKey: ['pipelineRun', runId, namespace] });
-      options?.onActionComplete?.();
+      await onActionComplete?.();
       notification.success(
         'Retry submitted successfully',
         'The process is asynchronous and may take some time to take effect',
@@ -47,12 +48,13 @@ export const useAutomlRunActions = (
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
     }
-  }, [retryMutation, queryClient, runId, namespace, options, notification]);
+  }, [retryMutation, queryClient, runId, namespace, onActionComplete, notification]);
 
   const handleConfirmStop = React.useCallback(async () => {
     try {
       await terminateMutation.mutateAsync();
-      options?.onActionComplete?.();
+      await queryClient.invalidateQueries({ queryKey: ['pipelineRun', runId, namespace] });
+      await onActionComplete?.();
       notification.success(
         'Stop submitted successfully',
         'The process is asynchronous and may take some time to take effect',
@@ -63,7 +65,7 @@ export const useAutomlRunActions = (
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
     }
-  }, [terminateMutation, options, notification]);
+  }, [terminateMutation, queryClient, runId, namespace, onActionComplete, notification]);
 
   return {
     handleRetry,

@@ -26,7 +26,7 @@ export const RUN_STATE = {
 type AutomlRunsTableRowProps = {
   run: PipelineRun;
   namespace: string;
-  onActionComplete?: () => void;
+  onActionComplete?: () => void | Promise<void>;
 };
 
 export const getStatusLabelProps = (

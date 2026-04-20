@@ -14,7 +14,7 @@ type AutomlRunsTableProps = {
   namespace: string;
   onPageChange: (page: number) => void;
   onPerPageChange: (pageSize: number) => void;
-  onRunActionComplete?: () => void;
+  onRunActionComplete?: () => void | Promise<void>;
   toolbarContent?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;
 };
 

@@ -23,7 +23,7 @@ export const RUN_STATE = {
 type AutoragRunsTableRowProps = {
   run: PipelineRun;
   namespace: string;
-  onActionComplete?: () => void;
+  onActionComplete?: () => void | Promise<void>;
 };
 
 const getStatusLabelProps = (

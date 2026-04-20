@@ -11,5 +11,5 @@ export const automlRunsColumns: SortableData<PipelineRun>[] = [
   { label: 'Prediction type', field: 'task_type', sortable: false, width: 15 },
   { label: 'Started', field: 'created_at', sortable: false, width: 15 },
   { label: 'Status', field: 'state', sortable: false, width: 10 },
-  { label: '', field: 'actions', sortable: false },
+  { label: '', field: 'actions', sortable: false, screenReaderText: 'Actions' },
 ];
