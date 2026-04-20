@@ -80,8 +80,7 @@ function AutoragResultsPage(): React.JSX.Element {
     runState === RuntimeStateKF.PENDING ||
     runState === RuntimeStateKF.CANCELING ||
     runState === RuntimeStateKF.PAUSED;
-  const isRunRetryable =
-    runState === RuntimeStateKF.FAILED || runState === RuntimeStateKF.CANCELED;
+  const isRunRetryable = runState === RuntimeStateKF.FAILED || runState === RuntimeStateKF.CANCELED;
 
   const handleRetry = React.useCallback(async () => {
     try {
