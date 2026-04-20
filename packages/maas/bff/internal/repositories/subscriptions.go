@@ -287,7 +287,7 @@ func (r *SubscriptionsRepository) GetModelRefSummaries(ctx context.Context, refs
 		refSet[ref.Namespace+"/"+ref.Name] = true
 	}
 
-	var result []models.MaaSModelRefSummary
+	result := make([]models.MaaSModelRefSummary, 0)
 	for _, ref := range allRefs {
 		if refSet[ref.Namespace+"/"+ref.Name] {
 			result = append(result, ref)
@@ -349,6 +349,8 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	sub.Phase = phase
 
+	sub.StatusMessage = extractReadyConditionMessage(content)
+
 	priority, _, _ := unstructured.NestedFieldNoCopy(content, "spec", "priority")
 	if priority != nil {
 		switch v := priority.(type) {
@@ -359,6 +361,7 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		}
 	}
 
+	sub.Owner.Groups = []models.GroupReference{}
 	ownerGroups, _, _ := unstructured.NestedSlice(content, "spec", "owner", "groups")
 	for _, g := range ownerGroups {
 		if gMap, ok := g.(map[string]interface{}); ok {
@@ -368,6 +371,7 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		}
 	}
 
+	sub.ModelRefs = []models.ModelSubscriptionRef{}
 	modelRefs, _, _ := unstructured.NestedSlice(content, "spec", "modelRefs")
 	for _, mr := range modelRefs {
 		if mrMap, ok := mr.(map[string]interface{}); ok {
@@ -450,6 +454,9 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	policy.Phase = phase
 
+	policy.StatusMessage = extractReadyConditionMessage(content)
+
+	policy.ModelRefs = []models.ModelRef{}
 	modelRefs, _, _ := unstructured.NestedSlice(content, "spec", "modelRefs")
 	for _, mr := range modelRefs {
 		if mrMap, ok := mr.(map[string]interface{}); ok {
@@ -464,6 +471,7 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 		}
 	}
 
+	policy.Subjects.Groups = []models.GroupReference{}
 	subjectGroups, _, _ := unstructured.NestedSlice(content, "spec", "subjects", "groups")
 	for _, g := range subjectGroups {
 		if gMap, ok := g.(map[string]interface{}); ok {
@@ -524,6 +532,21 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) (*mode
 	summary.Endpoint = endpoint
 
 	return summary, nil
+}
+
+// extractReadyConditionMessage returns the message from the "Ready" condition in status.conditions.
+func extractReadyConditionMessage(content map[string]interface{}) string {
+	conditions, _, _ := unstructured.NestedSlice(content, "status", "conditions")
+	for _, c := range conditions {
+		if cMap, ok := c.(map[string]interface{}); ok {
+			if condType, _ := cMap["type"].(string); condType == "Ready" {
+				if msg, _ := cMap["message"].(string); msg != "" {
+					return msg
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // --- Builder helpers: Go models -> Unstructured ---

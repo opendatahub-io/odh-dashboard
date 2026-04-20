@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"log/slog"
 	"math"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"strconv"
@@ -95,6 +97,35 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 	cfg := aws.Config{
 		Region:      creds.Region,
 		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
+	}
+
+	// Clone the default transport to preserve connection pooling and set a
+	// transport-level timeout unconditionally, regardless of TLS configuration.
+	transport := cloneDefaultTransport()
+	transport.ResponseHeaderTimeout = 30 * time.Second
+
+	if c.options.RootCAs != nil {
+		// Supply the custom CA pool so that self-signed or cluster-issued
+		// certificates (e.g. MinIO) are verified against the operator-mounted
+		// CA bundles rather than the system default.
+		transport.TLSClientConfig = &tls.Config{
+			RootCAs:    c.options.RootCAs,
+			MinVersion: tls.VersionTLS12,
+		}
+	} else if c.options.DevMode {
+		// In dev mode without CA bundles, skip TLS verification so developers
+		// can test against clusters with self-signed certificates from their
+		// local machine. In production the operator always provides CA bundles
+		// via --bundle-paths, so this path is never reached.
+		slog.Warn("S3 TLS certificate verification disabled (dev mode, no CA bundles provided)")
+		transport.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true, //nolint:gosec // dev-mode only fallback
+			MinVersion:         tls.VersionTLS12,
+		}
+	}
+
+	cfg.HTTPClient = &http.Client{
+		Transport: transport,
 	}
 
 	c.s3Client = awss3.NewFromConfig(cfg, func(o *awss3.Options) {
@@ -422,8 +453,52 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 	}, nil
 }
 
+// cloneDefaultTransport returns a clone of http.DefaultTransport if it is an
+// *http.Transport, or a fresh *http.Transport otherwise. This avoids a panic
+// if DefaultTransport has been replaced with a non-standard implementation
+// (e.g. in test environments).
+func cloneDefaultTransport() *http.Transport {
+	if t, ok := http.DefaultTransport.(*http.Transport); ok {
+		return t.Clone()
+	}
+	return &http.Transport{}
+}
+
+// isInternalHost reports whether a hostname is a trusted internal host
+// (Kubernetes in-cluster service). These legitimately use HTTP internally and
+// resolve to private IPs, so HTTP scheme and SSRF validation is skipped for them.
+// All other hosts are subject to HTTPS requirement and SSRF checks.
+//
+// Requires exactly the Kubernetes service FQDN format: <service>.<namespace>.svc.cluster.local
+// (exactly 5 dot-separated labels), preventing overly-broad matches like "evil.cluster.local".
+func isInternalHost(hostname string) bool {
+	parts := strings.Split(hostname, ".")
+	if len(parts) != 5 {
+		return false
+	}
+	if parts[2] != "svc" || parts[3] != "cluster" || parts[4] != "local" {
+		return false
+	}
+	if parts[0] == "" || parts[1] == "" {
+		return false
+	}
+	return true
+}
+
 // validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
-// Requires HTTPS and blocks private/reserved IP ranges.
+//
+// HTTPS is required for external endpoints — plain HTTP is rejected because S3
+// credentials would be transmitted in cleartext. However, HTTP is permitted for
+// in-cluster endpoints (*.svc.cluster.local) since traffic never leaves the cluster
+// network and HTTPS overhead is unnecessary for internal-only communication.
+// In-cluster endpoints skip DNS resolution and IP validation because they are
+// trusted cluster-internal services.
+//
+// For external endpoints, self-signed or cluster-issued certificates are supported
+// via the RootCAs option (populated from operator-mounted CA bundles). RFC-1918
+// private IPs are permitted because MinIO commonly runs on the same cluster using
+// service IPs (e.g. 10.x). Loopback, link-local, and reserved IP ranges are always
+// blocked.
 func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, error) {
 	if endpoint == "" {
 		return "", fmt.Errorf("endpoint URL cannot be empty")
@@ -434,15 +509,31 @@ func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, er
 		return "", fmt.Errorf("invalid endpoint URL format: %w", err)
 	}
 
-	if parsedURL.Scheme != "https" {
-		return "", fmt.Errorf("endpoint URL must use HTTPS scheme, got: %s", parsedURL.Scheme)
-	}
-
 	hostname := parsedURL.Hostname()
 	if hostname == "" {
 		return "", fmt.Errorf("endpoint URL must have a valid hostname")
 	}
 
+	// Allow HTTP only for in-cluster endpoints (.svc.cluster.local) and for
+	// localhost in dev mode (dynamic port-forwarding rewrites in-cluster URLs
+	// to localhost). The DevMode guard (default: false) ensures this bypass
+	// is impossible in production deployments.
+	isInCluster := isInternalHost(hostname)
+	isDevLocalhost := c.options.DevMode && (hostname == "localhost" || hostname == "127.0.0.1")
+	isTrusted := isInCluster || isDevLocalhost
+	if parsedURL.Scheme == "http" && !isTrusted {
+		return "", fmt.Errorf("endpoint URL must use HTTPS scheme for external endpoints, got: %s", parsedURL.Scheme)
+	}
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return "", fmt.Errorf("endpoint URL must use http or https scheme, got: %s", parsedURL.Scheme)
+	}
+
+	// Skip DNS resolution and IP validation for trusted endpoints
+	if isTrusted {
+		return parsedURL.String(), nil
+	}
+
+	// For external endpoints, perform DNS resolution and IP validation
 	ip := net.ParseIP(hostname)
 	if ip != nil {
 		if err := c.validateIPAddress(ip); err != nil {
@@ -472,21 +563,26 @@ func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, er
 }
 
 // validateIPAddress checks if an IP address is in a blocked range.
+//
+// RFC-1918 private ranges (10/8, 172.16/12, 192.168/16), Carrier-Grade NAT
+// (100.64/10, RFC 6598), and IPv6 unique local addresses (fc00::/7) are
+// permitted because MinIO and other S3-compatible stores commonly run on the
+// same cluster using service or pod IPs in these ranges.
+// Loopback, link-local, and reserved ranges are always blocked to prevent
+// SSRF targeting the node or cloud metadata services.
 func (c *RealS3Client) validateIPAddress(ip net.IP) error {
-	blockedRanges := []struct {
+	type blockedRange struct {
 		cidr        string
 		description string
-	}{
+	}
+
+	blockedRanges := []blockedRange{
 		{"0.0.0.0/8", "reserved 'this network' range (RFC 1122)"},
-		{"10.0.0.0/8", "RFC-1918 private range (10.0.0.0/8)"},
-		{"172.16.0.0/12", "RFC-1918 private range (172.16.0.0/12)"},
-		{"192.168.0.0/16", "RFC-1918 private range (192.168.0.0/16)"},
 		{"169.254.0.0/16", "link-local range (169.254.0.0/16)"},
 		{"127.0.0.0/8", "loopback range (127.0.0.0/8)"},
 		{"240.0.0.0/4", "reserved for future use (RFC 1112)"},
 		{"::1/128", "IPv6 loopback"},
 		{"fe80::/10", "IPv6 link-local"},
-		{"fc00::/7", "IPv6 unique local addresses"},
 	}
 
 	for _, blocked := range blockedRanges {

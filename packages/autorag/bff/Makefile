@@ -4,7 +4,6 @@ MOCK_LS_CLIENT ?= false
 MOCK_HTTP_CLIENT ?= false
 MOCK_PIPELINE_SERVER_CLIENT ?= false
 MOCK_S3_CLIENT ?= false
-PIPELINE_SERVER_URL ?=
 DEV_MODE ?= false
 DEV_MODE_CLIENT_PORT ?= 8080
 DEPLOYMENT_MODE ?= kubeflow
@@ -12,7 +11,7 @@ AUTH_METHOD ?= user_token
 AUTH_TOKEN_HEADER ?= Authorization
 AUTH_TOKEN_PREFIX ?= Bearer
 INSECURE_SKIP_VERIFY ?= false
-LLAMA_STACK_URL ?= ""
+BUNDLE_PATHS ?=
 #frontend static assets root directory
 STATIC_ASSETS_DIR ?= ./static
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
@@ -81,15 +80,14 @@ run: fmt vet envtest ## Runs the project.
 		--mock-http-client="$(MOCK_HTTP_CLIENT)" \
 		--mock-pipeline-server-client="$(MOCK_PIPELINE_SERVER_CLIENT)" \
 		--mock-s3-client="$(MOCK_S3_CLIENT)" \
-		--pipeline-server-url="$(PIPELINE_SERVER_URL)" \
 		--mock-ls-client="$(MOCK_LS_CLIENT)" \
-		--llama-stack-url="$(LLAMA_STACK_URL)" \
 		--dev-mode="$(DEV_MODE)" \
 		--dev-mode-client-port="$(DEV_MODE_CLIENT_PORT)" \
 		--deployment-mode="$(DEPLOYMENT_MODE)" \
 		--log-level="$(LOG_LEVEL)" \
 		--allowed-origins="$(ALLOWED_ORIGINS)" \
-		--insecure-skip-verify="$(INSECURE_SKIP_VERIFY)"
+		--insecure-skip-verify="$(INSECURE_SKIP_VERIFY)" \
+		$(if $(BUNDLE_PATHS),--bundle-paths="$(BUNDLE_PATHS)")
 
 ##@ Dependencies
 

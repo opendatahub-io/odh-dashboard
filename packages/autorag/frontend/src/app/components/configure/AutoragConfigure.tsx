@@ -329,7 +329,15 @@ function AutoragConfigure(): React.JSX.Element {
         setValue('input_data_key', uploadResult.key, { shouldValidate: true });
       } catch (err) {
         if (uploadRequestId === inputDataUploadSeqRef.current) {
-          notification.error('Failed to upload file', err instanceof Error ? err.message : '');
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          const isConflict = errorMessage.toLowerCase().includes('unique filename');
+
+          notification.error(
+            'Failed to upload file',
+            isConflict
+              ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
+              : errorMessage,
+          );
         }
       } finally {
         if (uploadRequestId === inputDataUploadSeqRef.current) {
@@ -380,6 +388,7 @@ function AutoragConfigure(): React.JSX.Element {
                                   namespace={String(namespace)}
                                   type="storage"
                                   additionalRequiredKeys={AUTORAG_REQUIRED_KEYS}
+                                  isDisabled={isSubmitting}
                                   value={selectedSecret?.uuid}
                                   onChange={(secret) => {
                                     if (!secret) {
@@ -412,6 +421,7 @@ function AutoragConfigure(): React.JSX.Element {
                           <Button
                             key="add-new-connection"
                             variant="tertiary"
+                            isDisabled={isSubmitting}
                             onClick={() => setIsConnectionModalOpen(true)}
                           >
                             Add new connection
@@ -434,12 +444,14 @@ function AutoragConfigure(): React.JSX.Element {
                             text="Select file or folder"
                             buttonId="document-input-select"
                             isSelected={inputDataSourceMode === 'select'}
+                            isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('select')}
                           />
                           <ToggleGroupItem
                             text="Upload file"
                             buttonId="document-input-upload"
                             isSelected={inputDataSourceMode === 'upload'}
+                            isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('upload')}
                           />
                         </ToggleGroup>
@@ -489,6 +501,7 @@ function AutoragConfigure(): React.JSX.Element {
                                           variant="plain"
                                           aria-label="Remove selection"
                                           icon={<TimesIcon />}
+                                          isDisabled={isSubmitting}
                                           onClick={() => {
                                             setSelectedInputDataFile(undefined);
                                             setValue('input_data_key', '', {
@@ -614,11 +627,16 @@ function AutoragConfigure(): React.JSX.Element {
                                         popperProps={{ position: 'end', preventOverflow: true }}
                                       >
                                         <DropdownList>
-                                          <DropdownItem key="remove" onClick={clearInputDataUpload}>
+                                          <DropdownItem
+                                            key="remove"
+                                            isDisabled={isSubmitting}
+                                            onClick={clearInputDataUpload}
+                                          >
                                             Remove
                                           </DropdownItem>
                                           <DropdownItem
                                             key="replace"
+                                            isDisabled={isSubmitting}
                                             onClick={openInputDataReplaceFileDialog}
                                           >
                                             Replace
@@ -739,6 +757,7 @@ function AutoragConfigure(): React.JSX.Element {
                                     ref={toggleRef}
                                     onClick={() => setIsMetricSelectOpen((prev) => !prev)}
                                     isExpanded={isMetricSelectOpen}
+                                    isDisabled={isSubmitting}
                                     data-testid="optimization-metric-select"
                                   >
                                     {selected?.label ?? ''}
@@ -781,6 +800,7 @@ function AutoragConfigure(): React.JSX.Element {
                                 value={field.value}
                                 min={MIN_RAG_PATTERNS}
                                 max={MAX_RAG_PATTERNS}
+                                isDisabled={isSubmitting}
                                 validated={fieldState.error ? 'error' : 'default'}
                                 onMinus={() => field.onChange(field.value - 1)}
                                 onPlus={() => field.onChange(field.value + 1)}

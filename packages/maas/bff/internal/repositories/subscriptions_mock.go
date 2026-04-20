@@ -131,7 +131,7 @@ func (r *MockSubscriptionsRepository) GetFormData(_ context.Context) (*models.Su
 
 func (r *MockSubscriptionsRepository) GetAuthPoliciesForSubscription(_ context.Context, subscriptionName string) ([]models.MaaSAuthPolicy, error) {
 	r.logger.Debug("Getting auth policies for subscription (mock)", slog.String("subscription", subscriptionName))
-	var result []models.MaaSAuthPolicy
+	result := make([]models.MaaSAuthPolicy, 0)
 	for _, policy := range mocks.GetMockMaaSAuthPolicies() {
 		if policy.Name == subscriptionName+"-policy" {
 			result = append(result, policy)

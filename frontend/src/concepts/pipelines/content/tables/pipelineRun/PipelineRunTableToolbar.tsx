@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ToolbarItem } from '@patternfly/react-core';
 import { FilterOptions } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import PipelineRunTableToolbarBase, { FilterProps } from './PipelineRunTableToolbarBase';
 
 interface PipelineRunTableToolbarProps extends FilterProps {
@@ -16,7 +16,7 @@ const PipelineRunTableToolbar: React.FC<PipelineRunTableToolbarProps> = ({
   ...toolbarProps
 }) => {
   const { experiment } = React.useContext(ExperimentContext);
-  const { status: isMlflowAvailable } = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES);
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
 
   const defaultFilterOptions = React.useMemo(
     () => ({

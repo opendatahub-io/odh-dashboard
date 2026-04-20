@@ -3,7 +3,7 @@ import { getKueueWorkloadStatusWithMessage, getKueueStatusInfo } from '#~/concep
 import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 
 const baseWorkload: WorkloadKind = {
-  apiVersion: 'kueue.x-k8s.io/v1beta1',
+  apiVersion: 'kueue.x-k8s.io/v1beta2',
   kind: 'Workload',
   metadata: { name: 'test-workload', namespace: 'test-ns' },
   spec: {

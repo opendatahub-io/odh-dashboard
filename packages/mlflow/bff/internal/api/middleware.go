@@ -153,7 +153,7 @@ func (app *App) AttachMLflowClient(next func(http.ResponseWriter, *http.Request,
 
 		workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
 
-		mlflowClient, err := app.mlflowClientFactory.GetClient(ctx, token, workspace)
+		mlflowClient, err := app.getMLflowClientFactory().GetClient(ctx, token, workspace)
 		if err != nil {
 			if errors.Is(err, mlflowpkg.ErrMLflowNotConfigured) {
 				app.logger.Warn("MLflow endpoint called but MLflow is not configured",

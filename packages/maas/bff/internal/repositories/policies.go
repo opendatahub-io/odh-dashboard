@@ -49,7 +49,8 @@ func (r *PoliciesRepository) ListPolicies(ctx context.Context) ([]models.MaaSAut
 	for _, item := range list.Items {
 		policy, err := convertUnstructuredToAuthPolicy(&item)
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert MaaSAuthPolicy %s: %w", item.GetName(), err)
+			r.logger.Warn("Failed to convert MaaSAuthPolicy", slog.String("name", item.GetName()), slog.Any("error", err))
+			continue
 		}
 		policies = append(policies, *policy)
 	}

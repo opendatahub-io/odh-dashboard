@@ -370,7 +370,7 @@ export function useModelEvaluationArtifactsQuery(
     combine: (results) => ({
       featureImportance: results[0].data,
       confusionMatrix: results[1].data,
-      isLoading: results.some((r) => r.isPending),
+      isLoading: results.some((r) => r.isLoading),
     }),
   });
 }

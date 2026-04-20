@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import {
   useS3GetFileSchemaQuery,
+  useModelEvaluationArtifactsQuery,
   fetchS3File,
   AutomlModelSchema,
   isRawTimeseriesModel,
@@ -509,6 +510,96 @@ describe('isRawTimeseriesModel', () => {
       metrics: { test_data: { accuracy: 0.95 } },
     };
     expect(isRawTimeseriesModel(model)).toBe(false);
+  });
+});
+/* eslint-enable camelcase */
+
+/* eslint-disable camelcase */
+describe('useModelEvaluationArtifactsQuery', () => {
+  const mockFeatureImportance = {
+    importance: { feature_a: 0.8, feature_b: 0.2 },
+  };
+
+  const mockConfusionMatrix = {
+    cat: { cat: 10, dog: 2 },
+    dog: { cat: 1, dog: 15 },
+  };
+
+  /**
+   * Creates a mock fetch response that returns JSON parsed from a Blob,
+   * matching the fetchS3Json → fetchS3File → fetch call chain.
+   */
+  const mockBlobJsonResponse = (data: unknown) => {
+    const json = JSON.stringify(data);
+    return {
+      ok: true,
+      blob: async () => ({ text: async () => json }),
+    };
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should not get stuck loading for regression runs (isClassification=false)', async () => {
+    // The confusion matrix query is disabled for regression. Previously, using
+    // isPending (which is true for disabled queries) caused isLoading to be
+    // stuck at true. The fix uses isLoading instead.
+    (global.fetch as jest.Mock).mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.featureImportance).toEqual(mockFeatureImportance);
+    expect(result.current.confusionMatrix).toBeUndefined();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should load both artifacts for classification runs (isClassification=true)', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.featureImportance).toEqual(mockFeatureImportance);
+    expect(result.current.confusionMatrix).toEqual(mockConfusionMatrix);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('should be disabled when namespace is missing', () => {
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery(undefined, 'models/best/', true),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.featureImportance).toBeUndefined();
+    expect(result.current.confusionMatrix).toBeUndefined();
+  });
+
+  it('should be disabled when modelDirectory is missing', () => {
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', undefined, true),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.featureImportance).toBeUndefined();
+    expect(result.current.confusionMatrix).toBeUndefined();
   });
 });
 /* eslint-enable camelcase */

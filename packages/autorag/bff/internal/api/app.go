@@ -62,6 +62,8 @@ type App struct {
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
+	// portForwardManager manages on-demand port-forwards for local dev (nil in production)
+	portForwardManager *k8s.PortForwardManager
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -130,6 +132,30 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	// LOCAL DEVELOPMENT ONLY: Enable dynamic port-forwarding when DevMode is true
+	// and a real K8s client is in use. This rewrites in-cluster service URLs
+	// (*.svc.cluster.local) to localhost via SPDY tunnels, eliminating the need
+	// for manual oc port-forward commands and /etc/hosts entries.
+	// Production deployments never set DevMode, so pfManager stays nil and all
+	// ForwardURL call sites in the middleware are no-ops.
+	// Uses the BFF's own kubeconfig credentials (not per-request user tokens)
+	// since port-forwards are long-lived and shared across requests.
+	var pfManager *k8s.PortForwardManager
+	if cfg.DevMode && !cfg.MockK8Client {
+		restCfg, pfErr := helper.GetKubeconfig()
+		if pfErr != nil {
+			logger.Warn("could not initialize dynamic port-forwarding", "error", pfErr)
+		} else {
+			clientset, csErr := kubernetes.NewForConfig(restCfg)
+			if csErr != nil {
+				logger.Warn("could not initialize dynamic port-forwarding", "error", csErr)
+			} else {
+				pfManager = k8s.NewPortForwardManager(restCfg, clientset, logger)
+				logger.Info("dynamic port-forwarding enabled — in-cluster URLs will be forwarded to localhost")
+			}
+		}
+	}
+
 	// Initialize LlamaStack client factory
 	var llamaStackClientFactory ls.LlamaStackClientFactory
 	if cfg.MockLSClient {
@@ -157,8 +183,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		s3ClientFactory = s3mocks.NewMockClientFactory()
 	} else {
 		logger.Info("Using real S3 client factory")
-		s3ClientOptions := s3int.S3ClientOptions{DevMode: cfg.DevMode}
-		s3ClientFactory = s3int.NewRealClientFactory(s3ClientOptions)
+		// TLS verification uses the operator-mounted CA bundles (rootCAs) so that
+		// self-signed MinIO certificates are validated properly rather than skipped.
+		// The RHOAI operator passes --bundle-paths with cluster CA, service-ca, and
+		// odh-trusted-ca-bundle paths, which are loaded into rootCAs above.
+		// HTTPS is always required; plain HTTP is rejected to prevent credentials
+		// from being transmitted in cleartext.
+		// RFC-1918 private IPs are allowed (MinIO runs in-cluster); loopback,
+		// link-local, and reserved ranges are always blocked.
+		s3ClientFactory = s3int.NewRealClientFactory(s3int.S3ClientOptions{
+			DevMode: cfg.DevMode,
+			RootCAs: rootCAs,
+		})
 	}
 
 	app := &App{
@@ -171,12 +207,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		repositories:                repositories.NewRepositories(logger),
 		testEnv:                     testEnv,
 		rootCAs:                     rootCAs,
+		portForwardManager:          pfManager,
 	}
 	return app, nil
 }
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+	if app.portForwardManager != nil {
+		app.portForwardManager.Close()
+	}
 	if app.testEnv == nil {
 		return nil
 	}
@@ -208,11 +248,11 @@ func (app *App) Routes() http.Handler {
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	// Minimal Kubernetes-backed starter endpoints
-	apiRouter.GET(UserPath, app.RequireAccessToService(app.UserHandler))
-	apiRouter.GET(NamespacePath, app.RequireAccessToService(app.GetNamespacesHandler))
+	apiRouter.GET(UserPath, app.UserHandler)
+	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 
 	// Secrets
-	apiRouter.GET(SecretsPath, app.AttachNamespace(app.RequireAccessToService(app.GetSecretsHandler)))
+	apiRouter.GET(SecretsPath, app.AttachNamespace(app.GetSecretsHandler))
 
 	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
 	// secretName (the handler resolves credentials directly in that case).
