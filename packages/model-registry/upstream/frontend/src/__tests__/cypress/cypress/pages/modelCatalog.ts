@@ -1,3 +1,4 @@
+import { modelCatalogUrl } from '~/__tests__/cypress/cypress/utils/modelCatalogTestRoutes';
 import { appChrome } from './appChrome';
 
 class ModelCatalogFilter {
@@ -32,13 +33,14 @@ class ModelCatalogFilter {
 
 class ModelCatalog {
   visit() {
-    cy.visit('/model-catalog');
+    cy.visit(modelCatalogUrl());
     this.wait();
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Catalog');
+    cy.findByText('Discover models that are available for your organization', {
+      exact: false,
+    }).should('exist');
     cy.testA11y();
   }
 

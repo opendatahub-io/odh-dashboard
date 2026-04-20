@@ -23,6 +23,18 @@ import { MODEL_REGISTRY_API_VERSION } from './commands/api';
 
 chai.use(chaiSubset);
 
+// In standalone mode we use BrowserRouter (not createBrowserRouter) because
+// createBrowserRouter crashes with Module Federation singleton sharing.
+// BrowserRouter doesn't support useBlocker, which mod-arch-shared's
+// NavigationBlockerModal uses. The modal is a UX guard for unsaved changes
+// and doesn't affect the actual edit/save logic being tested.
+Cypress.on('uncaught:exception', (err) => {
+  if (err.message.includes('useBlocker must be used within a data router')) {
+    return false;
+  }
+  return true;
+});
+
 Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
 });
