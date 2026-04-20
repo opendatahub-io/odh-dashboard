@@ -7,8 +7,9 @@ import {
 import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import { MODEL_CATALOG_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import { UseCaseOptionValue } from '~/concepts/modelCatalog/const';
+import { ModelDetailsTab, UseCaseOptionValue } from '~/concepts/modelCatalog/const';
 import { ModelRegistryMetadataType } from '~/app/types';
+import { catalogModelDetailsTabUrl } from '~/__tests__/cypress/cypress/utils/modelCatalogTestRoutes';
 import {
   setupModelCatalogIntercepts,
   interceptPerformanceArtifactsList,
@@ -79,13 +80,19 @@ describe('Model Catalog Details Tabs', () => {
         modelCatalog.findOverviewTab().should('have.attr', 'aria-selected', 'true');
         modelCatalog.findOverviewTabContent().should('be.visible');
         modelCatalog.findDetailsDescription().should('be.visible');
-        cy.url().should('include', '/model-catalog/source-2/validated-model/overview');
+        cy.url().should(
+          'include',
+          catalogModelDetailsTabUrl(ModelDetailsTab.OVERVIEW, 'validated-model', 'source-2'),
+        );
       });
 
       it('should switch to Performance Insights tab when clicked', () => {
         modelCatalog.findModelCatalogDetailLink().first().click();
 
-        cy.url().should('include', '/model-catalog/source-2/validated-model/overview');
+        cy.url().should(
+          'include',
+          catalogModelDetailsTabUrl(ModelDetailsTab.OVERVIEW, 'validated-model', 'source-2'),
+        );
 
         // Click Performance Insights tab
         modelCatalog.clickPerformanceInsightsTab();
@@ -94,13 +101,23 @@ describe('Model Catalog Details Tabs', () => {
         modelCatalog.findPerformanceInsightsTab().should('have.attr', 'aria-selected', 'true');
         modelCatalog.findOverviewTab().should('have.attr', 'aria-selected', 'false');
         modelCatalog.findPerformanceInsightsTabContent().should('be.visible');
-        cy.url().should('include', '/model-catalog/source-2/validated-model/performance-insights');
+        cy.url().should(
+          'include',
+          catalogModelDetailsTabUrl(
+            ModelDetailsTab.PERFORMANCE_INSIGHTS,
+            'validated-model',
+            'source-2',
+          ),
+        );
       });
 
       it('should switch back to Overview tab when clicked', () => {
         modelCatalog.findModelCatalogDetailLink().first().click();
 
-        cy.url().should('include', '/model-catalog/source-2/validated-model/overview');
+        cy.url().should(
+          'include',
+          catalogModelDetailsTabUrl(ModelDetailsTab.OVERVIEW, 'validated-model', 'source-2'),
+        );
 
         // First switch to Performance Insights
         modelCatalog.clickPerformanceInsightsTab();
@@ -111,7 +128,10 @@ describe('Model Catalog Details Tabs', () => {
         modelCatalog.findOverviewTab().should('have.attr', 'aria-selected', 'true');
         modelCatalog.findPerformanceInsightsTab().should('have.attr', 'aria-selected', 'false');
         modelCatalog.findOverviewTabContent().should('be.visible');
-        cy.url().should('include', '/model-catalog/source-2/validated-model/overview');
+        cy.url().should(
+          'include',
+          catalogModelDetailsTabUrl(ModelDetailsTab.OVERVIEW, 'validated-model', 'source-2'),
+        );
       });
     });
 
@@ -226,7 +246,10 @@ describe('Model Catalog Details Tabs', () => {
       it('should maintain tab state when switching between tabs', () => {
         modelCatalog.findModelCatalogDetailLink().first().click();
 
-        cy.url().should('include', '/model-catalog/source-2/validated-model/overview');
+        cy.url().should(
+          'include',
+          catalogModelDetailsTabUrl(ModelDetailsTab.OVERVIEW, 'validated-model', 'source-2'),
+        );
 
         // Switch to Performance Insights
         modelCatalog.clickPerformanceInsightsTab();

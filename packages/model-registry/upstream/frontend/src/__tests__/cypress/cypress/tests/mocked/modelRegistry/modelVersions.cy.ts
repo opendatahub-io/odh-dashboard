@@ -9,6 +9,12 @@ import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import { MODEL_REGISTRY_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
+import {
+  modelRegistryUrl,
+  modelVersionListUrl,
+  modelVersionUrl,
+  registeredModelUrl,
+} from '~/app/pages/modelRegistry/screens/routeUtils';
 
 type HandlersProps = {
   registeredModelsSize?: number;
@@ -142,7 +148,7 @@ describe('Model Versions', () => {
     modelRegistry.visit();
     const registeredModelRow = modelRegistry.getRow('Fraud detection model');
     registeredModelRow.findName().contains('Fraud detection model').click();
-    verifyRelativeURL(`/model-registry/modelregistry-sample/registered-models/1/overview`);
+    verifyRelativeURL(`${registeredModelUrl('1', 'modelregistry-sample')}/overview`);
 
     modelRegistry.shouldModelVersionsEmpty();
   });
@@ -155,9 +161,9 @@ describe('Model Versions', () => {
     modelRegistry.visit();
     const registeredModelRow = modelRegistry.getRow('Fraud detection model');
     registeredModelRow.findName().contains('Fraud detection model').click();
-    verifyRelativeURL(`/model-registry/modelregistry-sample/registered-models/1/overview`);
+    verifyRelativeURL(`${registeredModelUrl('1', 'modelregistry-sample')}/overview`);
     cy.go('back');
-    verifyRelativeURL(`/model-registry/modelregistry-sample`);
+    verifyRelativeURL(modelRegistryUrl('modelregistry-sample'));
     registeredModelRow.findName().contains('Fraud detection model').should('exist');
   });
 
@@ -176,7 +182,7 @@ describe('Model Versions', () => {
     //cy.reload();
     const registeredModelRow = modelRegistry.getRow('Fraud detection model');
     registeredModelRow.findName().contains('Fraud detection model').click();
-    verifyRelativeURL(`/model-registry/modelregistry-sample/registered-models/1/overview`);
+    verifyRelativeURL(`${registeredModelUrl('1', 'modelregistry-sample')}/overview`);
     modelRegistry.findModelBreadcrumbItem().contains('test');
 
     // Navigate to versions tab
@@ -264,12 +270,10 @@ describe('Model Versions', () => {
     cy.findByTestId('model-versions-tab').click();
     const modelVersionRow = modelRegistry.getModelVersionRow('model version');
     modelVersionRow.findModelVersionName().contains('model version').click();
-    verifyRelativeURL(
-      '/model-registry/modelregistry-sample/registered-models/1/versions/1/details',
-    );
+    verifyRelativeURL(`${modelVersionUrl('1', '1', 'modelregistry-sample')}/details`);
     cy.findByTestId('app-page-title').should('contain.text', 'test');
     cy.findByTestId('breadcrumb-version-name').should('have.text', 'model version');
     cy.go('back');
-    verifyRelativeURL('/model-registry/modelregistry-sample/registered-models/1/versions');
+    verifyRelativeURL(modelVersionListUrl('1', 'modelregistry-sample'));
   });
 });
