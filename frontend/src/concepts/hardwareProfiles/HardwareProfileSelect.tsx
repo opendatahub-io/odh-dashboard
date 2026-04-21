@@ -151,6 +151,17 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 />
               </StackItem>
             )}
+            {profile.spec.scheduling?.kueue?.localQueueName && (
+              <StackItem>
+                <Truncate
+                  content={`Local queue: ${profile.spec.scheduling.kueue.localQueueName}${
+                    profile.spec.scheduling.kueue.priorityClass
+                      ? `, Priority: ${profile.spec.scheduling.kueue.priorityClass}`
+                      : ''
+                  }`}
+                />
+              </StackItem>
+            )}
           </Stack>
         ),
         dropdownLabel: (
@@ -218,6 +229,17 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                       ),
                     )
                     .join('; ')}
+                />
+              </StackItem>
+            )}
+            {profile.spec.scheduling?.kueue?.localQueueName && (
+              <StackItem>
+                <Truncate
+                  content={`Local queue: ${profile.spec.scheduling.kueue.localQueueName}${
+                    profile.spec.scheduling.kueue.priorityClass
+                      ? `, Priority: ${profile.spec.scheduling.kueue.priorityClass}`
+                      : ''
+                  }`}
                 />
               </StackItem>
             )}
@@ -328,6 +350,19 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                         }
                       />
                     </HelperTextItem>
+                    {(() => {
+                      const kueue = hardwareProfileConfig.selectedProfile.spec.scheduling?.kueue;
+                      if (!kueue?.localQueueName) {
+                        return null;
+                      }
+                      return (
+                        <HelperTextItem>
+                          {`Local queue: ${kueue.localQueueName}${
+                            kueue.priorityClass ? `, Priority: ${kueue.priorityClass}` : ''
+                          }`}
+                        </HelperTextItem>
+                      );
+                    })()}
                   </HelperText>
                 </FormHelperText>
               ) : hardwareProfileConfig.useExistingSettings ? (
