@@ -110,6 +110,7 @@ export const MOCK_SCENARIOS: MockScenario[] = [
         component: 'rag',
         code: 'unreachable',
         message: '{"error": "vector store product-docs unreachable at pgvector:5432"}',
+        retriable: false,
       },
     },
     partialResponse:
@@ -122,6 +123,7 @@ export const MOCK_SCENARIOS: MockScenario[] = [
         component: 'rag',
         code: 'embedding_failure',
         message: '{"error": "embedding model granite-125m returned 503"}',
+        retriable: false,
       },
     },
     partialResponse:
@@ -135,6 +137,7 @@ export const MOCK_SCENARIOS: MockScenario[] = [
         code: 'no_results',
         message:
           '{"info": "0 chunks returned from collection product-docs, similarity threshold 0.7"}',
+        retriable: false,
       },
     },
     partialResponse:
@@ -147,6 +150,7 @@ export const MOCK_SCENARIOS: MockScenario[] = [
         component: 'guardrails',
         code: 'content_flagged',
         message: '{"flagged_categories": ["violence"], "action": "warn", "confidence": 0.82}',
+        retriable: false,
       },
     },
     partialResponse:
@@ -159,6 +163,7 @@ export const MOCK_SCENARIOS: MockScenario[] = [
         component: 'guardrails',
         code: 'service_down',
         message: '{"error": "guardrail service at localhost:8089 returned 503"}',
+        retriable: false,
       },
     },
     partialResponse:
@@ -173,6 +178,7 @@ export const MOCK_SCENARIOS: MockScenario[] = [
         message: '{"error": "MCP server jira: connection timeout after 10s"}',
         // eslint-disable-next-line camelcase
         tool_name: 'Jira',
+        retriable: false,
       },
     },
     partialResponse:
@@ -187,6 +193,7 @@ export const MOCK_SCENARIOS: MockScenario[] = [
         message: '{"error": "MCP server kubernetes: 401 Unauthorized"}',
         // eslint-disable-next-line camelcase
         tool_name: 'Kubernetes',
+        retriable: false,
       },
     },
     partialResponse:
@@ -201,6 +208,7 @@ export const MOCK_SCENARIOS: MockScenario[] = [
         message: '{"error": "MCP tool slack.post_message failed: channel not found"}',
         // eslint-disable-next-line camelcase
         tool_name: 'Slack',
+        retriable: false,
       },
     },
     partialResponse:
