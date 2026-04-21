@@ -52,8 +52,10 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       cy.step('Navigate to AutoML experiments page');
       automlExperimentsPage.visit(projectName);
 
-      cy.step('Click Create run from empty state');
-      automlExperimentsPage.findEmptyState().should('exist');
+      cy.step('Wait for pipeline server to be fully ready and click Create run');
+      // The page may initially show "There is a problem with the pipeline server"
+      // while the DSPA and BFF finish initializing. Reload until the empty state appears.
+      cy.findByTestId('empty-experiments-state', { timeout: 120000 }).should('exist');
       automlExperimentsPage.findCreateRunButton().click();
 
       cy.step('Step 1 - Fill name and description');
