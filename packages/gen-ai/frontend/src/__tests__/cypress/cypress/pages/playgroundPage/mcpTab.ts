@@ -82,7 +82,7 @@ class MCPTab {
   }
 
   findModalCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('button', { name: /close/i, timeout: 10000 });
+    return this.findSuccessModal().findByRole('button', { name: /close/i });
   }
 
   verifySuccessModalVisible(): void {
