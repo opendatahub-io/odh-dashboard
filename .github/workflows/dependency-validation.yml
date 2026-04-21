@@ -5,6 +5,12 @@ on:
     paths:
       - "package.json"
       - "package-lock.json"
+      - "packages/*/frontend/package.json"
+      - "packages/*/frontend/package-lock.json"
+      - "packages/*/upstream/frontend/package.json"
+      - "packages/*/upstream/frontend/package-lock.json"
+      - "packages/*/upstream/workspaces/frontend/package.json"
+      - "packages/*/upstream/workspaces/frontend/package-lock.json"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -18,9 +24,44 @@ env:
   NODE_VERSION: 22.x
 
 jobs:
-  audit:
+  detect-dirs:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-audit') }}
+    outputs:
+      dirs: ${{ steps.dirs.outputs.dirs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed package directories
+        id: dirs
+        run: |
+          CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..HEAD -- \
+            'package.json' 'package-lock.json' \
+            'packages/*/frontend/package.json' 'packages/*/frontend/package-lock.json' \
+            'packages/*/upstream/frontend/package.json' 'packages/*/upstream/frontend/package-lock.json' \
+            'packages/*/upstream/workspaces/frontend/package.json' 'packages/*/upstream/workspaces/frontend/package-lock.json')
+
+          DIRS="[]"
+          if echo "$CHANGED" | grep -qE '^package(-lock)?\.json$'; then
+            DIRS=$(echo "$DIRS" | jq '. + ["."]')
+          fi
+
+          for dir in $(echo "$CHANGED" | grep -oE '^packages/[^/]+(/upstream)?(/workspaces)?/frontend' | sort -u); do
+            DIRS=$(echo "$DIRS" | jq --arg d "$dir" '. + [$d]')
+          done
+
+          echo "dirs=$DIRS" >> "$GITHUB_OUTPUT"
+          echo "Directories to audit: $DIRS"
+
+  audit:
+    needs: detect-dirs
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-audit') && needs.detect-dirs.outputs.dirs != '[]' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: ${{ fromJSON(needs.detect-dirs.outputs.dirs) }}
     steps:
       - name: Checkout PR head
         uses: actions/checkout@v4
@@ -32,9 +73,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        working-directory: ${{ matrix.dir }}
 
       - name: Run npm audit
         id: audit
+        working-directory: ${{ matrix.dir }}
         run: |
           set +e
           npm audit --audit-level=high --json > audit-head.json 2>&1
@@ -59,15 +102,15 @@ jobs:
       - name: Run npm audit on base
         id: audit-base
         run: |
-          cd base
+          cd base/${{ matrix.dir }}
           npm ci
           set +e
-          npm audit --audit-level=high --json > ../audit-base.json 2>&1
+          npm audit --audit-level=high --json > audit-base.json 2>&1
           set -e
 
-          HIGH=$(jq '.metadata.vulnerabilities.high // 0' ../audit-base.json)
-          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' ../audit-base.json)
-          TOTAL=$(jq '.metadata.vulnerabilities.total // 0' ../audit-base.json)
+          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-base.json)
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-base.json)
+          TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit-base.json)
 
           echo "high=$HIGH" >> "$GITHUB_OUTPUT"
           echo "critical=$CRITICAL" >> "$GITHUB_OUTPUT"
@@ -76,7 +119,7 @@ jobs:
       - name: Fail if new high/critical CVEs introduced
         if: fromJSON(steps.audit.outputs.high) > fromJSON(steps.audit-base.outputs.high) || fromJSON(steps.audit.outputs.critical) > fromJSON(steps.audit-base.outputs.critical)
         run: |
-          echo "::error::This PR introduces new high/critical vulnerabilities."
+          echo "::error::PR introduces new high/critical vulnerabilities in ${{ matrix.dir }}."
           echo "Base: ${{ steps.audit-base.outputs.high }} high, ${{ steps.audit-base.outputs.critical }} critical"
           echo "Head: ${{ steps.audit.outputs.high }} high, ${{ steps.audit.outputs.critical }} critical"
           exit 1
