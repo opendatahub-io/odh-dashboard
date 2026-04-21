@@ -95,6 +95,12 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
+      cy.step('Clean up test models from any previous retry attempts');
+      cleanupRegisteredModelsFromDatabase(
+        [objectStorageModelName, testData.uriModelName],
+        databaseName,
+      );
+
       cy.step('Navigate to Model Registry');
       modelRegistry.visit(registryName);
 

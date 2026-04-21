@@ -387,37 +387,96 @@ jobs:
           echo "auto_tags=$AUTO_TAGS" >> $GITHUB_OUTPUT
 
           # --- BFF Package Detection ---
-          # Detect changed packages that have bffConfig.enabled=true
+          # Detect packages that need their BFF started, based on:
+          #   1. Changed packages with bffConfig.enabled (Turbo detection)
+          #   2. Any package whose e2eCiTags match tags from labels, manual input,
+          #      or auto-detection — ensures BFFs start even when only test files changed
           echo ""
           echo "🔍 Detecting BFF packages to start..."
           BFF_PACKAGES="[]"
+          BFF_ADDED_NAMES=""
 
+          # Collect all tags that will appear in the matrix (from every source)
+          ALL_MATRIX_TAGS="$AUTO_TAGS"
+          if [[ -n "${{ inputs.additional_tags }}" ]]; then
+            for tag in $(echo "${{ inputs.additional_tags }}" | tr ',' ' '); do
+              ALL_MATRIX_TAGS="$ALL_MATRIX_TAGS $tag"
+            done
+          fi
+          if [[ -n "${{ steps.labels.outputs.labels }}" ]]; then
+            for label in $(echo "${{ steps.labels.outputs.labels }}" | tr ',' ' '); do
+              if [[ "$label" == test:* ]]; then
+                tag="@${label#test:}"
+                tag="${tag#@}"
+                tag="@$tag"
+                ALL_MATRIX_TAGS="$ALL_MATRIX_TAGS $tag"
+              fi
+            done
+          fi
+          ALL_MATRIX_TAGS=$(echo "$ALL_MATRIX_TAGS" | tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+
+          # Helper: add a BFF-enabled package to BFF_PACKAGES (skips duplicates)
+          add_bff_package() {
+            local pkg_dir="$1"
+            local reason="$2"
+            local pkg_name pkg_dir_name bff_port bff_health bff_cmd
+
+            pkg_name=$(jq -r '.name // empty' "$pkg_dir/package.json" 2>/dev/null)
+
+            # Skip if already added
+            if echo " $BFF_ADDED_NAMES " | grep -q " $pkg_name "; then
+              return
+            fi
+
+            bff_port=$(jq -r '.bffConfig.port // 4000' "$pkg_dir/package.json" 2>/dev/null)
+            bff_health=$(jq -r '.bffConfig.healthEndpoint // "/api/health"' "$pkg_dir/package.json" 2>/dev/null)
+            bff_cmd=$(jq -r '.bffConfig.startCommandCluster // .bffConfig.startCommand' "$pkg_dir/package.json" 2>/dev/null)
+            pkg_dir_name=$(basename "$pkg_dir")
+
+            echo "  ✅ $pkg_name (port: $bff_port, health: $bff_health) [$reason]"
+
+            BFF_PACKAGES=$(echo "$BFF_PACKAGES" | jq -c \
+              --arg name "$pkg_name" --arg dir "$pkg_dir_name" \
+              --arg port "$bff_port" --arg health "$bff_health" --arg cmd "$bff_cmd" \
+              '. + [{"name": $name, "dir": $dir, "port": ($port | tonumber), "healthEndpoint": $health, "startCommand": $cmd}]')
+            BFF_ADDED_NAMES="$BFF_ADDED_NAMES $pkg_name"
+          }
+
+          # Source 1: Changed packages detected by Turbo
           if [[ -n "$CHANGED_PACKAGES" ]]; then
             for pkg_dir in packages/*/; do
               pkg_name=$(jq -r '.name // empty' "$pkg_dir/package.json" 2>/dev/null)
-
-              # Check if this package changed
               if echo "$CHANGED_PACKAGES" | grep -qx "$pkg_name"; then
-                # Check if package has bffConfig with enabled=true
                 bff_enabled=$(jq -r '.bffConfig.enabled // false' "$pkg_dir/package.json" 2>/dev/null)
-
                 if [[ "$bff_enabled" == "true" ]]; then
-                  bff_port=$(jq -r '.bffConfig.port // 4000' "$pkg_dir/package.json" 2>/dev/null)
-                  bff_health=$(jq -r '.bffConfig.healthEndpoint // "/api/health"' "$pkg_dir/package.json" 2>/dev/null)
-                  bff_cmd=$(jq -r '.bffConfig.startCommandCluster // .bffConfig.startCommand' "$pkg_dir/package.json" 2>/dev/null)
-                  pkg_dir_name=$(basename "$pkg_dir")
-
-                  echo "  ✅ $pkg_name (port: $bff_port, health: $bff_health)"
-
-                  # Add to JSON array
-                  BFF_PACKAGES=$(echo "$BFF_PACKAGES" | jq -c --arg name "$pkg_name" --arg dir "$pkg_dir_name" --arg port "$bff_port" --arg health "$bff_health" --arg cmd "$bff_cmd" '. + [{"name": $name, "dir": $dir, "port": ($port | tonumber), "healthEndpoint": $health, "startCommand": $cmd}]')
+                  add_bff_package "$pkg_dir" "changed"
                 fi
               fi
             done
           fi
 
+          # Source 2: Packages whose e2eCiTags match any tag in the matrix
+          # This covers label-triggered and manual-input tags that don't correspond
+          # to Turbo-detected changes (e.g. test:ModelRegistryCI label on a PR that
+          # only modifies cypress test files).
+          if [[ -n "$ALL_MATRIX_TAGS" ]]; then
+            for pkg_dir in packages/*/; do
+              bff_enabled=$(jq -r '.bffConfig.enabled // false' "$pkg_dir/package.json" 2>/dev/null)
+              if [[ "$bff_enabled" != "true" ]]; then
+                continue
+              fi
+              ci_tags=$(jq -r '.e2eCiTags[]? // empty' "$pkg_dir/package.json" 2>/dev/null)
+              for ci_tag in $ci_tags; do
+                if echo "$ALL_MATRIX_TAGS" | tr ' ' '\n' | grep -qx "$ci_tag"; then
+                  add_bff_package "$pkg_dir" "tag-match: $ci_tag"
+                  break
+                fi
+              done
+            done
+          fi
+
           if [[ "$BFF_PACKAGES" == "[]" ]]; then
-            echo "  ℹ️  No BFF packages detected for this change"
+            echo "  ℹ️  No BFF packages detected"
           fi
 
           echo "bff_packages=$BFF_PACKAGES" >> $GITHUB_OUTPUT
