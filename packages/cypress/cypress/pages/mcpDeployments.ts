@@ -171,19 +171,15 @@ class McpDeployModal {
   }
 
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByTestId('mcp-deploy-submit-button');
+    return this.findModal().findByTestId('modal-submit-button');
   }
 
   findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByTestId('mcp-deploy-close-button');
-  }
-
-  findResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByTestId('mcp-deploy-reset-button');
+    return this.findModal().findByTestId('modal-cancel-button');
   }
 
   findSubmitError(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByTestId('mcp-deploy-submit-error');
+    return this.findModal().findByTestId('error-message-alert');
   }
 
   findLoadError(): Cypress.Chainable<JQuery<HTMLElement>> {
