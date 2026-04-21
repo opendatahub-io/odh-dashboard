@@ -25,9 +25,9 @@ jobs:
         id: pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          REPO: ${{ github.repository }}
         run: |
-          HEAD_BRANCH="${{ github.event.workflow_run.head_branch }}"
-
           if [[ ! "$HEAD_BRANCH" =~ ^dependabot/ ]]; then
             echo "Not a Dependabot branch, skipping"
             exit 0
@@ -36,7 +36,7 @@ jobs:
           PR_NUMBER=$(gh pr list \
             --head "$HEAD_BRANCH" \
             --json number,author --jq '.[] | select(.author.login == "dependabot[bot]") | .number' \
-            --repo "${{ github.repository }}" | head -1)
+            --repo "$REPO" | head -1)
 
           if [ -z "$PR_NUMBER" ]; then
             echo "No Dependabot PR found for branch $HEAD_BRANCH"
@@ -49,12 +49,12 @@ jobs:
         if: steps.pr.outputs.number
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPO: ${{ github.repository }}
         run: |
-          HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
-
           # The combined status API merges both check runs (GitHub Actions)
           # and commit statuses (Prow) into a single verdict.
-          COMBINED=$(gh api "repos/${{ github.repository }}/commits/${HEAD_SHA}/status" \
+          COMBINED=$(gh api "repos/${REPO}/commits/${HEAD_SHA}/status" \
             --jq '.state')
 
           echo "Combined commit status: $COMBINED"
@@ -81,9 +81,8 @@ jobs:
         if: steps.checks.outputs.ready == 'true' && steps.metadata.outputs.update-type == 'version-update:semver-patch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          REPO: ${{ github.repository }}
         run: |
-          PR_NUMBER="${{ steps.pr.outputs.number }}"
-          REPO="${{ github.repository }}"
-
           gh pr edit "$PR_NUMBER" --repo "$REPO" \
             --add-label "lgtm,approved"
