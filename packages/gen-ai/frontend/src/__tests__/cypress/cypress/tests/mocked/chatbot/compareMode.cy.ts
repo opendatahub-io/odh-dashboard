@@ -92,11 +92,30 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
 
   describe('Enter Compare Mode', () => {
     it(
-      'should show confirmation modal when clicking Compare chat button',
-      { tags: ['@GenAI', '@Chatbot', '@CompareMode', '@Modal'] },
+      'should enter compare mode directly when no messages exist',
+      { tags: ['@GenAI', '@Chatbot', '@CompareMode'] },
       () => {
         cy.step('Verify compare button is visible');
         chatbotPage.findCompareChatButton().should('be.visible');
+
+        cy.step('Click compare chat button with no user messages');
+        chatbotPage.clickCompareChatButton();
+
+        cy.step('Verify no modal appears');
+        cy.findByTestId('compare-chat-modal').should('not.exist');
+
+        cy.step('Verify entered compare mode directly');
+        chatbotPage.verifyInCompareMode();
+      },
+    );
+
+    it(
+      'should show confirmation modal when messages exist',
+      { tags: ['@GenAI', '@Chatbot', '@CompareMode', '@Modal'] },
+      () => {
+        cy.step('Send a message to create chat history');
+        chatbotPage.sendMessage('Hello');
+        cy.wait('@createResponse');
 
         cy.step('Click compare chat button');
         chatbotPage.clickCompareChatButton();
@@ -121,6 +140,10 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
       'should not enter compare mode when cancel is clicked',
       { tags: ['@GenAI', '@Chatbot', '@CompareMode', '@Modal'] },
       () => {
+        cy.step('Send a message to create chat history');
+        chatbotPage.sendMessage('Hello');
+        cy.wait('@createResponse');
+
         cy.step('Click compare chat button');
         chatbotPage.clickCompareChatButton();
 
@@ -143,6 +166,10 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
       'should enter compare mode with two panes when confirmed',
       { tags: ['@GenAI', '@Chatbot', '@CompareMode', '@E2E'] },
       () => {
+        cy.step('Send a message to create chat history');
+        chatbotPage.sendMessage('Hello');
+        cy.wait('@createResponse');
+
         cy.step('Click compare chat button');
         chatbotPage.clickCompareChatButton();
 
@@ -171,10 +198,8 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
 
   describe('Compare Mode UI', () => {
     beforeEach(() => {
-      // Enter compare mode before each UI test
+      // Enter compare mode directly (no messages, no modal)
       chatbotPage.clickCompareChatButton();
-      const compareChatModal = new CompareChatModal();
-      compareChatModal.findConfirmButton().click();
       chatbotPage.verifyInCompareMode();
     });
 
@@ -217,10 +242,8 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
 
   describe('Settings Panel Isolation', () => {
     beforeEach(() => {
-      // Enter compare mode
+      // Enter compare mode directly (no messages, no modal)
       chatbotPage.clickCompareChatButton();
-      const compareChatModal = new CompareChatModal();
-      compareChatModal.findConfirmButton().click();
       chatbotPage.verifyInCompareMode();
     });
 
@@ -253,10 +276,8 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
 
   describe('Message Sending', () => {
     beforeEach(() => {
-      // Enter compare mode
+      // Enter compare mode directly (no messages, no modal)
       chatbotPage.clickCompareChatButton();
-      const compareChatModal = new CompareChatModal();
-      compareChatModal.findConfirmButton().click();
       chatbotPage.verifyInCompareMode();
     });
 
@@ -286,10 +307,8 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
 
   describe('Exit Compare Mode', () => {
     beforeEach(() => {
-      // Enter compare mode
+      // Enter compare mode directly (no messages, no modal)
       chatbotPage.clickCompareChatButton();
-      const compareChatModal = new CompareChatModal();
-      compareChatModal.findConfirmButton().click();
       chatbotPage.verifyInCompareMode();
     });
 
@@ -326,10 +345,8 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
 
   describe('View Code in Compare Mode', () => {
     beforeEach(() => {
-      // Enter compare mode
+      // Enter compare mode directly (no messages, no modal)
       chatbotPage.clickCompareChatButton();
-      const compareChatModal = new CompareChatModal();
-      compareChatModal.findConfirmButton().click();
       chatbotPage.verifyInCompareMode();
     });
 
