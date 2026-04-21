@@ -12,30 +12,32 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import {
-  CalendarAltIcon,
-  ClipboardListIcon,
-  OutlinedClockIcon,
-  ProjectDiagramIcon,
-} from '@patternfly/react-icons';
+import { CalendarAltIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import { evaluationsBaseRoute } from '~/app/routes';
 import { useEvaluationJob } from '~/app/hooks/useEvaluationJob';
+import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
+import useDarkMode from '~/app/hooks/useDarkMode';
+import aiModelIconDark from '~/app/bgimages/ai-model-white.svg';
+import aiModelIconLight from '~/app/bgimages/ai-model.svg';
+import paperStackIconDark from '~/app/bgimages/paper-stack-lined-white.svg';
+import paperStackIconLight from '~/app/bgimages/paper-stack-lined-black.svg';
 import {
   formatDate,
   formatDuration,
   getBenchmarkName,
-  getBenchmarkResultScore,
   getEvaluationName,
   getJobBenchmarks,
   getResultScore,
 } from '~/app/utilities/evaluationUtils';
 import BenchmarkResultCard from '~/app/components/BenchmarkResultCard';
 import BenchmarkResultDetails from '~/app/components/BenchmarkResultDetails';
-import InlineHelpIcon from '~/app/components/InlineHelpIcon';
+import LabelHelpPopover from '~/app/components/LabelHelpPopover';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 interface MlflowRunTabsProps {
   experimentId: string;
@@ -61,60 +63,77 @@ const EvaluationResultsPage: React.FC = () => {
     config: { deploymentMode },
   } = useModularArchContext();
 
-  const benchmarkIds = React.useMemo(
-    () => (job ? getJobBenchmarks(job).map((b) => b.id) : []),
-    [job],
+  const benchmarks = React.useMemo(() => (job ? getJobBenchmarks(job) : []), [job]);
+
+  // Composite key = "id:benchmark_index" when index is present, else "id:listIndex".
+  // Guarantees uniqueness even when the same benchmark id appears multiple times.
+  const benchmarkKeys = React.useMemo(
+    () => benchmarks.map((b, i) => `${b.id}:${b.benchmark_index ?? i}`),
+    [benchmarks],
   );
 
-  const [selectedBenchmarkId, setSelectedBenchmarkId] = React.useState<string | null>(null);
+  const isDarkMode = useDarkMode();
+  const { collectionNameMap } = useCollectionNameMap();
+  const [selectedBenchmarkKey, setSelectedBenchmarkKey] = React.useState<string | null>(null);
   const [showAllBenchmarks, setShowAllBenchmarks] = React.useState(false);
 
   React.useEffect(() => {
-    if (benchmarkIds.length > 0) {
-      setSelectedBenchmarkId((prev) =>
-        prev === null || !benchmarkIds.includes(prev) ? benchmarkIds[0] : prev,
+    if (benchmarkKeys.length > 0) {
+      setSelectedBenchmarkKey((prev) =>
+        prev === null || !benchmarkKeys.includes(prev) ? benchmarkKeys[0] : prev,
       );
     } else {
-      setSelectedBenchmarkId(null);
+      setSelectedBenchmarkKey(null);
     }
     setShowAllBenchmarks(false);
-  }, [benchmarkIds]);
+  }, [benchmarkKeys]);
 
-  const visibleBenchmarkIds = showAllBenchmarks
-    ? benchmarkIds
-    : benchmarkIds.slice(0, DEFAULT_VISIBLE_BENCHMARKS);
+  const visibleBenchmarks = showAllBenchmarks
+    ? benchmarks
+    : benchmarks.slice(0, DEFAULT_VISIBLE_BENCHMARKS);
 
-  const hiddenCount = Math.max(0, benchmarkIds.length - DEFAULT_VISIBLE_BENCHMARKS);
+  const hiddenCount = Math.max(0, benchmarks.length - DEFAULT_VISIBLE_BENCHMARKS);
 
   const evaluationName = job ? getEvaluationName(job) : '';
   const duration = job
     ? formatDuration(job.resource.created_at, job.resource.updated_at)
     : undefined;
 
+  // Resolve the selected benchmark object from the composite key.
+  const selectedBenchmark = React.useMemo(() => {
+    if (!selectedBenchmarkKey) {
+      return undefined;
+    }
+    const idx = benchmarkKeys.indexOf(selectedBenchmarkKey);
+    return idx >= 0 ? benchmarks[idx] : undefined;
+  }, [selectedBenchmarkKey, benchmarkKeys, benchmarks]);
+
   const scoreDisplay = React.useMemo(() => {
     if (!job) {
       return '-';
     }
-    if (selectedBenchmarkId && benchmarkIds.length > 1) {
-      return getBenchmarkResultScore(job, selectedBenchmarkId);
-    }
     return getResultScore(job);
-  }, [job, selectedBenchmarkId, benchmarkIds.length]);
+  }, [job]);
 
   const mlflowExperimentId = job?.resource.mlflow_experiment_id;
   const mlflowRunId = React.useMemo(() => {
-    if (!selectedBenchmarkId || !job?.results.benchmarks) {
+    if (!selectedBenchmark || !job?.results.benchmarks) {
       return undefined;
     }
-    return job.results.benchmarks.find((b) => b.id === selectedBenchmarkId)?.mlflow_run_id;
-  }, [selectedBenchmarkId, job?.results.benchmarks]);
+    return job.results.benchmarks.find(
+      (b) =>
+        b.id === selectedBenchmark.id &&
+        (selectedBenchmark.benchmark_index === undefined ||
+          b.benchmark_index === selectedBenchmark.benchmark_index),
+    )?.mlflow_run_id;
+  }, [selectedBenchmark, job?.results.benchmarks]);
 
   const mlflowRunTabsKey = React.useMemo(() => {
-    if (!mlflowExperimentId || !mlflowRunId || !selectedBenchmarkId) {
+    if (!mlflowExperimentId || !mlflowRunId || !selectedBenchmarkKey) {
       return undefined;
     }
-    return `${namespace ?? ''}:${mlflowExperimentId}:${selectedBenchmarkId}:${mlflowRunId}`;
-  }, [namespace, mlflowExperimentId, mlflowRunId, selectedBenchmarkId]);
+    return `${namespace ?? ''}:${mlflowExperimentId}:${selectedBenchmarkKey}:${mlflowRunId}`;
+  }, [namespace, mlflowExperimentId, mlflowRunId, selectedBenchmarkKey]);
 
   const metadataRow = job ? (
     <Flex
@@ -135,22 +154,26 @@ const EvaluationResultsPage: React.FC = () => {
       )}
       <FlexItem>
         <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-          <ProjectDiagramIcon
+          <img
+            src={isDarkMode ? aiModelIconDark : aiModelIconLight}
+            alt=""
+            aria-hidden="true"
             className="pf-v6-u-mr-xs"
-            style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
+            style={{ width: '1em', height: '1em', verticalAlign: '-0.125em' }}
           />
           {job.model.name}
         </Content>
       </FlexItem>
       <FlexItem>
         <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-          <ClipboardListIcon
+          <img
+            src={isDarkMode ? paperStackIconDark : paperStackIconLight}
+            alt=""
+            aria-hidden="true"
             className="pf-v6-u-mr-xs"
-            style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
+            style={{ width: '1em', height: '1em', verticalAlign: '-0.125em' }}
           />
-          {job.collection?.id
-            ? `${job.collection.id} (${getJobBenchmarks(job).length} benchmarks)`
-            : getBenchmarkName(job)}
+          {getBenchmarkName(job, collectionNameMap)}
         </Content>
       </FlexItem>
       {duration && (
@@ -206,7 +229,7 @@ const EvaluationResultsPage: React.FC = () => {
                 <Content component="h3">Evaluation score</Content>
               </FlexItem>
               <FlexItem>
-                <InlineHelpIcon
+                <LabelHelpPopover
                   ariaLabel="About evaluation score"
                   content="The overall score aggregated across all benchmarks in this evaluation run."
                 />
@@ -218,21 +241,32 @@ const EvaluationResultsPage: React.FC = () => {
           </div>
 
           {/* Benchmark cards grid (shown whenever there are multiple benchmarks) */}
-          {benchmarkIds.length > 1 && (
+          {benchmarks.length > 1 && (
             <div className="pf-v6-u-mb-lg" data-testid="benchmarks-grid">
               <Title headingLevel="h3" className="pf-v6-u-mb-md">
                 Benchmarks
               </Title>
               <Gallery hasGutter minWidths={{ default: '250px' }}>
-                {visibleBenchmarkIds.map((id) => (
-                  <BenchmarkResultCard
-                    key={id}
-                    benchmarkId={id}
-                    job={job}
-                    isSelected={selectedBenchmarkId === id}
-                    onClick={() => setSelectedBenchmarkId(id)}
-                  />
-                ))}
+                {visibleBenchmarks.map((benchmark, i) => {
+                  const cardKey = benchmarkKeys[i];
+                  return (
+                    <BenchmarkResultCard
+                      key={cardKey}
+                      benchmarkId={benchmark.id}
+                      benchmarkIndex={benchmark.benchmark_index}
+                      job={job}
+                      isSelected={selectedBenchmarkKey === cardKey}
+                      onClick={() => {
+                        setSelectedBenchmarkKey(cardKey);
+                        fireMiscTrackingEvent(EVAL_HUB_EVENTS.RESULT_BENCHMARK_CARD_SELECTED, {
+                          benchmarkId: benchmark.id,
+                          evaluationName,
+                          collectionName: job.collection?.id,
+                        });
+                      }}
+                    />
+                  );
+                })}
               </Gallery>
               {!showAllBenchmarks && hiddenCount > 0 && (
                 <Button
@@ -248,8 +282,12 @@ const EvaluationResultsPage: React.FC = () => {
           )}
 
           {/* Selected benchmark summary (primary metric + threshold) */}
-          {selectedBenchmarkId && (
-            <BenchmarkResultDetails benchmarkId={selectedBenchmarkId} job={job} />
+          {selectedBenchmark && (
+            <BenchmarkResultDetails
+              benchmarkId={selectedBenchmark.id}
+              benchmarkIndex={selectedBenchmark.benchmark_index ?? 0}
+              job={job}
+            />
           )}
 
           {/* MLflow run tabs for the selected benchmark */}

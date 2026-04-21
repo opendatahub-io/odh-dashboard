@@ -64,6 +64,7 @@ const setupMocks = (): void => {
 
 // Helper to create default hook props
 const createDefaultHookProps = (overrides?: {
+  configId?: string;
   modelId?: string;
   systemInstruction?: string;
   isRawUploaded?: boolean;
@@ -74,6 +75,7 @@ const createDefaultHookProps = (overrides?: {
   subscription?: string;
 }) => ({
   ...defaultMcpProps,
+  configId: 'default',
   modelId: mockModelId,
   systemInstruction: '',
   isRawUploaded: true,

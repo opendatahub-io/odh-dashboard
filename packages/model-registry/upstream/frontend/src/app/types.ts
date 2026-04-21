@@ -1,4 +1,5 @@
 import { APIOptions } from 'mod-arch-core';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
 import { ModelSourceProperties } from '../concepts/modelRegistry/types';
 
 export enum ModelState {
@@ -218,7 +219,10 @@ export type PatchModelArtifact = (
   modelartifactId: string,
 ) => Promise<ModelArtifact>;
 
-export type GetListModelTransferJobs = (opts: APIOptions) => Promise<ModelTransferJobList>;
+export type GetListModelTransferJobs = (
+  opts: APIOptions,
+  jobNamespace?: string,
+) => Promise<ModelTransferJobList>;
 
 export type CreateModelTransferJob = (
   opts: APIOptions,

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Button,
   Card,
@@ -38,7 +38,6 @@ export const buildMLflowExperimentsWorkspaceHref = (href: string, projectName: s
 };
 
 const MLflowCard: React.FC = () => {
-  const navigate = useNavigate();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const { consoleLinks } = useWatchConsoleLinks();
   const mlflowLink = consoleLinks.find((link) => isMLflowConsoleLink(link.metadata?.name));
@@ -78,7 +77,9 @@ const MLflowCard: React.FC = () => {
             <Button
               data-testid="embedded-mlflow-experiments-link"
               variant="link"
-              onClick={() => navigate(mlflowExperimentsPath)}
+              component={(props: React.ComponentProps<'a'>) => (
+                <Link {...props} to={mlflowExperimentsPath} />
+              )}
             >
               Go to <strong>Experiments</strong>
             </Button>

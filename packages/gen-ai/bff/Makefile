@@ -13,14 +13,46 @@ MOCK_K8S_CLIENT ?= false
 MOCK_MCP_CLIENT ?= false
 MOCK_MAAS_CLIENT ?= false
 MOCK_MLFLOW_CLIENT ?= false
+MOCK_BFF_CLIENTS ?= false
 AUTH_METHOD ?= "user_token"
 PATH_PREFIX ?= ""
 DISTRIBUTION_NAME ?= "rh-dev"
+
+# Inter-BFF Communication configuration
+BFF_MAAS_SERVICE_NAME ?= "odh-dashboard"
+BFF_MAAS_SERVICE_PORT ?= 8243
+BFF_MAAS_TLS_ENABLED ?= false
+BFF_MAAS_DEV_URL ?= ""
+# MaaS BFF auth configuration: 'user_token' (default for ODH) or 'internal' (Kubeflow only)
+BFF_MAAS_AUTH_METHOD ?= "user_token"
+BFF_MAAS_AUTH_TOKEN_HEADER ?= "x-forwarded-access-token"
+BFF_MAAS_AUTH_TOKEN_PREFIX ?= ""
 
 # MLflow configuration
 MLFLOW_VERSION ?= 3.9.0
 MLFLOW_PORT ?= 5001
 MLFLOW_DATA ?= $(shell pwd)/.mlflow
+
+# Llama Stack test server configuration (used by mock/test mode only)
+TEST_LLAMA_STACK_VERSION ?= 0.7.0
+TEST_LLAMA_STACK_PORT ?= 18321
+TEST_LLAMA_STACK_DIR ?= testdata/llamastack
+TEST_LLAMA_STACK_DATA ?= $(shell pwd)/$(TEST_LLAMA_STACK_DIR)/.data
+TEST_LLAMA_STACK_RECORDINGS ?= $(shell pwd)/$(TEST_LLAMA_STACK_DIR)
+TEST_LLAMA_STACK_CONFIG ?= $(TEST_LLAMA_STACK_DIR)/config.yaml
+TEST_LLAMA_STACK_TEST_ID ?= bff/$(TEST_LLAMA_STACK_DIR)/test.py::record
+
+# Provider and bare model IDs (source of truth, used by config yaml)
+TEST_LLAMA_STACK_PROVIDER ?= gemini
+TEST_LLAMA_STACK_MODEL_ID ?= models/gemini-2.5-flash
+TEST_LLAMA_STACK_EMBEDDING_MODEL_ID ?= models/gemini-embedding-001
+TEST_LLAMA_STACK_EMBEDDING_DIMENSION ?= 128
+TEST_LLAMA_STACK_SHIELD_MODEL_ID ?= models/gemini-2.5-flash
+
+# Prefixed model refs (derived from above, used by Go tests and shield)
+TEST_LLAMA_STACK_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_MODEL_ID)
+TEST_LLAMA_STACK_EMBEDDING_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID)
+TEST_LLAMA_STACK_SHIELD_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_SHIELD_MODEL_ID)
 
 .PHONY: all
 all: build
@@ -53,6 +85,15 @@ vet:  . ## Runs static analysis tools on source files and reports suspicious con
 test: fmt vet envtest uv ## Runs the full test suite.
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
+	LLAMA_STACK_TEST_ID=$(TEST_LLAMA_STACK_TEST_ID) \
+	TEST_LLAMA_STACK_PORT=$(TEST_LLAMA_STACK_PORT) TEST_LLAMA_STACK_VERSION=$(TEST_LLAMA_STACK_VERSION) \
+	TEST_LLAMA_STACK_PROVIDER=$(TEST_LLAMA_STACK_PROVIDER) \
+	TEST_LLAMA_STACK_MODEL=$(TEST_LLAMA_STACK_MODEL) \
+	TEST_LLAMA_STACK_EMBEDDING_MODEL=$(TEST_LLAMA_STACK_EMBEDDING_MODEL) \
+	TEST_LLAMA_STACK_MODEL_ID=$(TEST_LLAMA_STACK_MODEL_ID) \
+	TEST_LLAMA_STACK_EMBEDDING_MODEL_ID=$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID) \
+	TEST_LLAMA_STACK_EMBEDDING_DIMENSION=$(TEST_LLAMA_STACK_EMBEDDING_DIMENSION) \
+	TEST_LLAMA_STACK_SHIELD_MODEL=$(TEST_LLAMA_STACK_SHIELD_MODEL) \
 	go test ./...
 
 .PHONY: build
@@ -63,6 +104,14 @@ build: fmt vet test ## Builds the project to produce a binary executable.
 run: fmt vet envtest uv ## Runs the project.
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
+	MOCK_BFF_CLIENTS=$(MOCK_BFF_CLIENTS) \
+	BFF_MAAS_SERVICE_NAME=$(BFF_MAAS_SERVICE_NAME) \
+	BFF_MAAS_SERVICE_PORT=$(BFF_MAAS_SERVICE_PORT) \
+	BFF_MAAS_TLS_ENABLED=$(BFF_MAAS_TLS_ENABLED) \
+	BFF_MAAS_DEV_URL=$(BFF_MAAS_DEV_URL) \
+	BFF_MAAS_AUTH_METHOD=$(BFF_MAAS_AUTH_METHOD) \
+	BFF_MAAS_AUTH_TOKEN_HEADER=$(BFF_MAAS_AUTH_TOKEN_HEADER) \
+	BFF_MAAS_AUTH_TOKEN_PREFIX=$(BFF_MAAS_AUTH_TOKEN_PREFIX) \
 	go run ./cmd --port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-maas-client=$(MOCK_MAAS_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
 
 .PHONY: debug
@@ -71,6 +120,14 @@ debug: fmt vet envtest uv ## Runs the project with Delve debugger (VSCode can at
 	@echo "In VSCode: Press F5 and select 'Attach to Delve (make dev-start-debug)'"
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
+	MOCK_BFF_CLIENTS=$(MOCK_BFF_CLIENTS) \
+	BFF_MAAS_SERVICE_NAME=$(BFF_MAAS_SERVICE_NAME) \
+	BFF_MAAS_SERVICE_PORT=$(BFF_MAAS_SERVICE_PORT) \
+	BFF_MAAS_TLS_ENABLED=$(BFF_MAAS_TLS_ENABLED) \
+	BFF_MAAS_DEV_URL=$(BFF_MAAS_DEV_URL) \
+	BFF_MAAS_AUTH_METHOD=$(BFF_MAAS_AUTH_METHOD) \
+	BFF_MAAS_AUTH_TOKEN_HEADER=$(BFF_MAAS_AUTH_TOKEN_HEADER) \
+	BFF_MAAS_AUTH_TOKEN_PREFIX=$(BFF_MAAS_AUTH_TOKEN_PREFIX) \
 	dlv debug ./cmd --headless --listen=:2345 --api-version=2 --accept-multiclient --continue -- \
 		--port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-maas-client=$(MOCK_MAAS_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
 
@@ -95,6 +152,51 @@ mlflow-down: ## Stop local MLflow tracking server.
 mlflow-clean: mlflow-down ## Remove local MLflow data.
 	rm -rf $(MLFLOW_DATA) $(MLFLOW_DATA)-test
 	@echo "MLflow data cleaned"
+
+##@ Llama Stack
+
+.PHONY: llamastack-up
+llamastack-up: uv ## Start local Llama Stack server in replay mode (Ctrl+C to stop).
+	@rm -rf $(TEST_LLAMA_STACK_DATA)
+	@mkdir -p $(TEST_LLAMA_STACK_DATA)
+	@echo "Starting Llama Stack in REPLAY mode on port $(TEST_LLAMA_STACK_PORT)..."
+	SQLITE_STORE_DIR=$(TEST_LLAMA_STACK_DATA) \
+	GEMINI_API_KEY=dummy-key-for-replay \
+	LLAMA_STACK_TEST_INFERENCE_MODE=replay \
+	LLAMA_STACK_TEST_RECORDING_DIR=$(TEST_LLAMA_STACK_RECORDINGS) \
+	LLAMA_STACK_TEST_STACK_CONFIG_TYPE=server \
+	LLAMA_STACK_TEST_ID=$(TEST_LLAMA_STACK_TEST_ID) \
+	TEST_LLAMA_STACK_PROVIDER=$(TEST_LLAMA_STACK_PROVIDER) \
+	TEST_LLAMA_STACK_MODEL_ID=$(TEST_LLAMA_STACK_MODEL_ID) \
+	TEST_LLAMA_STACK_EMBEDDING_MODEL_ID=$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID) \
+	TEST_LLAMA_STACK_EMBEDDING_DIMENSION=$(TEST_LLAMA_STACK_EMBEDDING_DIMENSION) \
+	TEST_LLAMA_STACK_EMBEDDING_MODEL=$(TEST_LLAMA_STACK_EMBEDDING_MODEL) \
+	TEST_LLAMA_STACK_SHIELD_MODEL=$(TEST_LLAMA_STACK_SHIELD_MODEL) \
+	$(UV) run --default-index https://pypi.org/simple/ --index https://test.pypi.org/simple/ \
+		--index-strategy unsafe-first-match --no-build-package psycopg2-binary --no-build-package asyncpg \
+		--with llama-stack==$(TEST_LLAMA_STACK_VERSION) --with-requirements $(TEST_LLAMA_STACK_DIR)/requirements.txt \
+		llama stack run $(TEST_LLAMA_STACK_CONFIG) --port $(TEST_LLAMA_STACK_PORT)
+
+.PHONY: llamastack-down
+llamastack-down: ## Stop local Llama Stack server and remove ephemeral data.
+	@-lsof -t -i :$(TEST_LLAMA_STACK_PORT) | xargs kill 2>/dev/null || true
+	@sleep 2
+	@-lsof -t -i :$(TEST_LLAMA_STACK_PORT) | xargs kill -9 2>/dev/null || true
+	@rm -rf $(TEST_LLAMA_STACK_DATA)
+	@echo "Llama Stack server stopped (runtime data cleaned)"
+
+.PHONY: llamastack-record
+llamastack-record: ## Record Llama Stack fixtures by running Go tests against real Gemini (needs GEMINI_API_KEY).
+	@if [ -z "$${GEMINI_API_KEY:-}" ]; then \
+		echo "ERROR: GEMINI_API_KEY must be set for recording."; \
+		echo "Usage: GEMINI_API_KEY=<key> make llamastack-record"; \
+		exit 1; \
+	fi
+	@rm -rf $(TEST_LLAMA_STACK_RECORDINGS)/recordings
+	@echo "Cleared previous recordings"
+	LLAMA_STACK_TEST_INFERENCE_MODE=record $(MAKE) test
+	@COUNT=$$(find $(TEST_LLAMA_STACK_RECORDINGS)/recordings -name "*.json" 2>/dev/null | wc -l | tr -d ' '); \
+	echo "  Recording complete! $${COUNT} JSON files";
 
 ##@ Dependencies
 

@@ -13,6 +13,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 type ExternalModelsRepository struct{}
@@ -72,6 +73,99 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 		ModelType:       req.ModelType,
 	}, nil
+}
+
+// PassthroughEmbeddingInfo holds the provider URL and API key for a remote::passthrough
+// embedding model backing a vector store.
+type PassthroughEmbeddingInfo struct {
+	BaseURL string
+	APIKey  string
+}
+
+// GetPassthroughEmbeddingProviderInfo finds the first vector store in vectorStoreIDs that uses
+// a custom-endpoint (remote::passthrough) embedding model and returns its URL and API key.
+// Returns (nil, nil) if Vector Stores or External Models config not found, or when none of
+// the stores use a passthrough embedding model — not an error.
+// Returns a non-nil error when ConfigMap or Secret reads fail so callers can fail closed.
+func (r *ExternalModelsRepository) GetPassthroughEmbeddingProviderInfo(
+	client kubernetes.KubernetesClientInterface,
+	ctx context.Context,
+	identity *integrations.RequestIdentity,
+	namespace string,
+	vectorStoreIDs []string,
+) (*PassthroughEmbeddingInfo, error) {
+	vsDoc, err := client.GetVectorStoresConfig(ctx, namespace)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get vector stores config: %w", err)
+	}
+
+	vsMap := make(map[string]models.RegisteredVectorStore, len(vsDoc.RegisteredResources.VectorStores))
+	for _, vs := range vsDoc.RegisteredResources.VectorStores {
+		vsMap[vs.VectorStoreID] = vs
+	}
+
+	externalModelsConfig, err := client.GetExternalModelsConfig(ctx, namespace)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get external models config: %w", err)
+	}
+
+	for _, vsID := range vectorStoreIDs {
+		registeredVS, found := vsMap[vsID]
+		if !found || registeredVS.EmbeddingModel == "" {
+			continue
+		}
+
+		embeddingModelID := registeredVS.EmbeddingModel
+
+		var foundModel *models.RegisteredModel
+		for i := range externalModelsConfig.RegisteredResources.Models {
+			m := &externalModelsConfig.RegisteredResources.Models[i]
+			if m.ModelID == embeddingModelID && m.ModelType == models.ModelTypeEmbedding {
+				foundModel = m
+				break
+			}
+		}
+		if foundModel == nil {
+			continue // not a custom endpoint embedding model
+		}
+
+		var foundProvider *models.InferenceProvider
+		for i := range externalModelsConfig.Providers.Inference {
+			if externalModelsConfig.Providers.Inference[i].ProviderID == foundModel.ProviderID {
+				foundProvider = &externalModelsConfig.Providers.Inference[i]
+				break
+			}
+		}
+		if foundProvider == nil || foundProvider.ProviderType != models.ProviderTypePassThrough {
+			continue
+		}
+
+		secretName := foundProvider.Config.CustomGenAI.APIKey.SecretRef.Name
+		secretKey := foundProvider.Config.CustomGenAI.APIKey.SecretRef.Key
+		apiKey := "fake" // default when no secret is configured
+		if secretName != "" && secretKey != "" {
+			apiKey, err = client.GetSecretValue(ctx, identity, namespace, secretName, secretKey)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get secret for passthrough embedding model %q: %w", embeddingModelID, err)
+			}
+			if apiKey == "" {
+				apiKey = "fake"
+			}
+		}
+
+		return &PassthroughEmbeddingInfo{
+			BaseURL: foundProvider.Config.BaseURL,
+			APIKey:  apiKey,
+		}, nil
+	}
+
+	return nil, nil // no passthrough embedding model found
 }
 
 // DeleteExternalModel deletes an external model by removing its entry from the ConfigMap and deleting its Secret

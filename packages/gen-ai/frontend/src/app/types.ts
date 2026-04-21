@@ -290,12 +290,18 @@ export type CodeExportRequest = {
   tools?: CodeExportTool[];
   mcp_servers?: MCPServerConfig[];
   vector_store?: {
+    /** Set for external vector stores — skips creation and references by ID instead */
+    id?: string;
     name: string;
     embedding_model?: string;
     embedding_dimension?: number;
     provider_id: string;
   };
   files?: { file: string; purpose: string }[];
+  prompt?: {
+    name: string;
+    version: number;
+  };
 };
 
 export type CodeExportData = {
@@ -377,6 +383,7 @@ export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
+  subscriptions?: SubscriptionInfo[];
 }
 
 export type ExternalModelRequest = {
@@ -586,6 +593,7 @@ export type MaaSTokenRequest = {
   description?: string;
   expiresIn?: string;
   ephemeral?: boolean;
+  subscription?: string;
 };
 export interface MaaSTokenResponse {
   key: string;

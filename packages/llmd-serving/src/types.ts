@@ -87,6 +87,7 @@ export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
       'opendatahub.io/recommended-accelerators'?: string;
       'opendatahub.io/runtime-version'?: string;
       'opendatahub.io/template-name'?: string;
+      'opendatahub.io/disabled'?: 'true' | 'false';
     };
     labels?: {
       'opendatahub.io/config-type'?: 'accelerator' | string;
@@ -116,3 +117,10 @@ export const LLMInferenceServiceConfigModel: K8sModelCommon = {
   kind: 'LLMInferenceServiceConfig',
   plural: 'llminferenceserviceconfigs',
 };
+
+export enum LLMInferenceServiceReadyConditionReason {
+  PROGRESS_DEADLINE_EXCEEDED = 'ProgressDeadlineExceeded',
+  STOPPED = 'Stopped',
+  MINIMUM_REPLICAS_UNAVAILABLE = 'MinimumReplicasUnavailable',
+  PROGRESSING = 'Progressing',
+}

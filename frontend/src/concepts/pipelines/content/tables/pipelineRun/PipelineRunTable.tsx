@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
 import { TableVariant, Td } from '@patternfly/react-table';
@@ -8,6 +8,7 @@ import { ColumnsIcon } from '@patternfly/react-icons';
 import { TableBase, getTableColumnSort, useCheckboxTable } from '#~/components/table';
 import { ExperimentKF, PipelineRunKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getPipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import PipelineRunTableRow from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import PipelineRunTableToolbar from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
@@ -15,7 +16,11 @@ import DeletePipelineRunsModal from '#~/concepts/pipelines/content/DeletePipelin
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
 import { PipelinesFilter } from '#~/concepts/pipelines/types';
-import { usePipelineFilterSearchParams } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import {
+  FilterOptions,
+  getDataValue,
+  usePipelineFilterSearchParams,
+} from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 import SimpleMenuActions from '#~/components/SimpleMenuActions';
 import { ArchiveRunModal } from '#~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '#~/pages/pipelines/global/runs/RestoreRunModal';
@@ -28,9 +33,11 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
+import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';
 import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
 import { UnavailableMetricValue } from './UnavailableMetricValue';
 import { useMetricColumns } from './useMetricColumns';
+import { filterByMlflowExperiment } from './utils';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKF[];
@@ -60,19 +67,29 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   setFilter,
   ...tableProps
 }) => {
-  const navigate = useNavigate();
   const { experiment } = React.useContext(ExperimentContext);
   const { experiments: allExperiments } = React.useContext(PipelineRunExperimentsContext);
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const { namespace, refreshAllAPI } = usePipelinesAPI();
+  const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
+    workspace: isMlflowAvailable ? namespace : '',
+  });
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
   const {
     metricsColumnNames,
-    runs,
+    runs: runsWithMetrics,
     contextsError,
     runArtifactsError,
     runArtifactsLoaded,
     metricsNames,
   } = useMetricColumns(runWithoutMetrics, experiment?.experiment_id);
+
+  const mlflowFilter = getDataValue(filterToolbarProps.filterData[FilterOptions.MLFLOW_EXPERIMENT]);
+  const runs = React.useMemo(
+    () => filterByMlflowExperiment(runsWithMetrics, mlflowFilter),
+    [runsWithMetrics, mlflowFilter],
+  );
+  const effectiveTotalSize = mlflowFilter ? runs.length : totalSize;
   const {
     selections: selectedIds,
     tableProps: checkboxTableProps,
@@ -93,7 +110,6 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 
     return acc;
   }, []);
-
   const restoreButtonTooltipRef = React.useRef(null);
   const archivedExperiments = selectedRuns.reduce<ExperimentKF[]>((acc, selectedRun) => {
     const currentExperiment = allExperiments.find(
@@ -117,6 +133,9 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 
   const { isExperimentArchived: isContextExperimentArchived } =
     useContextExperimentArchivedOrDeleted();
+  const createRunHref = createRunRoute(namespace, experiment?.experiment_id);
+  const compareRunsHref = compareRunsRoute(namespace, selectedIds, experiment?.experiment_id);
+  const isCompareDisabled = selectedIds.length === 0 || selectedIds.length > 10;
   const primaryToolbarAction = React.useMemo(() => {
     if (runType === PipelineRunType.ARCHIVED) {
       return (
@@ -146,19 +165,12 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         key="create-run"
         data-testid="create-run-button"
         variant="primary"
-        onClick={() => navigate(createRunRoute(namespace, experiment?.experiment_id))}
+        component={(props: React.ComponentProps<'a'>) => <Link {...props} to={createRunHref} />}
       >
         Create run
       </Button>
     );
-  }, [
-    runType,
-    isContextExperimentArchived,
-    selectedIds.length,
-    navigate,
-    namespace,
-    experiment?.experiment_id,
-  ]);
+  }, [runType, isContextExperimentArchived, selectedIds.length, createRunHref]);
 
   const compareRunsAction =
     !isContextExperimentArchived && runType === PipelineRunType.ACTIVE ? (
@@ -167,10 +179,12 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
           key="compare-runs"
           data-testid="compare-runs-button"
           variant="secondary"
-          isAriaDisabled={selectedIds.length === 0 || selectedIds.length > 10}
-          onClick={() =>
-            navigate(compareRunsRoute(namespace, selectedIds, experiment?.experiment_id))
-          }
+          isAriaDisabled={isCompareDisabled}
+          {...(!isCompareDisabled && {
+            component: (props: React.ComponentProps<'a'>) => (
+              <Link {...props} to={compareRunsHref} />
+            ),
+          })}
         >
           Compare runs
         </Button>
@@ -204,8 +218,10 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   );
 
   const columns = experiment
-    ? getPipelineRunColumns(metricsColumnNames).filter((column) => column.field !== 'experiment')
-    : getPipelineRunColumns(metricsColumnNames);
+    ? getPipelineRunColumns(metricsColumnNames, isMlflowAvailable).filter(
+        (column) => column.field !== 'run_group',
+      )
+    : getPipelineRunColumns(metricsColumnNames, isMlflowAvailable);
 
   return (
     <>
@@ -221,7 +237,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
           }
         }}
         onPerPageSelect={(_, newSize) => setPageSize(newSize)}
-        itemCount={totalSize}
+        itemCount={effectiveTotalSize}
         data={runs}
         columns={columns}
         enablePagination="compact"
@@ -274,6 +290,11 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
               setIsDeleteModalOpen(true);
             }}
             run={run}
+            mlflow={{
+              isAvailable: isMlflowAvailable,
+              experiments: mlflowExperiments,
+              loaded: mlflowExperimentsLoaded,
+            }}
             customCells={metricsColumnNames.map((metricName: string) => (
               <Td key={metricName} dataLabel={metricName}>
                 {!runArtifactsLoaded && !runArtifactsError && !contextsError ? (

@@ -6,8 +6,8 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   InProgressIcon,
+  OutlinedQuestionCircleIcon,
   OutlinedWindowRestoreIcon,
-  PendingIcon,
 } from '@patternfly/react-icons';
 
 import { Execution } from '#~/third_party/mlmd';
@@ -19,27 +19,28 @@ type ExecutionStatusProps = {
 
 export const ExecutionStatus: React.FC<ExecutionStatusProps> = ({ status, isCompact }) => {
   let color: LabelProps['color'];
+  let statusProp: LabelProps['status'];
   let icon: React.ReactNode;
   let label: string;
 
   switch (status) {
     case Execution.State.COMPLETE:
-      color = 'green';
+      statusProp = 'success';
       icon = <CheckCircleIcon />;
       label = 'Complete';
       break;
     case Execution.State.CACHED:
-      color = 'green';
+      statusProp = 'success';
       icon = <OutlinedWindowRestoreIcon />;
       label = 'Cached';
       break;
     case Execution.State.CANCELED:
-      color = 'orangered';
+      color = 'grey';
       icon = <BanIcon />;
       label = 'Canceled';
       break;
     case Execution.State.FAILED:
-      color = 'red';
+      statusProp = 'danger';
       icon = <ExclamationCircleIcon />;
       label = 'Failed';
       break;
@@ -49,15 +50,17 @@ export const ExecutionStatus: React.FC<ExecutionStatusProps> = ({ status, isComp
       label = 'Running';
       break;
     case Execution.State.NEW:
-      icon = <PendingIcon />;
-      label = 'Pending';
+      color = 'purple';
+      label = 'New';
       break;
     default:
+      color = 'grey';
+      icon = <OutlinedQuestionCircleIcon />;
       label = 'Unknown';
   }
 
   return (
-    <Label color={color} icon={icon} isCompact={isCompact}>
+    <Label variant="outline" color={color} status={statusProp} icon={icon} isCompact={isCompact}>
       {label}
     </Label>
   );

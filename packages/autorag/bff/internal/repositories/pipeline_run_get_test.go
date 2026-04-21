@@ -37,6 +37,51 @@ func (m *mockClientFailingVersion) GetPipelineVersion(_ context.Context, _, _ st
 	return nil, fmt.Errorf("version fetch failed")
 }
 
+// mockClientNilRef returns a run with nil PipelineVersionReference
+type mockClientNilRef struct {
+	*psmocks.MockPipelineServerClient
+}
+
+func (m *mockClientNilRef) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
+	run, err := m.MockPipelineServerClient.GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	// Override to return nil PipelineVersionReference
+	run.PipelineVersionReference = nil
+	return run, nil
+}
+
+// mockClientEmptyPipelineID returns a run with empty PipelineID
+type mockClientEmptyPipelineID struct {
+	*psmocks.MockPipelineServerClient
+}
+
+func (m *mockClientEmptyPipelineID) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
+	run, err := m.MockPipelineServerClient.GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	// Override to return empty PipelineID
+	run.PipelineVersionReference.PipelineID = ""
+	return run, nil
+}
+
+// mockClientEmptyVersionID returns a run with empty PipelineVersionID
+type mockClientEmptyVersionID struct {
+	*psmocks.MockPipelineServerClient
+}
+
+func (m *mockClientEmptyVersionID) GetRun(ctx context.Context, runID string) (*models.KFPipelineRun, error) {
+	run, err := m.MockPipelineServerClient.GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	// Override to return empty PipelineVersionID
+	run.PipelineVersionReference.PipelineVersionID = ""
+	return run, nil
+}
+
 func TestPipelineRunsRepository_GetPipelineRun(t *testing.T) {
 	repo := NewPipelineRunsRepository()
 	ctx := context.Background()
@@ -94,5 +139,53 @@ func TestPipelineRunsRepository_GetPipelineRun(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, run)
 		assert.NotNil(t, run.RunDetails, "RunDetails should be present for topology status display")
+	})
+
+	t.Run("should handle nil PipelineVersionReference without panic", func(t *testing.T) {
+		// Create a custom mock that returns a run with nil PipelineVersionReference
+		// to verify the guard at line 343:
+		// if ref := kfRun.PipelineVersionReference; ref != nil && ref.PipelineID != "" && ref.PipelineVersionID != ""
+		mockNilRef := &mockClientNilRef{
+			MockPipelineServerClient: psmocks.NewMockPipelineServerClient("mock://test-namespace"),
+		}
+
+		run, err := repo.GetPipelineRun(mockNilRef, ctx, "run-1")
+
+		// Should complete successfully without panic - the guard prevents GetPipelineVersion call
+		require.NoError(t, err)
+		require.NotNil(t, run)
+		assert.Nil(t, run.PipelineVersionReference, "Test setup: reference should be nil")
+		// PipelineSpec should not be enriched when reference is nil
+		assert.Nil(t, run.PipelineSpec, "PipelineSpec should not be enriched when PipelineVersionReference is nil")
+	})
+
+	t.Run("should handle empty PipelineID in PipelineVersionReference", func(t *testing.T) {
+		// This test verifies the guard checks: ref.PipelineID != ""
+		mockEmptyID := &mockClientEmptyPipelineID{
+			MockPipelineServerClient: psmocks.NewMockPipelineServerClient("mock://test-namespace"),
+		}
+
+		run, err := repo.GetPipelineRun(mockEmptyID, ctx, "run-1")
+
+		require.NoError(t, err)
+		require.NotNil(t, run)
+		assert.Equal(t, "", run.PipelineVersionReference.PipelineID, "Test setup: PipelineID should be empty")
+		// PipelineSpec should not be enriched when PipelineID is empty
+		assert.Nil(t, run.PipelineSpec, "PipelineSpec should not be enriched when PipelineID is empty")
+	})
+
+	t.Run("should handle empty PipelineVersionID in PipelineVersionReference", func(t *testing.T) {
+		// This test verifies the guard checks: ref.PipelineVersionID != ""
+		mockEmptyVersionID := &mockClientEmptyVersionID{
+			MockPipelineServerClient: psmocks.NewMockPipelineServerClient("mock://test-namespace"),
+		}
+
+		run, err := repo.GetPipelineRun(mockEmptyVersionID, ctx, "run-1")
+
+		require.NoError(t, err)
+		require.NotNil(t, run)
+		assert.Equal(t, "", run.PipelineVersionReference.PipelineVersionID, "Test setup: PipelineVersionID should be empty")
+		// PipelineSpec should not be enriched when PipelineVersionID is empty
+		assert.Nil(t, run.PipelineSpec, "PipelineSpec should not be enriched when PipelineVersionID is empty")
 	})
 }

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Content } from '@patternfly/react-core';
 import { useAccessReview } from '#~/api';
 import { AccessReviewResourceAttributes } from '#~/k8sTypes';
@@ -18,7 +17,6 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 };
 
 const ConfigurationSection: React.FC = () => {
-  const navigate = useNavigate();
   const [open, setOpen] = React.useState<boolean>(true);
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
@@ -58,11 +56,7 @@ const ConfigurationSection: React.FC = () => {
             </Content>
           }
           isOpen={open}
-          onClick={() =>
-            navigate(
-              `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.CLUSTER_STORAGES}`,
-            )
-          }
+          href={`/projects/${currentProject.metadata.name}?section=${ProjectSectionID.CLUSTER_STORAGES}`}
         />
         <InfoGalleryItem
           sectionType={SectionType.setup}
@@ -77,11 +71,7 @@ const ConfigurationSection: React.FC = () => {
             </Content>
           }
           isOpen={open}
-          onClick={() =>
-            navigate(
-              `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.CONNECTIONS}`,
-            )
-          }
+          href={`/projects/${currentProject.metadata.name}?section=${ProjectSectionID.CONNECTIONS}`}
         />
         {showPermissions ? (
           <InfoGalleryItem
@@ -96,11 +86,7 @@ const ConfigurationSection: React.FC = () => {
               </Content>
             }
             isOpen={open}
-            onClick={() =>
-              navigate(
-                `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.PERMISSIONS}`,
-              )
-            }
+            href={`/projects/${currentProject.metadata.name}?section=${ProjectSectionID.PERMISSIONS}`}
           />
         ) : null}
       </DividedGallery>

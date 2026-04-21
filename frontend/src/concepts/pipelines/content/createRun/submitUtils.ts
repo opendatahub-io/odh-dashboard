@@ -1,4 +1,5 @@
 import {
+  MlflowFormData,
   PipelineVersionToUse,
   RunDateTime,
   RunFormData,
@@ -21,15 +22,48 @@ import {
 import { PipelineAPIs } from '#~/concepts/pipelines/types';
 import {
   getInputDefinitionParams,
+  getMlflowExperimentName,
   isFilledRunFormData,
 } from '#~/concepts/pipelines/content/createRun/utils';
 import { convertPeriodicTimeToSeconds, convertToDate } from '#~/utilities/time';
 
+const buildMlflowPluginsInput = (
+  mlflow: MlflowFormData,
+  isMlflowAvailable: boolean,
+): Record<string, Record<string, unknown>> | undefined => {
+  if (!isMlflowAvailable) {
+    return undefined;
+  }
+
+  if (!mlflow.isExperimentTrackingEnabled) {
+    return {
+      mlflow: {
+        disabled: true,
+      },
+    };
+  }
+
+  const mlflowExperimentName = getMlflowExperimentName(mlflow);
+  if (!mlflowExperimentName) {
+    return undefined;
+  }
+
+  return {
+    mlflow: {
+      // eslint-disable-next-line camelcase
+      experiment_name: mlflowExperimentName,
+    },
+  };
+};
+
 const createRun = async (
   formData: SafeRunFormData,
-  createPipelineRun: PipelineAPIs['createPipelineRun'],
+  api: PipelineAPIs,
+  isMlflowAvailable: boolean,
   dryRun?: boolean,
 ): Promise<PipelineRunKF> => {
+  const pluginsInput = buildMlflowPluginsInput(formData.mlflow, isMlflowAvailable);
+
   /* eslint-disable camelcase */
   const data: CreatePipelineRunKFData = {
     display_name: formData.nameDesc.name,
@@ -43,10 +77,11 @@ const createRun = async (
     },
     service_account: '',
     experiment_id: formData.experiment?.experiment_id || '',
+    ...(pluginsInput && { plugins_input: pluginsInput }),
   };
 
   /* eslint-enable camelcase */
-  return createPipelineRun({ dryRun }, data);
+  return api.createPipelineRun({ dryRun }, data);
 };
 
 export const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF | null => {
@@ -59,13 +94,15 @@ export const convertDateDataToKFDateTime = (dateData?: RunDateTime): DateTimeKF 
 
 const createRecurringRun = async (
   formData: SafeRunFormData,
-  createPipelineRecurringRun: PipelineAPIs['createPipelineRecurringRun'],
+  api: PipelineAPIs,
+  isMlflowAvailable: boolean,
   dryRun?: boolean,
 ): Promise<PipelineRecurringRunKF> => {
   if (formData.runType.type !== RunTypeOption.SCHEDULED) {
     return Promise.reject(new Error('Cannot create a schedule with incomplete data.'));
   }
 
+  const pluginsInput = buildMlflowPluginsInput(formData.mlflow, isMlflowAvailable);
   const startDate = convertDateDataToKFDateTime(formData.runType.data.start) ?? undefined;
   const endDate = convertDateDataToKFDateTime(formData.runType.data.end) ?? undefined;
   const periodicScheduleIntervalTime = convertPeriodicTimeToSeconds(formData.runType.data.value);
@@ -112,30 +149,44 @@ const createRecurringRun = async (
     no_catchup: !formData.runType.data.catchUp,
     service_account: '',
     experiment_id: formData.experiment?.experiment_id || '',
+    ...(pluginsInput && { plugins_input: pluginsInput }),
   };
   /* eslint-enable camelcase */
 
-  return createPipelineRecurringRun({ dryRun }, data);
+  return api.createPipelineRecurringRun({ dryRun }, data);
 };
+
+const isMissingRequiredMlflowExperiment = (
+  mlflow: MlflowFormData,
+  isMlflowAvailable: boolean,
+): boolean =>
+  isMlflowAvailable && mlflow.isExperimentTrackingEnabled && !getMlflowExperimentName(mlflow);
 
 /** Returns the relative path to navigate to from the namespace qualified route */
 export const handleSubmit = (
   formData: RunFormData,
   api: PipelineAPIs,
+  isMlflowAvailable: boolean,
 ): Promise<PipelineRunKF | PipelineRecurringRunKF> => {
-  if (!isFilledRunFormData(formData)) {
-    throw new Error('Form data was incomplete.');
+  if (isMissingRequiredMlflowExperiment(formData.mlflow, isMlflowAvailable)) {
+    return Promise.reject(
+      new Error('MLflow experiment name is required when MLflow integration is enabled.'),
+    );
+  }
+
+  if (!isFilledRunFormData(formData, isMlflowAvailable)) {
+    return Promise.reject(new Error('Form data was incomplete.'));
   }
 
   switch (formData.runType.type) {
     case RunTypeOption.ONE_TRIGGER:
-      return createRun(formData, api.createPipelineRun);
+      return createRun(formData, api, isMlflowAvailable);
     case RunTypeOption.SCHEDULED:
-      return createRecurringRun(formData, api.createPipelineRecurringRun);
+      return createRecurringRun(formData, api, isMlflowAvailable);
     default:
       // eslint-disable-next-line no-console
       console.error('Unknown run type', formData.runType);
-      throw new Error('Unknown run type, unable to create run.');
+      return Promise.reject(new Error('Unknown run type, unable to create run.'));
   }
 };
 

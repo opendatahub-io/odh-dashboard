@@ -17,20 +17,22 @@ const EvalHubProjectSelector: React.FC<EvalHubProjectSelectorProps> = ({
   const { namespaces, updatePreferredNamespace, namespacesLoaded } = useNamespaceSelector();
 
   return (
-    <ProjectSelector
-      {...projectSelectorProps}
-      onSelection={(projectName) => {
-        const match = projectName
-          ? // eslint-disable-next-line prettier/prettier
-            (namespaces.find((n) => n.name === projectName) ?? undefined)
-          : undefined;
-        updatePreferredNamespace(match);
-        navigate(getRedirectPath(projectName));
-      }}
-      namespace={namespace ?? ''}
-      isLoading={!namespacesLoaded}
-      namespacesOverride={namespaces}
-    />
+    <div data-testid="eval-hub-project-selector">
+      <ProjectSelector
+        {...projectSelectorProps}
+        onSelection={(projectName) => {
+          const match = projectName
+            ? // eslint-disable-next-line prettier/prettier
+              (namespaces.find((n) => n.name === projectName) ?? undefined)
+            : undefined;
+          updatePreferredNamespace(match);
+          navigate(getRedirectPath(projectName));
+        }}
+        namespace={namespace ?? ''}
+        isLoading={!namespacesLoaded}
+        namespacesOverride={namespaces}
+      />
+    </div>
   );
 };
 

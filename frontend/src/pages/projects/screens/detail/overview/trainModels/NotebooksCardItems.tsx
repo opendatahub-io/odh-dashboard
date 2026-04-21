@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button, Flex, FlexItem, Content } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
 import { NotebookDataState } from '#~/pages/projects/notebook/types';
 import { ProjectKind } from '#~/k8sTypes';
@@ -31,8 +31,6 @@ const NotebooksCardItems: React.FC<NotebooksCardItemsProps> = ({
   notebooks,
   currentProject,
 }) => {
-  const navigate = useNavigate();
-
   if (!loaded || error) {
     return [];
   }
@@ -61,11 +59,12 @@ const NotebooksCardItems: React.FC<NotebooksCardItemsProps> = ({
             id="workbenches-view-all"
             aria-labelledby="workbenches-view-all Workbenches-title"
             variant="link"
-            onClick={() =>
-              navigate(
-                `/projects/${currentProject.metadata.name}?section=${ProjectSectionID.WORKBENCHES}`,
-              )
-            }
+            component={(props: React.ComponentProps<'a'>) => (
+              <Link
+                {...props}
+                to={`/projects/${currentProject.metadata.name}?section=${ProjectSectionID.WORKBENCHES}`}
+              />
+            )}
           >
             View all
           </Button>

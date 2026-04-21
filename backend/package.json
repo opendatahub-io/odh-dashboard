@@ -34,6 +34,7 @@
     "type-check": "tsc --noEmit",
     "server": "NODE_ENV=production node ./dist/server.js",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test-unit": "jest --silent",
     "test-unit-coverage": "jest --silent --coverage"
   },

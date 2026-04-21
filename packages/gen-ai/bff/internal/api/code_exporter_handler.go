@@ -27,8 +27,10 @@ func (app *App) CodeExporterHandler(w http.ResponseWriter, r *http.Request, _ ht
 		return
 	}
 
+	namespace, _ := r.Context().Value(constants.NamespaceQueryParameterKey).(string)
+
 	// Generate Python code based on the config
-	pythonCode, err := app.generatePythonCode(configRequest, app.repositories.Template)
+	pythonCode, err := app.generatePythonCode(configRequest, namespace, app.repositories.Template)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -48,15 +50,27 @@ func (app *App) CodeExporterHandler(w http.ResponseWriter, r *http.Request, _ ht
 	}
 }
 
+// codeExportTemplateData wraps CodeExportRequest with server-injected fields
+// that are not provided by the client (e.g. discovered URLs).
+type codeExportTemplateData struct {
+	models.CodeExportRequest
+	MLflowExternalURL string
+	Namespace         string
+}
+
 // generatePythonCode creates Python code based on the code export request
-func (app *App) generatePythonCode(config models.CodeExportRequest, templateRepo *repositories.TemplateRepository) (string, error) {
+func (app *App) generatePythonCode(config models.CodeExportRequest, namespace string, templateRepo *repositories.TemplateRepository) (string, error) {
 	// Parse the Python template if not already parsed
 	if err := templateRepo.ParseTemplate("python", constants.PythonCodeTemplate); err != nil {
 		return "", fmt.Errorf("failed to initialize Python template: %w", err)
 	}
 
-	// Execute the template with config data
-	result, err := templateRepo.ExecuteTemplate("python", config)
+	// Execute the template with config data, injecting server-side fields
+	result, err := templateRepo.ExecuteTemplate("python", codeExportTemplateData{
+		CodeExportRequest: config,
+		MLflowExternalURL: app.mlflowExternalURL,
+		Namespace:         namespace,
+	})
 	if err != nil {
 		return "", fmt.Errorf("failed to generate Python code: %w", err)
 	}
@@ -86,6 +100,16 @@ func (app *App) validateCodeExportRequest(config models.CodeExportRequest) error
 		}
 		if server.ServerURL == "" {
 			return fmt.Errorf("MCP server %d: server_url is required", i)
+		}
+	}
+
+	// Validate prompt config
+	if config.Prompt != nil {
+		if config.Prompt.Name == "" {
+			return errors.New("prompt: name is required")
+		}
+		if config.Prompt.Version < 1 {
+			return errors.New("prompt: version must be >= 1")
 		}
 	}
 

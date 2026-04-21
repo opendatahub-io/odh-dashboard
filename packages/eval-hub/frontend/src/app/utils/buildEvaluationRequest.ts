@@ -2,7 +2,6 @@ import { Collection, CreateEvaluationJobRequest, FlatBenchmark } from '~/app/typ
 
 type BuildEvaluationRequestParams = {
   evaluationName: string;
-  description: string;
   inputMode: 'inference' | 'prerecorded';
   benchmark: FlatBenchmark | undefined;
   collection: Collection | undefined;
@@ -21,7 +20,6 @@ const TOP_LEVEL_KEYS = new Set(['experiment', 'tags', 'custom', 'exports', 'pass
 
 const buildEvaluationRequest = ({
   evaluationName,
-  description,
   inputMode,
   benchmark,
   collection,
@@ -104,7 +102,6 @@ const buildEvaluationRequest = ({
 
   return {
     name: evaluationName.trim(),
-    ...(description.trim() ? { description: description.trim() } : {}),
     model: {
       url: resolvedUrl,
       name: resolvedModelName,
@@ -112,7 +109,20 @@ const buildEvaluationRequest = ({
       ...(resolvedAuth ? { auth: { secret_ref: resolvedAuth } } : {}),
     },
     ...(isCollectionFlow
-      ? { collection: { id: collection.resource.id } }
+      ? {
+          collection: {
+            id: collection.resource.id,
+            benchmarks: collection.benchmarks?.map((b) => ({
+              id: b.id,
+              // eslint-disable-next-line camelcase
+              provider_id: b.provider_id,
+              // eslint-disable-next-line camelcase
+              primary_score: b.primary_score,
+              // eslint-disable-next-line camelcase
+              pass_criteria: b.pass_criteria,
+            })),
+          },
+        }
       : { benchmarks: benchmarkEntries }),
     ...restOverrides,
     ...(experiment ? { experiment } : {}),

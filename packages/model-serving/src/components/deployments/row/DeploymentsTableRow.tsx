@@ -127,7 +127,7 @@ export const DeploymentRow: React.FC<{
             {column.cellRenderer(deployment, column.field)}
           </Td>
         ))}
-        <Td dataLabel="Serving runtime">
+        <Td dataLabel="Deployment resource">
           <DeployedModelsVersion
             deployment={deployment}
             servingDetailsEntry={servingDetailsEntry}

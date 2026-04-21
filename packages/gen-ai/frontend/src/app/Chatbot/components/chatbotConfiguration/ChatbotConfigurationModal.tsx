@@ -22,7 +22,12 @@ import {
   MaaSModel,
   VectorStore,
 } from '~/app/types';
-import { convertMaaSModelToAIModel, splitLlamaModelId } from '~/app/utilities/utils';
+import {
+  computeEmbeddingModelStatus,
+  convertMaaSModelToAIModel,
+  isPlaygroundModelMatchForAIModel,
+  splitLlamaModelId,
+} from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
@@ -102,8 +107,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 
   const preSelectedModels = React.useMemo(() => {
     if (existingModels.length > 0) {
-      const existingModelsSet = new Set(existingModels.map((model) => model.modelId));
-      const existingAIModels = allModels.filter((model) => existingModelsSet.has(model.model_id));
+      const existingAIModels = allModels.filter((model) =>
+        existingModels.some((m) => isPlaygroundModelMatchForAIModel(m, model)),
+      );
 
       if (extraSelectedModels && extraSelectedModels.length > 0) {
         const extraSelectedModelsSet = new Set(
@@ -137,14 +143,12 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 
   const availableCollections = React.useMemo(
     () =>
-      allCollections.filter((c) => {
-        const { id: normalizedEmbedId } = splitLlamaModelId(c.embedding_model);
-        return allModels.some((m) => {
-          const { id: normalizedModelId } = splitLlamaModelId(m.model_id);
-          return m.model_id === c.embedding_model || normalizedModelId === normalizedEmbedId;
-        });
-      }),
-    [allCollections, allModels],
+      allCollections.filter(
+        (c) =>
+          computeEmbeddingModelStatus(c.embedding_model, allModels, existingModels) !==
+          'not_available',
+      ),
+    [allCollections, allModels, existingModels],
   );
 
   const preSelectedCollections = React.useMemo(() => {
@@ -230,24 +234,28 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
           });
         };
 
-        // Only act on newly selected collections — never remove models when deselecting
+        // Only act on newly selected collections — never remove models when deselecting.
+        // Use composite key (model_source_type + model_id) so a MaaS and a namespace model
+        // sharing the same model_name are not collapsed into one entry.
+        const modelKey = (m: AIModel) => `${m.model_source_type}-${m.model_id}`;
         const nextRequired = new Map<string, AIModel>();
         next.forEach((c) => {
           const m = findEmbeddingModel(c.embedding_model);
           if (m) {
-            nextRequired.set(m.model_name, m);
+            nextRequired.set(modelKey(m), m);
           }
         });
 
         setSelectedModels((prevModels) => {
-          const byName = new Map(prevModels.map((m) => [m.model_name, m]));
-          nextRequired.forEach((model, name) => byName.set(name, model));
-          return Array.from(byName.values());
+          const byKey = new Map(prevModels.map((m) => [modelKey(m), m]));
+          nextRequired.forEach((model, key) => byKey.set(key, model));
+          return Array.from(byKey.values());
         });
 
         setModelTypeMap((prevMap) => {
           const newMap = new Map(prevMap);
-          nextRequired.forEach((_, name) => newMap.set(name, 'Embedding'));
+          // modelTypeMap is keyed by model_name everywhere else — keep that convention here.
+          nextRequired.forEach((model) => newMap.set(model.model_name, 'Embedding'));
           return newMap;
         });
 
@@ -542,7 +550,12 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       {!configuringPlayground && (
         <ModalFooter>
           {!isStepsLoading && isLastStep ? (
-            <Button variant="primary" onClick={onSubmit} isDisabled={submitting}>
+            <Button
+              variant="primary"
+              onClick={onSubmit}
+              isDisabled={submitting}
+              data-testid="modal-submit-button"
+            >
               {isUpdate ? 'Configure' : 'Create'}
             </Button>
           ) : (

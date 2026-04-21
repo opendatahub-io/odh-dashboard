@@ -13,6 +13,7 @@ import { OdhPlatformType } from '@odh-dashboard/internal/types';
 import { appChrome } from '../../../pages/appChrome';
 import { asDisallowedUser, asProductAdminUser } from '../../../utils/mockUsers';
 import { aboutDialog } from '../../../pages/aboutDialog';
+import { interceptMlflowStatus } from '../../../utils/mlflowUtils';
 import { loginDialog } from '../../../pages/loginDialog';
 
 describe('Application', () => {
@@ -29,8 +30,14 @@ describe('Application', () => {
     appChrome.findNavSection('Settings').should('exist');
   });
 
-  it('MLflow is disabled, should not show the MLflow link', () => {
+  it('should not show the MLflow link when MLflow component is not installed', () => {
     cy.interceptOdh('GET /api/console-links', mockConsoleLinks());
+    const dscStatus = mockDscStatus({});
+    dscStatus.components = {
+      ...dscStatus.components,
+      [DataScienceStackComponent.MLFLOW]: { managementState: 'Removed' },
+    };
+    cy.interceptOdh('GET /api/dsc/status', dscStatus);
     appChrome.visit();
     const applicationLauncher = appChrome.getApplicationLauncher();
     applicationLauncher.toggleAppLauncherButton();
@@ -85,7 +92,9 @@ describe('Application', () => {
         },
       ]),
     );
-    cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflow: true }));
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
+    cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
+    interceptMlflowStatus();
     appChrome.visit();
     const applicationLauncher = appChrome.getApplicationLauncher();
     applicationLauncher.toggleAppLauncherButton();

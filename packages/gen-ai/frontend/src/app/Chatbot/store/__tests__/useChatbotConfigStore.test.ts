@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { act } from '@testing-library/react';
 import { useChatbotConfigStore } from '~/app/Chatbot/store/useChatbotConfigStore';
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
@@ -896,6 +897,359 @@ describe('useChatbotConfigStore', () => {
 
       expect(selections1).toEqual(['tool-a']);
       expect(selections2).toEqual(['tool-b']);
+    });
+
+    it('should update activePrompt independently for each config', () => {
+      const prompt1 = {
+        name: 'prompt-1',
+        version: 1,
+        template: 'Template 1',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      };
+      const prompt2 = {
+        name: 'prompt-2',
+        version: 2,
+        template: 'Template 2',
+        created_at: '2024-01-02T00:00:00Z',
+        updated_at: '2024-01-02T00:00:00Z',
+      };
+
+      act(() => {
+        useChatbotConfigStore.getState().updateActivePrompt(DEFAULT_CONFIG_ID, prompt1);
+        useChatbotConfigStore.getState().updateActivePrompt(config2Id!, prompt2);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.activePrompt?.name).toBe('prompt-1');
+      expect(state.configurations[config2Id!]?.activePrompt?.name).toBe('prompt-2');
+    });
+
+    it('should update dirtyPrompt independently for each config', () => {
+      const prompt1 = {
+        name: 'dirty-1',
+        version: 1,
+        template: 'Dirty 1',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      };
+      const prompt2 = {
+        name: 'dirty-2',
+        version: 2,
+        template: 'Dirty 2',
+        created_at: '2024-01-02T00:00:00Z',
+        updated_at: '2024-01-02T00:00:00Z',
+      };
+
+      act(() => {
+        useChatbotConfigStore.getState().updateDirtyPrompt(DEFAULT_CONFIG_ID, prompt1);
+        useChatbotConfigStore.getState().updateDirtyPrompt(config2Id!, prompt2);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.dirtyPrompt?.name).toBe('dirty-1');
+      expect(state.configurations[config2Id!]?.dirtyPrompt?.name).toBe('dirty-2');
+    });
+  });
+
+  describe('prompt management actions', () => {
+    const mockPrompt = {
+      name: 'test-prompt',
+      version: 1,
+      template: 'You are a helpful assistant.',
+      messages: [{ role: 'system', content: 'You are helpful.' }],
+      tags: { env: 'test' },
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    };
+
+    describe('updateActivePrompt', () => {
+      it('should set activePrompt and dirtyPrompt to the same value', () => {
+        act(() => {
+          useChatbotConfigStore.getState().updateActivePrompt(DEFAULT_CONFIG_ID, mockPrompt);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.activePrompt).toEqual(mockPrompt);
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.dirtyPrompt).toEqual(mockPrompt);
+      });
+
+      it('should create deep copies of the prompt', () => {
+        act(() => {
+          useChatbotConfigStore.getState().updateActivePrompt(DEFAULT_CONFIG_ID, mockPrompt);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        const activePrompt = state.configurations[DEFAULT_CONFIG_ID]?.activePrompt;
+        const dirtyPrompt = state.configurations[DEFAULT_CONFIG_ID]?.dirtyPrompt;
+
+        expect(activePrompt).not.toBe(mockPrompt);
+        expect(dirtyPrompt).not.toBe(mockPrompt);
+        expect(activePrompt).not.toBe(dirtyPrompt);
+        expect(activePrompt?.messages).not.toBe(mockPrompt.messages);
+        expect(activePrompt?.tags).not.toBe(mockPrompt.tags);
+      });
+
+      it('should handle null prompt', () => {
+        act(() => {
+          useChatbotConfigStore.getState().updateActivePrompt(DEFAULT_CONFIG_ID, mockPrompt);
+        });
+
+        act(() => {
+          useChatbotConfigStore.getState().updateActivePrompt(DEFAULT_CONFIG_ID, null);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.activePrompt).toBeNull();
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.dirtyPrompt).toBeNull();
+      });
+
+      it('should not update non-existent config', () => {
+        act(() => {
+          useChatbotConfigStore.getState().updateActivePrompt('non-existent', mockPrompt);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        expect(state.configurations['non-existent']).toBeUndefined();
+      });
+    });
+
+    describe('updateDirtyPrompt', () => {
+      it('should only update dirtyPrompt, not activePrompt', () => {
+        act(() => {
+          useChatbotConfigStore.getState().updateActivePrompt(DEFAULT_CONFIG_ID, mockPrompt);
+        });
+
+        const modifiedPrompt = { ...mockPrompt, template: 'Modified template' };
+        act(() => {
+          useChatbotConfigStore.getState().updateDirtyPrompt(DEFAULT_CONFIG_ID, modifiedPrompt);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.activePrompt?.template).toBe(
+          'You are a helpful assistant.',
+        );
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.dirtyPrompt?.template).toBe(
+          'Modified template',
+        );
+      });
+
+      it('should create a deep copy of the prompt', () => {
+        act(() => {
+          useChatbotConfigStore.getState().updateDirtyPrompt(DEFAULT_CONFIG_ID, mockPrompt);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        const dirtyPrompt = state.configurations[DEFAULT_CONFIG_ID]?.dirtyPrompt;
+
+        expect(dirtyPrompt).not.toBe(mockPrompt);
+        expect(dirtyPrompt?.messages).not.toBe(mockPrompt.messages);
+      });
+
+      it('should handle null prompt', () => {
+        act(() => {
+          useChatbotConfigStore.getState().updateDirtyPrompt(DEFAULT_CONFIG_ID, mockPrompt);
+        });
+
+        act(() => {
+          useChatbotConfigStore.getState().updateDirtyPrompt(DEFAULT_CONFIG_ID, null);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.dirtyPrompt).toBeNull();
+      });
+
+      it('should not update non-existent config', () => {
+        act(() => {
+          useChatbotConfigStore.getState().updateDirtyPrompt('non-existent', mockPrompt);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        expect(state.configurations['non-existent']).toBeUndefined();
+      });
+    });
+
+    describe('resetDirtyPrompt', () => {
+      it('should reset dirtyPrompt to activePrompt value', () => {
+        act(() => {
+          useChatbotConfigStore.getState().updateActivePrompt(DEFAULT_CONFIG_ID, mockPrompt);
+        });
+
+        const modifiedPrompt = { ...mockPrompt, template: 'Modified template' };
+        act(() => {
+          useChatbotConfigStore.getState().updateDirtyPrompt(DEFAULT_CONFIG_ID, modifiedPrompt);
+        });
+
+        act(() => {
+          useChatbotConfigStore.getState().resetDirtyPrompt(DEFAULT_CONFIG_ID);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.dirtyPrompt?.template).toBe(
+          'You are a helpful assistant.',
+        );
+      });
+
+      it('should create a deep copy when resetting', () => {
+        act(() => {
+          useChatbotConfigStore.getState().updateActivePrompt(DEFAULT_CONFIG_ID, mockPrompt);
+        });
+
+        act(() => {
+          useChatbotConfigStore.getState().resetDirtyPrompt(DEFAULT_CONFIG_ID);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.dirtyPrompt).not.toBe(
+          state.configurations[DEFAULT_CONFIG_ID]?.activePrompt,
+        );
+      });
+
+      it('should set dirtyPrompt to null when activePrompt is null', () => {
+        act(() => {
+          useChatbotConfigStore.getState().updateDirtyPrompt(DEFAULT_CONFIG_ID, mockPrompt);
+        });
+
+        act(() => {
+          useChatbotConfigStore.getState().resetDirtyPrompt(DEFAULT_CONFIG_ID);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.dirtyPrompt).toBeNull();
+      });
+
+      it('should not update non-existent config', () => {
+        act(() => {
+          useChatbotConfigStore.getState().resetDirtyPrompt('non-existent');
+        });
+
+        const state = useChatbotConfigStore.getState();
+        expect(state.configurations['non-existent']).toBeUndefined();
+      });
+    });
+
+    describe('clearPromptState', () => {
+      it('should clear activePrompt and set new dirtyPrompt', () => {
+        act(() => {
+          useChatbotConfigStore.getState().updateActivePrompt(DEFAULT_CONFIG_ID, mockPrompt);
+        });
+
+        const newPrompt = { ...mockPrompt, name: 'new-prompt', template: 'New template' };
+        act(() => {
+          useChatbotConfigStore.getState().clearPromptState(DEFAULT_CONFIG_ID, newPrompt);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.activePrompt).toBeNull();
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.dirtyPrompt?.name).toBe('new-prompt');
+      });
+
+      it('should create a deep copy of new dirtyPrompt', () => {
+        const newPrompt = { ...mockPrompt, name: 'new-prompt' };
+        act(() => {
+          useChatbotConfigStore.getState().clearPromptState(DEFAULT_CONFIG_ID, newPrompt);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.dirtyPrompt).not.toBe(newPrompt);
+      });
+
+      it('should handle null newDirtyPrompt', () => {
+        act(() => {
+          useChatbotConfigStore.getState().updateActivePrompt(DEFAULT_CONFIG_ID, mockPrompt);
+        });
+
+        act(() => {
+          useChatbotConfigStore.getState().clearPromptState(DEFAULT_CONFIG_ID, null);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.activePrompt).toBeNull();
+        expect(state.configurations[DEFAULT_CONFIG_ID]?.dirtyPrompt).toBeNull();
+      });
+
+      it('should not update non-existent config', () => {
+        act(() => {
+          useChatbotConfigStore.getState().clearPromptState('non-existent', mockPrompt);
+        });
+
+        const state = useChatbotConfigStore.getState();
+        expect(state.configurations['non-existent']).toBeUndefined();
+      });
+    });
+  });
+
+  describe('duplicateConfiguration with prompts', () => {
+    const mockPrompt = {
+      name: 'test-prompt',
+      version: 1,
+      template: 'Test template',
+      messages: [{ role: 'system', content: 'System content' }],
+      tags: { env: 'test' },
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    };
+
+    it('should deep copy activePrompt when duplicating', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateActivePrompt(DEFAULT_CONFIG_ID, mockPrompt);
+      });
+
+      let newConfigId: string | undefined;
+      act(() => {
+        newConfigId = useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      const originalPrompt = state.configurations[DEFAULT_CONFIG_ID]?.activePrompt;
+      const duplicatedPrompt = state.configurations[newConfigId!]?.activePrompt;
+
+      expect(duplicatedPrompt).toEqual(originalPrompt);
+      expect(duplicatedPrompt).not.toBe(originalPrompt);
+      expect(duplicatedPrompt?.messages).not.toBe(originalPrompt?.messages);
+      expect(duplicatedPrompt?.tags).not.toBe(originalPrompt?.tags);
+    });
+
+    it('should deep copy dirtyPrompt when duplicating', () => {
+      const dirtyPrompt = { ...mockPrompt, template: 'Dirty template' };
+      act(() => {
+        useChatbotConfigStore.getState().updateActivePrompt(DEFAULT_CONFIG_ID, mockPrompt);
+        useChatbotConfigStore.getState().updateDirtyPrompt(DEFAULT_CONFIG_ID, dirtyPrompt);
+      });
+
+      let newConfigId: string | undefined;
+      act(() => {
+        newConfigId = useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      const originalDirty = state.configurations[DEFAULT_CONFIG_ID]?.dirtyPrompt;
+      const duplicatedDirty = state.configurations[newConfigId!]?.dirtyPrompt;
+
+      expect(duplicatedDirty?.template).toBe('Dirty template');
+      expect(duplicatedDirty).not.toBe(originalDirty);
+    });
+
+    it('should maintain independent prompt state after duplication', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateActivePrompt(DEFAULT_CONFIG_ID, mockPrompt);
+      });
+
+      let newConfigId: string | undefined;
+      act(() => {
+        newConfigId = useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const modifiedPrompt = { ...mockPrompt, template: 'Modified in original' };
+      act(() => {
+        useChatbotConfigStore.getState().updateActivePrompt(DEFAULT_CONFIG_ID, modifiedPrompt);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.activePrompt?.template).toBe(
+        'Modified in original',
+      );
+      expect(state.configurations[newConfigId!]?.activePrompt?.template).toBe('Test template');
     });
   });
 });

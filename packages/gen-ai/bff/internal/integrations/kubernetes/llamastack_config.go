@@ -15,7 +15,6 @@ import (
 type LlamaStackConfig struct {
 	Version             string              `json:"version" yaml:"version"`
 	DistroName          string              `json:"distro_name" yaml:"distro_name"`
-	ImageName           string              `json:"image_name,omitempty" yaml:"image_name,omitempty"` // Deprecated: Use DistroName (backward compatibility)
 	APIs                []string            `json:"apis" yaml:"apis"`
 	Providers           Providers           `json:"providers" yaml:"providers"`
 	MetadataStore       MetadataStore       `json:"metadata_store" yaml:"metadata_store"`
@@ -40,7 +39,7 @@ type VectorStoreModelReference struct {
 type Providers struct {
 	Inference   []Provider `json:"inference" yaml:"inference"`
 	VectorIO    []Provider `json:"vector_io" yaml:"vector_io"`
-	Agents      []Provider `json:"agents" yaml:"agents"`
+	Responses   []Provider `json:"responses" yaml:"responses"`
 	Eval        []Provider `json:"eval" yaml:"eval"`
 	Files       []Provider `json:"files" yaml:"files"`
 	DatasetIO   []Provider `json:"datasetio" yaml:"datasetio"`
@@ -68,7 +67,6 @@ type RegisteredResources struct {
 	Datasets     []Dataset     `json:"datasets" yaml:"datasets"`
 	ScoringFns   []ScoringFn   `json:"scoring_fns" yaml:"scoring_fns"`
 	Benchmarks   []Benchmark   `json:"benchmarks" yaml:"benchmarks"`
-	ToolGroups   []ToolGroup   `json:"tool_groups" yaml:"tool_groups"`
 }
 
 type Storage struct {
@@ -83,11 +81,6 @@ type Model struct {
 	ModelType       string                 `json:"model_type" yaml:"model_type"`
 	MaxTokens       *int                   `json:"max_tokens,omitempty" yaml:"max_tokens,omitempty"` // Optional per-model token limit
 	Metadata        map[string]interface{} `json:"metadata" yaml:"metadata"`
-}
-
-type ToolGroup struct {
-	ToolGroupID string `json:"toolgroup_id" yaml:"toolgroup_id"`
-	ProviderID  string `json:"provider_id" yaml:"provider_id"`
 }
 
 type Server struct {
@@ -157,23 +150,13 @@ func (c *LlamaStackConfig) EnsureStorageField() {
 	}
 }
 
-// EnsureDistroField normalizes the deprecated ImageName field into DistroName
-// to ensure backward compatibility when deserializing older configs.
-// When DistroName is empty and ImageName is non-empty, DistroName is set to ImageName.
-// TODO: This can be removed when Gen AI Studio GAs, as all configs will use DistroName.
-func (c *LlamaStackConfig) EnsureDistroField() {
-	if c.DistroName == "" && c.ImageName != "" {
-		c.DistroName = c.ImageName
-	}
-}
-
 // NewDefaultLlamaStackConfig creates a new instance of LlamaStackConfig with default values
 func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 	return &LlamaStackConfig{
 		Version:    "2",
 		DistroName: "rh",
 		APIs: []string{
-			"agents", "datasetio", "files", "inference",
+			"responses", "datasetio", "files", "inference",
 			"safety", "scoring", "tool_runtime", "vector_io",
 		},
 		Providers: Providers{
@@ -187,16 +170,18 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 					},
 				}),
 			},
-			Agents: []Provider{
-				NewProvider("meta-reference", "inline::meta-reference", map[string]interface{}{
+			Responses: []Provider{
+				NewProvider("builtin", "inline::builtin", map[string]interface{}{
 					"persistence": map[string]interface{}{
 						"agent_state": map[string]interface{}{
 							"namespace": "agents",
 							"backend":   "kv_default",
 						},
 						"responses": map[string]interface{}{
-							"table_name": "responses",
-							"backend":    "sql_default",
+							"table_name":           "responses",
+							"backend":              "sql_default",
+							"max_write_queue_size": 10000,
+							"num_writers":          4,
 						},
 					},
 				}),
@@ -223,7 +208,7 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 				NewProvider("llm-as-judge", "inline::llm-as-judge", EmptyConfig()),
 			},
 			ToolRuntime: []Provider{
-				NewProvider("rag-runtime", "inline::rag-runtime", EmptyConfig()),
+				NewProvider("file-search", "inline::file-search", EmptyConfig()),
 				NewProvider("model-context-protocol", "remote::model-context-protocol", EmptyConfig()),
 			},
 		},
@@ -235,12 +220,6 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 			Datasets:     []Dataset{},
 			ScoringFns:   []ScoringFn{},
 			Benchmarks:   []Benchmark{},
-			ToolGroups: []ToolGroup{
-				{
-					ToolGroupID: "builtin::rag",
-					ProviderID:  "rag-runtime",
-				},
-			},
 		},
 		MetadataStore: MetadataStore{
 			Type:   "sqlite",
@@ -312,7 +291,6 @@ func (c *LlamaStackConfig) FromYAML(data string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse YAML: failed to unmarshal YAML into config: %w", err)
 	}
-	c.EnsureDistroField()
 	return nil
 }
 
@@ -331,7 +309,6 @@ func (c *LlamaStackConfig) FromJSON(data string) error {
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal JSON into config: %w", err)
 	}
-	c.EnsureDistroField()
 	return nil
 }
 
@@ -484,12 +461,12 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 }
 
 // AddCustomEndpointProviderAndModel adds a custom endpoint model provider and its corresponding model to the config
-// This is a helper for building LlamaStack configurations with OpenAI-compatible custom endpoint model providers
-// The API token/secret is NOT included in the config - it will be fetched at runtime from the ConfigMap secret reference
-// Provider type is hardcoded to "remote::openai" - all custom endpoints must be OpenAI-compatible.
+// This is a helper for building LlamaStack configurations with custom endpoint model providers.
+// The API token/secret is NOT included in the config - it will be fetched at runtime from the ConfigMap secret reference.
+// providerType must be the value stored in the gen-ai-aa-custom-model-endpoints ConfigMap (e.g. "remote::openai" or "remote::passthrough").
 // isClusterLocal should be true for in-cluster service URLs (*.svc.cluster.local); this disables TLS verification
 // since cluster services typically use self-signed certificates.
-func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int, embeddingDimension *int, isClusterLocal bool) {
+func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpointURL string, index int, modelID, modelType, providerType string, metadata map[string]interface{}, maxTokens *int, embeddingDimension *int, isClusterLocal bool) {
 	// Create provider config - minimal config for external models
 	// Full configuration (including secrets) is managed via the gen-ai-aa-custom-model-endpoints ConfigMap
 	providerConfig := EmptyConfig()
@@ -504,8 +481,7 @@ func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpoin
 		}
 	}
 
-	// Add provider - hardcoded to remote::openai (only supported type for custom endpoints)
-	provider := NewProvider(providerID, "remote::openai", providerConfig)
+	provider := NewProvider(providerID, providerType, providerConfig)
 	c.AddInferenceProvider(provider)
 
 	// Add model
@@ -558,9 +534,9 @@ func (c *LlamaStackConfig) AddVectorIOProvider(provider Provider) {
 	c.Providers.VectorIO = append(c.Providers.VectorIO, provider)
 }
 
-// AddAgentProvider adds a new agent provider to the config
-func (c *LlamaStackConfig) AddAgentProvider(provider Provider) {
-	c.Providers.Agents = append(c.Providers.Agents, provider)
+// AddResponsesProvider adds a new responses provider to the config
+func (c *LlamaStackConfig) AddResponsesProvider(provider Provider) {
+	c.Providers.Responses = append(c.Providers.Responses, provider)
 }
 
 // AddDatasetIOProvider adds a new dataset IO provider to the config

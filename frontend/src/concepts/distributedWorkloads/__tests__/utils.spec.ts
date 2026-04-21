@@ -33,7 +33,7 @@ describe('getStatusInfo', () => {
     testWorkloadStatus(WorkloadStatusType.Admitted, 'The workload is admitted');
     testWorkloadStatus(WorkloadStatusType.Running, 'The workload is running');
     testWorkloadStatus(WorkloadStatusType.Evicted, 'The workload is evicted');
-    testWorkloadStatus(WorkloadStatusType.Succeeded, 'Job finished successfully');
+    testWorkloadStatus(WorkloadStatusType.Complete, 'Job finished successfully');
     testWorkloadStatus(WorkloadStatusType.Failed, 'There was an error');
     testWorkloadStatus(null, 'No message'); // Falls back to Pending with no conditions
   });
@@ -41,15 +41,15 @@ describe('getStatusInfo', () => {
   it('provides correct info for completed workload', () => {
     const wl = mockWorkloadK8sResource({ k8sName: 'test-workload' });
     const info = getStatusInfo(wl);
-    expect(info.color).toBe('green');
+    expect(info.labelStatus).toBe('success');
     expect(info.message).toBe('Job finished successfully');
-    expect(info.status).toBe('Succeeded');
+    expect(info.status).toBe('Complete');
   });
   it('should return "Finished" when status is Succeeded and message is "No message"', () => {
     const wl = mockWorkloadK8sResource({
       k8sName: 'test-workload',
       mockStatusEmptyWorkload: true,
-      mockStatus: WorkloadStatusType.Succeeded,
+      mockStatus: WorkloadStatusType.Complete,
     });
     const info = getStatusInfo(wl);
     expect(getWorkloadStatusMessage(info)).toEqual('Finished');
@@ -61,7 +61,7 @@ describe('getStatusCounts', () => {
     const workloads = [
       mockWorkloadK8sResource({
         k8sName: 'test-workload',
-        mockStatus: WorkloadStatusType.Succeeded,
+        mockStatus: WorkloadStatusType.Complete,
       }),
       mockWorkloadK8sResource({
         k8sName: 'test-workload-2',
@@ -100,7 +100,7 @@ describe('getStatusCounts', () => {
       Pending: 2,
       Running: 2,
       Evicted: 1,
-      Succeeded: 1,
+      Complete: 1,
       Failed: 1,
     });
   });

@@ -16,7 +16,6 @@ import {
   EMPTY_AWS_SECRET_DATA,
 } from '#~/pages/projects/dataConnections/const';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
-import { isRedHatRegistryUri } from '#~/pages/modelRegistry/screens/utils';
 import {
   getMRConnectionValues,
   OCIAccessTypeKey,
@@ -27,7 +26,7 @@ import {
 } from '#~/concepts/connectionTypes/utils';
 import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
 import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { PrefilledConnection } from '#~/concepts/modelRegistry/utils';
+import { isRedHatRegistryUri, PrefilledConnection } from '#~/concepts/modelRegistry/utils';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 import useLabeledConnections from './nim/useLabeledConnections';
 

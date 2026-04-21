@@ -286,8 +286,8 @@ export const verifyStorageClassConfig = (
       }
     }
 
-    if (expectedDescription !== undefined) {
-      cy.wrap(config.accessModeSettings).should('equal', expectedAccessModes);
+    if (expectedAccessModes !== undefined) {
+      cy.wrap(config.accessModeSettings).should('deep.equal', expectedAccessModes);
     }
     cy.log('Storage Class Config:', JSON.stringify(config));
     return cy.wrap(result);

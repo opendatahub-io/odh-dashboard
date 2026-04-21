@@ -261,7 +261,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
       servingRuntimes.visit();
       servingRuntimes.findAppTitle().should('exist');
 
-      cy.step('Access Settings -> Model resources and operations -> AI registry settings');
+      cy.step('Access Settings -> Model resources and operations -> Model registry settings');
       modelRegistrySettings.visit();
       modelRegistrySettings.findPageTitle().should('contain', testData.aiRegistryPageTitle);
 

@@ -16,42 +16,13 @@ import {
   LlamaStackDistributionModel,
   VectorStore,
 } from '~/app/types';
-import { splitLlamaModelId } from '~/app/utilities/utils';
+import { computeEmbeddingModelStatus } from '~/app/utilities/utils';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import VectorStoreTableRowInfo from './VectorStoreTableRowInfo';
 
-export type EmbeddingModelStatus = 'not_available' | 'available' | 'registered';
-
-export const computeEmbeddingModelStatus = (
-  embeddingModel: string,
-  allModels: AIModel[],
-  playgroundModels: LlamaModel[],
-): EmbeddingModelStatus => {
-  const { id: normalizedId } = splitLlamaModelId(embeddingModel);
-
-  // "registered": embedding model is in the LlamaStack playground.
-  // playgroundModels[].modelId is already normalized via splitLlamaModelId.
-  const isRegistered = playgroundModels.some(
-    (m) => m.modelId === embeddingModel || m.modelId === normalizedId,
-  );
-  if (isRegistered) {
-    return 'registered';
-  }
-
-  // "available": embedding model exists in the unified AI Assets models list (AAE + MaaS).
-  // Normalize both sides to handle provider-prefixed vs plain IDs.
-  const isAvailable = allModels.some((m) => {
-    const { id: normalizedModelId } = splitLlamaModelId(m.model_id);
-    return m.model_id === embeddingModel || normalizedModelId === normalizedId;
-  });
-  if (isAvailable) {
-    return 'available';
-  }
-
-  return 'not_available';
-};
+export type { EmbeddingModelStatus } from '~/app/utilities/utils';
 
 interface VectorStoreTableRowProps {
   store: ExternalVectorStoreSummary;
@@ -174,6 +145,7 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
           existingCollections={existingCollections}
           extraSelectedCollections={[store]}
           initialStepId="collections"
+          redirectToPlayground
         />
       )}
     </>

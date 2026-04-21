@@ -13,17 +13,21 @@ import {
   Spinner,
   Bullseye,
 } from '@patternfly/react-core';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import GenAiCoreHeader from '~/app/GenAiCoreHeader';
-import { genAiAiAssetsRoute } from '~/app/utilities/routes';
+import { genAiAiAssetsRoute, genAiAiAssetsTabRoute } from '~/app/utilities/routes';
 import AiAssetEndpointsIcon from '~/app/images/icons/AiAssetEndpointsIcon';
 import { isAIAssetsTabExtension } from '~/odh/extension-points';
 
 export const AIAssetsPage: React.FC = () => {
   const tabExtensions = useExtensions(isAIAssetsTabExtension);
-  const [activeTabKey, setActiveTabKey] = React.useState<string>(
-    tabExtensions[0]?.properties.id || '',
-  );
+  const { namespace, tab: tabParam } = useParams<{ namespace: string; tab: string }>();
+  const navigate = useNavigate();
+
+  const defaultTab = tabExtensions[0]?.properties.id || '';
+  const isValidTab = tabExtensions.some((ext) => ext.properties.id === tabParam);
+  const activeTabKey = isValidTab ? String(tabParam) : defaultTab;
 
   return (
     <ApplicationsPage
@@ -42,7 +46,9 @@ export const AIAssetsPage: React.FC = () => {
         <Tabs
           activeKey={activeTabKey}
           onSelect={(_, tabKey) => {
-            setActiveTabKey(String(tabKey));
+            if (namespace) {
+              navigate(genAiAiAssetsTabRoute(namespace, String(tabKey)));
+            }
           }}
           aria-label="AI Assets tabs"
           role="region"

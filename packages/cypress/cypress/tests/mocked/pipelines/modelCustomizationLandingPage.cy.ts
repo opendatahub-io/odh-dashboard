@@ -93,7 +93,7 @@ describe('Model Customization Landing Page', () => {
           name: 'go-to-model-registry',
         })
         .click();
-      cy.url().should('include', '/ai-hub/registry');
+      cy.url().should('include', '/ai-hub/models/registry');
     });
   });
 

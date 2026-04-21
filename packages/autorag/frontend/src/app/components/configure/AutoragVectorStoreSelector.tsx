@@ -3,8 +3,35 @@ import React, { useEffect, useState } from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
 import { useNotification } from '~/app/hooks/useNotification';
-import { SUPPORTED_VECTOR_STORE_PROVIDERS, ConfigureSchema } from '~/app/schemas/configure.schema';
-import { useLlamaStackVectorStoresQuery } from '~/app/hooks/queries';
+import {
+  SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
+  // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
+  // DEFAULT_IN_MEMORY_PROVIDER,
+  ConfigureSchema,
+} from '~/app/schemas/configure.schema';
+import { useLlamaStackVectorStoreProvidersQuery } from '~/app/hooks/queries';
+import { LlamaStackVectorStoreProvider } from '~/app/types';
+
+/**
+ * Formats a provider for display.
+ * e.g. provider_id="milvus", provider_type="remote::milvus" → "milvus (remote Milvus)"
+ * e.g. provider_id="faiss", provider_type="inline::faiss" → "faiss (inline Faiss)"
+ * Falls back to provider_id if provider_type doesn't follow the expected "deployment::name" format.
+ */
+const formatProviderDisplayName = (provider: LlamaStackVectorStoreProvider): string => {
+  // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
+  // Handle special case for IN_MEMORY provider
+  // if (provider.provider_type === 'IN_MEMORY') {
+  //   return 'ChromaDB (in-memory)';
+  // }
+
+  const [deployment, name] = provider.provider_type.split('::');
+  if (!deployment || !name) {
+    return provider.provider_id;
+  }
+  const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
+  return `${provider.provider_id} (${deployment} ${capitalizedName})`;
+};
 
 const AutoragVectorStoreSelector: React.FC = () => {
   const { namespace = '' } = useParams();
@@ -16,62 +43,91 @@ const AutoragVectorStoreSelector: React.FC = () => {
     control,
   } = useFormContext<ConfigureSchema>();
 
-  const { field } = useController<ConfigureSchema, 'llama_stack_vector_database_id'>({
-    name: 'llama_stack_vector_database_id',
+  const { field } = useController<ConfigureSchema, 'llama_stack_vector_io_provider_id'>({
+    name: 'llama_stack_vector_io_provider_id',
   });
 
   const llamaStackSecretName = useWatch({ control, name: 'llama_stack_secret_name' });
 
   const {
-    data: vectorStoresData,
+    data: providersData,
     isLoading,
     isError,
-  } = useLlamaStackVectorStoresQuery(
+  } = useLlamaStackVectorStoreProvidersQuery(
     namespace,
     llamaStackSecretName,
-    SUPPORTED_VECTOR_STORE_PROVIDERS,
+    SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
   );
 
   useEffect(() => {
     if (isError) {
-      notification.error('Failed to load vector stores');
+      notification.error(
+        'Failed to load vector I/O providers.',
+        <>
+          Check that the secret for the provided Llama Stack connection is valid and the API key has
+          not expired.
+        </>,
+      );
     }
   }, [isError, notification]);
 
-  const vectorStores = vectorStoresData?.vector_stores ?? [];
-  const selectedStore = vectorStores.find((vs) => vs.id === field.value);
+  // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
+  // Inject the default in-memory provider at the beginning of the list.
+  // const providers = [DEFAULT_IN_MEMORY_PROVIDER, ...apiProviders];
+  const apiProviders = providersData?.vector_store_providers ?? [];
+  const providers = apiProviders;
+  const selectedProvider = providers.find((p) => p.provider_id === field.value);
+
+  // Clear stale selection when the provider list changes and no longer includes
+  // the previously selected provider (e.g., LlamaStack secret was changed or
+  // providers became empty).
+  useEffect(() => {
+    if (field.value && !providers.some((p) => p.provider_id === field.value)) {
+      field.onChange('');
+    }
+  }, [providers, field]);
 
   if (isLoading) {
     return <Skeleton width="200px" height="36px" />;
   }
 
+  const noProviders = providers.length === 0;
+
   return (
     <Select
-      aria-label="Vector store selector"
+      aria-label="Vector I/O provider selector"
       isOpen={isOpen}
       onOpenChange={setIsOpen}
-      onSelect={(_e, selectedValue) => {
-        field.onChange(selectedValue === field.value ? '' : selectedValue);
+      onSelect={(_e, selectedProviderId) => {
+        const provider = providers.find((p) => p.provider_id === selectedProviderId);
+        field.onChange(provider ? provider.provider_id : '');
         setIsOpen(false);
       }}
-      selected={field.value}
+      selected={selectedProvider?.provider_id}
       toggle={(toggleRef) => (
         <MenuToggle
           ref={toggleRef}
           onClick={() => setIsOpen((prev) => !prev)}
           isExpanded={isOpen}
-          isDisabled={isSubmitting || isError || vectorStores.length === 0}
+          isDisabled={isSubmitting || isError || noProviders}
           data-testid="vector-store-select-toggle"
         >
-          {(selectedStore?.name || selectedStore?.id) ??
-            (vectorStores.length === 0 ? 'No vector stores available' : 'Select vector index')}
+          {noProviders
+            ? 'No vector I/O providers available'
+            : selectedProvider
+              ? formatProviderDisplayName(selectedProvider)
+              : 'Select vector I/O provider'}
         </MenuToggle>
       )}
     >
       <SelectList data-testid="vector-store-select-list">
-        {vectorStores.map((vs) => (
-          <SelectOption key={vs.id} value={vs.id} data-testid={`vector-store-option-${vs.id}`}>
-            {vs.name || vs.id}
+        {providers.map((p) => (
+          <SelectOption
+            key={p.provider_id}
+            value={p.provider_id}
+            data-testid={`vector-store-option-${p.provider_id}`}
+          >
+            {formatProviderDisplayName(p)}
           </SelectOption>
         ))}
       </SelectList>

@@ -21,18 +21,21 @@ const ChatModal: React.FC<ChatModalProps> = ({
   const isCompare = variant === 'compare';
 
   const handleCancel = () => {
-    fireFormTrackingEvent(
-      isCompare ? 'Playground Compare Chat Canceled' : 'Playground New Chat Canceled',
-      { outcome: TrackingOutcome.cancel },
-    );
+    if (!isCompare) {
+      fireFormTrackingEvent('Playground New Chat Canceled', {
+        outcome: TrackingOutcome.cancel,
+      });
+    }
     onClose();
   };
 
   const handleConfirm = () => {
-    fireFormTrackingEvent(
-      isCompare ? 'Playground Compare Chat Confirmed' : 'Playground New Chat Confirmed',
-      { outcome: TrackingOutcome.submit, success: true },
-    );
+    if (!isCompare) {
+      fireFormTrackingEvent('Playground New Chat Confirmed', {
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
+    }
     onConfirm();
     onClose();
   };

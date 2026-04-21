@@ -7,9 +7,18 @@ import React from 'react';
 import { BrowserRouter } from 'react-router';
 import AutoragConfigurePage from '~/app/pages/AutoragConfigurePage';
 
+// Truncate relies on DOM measurement APIs (scrollWidth) unavailable in JSDOM.
+jest.mock('@patternfly/react-core', () => ({
+  ...jest.requireActual('@patternfly/react-core'),
+  Truncate: ({ content }: { content: string }) => <span>{content}</span>,
+}));
+
 const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
 const mockMutateAsync = jest.fn();
+const mockS3UploadMutateAsync = jest
+  .fn()
+  .mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -32,10 +41,85 @@ jest.mock('mod-arch-core', () => ({
 }));
 
 jest.mock('~/app/hooks/mutations', () => ({
-  usePipelineRunsMutation: jest.fn(() => ({
+  useCreatePipelineRunMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
   })),
+  useS3FileUploadMutation: jest.fn(() => ({
+    mutateAsync: mockS3UploadMutateAsync,
+    isPending: false,
+    reset: jest.fn(),
+    variables: undefined,
+  })),
+  useUploadToStorageMutation: jest.fn(() => ({
+    mutateAsync: jest.fn().mockResolvedValue({ uploaded: true, key: 'test-file.json' }),
+    mutate: jest.fn(),
+    isPending: false,
+    isIdle: true,
+    isSuccess: false,
+    isError: false,
+    reset: jest.fn(),
+    data: undefined,
+    error: null,
+    variables: undefined,
+    status: 'idle',
+  })),
 }));
+
+// Mock AutoragEvaluationSelect to auto-set test_data_key so the form validates.
+// The real component lets the user pick a file; here we auto-set the value once
+// the synced test_data_secret_name and test_data_bucket_name are non-empty.
+// We use setTimeout(0) so the setValue runs after AutoragConfigure's clear effects
+// (parent effects fire after child effects, so without the defer the clear effect
+// would overwrite the value we set here).
+jest.mock('~/app/components/configure/AutoragEvaluationSelect', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const ReactMock = require('react');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { useFormContext } = require('react-hook-form');
+
+  const MockEvaluationSelect = () => {
+    const { setValue, watch } = useFormContext();
+    const testDataSecretName = watch('test_data_secret_name');
+    const testDataBucketName = watch('test_data_bucket_name');
+
+    ReactMock.useEffect(() => {
+      if (!testDataSecretName || !testDataBucketName) {
+        return undefined;
+      }
+      // Defer so AutoragConfigure's clear effect (which also reacts to
+      // testDataSecretName / testDataBucketName changes) runs first.
+      const timeout = setTimeout(() => {
+        setValue('test_data_key', 'evaluation-dataset.json', { shouldValidate: true });
+      }, 0);
+      return () => clearTimeout(timeout);
+    }, [testDataSecretName, testDataBucketName, setValue]);
+
+    return ReactMock.createElement('div', { 'data-testid': 'evaluation-select' }, 'Mocked eval');
+  };
+  return { __esModule: true, default: MockEvaluationSelect };
+});
+
+// Mock the VectorStoreSelector to auto-set the form value since PF6 Select
+// doesn't work in JSDOM (Floating UI portal limitation).
+jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const ReactMock = require('react');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { useFormContext } = require('react-hook-form');
+
+  const MockVectorStoreSelector = () => {
+    const { setValue } = useFormContext();
+    ReactMock.useEffect(() => {
+      setValue('llama_stack_vector_io_provider_id', 'milvus', { shouldValidate: true });
+    }, [setValue]);
+    return ReactMock.createElement(
+      'div',
+      { 'data-testid': 'vector-store-select-toggle' },
+      'milvus (remote Milvus)',
+    );
+  };
+  return { __esModule: true, default: MockVectorStoreSelector };
+});
 
 jest.mock('~/app/hooks/queries', () => ({
   useLlamaStackModelsQuery: jest.fn(() => ({
@@ -49,8 +133,12 @@ jest.mock('~/app/hooks/queries', () => ({
     isLoading: false,
     error: null,
   })),
-  useLlamaStackVectorStoresQuery: jest.fn(() => ({
-    data: { vector_stores: [] }, // eslint-disable-line camelcase
+  useLlamaStackVectorStoreProvidersQuery: jest.fn(() => ({
+    data: { vector_store_providers: [{ provider_id: 'milvus', provider_type: 'remote::milvus' }] }, // eslint-disable-line camelcase
+    isLoading: false,
+  })),
+  useSecretsQuery: jest.fn(() => ({
+    data: [],
     isLoading: false,
   })),
 }));
@@ -92,20 +180,35 @@ jest.mock('mod-arch-shared', () => ({
       {loaded && !empty ? children : null}
     </div>
   ),
-  TitleWithIcon: ({ title }: { title: string }) => <span>{title}</span>,
-  ProjectObjectType: { pipelineExperiment: 'pipelineExperiment' },
   DashboardPopupIconButton: ({ icon }: { icon: React.ReactNode }) => <button>{icon}</button>,
 }));
 
-// Mock FileExplorer used by AutoragConfigure
-jest.mock('~/app/components/common/FileExplorer/FileExplorer.tsx', () => ({
+// Mock S3FileExplorer used by AutoragConfigure
+// TODO: Once test data input is hooked up, cleanup mock
+let mockFileExplorerCallCount = 0;
+jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
   __esModule: true,
-  default: ({ isOpen, onPrimary }: { isOpen: boolean; onPrimary: (files: unknown) => void }) =>
+  default: ({
+    isOpen,
+    onSelectFiles,
+    onClose,
+  }: {
+    isOpen: boolean;
+    onSelectFiles: (files: { path: string }[]) => void;
+    onClose: () => void;
+  }) =>
     isOpen ? (
       <div data-testid="file-explorer-modal">
         <button
           data-testid="file-explorer-select-file"
-          onClick={() => onPrimary([{ name: 'test-file.txt' }])}
+          onClick={() => {
+            mockFileExplorerCallCount += 1;
+            // First call: input data (document), Second call: test data (evaluation dataset - must be .json)
+            const filePath =
+              mockFileExplorerCallCount === 1 ? '/test-file.txt' : '/evaluation-dataset.json';
+            onSelectFiles([{ path: filePath }]);
+            onClose();
+          }}
         >
           Select File
         </button>
@@ -154,7 +257,7 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
           uuid: 'aws-secret-1',
           name: 'Test AWS Secret',
           displayName: 'Test AWS Secret',
-          data: { aws_s3_bucket: 'test-bucket' },
+          data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
           type: 's3',
           invalid: false,
         });
@@ -201,6 +304,7 @@ const renderWithProviders = (component: React.ReactElement) => {
 describe('AutoragConfigurePage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFileExplorerCallCount = 0;
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
   });
 
@@ -215,26 +319,26 @@ describe('AutoragConfigurePage', () => {
       // Check for form fields that are rendered by AutoragCreate
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
       expect(await screen.findByLabelText(/Description/i)).toBeInTheDocument();
-      expect(await screen.findByText(/Llama Stack instance/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Llama Stack connection/i)).toBeInTheDocument();
     });
 
     it('should NOT render AutoragConfigure component on initial load', async () => {
       renderWithProviders(<AutoragConfigurePage />);
       // AutoragConfigure has "Documents" and "Configure Details" headings
-      expect(screen.queryByText('Documents')).not.toBeInTheDocument();
-      expect(screen.queryByText('Configure Details')).not.toBeInTheDocument();
+      expect(screen.queryByText('Knowledge setup')).not.toBeInTheDocument();
+      expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
     });
 
-    it('should display "Create AutoRAG experiment" subtitle in create step', async () => {
+    it('should display "Create AutoRAG optimization run" subtitle in create step', async () => {
       renderWithProviders(<AutoragConfigurePage />);
-      expect(await screen.findByText('Create AutoRAG experiment')).toBeInTheDocument();
+      expect(await screen.findByText('Create AutoRAG optimization run')).toBeInTheDocument();
     });
 
     it('should display description text in create step', async () => {
       renderWithProviders(<AutoragConfigurePage />);
       expect(
         await screen.findByText(
-          'Automatically configure and optimize your Retrieval-Augmented Generation workflows.',
+          'Automatically test and tune retrieval, indexing, and model settings to improve Retrieval-Augmented Generation (RAG) response quality.',
         ),
       ).toBeInTheDocument();
     });
@@ -299,26 +403,21 @@ describe('AutoragConfigurePage', () => {
       await user.click(nextButton);
 
       // Should now show configure component
-      expect(await screen.findByText('Documents')).toBeInTheDocument();
-      expect(await screen.findByText('Configure Details')).toBeInTheDocument();
+      expect(await screen.findByText('Knowledge setup')).toBeInTheDocument();
+      expect(await screen.findByText('Configure details')).toBeInTheDocument();
       expect(screen.queryByLabelText(/Name/i)).not.toBeInTheDocument();
     });
   });
 
   describe('Create step - Cancel button', () => {
-    it('should render Cancel button', async () => {
+    it('should render Cancel link with correct href', async () => {
       renderWithProviders(<AutoragConfigurePage />);
-      expect(await screen.findByRole('button', { name: 'Cancel' })).toBeInTheDocument();
-    });
-
-    it('should navigate to experiments page when Cancel is clicked', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(<AutoragConfigurePage />);
-
-      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
-      await user.click(cancelButton);
-
-      expect(mockNavigate).toHaveBeenCalledWith('/gen-ai-studio/autorag/experiments');
+      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
+      expect(cancelLink).toBeInTheDocument();
+      expect(cancelLink).toHaveAttribute(
+        'href',
+        '/gen-ai-studio/autorag/experiments/test-namespace',
+      );
     });
   });
 
@@ -342,38 +441,40 @@ describe('AutoragConfigurePage', () => {
 
     it('should render AutoragConfigure component in configure step', async () => {
       // Check for distinctive elements from AutoragConfigure
-      expect(await screen.findByText('Documents')).toBeInTheDocument();
-      expect(await screen.findByText('Configure Details')).toBeInTheDocument();
+      expect(await screen.findByText('Knowledge setup')).toBeInTheDocument();
+      expect(await screen.findByText('Configure details')).toBeInTheDocument();
     });
 
     it('should display experiment name in subtitle in configure step', async () => {
-      expect(await screen.findByText('"My Experiment" configurations')).toBeInTheDocument();
+      const subtitle = await screen.findByTestId('configure-step-subtitle');
+      expect(subtitle).toHaveTextContent('"My Experiment" configurations');
     });
 
     it('should NOT display description text in configure step', async () => {
       expect(
         screen.queryByText(
-          'Automatically configure and optimize your Retrieval-Augmented Generation workflows.',
+          'Automatically test and tune retrieval, indexing, and model settings to improve Retrieval-Augmented Generation (RAG) response quality.',
         ),
       ).not.toBeInTheDocument();
     });
 
     it('should display breadcrumb in configure step', async () => {
       expect(await screen.findByText('AutoRAG: test-namespace')).toBeInTheDocument();
-      expect(await screen.findByText('My Experiment')).toBeInTheDocument();
+      const breadcrumbName = await screen.findByTestId('configure-breadcrumb-name');
+      expect(breadcrumbName).toHaveTextContent('My Experiment');
     });
 
-    it('should render "Run experiment" button', async () => {
-      expect(await screen.findByRole('button', { name: 'Run experiment' })).toBeInTheDocument();
+    it('should render "Create run" button', async () => {
+      expect(await screen.findByRole('button', { name: 'Create run' })).toBeInTheDocument();
     });
 
     it('should render "Back" button', async () => {
       expect(await screen.findByRole('button', { name: 'Back' })).toBeInTheDocument();
     });
 
-    it('should NOT render "Next" or "Cancel" buttons in configure step', async () => {
+    it('should NOT render "Next" or "Cancel" in configure step', async () => {
       expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Cancel' })).not.toBeInTheDocument();
     });
   });
 
@@ -398,12 +499,12 @@ describe('AutoragConfigurePage', () => {
       const backButton = await screen.findByRole('button', { name: 'Back' });
       await user.click(backButton);
 
-      // Should show create component again (has Name, Description, Llama Stack instance)
+      // Should show create component again (has Name, Description, Llama Stack connection)
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
-      expect(await screen.findByText(/Llama Stack instance/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Llama Stack connection/i)).toBeInTheDocument();
       // Should NOT show configure component (Documents, Configure Details)
-      expect(screen.queryByText('Documents')).not.toBeInTheDocument();
-      expect(screen.queryByText('Configure Details')).not.toBeInTheDocument();
+      expect(screen.queryByText('Knowledge setup')).not.toBeInTheDocument();
+      expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
     });
 
     it('should preserve form data when navigating back', async () => {
@@ -435,8 +536,8 @@ describe('AutoragConfigurePage', () => {
     });
   });
 
-  describe('Configure step - Run experiment', () => {
-    it('should call mutateAsync when Run experiment button is clicked with valid form', async () => {
+  describe('Configure step - Create run', () => {
+    it('should call mutateAsync when Create run button is clicked with valid form', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
 
@@ -458,25 +559,34 @@ describe('AutoragConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      // Select files to populate input_data_key and test_data_key
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      // Select input data files
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
-      // FileExplorer should open
+      // FileExplorer should open for input data
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
+      // Vector store value is auto-set by the mocked AutoragVectorStoreSelector.
+
       // Wait for form to be valid and Run button to be enabled
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
 
-      // Click Run experiment button
+      // Click Create run button
       await user.click(runButton);
 
+      // Assert that the payload contains the .json evaluation dataset
       await waitFor(() => {
-        expect(mockMutateAsync).toHaveBeenCalled();
+        expect(mockMutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({
+            test_data_key: 'evaluation-dataset.json',
+          }),
+        );
       });
     });
 
@@ -502,14 +612,17 @@ describe('AutoragConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      // Select input data files
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -544,14 +657,17 @@ describe('AutoragConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      // Select input data files
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -587,14 +703,17 @@ describe('AutoragConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Select files' });
+      // Select input data files
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -603,6 +722,64 @@ describe('AutoragConfigurePage', () => {
       await waitFor(() => {
         expect(mockNotificationError).toHaveBeenCalledWith('Failed to create pipeline run', '');
       });
+    });
+
+    it('should upload file on selection in upload mode and pass resolved input_data_key to pipeline run', async () => {
+      const user = userEvent.setup();
+      mockMutateAsync.mockResolvedValue({ run_id: 'new-run-456' });
+      mockS3UploadMutateAsync.mockResolvedValue({ uploaded: true, key: 'resolved-key.pdf' });
+
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'Upload Immediate Test');
+
+      const selectLlsSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      await user.click(selectLlsSecretButton);
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await user.click(nextButton);
+
+      const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
+      await user.click(selectAwsSecretButton);
+
+      await user.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const file = new File(['doc'], 'original-name.pdf', { type: 'application/pdf' });
+      const fileInputs = [...document.querySelectorAll('input[type="file"]')] as HTMLInputElement[];
+      const uploadInput = fileInputs.find((el) => el.accept.includes('pdf')) ?? fileInputs[0];
+      expect(uploadInput).toBeTruthy();
+      await user.upload(uploadInput, file);
+
+      await waitFor(() => {
+        expect(mockS3UploadMutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({
+            namespace: 'test-namespace',
+            secretName: 'Test AWS Secret',
+            bucket: 'test-bucket',
+            key: 'original-name.pdf',
+            file,
+          }),
+        );
+      });
+      expect(mockS3UploadMutateAsync).toHaveBeenCalledTimes(1);
+
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
+      await waitFor(() => {
+        expect(runButton).toBeEnabled();
+      });
+      await user.click(runButton);
+
+      await waitFor(() => {
+        expect(mockMutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({
+            input_data_key: 'resolved-key.pdf',
+          }),
+        );
+      });
+      expect(mockS3UploadMutateAsync).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -693,7 +870,8 @@ describe('AutoragConfigurePage', () => {
       await user.click(await screen.findByRole('button', { name: 'Next' }));
 
       // Verify we're in configure step with correct subtitle
-      expect(await screen.findByText('"Persistent Experiment" configurations')).toBeInTheDocument();
+      const subtitle = await screen.findByTestId('configure-step-subtitle');
+      expect(subtitle).toHaveTextContent('"Persistent Experiment" configurations');
     });
   });
 });

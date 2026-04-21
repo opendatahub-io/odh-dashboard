@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
+import { MLflowPromptVersion } from '~/app/types';
+import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
+import { deepCopyPrompt } from './utils';
 import {
   ChatbotConfigStore,
   ChatbotConfiguration,
@@ -205,6 +208,8 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           knowledgeMode: sourceConfig.knowledgeMode,
           selectedVectorStoreId: sourceConfig.selectedVectorStoreId,
           selectedSubscription: sourceConfig.selectedSubscription,
+          activePrompt: deepCopyPrompt(sourceConfig.activePrompt),
+          dirtyPrompt: deepCopyPrompt(sourceConfig.dirtyPrompt),
         };
 
         set(
@@ -420,6 +425,60 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         });
       },
 
+      updateActivePrompt: (id: string, prompt: MLflowPromptVersion | null) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.activePrompt = deepCopyPrompt(prompt);
+              config.dirtyPrompt = deepCopyPrompt(prompt);
+            }
+          },
+          false,
+          'updateActivePrompt',
+        );
+      },
+
+      updateDirtyPrompt: (id: string, prompt: MLflowPromptVersion | null) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.dirtyPrompt = deepCopyPrompt(prompt);
+            }
+          },
+          false,
+          'updateDirtyPrompt',
+        );
+      },
+
+      resetDirtyPrompt: (id: string) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.dirtyPrompt = deepCopyPrompt(config.activePrompt);
+            }
+          },
+          false,
+          'resetDirtyPrompt',
+        );
+      },
+
+      clearPromptState: (id: string, newDirtyPrompt: MLflowPromptVersion | null) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.activePrompt = null;
+              config.dirtyPrompt = deepCopyPrompt(newDirtyPrompt);
+            }
+          },
+          false,
+          'clearPromptState',
+        );
+      },
+
       // Configuration management
       resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => {
         set(
@@ -440,6 +499,26 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
 
       // Utility
       getConfiguration: (id: string) => get().configurations[id],
+      getPromptSourceType(id: string) {
+        const config = get().configurations[id];
+        let instructionSource = '';
+        if (config) {
+          const { activePrompt, systemInstruction } = config;
+          const activeTemplate =
+            activePrompt?.template ||
+            activePrompt?.messages?.find((m) => m.role === 'system')?.content ||
+            '';
+
+          if (activeTemplate === systemInstruction) {
+            instructionSource = 'managed';
+          } else if (systemInstruction === DEFAULT_SYSTEM_INSTRUCTIONS) {
+            instructionSource = 'default';
+          } else if (activeTemplate !== systemInstruction) {
+            instructionSource = 'unsaved';
+          }
+        }
+        return instructionSource;
+      },
     })),
     {
       name: 'ChatbotConfigStore',

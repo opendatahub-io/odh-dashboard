@@ -1,16 +1,7 @@
 import React from 'react';
-import {
-  Alert,
-  Button,
-  Form,
-  FormSection,
-  Spinner,
-  Modal,
-  ModalBody,
-  ModalHeader,
-  ModalFooter,
-} from '@patternfly/react-core';
+import { Alert, Form, FormSection, Spinner } from '@patternfly/react-core';
 import { ProjectKind } from '#~/k8sTypes';
+import ContentModal from '#~/components/modals/ContentModal';
 import ProjectSelector from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
 import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
@@ -20,7 +11,7 @@ import ModelServingContextProvider, {
   ModelServingContext,
 } from '#~/pages/modelServing/ModelServingContext';
 import { getKServeTemplates } from '#~/pages/modelServing/customServingRuntimes/utils';
-import { isRedHatRegistryUri } from '#~/pages/modelRegistry/screens/utils';
+import { isRedHatRegistryUri } from '#~/concepts/modelRegistry/utils';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 import { isOciModelUri } from '#~/pages/modelServing/utils';
 import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
@@ -133,24 +124,27 @@ const DeployPrefilledModelModalContents: React.FC<
     );
 
     return (
-      <Modal variant="medium" isOpen onClose={() => onClose(false)}>
-        <ModalHeader
-          title="Deploy model"
-          description="Configure properties for deploying your model"
-        />
-        <ModalBody>{modalForm}</ModalBody>
-        <ModalFooter>
-          {/* The Deploy button is disabled as this particular return of the Modal
-          only happens when there's not a valid selected project, otherwise we'll
-          render the ManageKServeModal */}
-          <Button key="deploy" variant="primary" isDisabled>
-            Deploy
-          </Button>
-          <Button key="cancel" variant="link" onClick={() => onClose(false)}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
+      <ContentModal
+        title="Deploy model"
+        description="Configure properties for deploying your model"
+        onClose={() => onClose(false)}
+        contents={modalForm}
+        buttonActions={[
+          {
+            label: 'Deploy',
+            onClick: () => onClose(true),
+            variant: 'primary',
+            isDisabled: true,
+            dataTestId: 'deploy-button',
+          },
+          {
+            label: 'Cancel',
+            onClick: () => onClose(false),
+            variant: 'link',
+            dataTestId: 'cancel-button',
+          },
+        ]}
+      />
     );
   }
 

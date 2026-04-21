@@ -2,6 +2,10 @@
 /**
  * @jest-environment node
  */
+import * as http from 'http';
+import * as https from 'https';
+import { URL } from 'url';
+import type { IncomingMessage } from 'http';
 import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
 
 describe('AutoRAG API Contract Tests', () => {
@@ -119,9 +123,9 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
-  describe('LSD Vector Stores Endpoint', () => {
+  describe('LSD Vector Store Providers Endpoint', () => {
     describe('Success Cases', () => {
-      it('should successfully retrieve LSD vector stores list', async () => {
+      it('should successfully retrieve LSD vector store providers list', async () => {
         const result = await apiClient.get(
           '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
         );
@@ -131,7 +135,7 @@ describe('AutoRAG API Contract Tests', () => {
         });
       });
 
-      it('should return vector stores with expected data structure', async () => {
+      it('should return vector store providers with expected data structure', async () => {
         const result = await apiClient.get(
           '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
         );
@@ -139,24 +143,39 @@ describe('AutoRAG API Contract Tests', () => {
         if (result.success) {
           const responseData = result.response.data as {
             data?: {
-              vector_stores?: Array<{
-                id: string;
-                name: string;
-                status: string;
-                provider: string;
+              vector_store_providers?: Array<{
+                provider_id: string;
+                provider_type: string;
               }>;
             };
           };
           expect(responseData.data).toBeDefined();
-          expect(responseData.data?.vector_stores).toBeDefined();
-          expect(Array.isArray(responseData.data?.vector_stores)).toBe(true);
-          if (responseData.data?.vector_stores && responseData.data.vector_stores.length > 0) {
-            const vectorStore = responseData.data.vector_stores[0];
-            expect(vectorStore).toHaveProperty('id');
-            expect(vectorStore).toHaveProperty('name');
-            expect(vectorStore).toHaveProperty('status');
-            expect(vectorStore).toHaveProperty('provider');
+          expect(responseData.data?.vector_store_providers).toBeDefined();
+          expect(Array.isArray(responseData.data?.vector_store_providers)).toBe(true);
+          if (
+            responseData.data?.vector_store_providers &&
+            responseData.data.vector_store_providers.length > 0
+          ) {
+            const provider = responseData.data.vector_store_providers[0];
+            expect(provider).toHaveProperty('provider_id');
+            expect(provider).toHaveProperty('provider_type');
           }
+        }
+      });
+    });
+
+    describe('Response Structure', () => {
+      it('should return a valid array in vector_store_providers field', async () => {
+        const result = await apiClient.get(
+          '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const responseData = result.response.data as {
+            data?: { vector_store_providers?: unknown[] };
+          };
+          expect(responseData.data?.vector_store_providers).toBeDefined();
+          expect(Array.isArray(responseData.data?.vector_store_providers)).toBe(true);
         }
       });
     });
@@ -399,7 +418,7 @@ describe('AutoRAG API Contract Tests', () => {
     });
 
     describe('Secret Value Sanitization', () => {
-      it('should return actual values only for aws_s3_bucket keys', async () => {
+      it('should return actual values only for AWS_S3_BUCKET keys', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default&type=storage');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
@@ -408,20 +427,33 @@ describe('AutoRAG API Contract Tests', () => {
 
         if (result.success) {
           const responseData = result.response.data as SecretsResponseData;
+
+          // Find the secret that has both canonical and non-canonical bucket keys
+          const mixedCaseSecret = responseData.data?.find(
+            (s) => s.name === 'test-secret-mixed-case-bucket',
+          );
+          expect(mixedCaseSecret).toBeDefined();
+
+          const mixedCaseData = mixedCaseSecret?.data ?? {};
+
+          // Verify canonical key exists and is NOT redacted
+          expect(mixedCaseData).toHaveProperty('AWS_S3_BUCKET');
+          expect(mixedCaseData.AWS_S3_BUCKET).not.toBe('[REDACTED]');
+          expect(typeof mixedCaseData.AWS_S3_BUCKET).toBe('string');
+          expect(mixedCaseData.AWS_S3_BUCKET.length).toBeGreaterThan(0);
+
+          // Verify non-canonical (lowercase) variant exists and IS redacted
+          expect(mixedCaseData).toHaveProperty('aws_s3_bucket');
+          expect(mixedCaseData.aws_s3_bucket).toBe('[REDACTED]');
+
+          // Also verify all secrets follow the sanitization rule generically
           responseData.data?.forEach((secret) => {
-            const keys = Object.keys(secret.data);
-
-            // Check each key-value pair
-            keys.forEach((key) => {
-              const value = secret.data[key];
-
-              // aws_s3_bucket (case-insensitive) should have actual value
-              if (key.toLowerCase() === 'aws_s3_bucket') {
+            Object.entries(secret.data).forEach(([key, value]) => {
+              if (key === 'AWS_S3_BUCKET') {
                 expect(value).not.toBe('[REDACTED]');
                 expect(typeof value).toBe('string');
                 expect(value.length).toBeGreaterThan(0);
               } else {
-                // All other keys should be sanitized
                 expect(value).toBe('[REDACTED]');
               }
             });
@@ -429,7 +461,7 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should sanitize all secret values except aws_s3_bucket', async () => {
+      it('should sanitize all secret values except AWS_S3_BUCKET', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result.success).toBe(true);
 
@@ -444,8 +476,8 @@ describe('AutoRAG API Contract Tests', () => {
           if (secretsWithKeys && secretsWithKeys.length > 0) {
             secretsWithKeys.forEach((secret) => {
               Object.entries(secret.data).forEach(([key, value]) => {
-                // Only aws_s3_bucket (case-insensitive) should have actual values
-                const isAllowedKey = key.toLowerCase() === 'aws_s3_bucket';
+                // Only AWS_S3_BUCKET (case-sensitive, uppercase) should have actual values
+                const isAllowedKey = key === 'AWS_S3_BUCKET';
 
                 if (!isAllowedKey) {
                   expect(value).toBe('[REDACTED]');
@@ -456,7 +488,7 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should handle aws_s3_bucket key with different casing', async () => {
+      it('should only allow uppercase AWS_S3_BUCKET key', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result.success).toBe(true);
 
@@ -465,10 +497,12 @@ describe('AutoRAG API Contract Tests', () => {
 
           responseData.data?.forEach((secret) => {
             Object.entries(secret.data).forEach(([key, value]) => {
-              // Check various casings of aws_s3_bucket
-              if (['aws_s3_bucket', 'AWS_S3_BUCKET', 'Aws_S3_Bucket'].includes(key)) {
-                // Should return actual value, not [REDACTED]
+              // Only exact uppercase AWS_S3_BUCKET should return actual value
+              if (key === 'AWS_S3_BUCKET') {
                 expect(value).not.toBe('[REDACTED]');
+              } else {
+                // Lowercase or mixed case variants should be redacted
+                expect(value).toBe('[REDACTED]');
               }
             });
           });
@@ -1138,12 +1172,45 @@ describe('AutoRAG API Contract Tests', () => {
           optimization_metric: 'answer_correctness',
           embeddings_models: ['model-a', 'model-b'],
           generation_models: ['gen-model-1'],
-          llama_stack_vector_database_id: 'vectordb-123',
+          llama_stack_vector_io_provider_id: 'vectordb-123',
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
           status: 200,
         });
+      });
+
+      it('display_name 250 chars accepted', async () => {
+        const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+          display_name: 'a'.repeat(250),
+          test_data_secret_name: 'minio-secret',
+          test_data_bucket_name: 'autorag',
+          test_data_key: 'test_data.json',
+          input_data_secret_name: 'minio-secret',
+          input_data_bucket_name: 'autorag',
+          input_data_key: 'documents/',
+          llama_stack_secret_name: 'llama-secret',
+        });
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('display_name 251 chars rejected', async () => {
+        const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+          display_name: 'a'.repeat(251),
+          test_data_secret_name: 'minio-secret',
+          test_data_bucket_name: 'autorag',
+          test_data_key: 'test_data.json',
+          input_data_secret_name: 'minio-secret',
+          input_data_bucket_name: 'autorag',
+          input_data_key: 'documents/',
+          llama_stack_secret_name: 'llama-secret',
+        });
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
       });
 
       it('should return 400 for missing required fields', async () => {
@@ -1184,6 +1251,269 @@ describe('AutoRAG API Contract Tests', () => {
           expect(result.error.status).toBe(400);
         }
       });
+    });
+
+    describe('Terminate Pipeline Run', () => {
+      it('should terminate an active pipeline run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-ghi789-jkl012/terminate?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should return 400 when attempting to terminate a non-terminatable (SUCCEEDED) run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-abc123-def456/terminate?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 404 for non-existent run ID', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/non-existent-run-id/terminate?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
+
+    describe('Retry Pipeline Run', () => {
+      it('should retry a failed pipeline run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-mno345-pqr678/retry?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should return 400 when attempting to retry a non-retryable (SUCCEEDED) run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-abc123-def456/retry?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 404 for non-existent run ID', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/non-existent-run-id/retry?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
+  });
+
+  describe('S3 File Upload (POST)', () => {
+    const buildFormDataWithFile = (): FormData => {
+      const form = new FormData();
+      form.append(
+        'file',
+        new Blob(['test content'], { type: 'application/octet-stream' }),
+        'file.pdf',
+      );
+      return form;
+    };
+
+    describe('Error Cases - Missing Parameters', () => {
+      it('should return 400 when namespace parameter is missing', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when secretName parameter is missing', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when key parameter is missing', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - No File Part', () => {
+      it('should return 400 when request body has no file part', async () => {
+        const form = new FormData();
+        form.append('other', 'value');
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - Declared Content-Length', () => {
+      /** Matches bff s3_upload_limit.go: 32 MiB file max + 64 MiB multipart envelope. */
+      const s3PostMaxDeclaredBodyBytes = (32 << 20) + (64 << 20);
+
+      const postS3WithDeclaredContentLength = async (
+        pathWithQuery: string,
+        declaredLength: number,
+        bodySent: Buffer,
+      ): Promise<{ status: number; headers: Record<string, string>; data: unknown }> => {
+        const target = new URL(pathWithQuery, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+        const isHttps = target.protocol === 'https:';
+        const lib = isHttps ? https : http;
+        const port = target.port !== '' ? Number(target.port) : isHttps ? 443 : 80;
+
+        return new Promise((resolve, reject) => {
+          const req = lib.request(
+            {
+              hostname: target.hostname,
+              port,
+              path: `${target.pathname}${target.search}`,
+              method: 'POST',
+              headers: {
+                'kubeflow-userid': 'dev-user@example.com',
+                'kubeflow-groups': 'system:masters',
+                'Content-Length': String(declaredLength),
+                'Content-Type': 'application/octet-stream',
+              },
+            },
+            (res: IncomingMessage) => {
+              const parts: string[] = [];
+              res.setEncoding('utf8');
+              res.on('data', (chunk: string) => {
+                parts.push(chunk);
+              });
+              res.on('end', () => {
+                const raw = parts.join('');
+                let data: unknown = raw;
+                try {
+                  data = raw.length > 0 ? JSON.parse(raw) : undefined;
+                } catch {
+                  data = raw;
+                }
+                const headers: Record<string, string> = {};
+                for (const [k, v] of Object.entries(res.headers)) {
+                  headers[k] = Array.isArray(v) ? v.join(', ') : String(v ?? '');
+                }
+                resolve({
+                  status: res.statusCode ?? 0,
+                  headers,
+                  data,
+                });
+              });
+            },
+          );
+          req.on('error', reject);
+          req.write(bodySent);
+          req.end();
+        });
+      };
+
+      it('should return 413 when declared Content-Length exceeds max upload body size', async () => {
+        const path =
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=file.pdf';
+        const response = await postS3WithDeclaredContentLength(
+          path,
+          s3PostMaxDeclaredBodyBytes + 1,
+          Buffer.from('x'),
+        );
+        expect(response.status).toBe(413);
+        const body = response.data as { error?: { code: string; message: string } };
+        expect(body.error).toBeDefined();
+        // Shared toMatchContract cannot compile ErrorEnvelope (nested $ref); validate inner Error.
+        expect({
+          status: response.status,
+          data: body.error,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/Error',
+          status: 413,
+        });
+      });
+    });
+
+    describe('Error Cases - Secret Issues', () => {
+      it('should return 404 when secret does not exist', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=non-existent-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should return 404 when namespace does not exist', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
+
+    describe('Valid Request (all params and file present)', () => {
+      it('should return 201 with S3UploadSuccess when all parameters and file part are valid', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          form,
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/S3UploadSuccess',
+          status: 201,
+        });
+      }, 8000);
     });
   });
 });

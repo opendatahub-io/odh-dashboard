@@ -14,10 +14,13 @@ func timePtr(t time.Time) *time.Time {
 func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 	return []models.MaaSSubscription{
 		{
-			Name:      "premium-team-sub",
-			Namespace: "maas-system",
-			Phase:     "Active",
-			Priority:  10,
+			Name:          "premium-team-sub",
+			Namespace:     "maas-system",
+			DisplayName:   "Premium Team Subscription",
+			Description:   "High-priority subscription for the premium team with extended token limits.",
+			Phase:         "Active",
+			StatusMessage: "successfully reconciled",
+			Priority:      10,
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
 					{Name: "premium-users"},
@@ -46,10 +49,37 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 			CreationTimestamp: timePtr(time.Date(2025, 3, 1, 10, 0, 0, 0, time.UTC)),
 		},
 		{
-			Name:      "basic-team-sub",
-			Namespace: "maas-system",
-			Phase:     "Active",
-			Priority:  0,
+			Name:          "basic-team-sub",
+			Namespace:     "maas-system",
+			DisplayName:   "Basic Team Subscription",
+			Description:   "Standard subscription for general team access.",
+			Phase:         "Active",
+			StatusMessage: "successfully reconciled",
+			Priority:      0,
+			Owner: models.OwnerSpec{
+				Groups: []models.GroupReference{
+					{Name: "system:authenticated"},
+				},
+			},
+			ModelRefs: []models.ModelSubscriptionRef{
+				{
+					Name:      "flan-t5-small",
+					Namespace: "maas-models",
+					TokenRateLimits: []models.TokenRateLimit{
+						{Limit: 10000, Window: "24h"},
+					},
+				},
+			},
+			CreationTimestamp: timePtr(time.Date(2025, 2, 15, 8, 0, 0, 0, time.UTC)),
+		},
+		{
+			Name:          "negative-priority-sub",
+			Namespace:     "maas-system",
+			DisplayName:   "Negative Priority Subscription",
+			Description:   "Negative priority subscription for testing.",
+			Phase:         "Active",
+			StatusMessage: "successfully reconciled",
+			Priority:      -10,
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
 					{Name: "system:authenticated"},
@@ -73,9 +103,13 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 	return []models.MaaSAuthPolicy{
 		{
-			Name:      "premium-team-sub-policy",
-			Namespace: "maas-system",
-			Phase:     "Active",
+			Name:              "premium-team-sub-policy",
+			Namespace:         "maas-system",
+			DisplayName:       "Premium Team Policy",
+			Description:       "High-priority access policy for the premium team with extended model access.",
+			Phase:             "Active",
+			StatusMessage:     "successfully reconciled",
+			CreationTimestamp: timePtr(time.Date(2025, 3, 1, 10, 0, 0, 0, time.UTC)),
 			ModelRefs: []models.ModelRef{
 				{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
 				{Name: "flan-t5-small", Namespace: "maas-models"},
@@ -91,11 +125,30 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			},
 		},
 		{
-			Name:      "basic-team-sub-policy",
-			Namespace: "maas-system",
-			Phase:     "Active",
+			Name:              "basic-team-sub-policy",
+			Namespace:         "maas-system",
+			DisplayName:       "Basic Team Policy",
+			Description:       "Standard access policy for general team usage.",
+			Phase:             "Active",
+			StatusMessage:     "successfully reconciled",
+			CreationTimestamp: timePtr(time.Date(2025, 2, 15, 8, 0, 0, 0, time.UTC)),
 			ModelRefs: []models.ModelRef{
 				{Name: "flan-t5-small", Namespace: "maas-models"},
+			},
+			Subjects: models.SubjectSpec{
+				Groups: []models.GroupReference{
+					{Name: "system:authenticated"},
+				},
+			},
+		},
+		{
+			Name:          "negative-priority-sub-policy",
+			Namespace:     "maas-system",
+			Phase:         "Active",
+			StatusMessage: "successfully reconciled",
+			ModelRefs: []models.ModelRef{
+				{Name: "flan-t5-small", Namespace: "maas-models"},
+				{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
 			},
 			Subjects: models.SubjectSpec{
 				Groups: []models.GroupReference{
@@ -110,8 +163,10 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
 	return []models.MaaSModelRefSummary{
 		{
-			Name:      "granite-3-8b-instruct",
-			Namespace: "maas-models",
+			Name:        "granite-3-8b-instruct",
+			Namespace:   "maas-models",
+			DisplayName: "Granite 3 8B Instruct",
+			Description: "IBM Granite 3 8B instruction-tuned language model.",
 			ModelRef: models.ModelReference{
 				Kind: "LLMInferenceService",
 				Name: "granite-3-8b-instruct",
@@ -120,8 +175,10 @@ func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
 			Endpoint: "https://granite-3-8b-instruct.example.com",
 		},
 		{
-			Name:      "flan-t5-small",
-			Namespace: "maas-models",
+			Name:        "flan-t5-small",
+			Namespace:   "maas-models",
+			DisplayName: "Flan T5 Small",
+			Description: "Google Flan T5 small text-to-text transfer transformer model.",
 			ModelRef: models.ModelReference{
 				Kind: "LLMInferenceService",
 				Name: "flan-t5-small",

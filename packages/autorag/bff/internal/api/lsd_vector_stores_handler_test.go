@@ -14,7 +14,7 @@ import (
 func TestLlamaStackVectorStoresHandler_Success(t *testing.T) {
 	app := newLSDHandlerTestApp(t)
 
-	t.Run("should return all vector stores successfully", func(t *testing.T) {
+	t.Run("should return vector_io providers only", func(t *testing.T) {
 		rr, req := newHandlerTestRequest(t, app)
 		app.LlamaStackVectorStoresHandler(rr, req, nil)
 
@@ -29,13 +29,14 @@ func TestLlamaStackVectorStoresHandler_Success(t *testing.T) {
 
 		assert.Contains(t, response, "data")
 		data := response["data"].(map[string]interface{})
-		assert.Contains(t, data, "vector_stores")
+		assert.Contains(t, data, "vector_store_providers")
 
-		vectorStores := data["vector_stores"].([]interface{})
-		assert.Len(t, vectorStores, 2, "Should return all 2 vector stores from mock")
+		providers := data["vector_store_providers"].([]interface{})
+		// Mock returns 3 providers total: 2 vector_io + 1 inference. Only vector_io should be returned.
+		assert.Len(t, providers, 2, "Should return only the 2 vector_io providers from mock")
 	})
 
-	t.Run("should have correct stable API vector store structure", func(t *testing.T) {
+	t.Run("should have correct stable API provider structure", func(t *testing.T) {
 		rr, req := newHandlerTestRequest(t, app)
 		app.LlamaStackVectorStoresHandler(rr, req, nil)
 
@@ -48,21 +49,17 @@ func TestLlamaStackVectorStoresHandler_Success(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(body, &response))
 
 		data := response["data"].(map[string]interface{})
-		vectorStores := data["vector_stores"].([]interface{})
+		providers := data["vector_store_providers"].([]interface{})
 
-		first := vectorStores[0].(map[string]interface{})
-		assert.Contains(t, first, "id")
-		assert.Contains(t, first, "name")
-		assert.Contains(t, first, "status")
-		assert.Contains(t, first, "provider")
+		first := providers[0].(map[string]interface{})
+		assert.Contains(t, first, "provider_id")
+		assert.Contains(t, first, "provider_type")
 
-		assert.Equal(t, "ls_milvus", first["id"])
-		assert.Equal(t, "Milvus Vector Store", first["name"])
-		assert.Equal(t, "completed", first["status"])
-		assert.Equal(t, "milvus", first["provider"])
+		assert.Equal(t, "milvus", first["provider_id"])
+		assert.Equal(t, "remote::milvus", first["provider_type"])
 	})
 
-	t.Run("should return empty array when LlamaStack has no vector stores", func(t *testing.T) {
+	t.Run("should return empty array when LlamaStack has no providers", func(t *testing.T) {
 		emptyApp := newLSDHandlerTestApp(t)
 		emptyApp.llamaStackClientFactory.(*lsmocks.MockClientFactory).SetMockClient(&mockEmptyClient{})
 
@@ -79,7 +76,7 @@ func TestLlamaStackVectorStoresHandler_Success(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(body, &response))
 
 		data := response["data"].(map[string]interface{})
-		assert.Len(t, data["vector_stores"].([]interface{}), 0, "Should return empty vector stores array")
+		assert.Len(t, data["vector_store_providers"].([]interface{}), 0, "Should return empty providers array")
 	})
 }
 

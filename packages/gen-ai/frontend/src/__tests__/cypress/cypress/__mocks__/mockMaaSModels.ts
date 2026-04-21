@@ -16,6 +16,7 @@ export const mockMaaSModel = (overrides?: Partial<MaaSModel>): MaaSModel => ({
   description: 'Llama 3.1 70B hosted via Models as a Service',
   usecase: 'text-generation',
   model_type: 'llm',
+  subscriptions: [],
   ...overrides,
 });
 

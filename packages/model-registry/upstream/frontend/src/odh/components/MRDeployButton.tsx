@@ -3,7 +3,7 @@ import { Button, ButtonVariant, FlexItem, Tooltip } from '@patternfly/react-core
 import { ModelVersion } from '~/app/types';
 import DeployModalExtension from '~/odh/components/DeployModalExtension';
 
-export const MRDeployButton = ({ mv }: { mv: ModelVersion }) => (
+export const MRDeployButton = ({ mv }: { mv: ModelVersion }): React.ReactElement => (
   <DeployModalExtension
     mv={mv}
     render={(buttonState, onOpenModal, isModalAvailable) => {
@@ -13,7 +13,7 @@ export const MRDeployButton = ({ mv }: { mv: ModelVersion }) => (
           aria-label="Deploy version"
           variant={ButtonVariant.primary}
           onClick={onOpenModal}
-          isAriaDisabled={!buttonState?.enabled}
+          isAriaDisabled={!buttonState.enabled}
           data-testid="deploy-button"
         >
           Deploy

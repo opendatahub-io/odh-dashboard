@@ -34,6 +34,7 @@ describe('EmptyProjects', () => {
     render(<EmptyProjects allowCreate />);
     const createProject = await screen.findByTestId('create-project');
     expect(createProject).toBeEnabled();
+    expect(createProject).not.toHaveAttribute('href');
     const bodyText = await screen.findByTestId('projects-empty-body-text');
     expect(bodyText).toHaveTextContent(
       'Projects allow you and your team to organize and collaborate on resources within separate namespaces.',

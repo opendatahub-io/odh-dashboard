@@ -9,11 +9,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/openai/openai-go/v2"
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 )
@@ -40,7 +40,7 @@ func newHandlerTestRequest(t *testing.T, app *App) (*httptest.ResponseRecorder, 
 	req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models?namespace=test-namespace&secretName=test-secret", nil)
 	assert.NoError(t, err)
 
-	llamaStackClient := app.llamaStackClientFactory.CreateClient("http://test", "token", false, nil, "/v1")
+	llamaStackClient := app.llamaStackClientFactory.CreateClient("http://test", "token", false, nil)
 	ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
 	req = req.WithContext(ctx)
 
@@ -205,11 +205,11 @@ type mockErrorClient struct{}
 
 var _ ls.LlamaStackClientInterface = (*mockErrorClient)(nil)
 
-func (m *mockErrorClient) ListModels(ctx context.Context) ([]openai.Model, error) {
+func (m *mockErrorClient) ListModels(ctx context.Context) ([]models.LlamaStackNativeModel, error) {
 	return nil, assert.AnError
 }
 
-func (m *mockErrorClient) ListVectorStores(ctx context.Context) ([]openai.VectorStore, error) {
+func (m *mockErrorClient) ListProviders(ctx context.Context) ([]models.LlamaStackProvider, error) {
 	return nil, assert.AnError
 }
 
@@ -218,12 +218,12 @@ type mockEmptyClient struct{}
 
 var _ ls.LlamaStackClientInterface = (*mockEmptyClient)(nil)
 
-func (m *mockEmptyClient) ListModels(ctx context.Context) ([]openai.Model, error) {
-	return []openai.Model{}, nil
+func (m *mockEmptyClient) ListModels(ctx context.Context) ([]models.LlamaStackNativeModel, error) {
+	return []models.LlamaStackNativeModel{}, nil
 }
 
-func (m *mockEmptyClient) ListVectorStores(ctx context.Context) ([]openai.VectorStore, error) {
-	return []openai.VectorStore{}, nil
+func (m *mockEmptyClient) ListProviders(ctx context.Context) ([]models.LlamaStackProvider, error) {
+	return []models.LlamaStackProvider{}, nil
 }
 
 // mockLlamaStackErrClient is a mock client that returns a typed LlamaStackError (connection failure)
@@ -231,10 +231,10 @@ type mockLlamaStackErrClient struct{}
 
 var _ ls.LlamaStackClientInterface = (*mockLlamaStackErrClient)(nil)
 
-func (m *mockLlamaStackErrClient) ListModels(ctx context.Context) ([]openai.Model, error) {
+func (m *mockLlamaStackErrClient) ListModels(ctx context.Context) ([]models.LlamaStackNativeModel, error) {
 	return nil, ls.NewConnectionError("mock: could not reach LlamaStack server")
 }
 
-func (m *mockLlamaStackErrClient) ListVectorStores(ctx context.Context) ([]openai.VectorStore, error) {
+func (m *mockLlamaStackErrClient) ListProviders(ctx context.Context) ([]models.LlamaStackProvider, error) {
 	return nil, ls.NewConnectionError("mock: could not reach LlamaStack server")
 }

@@ -86,4 +86,19 @@ describe('MlflowExperimentTable', () => {
 
     expect(screen.getByTestId('mlflow-experiment-selector-table-list')).toBeInTheDocument();
   });
+
+  it('should show a selected indicator', () => {
+    renderTable({ selection: 'Evaluation run' });
+
+    expect(screen.getByText('Evaluation run').closest('tr')).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByText('Training pipeline').closest('tr')).toHaveAttribute(
+      'aria-selected',
+      'false',
+    );
+    expect(screen.getByTestId('selected-experiment-icon-exp-2')).toBeInTheDocument();
+    expect(screen.queryByTestId('selected-experiment-icon-exp-1')).not.toBeInTheDocument();
+  });
 });

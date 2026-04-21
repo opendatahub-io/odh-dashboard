@@ -10,7 +10,6 @@ import {
 } from '~/concepts/modelCatalogSettings/const';
 import { hasSourceFilters, getOrganizationDisplay } from '~/concepts/modelCatalogSettings/utils';
 import DeleteModal from '~/app/shared/components/DeleteModal';
-import { useNotification } from '~/app/hooks/useNotification';
 import CatalogSourceStatus from '~/app/pages/modelCatalogSettings/components/CatalogSourceStatus';
 
 type CatalogSourceConfigsTableRowProps = {
@@ -27,7 +26,6 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
   onToggleUpdate,
 }) => {
   const navigate = useNavigate();
-  const notification = useNotification();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error | undefined>();
@@ -49,7 +47,6 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
   };
 
   const handleDeleteClick = () => {
-    setDeleteError(undefined);
     setIsDeleteModalOpen(true);
   };
 
@@ -60,7 +57,6 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
     try {
       await onDeleteSource(catalogSourceConfig.id);
       setIsDeleteModalOpen(false);
-      notification.success(`${catalogSourceConfig.name} deleted successfully`);
     } catch (error) {
       setDeleteError(error instanceof Error ? error : new Error('Failed to delete source'));
     } finally {
@@ -71,6 +67,7 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
   const handleCloseDeleteModal = () => {
     if (!isDeleting) {
       setIsDeleteModalOpen(false);
+      setDeleteError(undefined);
     }
   };
 

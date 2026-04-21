@@ -19,8 +19,8 @@ func NewMockMaaSModelRefsRepository(logger *slog.Logger) *MockMaaSModelRefsRepos
 	return &MockMaaSModelRefsRepository{logger: logger}
 }
 
-func (r *MockMaaSModelRefsRepository) CreateMaaSModelRef(_ context.Context, request models.CreateMaaSModelRefRequest) (*models.MaaSModelRefSummary, error) {
-	r.logger.Debug("Creating MaaSModelRef (mock)", slog.String("name", request.Name))
+func (r *MockMaaSModelRefsRepository) CreateMaaSModelRef(_ context.Context, request models.CreateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error) {
+	r.logger.Debug("Creating MaaSModelRef (mock)", slog.String("name", request.Name), slog.Bool("dryRun", dryRun))
 
 	for _, ref := range mocks.GetMockMaaSModelRefSummaries() {
 		if ref.Name == request.Name && ref.Namespace == request.Namespace {
@@ -37,8 +37,8 @@ func (r *MockMaaSModelRefsRepository) CreateMaaSModelRef(_ context.Context, requ
 	}, nil
 }
 
-func (r *MockMaaSModelRefsRepository) UpdateMaaSModelRef(_ context.Context, namespace, name string, request models.UpdateMaaSModelRefRequest) (*models.MaaSModelRefSummary, error) {
-	r.logger.Debug("Updating MaaSModelRef (mock)", slog.String("namespace", namespace), slog.String("name", name))
+func (r *MockMaaSModelRefsRepository) UpdateMaaSModelRef(_ context.Context, namespace, name string, request models.UpdateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error) {
+	r.logger.Debug("Updating MaaSModelRef (mock)", slog.String("namespace", namespace), slog.String("name", name), slog.Bool("dryRun", dryRun))
 
 	for _, ref := range mocks.GetMockMaaSModelRefSummaries() {
 		if ref.Name == name && ref.Namespace == namespace {
@@ -58,8 +58,8 @@ func (r *MockMaaSModelRefsRepository) UpdateMaaSModelRef(_ context.Context, name
 	return nil, fmt.Errorf("MaaSModelRef '%s' not found", name)
 }
 
-func (r *MockMaaSModelRefsRepository) DeleteMaaSModelRef(_ context.Context, namespace, name string) error {
-	r.logger.Debug("Deleting MaaSModelRef (mock)", slog.String("namespace", namespace), slog.String("name", name))
+func (r *MockMaaSModelRefsRepository) DeleteMaaSModelRef(_ context.Context, namespace, name string, dryRun bool) error {
+	r.logger.Debug("Deleting MaaSModelRef (mock)", slog.String("namespace", namespace), slog.String("name", name), slog.Bool("dryRun", dryRun))
 
 	for _, ref := range mocks.GetMockMaaSModelRefSummaries() {
 		if ref.Name == name && ref.Namespace == namespace {

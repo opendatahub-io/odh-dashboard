@@ -17,5 +17,5 @@ export const assetsFilterOptions: Record<string, string> = {
 };
 
 export const assetsFilterSelectOptions: Partial<Record<AssetsFilterOptions, string[]>> = {
-  [AssetsFilterOptions.STATUS]: ['Active', 'Inactive'],
+  [AssetsFilterOptions.STATUS]: ['Ready', 'Inactive', 'Unknown'],
 };

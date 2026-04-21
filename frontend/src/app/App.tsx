@@ -61,10 +61,13 @@ const App: React.FC = () => {
     dashboardConfig: dashboardConfigFromServer,
     loaded: configLoaded,
     loadError: fetchConfigError,
+    refresh,
   } = useApplicationSettings();
 
-  const { dashboardConfig, ...devFeatureFlagsProps } =
-    useDevFeatureFlags(dashboardConfigFromServer);
+  const { dashboardConfig, ...devFeatureFlagsProps } = useDevFeatureFlags(
+    dashboardConfigFromServer,
+    refresh,
+  );
 
   const [storageClasses] = useStorageClasses();
 
@@ -122,10 +125,7 @@ const App: React.FC = () => {
               </Alert>
             </StackItem>
             <StackItem>
-              <Button
-                variant="secondary"
-                onClick={() => logout().then(() => window.location.reload())}
-              >
+              <Button variant="secondary" onClick={() => logout()}>
                 Logout
               </Button>
             </StackItem>

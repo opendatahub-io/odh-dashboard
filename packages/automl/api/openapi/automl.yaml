@@ -75,6 +75,39 @@ paths:
       operationId: getNamespaces
       summary: Get Available Namespaces
       description: Get Available Namespaces endpoint.
+  /api/v1/model-registries:
+    summary: List available Model Registry instances
+    description: >-
+      Returns all ModelRegistry instances from the rhoai-model-registries namespace.
+      Registries are presented as global in the RHOAI UX; no namespace parameter is required.
+      Each entry includes the registry id, name, readiness, and server URL needed
+      to route subsequent model registration calls to the correct registry service.
+
+      Required RBAC: User must have 'list' permission for
+      modelregistries.modelregistry.opendatahub.io resources in the
+      rhoai-model-registries namespace. Returns 403 if permission is denied.
+    get:
+      tags:
+        - ModelRegistry
+      security:
+        - Bearer: []
+      responses:
+        "200":
+          $ref: "#/components/responses/ModelRegistriesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getModelRegistries
+      summary: List Model Registries
+      description: >-
+        Returns all ModelRegistry instances visible to the authenticated user.
+        When no registries are installed the response is 200 with an empty list.
+
   /api/v1/secrets:
     summary: Path used to retrieve and filter secrets from a namespace.
     description: >-
@@ -100,11 +133,12 @@ paths:
 
             Type detection uses:
             1. The 'opendatahub.io/connection-type' annotation value if present
-            2. Otherwise, key-based classification (case-insensitive):
-               - S3 requires: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint
+            2. Otherwise, key-based classification (case-sensitive, keys must be uppercase):
+               - S3 requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
+               - AWS_DEFAULT_REGION is optional for classification; validate it from the 'data' field when needed
 
             The 'data' field in the response contains all secret keys. Use it to validate additional requirements
-            for your use case (e.g., checking for aws_s3_bucket). Allowed keys show actual values; others show "[REDACTED]".
+            for your use case (e.g., checking for AWS_S3_BUCKET or AWS_DEFAULT_REGION). Allowed keys show actual values; others show "[REDACTED]".
           schema:
             type: string
             enum:
@@ -127,12 +161,12 @@ paths:
       summary: Get filtered secrets
       description: >-
         Retrieves secrets from a specified namespace with optional filtering by type.
-        All key matching is case-insensitive.
+        Key matching is case-sensitive; keys must be uppercase.
 
         Secret Type Detection:
         1. First checks for the 'opendatahub.io/connection-type' annotation. If present, its value is used as the type.
         2. Otherwise, performs key-based classification using required classification keys:
-           - 's3': S3 storage secrets (classification keys: aws_access_key_id, aws_secret_access_key, aws_default_region, aws_s3_endpoint)
+           - 's3': S3 storage secrets (classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT; AWS_DEFAULT_REGION is optional)
 
         Type Filtering:
         - 'storage': Returns only secrets classified as storage types (currently: s3)
@@ -140,23 +174,25 @@ paths:
 
         Data Security:
         The 'data' field contains all secret keys with redacted or actual values:
-        - Allowed keys (currently: aws_s3_bucket) return actual values
+        - Allowed keys (currently: AWS_S3_BUCKET) return actual values
         - All other keys return "[REDACTED]"
-        Key matching for allowed keys is case-insensitive.
-
         Metadata:
         - 'displayName': Extracted from 'openshift.io/display-name' annotation if present
         - 'description': Extracted from 'openshift.io/description' annotation if present
 
   /api/v1/s3/file:
-    summary: Path used to get a file from S3.
+    summary: Path used to get or upload a file in S3.
     description: >-
-      The REST endpoint/path used to retrieve an arbitrary file from S3 storage.
-      Uses the credentials from a specified Kubernetes secret to access the S3 bucket.
-      Returns the file with transfer-encoding: chunked for efficient streaming.
+      The REST endpoint/path used to retrieve or upload files in S3 storage.
+      GET returns an arbitrary file with transfer-encoding: chunked for efficient streaming.
+      POST uploads a CSV file using multipart/form-data (part name `file`) and credentials
+      from a required Kubernetes secret; the stored object key may differ from the requested
+      `key` when a name collision is resolved (numeric suffix).
     get:
       tags:
         - S3Operation
+      security:
+        - Bearer: []
       parameters:
         - name: namespace
           in: query
@@ -194,6 +230,7 @@ paths:
           description: The S3 object key to retrieve
           schema:
             type: string
+            pattern: '^\S(.*\S)?$'
           example: documents/myfile.pdf
       responses:
         "200":
@@ -242,6 +279,106 @@ paths:
         **Explicit mode (override)** — when secretName is supplied, the specified Kubernetes
         secret must contain AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
         and AWS_S3_ENDPOINT using those exact field names.
+    post:
+      tags:
+        - S3Operation
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          description: The Kubernetes namespace containing the secret
+          schema:
+            type: string
+            maxLength: 63
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          example: default
+        - name: secretName
+          in: query
+          required: true
+          description: >-
+            Name of the Kubernetes secret containing S3 credentials (required for POST).
+            The secret must provide AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
+            and AWS_S3_ENDPOINT using those exact field names. Bucket may come from this secret
+            (e.g. AWS_S3_BUCKET) when the bucket query parameter is omitted.
+          schema:
+            type: string
+            maxLength: 253
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+          example: aws-secret-1
+        - name: bucket
+          in: query
+          required: false
+          description: >-
+            The S3 bucket name. When omitted, the bucket is resolved from the secret (e.g. AWS_S3_BUCKET).
+            Leading and trailing whitespace is trimmed.
+          schema:
+            type: string
+            pattern: '^\S(.*\S)?$'
+          example: my-bucket
+        - name: key
+          in: query
+          required: true
+          description: >-
+            Requested S3 object key for the upload. If an object already exists at this key,
+            the server may store the file under a non-colliding key (e.g. `file-1.csv`); see the
+            response body `key` field for the actual object key.
+          schema:
+            type: string
+            pattern: '^\S(.*\S)?$'
+          example: data/training.csv
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: >-
+                    CSV file to upload. Accepted as text/csv, or application/octet-stream / empty
+                    Content-Type when the filename ends with .csv.
+      responses:
+        "201":
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/S3UploadSuccess"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: uploadS3CsvFile
+      summary: Upload CSV file to S3
+      description: >-
+        Uploads a CSV file to S3 using credentials from the specified Kubernetes secret.
+        The request must be multipart/form-data with a part named `file`.
+
+        Only CSV uploads are allowed: Content-Type `text/csv`, or `application/octet-stream` (or empty)
+        when the part filename ends with `.csv`. The body is size-limited (declared Content-Length
+        and total multipart size caps; file part max 32 MiB). Rejects with 413 when limits are exceeded.
+
+        On success, returns JSON with `uploaded: true` and the resolved `key` (which may differ
+        from the requested key if a collision was avoided by probing existing keys).
+
+        Returns 409 if the object key chosen after collision resolution still conflicts at upload time
+        (e.g. concurrent writer); the client should retry the upload.
 
   /api/v1/s3/file/schema:
     summary: Path used to get the schema (column names and types) of a CSV file from S3.
@@ -277,6 +414,8 @@ paths:
     get:
       tags:
         - S3Operation
+      security:
+        - Bearer: []
       parameters:
         - name: namespace
           in: query
@@ -314,6 +453,7 @@ paths:
           description: The S3 object key (CSV file) to retrieve schema from
           schema:
             type: string
+            pattern: '^\S(.*\S)?$'
           example: data/training.csv
       responses:
         "200":
@@ -418,6 +558,172 @@ paths:
         For boolean columns, returns the unique values found in the data.
         Supports all common line endings (\n, \r\n, \r) and properly handles quoted CSV fields.
         Returns a 400 Bad Request error if the file has fewer than 100 data rows.
+
+  /api/v1/s3/files:
+    summary: Endpoints for dealing with multiple files within an S3-compatible connection
+    get:
+      operationId: getS3Files
+      summary: Get files from S3
+      description: >-
+        Retrieves a list of files from an S3-compatible storage.
+        Returns the files in a list, plus any additional metadata that ListObjectsV2 returns.
+
+
+        Two credential resolution modes are supported:
+        (1) **DSPA mode (default in production)** — when secretName is omitted, the endpoint,
+        region, bucket, and credential field names are read from the DSPipelineApplication
+        (DSPA) spec discovered in the namespace.
+        (2) **Explicit mode (override)** — when secretName is supplied, the specified Kubernetes
+        secret must contain AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
+        and AWS_S3_ENDPOINT using those exact field names.
+      tags:
+        - S3Operation
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          description: The Kubernetes namespace containing the secret
+          schema:
+            type: string
+          example: default
+        - name: secretName
+          in: query
+          required: false
+          description: >-
+            Override: name of the Kubernetes secret containing S3 credentials.
+            When supplied, the secret must use the conventional AWS_* field names
+            (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+            When omitted, the endpoint falls back to DSPA mode and reads credentials from
+            the DSPipelineApplication spec discovered in the namespace.
+          schema:
+            type: string
+            maxLength: 253
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+          example: aws-secret-1
+        - name: bucket
+          in: query
+          required: false
+          description: >-
+            The S3 bucket name. Only honored when secretName is supplied (explicit mode).
+            In DSPA mode (secretName omitted), this parameter is ignored and the bucket
+            configured in the DSPipelineApplication spec is used instead; if the DSPA
+            does not specify a bucket the request is rejected with 400.
+          schema:
+            type: string
+            pattern: '^\S(.*\S)?$'
+          example: my-bucket
+        - name: path
+          in: query
+          required: false
+          description: (Optional) S3-like folder path to search within (if omitted, lists bucket root). When provided, must be non-empty and not exceed 1024 characters.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 1024
+          example: folder1/folder2/folder3
+        - name: search
+          in: query
+          required: false
+          description: The search term to filter results by. S3 only allows searching by leading values. Must not contain '/' characters. Maximum 1024 characters.
+          schema:
+            type: string
+            maxLength: 1024
+            pattern: "^[^/]*$"
+          example: my-search-query
+        - name: next
+          in: query
+          required: false
+          description: The token value to use for the next page
+          schema:
+            type: string
+            minLength: 1
+          example: /continuationtokenexample
+        - name: limit
+          in: query
+          required: false
+          description: The limit for the number of items to return per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1000
+          example: 20
+      responses:
+        "200":
+          $ref: "#/components/responses/S3GetFilesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+
+  # =============================================================================
+  # MODEL REGISTRY ENDPOINTS
+  # =============================================================================
+
+  /api/v1/model-registries/{registryId}/models:
+    summary: Register a model in a specific Model Registry instance
+    description: >-
+      Registers a model binary by creating a RegisteredModel, ModelVersion, and
+      ModelArtifact in the specified Model Registry instance. The model binary
+      remains in S3; the ModelArtifact.uri points to the S3 location.
+      The registryId path parameter is the Kubernetes UID of the ModelRegistry CR
+      (from GET /api/v1/model-registries). The BFF resolves the server_url for that
+      instance and POSTs to the Model Registry REST API.
+      Returns 404 if the ID is unknown, 403 if the user cannot list ModelRegistries,
+      and 503 if the registry exists but is not ready.
+    post:
+      tags:
+        - ModelRegistry
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: registryId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Kubernetes UID of the target ModelRegistry CR (from GET /api/v1/model-registries id field)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterModelRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/RegisterModelResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: registerModel
+      summary: Register model binary
+      description: >-
+        Creates RegisteredModel, ModelVersion, and ModelArtifact in the Model Registry,
+        linking the artifact to the provided S3 URI. Requires s3_path, model_name,
+        and version_name in the request body.
 
   # =============================================================================
   # PIPELINE RUNS ENDPOINTS
@@ -587,6 +893,92 @@ paths:
       summary: Get Pipeline Run by ID
       description: Returns a single pipeline run by its unique identifier
 
+  /api/v1/pipeline-runs/{runId}/terminate:
+    summary: Terminate an active pipeline run
+    description: >-
+      Terminates an active pipeline run, cancelling all running tasks and transitioning the run
+      to CANCELING and then CANCELED state. The run must be in an active state (PENDING, RUNNING,
+      PAUSED, or CANCELING) and belong to one of the discovered AutoML pipelines in the namespace.
+      Returns 400 if the run is not in a terminatable state, or 404 if the run doesn't exist or
+      belongs to a different pipeline.
+    post:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the pipeline run to terminate
+          example: "abc123-def456-ghi789"
+      responses:
+        "200":
+          description: Run terminated successfully
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: terminatePipelineRun
+      summary: Terminate Pipeline Run
+      description: >-
+        Terminates an active AutoML pipeline run by transitioning it to CANCELING and then
+        CANCELED state. The run must be in an active state (PENDING, RUNNING, PAUSED, or
+        CANCELING). The BFF validates that the run belongs to one of the discovered AutoML
+        managed pipelines in the namespace and that it is in a terminatable state before
+        proceeding. Returns 400 if the run is not in a terminatable state.
+
+  /api/v1/pipeline-runs/{runId}/retry:
+    summary: Retry a failed or canceled pipeline run
+    description: >-
+      Re-initiates a failed or canceled pipeline run from the point of failure. The run must
+      belong to one of the discovered AutoML pipelines in the namespace and must be in FAILED or
+      CANCELED state. Returns 400 if the run is not in a retryable state, or 404 if the run
+      doesn't exist or belongs to a different pipeline.
+    post:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the pipeline run to retry
+          example: "abc123-def456-ghi789"
+      responses:
+        "200":
+          description: Run retry initiated successfully
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: retryPipelineRun
+      summary: Retry Pipeline Run
+      description: >-
+        Re-initiates a failed or canceled AutoML pipeline run. The BFF validates that the run
+        belongs to one of the discovered AutoML managed pipelines in the namespace and that it
+        is in a retryable state (FAILED or CANCELED) before retrying it. This prevents users
+        from retrying runs from other pipelines in the same namespace.
+
 components:
   schemas:
     Config:
@@ -615,7 +1007,7 @@ components:
           type: array
           items:
             type: string
-          description: Keys required for BFF to classify a secret as this type via key-based detection (case-insensitive matching)
+          description: Keys required for BFF to classify a secret as this type via key-based detection (case-sensitive, uppercase)
         commonOptionalKeys:
           type: array
           items:
@@ -634,9 +1026,65 @@ components:
             - type: object
               properties:
                 classificationKeys:
-                  example: ["aws_access_key_id", "aws_secret_access_key", "aws_default_region", "aws_s3_endpoint"]
+                  example: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_ENDPOINT"]
                 commonOptionalKeys:
-                  example: ["aws_s3_bucket"]
+                  example: ["AWS_S3_BUCKET", "AWS_DEFAULT_REGION"]
+
+    ModelRegistry:
+      description: A Model Registry instance discovered from the cluster
+      type: object
+      required:
+        - id
+        - name
+        - display_name
+        - is_ready
+        - server_url
+      properties:
+        id:
+          type: string
+          description: The Kubernetes UID of the ModelRegistry CR
+          example: a1b2c3d4-e5f6-7890-abcd-111111111111
+        name:
+          type: string
+          description: The ModelRegistry CR name (also the Kubernetes service name)
+          example: default-modelregistry
+        display_name:
+          type: string
+          description: Human-readable name from openshift.io/display-name annotation; falls back to name
+          example: Default Model Registry
+        description:
+          type: string
+          description: Optional description from openshift.io/description annotation
+          example: Shared model registry for the organization
+        is_ready:
+          type: boolean
+          description: Whether the ModelRegistry has an Available=True condition
+          example: true
+        server_url:
+          type: string
+          description: >-
+            Full in-cluster REST API base URL for this registry, derived from
+            status.hosts (set by the operator). Callers append resource paths
+            (e.g. /registered_models) to this URL.
+          example: "https://default-modelregistry.rhoai-model-registries.svc.cluster.local:8443/api/model_registry/v1beta1"
+        external_url:
+          type: string
+          description: >-
+            Public Route URL for the registry, present only when serviceRoute is enabled.
+            Empty when no Route is configured.
+          example: "https://default-modelregistry-rest.apps.cluster.example.com/api/model_registry/v1beta1"
+
+    ModelRegistriesData:
+      description: Wrapper for the model registries list response
+      type: object
+      required:
+        - model_registries
+      properties:
+        model_registries:
+          type: array
+          description: List of available Model Registry instances
+          items:
+            $ref: "#/components/schemas/ModelRegistry"
 
     SecretListItem:
       description: A Kubernetes secret with its UUID, name, type classification, data keys with values/redaction, and metadata
@@ -674,15 +1122,14 @@ components:
             type: string
           description: >-
             Map of all keys in the secret with their values. Security redaction applies:
-            - Keys in the allowed list (currently: aws_s3_bucket) return their actual values
+            - Keys in the allowed list (currently: AWS_S3_BUCKET) return their actual values
             - All other keys return the value "[REDACTED]"
-            Key matching for allowed keys is case-insensitive.
           example:
-            aws_access_key_id: "[REDACTED]"
-            aws_default_region: "[REDACTED]"
-            aws_s3_endpoint: "[REDACTED]"
-            aws_secret_access_key: "[REDACTED]"
-            aws_s3_bucket: "my-bucket-name"
+            AWS_ACCESS_KEY_ID: "[REDACTED]"
+            AWS_DEFAULT_REGION: "[REDACTED]"
+            AWS_S3_ENDPOINT: "[REDACTED]"
+            AWS_SECRET_ACCESS_KEY: "[REDACTED]"
+            AWS_S3_BUCKET: "my-bucket-name"
         displayName:
           type: string
           description: Display name from the 'openshift.io/display-name' annotation (if present)
@@ -691,6 +1138,71 @@ components:
           type: string
           description: Description from the 'openshift.io/description' annotation (if present)
           example: "S3 bucket for training data storage"
+
+    S3UploadSuccess:
+      description: Response body for successful S3 file upload (POST /api/v1/s3/file)
+      required:
+        - uploaded
+        - key
+      type: object
+      properties:
+        uploaded:
+          type: boolean
+          example: true
+        key:
+          type: string
+          description: >-
+            S3 object key where the file was stored. May differ from the requested `key`
+            when a collision was resolved (e.g. `data/file-1.csv` if `data/file.csv` existed).
+          example: data/training.csv
+
+    S3ListObjectsResult:
+      type: object
+      description: A listing of S3 objects and virtual folders within a bucket prefix.
+      properties:
+        common_prefixes:
+          type: array
+          items:
+            type: object
+            properties:
+              prefix:
+                type: string
+        contents:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+              last_modified:
+                type: string
+                format: date-time
+              etag:
+                type: string
+              size:
+                type: integer
+                format: int64
+              storage_class:
+                type: string
+        continuation_token:
+          type: string
+        delimiter:
+          type: string
+        is_truncated:
+          type: boolean
+        key_count:
+          type: integer
+          format: int32
+        max_keys:
+          type: integer
+          format: int32
+        name:
+          type: string
+        next_continuation_token:
+          type: string
+        prefix:
+          type: string
+
 
     # Pipeline Run Schemas
     CreateAutoMLRunRequestBase:
@@ -705,6 +1217,7 @@ components:
         display_name:
           type: string
           minLength: 1
+          maxLength: 250
           description: Human-readable name for the run
           example: "AutoML Optimization Run 1"
         description:
@@ -809,6 +1322,70 @@ components:
               example: ["temperature", "holiday"]
           not:
             required: [label_column]
+
+    RegisterModelRequest:
+      type: object
+      description: >-
+        Request body for registering a model binary in the Model Registry.
+        The target registry is identified by the registryId path parameter.
+      required:
+        - s3_path
+        - model_name
+        - version_name
+      properties:
+        s3_path:
+          type: string
+          minLength: 1
+          pattern: "^s3a?://[^/]+/.+"
+          description: S3 URI where the model binary is stored (s3:// or s3a:// scheme required)
+          example: "s3://my-bucket/models/v1/model.bin"
+        model_name:
+          type: string
+          minLength: 1
+          pattern: "\\S"
+          description: Name of the registered model (must contain at least one non-whitespace character)
+          example: "my-model"
+        model_description:
+          type: string
+          description: Optional description of the model
+        version_name:
+          type: string
+          minLength: 1
+          pattern: "\\S"
+          description: Name of the model version (must contain at least one non-whitespace character)
+          example: "v1"
+        version_description:
+          type: string
+          description: Optional description of this version
+        artifact_name:
+          type: string
+          description: Name for the ModelArtifact; defaults to version_name if empty
+        artifact_description:
+          type: string
+          description: Optional description of the artifact
+        model_format_name:
+          type: string
+          description: Optional format (e.g., onnx, pytorch, tensorflow)
+        model_format_version:
+          type: string
+          description: Optional format version (e.g., 1.0)
+
+    ModelArtifact:
+      type: object
+      description: Model artifact created in the Model Registry, pointing to the S3 URI
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the artifact
+        name:
+          type: string
+          description: Artifact name
+        uri:
+          type: string
+          description: S3 URI of the model binary
+        artifactType:
+          type: string
+          description: Type of the artifact (e.g., model-artifact)
 
     CreateAutoMLRunRequest:
       description: >-
@@ -1068,6 +1645,18 @@ components:
       example: 1
 
   responses:
+    ModelRegistriesResponse:
+      description: Successful response containing available Model Registry instances
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/ModelRegistriesData"
+
     SecretsResponse:
       content:
         application/json:
@@ -1159,6 +1748,34 @@ components:
               data:
                 $ref: "#/components/schemas/PipelineRun"
 
+    S3GetFilesResponse:
+      description: S3 response when retrieving files successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: "#/components/schemas/S3ListObjectsResult"
+
+    RegisterModelResponse:
+      description: Registered model artifact
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: "#/components/schemas/ModelArtifact"
+
     BadRequest:
       description: Bad Request
       content:
@@ -1175,6 +1792,23 @@ components:
                   message:
                     type: string
                     example: "Invalid request parameters"
+
+    PayloadTooLarge:
+      description: Request entity too large (e.g. declared Content-Length or file part exceeds limit)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "413"
+                  message:
+                    type: string
+                    example: "request body exceeds maximum upload size (32 MiB plus allowance for multipart framing)"
 
     Unauthorized:
       description: Unauthorized
@@ -1209,6 +1843,25 @@ components:
                   message:
                     type: string
                     example: "Resource not found"
+
+    Conflict:
+      description: >-
+        Conflict (e.g. S3 conditional upload failed because the object already exists at the
+        resolved key, or duplicate model name in the registry; client may retry the request)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "409"
+                  message:
+                    type: string
+                    example: "object key \"data/file.csv\" already exists in S3 (upload conflict); retry with a different key"
 
     InternalServerError:
       description: Internal Server Error

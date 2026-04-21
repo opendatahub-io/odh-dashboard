@@ -236,6 +236,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const featureStoreStatus = useIsAreaAvailable(SupportedArea.FEATURE_STORE);
   const isFeastOperatorAvailable = featureStoreStatus.status;
 
+  const isMlflowAvailable = useIsAreaAvailable(SupportedArea.MLFLOW).status;
+
   const sectionIDs = React.useMemo(
     () =>
       Object.values(SpawnerPageSectionID).filter(
@@ -308,6 +310,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 dataTestId="workbench"
                 {...k8sNameDescriptionData}
                 autoFocusName
+                maxLength={250}
+                maxLengthDesc={5500}
               />
             </FormSection>
             <FormSection
@@ -441,6 +445,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     volumeMounts: [],
                     dashboardNamespace,
                     hardwareProfileOptions,
+                    mlflowEnabled: isMlflowAvailable,
                   }}
                   storageData={storageData}
                   envVariables={envVariables}

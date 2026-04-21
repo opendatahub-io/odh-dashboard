@@ -1,17 +1,15 @@
 import React from 'react';
 import { Label, Skeleton, Split, SplitItem } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
-import { usePipelinesAPI } from '#~/concepts/pipelines/context';
-import { experimentRunsRoute } from '#~/routes/pipelines/experiments';
+import TruncatedText from '#~/components/TruncatedText';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 import { NoRunContent } from '#~/concepts/pipelines/content/tables/renderUtils';
-import TruncatedText from '#~/components/TruncatedText';
 
 type PipelineRunTableRowExperimentProps = {
   experiment?: ExperimentKF | null;
   isExperimentArchived?: boolean;
   loaded: boolean;
   error?: Error;
+  onClick?: () => void;
 };
 
 const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps> = ({
@@ -19,9 +17,8 @@ const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps
   isExperimentArchived,
   loaded,
   error,
+  onClick,
 }) => {
-  const { namespace } = usePipelinesAPI();
-
   if (!loaded && !error) {
     return <Skeleton />;
   }
@@ -29,16 +26,30 @@ const PipelineRunTableRowExperiment: React.FC<PipelineRunTableRowExperimentProps
   if (!experiment) {
     return <NoRunContent />;
   }
+
+  const runGroupLabel = (
+    <Label
+      {...(onClick
+        ? {
+            isClickable: true,
+            onClick,
+          }
+        : {})}
+      isCompact
+      variant="outline"
+    >
+      <TruncatedText content={experiment.display_name} maxLines={1} />
+    </Label>
+  );
+
   return (
     <Split hasGutter>
-      <SplitItem>
-        <Link to={experimentRunsRoute(namespace, experiment.experiment_id)}>
-          <TruncatedText content={experiment.display_name} maxLines={1} />
-        </Link>
-      </SplitItem>
+      <SplitItem>{runGroupLabel}</SplitItem>
       {isExperimentArchived && (
         <SplitItem>
-          <Label isCompact>Archived</Label>
+          <Label variant="outline" isCompact>
+            Archived
+          </Label>
         </SplitItem>
       )}
     </Split>

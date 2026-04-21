@@ -13,8 +13,11 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { FlatBenchmark } from '~/app/types';
-import { getCategoryColor } from './benchmarkUtils';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { capitalizeFirst, getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
 
 type BenchmarkDrawerPanelProps = {
   benchmark: FlatBenchmark | undefined;
@@ -32,6 +35,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
   }
 
   const color = getCategoryColor(benchmark.category);
+  const safeBenchmarkUrl = toSafeExternalUrl(benchmark.url);
 
   return (
     <DrawerPanelContent isResizable minSize="400px" data-testid="benchmark-drawer-panel">
@@ -39,24 +43,11 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
         <Stack hasGutter>
           {benchmark.category && (
             <StackItem>
-              <Label color={color} isCompact>
-                {benchmark.category}
-              </Label>
+              <Label color={color}>{capitalizeFirst(benchmark.category)}</Label>
             </StackItem>
           )}
           <StackItem>
-            <Title headingLevel="h2" size="xl">
-              {benchmark.name}
-            </Title>
-            <Content
-              component="p"
-              style={{
-                marginTop: 'var(--pf-t--global--spacer--xs)',
-                color: 'var(--pf-t--global--text--color--subtle)',
-              }}
-            >
-              {benchmark.id}
-            </Content>
+            <Title headingLevel="h2">{benchmark.name}</Title>
           </StackItem>
         </Stack>
         <DrawerActions>
@@ -66,6 +57,39 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
 
       <DrawerPanelBody style={{ flex: 1, overflowY: 'auto' }}>
         <Stack hasGutter>
+          <StackItem>
+            <Content
+              component="p"
+              style={{
+                marginTop: 'var(--pf-t--global--spacer--xs)',
+                color: 'var(--pf-t--global--text--color--subtle)',
+              }}
+            >
+              {safeBenchmarkUrl ? (
+                <Button
+                  variant="link"
+                  isInline
+                  component="a"
+                  href={safeBenchmarkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  icon={<ExternalLinkAltIcon />}
+                  iconPosition="end"
+                  onClick={() =>
+                    fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
+                      url: safeBenchmarkUrl,
+                      benchmarkId: benchmark.id,
+                      surface: 'benchmark_drawer',
+                    })
+                  }
+                >
+                  {benchmark.id}
+                </Button>
+              ) : (
+                benchmark.id
+              )}
+            </Content>
+          </StackItem>
           {benchmark.description && (
             <StackItem>
               <Content component="p">{benchmark.description}</Content>
@@ -76,7 +100,12 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
             <StackItem>
               <Stack hasGutter>
                 <StackItem>
-                  <Content component="h4">Metrics evaluated</Content>
+                  <Content
+                    component="p"
+                    style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+                  >
+                    Metrics evaluated
+                  </Content>
                 </StackItem>
                 <StackItem>
                   <LabelGroup numLabels={benchmark.metrics.length} isCompact>
@@ -93,21 +122,36 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
 
           {benchmark.primary_score && (
             <StackItem>
-              <Content component="h4">Primary scorer metric</Content>
+              <Content
+                component="p"
+                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+              >
+                Primary scorer metric
+              </Content>
               <Content component="p">{benchmark.primary_score.metric}</Content>
             </StackItem>
           )}
 
           {benchmark.pass_criteria && (
             <StackItem>
-              <Content component="h4">Benchmark threshold</Content>
+              <Content
+                component="p"
+                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+              >
+                Benchmark threshold
+              </Content>
               <Content component="p">{benchmark.pass_criteria.threshold}</Content>
             </StackItem>
           )}
 
           {benchmark.providerName && (
             <StackItem>
-              <Content component="h4">Evaluation framework</Content>
+              <Content
+                component="p"
+                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+              >
+                Evaluation framework
+              </Content>
               <Content component="p">{benchmark.providerName}</Content>
             </StackItem>
           )}

@@ -58,10 +58,13 @@ class ModelRegistry {
     this.waitLanding();
   }
 
-  visit() {
-    const preferredModelRegistry = 'modelregistry-sample';
-    cy.visitWithLogin(`/ai-hub/registry/${preferredModelRegistry}`);
-    this.wait();
+  visit(registryName = 'modelregistry-sample') {
+    cy.visitWithLogin(`/ai-hub/registry/${registryName}`);
+    cy.findByTestId('app-page-title', { timeout: 60000 }).should('exist');
+  }
+
+  visitWithRegistry(registryName: string) {
+    this.visit(registryName);
   }
 
   navigate() {

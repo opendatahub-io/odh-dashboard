@@ -17,7 +17,9 @@ const ArtifactDetailsTitle: React.FC<ArtifactDetailsTitleProps> = ({
       </SplitItem>
       {isArtifactModelRegistered && (
         <SplitItem>
-          <Label color="green">Registered</Label>
+          <Label variant="outline" color="green">
+            Registered
+          </Label>
         </SplitItem>
       )}
     </Split>

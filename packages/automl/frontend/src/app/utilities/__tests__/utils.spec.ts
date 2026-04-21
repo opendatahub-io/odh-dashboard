@@ -1,22 +1,23 @@
 /* eslint-disable camelcase */
 import {
   formatMetricName,
+  formatMetricValue,
   toNumericMetric,
   getOptimizedMetricForTask,
   computeRankMap,
-  isErrorMetric,
-} from '../utils';
+} from '~/app/utilities/utils';
 
 describe('formatMetricName', () => {
   it('should return special-cased acronyms as-is', () => {
     expect(formatMetricName('roc_auc')).toBe('ROC AUC');
     expect(formatMetricName('mcc')).toBe('MCC');
-    expect(formatMetricName('f1')).toBe('F1');
+    expect(formatMetricName('f1')).toBe('F₁');
     expect(formatMetricName('r2')).toBe('R²');
     expect(formatMetricName('mae')).toBe('MAE');
     expect(formatMetricName('mse')).toBe('MSE');
     expect(formatMetricName('rmse')).toBe('RMSE');
     expect(formatMetricName('mape')).toBe('MAPE');
+    expect(formatMetricName('mase')).toBe('MASE');
     expect(formatMetricName('smape')).toBe('SMAPE');
   });
 
@@ -25,13 +26,46 @@ describe('formatMetricName', () => {
     expect(formatMetricName('root_mean_squared_error')).toBe('Root Mean Squared Error');
   });
 
-  it('should capitalize a single word', () => {
+  it('should title-case a single-word key not in the display names map', () => {
     expect(formatMetricName('accuracy')).toBe('Accuracy');
     expect(formatMetricName('precision')).toBe('Precision');
   });
 
   it('should handle empty string', () => {
     expect(formatMetricName('')).toBe('');
+  });
+});
+
+describe('formatMetricValue', () => {
+  it('should format normal values with 3 decimal places', () => {
+    expect(formatMetricValue(0.12345)).toBe('0.123');
+    expect(formatMetricValue(0.8)).toBe('0.800');
+    expect(formatMetricValue(1.5678)).toBe('1.568');
+  });
+
+  it('should use scientific notation for non-zero values that round to 0.000', () => {
+    expect(formatMetricValue(0.0001)).toBe('1.000e-4');
+    expect(formatMetricValue(0.00001234)).toBe('1.234e-5');
+    expect(formatMetricValue(0.0000001)).toBe('1.000e-7');
+  });
+
+  it('should display zero as 0.000 (not scientific notation)', () => {
+    expect(formatMetricValue(0)).toBe('0.000');
+  });
+
+  it('should use scientific notation for negative non-zero values that round to -0.000', () => {
+    expect(formatMetricValue(-0.0001)).toBe('-1.000e-4');
+    expect(formatMetricValue(-0.00001234)).toBe('-1.234e-5');
+  });
+
+  it('should format negative values normally if they do not round to -0.000', () => {
+    expect(formatMetricValue(-0.123)).toBe('-0.123');
+    expect(formatMetricValue(-1.5678)).toBe('-1.568');
+  });
+
+  it('should return string values as-is', () => {
+    expect(formatMetricValue('N/A')).toBe('N/A');
+    expect(formatMetricValue('invalid')).toBe('invalid');
   });
 });
 
@@ -72,13 +106,13 @@ describe('getOptimizedMetricForTask', () => {
     expect(getOptimizedMetricForTask('regression')).toBe('r2');
   });
 
-  it('should return smape for timeseries', () => {
-    expect(getOptimizedMetricForTask('timeseries')).toBe('smape');
+  it('should return mase for timeseries', () => {
+    expect(getOptimizedMetricForTask('timeseries')).toBe('mase');
   });
 
-  it('should return undefined for unknown task types', () => {
-    expect(getOptimizedMetricForTask('unknown')).toBeUndefined();
-    expect(getOptimizedMetricForTask('')).toBeUndefined();
+  it('should return Unknown metric for unknown task types', () => {
+    expect(getOptimizedMetricForTask('unknown')).toBe('Unknown metric');
+    expect(getOptimizedMetricForTask('')).toBe('Unknown metric');
   });
 });
 
@@ -120,15 +154,16 @@ describe('computeRankMap', () => {
     });
   });
 
-  it('should rank models by smape ascending for timeseries (lower is better)', () => {
+  it('should rank models by negated mase descending for timeseries (higher is better)', () => {
     const models = {
-      ModelA: buildModel(0.15, 'smape'),
-      ModelB: buildModel(0.05, 'smape'),
-      ModelC: buildModel(0.1, 'smape'),
+      ModelA: buildModel(-0.15, 'mase'),
+      ModelB: buildModel(-0.05, 'mase'),
+      ModelC: buildModel(-0.1, 'mase'),
     };
 
     const rankMap = computeRankMap(models, 'timeseries');
 
+    // -0.05 > -0.10 > -0.15, so ModelB (closest to 0) is best
     expect(rankMap).toEqual({
       ModelB: 1,
       ModelC: 2,
@@ -145,21 +180,6 @@ describe('computeRankMap', () => {
     const rankMap = computeRankMap(models, 'regression');
 
     // -0.084 > -0.097, so ModelB is better
-    expect(rankMap).toEqual({
-      ModelB: 1,
-      ModelA: 2,
-    });
-  });
-
-  it('should use absolute values for error metrics like smape', () => {
-    const models = {
-      ModelA: buildModel(-0.15, 'smape'),
-      ModelB: buildModel(-0.05, 'smape'),
-    };
-
-    const rankMap = computeRankMap(models, 'timeseries');
-
-    // |−0.05| < |−0.15|, so ModelB is better (lower error)
     expect(rankMap).toEqual({
       ModelB: 1,
       ModelA: 2,
@@ -197,15 +217,16 @@ describe('computeRankMap', () => {
     });
   });
 
-  it('should rank models with missing metrics last for error metrics', () => {
+  it('should rank models with missing metrics last for negated error metrics', () => {
     const models = {
-      ModelA: buildModel(0.15, 'smape'),
-      ModelB: { metrics: { test_data: {} } }, // missing smape
-      ModelC: buildModel(0.05, 'smape'),
+      ModelA: buildModel(-0.15, 'mase'),
+      ModelB: { metrics: { test_data: {} } }, // missing mase
+      ModelC: buildModel(-0.05, 'mase'),
     };
 
     const rankMap = computeRankMap(models, 'timeseries');
 
+    // -0.05 > -0.15 > -Infinity (missing), so ModelC is best
     expect(rankMap).toEqual({
       ModelC: 1,
       ModelA: 2,
@@ -227,39 +248,19 @@ describe('computeRankMap', () => {
     });
   });
 
-  it('should fall back to accuracy for unknown task types', () => {
+  it('should assign insertion-order ranking for unknown task types', () => {
     const models = {
       ModelA: buildModel(0.7),
       ModelB: buildModel(0.85),
     };
 
+    // Unknown task types map to 'Unknown metric', which no model has,
+    // so all models tie and receive insertion-order ranking.
     const rankMap = computeRankMap(models, 'unknown');
 
     expect(rankMap).toEqual({
-      ModelB: 1,
-      ModelA: 2,
+      ModelA: 1,
+      ModelB: 2,
     });
-  });
-});
-
-describe('isErrorMetric', () => {
-  it('should return true for known error metrics', () => {
-    expect(isErrorMetric('smape')).toBe(true);
-    expect(isErrorMetric('mse')).toBe(true);
-    expect(isErrorMetric('mae')).toBe(true);
-    expect(isErrorMetric('rmse')).toBe(true);
-    expect(isErrorMetric('mape')).toBe(true);
-  });
-
-  it('should return false for non-error metrics', () => {
-    expect(isErrorMetric('accuracy')).toBe(false);
-    expect(isErrorMetric('r2')).toBe(false);
-    expect(isErrorMetric('f1')).toBe(false);
-    expect(isErrorMetric('precision')).toBe(false);
-  });
-
-  it('should be case-insensitive', () => {
-    expect(isErrorMetric('SMAPE')).toBe(true);
-    expect(isErrorMetric('MSE')).toBe(true);
   });
 });

@@ -12,6 +12,7 @@ import (
 
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes/k8mocks"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	psmocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
 	s3int "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3"
@@ -28,18 +29,24 @@ import (
 )
 
 const (
-	Version          = "1.0.0"
-	PathPrefix       = "/automl"
-	ApiPathPrefix    = "/api/v1"
-	HealthCheckPath  = "/healthcheck"
-	UserPath         = ApiPathPrefix + "/user"
-	NamespacePath    = ApiPathPrefix + "/namespaces"
-	SecretsPath      = ApiPathPrefix + "/secrets"
-	S3FilePath       = ApiPathPrefix + "/s3/file"
-	S3FileSchemaPath = ApiPathPrefix + "/s3/file/schema"
-	S3FilesPath      = ApiPathPrefix + "/s3/files"
-	PipelineRunsPath = ApiPathPrefix + "/pipeline-runs"
+	Version                 = "1.0.0"
+	PathPrefix              = "/automl"
+	ApiPathPrefix           = "/api/v1"
+	HealthCheckPath         = "/healthcheck"
+	UserPath                = ApiPathPrefix + "/user"
+	NamespacePath           = ApiPathPrefix + "/namespaces"
+	SecretsPath             = ApiPathPrefix + "/secrets"
+	S3FilePath              = ApiPathPrefix + "/s3/file"
+	S3FileSchemaPath        = ApiPathPrefix + "/s3/file/schema"
+	S3FilesPath             = ApiPathPrefix + "/s3/files"
+	PipelineRunsPath        = ApiPathPrefix + "/pipeline-runs"
+	ModelRegistriesPath     = ApiPathPrefix + "/model-registries"
+	ModelRegistryModelsPath = ModelRegistriesPath + "/:registryId/models"
 )
+
+// modelRegistryHTTPClientFactory builds a client for Model Registry register calls.
+// If nil, modelregistry.NewHTTPClient is used. Set by tests only.
+type modelRegistryHTTPClientFactory func(*slog.Logger, string, http.Header, bool, *x509.CertPool) (modelregistry.HTTPClientInterface, error)
 
 type App struct {
 	config                      config.EnvConfig
@@ -48,10 +55,20 @@ type App struct {
 	pipelineServerClientFactory ps.PipelineServerClientFactory
 	s3ClientFactory             s3int.S3ClientFactory
 	repositories                *repositories.Repositories
+	// s3PostMaxFilePartBytes is for package api tests only (see PostS3FileHandler).
+	s3PostMaxFilePartBytes int64
+	// s3PostMaxRequestBodyBytes caps total POST body in tests (0 = file max + multipart envelope).
+	s3PostMaxRequestBodyBytes int64
+	// s3PostMaxCollisionAttempts limits HeadObject-based key suffix attempts in tests (0 = default cap).
+	s3PostMaxCollisionAttempts int
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
+	// modelRegistryHTTPClientFactory is nil in production; tests may set it to inject mock clients.
+	modelRegistryHTTPClientFactory modelRegistryHTTPClientFactory
+	// portForwardManager manages on-demand port-forwards for local dev (nil in production)
+	portForwardManager *k8s.PortForwardManager
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -120,6 +137,30 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	// LOCAL DEVELOPMENT ONLY: Enable dynamic port-forwarding when DevMode is true
+	// and a real K8s client is in use. This rewrites in-cluster service URLs
+	// (*.svc.cluster.local) to localhost via SPDY tunnels, eliminating the need
+	// for manual oc port-forward commands and /etc/hosts entries.
+	// Production deployments never set DevMode, so pfManager stays nil and all
+	// ForwardURL call sites in the middleware are no-ops.
+	// Uses the BFF's own kubeconfig credentials (not per-request user tokens)
+	// since port-forwards are long-lived and shared across requests.
+	var pfManager *k8s.PortForwardManager
+	if cfg.DevMode && !cfg.MockK8Client {
+		restCfg, pfErr := helper.GetKubeconfig()
+		if pfErr != nil {
+			logger.Warn("could not initialize dynamic port-forwarding", "error", pfErr)
+		} else {
+			clientset, csErr := kubernetes.NewForConfig(restCfg)
+			if csErr != nil {
+				logger.Warn("could not initialize dynamic port-forwarding", "error", csErr)
+			} else {
+				pfManager = k8s.NewPortForwardManager(restCfg, clientset, logger)
+				logger.Info("dynamic port-forwarding enabled — in-cluster URLs will be forwarded to localhost")
+			}
+		}
+	}
+
 	// Initialize Pipeline Server client factory
 	var pipelineServerClientFactory ps.PipelineServerClientFactory
 	if cfg.MockPipelineServerClient {
@@ -137,7 +178,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		s3ClientFactory = s3mocks.NewMockClientFactory()
 	} else {
 		logger.Info("Using real S3 client factory")
-		s3ClientFactory = s3int.NewRealClientFactory(s3int.S3ClientOptions{DevMode: cfg.DevMode})
+		// TLS verification uses the operator-mounted CA bundles (rootCAs) so that
+		// self-signed MinIO certificates are validated properly rather than skipped.
+		// The RHOAI operator passes --bundle-paths with cluster CA, service-ca, and
+		// odh-trusted-ca-bundle paths, which are loaded into rootCAs above.
+		// HTTPS is always required; plain HTTP is rejected to prevent credentials
+		// from being transmitted in cleartext.
+		// RFC-1918 private IPs are allowed (MinIO runs in-cluster); loopback,
+		// link-local, and reserved ranges are always blocked.
+		s3ClientFactory = s3int.NewRealClientFactory(s3int.S3ClientOptions{
+			DevMode: cfg.DevMode,
+			RootCAs: rootCAs,
+		})
 	}
 
 	app := &App{
@@ -149,12 +201,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		repositories:                repositories.NewRepositories(logger),
 		testEnv:                     testEnv,
 		rootCAs:                     rootCAs,
+		portForwardManager:          pfManager,
 	}
 	return app, nil
 }
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+	if app.portForwardManager != nil {
+		app.portForwardManager.Close()
+	}
 	if app.testEnv == nil {
 		return nil
 	}
@@ -190,16 +246,32 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 	apiRouter.GET(SecretsPath, app.AttachNamespace(app.GetSecretsHandler))
 
+	// Model Registry discovery — CRs are namespace-scoped within rhoai-model-registries
+	// but presented as global in the RHOAI UX; no user-supplied namespace parameter needed.
+	apiRouter.GET(ModelRegistriesPath, app.GetModelRegistriesHandler)
+
 	// Pipeline Runs API endpoints (pipeline server and pipeline are auto-discovered)
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunHandler)))))
 	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunsHandler)))))
 	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.CreatePipelineRunHandler)))))
+	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.TerminatePipelineRunHandler)))))
+	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.RetryPipelineRunHandler)))))
 
 	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
 	// secretName (the handler resolves credentials directly in that case).
-	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FileSchemaHandler)))
-	apiRouter.GET(S3FilePath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FileHandler)))
-	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler)))
+	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileSchemaHandler))))
+	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileHandler))))
+	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler))))
+	// POST /s3/file deliberately omits attachPipelineClientIfNeeded: secretName is required; there is
+	// no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
+	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToPipelineServers(app.PostS3FileHandler))))
+
+	// Model Registry - register model binary (target registry via path param + discovered ServerURL)
+	// Does NOT use AttachPipelineServerClient (which gates on a ready pipeline server and can
+	// 404/503). The handler performs best-effort DSPA discovery itself via
+	// injectDSPAObjectStorageIfAvailable — this only needs the DSPA spec (present regardless
+	// of pipeline server readiness) to resolve bucket, endpoint, and region for the artifact URI.
+	apiRouter.POST(ModelRegistryModelsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.RegisterModelHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-import { useNavigate } from 'react-router-dom';
-import { PipelineRunKF, RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ExperimentKF, PipelineRunKF, RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
 import { CheckboxTd } from '#~/components/table';
 import {
   RunCreated,
@@ -15,9 +15,15 @@ import usePipelineRunVersionInfo from '#~/concepts/pipelines/content/tables/useP
 import { PipelineVersionLink } from '#~/concepts/pipelines/content/PipelineVersionLink';
 import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
 import { RestoreRunModal } from '#~/pages/pipelines/global/runs/RestoreRunModal';
-import { compareRunsRoute, duplicateRunRoute } from '#~/routes/pipelines/runs';
+import {
+  compareRunsRoute,
+  duplicateRunRoute,
+  globalArchivedPipelineRunsRoute,
+  globalPipelineRunsRoute,
+} from '#~/routes/pipelines/runs';
 import { ArchiveRunModal } from '#~/pages/pipelines/global/runs/ArchiveRunModal';
 import PipelineRunTableRowExperiment from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
+import PipelineRunTableRowMlflowExperiment from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowMlflowExperiment';
 import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted,
@@ -27,22 +33,31 @@ import usePipelineRunExperimentInfo from '#~/concepts/pipelines/content/tables/u
 import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
 import { useFetchRunArtifact } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useFetchRunArtifact';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { MlflowExperimentData } from '#~/concepts/mlflow/types';
+import {
+  FilterOptions,
+  LEGACY_EXPERIMENT_FILTER_PARAM,
+} from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 import { isPipelineRunRegistered } from './utils';
 
 type PipelineRunTableRowProps = {
   checkboxProps: Omit<React.ComponentProps<typeof CheckboxTd>, 'id'>;
   onDelete?: () => void;
   run: PipelineRunKF;
+  mlflow?: MlflowExperimentData;
   customCells?: React.ReactNode;
   hasRowActions?: boolean;
   runType?: PipelineRunType;
+  onRunGroupClick?: (experiment: ExperimentKF) => void;
 };
 
 const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   hasRowActions = true,
   checkboxProps,
   customCells,
+  mlflow,
   onDelete,
+  onRunGroupClick,
   run,
   runType,
 }) => {
@@ -64,6 +79,24 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
   const [mlmdData] = useFetchRunArtifact(modelRegistryAvailable ? run.run_id : undefined); // Prevent API call when model registry is not available
   const isRegistered = isPipelineRunRegistered(mlmdData);
+  const [searchParams] = useSearchParams();
+  const handleRunGroupClick = React.useCallback(() => {
+    if (!experiment) {
+      return;
+    }
+    if (onRunGroupClick) {
+      onRunGroupClick(experiment);
+      return;
+    }
+    const basePath =
+      runType === PipelineRunType.ARCHIVED
+        ? globalArchivedPipelineRunsRoute(namespace)
+        : globalPipelineRunsRoute(namespace);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete(LEGACY_EXPERIMENT_FILTER_PARAM);
+    nextParams.set(FilterOptions.RUN_GROUP, experiment.experiment_id);
+    navigate(`${basePath}?${nextParams.toString()}`);
+  }, [experiment, namespace, navigate, onRunGroupClick, runType, searchParams]);
 
   const { isExperimentArchived: isContextExperimentArchived } =
     useContextExperimentArchivedOrDeleted();
@@ -162,17 +195,23 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
       <Td modifier="truncate" dataLabel="Pipeline">
         <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />
       </Td>
+      {mlflow?.isAvailable && (
+        <Td dataLabel="MLflow experiment">
+          <PipelineRunTableRowMlflowExperiment run={run} mlflow={mlflow} />
+        </Td>
+      )}
       {!contextExperiment && (
-        <Td dataLabel="Experiment">
+        <Td dataLabel="Run group">
           <PipelineRunTableRowExperiment
             experiment={experiment}
             isExperimentArchived={isExperimentArchived}
             error={experimentError}
             loaded={isExperimentLoaded}
+            onClick={experiment ? handleRunGroupClick : undefined}
           />
         </Td>
       )}
-      <Td dataLabel="Created">
+      <Td dataLabel="Started">
         <RunCreated run={run} />
       </Td>
       <Td dataLabel="Duration">

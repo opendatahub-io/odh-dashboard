@@ -46,8 +46,10 @@ const usePipelineRunById = (
   React.useEffect(() => {
     if (isFinished) {
       setPipelineFinished(true);
+    } else if (run) {
+      setPipelineFinished(false);
     }
-  }, [isFinished]);
+  }, [isFinished, run]);
 
   return runData;
 };

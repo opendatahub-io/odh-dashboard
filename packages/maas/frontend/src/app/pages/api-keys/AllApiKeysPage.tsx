@@ -9,11 +9,11 @@ import {
   APIKey,
   ApiKeyFilterDataType,
   initialApiKeyFilterData,
+  emptyApiKeyFilterData,
 } from '~/app/types/api-key';
 import { ApiKeySortField } from './allKeys/columns';
 import CreateApiKeyModal from './CreateApiKeyModal';
 import ApiKeysTable from './allKeys/ApiKeysTable';
-import EmptyApiKeysPage from './EmptyApiKeysPage';
 import RevokeApiKeyModal from './RevokeApiKeyModal';
 import ApiKeysToolbar from './allKeys/ApiKeysToolbar';
 
@@ -27,9 +27,7 @@ const AllApiKeysPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
 
-  // TODO: use this for hiding the username search for non-admins and for allowing admins to see all keys
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isMaasAdmin] = useIsMaasAdmin();
+  const [isMaasAdmin, isMaasAdminLoaded] = useIsMaasAdmin();
 
   const [filterData, setFilterData] = React.useState<ApiKeyFilterDataType>(initialApiKeyFilterData);
   const [page, setPage] = React.useState(1);
@@ -54,6 +52,7 @@ const AllApiKeysPage: React.FC = () => {
 
   const apiKeys = response.data;
   const hasMore = response.has_more;
+  const { subscriptionDetails } = response;
 
   const activeApiKeys = apiKeys.filter((apiKey) => apiKey.status === 'active');
 
@@ -108,13 +107,8 @@ const AllApiKeysPage: React.FC = () => {
     setPage(Math.max(1, newPage));
     setIsFetching(true);
   }, []);
-  const hasActiveFilters =
-    filterData.username !== initialApiKeyFilterData.username ||
-    JSON.stringify([...filterData.statuses].toSorted()) !==
-      JSON.stringify([...initialApiKeyFilterData.statuses].toSorted());
-
   const onClearFilters = React.useCallback(() => {
-    setFilterData(initialApiKeyFilterData);
+    setFilterData(emptyApiKeyFilterData);
     setPage(1);
     setLocalUsername('');
     setIsFetching(true);
@@ -122,14 +116,11 @@ const AllApiKeysPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="API Keys"
-      description="Manage personal API keys that can be used to access AI asset endpoints."
-      empty={
-        loaded && !error && apiKeys.length === 0 && page === 1 && !hasActiveFilters && !isFetching
-      }
+      title="API keys"
+      description="Manage API keys that can be used to authenticate with model endpoints."
       loaded={loaded}
       loadError={error}
-      emptyStatePage={<EmptyApiKeysPage onRefresh={() => refresh()} />}
+      empty={false}
     >
       {isModalOpen && (
         <CreateApiKeyModal
@@ -140,11 +131,12 @@ const AllApiKeysPage: React.FC = () => {
         />
       )}
 
-      {loaded && (
+      {loaded && isMaasAdminLoaded && (
         <PageSection isFilled>
           <ApiKeysTable
             onRevokeApiKey={setRevokeApiKey}
             apiKeys={apiKeys}
+            subscriptionDetails={subscriptionDetails}
             hasMore={hasMore}
             page={page}
             perPage={perPage}
@@ -155,8 +147,10 @@ const AllApiKeysPage: React.FC = () => {
             onSort={onSort}
             onClearFilters={onClearFilters}
             isFetching={isFetching}
+            isMaasAdmin={isMaasAdmin}
             toolbarContent={
               <ApiKeysToolbar
+                isMaasAdmin={isMaasAdmin}
                 setIsModalOpen={setIsModalOpen}
                 filterData={filterData}
                 localUsername={localUsername}

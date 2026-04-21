@@ -4,8 +4,7 @@ import {
   Card,
   CardBody,
   CardTitle,
-  ClipboardCopy,
-  ClipboardCopyVariant,
+  ClipboardCopyButton,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -17,6 +16,8 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  InputGroup,
+  InputGroupItem,
   MenuToggle,
   MenuToggleElement,
   Modal,
@@ -33,12 +34,19 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
-import { CheckCircleIcon } from '@patternfly/react-icons';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/internal/components/TypeaheadSelect';
+import { CheckCircleIcon, EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
-import { formatApiKeyError } from '~/app/pages/api-keys/utils';
-import { createApiKey } from '../../api/api-keys';
+import TruncatedText from '@odh-dashboard/internal/components/TruncatedText';
+import { formatApiKeyError, formatApiKeyHiddenPreview } from '~/app/pages/api-keys/utils';
+import { createApiKey } from '~/app/api/api-keys';
+import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
+import { MaaSModelRefSummary, ModelSubscriptionRef } from '~/app/types/subscriptions';
+import MaasModelsSection from '~/app/shared/MaasModelsSection';
 
 const EXPIRATION_OPTION_VALUES = ['30d', '60d', '90d', '180d', '1y', 'custom'] as const;
 
@@ -67,6 +75,7 @@ const createApiKeySchema = z
     description: z.string().optional(),
     expirationOption: z.enum(EXPIRATION_OPTION_VALUES),
     customDays: z.string().optional(),
+    subscription: z.string().min(1, 'Subscription is required'),
   })
   .superRefine((data, ctx) => {
     if (data.expirationOption === 'custom') {
@@ -88,16 +97,61 @@ type CreateApiKeyModalProps = {
 };
 
 const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
+  const [subscriptions, subscriptionsLoaded, subscriptionsError] = useUserSubscriptions();
   const [formData, setFormData] = React.useState<CreateApiKeyFormData>({
     name: '',
     description: '',
     expirationOption: '30d',
     customDays: '',
+    subscription: '',
   });
   const [isSelectOpen, setIsSelectOpen] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [createdToken, setCreatedToken] = React.useState<string | undefined>();
+
+  const selectedSubscription = React.useMemo(
+    () => subscriptions.find((s) => s.subscription_id_header === formData.subscription),
+    [subscriptions, formData.subscription],
+  );
+
+  const subscriptionSelectOptions = React.useMemo(
+    () =>
+      subscriptions
+        .toSorted((a, b) => b.priority - a.priority)
+        .map<TypeaheadSelectOption>((sub) => ({
+          value: sub.subscription_id_header,
+          content: sub.display_name || sub.subscription_id_header,
+          description: (
+            <TruncatedText
+              maxLines={2}
+              content={`${sub.subscription_description} · ${sub.model_refs.length} ${sub.model_refs.length === 1 ? 'model' : 'models'}`}
+            />
+          ),
+          'data-testid': `api-key-subscription-option-${sub.subscription_id_header}`,
+        })),
+    [subscriptions],
+  );
+
+  const modelRefSummaries = React.useMemo<MaaSModelRefSummary[]>(
+    () =>
+      selectedSubscription?.model_refs.map((ref) => ({
+        name: ref.name,
+        namespace: ref.namespace ?? '',
+        modelRef: { kind: 'MaaSModelRef', name: ref.name },
+      })) ?? [],
+    [selectedSubscription],
+  );
+
+  const subscriptionModelRefs = React.useMemo<ModelSubscriptionRef[]>(
+    () =>
+      selectedSubscription?.model_refs.map((ref) => ({
+        name: ref.name,
+        namespace: ref.namespace ?? '',
+        tokenRateLimits: ref.token_rate_limits ?? [],
+      })) ?? [],
+    [selectedSubscription],
+  );
 
   const { getFieldValidation, getFieldValidationProps } = useZodFormValidation(
     formData,
@@ -130,6 +184,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
           name: formData.name.trim(),
           description: formData.description?.trim() || undefined,
           expiresIn: getExpiresIn(),
+          subscription: formData.subscription,
         },
       );
 
@@ -144,6 +199,10 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
 
   const expirationLabel =
     formData.expirationOption === 'custom' ? `${formData.customDays} days` : selectedOption?.label;
+
+  const [isTokenVisible, setIsTokenVisible] = React.useState(false);
+  const [isCopyTipCopied, setIsCopyTipCopied] = React.useState(false);
+  const hiddenToken = createdToken ? formatApiKeyHiddenPreview(createdToken) : '';
 
   return (
     <Modal variant={ModalVariant.medium} isOpen onClose={onClose}>
@@ -177,17 +236,43 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                   </Flex>
                 </CardTitle>
                 <CardBody>
-                  <ClipboardCopy
-                    variant={ClipboardCopyVariant.expansion}
-                    hoverTip="Copy"
-                    clickTip="Copied"
-                    data-testid="api-key-token-copy"
-                    onCopy={() => {
-                      navigator.clipboard.writeText(createdToken);
-                    }}
-                  >
-                    {createdToken}
-                  </ClipboardCopy>
+                  <InputGroup data-testid="api-key-token-copy-section">
+                    <InputGroupItem isFill>
+                      <TextInput
+                        readOnly
+                        aria-label="API key"
+                        value={isTokenVisible ? createdToken : hiddenToken}
+                        dir="ltr"
+                      />
+                    </InputGroupItem>
+                    <InputGroupItem>
+                      <Button
+                        variant="control"
+                        data-testid="api-key-visibility-toggle"
+                        aria-label={isTokenVisible ? 'Hide API key' : 'Show API key'}
+                        icon={isTokenVisible ? <EyeSlashIcon /> : <EyeIcon />}
+                        onClick={() => setIsTokenVisible((v) => !v)}
+                      />
+                    </InputGroupItem>
+                    <InputGroupItem>
+                      <ClipboardCopyButton
+                        id="api-key-created-copy"
+                        data-testid="api-key-token-copy-button"
+                        variant="control"
+                        aria-label="Copy API key"
+                        hasNoPadding
+                        onClick={() => {
+                          if (createdToken) {
+                            navigator.clipboard.writeText(createdToken);
+                          }
+                          setIsCopyTipCopied(true);
+                        }}
+                        onTooltipHidden={() => setIsCopyTipCopied(false)}
+                      >
+                        {isCopyTipCopied ? 'Copied' : 'Copy'}
+                      </ClipboardCopyButton>
+                    </InputGroupItem>
+                  </InputGroup>
                 </CardBody>
               </Card>
             </StackItem>
@@ -210,6 +295,13 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                       </DescriptionListGroup>
                     )}
                     <DescriptionListGroup>
+                      <DescriptionListTerm>Subscription</DescriptionListTerm>
+                      <DescriptionListDescription data-testid="api-key-display-subscription">
+                        {selectedSubscription?.display_name ??
+                          selectedSubscription?.subscription_id_header}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    <DescriptionListGroup>
                       <DescriptionListTerm>Expiration</DescriptionListTerm>
                       <DescriptionListDescription data-testid="api-key-display-expiration">
                         {expirationLabel}
@@ -222,15 +314,28 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
           </Stack>
         ) : (
           <Stack hasGutter>
-            {error && (
+            {subscriptionsLoaded && subscriptions.length === 0 && !subscriptionsError && (
               <StackItem>
                 <Alert
-                  data-testid="create-api-key-error-alert"
-                  title="Error creating API key"
+                  variant="warning"
                   isInline
-                  variant="danger"
+                  title="No subscriptions available"
+                  data-testid="no-subscriptions-alert"
                 >
-                  {error.message}
+                  You don&apos;t have access to any subscriptions. Ask your admin to add you to a
+                  subscription.
+                </Alert>
+              </StackItem>
+            )}
+            {subscriptionsError && (
+              <StackItem>
+                <Alert
+                  variant="danger"
+                  isInline
+                  title="Failed to load subscriptions"
+                  data-testid="subscriptions-error-alert"
+                >
+                  {subscriptionsError.message}
                 </Alert>
               </StackItem>
             )}
@@ -247,11 +352,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                     {...getFieldValidationProps(['name'])}
                     data-testid="api-key-name-input"
                   />
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>A descriptive name for this API key</HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
                   {getFieldValidation(['name']).length > 0 && (
                     <FormHelperText>
                       <HelperText>
@@ -272,16 +372,65 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                     rows={5}
                     data-testid="api-key-description-input"
                   />
+                </FormGroup>
+
+                <FormGroup label="Subscription" isRequired fieldId="api-key-subscription">
                   <FormHelperText>
                     <HelperText>
                       <HelperTextItem>
-                        Optional description of how this key will be used
+                        Select a subscription to scope this API key to. The key will work only with
+                        models that belong to the selected subscription.
                       </HelperTextItem>
                     </HelperText>
                   </FormHelperText>
+                  <TypeaheadSelect
+                    id="api-key-subscription"
+                    selectOptions={subscriptionSelectOptions}
+                    selected={formData.subscription}
+                    onSelect={(_e, value) =>
+                      setFormData({ ...formData, subscription: String(value) })
+                    }
+                    isDisabled={!subscriptionsLoaded || subscriptions.length === 0}
+                    placeholder="Select a subscription"
+                    dataTestId="api-key-subscription-toggle"
+                    previewDescription={false}
+                    isRequired={false}
+                    popperProps={{ maxWidth: 'trigger' }}
+                    isScrollable
+                  />
                 </FormGroup>
 
-                <FormGroup label="Expiration" fieldId="api-key-expiration">
+                {selectedSubscription && (
+                  <>
+                    {selectedSubscription.cost_center && (
+                      <FormGroup fieldId="api-key-subscription-details">
+                        <DescriptionList
+                          isHorizontal
+                          isCompact
+                          data-testid="subscription-cost-center-details"
+                        >
+                          <DescriptionListGroup>
+                            <DescriptionListTerm>Cost center</DescriptionListTerm>
+                            <DescriptionListDescription data-testid="subscription-cost-center">
+                              {selectedSubscription.cost_center}
+                            </DescriptionListDescription>
+                          </DescriptionListGroup>
+                        </DescriptionList>
+                      </FormGroup>
+                    )}
+                    <FormGroup fieldId="api-key-subscription-models">
+                      <MaasModelsSection
+                        modelRefSummaries={modelRefSummaries}
+                        modelRefsWithRateLimits={subscriptionModelRefs}
+                        hideColumns={['project']}
+                        titleHeadingLevel="h3"
+                        titleSize="md"
+                      />
+                    </FormGroup>
+                  </>
+                )}
+
+                <FormGroup label="Expiration" fieldId="api-key-expiration" isRequired>
                   <Select
                     id="api-key-expiration"
                     isOpen={isSelectOpen}
@@ -318,6 +467,11 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                       ))}
                     </SelectList>
                   </Select>
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>Must be between 1 and 365, inclusive</HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
                 </FormGroup>
 
                 {formData.expirationOption === 'custom' && (
@@ -366,21 +520,35 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
             Close
           </Button>
         ) : (
-          <>
-            <Button
-              key="create"
-              variant="primary"
-              onClick={handleSubmit}
-              isDisabled={!isFormValid() || isCreating}
-              isLoading={isCreating}
-              data-testid="submit-create-api-key-button"
-            >
-              Create API key
-            </Button>
-            <Button key="cancel" variant="link" onClick={onClose} isDisabled={isCreating}>
-              Cancel
-            </Button>
-          </>
+          <Stack hasGutter>
+            {error && (
+              <StackItem>
+                <Alert
+                  data-testid="create-api-key-error-alert"
+                  title="Error creating API key"
+                  isInline
+                  variant="danger"
+                >
+                  {error.message}
+                </Alert>
+              </StackItem>
+            )}
+            <StackItem>
+              <Button
+                key="create"
+                variant="primary"
+                onClick={handleSubmit}
+                isDisabled={!isFormValid() || isCreating || subscriptions.length === 0}
+                isLoading={isCreating}
+                data-testid="submit-create-api-key-button"
+              >
+                Create API key
+              </Button>
+              <Button key="cancel" variant="link" onClick={onClose} isDisabled={isCreating}>
+                Cancel
+              </Button>
+            </StackItem>
+          </Stack>
         )}
       </ModalFooter>
     </Modal>

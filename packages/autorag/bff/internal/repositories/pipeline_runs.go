@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
@@ -156,6 +157,60 @@ func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.Pipe
 	}
 }
 
+// TerminatePipelineRun terminates an active pipeline run by ID.
+// It sends a terminate request to the pipeline server.
+func (r *PipelineRunsRepository) TerminatePipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	runID string,
+) error {
+	if client == nil {
+		return fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := client.TerminateRun(ctx, runID); err != nil {
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) {
+			switch httpErr.Status() {
+			case http.StatusNotFound:
+				return ErrPipelineRunNotFound
+			case http.StatusBadRequest:
+				return err
+			}
+		}
+		return fmt.Errorf("failed to terminate pipeline run: %w", err)
+	}
+
+	return nil
+}
+
+// RetryPipelineRun retries a failed or terminated pipeline run by ID.
+// It sends a retry request to the pipeline server to re-initiate the run.
+func (r *PipelineRunsRepository) RetryPipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	runID string,
+) error {
+	if client == nil {
+		return fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := client.RetryRun(ctx, runID); err != nil {
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) {
+			switch httpErr.Status() {
+			case http.StatusNotFound:
+				return ErrPipelineRunNotFound
+			case http.StatusBadRequest:
+				return err
+			}
+		}
+		return fmt.Errorf("failed to retry pipeline run: %w", err)
+	}
+
+	return nil
+}
+
 // ValidateCreateAutoRAGRunRequest checks that all required fields are present
 // and that optional enum fields have valid values.
 func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
@@ -202,6 +257,10 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		}
 	}
 
+	if utf8.RuneCountInString(req.DisplayName) > 250 {
+		return NewValidationError("display_name must be at most 250 characters")
+	}
+
 	return nil
 }
 
@@ -242,8 +301,8 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipeline
 	}
 	params["optimization_metric"] = metric
 
-	if req.LlamaStackVectorDatabaseID != "" {
-		params["llama_stack_vector_database_id"] = req.LlamaStackVectorDatabaseID
+	if req.LlamaStackVectorIOProviderID != "" {
+		params["llama_stack_vector_io_provider_id"] = req.LlamaStackVectorIOProviderID
 	}
 
 	if req.OptimizationMaxRagPatterns != nil {

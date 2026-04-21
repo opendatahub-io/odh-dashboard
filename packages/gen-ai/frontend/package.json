@@ -4,6 +4,9 @@
   "description": "Gen AI",
   "license": "MIT",
   "private": true,
+  "overrides": {
+    "axios": "^1.15.0"
+  },
   "scripts": {
     "prebuild:standalone": "npm run test:type-check:standalone && npm run clean",
     "build": "run-s build:prod",
@@ -22,6 +25,7 @@
     "test:type-check:standalone": "tsc --noEmit -p tsconfig-standalone.json",
     "test:unit": "npm run test:jest -- --silent",
     "lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src",
+    "lint:fix": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src --fix",
     "format": "prettier --check --write \"./src/**/*.{tsx,ts}\"",
     "ci-checks": "npm run test:type-check && npm run lint && npm run test:coverage",
     "build:bundle-profile": "webpack --config ./config/webpack.prod.js --profile --json > stats.json",

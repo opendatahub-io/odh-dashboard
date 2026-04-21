@@ -12,8 +12,9 @@ const AssignRolesFooterActions: React.FC<AssignRolesFooterActionsProps> = ({
   hasChanges,
   onSave,
 }) => {
-  const navigate = useNavigate();
   const { currentProject } = React.useContext(ProjectDetailsContext);
+  const navigate = useNavigate();
+  const permissionsHref = `/projects/${currentProject.metadata.name}?section=permissions`;
 
   return (
     <>
@@ -39,9 +40,7 @@ const AssignRolesFooterActions: React.FC<AssignRolesFooterActionsProps> = ({
             <Button
               variant="link"
               data-testid="assign-roles-cancel"
-              onClick={() =>
-                navigate(`/projects/${currentProject.metadata.name}?section=permissions`)
-              }
+              onClick={() => navigate(permissionsHref)}
             >
               Cancel
             </Button>

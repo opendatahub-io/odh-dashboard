@@ -55,14 +55,3 @@ export const fetchPersesDashboard = async (
 
   return odhPersesFetchJson<DashboardResource>(persesURL);
 };
-
-/**
- * Fetch all dashboards for a specific project
- * URL: /api/v1/projects/{project}/dashboards
- */
-export const fetchProjectDashboards = async (project: string): Promise<DashboardResource[]> => {
-  const listDashboardsURL = `/api/v1/projects/${encodeURIComponent(project)}/dashboards`;
-  const persesURL = `${PERSES_PROXY_BASE_PATH}${listDashboardsURL}`;
-
-  return odhPersesFetchJson<DashboardResource[]>(persesURL);
-};

@@ -1,17 +1,23 @@
 package models
 
-// LSDVectorStore represents a vector store in our stable public API format.
-// This is the contract exposed to the frontend and should remain stable.
-type LSDVectorStore struct {
-	ID       string `json:"id"`       // Vector store identifier (e.g., "ls_milvus")
-	Name     string `json:"name"`     // Human-readable name
-	Status   string `json:"status"`   // Status: "expired", "in_progress", or "completed"
-	Provider string `json:"provider"` // Database provider (e.g., "milvus", "faiss", "chromadb")
+// LlamaStackProvider represents a single provider entry returned by the
+// LlamaStack /v1/providers endpoint.
+type LlamaStackProvider struct {
+	API          string `json:"api"`           // API type (e.g., "vector_io", "inference")
+	ProviderID   string `json:"provider_id"`   // Provider identifier (e.g., "milvus")
+	ProviderType string `json:"provider_type"` // Provider implementation type (e.g., "remote::milvus")
 }
 
-// LSDVectorStoresData wraps the vector store list for the API response.
+// LSDVectorStoreProvider represents a vector store provider in our stable public API format.
+// This is the contract exposed to the frontend and should remain stable.
+type LSDVectorStoreProvider struct {
+	ProviderID   string `json:"provider_id"`   // Provider identifier (e.g., "milvus")
+	ProviderType string `json:"provider_type"` // Provider implementation type (e.g., "remote::milvus")
+}
+
+// LSDVectorStoreProvidersData wraps the vector store provider list for the API response.
 // Note: Always create a bespoke type for list types, this creates minimal work later if implementing pagination
 // as the necessary metadata can be added at a later date without breaking the API.
-type LSDVectorStoresData struct {
-	VectorStores []LSDVectorStore `json:"vector_stores"`
+type LSDVectorStoreProvidersData struct {
+	VectorStoreProviders []LSDVectorStoreProvider `json:"vector_store_providers"`
 }

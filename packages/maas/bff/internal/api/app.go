@@ -121,11 +121,11 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		if cfg.MaasApiUrl == "" {
 			clusterDomain, err := helper.GetClusterDomainUsingServiceAccount(context.Background(), logger)
 			if err != nil {
-				return nil, fmt.Errorf("automatic discovery of cluster domain failed: %w", err)
+				logger.Error("Failed to auto-discover cluster domain, MaaS API URL will be unavailable", "error", err)
+			} else {
+				cfg.MaasApiUrl = fmt.Sprintf("https://maas.%s/maas-api", clusterDomain)
+				logger.Info("Using automatically discovered MaaS URL", "url", cfg.MaasApiUrl)
 			}
-
-			cfg.MaasApiUrl = fmt.Sprintf("https://maas.%s/maas-api", clusterDomain)
-			logger.Info("Using automatically discovered MaaS URL", "url", cfg.MaasApiUrl)
 		}
 	}
 
@@ -135,17 +135,20 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	// Decide mock vs real implementations for K8s-backed repositories
 	var subscriptionsRepo repositories.SubscriptionsRepositoryInterface
+	var policiesRepo repositories.PoliciesRepositoryInterface
 	var modelRefsRepo repositories.MaaSModelRefsRepositoryInterface
 
 	if cfg.MockK8Client {
 		subscriptionsRepo = repositories.NewMockSubscriptionsRepository(logger)
+		policiesRepo = repositories.NewMockPoliciesRepository(logger)
 		modelRefsRepo = repositories.NewMockMaaSModelRefsRepository(logger)
 	} else {
 		subscriptionsRepo = repositories.NewSubscriptionsRepository(logger, k8sFactory, cfg.MaaSSubscriptionNamespace)
+		policiesRepo = repositories.NewPoliciesRepository(logger, k8sFactory, cfg.MaaSSubscriptionNamespace)
 		modelRefsRepo = repositories.NewMaaSModelRefsRepository(logger, k8sFactory)
 	}
 
-	repos, err := repositories.NewRepositories(logger, k8sFactory, cfg, subscriptionsRepo, modelRefsRepo)
+	repos, err := repositories.NewRepositories(logger, k8sFactory, cfg, subscriptionsRepo, policiesRepo, modelRefsRepo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create repositories: %w", err)
 	}
@@ -192,7 +195,9 @@ func (app *App) Routes() http.Handler {
 	attachTierHandlers(apiRouter, app)
 	attachAPIKeyHandlers(apiRouter, app)
 	attachSubscriptionHandlers(apiRouter, app)
+	attachPolicyHandlers(apiRouter, app)
 	attachMaaSModelRefHandlers(apiRouter, app)
+	attachTokenHandlers(apiRouter, app)
 	apiRouter.GET(constants.ApiPathPrefix+"/models", handlerWithApp(app, ListModelsHandler))
 	apiRouter.GET(constants.IsMaasAdminPath, handlerWithApp(app, IsMaasAdminHandler))
 

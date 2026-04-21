@@ -34,7 +34,10 @@ import {
 } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
-import { initMockModelAuthIntercepts } from '../../../utils/modelServingUtils';
+import {
+  initMockGatewayIntercepts,
+  initMockModelAuthIntercepts,
+} from '../../../utils/modelServingUtils';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -51,6 +54,7 @@ import {
   modelServingWizard,
   modelServingWizardEdit,
 } from '../../../pages/modelServing';
+import { projectDetailsOverviewTab } from '../../../pages/projects';
 
 const initIntercepts = ({
   llmInferenceServices = [],
@@ -143,6 +147,12 @@ const initIntercepts = ({
       body: mockLLMInferenceServiceK8sResource({ name: 'test-llmd-model' }),
     },
   ).as('createLLMInferenceService');
+  // MaaS is enabled so we need to intercept this for edit scenarios
+  cy.interceptOdh(
+    'DELETE /maas/api/v1/maasmodel/:namespace/:name',
+    { path: { namespace: '*', name: '*' } },
+    { data: { message: 'Deleted successfully' } },
+  ).as('deleteMaaSModelRef');
 };
 
 describe('Model Serving LLMD', () => {
@@ -183,7 +193,7 @@ describe('Model Serving LLMD', () => {
         .findByTestId('api-protocol-label')
         .should('have.text', 'REST');
       row.findLastDeployed().should('have.text', '17 Mar 2023');
-      row.findStatusLabel('Started');
+      row.findStatusLabel('Ready');
 
       // expanded section of the row
       row.findToggleButton('llmd-serving').click();
@@ -342,6 +352,30 @@ describe('Model Serving LLMD', () => {
       // Verify LLMD deployment is displayed even with error status
       modelServingGlobal.getModelRow('Error LLMD Model').should('exist');
       modelServingGlobal.getModelRow('Error LLMD Model').should('be.visible');
+    });
+
+    it('should display LLMD serving runtime details on the project overview tab', () => {
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'facebook-opt-125m-single',
+            namespace: 'test-project',
+            displayName: 'Facebook OPT 125M',
+            modelName: 'facebook/opt-125m',
+            modelUri: 'hf://facebook/opt-125m',
+            isReady: true,
+          }),
+        ],
+      });
+
+      projectDetailsOverviewTab.visit('test-project');
+
+      projectDetailsOverviewTab
+        .findDeployedModelCard('facebook-opt-125m-single')
+        .should('be.visible');
+      projectDetailsOverviewTab
+        .findCardServingRuntime('facebook-opt-125m-single')
+        .should('contain.text', 'Distributed inference with llm-d');
     });
   });
 
@@ -638,6 +672,170 @@ describe('Model Serving LLMD', () => {
       cy.wait('@stopLLMInferenceService2');
       cy.get('@stopLLMInferenceService2.all').should('have.length', 1);
     });
+
+    it('should create an LLMD deployment with a gateway selection', () => {
+      initIntercepts({});
+
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableNIMModelServing: true,
+          disableKServe: false,
+          genAiStudio: true,
+          modelAsService: true,
+          disableLLMd: false,
+          llmGatewayField: true,
+        }),
+      );
+
+      initMockGatewayIntercepts({
+        gateways: [
+          { name: 'test-gateway', namespace: 'gateway-ns', listener: 'http', status: 'Ready' },
+          { name: 'other-gateway', namespace: 'gateway-ns-2', listener: 'http', status: 'Ready' },
+        ],
+      });
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      // Step 1: Model source
+      modelServingWizard
+        .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+        .should('exist')
+        .click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findLocationPathInput().should('exist').type('test-model/');
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 2: Model deployment
+      modelServingWizard.findModelDeploymentNameInput().type('test-gateway-model');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+        .should('exist')
+        .click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 3: Advanced Options — gateway select should be visible
+      modelServingWizard.findGatewaySelect().should('exist');
+      modelServingWizard.findGatewaySelectOption('test-gateway | gateway-ns').click();
+
+      // Disable token auth to simplify (avoid needing auth resource intercepts)
+      modelServingWizard.findTokenAuthenticationCheckbox().click();
+
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 4: Summary — submit
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.spec.router.gateway).to.containSubset({
+          refs: [{ name: 'test-gateway', namespace: 'gateway-ns' }],
+        });
+      });
+
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+        expect(interception.request.body.spec.router.gateway).to.containSubset({
+          refs: [{ name: 'test-gateway', namespace: 'gateway-ns' }],
+        });
+      });
+
+      cy.get('@createLLMInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2);
+      });
+    });
+
+    it('should edit an LLMD deployment and show pre-populated gateway', () => {
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'test-gw-model',
+            displayName: 'Gateway Test Model',
+            replicas: 1,
+            modelType: ServingRuntimeModelType.GENERATIVE,
+            gatewayRefs: [{ name: 'existing-gw', namespace: 'gw-ns' }],
+          }),
+        ],
+      });
+
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableNIMModelServing: true,
+          disableKServe: false,
+          genAiStudio: true,
+          modelAsService: true,
+          disableLLMd: false,
+          llmGatewayField: true,
+        }),
+      );
+
+      initMockGatewayIntercepts({
+        gateways: [
+          { name: 'existing-gw', namespace: 'gw-ns', listener: 'http', status: 'Ready' },
+          { name: 'new-gateway', namespace: 'gw-ns-2', listener: 'http', status: 'Ready' },
+        ],
+      });
+
+      // Force the serving runtime list for editing
+      cy.interceptK8sList(
+        TemplateModel,
+        mockK8sResourceList([
+          mockServingRuntimeTemplateK8sResource({
+            name: 'llmd-serving',
+            displayName: 'Distributed inference with llm-d',
+            modelTypes: [ServingRuntimeModelType.GENERATIVE],
+          }),
+        ]),
+      );
+
+      cy.intercept('PUT', '**/llminferenceservices/test-gw-model*', (req) => {
+        req.reply({ statusCode: 200, body: req.body });
+      }).as('updateLLMInferenceService');
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.getModelRow('Gateway Test Model').findKebabAction('Edit').click();
+
+      // Step 1: Model source — switch to URI
+      modelServingWizardEdit.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizardEdit.findUrilocationInput().clear().type('hf://updated-uri');
+      modelServingWizardEdit.findSaveConnectionCheckbox().click();
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 2: Model deployment — select a compatible hardware profile for the deployment's resources
+      hardwareProfileSection.selectProfile(
+        'Large Profile Compatible CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+      );
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 3: Advanced Options — verify gateway is pre-populated with existing value
+      modelServingWizardEdit.findGatewaySelect().should('contain.text', 'existing-gw | gw-ns');
+
+      // Change to a different gateway
+      modelServingWizardEdit.findGatewaySelectOption('new-gateway | gw-ns-2').click();
+
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 4: Summary — submit
+      modelServingWizardEdit.findSubmitButton().should('be.enabled').click();
+
+      cy.wait('@updateLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.spec.router.gateway).to.containSubset({
+          refs: [{ name: 'new-gateway', namespace: 'gw-ns-2' }],
+        });
+      });
+
+      cy.wait('@updateLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      cy.get('@updateLLMInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2);
+      });
+    });
   });
 
   describe('vLLM using LLMInferenceServiceConfig', () => {
@@ -774,6 +972,12 @@ describe('Model Serving LLMD', () => {
       cy.intercept('PUT', '**/llminferenceserviceconfigs/test-vllm-gpu*', (req) => {
         req.reply({ statusCode: 200, body: req.body });
       }).as('updateLLMInferenceServiceConfig');
+      // MaaS is enabled so we need to intercept this for edit scenarios
+      cy.interceptOdh(
+        'DELETE /maas/api/v1/maasmodel/:namespace/:name',
+        { path: { namespace: '*', name: '*' } },
+        { data: { message: 'Deleted successfully' } },
+      ).as('deleteMaaSModelRef');
     };
 
     it('should display serving runtime name and version, then pre-fill when editing', () => {
@@ -885,6 +1089,7 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.url).to.include('?dryRun=All');
         expect(interception.request.body.spec.baseRefs).to.have.length(1);
         expect(interception.request.body.spec.baseRefs).to.deep.include({ name: deploymentName });
+        expect(interception.request.body.spec.router).to.not.have.property('scheduler');
       });
 
       // Actual: config created with same resource name as deployment, cloned from the selected template
@@ -901,7 +1106,59 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.url).not.to.include('?dryRun=All');
         expect(interception.request.body.spec.baseRefs).to.have.length(1);
         expect(interception.request.body.spec.baseRefs).to.deep.include({ name: deploymentName });
+        expect(interception.request.body.spec.router).to.not.have.property('scheduler');
       });
+    });
+
+    it('should hide disabled LLMInferenceServiceConfigs from the deploy wizard options', () => {
+      initVLLMOnMaaSIntercepts();
+
+      // Override configs: Gaudi is disabled, GPU is enabled
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gaudi-config',
+            displayName: 'vLLM on Gaudi LLMInferenceServiceConfig',
+            runtimeVersion: 'v0.9.1',
+            disabled: true,
+          }),
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gpu-config',
+            displayName: 'vLLM on GPU LLMInferenceServiceConfig',
+            runtimeVersion: 'v0.8.2',
+          }),
+        ]),
+      );
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      // Step 1: Model source
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.findUrilocationInput().type('hf://test/model');
+      modelServingWizard.findSaveConnectionCheckbox().click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      // Step 2: Model deployment — open the config dropdown
+      modelServingWizard.findModelDeploymentNameInput().type('test-disabled-config');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+
+      // Enabled config should be visible
+      modelServingWizard
+        .findGlobalScopedTemplateOption('vLLM on GPU LLMInferenceServiceConfig')
+        .should('exist');
+
+      // Disabled config should not appear
+      modelServingWizard
+        .findGlobalScopedTemplateOption('vLLM on Gaudi LLMInferenceServiceConfig')
+        .should('not.exist');
+
+      // The default llm-d option should still be available
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Distributed inference with llm-d')
+        .should('exist');
     });
 
     it('Edit existing LLMInferenceService preserves LLMInferenceServiceConfig and baseRef', () => {
@@ -940,6 +1197,7 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.url).to.include('?dryRun=All');
         expect(interception.request.body.spec.baseRefs).to.have.length(1);
         expect(interception.request.body.spec.baseRefs).to.deep.include({ name: 'test-vllm-gpu' });
+        expect(interception.request.body.spec.router).to.not.have.property('scheduler');
       });
 
       // Actual: config updated (preserved), IS updated with exactly one baseRef preserved
@@ -951,6 +1209,7 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.url).not.to.include('?dryRun=All');
         expect(interception.request.body.spec.baseRefs).to.have.length(1);
         expect(interception.request.body.spec.baseRefs).to.deep.include({ name: 'test-vllm-gpu' });
+        expect(interception.request.body.spec.router).to.not.have.property('scheduler');
       });
     });
 
@@ -1026,6 +1285,21 @@ describe('Model Serving LLMD', () => {
 
       cy.wait('@deleteLLMInferenceService');
       cy.get('@deleteLLMInferenceServiceConfig.all').should('have.length', 0);
+    });
+
+    it('should display vLLM serving runtime details on the project overview tab', () => {
+      initVLLMOnMaaSIntercepts();
+
+      projectDetailsOverviewTab.visit('test-project');
+
+      projectDetailsOverviewTab.findDeployedModelCard('test-vllm-gpu').should('be.visible');
+      projectDetailsOverviewTab
+        .findCardServingRuntime('test-vllm-gpu')
+        .should('contain.text', 'vLLM on GPU LLMInferenceServiceConfig');
+      projectDetailsOverviewTab
+        .findCardServingRuntime('test-vllm-gpu')
+        .findByTestId('serving-runtime-version-label')
+        .should('contain.text', 'v0.8.2');
     });
   });
 });

@@ -48,6 +48,7 @@ export const assembleNotebook = (
     connections,
     hardwareProfileOptions,
     feastData,
+    mlflowEnabled,
   } = data;
   const {
     name: notebookName,
@@ -110,6 +111,7 @@ export const assembleNotebook = (
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
         'opendatahub.io/connections': connectionsAnnotation ?? '',
         ...(feastData?.annotations || {}),
+        ...(mlflowEnabled ? { 'opendatahub.io/mlflow-instance': 'mlflow' } : {}),
       },
       name: notebookId,
       namespace: projectName,
@@ -203,6 +205,26 @@ export const getStopPatch = (): Patch => ({
   path: '/metadata/annotations/kubeflow-resource-stopped',
   value: getStopPatchDataString(),
 });
+
+export const getMlflowInstancePatch = (notebook: NotebookKind, mlflowEnabled: boolean): Patch[] => {
+  if (!mlflowEnabled || notebook.metadata.annotations?.['opendatahub.io/mlflow-instance']) {
+    return [];
+  }
+  const patches: Patch[] = [];
+  if (!notebook.metadata.annotations) {
+    patches.push({
+      op: 'add',
+      path: '/metadata/annotations',
+      value: {},
+    });
+  }
+  patches.push({
+    op: 'add',
+    path: '/metadata/annotations/opendatahub.io~1mlflow-instance',
+    value: 'mlflow',
+  });
+  return patches;
+};
 
 export const getNotebooks = (namespace: string): Promise<NotebookKind[]> =>
   k8sListResource<NotebookKind>({

@@ -32,8 +32,17 @@ export type NamespaceKind = {
 // EvalHub health response type matching the BFF response shape
 // ---------------------------------------------------------------------------
 
+/**
+ * The three states the /evalhub/health endpoint can report.
+ *
+ * - "healthy"             — CR found in dashboard namespace, service responded.
+ * - "service-unreachable" — CR found (URL known) but service did not respond.
+ * - "cr-not-found"        — No EvalHub CR in the dashboard namespace; operator not configured.
+ */
+export type EvalHubHealthStatus = 'healthy' | 'service-unreachable' | 'cr-not-found';
+
 export type EvalHubHealthResponse = {
-  status: string;
+  status: EvalHubHealthStatus;
   available: boolean;
 };
 
@@ -172,6 +181,7 @@ type TestDataRef = {
 type JobBenchmark = {
   id: string;
   provider_id?: string;
+  benchmark_index?: number;
   weight?: number;
   primary_score?: JobPrimaryScore;
   pass_criteria?: JobPassCriteria;
@@ -274,6 +284,7 @@ export type CollectionPassCriteria = {
 
 export type CollectionBenchmark = {
   id: string;
+  url?: string;
   provider_id?: string;
   weight?: number;
   primary_score?: CollectionPrimaryScore;
@@ -332,6 +343,7 @@ export type ProviderBenchmarkPassCriteria = {
 
 export type ProviderBenchmark = {
   id: string;
+  url?: string;
   name: string;
   description?: string;
   category?: string;

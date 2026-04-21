@@ -6,8 +6,7 @@ import {
   InProgressIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  UploadIcon,
-  BanIcon,
+  CheckIcon,
 } from '@patternfly/react-icons';
 import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 import {
@@ -42,7 +41,7 @@ export enum WorkloadStatusType {
   Admitted = 'Admitted',
   Running = 'Running',
   Evicted = 'Evicted',
-  Succeeded = 'Succeeded',
+  Complete = 'Complete',
   Failed = 'Failed',
 }
 
@@ -55,29 +54,30 @@ export type TopWorkloadUsageType = {
 export type WorkloadStatusInfo = {
   status: WorkloadStatusType;
   message: string;
-  color: LabelProps['color'];
+  color?: LabelProps['color'];
+  labelStatus?: LabelProps['status'];
   chartColor: string;
   icon: React.ComponentClass<SVGIconProps>;
 };
 
 export const WorkloadStatusColorAndIcon: Record<
   WorkloadStatusType,
-  Pick<WorkloadStatusInfo, 'color' | 'chartColor' | 'icon'>
+  Pick<WorkloadStatusInfo, 'color' | 'labelStatus' | 'chartColor' | 'icon'>
 > = {
   Pending: {
-    color: 'teal',
+    color: 'purple',
     chartColor: chartColorCyan.value,
     icon: PendingIcon,
   },
   Inadmissible: {
-    color: 'orangered',
+    labelStatus: 'warning',
     chartColor: chartColorGold.value,
     icon: ExclamationTriangleIcon,
   },
   Admitted: {
-    color: 'purple',
+    color: 'grey',
     chartColor: chartColorPurple.value,
-    icon: UploadIcon,
+    icon: CheckIcon,
   },
   Running: {
     color: 'blue',
@@ -85,17 +85,17 @@ export const WorkloadStatusColorAndIcon: Record<
     icon: InProgressIcon,
   },
   Evicted: {
-    color: 'grey',
+    labelStatus: 'warning',
     chartColor: chartColorBlack.value,
-    icon: BanIcon,
+    icon: ExclamationTriangleIcon,
   },
-  Succeeded: {
-    color: 'green',
+  Complete: {
+    labelStatus: 'success',
     chartColor: chartColorGreen.value,
     icon: CheckCircleIcon,
   },
   Failed: {
-    color: 'red',
+    labelStatus: 'danger',
     chartColor: chartColorRed.value,
     icon: ExclamationCircleIcon,
   },
@@ -106,7 +106,7 @@ export const getStatusInfo = (wl: WorkloadKind): WorkloadStatusInfo => {
   // Order matters here: The first matching condition in this order will be used for the current status.
   const statusesInEvalOrder: WorkloadStatusType[] = [
     WorkloadStatusType.Failed,
-    WorkloadStatusType.Succeeded,
+    WorkloadStatusType.Complete,
     WorkloadStatusType.Evicted,
     WorkloadStatusType.Inadmissible,
     WorkloadStatusType.Pending,
@@ -120,7 +120,7 @@ export const getStatusInfo = (wl: WorkloadKind): WorkloadStatusInfo => {
         type === 'Finished' &&
         /error|failed|rejected/.test(`${message} ${reason}`.toLowerCase()),
     ),
-    Succeeded: conditions?.find(
+    Complete: conditions?.find(
       ({ type, status, message, reason }) =>
         status === 'True' &&
         type === 'Finished' &&
@@ -154,7 +154,7 @@ export const getStatusCounts = (workloads: WorkloadKind[]): WorkloadStatusCounts
     Admitted: 0,
     Running: 0,
     Evicted: 0,
-    Succeeded: 0,
+    Complete: 0,
     Failed: 0,
   };
   workloads.forEach((wl) => {
@@ -271,7 +271,7 @@ export const getWorkloadStatusMessage = (statusInfo: WorkloadStatusInfo): string
   const DEFAULT_MESSAGE = 'No message';
   const SUCCESS_MESSAGE = 'Finished';
   const isSuccessWithNoMessage =
-    statusInfo.status === WorkloadStatusType.Succeeded && statusInfo.message === DEFAULT_MESSAGE;
+    statusInfo.status === WorkloadStatusType.Complete && statusInfo.message === DEFAULT_MESSAGE;
 
   return isSuccessWithNoMessage ? SUCCESS_MESSAGE : statusInfo.message;
 };

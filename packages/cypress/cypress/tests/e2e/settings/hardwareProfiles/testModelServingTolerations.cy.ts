@@ -29,6 +29,7 @@ import { generateTestUUID } from '../../../../utils/uuidGenerator';
 
 let testData: ModelTolerationsTestData;
 let projectName: string;
+let resourceName: string;
 let contributor: string;
 let modelName: string;
 let modelFilePath: string;
@@ -103,8 +104,6 @@ describe('ModelServing - tolerations tests', () => {
 
   it(
     'Verify Model Serving Creation using Hardware Profiles and applying Tolerations',
-    // TODO: Add the below tags once this feature is enabled in 2.20+
-    //  { tags: ['@Sanity', '@SanitySet2', '@Dashboard'] },
     {
       tags: [
         '@HardwareProfileModelServing',
@@ -112,6 +111,7 @@ describe('ModelServing - tolerations tests', () => {
         '@Dashboard',
         '@Smoke',
         '@SmokeSet3',
+        '@ModelServing',
       ],
     },
     () => {
@@ -151,7 +151,9 @@ describe('ModelServing - tolerations tests', () => {
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .as('resourceName');
+        .then((val) => {
+          resourceName = val as string;
+        });
       inferenceServiceModal.selectPotentiallyDisabledProfile(
         testData.hardwareProfileDeploymentSize,
         hardwareProfileResourceName,
@@ -169,7 +171,7 @@ describe('ModelServing - tolerations tests', () => {
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      cy.get<string>('@resourceName').then((resourceName) => {
+      cy.then(() => {
         checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
       // Note reload is required as status tooltip was not found due to a stale element
@@ -179,7 +181,7 @@ describe('ModelServing - tolerations tests', () => {
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the newly added toleration');
-      cy.get<string>('@resourceName').then((resourceName) => {
+      cy.then(() => {
         validateInferenceServiceTolerations(
           projectName,
           resourceName, // InferenceService name

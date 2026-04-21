@@ -1,0 +1,44 @@
+[
+  {
+    "subscription_id_header": "premium-team-sub",
+    "subscription_description": "Premium Team Subscription",
+    "display_name": "Premium Team",
+    "priority": 10,
+    "cost_center": "engineering",
+    "organization_id": "org-123",
+    "model_refs": [
+      {
+        "name": "granite-3-8b-instruct",
+        "namespace": "maas-models",
+        "token_rate_limits": [
+          { "limit": 100000, "window": "24h" }
+        ]
+      },
+      {
+        "name": "flan-t5-small",
+        "namespace": "maas-models",
+        "token_rate_limits": [
+          { "limit": 200000, "window": "24h" }
+        ]
+      }
+    ],
+    "labels": {
+      "env": "production"
+    }
+  },
+  {
+    "subscription_id_header": "basic-team-sub",
+    "subscription_description": "Basic Team Subscription",
+    "display_name": "Basic Team",
+    "priority": 1,
+    "model_refs": [
+      {
+        "name": "flan-t5-small",
+        "namespace": "maas-models",
+        "token_rate_limits": [
+          { "limit": 10000, "window": "24h" }
+        ]
+      }
+    ]
+  }
+]

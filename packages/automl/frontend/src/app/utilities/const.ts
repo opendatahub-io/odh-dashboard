@@ -34,3 +34,25 @@ export const FindAdministratorOptions = [
   'Someone in your IT department or help desk',
   'A project manager or developer',
 ];
+
+// Task types
+export const TASK_TYPE_BINARY = 'binary';
+export const TASK_TYPE_MULTICLASS = 'multiclass';
+export const TASK_TYPE_REGRESSION = 'regression';
+export const TASK_TYPE_TIMESERIES = 'timeseries';
+
+export const AUTOML_OPTIMIZED_METRIC_BY_TASK = {
+  [TASK_TYPE_BINARY]: 'accuracy',
+  [TASK_TYPE_MULTICLASS]: 'accuracy',
+  [TASK_TYPE_REGRESSION]: 'r2',
+  [TASK_TYPE_TIMESERIES]: 'mase',
+};
+
+// Configure constants
+/** Human-readable labels for task type values. */
+export const TASK_TYPE_LABELS: Record<string, string> = {
+  [TASK_TYPE_BINARY]: 'Binary classification',
+  [TASK_TYPE_MULTICLASS]: 'Multiclass classification',
+  [TASK_TYPE_REGRESSION]: 'Regression',
+  [TASK_TYPE_TIMESERIES]: 'Time series forecasting',
+};

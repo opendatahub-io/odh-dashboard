@@ -5,3 +5,4 @@ export * from './details';
 export * from './detailsCard';
 export * from './table';
 export * from './admin';
+export * from './namespace-selector';

@@ -82,13 +82,10 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
   const [updateError, setUpdateError] = React.useState<Error>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const supportedAccessModes = React.useMemo(
-    () => getSupportedAccessModesForProvisioner(storageClass.provisioner),
-    [storageClass.provisioner],
-  );
-
   React.useEffect(() => {
-    if (supportedAccessModes === null) {
+    const recommended = getSupportedAccessModesForProvisioner(storageClass.provisioner);
+
+    if (recommended === null) {
       setAccessModeMismatch(null);
       return;
     }
@@ -97,14 +94,14 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
       (mode) => accessModeSettings[mode] === true || mode === AccessMode.RWO,
     );
 
-    const unsupported = selectedModes.filter((mode) => !supportedAccessModes.includes(mode));
+    const unsupported = selectedModes.filter((mode) => !recommended.includes(mode));
 
     if (unsupported.length > 0) {
-      setAccessModeMismatch({ recommended: supportedAccessModes, unsupported });
+      setAccessModeMismatch({ recommended, unsupported });
     } else {
       setAccessModeMismatch(null);
     }
-  }, [accessModeSettings, supportedAccessModes]);
+  }, [accessModeSettings, storageClass.provisioner]);
 
   const onSave = async () => {
     setIsSubmitting(true);
@@ -239,14 +236,12 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
             )}
             {Object.values(AccessMode).map((modeName) => {
               const modeLabel = toAccessModeFullName(modeName);
-              const isModeSupported =
-                supportedAccessModes === null ? true : supportedAccessModes.includes(modeName);
               const checkbox = (
                 <Checkbox
                   label={modeLabel}
                   description={accessModeDescriptions[modeName]}
                   // RWO is not allowed to be disabled
-                  isDisabled={modeName === AccessMode.RWO || !isModeSupported}
+                  isDisabled={modeName === AccessMode.RWO}
                   // RWO is always enabled
                   isChecked={accessModeSettings[modeName] === true || modeName === AccessMode.RWO}
                   aria-label={modeLabel}

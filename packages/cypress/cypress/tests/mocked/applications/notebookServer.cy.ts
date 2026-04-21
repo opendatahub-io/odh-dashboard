@@ -288,7 +288,6 @@ describe('NotebookServer', () => {
     cy.interceptOdh('PATCH /api/notebooks', mockStartNotebookData({})).as('stopNotebookServer');
     notebookServer.visit();
     notebookServer.findStopServerButton().should('be.visible');
-    notebookServer.findStopServerButton().click();
 
     cy.interceptOdh(
       'GET /api/notebooks/openshift-ai-notebooks/:username/status',
@@ -299,6 +298,7 @@ describe('NotebookServer', () => {
       },
     );
 
+    notebookServer.findStopServerButton().click();
     stopNotebookModal.findStopNotebookServerButton().should('be.enabled');
     stopNotebookModal.findStopNotebookServerButton().click();
 

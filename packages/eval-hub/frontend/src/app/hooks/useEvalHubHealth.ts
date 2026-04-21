@@ -25,7 +25,7 @@ const useEvalHubHealth = (): EvalHubHealthResult => {
   // Use the `available` field to determine actual EvalHub reachability.
   return {
     isHealthy: loaded && !!data && !error && data.available,
-    loaded,
+    loaded: loaded || !!error,
     error,
   };
 };

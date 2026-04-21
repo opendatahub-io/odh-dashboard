@@ -626,7 +626,7 @@ describe('Serving Runtime List', () => {
       projectDetails.visitSection('test-project', 'model-server');
 
       const kserveRow = modelServingSection.getKServeRow('test-model');
-      kserveRow.findStatusLabel(ModelStateLabel.STARTED);
+      kserveRow.findStatusLabel(ModelStateLabel.READY);
 
       const stoppedInferenceService = mockInferenceServiceK8sResource({
         name: 'test-model',
@@ -708,7 +708,7 @@ describe('Serving Runtime List', () => {
       kserveRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.START).click();
       cy.reload();
       cy.wait(['@startModelPatch', '@getStartedModel']);
-      kserveRow.findStatusLabel(ModelStateLabel.STARTED);
+      kserveRow.findStatusLabel(ModelStateLabel.READY);
       kserveRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.STOP);
     });
 

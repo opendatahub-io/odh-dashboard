@@ -1,0 +1,335 @@
+.automl-model-details-modal {
+  --pf-v6-c-modal-box--MaxWidth: 1200px;
+  --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1200px;
+  height: 80vh;
+}
+
+/* Prevent sidebar from stretching to fill full modal height */
+.automl-model-details-sidebar {
+  align-self: start;
+}
+
+/* Sidebar section headers */
+.automl-model-details-sidebar-section {
+  font-size: var(--pf-t--global--font--size--sm);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--regular);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
+}
+
+/* Add spacing between sidebar nav sections */
+.automl-model-details-sidebar nav > div + div {
+  margin-top: var(--pf-t--global--spacer--md);
+}
+
+.automl-model-details-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.automl-model-details-nav-item {
+  display: block;
+  width: 100%;
+  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
+  border: none;
+  border-left: var(--pf-t--global--border--width--box--default) solid transparent;
+  background: none;
+  text-align: left;
+  font-size: var(--pf-t--global--font--size--md);
+  color: var(--pf-t--global--text--color--regular);
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--pf-t--global--background--color--primary--hover);
+  }
+
+  &.automl-model-details-nav-item--active {
+    border-left-color: var(--pf-t--global--color--brand--default);
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+  }
+}
+
+/* Tab content title row */
+.automl-model-details-tab-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--xs);
+  padding-left: var(--pf-t--global--spacer--xl);
+
+  .pf-v6-c-title {
+    font-weight: var(--pf-t--global--font--weight--body--default);
+  }
+}
+
+/* Spacing between tab title and tab content */
+.automl-model-details-tab-content {
+  margin-top: var(--pf-t--global--spacer--lg);
+  font-size: var(--pf-t--global--font--size--md);
+  padding-left: var(--pf-t--global--spacer--xl);
+
+  /* Bold sub-section headers within tab content */
+  .pf-v6-c-title {
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+  }
+
+  .pf-v6-c-table th,
+  .pf-v6-c-table td {
+    font-size: var(--pf-t--global--font--size--md);
+    white-space: nowrap;
+  }
+}
+
+/* Confusion matrix — theme-aware cell colors.
+   Palette tokens (--pf-t--color--green--10 etc.) are NOT dark-mode-aware,
+   so we define custom properties and override them for dark theme. */
+@mixin cm-cell-colors($prefix) {
+  background-color: var(--automl-cm--cell--#{$prefix}--base);
+
+  &.m-intensity-low {
+    background-color: var(--automl-cm--cell--#{$prefix}--low);
+  }
+
+  &.m-intensity-medium {
+    background-color: var(--automl-cm--cell--#{$prefix}--medium);
+  }
+
+  &.m-intensity-high {
+    background-color: var(--automl-cm--cell--#{$prefix}--high);
+  }
+}
+
+.automl-confusion-matrix {
+  --automl-cm--cell--bg: var(--pf-t--global--background--color--secondary--default);
+  --automl-cm--cell--diagonal--base: var(--pf-t--color--green--10);
+  --automl-cm--cell--diagonal--low: var(--pf-t--color--green--20);
+  --automl-cm--cell--diagonal--medium: var(--pf-t--color--green--30);
+  --automl-cm--cell--diagonal--high: var(--pf-t--color--green--40);
+  --automl-cm--cell--off-diagonal--base: var(--pf-t--color--blue--10);
+  --automl-cm--cell--off-diagonal--low: var(--pf-t--color--blue--10);
+  --automl-cm--cell--off-diagonal--medium: var(--pf-t--color--blue--20);
+  --automl-cm--cell--off-diagonal--high: var(--pf-t--color--blue--30);
+  --automl-cm--border--color: var(--pf-t--global--background--color--primary--default);
+
+  /* Grid lines between all cells */
+  --pf-v6-c-table__tr--BorderBlockEndColor: var(--automl-cm--border--color);
+
+  :root:where(.pf-v6-theme-dark) & {
+    --automl-cm--cell--bg: var(--pf-v6-c-table--BackgroundColor);
+    --automl-cm--cell--diagonal--base: var(--pf-v6-c-table--BackgroundColor);
+    --automl-cm--cell--diagonal--low: var(--pf-t--color--green--50);
+    --automl-cm--cell--diagonal--medium: var(--pf-t--color--green--50);
+    --automl-cm--cell--diagonal--high: var(--pf-t--color--green--40);
+    --automl-cm--cell--off-diagonal--base: var(--pf-v6-c-table--BackgroundColor);
+    --automl-cm--cell--off-diagonal--low: var(--pf-t--color--blue--50);
+    --automl-cm--cell--off-diagonal--medium: var(--pf-t--color--blue--50);
+    --automl-cm--cell--off-diagonal--high: var(--pf-t--color--blue--40);
+    --automl-cm--border--color: var(--pf-t--global--border--color--default);
+  }
+
+  th,
+  td {
+    border: var(--pf-t--global--border--width--divider--default) solid
+      var(--automl-cm--border--color);
+    min-width: 9rem;
+  }
+
+  th,
+  tbody tr:last-child td,
+  tbody tr td:last-child {
+    background-color: var(--automl-cm--cell--bg);
+  }
+
+
+  tbody th {
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+  }
+
+  /* Loading state: all cells get the same gray background; skeletons are
+     darkened so they remain visible against the uniform surface. */
+  &.m-loading tbody tr td,
+  &.m-loading tbody tr:last-child td {
+    background-color: var(--automl-cm--cell--bg);
+  }
+
+  &.m-loading .pf-v6-c-skeleton {
+    --pf-v6-c-skeleton--BackgroundColor: var(--pf-t--global--border--color--default);
+  }
+
+  /* Center skeleton loading bars within table cells */
+  .pf-v6-c-skeleton {
+    margin-inline: auto;
+  }
+
+  /* Data cell colors */
+  &__cell--diagonal {
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+
+    @include cm-cell-colors('diagonal');
+  }
+
+  &__cell--off-diagonal {
+    @include cm-cell-colors('off-diagonal');
+  }
+
+  /* View selector */
+  &-view {
+    margin-bottom: var(--pf-t--global--spacer--md);
+  }
+}
+
+/* Confusion matrix gradient bar */
+.automl-confusion-gradient {
+  --automl-cm--gradient--start: var(--pf-t--color--blue--20);
+  --automl-cm--gradient--end: var(--pf-t--color--green--30);
+
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--pf-t--global--spacer--md);
+  padding: var(--pf-t--global--spacer--sm) 0;
+  background: linear-gradient(to right, var(--automl-cm--gradient--start) 0%, var(--pf-t--global--background--color--primary--default) 45%, var(--pf-t--global--background--color--primary--default) 55%, var(--automl-cm--gradient--end) 100%);
+  border-radius: var(--pf-t--global--border--radius--small);
+  font-size: var(--pf-t--global--font--size--sm);
+  color: var(--pf-t--global--text--color--subtle);
+
+  :root:where(.pf-v6-theme-dark) & {
+    --automl-cm--gradient--start: var(--pf-t--color--blue--50);
+    --automl-cm--gradient--end: var(--pf-t--color--green--40);
+  }
+
+  span {
+    padding: 0 var(--pf-t--global--spacer--sm);
+  }
+}
+
+/* Header row styling */
+.automl-model-details-header {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--pf-t--global--spacer--xl);
+  padding-bottom: var(--pf-t--global--spacer--md);
+  border-bottom: var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default);
+  margin-bottom: var(--pf-t--global--spacer--lg);
+}
+
+.automl-model-details-header-selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--xs);
+}
+
+.automl-model-details-header-metrics {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--pf-t--global--spacer--xl);
+}
+
+.automl-model-details-header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: var(--pf-t--global--spacer--sm);
+}
+
+.automl-model-details-header-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--xs);
+}
+
+.automl-model-details-header-label {
+  font-size: var(--pf-t--global--font--size--sm);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.automl-model-details-header-value {
+  font-size: var(--pf-t--global--font--size--lg);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+}
+
+/* Feature importance bar */
+.automl-feature-importance-bar {
+  height: var(--pf-t--global--spacer--sm);
+  border-radius: var(--pf-t--global--border--radius--tiny);
+  background-color: var(--pf-t--global--color--brand--default);
+
+  &.m-has-value {
+    min-width: var(--pf-t--global--spacer--xs);
+  }
+
+  &.m-negative {
+    background-color: var(--pf-t--global--color--status--danger--default);
+  }
+}
+
+/* Model information description list */
+/* Print-only container: hidden on screen, visible when printing */
+.odh-autox-print-only {
+  display: none;
+}
+
+@media print {
+  /* Hide everything except the portalled print container */
+  body > *:not(.odh-autox-print-only) {
+    display: none !important;
+  }
+
+  /* Show the print container */
+  .odh-autox-print-only {
+    display: block !important;
+  }
+
+  .automl-print-header {
+    margin-bottom: var(--pf-t--global--spacer--md);
+    padding-bottom: var(--pf-t--global--spacer--sm);
+    border-bottom: 2px solid var(--pf-t--global--border--color--strong);
+
+    h1 {
+      font-size: var(--pf-t--global--font--size--2xl);
+      margin: 0;
+    }
+
+    p {
+      font-size: var(--pf-t--global--font--size--sm);
+      color: var(--pf-t--global--text--color--subtle);
+      margin: var(--pf-t--global--spacer--xs) 0 0;
+    }
+  }
+
+  /* Each tab starts on a new page except the first */
+  .automl-print-page {
+    break-before: page;
+  }
+
+  .automl-print-page--first {
+    break-before: avoid;
+  }
+
+  .automl-print-page h2 {
+    font-size: var(--pf-t--global--font--size--xl);
+    margin-bottom: var(--pf-t--global--spacer--md);
+    padding-bottom: var(--pf-t--global--spacer--sm);
+    border-bottom: var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default);
+  }
+}
+
+.automl-model-info-list {
+  --pf-v6-c-description-list--m-horizontal__term--width: 10rem;
+
+  .pf-v6-c-description-list__group {
+    gap: var(--pf-t--global--spacer--xs);
+    padding-bottom: var(--pf-t--global--spacer--sm);
+    border-bottom: var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default);
+  }
+
+  .pf-v6-c-description-list__term,
+  .pf-v6-c-description-list__description {
+    font-size: var(--pf-t--global--font--size--md);
+  }
+
+  .pf-v6-c-description-list__term {
+    white-space: nowrap;
+  }
+}
+

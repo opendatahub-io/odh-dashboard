@@ -12,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
 import { GenericFieldRenderer } from './GenericFieldRenderer';
 import type { UseModelDeploymentWizardState } from '../useDeploymentWizard';
@@ -19,13 +20,13 @@ import type { ExternalDataMap } from '../ExternalDataLoader';
 
 export type ModelAvailabilityFieldsData = {
   saveAsAiAsset: boolean;
-  saveAsMaaS?: boolean;
   useCase?: string;
 };
 
 export type ModelAvailabilityFields = {
   data: ModelAvailabilityFieldsData;
   setData: (data: ModelAvailabilityFieldsData) => void;
+  isGenAiEnabled: boolean;
   showField?: boolean;
   showSaveAsMaaS?: boolean;
 };
@@ -43,6 +44,8 @@ export const useModelAvailabilityFields = (
   existingData?: ModelAvailabilityFieldsData,
   modelType?: ModelTypeFieldData,
 ): ModelAvailabilityFields => {
+  const isGenAiEnabled = useIsAreaAvailable(SupportedArea.PLUGIN_GEN_AI).status;
+
   const [data, setData] = React.useState<ModelAvailabilityFieldsData>(
     existingData ?? {
       saveAsAiAsset: false,
@@ -54,16 +57,19 @@ export const useModelAvailabilityFields = (
     if (modelType && modelType.type !== ServingRuntimeModelType.GENERATIVE) {
       return {
         saveAsAiAsset: false,
-        saveAsMaaS: undefined,
         useCase: '',
       };
     }
+    if (!isGenAiEnabled) {
+      return { ...data, saveAsAiAsset: false, useCase: '' };
+    }
     return data;
-  }, [data, modelType]);
+  }, [data, modelType, isGenAiEnabled]);
 
   return {
     data: AiAssetData,
     setData,
+    isGenAiEnabled,
     showField: modelType?.type === ServingRuntimeModelType.GENERATIVE,
   };
 };
@@ -71,6 +77,7 @@ export const useModelAvailabilityFields = (
 type AvailableAiAssetsFieldsComponentProps = {
   data: ModelAvailabilityFieldsData;
   setData: (data: ModelAvailabilityFieldsData) => void;
+  isGenAiEnabled: boolean;
   wizardState: UseModelDeploymentWizardState;
   externalData?: ExternalDataMap;
 };
@@ -78,6 +85,7 @@ type AvailableAiAssetsFieldsComponentProps = {
 export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsComponentProps> = ({
   data,
   setData,
+  isGenAiEnabled,
   wizardState,
   externalData,
 }) => {
@@ -95,30 +103,34 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
   return (
     <StackItem>
       <Stack hasGutter>
-        <StackItem>
-          <Checkbox
-            id="save-as-ai-asset-checkbox"
-            data-testid="save-as-ai-asset-checkbox"
-            label={
-              <>
-                <div className="pf-v6-c-form__label-text">Add as AI asset endpoint</div>
-                <Flex>
-                  <FlexItem>
-                    Enable users in your namespace to test this model in the playground by adding
-                    its endpoint to the{' '}
-                    <span className="pf-v6-c-form__label-text">AI asset endpoints</span> page.
-                  </FlexItem>
-                  <Label isCompact color="yellow" variant="outline">
-                    Tech preview
-                  </Label>
-                </Flex>
-              </>
-            }
-            isChecked={data.saveAsAiAsset}
-            onChange={(_, checked) => setDataWithClearUseCase({ ...data, saveAsAiAsset: checked })}
-          />
-        </StackItem>
-        {data.saveAsAiAsset && (
+        {isGenAiEnabled && (
+          <StackItem>
+            <Checkbox
+              id="save-as-ai-asset-checkbox"
+              data-testid="save-as-ai-asset-checkbox"
+              label={
+                <>
+                  <div className="pf-v6-c-form__label-text">Add as AI asset endpoint</div>
+                  <Flex>
+                    <FlexItem>
+                      Publishing as an AI asset endpoint allows users with access to your project to
+                      test the model in the{' '}
+                      <span className="pf-v6-c-form__label-text">Playground</span>.
+                    </FlexItem>
+                    <Label isCompact color="yellow" variant="outline">
+                      Tech preview
+                    </Label>
+                  </Flex>
+                </>
+              }
+              isChecked={data.saveAsAiAsset}
+              onChange={(_, checked) =>
+                setDataWithClearUseCase({ ...data, saveAsAiAsset: checked })
+              }
+            />
+          </StackItem>
+        )}
+        {isGenAiEnabled && data.saveAsAiAsset && (
           <StackItem>
             <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
               <FormGroup label="Use case">

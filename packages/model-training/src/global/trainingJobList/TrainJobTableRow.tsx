@@ -96,7 +96,7 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
 
     // 3. View more details
     items.push({
-      title: 'View job details',
+      title: 'View more details',
       onClick: () => onSelectJob(job),
     });
 

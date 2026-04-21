@@ -1,5 +1,5 @@
 export const modelRegistryUrl = (preferredModelRegistry?: string): string =>
-  `/ai-hub/registry${preferredModelRegistry ? `/${preferredModelRegistry}` : ''}`;
+  `/ai-hub/models/registry${preferredModelRegistry ? `/${preferredModelRegistry}` : ''}`;
 
 /* NOTE: registeredModelsUrl is only used to construct child routes. There is no route matching this exact path. 
 The registered models list is located at the index route (modelRegistryUrl).  

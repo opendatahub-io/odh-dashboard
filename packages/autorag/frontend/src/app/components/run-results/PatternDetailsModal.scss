@@ -1,0 +1,56 @@
+.autorag-pattern-details-modal {
+  height: 80vh;
+}
+
+.autorag-pre-wrap {
+  white-space: pre-wrap;
+}
+
+.odh-autox-print-only {
+  display: none;
+}
+
+@media print {
+  // Hide everything except the portalled print container
+  body > *:not(.odh-autox-print-only) {
+    display: none !important;
+  }
+
+  // Show the print container
+  .odh-autox-print-only {
+    display: block !important;
+  }
+
+  .autorag-print-header {
+    margin-bottom: var(--pf-t--global--spacer--md);
+    padding-bottom: var(--pf-t--global--spacer--sm);
+    border-bottom: 2px solid var(--pf-t--global--border--color--strong);
+
+    h1 {
+      font-size: var(--pf-t--global--font--size--2xl);
+      margin: 0;
+    }
+
+    p {
+      font-size: var(--pf-t--global--font--size--sm);
+      color: var(--pf-t--global--text--color--subtle);
+      margin: var(--pf-t--global--spacer--xs) 0 0;
+    }
+  }
+
+  // Each section starts on a new page except the first
+  .autorag-print-page {
+    break-before: page;
+  }
+
+  .autorag-print-page--first {
+    break-before: avoid;
+  }
+
+  .autorag-print-page h2 {
+    font-size: var(--pf-t--global--font--size--xl);
+    margin-bottom: var(--pf-t--global--spacer--md);
+    padding-bottom: var(--pf-t--global--spacer--sm);
+    border-bottom: 1px solid var(--pf-t--global--border--color--default);
+  }
+}

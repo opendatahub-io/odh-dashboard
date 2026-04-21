@@ -33,35 +33,27 @@ const DeployModalExtension: React.FC<DeployModalExtensionProps> = ({ mv, render 
 
   return (
     <>
-      {extensions.map((extension) => {
-        return (
-          extension.properties.useAvailablePlatformIds && (
-            <HookNotify
-              key={extension.uid}
-              useHook={extension.properties.useAvailablePlatformIds}
-              onNotify={(value) => setAvailablePlatformIds(value ?? [])}
-            />
-          )
-        );
-      })}
+      {extensions.map((extension) => (
+        <HookNotify
+          key={extension.uid}
+          useHook={extension.properties.useAvailablePlatformIds}
+          onNotify={(value) => setAvailablePlatformIds(value ?? [])}
+        />
+      ))}
       {render(buttonState, onOpenModal, isModalAvailable)}
       {openModal &&
-        extensions.map((extension) => {
-          return (
-            extension.properties.modalComponent && (
-              <MRDeployFormDataLoader
-                key={extension.uid}
-                mv={mv}
-                renderData={(modelDeployPrefill) => (
-                  <extension.properties.modalComponent
-                    modelDeployPrefill={modelDeployPrefill}
-                    onClose={() => setOpenModal(false)}
-                  />
-                )}
+        extensions.map((extension) => (
+          <MRDeployFormDataLoader
+            key={extension.uid}
+            mv={mv}
+            renderData={(modelDeployPrefill) => (
+              <extension.properties.modalComponent
+                modelDeployPrefill={modelDeployPrefill}
+                onClose={() => setOpenModal(false)}
               />
-            )
-          );
-        })}
+            )}
+          />
+        ))}
     </>
   );
 };

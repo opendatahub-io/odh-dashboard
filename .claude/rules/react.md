@@ -188,6 +188,66 @@ const MyContextProvider: React.FC<PropsWithChildren> = ({ children }) => {
 
 **Always** wrap context values in `React.useMemo` to prevent unnecessary re-renders of consumers.
 
+## Navigation
+
+### Prefer `<Link>` over `useNavigate`
+
+Use React Router's `<Link>` (or PatternFly's `component` prop pattern) for navigation instead of calling `navigate()` imperatively. Links are accessible by default (right-click, Cmd+click, screen readers), while `navigate()` breaks these expectations.
+
+```tsx
+// Bad — imperative navigation in a click handler
+import { useNavigate } from 'react-router-dom';
+
+const navigate = useNavigate();
+<Button onClick={() => navigate('/projects')}>View projects</Button>
+
+// Good — declarative link
+import { Link } from 'react-router-dom';
+
+<Button component={(props) => <Link {...props} to="/projects" />}>
+  View projects
+</Button>
+```
+
+For PatternFly empty states and other components that accept `href` props, prefer those over `handleClick` + `navigate`:
+
+```tsx
+// Bad
+<ModelsEmptyState
+  actionButtonText="Deploy a model"
+  handleActionButtonClick={() => navigate(`/deployments/${ns}`)}
+/>
+
+// Good
+<ModelsEmptyState
+  actionButtonText="Deploy a model"
+  actionButtonHref={`/deployments/${ns}`}
+/>
+```
+
+### When `useNavigate` is acceptable
+
+Reserve `useNavigate` for programmatic navigation that cannot be expressed as a static href:
+
+- **Post-action redirects** — navigating after an async operation completes:
+
+```tsx
+const navigate = useNavigate();
+
+const handleSubmit = async () => {
+  await api.createResource(data);
+  navigate(`/resources/${data.name}`);
+};
+```
+
+- **Cancel / go-back buttons** — returning to a known route:
+
+```tsx
+const navigate = useNavigate();
+
+<Button variant="link" onClick={() => navigate(redirectPath)}>Cancel</Button>
+```
+
 ## Performance
 
 ### Memoization
@@ -410,6 +470,10 @@ When reviewing React code, verify:
 - [ ] Lazy state initialization for expensive computations
 - [ ] Primitive values preferred in dependency arrays
 - [ ] No barrel file imports — import from source modules directly
+
+### Navigation
+- [ ] `<Link>` used instead of `navigate()` for user-initiated navigation
+- [ ] `useNavigate` only used for post-action programmatic redirects
 
 ### Accessibility
 - [ ] `aria-label` on icon buttons and non-text interactive elements

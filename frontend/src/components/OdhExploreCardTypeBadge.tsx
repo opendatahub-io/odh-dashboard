@@ -28,7 +28,7 @@ const OdhExploreCardTypeBadge: React.FC<OdhExploreCardTypeBadgeProps> = ({
 
   return (
     <Tooltip content={content}>
-      <Label className={isDisabled ? 'pf-m-disabled' : undefined} tabIndex={0} variant="outline">
+      <Label className={isDisabled ? 'pf-m-disabled' : undefined} tabIndex={0}>
         {category}
       </Label>
     </Tooltip>

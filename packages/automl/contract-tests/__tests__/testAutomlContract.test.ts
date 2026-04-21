@@ -43,6 +43,49 @@ describe('AutoML API Contract Tests', () => {
     });
   });
 
+  describe('Model Registries Endpoint', () => {
+    it('should return 200 with model registries list', async () => {
+      const result = await apiClient.get('/api/v1/model-registries');
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.response.status).toBe(200);
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/ModelRegistriesResponse/content/application/json/schema',
+          status: 200,
+        });
+      }
+    });
+
+    it('should return data with model_registries array', async () => {
+      const result = await apiClient.get('/api/v1/model-registries');
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const envelope = result.response.data as { data: { model_registries: unknown[] } };
+        expect(envelope.data).toHaveProperty('model_registries');
+        expect(Array.isArray(envelope.data.model_registries)).toBe(true);
+      }
+    });
+
+    it('should return registries with required fields', async () => {
+      const result = await apiClient.get('/api/v1/model-registries');
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const envelope = result.response.data as {
+          data: {
+            model_registries: { id: string; name: string; is_ready: boolean; server_url: string }[];
+          };
+        };
+        const registries = envelope.data.model_registries;
+        expect(registries.length).toBeGreaterThan(0);
+        const first = registries[0];
+        expect(typeof first.id).toBe('string');
+        expect(typeof first.name).toBe('string');
+        expect(typeof first.is_ready).toBe('boolean');
+        expect(first.server_url).toContain('/api/model_registry/v1alpha3');
+      }
+    });
+  });
+
   describe('Secrets Endpoint', () => {
     // Helper type for secret response data
     type SecretItem = {
@@ -229,7 +272,7 @@ describe('AutoML API Contract Tests', () => {
     });
 
     describe('Secret Value Sanitization', () => {
-      it('should return actual values only for aws_s3_bucket keys', async () => {
+      it('should return actual values only for AWS_S3_BUCKET keys', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default&type=storage');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
@@ -245,8 +288,8 @@ describe('AutoML API Contract Tests', () => {
             keys.forEach((key) => {
               const value = secret.data[key];
 
-              // aws_s3_bucket (case-insensitive) should have actual value
-              if (key.toLowerCase() === 'aws_s3_bucket') {
+              // AWS_S3_BUCKET (case-sensitive, uppercase) should have actual value
+              if (key === 'AWS_S3_BUCKET') {
                 expect(value).not.toBe('[REDACTED]');
                 expect(typeof value).toBe('string');
                 expect(value.length).toBeGreaterThan(0);
@@ -259,7 +302,7 @@ describe('AutoML API Contract Tests', () => {
         }
       });
 
-      it('should sanitize all secret values except aws_s3_bucket', async () => {
+      it('should sanitize all secret values except AWS_S3_BUCKET', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result.success).toBe(true);
 
@@ -274,8 +317,8 @@ describe('AutoML API Contract Tests', () => {
           if (secretsWithKeys && secretsWithKeys.length > 0) {
             secretsWithKeys.forEach((secret) => {
               Object.entries(secret.data).forEach(([key, value]) => {
-                // Only aws_s3_bucket (case-insensitive) should have actual values
-                const isAllowedKey = key.toLowerCase() === 'aws_s3_bucket';
+                // Only AWS_S3_BUCKET (case-sensitive, uppercase) should have actual values
+                const isAllowedKey = key === 'AWS_S3_BUCKET';
 
                 if (!isAllowedKey) {
                   expect(value).toBe('[REDACTED]');
@@ -286,19 +329,38 @@ describe('AutoML API Contract Tests', () => {
         }
       });
 
-      it('should handle aws_s3_bucket key with different casing', async () => {
+      it('should only allow uppercase AWS_S3_BUCKET key', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result.success).toBe(true);
 
         if (result.success) {
           const responseData = result.response.data as SecretsResponseData;
 
+          // Find the fixture secret that has lowercase and mixed-case variants
+          const caseVariantSecret = responseData.data?.find(
+            (s) => s.name === 'case-variant-bucket-secret',
+          );
+          expect(caseVariantSecret).toBeDefined();
+
+          const caseVariantData = caseVariantSecret?.data ?? {};
+
+          // Uppercase AWS_S3_BUCKET should have its actual value
+          expect(caseVariantData.AWS_S3_BUCKET).not.toBe('[REDACTED]');
+          expect(caseVariantData.AWS_S3_BUCKET).toBe('correct-bucket');
+
+          // Lowercase variant should be redacted
+          expect(caseVariantData.aws_s3_bucket).toBe('[REDACTED]');
+
+          // Mixed-case variant should be redacted
+          expect(caseVariantData.Aws_S3_Bucket).toBe('[REDACTED]');
+
+          // Also verify the general rule across all secrets
           responseData.data?.forEach((secret) => {
             Object.entries(secret.data).forEach(([key, value]) => {
-              // Check various casings of aws_s3_bucket
-              if (['aws_s3_bucket', 'AWS_S3_BUCKET', 'Aws_S3_Bucket'].includes(key)) {
-                // Should return actual value, not [REDACTED]
+              if (key === 'AWS_S3_BUCKET') {
                 expect(value).not.toBe('[REDACTED]');
+              } else {
+                expect(value).toBe('[REDACTED]');
               }
             });
           });
@@ -736,6 +798,73 @@ describe('AutoML API Contract Tests', () => {
     });
   });
 
+  describe('Register Model Endpoint (POST /model-registries/:registryId/models)', () => {
+    const mockRegistryId = 'a1b2c3d4-e5f6-7890-abcd-111111111111';
+    const unknownRegistryId = '00000000-0000-0000-0000-000000000000';
+
+    // Note: Success case (201) cannot be tested in contract tests because the mock BFF
+    // resolves to a real Model Registry URL (ExternalURL) that doesn't exist in the test
+    // environment. The 201 response shape is validated by handler unit tests instead.
+
+    describe('Error Cases', () => {
+      it('should return 404 when registryId does not match any registry', async () => {
+        const result = await apiClient.post(
+          `/api/v1/model-registries/${unknownRegistryId}/models?namespace=default`,
+          {
+            s3_path: 'path/model.bin',
+            model_name: 'test-model',
+            version_name: 'v1',
+          },
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should return 400 for missing required fields', async () => {
+        const result = await apiClient.post(
+          `/api/v1/model-registries/${mockRegistryId}/models?namespace=default`,
+          {
+            model_name: 'test-model',
+            // Missing s3_path, version_name
+          },
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 for empty S3 path', async () => {
+        const result = await apiClient.post(
+          `/api/v1/model-registries/${mockRegistryId}/models?namespace=default`,
+          {
+            s3_path: '',
+            model_name: 'test-model',
+            version_name: 'v1',
+          },
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when namespace is missing', async () => {
+        const result = await apiClient.post(`/api/v1/model-registries/${mockRegistryId}/models`, {
+          s3_path: 'path/model.bin',
+          model_name: 'test-model',
+          version_name: 'v1',
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+  });
+
   describe('Pipeline Runs Endpoints', () => {
     describe('List Pipeline Runs', () => {
       it('should retrieve pipeline runs list', async () => {
@@ -976,6 +1105,37 @@ describe('AutoML API Contract Tests', () => {
         });
       });
 
+      describe('display_name Length Validation', () => {
+        it('display_name 250 chars accepted', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'a'.repeat(250),
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'target',
+            task_type: 'binary',
+          });
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
+            status: 200,
+          });
+        });
+
+        it('display_name 251 chars rejected', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'a'.repeat(251),
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'target',
+            task_type: 'binary',
+          });
+          expect(result.success).toBe(false);
+          expect(result.error?.status).toBe(400);
+          expect(result.error?.data).toHaveProperty('error');
+        });
+      });
+
       describe('General Validation', () => {
         it('should return 400 for missing common required fields', async () => {
           const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
@@ -1018,6 +1178,70 @@ describe('AutoML API Contract Tests', () => {
             expect(result.error.status).toBe(400);
           }
         });
+      });
+    });
+
+    describe('Terminate Pipeline Run', () => {
+      it('should terminate an active pipeline run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-ghi789-jkl012/terminate?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should return 400 when attempting to terminate a non-terminatable (SUCCEEDED) run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-abc123-def456/terminate?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 404 for non-existent run ID', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/non-existent-run-id/terminate?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
+
+    describe('Retry Pipeline Run', () => {
+      it('should retry a failed pipeline run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-mno345-pqr678/retry?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should return 400 when attempting to retry a non-retryable (SUCCEEDED) run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-abc123-def456/retry?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 404 for non-existent run ID', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/non-existent-run-id/retry?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
       });
     });
   });

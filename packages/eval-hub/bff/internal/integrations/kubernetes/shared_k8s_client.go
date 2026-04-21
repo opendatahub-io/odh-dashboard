@@ -19,7 +19,7 @@ func (kc *SharedClientLogic) BearerToken() (string, error) { return kc.Token.Raw
 
 func (kc *SharedClientLogic) GetGroups(ctx context.Context) ([]string, error) { return []string{}, nil }
 
-func parseEvalHubCRStatus(item *unstructured.Unstructured) (*models.EvalHubCRStatus, error) {
+func ParseEvalHubCRStatus(item *unstructured.Unstructured) (*models.EvalHubCRStatus, error) {
 	status, ok := item.Object["status"].(map[string]interface{})
 	if !ok {
 		return &models.EvalHubCRStatus{

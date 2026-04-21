@@ -2,6 +2,7 @@ import * as React from 'react';
 import { PageSection, Sidebar, SidebarContent, SidebarPanel } from '@patternfly/react-core';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { useSearchParams } from 'react-router-dom';
 import { isModelCatalogBannerExtension } from '~/odh/extension-points';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
 import ModelCatalogFilters from '~/app/pages/modelCatalog/components/ModelCatalogFilters';
@@ -11,7 +12,6 @@ import { useHasVisibleFiltersApplied } from '~/app/hooks/modelCatalog/useHasVisi
 import ModelCatalogSourceLabelSelectorNavigator from './ModelCatalogSourceLabelSelectorNavigator';
 import ModelCatalogAllModelsView from './ModelCatalogAllModelsView';
 import ModelCatalogGalleryView from './ModelCatalogGalleryView';
-import { useSearchParams } from 'react-router-dom';
 
 const ModelCatalog: React.FC = () => {
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -31,7 +31,7 @@ const ModelCatalog: React.FC = () => {
       updateSelectedSourceLabel('Red Hat AI validated');
     }
   }, [searchParams, setSearchParams, updateSelectedSourceLabel]);
-  
+
   const handleSearch = React.useCallback((term: string) => {
     setSearchTerm(term);
   }, []);
@@ -50,6 +50,7 @@ const ModelCatalog: React.FC = () => {
     <>
       <ScrollViewOnMount shouldScroll scrollToTop />
       <ApplicationsPage
+        noTitle // rendered inside a TabRoutePage which provides the title
         title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
         description="Discover models that are available for your organization to register, deploy, and customize."
         empty={false}
@@ -63,7 +64,7 @@ const ModelCatalog: React.FC = () => {
           />
         ))}
         <Sidebar hasBorder hasGutter>
-          <SidebarPanel>
+          <SidebarPanel variant="sticky">
             <ModelCatalogFilters />
           </SidebarPanel>
           <SidebarContent>

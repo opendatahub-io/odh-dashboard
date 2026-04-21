@@ -8,7 +8,7 @@ import {
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   LlamaStackModelsResponse,
-  LlamaStackVectorStoresResponse,
+  LlamaStackVectorStoreProvidersResponse,
   NamespaceKind,
   SecretListItem,
 } from '~/app/types';
@@ -76,7 +76,7 @@ export const getLlamaStackModels =
 export const getLlamaStackVectorStores =
   (hostPath: string) =>
   (namespace: string, secretName: string) =>
-  (opts: APIOptions): Promise<LlamaStackVectorStoresResponse> =>
+  (opts: APIOptions): Promise<LlamaStackVectorStoreProvidersResponse> =>
     handleRestFailures(
       restGET(
         hostPath,
@@ -85,7 +85,7 @@ export const getLlamaStackVectorStores =
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<LlamaStackVectorStoresResponse>(response)) {
+      if (isModArchResponse<LlamaStackVectorStoreProvidersResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

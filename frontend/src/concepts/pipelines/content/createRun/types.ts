@@ -49,6 +49,32 @@ export enum PipelineVersionToUse {
   PROVIDED = 'provided',
 }
 
+export enum MlflowExperimentMode {
+  EXISTING = 'existing',
+  NEW = 'new',
+}
+
+export type MlflowTrackingDisabledFormData = {
+  isExperimentTrackingEnabled: false;
+};
+
+export type MlflowExistingFormData = {
+  isExperimentTrackingEnabled: true;
+  mode: MlflowExperimentMode.EXISTING;
+  existingExperimentName: string;
+};
+
+export type MlflowNewFormData = {
+  isExperimentTrackingEnabled: true;
+  mode: MlflowExperimentMode.NEW;
+  newExperimentName: string;
+};
+
+export type MlflowFormData =
+  | MlflowTrackingDisabledFormData
+  | MlflowExistingFormData
+  | MlflowNewFormData;
+
 export type RunFormData = {
   project: ProjectKind;
   nameDesc: { name: string; description: string };
@@ -56,6 +82,7 @@ export type RunFormData = {
   version: PipelineVersionKF | null;
   versionToUse: PipelineVersionToUse;
   experiment: ExperimentKF | null;
+  mlflow: MlflowFormData;
   runType: RunType;
   params?: RuntimeConfigParameters;
 };

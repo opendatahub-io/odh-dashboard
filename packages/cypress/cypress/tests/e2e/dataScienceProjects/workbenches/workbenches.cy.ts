@@ -137,7 +137,7 @@ describe('Workbench and PVSs tests', () => {
 
           cy.step(`Wait for Workbench ${workbenchName} to display a "Running" status`);
           const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
 
           // Use dynamic image name verification based on what was actually selected
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {

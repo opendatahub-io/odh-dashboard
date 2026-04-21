@@ -5,6 +5,7 @@
   "version": "0.0.0",
   "scripts": {
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix",
     "test-unit": "jest --silent",
     "test-unit-coverage": "jest --silent --coverage",

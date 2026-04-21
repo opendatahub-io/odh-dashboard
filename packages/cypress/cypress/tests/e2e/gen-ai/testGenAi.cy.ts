@@ -33,7 +33,7 @@ import {
   createCleanHardwareProfile,
 } from '../../../utils/oc_commands/hardwareProfiles';
 
-describe('[Automation Bug: RHOAIENG-52445] Verify Gen AI Namespace - Creation and Connection', () => {
+describe('Verify Gen AI Namespace - Creation and Connection', () => {
   let testData: GenAiTestData;
   let projectName: string;
   let skipTest = false;
@@ -144,7 +144,7 @@ describe('[Automation Bug: RHOAIENG-52445] Verify Gen AI Namespace - Creation an
       cy.wrap(servingRuntimes.navigate(), { timeout: 100000 });
 
       cy.step('Click Add serving runtime button');
-      servingRuntimes.findAddButton().should('exist').and('be.visible').and('be.enabled').click();
+      servingRuntimes.findAddButton().should('exist').and('be.visible').click();
 
       cy.step('Select API Protocol');
       servingRuntimes.findSelectAPIProtocolButton().click();
@@ -178,15 +178,7 @@ describe('[Automation Bug: RHOAIENG-52445] Verify Gen AI Namespace - Creation an
   it(
     'Deploy Gen AI model using URI',
     {
-      tags: [
-        '@Sanity',
-        '@SanitySet1',
-        '@GenAI',
-        '@ModelServing',
-        '@Deployment',
-        '@NonConcurrent',
-        '@Maintain',
-      ],
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ModelServing', '@Deployment', '@NonConcurrent'],
     },
     () => {
       if (skipTest) {
@@ -257,14 +249,18 @@ describe('[Automation Bug: RHOAIENG-52445] Verify Gen AI Namespace - Creation an
 
       cy.step('Verify model deployment was created and started');
       waitForResource('inferenceService', testData.inferenceServiceName, projectName);
-      checkInferenceServiceState(testData.inferenceServiceName, projectName, { checkReady: true });
+      cy.then(() => {
+        checkInferenceServiceState(testData.inferenceServiceName, projectName, {
+          checkReady: true,
+        });
+      });
     },
   );
 
   it(
     'Create and verify Gen AI Playground functionality',
     {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground', '@NonConcurrent', '@Maintain'],
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground', '@NonConcurrent'],
     },
     () => {
       if (skipTest) {
@@ -275,12 +271,11 @@ describe('[Automation Bug: RHOAIENG-52445] Verify Gen AI Namespace - Creation an
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      cy.step('Navigate to Gen AI Playground');
-      genAiPlayground.navigate(projectName);
+      cy.step('Navigate to AI asset endpoints page');
+      genAiPlayground.navigateToAssets(projectName);
 
-      cy.step('Click Create playground button');
-      genAiPlayground.findEmptyState().should('exist');
-      genAiPlayground.findCreatePlaygroundButton().should('be.visible').click();
+      cy.step('Click Add to playground button');
+      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
 
       cy.step('Ensure model is selected in the configuration table');
       genAiPlayground.findConfigurationTable().should('be.visible');
@@ -298,7 +293,7 @@ describe('[Automation Bug: RHOAIENG-52445] Verify Gen AI Namespace - Creation an
       cy.step('Wait for playground service to be created');
       waitForResource('service', testData.playgroundServiceName, projectName);
 
-      cy.step('Navigate to playground URL');
+      cy.step('Navigate to playground');
       genAiPlayground.navigate(projectName);
 
       cy.step(`Select ${testData.modelDeploymentName} model from dropdown`);

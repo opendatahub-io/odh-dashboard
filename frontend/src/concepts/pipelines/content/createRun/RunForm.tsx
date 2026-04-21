@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { Form, FormSection } from '@patternfly/react-core';
+import { Form, FormGroup, FormSection } from '@patternfly/react-core';
 import NameDescriptionField from '#~/concepts/k8s/NameDescriptionField';
 import {
+  MlflowFormData,
   PipelineVersionToUse,
   RunFormData,
   RunTypeOption,
@@ -15,8 +16,9 @@ import {
   PipelineVersionKF,
   RuntimeConfigParameters,
 } from '#~/concepts/pipelines/kfTypes';
-import ProjectAndExperimentSection from '#~/concepts/pipelines/content/createRun/contentSections/ProjectAndExperimentSection';
+import ProjectSection from '#~/concepts/pipelines/content/createRun/contentSections/ProjectSection';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { ActiveExperimentSelector } from '#~/concepts/pipelines/content/experiment/ExperimentSelector';
 import { useLatestPipelineVersion } from '#~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
 import { getNameEqualsFilter } from '#~/concepts/pipelines/utils';
 import { DuplicateNameHelperText } from '#~/concepts/pipelines/content/DuplicateNameHelperText';
@@ -27,6 +29,10 @@ import {
   NAME_CHARACTER_LIMIT,
   DESCRIPTION_CHARACTER_LIMIT,
 } from '#~/concepts/pipelines/content/const';
+import { runGroupCreateModalPopoverText } from '#~/pages/pipelines/global/runs/const';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
+import MlflowIntegrationSection from './contentSections/MlflowIntegrationSection';
 import PipelineSection from './contentSections/PipelineSection';
 import { RunTypeSection } from './contentSections/RunTypeSection';
 import { CreateRunPageSections, runPageSectionTitles } from './const';
@@ -39,7 +45,8 @@ type RunFormProps = {
 };
 
 const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) => {
-  const { api } = usePipelinesAPI();
+  const { api, namespace } = usePipelinesAPI();
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const [latestVersion, latestVersionLoaded] = useLatestPipelineVersion(data.pipeline?.pipeline_id);
   // Use this state to avoid the pipeline version being set as the latest version at the initial load
   const [initialLoadedState, setInitialLoadedState] = React.useState(true);
@@ -111,11 +118,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
     <Form onSubmit={(e) => e.preventDefault()} maxWidth="500px">
       <RunTypeSection data={data} isDuplicated={isDuplicated} />
 
-      <ProjectAndExperimentSection
-        projectName={getDisplayNameFromK8sResource(data.project)}
-        value={data.experiment}
-        onChange={(experiment) => onValueChange('experiment', experiment)}
-      />
+      <ProjectSection projectName={getDisplayNameFromK8sResource(data.project)} />
 
       <FormSection
         id={isSchedule ? CreateRunPageSections.SCHEDULE_DETAILS : CreateRunPageSections.RUN_DETAILS}
@@ -139,6 +142,19 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
           nameHelperText={hasDuplicateName ? <DuplicateNameHelperText name={name} /> : undefined}
         />
 
+        <FormGroup
+          label="Run group"
+          fieldId="run-group-selector"
+          isRequired
+          labelHelp={<DashboardHelpTooltip content={runGroupCreateModalPopoverText} />}
+        >
+          <ActiveExperimentSelector
+            dataTestId="run-group-selector"
+            selection={data.experiment?.display_name}
+            onSelect={(runGroup) => onValueChange('experiment', runGroup)}
+          />
+        </FormGroup>
+
         {isSchedule && data.runType.type === RunTypeOption.SCHEDULED && (
           <RunTypeSectionScheduled
             data={data.runType.data}
@@ -160,6 +176,14 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
         setInitialLoadedState={setInitialLoadedState}
         isSchedule={isSchedule}
       />
+
+      {isMlflowAvailable && (
+        <MlflowIntegrationSection
+          data={data.mlflow}
+          onChange={(mlflow: MlflowFormData) => onValueChange('mlflow', mlflow)}
+          workspace={namespace}
+        />
+      )}
 
       <ParamsSection
         runParams={data.params}

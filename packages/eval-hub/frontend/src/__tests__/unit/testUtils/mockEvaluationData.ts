@@ -5,6 +5,7 @@ type MockEvaluationJobOptions = {
   name?: string;
   tenant?: string;
   state?: EvaluationJobState;
+  statusMessage?: string;
   modelName?: string;
   benchmarkId?: string;
   providerId?: string;
@@ -27,6 +28,9 @@ export const mockEvaluationJob = (options: MockEvaluationJobOptions = {}): Evalu
   },
   status: {
     state: options.state ?? 'completed',
+    ...(options.statusMessage
+      ? { message: { message: options.statusMessage, message_code: 'evaluation_job_updated' } }
+      : {}),
   },
   results: {
     benchmarks:

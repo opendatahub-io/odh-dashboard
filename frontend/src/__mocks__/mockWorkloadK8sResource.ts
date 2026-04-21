@@ -76,7 +76,7 @@ const mockWorkloadStatusConditions: Record<WorkloadStatusType, WorkloadCondition
       type: 'Evicted',
     },
   ],
-  Succeeded: [
+  Complete: [
     {
       lastTransitionTime: '2024-03-18T19:15:28Z',
       message: 'Quota reserved in ClusterQueue cluster-queue',
@@ -124,9 +124,9 @@ const mockWorkloadStatusConditions: Record<WorkloadStatusType, WorkloadCondition
   ],
 };
 
-const mockWorkloadEmptySucceedCondition: Record<WorkloadStatusType.Succeeded, WorkloadCondition[]> =
+const mockWorkloadEmptyCompleteCondition: Record<WorkloadStatusType.Complete, WorkloadCondition[]> =
   {
-    [WorkloadStatusType.Succeeded]: [
+    [WorkloadStatusType.Complete]: [
       {
         lastTransitionTime: '2024-03-18T19:15:28Z',
         message: 'Quota reserved in ClusterQueue cluster-queue',
@@ -164,11 +164,11 @@ export const mockWorkloadK8sResource = ({
   namespace = 'test-project',
   ownerKind = WorkloadOwnerType.Job,
   ownerName,
-  mockStatus = WorkloadStatusType.Succeeded,
+  mockStatus = WorkloadStatusType.Complete,
   podSets = [],
   mockStatusEmptyWorkload = false,
 }: MockResourceConfigType): WorkloadKind => ({
-  apiVersion: 'kueue.x-k8s.io/v1beta1',
+  apiVersion: 'kueue.x-k8s.io/v1beta2',
   kind: 'Workload',
   metadata: {
     creationTimestamp: '2024-03-18T19:15:28Z',
@@ -203,8 +203,8 @@ export const mockWorkloadK8sResource = ({
   },
   status: {
     conditions: mockStatus
-      ? mockStatusEmptyWorkload
-        ? mockWorkloadEmptySucceedCondition[WorkloadStatusType.Succeeded]
+      ? mockStatusEmptyWorkload && mockStatus === WorkloadStatusType.Complete
+        ? mockWorkloadEmptyCompleteCondition[WorkloadStatusType.Complete]
         : mockWorkloadStatusConditions[mockStatus]
       : [],
   },

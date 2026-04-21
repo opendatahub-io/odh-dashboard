@@ -17,6 +17,8 @@ This service exposes the following endpoints:
 - GET `/api/v1/pipeline-runs` – query merged pipeline runs from all auto-discovered AutoML pipelines
 - GET `/api/v1/pipeline-runs/:runId` – get a single pipeline run with full task details
 - POST `/api/v1/pipeline-runs` – create a new AutoML pipeline run
+- GET `/api/v1/model-registries` – list Model Registry instances (Kubernetes CRs) with `id` and `server_url` for routing
+- POST `/api/v1/model-registries/:registryId/models` – register a model binary in a specific Model Registry instance
 
 ## Development
 
@@ -104,7 +106,11 @@ GET  /api/v1/secrets             (filter secrets by type, e.g., ?namespace=defau
 GET  /api/v1/pipeline-runs       (query merged runs from all auto-discovered AutoML pipelines)
 GET  /api/v1/pipeline-runs/:runId
 POST /api/v1/pipeline-runs       (create a new AutoML pipeline run)
+GET  /api/v1/model-registries    (list Model Registry instances: id, server_url, readiness)
+POST /api/v1/model-registries/:registryId/models  (register model in a specific registry)
 ```
+
+For Model Registry integration details (configuration, authentication, S3), see [docs/model-registry-integration.md](docs/model-registry-integration.md).
 
 For detailed information about the secrets endpoint, see [docs/secrets-endpoint.md](docs/secrets-endpoint.md).
 
@@ -211,32 +217,62 @@ export INSECURE_SKIP_VERIFY=true
 
 > **Warning:** Only use in development. Keep TLS verification enabled in production.
 
-### Local testing with port-forward
+### Service connectivity in dev mode
 
-When testing the BFF locally against a Kubeflow Pipelines instance running in a cluster, set `PIPELINE_SERVER_URL` to the port-forwarded address:
+When running in dev mode (via `make dev-start-federated`), the BFF uses **dynamic port-forwarding** to automatically establish connections to in-cluster services such as the Kubeflow Pipelines server and managed MinIO. This eliminates the need for manual `kubectl port-forward` commands or environment variable overrides like `PIPELINE_SERVER_URL`.
+
+Under the covers, the BFF discovers the DSPipelineApplication (DSPA) in the target namespace, identifies the pipeline server and any managed MinIO services, and sets up local port-forwards on-demand. The forwarded connections are managed for the lifetime of the BFF process and cleaned up automatically on shutdown.
+
+This means you can simply start the BFF in dev mode and it will handle all service connectivity transparently using your current kubeconfig context.
+
+### Federated development with a live cluster
+
+To run the AutoML module as a federated micro-frontend against the main ODH Dashboard with a real cluster, you need two things running:
+
+1. The AutoML BFF + frontend in federated mode
+2. The main ODH Dashboard
+
+The BFF automatically handles service connectivity (pipeline server, MinIO, etc.) via dynamic port-forwarding when running in dev mode. No manual port-forward setup is required. See [Service connectivity in dev mode](#service-connectivity-in-dev-mode) for details.
+
+#### 1. Start AutoML in federated mode
+
+From the `packages/automl/` directory:
 
 ```shell
-# Terminal 1: port-forward the pipeline server
-kubectl port-forward -n <namespace> svc/<ds-pipeline-service-name> 8888:8443
-
-# Terminal 2: run the BFF with override URL
-cd packages/automl/bff
-make run PIPELINE_SERVER_URL=https://localhost:8888 INSECURE_SKIP_VERIFY=true
+make dev-start-federated
 ```
 
-#### S3 endpoints in port-forward mode
+This starts both the BFF (port 4003) and the frontend webpack dev server (port 9108) in federated mode. The BFF connects to in-cluster services using dynamic port-forwarding and uses your cluster credentials for RBAC.
 
-When `PIPELINE_SERVER_URL` is set, the pipeline client is created from the override URL rather than by discovering the DSPipelineApplication (DSPA) in the cluster. However, the BFF will still **attempt best-effort DSPA discovery** via the Kubernetes API so that the S3 file and schema endpoints (`GET /api/v1/s3/file`, `GET /api/v1/s3/file/schema`) can resolve credentials from the DSPA spec without requiring an explicit `secretName` query parameter.
+**Pipeline name prefixes:** The BFF discovers AutoML pipelines by matching display names that start with configurable prefixes. AutoML has two pipeline types with separate prefixes:
 
-If you see the error `"query parameter 'secretName' is required when no DSPA object storage config is available"` while using port-forward mode, one of the following is likely true:
+| Pipeline type | Env var | Default |
+|---|---|---|
+| Tabular (classification + regression) | `AUTOML_TABULAR_PIPELINE_NAME_PREFIX` | `autogluon-tabular-training-pipeline` |
+| Time series | `AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX` | `autogluon-timeseries-training-pipeline` |
 
-- Your auth token does not have permission to list `datasciencepipelinesapplications` resources in the namespace — verify with `kubectl auth can-i list datasciencepipelinesapplications -n <namespace>`
-- No DSPA exists in the namespace yet
-- The DSPA exists but its API Server component is not ready
+If your pipelines use different naming conventions, override them:
 
-As a workaround you can pass `secretName` explicitly:
 ```shell
-curl -H "kubeflow-userid: user@example.com" \
-  -H "Authorization: Bearer $(oc whoami -t)" \
-  "http://localhost:4003/api/v1/s3/file?namespace=<namespace>&secretName=<secret>&bucket=<bucket>&key=<key>"
+AUTOML_TABULAR_PIPELINE_NAME_PREFIX=my-tabular \
+  AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX=my-timeseries \
+  make dev-start-federated
+```
+
+#### 2. Start the main ODH Dashboard
+
+In a separate terminal, from the repo root:
+
+```shell
+npm run dev
+```
+
+Then access the dashboard at **http://localhost:4010** and navigate to the AutoML section.
+
+#### Mock mode (no cluster required)
+
+If you don't have a cluster available, you can run with fully mocked backends:
+
+```shell
+make dev-start
 ```

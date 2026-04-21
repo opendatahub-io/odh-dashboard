@@ -1,10 +1,11 @@
 import React from 'react';
 import { HookNotify, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { isMcpServerDeployModalExtension } from '~/odh/extension-points';
+import McpDeployModal from '~/odh/components/McpDeployModal';
 
 type McpDeployModalExtensionProps = {
   render: (
-    buttonState: { enabled: boolean; tooltip?: string },
+    buttonState: { enabled: boolean; loading?: boolean; tooltip?: string },
     onOpenModal: () => void,
     isModalAvailable: boolean,
   ) => React.ReactNode;
@@ -31,37 +32,34 @@ const McpDeployModalExtension: React.FC<McpDeployModalExtensionProps> = ({ rende
 
   const buttonState = React.useMemo(() => {
     if (!deployAvailable.loaded) {
-      return { enabled: false, tooltip: 'Checking MCP server availability...' };
+      return { enabled: false, loading: true, tooltip: 'Checking MCP server availability...' };
     }
     if (!deployAvailable.available) {
       return {
         enabled: false,
+        loading: false,
         tooltip: 'MCP server CRD is not available on this cluster',
       };
     }
-    return { enabled: true };
+    return { enabled: true, loading: false };
   }, [deployAvailable]);
 
   return (
     <>
-      {extensions.map((extension) =>
-        extension.properties.useIsDeployAvailable ? (
-          <HookNotify
-            key={extension.uid}
-            useHook={extension.properties.useIsDeployAvailable}
-            onNotify={(value) => {
-              if (value) {
-                setDeployAvailable(value);
-              }
-            }}
-          />
-        ) : null,
-      )}
+      {extensions.map((extension) => (
+        <HookNotify
+          key={extension.uid}
+          useHook={extension.properties.useIsDeployAvailable}
+          onNotify={(value) => {
+            if (value) {
+              setDeployAvailable(value);
+            }
+          }}
+        />
+      ))}
       {render(buttonState, onOpenModal, isModalAvailable)}
-      {openModal && (
-        // Modal will be rendered here in a follow-up PR
-        // For now, close immediately (no-op placeholder)
-        <></>
+      {isModalAvailable && (
+        <McpDeployModal isOpen={openModal} onClose={() => setOpenModal(false)} />
       )}
     </>
   );

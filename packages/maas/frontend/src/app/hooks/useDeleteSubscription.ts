@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { deleteSubscription } from '../api/subscriptions';
+import { deleteSubscription } from '~/app/api/subscriptions';
 
 type UseDeleteSubscriptionReturn = {
   isDeleting: boolean;

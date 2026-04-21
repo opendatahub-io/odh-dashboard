@@ -14,9 +14,9 @@ import {
   SearchInput,
   Tooltip,
 } from '@patternfly/react-core';
-import { FilterIcon, PlusIcon } from '@patternfly/react-icons';
+import { FilterIcon } from '@patternfly/react-icons';
 import { APIKey, APIKeyStatus, ApiKeyFilterDataType, STATUS_OPTIONS } from '~/app/types/api-key';
-import ApiKeysActions from '../ApiKeysActions';
+import ApiKeysActions from '~/app/pages/api-keys/ApiKeysActions';
 
 type ApiKeysToolbarProps = {
   setIsModalOpen: (isOpen: boolean) => void;
@@ -27,6 +27,7 @@ type ApiKeysToolbarProps = {
   onStatusToggle: (status: APIKeyStatus) => void;
   onStatusClear: (status: APIKeyStatus) => void;
   activeApiKeys: APIKey[];
+  isMaasAdmin: boolean;
   refresh: () => void;
   onClearFilters: () => void;
 };
@@ -40,6 +41,7 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
   onStatusToggle,
   onStatusClear,
   activeApiKeys,
+  isMaasAdmin,
   refresh,
   onClearFilters,
 }) => {
@@ -52,6 +54,7 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
         onUsernameChange('');
         onClearFilters();
       }}
+      data-testid="api-keys-toolbar"
     >
       <ToolbarContent>
         <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="md">
@@ -109,34 +112,36 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
                 </SelectList>
               </Select>
             </ToolbarFilter>
-            <ToolbarFilter
-              labels={filterData.username ? [filterData.username] : []}
-              deleteLabel={() => {
-                setLocalUsername('');
-                onUsernameChange('');
-              }}
-              categoryName="Username"
-            >
-              <Tooltip
-                content="Please enter the full username"
-                data-testid="username-filter-tooltip"
+            {isMaasAdmin && (
+              <ToolbarFilter
+                labels={filterData.username ? [filterData.username] : []}
+                deleteLabel={() => {
+                  setLocalUsername('');
+                  onUsernameChange('');
+                }}
+                categoryName="Username"
               >
-                <SearchInput
-                  aria-label="Filter by username"
-                  placeholder="Filter by username"
-                  data-testid="username-filter-input"
-                  value={localUsername}
-                  onChange={(_event, value) => {
-                    setLocalUsername(value);
-                  }}
-                  onSearch={(_event, value) => onUsernameChange(value)}
-                  onClear={() => {
-                    setLocalUsername('');
-                    onUsernameChange('');
-                  }}
-                />
-              </Tooltip>
-            </ToolbarFilter>
+                <Tooltip
+                  content="Please enter the full username"
+                  data-testid="username-filter-tooltip"
+                >
+                  <SearchInput
+                    aria-label="Filter by username"
+                    placeholder="Filter by username"
+                    data-testid="username-filter-input"
+                    value={localUsername}
+                    onChange={(_event, value) => {
+                      setLocalUsername(value);
+                    }}
+                    onSearch={(_event, value) => onUsernameChange(value)}
+                    onClear={() => {
+                      setLocalUsername('');
+                      onUsernameChange('');
+                    }}
+                  />
+                </Tooltip>
+              </ToolbarFilter>
+            )}
           </ToolbarGroup>
         </ToolbarToggleGroup>
         <ToolbarGroup>
@@ -144,13 +149,16 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
             <>
               <Button
                 variant="primary"
-                icon={<PlusIcon />}
                 onClick={() => setIsModalOpen(true)}
                 data-testid="create-api-key-button"
               >
                 Create API key
               </Button>
-              <ApiKeysActions apiKeyCount={activeApiKeys.length} onRefresh={refresh} />
+              <ApiKeysActions
+                apiKeyCount={activeApiKeys.length}
+                isMaasAdmin={isMaasAdmin}
+                onRefresh={refresh}
+              />
             </>
           </ToolbarItem>
         </ToolbarGroup>

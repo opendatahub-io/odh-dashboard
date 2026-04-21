@@ -1,6 +1,6 @@
 import React from 'react';
 import { z } from 'zod';
-import { Form, Spinner } from '@patternfly/react-core';
+import { Form, FormSection, Spinner } from '@patternfly/react-core';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { modelTypeSelectFieldSchema, ModelTypeSelectField } from '../fields/ModelTypeSelectField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
@@ -39,34 +39,40 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
 
   return (
     <Form>
-      <ModelLocationSelectField
-        modelLocation={wizardState.state.modelLocationData.data?.type}
-        validationProps={validation.getFieldValidationProps(['modelLocation', 'modelLocationData'])}
-        validationIssues={validation.getFieldValidation(['modelLocation', 'modelLocationData'])}
-        modelLocationData={wizardState.state.modelLocationData.data}
-        setModelLocationData={wizardState.state.modelLocationData.setData}
-        resetModelLocationData={() => wizardState.state.modelLocationData.setData(undefined)}
-        connections={wizardState.state.modelLocationData.connections}
-        setSelectedConnection={wizardState.state.modelLocationData.setSelectedConnection}
-        selectedConnection={wizardState.state.modelLocationData.selectedConnection}
-        pvcs={wizardState.state.modelLocationData.pvcs}
-      />
-      <CreateConnectionInputFields
-        createConnectionData={wizardState.state.createConnectionData.data}
-        setCreateConnectionData={wizardState.state.createConnectionData.setData}
-        projectName={wizardState.state.project.projectName}
-        modelLocationData={wizardState.state.modelLocationData.data}
-        setModelLocationData={wizardState.state.modelLocationData.setData}
-      />
-      <ModelTypeSelectField
-        modelType={wizardState.state.modelType.data}
-        setModelType={wizardState.state.modelType.setData}
-        validationProps={validation.getFieldValidationProps(['modelType'])}
-        validationIssues={validation.getFieldValidation(['modelType'])}
-        isEditing={
-          !wizardState.initialData?.modelTypeField ? false : wizardState.initialData.isEditing
-        }
-      />
+      <FormSection title="Model details">
+        <p style={{ marginTop: '-8px' }}>Provide information about the model you want to deploy.</p>
+        <ModelLocationSelectField
+          modelLocation={wizardState.state.modelLocationData.data?.type}
+          validationProps={validation.getFieldValidationProps([
+            'modelLocation',
+            'modelLocationData',
+          ])}
+          validationIssues={validation.getFieldValidation(['modelLocation', 'modelLocationData'])}
+          modelLocationData={wizardState.state.modelLocationData.data}
+          setModelLocationData={wizardState.state.modelLocationData.setData}
+          resetModelLocationData={() => wizardState.state.modelLocationData.setData(undefined)}
+          connections={wizardState.state.modelLocationData.connections}
+          setSelectedConnection={wizardState.state.modelLocationData.setSelectedConnection}
+          selectedConnection={wizardState.state.modelLocationData.selectedConnection}
+          pvcs={wizardState.state.modelLocationData.pvcs}
+        />
+        <CreateConnectionInputFields
+          createConnectionData={wizardState.state.createConnectionData.data}
+          setCreateConnectionData={wizardState.state.createConnectionData.setData}
+          projectName={wizardState.state.project.projectName}
+          modelLocationData={wizardState.state.modelLocationData.data}
+          setModelLocationData={wizardState.state.modelLocationData.setData}
+        />
+        <ModelTypeSelectField
+          modelType={wizardState.state.modelType.data}
+          setModelType={wizardState.state.modelType.setData}
+          validationProps={validation.getFieldValidationProps(['modelType'])}
+          validationIssues={validation.getFieldValidation(['modelType'])}
+          isEditing={
+            !wizardState.initialData?.modelTypeField ? false : wizardState.initialData.isEditing
+          }
+        />
+      </FormSection>
     </Form>
   );
 };

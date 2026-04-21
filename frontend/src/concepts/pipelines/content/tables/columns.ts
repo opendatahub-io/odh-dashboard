@@ -1,3 +1,4 @@
+import { createElement } from 'react';
 import {
   SortableData,
   checkboxTableColumn,
@@ -11,6 +12,7 @@ import {
   PipelineRunKF,
   ExperimentKF,
 } from '#~/concepts/pipelines/kfTypes';
+import { runGroupTablePopoverText } from '#~/pages/pipelines/global/runs/const';
 
 export const pipelineColumns: SortableData<PipelineKF>[] = [
   expandTableColumn(),
@@ -68,7 +70,7 @@ export const pipelineVersionColumns: SortableData<PipelineVersionKF>[] = [
 export const experimentColumns: SortableData<ExperimentKF>[] = [
   checkboxTableColumn(),
   {
-    label: 'Experiment',
+    label: 'Run group',
     field: 'display_name',
     sortable: true,
     width: 40,
@@ -94,7 +96,33 @@ export const experimentColumns: SortableData<ExperimentKF>[] = [
   kebabTableColumn(),
 ];
 
-export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
+const mlflowExperimentColumn = <T>(): SortableData<T> => ({
+  label: 'MLflow experiment',
+  field: 'mlflow_experiment',
+  sortable: false,
+  width: 15,
+});
+
+// PF wraps string header labels in TableText, which adds a truncation tooltip.
+// But this tooltip shows up on hover regardless of whether it's truncated or not. This is a workaround.
+// TODO: remove when PF fixes TableText tooltip behaviour
+// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+const RUN_GROUP_LABEL = createElement('span', undefined, 'Run group') as unknown as string;
+
+const runGroupColumn = <T>(): SortableData<T> => ({
+  label: RUN_GROUP_LABEL,
+  field: 'run_group',
+  sortable: false,
+  width: 15,
+  info: {
+    popover: runGroupTablePopoverText,
+    popoverProps: {
+      showClose: false,
+    },
+  },
+});
+
+export const pipelineRunColumns = (isMlflowAvailable?: boolean): SortableData<PipelineRunKF>[] => [
   checkboxTableColumn(),
   {
     label: 'Run',
@@ -107,12 +135,8 @@ export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
     sortable: false,
     width: 15,
   },
-  {
-    label: 'Experiment',
-    field: 'experiment',
-    sortable: false,
-    width: 15,
-  },
+  ...(isMlflowAvailable ? [mlflowExperimentColumn<PipelineRunKF>()] : []),
+  runGroupColumn<PipelineRunKF>(),
   {
     label: 'Started',
     field: 'created_at',
@@ -134,7 +158,7 @@ export const pipelineRunColumns: SortableData<PipelineRunKF>[] = [
   kebabTableColumn(),
 ];
 
-export const compareRunColumns: SortableData<PipelineRunKF>[] = [
+export const compareRunColumns = (isMlflowAvailable?: boolean): SortableData<PipelineRunKF>[] => [
   checkboxTableColumn(),
   {
     label: 'Run',
@@ -147,12 +171,8 @@ export const compareRunColumns: SortableData<PipelineRunKF>[] = [
     sortable: false,
     width: 15,
   },
-  {
-    label: 'Experiment',
-    field: 'experiment',
-    sortable: false,
-    width: 15,
-  },
+  ...(isMlflowAvailable ? [mlflowExperimentColumn<PipelineRunKF>()] : []),
+  runGroupColumn<PipelineRunKF>(),
   {
     label: 'Started',
     field: 'created_at',
@@ -175,6 +195,7 @@ export const compareRunColumns: SortableData<PipelineRunKF>[] = [
 
 export const getPipelineRunColumns = (
   metricsColumnNames: string[],
+  isMlflowAvailable?: boolean,
 ): SortableData<PipelineRunKF>[] => [
   { ...checkboxTableColumn(), isStickyColumn: true, stickyMinWidth: '45px' },
   {
@@ -193,12 +214,8 @@ export const getPipelineRunColumns = (
     sortable: false,
     width: 15,
   },
-  {
-    label: 'Experiment',
-    field: 'experiment',
-    sortable: false,
-    width: 15,
-  },
+  ...(isMlflowAvailable ? [mlflowExperimentColumn<PipelineRunKF>()] : []),
+  runGroupColumn<PipelineRunKF>(),
   {
     label: 'Started',
     field: 'created_at',
@@ -225,7 +242,9 @@ export const getPipelineRunColumns = (
   kebabTableColumn(),
 ];
 
-export const pipelineRecurringRunColumns: SortableData<PipelineRecurringRunKF>[] = [
+export const pipelineRecurringRunColumns = (
+  isMlflowAvailable?: boolean,
+): SortableData<PipelineRecurringRunKF>[] => [
   checkboxTableColumn(),
   {
     label: 'Schedule',
@@ -238,12 +257,8 @@ export const pipelineRecurringRunColumns: SortableData<PipelineRecurringRunKF>[]
     sortable: false,
     width: 15,
   },
-  {
-    label: 'Experiment',
-    field: 'experiment',
-    sortable: false,
-    width: 15,
-  },
+  ...(isMlflowAvailable ? [mlflowExperimentColumn<PipelineRecurringRunKF>()] : []),
+  runGroupColumn<PipelineRecurringRunKF>(),
   {
     label: 'Trigger',
     field: 'trigger',

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import {
   Button,
   CardBody,
@@ -14,7 +15,6 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
 import { ProjectKind } from '#~/k8sTypes';
 import TruncatedText from '#~/components/TruncatedText';
 import { SectionType } from '#~/concepts/design/utils';
@@ -32,7 +32,7 @@ interface ProjectCardProps {
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
-  const navigate = useNavigate();
+  const projectHref = `/projects/${project.metadata.name}`;
 
   return (
     <TypeBorderedCard
@@ -47,10 +47,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
               data-testid={`project-link-${project.metadata.name}`}
               variant="link"
               isInline
+              component={(props: React.ComponentProps<'a'>) => <Link {...props} to={projectHref} />}
               onClick={() => {
-                navigate(`/projects/${project.metadata.name}`);
                 fireLinkTrackingEvent('HomeCardClicked', {
-                  to: `/projects/${project.metadata.name}`,
+                  to: projectHref,
                   type: 'project',
                 });
               }}

@@ -80,7 +80,6 @@ type EnvConfig struct {
 	MockHTTPClient           bool
 	MockS3Client             bool
 	MockPipelineServerClient bool
-	PipelineServerURL        string
 	DevMode                  bool
 	DeploymentMode           DeploymentMode
 	DevModeClientPort        int
@@ -111,14 +110,14 @@ type EnvConfig struct {
 	// AutoMLTimeSeriesPipelineNamePrefix is the prefix used to identify AutoML time-series
 	// managed pipelines during automatic pipeline discovery. The discovery process searches
 	// for pipelines with display names starting with this prefix (case-insensitive).
-	// Default: "automl-timeseries"
+	// Default: "autogluon-timeseries-training-pipeline"
 	AutoMLTimeSeriesPipelineNamePrefix string
 
 	// AutoMLTabularPipelineNamePrefix is the prefix used to identify AutoML tabular
 	// managed pipelines (classification + regression) during automatic pipeline discovery.
 	// The discovery process searches for pipelines with display names starting with this
 	// prefix (case-insensitive).
-	// Default: "automl-tabular"
+	// Default: "autogluon-tabular-training-pipeline"
 	AutoMLTabularPipelineNamePrefix string
 
 	// ─── TLS ────────────────────────────────────────────────────

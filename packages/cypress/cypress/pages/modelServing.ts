@@ -23,19 +23,17 @@ class ModelServingToolbar extends Contextual<HTMLElement> {
 }
 class ModelServingGlobal {
   visit(project?: string) {
-    cy.visitWithLogin(`/ai-hub/deployments${project ? `/${project}` : ''}`);
+    cy.visitWithLogin(`/ai-hub/models/deployments${project ? `/${project}` : ''}`);
     this.wait();
   }
 
   navigate() {
-    appChrome
-      .findNavItem({ name: 'Deployments', rootSection: 'AI hub', subSection: 'Models' })
-      .click();
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).click();
     this.wait();
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('have.text', 'Deployments');
+    cy.findByTestId('app-tab-page-title').should('have.text', 'Models');
     cy.testA11y();
   }
 
@@ -95,9 +93,10 @@ class ModelServingGlobal {
 
   selectSingleServingModelButtonIfExists() {
     this.shouldBeEmpty();
+    cy.findByTestId('empty-state-title').should('be.visible');
     cy.get('body').then(($body) => {
       if ($body.find('[data-testid="kserve-select-button"]').length > 0) {
-        this.findSingleServingModelButton().click();
+        this.findSingleServingModelButton().should('be.visible').click();
       }
     });
   }
@@ -637,7 +636,7 @@ mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);
 
 class ModelServingRow extends TableRow {
   shouldHaveServingRuntime(servingRuntime: string) {
-    this.find().find('[data-label="Serving runtime"]').contains(servingRuntime);
+    this.find().find('[data-label="Deployment resource"]').contains(servingRuntime);
     return this;
   }
 
@@ -674,7 +673,7 @@ class ModelServingRow extends TableRow {
   }
 
   findServingRuntime() {
-    return this.find().find(`[data-label="Serving runtime"]`);
+    return this.find().find(`[data-label="Deployment resource"]`);
   }
 
   findServiceRuntime() {
@@ -907,7 +906,7 @@ class ModelServingWizard extends Wizard {
   }
 
   visit() {
-    cy.visitWithLogin(`/ai-hub/deployments/deploy`);
+    cy.visitWithLogin(`/ai-hub/models/deployments/deploy`);
   }
 
   findSpinner() {
@@ -1303,6 +1302,14 @@ class ModelServingWizard extends Wizard {
 
   findDiscardButton() {
     return cy.findByRole('button', { name: 'Discard' });
+  }
+
+  findGatewaySelect() {
+    return cy.findByTestId('gateway-select');
+  }
+
+  findGatewaySelectOption(name: string) {
+    return this.findGatewaySelect().findSelectOption(name);
   }
 
   findDeploymentStrategySection() {

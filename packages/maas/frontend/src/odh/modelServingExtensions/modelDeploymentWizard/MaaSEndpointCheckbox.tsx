@@ -1,8 +1,12 @@
 import React from 'react';
 import { Checkbox, Stack, StackItem, Flex, FlexItem, Label } from '@patternfly/react-core';
 import { z } from 'zod';
-import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
+import type {
+  WizardField,
+  WizardStateOverrides,
+} from '@odh-dashboard/model-serving/types/form-data';
 import { isLLMInferenceServiceActive } from '@odh-dashboard/llmd-serving/formUtils';
+import { MAAS_DEFAULT_GATEWAY } from './maasDeploymentTransformer';
 
 export type MaaSFieldValue = {
   isChecked: boolean;
@@ -18,14 +22,14 @@ const getInitialMaaSFieldData = (value?: MaaSFieldValue): MaaSFieldValue =>
 
 type MaaSFieldProps = {
   id: string;
-  value: MaaSFieldValue;
+  value?: MaaSFieldValue;
   onChange: (value: MaaSFieldValue) => void;
   isDisabled?: boolean;
 };
 
 const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }) => {
   const handleCheckboxChange = (_: React.FormEvent<HTMLInputElement>, checked: boolean): void => {
-    onChange({ isChecked: checked });
+    onChange({ ...value, isChecked: checked });
   };
 
   return (
@@ -36,12 +40,11 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }
           data-testid={id}
           label={
             <>
-              <div className="pf-v6-c-form__label-text">Publish as MaaS endpoint</div>
+              <div className="pf-v6-c-form__label-text">Publish as MaaS</div>
               <Flex>
                 <FlexItem>
-                  Enable users in any namespace to access this model by adding its endpoint to the{' '}
-                  <span className="pf-v6-c-form__label-text">Models as a service</span> page. This
-                  is best for production models.
+                  Publishing as MaaS makes the model deployment endpoint accessible to others as a
+                  service through a gateway API.
                 </FlexItem>
                 <Label isCompact color="yellow" variant="outline">
                   Tech preview
@@ -49,7 +52,7 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }
               </Flex>
             </>
           }
-          isChecked={value.isChecked}
+          isChecked={value?.isChecked}
           isDisabled={isDisabled}
           onChange={handleCheckboxChange}
         />
@@ -58,7 +61,7 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }
   );
 };
 
-type MaaSFieldType = WizardField<MaaSFieldValue, undefined>;
+export type MaaSFieldType = WizardField<MaaSFieldValue>;
 
 export const MaaSEndpointFieldWizardField: MaaSFieldType = {
   id: 'maas/save-as-maas-checkbox',
@@ -70,9 +73,16 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
     setFieldData: setMaaSFieldData,
     getInitialFieldData: getInitialMaaSFieldData,
     validationSchema: maasFieldSchema,
-    getFieldOverrides: (fieldValue) => ({
-      tokenAuthentication: { isDisabled: fieldValue.isChecked },
-    }),
+    getFieldOverrides: (fieldValue) => {
+      const overrides: WizardStateOverrides = {};
+      if (fieldValue.isChecked) {
+        overrides.tokenAuthentication = { isDisabled: true };
+        overrides['llmd-serving/gateway'] = { isDisabled: true, selection: MAAS_DEFAULT_GATEWAY };
+      } else {
+        overrides['llmd-serving/gateway'] = { hiddenOptions: [MAAS_DEFAULT_GATEWAY] };
+      }
+      return overrides;
+    },
   },
   component: MaaSField,
   getReviewSections: (value) => [

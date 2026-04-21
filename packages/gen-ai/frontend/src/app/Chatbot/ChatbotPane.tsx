@@ -11,13 +11,14 @@ interface ChatbotPaneProps {
   displayLabel: string;
   selectedModel: string;
   onModelChange: (model: string) => void;
-  onSettingsClick: () => void;
   onClose: () => void;
   children: React.ReactNode;
   /** Metrics from the last response (latency, tokens, TTFT) */
   metrics?: ResponseMetrics | null;
   /** Whether a response is currently being generated */
   isLoading?: boolean;
+  isSettingsOpen?: boolean;
+  isActiveConfig?: boolean;
 }
 
 /**
@@ -29,11 +30,12 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
   displayLabel,
   selectedModel,
   onModelChange,
-  onSettingsClick,
   onClose,
   children,
   metrics,
   isLoading,
+  isSettingsOpen,
+  isActiveConfig,
 }) => {
   const isDarkMode = useDarkMode();
   return (
@@ -49,10 +51,11 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
         label={displayLabel}
         selectedModel={selectedModel}
         onModelChange={onModelChange}
-        onSettingsClick={onSettingsClick}
         onCloseClick={onClose}
         metrics={metrics}
         isLoading={isLoading}
+        isSettingsOpen={isSettingsOpen}
+        isActiveConfig={isActiveConfig}
         hasDivider
         testIdPrefix={`chatbot-pane-${configId}`}
         isDarkMode={isDarkMode}

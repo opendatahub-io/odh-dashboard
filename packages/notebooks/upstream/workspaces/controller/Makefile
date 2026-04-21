@@ -49,7 +49,7 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." \
+	$(CONTROLLER_GEN) rbac:roleName=workspaces-manager-role crd webhook paths="./..." \
 		output:crd:artifacts:config=manifests/kustomize/base/crd \
 		output:webhook:artifacts:config=manifests/kustomize/base/webhook \
 		output:rbac:artifacts:config=manifests/kustomize/base/manager
@@ -143,8 +143,13 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd manifests/kustomize/overlays/istio && $(KUSTOMIZE) edit set image workspaces-controller=${IMG}
-	$(KUBECTL) apply -k manifests/kustomize/overlays/istio
+	@echo "Copying kustomize directory structure to .output..."
+	@rm -rf manifests/kustomize/.output
+	@mkdir -p manifests/kustomize/.output
+	@cp -r manifests/kustomize/* manifests/kustomize/.output/
+	# Match both short name and registry-prefixed name (base kustomization may transform either)
+	@cd manifests/kustomize/.output/overlays/istio && $(KUSTOMIZE) edit set image $(NAME)=${IMG} $(REGISTRY)/$(NAME)=${IMG}
+	@$(KUBECTL) apply -k manifests/kustomize/.output/overlays/istio
 
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
@@ -167,7 +172,7 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
-CONTROLLER_TOOLS_VERSION ?= v0.16.4
+CONTROLLER_TOOLS_VERSION ?= v0.20.1
 ENVTEST_VERSION ?= release-0.19
 ISTIOCTL_VERSION ?= 1.27.3
 GOLANGCI_LINT_VERSION ?= v1.61.0
@@ -191,7 +196,7 @@ $(ENVTEST): $(LOCALBIN)
 .PHONY: istioctl
 istioctl: $(ISTIOCTL) ## Download istioctl locally if necessary.
 $(ISTIOCTL): $(LOCALBIN)
-	$(call go-install-tool,$(ISTIOCTL),istio.io/istio/istioctl/cmd/istioctl,$(ISTIOCTL_VERSION))
+	$(call go-install-tool,$(ISTIOCTL),istio.io/istio/istioctl/cmd/istioctl,$(ISTIOCTL_VERSION),"-X istio.io/istio/pkg/version.buildVersion=$(ISTIOCTL_VERSION) -X istio.io/istio/pkg/version.buildTag=$(ISTIOCTL_VERSION) -X istio.io/istio/pkg/version.buildHub=docker.io/istio")
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
@@ -202,13 +207,15 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 # $1 - target path with name of binary
 # $2 - package url which can be installed
 # $3 - specific version of package
+# $4 - (optional) extra ldflags to set with the installation
 define go-install-tool
 @[ -f "$(1)-$(3)" ] || { \
 set -e; \
 package=$(2)@$(3) ;\
+ldflags=$(4) ;\
 echo "Downloading $${package}" ;\
 rm -f $(1) || true ;\
-GOBIN=$(LOCALBIN) go install $${package} ;\
+GOBIN=$(LOCALBIN) go install $${ldflags:+-ldflags "$${ldflags}"} $${package} ;\
 mv $(1) $(1)-$(3) ;\
 } ;\
 ln -sf $(1)-$(3) $(1)

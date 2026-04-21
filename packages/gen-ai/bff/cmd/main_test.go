@@ -51,9 +51,9 @@ func TestGeneralBffConfiguration(t *testing.T) {
 			envVar:          "LLAMA_STACK_URL",
 			varType:         "string",
 			defaultValue:    "",
-			testValue:       testutil.TestLlamaStackURL,
+			testValue:       testutil.GetTestLlamaStackURL(),
 			expectedDefault: "",
-			expectedSet:     testutil.TestLlamaStackURL,
+			expectedSet:     testutil.GetTestLlamaStackURL(),
 		},
 		{
 			name:            "LOG_LEVEL environment variable",

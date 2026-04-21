@@ -63,7 +63,7 @@ describe('Evaluation Results Page - Single Benchmark', () => {
 
   it('should display benchmark details with primary metric and threshold', () => {
     evaluationResultsPage.visit(NAMESPACE, singleJob.resource.id);
-    evaluationResultsPage.findBenchmarkDetails('harmful_request_refusal').should('exist');
+    evaluationResultsPage.findBenchmarkDetails('harmful_request_refusal', 0).should('exist');
     evaluationResultsPage.findBenchmarkDetailsInfo().should('exist');
   });
 
@@ -80,10 +80,10 @@ describe('Evaluation Results Page - Collection', () => {
     initIntercepts({ job: collectionJob });
   });
 
-  it('should display evaluation name and selected benchmark score', () => {
+  it('should display evaluation name and overall score', () => {
     evaluationResultsPage.visit(NAMESPACE, collectionJob.resource.id);
     evaluationResultsPage.findTitle().should('contain.text', 'ToxicityDet_Claude');
-    evaluationResultsPage.findScoreValue().should('contain.text', '95%');
+    evaluationResultsPage.findScoreValue().should('contain.text', '72%');
   });
 
   it('should display benchmark cards grid', () => {
@@ -119,6 +119,6 @@ describe('Evaluation Results Page - Collection', () => {
   it('should show benchmark details when clicking a card', () => {
     evaluationResultsPage.visit(NAMESPACE, collectionJob.resource.id);
     evaluationResultsPage.findBenchmarkCard('truthfulqa_mc1').click();
-    evaluationResultsPage.findBenchmarkDetails('truthfulqa_mc1').should('exist');
+    evaluationResultsPage.findBenchmarkDetails('truthfulqa_mc1', 0).should('exist');
   });
 });

@@ -82,6 +82,10 @@ func (c *MaasClient) SearchAPIKeys(ctx context.Context, request models.APIKeySea
 		return nil, err
 	}
 
+	if apiResponse.Data == nil {
+		apiResponse.Data = []models.APIKey{}
+	}
+
 	return &apiResponse, nil
 }
 
@@ -138,6 +142,30 @@ func (c *MaasClient) ListModels(ctx context.Context) ([]models.MaaSModel, error)
 	}
 
 	return apiResponse.Data, nil
+}
+
+func (c *MaasClient) ListSubscriptionsForApiKeys(ctx context.Context) ([]models.SubscriptionListItem, error) {
+	endpoint := c.prefix.JoinPath("subscriptions")
+
+	var apiResponse []models.SubscriptionListItem
+	err := c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range apiResponse {
+		if apiResponse[i].ModelRefs == nil {
+			apiResponse[i].ModelRefs = []models.ModelRefInfo{}
+		}
+		for j := range apiResponse[i].ModelRefs {
+			if apiResponse[i].ModelRefs[j].TokenRateLimits == nil {
+				apiResponse[i].ModelRefs[j].TokenRateLimits = []models.TokenRateLimitInfo{}
+			}
+		}
+	}
+
+	return apiResponse, nil
 }
 
 func (c *MaasClient) sendRequest(ctx context.Context, method string, endpoint *url.URL, requestBody []byte, apiResponse any) error {

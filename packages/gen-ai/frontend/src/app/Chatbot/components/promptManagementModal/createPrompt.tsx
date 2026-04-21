@@ -19,29 +19,31 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useNotification } from '~/app/hooks/useNotification';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import { useChatbotConfigStore } from '~/app/Chatbot/store';
+import { useChatbotConfigStore, selectDirtyPrompt } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useCreatePrompt, useLatestPromptVersion } from './usePromptQueries';
 
-export default function CreatePrompt({
-  displayText,
-  onClose,
-}: {
+interface CreatePromptProps {
+  configId: string;
   displayText: { title: string; description: string };
   onClose: () => void;
-}): React.ReactNode {
-  const {
-    dirtyPrompt,
-    setActivePrompt,
-    setDirtyPrompt,
-    setIsPromptManagementModalOpen,
-    modalMode,
-  } = usePlaygroundStore();
+}
+
+export default function CreatePrompt({
+  configId,
+  displayText,
+  onClose,
+}: CreatePromptProps): React.ReactNode {
+  const { modalMode, closeModal } = usePlaygroundStore();
+  const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
+  const updateActivePrompt = useChatbotConfigStore((state) => state.updateActivePrompt);
+  const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
+  const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const { namespace } = useContext(GenAiContext);
   const notification = useNotification();
-  const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const isEditMode = modalMode === 'edit';
   const { latestVersion, isLoading: isLoadingVersion } = useLatestPromptVersion(
     isEditMode ? (dirtyPrompt?.name ?? null) : null,
@@ -56,11 +58,24 @@ export default function CreatePrompt({
         'Prompt saved',
         `${newPrompt.name} was saved to ${namespace?.name ?? 'the project'}.`,
       );
-      setActivePrompt(newPrompt);
+      updateActivePrompt(configId, newPrompt);
       const instruction =
         newPrompt.template ?? newPrompt.messages?.find((m) => m.role === 'system')?.content ?? '';
-      updateSystemInstruction('default', instruction);
-      setIsPromptManagementModalOpen(false);
+      updateSystemInstruction(configId, instruction);
+      closeModal();
+      const trackingEvent = isEditMode
+        ? 'Playground Prompt Version Saved'
+        : 'Playground Prompt Saved';
+      const editedFromLatest =
+        latestVersion != null && dirtyPrompt?.version != null
+          ? dirtyPrompt.version === latestVersion
+          : undefined;
+      fireMiscTrackingEvent(trackingEvent, {
+        outcome: 'submit',
+        success: true,
+        ...(isEditMode && nextVersion != null ? { versionNumber: nextVersion } : {}),
+        ...(isEditMode && editedFromLatest != null ? { editedFromLatest } : {}),
+      });
     },
     onError: (error) => {
       const errorMessage = error.message || 'An error occurred while saving the prompt.';
@@ -70,6 +85,20 @@ export default function CreatePrompt({
         setSaveError(errorMessage);
       }
       notification.error(errorMessage);
+      const trackingEvent = isEditMode
+        ? 'Playground Prompt Version Saved'
+        : 'Playground Prompt Saved';
+      const editedFromLatest =
+        latestVersion != null && dirtyPrompt?.version != null
+          ? dirtyPrompt.version === latestVersion
+          : undefined;
+      fireMiscTrackingEvent(trackingEvent, {
+        outcome: 'submit',
+        success: false,
+        error: errorMessage,
+        ...(isEditMode && nextVersion != null ? { versionNumber: nextVersion } : {}),
+        ...(isEditMode && editedFromLatest != null ? { editedFromLatest } : {}),
+      });
     },
   });
 
@@ -112,7 +141,7 @@ export default function CreatePrompt({
     if (field === 'name' && nameError) {
       setNameError(null);
     }
-    setDirtyPrompt({
+    updateDirtyPrompt(configId, {
       ...dirtyPrompt,
       [field]: value,
     });

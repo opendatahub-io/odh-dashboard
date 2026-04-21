@@ -38,11 +38,19 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   onEmbeddingDimensionChange,
   lockedModelNames,
 }) => {
+  // Composite key that is unique across models sharing the same model_id but
+  // with different model_source_types (e.g. a namespace model and a MaaS model
+  // for the same underlying model). Used for both checkbox tracking and React keys.
+  const getModelKey = React.useCallback(
+    (model: AIModel) => `${model.model_source_type}-${model.model_id}`,
+    [],
+  );
+
   const { tableProps, isSelected, toggleSelection } = useCheckboxTableBase<AIModel>(
     allModels,
     selectedModels,
     setSelectedModels,
-    React.useCallback((model) => model.model_name, []),
+    getModelKey,
   );
 
   const [search, setSearch] = React.useState('');
@@ -57,30 +65,31 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
     [filteredModels],
   );
 
-  const selectedModelsIds = selectedModels.map((model) => model.model_name);
-  const availableModelsIds = availableModels.map((model) => model.model_name);
+  const selectedModelKeys = selectedModels.map(getModelKey);
+  const availableModelKeys = availableModels.map(getModelKey);
 
   const isAllSelected =
-    availableModels.length > 0 && availableModelsIds.every((id) => selectedModelsIds.includes(id));
+    availableModels.length > 0 &&
+    availableModelKeys.every((key) => selectedModelKeys.includes(key));
 
   const handleSelectAll = (value: boolean) => {
     setSelectedModels((prev) => {
-      // Create a set of the filtered model names
-      const availableIds = new Set(availableModels.map((m) => m.model_name));
+      const availableKeys = new Set(availableModels.map(getModelKey));
 
-      // If the select all checkbox is checked, we want to add the filtered models to the selected models
       if (value) {
-        // Create a map of the current selected models by model name
-        const byId = new Map(prev.map((m) => [m.model_name, m]));
-        // Add the filtered models to the map
-        availableModels.forEach((m) => byId.set(m.model_name, m));
-        // Return the selected model names as an array from the map
-        return Array.from(byId.values());
+        const byKey = new Map(prev.map((m) => [getModelKey(m), m]));
+        availableModels.forEach((m) => byKey.set(getModelKey(m), m));
+        return Array.from(byKey.values());
       }
 
-      // If the select all checkbox is unchecked, remove filtered models but keep locked ones
+      // Remove filtered models but keep locked ones.
+      // Build locked keys by composite key so a MaaS/namespace model sharing the
+      // same model_name as a locked embedding model isn't accidentally preserved.
+      const lockedModelKeys = new Set(
+        availableModels.filter((m) => lockedModelNames.has(m.model_name)).map(getModelKey),
+      );
       return prev.filter(
-        (m) => !availableIds.has(m.model_name) || lockedModelNames.has(m.model_name),
+        (m) => !availableKeys.has(getModelKey(m)) || lockedModelKeys.has(getModelKey(m)),
       );
     });
   };
@@ -118,7 +127,7 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
           columns={chatbotConfigurationColumns}
           rowRenderer={(model) => (
             <ChatbotConfigurationTableRow
-              key={model.model_name}
+              key={getModelKey(model)}
               isChecked={isSelected(model)}
               onToggleCheck={() => toggleSelection(model)}
               isLocked={lockedModelNames.has(model.model_name)}

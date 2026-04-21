@@ -13,12 +13,13 @@ import {
   StackItem,
   HelperTextItem,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { ZodIssue } from 'zod';
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
 } from '#~/pages/pipelines/global/modelCustomization/const';
+import { pipelinesRootPath } from '#~/routes/pipelines/global';
 import { createRunRoute } from '#~/routes/pipelines/runs';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
@@ -108,7 +109,9 @@ export const PipelineDetailsSection: React.FC<PipelineDetailsSectionProps> = ({
                             <Button
                               variant="link"
                               isInline
-                              onClick={() => navigate('/develop-train/pipelines/definitions')}
+                              component={(props: React.ComponentProps<'a'>) => (
+                                <Link {...props} to={pipelinesRootPath} />
+                              )}
                             >
                               Go to <b>Pipeline definitions</b>
                             </Button>

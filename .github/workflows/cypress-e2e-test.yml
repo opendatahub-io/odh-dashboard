@@ -858,9 +858,9 @@ jobs:
           find ${{ github.workspace }}/packages/cypress/screenshots -type d -empty -delete 2>/dev/null || true
           find ${{ github.workspace }}/packages/cypress/videos -type d -empty -delete 2>/dev/null || true
 
-          # Fix read-only envtest binaries from previous BFF runs (setup-envtest downloads
-          # k8s binaries with read-only permissions, which blocks actions/checkout cleanup)
-          find ${{ github.workspace }}/packages/*/bff/bin -type f ! -perm -u+w -exec chmod u+w {} + 2>/dev/null || true
+          # Fix read-only envtest binaries and directories from previous BFF runs
+          # (setup-envtest downloads k8s binaries with 0555 permissions, which blocks actions/checkout cleanup)
+          chmod -R u+w ${{ github.workspace }}/packages/*/bff/bin ${{ github.workspace }}/packages/*/upstream/bff/bin 2>/dev/null || true
 
           echo "✅ Cleanup complete (non-critical, continued on any errors)"
 
@@ -1097,7 +1097,7 @@ jobs:
           echo "🚀 Starting webpack dev server on port ${WEBPACK_PORT} ($CLUSTER_NAME)..."
 
           # Start webpack with explicit dashboard host (ensures correct proxy target for all tests)
-          cd frontend && env ODH_DASHBOARD_HOST=${DASHBOARD_HOST} ODH_PORT=${WEBPACK_PORT} npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
+          cd frontend && env ODH_DASHBOARD_HOST=${DASHBOARD_HOST} ODH_PORT=${WEBPACK_PORT} ODH_TOKEN_REFRESH=true npm run start:dev:ext > /tmp/webpack_${WEBPACK_PORT}.log 2>&1 &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           echo "$SERVER_PID" > "$PORT_INFO_DIR/port-${WEBPACK_PORT}.pid"
@@ -1418,8 +1418,8 @@ jobs:
             echo "✅ Cleaned up $BFF_KILLED_COUNT BFF process(es) for run_id: ${{ github.run_id }}"
           fi
 
-          # Fix read-only envtest binaries so next checkout can clean the workspace
-          find ${{ github.workspace }}/packages/*/bff/bin -type f ! -perm -u+w -exec chmod u+w {} + 2>/dev/null || true
+          # Fix read-only envtest binaries and directories so next checkout can clean the workspace
+          chmod -R u+w ${{ github.workspace }}/packages/*/bff/bin ${{ github.workspace }}/packages/*/upstream/bff/bin 2>/dev/null || true
 
       - name: Stop Cypress Servers
         run: |

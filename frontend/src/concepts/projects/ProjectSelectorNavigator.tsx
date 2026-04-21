@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import ProjectSelector from './ProjectSelector';
 
@@ -13,7 +13,6 @@ const ProjectSelectorNavigator: React.FC<ProjectSelectorProps> = ({
   queryParamNamespace,
   ...projectSelectorProps
 }) => {
-  const navigate = useNavigate();
   const { namespace: pathNamespace } = useParams();
   const { projects, updatePreferredProject } = React.useContext(ProjectsContext);
   const [searchParams] = useSearchParams();
@@ -23,10 +22,10 @@ const ProjectSelectorNavigator: React.FC<ProjectSelectorProps> = ({
   return (
     <ProjectSelector
       {...projectSelectorProps}
+      getSelectionHref={(projectName) => getRedirectPath(projectName)}
       onSelection={(projectName) => {
         const match = projectName ? projects.find(byName(projectName)) ?? null : null;
         updatePreferredProject(match);
-        navigate(getRedirectPath(projectName));
       }}
       namespace={namespace}
     />

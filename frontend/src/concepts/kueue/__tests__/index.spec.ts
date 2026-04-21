@@ -3,7 +3,7 @@ import { getKueueWorkloadStatusWithMessage, getKueueStatusInfo } from '#~/concep
 import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 
 const baseWorkload: WorkloadKind = {
-  apiVersion: 'kueue.x-k8s.io/v1beta1',
+  apiVersion: 'kueue.x-k8s.io/v1beta2',
   kind: 'Workload',
   metadata: { name: 'test-workload', namespace: 'test-ns' },
   spec: {
@@ -94,7 +94,7 @@ describe('getKueueWorkloadStatusWithMessage', () => {
     expect(result.status).toBe(KueueWorkloadStatus.Preempted);
   });
 
-  it('should return Succeeded when Finished with success reason', () => {
+  it('should return Complete when Finished with success reason', () => {
     const workload = workloadWithConditions([
       {
         type: 'Finished',
@@ -105,10 +105,10 @@ describe('getKueueWorkloadStatusWithMessage', () => {
       },
     ]);
     const result = getKueueWorkloadStatusWithMessage(workload);
-    expect(result.status).toBe(KueueWorkloadStatus.Succeeded);
+    expect(result.status).toBe(KueueWorkloadStatus.Complete);
   });
 
-  it('should return Succeeded when Finished with reason that matches neither failure nor success (fallback)', () => {
+  it('should return Complete when Finished with reason that matches neither failure nor success (fallback)', () => {
     const workload = workloadWithConditions([
       {
         type: 'Finished',
@@ -119,10 +119,10 @@ describe('getKueueWorkloadStatusWithMessage', () => {
       },
     ]);
     const result = getKueueWorkloadStatusWithMessage(workload);
-    expect(result.status).toBe(KueueWorkloadStatus.Succeeded);
+    expect(result.status).toBe(KueueWorkloadStatus.Complete);
   });
 
-  it('should return Succeeded when Finished with JobFinished reason (fallback)', () => {
+  it('should return Complete when Finished with JobFinished reason (fallback)', () => {
     const workload = workloadWithConditions([
       {
         type: 'Finished',
@@ -133,7 +133,7 @@ describe('getKueueWorkloadStatusWithMessage', () => {
       },
     ]);
     const result = getKueueWorkloadStatusWithMessage(workload);
-    expect(result.status).toBe(KueueWorkloadStatus.Succeeded);
+    expect(result.status).toBe(KueueWorkloadStatus.Complete);
   });
 
   it('should return Failed when Finished with timeout in message', () => {
@@ -182,7 +182,7 @@ describe('getKueueWorkloadStatusWithMessage', () => {
       },
     ]);
     const result = getKueueWorkloadStatusWithMessage(workload);
-    expect(result.status).toBe(KueueWorkloadStatus.Succeeded);
+    expect(result.status).toBe(KueueWorkloadStatus.Complete);
     expect(result.message).toContain('successfully');
   });
 
@@ -334,21 +334,18 @@ describe('getKueueStatusInfo', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Failed);
     expect(info.label).toBe('Failed');
     expect(info.status).toBe('danger');
-    expect(info.color).toBe('red');
   });
 
   it('should return correct info for Preempted', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Preempted);
     expect(info.label).toBe('Preempted');
     expect(info.status).toBe('warning');
-    expect(info.color).toBe('orange');
   });
 
   it('should return correct info for Inadmissible', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Inadmissible);
     expect(info.label).toBe('Inadmissible');
     expect(info.status).toBe('warning');
-    expect(info.color).toBe('orange');
   });
 
   it('should return correct info for Running', () => {
@@ -364,11 +361,10 @@ describe('getKueueStatusInfo', () => {
     expect(info.iconClassName).toBe('odh-u-spin');
   });
 
-  it('should return correct info for Succeeded', () => {
-    const info = getKueueStatusInfo(KueueWorkloadStatus.Succeeded);
+  it('should return correct info for Complete', () => {
+    const info = getKueueStatusInfo(KueueWorkloadStatus.Complete);
     expect(info.label).toBe('Complete');
     expect(info.status).toBe('success');
-    expect(info.color).toBe('green');
   });
 
   it('should return default for unknown status', () => {

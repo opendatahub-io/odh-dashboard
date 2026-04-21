@@ -10,19 +10,23 @@ const (
 	// AuthMethodInternal uses the credentials of the running backend.
 	// If running inside the cluster, it uses the pod's service account.
 	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
-	// This is the default authentication method.
 	// This uses kubeflow-userid header to carry the user identity.
+	// NOTE: Only use this for Kubeflow Central Dashboard deployments.
 	AuthMethodInternal = "internal"
 
 	// AuthMethodUser uses a user-provided Bearer token for authentication.
+	// This is the default and recommended method for ODH/RHOAI deployments.
 	AuthMethodUser = "user_token"
 
-	// DefaultAuthTokenHeader is the standard header for Bearer token auth.
-	DefaultAuthTokenHeader = "Authorization"
+	// DefaultAuthTokenHeader is the default header for token extraction.
+	// For ODH/RHOAI deployments, this is 'x-forwarded-access-token'.
+	// Override via CLI flag or AUTH_TOKEN_HEADER env var (e.g., "Authorization") for other setups.
+	DefaultAuthTokenHeader = "x-forwarded-access-token"
 
-	// DefaultAuthTokenPrefix is the prefix used in the Authorization header.
-	// note: the space here is intentional, as the prefix is "Bearer " (with a space).
-	DefaultAuthTokenPrefix = "Bearer "
+	// DefaultAuthTokenPrefix is the prefix to strip from the token header value.
+	// For ODH/RHOAI ('x-forwarded-access-token'), this is empty.
+	// Override via CLI flag or AUTH_TOKEN_PREFIX env var (e.g., "Bearer ") for other setups.
+	DefaultAuthTokenPrefix = ""
 )
 
 // DeploymentMode represents the deployment mode enum

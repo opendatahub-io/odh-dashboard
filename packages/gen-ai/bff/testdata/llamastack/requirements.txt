@@ -1,0 +1,8 @@
+# Python dependencies for the Llama Stack test server.
+# Prevent upgrading to versions that could break the test server.
+# Versions may be updated when the Llama Stack test server is upgraded for compatibility.
+milvus-lite==2.5.1
+pymilvus==2.6.9
+chardet==7.1.0
+ollama==0.6.1
+pypdf==6.9.0

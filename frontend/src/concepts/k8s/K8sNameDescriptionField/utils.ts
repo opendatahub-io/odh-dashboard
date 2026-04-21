@@ -33,17 +33,26 @@ export enum LimitNameResourceType {
   /** Model deployments create routes */
   MODEL_DEPLOYMENT,
   PVC,
+  /** Model Registry names are capped at 40 characters */
+  MODEL_REGISTRY,
 }
 /** K8s max DNS subdomain name length */
 const MAX_RESOURCE_NAME_LENGTH = 253;
 
 const MAX_PVC_NAME_LENGTH = 63;
+const MAX_MODEL_REGISTRY_NAME_LENGTH = 40;
+
+/** KServe InferenceService names must start with a lowercase letter */
+export const INFERENCE_SERVICE_NAME_REGEX = /^[a-z]([-a-z0-9]*[a-z0-9])?$/;
+export const INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE =
+  'Must start with a lowercase letter and end with a lowercase letter or number. Valid characters include lowercase letters, numbers, and hyphens (-).';
 
 export const resourceTypeLimits: Record<LimitNameResourceType, number> = {
   [LimitNameResourceType.PROJECT]: ROUTE_BASED_NAME_LENGTH,
   [LimitNameResourceType.WORKBENCH]: ROUTE_BASED_NAME_LENGTH,
   [LimitNameResourceType.MODEL_DEPLOYMENT]: ROUTE_BASED_NAME_LENGTH,
   [LimitNameResourceType.PVC]: MAX_PVC_NAME_LENGTH,
+  [LimitNameResourceType.MODEL_REGISTRY]: MAX_MODEL_REGISTRY_NAME_LENGTH,
 };
 
 export const isK8sNameDescriptionType = (
@@ -111,7 +120,7 @@ export const handleUpdateLogic =
       case 'name': {
         changedData.name = value;
 
-        const { touched, immutable, maxLength, safePrefix, staticPrefix } =
+        const { touched, immutable, maxLength, safePrefix, staticPrefix, regexp } =
           existingData.k8sName.state;
         // When name changes, we want to update resource name if applicable
         if (!touched && !immutable) {
@@ -123,6 +132,10 @@ export const handleUpdateLogic =
           });
           changedData.k8sName = {
             value: k8sValue,
+            state: {
+              invalidCharacters: k8sValue.length > 0 ? !isValidK8sName(k8sValue, regexp) : false,
+              invalidLength: k8sValue.length > maxLength,
+            },
           };
         }
         break;

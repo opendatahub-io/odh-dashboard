@@ -1,13 +1,17 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { getLlamaStackModels, getLlamaStackVectorStores } from '~/app/api/k8s';
+import { getLlamaStackModels, getLlamaStackVectorStores, getSecrets } from '~/app/api/k8s';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
+import { getFiles as getS3Files } from '~/app/api/s3';
 import {
-  LlamaStackModelType,
   LlamaStackModelsResponse,
-  LlamaStackVectorStoresResponse,
+  LlamaStackModelType,
+  LlamaStackVectorStoreProvidersResponse,
   PipelineRun,
+  S3ListObjectsResponse,
+  SecretListItem,
 } from '~/app/types';
+import { URL_PREFIX } from '~/app/utilities/const';
 
 export function useLlamaStackModelsQuery(
   namespace: string,
@@ -16,7 +20,7 @@ export function useLlamaStackModelsQuery(
 ): UseQueryResult<LlamaStackModelsResponse, Error> {
   return useQuery({
     enabled: !!namespace && !!secretName,
-    queryKey: ['models', namespace, secretName],
+    queryKey: ['autorag', 'models', namespace, secretName],
     queryFn: async () => {
       try {
         const response = await getLlamaStackModels('')(namespace, secretName)({});
@@ -45,67 +49,143 @@ export function useLlamaStackModelsQuery(
   });
 }
 
-export function useLlamaStackVectorStoresQuery(
+type FetchS3FileOptions = {
+  secretName?: string;
+  bucket?: string;
+  signal?: AbortSignal;
+};
+
+/**
+ * Fetches a file from S3 storage and returns it as a Blob.
+ * This is a utility function that can be used in both hooks and query functions.
+ */
+export async function fetchS3File(
+  namespace: string,
+  key: string,
+  options?: FetchS3FileOptions,
+): Promise<Blob> {
+  const { secretName, bucket, signal } = options ?? {};
+  const params = new URLSearchParams({
+    namespace,
+    key,
+    ...(secretName && { secretName }),
+    ...(bucket && { bucket }),
+  });
+
+  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`, { signal });
+
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    try {
+      const errorData = await response.json();
+      if (errorData?.error?.message) {
+        errorMessage = errorData.error.message;
+      }
+    } catch {
+      // If parsing fails, fall back to statusText
+    }
+    throw new Error(`Failed to fetch file: ${errorMessage}`);
+  }
+
+  return response.blob();
+}
+
+export function useS3ListFilesQuery(
+  namespace?: string,
+  path?: string,
+): UseQueryResult<S3ListObjectsResponse, Error> {
+  return useQuery({
+    queryKey: ['autorag', 's3Files', namespace, path],
+    queryFn: async ({ signal }) => {
+      if (!namespace || !path) {
+        throw new Error('namespace and path are required');
+      }
+      return getS3Files(
+        '',
+        { signal },
+        {
+          namespace,
+          path,
+        },
+      );
+    },
+    enabled: Boolean(namespace && path),
+    retry: false,
+  });
+}
+
+export function useLlamaStackVectorStoreProvidersQuery(
   namespace: string,
   secretName: string,
-  providers?: string[],
-): UseQueryResult<LlamaStackVectorStoresResponse, Error> {
+  providerTypes?: string[],
+): UseQueryResult<LlamaStackVectorStoreProvidersResponse, Error> {
   return useQuery({
     enabled: !!namespace && !!secretName,
-    // providers is intentionally excluded: select transforms cached data without
-    // affecting the cache, so different provider filters safely share one cache entry.
-    queryKey: ['vectorStores', namespace, secretName],
+    // providerTypes is intentionally excluded: select transforms cached data without
+    // affecting the cache, so different provider type filters safely share one cache entry.
+    queryKey: ['autorag', 'vectorStoreProviders', namespace, secretName],
     queryFn: async () => {
       try {
         const response = await getLlamaStackVectorStores('')(namespace, secretName)({});
         z.object({
           // eslint-disable-next-line camelcase
-          vector_stores: z.array(
+          vector_store_providers: z.array(
             z.object({
-              id: z.string(),
-              name: z.string(),
-              status: z.string(),
-              provider: z.string(),
+              // eslint-disable-next-line camelcase
+              provider_id: z.string(),
+              // eslint-disable-next-line camelcase
+              provider_type: z.string(),
             }),
           ),
         }).parse(response);
         return response;
       } catch (error) {
         if (error instanceof z.ZodError) {
-          throw new Error('Invalid llama stack vector stores response');
+          throw new Error('Invalid llama stack vector store providers response');
         }
         throw error;
       }
     },
-    // Only show completed vector stores. Additionally filter by provider
-    // when a non-empty providers array is given (undefined or [] skips provider filtering).
+    // Filter by provider_type when a non-empty providerTypes array is given.
     select: (data) => ({
       // eslint-disable-next-line camelcase
-      vector_stores: data.vector_stores.filter(
-        (vs) =>
-          vs.status === 'completed' && (!providers?.length || providers.includes(vs.provider)),
+      vector_store_providers: data.vector_store_providers.filter(
+        (p) => !providerTypes?.length || providerTypes.includes(p.provider_type),
       ),
     }),
   });
 }
 
-const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED']);
-const POLL_INTERVAL_MS = 5000;
+const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED', 'CACHED']);
+export const isTerminalState = (state: string): boolean => TERMINAL_STATES.has(state);
+const POLL_INTERVAL_MS = 10000;
 
 export function usePipelineRunQuery(
   runId?: string,
   namespace?: string,
 ): UseQueryResult<PipelineRun, Error> {
   return useQuery({
-    queryKey: ['pipelineRun', runId, namespace],
+    queryKey: ['autorag', 'pipelineRun', runId, namespace],
     queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
     enabled: !!runId && !!namespace,
+    placeholderData: (previousData) => previousData,
     refetchInterval: (query) => {
       const state = query.state.data?.state;
-      if (!state || TERMINAL_STATES.has(state)) {
+      if (!state || isTerminalState(state)) {
         return false;
       }
       return POLL_INTERVAL_MS;
     },
+  });
+}
+
+export function useSecretsQuery(
+  namespace: string,
+  type?: 'storage' | 'lls',
+): UseQueryResult<SecretListItem[], Error> {
+  return useQuery({
+    enabled: !!namespace,
+    queryKey: ['autorag', 'secrets', namespace, type],
+    queryFn: ({ signal }) => getSecrets('')(namespace, type)({ signal }),
   });
 }

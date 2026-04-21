@@ -59,7 +59,7 @@ describe('create', () => {
 
     categorySection.findMultiGroupInput().type('New category');
 
-    categorySection.findMultiGroupSelectButton('Option').click();
+    categorySection.findMultiGroupSelectButton('New-category').click();
     categorySection.findChipItem('New category').should('exist');
     categorySection.findMultiGroupInput().type('{esc}');
 
@@ -179,7 +179,7 @@ describe('duplicate', () => {
     row1.findName().should('contain.text', 'Short text 1');
     row1.findType().should('have.text', 'Text - Short');
     row1.findDefault().should('have.text', '-');
-    row1.findRequired().not('be.checked');
+    row1.findRequired().should('not.be.checked');
 
     // Row 2 - Short text field
     const row2 = createConnectionTypePage.getFieldsTableRow(2);

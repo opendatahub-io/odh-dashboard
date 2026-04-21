@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
@@ -153,6 +154,7 @@ func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.Pipe
 		CreatedAt:                kfRun.CreatedAt,
 		ScheduledAt:              kfRun.ScheduledAt,
 		FinishedAt:               kfRun.FinishedAt,
+		PipelineSpec:             kfRun.PipelineSpec,
 		StateHistory:             kfRun.StateHistory,
 		Error:                    kfRun.Error,
 		RunDetails:               kfRun.RunDetails,
@@ -244,6 +246,60 @@ func DeterminePipelineType(taskType string) (string, error) {
 	}
 }
 
+// TerminatePipelineRun terminates an active pipeline run by ID.
+// It sends a terminate request to the pipeline server.
+func (r *PipelineRunsRepository) TerminatePipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	runID string,
+) error {
+	if client == nil {
+		return fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := client.TerminateRun(ctx, runID); err != nil {
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) {
+			switch httpErr.Status() {
+			case http.StatusNotFound:
+				return ErrPipelineRunNotFound
+			case http.StatusBadRequest:
+				return err
+			}
+		}
+		return fmt.Errorf("failed to terminate pipeline run: %w", err)
+	}
+
+	return nil
+}
+
+// RetryPipelineRun retries a failed or terminated pipeline run by ID.
+// It sends a retry request to the pipeline server to re-initiate the run.
+func (r *PipelineRunsRepository) RetryPipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	runID string,
+) error {
+	if client == nil {
+		return fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := client.RetryRun(ctx, runID); err != nil {
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) {
+			switch httpErr.Status() {
+			case http.StatusNotFound:
+				return ErrPipelineRunNotFound
+			case http.StatusBadRequest:
+				return err
+			}
+		}
+		return fmt.Errorf("failed to retry pipeline run: %w", err)
+	}
+
+	return nil
+}
+
 // ValidateCreateAutoMLRunRequest checks that all required fields are present,
 // rejects fields not in the pipeline type's schema, and validates enum/range values.
 //
@@ -306,12 +362,28 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 	}
 
 	// Validate optional field ranges
-	if req.TopN != nil && *req.TopN <= 0 {
-		return NewValidationError("invalid top_n: must be a positive integer")
+	if req.TopN != nil {
+		if *req.TopN < constants.MinTopN {
+			return NewValidationError(fmt.Sprintf("invalid top_n: must be at least %d", constants.MinTopN))
+		}
+
+		// Enforce max top_n based on pipeline type
+		maxTopN := constants.MaxTopNTabular
+		if pipelineType == constants.PipelineTypeTimeSeries {
+			maxTopN = constants.MaxTopNTimeSeries
+		}
+
+		if *req.TopN > maxTopN {
+			return NewValidationError(fmt.Sprintf("invalid top_n: maximum value for %s pipeline is %d", pipelineType, maxTopN))
+		}
 	}
 
 	if req.PredictionLength != nil && *req.PredictionLength <= 0 {
 		return NewValidationError("invalid prediction_length: must be a positive integer")
+	}
+
+	if utf8.RuneCountInString(req.DisplayName) > 250 {
+		return NewValidationError("display_name must be at most 250 characters")
 	}
 
 	return nil
@@ -477,7 +549,8 @@ func (r *PipelineRunsRepository) GetAllPipelineRuns(
 	return allRuns, nil
 }
 
-// GetPipelineRun retrieves a single pipeline run by ID
+// GetPipelineRun retrieves a single pipeline run by ID.
+// It also fetches the pipeline version to include pipeline_spec for topology visualization.
 func (r *PipelineRunsRepository) GetPipelineRun(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
@@ -506,5 +579,19 @@ func (r *PipelineRunsRepository) GetPipelineRun(
 	// Transform Kubeflow format to our stable API format.
 	// pipeline_type is not set here; the handler sets it after ownership validation.
 	run := toPipelineRun(kfRun, "")
+
+	// Enrich with pipeline_spec from the pipeline version (needed for DAG topology)
+	if ref := kfRun.PipelineVersionReference; ref != nil && ref.PipelineID != "" && ref.PipelineVersionID != "" {
+		version, vErr := client.GetPipelineVersion(ctx, ref.PipelineID, ref.PipelineVersionID)
+		if vErr != nil {
+			slog.Warn("failed to fetch pipeline version for spec enrichment",
+				"pipelineID", ref.PipelineID,
+				"versionID", ref.PipelineVersionID,
+				"error", vErr)
+		} else if version != nil && len(version.PipelineSpec) > 0 {
+			run.PipelineSpec = version.PipelineSpec
+		}
+	}
+
 	return &run, nil
 }
