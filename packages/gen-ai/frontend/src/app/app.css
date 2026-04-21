@@ -65,8 +65,8 @@ body,
   padding: var(--pf-t--global--spacer--xs);
 }
 
-/* Center scroll-to-top/bottom jump buttons in embedded chatbot mode */
+/* Center scroll-to-top/bottom jump buttons in embedded chatbot mode.
+   Upstream defaults to 75%; 50% + the existing translate3d(-50%) centers it. */
 .pf-chatbot--embedded .pf-chatbot__jump {
   inset-inline-start: 50% !important;
-  transform: translateX(-50%);
 }
