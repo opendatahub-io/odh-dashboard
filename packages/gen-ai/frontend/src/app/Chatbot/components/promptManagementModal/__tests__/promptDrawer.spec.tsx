@@ -87,7 +87,9 @@ describe('PromptDrawer', () => {
   it('should render version selector with correct options', () => {
     render(<PromptDrawer {...defaultProps} selectedVersion={2} />);
 
-    expect(screen.getByRole('button', { name: 'Version 2' })).toBeInTheDocument();
+    const toggle = screen.getByTestId('prompt-version-select');
+    expect(toggle).toBeInTheDocument();
+    expect(toggle).toHaveTextContent('Version 2');
   });
 
   it('should render close button in drawer', () => {

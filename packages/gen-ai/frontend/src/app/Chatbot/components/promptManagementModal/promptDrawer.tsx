@@ -12,6 +12,10 @@ import {
   DrawerContentBody,
   DrawerHead,
   DrawerActions,
+  MenuToggle,
+  Select,
+  SelectList,
+  SelectOption,
   TextArea,
   Spinner,
   Title,
@@ -22,8 +26,47 @@ import {
   Label,
 } from '@patternfly/react-core';
 import { CompressAltIcon } from '@patternfly/react-icons';
-import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import { MLflowPromptVersion } from '~/app/types';
+
+const VersionSelect: React.FC<{
+  versions: MLflowPromptVersion[];
+  selected: number;
+  onChange: (version: number) => void;
+}> = ({ versions, selected, onChange }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  return (
+    <Select
+      isOpen={isOpen}
+      isScrollable
+      selected={String(selected)}
+      onSelect={(_e, value) => {
+        onChange(Number(value));
+        setIsOpen(false);
+      }}
+      onOpenChange={setIsOpen}
+      toggle={(toggleRef) => (
+        <MenuToggle
+          ref={toggleRef}
+          data-testid="prompt-version-select"
+          onClick={() => setIsOpen((prev) => !prev)}
+          isExpanded={isOpen}
+        >
+          {`Version ${selected}`}
+        </MenuToggle>
+      )}
+      shouldFocusToggleOnSelect
+    >
+      <SelectList>
+        {versions.map((v) => (
+          <SelectOption key={v.version} value={String(v.version)}>
+            {`Version ${v.version}`}
+          </SelectOption>
+        ))}
+      </SelectList>
+    </Select>
+  );
+};
 
 export default function PromptDrawer({
   isLoadingDetails,
@@ -72,14 +115,6 @@ export default function PromptDrawer({
       updated_at: updatedAt,
     } = selectedPrompt;
 
-    const versionOptions = selectedPromptVersions.map((prompt) => ({
-      key: String(prompt.version),
-      label: `Version ${prompt.version}`,
-    }));
-
-    function onVersionSelect(key: string) {
-      onVersionChange(Number(key));
-    }
     return (
       <DrawerPanelContent data-testid="prompt-drawer-panel">
         <DrawerHead>
@@ -102,12 +137,10 @@ export default function PromptDrawer({
             paddingRight: 'var(--pf-t--global--spacer--md)',
           }}
         >
-          <SimpleSelect
-            isScrollable
-            options={versionOptions}
-            value={String(version)}
-            onChange={onVersionSelect}
-            dataTestId="prompt-version-select"
+          <VersionSelect
+            versions={selectedPromptVersions}
+            selected={version}
+            onChange={onVersionChange}
           />
           <div>
             <TextArea
