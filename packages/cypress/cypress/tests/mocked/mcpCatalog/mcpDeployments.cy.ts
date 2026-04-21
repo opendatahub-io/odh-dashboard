@@ -507,8 +507,9 @@ describe('MCP Deploy from Catalog', () => {
     mcpDeployModal.findSubmitButton().click();
 
     cy.wait('@createDeployment').then((interception) => {
-      expect(interception.request.body).to.have.property('name', 'my-server');
-      expect(interception.request.body).to.have.property('displayName', 'My Server');
+      const body = interception.request.body.data || interception.request.body;
+      expect(body).to.have.property('name', 'my-server');
+      expect(body).to.have.property('displayName', 'My Server');
     });
   });
 
@@ -531,9 +532,9 @@ describe('MCP Deploy from Catalog', () => {
     mcpDeployModal.findSubmitButton().click();
 
     cy.wait('@createDeployment').then((interception) => {
-      const { name } = interception.request.body;
-      expect(name).to.match(/^gen-[a-z0-9]+$/);
-      expect(name).to.not.equal('----');
+      const body = interception.request.body.data || interception.request.body;
+      expect(body.name).to.match(/^gen-[a-z0-9]+$/);
+      expect(body.name).to.not.equal('----');
     });
   });
 });
