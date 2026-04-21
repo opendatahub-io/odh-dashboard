@@ -7,7 +7,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { isLlamaModelEnabled } from '~/app/utilities';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
-import type { BFFConfig, LlamaStackDistributionModel } from '~/app/types';
+import type { AIModel, BFFConfig, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import { MaaSModel } from '~/app/types';
 
 // Mock dependencies
@@ -150,19 +150,44 @@ const setupMockStore = (overrides: Partial<typeof defaultStoreState> = {}) => {
   (useChatbotConfigStore as unknown as { getState: () => typeof state }).getState = () => state;
 };
 
+/* eslint-disable camelcase */
+const mockAIModel: AIModel = {
+  model_name: 'test-model',
+  model_id: 'test-model',
+  serving_runtime: 'kserve',
+  api_protocol: 'v2',
+  version: 'v1',
+  usecase: 'llm',
+  description: 'Test model',
+  endpoints: [],
+  status: 'Running',
+  display_name: 'Test Model',
+  model_source_type: 'namespace',
+  sa_token: { name: 'token', token_name: 'token', token: 'test' },
+};
+
+const mockLlamaModel: LlamaModel = {
+  id: 'test-model',
+  modelId: 'test-model',
+  object: 'model',
+  created: 0,
+  owned_by: 'test',
+};
+/* eslint-enable camelcase */
+
 const defaultChatbotContext = {
   lsdStatus: { phase: 'Ready' } as LlamaStackDistributionModel,
   modelsLoaded: true,
   lsdStatusLoaded: true,
   lsdStatusError: undefined,
   refresh: jest.fn(),
-  aiModels: [{ id: 'test-model' }],
+  aiModels: [mockAIModel],
   aiModelsLoaded: true,
   aiModelsError: undefined,
   maasModels: [] as MaaSModel[],
   maasModelsLoaded: true,
   maasModelsError: undefined,
-  models: [{ id: 'test-model' }],
+  models: [mockLlamaModel],
   modelsError: undefined,
   lastInput: '',
   setLastInput: jest.fn(),
