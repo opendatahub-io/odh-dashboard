@@ -41,7 +41,7 @@ describe('DeploymentHardwareProfileCell', () => {
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   it('should render HardwareProfileTableColumn with the correct namespace', () => {

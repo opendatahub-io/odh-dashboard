@@ -1,4 +1,4 @@
-import { Spinner, Flex, FlexItem, Popover, Tooltip } from '@patternfly/react-core';
+import { Button, Spinner, Flex, FlexItem, Popover, Tooltip } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -82,7 +82,9 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
                 content="No matching hardware profile found, using existing settings. Default, min, and max values are not available. Expand the row to view the current resource settings."
                 data-testid="hardware-profile-custom-tooltip"
               >
-                <i>Custom</i>
+                <Button isInline variant="plain">
+                  <i>Custom</i>
+                </Button>
               </Tooltip>
             )}
           </FlexItem>
