@@ -1,10 +1,20 @@
-import { Stack, StackItem, Alert, AlertActionCloseButton } from '@patternfly/react-core';
+import {
+  Alert,
+  AlertActionCloseButton,
+  Flex,
+  FlexItem,
+  Label,
+  Stack,
+  StackItem,
+  Title,
+} from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
 import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useAutoMLTaskTopology } from '~/app/topology/useAutoMLTaskTopology';
+import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { downloadBlob } from '~/app/utilities/utils';
 import AutomlLeaderboard from './AutomlLeaderboard';
@@ -103,6 +113,9 @@ function AutomlResults(): React.JSX.Element {
     [namespace, models, pipelineRun?.display_name],
   );
 
+  const isCanceled = pipelineRun?.state.toUpperCase() === RuntimeStateKF.CANCELED;
+  const isFailed = pipelineRun?.state.toUpperCase() === RuntimeStateKF.FAILED;
+
   return (
     <>
       <Stack hasGutter>
@@ -119,7 +132,27 @@ function AutomlResults(): React.JSX.Element {
             </Alert>
           </StackItem>
         )}
-        <StackItem>
+        <StackItem className="automl-topology-wrapper">
+          <Flex
+            className="automl-topology-overlay"
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <Title headingLevel="h3">Experiment pipeline</Title>
+            </FlexItem>
+            {(isCanceled || isFailed) && (
+              <FlexItem>
+                <Label
+                  variant="outline"
+                  status={isCanceled ? 'warning' : 'danger'}
+                  data-testid="run-status-label"
+                >
+                  {pipelineRun.state}
+                </Label>
+              </FlexItem>
+            )}
+          </Flex>
           <PipelineTopology
             nodes={nodes}
             selectedIds={selectedIds}

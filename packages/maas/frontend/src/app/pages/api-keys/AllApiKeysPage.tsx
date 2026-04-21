@@ -116,8 +116,8 @@ const AllApiKeysPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="API Keys"
-      description="Manage personal API keys that can be used to access AI asset endpoints."
+      title="API keys"
+      description="Manage API keys that can be used to authenticate with model endpoints."
       loaded={loaded}
       loadError={error}
       empty={false}

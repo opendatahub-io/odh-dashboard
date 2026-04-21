@@ -216,6 +216,7 @@ describe('An admin user can manage Storage Classes from Settings -> Storage clas
       verifyStorageClassConfig(scAccessModeName1, false, true, undefined, undefined, {
         ReadWriteOnce: true,
         ReadWriteMany: true,
+        ReadWriteOncePod: false,
         ReadOnlyMany: true,
       });
 

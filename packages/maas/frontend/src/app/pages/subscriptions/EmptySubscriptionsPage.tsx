@@ -19,7 +19,7 @@ const EmptySubscriptionsPage: React.FC = () => {
             onClick={() => navigate(`${URL_PREFIX}/subscriptions/create`)}
             data-testid="create-subscription-button"
           >
-            Create Subscription
+            Create subscription
           </Button>
         }
       />
