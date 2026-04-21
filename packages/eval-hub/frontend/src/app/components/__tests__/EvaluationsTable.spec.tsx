@@ -73,7 +73,9 @@ describe('EvaluationsTable', () => {
 
   it('should render the New evaluation button', () => {
     renderTable({ evaluations: mockJobs, loaded: true });
-    expect(screen.getByTestId('create-evaluation-button')).toHaveTextContent('New evaluation');
+    expect(screen.getByTestId('create-evaluation-button')).toHaveTextContent(
+      'Start evaluation run',
+    );
   });
 
   describe('filtering', () => {
@@ -167,11 +169,11 @@ describe('EvaluationsTable', () => {
     it('should render all expected column headers in the table', () => {
       renderTable({ evaluations: mockJobs, loaded: true });
       const table = screen.getByTestId('evaluations-table');
-      expect(table).toHaveTextContent('Evaluation name');
+      expect(table).toHaveTextContent('Name');
       expect(table).toHaveTextContent('Status');
       expect(table).toHaveTextContent('Evaluation');
       expect(table).toHaveTextContent('Evaluated');
-      expect(table).toHaveTextContent('Run date');
+      expect(table).toHaveTextContent('Date');
       expect(table).toHaveTextContent('Result');
     });
   });

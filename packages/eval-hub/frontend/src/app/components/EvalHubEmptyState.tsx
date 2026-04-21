@@ -19,13 +19,12 @@ const EvalHubEmptyState: React.FC = () => {
     <EmptyState
       headingLevel="h2"
       icon={SearchIcon}
-      titleText="No existing evaluation runs"
+      titleText="No evaluation runs"
       variant={EmptyStateVariant.lg}
       data-testid="eval-hub-empty-state"
     >
       <EmptyStateBody data-testid="eval-hub-empty-state-body">
-        No evaluation runs have been started in this project. Start a new evaluation run, or select
-        a different project.
+        Start an evaluation run, or select a different project to view its runs.
       </EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
@@ -37,7 +36,7 @@ const EvalHubEmptyState: React.FC = () => {
               navigate('create');
             }}
           >
-            Create new evaluation
+            Start evaluation run
           </Button>
         </EmptyStateActions>
       </EmptyStateFooter>
