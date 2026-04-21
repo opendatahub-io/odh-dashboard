@@ -22,7 +22,7 @@ import {
   Label,
 } from '@patternfly/react-core';
 import { CompressAltIcon } from '@patternfly/react-icons';
-import { SimpleSelect } from '@patternfly/react-templates';
+import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import { MLflowPromptVersion } from '~/app/types';
 
 export default function PromptDrawer({
@@ -73,17 +73,12 @@ export default function PromptDrawer({
     } = selectedPrompt;
 
     const versionOptions = selectedPromptVersions.map((prompt) => ({
-      value: prompt.version,
-      content: `Version ${prompt.version.toString()}`,
+      key: String(prompt.version),
+      label: `Version ${prompt.version}`,
     }));
 
-    const initialOptions = versionOptions.map((o) => ({
-      ...o,
-      selected: o.value === version,
-    }));
-
-    function onVersionSelect(_: React.MouseEvent, selection: string | number) {
-      onVersionChange(Number(selection));
+    function onVersionSelect(key: string) {
+      onVersionChange(Number(key));
     }
     return (
       <DrawerPanelContent data-testid="prompt-drawer-panel">
@@ -109,9 +104,10 @@ export default function PromptDrawer({
         >
           <SimpleSelect
             isScrollable
-            initialOptions={initialOptions}
-            onSelect={onVersionSelect}
-            toggleProps={{ 'data-testid': 'prompt-version-select' }}
+            options={versionOptions}
+            value={String(version)}
+            onChange={onVersionSelect}
+            dataTestId="prompt-version-select"
           />
           <div>
             <TextArea
