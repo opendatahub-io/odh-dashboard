@@ -1,0 +1,10 @@
+/* MLflow selector sets inline min/max width on MenuToggle; scope full width to this page only. */
+.eval-hub-start-evaluation-run__mlflow-selector {
+  width: 100%;
+}
+
+.eval-hub-start-evaluation-run__mlflow-selector [data-testid='mlflow-experiment-selector-toggle'] {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
