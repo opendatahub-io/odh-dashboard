@@ -1,0 +1,6 @@
+projectNamePrefix: 'test-automl-binary'
+dspaSecretName: dashboard-dspa-secret
+runName: automl-binary-run
+runDescription: 'E2E test binary classification run'
+trainingDataFile: automl-test-data.csv
+labelColumn: target
