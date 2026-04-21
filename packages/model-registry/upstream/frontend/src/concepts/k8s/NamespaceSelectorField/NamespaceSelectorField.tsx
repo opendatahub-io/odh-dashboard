@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   Alert,
   Button,
+  FormGroupLabelHelp,
   HelperText,
   HelperTextItem,
   Popover,
@@ -9,7 +10,7 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import { FieldGroupHelpLabelIcon, SimpleSelect } from 'mod-arch-shared';
+import { SimpleSelect } from 'mod-arch-shared';
 import { SimpleSelectOption } from 'mod-arch-shared/dist/components/SimpleSelect';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import ThemeAwareFormGroupWrapper from '~/app/pages/settings/components/ThemeAwareFormGroupWrapper';
@@ -58,6 +59,7 @@ const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
   registryName,
   selectorOnly,
 }) => {
+  const labelHelpRef = useRef<HTMLSpanElement>(null);
   const [namespaces, namespacesLoaded, namespacesLoadError] = useNamespaces();
   const [textInputValue, setTextInputValue] = React.useState(selectedNamespace);
   const debounceTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
@@ -144,7 +146,11 @@ const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
     ? NamespaceSelectorMessages.TEXT_INPUT_TOOLTIP
     : NamespaceSelectorMessages.SELECTOR_TOOLTIP;
 
-  const labelHelp = <FieldGroupHelpLabelIcon content={tooltipContent} />;
+  const labelHelp = (
+    <Popover triggerRef={labelHelpRef} bodyContent={tooltipContent} aria-label={tooltipContent}>
+      <FormGroupLabelHelp ref={labelHelpRef} aria-label="More info for namespace field" />
+    </Popover>
+  );
 
   const helperTextNode = (
     <>
