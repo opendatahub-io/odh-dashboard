@@ -6,8 +6,11 @@ import {
   renderDetailItems,
 } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 import { relativeDuration } from '#~/utilities/time';
-import { RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
+import { RuntimeStateKF, runtimeStateLabels } from '#~/concepts/pipelines/kfTypes';
 import { PipelineTask } from '#~/concepts/pipelines/topology';
+
+const getStateLabel = (state: string): string =>
+  Object.entries(runtimeStateLabels).find(([key]) => key === state)?.[1] ?? state;
 import TaskDetailsSection from '#~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsSection';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { getIsArtifactModelRegistered } from '#~/pages/pipelines/global/experiments/artifacts/utils';
@@ -60,7 +63,7 @@ const SelectedNodeDetailsTab: React.FC<SelectedNodeDetailsTabProps> = ({ task })
         taskName,
         {
           key: 'Status',
-          value: state ?? '-',
+          value: state ? getStateLabel(state) : '-',
         },
         {
           key: 'Started',

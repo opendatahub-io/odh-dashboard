@@ -39,7 +39,9 @@ function AutoragConfigurePage(): React.JSX.Element {
   const notification = useNotification();
 
   const { namespace } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector();
+  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
+    storeLastNamespace: true,
+  });
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =

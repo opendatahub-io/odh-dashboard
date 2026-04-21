@@ -17,8 +17,7 @@ import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { GroupsConfigField, GroupStatus } from '#~/concepts/userConfigs/groupTypes';
 
-const CREATE_PREFIX = 'Define new group: ';
-const newGroupMessage = (value: string): string => `${CREATE_PREFIX}"${value}"`;
+const newGroupMessage = (value: string): string => `Define new group: "${value}"`;
 
 const GroupSettings: React.FC = () => {
   const {
@@ -45,8 +44,7 @@ const GroupSettings: React.FC = () => {
   const handleMenuItemSelection = (newState: SelectionOptions[], field: GroupsConfigField) => {
     const processGroup = (opt: SelectionOptions): GroupStatus => ({
       id: String(opt.id),
-      // Handle the create option situation -- show different in dropdown but not in selection
-      name: opt.name.startsWith(CREATE_PREFIX) ? String(opt.id) : opt.name,
+      name: opt.name,
       enabled: opt.selected || false,
     });
 

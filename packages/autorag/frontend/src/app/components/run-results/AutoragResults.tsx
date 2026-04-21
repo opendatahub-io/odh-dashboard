@@ -1,8 +1,18 @@
 import React from 'react';
-import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Alert,
+  AlertActionCloseButton,
+  Flex,
+  FlexItem,
+  Label,
+  Stack,
+  StackItem,
+  Title,
+} from '@patternfly/react-core';
 import { useParams } from 'react-router';
 import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useAutoRAGTaskTopology } from '~/app/topology/useAutoRAGTaskTopology';
+import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
@@ -98,6 +108,9 @@ function AutoragResults(): React.JSX.Element {
     [namespace, ragPatternsBasePath, pipelineRun?.display_name],
   );
 
+  const isCanceled = pipelineRun?.state.toUpperCase() === RuntimeStateKF.CANCELED;
+  const isFailed = pipelineRun?.state.toUpperCase() === RuntimeStateKF.FAILED;
+
   return (
     <>
       <Stack hasGutter>
@@ -114,7 +127,27 @@ function AutoragResults(): React.JSX.Element {
             </Alert>
           </StackItem>
         )}
-        <StackItem>
+        <StackItem className="autorag-topology-wrapper">
+          <Flex
+            className="autorag-topology-overlay"
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <Title headingLevel="h3">Experiment pipeline</Title>
+            </FlexItem>
+            {(isCanceled || isFailed) && (
+              <FlexItem>
+                <Label
+                  variant="outline"
+                  status={isCanceled ? 'warning' : 'danger'}
+                  data-testid="run-status-label"
+                >
+                  {pipelineRun.state}
+                </Label>
+              </FlexItem>
+            )}
+          </Flex>
           <PipelineTopology
             nodes={nodes}
             selectedIds={selectedIds}

@@ -295,6 +295,9 @@ export type DataScienceProjectData = {
   userSubjectKind: string;
   groupSubjectKind: string;
   yamlEditorModelName: string;
+  legacyServingRuntime?: string;
+  legacyModelLocationURI?: string;
+  legacyHardwareProfileName?: string;
 };
 
 export type NotebookImageData = {
@@ -658,7 +661,7 @@ export type PipelineTestData = {
   pipelineDescription: string;
   runName: string;
   runDescription: string;
-  runGroupName: string;
+  experimentName: string;
   dspaSecretName: string;
   pipelineUrl: string;
 };

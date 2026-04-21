@@ -59,7 +59,7 @@ describe('create', () => {
 
     categorySection.findMultiGroupInput().type('New category');
 
-    categorySection.findMultiGroupSelectButton('Option').click();
+    categorySection.findMultiGroupSelectButton('New-category').click();
     categorySection.findChipItem('New category').should('exist');
     categorySection.findMultiGroupInput().type('{esc}');
 

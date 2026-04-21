@@ -110,9 +110,10 @@ describe('Workbench Storage Classes Tests', () => {
 
   beforeEach(() => {
     cy.step('Log into the application');
-    cy.visitWithLogin('/projects', HTPASSWD_CLUSTER_ADMIN_USER);
+    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
     cy.step(`Navigate to the Project list tab and search for ${projectName}`);
+    projectListPage.navigate();
     projectListPage.filterProjectByName(projectName);
     projectListPage.findProjectLink(projectName).click();
   });

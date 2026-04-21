@@ -61,9 +61,10 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
           title: <span data-testid="archive-model-version-action">Archive model version</span>,
           onClick: () => setIsArchiveModalOpen(true),
           isAriaDisabled: !loaded || hasDeployment,
-          tooltipProps: loaded && hasDeployment
-            ? { content: 'Deployed model versions cannot be archived' }
-            : undefined,
+          tooltipProps:
+            loaded && hasDeployment
+              ? { content: 'Deployed model versions cannot be archived' }
+              : undefined,
         },
       ];
 

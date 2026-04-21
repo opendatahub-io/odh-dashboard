@@ -43,8 +43,12 @@ type SortColumn = 'name' | 'namespace' | 'modelId';
 
 const modelRefKey = (namespace: string, name: string): string => `${namespace}/${name}`;
 
-const defaultDescription =
-  'Select model endpoints that are available as a service to add to this subscription.';
+const defaultDescription = (
+  <>
+    Select models to make available to members of this subscription, then set token limits for each
+    one.
+  </>
+);
 
 const AddModelsModal: React.FC<AddModelsModalProps> = ({
   availableModelRefs,
@@ -55,8 +59,8 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
   onRemove,
   onClose,
   modalSource,
-  ariaLabel = 'Add models to subscription',
-  title = 'Add models to subscription',
+  ariaLabel = 'Add models',
+  title = 'Add models',
   description = defaultDescription,
 }) => {
   const fromSubscription = modalSource === 'subscription';
@@ -237,8 +241,8 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                   <Th sort={getSortParams('name')}>Model name</Th>
                   <Th sort={getSortParams('namespace')}>Project</Th>
                   <Th sort={getSortParams('modelId')}>Model ID</Th>
-                  <Th>Subscriptions</Th>
-                  <Th>Policies</Th>
+                  <Th width={20}>Subscriptions</Th>
+                  <Th width={20}>Policies</Th>
                   <Th screenReaderText="Actions" />
                 </Tr>
               </Thead>
@@ -258,7 +262,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                       </Td>
                       <Td dataLabel="Project">{ref.namespace}</Td>
                       <Td dataLabel="Model ID">{ref.modelRef.name}</Td>
-                      <Td dataLabel="Subscriptions">
+                      <Td dataLabel="Subscriptions" modifier="breakWord">
                         {selected && fromSubscription && (
                           <Label color="green" isCompact>
                             {currentSelectionLabel}
@@ -270,7 +274,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                         {(fromSubscription ? !selected && subs.length === 0 : subs.length === 0) &&
                           'None'}
                       </Td>
-                      <Td dataLabel="Policies">
+                      <Td dataLabel="Policies" modifier="breakWord">
                         {selected && !fromSubscription && (
                           <Label color="green" isCompact>
                             {currentSelectionLabel}

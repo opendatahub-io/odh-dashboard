@@ -342,7 +342,15 @@ function AutomlConfigure(): React.JSX.Element {
         setValue('train_data_file_key', uploadResult.key, { shouldValidate: true });
       } catch (err) {
         if (uploadRequestId === trainingDataUploadSeqRef.current) {
-          notification.error('Failed to upload file', err instanceof Error ? err.message : '');
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          const isConflict = errorMessage.toLowerCase().includes('unique filename');
+
+          notification.error(
+            'Failed to upload file',
+            isConflict
+              ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
+              : errorMessage,
+          );
         }
       } finally {
         if (uploadRequestId === trainingDataUploadSeqRef.current) {
@@ -393,6 +401,7 @@ function AutomlConfigure(): React.JSX.Element {
                                   namespace={String(namespace)}
                                   type="storage"
                                   additionalRequiredKeys={AUTOML_REQUIRED_KEYS}
+                                  isDisabled={formIsSubmitting}
                                   value={selectedSecret?.uuid}
                                   onChange={(secret) => {
                                     if (!secret) {
@@ -426,6 +435,7 @@ function AutomlConfigure(): React.JSX.Element {
                           <Button
                             key="add-new-connection"
                             variant="secondary"
+                            isDisabled={formIsSubmitting}
                             onClick={() => setIsConnectionModalOpen(true)}
                           >
                             Add new connection
@@ -457,6 +467,7 @@ function AutomlConfigure(): React.JSX.Element {
                             buttonId="training-data-input-select"
                             data-testid="training-data-source-select-toggle"
                             isSelected={trainingDataSourceMode === 'select'}
+                            isDisabled={formIsSubmitting}
                             onChange={() => setTrainingDataSourceMode('select')}
                           />
                           <ToggleGroupItem
@@ -464,6 +475,7 @@ function AutomlConfigure(): React.JSX.Element {
                             buttonId="training-data-input-upload"
                             data-testid="training-data-source-upload-toggle"
                             isSelected={trainingDataSourceMode === 'upload'}
+                            isDisabled={formIsSubmitting}
                             onChange={() => setTrainingDataSourceMode('upload')}
                           />
                         </ToggleGroup>
@@ -513,6 +525,7 @@ function AutomlConfigure(): React.JSX.Element {
                                           variant="plain"
                                           aria-label="Remove selection"
                                           icon={<TimesIcon />}
+                                          isDisabled={formIsSubmitting}
                                           onClick={() => {
                                             setSelectedTrainingDataFile(undefined);
                                             setValue('train_data_file_key', '', {
@@ -645,6 +658,7 @@ function AutomlConfigure(): React.JSX.Element {
                                           <DropdownItem
                                             key="remove"
                                             data-testid="training-data-upload-remove"
+                                            isDisabled={formIsSubmitting}
                                             onClick={clearTrainingDataUpload}
                                           >
                                             Remove
@@ -652,6 +666,7 @@ function AutomlConfigure(): React.JSX.Element {
                                           <DropdownItem
                                             key="replace"
                                             data-testid="training-data-upload-replace"
+                                            isDisabled={formIsSubmitting}
                                             onClick={openTrainingDataReplaceFileDialog}
                                           >
                                             Replace
@@ -705,7 +720,7 @@ function AutomlConfigure(): React.JSX.Element {
                                 <Card
                                   key={type.value}
                                   isSelectable
-                                  isDisabled={!canSelectLearningType}
+                                  isDisabled={!canSelectLearningType || formIsSubmitting}
                                   isSelected={field.value === type.value}
                                   data-testid={`task-type-card-${type.value}`}
                                 >
@@ -755,50 +770,52 @@ function AutomlConfigure(): React.JSX.Element {
                       />
                     ) : null}
 
-                    <StackItem>
-                      <ConfigureFormGroup
-                        label="Top models to consider"
-                        labelHelp={{
-                          header: 'Top models to consider',
-                          body: 'Number of top models to select and refit. The pipeline will train multiple models and select the best performing ones for final training.',
-                        }}
-                      >
-                        <Controller
-                          control={form.control}
-                          name="top_n"
-                          render={({ field, fieldState }) => (
-                            <>
-                              <NumberInput
-                                id="top-n-input"
-                                value={field.value}
-                                min={MIN_TOP_N}
-                                max={maxTopN}
-                                isDisabled={formIsSubmitting}
-                                validated={fieldState.error ? 'error' : 'default'}
-                                onMinus={() => field.onChange(Number(field.value) - 1)}
-                                onPlus={() => field.onChange(Number(field.value) + 1)}
-                                onChange={(event: React.FormEvent<HTMLInputElement>) => {
-                                  const value = parseInt(event.currentTarget.value, 10);
-                                  if (!Number.isNaN(value)) {
-                                    field.onChange(value);
-                                  }
-                                }}
-                                data-testid="top-n-input"
-                              />
-                              {fieldState.error && (
-                                <FormHelperText>
-                                  <HelperText>
-                                    <HelperTextItem variant="error">
-                                      {fieldState.error.message}
-                                    </HelperTextItem>
-                                  </HelperText>
-                                </FormHelperText>
-                              )}
-                            </>
-                          )}
-                        />
-                      </ConfigureFormGroup>
-                    </StackItem>
+                    {isTaskTypeSelected && (
+                      <StackItem>
+                        <ConfigureFormGroup
+                          label="Top models to consider"
+                          labelHelp={{
+                            header: 'Top models to consider',
+                            body: 'Number of top models to select and refit. The pipeline will train multiple models and select the best performing ones for final training.',
+                          }}
+                        >
+                          <Controller
+                            control={form.control}
+                            name="top_n"
+                            render={({ field, fieldState }) => (
+                              <>
+                                <NumberInput
+                                  id="top-n-input"
+                                  value={field.value}
+                                  min={MIN_TOP_N}
+                                  max={maxTopN}
+                                  isDisabled={formIsSubmitting}
+                                  validated={fieldState.error ? 'error' : 'default'}
+                                  onMinus={() => field.onChange(Number(field.value) - 1)}
+                                  onPlus={() => field.onChange(Number(field.value) + 1)}
+                                  onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                                    const value = parseInt(event.currentTarget.value, 10);
+                                    if (!Number.isNaN(value)) {
+                                      field.onChange(value);
+                                    }
+                                  }}
+                                  data-testid="top-n-input"
+                                />
+                                {fieldState.error && (
+                                  <FormHelperText>
+                                    <HelperText>
+                                      <HelperTextItem variant="error">
+                                        {fieldState.error.message}
+                                      </HelperTextItem>
+                                    </HelperText>
+                                  </FormHelperText>
+                                )}
+                              </>
+                            )}
+                          />
+                        </ConfigureFormGroup>
+                      </StackItem>
+                    )}
                   </Stack>
                 )}
               </CardBody>

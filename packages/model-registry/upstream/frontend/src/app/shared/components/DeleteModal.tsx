@@ -79,8 +79,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
               <FlexItem>
                 Type <strong>{deleteNameSanitized}</strong> to confirm
-                {genericLabel ? '' : ' deletion'}:
-                {confirmationRequiredIndicator ? ' *' : ''}
+                {genericLabel ? '' : ' deletion'}:{confirmationRequiredIndicator ? ' *' : ''}
               </FlexItem>
 
               <FlexItem>
@@ -130,12 +129,11 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       <ModalFooter>
         <Button
           key="delete-button"
-          data-testid="delete-modal-submit-button"
+          data-testid="delete-modal-confirm-button"
           variant="danger"
           isLoading={deleting}
           isDisabled={deleting || value.trim() !== deleteNameSanitized}
           onClick={() => onBeforeClose(true)}
-          data-testid="delete-modal-confirm-button"
         >
           {submitButtonLabel}
         </Button>

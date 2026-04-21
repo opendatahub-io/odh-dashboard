@@ -15,7 +15,9 @@ const ProjectSelectorNavigator: React.FC<ProjectSelectorNavigatorProps> = ({
   ...projectSelectorProps
 }) => {
   const navigate = useNavigate();
-  const { namespaces, updatePreferredNamespace, namespacesLoaded } = useNamespaceSelector();
+  const { namespaces, updatePreferredNamespace, namespacesLoaded } = useNamespaceSelector({
+    storeLastNamespace: true,
+  });
 
   return (
     <ProjectSelector

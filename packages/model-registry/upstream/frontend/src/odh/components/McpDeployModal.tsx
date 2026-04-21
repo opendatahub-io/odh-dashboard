@@ -168,17 +168,30 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
 
   if (!existingDeployment && !crLoaded && !crError) {
     return (
-      <Modal isOpen={isOpen} variant="medium" onClose={() => onClose()} data-testid="mcp-deploy-modal">
+      <Modal
+        isOpen={isOpen}
+        variant="medium"
+        onClose={() => onClose()}
+        data-testid="mcp-deploy-modal"
+      >
         <ModalHeader title={modalTitle} data-testid="mcp-deploy-modal-title" />
         <ModalBody>
-          <Spinner aria-label="Loading MCP server configuration" data-testid="mcp-deploy-modal-spinner" />
+          <Spinner
+            aria-label="Loading MCP server configuration"
+            data-testid="mcp-deploy-modal-spinner"
+          />
         </ModalBody>
       </Modal>
     );
   }
 
   return (
-    <Modal isOpen={isOpen} variant="medium" onClose={() => onClose()} data-testid="mcp-deploy-modal">
+    <Modal
+      isOpen={isOpen}
+      variant="medium"
+      onClose={() => onClose()}
+      data-testid="mcp-deploy-modal"
+    >
       <ModalHeader title={modalTitle} data-testid="mcp-deploy-modal-title" />
       <ModalBody>
         {crError && (
@@ -273,7 +286,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
             />
           </FormGroup>
         </Form>
-
       </ModalBody>
       <ModalFooter>
         <Stack hasGutter style={{ flex: 'auto' }}>
@@ -292,7 +304,11 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
           <StackItem>
             <Split hasGutter className="pf-v6-u-w-100">
               <SplitItem>
-                <Button variant="link" onClick={() => onClose()} data-testid="mcp-deploy-close-button">
+                <Button
+                  variant="link"
+                  onClick={() => onClose()}
+                  data-testid="mcp-deploy-close-button"
+                >
                   Close
                 </Button>
               </SplitItem>
