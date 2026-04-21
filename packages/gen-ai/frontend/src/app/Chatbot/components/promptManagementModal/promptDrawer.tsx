@@ -108,10 +108,10 @@ export default function PromptDrawer({
           }}
         >
           <SimpleSelect
-            data-testid="prompt-version-select"
             isScrollable
             initialOptions={initialOptions}
             onSelect={onVersionSelect}
+            toggleProps={{ 'data-testid': 'prompt-version-select' }}
           />
           <div>
             <TextArea

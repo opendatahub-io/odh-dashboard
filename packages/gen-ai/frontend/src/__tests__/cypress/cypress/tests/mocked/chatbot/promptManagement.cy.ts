@@ -319,6 +319,260 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
     );
   });
 
+  describe('Error Handling', () => {
+    beforeEach(() => {
+      const namespace = config.defaultNamespace;
+
+      setupBaseMCPServerMocks(config, {
+        lsdStatus: 'Ready',
+        includeLsdModel: true,
+        includeAAModel: true,
+      });
+      cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
+      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.intercept('GET', '**/api/v1/mcp/status**', {
+        statusCode: 200,
+        body: { status: 'ready' },
+      });
+      setupPromptMocks(namespace);
+
+      appChrome.visit(['genAiStudio', 'promptManagement']);
+      chatbotPage.visit(namespace);
+      chatbotPage.verifyOnChatbotPage(namespace);
+      cy.wait('@bffConfig');
+      cy.wait('@aaModels');
+
+      openSettingsPromptTab();
+    });
+
+    it(
+      'should display error alert when save fails',
+      { tags: ['@GenAI', '@PromptManagement'] },
+      () => {
+        cy.step('Type instructions and open create modal');
+        promptAssistant.findTextarea().clear().type('You are a test assistant.');
+        promptAssistant.findSaveButton().should('be.enabled').click();
+
+        cy.step('Fill the create form');
+        createPromptModal.find().should('be.visible');
+        createPromptModal.findNameInput().type('failing-prompt');
+        createPromptModal.findCommitMessageInput().type('This will fail');
+
+        cy.step('Override intercept to return server error');
+        cy.intercept('POST', '**/api/v1/mlflow/prompts**', {
+          statusCode: 500,
+          body: { error: { message: 'Internal server error' } },
+        }).as('createPromptError');
+
+        cy.step('Submit and verify error alert appears');
+        createPromptModal.findSaveButton().click();
+        cy.wait('@createPromptError');
+        createPromptModal.findErrorAlert().should('be.visible');
+        createPromptModal.find().should('exist');
+        createPromptModal.findSaveButton().should('not.be.disabled');
+      },
+    );
+
+    it(
+      'should display name error when prompt already exists',
+      { tags: ['@GenAI', '@PromptManagement'] },
+      () => {
+        cy.step('Type instructions and open create modal');
+        promptAssistant.findTextarea().clear().type('Duplicate prompt instructions.');
+        promptAssistant.findSaveButton().should('be.enabled').click();
+
+        cy.step('Fill the create form with an existing name');
+        createPromptModal.find().should('be.visible');
+        createPromptModal.findNameInput().type('summarization-prompt');
+        createPromptModal.findCommitMessageInput().type('Duplicate attempt');
+
+        cy.step('Override intercept to return already exists error');
+        cy.intercept('POST', '**/api/v1/mlflow/prompts**', {
+          statusCode: 409,
+          body: { error: { message: 'Prompt already exists' } },
+        }).as('createPromptDuplicate');
+
+        cy.step('Submit and verify name validation error');
+        createPromptModal.findSaveButton().click();
+        cy.wait('@createPromptDuplicate');
+        createPromptModal.findNameError().should('be.visible');
+        createPromptModal.findErrorAlert().should('not.exist');
+      },
+    );
+  });
+
+  describe('Version Switching', () => {
+    beforeEach(() => {
+      const namespace = config.defaultNamespace;
+
+      setupBaseMCPServerMocks(config, {
+        lsdStatus: 'Ready',
+        includeLsdModel: true,
+        includeAAModel: true,
+      });
+      cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
+      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.intercept('GET', '**/api/v1/mcp/status**', {
+        statusCode: 200,
+        body: { status: 'ready' },
+      });
+
+      cy.interceptGenAi(
+        'GET /api/v1/mlflow/prompts',
+        { query: { namespace } },
+        mockMLflowPromptsList(),
+      ).as('listPrompts');
+
+      cy.intercept('GET', '**/api/v1/mlflow/prompts/*/versions**', {
+        statusCode: 200,
+        body: mockMLflowPromptVersionsResponse(),
+      }).as('listVersions');
+
+      cy.intercept('GET', '**/api/v1/mlflow/prompts/*', (req) => {
+        if (req.url.includes('/versions')) {
+          return;
+        }
+        const isVersion1 = req.url.includes('version=1');
+        req.reply({
+          statusCode: 200,
+          body: {
+            data: isVersion1
+              ? mockMLflowPromptVersion({
+                  name: 'summarization-prompt',
+                  version: 1,
+                  template: 'Original summarization instructions.',
+                  commit_message: 'Initial version',
+                })
+              : mockMLflowPromptVersion({
+                  name: 'summarization-prompt',
+                  version: 2,
+                  template: 'Updated summarization instructions.',
+                  commit_message: 'Updated instructions',
+                }),
+          },
+        });
+      }).as('getPrompt');
+
+      appChrome.visit(['genAiStudio', 'promptManagement']);
+      chatbotPage.visit(namespace);
+      chatbotPage.verifyOnChatbotPage(namespace);
+      cy.wait('@bffConfig');
+      cy.wait('@aaModels');
+    });
+
+    it(
+      'should switch between versions in the drawer and update template content',
+      { tags: ['@GenAI', '@PromptManagement'] },
+      () => {
+        cy.step('Open prompt table and select a prompt');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPrompts');
+        promptManagementModal.findTableRow('summarization-prompt').click();
+
+        cy.step('Verify drawer opens with latest version selected');
+        promptDrawer.findPanel().should('be.visible');
+        promptDrawer.findTemplate().should('be.visible');
+
+        cy.step('Open version select and choose Version 1');
+        promptDrawer.findVersionSelect().click();
+        cy.findByRole('option', { name: 'Version 1' }).click();
+
+        cy.step('Verify template updated to version 1 content');
+        promptDrawer.findTemplate().should('have.value', 'Original summarization instructions.');
+
+        cy.step('Switch back to Version 2');
+        promptDrawer.findVersionSelect().click();
+        cy.findByRole('option', { name: 'Version 2' }).click();
+
+        cy.step('Verify template updated to version 2 content');
+        promptDrawer.findTemplate().should('have.value', 'Updated summarization instructions.');
+      },
+    );
+  });
+
+  describe('Pagination', () => {
+    beforeEach(() => {
+      const namespace = config.defaultNamespace;
+
+      setupBaseMCPServerMocks(config, {
+        lsdStatus: 'Ready',
+        includeLsdModel: true,
+        includeAAModel: true,
+      });
+      cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
+      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.intercept('GET', '**/api/v1/mcp/status**', {
+        statusCode: 200,
+        body: { status: 'ready' },
+      });
+
+      cy.interceptGenAi(
+        'GET /api/v1/mlflow/prompts',
+        { query: { namespace } },
+        mockMLflowPromptsList(undefined, 'page-2-token'),
+      ).as('listPromptsPage1');
+
+      cy.intercept('GET', '**/api/v1/mlflow/prompts/*/versions**', {
+        statusCode: 200,
+        body: mockMLflowPromptVersionsResponse(),
+      }).as('listVersions');
+
+      cy.intercept('GET', '**/api/v1/mlflow/prompts/*', (req) => {
+        if (req.url.includes('/versions')) {
+          return;
+        }
+        req.reply({
+          statusCode: 200,
+          body: {
+            data: mockMLflowPromptVersion({
+              name: 'summarization-prompt',
+              template: 'You are a helpful summarization assistant.',
+            }),
+          },
+        });
+      }).as('getPrompt');
+
+      cy.intercept('POST', '**/api/v1/mlflow/prompts**', {
+        statusCode: 200,
+        body: {
+          data: mockMLflowPromptVersion({
+            name: 'my-new-prompt',
+            version: 1,
+            template: 'You are a helpful assistant.',
+            commit_message: 'First version',
+          }),
+        },
+      }).as('createPrompt');
+
+      appChrome.visit(['genAiStudio', 'promptManagement']);
+      chatbotPage.visit(namespace);
+      chatbotPage.verifyOnChatbotPage(namespace);
+      cy.wait('@bffConfig');
+      cy.wait('@aaModels');
+    });
+
+    it(
+      'should show pagination controls when more prompts are available',
+      { tags: ['@GenAI', '@PromptManagement'] },
+      () => {
+        cy.step('Open prompt table');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPromptsPage1');
+
+        cy.step('Verify first page prompts are shown');
+        promptManagementModal.findTable().should('be.visible');
+        promptManagementModal.findTableRow('summarization-prompt').should('exist');
+        promptManagementModal.findTableRow('code-review-prompt').should('exist');
+        promptManagementModal.findTableRow('translation-prompt').should('exist');
+
+        cy.step('Verify pagination controls are present');
+        promptManagementModal.findPagination().should('exist');
+      },
+    );
+  });
+
   describe('Revert and Reset', () => {
     beforeEach(() => {
       const namespace = config.defaultNamespace;

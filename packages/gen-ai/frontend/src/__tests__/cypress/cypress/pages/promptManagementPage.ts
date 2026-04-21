@@ -34,6 +34,10 @@ class PromptManagementModal {
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-cancel-button');
   }
+
+  findPagination(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByLabelText('top pagination');
+  }
 }
 
 class PromptDrawer {
