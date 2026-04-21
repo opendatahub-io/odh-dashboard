@@ -16,16 +16,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  pull-requests: write
-
 env:
   NODE_VERSION: 22.x
 
 jobs:
   detect-dirs:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       dirs: ${{ steps.dirs.outputs.dirs }}
     steps:
@@ -57,6 +55,8 @@ jobs:
   audit:
     needs: detect-dirs
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-audit') && needs.detect-dirs.outputs.dirs != '[]' }}
     strategy:
       fail-fast: false
@@ -126,6 +126,8 @@ jobs:
 
   override-consistency:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -178,6 +180,9 @@ jobs:
   dependency-summary:
     needs: detect-dirs
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout PR head
         uses: actions/checkout@v4
