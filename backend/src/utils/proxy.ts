@@ -6,7 +6,15 @@ import { DEV_MODE } from './constants';
 import { createCustomError } from './requestUtils';
 import { getAccessToken, getDirectCallOptions } from './directCallUtils';
 import { EitherNotBoth } from '../typeHelpers';
+import { IncomingHttpHeaders } from 'http';
 import { V1Service } from '@kubernetes/client-node';
+
+export const addDefaultCacheControl = (headers: IncomingHttpHeaders): IncomingHttpHeaders => {
+  if (!headers['cache-control']) {
+    headers['cache-control'] = 'no-cache';
+  }
+  return headers;
+};
 
 export const getParam = <F extends FastifyRequest<any, any>>(req: F, name: string): string =>
   (req.params as { [key: string]: string })[name];
@@ -200,6 +208,7 @@ export const registerProxy = async (
     authorize,
     tls,
     onError,
+    rewriteHeaders,
   }: {
     prefix: string;
     rewritePrefix?: string;
@@ -215,6 +224,7 @@ export const registerProxy = async (
       port?: number | string;
     };
     onError?: FastifyHttpProxyOptions['replyOptions']['onError'];
+    rewriteHeaders?: FastifyHttpProxyOptions['replyOptions']['rewriteHeaders'];
   },
 ): Promise<void> => {
   const scheme = tls === false ? 'http' : 'https';
@@ -229,6 +239,7 @@ export const registerProxy = async (
     replyOptions: {
       getUpstream: () => upstream,
       onError,
+      rewriteHeaders,
     },
     preHandler: async (request, reply) => {
       if (checkRequestLimitExceeded(request, fastify, reply)) {
