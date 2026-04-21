@@ -249,7 +249,11 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       cy.step('Verify model deployment was created and started');
       waitForResource('inferenceService', testData.inferenceServiceName, projectName);
-      checkInferenceServiceState(testData.inferenceServiceName, projectName, { checkReady: true });
+      cy.then(() => {
+        checkInferenceServiceState(testData.inferenceServiceName, projectName, {
+          checkReady: true,
+        });
+      });
     },
   );
 

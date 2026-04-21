@@ -156,7 +156,9 @@ describe(
         modelServingSection.findModelServerDeployedName(modelDeploymentName);
 
         cy.step('Verify that the Model is running');
-        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+        cy.then(() => {
+          checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+        });
         modelServingSection.findModelMetricsLink(modelDeploymentName);
 
         // Token Authentication Verification
@@ -220,7 +222,9 @@ describe(
         modelServingSection.findModelServerDeployedName(modelDeploymentName);
 
         cy.step('Verify that the Model is running');
-        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+        cy.then(() => {
+          checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+        });
 
         // Verify the model is accessible without a token after disabling auth
         cy.step('Verify the model is accessible without a token after disabling auth');
