@@ -1,4 +1,5 @@
 import React from 'react';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { Tab, Tabs, TabTitleText, TabContent, PageSection, Flex } from '@patternfly/react-core';
 import {
@@ -115,18 +116,19 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
             aria-label="Lineage tab"
             data-testid="lineage-tab"
             tabContentId={`tabContent-${FeatureStoreTabs.LINEAGE}`}
-          />
+          >
+            <TabContent
+              ref={lineageTabRef}
+              id={`tabContent-${FeatureStoreTabs.LINEAGE}`}
+              eventKey={FeatureStoreTabs.LINEAGE}
+              activeKey={activeTabKey}
+              hidden={FeatureStoreTabs.LINEAGE !== activeTabKey}
+              style={{ height: '100%' }}
+            >
+              <FeatureStoreLineage />
+            </TabContent>
+          </Tab>
         </Tabs>
-        <TabContent
-          ref={lineageTabRef}
-          id={`tabContent-${FeatureStoreTabs.LINEAGE}`}
-          eventKey={FeatureStoreTabs.LINEAGE}
-          activeKey={activeTabKey}
-          hidden={FeatureStoreTabs.LINEAGE !== activeTabKey}
-          style={{ height: '100%' }}
-        >
-          <FeatureStoreLineage />
-        </TabContent>
       </PageSection>
     </ApplicationsPage>
   );

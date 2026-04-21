@@ -30,7 +30,12 @@ const FeatureStoreWarningAlert: React.FC = () => {
         into a single custom resource, then enable the UI for only that resource.
       </Content>
       {osConsoleAction && (
-        <Link target="_blank" to={osConsoleAction.href || ''} style={{ textDecoration: 'none' }}>
+        <Link
+          target="_blank"
+          rel="noopener noreferrer"
+          to={osConsoleAction.href || ''}
+          style={{ textDecoration: 'none' }}
+        >
           Go to <b>OpenShift Platform</b> {'   '}
           <ExternalLinkAltIcon />
         </Link>

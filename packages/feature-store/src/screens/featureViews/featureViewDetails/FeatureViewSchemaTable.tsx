@@ -1,5 +1,7 @@
 import * as React from 'react';
+import { Bullseye, EmptyState, EmptyStateVariant } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
+import { SearchIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router';
 import Table from '@odh-dashboard/internal/components/table/Table';
 import { FeatureView } from '../../../types/featureView';
@@ -95,7 +97,17 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
       enablePagination
       data={filteredSchemaData}
       columns={schemaColumns}
-      emptyTableView={<div>No schema data available</div>}
+      emptyTableView={
+        <Bullseye>
+          <EmptyState
+            headingLevel="h6"
+            icon={SearchIcon}
+            titleText="No schema data available"
+            variant={EmptyStateVariant.lg}
+            data-testid="feature-view-schema-empty-state"
+          />
+        </Bullseye>
+      }
       rowRenderer={(item, index) => (
         <SchemaTableRow key={`${item.column}-${index}`} item={item} featureView={featureView} />
       )}
