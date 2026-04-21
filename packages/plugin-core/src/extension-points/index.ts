@@ -5,6 +5,7 @@ export * from './status-provider';
 export * from './project-details';
 export * from './overview-card';
 export * from './tab-route';
+export * from './tasks';
 
 /**
  * ## Extension Point Definitions
