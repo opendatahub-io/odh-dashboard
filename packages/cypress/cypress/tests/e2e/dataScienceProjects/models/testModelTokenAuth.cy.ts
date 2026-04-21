@@ -25,6 +25,7 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 
 let testData: DataScienceProjectData;
 let projectName: string;
+let resourceName: string;
 let modelName: string;
 let modelFilePath: string;
 let modelFormat: string;
@@ -98,7 +99,9 @@ describe('A model can be deployed with token auth', () => {
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .as('resourceName');
+        .then((val) => {
+          resourceName = val as string;
+        });
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
@@ -120,9 +123,7 @@ describe('A model can be deployed with token auth', () => {
       // Verify the model created
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
-      cy.get<string>('@resourceName').then((resourceName) => {
-        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
-      });
+      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
 
       // Verify the model is not accessible without a token
       cy.step('Verify the model is not accessible without a token');
@@ -183,6 +184,10 @@ describe('A model can be deployed with token auth', () => {
       modelServingWizardEdit.findNextButton().click();
       // Submit
       modelServingWizardEdit.findSubmitButton().click();
+      modelServingSection.findModelServerDeployedName(testData.singleModelName);
+
+      cy.step('Verify that the Model is running');
+      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
 
       // Verify the model is accessible without a token
       cy.step('Verify the model is accessible without a token.');

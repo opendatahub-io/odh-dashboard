@@ -30,6 +30,51 @@ export function useS3FileUploadMutation(
   });
 }
 
+async function postPipelineRunAction(url: string, action: string): Promise<void> {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    let serverMessage = body;
+    try {
+      const json = JSON.parse(body);
+      serverMessage = json.error?.message || json.message || body;
+    } catch {
+      // body is not JSON, use as-is
+    }
+    throw new Error(`Failed to ${action} run (${response.status}): ${serverMessage}`);
+  }
+}
+
+export function useTerminatePipelineRunMutation(
+  namespace: string,
+  runId: string,
+): UseMutationResult<void, Error, void, unknown> {
+  return useMutation({
+    mutationKey: ['autorag', 'terminatePipelineRun', runId],
+    mutationFn: () => {
+      const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(runId)}/terminate?namespace=${encodeURIComponent(namespace)}`;
+      return postPipelineRunAction(url, 'terminate');
+    },
+  });
+}
+
+export function useRetryPipelineRunMutation(
+  namespace: string,
+  runId: string,
+): UseMutationResult<void, Error, void, unknown> {
+  return useMutation({
+    mutationKey: ['autorag', 'retryPipelineRun', runId],
+    mutationFn: () => {
+      const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(runId)}/retry?namespace=${encodeURIComponent(namespace)}`;
+      return postPipelineRunAction(url, 'retry');
+    },
+  });
+}
+
 export function useCreatePipelineRunMutation(
   namespace: string,
 ): UseMutationResult<PipelineRun, Error, ConfigureSchema, unknown> {
@@ -109,7 +154,16 @@ export function useUploadToStorageMutation(
               reject(new Error(`Failed to parse upload response: ${parseError}`));
             }
           } else {
-            reject(new Error(`Upload failed with status ${xhr.status}`));
+            // Parse error response from BFF to get the actual error message
+            try {
+              const errorResponse = JSON.parse(xhr.responseText);
+              const errorMessage =
+                errorResponse?.error?.message || `Upload failed with status ${xhr.status}`;
+              reject(new Error(errorMessage));
+            } catch {
+              // If parsing fails, use generic error with status code
+              reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
           }
         });
 

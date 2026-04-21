@@ -4,9 +4,12 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func newTestClient() *RealS3Client {
@@ -26,31 +29,71 @@ func TestNewRealS3Client_WrapsErrEndpointValidation(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// validateAndNormalizeEndpoint — SSRF protection tests
+// NewRealS3Client — transport / TLS tests
 // ---------------------------------------------------------------------------
+
+func TestNewRealS3Client_DefaultTransport(t *testing.T) {
+	t.Parallel()
+	client, err := NewRealS3Client(&S3Credentials{
+		AccessKeyID:     "a",
+		SecretAccessKey: "b",
+		Region:          "us-east-1",
+		EndpointURL:     "https://10.0.0.1:9000",
+	}, S3ClientOptions{})
+	assert.NoError(t, err)
+
+	httpClient, ok := client.s3Client.Options().HTTPClient.(*http.Client)
+	require.True(t, ok, "HTTPClient should be *http.Client")
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok, "Transport should be *http.Transport")
+	assert.Equal(t, 30*time.Second, transport.ResponseHeaderTimeout, "ResponseHeaderTimeout should be 30s")
+	if transport.TLSClientConfig != nil {
+		assert.Nil(t, transport.TLSClientConfig.RootCAs, "RootCAs should be nil when no custom CAs provided")
+		assert.False(t, transport.TLSClientConfig.InsecureSkipVerify, "InsecureSkipVerify should be false")
+	}
+}
 
 func TestNewRealS3Client_WithRootCAs(t *testing.T) {
 	t.Parallel()
 	pool := x509.NewCertPool()
-	_, err := NewRealS3Client(&S3Credentials{
+	client, err := NewRealS3Client(&S3Credentials{
 		AccessKeyID:     "a",
 		SecretAccessKey: "b",
 		Region:          "us-east-1",
-		EndpointURL:     "https://s3.amazonaws.com",
+		EndpointURL:     "https://10.0.0.1:9000",
 	}, S3ClientOptions{RootCAs: pool})
 	assert.NoError(t, err)
+
+	httpClient, ok := client.s3Client.Options().HTTPClient.(*http.Client)
+	require.True(t, ok, "HTTPClient should be *http.Client")
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok, "Transport should be *http.Transport")
+	assert.Same(t, pool, transport.TLSClientConfig.RootCAs, "RootCAs should match the provided pool")
+	assert.False(t, transport.TLSClientConfig.InsecureSkipVerify, "InsecureSkipVerify should be false")
+	assert.Equal(t, 30*time.Second, transport.ResponseHeaderTimeout, "ResponseHeaderTimeout should be 30s")
 }
 
 func TestNewRealS3Client_DevModeFallback(t *testing.T) {
 	t.Parallel()
-	_, err := NewRealS3Client(&S3Credentials{
+	client, err := NewRealS3Client(&S3Credentials{
 		AccessKeyID:     "a",
 		SecretAccessKey: "b",
 		Region:          "us-east-1",
-		EndpointURL:     "https://s3.amazonaws.com",
+		EndpointURL:     "https://10.0.0.1:9000",
 	}, S3ClientOptions{DevMode: true})
 	assert.NoError(t, err)
+
+	httpClient, ok := client.s3Client.Options().HTTPClient.(*http.Client)
+	require.True(t, ok, "HTTPClient should be *http.Client")
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok, "Transport should be *http.Transport")
+	assert.True(t, transport.TLSClientConfig.InsecureSkipVerify, "InsecureSkipVerify should be true in dev mode")
+	assert.Equal(t, 30*time.Second, transport.ResponseHeaderTimeout, "ResponseHeaderTimeout should be 30s")
 }
+
+// ---------------------------------------------------------------------------
+// validateAndNormalizeEndpoint — SSRF protection tests
+// ---------------------------------------------------------------------------
 
 func TestValidateAndNormalizeEndpoint_AcceptsValidHTTPS(t *testing.T) {
 	c := newTestClient()
@@ -66,11 +109,74 @@ func TestValidateAndNormalizeEndpoint_AcceptsHTTPSWithPort(t *testing.T) {
 	assert.Equal(t, "https://s3.amazonaws.com:9000", result)
 }
 
-func TestValidateAndNormalizeEndpoint_RejectsHTTP(t *testing.T) {
+func TestValidateAndNormalizeEndpoint_RejectsHTTPForExternalEndpoints(t *testing.T) {
 	c := newTestClient()
 	_, err := c.validateAndNormalizeEndpoint("http://s3.amazonaws.com")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "HTTPS")
+	assert.Contains(t, err.Error(), "HTTPS scheme for external endpoints")
+}
+
+func TestValidateAndNormalizeEndpoint_AcceptsHTTPForInClusterEndpoints(t *testing.T) {
+	c := newTestClient()
+	testCases := []struct {
+		name     string
+		endpoint string
+	}{
+		{
+			name:     "MinIO service with namespace",
+			endpoint: "http://minio-pipelines.yamcha.svc.cluster.local:9000",
+		},
+		{
+			name:     "MinIO service without port",
+			endpoint: "http://minio-dspa.default.svc.cluster.local",
+		},
+		{
+			name:     "Generic cluster service",
+			endpoint: "http://my-service.my-namespace.svc.cluster.local:8080",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := c.validateAndNormalizeEndpoint(tc.endpoint)
+			assert.NoError(t, err, "should accept in-cluster HTTP endpoint")
+			assert.Equal(t, tc.endpoint, result)
+		})
+	}
+}
+
+func TestValidateAndNormalizeEndpoint_RejectsInvalidClusterLocalHostnames(t *testing.T) {
+	c := newTestClient()
+	testCases := []struct {
+		name     string
+		endpoint string
+		reason   string
+	}{
+		{
+			name:     "Too few labels (4) - missing namespace",
+			endpoint: "http://evil.svc.cluster.local",
+			reason:   "should reject .svc.cluster.local with fewer than 5 labels",
+		},
+		{
+			name:     "Too few labels (3) - just svc.cluster.local",
+			endpoint: "http://svc.cluster.local:9000",
+			reason:   "should reject partial cluster domain",
+		},
+		{
+			name:     "Malicious cluster.local suffix",
+			endpoint: "http://evil.cluster.local",
+			reason:   "should reject non-service cluster.local domains",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := c.validateAndNormalizeEndpoint(tc.endpoint)
+			assert.Error(t, err, tc.reason)
+			assert.Contains(t, err.Error(), "HTTPS scheme for external endpoints",
+				"should treat invalid cluster hostnames as external and require HTTPS")
+		})
+	}
 }
 
 func TestValidateAndNormalizeEndpoint_RejectsEmpty(t *testing.T) {

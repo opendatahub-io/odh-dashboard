@@ -31,6 +31,7 @@ const setupAuthPoliciesCommon = () => {
       components: {
         [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
       },
+      conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
     }),
   );
 };
@@ -89,17 +90,41 @@ describe('MaaS Auth Policies', () => {
   });
 
   it('should display the auth policies table with correct page content', () => {
-    authPoliciesPage.findTitle().should('contain.text', 'Policies');
+    authPoliciesPage.findTitle().should('contain.text', 'Authorization policies');
     authPoliciesPage.findTable().should('exist');
-    authPoliciesPage.findRows().should('have.length', 3);
+    authPoliciesPage.findRows().should('have.length', 5);
     const premiumRow = authPoliciesPage.getRow('premium-team-policy');
     premiumRow.findName().should('contain.text', 'premium-team-policy');
+    premiumRow.findPhase().should('contain.text', 'Active');
     premiumRow.findGroups().should('contain.text', '1 Group');
     premiumRow.findModels().should('contain.text', '2 Models');
     const basicRow = authPoliciesPage.getRow('basic-team-policy');
     basicRow.findName().should('contain.text', 'basic-team-policy');
+    basicRow.findPhase().should('contain.text', 'Active');
     basicRow.findGroups().should('contain.text', '1 Group');
     basicRow.findModels().should('contain.text', '1 Model');
+
+    const failedRow = authPoliciesPage.getRow('failed-policy');
+    failedRow.findPhase().should('contain.text', 'Failed');
+    failedRow.findPhaseLabel().click();
+    failedRow.findPhasePopover().should('contain.text', 'Failed');
+
+    const pendingRow = authPoliciesPage.getRow('pending-policy');
+    pendingRow.findPhase().should('contain.text', 'Pending');
+  });
+
+  it('should filter policies by keyword', () => {
+    authPoliciesPage.findRows().should('have.length', 5);
+
+    authPoliciesPage.findKeywordFilterInput().type('premium');
+    authPoliciesPage.findRows().should('have.length', 1);
+    authPoliciesPage
+      .getRow('premium-team-policy')
+      .findName()
+      .should('contain.text', 'premium-team-policy');
+
+    authPoliciesPage.clearAllFilters();
+    authPoliciesPage.findRows().should('have.length', 5);
   });
 
   it('should delete an auth policy', () => {
@@ -108,7 +133,7 @@ describe('MaaS Auth Policies', () => {
       { path: { name: 'premium-team-policy' } },
       { data: { message: "MaaSAuthPolicy 'premium-team-policy' deleted successfully" } },
     ).as('deleteAuthPolicy');
-    authPoliciesPage.getRow('premium-team-policy').findKebabAction('Delete policy').click();
+    authPoliciesPage.getRow('premium-team-policy').findKebabAction('Delete').click();
     deleteAuthPolicyModal.findInput().type('premium-team-policy');
     deleteAuthPolicyModal.findSubmitButton().click();
     cy.wait('@deleteAuthPolicy').then((response) => {
@@ -120,14 +145,14 @@ describe('MaaS Auth Policies', () => {
 });
 
 describe('Auth policy create and edit pages', () => {
-  describe('create policy page', () => {
+  describe('create authorization policy page', () => {
     beforeEach(() => {
       setupAuthPolicyCreatePageIntercepts();
     });
 
     it('should create a policy with groups and models', () => {
       policyPage.visit();
-      policyPage.findTitle().should('contain.text', 'Create policy');
+      policyPage.findTitle().should('contain.text', 'Create authorization policy');
       policyPage.findSubmitButton().should('be.disabled');
 
       policyPage.findDisplayNameInput().type('New Test Policy');
@@ -162,7 +187,7 @@ describe('Auth policy create and edit pages', () => {
 
     it('should update a policy', () => {
       policyPage.visit('premium-team-policy');
-      policyPage.findTitle().should('contain.text', 'Edit policy');
+      policyPage.findTitle().should('contain.text', 'Edit authorization policy');
 
       policyPage.findCancelButton().click();
       cy.url().should('match', /\/maas\/auth-policies$/);
@@ -205,6 +230,8 @@ describe('View Auth Policy Page', () => {
     viewAuthPolicyPage
       .findDetailsSection()
       .should('contain.text', policyName)
+      .and('contain.text', 'Phase')
+      .and('contain.text', 'Active')
       .and('contain.text', 'Name')
       .and('contain.text', 'Resource name')
       .and('contain.text', 'Date created');

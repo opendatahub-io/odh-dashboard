@@ -264,6 +264,8 @@ Bugs use content-based priority criteria. Do not accept the author's value as fa
 | Normal | Default priority; no specific urgency signal |
 | Minor | Low urgency; can wait to be addressed |
 
+**Exception — nightly E2E test failures (respect reporter priority):** Bugs found during **nightly E2E test runs** (labeled `cypress_found_bug` or whose summary or description references a nightly job such as `dashboard-e2e-tests`) reflect failures in the automated product gate. The reporter (typically a QE engineer) sets priority based on the operational impact of the failure on the release pipeline — context that is not captured in the description alone. **When a valid priority is already set** (not `Undefined`), **do not lower the reporter's priority**, even when the failure was observed only once or could not be immediately reproduced. However, you **may raise** the priority above the reporter's value if the [severity-to-priority floor rules](#severity-to-priority-floor-bugs-only) indicate a higher minimum priority. If priority is missing or `Undefined`, apply normal priority-setting logic. E2E test failures can block the product release, and a non-reproducible failure in nightly may still indicate a real intermittent regression.
+
 ### Task Priority
 
 Tasks use the same priority scale and content-based criteria as bugs (table above), but with a key difference: **respect existing priority**. Task authors and team members typically have context about urgency that is not captured in the description (sprint commitments, dependency chains, upcoming releases). If a task already has a valid priority set (not `Undefined`), evaluate independently but **only raise** — do not lower. If the content clearly supports a higher priority than assigned, emit a SET_FIELDS to raise it.
@@ -414,6 +416,7 @@ Labels that categorize issues by functional area. Format: `dashboard-area-{area}
 | `dashboard-area-documentation` | Documentation |
 | `dashboard-area-automl` | AutoML |
 | `dashboard-area-autorag` | AutoRAG |
+| `dashboard-area-observability` | Observability |
 | `dashboard-area-applications` | Applications |
 
 ## Area Label Signal Mapping
@@ -460,6 +463,7 @@ Matched against issue summary, description text, and **Jira labels** (non-area l
 | `dashboard-area-documentation` | documentation, docs, README, ADR | |
 | `dashboard-area-automl` | AutoML, AutoX, automl experiment, tabular pipeline, timeseries pipeline, binary classification, multiclass classification, regression pipeline, AutoGluon, automl leaderboard, automl model details, confusion matrix, feature importance, prediction type, label column, automl configure, register model (in AutoML context), S3 file explorer (in AutoML context) | |
 | `dashboard-area-autorag` | AutoRAG, AutoX, autorag experiment, RAG pattern evaluation, autorag leaderboard, pattern details, optimization metric, faithfulness, answer correctness, context correctness, RAG patterns, vector store provider, Milvus (in AutoRAG context), chunking, embedding model, retrieval method, generation model, autorag configure, S3 file explorer (in AutoRAG context), Docling, text extraction (in AutoRAG context), test data file | |
+| `dashboard-area-observability` | observability, observability dashboard, Perses, PersesDashboard, PersesBoard, metrics dashboard, time range selector, Prometheus datasource | |
 | `dashboard-area-applications` | application, enabled application, explore application, ISV | |
 | `dashboard-area-consistencies` | consistency, shared pattern, common component, UX consistency | |
 
@@ -495,6 +499,7 @@ Matched against file paths from linked PRs, code references in descriptions, or 
 | `dashboard-area-cypress` | `packages/cypress/` |
 | `dashboard-area-automl` | `packages/automl/` |
 | `dashboard-area-autorag` | `packages/autorag/` |
+| `dashboard-area-observability` | `packages/observability/`, `manifests/observability/` |
 | `dashboard-area-applications` | `frontend/src/pages/enabledApplications/`, `frontend/src/pages/exploreApplication/` |
 | `dashboard-area-bff` | *(cross-cutting -- shared patterns span `packages/*/bff/`)* |
 | `dashboard-area-security` | *(cross-cutting -- no dedicated directory)* |
@@ -567,6 +572,7 @@ An area label can appear on issues belonging to any team. This mapping provides 
 | `dashboard-area-cluster-settings` | Monarch |
 | `dashboard-area-cypress` | Monarch |
 | `dashboard-area-applications` | Monarch |
+| `dashboard-area-observability` | Monarch |
 | `dashboard-area-workbenches` | Razzmatazz |
 | `dashboard-area-jupyter` | Razzmatazz |
 | `dashboard-area-notebooks` | Razzmatazz |
@@ -610,7 +616,7 @@ When an issue lacks area labels, these keywords and feature associations can hel
 
 | Team | Scrum label | Keywords / features | Reasoning |
 |---|---|---|---|
-| **Monarch** | `dashboard-monarch-scrum` | PatternFly, PF6, home page, projects page, navigation, infrastructure, cluster settings, shared UI, consistencies, BFF shared infrastructure (not feature-specific BFF), Go backend shared patterns, common middleware, shared auth, plugin-core, app-config, common libraries, cross-package utilities, applications, **generic `manifests/` / install-base / cross-cutting operator YAML** | Monarch owns app shell, shared infrastructure, cross-cutting UI foundations, cross-cutting BFF/Go backend patterns, and **default ownership of repo-wide manifest and install layout** when no feature-specific path dominates. "applications" refers to the enabled/explore applications pages (ISV integrations). |
+| **Monarch** | `dashboard-monarch-scrum` | PatternFly, PF6, home page, projects page, navigation, infrastructure, cluster settings, shared UI, consistencies, BFF shared infrastructure (not feature-specific BFF), Go backend shared patterns, common middleware, shared auth, plugin-core, app-config, common libraries, cross-package utilities, applications, observability, Perses, PersesDashboard, metrics dashboard, **generic `manifests/` / install-base / cross-cutting operator YAML** | Monarch owns app shell, shared infrastructure, cross-cutting UI foundations, cross-cutting BFF/Go backend patterns, the observability/Perses dashboard integration (`packages/observability/`), and **default ownership of repo-wide manifest and install layout** when no feature-specific path dominates. "applications" refers to the enabled/explore applications pages (ISV integrations). |
 | **Razzmatazz** | `dashboard-razzmatazz-scrum` | workbenches, spawner, notebook server, notebooks, BYON image, Jupyter, JupyterLab, pipelines, pipeline server, DSPA, pipeline run, hardware profiles, accelerator profiles, tolerations, node selector, storage classes, user management, RBAC, permissions, group settings | Razzmatazz owns the core DS project experience: workbenches, notebooks, pipelines, hardware profiles, storage classes, and user management. |
 | **Zaffre** | `dashboard-zaffre-scrum` | model serving, inference, KServe, ModelMesh, serving runtime, model deploy, NIM, vLLM, connections, connection types, MaaS admin (subscriptions, API keys, auth policies), operator bundles, kustomize overlays, OLM resources for serving, MaaS, and connection types | Zaffre owns model serving infrastructure, the MaaS admin package (`packages/maas/`, `dashboard-area-maas` — subscriptions, API keys, auth policies), connection types, and the operator and deployment layers that ship those capabilities. Gen AI Studio's consumption of MaaS models/tokens is Crimson (`dashboard-area-genai`). |
 | **Green** | `dashboard-green-scrum` | model catalog, catalog card, model registry, registered model, model version, model artifact, distributed workloads, Kueue, cluster queue, local queue, workload metrics, Ray (when related to DW queue management), MCP, MCP server, MCP catalog | Green owns model catalog, model registry, distributed workloads (queue management side), and MCP. |

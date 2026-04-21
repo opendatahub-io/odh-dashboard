@@ -1,6 +1,6 @@
 import React from 'react';
-import { DeploymentsStateContext } from '~/odh/hooks/useDeploymentsState';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { DeploymentsStateContext } from '~/odh/hooks/useDeploymentsState';
 import { isModelRegistryVersionDeploymentsContextExtension } from '~/odh/extension-points/deploy';
 
 interface MRDeploymentsContextProviderProps {
@@ -24,20 +24,18 @@ export const MRDeploymentsContextProvider: React.FC<MRDeploymentsContextProvider
 
   const DeploymentsProviderComponent = React.useMemo(
     () =>
-      deploymentsContextLoaded && deploymentsContextExtensions?.[0]?.properties.DeploymentsProvider,
+      deploymentsContextLoaded && deploymentsContextExtensions[0]?.properties.DeploymentsProvider,
     [deploymentsContextLoaded, deploymentsContextExtensions],
   );
 
   if (deploymentsContextLoaded && DeploymentsProviderComponent) {
     return (
       <DeploymentsProviderComponent labelSelectors={labelSelectors} mrName={mrName}>
-        {
-          (deploymentsContextValue) => (
-              <DeploymentsStateContext.Provider value={deploymentsContextValue}>
-                {children}
-              </DeploymentsStateContext.Provider>
-          )
-        }
+        {(deploymentsContextValue) => (
+          <DeploymentsStateContext.Provider value={deploymentsContextValue}>
+            {children}
+          </DeploymentsStateContext.Provider>
+        )}
       </DeploymentsProviderComponent>
     );
   }

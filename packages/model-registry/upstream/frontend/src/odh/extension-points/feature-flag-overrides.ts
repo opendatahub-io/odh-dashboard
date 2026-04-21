@@ -15,14 +15,14 @@ export type OdhDevFeatureFlagOverrides = Partial<Record<TempDevFeature, boolean>
  * from its dev feature flags system. The useTempDevFeatureAvailable hook
  * checks this context first, then falls back to localStorage.
  */
-export const OdhDevFeatureFlagOverridesContext = React.createContext<OdhDevFeatureFlagOverrides>(null);
+export const OdhDevFeatureFlagOverridesContext =
+  React.createContext<OdhDevFeatureFlagOverrides>(null);
 
 /**
  * Hook to get dev feature flag overrides from ODH context.
  */
-export const useOdhDevFeatureFlagOverrides = (): OdhDevFeatureFlagOverrides => {
-  return React.useContext(OdhDevFeatureFlagOverridesContext);
-};
+export const useOdhDevFeatureFlagOverrides = (): OdhDevFeatureFlagOverrides =>
+  React.useContext(OdhDevFeatureFlagOverridesContext);
 
 /**
  * Extension point for providing an ODH dev feature flag overrides provider.

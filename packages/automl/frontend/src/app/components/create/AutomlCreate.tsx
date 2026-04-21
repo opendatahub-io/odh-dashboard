@@ -13,8 +13,10 @@ import { ConfigureSchema } from '~/app/schemas/configure.schema';
 function AutomlCreate(): React.JSX.Element {
   const form = useFormContext<ConfigureSchema>();
 
+  // Use a div instead of PF's <Form> to avoid nested <form> elements,
+  // since AutomlConfigurePage already renders <Stack component="form">.
   return (
-    <>
+    <div className="pf-v6-c-form pf-m-limit-width">
       <Controller
         control={form.control}
         name="display_name"
@@ -46,7 +48,7 @@ function AutomlCreate(): React.JSX.Element {
           </FormGroup>
         )}
       />
-    </>
+    </div>
   );
 }
 

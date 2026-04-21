@@ -1,7 +1,14 @@
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import ModelRegistry from './screens/ModelRegistry';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import OdhModelRegistryCoreLoader from '~/odh/components/OdhModelRegistryCoreLoader';
+import { generateVersionDetailsTabExtensionRoutes } from '~/odh/VersionDetailsTabExtensionRoutes';
+import { generateDetailsTabExtensionRoutes } from '~/odh/DetailsTabExtensionRoutes';
+import {
+  isModelRegistryVersionDetailsTabExtension,
+  isModelRegistryDetailsTabExtension,
+} from '~/odh/extension-points';
+import ModelRegistry from './screens/ModelRegistry';
 
 import RegisteredModelsArchive from './screens/RegisteredModelsArchive/RegisteredModelsArchive';
 import { ModelVersionsTab } from './screens/ModelVersions/const';
@@ -15,13 +22,6 @@ import RegisteredModelsArchiveDetails from './screens/RegisteredModelsArchive/Re
 import RegisterModel from './screens/RegisterModel/RegisterModel';
 import RegisterVersion from './screens/RegisterModel/RegisterVersion';
 import ModelTransferJobs from './screens/ModelTransferJobs/ModelTransferJobs';
-import { generateVersionDetailsTabExtensionRoutes } from '~/odh/VersionDetailsTabExtensionRoutes';
-import { generateDetailsTabExtensionRoutes } from '~/odh/DetailsTabExtensionRoutes';
-import { useExtensions } from '@odh-dashboard/plugin-core';
-import {
-  isModelRegistryVersionDetailsTabExtension,
-  isModelRegistryDetailsTabExtension,
-} from '~/odh/extension-points';
 
 const ModelRegistryRoutes: React.FC = () => {
   const tabExtensions = useExtensions(isModelRegistryVersionDetailsTabExtension);

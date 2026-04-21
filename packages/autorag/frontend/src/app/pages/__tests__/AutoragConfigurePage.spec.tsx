@@ -319,7 +319,7 @@ describe('AutoragConfigurePage', () => {
       // Check for form fields that are rendered by AutoragCreate
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
       expect(await screen.findByLabelText(/Description/i)).toBeInTheDocument();
-      expect(await screen.findByText(/Llama Stack instance/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Llama Stack connection/i)).toBeInTheDocument();
     });
 
     it('should NOT render AutoragConfigure component on initial load', async () => {
@@ -499,9 +499,9 @@ describe('AutoragConfigurePage', () => {
       const backButton = await screen.findByRole('button', { name: 'Back' });
       await user.click(backButton);
 
-      // Should show create component again (has Name, Description, Llama Stack instance)
+      // Should show create component again (has Name, Description, Llama Stack connection)
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
-      expect(await screen.findByText(/Llama Stack instance/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Llama Stack connection/i)).toBeInTheDocument();
       // Should NOT show configure component (Documents, Configure Details)
       expect(screen.queryByText('Knowledge setup')).not.toBeInTheDocument();
       expect(screen.queryByText('Configure details')).not.toBeInTheDocument();

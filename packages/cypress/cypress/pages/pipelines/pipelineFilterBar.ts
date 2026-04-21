@@ -11,8 +11,17 @@ class PipelineRunFilterBar extends PipelineFilterBar {
     return cy.findByTestId('search-for-run-name');
   }
 
-  findRunGroupInput() {
-    return cy.findByTestId('search-for-run-group-name');
+  findRunGroupSelect() {
+    return cy.findByTestId('run-group-toggle-button');
+  }
+
+  selectRunGroupByName(name: string) {
+    this.findRunGroupSelect().click();
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    cy.findByTestId('run-group-selector-table-list')
+      .contains('td', new RegExp(`^${escaped}$`))
+      .click();
+    return this;
   }
 
   findMlflowExperimentSelect() {

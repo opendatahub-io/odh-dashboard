@@ -23,9 +23,13 @@ const useConnections = (
       const labelSelector = includeDashboardFalse ? '' : `${LABEL_SELECTOR_DASHBOARD_RESOURCE}`;
 
       const secrets = await getSecretsByLabel(labelSelector, namespace, opts);
-      const connections = secrets.filter((secret) => isConnection(secret));
-
-      return connections;
+      return secrets
+        .filter(isConnection)
+        .filter(
+          (connection) =>
+            includeDashboardFalse ||
+            connection.metadata.annotations['opendatahub.io/connection-hidden'] !== 'true',
+        );
     },
     [namespace, includeDashboardFalse],
   );

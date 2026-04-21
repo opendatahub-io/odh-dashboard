@@ -1,10 +1,6 @@
 import * as React from 'react';
 import { Label, Popover } from '@patternfly/react-core';
-import {
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  InProgressIcon,
-} from '@patternfly/react-icons';
+import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
 import { McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
 import { getStatusInfo } from './utils';
 
