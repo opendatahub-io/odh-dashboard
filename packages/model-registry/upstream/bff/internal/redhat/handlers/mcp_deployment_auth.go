@@ -21,8 +21,8 @@ func requireMcpDeploymentAccess(app *api.App, w http.ResponseWriter, r *http.Req
 		return false
 	}
 	if client == nil {
-		app.Logger().Warn("K8s client unavailable, skipping MCP access check")
-		return true
+		app.ServerError(w, r, fmt.Errorf("kubernetes client factory returned nil client without error"))
+		return false
 	}
 
 	identity, _ := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
