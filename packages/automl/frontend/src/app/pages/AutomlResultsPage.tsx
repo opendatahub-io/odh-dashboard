@@ -26,7 +26,7 @@ import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutomlResults } from '~/app/hooks/useAutomlResults';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
-import { isRunActive, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
+import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
 
 function AutomlResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -67,7 +67,7 @@ function AutomlResultsPage(): React.JSX.Element {
     error: modelsLoadError,
   } = useAutomlResults(runId, namespace, pipelineRun);
 
-  const runActive = isRunActive(pipelineRun?.state);
+  const runTerminatable = isRunTerminatable(pipelineRun?.state);
   const runRetryable = isRunRetryable(pipelineRun?.state);
 
   const handleStop = React.useCallback(async () => {
@@ -117,7 +117,7 @@ function AutomlResultsPage(): React.JSX.Element {
               headerAction={
                 <Split hasGutter>
                   <SplitItem>
-                    {runActive && (
+                    {runTerminatable && (
                       <Button
                         variant="secondary"
                         icon={<StopCircleIcon />}

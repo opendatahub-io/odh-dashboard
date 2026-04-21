@@ -26,7 +26,7 @@ import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
-import { isRunActive, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
+import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
 
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -68,7 +68,7 @@ function AutoragResultsPage(): React.JSX.Element {
     ragPatternsBasePath,
   } = useAutoragResults(runId, namespace, pipelineRun);
 
-  const runActive = isRunActive(pipelineRun?.state);
+  const runTerminatable = isRunTerminatable(pipelineRun?.state);
   const runRetryable = isRunRetryable(pipelineRun?.state);
 
   const handleStop = React.useCallback(async () => {
@@ -126,7 +126,7 @@ function AutoragResultsPage(): React.JSX.Element {
               headerAction={
                 <Split hasGutter>
                   <SplitItem>
-                    {runActive && (
+                    {runTerminatable && (
                       <Button
                         variant="secondary"
                         icon={<StopCircleIcon />}

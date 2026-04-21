@@ -2,15 +2,23 @@ import type { PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 
 /**
- * Whether the run is in an active (non-terminal) state where it can be stopped.
+ * Whether the run is in a state where it can be terminated (stopped).
  */
-export const isRunActive = (state: string | undefined): boolean => {
+export const isRunTerminatable = (state: string | undefined): boolean => {
   const s = state?.toUpperCase();
   return (
-    s === RuntimeStateKF.RUNNING ||
-    s === RuntimeStateKF.PENDING ||
-    s === RuntimeStateKF.CANCELING ||
-    s === RuntimeStateKF.PAUSED
+    s === RuntimeStateKF.RUNNING || s === RuntimeStateKF.PENDING || s === RuntimeStateKF.PAUSED
+  );
+};
+
+/**
+ * Whether the run is still in progress (not yet in a terminal state).
+ * Includes CANCELING — the pipeline is still running but cannot be stopped again.
+ */
+export const isRunInProgress = (state: string | undefined): boolean => {
+  const s = state?.toUpperCase();
+  return (
+    s === RuntimeStateKF.RUNNING || s === RuntimeStateKF.PENDING || s === RuntimeStateKF.CANCELING
   );
 };
 

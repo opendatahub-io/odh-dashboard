@@ -7,7 +7,7 @@ import type { PipelineRun } from '~/app/types';
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { autoragResultsPathname } from '~/app/utilities/routes';
-import { isRunActive, isRunRetryable } from '~/app/utilities/utils';
+import { isRunTerminatable, isRunRetryable } from '~/app/utilities/utils';
 import { autoragRunsColumns } from './columns';
 
 /** Run state values (API / display). Use lowercase for case-insensitive matching. */
@@ -60,7 +60,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
     { onActionComplete },
   );
 
-  const runActive = isRunActive(run.state);
+  const runTerminatable = isRunTerminatable(run.state);
   const runRetryable = isRunRetryable(run.state);
 
   const handleStop = React.useCallback(async () => {
@@ -71,7 +71,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
   const actions = React.useMemo(() => {
     const items: React.ComponentProps<typeof ActionsColumn>['items'] = [];
 
-    if (runActive) {
+    if (runTerminatable) {
       items.push({
         title: <span data-testid="stop-run-action">Stop</span>,
         onClick: () => setIsStopModalOpen(true),
@@ -87,7 +87,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
     }
 
     return items;
-  }, [runActive, runRetryable, handleRetry, isRetrying]);
+  }, [runTerminatable, runRetryable, handleRetry, isRetrying]);
 
   return (
     <>

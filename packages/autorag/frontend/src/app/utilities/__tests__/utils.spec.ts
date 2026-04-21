@@ -2,36 +2,62 @@
 import type { PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
-  isRunActive,
+  isRunTerminatable,
+  isRunInProgress,
   isRunRetryable,
   parseErrorStatus,
   getOptimizedMetricForRAG,
   formatMetricValue,
 } from '~/app/utilities/utils';
 
-describe('isRunActive', () => {
+describe('isRunTerminatable', () => {
   it('should return true for active states', () => {
-    expect(isRunActive('RUNNING')).toBe(true);
-    expect(isRunActive('PENDING')).toBe(true);
-    expect(isRunActive('CANCELING')).toBe(true);
-    expect(isRunActive('PAUSED')).toBe(true);
+    expect(isRunTerminatable('RUNNING')).toBe(true);
+    expect(isRunTerminatable('PENDING')).toBe(true);
+    expect(isRunTerminatable('PAUSED')).toBe(true);
   });
 
   it('should be case-insensitive', () => {
-    expect(isRunActive('running')).toBe(true);
-    expect(isRunActive('Running')).toBe(true);
-    expect(isRunActive('pending')).toBe(true);
+    expect(isRunTerminatable('running')).toBe(true);
+    expect(isRunTerminatable('Running')).toBe(true);
+    expect(isRunTerminatable('pending')).toBe(true);
   });
 
   it('should return false for terminal states', () => {
-    expect(isRunActive('SUCCEEDED')).toBe(false);
-    expect(isRunActive('FAILED')).toBe(false);
-    expect(isRunActive('CANCELED')).toBe(false);
+    expect(isRunTerminatable('SUCCEEDED')).toBe(false);
+    expect(isRunTerminatable('FAILED')).toBe(false);
+    expect(isRunTerminatable('CANCELED')).toBe(false);
+    expect(isRunTerminatable('CANCELING')).toBe(false);
   });
 
   it('should return false for undefined or empty state', () => {
-    expect(isRunActive(undefined)).toBe(false);
-    expect(isRunActive('')).toBe(false);
+    expect(isRunTerminatable(undefined)).toBe(false);
+    expect(isRunTerminatable('')).toBe(false);
+  });
+});
+
+describe('isRunInProgress', () => {
+  it('should return true for in-progress states including CANCELING', () => {
+    expect(isRunInProgress('RUNNING')).toBe(true);
+    expect(isRunInProgress('PENDING')).toBe(true);
+    expect(isRunInProgress('CANCELING')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunInProgress('running')).toBe(true);
+    expect(isRunInProgress('canceling')).toBe(true);
+  });
+
+  it('should return false for terminal and non-active states', () => {
+    expect(isRunInProgress('SUCCEEDED')).toBe(false);
+    expect(isRunInProgress('FAILED')).toBe(false);
+    expect(isRunInProgress('CANCELED')).toBe(false);
+    expect(isRunInProgress('PAUSED')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunInProgress(undefined)).toBe(false);
+    expect(isRunInProgress('')).toBe(false);
   });
 });
 
