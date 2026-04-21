@@ -1,27 +1,32 @@
 name: Dependabot Auto-merge
 
 on:
-  check_suite:
+  # Trigger after the Dependency Validation workflow completes on Dependabot PRs.
+  # Unlike check_suite (which fires per-app and can miss Prow statuses),
+  # workflow_run fires deterministically when the named workflow finishes.
+  workflow_run:
+    workflows: ["Dependency Validation"]
     types:
       - completed
 
 permissions:
   contents: read
   pull-requests: write
+  statuses: read
 
 jobs:
   auto-merge:
     runs-on: ubuntu-latest
     if: >
-      github.event.check_suite.conclusion == 'success' &&
-      github.event.check_suite.app.slug == 'github-actions'
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
     steps:
-      - name: Find Dependabot PR from check suite
+      - name: Find Dependabot PR from workflow run
         id: pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          HEAD_BRANCH="${{ github.event.check_suite.head_branch }}"
+          HEAD_BRANCH="${{ github.event.workflow_run.head_branch }}"
 
           if [[ ! "$HEAD_BRANCH" =~ ^dependabot/ ]]; then
             echo "Not a Dependabot branch, skipping"
@@ -39,41 +44,28 @@ jobs:
           fi
           echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
 
-      - name: Verify all required checks passed
+      - name: Verify combined commit status
         id: checks
         if: steps.pr.outputs.number
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          HEAD_SHA="${{ github.event.check_suite.head_sha }}"
+          HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
 
-          CHECKS=$(gh api \
-            "repos/${{ github.repository }}/commits/${HEAD_SHA}/check-runs" \
-            --paginate \
-            --jq '.check_runs[] | "\(.name)\t\(.conclusion // "pending")"')
+          # The combined status API merges both check runs (GitHub Actions)
+          # and commit statuses (Prow) into a single verdict.
+          COMBINED=$(gh api "repos/${{ github.repository }}/commits/${HEAD_SHA}/status" \
+            --jq '.state')
 
-          echo "All check runs:"
-          echo "$CHECKS"
+          echo "Combined commit status: $COMBINED"
 
-          READY=true
-
-          # Fail if any check run has explicitly failed or been cancelled
-          FAILED=$(echo "$CHECKS" | grep -E "	(failure|cancelled|timed_out|action_required)$" || true)
-          if [ -n "$FAILED" ]; then
-            echo "Failed checks found:"
-            echo "$FAILED"
-            READY=false
+          if [ "$COMBINED" != "success" ]; then
+            echo "Not all checks/statuses have passed (state=$COMBINED), skipping"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-          # Fail if any check is still pending
-          PENDING=$(echo "$CHECKS" | grep -E "	(pending|queued|in_progress)$" || true)
-          if [ -n "$PENDING" ]; then
-            echo "Checks still pending:"
-            echo "$PENDING"
-            READY=false
-          fi
-
-          echo "ready=$READY" >> "$GITHUB_OUTPUT"
+          echo "ready=true" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v4
         if: steps.checks.outputs.ready == 'true'

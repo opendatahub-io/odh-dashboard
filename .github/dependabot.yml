@@ -158,6 +158,7 @@ updates:
     open-pull-requests-limit: 5
     target-branch: "main"
     labels:
+      # Keep in sync with exempt-pr-labels in .github/workflows/stale.yml
       - "dependencies"
     ignore:
       - dependency-name: "*"
@@ -171,3 +172,8 @@ updates:
         dependency-type: development
       security-patches:
         applies-to: security-updates
+
+  # Upstream-synced packages (model-registry, notebooks) are intentionally
+  # excluded from Dependabot. Their deps are managed by their upstream repos
+  # and synced in via the upstream-sync workflow. The dependency-validation
+  # workflow still audits them when upstream syncs land.
