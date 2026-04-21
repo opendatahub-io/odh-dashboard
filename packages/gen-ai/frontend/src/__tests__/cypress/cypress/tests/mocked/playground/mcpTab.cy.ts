@@ -566,8 +566,8 @@ describe('Playground - MCP Servers', () => {
             mcpToolsModal.find().should('not.exist');
 
             cy.step('Re-open to verify all tools remain selected');
-            // Wait for MCP table to be visible
-            playgroundPage.mcpTab.findMCPServersTable().should('be.visible');
+            // Wait for MCP table to be visible after potential tab remount
+            playgroundPage.mcpTab.verifyMCPTabVisible();
 
             // Re-query server row to avoid stale references
             const reopenServerRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
@@ -629,7 +629,9 @@ describe('Playground - MCP Servers', () => {
         .and('contain.text', 'Performance may be degraded with more than 40 active tools');
 
       cy.step('Verify tools count shows 45 active');
-      serverRow.findToolsButton().should('contain.text', '45 active');
+      // Re-query server row after modal closes to avoid stale reference
+      const freshServerRowFor45 = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
+      freshServerRowFor45.findToolsButton().should('contain.text', '45 active');
 
       cy.step('Test completed - Tools warning alert works correctly');
     },
@@ -671,7 +673,9 @@ describe('Playground - MCP Servers', () => {
       cy.get('[data-testid="mcp-tools-warning-alert"]').should('not.exist');
 
       cy.step('Verify tools count shows 40 active');
-      serverRow.findToolsButton().should('contain.text', '40 active');
+      // Re-query server row after modal closes to avoid stale reference
+      const freshServerRowFor40 = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
+      freshServerRowFor40.findToolsButton().should('contain.text', '40 active');
 
       cy.step('Test completed - No warning for 40 or fewer tools');
     },
