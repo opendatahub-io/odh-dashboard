@@ -13,7 +13,6 @@ export type SortableData<T> = Pick<
   | 'info'
   | 'visibility'
   | 'className'
-  | 'screenReaderText'
 > & {
   label: string;
   field: string;

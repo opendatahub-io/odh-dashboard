@@ -188,7 +188,7 @@ const TableBase = <T,>({
       );
     }
 
-    return col.label || col.screenReaderText ? (
+    return col.label ? (
       <Th
         key={col.field + i}
         colSpan={col.colSpan}
@@ -204,7 +204,6 @@ const TableBase = <T,>({
         modifier={col.modifier}
         visibility={col.visibility}
         className={col.className}
-        screenReaderText={col.screenReaderText}
       >
         {col.label}
       </Th>
