@@ -25,7 +25,11 @@ func requireMcpDeploymentAccess(app *api.App, w http.ResponseWriter, r *http.Req
 		return false
 	}
 
-	identity, _ := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+	identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+	if !ok || identity == nil {
+		app.BadRequest(w, r, fmt.Errorf("missing RequestIdentity in context"))
+		return false
+	}
 
 	allowed, err := client.CanVerbMcpServersInNamespace(r.Context(), identity, namespace, verb)
 	if err != nil {
