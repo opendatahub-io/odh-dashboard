@@ -327,6 +327,41 @@ export const ensureModelCatalogSourceEnabled = (sourceId: string): Cypress.Chain
     });
   });
 };
+/**
+ * Wait for the model-catalog deployment to become Available.
+ * The BFF resolves the model-catalog Kubernetes Service on every catalog API request,
+ * so if the deployment is not ready all catalog endpoints return 404.
+ * Throws an error (fails the test) if the deployment has no ready replicas within 120s.
+ * @returns A Cypress chainable that resolves when the deployment is Available.
+ */
+export const waitForModelCatalogDeployment = (): Cypress.Chainable<undefined> => {
+  const namespace = getModelRegistryNamespace();
+  const command = `oc wait --for=jsonpath='{.status.readyReplicas}'=1 deployment/model-catalog -n ${namespace} --timeout=120s`;
+
+  cy.log(`Waiting for model-catalog deployment to have a ready pod in namespace ${namespace}...`);
+  return cy.then(() => {
+    cy.exec(command, { failOnNonZeroExit: false, timeout: 120000 }).then(
+      (result: CommandLineResult) => {
+        if (result.stdout) {
+          cy.log(`model-catalog deployment wait result: ${result.stdout}`);
+        }
+        if (result.stderr) {
+          const maskedStderr = maskSensitiveInfo(result.stderr);
+          cy.log(`model-catalog deployment wait stderr: ${maskedStderr}`);
+        }
+        if (result.code !== 0) {
+          throw new Error(
+            `model-catalog deployment has no ready replicas after 120s. The catalog backend must have at least 1 ready pod before running performance filter tests. stderr: ${maskSensitiveInfo(
+              result.stderr,
+            )}`,
+          );
+        }
+        cy.log(`✓ model-catalog deployment has a ready pod in namespace ${namespace}`);
+      },
+    );
+  });
+};
+
 // polling and refresh is required until https://issues.redhat.com/browse/RHOAIENG-45098 is resolved
 // UI polling configuration
 const UI_POLL_CONFIG = {
