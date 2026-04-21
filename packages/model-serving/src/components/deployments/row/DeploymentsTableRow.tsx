@@ -143,9 +143,7 @@ export const DeploymentRow: React.FC<{
         {pathsLoaded ? (
           <DeploymentHardwareProfileCell deployment={deployment} />
         ) : (
-          <Td dataLabel="Hardware profile">
-            <Spinner size="md" />
-          </Td>
+          <Td dataLabel="Hardware profile">{formDataResolved ? '-' : <Spinner size="md" />}</Td>
         )}
         <Td dataLabel="Last deployed">
           <DeploymentLastDeployed deployment={deployment} />

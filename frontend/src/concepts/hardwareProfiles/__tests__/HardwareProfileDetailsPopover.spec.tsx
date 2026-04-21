@@ -96,12 +96,10 @@ describe('HardwareProfileDetailsPopover', () => {
       );
     });
 
-    it('should display "Custom" in italic in table view', () => {
+    it('should display Custom label in table view', () => {
       renderWithContext(<HardwareProfileDetailsPopover tableView />);
 
-      const button = screen.getByTestId('hardware-profile-details-popover');
-      expect(button).toHaveTextContent('Custom');
-      expect(button.querySelector('i')).toBeInTheDocument();
+      expect(screen.getByTestId('hardware-profile-details-popover')).toHaveTextContent('Custom');
     });
 
     it('should display "View details" text in form view', () => {

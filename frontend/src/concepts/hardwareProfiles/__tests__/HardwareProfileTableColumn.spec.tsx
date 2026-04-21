@@ -72,7 +72,7 @@ describe('HardwareProfileTableColumn', () => {
   });
 
   describe('Custom scenario (no hardware profile)', () => {
-    it('should render italic Custom text instead of popover', () => {
+    it('renders Custom text and no details popover', () => {
       renderWithContext(
         <HardwareProfileTableColumn
           namespace="test-project"
@@ -87,10 +87,27 @@ describe('HardwareProfileTableColumn', () => {
         />,
       );
 
-      const column = screen.getByTestId('hardware-profile-table-column');
-      expect(column).toHaveTextContent('Custom');
-      expect(column.querySelector('i')).toBeInTheDocument();
+      expect(screen.getByTestId('hardware-profile-table-column')).toHaveTextContent('Custom');
       expect(screen.queryByTestId('hardware-profile-details-popover')).not.toBeInTheDocument();
+    });
+
+    it('renders Custom trigger as a focusable element', () => {
+      renderWithContext(
+        <HardwareProfileTableColumn
+          namespace="test-project"
+          resource={mockNotebookResource as never}
+          bindingState={{
+            bindingStateInfo: {
+              profile: undefined,
+            },
+            bindingStateLoaded: true,
+            loadError: undefined,
+          }}
+        />,
+      );
+
+      const trigger = screen.getByText('Custom').closest('button');
+      expect(trigger).toBeInTheDocument();
     });
   });
 
