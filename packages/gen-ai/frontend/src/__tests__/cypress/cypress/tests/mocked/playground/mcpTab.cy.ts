@@ -569,11 +569,11 @@ describe('Playground - MCP Servers', () => {
             // Wait for MCP table to be visible
             playgroundPage.mcpTab.findMCPServersTable().should('be.visible');
 
-            // Directly query for the tools button by its testID (bypassing page object to avoid stale references)
-            cy.findByTestId(`mcp-server-tools-button-${serverUrl}`)
-              .should('exist')
-              .and('not.have.attr', 'aria-disabled')
-              .click();
+            // Re-query server row to avoid stale references
+            const reopenServerRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
+            reopenServerRow.findToolsButton().should('exist');
+            reopenServerRow.findToolsButton().should('not.have.attr', 'aria-disabled');
+            reopenServerRow.findToolsButton().click();
             mcpToolsModal.find().should('be.visible');
             mcpToolsModal
               .find()
