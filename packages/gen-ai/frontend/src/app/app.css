@@ -68,4 +68,5 @@ body,
 /* Center scroll-to-top/bottom jump buttons in embedded chatbot mode */
 .pf-chatbot--embedded .pf-chatbot__jump {
   inset-inline-start: 50% !important;
+  transform: translateX(-50%);
 }
