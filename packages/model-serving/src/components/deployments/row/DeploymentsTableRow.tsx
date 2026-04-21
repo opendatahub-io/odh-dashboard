@@ -141,10 +141,7 @@ export const DeploymentRow: React.FC<{
           />
         </Td>
         {pathsLoaded ? (
-          <DeploymentHardwareProfileCell
-            deployment={deployment}
-            hardwareProfilePaths={hardwareProfilePaths}
-          />
+          <DeploymentHardwareProfileCell deployment={deployment} />
         ) : (
           <Td dataLabel="Hardware profile">
             <Spinner size="md" />
