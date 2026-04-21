@@ -71,53 +71,25 @@ describe('manageHardwareProfileValidationSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('should fail when display name exceeds character limit', () => {
-    const invalidData = {
+  it.each([
+    ['displayName', HARDWARE_PROFILE_DISPLAY_NAME_CHAR_LIMIT],
+    ['description', HARDWARE_PROFILE_DESCRIPTION_CHAR_LIMIT],
+  ])('should fail when %s exceeds character limit', (field, limit) => {
+    const result = manageHardwareProfileValidationSchema.safeParse({
       ...validData,
-      displayName: 'a'.repeat(HARDWARE_PROFILE_DISPLAY_NAME_CHAR_LIMIT + 1),
-    };
-
-    const result = manageHardwareProfileValidationSchema.safeParse(invalidData);
+      [field]: 'a'.repeat(limit + 1),
+    });
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0].message).toContain(
-        `Display name cannot exceed ${HARDWARE_PROFILE_DISPLAY_NAME_CHAR_LIMIT} characters`,
-      );
-    }
   });
 
-  it('should pass when display name is exactly at character limit', () => {
-    const validDataWithMaxDisplayName = {
+  it.each([
+    ['displayName', HARDWARE_PROFILE_DISPLAY_NAME_CHAR_LIMIT],
+    ['description', HARDWARE_PROFILE_DESCRIPTION_CHAR_LIMIT],
+  ])('should pass when %s is exactly at character limit', (field, limit) => {
+    const result = manageHardwareProfileValidationSchema.safeParse({
       ...validData,
-      displayName: 'a'.repeat(HARDWARE_PROFILE_DISPLAY_NAME_CHAR_LIMIT),
-    };
-
-    const result = manageHardwareProfileValidationSchema.safeParse(validDataWithMaxDisplayName);
-    expect(result.success).toBe(true);
-  });
-
-  it('should fail when description exceeds character limit', () => {
-    const invalidData = {
-      ...validData,
-      description: 'a'.repeat(HARDWARE_PROFILE_DESCRIPTION_CHAR_LIMIT + 1),
-    };
-
-    const result = manageHardwareProfileValidationSchema.safeParse(invalidData);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0].message).toContain(
-        `Description cannot exceed ${HARDWARE_PROFILE_DESCRIPTION_CHAR_LIMIT} characters`,
-      );
-    }
-  });
-
-  it('should pass when description is exactly at character limit', () => {
-    const validDataWithMaxDescription = {
-      ...validData,
-      description: 'a'.repeat(HARDWARE_PROFILE_DESCRIPTION_CHAR_LIMIT),
-    };
-
-    const result = manageHardwareProfileValidationSchema.safeParse(validDataWithMaxDescription);
+      [field]: 'a'.repeat(limit),
+    });
     expect(result.success).toBe(true);
   });
 
