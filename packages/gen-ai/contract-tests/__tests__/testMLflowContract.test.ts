@@ -76,8 +76,10 @@ describe('MLflow Prompt Registry Contract Tests', () => {
       const result = await apiClient.delete(
         `/gen-ai/api/v1/mlflow/prompts/${promptName}/versions/1?namespace=default`,
       );
-      expect(result.success).toBe(true);
-      expect(result.response?.status).toBe(204);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1gen-ai~1api~1v1~1mlflow~1prompts~1{name}~1versions~1{version}/delete/responses/204',
+        status: 204,
+      });
     });
   });
 
@@ -86,8 +88,10 @@ describe('MLflow Prompt Registry Contract Tests', () => {
       const result = await apiClient.delete(
         `/gen-ai/api/v1/mlflow/prompts/${promptName}?namespace=default`,
       );
-      expect(result.success).toBe(true);
-      expect(result.response?.status).toBe(204);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1gen-ai~1api~1v1~1mlflow~1prompts~1{name}/delete/responses/204',
+        status: 204,
+      });
     });
   });
 });

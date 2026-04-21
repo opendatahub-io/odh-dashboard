@@ -196,8 +196,13 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         cy.step('Click Load in Playground');
         promptManagementModal.findLoadButton().should('be.enabled').click();
 
-        cy.step('Verify modal closed and system instruction updated');
+        cy.step('Verify modal closed and template loaded into assistant');
         promptManagementModal.find().should('not.exist');
+        promptAssistant.findNameTitle().should('contain.text', 'summarization-prompt');
+        promptAssistant.findEditButton().should('be.visible').click();
+        promptAssistant
+          .findTextarea()
+          .should('have.value', 'You are a helpful summarization assistant.');
       },
     );
 
@@ -369,7 +374,7 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         cy.wait('@createPromptError');
         createPromptModal.findErrorAlert().should('be.visible');
         createPromptModal.find().should('exist');
-        createPromptModal.findSaveButton().should('not.be.disabled');
+        createPromptModal.findSaveButton().should('be.visible').and('be.enabled');
       },
     );
 
@@ -432,7 +437,7 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         if (req.url.includes('/versions')) {
           return;
         }
-        const isVersion1 = req.url.includes('version=1');
+        const isVersion1 = new URL(req.url).searchParams.get('version') === '1';
         req.reply({
           statusCode: 200,
           body: {
