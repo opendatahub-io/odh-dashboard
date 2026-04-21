@@ -350,19 +350,20 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                         }
                       />
                     </HelperTextItem>
-                    {(() => {
-                      const kueue = hardwareProfileConfig.selectedProfile.spec.scheduling?.kueue;
-                      if (!kueue?.localQueueName) {
-                        return null;
-                      }
-                      return (
-                        <HelperTextItem>
-                          {`Local queue: ${kueue.localQueueName}${
-                            kueue.priorityClass ? `, Priority: ${kueue.priorityClass}` : ''
-                          }`}
-                        </HelperTextItem>
-                      );
-                    })()}
+                    {!getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) &&
+                      (() => {
+                        const kueue = hardwareProfileConfig.selectedProfile.spec.scheduling?.kueue;
+                        if (!kueue?.localQueueName) {
+                          return null;
+                        }
+                        return (
+                          <HelperTextItem>
+                            {`Local queue: ${kueue.localQueueName}${
+                              kueue.priorityClass ? `, Priority: ${kueue.priorityClass}` : ''
+                            }`}
+                          </HelperTextItem>
+                        );
+                      })()}
                   </HelperText>
                 </FormHelperText>
               ) : hardwareProfileConfig.useExistingSettings ? (
