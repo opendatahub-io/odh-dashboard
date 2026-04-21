@@ -56,16 +56,22 @@ jobs:
           echo "$CHECKS"
 
           READY=true
-          for REQUIRED in "Tests" "audit" "override-consistency"; do
-            STATUS=$(echo "$CHECKS" | grep -E "(^|/)${REQUIRED}	" | head -1 | cut -f2)
-            if [ -z "$STATUS" ]; then
-              echo "Required check '$REQUIRED' not found yet"
-              READY=false
-            elif [ "$STATUS" != "success" ]; then
-              echo "Required check '$REQUIRED' has status: $STATUS"
-              READY=false
-            fi
-          done
+
+          # Fail if any check run has explicitly failed or been cancelled
+          FAILED=$(echo "$CHECKS" | grep -E "	(failure|cancelled|timed_out|action_required)$" || true)
+          if [ -n "$FAILED" ]; then
+            echo "Failed checks found:"
+            echo "$FAILED"
+            READY=false
+          fi
+
+          # Fail if any check is still pending
+          PENDING=$(echo "$CHECKS" | grep -E "	(pending|queued|in_progress)$" || true)
+          if [ -n "$PENDING" ]; then
+            echo "Checks still pending:"
+            echo "$PENDING"
+            READY=false
+          fi
 
           echo "ready=$READY" >> "$GITHUB_OUTPUT"
 
