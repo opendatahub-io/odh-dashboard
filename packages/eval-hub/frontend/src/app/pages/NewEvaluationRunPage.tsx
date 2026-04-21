@@ -62,8 +62,7 @@ const NewEvaluationRunPage: React.FC = () => {
             <CardTitle id="standardised-benchmarks-title">Benchmark</CardTitle>
             <CardBody>
               <Content component="p">
-                Select a standalone benchmark to evaluate specific model or agent performance
-                metrics.
+                Select a single benchmark to evaluate specific model or agent performance metrics.
               </Content>
             </CardBody>
           </Card>
