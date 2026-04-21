@@ -14,6 +14,13 @@ describe('MLflow Prompt Registry Contract Tests', () => {
   });
 
   const apiSchema = loadOpenAPISchema('bff/openapi/src/gen-ai.yaml');
+  const promptName = `ct-prompt-${Date.now()}`;
+
+  afterAll(async () => {
+    await apiClient
+      .delete(`/gen-ai/api/v1/mlflow/prompts/${promptName}?namespace=default`)
+      .catch(() => undefined);
+  });
 
   describe('List Prompts Endpoint', () => {
     it('should list registered prompts', async () => {
@@ -28,7 +35,7 @@ describe('MLflow Prompt Registry Contract Tests', () => {
   describe('Register Prompt Endpoint', () => {
     it('should register a new prompt', async () => {
       const result = await apiClient.post('/gen-ai/api/v1/mlflow/prompts?namespace=default', {
-        name: 'contract-test-prompt',
+        name: promptName,
         messages: [{ role: 'system', content: 'You are a helpful assistant.' }],
         // eslint-disable-next-line camelcase
         commit_message: 'initial version',
@@ -43,7 +50,7 @@ describe('MLflow Prompt Registry Contract Tests', () => {
   describe('Load Prompt Endpoint', () => {
     it('should load a prompt by name', async () => {
       const result = await apiClient.get(
-        '/gen-ai/api/v1/mlflow/prompts/contract-test-prompt?namespace=default',
+        `/gen-ai/api/v1/mlflow/prompts/${promptName}?namespace=default`,
       );
       expect(result).toMatchContract(apiSchema, {
         ref: '#/paths/~1gen-ai~1api~1v1~1mlflow~1prompts~1{name}/get/responses/200/content/application~1json/schema',
@@ -55,7 +62,7 @@ describe('MLflow Prompt Registry Contract Tests', () => {
   describe('List Prompt Versions Endpoint', () => {
     it('should list versions of a prompt', async () => {
       const result = await apiClient.get(
-        '/gen-ai/api/v1/mlflow/prompts/contract-test-prompt/versions?namespace=default',
+        `/gen-ai/api/v1/mlflow/prompts/${promptName}/versions?namespace=default`,
       );
       expect(result).toMatchContract(apiSchema, {
         ref: '#/paths/~1gen-ai~1api~1v1~1mlflow~1prompts~1{name}~1versions/get/responses/200/content/application~1json/schema',
@@ -67,7 +74,7 @@ describe('MLflow Prompt Registry Contract Tests', () => {
   describe('Delete Prompt Version Endpoint', () => {
     it('should delete a specific prompt version', async () => {
       const result = await apiClient.delete(
-        '/gen-ai/api/v1/mlflow/prompts/contract-test-prompt/versions/1?namespace=default',
+        `/gen-ai/api/v1/mlflow/prompts/${promptName}/versions/1?namespace=default`,
       );
       expect(result.success).toBe(true);
       expect(result.response?.status).toBe(204);
@@ -77,7 +84,7 @@ describe('MLflow Prompt Registry Contract Tests', () => {
   describe('Delete Prompt Endpoint', () => {
     it('should delete an entire prompt', async () => {
       const result = await apiClient.delete(
-        '/gen-ai/api/v1/mlflow/prompts/contract-test-prompt?namespace=default',
+        `/gen-ai/api/v1/mlflow/prompts/${promptName}?namespace=default`,
       );
       expect(result.success).toBe(true);
       expect(result.response?.status).toBe(204);
