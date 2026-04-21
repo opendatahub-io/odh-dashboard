@@ -731,6 +731,12 @@ func (m *TokenKubernetesClientMock) GetGuardrailsOrchestratorStatus(ctx context.
 	}, nil
 }
 
+// GetNemoGuardrailsServiceURL returns a mock NemoGuardrails in-cluster service URL for testing.
+// Returns a predictable URL so middleware tests can assert correct client creation.
+func (m *TokenKubernetesClientMock) GetNemoGuardrailsServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
+	return fmt.Sprintf("https://nemoguardrails.%s.svc.cluster.local:443", namespace), nil
+}
+
 // GenerateProviderID generates a mock provider ID for testing
 // GenerateProviderID delegates to the real implementation to properly count existing providers
 func (m *TokenKubernetesClientMock) GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {

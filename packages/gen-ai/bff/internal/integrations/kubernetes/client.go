@@ -56,4 +56,9 @@ type KubernetesClientInterface interface {
 	// Guardrails operations
 	CanListGuardrailsOrchestrator(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error)
 	GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error)
+
+	// NemoGuardrails operations
+	// GetNemoGuardrailsServiceURL returns the in-cluster service URL for the NemoGuardrails CR
+	// in the given namespace. Returns ("", nil) if no NemoGuardrails CR exists.
+	GetNemoGuardrailsServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error)
 }

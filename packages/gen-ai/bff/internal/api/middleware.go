@@ -505,11 +505,8 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 }
 
 // AttachNemoClient middleware creates a NeMo Guardrails client and attaches it to context.
-// The NeMo client authenticates using the pod's service account token, not the user's token,
-// since the NeMo Guardrails server runs in the same namespace as the BFF.
-//
-// In mock mode, creates a mock client. In real mode, uses NEMO_GUARDRAILS_URL env var
-// or (later) the NemoGuardrails CR route for URL discovery.
+// Mirrors AttachLlamaStackClient: uses the user's forwarded token and discovers the service URL
+// from the NemoGuardrails CR (trustyai.opendatahub.io/v1alpha1) when NEMO_GUARDRAILS_URL is not set.
 func (app *App) AttachNemoClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
@@ -521,25 +518,52 @@ func (app *App) AttachNemoClient(next func(http.ResponseWriter, *http.Request, h
 			logger.Debug("MOCK MODE: creating mock NeMo Guardrails client")
 			nemoClient = app.nemoClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs)
 		} else {
-			serviceURL := app.config.NemoGuardrailsURL
-			if serviceURL == "" {
-				logger.Debug("NeMo Guardrails unavailable: NEMO_GUARDRAILS_URL not configured")
-				ctx = context.WithValue(ctx, constants.NemoClientKey, nil)
-				next(w, r.WithContext(ctx), ps)
+			identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+			if !ok || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
 				return
 			}
 
-			saToken, err := helper.GetServiceAccountToken()
-			if err != nil {
-				app.serverErrorResponse(w, r, fmt.Errorf("failed to get service account token for NeMo client: %w", err))
-				return
+			var serviceURL string
+
+			if app.config.NemoGuardrailsURL != "" {
+				// Developer override — same pattern as LLAMA_STACK_URL
+				serviceURL = app.config.NemoGuardrailsURL
+				logger.Debug("Using NEMO_GUARDRAILS_URL environment variable (developer override)",
+					"serviceURL", serviceURL)
+			} else {
+				// Auto-discover from NemoGuardrails CR in the request namespace
+				namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+				if err != nil {
+					app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+					return
+				}
+
+				discoveredURL, err := k8sClient.GetNemoGuardrailsServiceURL(ctx, identity, namespace)
+				if err != nil {
+					app.serverErrorResponse(w, r, fmt.Errorf("failed to discover NemoGuardrails service: %w", err))
+					return
+				}
+
+				if discoveredURL == "" {
+					logger.Debug("NeMo Guardrails unavailable: no NemoGuardrails CR found in namespace", "namespace", namespace)
+					ctx = context.WithValue(ctx, constants.NemoClientKey, nil)
+					next(w, r.WithContext(ctx), ps)
+					return
+				}
+
+				serviceURL = discoveredURL
+				logger.Debug("Discovered NemoGuardrails service URL from CR",
+					"namespace", namespace,
+					"serviceURL", serviceURL)
 			}
 
 			logger.Debug("Creating NeMo Guardrails client",
 				"serviceURL", serviceURL,
-				"hasAuthToken", saToken != "")
+				"hasAuthToken", identity.Token != "")
 
-			nemoClient = app.nemoClientFactory.CreateClient(serviceURL, saToken, app.config.InsecureSkipVerify, app.rootCAs)
+			nemoClient = app.nemoClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs)
 		}
 
 		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)

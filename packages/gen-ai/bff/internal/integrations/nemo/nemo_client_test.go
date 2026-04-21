@@ -26,7 +26,7 @@ func TestCheckGuardrails_Success(t *testing.T) {
 
 		resp := GuardrailCheckResponse{Status: StatusSuccess}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		require.NoError(t, json.NewEncoder(w).Encode(resp))
 	}))
 	defer server.Close()
 
@@ -46,7 +46,7 @@ func TestCheckGuardrails_Blocked(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		require.NoError(t, json.NewEncoder(w).Encode(resp))
 	}))
 	defer server.Close()
 
@@ -75,7 +75,7 @@ func TestCheckGuardrails_EmptyConfigID(t *testing.T) {
 func TestCheckGuardrails_ServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"internal server error"}`))
+		_, _ = w.Write([]byte(`{"error":"internal server error"}`))
 	}))
 	defer server.Close()
 
@@ -88,7 +88,7 @@ func TestCheckGuardrails_ServerError(t *testing.T) {
 func TestCheckGuardrails_InvalidJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`not-json`))
+		_, _ = w.Write([]byte(`not-json`))
 	}))
 	defer server.Close()
 
@@ -110,7 +110,7 @@ func TestCheckGuardrails_NoAuthToken(t *testing.T) {
 		assert.Empty(t, r.Header.Get("Authorization"))
 		resp := GuardrailCheckResponse{Status: StatusSuccess}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		require.NoError(t, json.NewEncoder(w).Encode(resp))
 	}))
 	defer server.Close()
 
@@ -124,7 +124,7 @@ func TestCheckGuardrails_CancelledContext(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := GuardrailCheckResponse{Status: StatusSuccess}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		require.NoError(t, json.NewEncoder(w).Encode(resp))
 	}))
 	defer server.Close()
 

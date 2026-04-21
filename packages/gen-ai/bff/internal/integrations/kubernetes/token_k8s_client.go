@@ -470,6 +470,39 @@ func (kc *TokenKubernetesClient) GetLlamaStackDistributions(ctx context.Context,
 	return lsdList, nil
 }
 
+// GetNemoGuardrailsServiceURL lists NemoGuardrails CRs (trustyai.opendatahub.io/v1alpha1)
+// in the namespace and derives the in-cluster service URL from the first CR found.
+// The TrustyAI operator creates a Service with the same name as the CR on port 443.
+// Returns ("", nil) if no NemoGuardrails CR exists in the namespace.
+func (kc *TokenKubernetesClient) GetNemoGuardrailsServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	list := &unstructured.UnstructuredList{}
+	list.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "trustyai.opendatahub.io",
+		Version: "v1alpha1",
+		Kind:    "NemoGuardrailsList",
+	})
+
+	if err := kc.Client.List(ctx, list, client.InNamespace(namespace)); err != nil {
+		kc.Logger.Error("failed to list NemoGuardrails CRs", "error", err, "namespace", namespace)
+		return "", fmt.Errorf("failed to list NemoGuardrails CRs: %w", err)
+	}
+
+	if len(list.Items) == 0 {
+		return "", nil
+	}
+
+	crName := list.Items[0].GetName()
+	serviceURL := fmt.Sprintf("https://%s.%s.svc.cluster.local:443", crName, namespace)
+	kc.Logger.Debug("Discovered NemoGuardrails service URL from CR",
+		"namespace", namespace,
+		"crName", crName,
+		"serviceURL", serviceURL)
+	return serviceURL, nil
+}
+
 func (kc *TokenKubernetesClient) BearerToken() (string, error) {
 	return kc.Token.Raw(), nil
 }

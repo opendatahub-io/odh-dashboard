@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/responses"
@@ -332,250 +331,7 @@ func (e *MockStreamError) Error() string {
 // ModerationChunkSize is the number of words to buffer before running moderation
 const ModerationChunkSize = 30
 
-func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.ResponseWriter, flusher http.Flusher, params llamastack.CreateResponseParams) {
-	sleepWithContext := func(d time.Duration) bool {
-		select {
-		case <-ctx.Done():
-			return false // Context cancelled
-		case <-time.After(d):
-			return true // Sleep completed
-		}
-	}
-
-	// Set hardened headers for Server-Sent Events (same as real handler)
-	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	// Mock identifiers
-	responseID := "resp_mock_stream123"
-	itemID := "msg_mock_stream123"
-
-	// Helper function to send SSE event
-	sendEvent := func(eventData interface{}) {
-		if data, err := json.Marshal(eventData); err == nil {
-			fmt.Fprintf(w, "data: %s\n\n", data)
-		}
-	}
-
-	// Track start time for metrics
-	streamStartTime := time.Now()
-
-	// Local state for event accumulation and streaming
-	var events []responses.ResponseStreamEventUnion
-	sequenceNum := 0
-	deltaSequenceNum := 0
-	var wordBuffer []string
-	var accumulatedText string
-	var streamedText string
-
-	// Determine response text
-	responseText := "This is a mock response to your query: " + params.Input
-	if len(params.VectorStoreIDs) > 0 {
-		responseText = "Based on retrieved documents, this is a mock response to your query: " + params.Input
-	}
-	if params.PreviousResponseID != "" {
-		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
-	}
-
-	// 1. Response created event
-	events = append(events, unmarshalEvent(map[string]interface{}{
-		"type":            "response.created",
-		"sequence_number": sequenceNum,
-		"response": map[string]interface{}{
-			"id":         responseID,
-			"model":      params.Model,
-			"status":     "in_progress",
-			"created_at": 1234567890.0,
-		},
-	}))
-	sequenceNum++
-
-	// 2. If MCP tools provided, simulate MCP tool processing
-	if len(params.Tools) > 0 {
-		events = append(events, unmarshalEvent(map[string]interface{}{
-			"type":            "mcp_list_tools",
-			"sequence_number": sequenceNum,
-			"item_id":         "mcp_list_mock123",
-			"output_index":    0,
-			"server_label":    params.Tools[0].ServerLabel,
-		}))
-		sequenceNum++
-
-		mcpOutput := `{"tag_name":"v1.95.0","name":"Mock Release","body":"This is a mock GitHub release","published_at":"2025-09-17T15:00:00Z","author":{"login":"mock-user","id":12345}}`
-		events = append(events, unmarshalEvent(map[string]interface{}{
-			"type":            "mcp_call",
-			"sequence_number": sequenceNum,
-			"item_id":         "call_mock456",
-			"output_index":    0,
-			"server_label":    params.Tools[0].ServerLabel,
-			"name":            "get_latest_release",
-			"arguments":       `{"owner":"llamastack","repo":"llama-stack"}`,
-			"output":          mcpOutput,
-		}))
-		sequenceNum++
-
-		responseText = "Based on the GitHub MCP tool results, the latest release is v1.95.0. " + responseText
-	}
-
-	// 3. If vector stores provided, skip sequence numbers for RAG processing
-	if len(params.VectorStoreIDs) > 0 {
-		sequenceNum += 3
-	}
-
-	// 4. Content part added event
-	events = append(events, unmarshalEvent(map[string]interface{}{
-		"type":            "response.content_part.added",
-		"sequence_number": sequenceNum,
-		"item_id":         itemID,
-		"output_index":    0,
-	}))
-	sequenceNum++
-
-	// 5. Text delta events (word by word)
-	words := strings.Fields(responseText)
-	for i, word := range words {
-		chunk := word
-		if i > 0 {
-			chunk = " " + word
-		}
-
-		// Add to buffers
-		wordBuffer = append(wordBuffer, chunk)
-		accumulatedText += chunk
-
-		// Check if we've accumulated enough words for a chunk
-		if len(wordBuffer) >= ModerationChunkSize || i == len(words)-1 {
-			// Stream the buffered words
-			for _, bufferedChunk := range wordBuffer {
-				sendEvent(map[string]interface{}{
-					"type":            "response.output_text.delta",
-					"sequence_number": deltaSequenceNum,
-					"item_id":         itemID,
-					"output_index":    0,
-					"delta":           bufferedChunk,
-				})
-				deltaSequenceNum++
-
-				// Add delay between chunks for realistic streaming effect
-				if !sleepWithContext(50 * time.Millisecond) {
-					return
-				}
-				flusher.Flush()
-			}
-
-			// Update streamed text and clear buffer
-			streamedText = accumulatedText
-			wordBuffer = nil
-		}
-	}
-
-	// Use streamedText for final response (same as responseText if all passed)
-	finalText := streamedText
-	if finalText == "" {
-		finalText = responseText
-	}
-
-	// 6. Content part done event
-	events = append(events, unmarshalEvent(map[string]interface{}{
-		"type":            "response.content_part.done",
-		"sequence_number": sequenceNum,
-		"item_id":         itemID,
-		"output_index":    0,
-	}))
-	sequenceNum++
-
-	// 7. Response completed event with output items
-	var outputItems []map[string]interface{}
-
-	if len(params.Tools) > 0 {
-		outputItems = append(outputItems, map[string]interface{}{
-			"id":           "mcp_list_mock123",
-			"type":         "mcp_list_tools",
-			"role":         "assistant",
-			"server_label": params.Tools[0].ServerLabel,
-			"output":       "",
-		})
-		mcpOutput := `{"tag_name":"v1.95.0","name":"Mock Release","body":"This is a mock GitHub release","published_at":"2025-09-17T15:00:00Z","author":{"login":"mock-user","id":12345}}`
-		outputItems = append(outputItems, map[string]interface{}{
-			"id":           "call_mock456",
-			"type":         "mcp_call",
-			"role":         "assistant",
-			"server_label": params.Tools[0].ServerLabel,
-			"name":         "get_latest_release",
-			"arguments":    `{"owner":"llamastack","repo":"llama-stack"}`,
-			"output":       mcpOutput,
-		})
-	}
-
-	if len(params.VectorStoreIDs) > 0 {
-		outputItems = append(outputItems, map[string]interface{}{
-			"id":      "call_mock123",
-			"type":    "file_search_call",
-			"role":    "assistant",
-			"status":  "completed",
-			"queries": []string{params.Input},
-			"results": []map[string]interface{}{
-				{
-					"filename": "mock_document.txt",
-					"score":    0.8542,
-					"text":     "This is mock retrieved content that relates to your query: " + params.Input + ". This content comes from the vector store and provides context for the AI response.",
-				},
-			},
-		})
-	}
-
-	outputItems = append(outputItems, map[string]interface{}{
-		"id":     itemID,
-		"type":   "message",
-		"role":   "assistant",
-		"status": "completed",
-		"content": []map[string]interface{}{
-			{
-				"type": "output_text",
-				"text": responseText,
-			},
-		},
-	})
-
-	events = append(events, unmarshalEvent(map[string]interface{}{
-		"type":            "response.completed",
-		"sequence_number": sequenceNum,
-		"response": map[string]interface{}{
-			"id":         responseID,
-			"model":      params.Model,
-			"status":     "completed",
-			"created_at": 1234567890.0,
-			"output":     outputItems,
-			"usage": map[string]interface{}{
-				"input_tokens":  10,
-				"output_tokens": 25,
-				"total_tokens":  35,
-			},
-		},
-	}))
-
-	// Send all accumulated structural events (created, content_part, completed)
-	for _, ev := range events {
-		sendEvent(ev)
-		flusher.Flush()
-	}
-
-	// Send metrics event
-	latencyMs := time.Since(streamStartTime).Milliseconds()
-	sendEvent(map[string]interface{}{
-		"type": "response.metrics",
-		"metrics": map[string]interface{}{
-			"latency_ms": latencyMs,
-		},
-	})
-	flusher.Flush()
-}
-
 // CreateResponseStream builds mock streaming events and returns a MockStreamIterator.
-// The handler's normal streaming loop processes these events identically to real streams.
 func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params llamastack.CreateResponseParams) (llamastack.ResponseStreamIterator, error) {
 	responseID := "resp_mock_stream123"
 	itemID := "msg_mock_stream123"
@@ -717,59 +473,27 @@ func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 	return NewMockStreamIterator(events), nil
 }
 
-// buildRefusalEvents creates the event sequence for a guardrail refusal.
-func buildRefusalEvents(responseID, itemID, model, message string) []responses.ResponseStreamEventUnion {
-	return []responses.ResponseStreamEventUnion{
-		unmarshalEvent(map[string]interface{}{
-			"type":            "response.created",
-			"sequence_number": 0,
-			"response": map[string]interface{}{
-				"id":         responseID,
-				"model":      model,
-				"status":     "in_progress",
-				"created_at": 1234567890.0,
-			},
-		}),
-		unmarshalEvent(map[string]interface{}{
-			"type":            "response.refusal.delta",
-			"sequence_number": 1,
-			"item_id":         itemID,
-			"output_index":    0,
-			"content_index":   0,
-			"delta":           message,
-		}),
-		unmarshalEvent(map[string]interface{}{
-			"type":            "response.refusal.done",
-			"sequence_number": 2,
-			"item_id":         itemID,
-			"output_index":    0,
-			"content_index":   0,
-			"refusal":         message,
-		}),
-		unmarshalEvent(map[string]interface{}{
-			"type":            "response.completed",
-			"sequence_number": 3,
-			"response": map[string]interface{}{
-				"id":         responseID,
-				"model":      model,
-				"status":     "completed",
-				"created_at": 1234567890.0,
-				"output": []map[string]interface{}{
-					{
-						"id":     itemID,
-						"type":   "message",
-						"role":   "assistant",
-						"status": "completed",
-						"content": []map[string]interface{}{
-							{
-								"type":    "refusal",
-								"refusal": message,
-							},
-						},
-					},
-				},
-			},
-		}),
+// HandleMockStreaming streams mock SSE events directly to an HTTP response writer.
+// It delegates to CreateResponseStream and writes each event as a Server-Sent Event.
+func (m *MockLlamaStackClient) HandleMockStreaming(ctx context.Context, w http.ResponseWriter, flusher http.Flusher, params llamastack.CreateResponseParams) {
+	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.WriteHeader(http.StatusOK)
+
+	iter, err := m.CreateResponseStream(ctx, params)
+	if err != nil {
+		return
+	}
+	defer iter.Close()
+
+	for iter.Next() {
+		event := iter.Current()
+		if data, jsonErr := json.Marshal(event); jsonErr == nil {
+			fmt.Fprintf(w, "data: %s\n\n", data)
+			flusher.Flush()
+		}
 	}
 }
 

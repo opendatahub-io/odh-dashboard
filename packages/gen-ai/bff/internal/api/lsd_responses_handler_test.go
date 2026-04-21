@@ -25,6 +25,8 @@ import (
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
+	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo/nemomocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
@@ -662,7 +664,9 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.NoError(t, err)
 
 		llamaStackClient := lsmocks.NewMockLlamaStackClient()
+		nemoClient := nemomocks.NewMockNemoClient()
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -702,7 +706,13 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.NoError(t, err)
 
 		llamaStackClient := lsmocks.NewMockLlamaStackClient()
+		nemoClient := &nemomocks.MockNemoClient{
+			CheckGuardrailsFunc: func(_ context.Context, _ string, _ string) (*nemopkg.GuardrailCheckResponse, error) {
+				return &nemopkg.GuardrailCheckResponse{Status: nemopkg.StatusBlocked}, nil
+			},
+		}
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -750,7 +760,13 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		req.Header.Set("Content-Type", "application/json")
 
 		llamaStackClient := lsmocks.NewMockLlamaStackClient()
+		nemoClient := &nemomocks.MockNemoClient{
+			CheckGuardrailsFunc: func(_ context.Context, _ string, _ string) (*nemopkg.GuardrailCheckResponse, error) {
+				return &nemopkg.GuardrailCheckResponse{Status: nemopkg.StatusBlocked}, nil
+			},
+		}
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -817,7 +833,9 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.NoError(t, err)
 
 		llamaStackClient := lsmocks.NewMockLlamaStackClient()
+		nemoClient := nemomocks.NewMockNemoClient()
 		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()

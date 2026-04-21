@@ -19,6 +19,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo/nemomocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
@@ -121,7 +122,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	var nemoClientFactory nemopkg.NemoClientFactory
 	if cfg.MockNemoClient {
 		logger.Info("Using mock NeMo Guardrails client factory")
-		nemoClientFactory = nemopkg.NewRealClientFactory()
+		nemoClientFactory = nemomocks.NewMockClientFactory()
 	} else {
 		logger.Info("Using real NeMo Guardrails client factory", "url", cfg.NemoGuardrailsURL)
 		nemoClientFactory = nemopkg.NewRealClientFactory()
