@@ -1,4 +1,4 @@
-import { Spinner, Flex, FlexItem, Popover } from '@patternfly/react-core';
+import { Spinner, Flex, FlexItem, Popover, Tooltip } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -71,15 +71,23 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
       >
         {bindingStateInfo?.state !== HardwareProfileBindingState.DELETED && (
           <FlexItem>
-            <HardwareProfileDetailsPopover
-              hardwareProfile={hardwareProfile}
-              resources={containerResources}
-              tolerations={hardwareProfile?.spec.scheduling?.node?.tolerations}
-              nodeSelector={hardwareProfile?.spec.scheduling?.node?.nodeSelector}
-              localQueueName={hardwareProfile?.spec.scheduling?.kueue?.localQueueName}
-              priorityClass={hardwareProfile?.spec.scheduling?.kueue?.priorityClass}
-              tableView
-            />
+            {hardwareProfile ? (
+              <HardwareProfileDetailsPopover
+                hardwareProfile={hardwareProfile}
+                tolerations={hardwareProfile.spec.scheduling?.node?.tolerations}
+                nodeSelector={hardwareProfile.spec.scheduling?.node?.nodeSelector}
+                localQueueName={hardwareProfile.spec.scheduling?.kueue?.localQueueName}
+                priorityClass={hardwareProfile.spec.scheduling?.kueue?.priorityClass}
+                tableView
+              />
+            ) : (
+              <Tooltip
+                content="No matching hardware profile found, using existing settings. Default, min, and max values are not available. Expand the row to view the current resource settings."
+                data-testid="hardware-profile-custom-tooltip"
+              >
+                <i>Custom</i>
+              </Tooltip>
+            )}
           </FlexItem>
         )}
         {isProjectScoped && hardwareProfile?.metadata.namespace === namespace && (

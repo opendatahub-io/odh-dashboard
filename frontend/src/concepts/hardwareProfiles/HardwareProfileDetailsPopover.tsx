@@ -11,7 +11,7 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
-import { Toleration, NodeSelector, ContainerResources } from '#~/types';
+import { Toleration, NodeSelector } from '#~/types';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import {
   getClusterQueueNameFromLocalQueues,
@@ -22,7 +22,6 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import {
   formatToleration,
   formatNodeSelector,
-  formatResource,
   formatIdentifierDetails,
   sortIdentifiers,
 } from './utils';
@@ -32,7 +31,6 @@ type HardwareProfileDetailsPopoverProps = {
   priorityClass?: string;
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
-  resources?: ContainerResources;
   hardwareProfile?: HardwareProfileKind;
   tableView?: boolean;
 };
@@ -42,7 +40,6 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   priorityClass,
   tolerations,
   nodeSelector,
-  resources,
   hardwareProfile,
   tableView = false,
 }) => {
@@ -74,31 +71,6 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
     [hardwareProfile],
   );
 
-  const fallbackResources = React.useMemo(() => {
-    if (hardwareProfile) {
-      return [];
-    }
-    const requests = resources?.requests || {};
-    const limits = resources?.limits || {};
-    const keys = new Set([...Object.keys(requests), ...Object.keys(limits)]);
-
-    return Array.from(keys).map((key) => ({
-      identifier: key,
-      request: requests[key]?.toString() || '',
-      limit: limits[key]?.toString() || '',
-    }));
-  }, [resources, hardwareProfile]);
-
-  const hasIdentifiers = profileIdentifiers.length > 0 || fallbackResources.length > 0;
-
-  if (
-    !tolerations &&
-    !nodeSelector &&
-    !hasIdentifiers &&
-    !(localQueueName || clusterQueueName || priorityClass)
-  ) {
-    return null;
-  }
   const description = hardwareProfile && getHardwareProfileDescription(hardwareProfile);
 
   return (
@@ -112,31 +84,27 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
       bodyContent={
         <Stack hasGutter data-testid="hardware-profile-details">
           {hardwareProfile ? (
-            description && (
-              <StackItem>
-                <Truncate content={description} />
-              </StackItem>
-            )
+            <>
+              {description && (
+                <StackItem>
+                  <Truncate content={description} />
+                </StackItem>
+              )}
+              {profileIdentifiers.length > 0 &&
+                profileIdentifiers.map((identifier) => (
+                  <StackItem key={identifier.identifier}>
+                    {renderSection(identifier.displayName || identifier.identifier, [
+                      formatIdentifierDetails(identifier),
+                    ])}
+                  </StackItem>
+                ))}
+            </>
           ) : (
-            <StackItem>No matching hardware profile found, using existing settings.</StackItem>
+            <StackItem>
+              No matching hardware profile found, using existing settings. Default, min, and max
+              values are not available.
+            </StackItem>
           )}
-
-          {profileIdentifiers.length > 0 &&
-            profileIdentifiers.map((identifier) => (
-              <StackItem key={identifier.identifier}>
-                {renderSection(identifier.displayName || identifier.identifier, [
-                  formatIdentifierDetails(identifier),
-                ])}
-              </StackItem>
-            ))}
-          {fallbackResources.length > 0 &&
-            fallbackResources.map((resource) => (
-              <StackItem key={resource.identifier}>
-                {renderSection(resource.identifier, [
-                  formatResource(resource.identifier, resource.request, resource.limit),
-                ])}
-              </StackItem>
-            ))}
           {localQueueName && (
             <StackItem>{renderSection('Local queue', [localQueueName])}</StackItem>
           )}

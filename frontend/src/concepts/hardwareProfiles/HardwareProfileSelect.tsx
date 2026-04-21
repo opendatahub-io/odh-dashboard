@@ -430,7 +430,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
               nodeSelector={
                 hardwareProfileConfig.selectedProfile?.spec.scheduling?.node?.nodeSelector
               }
-              resources={hardwareProfileConfig.resources}
             />
           )}
         </FlexItem>
