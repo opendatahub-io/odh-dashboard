@@ -114,7 +114,7 @@ describe('MaaS Auth Policies', () => {
   });
 
   it('should filter policies by keyword', () => {
-    authPoliciesPage.findRows().should('have.length', 5);
+    authPoliciesPage.findRows().should('have.length', 6);
 
     authPoliciesPage.findKeywordFilterInput().type('premium');
     authPoliciesPage.findRows().should('have.length', 1);
@@ -124,7 +124,7 @@ describe('MaaS Auth Policies', () => {
       .should('contain.text', 'premium-team-policy');
 
     authPoliciesPage.clearAllFilters();
-    authPoliciesPage.findRows().should('have.length', 5);
+    authPoliciesPage.findRows().should('have.length', 6);
   });
 
   it('should disable the action buttons for a deleting policy in the table and view page', () => {
