@@ -133,12 +133,18 @@ jobs:
         run: |
           node -e "
           const fs = require('fs');
-          const paths = ['package.json', 'frontend/package.json', 'backend/package.json'];
+          const path = require('path');
+          const { execSync } = require('child_process');
+
+          const found = execSync(
+            'find . -name package.json -not -path \"*/node_modules/*\" -not -path \"*/base/*\"',
+            { encoding: 'utf8' }
+          ).trim().split('\n').filter(Boolean).map(p => p.replace(/^\.\//, ''));
+
           const overrides = {};
           let hasError = false;
 
-          for (const p of paths) {
-            if (!fs.existsSync(p)) continue;
+          for (const p of found) {
             const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
             if (!pkg.overrides) continue;
 
@@ -165,15 +171,18 @@ jobs:
             console.error('Override ranges diverge across package.json files.');
             process.exit(1);
           } else {
-            console.log('All shared overrides are consistent.');
+            console.log('All shared overrides are consistent (' + found.length + ' files checked).');
           }
           "
 
   dependency-summary:
+    needs: detect-dirs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR head
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Checkout base
         uses: actions/checkout@v4
@@ -183,28 +192,46 @@ jobs:
 
       - name: Generate dependency diff summary
         id: diff
+        env:
+          CHANGED_DIRS: ${{ needs.detect-dirs.outputs.dirs }}
         run: |
           node -e "
           const fs = require('fs');
-          const baseLock = JSON.parse(fs.readFileSync('base/package-lock.json', 'utf8'));
-          const headLock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const path = require('path');
+          const dirs = JSON.parse(process.env.CHANGED_DIRS || '[]');
 
-          const basePkgs = baseLock.packages || {};
-          const headPkgs = headLock.packages || {};
+          const lockfiles = dirs
+            .map(d => d === '.' ? 'package-lock.json' : path.join(d, 'package-lock.json'))
+            .filter(f => fs.existsSync(f) && fs.existsSync(path.join('base', f)));
+
+          if (lockfiles.length === 0) {
+            fs.writeFileSync('dep-summary.md', 'No dependency version changes detected.\n');
+            process.exit(0);
+          }
 
           const changes = [];
-          for (const [name, info] of Object.entries(headPkgs)) {
-            const basePkg = basePkgs[name];
-            if (!basePkg) {
-              changes.push('| \`' + name.replace('node_modules/', '') + '\` | — | ' + info.version + ' | Added |');
-            } else if (basePkg.version !== info.version) {
-              changes.push('| \`' + name.replace('node_modules/', '') + '\` | ' + basePkg.version + ' | ' + info.version + ' | Updated |');
+          for (const lockfile of lockfiles) {
+            const baseLock = JSON.parse(fs.readFileSync(path.join('base', lockfile), 'utf8'));
+            const headLock = JSON.parse(fs.readFileSync(lockfile, 'utf8'));
+            const basePkgs = baseLock.packages || {};
+            const headPkgs = headLock.packages || {};
+            const dir = path.dirname(lockfile);
+            const prefix = dir === '.' ? '' : dir + ': ';
+
+            for (const [name, info] of Object.entries(headPkgs)) {
+              const basePkg = basePkgs[name];
+              const short = prefix + name.replace('node_modules/', '');
+              if (!basePkg) {
+                changes.push('| \`' + short + '\` | — | ' + info.version + ' | Added |');
+              } else if (basePkg.version !== info.version) {
+                changes.push('| \`' + short + '\` | ' + basePkg.version + ' | ' + info.version + ' | Updated |');
+              }
             }
-          }
-          for (const name of Object.keys(basePkgs)) {
-            if (!headPkgs[name]) {
-              const shortName = name.replace('node_modules/', '');
-              changes.push('| \`' + shortName + '\` | ' + basePkgs[name].version + ' | — | Removed |');
+            for (const name of Object.keys(basePkgs)) {
+              if (!headPkgs[name]) {
+                const short = prefix + name.replace('node_modules/', '');
+                changes.push('| \`' + short + '\` | ' + basePkgs[name].version + ' | — | Removed |');
+              }
             }
           }
 
