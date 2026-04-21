@@ -7,7 +7,7 @@ import {
   ProjectDetailsContextType,
 } from '#~/pages/projects/ProjectDetailsContext';
 import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
-import HardwareProfileTableColumn from '../HardwareProfileTableColumn';
+import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';
 
 jest.mock('#~/concepts/areas', () => ({
   ...jest.requireActual('#~/concepts/areas'),
@@ -55,7 +55,6 @@ describe('HardwareProfileTableColumn', () => {
         <HardwareProfileTableColumn
           namespace="test-project"
           resource={mockNotebookResource as never}
-          containerResources={undefined}
           bindingState={{
             bindingStateInfo: {
               profile,
@@ -78,7 +77,6 @@ describe('HardwareProfileTableColumn', () => {
         <HardwareProfileTableColumn
           namespace="test-project"
           resource={mockNotebookResource as never}
-          containerResources={undefined}
           bindingState={{
             bindingStateInfo: {
               profile: undefined,
@@ -102,7 +100,6 @@ describe('HardwareProfileTableColumn', () => {
         <HardwareProfileTableColumn
           namespace="test-project"
           resource={mockNotebookResource as never}
-          containerResources={undefined}
           bindingState={{
             bindingStateInfo: null,
             bindingStateLoaded: false,

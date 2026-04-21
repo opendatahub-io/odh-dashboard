@@ -222,7 +222,6 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
               <HardwareProfileTableColumn
                 namespace={obj.notebook.metadata.namespace}
                 resource={obj.notebook}
-                containerResources={podSpecOptionsState.podSpecOptions.resources}
                 isActive={obj.isRunning || obj.isStarting}
                 bindingState={{
                   bindingStateInfo,

@@ -5,7 +5,6 @@ import React from 'react';
 import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { NotebookKind } from '#~/k8sTypes';
-import { ContainerResources } from '#~/types';
 import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
 import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils';
@@ -19,7 +18,6 @@ import { HardwareProfileBindingStateInfo } from './types';
 type HardwareProfileTableColumnProps = {
   namespace: string;
   resource: NotebookKind | ModelResourceType;
-  containerResources: ContainerResources | undefined;
   isActive?: boolean;
   bindingState: {
     bindingStateInfo: HardwareProfileBindingStateInfo | null;
@@ -31,7 +29,6 @@ type HardwareProfileTableColumnProps = {
 const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
   namespace,
   resource,
-  containerResources,
   isActive = false,
   bindingState,
 }) => {

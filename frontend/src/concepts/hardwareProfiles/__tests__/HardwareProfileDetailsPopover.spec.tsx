@@ -9,7 +9,7 @@ import {
 } from '#~/pages/projects/ProjectDetailsContext';
 import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
 import { IdentifierResourceType, SchedulingType } from '#~/types';
-import HardwareProfileDetailsPopover from '../HardwareProfileDetailsPopover';
+import HardwareProfileDetailsPopover from '#~/concepts/hardwareProfiles/HardwareProfileDetailsPopover';
 
 const renderWithContext = (ui: React.ReactElement) =>
   render(
@@ -32,9 +32,7 @@ describe('HardwareProfileDetailsPopover', () => {
         displayName: 'Test Profile',
       });
 
-      renderWithContext(
-        <HardwareProfileDetailsPopover hardwareProfile={profile} tableView />,
-      );
+      renderWithContext(<HardwareProfileDetailsPopover hardwareProfile={profile} tableView />);
 
       expect(screen.getByTestId('hardware-profile-details-popover')).toHaveTextContent(
         'Test Profile',
@@ -64,9 +62,7 @@ describe('HardwareProfileDetailsPopover', () => {
         ],
       });
 
-      renderWithContext(
-        <HardwareProfileDetailsPopover hardwareProfile={profile} />,
-      );
+      renderWithContext(<HardwareProfileDetailsPopover hardwareProfile={profile} />);
 
       await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
 
@@ -74,17 +70,13 @@ describe('HardwareProfileDetailsPopover', () => {
       expect(details).toHaveTextContent('CPU');
       expect(details).toHaveTextContent('cpu: Default = 2 Cores | Min = 1 Cores | Max = 4 Cores');
       expect(details).toHaveTextContent('Memory');
-      expect(details).toHaveTextContent(
-        'memory: Default = 4 GiB | Min = 2 GiB | Max = 8 GiB',
-      );
+      expect(details).toHaveTextContent('memory: Default = 4 GiB | Min = 2 GiB | Max = 8 GiB');
     });
 
     it('should display "View details" text in form view (non-tableView)', () => {
       const profile = mockHardwareProfile({ displayName: 'Test Profile' });
 
-      renderWithContext(
-        <HardwareProfileDetailsPopover hardwareProfile={profile} />,
-      );
+      renderWithContext(<HardwareProfileDetailsPopover hardwareProfile={profile} />);
 
       expect(screen.getByTestId('hardware-profile-details-popover')).toHaveTextContent(
         'View details',

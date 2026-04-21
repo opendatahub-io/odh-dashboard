@@ -1,17 +1,10 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/internal/__mocks__/mockUseAssignHardwareProfileResult';
-import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
-import type { ContainerResources } from '@odh-dashboard/internal/types';
 import { mockExtensions } from '../../../__tests__/mockUtils';
 import { DeploymentHardwareProfileCell } from '../row/DeploymentHardwareProfileCell';
 
 jest.mock('@odh-dashboard/plugin-core');
-
-jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile', () => ({
-  useAssignHardwareProfile: jest.fn(),
-}));
 
 jest.mock(
   '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileBindingState',
@@ -21,19 +14,14 @@ jest.mock(
 );
 
 jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfileTableColumn', () => {
-  const MockHardwareProfileTableColumn = (props: { containerResources?: ContainerResources }) => (
-    <td
-      data-testid="hardware-profile-table-column"
-      data-resources={JSON.stringify(props.containerResources)}
-    >
+  const MockHardwareProfileTableColumn = (props: { namespace: string }) => (
+    <td data-testid="hardware-profile-table-column" data-namespace={props.namespace}>
       Hardware Profile
     </td>
   );
   MockHardwareProfileTableColumn.displayName = 'MockHardwareProfileTableColumn';
   return { __esModule: true, default: MockHardwareProfileTableColumn };
 });
-
-const mockUseAssignHardwareProfile = jest.mocked(useAssignHardwareProfile);
 
 const mockDeployment = () => ({
   modelServingPlatformId: 'test-platform',
@@ -56,44 +44,19 @@ describe('DeploymentHardwareProfileCell', () => {
     jest.resetAllMocks();
   });
 
-  it('should pass podSpecOptions.resources to HardwareProfileTableColumn', () => {
-    const podSpecResources: ContainerResources = {
-      requests: { cpu: '4', memory: '8Gi' },
-      limits: { cpu: '8', memory: '16Gi' },
-    };
-    const formDataResources: ContainerResources = {
-      requests: { cpu: '1', memory: '2Gi' },
-      limits: { cpu: '2', memory: '4Gi' },
-    };
-
-    const result = mockUseAssignHardwareProfileResult({
-      resources: podSpecResources,
-    });
-    result.podSpecOptionsState.hardwareProfile.formData.resources = formDataResources;
-
-    mockUseAssignHardwareProfile.mockReturnValue(result);
-
+  it('should render HardwareProfileTableColumn with the correct namespace', () => {
     render(
       <table>
         <tbody>
           <tr>
-            <DeploymentHardwareProfileCell
-              deployment={mockDeployment()}
-              hardwareProfilePaths={{
-                containerResourcesPath: 'spec.predictor.model.resources',
-                tolerationsPath: 'spec.predictor.tolerations',
-                nodeSelectorPath: 'spec.predictor.nodeSelector',
-              }}
-            />
+            <DeploymentHardwareProfileCell deployment={mockDeployment()} />
           </tr>
         </tbody>
       </table>,
     );
 
     const column = screen.getByTestId('hardware-profile-table-column');
-    const resources = JSON.parse(column.getAttribute('data-resources') ?? '{}');
-
-    expect(resources).toEqual(podSpecResources);
-    expect(resources).not.toEqual(formDataResources);
+    expect(column).toBeInTheDocument();
+    expect(column).toHaveAttribute('data-namespace', 'test-project');
   });
 });
