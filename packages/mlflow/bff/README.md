@@ -4,7 +4,7 @@ Minimal backend-for-frontend providing only core endpoints required by the MLflo
 
 ## Dependencies
 
-- Go >= 1.25.7
+- Go >= 1.25.0
 
 ## Scope
 
