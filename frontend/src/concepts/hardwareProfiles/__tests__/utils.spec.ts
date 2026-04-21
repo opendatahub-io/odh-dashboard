@@ -33,7 +33,7 @@ describe('formatIdentifierDetails', () => {
       resourceType: IdentifierResourceType.CPU,
     };
     expect(formatIdentifierDetails(identifier)).toBe(
-      'Default = 2 Cores, Min = 1 Cores, Max = 8 Cores',
+      'cpu: Default = 2 Cores | Min = 1 Cores | Max = 8 Cores',
     );
   });
 
@@ -46,7 +46,9 @@ describe('formatIdentifierDetails', () => {
       defaultCount: '4Gi',
       resourceType: IdentifierResourceType.MEMORY,
     };
-    expect(formatIdentifierDetails(identifier)).toBe('Default = 4 GiB, Min = 2 GiB, Max = 16 GiB');
+    expect(formatIdentifierDetails(identifier)).toBe(
+      'memory: Default = 4 GiB | Min = 2 GiB | Max = 16 GiB',
+    );
   });
 
   it('should show "unrestricted" when maxCount is undefined', () => {
@@ -58,7 +60,7 @@ describe('formatIdentifierDetails', () => {
       resourceType: IdentifierResourceType.MEMORY,
     };
     expect(formatIdentifierDetails(identifier)).toBe(
-      'Default = 4 GiB, Min = 2 GiB, Max = unrestricted',
+      'memory: Default = 4 GiB | Min = 2 GiB | Max = unrestricted',
     );
   });
 
@@ -71,7 +73,9 @@ describe('formatIdentifierDetails', () => {
       defaultCount: 1,
       resourceType: IdentifierResourceType.ACCELERATOR,
     };
-    expect(formatIdentifierDetails(identifier)).toBe('Default = 1, Min = 0, Max = 4');
+    expect(formatIdentifierDetails(identifier)).toBe(
+      'nvidia.com/gpu: Default = 1 | Min = 0 | Max = 4',
+    );
   });
 });
 
