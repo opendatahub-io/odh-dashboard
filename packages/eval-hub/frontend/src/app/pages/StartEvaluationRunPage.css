@@ -1,3 +1,8 @@
+/* Radio forwards `style` to the input, not the layout root; use a class for block spacing. */
+.eval-hub-start-evaluation-run__source-inference-radio {
+  margin-block-end: var(--pf-t--global--spacer--sm);
+}
+
 /* MLflow selector sets inline min/max width on MenuToggle; scope full width to this page only. */
 .eval-hub-start-evaluation-run__mlflow-selector {
   width: 100%;

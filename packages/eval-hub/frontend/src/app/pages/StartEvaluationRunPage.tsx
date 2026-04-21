@@ -495,6 +495,7 @@ const StartEvaluationRunPage: React.FC = () => {
               label="Inference endpoint"
               isChecked={inputMode === 'inference'}
               onChange={() => setInputMode('inference')}
+              className="eval-hub-start-evaluation-run__source-inference-radio"
               body={
                 inputMode === 'inference' ? (
                   <Stack hasGutter>
@@ -558,7 +559,7 @@ const StartEvaluationRunPage: React.FC = () => {
               id="input-prerecorded"
               data-testid="input-mode-prerecorded"
               name="input-mode"
-              label="Offline (Datasets)"
+              label="Pre-recorded responses"
               isChecked={inputMode === 'prerecorded'}
               onChange={() => setInputMode('prerecorded')}
               body={
