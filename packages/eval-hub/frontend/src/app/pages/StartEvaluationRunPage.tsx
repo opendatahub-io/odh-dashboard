@@ -217,8 +217,8 @@ const StartEvaluationRunPage: React.FC = () => {
         const parsed: unknown = JSON.parse(additionalArgs);
         if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
           notification.error(
-            'Invalid additional arguments',
-            'Additional arguments must be a JSON object (e.g. {"key": "value"}).',
+            'Invalid benchmark parameters',
+            'Benchmark parameters must be a JSON object (e.g. {"key": "value"}).',
           );
           setIsSubmitting(false);
           return;
@@ -226,8 +226,8 @@ const StartEvaluationRunPage: React.FC = () => {
         Object.assign(parsedArgs, parsed);
       } catch {
         notification.error(
-          'Invalid additional arguments',
-          'Additional arguments must be valid JSON.',
+          'Invalid benchmark parameters',
+          'Benchmark parameters must be valid JSON.',
         );
         setIsSubmitting(false);
         return;
