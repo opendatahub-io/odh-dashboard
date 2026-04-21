@@ -93,6 +93,20 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
     ? `[${details.errorCode}] ${details.rawMessage}`
     : details.rawMessage;
 
+  const codeBlockRef = React.useRef<HTMLDivElement>(null);
+
+  // Fix PatternFly CodeBlock accessibility issue: remove invalid lang attribute
+  // PatternFly v6 CodeBlock sets a lang attribute that isn't a valid ISO language code
+  // This causes accessibility violations. We remove it since error messages are plain text.
+  React.useEffect(() => {
+    if (codeBlockRef.current) {
+      const codeBlockElement = codeBlockRef.current.querySelector('.pf-v6-c-code-block');
+      if (codeBlockElement && codeBlockElement.hasAttribute('lang')) {
+        codeBlockElement.removeAttribute('lang');
+      }
+    }
+  }, []);
+
   return (
     <Alert
       variant={variant}
@@ -106,23 +120,25 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
       <p>{description}</p>
 
       {/* Code block with error details */}
-      <CodeBlock
-        actions={
-          <CodeBlockAction>
-            <ClipboardCopyButton
-              id={`copy-error-${details.errorCode}`}
-              textId="error-code"
-              aria-label="Copy error to clipboard"
-              onClick={handleCopy}
-              variant="plain"
-            >
-              {copied ? 'Copied' : 'Copy'}
-            </ClipboardCopyButton>
-          </CodeBlockAction>
-        }
-      >
-        <CodeBlockCode>{rawErrorText}</CodeBlockCode>
-      </CodeBlock>
+      <div ref={codeBlockRef}>
+        <CodeBlock
+          actions={
+            <CodeBlockAction>
+              <ClipboardCopyButton
+                id={`copy-error-${details.errorCode}`}
+                textId="error-code"
+                aria-label="Copy error to clipboard"
+                onClick={handleCopy}
+                variant="plain"
+              >
+                {copied ? 'Copied' : 'Copy'}
+              </ClipboardCopyButton>
+            </CodeBlockAction>
+          }
+        >
+          <CodeBlockCode>{rawErrorText}</CodeBlockCode>
+        </CodeBlock>
+      </div>
     </Alert>
   );
 };
