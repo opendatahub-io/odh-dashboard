@@ -85,7 +85,7 @@ describe('Choose Benchmark Page', () => {
 
   it('should display provider benchmarks in the gallery', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
-    chooseBenchmarkPage.findTitle().should('contain.text', 'Select single benchmark');
+    chooseBenchmarkPage.findTitle().should('contain.text', 'Select benchmark');
     chooseBenchmarkPage.findBenchmarksGallery().should('exist');
     chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('exist');
     chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-beta').should('exist');
@@ -136,12 +136,12 @@ describe('Choose Benchmark Page', () => {
     chooseBenchmarkPage.findBenchmarkDrawerPanel().should('not.exist');
   });
 
-  it('should navigate to start page when clicking "Use this benchmark"', () => {
+  it('should navigate to start page when clicking "Select benchmark"', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
 
     chooseBenchmarkPage
       .findBenchmarkCard('test-provider', 'bench-alpha')
-      .findByText('Use this benchmark')
+      .findByText('Select benchmark')
       .click();
 
     cy.url().should('include', `${NAMESPACE}/create/start`);

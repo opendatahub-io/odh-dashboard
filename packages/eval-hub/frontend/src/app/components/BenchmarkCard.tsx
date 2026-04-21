@@ -69,7 +69,7 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
 
       <CardFooter>
         <Button variant="secondary" isInline onClick={onRunBenchmark}>
-          Use this benchmark
+          Select benchmark
         </Button>
       </CardFooter>
     </Card>

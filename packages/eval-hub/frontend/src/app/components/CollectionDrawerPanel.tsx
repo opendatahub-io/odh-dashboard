@@ -153,7 +153,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
               data-testid="use-benchmark-suite-button"
               onClick={() => onRunCollection(collection)}
             >
-              Use this collection
+              Select benchmark suite
             </Button>
           </FlexItem>
           <FlexItem>

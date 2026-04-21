@@ -119,7 +119,7 @@ describe('Choose Collection Page', () => {
     chooseCollectionPage.findCollectionDrawerPanel().should('not.exist');
   });
 
-  it('should navigate to start page when clicking "Use this collection"', () => {
+  it('should navigate to start page when clicking "Select benchmark suite"', () => {
     chooseCollectionPage.visit(NAMESPACE);
 
     chooseCollectionPage.findUseBenchmarkSuiteButton('col-safety').click();

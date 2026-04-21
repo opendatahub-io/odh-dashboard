@@ -26,8 +26,8 @@ const NewEvaluationRunPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="New evaluation run"
-      description="Choose standardised benchmarks or benchmark collections to evaluate your agent, model or dataset."
+      title="Select evaluation type"
+      description="Select the type of evaluation to run: a single benchmark or a benchmark suite."
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
@@ -59,7 +59,7 @@ const NewEvaluationRunPage: React.FC = () => {
                 style={{ width: 36, height: 36 }}
               />
             </CardHeader>
-            <CardTitle id="standardised-benchmarks-title">Single benchmark</CardTitle>
+            <CardTitle id="standardised-benchmarks-title">Benchmark</CardTitle>
             <CardBody>
               <Content component="p">
                 Select a standalone benchmark to evaluate specific model or agent performance

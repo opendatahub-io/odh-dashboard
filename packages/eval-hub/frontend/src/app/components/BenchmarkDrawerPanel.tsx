@@ -190,7 +190,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
           <FlexItem>
             <Button variant="primary" onClick={() => onRunBenchmark(benchmark)}>
-              Use this benchmark
+              Select benchmark
             </Button>
           </FlexItem>
           <FlexItem>

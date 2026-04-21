@@ -11,7 +11,6 @@ import {
   Form,
   FormGroup,
   FormHelperText,
-  FormSection,
   HelperText,
   HelperTextItem,
   PageSection,
@@ -144,7 +143,7 @@ const StartEvaluationRunPage: React.FC = () => {
     return '';
   }, [benchmark, collection]);
 
-  const breadcrumbFlowLabel = isCollectionFlow ? 'Choose benchmark collection' : 'Single benchmark';
+  const breadcrumbFlowLabel = isCollectionFlow ? 'Select benchmark suite' : 'Select benchmark';
 
   const hasBenchmarks =
     !!benchmark || (!!collection && !!collection.benchmarks && collection.benchmarks.length > 0);
@@ -483,8 +482,10 @@ const StartEvaluationRunPage: React.FC = () => {
             )}
           </FormGroup>
 
-          <FormSection
-            title="Source"
+          <FormGroup
+            label="Source"
+            fieldId="source-input-mode"
+            role="group"
             style={{ marginBlockStart: 'var(--pf-t--global--spacer--sm)' }}
           >
             <Radio
@@ -621,14 +622,14 @@ const StartEvaluationRunPage: React.FC = () => {
                 ) : undefined
               }
             />
-          </FormSection>
+          </FormGroup>
 
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             <FlexItem>
               <Checkbox
                 id="show-additional-args"
                 data-testid="show-additional-args"
-                label="Benchmark Parameters"
+                label="Benchmark parameters"
                 isChecked={showAdditionalArgs}
                 onChange={(_e, checked) => setShowAdditionalArgs(checked)}
               />
