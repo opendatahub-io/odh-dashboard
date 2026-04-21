@@ -55,6 +55,19 @@ export const formatNodeSelector = (selector: NodeSelector): string[] =>
 export const formatResource = (identifier: string, request: string, limit: string): string =>
   `${identifier}: Request = ${request}; Limit = ${limit}`;
 
+export const formatIdentifierDetails = (identifier: Identifier): string => {
+  const defaultVal = formatResourceValue(
+    identifier.defaultCount,
+    identifier.resourceType,
+  ).toString();
+  const minVal = formatResourceValue(identifier.minCount, identifier.resourceType).toString();
+  const maxVal =
+    identifier.maxCount === undefined
+      ? 'unrestricted'
+      : formatResourceValue(identifier.maxCount, identifier.resourceType).toString();
+  return `Default = ${defaultVal}, Min = ${minVal}, Max = ${maxVal}`;
+};
+
 /**
  * changed order of arguments so that the deprecated accelerator profile is last;
  * to make it optional.

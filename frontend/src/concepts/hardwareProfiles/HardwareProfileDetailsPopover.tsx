@@ -19,7 +19,13 @@ import {
   getHardwareProfileDisplayName,
 } from '#~/pages/hardwareProfiles/utils.ts';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { formatToleration, formatNodeSelector, formatResource, formatResourceValue } from './utils';
+import {
+  formatToleration,
+  formatNodeSelector,
+  formatResource,
+  formatIdentifierDetails,
+  sortIdentifiers,
+} from './utils';
 
 type HardwareProfileDetailsPopoverProps = {
   localQueueName?: string;
@@ -62,26 +68,33 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
     </DescriptionList>
   );
 
-  const allResources = React.useMemo(() => {
+  const profileIdentifiers = React.useMemo(
+    () =>
+      hardwareProfile?.spec.identifiers ? sortIdentifiers(hardwareProfile.spec.identifiers) : [],
+    [hardwareProfile],
+  );
+
+  const fallbackResources = React.useMemo(() => {
+    if (hardwareProfile) {
+      return [];
+    }
     const requests = resources?.requests || {};
     const limits = resources?.limits || {};
-    const identifiers = new Set([...Object.keys(requests), ...Object.keys(limits)]);
+    const keys = new Set([...Object.keys(requests), ...Object.keys(limits)]);
 
-    return Array.from(identifiers).map((identifier) => ({
-      identifier,
-      request: requests[identifier]?.toString() || '',
-      limit: limits[identifier]?.toString() || '',
-      displayName: hardwareProfile?.spec.identifiers?.find((id) => id.identifier === identifier)
-        ?.displayName,
-      resourceType: hardwareProfile?.spec.identifiers?.find((id) => id.identifier === identifier)
-        ?.resourceType,
+    return Array.from(keys).map((key) => ({
+      identifier: key,
+      request: requests[key]?.toString() || '',
+      limit: limits[key]?.toString() || '',
     }));
   }, [resources, hardwareProfile]);
+
+  const hasIdentifiers = profileIdentifiers.length > 0 || fallbackResources.length > 0;
 
   if (
     !tolerations &&
     !nodeSelector &&
-    !resources &&
+    !hasIdentifiers &&
     !(localQueueName || clusterQueueName || priorityClass)
   ) {
     return null;
@@ -108,15 +121,19 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
             <StackItem>No matching hardware profile found, using existing settings.</StackItem>
           )}
 
-          {allResources.length > 0 &&
-            allResources.map((resource) => (
+          {profileIdentifiers.length > 0 &&
+            profileIdentifiers.map((identifier) => (
+              <StackItem key={identifier.identifier}>
+                {renderSection(identifier.displayName || identifier.identifier, [
+                  formatIdentifierDetails(identifier),
+                ])}
+              </StackItem>
+            ))}
+          {fallbackResources.length > 0 &&
+            fallbackResources.map((resource) => (
               <StackItem key={resource.identifier}>
-                {renderSection(resource.displayName || resource.identifier, [
-                  formatResource(
-                    resource.identifier,
-                    formatResourceValue(resource.request, resource.resourceType).toString(),
-                    formatResourceValue(resource.limit, resource.resourceType).toString(),
-                  ),
+                {renderSection(resource.identifier, [
+                  formatResource(resource.identifier, resource.request, resource.limit),
                 ])}
               </StackItem>
             ))}
