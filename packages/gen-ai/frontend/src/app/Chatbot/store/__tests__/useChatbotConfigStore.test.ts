@@ -47,6 +47,27 @@ describe('useChatbotConfigStore', () => {
       expect(state.configurations[DEFAULT_CONFIG_ID]?.temperature).toBe(0.7);
     });
 
+    it('should update maxTokens', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateMaxTokens(DEFAULT_CONFIG_ID, 1024);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.maxTokens).toBe(1024);
+    });
+
+    it('should update maxTokens to undefined', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateMaxTokens(DEFAULT_CONFIG_ID, 1024);
+      });
+      act(() => {
+        useChatbotConfigStore.getState().updateMaxTokens(DEFAULT_CONFIG_ID, undefined);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.maxTokens).toBeUndefined();
+    });
+
     it('should update isStreamingEnabled', () => {
       act(() => {
         useChatbotConfigStore.getState().updateStreamingEnabled(DEFAULT_CONFIG_ID, false);
@@ -593,6 +614,7 @@ describe('useChatbotConfigStore', () => {
         store.updateSelectedModel(DEFAULT_CONFIG_ID, 'test-model');
         store.updateSelectedSubscription(DEFAULT_CONFIG_ID, 'premium-sub');
         store.updateTemperature(DEFAULT_CONFIG_ID, 1.5);
+        store.updateMaxTokens(DEFAULT_CONFIG_ID, 2048);
         store.updateStreamingEnabled(DEFAULT_CONFIG_ID, false);
         store.updateRagEnabled(DEFAULT_CONFIG_ID, true);
       });
@@ -608,6 +630,7 @@ describe('useChatbotConfigStore', () => {
       expect(newConfig?.selectedModel).toBe('test-model');
       expect(newConfig?.selectedSubscription).toBe('premium-sub');
       expect(newConfig?.temperature).toBe(1.5);
+      expect(newConfig?.maxTokens).toBe(2048);
       expect(newConfig?.isStreamingEnabled).toBe(false);
       expect(newConfig?.isRagEnabled).toBe(true);
     });

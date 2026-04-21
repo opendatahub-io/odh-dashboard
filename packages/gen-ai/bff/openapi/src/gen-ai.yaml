@@ -3022,6 +3022,11 @@ components:
           maximum: 2.0
           example: 0.7
           description: Controls randomness (0.0=deterministic, 2.0=very random)
+        max_tokens:
+          type: integer
+          minimum: 1
+          example: 1024
+          description: Maximum number of tokens to generate in the response. If not specified, the model default is used.
         top_p:
           type: number
           format: float

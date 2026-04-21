@@ -197,6 +197,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
         const newConfig: ChatbotConfiguration = {
           systemInstruction: sourceConfig.systemInstruction,
           temperature: sourceConfig.temperature,
+          maxTokens: sourceConfig.maxTokens,
           isStreamingEnabled: sourceConfig.isStreamingEnabled,
           selectedModel: sourceConfig.selectedModel,
           selectedMcpServerIds: [...sourceConfig.selectedMcpServerIds], // Deep copy array
@@ -254,6 +255,19 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           },
           false,
           'updateTemperature',
+        );
+      },
+
+      updateMaxTokens: (id: string, value: number | undefined) => {
+        set(
+          (state) => {
+            const config = state.configurations[id];
+            if (config) {
+              config.maxTokens = value;
+            }
+          },
+          false,
+          'updateMaxTokens',
         );
       },
 

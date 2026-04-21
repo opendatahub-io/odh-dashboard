@@ -63,6 +63,8 @@ describe('ModelTabContent', () => {
   const defaultProps = {
     temperature: 1.0,
     onTemperatureChange: jest.fn(),
+    maxTokens: undefined as number | undefined,
+    onMaxTokensChange: jest.fn(),
     isStreamingEnabled: true,
     onStreamingToggle: jest.fn(),
     selectedModel: 'test-model',
@@ -127,6 +129,50 @@ describe('ModelTabContent', () => {
     await user.click(streamingSwitch);
 
     expect(mockOnStreamingToggle).toHaveBeenCalledWith(false);
+  });
+
+  it('renders max tokens input field', () => {
+    render(<ModelTabContent {...defaultProps} />);
+
+    expect(screen.getByTestId('max-tokens-input')).toBeInTheDocument();
+  });
+
+  it('renders max tokens input with value when set', () => {
+    render(<ModelTabContent {...defaultProps} maxTokens={1024} />);
+
+    expect(screen.getByTestId('max-tokens-input')).toHaveValue(1024);
+  });
+
+  it('calls onMaxTokensChange when max tokens value is entered', async () => {
+    const user = userEvent.setup();
+    const mockOnMaxTokensChange = jest.fn();
+    render(<ModelTabContent {...defaultProps} onMaxTokensChange={mockOnMaxTokensChange} />);
+
+    const input = screen.getByTestId('max-tokens-input');
+    await user.type(input, '5');
+
+    expect(mockOnMaxTokensChange).toHaveBeenCalled();
+    const { calls } = mockOnMaxTokensChange.mock;
+    const [lastValue] = calls[calls.length - 1];
+    expect(typeof lastValue).toBe('number');
+    expect(lastValue).toBeGreaterThan(0);
+  });
+
+  it('calls onMaxTokensChange with undefined when max tokens input is cleared', async () => {
+    const user = userEvent.setup();
+    const mockOnMaxTokensChange = jest.fn();
+    render(
+      <ModelTabContent
+        {...defaultProps}
+        maxTokens={1024}
+        onMaxTokensChange={mockOnMaxTokensChange}
+      />,
+    );
+
+    const input = screen.getByTestId('max-tokens-input');
+    await user.clear(input);
+
+    expect(mockOnMaxTokensChange).toHaveBeenCalledWith(undefined);
   });
 
   it('calls onStreamingToggle with true when enabling streaming', async () => {

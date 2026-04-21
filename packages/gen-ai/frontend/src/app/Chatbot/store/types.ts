@@ -18,6 +18,7 @@ export type McpToolSelectionsMap = Record<string, Record<string, string[]> | und
 export interface ChatbotConfiguration {
   systemInstruction: string;
   temperature: number;
+  maxTokens: number | undefined;
   isStreamingEnabled: boolean;
   selectedModel: string;
   selectedMcpServerIds: string[];
@@ -42,6 +43,7 @@ export interface ChatbotConfiguration {
 export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   systemInstruction: DEFAULT_SYSTEM_INSTRUCTIONS,
   temperature: 0.1,
+  maxTokens: undefined,
   isStreamingEnabled: true,
   selectedModel: '',
   selectedMcpServerIds: [],
@@ -83,6 +85,7 @@ export interface ChatbotConfigStoreActions {
   // Field-specific updaters (for granular rerenders)
   updateSystemInstruction: (id: string, value: string) => void;
   updateTemperature: (id: string, value: number) => void;
+  updateMaxTokens: (id: string, value: number | undefined) => void;
   updateStreamingEnabled: (id: string, value: boolean) => void;
   updateSelectedModel: (id: string, value: string) => void;
   updateSelectedMcpServerIds: (id: string, value: string[]) => void;

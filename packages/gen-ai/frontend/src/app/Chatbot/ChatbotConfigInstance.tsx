@@ -7,6 +7,7 @@ import {
   useChatbotConfigStore,
   selectSystemInstruction,
   selectTemperature,
+  selectMaxTokens,
   selectStreamingEnabled,
   selectSelectedModel,
   selectSelectedSubscription,
@@ -55,6 +56,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
 }) => {
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const temperature = useChatbotConfigStore(selectTemperature(configId));
+  const maxTokens = useChatbotConfigStore(selectMaxTokens(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
   const selectedSubscription = useChatbotConfigStore(selectSelectedSubscription(configId));
@@ -110,6 +112,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     username,
     isStreamingEnabled,
     temperature,
+    maxTokens,
     currentVectorStoreId: selectedVectorStoreId,
     selectedServerIds: selectedMcpServerIds,
     mcpServers,

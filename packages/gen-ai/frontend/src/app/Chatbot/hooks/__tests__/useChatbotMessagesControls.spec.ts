@@ -83,6 +83,7 @@ const createDefaultHookProps = (overrides?: {
   isRawUploaded?: boolean;
   isStreamingEnabled?: boolean;
   temperature?: number;
+  maxTokens?: number | undefined;
   currentVectorStoreId?: string | null;
   selectedServerIds?: string[];
 }) => ({
@@ -93,6 +94,7 @@ const createDefaultHookProps = (overrides?: {
   isRawUploaded: true,
   isStreamingEnabled: false,
   temperature: 0.7,
+  maxTokens: undefined,
   currentVectorStoreId: 'test-vector-db',
   selectedServerIds: [],
   ...overrides,

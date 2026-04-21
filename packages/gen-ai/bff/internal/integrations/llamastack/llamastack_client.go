@@ -378,6 +378,8 @@ type CreateResponseParams struct {
 	PreviousResponseID string
 	// Temperature controls response creativity/randomness (range: 0.0-2.0).
 	Temperature *float64
+	// MaxTokens sets the maximum number of tokens the model can generate.
+	MaxTokens *int64
 	// TopP controls nucleus sampling for response variety (range: 0.0-1.0).
 	TopP *float64
 	// Instructions provides system-level guidance for AI behavior.
@@ -465,6 +467,13 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 			return nil, NewInvalidRequestError(fmt.Sprintf("temperature must be between 0 and 2, got: %.2f", *params.Temperature))
 		}
 		apiParams.Temperature = openai.Float(*params.Temperature)
+	}
+
+	if params.MaxTokens != nil {
+		if *params.MaxTokens <= 0 {
+			return nil, NewInvalidRequestError(fmt.Sprintf("max_tokens must be greater than 0, got: %d", *params.MaxTokens))
+		}
+		apiParams.MaxOutputTokens = openai.Int(*params.MaxTokens)
 	}
 
 	if params.TopP != nil {

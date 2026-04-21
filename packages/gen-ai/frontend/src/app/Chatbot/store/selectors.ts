@@ -13,6 +13,11 @@ export const selectTemperature =
   (state: ChatbotConfigStore): number =>
     state.configurations[configId]?.temperature ?? DEFAULT_CONFIGURATION.temperature;
 
+export const selectMaxTokens =
+  (configId: string) =>
+  (state: ChatbotConfigStore): number | undefined =>
+    state.configurations[configId]?.maxTokens ?? DEFAULT_CONFIGURATION.maxTokens;
+
 export const selectStreamingEnabled =
   (configId: string) =>
   (state: ChatbotConfigStore): boolean =>

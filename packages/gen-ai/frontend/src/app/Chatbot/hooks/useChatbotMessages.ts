@@ -54,6 +54,7 @@ interface UseChatbotMessagesProps {
   username?: string;
   isStreamingEnabled: boolean;
   temperature: number;
+  maxTokens: number | undefined;
   currentVectorStoreId: string | null;
   selectedServerIds: string[];
   // MCP data as props (instead of contexts)
@@ -83,6 +84,7 @@ const useChatbotMessages = ({
   username,
   isStreamingEnabled,
   temperature,
+  maxTokens,
   currentVectorStoreId,
   selectedServerIds,
   mcpServers,
@@ -316,6 +318,7 @@ const useChatbotMessages = ({
         instructions: systemInstruction,
         stream: isStreamingEnabled,
         temperature,
+        ...(maxTokens !== undefined && { max_tokens: maxTokens }),
         ...(selectedMcpServers.length > 0 && { mcp_servers: selectedMcpServers }),
         ...guardrailShieldIds,
         ...(selectedModel?.model_source_type && {

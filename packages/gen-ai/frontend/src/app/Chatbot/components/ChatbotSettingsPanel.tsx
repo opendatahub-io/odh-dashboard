@@ -22,6 +22,7 @@ import {
   useChatbotConfigStore,
   selectSystemInstruction,
   selectTemperature,
+  selectMaxTokens,
   selectStreamingEnabled,
   selectSelectedMcpServerIds,
   selectSelectedModel,
@@ -103,6 +104,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   // Consume store directly using configId (controlled by parent)
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const temperature = useChatbotConfigStore(selectTemperature(configId));
+  const maxTokens = useChatbotConfigStore(selectMaxTokens(configId));
   const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
@@ -112,6 +114,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   // Get updater functions from store
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const updateTemperature = useChatbotConfigStore((state) => state.updateTemperature);
+  const updateMaxTokens = useChatbotConfigStore((state) => state.updateMaxTokens);
   const updateStreamingEnabled = useChatbotConfigStore((state) => state.updateStreamingEnabled);
   const updateSelectedModel = useChatbotConfigStore((state) => state.updateSelectedModel);
   const updateSelectedSubscription = useChatbotConfigStore(
@@ -131,6 +134,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       updateTemperature(configId, value);
     },
     [configId, updateTemperature],
+  );
+
+  const handleMaxTokensChange = React.useCallback(
+    (value: number | undefined) => {
+      updateMaxTokens(configId, value);
+    },
+    [configId, updateMaxTokens],
   );
 
   const handleStreamingToggle = React.useCallback(
@@ -275,6 +285,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <ModelTabContent
               temperature={temperature}
               onTemperatureChange={handleTemperatureChange}
+              maxTokens={maxTokens}
+              onMaxTokensChange={handleMaxTokensChange}
               isStreamingEnabled={isStreamingEnabled}
               onStreamingToggle={handleStreamingToggle}
               selectedModel={selectedModel}

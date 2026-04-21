@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Form, FormGroup, Switch } from '@patternfly/react-core';
+import { Button, Form, FormGroup, Popover, Switch, TextInput } from '@patternfly/react-core';
+import { HelpIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
 import ModelParameterFormGroup from '~/app/Chatbot/components/ModelParameterFormGroup';
@@ -9,6 +10,8 @@ import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown'
 interface ModelTabContentProps {
   temperature: number;
   onTemperatureChange: (value: number) => void;
+  maxTokens: number | undefined;
+  onMaxTokensChange: (value: number | undefined) => void;
   isStreamingEnabled: boolean;
   onStreamingToggle: (enabled: boolean) => void;
   /** Custom title for the section (e.g., "Model 1 settings" in compare mode) */
@@ -22,6 +25,8 @@ interface ModelTabContentProps {
 const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
   temperature,
   onTemperatureChange,
+  maxTokens,
+  onMaxTokensChange,
   isStreamingEnabled,
   onStreamingToggle,
   title = 'Model',
@@ -60,6 +65,61 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
         max={2}
         showPopoverCloseButton={false}
       />
+
+      <FormGroup
+        fieldId="max-tokens"
+        label={
+          <span>
+            Max tokens
+            <Popover
+              bodyContent={
+                <div>
+                  Sets the maximum number of tokens the model can generate in a single response.
+                  Leave empty to use the model default.
+                </div>
+              }
+              showClose={false}
+            >
+              <Button
+                variant="plain"
+                aria-label="More info for max tokens field"
+                onClick={(e) => e.preventDefault()}
+                style={{ marginLeft: 'var(--pf-t--global--spacer--xs)' }}
+              >
+                <HelpIcon />
+              </Button>
+            </Popover>
+          </span>
+        }
+      >
+        <TextInput
+          id="max-tokens-input"
+          type="number"
+          aria-label="max tokens input field"
+          value={maxTokens ?? ''}
+          placeholder="Default"
+          onChange={(_event, newValue) => {
+            if (newValue === '') {
+              onMaxTokensChange(undefined);
+              fireMiscTrackingEvent('Playground Model Parameter Changed', {
+                parameter: 'max_tokens',
+                value: 'default',
+              });
+            } else {
+              const parsed = parseInt(newValue, 10);
+              if (!Number.isNaN(parsed) && parsed > 0) {
+                onMaxTokensChange(parsed);
+                fireMiscTrackingEvent('Playground Model Parameter Changed', {
+                  parameter: 'max_tokens',
+                  value: parsed,
+                });
+              }
+            }
+          }}
+          min={1}
+          data-testid="max-tokens-input"
+        />
+      </FormGroup>
 
       <FormGroup fieldId="streaming" data-testid="streaming-section">
         <Switch

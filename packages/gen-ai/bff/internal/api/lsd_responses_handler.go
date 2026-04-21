@@ -135,6 +135,7 @@ type CreateResponseRequest struct {
 	VectorStoreIDs     []string             `json:"vector_store_ids,omitempty"`     // Enables RAG
 	ChatContext        []ChatContextMessage `json:"chat_context,omitempty"`         // Conversation history
 	Temperature        *float64             `json:"temperature,omitempty"`          // Controls creativity (0.0-2.0)
+	MaxTokens          *int64               `json:"max_tokens,omitempty"`           // Maximum tokens in the response
 	TopP               *float64             `json:"top_p,omitempty"`                // Controls randomness (0.0-1.0)
 	Instructions       string               `json:"instructions,omitempty"`         // System message/behavior
 	Stream             bool                 `json:"stream,omitempty"`               // Enable streaming response
@@ -379,6 +380,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		VectorStoreIDs:     createRequest.VectorStoreIDs,
 		ChatContext:        chatContext,
 		Temperature:        createRequest.Temperature,
+		MaxTokens:          createRequest.MaxTokens,
 		TopP:               createRequest.TopP,
 		Instructions:       createRequest.Instructions,
 		Tools:              mcpServerParams,

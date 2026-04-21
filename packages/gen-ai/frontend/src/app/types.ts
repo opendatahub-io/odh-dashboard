@@ -96,6 +96,7 @@ export type CreateResponseRequest = {
   vector_store_ids?: string[];
   chat_context?: ChatContextMessage[];
   temperature?: number;
+  max_tokens?: number;
   instructions?: string;
   stream?: boolean;
   mcp_servers?: MCPServerConfig[];
