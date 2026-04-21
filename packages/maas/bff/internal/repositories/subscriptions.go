@@ -287,7 +287,7 @@ func (r *SubscriptionsRepository) GetModelRefSummaries(ctx context.Context, refs
 		refSet[ref.Namespace+"/"+ref.Name] = true
 	}
 
-	var result []models.MaaSModelRefSummary
+	result := make([]models.MaaSModelRefSummary, 0)
 	for _, ref := range allRefs {
 		if refSet[ref.Namespace+"/"+ref.Name] {
 			result = append(result, ref)
@@ -361,6 +361,7 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		}
 	}
 
+	sub.Owner.Groups = []models.GroupReference{}
 	ownerGroups, _, _ := unstructured.NestedSlice(content, "spec", "owner", "groups")
 	for _, g := range ownerGroups {
 		if gMap, ok := g.(map[string]interface{}); ok {
@@ -370,6 +371,7 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		}
 	}
 
+	sub.ModelRefs = []models.ModelSubscriptionRef{}
 	modelRefs, _, _ := unstructured.NestedSlice(content, "spec", "modelRefs")
 	for _, mr := range modelRefs {
 		if mrMap, ok := mr.(map[string]interface{}); ok {
@@ -454,6 +456,7 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 
 	policy.StatusMessage = extractReadyConditionMessage(content)
 
+	policy.ModelRefs = []models.ModelRef{}
 	modelRefs, _, _ := unstructured.NestedSlice(content, "spec", "modelRefs")
 	for _, mr := range modelRefs {
 		if mrMap, ok := mr.(map[string]interface{}); ok {
@@ -468,6 +471,7 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 		}
 	}
 
+	policy.Subjects.Groups = []models.GroupReference{}
 	subjectGroups, _, _ := unstructured.NestedSlice(content, "spec", "subjects", "groups")
 	for _, g := range subjectGroups {
 		if gMap, ok := g.(map[string]interface{}); ok {
@@ -639,6 +643,58 @@ func buildOwnerSpec(owner models.OwnerSpec) map[string]interface{} {
 	}
 }
 
+// mergeOwnerSpec updates only groups, preserving unmanaged fields like users.
+func mergeOwnerSpec(existing map[string]interface{}, owner models.OwnerSpec) map[string]interface{} {
+	if existing == nil {
+		existing = map[string]interface{}{}
+	}
+	existing["groups"] = buildOwnerSpec(owner)["groups"]
+	return existing
+}
+
+// indexModelRefsByKey indexes existing refs by "namespace/name" for quick lookup during a merge.
+func indexModelRefsByKey(refs []interface{}) map[string]map[string]interface{} {
+	idx := make(map[string]map[string]interface{}, len(refs))
+	for _, r := range refs {
+		if m, ok := r.(map[string]interface{}); ok {
+			name, _ := m["name"].(string)
+			ns, _ := m["namespace"].(string)
+			idx[ns+"/"+name] = m
+		}
+	}
+	return idx
+}
+
+// mergeModelSubscriptionRefs merges the incoming refs with the existing ones, preserving fields the UI doesn't own (e.g. billingRate).
+func mergeModelSubscriptionRefs(existing []interface{}, refs []models.ModelSubscriptionRef) []interface{} {
+	existingByKey := indexModelRefsByKey(existing)
+	result := make([]interface{}, len(refs))
+	for i, ref := range refs {
+		refMap := existingByKey[ref.Namespace+"/"+ref.Name]
+		if refMap == nil {
+			refMap = map[string]interface{}{
+				"name":      ref.Name,
+				"namespace": ref.Namespace,
+			}
+		}
+		// only tokenRateLimits is owned by the UI; everything else (e.g. billingRate) is left untouched.
+		if len(ref.TokenRateLimits) > 0 {
+			tokenLimits := make([]interface{}, 0, len(ref.TokenRateLimits))
+			for _, limit := range ref.TokenRateLimits {
+				tokenLimits = append(tokenLimits, map[string]interface{}{
+					"limit":  limit.Limit,
+					"window": limit.Window,
+				})
+			}
+			refMap["tokenRateLimits"] = tokenLimits
+		} else {
+			delete(refMap, "tokenRateLimits")
+		}
+		result[i] = refMap
+	}
+	return result
+}
+
 func buildModelSubscriptionRefs(refs []models.ModelSubscriptionRef) []interface{} {
 	result := make([]interface{}, len(refs))
 	for i, ref := range refs {
@@ -706,8 +762,10 @@ func updateSubscriptionSpec(obj *unstructured.Unstructured, displayName, descrip
 		existingSpec = map[string]interface{}{}
 	}
 	existingSpec["priority"] = int64(priority)
-	existingSpec["owner"] = buildOwnerSpec(owner)
-	existingSpec["modelRefs"] = buildModelSubscriptionRefs(modelRefs)
+	existingOwner, _ := existingSpec["owner"].(map[string]interface{})
+	existingSpec["owner"] = mergeOwnerSpec(existingOwner, owner)
+	existingModelRefs, _ := existingSpec["modelRefs"].([]interface{})
+	existingSpec["modelRefs"] = mergeModelSubscriptionRefs(existingModelRefs, modelRefs)
 
 	if tokenMetadata != nil {
 		existingSpec["tokenMetadata"] = buildTokenMetadata(tokenMetadata)

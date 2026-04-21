@@ -12,7 +12,6 @@ const CreateSubscriptionPage: React.FC = () => {
   return (
     <ApplicationsPage
       title="Create subscription"
-      description="Create a new subscription to control access and entitlements to AI model endpoints."
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem

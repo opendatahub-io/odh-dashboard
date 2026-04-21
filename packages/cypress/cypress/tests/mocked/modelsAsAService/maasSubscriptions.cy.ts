@@ -13,6 +13,7 @@ import {
 import {
   mockSubscriptions,
   mockSubscriptionInfo,
+  mockSubscriptionInfoMissingModelSummaries,
   mockSubscriptionFormData,
   mockCreateSubscriptionResponse,
   mockUpdateSubscriptionResponse,
@@ -56,7 +57,7 @@ describe('Subscriptions Page', () => {
       .findDescription()
       .should(
         'contain.text',
-        'Subscriptions control access and entitlements to AI model endpoints that are available as a service.',
+        'Create subscriptions to manage group access to MaaS endpoints, and to set token limits for each model.',
       );
 
     subscriptionsPage.findTable().should('exist');
@@ -98,8 +99,25 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findRows().should('have.length', 5);
 
     premiumRow.findKebabAction('View details').should('exist');
-    premiumRow.findKebabAction('Edit subscription').should('exist');
-    premiumRow.findKebabAction('Delete subscription').should('exist');
+    premiumRow.findKebabAction('Edit').should('exist');
+    premiumRow.findKebabAction('Delete').should('exist');
+  });
+
+  it('should filter subscriptions by display name and description', () => {
+    subscriptionsPage.findFilterInput().type('Team Subscription');
+    subscriptionsPage.findRows().should('have.length', 2);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 5);
+
+    subscriptionsPage.findFilterInput().type('enterprise');
+    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 5);
+
+    subscriptionsPage.findFilterInput().type('general users');
+    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 5);
   });
 
   it('should delete a subscription', () => {
@@ -109,10 +127,7 @@ describe('Subscriptions Page', () => {
       { data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" } },
     ).as('deleteSubscription');
 
-    subscriptionsPage
-      .getRow('Premium Team Subscription')
-      .findKebabAction('Delete subscription')
-      .click();
+    subscriptionsPage.getRow('Premium Team Subscription').findKebabAction('Delete').click();
     deleteSubscriptionModal.findInput().type('premium-team-sub');
 
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
@@ -156,8 +171,6 @@ describe('View Subscription Page', () => {
       .and('contain.text', 'Active')
       .should('contain.text', 'Premium Team Subscription')
       .and('contain.text', 'Name')
-      .and('contain.text', 'Resource name')
-      .and('contain.text', 'premium-team-sub')
       .and('contain.text', 'Created');
 
     viewSubscriptionPage.findGroupsSection().should('exist');
@@ -173,6 +186,22 @@ describe('View Subscription Page', () => {
 
     viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
     cy.url().should('include', '/maas/subscriptions');
+  });
+
+  it("should list models from the subscription when model ref doesn't exist", () => {
+    const orphanSubName = 'missing-model-summary-sub';
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: orphanSubName } },
+      { data: mockSubscriptionInfoMissingModelSummaries() },
+    );
+    viewSubscriptionPage.visit(orphanSubName);
+    viewSubscriptionPage.findModelsSection().should('exist');
+    viewSubscriptionPage
+      .findModelsTable()
+      .should('contain.text', 'deleted-model-ref')
+      .and('contain.text', 'maas-models')
+      .and('contain.text', '50,000');
   });
 
   it('should show error state when the subscription-info API fails', () => {
@@ -371,7 +400,7 @@ describe('Edit Subscription Page', () => {
     editSubscriptionPage.findPolicyChangeWarning().should('exist');
     editSubscriptionPage
       .findPolicyChangeWarning()
-      .should('contain.text', 'Authorization policy may need updating');
+      .should('contain.text', 'Policies are not automatically updated');
   });
 
   it('should navigate to subscriptions list on cancel', () => {
