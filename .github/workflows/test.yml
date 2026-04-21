@@ -224,6 +224,8 @@ jobs:
             packages/model-registry/upstream/bff/go.sum
             packages/gen-ai/bff/go.sum
             packages/mlflow/bff/go.sum
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8
       - name: Restore cache
         uses: actions/cache/restore@v4
         with:
