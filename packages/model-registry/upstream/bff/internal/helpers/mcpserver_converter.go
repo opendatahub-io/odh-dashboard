@@ -136,13 +136,15 @@ func ConvertToMCPServer(metadata *models.McpRuntimeMetadata, opts ConversionOpti
 }
 
 // ExtractContainerImage finds the first OCI artifact URI and strips the oci:// prefix.
+// Falls back to the first artifact's URI if no OCI artifact is found.
 func ExtractContainerImage(artifacts []models.McpArtifact) string {
 	for _, a := range artifacts {
-		uri := a.URI
-		if strings.HasPrefix(uri, "oci://") {
-			return strings.TrimPrefix(uri, "oci://")
+		if strings.HasPrefix(a.URI, "oci://") {
+			return strings.TrimPrefix(a.URI, "oci://")
 		}
-		return uri
+	}
+	if len(artifacts) > 0 {
+		return artifacts[0].URI
 	}
 	return ""
 }

@@ -18,11 +18,13 @@ const EditAuthPolicyPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Edit policy"
+      title="Edit authorization policy"
       description="Update groups, models, and metadata for this authorization policy."
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to={`${URL_PREFIX}/auth-policies`}>Policies</Link>} />
+          <BreadcrumbItem
+            render={() => <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies</Link>}
+          />
           <BreadcrumbItem isActive>{displayName || authPolicyName}</BreadcrumbItem>
         </Breadcrumb>
       }

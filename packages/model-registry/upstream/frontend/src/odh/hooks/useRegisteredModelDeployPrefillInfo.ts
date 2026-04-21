@@ -73,7 +73,7 @@ const useRegisteredModelDeployPrefillInfo = (
     modelVersion.id,
     modelVersion.name,
     modelVersion.registeredModelId,
-    registeredModel?.name,
+    registeredModel,
     registeredModelError,
     registeredModelLoaded,
     mrName,

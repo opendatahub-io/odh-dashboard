@@ -1,8 +1,8 @@
 import { APIOptions } from 'mod-arch-core';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths, import/order
 import {
   ModelCatalogTask,
   ModelCatalogProvider,
-  ModelCatalogLicense,
   AllLanguageCode,
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
@@ -283,7 +283,7 @@ export type { ModelCatalogFilterKey };
 export type ModelCatalogStringFilterValueType = {
   [ModelCatalogStringFilterKey.TASK]: ModelCatalogTask;
   [ModelCatalogStringFilterKey.PROVIDER]: ModelCatalogProvider;
-  [ModelCatalogStringFilterKey.LICENSE]: ModelCatalogLicense;
+  [ModelCatalogStringFilterKey.LICENSE]: string;
   [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode;
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: ModelCatalogTensorType;
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string;
@@ -349,7 +349,7 @@ export type ComputedPerformanceProperties = {
 export type ModelCatalogFilterStates = {
   [ModelCatalogStringFilterKey.TASK]: ModelCatalogTask[];
   [ModelCatalogStringFilterKey.PROVIDER]: ModelCatalogProvider[];
-  [ModelCatalogStringFilterKey.LICENSE]: ModelCatalogLicense[];
+  [ModelCatalogStringFilterKey.LICENSE]: string[];
   [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode[];
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: ModelCatalogTensorType[];
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string[];

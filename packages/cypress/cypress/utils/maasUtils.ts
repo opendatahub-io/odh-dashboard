@@ -60,7 +60,7 @@ export const mockAPIKeys = (): APIKey[] => [
 
 export const mockCreateAPIKeyResponse = (): CreateAPIKeyResponse => {
   return {
-    key: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtYWFzLWFwaSIsInN1YiI6InRlc3QtdXNlciIsImF1ZCI6WyJtYWFzLWFwaSJdLCJleHAiOjE2NzI1NDU2MDAsIm5iZiI6MTY3MjUzMTIwMCwiaWF0IjoxNjcyNTMxMjAwfQ.mock-signature',
+    key: 'sk-oai-1JO088RHrhLvlwNqT_LDEQgy7IbnbyoSYQCjuMqLpzRI8xns9gBFo0bZsaSat',
     keyPrefix: 'sk-oai-abc',
     id: 'key-prod-backend-001',
     expiresAt: '2026-01-20T11:54:34.521671447-05:00',
@@ -121,6 +121,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
   {
     name: 'premium-team-sub',
     displayName: 'Premium Team Subscription',
+    description: 'Access to premium AI models for enterprise teams',
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
@@ -149,6 +150,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
   {
     name: 'basic-team-sub',
     displayName: 'Basic Team Subscription',
+    description: 'Standard access for general users',
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
@@ -235,6 +237,34 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     ],
   },
 ];
+
+export const mockSubscriptionInfoMissingModelSummaries = (): SubscriptionInfoResponse => {
+  const subscription: MaaSSubscription = {
+    name: 'missing-model-summary-sub',
+    displayName: "Subscription with model refs that don't exist",
+    namespace: 'maas-system',
+    phase: 'Active',
+    statusMessage: 'successfully reconciled',
+    priority: 7,
+    owner: {
+      groups: [{ name: 'premium-users' }],
+    },
+    modelRefs: [
+      {
+        name: 'deleted-model-ref',
+        namespace: 'maas-models',
+        tokenRateLimits: [{ limit: 50000, window: '24h' }],
+      },
+    ],
+    creationTimestamp: '2025-03-01T10:00:00Z',
+  };
+
+  return {
+    subscription,
+    modelRefs: [],
+    authPolicies: [],
+  };
+};
 
 export const mockSubscriptionInfo = (name = 'premium-team-sub'): SubscriptionInfoResponse => {
   const subscription = mockSubscriptions().find((s) => s.name === name) ?? mockSubscriptions()[0];

@@ -1,3 +1,14 @@
+.automl-topology-wrapper {
+  position: relative;
+}
+
+.automl-topology-overlay {
+  position: absolute;
+  top: var(--pf-t--global--spacer--md);
+  left: var(--pf-t--global--spacer--md);
+  z-index: 1;
+}
+
 .automl-topology-container {
   height: 345px;
   border-radius: 16px;
