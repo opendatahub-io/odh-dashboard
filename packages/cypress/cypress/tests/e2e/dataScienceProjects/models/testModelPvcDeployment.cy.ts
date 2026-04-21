@@ -188,9 +188,7 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
       // Verify the model created and is running
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
-      cy.then(() => {
-        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
-      });
+      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       modelServingSection.findModelMetricsLink(modelName);
       // Note reload is required as status tooltip was not found due to a stale element
       attemptToClickTooltip();

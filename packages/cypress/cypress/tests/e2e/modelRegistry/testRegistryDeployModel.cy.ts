@@ -215,9 +215,7 @@ describe('Verify models can be deployed from model registry', () => {
 
       // Verify model deployment is ready
       cy.step('Verify the model is deployed and started in backend');
-      cy.then(() => {
-        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
-      });
+      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       // Check deployment link and verify status in deployments view
       modelRegistry.visitWithRegistry(registryName);
       cy.contains('1 deployment', { timeout: 30000 }).should('be.visible').click();

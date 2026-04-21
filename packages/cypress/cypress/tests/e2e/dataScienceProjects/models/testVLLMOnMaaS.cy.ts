@@ -32,7 +32,6 @@ import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
 
 let testData: DataScienceProjectData;
 let projectName: string;
-let resourceName: string;
 let modelName: string;
 const uuid = generateTestUUID();
 let hardwareProfileResourceName: string;
@@ -119,9 +118,7 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .then((val) => {
-          resourceName = val as string;
-        });
+        .as('resourceName');
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard
@@ -141,12 +138,12 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
       modelServingSection.findModelServerDeployedName(modelName);
 
       cy.step('Verify LLMInferenceService exists in the project namespace');
-      cy.then(() => {
+      cy.get<string>('@resourceName').then((resourceName) => {
         checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
 
       cy.step('Verify LLMInferenceServiceConfig was copied to the project namespace');
-      cy.then(() => {
+      cy.get<string>('@resourceName').then((resourceName) => {
         checkLLMInferenceServiceConfigState(resourceName, projectName, {
           containerImage: 'quay.io/pierdipi/vllm-cpu:latest',
         });
@@ -160,7 +157,7 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
           kServeRow.findConfirmStopModalButton().click();
         }
       });
-      cy.then(() => {
+      cy.get<string>('@resourceName').then((resourceName) => {
         checkLLMInferenceServiceState(resourceName, projectName, {
           checkReady: false,
           checkStopped: true,
