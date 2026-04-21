@@ -11,7 +11,6 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useQueryClient } from '@tanstack/react-query';
 import React from 'react';
@@ -28,6 +27,7 @@ import {
   useTerminatePipelineRunMutation,
 } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { RuntimeStateKF } from '~/app/types/pipeline';
@@ -36,9 +36,8 @@ import { parseErrorStatus } from '~/app/utilities/utils';
 
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
-    storeLastNamespace: true,
-  });
+  const { namespaces, namespacesLoaded, namespacesLoadError } =
+    useNamespaceSelectorWithPersistence();
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const handleDrawerClose = React.useCallback(() => setIsDrawerOpen(false), []);
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
