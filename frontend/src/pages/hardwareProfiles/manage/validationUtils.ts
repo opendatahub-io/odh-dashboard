@@ -18,6 +18,10 @@ import {
 } from '#~/pages/hardwareProfiles/utils';
 import { HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE } from '#~/concepts/hardwareProfiles/const';
 import { hasCPUandMemory } from './ManageNodeResourceSection';
+import {
+  HARDWARE_PROFILE_DISPLAY_NAME_CHAR_LIMIT,
+  HARDWARE_PROFILE_DESCRIPTION_CHAR_LIMIT,
+} from './const';
 
 const k8sNameRegex = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
 
@@ -182,11 +186,24 @@ export const schedulingSchema = z.discriminatedUnion('type', [
 ]);
 
 export const manageHardwareProfileValidationSchema = z.object({
-  displayName: z.string().trim().min(1, 'Display name is required'),
+  displayName: z
+    .string()
+    .trim()
+    .min(1, 'Display name is required')
+    .max(
+      HARDWARE_PROFILE_DISPLAY_NAME_CHAR_LIMIT,
+      `Display name cannot exceed ${HARDWARE_PROFILE_DISPLAY_NAME_CHAR_LIMIT} characters`,
+    ),
   enabled: z.boolean(),
   identifiers: z.array(identifierSchema),
   name: z.string().trim().min(1).max(253).regex(k8sNameRegex),
-  description: z.string().optional(),
+  description: z
+    .string()
+    .max(
+      HARDWARE_PROFILE_DESCRIPTION_CHAR_LIMIT,
+      `Description cannot exceed ${HARDWARE_PROFILE_DESCRIPTION_CHAR_LIMIT} characters`,
+    )
+    .optional(),
   visibility: z.array(z.string()),
   scheduling: schedulingSchema.optional(),
 });

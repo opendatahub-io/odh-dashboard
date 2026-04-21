@@ -5,6 +5,7 @@ import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import {
   ensureModelCatalogSourceEnabled,
   waitForModelCatalogCards,
+  waitForModelCatalogDeployment,
 } from '../../../utils/oc_commands/modelCatalog';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
@@ -26,6 +27,13 @@ describe('Verify Performance Filters are available on RHOAI', () => {
       } else {
         cy.log('RHOAI operator confirmed:', result.stdout);
       }
+    });
+
+    cy.then(() => {
+      if (skipTest) {
+        return;
+      }
+      waitForModelCatalogDeployment();
     });
 
     // If not skipping, proceed with test setup
