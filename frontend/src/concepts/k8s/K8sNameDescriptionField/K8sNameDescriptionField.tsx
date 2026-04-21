@@ -73,7 +73,9 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   const { name, description, k8sName } = data;
 
   const showNameWarning = maxLength && name.length > maxLength - 10;
-  const showDescWarning = maxLengthDesc && description.length > maxLengthDesc - 250;
+  const showDescWarning =
+    maxLengthDesc &&
+    description.length > maxLengthDesc - Math.min(250, Math.floor(maxLengthDesc * 0.1));
 
   return (
     <>
