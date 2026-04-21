@@ -149,7 +149,7 @@ export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo
         label: 'Starting',
         color: 'blue',
         IconComponent: InProgressIcon,
-        iconClassName: 'odh-u-spin',
+        iconClassName: 'ai-u-spin',
       };
     case KueueWorkloadStatus.Complete:
       return {
