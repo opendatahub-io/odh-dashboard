@@ -291,6 +291,7 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
             handleResume();
           }}
           isToggling={isSubmitting}
+          isPauseDisabled={isClusterSelectorJob}
         />
       )}
 
