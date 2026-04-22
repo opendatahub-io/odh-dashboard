@@ -220,13 +220,20 @@ const renderComponent = (defaultValues?: Partial<typeof configureSchema.defaults
   renderWithQueryClient(<AutomlConfigure />, defaultValues);
 
 const renderWithInitialValues = (
-  initialValues: Parameters<typeof AutomlConfigure>[0]['initialValues'],
+  initialValues: Parameters<typeof AutomlConfigure>[0]['initialValues'] & {
+    initialInputDataSecret?: Parameters<typeof AutomlConfigure>[0]['initialInputDataSecret'];
+  },
   defaultValues?: Partial<typeof configureSchema.defaults>,
-) =>
-  renderWithQueryClient(<AutomlConfigure initialValues={initialValues} />, {
-    ...defaultValues,
-    ...initialValues,
-  });
+) => {
+  const { initialInputDataSecret, ...schemaValues } = initialValues;
+  return renderWithQueryClient(
+    <AutomlConfigure
+      initialValues={schemaValues}
+      initialInputDataSecret={initialInputDataSecret}
+    />,
+    defaultValues,
+  );
+};
 
 describe('AutomlConfigure', () => {
   beforeEach(() => {
@@ -1024,10 +1031,10 @@ describe('AutomlConfigure', () => {
   });
 
   describe('reconfigure with initialValues', () => {
-    it('should show the selected secret value when initialSecret is provided', () => {
+    it('should show the selected secret value when initialInputDataSecret is provided', () => {
       renderWithInitialValues(
         {
-          initialSecret: {
+          initialInputDataSecret: {
             uuid: 'secret-1',
             name: 'Test Secret 1',
             data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
@@ -1057,7 +1064,7 @@ describe('AutomlConfigure', () => {
     it('should show the selected training data file when train_data_file_key is provided', () => {
       renderWithInitialValues(
         {
-          initialSecret: {
+          initialInputDataSecret: {
             uuid: 'secret-1',
             name: 'Test Secret 1',
             data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
@@ -1090,7 +1097,7 @@ describe('AutomlConfigure', () => {
     it('should pre-select the prediction type card when task_type is provided', () => {
       renderWithInitialValues(
         {
-          initialSecret: {
+          initialInputDataSecret: {
             uuid: 'secret-1',
             name: 'Test Secret 1',
             data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
@@ -1121,7 +1128,7 @@ describe('AutomlConfigure', () => {
     it('should show the top_n value from initialValues', () => {
       renderWithInitialValues(
         {
-          initialSecret: {
+          initialInputDataSecret: {
             uuid: 'secret-1',
             name: 'Test Secret 1',
             data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
@@ -1152,7 +1159,7 @@ describe('AutomlConfigure', () => {
     it('should show label column fields for tabular task type from initialValues', () => {
       renderWithInitialValues(
         {
-          initialSecret: {
+          initialInputDataSecret: {
             uuid: 'secret-1',
             name: 'Test Secret 1',
             data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
@@ -1184,7 +1191,7 @@ describe('AutomlConfigure', () => {
     it('should show timeseries fields when task_type is timeseries from initialValues', () => {
       renderWithInitialValues(
         {
-          initialSecret: {
+          initialInputDataSecret: {
             uuid: 'secret-1',
             name: 'Test Secret 1',
             data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },

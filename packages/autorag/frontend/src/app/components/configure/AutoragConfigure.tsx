@@ -64,6 +64,7 @@ import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
 import type { File as S3File } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -75,7 +76,7 @@ import {
   RAG_METRIC_CONTEXT_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
 } from '~/app/schemas/configure.schema';
-import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
+import { OPTIMIZATION_METRIC_LABELS, REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
@@ -84,10 +85,6 @@ import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 import EvaluationTemplateModal from './EvaluationTemplateModal';
 import './AutoragConfigure.css';
-
-const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = {
-  s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
-};
 
 /** MIME types and extensions for the knowledge document upload dropzone (react-dropzone `accept` format). */
 const INPUT_DATA_FILE_ACCEPT: Record<string, string[]> = {
@@ -143,10 +140,14 @@ const OPTIMIZATION_METRICS: {
 ];
 
 type AutoragConfigureProps = {
-  initialValues?: Partial<ConfigureSchema> & { initialSecret?: SecretSelection };
+  initialValues?: Partial<ConfigureSchema>;
+  initialInputDataSecret?: SecretSelection;
 };
 
-function AutoragConfigure({ initialValues }: AutoragConfigureProps): React.JSX.Element {
+function AutoragConfigure({
+  initialValues,
+  initialInputDataSecret,
+}: AutoragConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
   const autoragConnectionTypes = React.useMemo(
@@ -169,10 +170,11 @@ function AutoragConfigure({ initialValues }: AutoragConfigureProps): React.JSX.E
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [isMetricSelectOpen, setIsMetricSelectOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
-  const initialSecret = initialValues?.initialSecret;
   const initialInputDataKey = initialValues?.input_data_key;
 
-  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(initialSecret);
+  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(
+    initialInputDataSecret,
+  );
   const [inputDataSourceMode, setInputDataSourceMode] = useState<'select' | 'upload'>('select');
   const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>(() => {
     if (!initialInputDataKey) {
@@ -244,24 +246,17 @@ function AutoragConfigure({ initialValues }: AutoragConfigureProps): React.JSX.E
     }
   }, [allModelsData, getValues, reset]);
 
-  // set bucket from selected secret
-  // Tracks the previous value so the effect only fires on actual changes, not on mount.
-  // In reconfigure flows this prevents the pre-populated bucket from being cleared.
-  const prevSelectedSecretRef = useRef(selectedSecret);
-  useEffect(() => {
-    if (prevSelectedSecretRef.current === selectedSecret) {
-      return;
-    }
-    prevSelectedSecretRef.current = selectedSecret;
-
+  // set bucket from selected secret (skips mount to preserve pre-populated values in reconfigure)
+  useReconfigureSafeEffect(() => {
     // reset bucket if secret is removed
     if (!selectedSecret) {
       setValue('input_data_bucket_name', '', { shouldValidate: true });
       return;
     }
 
-    const bucketKey = findKey(selectedSecret.data, (value, key) => key === 'AWS_S3_BUCKET');
-    setValue('input_data_bucket_name', bucketKey ? selectedSecret.data[bucketKey] : '', {
+    const secretData = selectedSecret.data ?? {};
+    const bucketKey = findKey(secretData, (value, key) => key === 'AWS_S3_BUCKET');
+    setValue('input_data_bucket_name', bucketKey ? secretData[bucketKey] : '', {
       shouldValidate: true,
     });
   }, [selectedSecret, setValue]);
@@ -273,16 +268,8 @@ function AutoragConfigure({ initialValues }: AutoragConfigureProps): React.JSX.E
     }
   }, [inputDataSecretName, setValue]);
 
-  // reset input data key if document input mode changes
-  // Tracks previous value so the effect only fires on actual changes, not on mount.
-  // In reconfigure flows this prevents the pre-populated file from being cleared.
-  const prevModeRef = useRef(inputDataSourceMode);
-  useEffect(() => {
-    if (prevModeRef.current === inputDataSourceMode) {
-      return;
-    }
-    prevModeRef.current = inputDataSourceMode;
-
+  // reset input data key if document input mode changes (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     inputDataUploadSeqRef.current += 1;
     setIsInputDataFileUploading(false);
     setValue('input_data_key', '', { shouldValidate: true });
@@ -299,44 +286,17 @@ function AutoragConfigure({ initialValues }: AutoragConfigureProps): React.JSX.E
     }
   }, [inputDataBucketName, inputDataSecretName, setValue, testDataBucketName, testDataSecretName]);
 
-  // reset selected file values if input secret or bucket changes
-  // Track previous values so the effect only fires on actual changes, not on mount.
-  // In reconfigure flows this prevents the pre-populated file from being cleared.
-  const prevInputSecretNameRef = useRef(inputDataSecretName);
-  const prevInputBucketNameRef = useRef(inputDataBucketName);
-  useEffect(() => {
-    if (
-      prevInputSecretNameRef.current === inputDataSecretName &&
-      prevInputBucketNameRef.current === inputDataBucketName
-    ) {
-      return;
-    }
-    prevInputSecretNameRef.current = inputDataSecretName;
-    prevInputBucketNameRef.current = inputDataBucketName;
-
+  // reset selected file values if input secret or bucket changes (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     inputDataUploadSeqRef.current += 1;
     setIsInputDataFileUploading(false);
     setValue('input_data_key', '', { shouldValidate: true });
     setSelectedInputDataFile(undefined);
   }, [inputDataSecretName, inputDataBucketName, setValue]);
 
-  // reset selected file values if test secret or bucket changes
-  // Track previous values so the effect only fires on actual changes, not on mount.
-  // In reconfigure flows this prevents the pre-populated test file from being cleared.
-  const prevTestSecretNameRef = useRef(testDataSecretName);
-  const prevTestBucketNameRef = useRef(testDataBucketName);
-  useEffect(() => {
-    if (
-      prevTestSecretNameRef.current === testDataSecretName &&
-      prevTestBucketNameRef.current === testDataBucketName
-    ) {
-      return;
-    }
-    prevTestSecretNameRef.current = testDataSecretName;
-    prevTestBucketNameRef.current = testDataBucketName;
-
+  // reset selected file values if test secret or bucket changes (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     setValue('test_data_key', '', { shouldValidate: true });
-    setSelectedInputDataFile(undefined);
   }, [testDataSecretName, testDataBucketName, setValue]);
 
   const openExperimentSettings = () => {
@@ -443,7 +403,7 @@ function AutoragConfigure({ initialValues }: AutoragConfigureProps): React.JSX.E
                                 <SecretSelector
                                   namespace={String(namespace)}
                                   type="storage"
-                                  additionalRequiredKeys={AUTORAG_REQUIRED_KEYS}
+                                  additionalRequiredKeys={REQUIRED_CONNECTION_SECRET_KEYS}
                                   isDisabled={isSubmitting}
                                   value={selectedSecret?.uuid}
                                   onChange={(secret) => {
@@ -454,8 +414,8 @@ function AutoragConfigure({ initialValues }: AutoragConfigureProps): React.JSX.E
                                     }
 
                                     const requiredKeys =
-                                      AUTORAG_REQUIRED_KEYS[secret.type ?? ''] ?? [];
-                                    const availableKeys = Object.keys(secret.data);
+                                      REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''] ?? [];
+                                    const availableKeys = Object.keys(secret.data ?? {});
                                     const invalid =
                                       getMissingRequiredKeys(requiredKeys, availableKeys).length >
                                       0;
@@ -1012,8 +972,8 @@ function AutoragConfigure({ initialValues }: AutoragConfigureProps): React.JSX.E
             const list = await refresh();
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
-              const requiredKeys = AUTORAG_REQUIRED_KEYS[secret.type ?? ''] ?? [];
-              const availableKeys = Object.keys(secret.data);
+              const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''] ?? [];
+              const availableKeys = Object.keys(secret.data ?? {});
               const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
               setSelectedSecret({ ...secret, invalid });
               setValue('input_data_secret_name', invalid ? '' : secret.name, {

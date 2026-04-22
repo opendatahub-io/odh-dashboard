@@ -100,6 +100,13 @@ function AutoragResultsPage(): React.JSX.Element {
     }
   }, [retryMutation, queryClient, runId, namespace, notification]);
 
+  const ReconfigureLink = React.useCallback(
+    (props: React.ComponentProps<typeof Link>) => (
+      <Link {...props} to={`${autoragReconfigurePathname}/${namespace}/${runId}`} />
+    ),
+    [namespace, runId],
+  );
+
   const handleConfirmStop = React.useCallback(async () => {
     try {
       await terminateMutation.mutateAsync();
@@ -195,12 +202,7 @@ function AutoragResultsPage(): React.JSX.Element {
                     <Button
                       variant="secondary"
                       icon={<CogIcon />}
-                      component={(props) => (
-                        <Link
-                          {...props}
-                          to={`${autoragReconfigurePathname}/${namespace}/${runId}`}
-                        />
-                      )}
+                      component={ReconfigureLink}
                       data-testid="reconfigure-run-button"
                     >
                       Reconfigure

@@ -32,9 +32,21 @@ jest.mock('~/app/hooks/queries', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
 }));
 
-const mockGetSecrets = jest.fn();
+const mockGetSecretsQueryFn = jest.fn();
+const mockGetSecrets = jest.fn().mockReturnValue(mockGetSecretsQueryFn);
 jest.mock('~/app/api/k8s', () => ({
-  getSecrets: () => () => mockGetSecrets,
+  getSecrets: () => (namespace: string, type?: string) => mockGetSecrets(namespace, type),
+}));
+
+const mockNotification = {
+  success: jest.fn(),
+  error: jest.fn(),
+  warning: jest.fn(),
+  info: jest.fn(),
+  remove: jest.fn(),
+};
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => mockNotification,
 }));
 
 jest.mock('~/app/components/common/AutomlHeader/AutomlHeader', () => ({
@@ -74,7 +86,8 @@ jest.mock('mod-arch-shared', () => ({
 
 // Capture what AutomlConfigurePage receives
 let capturedProps: {
-  initialValues?: Partial<ConfigureSchema> & { initialSecret?: unknown };
+  initialValues?: Partial<ConfigureSchema>;
+  initialInputDataSecret?: unknown;
   sourceRunId?: string;
 } = {};
 jest.mock('~/app/pages/AutomlConfigurePage', () => ({
@@ -143,7 +156,7 @@ describe('AutomlReconfigureLoader', () => {
       namespacesLoadError: undefined,
     });
 
-    mockGetSecrets.mockResolvedValue([]);
+    mockGetSecretsQueryFn.mockResolvedValue([]);
   });
 
   describe('loading state', () => {
@@ -157,6 +170,7 @@ describe('AutomlReconfigureLoader', () => {
 
       renderPage();
 
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
       expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
     });
 
@@ -178,6 +192,7 @@ describe('AutomlReconfigureLoader', () => {
 
       renderPage();
 
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
       expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
     });
   });
@@ -195,6 +210,21 @@ describe('AutomlReconfigureLoader', () => {
 
       expect(screen.getByTestId('invalid-run')).toBeInTheDocument();
       expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
+    });
+
+    it('should render InvalidPipelineRun for non-404 pipeline run errors', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: undefined,
+        isPending: false,
+        isError: true,
+        error: new Error('Internal server error: status code 500'),
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('invalid-run')).toBeInTheDocument();
+      expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     });
 
     it('should render InvalidProject when namespace is invalid', () => {
@@ -398,7 +428,7 @@ describe('AutomlReconfigureLoader', () => {
   });
 
   describe('secret resolution', () => {
-    it('should resolve initialSecret from secrets list when secret name matches', async () => {
+    it('should resolve initialInputDataSecret from secrets list when secret name matches', async () => {
       const mockSecrets = [
         {
           uuid: 'secret-uuid-1',
@@ -408,7 +438,7 @@ describe('AutomlReconfigureLoader', () => {
           displayName: 'My AWS Connection',
         },
       ];
-      mockGetSecrets.mockResolvedValue(mockSecrets);
+      mockGetSecretsQueryFn.mockResolvedValue(mockSecrets);
 
       mockUsePipelineRunQuery.mockReturnValue({
         data: createMockPipelineRun(
@@ -432,7 +462,7 @@ describe('AutomlReconfigureLoader', () => {
       await screen.findByTestId('configure-page');
 
       await waitFor(() => {
-        expect(capturedProps.initialValues?.initialSecret).toMatchObject({
+        expect(capturedProps.initialInputDataSecret).toMatchObject({
           uuid: 'secret-uuid-1',
           name: 'my-aws-secret',
           type: 's3',
@@ -450,7 +480,7 @@ describe('AutomlReconfigureLoader', () => {
           data: { AWS_S3_BUCKET: 'bucket' }, // missing AWS_DEFAULT_REGION
         },
       ];
-      mockGetSecrets.mockResolvedValue(mockSecrets);
+      mockGetSecretsQueryFn.mockResolvedValue(mockSecrets);
 
       mockUsePipelineRunQuery.mockReturnValue({
         data: createMockPipelineRun(
@@ -474,15 +504,15 @@ describe('AutomlReconfigureLoader', () => {
       await screen.findByTestId('configure-page');
 
       await waitFor(() => {
-        expect(capturedProps.initialValues?.initialSecret).toMatchObject({
+        expect(capturedProps.initialInputDataSecret).toMatchObject({
           name: 'incomplete-secret',
           invalid: true,
         });
       });
     });
 
-    it('should not set initialSecret when secret name does not match any fetched secret', async () => {
-      mockGetSecrets.mockResolvedValue([
+    it('should not set initialInputDataSecret when secret name does not match any fetched secret', async () => {
+      mockGetSecretsQueryFn.mockResolvedValue([
         { uuid: 'other-uuid', name: 'other-secret', type: 's3', data: {} },
       ]);
 
@@ -507,11 +537,11 @@ describe('AutomlReconfigureLoader', () => {
 
       await screen.findByTestId('configure-page');
 
-      expect(capturedProps.initialValues?.initialSecret).toBeUndefined();
+      expect(capturedProps.initialInputDataSecret).toBeUndefined();
     });
 
-    it('should not set initialSecret when pipeline run has no secret name', async () => {
-      mockGetSecrets.mockResolvedValue([]);
+    it('should not set initialInputDataSecret when pipeline run has no secret name', async () => {
+      mockGetSecretsQueryFn.mockResolvedValue([]);
 
       mockUsePipelineRunQuery.mockReturnValue({
         data: createMockPipelineRun({ display_name: 'Run' }),
@@ -524,7 +554,41 @@ describe('AutomlReconfigureLoader', () => {
 
       await screen.findByTestId('configure-page');
 
-      expect(capturedProps.initialValues?.initialSecret).toBeUndefined();
+      expect(capturedProps.initialInputDataSecret).toBeUndefined();
+    });
+
+    it('should show warning notification when secrets fail to load', async () => {
+      mockGetSecretsQueryFn.mockRejectedValue(new Error('Network error'));
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(
+          { display_name: 'Run' },
+          {
+            task_type: 'binary',
+            train_data_secret_name: 'my-secret',
+            train_data_bucket_name: 'bucket',
+            train_data_file_key: 'file.csv',
+            label_column: 'col',
+            top_n: 3,
+          },
+        ),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      await screen.findByTestId('configure-page');
+
+      await waitFor(() => {
+        expect(mockNotification.warning).toHaveBeenCalledWith(
+          'Unable to load connection secrets',
+          expect.stringContaining('manually select'),
+        );
+      });
+
+      expect(capturedProps.initialInputDataSecret).toBeUndefined();
     });
   });
 
@@ -540,6 +604,21 @@ describe('AutomlReconfigureLoader', () => {
       renderPage();
 
       expect(mockUsePipelineRunQuery).toHaveBeenCalledWith('run-123', 'test-ns');
+    });
+
+    it('should fetch secrets scoped to the route namespace and storage type', async () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      await screen.findByTestId('configure-page');
+
+      expect(mockGetSecrets).toHaveBeenCalledWith('test-ns', 'storage');
     });
   });
 });

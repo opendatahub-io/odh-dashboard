@@ -819,20 +819,20 @@ describe('AutomlConfigurePage', () => {
       const tabularInitialValues = {
         display_name: 'Reconfigured Run',
         description: 'A reconfigured experiment',
-        initialSecret: {
-          uuid: 'aws-secret-1',
-          name: 'Test AWS Secret',
-          displayName: 'Test AWS Secret',
-          data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
-          type: 's3',
-          invalid: false,
-        },
         train_data_secret_name: 'Test AWS Secret',
         train_data_bucket_name: 'test-bucket',
         train_data_file_key: 'my-data/train.csv',
         task_type: 'binary' as const,
         label_column: 'column1',
         top_n: 7,
+      };
+      const tabularInitialSecret = {
+        uuid: 'aws-secret-1',
+        name: 'Test AWS Secret',
+        displayName: 'Test AWS Secret',
+        data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+        type: 's3',
+        invalid: false,
       };
 
       const navigateToConfigure = async () => {
@@ -852,7 +852,11 @@ describe('AutomlConfigurePage', () => {
 
       it('should show the pre-filled secret value in the configure step', async () => {
         renderWithProviders(
-          <AutomlConfigurePage initialValues={tabularInitialValues} sourceRunId="run-1" />,
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
         );
 
         await navigateToConfigure();
@@ -862,7 +866,11 @@ describe('AutomlConfigurePage', () => {
 
       it('should show the pre-filled training data file in the configure step', async () => {
         renderWithProviders(
-          <AutomlConfigurePage initialValues={tabularInitialValues} sourceRunId="run-1" />,
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
         );
 
         await navigateToConfigure();
@@ -874,7 +882,11 @@ describe('AutomlConfigurePage', () => {
 
       it('should pre-select the prediction type card in the configure step', async () => {
         renderWithProviders(
-          <AutomlConfigurePage initialValues={tabularInitialValues} sourceRunId="run-1" />,
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
         );
 
         await navigateToConfigure();
@@ -887,7 +899,11 @@ describe('AutomlConfigurePage', () => {
 
       it('should show the pre-filled top_n value in the configure step', async () => {
         renderWithProviders(
-          <AutomlConfigurePage initialValues={tabularInitialValues} sourceRunId="run-1" />,
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
         );
 
         await navigateToConfigure();
@@ -898,7 +914,11 @@ describe('AutomlConfigurePage', () => {
 
       it('should show label column fields for a tabular task type in the configure step', async () => {
         renderWithProviders(
-          <AutomlConfigurePage initialValues={tabularInitialValues} sourceRunId="run-1" />,
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
         );
 
         await navigateToConfigure();

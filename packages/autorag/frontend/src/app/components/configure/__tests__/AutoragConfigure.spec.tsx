@@ -264,13 +264,23 @@ const renderComponent = (defaultValues?: Partial<typeof configureSchema.defaults
   renderWithQueryClient(<AutoragConfigure />, defaultValues);
 
 const renderWithInitialValues = (
-  initialValues: Parameters<typeof AutoragConfigure>[0]['initialValues'],
+  initialValues: Parameters<typeof AutoragConfigure>[0]['initialValues'] & {
+    initialInputDataSecret?: Parameters<typeof AutoragConfigure>[0]['initialInputDataSecret'];
+  },
   defaultValues?: Partial<typeof configureSchema.defaults>,
-) =>
-  renderWithQueryClient(<AutoragConfigure initialValues={initialValues} />, {
-    ...defaultValues,
-    ...initialValues,
-  });
+) => {
+  const { initialInputDataSecret, ...schemaValues } = initialValues;
+  return renderWithQueryClient(
+    <AutoragConfigure
+      initialValues={schemaValues}
+      initialInputDataSecret={initialInputDataSecret}
+    />,
+    {
+      ...defaultValues,
+      ...schemaValues,
+    },
+  );
+};
 
 describe('AutoragConfigure', () => {
   beforeEach(() => {
@@ -778,10 +788,10 @@ describe('AutoragConfigure', () => {
   });
 
   describe('reconfigure with initialValues', () => {
-    it('should show the selected secret value when initialSecret is provided', () => {
+    it('should show the selected secret value when initialInputDataSecret is provided', () => {
       renderWithInitialValues(
         {
-          initialSecret: {
+          initialInputDataSecret: {
             uuid: 'secret-1',
             name: 'Test Secret 1',
             data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
@@ -815,7 +825,7 @@ describe('AutoragConfigure', () => {
     it('should show the selected input data file when input_data_key is provided', () => {
       renderWithInitialValues(
         {
-          initialSecret: {
+          initialInputDataSecret: {
             uuid: 'secret-1',
             name: 'Test Secret 1',
             data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
@@ -852,7 +862,7 @@ describe('AutoragConfigure', () => {
     it('should show the optimization metric from initialValues', () => {
       renderWithInitialValues(
         {
-          initialSecret: {
+          initialInputDataSecret: {
             uuid: 'secret-1',
             name: 'Test Secret 1',
             data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
@@ -888,7 +898,7 @@ describe('AutoragConfigure', () => {
     it('should show the max RAG patterns value from initialValues', () => {
       renderWithInitialValues(
         {
-          initialSecret: {
+          initialInputDataSecret: {
             uuid: 'secret-1',
             name: 'Test Secret 1',
             data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },

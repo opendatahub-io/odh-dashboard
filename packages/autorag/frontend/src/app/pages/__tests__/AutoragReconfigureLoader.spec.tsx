@@ -35,7 +35,10 @@ jest.mock('~/app/hooks/queries', () => ({
 const mockGetStorageSecrets = jest.fn();
 const mockGetLlsSecrets = jest.fn();
 jest.mock('~/app/api/k8s', () => ({
-  getSecrets: () => (_namespace: string, type: string) => {
+  getSecrets: () => (namespace: string, type: string) => {
+    if (namespace !== 'test-ns') {
+      return jest.fn().mockRejectedValue(new Error(`Unexpected namespace: ${namespace}`));
+    }
     if (type === 'storage') {
       return mockGetStorageSecrets;
     }
@@ -44,6 +47,17 @@ jest.mock('~/app/api/k8s', () => ({
     }
     return jest.fn().mockResolvedValue([]);
   },
+}));
+
+const mockNotification = {
+  success: jest.fn(),
+  error: jest.fn(),
+  warning: jest.fn(),
+  info: jest.fn(),
+  remove: jest.fn(),
+};
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => mockNotification,
 }));
 
 jest.mock('~/app/components/common/AutoragHeader/AutoragHeader', () => ({
@@ -83,10 +97,9 @@ jest.mock('mod-arch-shared', () => ({
 
 // Capture what AutoragConfigurePage receives
 let capturedProps: {
-  initialValues?: Partial<ConfigureSchema> & {
-    initialSecret?: unknown;
-    initialLlamaStackSecret?: unknown;
-  };
+  initialValues?: Partial<ConfigureSchema>;
+  initialInputDataSecret?: unknown;
+  initialLlamaStackSecret?: unknown;
   sourceRunId?: string;
 } = {};
 jest.mock('~/app/pages/AutoragConfigurePage', () => ({
@@ -169,6 +182,7 @@ describe('AutoragReconfigureLoader', () => {
 
       renderPage();
 
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
       expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
     });
 
@@ -190,6 +204,7 @@ describe('AutoragReconfigureLoader', () => {
 
       renderPage();
 
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
       expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
     });
   });
@@ -207,6 +222,21 @@ describe('AutoragReconfigureLoader', () => {
 
       expect(screen.getByTestId('invalid-run')).toBeInTheDocument();
       expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
+    });
+
+    it('should render InvalidPipelineRun for non-404 pipeline run errors', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: undefined,
+        isPending: false,
+        isError: true,
+        error: new Error('Internal server error: status code 500'),
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('invalid-run')).toBeInTheDocument();
+      expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     });
 
     it('should render InvalidProject when namespace is invalid', () => {
@@ -338,7 +368,7 @@ describe('AutoragReconfigureLoader', () => {
   });
 
   describe('secret resolution', () => {
-    it('should resolve initialSecret from storage secrets list when secret name matches', async () => {
+    it('should resolve initialInputDataSecret from storage secrets list when secret name matches', async () => {
       const mockSecrets = [
         {
           uuid: 'secret-uuid-1',
@@ -375,7 +405,7 @@ describe('AutoragReconfigureLoader', () => {
       await screen.findByTestId('configure-page');
 
       await waitFor(() => {
-        expect(capturedProps.initialValues?.initialSecret).toMatchObject({
+        expect(capturedProps.initialInputDataSecret).toMatchObject({
           uuid: 'secret-uuid-1',
           name: 'my-aws-secret',
           type: 's3',
@@ -420,14 +450,14 @@ describe('AutoragReconfigureLoader', () => {
       await screen.findByTestId('configure-page');
 
       await waitFor(() => {
-        expect(capturedProps.initialValues?.initialSecret).toMatchObject({
+        expect(capturedProps.initialInputDataSecret).toMatchObject({
           name: 'incomplete-secret',
           invalid: true,
         });
       });
     });
 
-    it('should not set initialSecret when secret name does not match any fetched secret', async () => {
+    it('should not set initialInputDataSecret when secret name does not match any fetched secret', async () => {
       mockGetStorageSecrets.mockResolvedValue([
         { uuid: 'other-uuid', name: 'other-secret', type: 's3', data: {} },
       ]);
@@ -456,7 +486,7 @@ describe('AutoragReconfigureLoader', () => {
 
       await screen.findByTestId('configure-page');
 
-      expect(capturedProps.initialValues?.initialSecret).toBeUndefined();
+      expect(capturedProps.initialInputDataSecret).toBeUndefined();
     });
 
     it('should resolve initialLlamaStackSecret from lls secrets list', async () => {
@@ -495,12 +525,12 @@ describe('AutoragReconfigureLoader', () => {
       await screen.findByTestId('configure-page');
 
       await waitFor(() => {
-        expect(capturedProps.initialValues?.initialLlamaStackSecret).toMatchObject({
+        expect(capturedProps.initialLlamaStackSecret).toMatchObject({
           uuid: 'lls-uuid-1',
           name: 'my-lls-secret',
           type: 'lls',
-          invalid: false,
         });
+        expect(capturedProps.initialLlamaStackSecret).not.toHaveProperty('invalid');
       });
     });
 
@@ -533,7 +563,46 @@ describe('AutoragReconfigureLoader', () => {
 
       await screen.findByTestId('configure-page');
 
-      expect(capturedProps.initialValues?.initialLlamaStackSecret).toBeUndefined();
+      expect(capturedProps.initialLlamaStackSecret).toBeUndefined();
+    });
+
+    it('should show warning notification when secrets fail to load', async () => {
+      mockGetStorageSecrets.mockRejectedValue(new Error('Network error'));
+      mockGetLlsSecrets.mockRejectedValue(new Error('Network error'));
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(
+          { display_name: 'Run' },
+          {
+            input_data_secret_name: 'my-secret',
+            input_data_bucket_name: 'bucket',
+            input_data_key: 'file.pdf',
+            test_data_secret_name: 'my-secret',
+            test_data_bucket_name: 'bucket',
+            test_data_key: 'eval.json',
+            llama_stack_secret_name: 'lls-secret',
+            optimization_metric: 'faithfulness',
+            optimization_max_rag_patterns: 8,
+          },
+        ),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      await screen.findByTestId('configure-page');
+
+      await waitFor(() => {
+        expect(mockNotification.warning).toHaveBeenCalledWith(
+          'Unable to load connection secrets',
+          expect.stringContaining('manually select'),
+        );
+      });
+
+      expect(capturedProps.initialInputDataSecret).toBeUndefined();
+      expect(capturedProps.initialLlamaStackSecret).toBeUndefined();
     });
   });
 

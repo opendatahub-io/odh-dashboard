@@ -34,13 +34,16 @@ const createFields = ['display_name', 'description'] as const satisfies Array<
 >;
 
 type AutomlConfigurePageProps = {
-  initialValues?: Partial<ConfigureSchema> & { initialSecret?: SecretSelection };
+  initialValues?: Partial<ConfigureSchema>;
+  /** Pre-resolved S3 connection secret for reconfigure flows. */
+  initialInputDataSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
 };
 
 function AutomlConfigurePage({
   initialValues,
+  initialInputDataSecret,
   sourceRunId,
 }: AutomlConfigurePageProps): React.JSX.Element {
   const navigate = useNavigate();
@@ -201,7 +204,10 @@ function AutomlConfigurePage({
               {step === 'create' ? (
                 <AutomlCreate />
               ) : (
-                <AutomlConfigure initialValues={initialValues} />
+                <AutomlConfigure
+                  initialValues={initialValues}
+                  initialInputDataSecret={initialInputDataSecret}
+                />
               )}
             </PageSection>
           </StackItem>

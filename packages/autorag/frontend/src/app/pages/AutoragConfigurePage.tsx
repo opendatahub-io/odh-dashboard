@@ -36,16 +36,19 @@ const createFields = [
 ] as const satisfies Array<FieldPath<ConfigureSchema>>;
 
 type AutoragConfigurePageProps = {
-  initialValues?: Partial<ConfigureSchema> & {
-    initialSecret?: SecretSelection;
-    initialLlamaStackSecret?: SecretSelection;
-  };
+  initialValues?: Partial<ConfigureSchema>;
+  /** Pre-resolved S3 connection secret for reconfigure flows. */
+  initialInputDataSecret?: SecretSelection;
+  /** Pre-resolved Llama Stack connection secret for reconfigure flows. */
+  initialLlamaStackSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
 };
 
 function AutoragConfigurePage({
   initialValues,
+  initialInputDataSecret,
+  initialLlamaStackSecret,
   sourceRunId,
 }: AutoragConfigurePageProps): React.JSX.Element {
   const navigate = useNavigate();
@@ -214,9 +217,12 @@ function AutoragConfigurePage({
               hasBodyWrapper={false}
             >
               {step === 'create' ? (
-                <AutoragCreate initialLlamaStackSecret={initialValues?.initialLlamaStackSecret} />
+                <AutoragCreate initialLlamaStackSecret={initialLlamaStackSecret} />
               ) : (
-                <AutoragConfigure initialValues={initialValues} />
+                <AutoragConfigure
+                  initialValues={initialValues}
+                  initialInputDataSecret={initialInputDataSecret}
+                />
               )}
             </PageSection>
           </StackItem>

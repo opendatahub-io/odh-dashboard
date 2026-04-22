@@ -10,15 +10,13 @@ import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
+import { useNotification } from '~/app/hooks/useNotification';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
-import { generateReconfigureName, getTaskType, parseErrorStatus } from '~/app/utilities/utils';
+import { generateReconfigureName, getTaskType } from '~/app/utilities/utils';
 import AutomlConfigurePage from './AutomlConfigurePage';
-
-const AUTOML_REQUIRED_KEYS: { [type: string]: string[] } = {
-  s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
-};
+import { REQUIRED_CONNECTION_SECRET_KEYS } from '../utilities/const';
 
 function AutomlReconfigureLoader(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -39,24 +37,32 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     error: pipelineRunLoadError,
   } = usePipelineRunQuery(runId, namespace);
 
-  const { data: secrets, isPending: secretsPending } = useQuery({
+  const notification = useNotification();
+
+  const { data: secrets, isError: secretsError } = useQuery({
     queryKey: ['secrets', namespace, 'storage'],
     queryFn: () => getSecrets('')(namespace ?? '', 'storage')({}),
     enabled: !!namespace,
   });
 
-  const invalidPipelineRunId =
-    pipelineRunError &&
-    pipelineRunLoadError instanceof Error &&
-    parseErrorStatus(pipelineRunLoadError) === 404;
+  React.useEffect(() => {
+    if (secretsError) {
+      notification.warning(
+        'Unable to load connection secrets',
+        'The previously used connection secret could not be loaded. You will need to manually select a connection secret.',
+      );
+    }
+    // notify once when the error state is reached
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secretsError]);
 
-  if (noNamespaces || invalidNamespace || invalidPipelineRunId) {
+  if (noNamespaces || invalidNamespace || pipelineRunError) {
     return (
       <ApplicationsPage
         title={<AutomlHeader />}
         empty
         emptyStatePage={
-          invalidPipelineRunId ? (
+          pipelineRunError ? (
             <InvalidPipelineRun />
           ) : (
             <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
@@ -68,7 +74,7 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     );
   }
 
-  if (!namespacesLoaded || pipelineRunPending || secretsPending || !pipelineRun) {
+  if (!namespacesLoaded || pipelineRunPending) {
     return (
       <Bullseye>
         <Spinner />
@@ -81,27 +87,32 @@ function AutomlReconfigureLoader(): React.JSX.Element {
   const secretName = params?.train_data_secret_name;
 
   // Resolve the matching secret from the fetched list
-  let initialSecret: SecretSelection | undefined;
+  let initialInputDataSecret: SecretSelection | undefined;
   if (secretName && typeof secretName === 'string' && secrets) {
     const match = secrets.find((s) => s.name === secretName);
     if (match) {
-      const requiredKeys = AUTOML_REQUIRED_KEYS[match.type ?? ''];
+      const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[match.type ?? ''] ?? [];
       const availableKeys = Object.keys(match.data ?? {});
       const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
-      initialSecret = { ...match, invalid };
+      initialInputDataSecret = { ...match, invalid };
     }
   }
 
   /* eslint-disable camelcase */
-  const initialValues: Partial<ConfigureSchema> & { initialSecret?: SecretSelection } = {
+  const initialValues: Partial<ConfigureSchema> = {
     ...params,
     display_name: generateReconfigureName(pipelineRun.display_name),
     ...(taskType != null && { task_type: taskType }),
-    initialSecret,
   };
   /* eslint-enable camelcase */
 
-  return <AutomlConfigurePage initialValues={initialValues} sourceRunId={runId} />;
+  return (
+    <AutomlConfigurePage
+      initialValues={initialValues}
+      initialInputDataSecret={initialInputDataSecret}
+      sourceRunId={runId}
+    />
+  );
 }
 
 export default AutomlReconfigureLoader;

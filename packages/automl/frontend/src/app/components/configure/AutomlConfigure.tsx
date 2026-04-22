@@ -52,6 +52,7 @@ import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
 import type { File as S3ExplorerFile } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -69,6 +70,7 @@ import {
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
   TASK_TYPE_TIMESERIES,
+  REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
@@ -107,10 +109,6 @@ const PREDICTION_TYPES: {
   },
 ];
 
-const AUTOML_REQUIRED_KEYS: { [type: string]: string[] } = {
-  s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
-};
-
 /** MIME types and extensions for the training CSV upload dropzone (react-dropzone `accept` format). */
 const TRAINING_DATA_FILE_ACCEPT: Record<string, string[]> = {
   'text/csv': ['.csv'],
@@ -138,10 +136,14 @@ function isAllowedTrainingDataUploadFile(file: File): boolean {
 }
 
 type AutomlConfigureProps = {
-  initialValues?: Partial<ConfigureSchema> & { initialSecret?: SecretSelection };
+  initialValues?: Partial<ConfigureSchema>;
+  initialInputDataSecret?: SecretSelection;
 };
 
-function AutomlConfigure({ initialValues }: AutomlConfigureProps): React.JSX.Element {
+function AutomlConfigure({
+  initialValues,
+  initialInputDataSecret,
+}: AutomlConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const queryClient = useQueryClient();
   const [allConnectionTypes] = useWatchConnectionTypes();
@@ -159,10 +161,11 @@ function AutomlConfigure({ initialValues }: AutomlConfigureProps): React.JSX.Ele
   const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
   const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
-  const initialSecret = initialValues?.initialSecret;
   const initialFileKey = initialValues?.train_data_file_key;
 
-  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(initialSecret);
+  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(
+    initialInputDataSecret,
+  );
   const [trainingDataSourceMode, setTrainingDataSourceMode] = useState<'select' | 'upload'>(
     'select',
   );
@@ -235,16 +238,8 @@ function AutomlConfigure({ initialValues }: AutomlConfigureProps): React.JSX.Ele
     trainDataFileKey,
   );
 
-  // set bucket from selected secret
-  // Tracks the previous value so the effect only fires on actual changes, not on mount.
-  // In reconfigure flows this prevents the pre-populated bucket from being cleared.
-  const prevSelectedSecretRef = useRef(selectedSecret);
-  useEffect(() => {
-    if (prevSelectedSecretRef.current === selectedSecret) {
-      return;
-    }
-    prevSelectedSecretRef.current = selectedSecret;
-
+  // set bucket from selected secret (skips mount to preserve pre-populated values in reconfigure)
+  useReconfigureSafeEffect(() => {
     // reset bucket if secret is removed
     if (!selectedSecret || !selectedSecret.data) {
       setValue('train_data_bucket_name', '', { shouldValidate: true });
@@ -257,37 +252,16 @@ function AutomlConfigure({ initialValues }: AutomlConfigureProps): React.JSX.Ele
     });
   }, [selectedSecret, setValue]);
 
-  // reset selected file values if secret or bucket changes
-  // Track previous values so the effect only fires on actual changes, not on mount.
-  // In reconfigure flows this prevents the pre-populated file from being cleared.
-  const prevSecretNameRef = useRef(trainDataSecretName);
-  const prevBucketNameRef = useRef(trainDataBucketName);
-  useEffect(() => {
-    if (
-      prevSecretNameRef.current === trainDataSecretName &&
-      prevBucketNameRef.current === trainDataBucketName
-    ) {
-      return;
-    }
-    prevSecretNameRef.current = trainDataSecretName;
-    prevBucketNameRef.current = trainDataBucketName;
-
+  // reset selected file values if secret or bucket changes (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     trainingDataUploadSeqRef.current += 1;
     setIsTrainingDataFileUploading(false);
     setValue('train_data_file_key', '', { shouldValidate: true });
     setSelectedTrainingDataFile(undefined);
   }, [trainDataSecretName, trainDataBucketName, setValue]);
 
-  // reset training data key when select vs upload mode changes
-  // Tracks previous value so the effect only fires on actual changes, not on mount.
-  // In reconfigure flows this prevents the pre-populated file from being cleared.
-  const prevModeRef = useRef(trainingDataSourceMode);
-  useEffect(() => {
-    if (prevModeRef.current === trainingDataSourceMode) {
-      return;
-    }
-    prevModeRef.current = trainingDataSourceMode;
-
+  // reset training data key when select vs upload mode changes (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     trainingDataUploadSeqRef.current += 1;
     setIsTrainingDataFileUploading(false);
     setValue('train_data_file_key', '', { shouldValidate: true });
@@ -445,7 +419,7 @@ function AutomlConfigure({ initialValues }: AutomlConfigureProps): React.JSX.Ele
                                 <SecretSelector
                                   namespace={String(namespace)}
                                   type="storage"
-                                  additionalRequiredKeys={AUTOML_REQUIRED_KEYS}
+                                  additionalRequiredKeys={REQUIRED_CONNECTION_SECRET_KEYS}
                                   isDisabled={formIsSubmitting}
                                   value={selectedSecret?.uuid}
                                   onChange={(secret) => {
@@ -456,7 +430,7 @@ function AutomlConfigure({ initialValues }: AutomlConfigureProps): React.JSX.Ele
                                     }
 
                                     const requiredKeys =
-                                      AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
+                                      REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''] ?? [];
                                     const availableKeys = Object.keys(secret.data ?? {});
                                     const invalid =
                                       getMissingRequiredKeys(requiredKeys, availableKeys).length >
@@ -885,7 +859,7 @@ function AutomlConfigure({ initialValues }: AutomlConfigureProps): React.JSX.Ele
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
               setNewConnectionNotLoaded(false);
-              const requiredKeys = AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
+              const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''] ?? [];
               const secretData = secret.data ?? connection.stringData ?? {};
               const availableKeys = Object.keys(secretData);
               const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;

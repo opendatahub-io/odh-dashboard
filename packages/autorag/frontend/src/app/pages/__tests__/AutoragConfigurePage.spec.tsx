@@ -880,21 +880,22 @@ describe('AutoragConfigurePage', () => {
           initialValues={{
             display_name: 'Reconfigured Run',
             llama_stack_secret_name: 'Test LLS Secret',
-            initialLlamaStackSecret: {
-              uuid: 'lls-secret-1',
-              name: 'Test LLS Secret',
-              data: { llama_stack_url: 'https://example.com' },
-              type: 'lls',
-              invalid: false,
-            },
+          }}
+          initialLlamaStackSecret={{
+            uuid: 'lls-secret-1',
+            name: 'Test LLS Secret',
+            data: { llama_stack_url: 'https://example.com' },
+            type: 'lls',
+            invalid: false,
           }}
           sourceRunId="prev-run-456"
         />,
       );
 
-      // Select llama stack secret (needed even in reconfigure due to TypeaheadSelect limitation)
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
-      await user.click(selectSecretButton);
+      // Verify the prefilled Llama Stack secret is shown
+      expect(await screen.findByTestId('lls-secret-selector-value')).toHaveTextContent(
+        'lls-secret-1',
+      );
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await waitFor(() => {
@@ -957,21 +958,22 @@ describe('AutoragConfigurePage', () => {
           initialValues={{
             display_name: 'Pre-filled Name',
             llama_stack_secret_name: 'Test LLS Secret',
-            initialLlamaStackSecret: {
-              uuid: 'lls-secret-1',
-              name: 'Test LLS Secret',
-              data: { llama_stack_url: 'https://example.com' },
-              type: 'lls',
-              invalid: false,
-            },
+          }}
+          initialLlamaStackSecret={{
+            uuid: 'lls-secret-1',
+            name: 'Test LLS Secret',
+            data: { llama_stack_url: 'https://example.com' },
+            type: 'lls',
+            invalid: false,
           }}
           sourceRunId="run-xyz"
         />,
       );
 
-      // Select llama stack secret
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
-      await user.click(selectSecretButton);
+      // Verify the prefilled Llama Stack secret is shown
+      expect(await screen.findByTestId('lls-secret-selector-value')).toHaveTextContent(
+        'lls-secret-1',
+      );
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await waitFor(() => {
@@ -987,21 +989,6 @@ describe('AutoragConfigurePage', () => {
       const reconfigureInitialValues = {
         display_name: 'Reconfigured Run',
         description: 'A reconfigured experiment',
-        initialLlamaStackSecret: {
-          uuid: 'lls-secret-1',
-          name: 'Test LLS Secret',
-          data: { llama_stack_url: 'https://example.com' },
-          type: 'lls',
-          invalid: false,
-        },
-        initialSecret: {
-          uuid: 'aws-secret-1',
-          name: 'Test AWS Secret',
-          displayName: 'Test AWS Secret',
-          data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
-          type: 's3',
-          invalid: false,
-        },
         llama_stack_secret_name: 'Test LLS Secret',
         llama_stack_vector_io_provider_id: 'chromadb',
         input_data_secret_name: 'Test AWS Secret',
@@ -1013,13 +1000,29 @@ describe('AutoragConfigurePage', () => {
         optimization_metric: 'faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
+      const reconfigureInitialLlamaStackSecret = {
+        uuid: 'lls-secret-1',
+        name: 'Test LLS Secret',
+        data: { llama_stack_url: 'https://example.com' },
+        type: 'lls',
+        invalid: false,
+      };
+      const reconfigureInitialSecret = {
+        uuid: 'aws-secret-1',
+        name: 'Test AWS Secret',
+        displayName: 'Test AWS Secret',
+        data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+        type: 's3',
+        invalid: false,
+      };
 
       const navigateToConfigure = async () => {
         const user = userEvent.setup();
 
-        // Select llama stack secret
-        const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
-        await user.click(selectSecretButton);
+        // Verify the prefilled Llama Stack secret is shown
+        expect(await screen.findByTestId('lls-secret-selector-value')).toHaveTextContent(
+          'lls-secret-1',
+        );
 
         const nextButton = await screen.findByRole('button', { name: 'Next' });
         await waitFor(() => {
@@ -1035,7 +1038,12 @@ describe('AutoragConfigurePage', () => {
 
       it('should show the pre-filled secret value in the configure step', async () => {
         renderWithProviders(
-          <AutoragConfigurePage initialValues={reconfigureInitialValues} sourceRunId="run-1" />,
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            sourceRunId="run-1"
+          />,
         );
 
         await navigateToConfigure();
@@ -1045,7 +1053,12 @@ describe('AutoragConfigurePage', () => {
 
       it('should show the pre-filled input data file in the configure step', async () => {
         renderWithProviders(
-          <AutoragConfigurePage initialValues={reconfigureInitialValues} sourceRunId="run-1" />,
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            sourceRunId="run-1"
+          />,
         );
 
         await navigateToConfigure();
@@ -1057,7 +1070,12 @@ describe('AutoragConfigurePage', () => {
 
       it('should show the pre-filled Vector I/O provider in the configure step', async () => {
         renderWithProviders(
-          <AutoragConfigurePage initialValues={reconfigureInitialValues} sourceRunId="run-1" />,
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            sourceRunId="run-1"
+          />,
         );
 
         await navigateToConfigure();
@@ -1067,7 +1085,12 @@ describe('AutoragConfigurePage', () => {
 
       it('should show the pre-filled evaluation dataset in the configure step', async () => {
         renderWithProviders(
-          <AutoragConfigurePage initialValues={reconfigureInitialValues} sourceRunId="run-1" />,
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            sourceRunId="run-1"
+          />,
         );
 
         await navigateToConfigure();
@@ -1077,7 +1100,12 @@ describe('AutoragConfigurePage', () => {
 
       it('should show the pre-filled optimization metric in the configure step', async () => {
         renderWithProviders(
-          <AutoragConfigurePage initialValues={reconfigureInitialValues} sourceRunId="run-1" />,
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            sourceRunId="run-1"
+          />,
         );
 
         await navigateToConfigure();
@@ -1089,7 +1117,12 @@ describe('AutoragConfigurePage', () => {
 
       it('should show the pre-filled max RAG patterns value in the configure step', async () => {
         renderWithProviders(
-          <AutoragConfigurePage initialValues={reconfigureInitialValues} sourceRunId="run-1" />,
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            sourceRunId="run-1"
+          />,
         );
 
         await navigateToConfigure();
