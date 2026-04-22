@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "@odh-dashboard/model-registry",
-  "description": "Model registry plugin for managing ML model lifecycle.",
+  "description": "Model registry plugin.",
   "version": "0.0.0",
   "scripts": {
     "install:module": "npm install --prefix upstream/frontend",

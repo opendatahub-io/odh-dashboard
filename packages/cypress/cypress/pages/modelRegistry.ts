@@ -59,23 +59,25 @@ class ModelRegistry {
   }
 
   visit(registryName = 'modelregistry-sample') {
-    cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`);
-    this.waitForRegistryLoaded();
+    cy.visitWithLogin(`/ai-hub/registry/${registryName}`);
+    cy.findByTestId('app-page-title', { timeout: 60000 }).should('exist');
   }
 
   visitWithRegistry(registryName: string) {
     this.visit(registryName);
   }
 
-  private waitForRegistryLoaded() {
-    cy.findByTestId('model-registry-selector-dropdown', { timeout: 60000 }).should('exist');
-  }
-
   navigate() {
     appChrome
       .findNavItem({ name: 'Registry', rootSection: 'AI hub', subSection: 'Models' })
       .click();
-    this.waitForRegistryLoaded();
+    this.wait();
+  }
+
+  private wait() {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('app-page-title').contains('Registry');
+    cy.testA11y();
   }
 
   private waitLanding() {

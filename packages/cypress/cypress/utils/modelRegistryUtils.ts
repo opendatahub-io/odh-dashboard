@@ -10,7 +10,7 @@ import { modelRegistry } from '../pages/modelRegistry';
 const assertRegisterModelRouteAndForm = (timeout?: number) => {
   const t = timeout ?? Cypress.config('defaultCommandTimeout');
   cy.url({ timeout: t }).should('include', '/register/model');
-  cy.findByTestId('app-page-title', { timeout: t }).should('contain', 'Register model');
+  cy.findByTestId('app-page-title').should('contain', 'Register model');
   cy.get('#model-name', { timeout: t }).should('be.visible');
 };
 
