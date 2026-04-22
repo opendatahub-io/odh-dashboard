@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PageSection, Content, ContentVariants } from '@patternfly/react-core';
+import { Card, CardBody, PageSection, Content, ContentVariants } from '@patternfly/react-core';
 import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
 import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '#~/concepts/design/utils';
 import DividedGallery from '#~/concepts/design/DividedGallery';
@@ -139,25 +139,29 @@ export const useEnableTeamSection = (): React.ReactNode => {
   }
 
   return (
-    <PageSection hasBodyWrapper={false} data-testid="landing-page-admin">
-      <CollapsibleSection
-        title="Enable your team"
-        titleVariant={ContentVariants.h1}
-        open={resourcesOpen}
-        setOpen={setResourcesOpen}
-        showChildrenWhenClosed
-      >
-        <DividedGallery
-          minSize="225px"
-          itemCount={infoItems.length}
-          style={{
-            borderRadius: 16,
-            border: `1px solid ${sectionTypeBorderColor(SectionType.setup)}`,
-          }}
-        >
-          {infoItems}
-        </DividedGallery>
-      </CollapsibleSection>
+    <PageSection variant="secondary" hasBodyWrapper={false} data-testid="landing-page-admin">
+      <Card className="odh-home-card">
+        <CardBody>
+          <CollapsibleSection
+            title="Enable your team"
+            titleVariant={ContentVariants.h2}
+            open={resourcesOpen}
+            setOpen={setResourcesOpen}
+            showChildrenWhenClosed
+          >
+            <DividedGallery
+              minSize="225px"
+              itemCount={infoItems.length}
+              style={{
+                borderRadius: 'var(--pf-t--global--border--radius--medium)',
+                border: `1px solid ${sectionTypeBorderColor(SectionType.setup)}`,
+              }}
+            >
+              {infoItems}
+            </DividedGallery>
+          </CollapsibleSection>
+        </CardBody>
+      </Card>
     </PageSection>
   );
 };

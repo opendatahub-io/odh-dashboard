@@ -232,11 +232,11 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           setActionError(null);
         }}
         variant="small"
-        aria-label={confirmAction === 'stop' ? 'Stop evaluation run' : 'Delete evaluation run'}
+        aria-label={confirmAction === 'stop' ? 'Stop evaluation?' : 'Delete evaluation run?'}
         data-testid={`evaluation-${confirmAction}-modal`}
       >
         <ModalHeader
-          title={confirmAction === 'stop' ? 'Stop evaluation run' : 'Delete evaluation run'}
+          title={confirmAction === 'stop' ? 'Stop evaluation?' : 'Delete evaluation run?'}
           titleIconVariant="warning"
         />
         <ModalBody>
@@ -250,19 +250,18 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             />
           )}
           {confirmAction === 'stop'
-            ? 'By stopping this evaluation run you will cancel this evaluation process.'
-            : 'By deleting this evaluation run you will be removing it from the list of evaluation reports.'}
+            ? `The ${evaluationName} evaluation will be stopped, and its progress will be lost.`
+            : `The ${evaluationName} evaluation run and its results will be deleted.`}
         </ModalBody>
         <ModalFooter>
           <Button
-            variant="primary"
-            isDanger
+            variant="danger"
             onClick={handleConfirm}
             isLoading={isSubmitting}
             isDisabled={isSubmitting}
             data-testid={`evaluation-${confirmAction}-confirm`}
           >
-            Confirm
+            {confirmAction === 'stop' ? 'Stop evaluation' : 'Delete'}
           </Button>
           <Button
             variant="link"

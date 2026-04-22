@@ -2,25 +2,19 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
   Alert,
-  Button,
   Content,
   Form,
   FormGroup,
-  FormGroupLabelHelp,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
-  Popover,
   Spinner,
-  Split,
-  SplitItem,
-  Stack,
-  StackItem,
   TextInput,
 } from '@patternfly/react-core';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
 import { APIOptions, useQueryParamNamespaces } from 'mod-arch-core';
+import { DashboardModalFooter, FieldGroupHelpLabelIcon } from 'mod-arch-shared';
 import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
 import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFieldWrapper';
 import useMcpServerConverter from '~/app/hooks/mcpCatalogDeployment/useMcpServerConverter';
@@ -69,8 +63,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   const [submitError, setSubmitError] = React.useState<Error>();
   const abortControllerRef = React.useRef<AbortController>();
   const crInitializedRef = React.useRef(false);
-  const ociImageLabelHelpRef = React.useRef<HTMLSpanElement>(null);
-  const configLabelHelpRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
     if (!existingDeployment && crData && !crInitializedRef.current) {
@@ -219,16 +211,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
             isRequired
             fieldId="mcp-deploy-oci-image"
             labelHelp={
-              <Popover
-                triggerRef={ociImageLabelHelpRef}
-                bodyContent="This is the container image associated with the MCP server that you selected from the catalog. This cannot be edited."
-                aria-label="OCI image help"
-              >
-                <FormGroupLabelHelp
-                  ref={ociImageLabelHelpRef}
-                  aria-label="More info for OCI image field"
-                />
-              </Popover>
+              <FieldGroupHelpLabelIcon content="This is the container image associated with the MCP server that you selected from the catalog. This cannot be edited." />
             }
           >
             <TextInput
@@ -259,16 +242,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
             label="YAML configuration"
             fieldId="mcp-deploy-yaml"
             labelHelp={
-              <Popover
-                triggerRef={configLabelHelpRef}
-                bodyContent="For more information about the prefilled YAML configuration, check the details page of the selected server."
-                aria-label="Configuration help"
-              >
-                <FormGroupLabelHelp
-                  ref={configLabelHelpRef}
-                  aria-label="More info for configuration field"
-                />
-              </Popover>
+              <FieldGroupHelpLabelIcon content="For more information about the prefilled YAML configuration, check the details page of the selected server." />
             }
           >
             <Content component="small" className="pf-v6-u-mb-sm">
@@ -288,45 +262,15 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Stack hasGutter style={{ flex: 'auto' }}>
-          {submitError && (
-            <StackItem>
-              <Alert
-                variant="danger"
-                isInline
-                title="Deployment failed"
-                data-testid="mcp-deploy-submit-error"
-              >
-                {submitError.message}
-              </Alert>
-            </StackItem>
-          )}
-          <StackItem>
-            <Split hasGutter className="pf-v6-u-w-100">
-              <SplitItem>
-                <Button
-                  variant="link"
-                  onClick={() => onClose()}
-                  data-testid="mcp-deploy-close-button"
-                >
-                  Close
-                </Button>
-              </SplitItem>
-              <SplitItem isFilled />
-              <SplitItem>
-                <Button
-                  variant="primary"
-                  onClick={handleDeploy}
-                  isDisabled={isDeployDisabled}
-                  isLoading={isSubmitting}
-                  data-testid="mcp-deploy-submit-button"
-                >
-                  {existingDeployment ? 'Save' : 'Deploy'}
-                </Button>
-              </SplitItem>
-            </Split>
-          </StackItem>
-        </Stack>
+        <DashboardModalFooter
+          submitLabel={existingDeployment ? 'Save' : 'Deploy'}
+          onSubmit={handleDeploy}
+          onCancel={() => onClose()}
+          isSubmitDisabled={isDeployDisabled}
+          isSubmitLoading={isSubmitting}
+          error={submitError}
+          alertTitle="Deployment failed"
+        />
       </ModalFooter>
     </Modal>
   );
