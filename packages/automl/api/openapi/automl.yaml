@@ -180,8 +180,8 @@ paths:
         - 'displayName': Extracted from 'openshift.io/display-name' annotation if present
         - 'description': Extracted from 'openshift.io/description' annotation if present
 
-  /api/v1/s3/file:
-    summary: Path used to get or upload a file in S3.
+  /api/v1/s3/files/{key}:
+    summary: Endpoints for working with a specific file from an S3-compatible connection.
     description: >-
       The REST endpoint/path used to retrieve or upload files in S3 storage.
       GET returns an arbitrary file with transfer-encoding: chunked for efficient streaming.
@@ -225,7 +225,7 @@ paths:
             type: string
           example: my-bucket
         - name: key
-          in: query
+          in: path
           required: true
           description: The S3 object key to retrieve
           schema:
@@ -318,7 +318,7 @@ paths:
             pattern: '^\S(.*\S)?$'
           example: my-bucket
         - name: key
-          in: query
+          in: path
           required: true
           description: >-
             Requested S3 object key for the upload. If an object already exists at this key,
@@ -380,8 +380,8 @@ paths:
         Returns 409 if the object key chosen after collision resolution still conflicts at upload time
         (e.g. concurrent writer); the client should retry the upload.
 
-  /api/v1/s3/file/schema:
-    summary: Path used to get the schema (column names and types) of a CSV file from S3.
+  /api/v1/s3/files/{key}/schema:
+    summary: Endpoint to get the schema (column names and types) of a CSV file from an S3-compatible connection.
     description: >-
       The REST endpoint/path used to retrieve the schema of a CSV file from S3 storage.
       Reads the header and a minimum of 100 data rows to determine column names and infer data types.
@@ -448,7 +448,7 @@ paths:
             type: string
           example: my-bucket
         - name: key
-          in: query
+          in: path
           required: true
           description: The S3 object key (CSV file) to retrieve schema from
           schema:
