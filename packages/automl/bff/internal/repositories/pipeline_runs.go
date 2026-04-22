@@ -300,6 +300,33 @@ func (r *PipelineRunsRepository) RetryPipelineRun(
 	return nil
 }
 
+// ArchivePipelineRun archives a pipeline run by ID.
+// It sends an archive request to the pipeline server to change the run's storage_state to ARCHIVED.
+func (r *PipelineRunsRepository) ArchivePipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	runID string,
+) error {
+	if client == nil {
+		return fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := client.ArchiveRun(ctx, runID); err != nil {
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) {
+			switch httpErr.Status() {
+			case http.StatusNotFound:
+				return ErrPipelineRunNotFound
+			case http.StatusBadRequest:
+				return err
+			}
+		}
+		return fmt.Errorf("failed to archive pipeline run: %w", err)
+	}
+
+	return nil
+}
+
 // ValidateCreateAutoMLRunRequest checks that all required fields are present,
 // rejects fields not in the pipeline type's schema, and validates enum/range values.
 //

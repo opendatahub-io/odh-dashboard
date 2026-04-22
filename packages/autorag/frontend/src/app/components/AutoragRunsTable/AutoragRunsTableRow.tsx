@@ -7,7 +7,7 @@ import type { PipelineRun } from '~/app/types';
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { autoragResultsPathname } from '~/app/utilities/routes';
-import { isRunTerminatable, isRunRetryable } from '~/app/utilities/utils';
+import { isRunTerminatable, isRunRetryable, isRunArchivable } from '~/app/utilities/utils';
 import { autoragRunsColumns } from './columns';
 
 /** Run state values (API / display). Use lowercase for case-insensitive matching. */
@@ -54,14 +54,12 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
   onActionComplete,
 }) => {
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
-  const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
-    namespace,
-    run.run_id,
-    onActionComplete,
-  );
+  const { handleRetry, handleConfirmStop, handleArchive, isRetrying, isTerminating, isArchiving } =
+    useAutoragRunActions(namespace, run.run_id, onActionComplete);
 
   const runTerminatable = isRunTerminatable(run.state);
   const runRetryable = isRunRetryable(run.state);
+  const runArchivable = isRunArchivable(run.state);
 
   const handleStop = React.useCallback(async () => {
     await handleConfirmStop();
@@ -86,8 +84,27 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
       });
     }
 
+    if (runArchivable) {
+      if (runTerminatable || runRetryable) {
+        items.push({ isSeparator: true });
+      }
+      items.push({
+        title: <span data-testid="archive-run-action">Archive</span>,
+        onClick: () => void handleArchive(),
+        isDisabled: isArchiving,
+      });
+    }
+
     return items;
-  }, [runTerminatable, runRetryable, handleRetry, isRetrying]);
+  }, [
+    runTerminatable,
+    runRetryable,
+    runArchivable,
+    handleRetry,
+    handleArchive,
+    isRetrying,
+    isArchiving,
+  ]);
 
   return (
     <>

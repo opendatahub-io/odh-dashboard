@@ -8,7 +8,12 @@ import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { TASK_TYPE_LABELS } from '~/app/utilities/const';
 import { automlResultsPathname } from '~/app/utilities/routes';
-import { getTaskType, isRunTerminatable, isRunRetryable } from '~/app/utilities/utils';
+import {
+  getTaskType,
+  isRunTerminatable,
+  isRunRetryable,
+  isRunArchivable,
+} from '~/app/utilities/utils';
 import { automlRunsColumns } from './columns';
 
 /** Run state values (API / display). Use lowercase for case-insensitive matching. */
@@ -62,14 +67,12 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
   const taskType = getTaskType(run);
   const predictionTypeLabel = taskType ? (TASK_TYPE_LABELS[taskType] ?? taskType) : '—';
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
-  const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutomlRunActions(
-    namespace,
-    run.run_id,
-    onActionComplete,
-  );
+  const { handleRetry, handleConfirmStop, handleArchive, isRetrying, isTerminating, isArchiving } =
+    useAutomlRunActions(namespace, run.run_id, onActionComplete);
 
   const runTerminatable = isRunTerminatable(run.state);
   const runRetryable = isRunRetryable(run.state);
+  const runArchivable = isRunArchivable(run.state);
 
   const handleStop = React.useCallback(async () => {
     await handleConfirmStop();
@@ -94,8 +97,27 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
       });
     }
 
+    if (runArchivable) {
+      if (runTerminatable || runRetryable) {
+        items.push({ isSeparator: true });
+      }
+      items.push({
+        title: <span data-testid="archive-run-action">Archive</span>,
+        onClick: () => void handleArchive(),
+        isDisabled: isArchiving,
+      });
+    }
+
     return items;
-  }, [runTerminatable, runRetryable, handleRetry, isRetrying]);
+  }, [
+    runTerminatable,
+    runRetryable,
+    runArchivable,
+    handleRetry,
+    handleArchive,
+    isRetrying,
+    isArchiving,
+  ]);
 
   return (
     <>

@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import {
+  useArchivePipelineRunMutation,
   useRetryPipelineRunMutation,
   useTerminatePipelineRunMutation,
 } from '~/app/hooks/mutations';
@@ -9,8 +10,10 @@ import { useNotification } from '~/app/hooks/useNotification';
 type AutoragRunActions = {
   handleRetry: () => Promise<void>;
   handleConfirmStop: () => Promise<void>;
+  handleArchive: () => Promise<void>;
   isRetrying: boolean;
   isTerminating: boolean;
+  isArchiving: boolean;
 };
 
 /**
@@ -26,6 +29,7 @@ export const useAutoragRunActions = (
   const notification = useNotification();
   const retryMutation = useRetryPipelineRunMutation(namespace, runId);
   const terminateMutation = useTerminatePipelineRunMutation(namespace, runId);
+  const archiveMutation = useArchivePipelineRunMutation(namespace, runId);
 
   const handleRetry = React.useCallback(async () => {
     try {
@@ -75,10 +79,36 @@ export const useAutoragRunActions = (
     }
   }, [terminateMutation, queryClient, runId, namespace, onActionComplete, notification]);
 
+  const handleArchive = React.useCallback(async () => {
+    try {
+      await archiveMutation.mutateAsync();
+      await queryClient.invalidateQueries({
+        queryKey: ['autorag', 'pipelineRun', runId, namespace],
+      });
+      notification.success(
+        'Run archived successfully',
+        'The run has been archived and will no longer appear in the runs list',
+      );
+    } catch (error) {
+      notification.error(
+        'Failed to archive run',
+        error instanceof Error ? error.message : 'An unknown error occurred',
+      );
+      return;
+    }
+    try {
+      await onActionComplete?.();
+    } catch {
+      // Caller refresh failure should not mask a successful archive.
+    }
+  }, [archiveMutation, queryClient, runId, namespace, onActionComplete, notification]);
+
   return {
     handleRetry,
     handleConfirmStop,
+    handleArchive,
     isRetrying: retryMutation.isPending,
     isTerminating: terminateMutation.isPending,
+    isArchiving: archiveMutation.isPending,
   };
 };

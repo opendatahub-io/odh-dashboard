@@ -37,6 +37,16 @@ export const isRunRetryable = (state: string | undefined): boolean => {
 };
 
 /**
+ * Whether the run is in a terminal state where it can be archived.
+ */
+export const isRunArchivable = (state: string | undefined): boolean => {
+  const s = state?.toUpperCase();
+  return (
+    s === RuntimeStateKF.SUCCEEDED || s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED
+  );
+};
+
+/**
  * Extracts HTTP status from Error.message when handleRestFailures (mod-arch-core)
  * has flattened AxiosError to a plain Error, so 403/404/503 branches can still run.
  * @param error - The error object to parse

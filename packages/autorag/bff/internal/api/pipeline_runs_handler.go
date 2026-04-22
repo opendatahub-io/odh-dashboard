@@ -259,6 +259,51 @@ func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 }
 
+// archivableStates lists the run states that are eligible for archiving.
+var archivableStates = map[string]bool{
+	"SUCCEEDED": true,
+	"FAILED":    true,
+	"CANCELED":  true,
+}
+
+// ArchivePipelineRunHandler handles POST /api/v1/pipeline-runs/:runId/archive
+//
+// Archives a completed, failed, or canceled AutoRAG pipeline run. The run must belong to the
+// discovered AutoRAG pipeline in the namespace. Archiving changes the run's
+// storage_state from AVAILABLE to ARCHIVED, hiding it from default list views.
+//
+// Security: This endpoint validates that the requested run belongs to the AutoRAG pipeline
+// in the namespace before archiving it. This prevents users from archiving runs from
+// other pipelines that may exist in the same namespace.
+//
+// Only runs in SUCCEEDED, FAILED, or CANCELED state can be archived.
+//
+// Error Responses:
+//   - 400: Missing runId or run is not in an archivable state
+//   - 404: Run not found, run belongs to a different pipeline, or no AutoRAG pipeline discovered
+//   - 500: Missing pipeline server client (middleware misconfiguration) or Pipeline Server error
+func (app *App) ArchivePipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	client, run, ok := app.resolveOwnedRun(w, r, params)
+	if !ok {
+		return
+	}
+
+	// Validate the run is in an archivable state
+	runState := strings.ToUpper(run.State)
+	if !archivableStates[runState] {
+		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be archived; only SUCCEEDED, FAILED, or CANCELED runs can be archived", run.RunID, runState))
+		return
+	}
+
+	// Ownership and state confirmed — archive the run
+	if err := app.repositories.PipelineRuns.ArchivePipelineRun(client, r.Context(), run.RunID); err != nil {
+		app.mapMutationError(w, r, err, "archive")
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // retryableStates lists the run states that are eligible for retry.
 var retryableStates = map[string]bool{
 	"FAILED":   true,

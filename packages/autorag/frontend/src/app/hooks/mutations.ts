@@ -75,6 +75,19 @@ export function useRetryPipelineRunMutation(
   });
 }
 
+export function useArchivePipelineRunMutation(
+  namespace: string,
+  runId: string,
+): UseMutationResult<void, Error, void, unknown> {
+  return useMutation({
+    mutationKey: ['autorag', 'archivePipelineRun', runId],
+    mutationFn: () => {
+      const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(runId)}/archive?namespace=${encodeURIComponent(namespace)}`;
+      return postPipelineRunAction(url, 'archive');
+    },
+  });
+}
+
 export function useCreatePipelineRunMutation(
   namespace: string,
 ): UseMutationResult<PipelineRun, Error, ConfigureSchema, unknown> {

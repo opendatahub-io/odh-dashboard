@@ -256,6 +256,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.CreatePipelineRunHandler)))))
 	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.TerminatePipelineRunHandler)))))
 	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.RetryPipelineRunHandler)))))
+	apiRouter.POST(PipelineRunsPath+"/:runId/archive", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.ArchivePipelineRunHandler)))))
 
 	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
 	// secretName (the handler resolves credentials directly in that case).

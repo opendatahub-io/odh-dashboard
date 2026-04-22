@@ -75,6 +75,19 @@ export function useRetryPipelineRunMutation(
   });
 }
 
+export function useArchivePipelineRunMutation(
+  namespace: string,
+  runId: string,
+): UseMutationResult<void, Error, void, unknown> {
+  return useMutation({
+    mutationKey: ['automl', 'archivePipelineRun', runId],
+    mutationFn: () => {
+      const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(runId)}/archive?namespace=${encodeURIComponent(namespace)}`;
+      return postPipelineRunAction(url, 'archive');
+    },
+  });
+}
+
 /**
  * Creates a new pipeline run via the AutoML BFF API.
  * @see packages/automl/docs/pipeline-runs-api.md

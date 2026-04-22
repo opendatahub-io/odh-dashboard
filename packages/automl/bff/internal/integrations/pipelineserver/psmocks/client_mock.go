@@ -87,6 +87,8 @@ type MockPipelineServerClient struct {
 	LastTerminateRunID string
 	// LastRetryRunID records the last runID passed to RetryRun for test assertions
 	LastRetryRunID string
+	// LastArchiveRunID records the last runID passed to ArchiveRun for test assertions
+	LastArchiveRunID string
 }
 
 // pipelineDisplayName returns the DisplayName used for the AutoML pipeline fixture,
@@ -648,6 +650,30 @@ func (m *MockPipelineServerClient) RetryRun(_ context.Context, runID string) err
 		return &pipelineserver.HTTPError{
 			StatusCode: 404,
 			Message:    fmt.Sprintf("Failed to retry run: Run %s not found", runID),
+		}
+	}
+
+	if runID == "server-error-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 500,
+			Message:    "Internal server error",
+		}
+	}
+
+	return nil
+}
+
+// ArchiveRun simulates archiving a pipeline run.
+// Special run IDs for testing error conditions:
+// - "non-existent-run-id" returns 404 error
+// - "server-error-run-id" returns 500 error
+func (m *MockPipelineServerClient) ArchiveRun(_ context.Context, runID string) error {
+	m.LastArchiveRunID = runID
+
+	if runID == "non-existent-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 404,
+			Message:    fmt.Sprintf("Failed to archive run: Run %s not found", runID),
 		}
 	}
 
