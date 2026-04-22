@@ -80,13 +80,20 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: |
           set +e
-          npm audit --audit-level=high --json > audit-head.json 2>&1
+          npm audit --audit-level=high --json > audit-head.json 2>/dev/null
           AUDIT_EXIT=$?
           set -e
 
-          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-head.json)
-          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-head.json)
-          TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit-head.json)
+          if jq empty audit-head.json 2>/dev/null; then
+            HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-head.json)
+            CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-head.json)
+            TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit-head.json)
+          else
+            echo "::warning::npm audit produced invalid JSON; defaulting counts to 0"
+            HIGH=0
+            CRITICAL=0
+            TOTAL=0
+          fi
 
           echo "high=$HIGH" >> "$GITHUB_OUTPUT"
           echo "critical=$CRITICAL" >> "$GITHUB_OUTPUT"
@@ -105,12 +112,19 @@ jobs:
           cd base/${{ matrix.dir }}
           npm ci
           set +e
-          npm audit --audit-level=high --json > audit-base.json 2>&1
+          npm audit --audit-level=high --json > audit-base.json 2>/dev/null
           set -e
 
-          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-base.json)
-          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-base.json)
-          TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit-base.json)
+          if jq empty audit-base.json 2>/dev/null; then
+            HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-base.json)
+            CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-base.json)
+            TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit-base.json)
+          else
+            echo "::warning::npm audit produced invalid JSON on base; defaulting counts to 0"
+            HIGH=0
+            CRITICAL=0
+            TOTAL=0
+          fi
 
           echo "high=$HIGH" >> "$GITHUB_OUTPUT"
           echo "critical=$CRITICAL" >> "$GITHUB_OUTPUT"
