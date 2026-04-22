@@ -2,7 +2,10 @@
  * Returns which required keys are missing from the available keys (case-sensitive).
  * Used to validate that a secret has all keys required for a given use case.
  */
-export function getMissingRequiredKeys(requiredKeys: string[], availableKeys: string[]): string[] {
+export function getMissingRequiredKeys(
+  requiredKeys: readonly string[],
+  availableKeys: readonly string[],
+): string[] {
   if (!requiredKeys.length) {
     return [];
   }

@@ -15,7 +15,7 @@ import {
 import classNames from 'classnames';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
@@ -84,6 +84,11 @@ function AutoragConfigurePage({
     ? `${autoragResultsPathname}/${namespace}/${sourceRunId}`
     : `${autoragExperimentsPathname}/${namespace}`;
 
+  const CancelLink = useCallback(
+    (props: React.ComponentProps<typeof Link>) => <Link {...props} to={cancelPath} />,
+    [cancelPath],
+  );
+
   const createActions = (
     <>
       <ActionListItem>
@@ -100,7 +105,7 @@ function AutoragConfigurePage({
         </Button>
       </ActionListItem>
       <ActionListItem>
-        <Button component={(props) => <Link {...props} to={cancelPath} />} variant="link">
+        <Button component={CancelLink} variant="link">
           Cancel
         </Button>
       </ActionListItem>

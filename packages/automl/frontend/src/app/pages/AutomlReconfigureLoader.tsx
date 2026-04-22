@@ -11,7 +11,7 @@ import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { generateReconfigureName, getTaskType } from '~/app/utilities/utils';
@@ -99,8 +99,10 @@ function AutomlReconfigureLoader(): React.JSX.Element {
   }
 
   /* eslint-disable camelcase */
+  const { base } = createConfigureSchema();
+  const parsedParams = base.partial().safeParse(params ?? {});
   const initialValues: Partial<ConfigureSchema> = {
-    ...params,
+    ...(parsedParams.success ? parsedParams.data : {}),
     display_name: generateReconfigureName(pipelineRun.display_name),
     ...(taskType != null && { task_type: taskType }),
   };

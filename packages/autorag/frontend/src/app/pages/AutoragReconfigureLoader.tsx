@@ -11,7 +11,7 @@ import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { generateReconfigureName } from '~/app/utilities/utils';
@@ -49,7 +49,11 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     enabled: !!namespace,
   });
 
-  const { data: llsSecrets, isError: llsSecretsError } = useQuery({
+  const {
+    data: llsSecrets,
+    isPending: llsSecretsPending,
+    isError: llsSecretsError,
+  } = useQuery({
     queryKey: ['secrets', namespace, 'lls'],
     queryFn: () => getSecrets('')(namespace ?? '', 'lls')({}),
     enabled: !!namespace,
@@ -84,7 +88,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     );
   }
 
-  if (!namespacesLoaded || pipelineRunPending || storageSecretsPending) {
+  if (!namespacesLoaded || pipelineRunPending || storageSecretsPending || llsSecretsPending) {
     return (
       <Bullseye>
         <Spinner />
@@ -118,8 +122,10 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   }
 
   /* eslint-disable camelcase */
+  const { base } = createConfigureSchema();
+  const parsedParams = base.partial().safeParse(params ?? {});
   const initialValues: Partial<ConfigureSchema> = {
-    ...params,
+    ...(parsedParams.success ? parsedParams.data : {}),
     display_name: generateReconfigureName(pipelineRun.display_name),
   };
   /* eslint-enable camelcase */
