@@ -89,6 +89,7 @@ let capturedProps: {
   initialValues?: Partial<ConfigureSchema>;
   initialInputDataSecret?: unknown;
   sourceRunId?: string;
+  sourceRunName?: string;
 } = {};
 jest.mock('~/app/pages/AutomlConfigurePage', () => ({
   __esModule: true,
@@ -97,6 +98,7 @@ jest.mock('~/app/pages/AutomlConfigurePage', () => ({
     return (
       <div data-testid="configure-page">
         <span data-testid="source-run-id">{props.sourceRunId ?? ''}</span>
+        <span data-testid="source-run-name">{props.sourceRunName ?? ''}</span>
         <span data-testid="initial-display-name">{props.initialValues?.display_name ?? ''}</span>
         <span data-testid="initial-task-type">{props.initialValues?.task_type ?? ''}</span>
       </div>
@@ -284,6 +286,19 @@ describe('AutomlReconfigureLoader', () => {
       renderPage();
 
       expect(await screen.findByTestId('source-run-id')).toHaveTextContent('run-123');
+    });
+
+    it('should pass sourceRunName with original display_name to AutomlConfigurePage', async () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun({ display_name: 'My Experiment' }),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(await screen.findByTestId('source-run-name')).toHaveTextContent('My Experiment');
     });
 
     it('should generate reconfigure name from original display_name', async () => {

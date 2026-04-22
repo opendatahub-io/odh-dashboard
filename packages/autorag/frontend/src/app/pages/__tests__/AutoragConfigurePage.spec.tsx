@@ -848,11 +848,40 @@ describe('AutoragConfigurePage', () => {
   });
 
   describe('Reconfigure mode (with initialValues and sourceRunId)', () => {
+    it('should display reconfigure title when sourceRunId and sourceRunName are provided', async () => {
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const heading = await screen.findByRole('heading', { level: 2 });
+      expect(heading).toHaveTextContent('Reconfigure "Original Run"');
+      expect(screen.queryByText('Create AutoRAG optimization run')).not.toBeInTheDocument();
+    });
+
+    it('should display reconfigure description when sourceRunId is provided', async () => {
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      expect(
+        await screen.findByText(/Settings from the previous run have been automatically populated/),
+      ).toBeInTheDocument();
+    });
+
     it('should render Cancel link pointing to results page when sourceRunId is provided', async () => {
       renderWithProviders(
         <AutoragConfigurePage
-          initialValues={{ display_name: 'Reconfigured Run' }}
+          initialValues={{ display_name: 'Original Run - 1' }}
           sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
         />,
       );
 
@@ -861,6 +890,29 @@ describe('AutoragConfigurePage', () => {
         'href',
         '/gen-ai-studio/autorag/results/test-namespace/prev-run-456',
       );
+    });
+
+    it('should display breadcrumb with source run link on create step when reconfiguring', async () => {
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const sourceRunBreadcrumb = await screen.findByTestId('configure-breadcrumb-source-run');
+      expect(sourceRunBreadcrumb).toBeInTheDocument();
+      expect(sourceRunBreadcrumb).toHaveTextContent('Original Run');
+
+      const sourceRunLink = sourceRunBreadcrumb.querySelector('a');
+      expect(sourceRunLink).toHaveAttribute(
+        'href',
+        '/gen-ai-studio/autorag/results/test-namespace/prev-run-456',
+      );
+
+      const activeBreadcrumb = await screen.findByTestId('configure-breadcrumb-name');
+      expect(activeBreadcrumb).toHaveTextContent('Reconfigure');
     });
 
     it('should render Cancel link pointing to experiments page when sourceRunId is absent', async () => {
@@ -889,6 +941,7 @@ describe('AutoragConfigurePage', () => {
             invalid: false,
           }}
           sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
         />,
       );
 
@@ -967,6 +1020,7 @@ describe('AutoragConfigurePage', () => {
             invalid: false,
           }}
           sourceRunId="run-xyz"
+          sourceRunName="Original Run"
         />,
       );
 
@@ -982,7 +1036,7 @@ describe('AutoragConfigurePage', () => {
       await user.click(nextButton);
 
       const breadcrumbName = await screen.findByTestId('configure-breadcrumb-name');
-      expect(breadcrumbName).toHaveTextContent('Pre-filled Name');
+      expect(breadcrumbName).toHaveTextContent('Reconfigure');
     });
 
     describe('configure step with pre-filled values', () => {

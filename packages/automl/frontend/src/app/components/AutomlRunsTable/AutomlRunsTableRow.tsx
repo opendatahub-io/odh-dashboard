@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { Label, type LabelProps } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { TASK_TYPE_LABELS } from '~/app/utilities/const';
-import { automlResultsPathname } from '~/app/utilities/routes';
+import { automlReconfigurePathname, automlResultsPathname } from '~/app/utilities/routes';
 import { getTaskType, isRunTerminatable, isRunRetryable } from '~/app/utilities/utils';
 import { automlRunsColumns } from './columns';
 
@@ -59,6 +59,7 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
   namespace,
   onActionComplete,
 }) => {
+  const navigate = useNavigate();
   const taskType = getTaskType(run);
   const predictionTypeLabel = taskType ? (TASK_TYPE_LABELS[taskType] ?? taskType) : '—';
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
@@ -94,8 +95,13 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
       });
     }
 
+    items.push({
+      title: <span data-testid="reconfigure-run-action">Reconfigure</span>,
+      onClick: () => navigate(`${automlReconfigurePathname}/${namespace}/${run.run_id}`),
+    });
+
     return items;
-  }, [runTerminatable, runRetryable, handleRetry, isRetrying]);
+  }, [runTerminatable, runRetryable, handleRetry, isRetrying, navigate, namespace, run.run_id]);
 
   return (
     <>

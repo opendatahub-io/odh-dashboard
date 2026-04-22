@@ -101,6 +101,7 @@ let capturedProps: {
   initialInputDataSecret?: unknown;
   initialLlamaStackSecret?: unknown;
   sourceRunId?: string;
+  sourceRunName?: string;
 } = {};
 jest.mock('~/app/pages/AutoragConfigurePage', () => ({
   __esModule: true,
@@ -109,6 +110,7 @@ jest.mock('~/app/pages/AutoragConfigurePage', () => ({
     return (
       <div data-testid="configure-page">
         <span data-testid="source-run-id">{props.sourceRunId ?? ''}</span>
+        <span data-testid="source-run-name">{props.sourceRunName ?? ''}</span>
         <span data-testid="initial-display-name">{props.initialValues?.display_name ?? ''}</span>
       </div>
     );
@@ -296,6 +298,19 @@ describe('AutoragReconfigureLoader', () => {
       renderPage();
 
       expect(await screen.findByTestId('source-run-id')).toHaveTextContent('run-123');
+    });
+
+    it('should pass sourceRunName with original display_name to AutoragConfigurePage', async () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun({ display_name: 'My Experiment' }),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(await screen.findByTestId('source-run-name')).toHaveTextContent('My Experiment');
     });
 
     it('should generate reconfigure name from original display_name', async () => {

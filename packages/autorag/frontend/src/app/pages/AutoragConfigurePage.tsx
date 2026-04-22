@@ -43,6 +43,8 @@ type AutoragConfigurePageProps = {
   initialLlamaStackSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
+  /** When reconfiguring, the display name of the source run (used in the page title). */
+  sourceRunName?: string;
 };
 
 function AutoragConfigurePage({
@@ -50,6 +52,7 @@ function AutoragConfigurePage({
   initialInputDataSecret,
   initialLlamaStackSecret,
   sourceRunId,
+  sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
   const navigate = useNavigate();
   const notification = useNotification();
@@ -145,7 +148,15 @@ function AutoragConfigurePage({
       subtext={
         <h2 className="pf-v6-u-mt-sm">
           {step === 'create' ? (
-            'Create AutoRAG optimization run'
+            sourceRunId && sourceRunName ? (
+              <>
+                Reconfigure &quot;
+                <Truncate content={sourceRunName} />
+                &quot;
+              </>
+            ) : (
+              'Create AutoRAG optimization run'
+            )
           ) : (
             <span data-testid="configure-step-subtitle">
               &quot;
@@ -160,17 +171,31 @@ function AutoragConfigurePage({
           <Content>
             Automatically test and tune retrieval, indexing, and model settings to improve
             Retrieval-Augmented Generation (RAG) response quality.
+            {sourceRunId && (
+              <>
+                <br />
+                Settings from the previous run have been automatically populated. You can modify any
+                configurations as needed.
+              </>
+            )}
           </Content>
         )
       }
       breadcrumb={
-        step === 'configure' && (
+        (step === 'configure' || sourceRunId) && (
           <Breadcrumb>
             <BreadcrumbItem>
               <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
             </BreadcrumbItem>
+            {sourceRunId && sourceRunName && (
+              <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
+                <Link to={`${autoragResultsPathname}/${namespace}/${sourceRunId}`}>
+                  <Truncate content={sourceRunName} />
+                </Link>
+              </BreadcrumbItem>
+            )}
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
-              <Truncate content={displayName || ''} />
+              {sourceRunId ? 'Reconfigure' : <Truncate content={displayName || ''} />}
             </BreadcrumbItem>
           </Breadcrumb>
         )

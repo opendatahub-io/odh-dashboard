@@ -113,6 +113,7 @@ function AutomlReconfigureLoader(): React.JSX.Element {
       initialValues={initialValues}
       initialInputDataSecret={initialInputDataSecret}
       sourceRunId={runId}
+      sourceRunName={pipelineRun.display_name}
     />
   );
 }

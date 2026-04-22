@@ -136,6 +136,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
       initialInputDataSecret={initialInputDataSecret}
       initialLlamaStackSecret={initialLlamaStackSecret}
       sourceRunId={runId}
+      sourceRunName={pipelineRun.display_name}
     />
   );
 }

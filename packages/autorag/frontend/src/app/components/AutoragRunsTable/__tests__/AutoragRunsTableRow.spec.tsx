@@ -74,13 +74,17 @@ describe('AutoragRunsTableRow', () => {
   });
 
   describe('kebab action menu', () => {
-    it('should not show kebab menu for succeeded runs', () => {
+    it('should show only reconfigure action for succeeded runs', async () => {
       render(
         <MemoryRouter>
           <AutoragRunsTableRow run={{ ...mockRun, state: 'SUCCEEDED' }} namespace={mockNamespace} />
         </MemoryRouter>,
       );
-      expect(screen.queryByRole('button', { name: 'Kebab toggle' })).not.toBeInTheDocument();
+      const kebab = screen.getByRole('button', { name: 'Kebab toggle' });
+      await userEvent.click(kebab);
+      expect(screen.getByTestId('reconfigure-run-action')).toBeInTheDocument();
+      expect(screen.queryByTestId('stop-run-action')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('retry-run-action')).not.toBeInTheDocument();
     });
 
     it('should show stop action for running runs', async () => {

@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Label, type LabelProps } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
-import { autoragResultsPathname } from '~/app/utilities/routes';
+import { autoragReconfigurePathname, autoragResultsPathname } from '~/app/utilities/routes';
 import { isRunTerminatable, isRunRetryable } from '~/app/utilities/utils';
 import { autoragRunsColumns } from './columns';
 
@@ -53,6 +53,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
   namespace,
   onActionComplete,
 }) => {
+  const navigate = useNavigate();
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
     namespace,
@@ -86,8 +87,13 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
       });
     }
 
+    items.push({
+      title: <span data-testid="reconfigure-run-action">Reconfigure</span>,
+      onClick: () => navigate(`${autoragReconfigurePathname}/${namespace}/${run.run_id}`),
+    });
+
     return items;
-  }, [runTerminatable, runRetryable, handleRetry, isRetrying]);
+  }, [runTerminatable, runRetryable, handleRetry, isRetrying, navigate, namespace, run.run_id]);
 
   return (
     <>
