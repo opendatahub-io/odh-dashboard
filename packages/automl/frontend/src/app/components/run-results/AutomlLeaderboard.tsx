@@ -36,6 +36,7 @@ import {
   formatMetricName,
   formatMetricValue,
   getOptimizedMetricForTask,
+  isRunInProgress,
 } from '~/app/utilities/utils';
 import './AutomlLeaderboard.scss';
 
@@ -204,10 +205,7 @@ function AutomlLeaderboard({
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>('asc');
 
   // Check if pipeline is still running
-  const pipelineRunning =
-    pipelineRun?.state === RuntimeStateKF.PENDING ||
-    pipelineRun?.state === RuntimeStateKF.RUNNING ||
-    pipelineRun?.state === RuntimeStateKF.CANCELING;
+  const pipelineRunning = isRunInProgress(pipelineRun?.state);
 
   // Determine the optimized metric
   const optimizedMetric = getOptimizedMetricForTask(taskType);
