@@ -19,7 +19,11 @@ import StateActionToggle from './StateActionToggle';
 import { getStatusFlags, getRayJobStatusSync } from './utils';
 import PauseRayJobModal from './PauseRayJobModal';
 import { useRayJobPauseResume } from './hooks/useRayJobPauseResume';
-import { KUEUE_QUEUE_LABEL } from '../../const';
+import {
+  KUEUE_QUEUE_LABEL,
+  PAUSE_RAY_JOB_TOOLTIP_CONTENT,
+  RAY_CLUSTER_SELECTOR_LABEL,
+} from '../../const';
 import { RayJobKind } from '../../k8sTypes';
 import { JobDisplayState, RayJobState } from '../../types';
 import { useRayClusterDashboardURL } from '../../hooks/useRayClusterDashboardURL';
@@ -50,6 +54,7 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
   const displayName = job.metadata.name;
   const localQueueName = job.metadata.labels?.[KUEUE_QUEUE_LABEL];
   const { isPaused, canPauseResume } = getStatusFlags(jobStatus ?? getRayJobStatusSync(job));
+  const isClusterSelectorJob = !!job.spec.clusterSelector?.[RAY_CLUSTER_SELECTOR_LABEL];
   const [statusModalOpen, setStatusModalOpen] = React.useState(false);
 
   const {
@@ -94,7 +99,13 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
       items.push({
         title: isPaused ? 'Resume job' : 'Pause job',
         isDisabled: isSubmitting || isExternallyToggling,
-        onClick: isPaused ? handleResume : onPauseClick,
+        isAriaDisabled: isClusterSelectorJob,
+        ...(isClusterSelectorJob && {
+          tooltipProps: {
+            content: PAUSE_RAY_JOB_TOOLTIP_CONTENT,
+          },
+        }),
+        onClick: isClusterSelectorJob ? undefined : isPaused ? handleResume : onPauseClick,
       });
     }
 
@@ -120,6 +131,7 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
     onPauseClick,
     isSubmitting,
     isExternallyToggling,
+    isClusterSelectorJob,
     canEditNodes,
     setModalOpen,
     job,
@@ -228,12 +240,21 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
         </Td>
         <Td>
           {canPauseResume && (
-            <StateActionToggle
-              isPaused={isPaused}
-              onPause={onPauseClick}
-              onResume={handleResume}
-              isLoading={isSubmitting || isExternallyToggling}
-            />
+            <Tooltip
+              content={PAUSE_RAY_JOB_TOOLTIP_CONTENT}
+              trigger={isClusterSelectorJob ? 'mouseenter focus' : ''}
+              aria={isClusterSelectorJob ? 'describedby' : 'none'}
+            >
+              <span>
+                <StateActionToggle
+                  isPaused={isPaused}
+                  onPause={onPauseClick}
+                  onResume={handleResume}
+                  isLoading={isSubmitting || isExternallyToggling}
+                  isDisabled={isClusterSelectorJob}
+                />
+              </span>
+            </Tooltip>
           )}
         </Td>
         <Td isActionCell>
