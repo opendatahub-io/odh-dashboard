@@ -83,7 +83,7 @@ import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 import EvaluationTemplateModal from './EvaluationTemplateModal';
-import './AutoragConfigure.css';
+import './AutoragConfigure.scss';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = {
   s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
@@ -438,7 +438,7 @@ function AutoragConfigure(): React.JSX.Element {
                       <StackItem className="pf-v6-u-mt-sm">
                         <ToggleGroup
                           aria-label="Choose how to add documents"
-                          className="autoragConfigureToggleGroupFullWidth pf-v6-u-mb-md"
+                          className="autorag-configure__toggle-group-full-width pf-v6-u-mb-md"
                         >
                           <ToggleGroupItem
                             text="Select file or folder"
