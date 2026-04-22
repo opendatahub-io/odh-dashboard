@@ -70,7 +70,7 @@ class AutomlConfigurePage {
   }
 
   findUploadFileInput() {
-    return cy.get('input[type="file"]');
+    return cy.get('input[type="file"]').first();
   }
 
   findUploadSpinner() {
@@ -82,6 +82,10 @@ class AutomlConfigurePage {
   }
 
   // File Explorer Modal
+  findFileExplorerSearch() {
+    return cy.findByTestId('file-explorer-search').find('input');
+  }
+
   findFileExplorerTable() {
     return cy.findByTestId('file-explorer-table');
   }

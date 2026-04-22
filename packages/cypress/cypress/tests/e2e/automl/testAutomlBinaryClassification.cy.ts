@@ -5,11 +5,7 @@ import { provisionProjectForPipelines } from '../../../utils/pipelines';
 import { waitForDspaReady } from '../../../utils/oc_commands/dspa';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import {
-  automlExperimentsPage,
-  automlConfigurePage,
-  automlResultsPage,
-} from '../../../pages/automl';
+import { automlExperimentsPage, automlConfigurePage } from '../../../pages/automl';
 
 type AutomlTestData = {
   projectNamePrefix: string;
@@ -71,7 +67,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       automlConfigurePage.findSecretSelector().type('ods-ci-ds-pipelines');
       cy.findByRole('option', { name: /ods-ci-ds-pipelines/i }).click();
 
-      cy.step('Upload CSV file to bucket');
+      cy.step('Upload CSV file');
       automlConfigurePage.findUploadFileToggle().click();
       automlConfigurePage
         .findUploadFileInput()
@@ -80,22 +76,16 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
         });
 
       cy.step('Wait for upload to complete');
+      // Spinner appears during upload, then the file name appears in the table.
+      // The BFF may append a suffix (e.g., -1, -2) to avoid name conflicts.
       automlConfigurePage.findUploadSpinner().should('not.exist');
-
-      cy.step('Switch to browse mode and select the uploaded file');
-      automlConfigurePage.findSelectFileToggle().click();
-      automlConfigurePage.findBrowseBucketButton().should('be.enabled').click();
-
-      cy.step('Select file from file explorer modal');
-      automlConfigurePage.findFileExplorerTable().should('be.visible');
-      automlConfigurePage.findFileExplorerRow(testData.trainingDataFile).find('input').check();
-      automlConfigurePage.findFileExplorerSelectBtn().click();
+      cy.contains('td', /automl-test-data.*\.csv/).should('be.visible');
 
       cy.step('Select Binary Classification prediction type');
       automlConfigurePage.findTaskTypeCard('binary').click();
 
       cy.step('Select label column');
-      automlConfigurePage.findLabelColumnSelect().should('be.enabled').click();
+      automlConfigurePage.findLabelColumnSelect().should('not.be.disabled').click();
       cy.findByRole('option', { name: new RegExp(testData.labelColumn) }).click();
 
       cy.step('Submit the form');
@@ -104,8 +94,8 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       cy.step('Verify redirect to results page');
       cy.url().should('include', '/develop-train/automl/results/');
 
-      cy.step('Verify the run started');
-      automlResultsPage.findStopRunButton().should('be.visible', { timeout: 30000 });
+      cy.step('Verify the run is in progress');
+      cy.contains('Your AutoML run is currently in progress').should('be.visible');
     },
   );
 });
