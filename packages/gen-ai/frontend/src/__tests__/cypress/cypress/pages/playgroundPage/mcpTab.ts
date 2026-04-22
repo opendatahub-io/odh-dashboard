@@ -43,7 +43,7 @@ class MCPTab {
   }
 
   verifyMCPTabVisible(): void {
-    this.findMCPServersTable().should('exist', { timeout: 30000 }).and('be.visible');
+    this.findMCPServersTable().should('be.visible', { timeout: 30000 });
   }
 
   private findCheckedCheckboxes(): Cypress.Chainable<JQuery<HTMLElement>> {
