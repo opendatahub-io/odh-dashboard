@@ -204,13 +204,14 @@ jobs:
           const fs = require('fs');
           const path = require('path');
           const dirs = JSON.parse(process.env.CHANGED_DIRS || '[]');
+          const marker = '<!-- dependency-validation -->';
 
           const lockfiles = dirs
             .map(d => d === '.' ? 'package-lock.json' : path.join(d, 'package-lock.json'))
             .filter(f => fs.existsSync(f) && fs.existsSync(path.join('base', f)));
 
           if (lockfiles.length === 0) {
-            fs.writeFileSync('dep-summary.md', 'No dependency version changes detected.\n');
+            fs.writeFileSync('dep-summary.md', marker + '\nNo dependency version changes detected.\n');
             process.exit(0);
           }
 
@@ -240,7 +241,6 @@ jobs:
             }
           }
 
-          const marker = '<!-- dependency-validation -->';
           if (changes.length === 0) {
             fs.writeFileSync('dep-summary.md', marker + '\nNo dependency version changes detected.\n');
           } else {
