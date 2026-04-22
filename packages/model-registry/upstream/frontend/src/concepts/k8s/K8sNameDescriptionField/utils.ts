@@ -4,7 +4,7 @@ import {
   UseK8sNameDescriptionDataConfiguration,
 } from './types';
 
-const MAX_K8S_NAME_LENGTH = 253;
+export const MAX_K8S_NAME_LENGTH = 253;
 
 export const getMaxLengthErrorMessage = (maxLength: number): string =>
   `Cannot exceed ${maxLength} characters`;

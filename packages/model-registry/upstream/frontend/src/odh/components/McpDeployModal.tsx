@@ -24,12 +24,11 @@ import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFie
 import useMcpServerConverter from '~/app/hooks/mcpCatalogDeployment/useMcpServerConverter';
 import K8sNameDescriptionField from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
+import { MAX_K8S_NAME_LENGTH } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { createMcpDeployment, updateMcpDeployment } from '~/app/api/mcpCatalogDeployment/service';
 import { mcpDeploymentsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import { mcpServerCRToYaml } from '~/app/utils/mcpServerYaml';
 import { McpDeployment } from '~/app/mcpDeploymentTypes';
-
-const MAX_K8S_NAME_LENGTH = 253;
 
 type McpDeployModalProps = {
   isOpen?: boolean;
@@ -125,11 +124,8 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
     setSelectedNamespace(projectName);
   }, []);
 
-  const displayName = displayNameValue;
-  const k8sName = effectiveK8sName;
-
   const handleDeploy = React.useCallback(async () => {
-    if (!ociImageValue || !selectedNamespace || !k8sName) {
+    if (!ociImageValue || !selectedNamespace || !effectiveK8sName) {
       return;
     }
 
@@ -147,7 +143,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
           opts,
           existingDeployment.name,
           {
-            displayName,
+            displayName: displayNameValue,
             image: ociImageValue,
             yaml: yamlContent,
           },
@@ -155,8 +151,8 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
         onClose(true);
       } else {
         await createMcpDeployment('', { ...queryParams, namespace: selectedNamespace })(opts, {
-          name: k8sName,
-          displayName,
+          name: effectiveK8sName,
+          displayName: displayNameValue,
           serverName: crData?.metadata.name || undefined,
           image: ociImageValue,
           yaml: yamlContent,
@@ -176,8 +172,8 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   }, [
     ociImageValue,
     selectedNamespace,
-    k8sName,
-    displayName,
+    effectiveK8sName,
+    displayNameValue,
     yamlContent,
     crData,
     queryParams,
@@ -187,7 +183,10 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   ]);
 
   const hasValidName =
-    !!displayName && !!k8sName && isValidK8sName(k8sName) && k8sName.length <= MAX_K8S_NAME_LENGTH;
+    !!displayNameValue &&
+    !!effectiveK8sName &&
+    isValidK8sName(effectiveK8sName) &&
+    effectiveK8sName.length <= MAX_K8S_NAME_LENGTH;
 
   const dataReady = !!existingDeployment || crLoaded;
 
