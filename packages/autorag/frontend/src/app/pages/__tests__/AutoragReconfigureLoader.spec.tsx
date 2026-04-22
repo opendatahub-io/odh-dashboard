@@ -621,6 +621,71 @@ describe('AutoragReconfigureLoader', () => {
     });
   });
 
+  describe('parameter parsing', () => {
+    it('should show warning notification when runtime parameters fail Zod validation', async () => {
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(
+          { display_name: 'Run' },
+          // optimization_max_rag_patterns must be a number — passing a string triggers a parse failure
+          {
+            optimization_max_rag_patterns: 'not-a-number',
+          } as unknown as Partial<ConfigureSchema>,
+        ),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      await screen.findByTestId('configure-page');
+
+      expect(mockNotification.warning).toHaveBeenCalledWith(
+        'Unable to restore all settings',
+        expect.stringContaining('could not be parsed'),
+      );
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to parse runtime parameters for reconfiguration:',
+        expect.anything(),
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should not show warning notification when runtime parameters parse successfully', async () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(
+          { display_name: 'Run' },
+          {
+            input_data_secret_name: 'my-secret',
+            input_data_bucket_name: 'my-bucket',
+            input_data_key: 'docs/input.pdf',
+            test_data_secret_name: 'my-secret',
+            test_data_bucket_name: 'my-bucket',
+            test_data_key: 'eval.json',
+            llama_stack_secret_name: 'lls-secret',
+            optimization_metric: 'faithfulness',
+            optimization_max_rag_patterns: 10,
+          },
+        ),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      await screen.findByTestId('configure-page');
+
+      expect(mockNotification.warning).not.toHaveBeenCalledWith(
+        'Unable to restore all settings',
+        expect.anything(),
+      );
+    });
+  });
+
   describe('hook integration', () => {
     it('should pass namespace and runId from URL params to usePipelineRunQuery', () => {
       mockUsePipelineRunQuery.mockReturnValue({

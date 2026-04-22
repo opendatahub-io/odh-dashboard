@@ -59,6 +59,16 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     enabled: !!namespace,
   });
 
+  const params = pipelineRun?.runtime_config?.parameters;
+
+  const parsedParams = React.useMemo(() => {
+    if (params == null) {
+      return undefined;
+    }
+    const { base } = createConfigureSchema();
+    return base.partial().safeParse(params);
+  }, [params]);
+
   React.useEffect(() => {
     if (storageSecretsError || llsSecretsError) {
       notification.warning(
@@ -69,6 +79,19 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     // notify once when the error state is reached
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageSecretsError, llsSecretsError]);
+
+  React.useEffect(() => {
+    if (parsedParams && !parsedParams.success) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed to parse runtime parameters for reconfiguration:', parsedParams.error);
+      notification.warning(
+        'Unable to restore all settings',
+        'Some parameters from the previous run could not be parsed. Default values will be used instead.',
+      );
+    }
+    // notify once when parsing completes with errors
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsedParams]);
 
   if (noNamespaces || invalidNamespace || pipelineRunError) {
     return (
@@ -96,7 +119,6 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     );
   }
 
-  const params = pipelineRun.runtime_config?.parameters;
   const secretName = params?.input_data_secret_name;
   const llsSecretName = params?.llama_stack_secret_name;
 
@@ -122,10 +144,8 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   }
 
   /* eslint-disable camelcase */
-  const { base } = createConfigureSchema();
-  const parsedParams = base.partial().safeParse(params ?? {});
   const initialValues: Partial<ConfigureSchema> = {
-    ...(parsedParams.success ? parsedParams.data : {}),
+    ...(parsedParams?.success ? parsedParams.data : {}),
     display_name: generateReconfigureName(pipelineRun.display_name),
   };
   /* eslint-enable camelcase */

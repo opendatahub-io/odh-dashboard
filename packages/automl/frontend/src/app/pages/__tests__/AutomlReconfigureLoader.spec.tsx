@@ -176,6 +176,24 @@ describe('AutomlReconfigureLoader', () => {
       expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
     });
 
+    it('should show spinner while secrets are loading', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      // Secrets never resolve — stays pending
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      mockGetSecretsQueryFn.mockReturnValue(new Promise(() => {}));
+
+      renderPage();
+
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
+    });
+
     it('should show spinner while namespaces are loading', () => {
       const { useNamespaceSelector } = jest.requireMock('mod-arch-core');
       useNamespaceSelector.mockReturnValue({
@@ -604,6 +622,66 @@ describe('AutomlReconfigureLoader', () => {
       });
 
       expect(capturedProps.initialInputDataSecret).toBeUndefined();
+    });
+  });
+
+  describe('parameter parsing', () => {
+    it('should show warning notification when runtime parameters fail Zod validation', async () => {
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(
+          { display_name: 'Run' },
+          // top_n must be a number — passing a string triggers a parse failure
+          { top_n: 'not-a-number' } as unknown as Partial<ConfigureSchema>,
+        ),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      await screen.findByTestId('configure-page');
+
+      expect(mockNotification.warning).toHaveBeenCalledWith(
+        'Unable to restore all settings',
+        expect.stringContaining('could not be parsed'),
+      );
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to parse runtime parameters for reconfiguration:',
+        expect.anything(),
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should not show warning notification when runtime parameters parse successfully', async () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(
+          { display_name: 'Run' },
+          {
+            task_type: 'binary',
+            train_data_secret_name: 'secret',
+            train_data_bucket_name: 'bucket',
+            train_data_file_key: 'file.csv',
+            label_column: 'col',
+            top_n: 3,
+          },
+        ),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      await screen.findByTestId('configure-page');
+
+      expect(mockNotification.warning).not.toHaveBeenCalledWith(
+        'Unable to restore all settings',
+        expect.anything(),
+      );
     });
   });
 
