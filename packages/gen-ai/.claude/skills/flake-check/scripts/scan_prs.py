@@ -210,24 +210,34 @@ def fetch_pr_check_summary(
     Fetch check run status for a commit SHA via the REST check-runs API.
 
     Returns: (failing_checks, passing_count, pending_count, rerun_checks)
-    - failing_checks: list of {name, conclusion} for checks with latest failure/timed_out
-    - passing_count: number of checks with latest conclusion == success
-    - pending_count: number of checks still in progress / queued
+    - failing_checks: list of {name, conclusion} for checks whose latest attempt failed/timed_out
+    - passing_count: number of checks whose latest attempt succeeded
+    - pending_count: number of checks whose latest attempt is still in progress / queued
     - rerun_checks: check names that failed then succeeded (only populated when detect_reruns=True)
 
     Silently returns empty results on API error so one bad PR doesn't abort the scan.
     """
     try:
-        raw = run_gh("api", f"repos/{repo}/commits/{sha}/check-runs?per_page=100")
-        data = json.loads(raw)
+        check_runs: list[dict] = []
+        page = 1
+        while True:
+            raw = run_gh("api", f"repos/{repo}/commits/{sha}/check-runs?per_page=100&filter=all&page={page}")
+            data = json.loads(raw)
+            runs = data.get("check_runs", [])
+            check_runs.extend(runs)
+            if len(runs) < 100:
+                break
+            page += 1
     except (SystemExit, json.JSONDecodeError):
         return [], 0, 0, set()
 
-    # Group attempts by check name in chronological order; track html_url for run/job IDs
+    # Group all attempts by check name in chronological order; include pending runs using
+    # status as state so an in-progress rerun is not double-counted as both failing and pending.
     by_name: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
-    pending_names: set[str] = set()
 
-    for run in data.get("check_runs", []):
+    _pending_statuses = frozenset(("in_progress", "queued", "waiting", "requested", "pending"))
+
+    for run in check_runs:
         name = run.get("name", "")
         conclusion = (run.get("conclusion") or "").lower()
         status = (run.get("status") or "").lower()
@@ -237,13 +247,13 @@ def fetch_pr_check_summary(
         if not name:
             continue
 
-        if conclusion:
-            by_name[name].append((started_at, conclusion, html_url))
-        elif status in ("in_progress", "queued", "waiting", "requested", "pending"):
-            pending_names.add(name)
+        state = conclusion if conclusion else status
+        if state:
+            by_name[name].append((started_at, state, html_url))
 
     failing: list[dict] = []
     passing_count = 0
+    pending_count = 0
     rerun_checks: set[str] = set()
 
     for name, attempts in by_name.items():
@@ -251,10 +261,10 @@ def fetch_pr_check_summary(
 
         if detect_reruns:
             seen_failure = False
-            for _, conclusion, _ in attempts:
-                if conclusion in ("failure", "timed_out"):
+            for _, state, _ in attempts:
+                if state in ("failure", "timed_out"):
                     seen_failure = True
-                elif conclusion == "success" and seen_failure:
+                elif state == "success" and seen_failure:
                     rerun_checks.add(name)
                     break
 
@@ -264,8 +274,10 @@ def fetch_pr_check_summary(
             failing.append({"name": name, "conclusion": latest, "run_id": run_id, "job_id": job_id})
         elif latest == "success":
             passing_count += 1
+        elif latest in _pending_statuses:
+            pending_count += 1
 
-    return failing, passing_count, len(pending_names), rerun_checks
+    return failing, passing_count, pending_count, rerun_checks
 
 
 def main() -> None:
