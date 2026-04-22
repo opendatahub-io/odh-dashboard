@@ -6,11 +6,6 @@ import {
 } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
 
-type AutoragRunActionsOptions = {
-  /** Called after a successful retry or stop to let the caller refresh data immediately. */
-  onActionComplete?: () => void | Promise<void>;
-};
-
 type AutoragRunActions = {
   handleRetry: () => Promise<void>;
   handleConfirmStop: () => Promise<void>;
@@ -25,9 +20,8 @@ type AutoragRunActions = {
 export const useAutoragRunActions = (
   namespace: string,
   runId: string,
-  options?: AutoragRunActionsOptions,
+  onActionComplete?: () => void | Promise<void>,
 ): AutoragRunActions => {
-  const { onActionComplete } = options ?? {};
   const queryClient = useQueryClient();
   const notification = useNotification();
   const retryMutation = useRetryPipelineRunMutation(namespace, runId);
@@ -39,7 +33,6 @@ export const useAutoragRunActions = (
       await queryClient.invalidateQueries({
         queryKey: ['autorag', 'pipelineRun', runId, namespace],
       });
-      await onActionComplete?.();
       notification.success(
         'Retry submitted successfully',
         'The process is asynchronous and may take some time to take effect',
@@ -49,6 +42,12 @@ export const useAutoragRunActions = (
         'Failed to retry run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
+      return;
+    }
+    try {
+      await onActionComplete?.();
+    } catch {
+      // Caller refresh failure should not mask a successful retry.
     }
   }, [retryMutation, queryClient, runId, namespace, onActionComplete, notification]);
 
@@ -58,7 +57,6 @@ export const useAutoragRunActions = (
       await queryClient.invalidateQueries({
         queryKey: ['autorag', 'pipelineRun', runId, namespace],
       });
-      await onActionComplete?.();
       notification.success(
         'Stop submitted successfully',
         'The process is asynchronous and may take some time to take effect',
@@ -68,6 +66,12 @@ export const useAutoragRunActions = (
         'Failed to stop run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
+      return;
+    }
+    try {
+      await onActionComplete?.();
+    } catch {
+      // Caller refresh failure should not mask a successful stop.
     }
   }, [terminateMutation, queryClient, runId, namespace, onActionComplete, notification]);
 

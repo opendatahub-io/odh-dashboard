@@ -198,6 +198,7 @@ function AutoragResultsPage(): React.JSX.Element {
         onClose={() => setIsStopModalOpen(false)}
         onConfirm={handleStop}
         isTerminating={isTerminating}
+        runName={pipelineRun?.display_name}
       />
     </>
   );

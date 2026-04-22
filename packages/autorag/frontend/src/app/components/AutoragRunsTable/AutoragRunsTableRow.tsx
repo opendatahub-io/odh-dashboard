@@ -57,7 +57,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
     namespace,
     run.run_id,
-    { onActionComplete },
+    onActionComplete,
   );
 
   const runTerminatable = isRunTerminatable(run.state);

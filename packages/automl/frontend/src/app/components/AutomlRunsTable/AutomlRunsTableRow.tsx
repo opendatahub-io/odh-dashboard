@@ -65,7 +65,7 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutomlRunActions(
     namespace,
     run.run_id,
-    { onActionComplete },
+    onActionComplete,
   );
 
   const runTerminatable = isRunTerminatable(run.state);
