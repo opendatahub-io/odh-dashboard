@@ -38,6 +38,7 @@ import {
   formatMetricValue,
   formatPatternName,
   getOptimizedMetricForRAG,
+  isRunInProgress,
 } from '~/app/utilities/utils';
 import './AutoragLeaderboard.scss';
 
@@ -294,10 +295,7 @@ function AutoragLeaderboard({
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>('asc');
 
   // Check if pipeline is still running
-  const pipelineRunning =
-    pipelineRun?.state === RuntimeStateKF.PENDING ||
-    pipelineRun?.state === RuntimeStateKF.RUNNING ||
-    pipelineRun?.state === RuntimeStateKF.CANCELING;
+  const pipelineRunning = isRunInProgress(pipelineRun?.state);
 
   // Extract all unique metric keys across all patterns
   const metricKeys = React.useMemo(() => {

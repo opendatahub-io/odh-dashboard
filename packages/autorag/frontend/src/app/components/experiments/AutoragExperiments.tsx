@@ -54,6 +54,7 @@ function AutoragExperiments({
     setPageSize,
     loaded: runsLoaded,
     error: runsError,
+    refresh: refreshRuns,
   } = usePipelineRuns(effectiveNamespace);
 
   const loaded = defsLoaded && runsLoaded;
@@ -159,6 +160,7 @@ function AutoragExperiments({
       pageSize={pageSize}
       onPageChange={setPage}
       onPerPageChange={setPageSize}
+      onRunActionComplete={refreshRuns}
     />
   );
 }

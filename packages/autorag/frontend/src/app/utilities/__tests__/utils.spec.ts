@@ -2,10 +2,88 @@
 import type { PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
+  isRunTerminatable,
+  isRunInProgress,
+  isRunRetryable,
   parseErrorStatus,
   getOptimizedMetricForRAG,
   formatMetricValue,
 } from '~/app/utilities/utils';
+
+describe('isRunTerminatable', () => {
+  it('should return true for active states', () => {
+    expect(isRunTerminatable('RUNNING')).toBe(true);
+    expect(isRunTerminatable('PENDING')).toBe(true);
+    expect(isRunTerminatable('PAUSED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunTerminatable('running')).toBe(true);
+    expect(isRunTerminatable('Running')).toBe(true);
+    expect(isRunTerminatable('pending')).toBe(true);
+  });
+
+  it('should return false for terminal states', () => {
+    expect(isRunTerminatable('SUCCEEDED')).toBe(false);
+    expect(isRunTerminatable('FAILED')).toBe(false);
+    expect(isRunTerminatable('CANCELED')).toBe(false);
+    expect(isRunTerminatable('CANCELING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunTerminatable(undefined)).toBe(false);
+    expect(isRunTerminatable('')).toBe(false);
+  });
+});
+
+describe('isRunInProgress', () => {
+  it('should return true for in-progress states including CANCELING', () => {
+    expect(isRunInProgress('RUNNING')).toBe(true);
+    expect(isRunInProgress('PENDING')).toBe(true);
+    expect(isRunInProgress('CANCELING')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunInProgress('running')).toBe(true);
+    expect(isRunInProgress('canceling')).toBe(true);
+  });
+
+  it('should return false for terminal and non-active states', () => {
+    expect(isRunInProgress('SUCCEEDED')).toBe(false);
+    expect(isRunInProgress('FAILED')).toBe(false);
+    expect(isRunInProgress('CANCELED')).toBe(false);
+    expect(isRunInProgress('PAUSED')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunInProgress(undefined)).toBe(false);
+    expect(isRunInProgress('')).toBe(false);
+  });
+});
+
+describe('isRunRetryable', () => {
+  it('should return true for retryable states', () => {
+    expect(isRunRetryable('FAILED')).toBe(true);
+    expect(isRunRetryable('CANCELED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunRetryable('failed')).toBe(true);
+    expect(isRunRetryable('Failed')).toBe(true);
+    expect(isRunRetryable('canceled')).toBe(true);
+  });
+
+  it('should return false for non-retryable states', () => {
+    expect(isRunRetryable('RUNNING')).toBe(false);
+    expect(isRunRetryable('SUCCEEDED')).toBe(false);
+    expect(isRunRetryable('PENDING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunRetryable(undefined)).toBe(false);
+    expect(isRunRetryable('')).toBe(false);
+  });
+});
 
 describe('parseErrorStatus', () => {
   it('should extract status code from "status code XXX" format', () => {
