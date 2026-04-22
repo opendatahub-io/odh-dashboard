@@ -435,10 +435,18 @@ def main() -> None:
                 pr["matched_tests"] = matched
                 filtered.append(pr)
         pr_results = filtered
+        remaining_pr_numbers = {pr["number"] for pr in pr_results}
         failure_index = defaultdict(list)
         for pr in pr_results:
             for check in pr["failing_checks"]:
                 failure_index[check["name"]].append(pr["number"])
+        rerun_index = defaultdict(
+            list,
+            {
+                name: [n for n in pr_nums if n in remaining_pr_numbers]
+                for name, pr_nums in rerun_index.items()
+            },
+        )
 
     patterns = [
         {
