@@ -111,21 +111,6 @@ def detect_framework(lines: list[str], check_name: str | None = None) -> str:
     return "unknown"
 
 
-def extract_spec_files(lines: list[str]) -> dict[str, str]:
-    """
-    Build a map of { spec_filename → full_path } from Cypress runner output.
-    Lines like: "Running:  cypress/tests/mocked/foo/bar.cy.ts (1 of 3)"
-    """
-    spec_map: dict[str, str] = {}
-    for line in lines:
-        match = re.search(r"Running:\s+(.+?\.cy\.[jt]sx?)", line)
-        if match:
-            full_path = match.group(1).strip()
-            filename = full_path.rsplit("/", 1)[-1]
-            spec_map[filename] = full_path
-    return spec_map
-
-
 def parse_cypress_failures(lines: list[str]) -> list[dict]:
     """
     Parse Cypress/Mocha numbered test failures.
@@ -351,11 +336,28 @@ def main() -> None:
     check_name = extract_check_name(raw_lines)
 
     # Strip GH Actions prefixes and ANSI codes to get clean test output
-    clean_lines = [strip_ansi(strip_gh_prefix(l)) for l in raw_lines]
-    clean_lines = [l for l in clean_lines if l.strip()]
+    stripped_lines = [strip_ansi(strip_gh_prefix(line)) for line in raw_lines]
+    clean_lines = [line for line in stripped_lines if line.strip()]
+
+    warnings: list[str] = []
+
+    # Warn if prefix stripping appears to have silently failed (GH Actions format may have changed).
+    # Sample lines that look like they have the expected tab-separated prefix; if most still contain
+    # a timestamp after stripping, the regex didn't match and test parsing will likely be broken.
+    _timestamp_re = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
+    prefixed_pairs = [
+        (r, s) for r, s in zip(raw_lines, stripped_lines)
+        if "\t" in r and _timestamp_re.search(r)
+    ][:20]
+    if prefixed_pairs:
+        still_prefixed = sum(1 for _, s in prefixed_pairs if _timestamp_re.search(s))
+        if still_prefixed > len(prefixed_pairs) * 0.5:
+            warnings.append(
+                "Log prefix stripping may have failed — GitHub Actions log format may have changed. "
+                "Test parsing results may be incomplete or incorrect."
+            )
 
     framework = detect_framework(clean_lines, check_name)
-    warnings: list[str] = []
 
     if framework == "cypress":
         failures = parse_cypress_failures(clean_lines)
