@@ -12,6 +12,7 @@ import {
   mockDscStatus,
   mockK8sResourceList,
   mockModelVersionList,
+  mockModelArtifactList,
 } from '@odh-dashboard/internal/__mocks__';
 import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
@@ -127,6 +128,30 @@ const initIntercepts = () => {
     },
     { data: mockModelVersionWithLabels },
   );
+
+  cy.interceptOdh(
+    `GET /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId/artifacts`,
+    {
+      path: {
+        modelRegistryName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 1,
+      },
+    },
+    { data: mockModelArtifactList({}) },
+  );
+
+  cy.interceptOdh(
+    `PATCH /model-registry/api/:apiVersion/model_registry/:modelRegistryName/model_versions/:modelVersionId`,
+    {
+      path: {
+        modelRegistryName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        modelVersionId: 1,
+      },
+    },
+    { data: mockModelVersionWithLabels },
+  ).as('UpdatePropertyRow');
 
   cy.interceptOdh(
     `PATCH /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId`,
