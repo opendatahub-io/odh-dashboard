@@ -178,6 +178,23 @@ class McpDeployModal {
     return this.findModal().findByTestId('modal-cancel-button');
   }
 
+  findResourceNameHelperText(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModal().findByTestId('mcp-deploy-name-helper');
+  }
+
+  findProjectSelectorToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModal().findByTestId('project-selector-toggle');
+  }
+
+  findProjectSelectorOption(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
+  }
+
+  selectProject(name: string): void {
+    this.findProjectSelectorToggle().click();
+    this.findProjectSelectorOption(name).click();
+  }
+
   findSubmitError(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findModal().findByTestId('error-message-alert');
   }
