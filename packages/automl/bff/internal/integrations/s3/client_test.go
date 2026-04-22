@@ -251,6 +251,54 @@ func TestValidateAndNormalizeEndpoint_AcceptsIPv6UniqueLocal(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// S3 connect timeout configuration tests
+// ---------------------------------------------------------------------------
+
+func TestNewRealS3Client_TransportHasConnectTimeout(t *testing.T) {
+	t.Parallel()
+	client, err := NewRealS3Client(&S3Credentials{
+		AccessKeyID:     "a",
+		SecretAccessKey: "b",
+		Region:          "us-east-1",
+		EndpointURL:     "https://10.0.0.1:9000",
+	}, S3ClientOptions{})
+	require.NoError(t, err)
+
+	httpClient, ok := client.s3Client.Options().HTTPClient.(*http.Client)
+	require.True(t, ok, "HTTPClient should be *http.Client")
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok, "Transport should be *http.Transport")
+
+	assert.Equal(t, s3ConnectTimeout, transport.TLSHandshakeTimeout,
+		"TLSHandshakeTimeout should equal s3ConnectTimeout (%v)", s3ConnectTimeout)
+	assert.NotNil(t, transport.DialContext,
+		"DialContext should be set with s3ConnectTimeout dial timeout")
+}
+
+func TestNewRealS3Client_CreatesClientWithValidCredentials(t *testing.T) {
+	t.Parallel()
+	// Use a literal IP to avoid DNS resolution dependency in tests.
+	client, err := NewRealS3Client(&S3Credentials{
+		AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
+		SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+		Region:          "us-east-1",
+		EndpointURL:     "https://1.2.3.4:443",
+	}, S3ClientOptions{})
+	assert.NoError(t, err)
+	assert.NotNil(t, client)
+}
+
+func TestBuildS3AWSConfig_SetsRetryMaxAttemptsToOne(t *testing.T) {
+	t.Parallel()
+	cfg := buildS3AWSConfig(&S3Credentials{
+		AccessKeyID:     "test-key",
+		SecretAccessKey: "test-secret",
+		Region:          "us-east-1",
+	})
+	assert.Equal(t, 1, cfg.RetryMaxAttempts)
+}
+
+// ---------------------------------------------------------------------------
 // CSV helper function tests
 // ---------------------------------------------------------------------------
 

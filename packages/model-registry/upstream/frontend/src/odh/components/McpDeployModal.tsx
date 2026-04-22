@@ -16,11 +16,15 @@ import { CodeEditor, Language } from '@patternfly/react-code-editor';
 import { APIOptions, useQueryParamNamespaces } from 'mod-arch-core';
 import { DashboardModalFooter, FieldGroupHelpLabelIcon } from 'mod-arch-shared';
 import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
+import {
+  translateDisplayNameForK8s,
+  isValidK8sName,
+} from '@odh-dashboard/internal/concepts/k8s/utils';
 import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFieldWrapper';
 import useMcpServerConverter from '~/app/hooks/mcpCatalogDeployment/useMcpServerConverter';
-import K8sNameDescriptionField, {
-  useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import K8sNameDescriptionField from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
+import { MAX_K8S_NAME_LENGTH } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { createMcpDeployment, updateMcpDeployment } from '~/app/api/mcpCatalogDeployment/service';
 import { mcpDeploymentsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import { mcpServerCRToYaml } from '~/app/utils/mcpServerYaml';
@@ -43,15 +47,51 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   const { theme } = useThemeContext();
   const [crData, crLoaded, crError] = useMcpServerConverter(existingDeployment ? '' : serverId);
 
-  const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
-    existingDeployment
-      ? {
-          initialData: {
-            name: existingDeployment.displayName ?? existingDeployment.name,
-            k8sName: existingDeployment.name,
-          },
-        }
-      : {},
+  const [displayNameValue, setDisplayNameValue] = React.useState(
+    existingDeployment ? (existingDeployment.displayName ?? existingDeployment.name) : '',
+  );
+  const [k8sNameManual, setK8sNameManual] = React.useState('');
+  const [k8sTouched, setK8sTouched] = React.useState(false);
+
+  const autoK8sName = React.useMemo(
+    () => translateDisplayNameForK8s(displayNameValue),
+    [displayNameValue],
+  );
+  const effectiveK8sName = existingDeployment
+    ? existingDeployment.name
+    : k8sTouched
+      ? k8sNameManual
+      : autoK8sName;
+
+  const nameDescData = React.useMemo<K8sNameDescriptionFieldData>(
+    () => ({
+      name: displayNameValue,
+      description: '',
+      k8sName: {
+        value: effectiveK8sName,
+        state: {
+          immutable: !!existingDeployment,
+          invalidCharacters:
+            effectiveK8sName.length > 0 ? !isValidK8sName(effectiveK8sName) : false,
+          invalidLength: effectiveK8sName.length > MAX_K8S_NAME_LENGTH,
+          maxLength: MAX_K8S_NAME_LENGTH,
+          touched: k8sTouched,
+        },
+      },
+    }),
+    [displayNameValue, effectiveK8sName, k8sTouched, existingDeployment],
+  );
+
+  const onNameDescChange = React.useCallback(
+    (key: keyof K8sNameDescriptionFieldData, value: string) => {
+      if (key === 'name') {
+        setDisplayNameValue(value);
+      } else if (key === 'k8sName') {
+        setK8sNameManual(value);
+        setK8sTouched(true);
+      }
+    },
+    [],
   );
 
   const [selectedNamespace, setSelectedNamespace] = React.useState(
@@ -84,11 +124,8 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
     setSelectedNamespace(projectName);
   }, []);
 
-  const displayName = nameDescData.name;
-  const k8sName = nameDescData.k8sName.value;
-
   const handleDeploy = React.useCallback(async () => {
-    if (!ociImageValue || !selectedNamespace || !k8sName) {
+    if (!ociImageValue || !selectedNamespace || !effectiveK8sName) {
       return;
     }
 
@@ -106,7 +143,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
           opts,
           existingDeployment.name,
           {
-            displayName,
+            displayName: displayNameValue,
             image: ociImageValue,
             yaml: yamlContent,
           },
@@ -114,8 +151,8 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
         onClose(true);
       } else {
         await createMcpDeployment('', { ...queryParams, namespace: selectedNamespace })(opts, {
-          name: k8sName,
-          displayName,
+          name: effectiveK8sName,
+          displayName: displayNameValue,
           serverName: crData?.metadata.name || undefined,
           image: ociImageValue,
           yaml: yamlContent,
@@ -135,8 +172,8 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   }, [
     ociImageValue,
     selectedNamespace,
-    k8sName,
-    displayName,
+    effectiveK8sName,
+    displayNameValue,
     yamlContent,
     crData,
     queryParams,
@@ -146,10 +183,10 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   ]);
 
   const hasValidName =
-    !!displayName &&
-    !!k8sName &&
-    !nameDescData.k8sName.state.invalidCharacters &&
-    !nameDescData.k8sName.state.invalidLength;
+    !!displayNameValue &&
+    !!effectiveK8sName &&
+    isValidK8sName(effectiveK8sName) &&
+    effectiveK8sName.length <= MAX_K8S_NAME_LENGTH;
 
   const dataReady = !!existingDeployment || crLoaded;
 
