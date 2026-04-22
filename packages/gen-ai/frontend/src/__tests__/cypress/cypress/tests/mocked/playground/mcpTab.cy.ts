@@ -424,7 +424,9 @@ describe('Playground - MCP Servers', () => {
           mcpToolsModal.find().should('not.exist');
 
           cy.step('Re-open tools modal to verify persistence');
-          freshServerRow.findToolsButton().click();
+          // Re-query server row after modal closes to avoid stale reference
+          const reopenServerRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
+          reopenServerRow.findToolsButton().click();
           mcpToolsModal.find().should('be.visible');
 
           cy.step('Verify tool selection persisted (2 tools deselected)');
