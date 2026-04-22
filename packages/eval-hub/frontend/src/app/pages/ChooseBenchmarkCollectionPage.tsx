@@ -8,6 +8,7 @@ import {
   Card,
   CardBody,
   CardFooter,
+  CardHeader,
   CardTitle,
   Content,
   Drawer,
@@ -115,7 +116,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
         <DrawerContentBody>
           <ApplicationsPage
             title="Select benchmark suite"
-            description="Select a benchmark suite to run on your model or agent."
+            description="Select a benchmark suite to evaluate your model, agent, or pre-recorded responses."
             breadcrumb={
               <Breadcrumb>
                 <BreadcrumbItem
@@ -123,7 +124,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                 />
                 <BreadcrumbItem
                   render={() => (
-                    <Link to={evaluationCreateRoute(namespace)}>Create evaluation run</Link>
+                    <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
                   )}
                 />
                 <BreadcrumbItem isActive>Select benchmark suite</BreadcrumbItem>
@@ -222,16 +223,14 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                         isSelected={isSelected}
                         data-testid={`collection-card-${collection.resource.id}`}
                       >
-                        <CardTitle>
-                          {collection.category && (
-                            <Label
-                              color={getCategoryColor(collection.category)}
-                              isCompact
-                              style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                            >
+                        {collection.category && (
+                          <CardHeader>
+                            <Label color={getCategoryColor(collection.category)} isCompact>
                               {capitalizeFirst(collection.category)}
                             </Label>
-                          )}
+                          </CardHeader>
+                        )}
+                        <CardTitle>
                           <Button
                             variant="link"
                             isInline
@@ -266,7 +265,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                             data-testid="use-benchmark-suite-button"
                             onClick={() => handleRunCollection(collection)}
                           >
-                            Use this benchmark suite
+                            Select benchmark suite
                           </Button>
                         </CardFooter>
                       </Card>

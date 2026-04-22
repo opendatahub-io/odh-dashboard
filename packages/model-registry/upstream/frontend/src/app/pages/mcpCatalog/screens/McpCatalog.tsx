@@ -46,7 +46,7 @@ const McpCatalog: React.FC = () => {
         provideChildrenPadding
       >
         <Sidebar hasBorder hasGutter>
-          <SidebarPanel>
+          <SidebarPanel variant="sticky">
             <McpCatalogFilters />
           </SidebarPanel>
           <SidebarContent>
