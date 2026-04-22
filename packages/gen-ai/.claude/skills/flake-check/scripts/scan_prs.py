@@ -61,7 +61,6 @@ Output JSON shape:
             {
                 "check_name": "Cypress-Mock-Tests (mcpCatalog, ...)",
                 "failure_count": 3,
-                "failure_rate": 0.15,
                 "pr_numbers": [7190, 7191, 7194]
             }
         ],
@@ -69,7 +68,6 @@ Output JSON shape:
             {
                 "check_name": "Cypress-Mock-Tests (mcpCatalog, ...)",
                 "rerun_count": 4,
-                "rerun_rate": 0.20,
                 "pr_numbers": [7190, 7191, 7194, 7200]
             }
         ],
@@ -78,7 +76,6 @@ Output JSON shape:
                 "test_name": "User can create a pipeline run",
                 "file": "packages/cypress/cypress/tests/mocked/pipelines/pipelineCreateRuns.cy.ts",
                 "failure_count": 3,
-                "failure_rate": 0.15,
                 "pr_numbers": [7200, 7300, 7350],
                 "errors": ["Timed out retrying after 4000ms"]
             }
@@ -88,9 +85,9 @@ Output JSON shape:
 
 import argparse
 import json
+import os
 import re
 import subprocess
-import os
 import sys
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -425,7 +422,6 @@ def main() -> None:
         {
             "check_name": name,
             "failure_count": len(pr_nums),
-            "failure_rate": round(len(pr_nums) / scanned_count, 2) if scanned_count else 1.0,
             "pr_numbers": sorted(pr_nums, reverse=True),
         }
         for name, pr_nums in sorted(failure_index.items(), key=lambda kv: -len(kv[1]))
@@ -454,12 +450,10 @@ def main() -> None:
     }
 
     if run_deep:
-        total_prs = len(pr_results)
         output["rerun_patterns"] = [
             {
                 "check_name": name,
                 "rerun_count": len(pr_nums),
-                "rerun_rate": round(len(pr_nums) / total_prs, 2) if total_prs else 0.0,
                 "pr_numbers": sorted(pr_nums, reverse=True),
             }
             for name, pr_nums in sorted(rerun_index.items(), key=lambda kv: -len(kv[1]))
@@ -490,7 +484,6 @@ def main() -> None:
                 "test_name": name,
                 "file": data["file"],
                 "failure_count": len(data["pr_numbers"]),
-                "failure_rate": round(len(data["pr_numbers"]) / scanned_count, 2) if scanned_count else 1.0,
                 "pr_numbers": sorted(data["pr_numbers"], reverse=True),
                 "errors": data["errors"],
             }

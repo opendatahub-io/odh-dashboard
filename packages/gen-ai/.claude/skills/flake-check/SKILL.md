@@ -354,14 +354,12 @@ When `--file` is passed, `scan_prs.py` fetches CI logs for all failing checks no
 
 `scan_prs.py` returns:
 - `prs` — list of PRs with their failing check names
-- `patterns` — check names that **visibly failed** on more than one PR, each with `failure_rate` (failures / appearances) and the list of PR numbers it failed on
-- `rerun_patterns` — *(with `--deep` or `--file`)* check names that **failed then passed on the same commit SHA** on two or more PRs, with `rerun_count` and `rerun_rate` (reruns / PRs scanned). This surfaces flaky tests that devs routinely re-run — they won't appear in `patterns` because `statusCheckRollup` only shows the final passing state.
-- `test_patterns` — *(with `--deep` or `--file`)* **individual test names** that failed on two or more PRs, each with `failure_count`, `failure_rate`, `pr_numbers`, and distinct `errors` seen. A test appearing here means the *same specific `it()` block* recurred across PRs — much stronger evidence than the same job recurring. With `--deep`: fetches logs for all failing checks not excluded by `_DETERMINISTIC_PREFIXES` across all scanned PRs (the same test can recur across different check matrix variants — this catches it). With `--file`: same log fetching but filtered to a specific file.
+- `patterns` — check names that **visibly failed** on more than one PR, each with `failure_count` and the list of PR numbers it failed on
+- `rerun_patterns` — *(with `--deep` or `--file`)* check names that **failed then passed on the same commit SHA** on two or more PRs, with `rerun_count` and PR numbers. This surfaces flaky tests that devs routinely re-run — they won't appear in `patterns` because `statusCheckRollup` only shows the final passing state.
+- `test_patterns` — *(with `--deep` or `--file`)* **individual test names** that failed on two or more PRs, each with `failure_count`, `pr_numbers`, and distinct `errors` seen. A test appearing here means the *same specific `it()` block* recurred across PRs — much stronger evidence than the same job recurring. With `--deep`: fetches logs for all failing checks not excluded by `_DETERMINISTIC_PREFIXES` across all scanned PRs (the same test can recur across different check matrix variants — this catches it). With `--file`: same log fetching but filtered to a specific file.
 - `bots_excluded` — count of bot PRs filtered out
 - `all_passing_count` — PRs where everything passed
 - `filters` — the resolved `since`/`until`/`limit`/`deep` values actually used
-
-**Note on rates:** both `failure_rate` and `rerun_rate` are relative to the scan window. Always read them alongside the counts (e.g. `3/20 PRs = 15%`) rather than comparing rates across different scans.
 
 ### Step 3 — Test-file overlap analysis (deep mode and file mode)
 
@@ -402,14 +400,14 @@ Run this once per PR number across all test patterns (deduplicate to avoid redun
 
 ### Patterns Observed (visible failures)
 <For each entry in patterns:>
-- "<check_name>" (<job_type>) failed in <N>/<scanned> PRs (<rate>%)
+- "<check_name>" (<job_type>) failed in <N>/<scanned> PRs
   - PRs: #<n>, #<n>, ...
   - Classify as: ⚠️ Suspected Flaky
 
 ### Test-Level Patterns — only present with --deep or --file (when test_patterns is non-empty)
 <The test_name field is the full Cypress name: describe chain + it() block concatenated. Split it for display using this approach: if the it() description starts with "should", locate the first "should" in the test_name and treat everything from that word onward as the it() description, and everything before as the suite path. If the it() description does NOT start with "should", look up the actual test file (using the `file` field) with Grep to find the exact `it('...')` string that matches the test_name suffix — this gives the correct it() boundary. Never guess the split point when the test doesn't follow the "should…" convention. Format each entry as shown below.>
 <For each entry in test_patterns, incorporating overlap verdict from Step 3:>
-- **it:** `<it_description>` — `<file>` — <N>/<scanned> PRs (<rate>%)
+- **it:** `<it_description>` — `<file>` — <N>/<scanned> PRs
   - Suite: `<describe_chain>`
   - PRs: #<n>, #<n>, ...
   - Error(s): `<errors[0]>` <and any additional distinct errors>
@@ -423,7 +421,7 @@ No individual test recurred across multiple PRs — different tests failed withi
 
 ### Rerun Patterns (hidden failures) — only present with --deep
 <For each entry in rerun_patterns:>
-- "<check_name>" reran on <N>/<scanned> PRs (<rate>%) — failed then passed on the same commit SHA; not visible in statusCheckRollup
+- "<check_name>" reran on <N>/<scanned> PRs — failed then passed on the same commit SHA; not visible in statusCheckRollup
 
 ### PRs with no failures
 <N> PRs had all checks passing.
@@ -450,7 +448,7 @@ Use this format instead of the standard report when `filters.file_filter` is non
 ### Recurring Tests (same test on multiple PRs)
 <For each entry in test_patterns, run the file-level overlap check from Step 3 using test_patterns[].file:>
 <Split test_name into it() and describe chain as described in the Test-Level Patterns section above.>
-- **it:** `<it_description>` — `<file>` — <N>/<scanned> PRs (<rate>%)
+- **it:** `<it_description>` — `<file>` — <N>/<scanned> PRs
   - Suite: `<describe_chain>`
   - PRs: #<n> (author: <author>), #<n> (author: <author>), ...
   - Error(s): `<errors[0]>` <and any additional distinct errors>
