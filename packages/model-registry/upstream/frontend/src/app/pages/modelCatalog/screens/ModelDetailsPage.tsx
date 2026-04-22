@@ -60,7 +60,11 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
     encodeURIComponent(`${decodedParams.modelName}`),
   );
 
-  const registerButtonPopover = (headerContent: string, bodyContent: string, variant: 'primary' | 'secondary' = 'primary') => (
+  const registerButtonPopover = (
+    headerContent: string,
+    bodyContent: string,
+    variant: 'primary' | 'secondary' = 'primary',
+  ) => (
     <Popover
       headerContent={headerContent}
       triggerAction="hover"
@@ -97,7 +101,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
       registerButtonPopover(
         'Request access to a model registry',
         'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
-        variant
+        variant,
       )
     ) : artifacts.items.length === 0 || !hasModelArtifacts(artifacts.items) ? (
       registerButtonPopover('', 'Model location is unavailable', variant)

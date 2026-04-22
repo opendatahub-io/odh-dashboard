@@ -3,16 +3,20 @@ package models
 // LlamaStackNativeModel represents the internal format that LlamaStack returns.
 // This is private and can change when LlamaStack updates their API.
 // It is NOT exposed to the frontend - only used for parsing.
+//
+// CustomMetadata is a pointer so we can distinguish "field missing" (nil) from
+// "field present but empty", enabling defensive degradation when upstream
+// LlamaStack changes its schema.
 type LlamaStackNativeModel struct {
-	ID             string                   `json:"id"`              // Model identifier from LlamaStack
-	CustomMetadata LlamaStackCustomMetadata `json:"custom_metadata"` // Nested metadata from LlamaStack
+	ID             string                    `json:"id"`                        // Model identifier from LlamaStack
+	CustomMetadata *LlamaStackCustomMetadata `json:"custom_metadata,omitempty"` // Nested metadata from LlamaStack (nil if schema changes)
 }
 
 // LlamaStackCustomMetadata represents the custom_metadata nested object in LlamaStack's response.
 type LlamaStackCustomMetadata struct {
-	ModelType          string `json:"model_type"`           // Model type from LlamaStack
-	ProviderID         string `json:"provider_id"`          // Provider identifier from LlamaStack
-	ProviderResourceID string `json:"provider_resource_id"` // Full provider resource path from LlamaStack
+	ModelType          string `json:"model_type,omitempty"`           // Model type from LlamaStack (critical for UI filtering)
+	ProviderID         string `json:"provider_id,omitempty"`          // Provider identifier from LlamaStack
+	ProviderResourceID string `json:"provider_resource_id,omitempty"` // Full provider resource path from LlamaStack
 }
 
 // LSDModel represents a model in our stable public API format.

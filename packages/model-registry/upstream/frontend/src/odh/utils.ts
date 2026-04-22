@@ -98,7 +98,7 @@ export const uriToConnectionTypeName = (uri?: string): string => {
 
 export const getDeployButtonState = (
   availablePlatformIds: string[],
-  requireKserve: boolean = false,
+  requireKserve = false,
 ): { enabled?: boolean; tooltip?: string } => {
   if (availablePlatformIds.length === 0) {
     return {

@@ -1,5 +1,9 @@
 import { McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
-import { getConnectionUrl, getDeploymentDisplayName, getStatusInfo } from '../utils';
+import {
+  getConnectionUrl,
+  getDeploymentDisplayName,
+  getStatusInfo,
+} from '~/app/pages/mcpDeployments/utils';
 import { createMockDeployment } from './mcpDeploymentTestUtils';
 
 describe('getDeploymentDisplayName', () => {
@@ -79,6 +83,8 @@ describe('getStatusInfo', () => {
     const result = getStatusInfo(McpDeploymentPhase.PENDING);
     expect(result.label).toBe('Pending');
     expect(result.status).toBe('info');
-    expect(result.popoverBody).toBe('This MCP server is starting up and will be available shortly.');
+    expect(result.popoverBody).toBe(
+      'This MCP server is starting up and will be available shortly.',
+    );
   });
 });

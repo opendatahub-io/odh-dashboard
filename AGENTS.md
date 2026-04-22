@@ -96,6 +96,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | **Modular Architecture**    | `modular-architecture.md`     | When working on the plugin/extension system or package integration              |
 | **Module Federation**       | `module-federation.md`        | When configuring Module Federation, webpack remotes, or shared dependencies    |
 | **Module Onboarding**       | `module-onboarding.md`        | When creating a new package/module in the monorepo                             |
+| **Pull Requests**           | `pull-requests.md`            | When creating a pull request — must follow `.github/pull_request_template.md`  |
 | **React**                   | `react.md`                    | When writing React components, hooks, or pages                                 |
 | **Security**                | `security.md`                 | When working on auth, secrets, input validation, or K8s API interactions        |
 | **Testing Standards**       | `testing-standards.md`        | When working across multiple test types or choosing a testing strategy          |
@@ -114,6 +115,7 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Docs Update**                    | `skills/docs-update/`                  | Updating existing docs after code changes                                      |
 | **Upstream Sync Status**           | `skills/upstream-sync-status/`         | Checking whether a package's upstream copy is up to date (pass package name or be prompted) |
 | **Upstream Sync**                  | `skills/upstream-sync/`                | Syncing upstream changes for a package and opening a PR (pass package name or be prompted)  |
+| **Style Review**                  | `skills/style-review/`                 | Reviewing code for PF priority-order compliance, wrapper component usage, and class naming conventions per `css-patternfly.md` |
 | **Jira Triage**                   | `skills/jira-triage/`                  | Fetching Jira issues by filter criteria, running full triage on New issues (orchestrates all analysis skills), defining triage operations, and bulk-applying them |
 | **Jira Validate Priority/Severity** | `skills/jira-validate-priority-severity/` | Analyzing bugs for missing or incorrect severity and priority fields         |
 | **Jira Validate Description**     | `skills/jira-validate-description/`    | Validating issue descriptions for completeness per type, requesting missing information from reporters |

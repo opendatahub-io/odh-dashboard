@@ -1,9 +1,5 @@
 import * as React from 'react';
-import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateVariant,
-} from '@patternfly/react-core';
+import { EmptyState, EmptyStateBody, EmptyStateVariant } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 
 const McpDeploymentsEmptyState: React.FC = () => (

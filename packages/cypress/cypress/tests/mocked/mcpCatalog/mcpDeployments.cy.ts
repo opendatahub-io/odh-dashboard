@@ -487,4 +487,54 @@ describe('MCP Deploy from Catalog', () => {
       .should('be.visible')
       .and('contain.text', 'Failed to load MCP server configuration');
   });
+
+  it('should enable deploy button when a valid name is entered', () => {
+    initDeployIntercepts();
+
+    cy.intercept('POST', `${MCP_DEPLOYMENTS_API}*`, {
+      body: { data: mockRunningDeployment() },
+    }).as('createDeployment');
+
+    cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+    mcpServerDetailsPage.findDeployButton().click();
+    cy.wait('@getConverter');
+    mcpDeployModal.shouldBeOpen();
+    mcpDeployModal.findSubmitButton().should('be.disabled');
+
+    mcpDeployModal.findNameInput().type('My Server');
+    mcpDeployModal.selectProject('Test Project');
+    mcpDeployModal.findSubmitButton().should('not.be.disabled');
+    mcpDeployModal.findSubmitButton().click();
+
+    cy.wait('@createDeployment').then((interception) => {
+      const body = interception.request.body.data || interception.request.body;
+      expect(body).to.have.property('name', 'my-server');
+      expect(body).to.have.property('displayName', 'My Server');
+    });
+  });
+
+  it('should auto-generate a valid K8s name for dash-only display name input', () => {
+    initDeployIntercepts();
+
+    cy.intercept('POST', `${MCP_DEPLOYMENTS_API}*`, {
+      body: { data: mockRunningDeployment() },
+    }).as('createDeployment');
+
+    cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+    mcpServerDetailsPage.findDeployButton().click();
+    cy.wait('@getConverter');
+    mcpDeployModal.shouldBeOpen();
+
+    mcpDeployModal.findNameInput().type('----');
+    mcpDeployModal.selectProject('Test Project');
+    mcpDeployModal.findResourceNameHelperText().should('contain.text', 'The resource name will be');
+    mcpDeployModal.findSubmitButton().should('not.be.disabled');
+    mcpDeployModal.findSubmitButton().click();
+
+    cy.wait('@createDeployment').then((interception) => {
+      const body = interception.request.body.data || interception.request.body;
+      expect(body.name).to.match(/^gen-[a-z0-9]+$/);
+      expect(body.name).to.not.equal('----');
+    });
+  });
 });

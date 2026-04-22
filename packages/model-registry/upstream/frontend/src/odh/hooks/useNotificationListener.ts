@@ -31,27 +31,29 @@ export const useNotificationListener = (): void => {
         return;
       }
 
-      try {
-        const messageStr =
-          typeof notification.messageText === 'string'
-            ? notification.messageText
-            : typeof notification.message === 'string'
-              ? notification.message
-              : undefined;
+      const messageStr =
+        typeof notification.messageText === 'string'
+          ? notification.messageText
+          : typeof notification.message === 'string'
+            ? notification.message
+            : undefined;
 
+      try {
         const detail: Record<string, unknown> = {
           status: notification.status,
           title: notification.title,
           message: messageStr,
-          timestamp: notification.timestamp?.toISOString() || new Date().toISOString(),
-          ...(notification.linkUrl && notification.linkLabel && {
-            linkUrl: notification.linkUrl,
-            linkLabel: notification.linkLabel,
-          }),
+          timestamp: notification.timestamp.toISOString(),
+          ...(notification.linkUrl &&
+            notification.linkLabel && {
+              linkUrl: notification.linkUrl,
+              linkLabel: notification.linkLabel,
+            }),
         };
 
         window.dispatchEvent(new CustomEvent(NOTIFICATION_BRIDGE_EVENT, { detail }));
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('[NotificationBridge] Failed to dispatch notification:', error);
       }
     });

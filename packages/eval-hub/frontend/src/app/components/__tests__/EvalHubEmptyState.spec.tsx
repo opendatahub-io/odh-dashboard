@@ -14,15 +14,13 @@ describe('EvalHubEmptyState', () => {
   it('should render the empty state heading', () => {
     renderWithRouter();
     expect(screen.getByTestId('eval-hub-empty-state')).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'No existing evaluation runs' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'No evaluation runs' })).toBeInTheDocument();
   });
 
   it('should render the description body', () => {
     renderWithRouter();
     expect(screen.getByTestId('eval-hub-empty-state-body')).toHaveTextContent(
-      'No evaluation runs have been started in this project. Start a new evaluation run, or select a different project.',
+      'Start an evaluation run, or select a different project to view its runs.',
     );
   });
 
@@ -30,7 +28,7 @@ describe('EvalHubEmptyState', () => {
     renderWithRouter();
     expect(screen.getByTestId('create-evaluation-button')).toBeInTheDocument();
     expect(screen.getByTestId('create-evaluation-button')).toHaveTextContent(
-      'Create new evaluation',
+      'Start evaluation run',
     );
   });
 });

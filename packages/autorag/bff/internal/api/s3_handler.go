@@ -7,11 +7,13 @@ import (
 	"io"
 	"mime"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/julienschmidt/httprouter"
@@ -24,14 +26,71 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
+// s3MetadataTimeout is the deadline for read-only S3 metadata operations
+// (ListObjects, HeadObject, etc.) that should complete quickly. This bounds
+// the response-header phase: if the endpoint accepts the TCP connection but
+// never sends response headers, r.Context() alone won't cancel the call
+// because net/http's WriteTimeout sets a conn deadline, not a context
+// cancellation. File transfers (GetObject, UploadObject) are excluded
+// because legitimate large payloads can exceed any static timeout.
+const s3MetadataTimeout = 15 * time.Second
 
-var trailingNumberPattern = regexp.MustCompile(`^(.*)-(\d+)$`)
+// ErrMaxCollisionsExceeded is returned when resolveNonCollidingS3Key exhausts all attempts
+// to find a unique object key due to naming collisions.
+var ErrMaxCollisionsExceeded = errors.New("max collision attempts exceeded")
 
 // resolvedS3 holds a ready-to-use S3 client and the resolved bucket name.
 type resolvedS3 struct {
 	client s3int.S3ClientInterface
 	bucket string
+}
+
+type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
+
+var trailingNumberPattern = regexp.MustCompile(`^(.*)-(\d+)$`)
+
+// isS3ConnectivityError checks whether an error indicates a failure to
+// establish a connection to the S3 endpoint. It detects pre-request network
+// failures such as context deadline exceeded, DNS resolution errors, dial
+// timeouts, and connection refused. It also catches general network timeouts
+// (net.Error.Timeout()) and closed-connection errors (net.ErrClosed), which
+// may occur slightly after dial but still indicate connectivity problems.
+//
+// It does NOT cover post-connection errors like TLS handshake failures or
+// mid-request connection resets — those remain as 500s.
+//
+// Matched errors let handlers return an actionable 503 instead of a generic
+// 500 when the endpoint is unreachable — common in air-gapped or
+// misconfigured environments.
+func isS3ConnectivityError(err error) bool {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	if errors.Is(err, net.ErrClosed) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	var opErr *net.OpError
+	if errors.As(err, &opErr) && opErr.Op == "dial" {
+		return true
+	}
+	var dnsErr *net.DNSError
+	return errors.As(err, &dnsErr)
+}
+
+// s3ConnectivityErrorMessage returns a user-facing message for S3 connectivity failures.
+func s3ConnectivityErrorMessage(bucket string) string {
+	return fmt.Sprintf(
+		"Unable to connect to the S3 storage endpoint for bucket '%s'. "+
+			"The endpoint may be unreachable from this cluster. "+
+			"If this is a disconnected or air-gapped environment, "+
+			"verify the S3 endpoint URL in the data connection secret "+
+			"points to a storage service accessible within the cluster network.",
+		bucket,
+	)
 }
 
 // resolveS3Client extracts identity and namespace from the request context,
@@ -140,6 +199,17 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 	//   A new AWS S3 client is created on every request. The AWS SDK client
 	//   is designed for reuse (connection pooling, TLS session caching). Consider caching
 	//   clients by credential identity (e.g. namespace/secretName) with a sync.Map or TTL cache.
+	// Dev-only: rewrite S3 endpoint to localhost via dynamic port-forward.
+	// portForwardManager is nil in production (requires DevMode=true).
+	if app.portForwardManager != nil && creds.EndpointURL != "" {
+		if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, creds.EndpointURL); pfErr != nil {
+			app.logger.Warn("dynamic port-forward failed for S3 endpoint, using original URL",
+				"error", pfErr, "url", creds.EndpointURL)
+		} else {
+			creds.EndpointURL = rewritten
+		}
+	}
+
 	s3Client, err := app.s3ClientFactory.CreateClient(creds)
 	if err != nil {
 		if errors.Is(err, s3int.ErrEndpointValidation) {
@@ -213,6 +283,11 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 			return
 		}
 
+		if isS3ConnectivityError(err) {
+			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
+			return
+		}
+
 		app.serverErrorResponse(w, r, fmt.Errorf("error retrieving file from S3: %w", err))
 		return
 	}
@@ -280,10 +355,21 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	ctx := r.Context()
 	bucket := s3.bucket
-	resolvedKey, err := resolveNonCollidingS3Key(ctx, s3.client, bucket, key, app.effectivePostS3CollisionAttempts())
+	metadataCtx, metadataCancel := context.WithTimeout(r.Context(), s3MetadataTimeout)
+	defer metadataCancel()
+	resolvedKey, err := resolveNonCollidingS3Key(metadataCtx, s3.client, bucket, key, app.effectivePostS3CollisionAttempts())
 	if err != nil {
+		if errors.Is(err, ErrMaxCollisionsExceeded) {
+			app.conflictResponse(w, r,
+				fmt.Sprintf("unable to find unique filename after %d attempts; try a different base name",
+					app.effectivePostS3CollisionAttempts()))
+			return
+		}
+		if isS3ConnectivityError(err) {
+			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
+			return
+		}
 		app.serverErrorResponse(w, r, fmt.Errorf("error resolving S3 key for upload: %w", err))
 		return
 	}
@@ -355,7 +441,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 	limitedFile := http.MaxBytesReader(nil, filePart, maxFilePartBytes)
 	// MaxBytesReader.Close forwards to Part.Close, which drains the rest of the file part.
 	defer limitedFile.Close()
-	if err := s3.client.UploadObject(ctx, bucket, resolvedKey, limitedFile, contentType); err != nil {
+	if err := s3.client.UploadObject(r.Context(), bucket, resolvedKey, limitedFile, contentType); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
 			app.payloadTooLargeResponse(w, r, s3FilePartTooLargeMsg)
@@ -368,6 +454,10 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		var accessDenied interface{ ErrorCode() string }
 		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
 			app.forbiddenResponse(w, r, fmt.Sprintf("access denied uploading to S3 '%s/%s'", bucket, resolvedKey))
+			return
+		}
+		if isS3ConnectivityError(err) {
+			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
 			return
 		}
 		app.serverErrorResponse(w, r, fmt.Errorf("error uploading file to S3: %w", err))
@@ -415,7 +505,7 @@ func resolveNonCollidingS3Key(
 		}
 		nextIndex++
 	}
-	return "", fmt.Errorf("failed to resolve non-colliding S3 key after %d attempts", maxCollisionAttempts)
+	return "", ErrMaxCollisionsExceeded
 }
 
 func splitS3ObjectPath(key string) (dir string, name string) {
@@ -551,7 +641,9 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), s3MetadataTimeout)
+	defer cancel()
+
 	bucket := s3.bucket
 	result, err := s3.client.ListObjects(ctx, bucket, s3int.ListObjectsOptions{
 		Path:   parameters.Path,
@@ -569,6 +661,11 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		var accessDenied interface{ ErrorCode() string }
 		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
 			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 bucket '%s'", bucket))
+			return
+		}
+
+		if isS3ConnectivityError(err) {
+			app.serviceUnavailableResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
 			return
 		}
 

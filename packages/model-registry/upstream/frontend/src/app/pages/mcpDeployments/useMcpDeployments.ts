@@ -11,7 +11,10 @@ const useMcpDeployments = (): FetchState<McpDeploymentList> => {
   const hasNamespace = !!queryParams.namespace;
 
   const callback = React.useMemo(
-    () => (hasNamespace ? getListMcpDeployments(BFF_HOST_PATH, queryParams) : () => Promise.resolve(EMPTY_LIST)),
+    () =>
+      hasNamespace
+        ? getListMcpDeployments(BFF_HOST_PATH, queryParams)
+        : () => Promise.resolve(EMPTY_LIST),
     [hasNamespace, queryParams],
   );
 

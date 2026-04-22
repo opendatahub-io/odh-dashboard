@@ -31,7 +31,7 @@ export const mcpDeploymentColumns: SortableData<McpDeployment>[] = [
   {
     field: 'status',
     label: 'Status',
-    sortable: (a, b) => (phaseOrder[a.phase] ?? 3) - (phaseOrder[b.phase] ?? 3),
+    sortable: (a, b) => phaseOrder[a.phase] - phaseOrder[b.phase],
     width: 15,
   },
   {

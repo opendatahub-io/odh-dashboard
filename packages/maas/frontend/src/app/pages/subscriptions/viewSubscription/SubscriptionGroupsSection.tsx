@@ -17,9 +17,7 @@ const SubscriptionGroupsSection: React.FC<SubscriptionGroupsSectionProps> = ({ g
           </Title>
         </FlexItem>
         <FlexItem>
-          <Content component="p">
-            Users in these groups are able to access this subscription.
-          </Content>
+          <Content component="p">User groups that can use models in this subscription.</Content>
         </FlexItem>
       </Flex>
     </StackItem>

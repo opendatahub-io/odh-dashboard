@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Button, Flex, FlexItem, Content, ContentVariants } from '@patternfly/react-core';
+import {
+  Button,
+  Flex,
+  FlexItem,
+  Content,
+  ContentVariants,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
 
 interface CollapsibleSectionProps {
@@ -26,45 +34,30 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   const titleId = `${localId}-title`;
 
   return (
-    <>
-      <Flex
-        gap={{ default: 'gapMd' }}
-        alignItems={{ default: 'alignItemsCenter' }}
-        style={
-          (open ?? innerOpen) || showChildrenWhenClosed
-            ? {
-                marginBottom: 'var(--pf-t--global--spacer--md)',
-              }
-            : undefined
-        }
-      >
-        <FlexItem>
-          <Button
-            icon={open ?? innerOpen ? <AngleDownIcon /> : <AngleRightIcon />}
-            aria-labelledby={titleId}
-            aria-expanded={open}
-            variant="plain"
-            style={{
-              paddingLeft: 0,
-              paddingRight: 0,
-              fontSize:
-                titleVariant === ContentVariants.h2
-                  ? 'var(--pf-t--global--icon--size--font--heading--h2)'
-                  : 'var(--pf-t--global--icon--size--font--heading--h1)', // Could use icon--size--font--[md|lg|xl] for a smaller icon
-            }}
-            onClick={() => (setOpen ? setOpen(!open) : setInnerOpen((prev) => !prev))}
-          />
-        </FlexItem>
-        <FlexItem>
-          <Content>
-            <Content id={titleId} component={titleVariant}>
-              {title}
+    <Stack hasGutter>
+      <StackItem>
+        <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+          <FlexItem>
+            <Button
+              icon={open ?? innerOpen ? <AngleDownIcon /> : <AngleRightIcon />}
+              aria-labelledby={titleId}
+              aria-expanded={open ?? innerOpen}
+              variant="plain"
+              className="pf-v6-u-px-0"
+              onClick={() => (setOpen ? setOpen(!open) : setInnerOpen((prev) => !prev))}
+            />
+          </FlexItem>
+          <FlexItem>
+            <Content>
+              <Content id={titleId} component={titleVariant}>
+                {title}
+              </Content>
             </Content>
-          </Content>
-        </FlexItem>
-      </Flex>
-      {(open ?? innerOpen) || showChildrenWhenClosed ? children : null}
-    </>
+          </FlexItem>
+        </Flex>
+      </StackItem>
+      {(open ?? innerOpen) || showChildrenWhenClosed ? <StackItem>{children}</StackItem> : null}
+    </Stack>
   );
 };
 

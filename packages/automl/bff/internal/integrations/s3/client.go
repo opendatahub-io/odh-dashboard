@@ -81,6 +81,24 @@ type RealS3Client struct {
 	options  S3ClientOptions
 }
 
+// s3ConnectTimeout is the maximum time allowed for TCP connection and TLS handshake
+// to the S3 endpoint. This must complete well under the OpenShift route timeout
+// (typically 30s) so the BFF can return a meaningful error instead of a raw 504.
+const s3ConnectTimeout = 10 * time.Second
+
+// buildS3AWSConfig creates the aws.Config used by NewRealS3Client.
+// It configures static credentials and single-attempt retries so that
+// unreachable S3 endpoints fail fast. The HTTP transport (including
+// connect and TLS handshake timeouts) is configured in NewRealS3Client
+// where RootCAs and DevMode settings are applied.
+func buildS3AWSConfig(creds *S3Credentials) aws.Config {
+	return aws.Config{
+		Region:           creds.Region,
+		Credentials:      credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
+		RetryMaxAttempts: 1,
+	}
+}
+
 // NewRealS3Client creates a new S3 client from credentials, validating the endpoint.
 func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client, error) {
 	if creds == nil {
@@ -94,14 +112,14 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 		return nil, fmt.Errorf("%w: %w", ErrEndpointValidation, err)
 	}
 
-	cfg := aws.Config{
-		Region:      creds.Region,
-		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
-	}
+	cfg := buildS3AWSConfig(creds)
 
-	// Clone the default transport to preserve connection pooling and set a
-	// transport-level timeout unconditionally, regardless of TLS configuration.
+	// Clone the default transport to preserve connection pooling and set
+	// connect, TLS handshake, and response-header timeouts so that
+	// unreachable S3 endpoints fail fast under the OpenShift route timeout.
 	transport := cloneDefaultTransport()
+	transport.DialContext = (&net.Dialer{Timeout: s3ConnectTimeout}).DialContext
+	transport.TLSHandshakeTimeout = s3ConnectTimeout
 	transport.ResponseHeaderTimeout = 30 * time.Second
 
 	if c.options.RootCAs != nil {
@@ -514,19 +532,22 @@ func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, er
 		return "", fmt.Errorf("endpoint URL must have a valid hostname")
 	}
 
-	// Allow HTTP only for in-cluster endpoints (.svc.cluster.local)
-	// All external endpoints must use HTTPS to prevent credentials in cleartext
+	// Allow HTTP only for in-cluster endpoints (.svc.cluster.local) and for
+	// localhost in dev mode (dynamic port-forwarding rewrites in-cluster URLs
+	// to localhost). The DevMode guard (default: false) ensures this bypass
+	// is impossible in production deployments.
 	isInCluster := isInternalHost(hostname)
-	if parsedURL.Scheme == "http" && !isInCluster {
+	isDevLocalhost := c.options.DevMode && (hostname == "localhost" || hostname == "127.0.0.1")
+	isTrusted := isInCluster || isDevLocalhost
+	if parsedURL.Scheme == "http" && !isTrusted {
 		return "", fmt.Errorf("endpoint URL must use HTTPS scheme for external endpoints, got: %s", parsedURL.Scheme)
 	}
 	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
 		return "", fmt.Errorf("endpoint URL must use http or https scheme, got: %s", parsedURL.Scheme)
 	}
 
-	// Skip DNS resolution and IP validation for in-cluster endpoints
-	// (.svc.cluster.local domains are cluster-internal and trusted)
-	if isInCluster {
+	// Skip DNS resolution and IP validation for trusted endpoints
+	if isTrusted {
 		return parsedURL.String(), nil
 	}
 

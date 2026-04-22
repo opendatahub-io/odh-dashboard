@@ -64,7 +64,7 @@ const ExtendedRegisteredModelTable: React.FC<ExtendedRegisteredModelTableProps> 
     const lastModifiedColumn = extendedColumns.find((col) => col.field === 'last_modified');
     if (lastModifiedColumn?.sortable && typeof lastModifiedColumn.sortable === 'function') {
       const sortFn = lastModifiedColumn.sortable;
-      return [...registeredModels].sort((a, b) => sortFn(a, b, 'last_modified'));
+      return registeredModels.toSorted((a, b) => sortFn(a, b, 'last_modified'));
     }
     return registeredModels;
   }, [registeredModels, extendedColumns]);

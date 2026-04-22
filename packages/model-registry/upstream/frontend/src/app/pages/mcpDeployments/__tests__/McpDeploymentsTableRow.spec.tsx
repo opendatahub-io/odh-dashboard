@@ -4,14 +4,18 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Table as PfTable, Tbody } from '@patternfly/react-table';
 import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
-import McpDeploymentsTableRow from '../McpDeploymentsTableRow';
+import McpDeploymentsTableRow from '~/app/pages/mcpDeployments/McpDeploymentsTableRow';
 import { createMockDeployment } from './mcpDeploymentTestUtils';
 
 const renderRow = (deployment: McpDeployment, onDeleteClick = jest.fn(), onEditClick = jest.fn()) =>
   render(
     <PfTable>
       <Tbody>
-        <McpDeploymentsTableRow deployment={deployment} onDeleteClick={onDeleteClick} onEditClick={onEditClick} />
+        <McpDeploymentsTableRow
+          deployment={deployment}
+          onDeleteClick={onDeleteClick}
+          onEditClick={onEditClick}
+        />
       </Tbody>
     </PfTable>,
   );
@@ -19,9 +23,7 @@ const renderRow = (deployment: McpDeployment, onDeleteClick = jest.fn(), onEditC
 describe('McpDeploymentsTableRow', () => {
   it('should render server column with catalog server name when set', () => {
     renderRow(createMockDeployment({ serverName: 'kubernetes-mcp-server' }));
-    expect(screen.getByTestId('mcp-deployment-server')).toHaveTextContent(
-      'kubernetes-mcp-server',
-    );
+    expect(screen.getByTestId('mcp-deployment-server')).toHaveTextContent('kubernetes-mcp-server');
   });
 
   it('should render dash in server column when serverName is not set', () => {
@@ -42,7 +44,9 @@ describe('McpDeploymentsTableRow', () => {
   it('should render a non-empty formatted creation date', () => {
     renderRow(createMockDeployment());
     const dateCell = screen.getByTestId('mcp-deployment-created');
-    expect(dateCell.textContent).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}|[A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}/);
+    expect(dateCell.textContent).toMatch(
+      /\d{1,2}\/\d{1,2}\/\d{4}|[A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}/,
+    );
   });
 
   it('should render status label that maps phase to display label', () => {

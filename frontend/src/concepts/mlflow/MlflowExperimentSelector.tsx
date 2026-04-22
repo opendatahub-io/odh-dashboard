@@ -16,7 +16,7 @@ import {
 import useTableColumnSort from '#~/components/table/useTableColumnSort';
 import { MlflowExperiment, MlflowSelectorStatus } from './types';
 import { mlflowExperimentColumns } from './columns';
-import useMlflowExperiments from './useMlflowExperiments';
+import useMlflowExperiments from './hooks/useMlflowExperiments';
 import MlflowExperimentTable from './MlflowExperimentTable';
 
 type MlflowExperimentSelectorProps = {

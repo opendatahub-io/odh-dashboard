@@ -9,11 +9,13 @@ import (
 	"log/slog"
 	"mime"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/textproto"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/config"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
@@ -1971,7 +1973,7 @@ func TestPostS3FileHandler_TwoFileParts_UsesFirstPartOnly(t *testing.T) {
 	assert.Equal(t, []byte("first-content"), capture.uploaded)
 }
 
-func TestPostS3FileHandler_CollisionResolutionExhausted_Returns500(t *testing.T) {
+func TestPostS3FileHandler_CollisionResolutionExhausted_Returns409(t *testing.T) {
 	t.Parallel()
 	secret := mockS3Secret("aws-secret-1", "test-namespace")
 	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
@@ -1994,12 +1996,13 @@ func TestPostS3FileHandler_CollisionResolutionExhausted_Returns500(t *testing.T)
 	res := rr.Result()
 	defer res.Body.Close()
 
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.Equal(t, http.StatusConflict, res.StatusCode)
 	var env ErrorEnvelope
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
 	require.NotNil(t, env.Error)
-	assert.Equal(t, "500", env.Error.Code)
-	assert.Contains(t, env.Error.Message, "the server encountered a problem")
+	assert.Equal(t, "409", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "unable to find unique filename")
+	assert.Contains(t, env.Error.Message, "5 attempts")
 }
 
 func TestResolveNonCollidingS3Key_PreservesDirectoryPrefix(t *testing.T) {
@@ -2092,6 +2095,304 @@ func mockS3Secret(name, namespace string) corev1.Secret {
 			"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 		},
 	}
+}
+
+// ---------------------------------------------------------------------------
+// isS3ConnectivityError tests
+// ---------------------------------------------------------------------------
+
+func TestIsS3ConnectivityError(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "context.DeadlineExceeded",
+			err:  context.DeadlineExceeded,
+			want: true,
+		},
+		{
+			name: "wrapped context.DeadlineExceeded",
+			err:  fmt.Errorf("s3 call failed: %w", context.DeadlineExceeded),
+			want: true,
+		},
+		{
+			name: "net.Error timeout",
+			err:  &net.DNSError{IsTimeout: true, Name: "s3.example.com", Err: "i/o timeout"},
+			want: true,
+		},
+		{
+			name: "net.OpError dial connection refused",
+			err:  &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("connection refused")},
+			want: true,
+		},
+		{
+			name: "net.OpError write (not connectivity)",
+			err:  &net.OpError{Op: "write", Net: "tcp", Err: fmt.Errorf("connection reset by peer")},
+			want: false,
+		},
+		{
+			name: "net.DNSError no such host",
+			err:  &net.DNSError{Err: "no such host", Name: "s3.airgapped.local"},
+			want: true,
+		},
+		{
+			name: "wrapped net.OpError dial",
+			err:  fmt.Errorf("s3 call failed: %w", &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("connection refused")}),
+			want: true,
+		},
+		{
+			name: "wrapped net.DNSError",
+			err:  fmt.Errorf("lookup failed: %w", &net.DNSError{Err: "no such host", Name: "s3.example.com"}),
+			want: true,
+		},
+		{
+			name: "wrapped timeout error",
+			err:  fmt.Errorf("request failed: %w", &net.DNSError{IsTimeout: true, Name: "s3.example.com", Err: "i/o timeout"}),
+			want: true,
+		},
+		{
+			name: "net.ErrClosed",
+			err:  net.ErrClosed,
+			want: true,
+		},
+		{
+			name: "wrapped net.ErrClosed",
+			err:  fmt.Errorf("http2: client conn not usable: %w", net.ErrClosed),
+			want: true,
+		},
+		{
+			name: "generic error",
+			err:  fmt.Errorf("something went wrong"),
+			want: false,
+		},
+		{
+			name: "nil error",
+			err:  nil,
+			want: false,
+		},
+		{
+			name: "access denied error (not connectivity)",
+			err:  s3AccessDeniedError{},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, isS3ConnectivityError(tt.err))
+		})
+	}
+}
+
+func TestS3ConnectivityErrorMessage(t *testing.T) {
+	t.Parallel()
+	msg := s3ConnectivityErrorMessage("my-test-bucket")
+	assert.Contains(t, msg, "my-test-bucket")
+	assert.Contains(t, msg, "Unable to connect")
+	assert.Contains(t, msg, "air-gapped")
+	assert.Contains(t, msg, "S3 endpoint URL")
+}
+
+// ---------------------------------------------------------------------------
+// Handler-level S3 connectivity error tests
+// ---------------------------------------------------------------------------
+
+// connectivityErrorS3Client returns a net.OpError for all operations,
+// simulating an unreachable S3 endpoint.
+type connectivityErrorS3Client struct {
+	s3mocks.MockS3Client
+}
+
+func (c *connectivityErrorS3Client) GetObject(_ context.Context, _, _ string) (io.ReadCloser, string, error) {
+	return nil, "", &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("i/o timeout")}
+}
+
+func (c *connectivityErrorS3Client) ListObjects(_ context.Context, _ string, _ s3int.ListObjectsOptions) (*models.S3ListObjectsResponse, error) {
+	return nil, &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("i/o timeout")}
+}
+
+func (c *connectivityErrorS3Client) ObjectExists(_ context.Context, _ string, _ string) (bool, error) {
+	return false, &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("i/o timeout")}
+}
+
+func (c *connectivityErrorS3Client) UploadObject(_ context.Context, _ string, _ string, _ io.Reader, _ string) error {
+	return &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("i/o timeout")}
+}
+
+func (c *connectivityErrorS3Client) GetCSVSchema(_ context.Context, _, _ string) (s3int.CSVSchemaResult, error) {
+	return s3int.CSVSchemaResult{}, &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("i/o timeout")}
+}
+
+func TestGetS3FileSchemaHandler_ConnectivityError_Returns503(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&connectivityErrorS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/file/schema?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.csv",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	var env ErrorEnvelope
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
+	require.NotNil(t, env.Error)
+	assert.Equal(t, "503", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "my-bucket")
+	assert.Contains(t, env.Error.Message, "Unable to connect")
+}
+
+func TestGetS3FileHandler_ConnectivityError_Returns503(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&connectivityErrorS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.csv",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	var env ErrorEnvelope
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
+	require.NotNil(t, env.Error)
+	assert.Equal(t, "503", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "my-bucket")
+	assert.Contains(t, env.Error.Message, "Unable to connect")
+}
+
+func TestGetS3FilesHandler_ConnectivityError_Returns503(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&connectivityErrorS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/files?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	var env ErrorEnvelope
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
+	require.NotNil(t, env.Error)
+	assert.Equal(t, "503", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "my-bucket")
+	assert.Contains(t, env.Error.Message, "air-gapped")
+}
+
+func TestPostS3FileHandler_ConnectivityError_OnResolveKey_Returns503(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&connectivityErrorS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	body, contentType := buildMultipartFileUpload(t, "file", "data.csv", []byte("a,b\n1,2\n"))
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=data.csv",
+		body,
+		contentType,
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	var env ErrorEnvelope
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
+	require.NotNil(t, env.Error)
+	assert.Equal(t, "503", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "my-bucket")
+}
+
+// connectivityErrorOnUploadS3Client returns connectivity errors only on upload,
+// simulating an endpoint reachable for HEAD but failing on PUT.
+type connectivityErrorOnUploadS3Client struct {
+	s3mocks.MockS3Client
+}
+
+func (c *connectivityErrorOnUploadS3Client) ObjectExists(_ context.Context, _ string, _ string) (bool, error) {
+	return false, nil
+}
+
+func (c *connectivityErrorOnUploadS3Client) UploadObject(_ context.Context, _ string, _ string, _ io.Reader, _ string) error {
+	return &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("connection refused")}
+}
+
+func TestPostS3FileHandler_ConnectivityError_OnUpload_Returns503(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(&connectivityErrorOnUploadS3Client{})
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	body, contentType := buildMultipartFileUpload(t, "file", "data.csv", []byte("a,b\n1,2\n"))
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=data.csv",
+		body,
+		contentType,
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	var env ErrorEnvelope
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
+	require.NotNil(t, env.Error)
+	assert.Equal(t, "503", env.Error.Code)
+	assert.Contains(t, env.Error.Message, "Unable to connect")
 }
 
 func TestResolveCsvMultipartContentType_MalformedContentTypeHeader(t *testing.T) {
@@ -2198,4 +2499,170 @@ func TestPostS3FileHandler_RejectsNonCsvContentType(t *testing.T) {
 	res := rr.Result()
 	defer res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+// ---------------------------------------------------------------------------
+// Metadata timeout tests
+// ---------------------------------------------------------------------------
+
+// deadlineCapturingS3Client records the context passed to each S3 operation
+// so tests can verify that handlers set appropriate deadlines.
+type deadlineCapturingS3Client struct {
+	s3mocks.MockS3Client
+	capturedCtx context.Context
+}
+
+func (c *deadlineCapturingS3Client) ListObjects(ctx context.Context, bucket string, options s3int.ListObjectsOptions) (*models.S3ListObjectsResponse, error) {
+	c.capturedCtx = ctx
+	return c.MockS3Client.ListObjects(ctx, bucket, options)
+}
+
+func (c *deadlineCapturingS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (s3int.CSVSchemaResult, error) {
+	c.capturedCtx = ctx
+	return c.MockS3Client.GetCSVSchema(ctx, bucket, key)
+}
+
+func (c *deadlineCapturingS3Client) GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error) {
+	c.capturedCtx = ctx
+	return c.MockS3Client.GetObject(ctx, bucket, key)
+}
+
+func (c *deadlineCapturingS3Client) ObjectExists(ctx context.Context, bucket, key string) (bool, error) {
+	c.capturedCtx = ctx
+	return c.MockS3Client.ObjectExists(ctx, bucket, key)
+}
+
+func TestGetS3FilesHandler_SetsMetadataTimeout(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	capturingClient := &deadlineCapturingS3Client{}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(capturingClient)
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/files?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	// Verify the handler set a deadline on the context passed to ListObjects.
+	require.NotNil(t, capturingClient.capturedCtx, "ListObjects should have been called")
+	deadline, hasDeadline := capturingClient.capturedCtx.Deadline()
+	assert.True(t, hasDeadline, "context passed to ListObjects should have a deadline from s3MetadataTimeout")
+	assert.WithinDuration(t, time.Now().Add(s3MetadataTimeout), deadline, 5*time.Second,
+		"deadline should be approximately s3MetadataTimeout from request time")
+}
+
+func TestGetS3FileSchemaHandler_SetsMetadataTimeout(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	capturingClient := &deadlineCapturingS3Client{}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(capturingClient)
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/file/schema?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=data.csv",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	// Verify the handler set a deadline on the context passed to GetCSVSchema.
+	require.NotNil(t, capturingClient.capturedCtx, "GetCSVSchema should have been called")
+	deadline, hasDeadline := capturingClient.capturedCtx.Deadline()
+	assert.True(t, hasDeadline, "context passed to GetCSVSchema should have a deadline from s3MetadataTimeout")
+	assert.WithinDuration(t, time.Now().Add(s3MetadataTimeout), deadline, 5*time.Second,
+		"deadline should be approximately s3MetadataTimeout from request time")
+}
+
+// TestGetS3FileHandler_DoesNotSetMetadataTimeout verifies that file-transfer
+// handlers do NOT impose the metadata timeout — large downloads need an
+// unbounded response window.
+func TestGetS3FileHandler_DoesNotSetMetadataTimeout(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	capturingClient := &deadlineCapturingS3Client{}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(capturingClient)
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=README.md",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	// The file-transfer handler should NOT set its own deadline.
+	require.NotNil(t, capturingClient.capturedCtx, "GetObject should have been called")
+	_, hasDeadline := capturingClient.capturedCtx.Deadline()
+	assert.False(t, hasDeadline, "context passed to GetObject should NOT have a handler-imposed deadline")
+}
+
+func TestPostS3FileHandler_SetsMetadataTimeoutForResolveKey(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	capturingClient := &deadlineCapturingS3Client{}
+	s3Factory := s3mocks.NewMockClientFactory()
+	s3Factory.SetMockClient(capturingClient)
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+	body, contentType := buildMultipartFileUpload(t, "file", "data.csv", []byte("a,b\n1,2\n"))
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodPost,
+		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=data.csv",
+		body,
+		contentType,
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+
+	// Verify the handler set a deadline on the context passed to ObjectExists
+	// (called by resolveNonCollidingS3Key).
+	require.NotNil(t, capturingClient.capturedCtx, "ObjectExists should have been called")
+	deadline, hasDeadline := capturingClient.capturedCtx.Deadline()
+	assert.True(t, hasDeadline, "context passed to ObjectExists should have a deadline from s3MetadataTimeout")
+	assert.WithinDuration(t, time.Now().Add(s3MetadataTimeout), deadline, 5*time.Second,
+		"deadline should be approximately s3MetadataTimeout from request time")
 }

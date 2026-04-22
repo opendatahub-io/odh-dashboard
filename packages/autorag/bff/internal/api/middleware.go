@@ -327,29 +327,7 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 		if app.config.MockLSClient {
 			// Mock mode: skip secret lookup entirely
 			logger.Debug("MOCK MODE: creating mock LlamaStack client (secret-based)", "namespace", namespace, "secretName", secretName)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs, "/v1")
-		} else if app.config.AuthMethod == config.AuthMethodDisabled {
-			// When auth is disabled, no RequestIdentity is injected into the context.
-			// LLAMA_STACK_URL must be explicitly configured as the service endpoint.
-			if app.config.LlamaStackURL == "" {
-				app.serverErrorResponse(w, r, fmt.Errorf("LLAMA_STACK_URL must be configured when authentication is disabled"))
-				return
-			}
-			logger.Debug("AUTH DISABLED: using LLAMA_STACK_URL with empty token",
-				"namespace", namespace,
-				"serviceURL", app.config.LlamaStackURL)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, "", app.config.InsecureSkipVerify, app.rootCAs, "/v1")
-		} else if app.config.LlamaStackURL != "" {
-			// Developer override: use LLAMA_STACK_URL, skip secret lookup.
-			// Use identity token if available; empty token is acceptable for local dev.
-			var authToken string
-			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
-				authToken = identity.Token
-			}
-			logger.Debug("Using LLAMA_STACK_URL environment variable (developer override)",
-				"namespace", namespace,
-				"serviceURL", app.config.LlamaStackURL)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, authToken, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs)
 		} else {
 			// Production: read credentials from Kubernetes secret
 			identity, identityOk := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
@@ -406,12 +384,23 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 				return
 			}
 
+			// Dev-only: rewrite LlamaStack URL to localhost via dynamic port-forward.
+			// portForwardManager is nil in production (requires DevMode=true).
+			if app.portForwardManager != nil {
+				if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, baseURL); pfErr != nil {
+					logger.Warn("dynamic port-forward failed for LlamaStack endpoint, using original URL",
+						"error", pfErr, "url", baseURL)
+				} else {
+					baseURL = rewritten
+				}
+			}
+
 			logger.Debug("Creating LlamaStack client from secret",
 				"namespace", namespace,
 				"secretName", secretName,
 				"serviceURL", baseURL)
 
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs)
 		}
 
 		// Attach ready-to-use client to context
@@ -447,48 +436,6 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(mockBaseURL, "", false, app.rootCAs)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
 			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, mockBaseURL)
-		} else if app.config.PipelineServerURL != "" {
-			// Override URL is set - skip Kubernetes client and DSPA discovery for local/dev mode
-			baseURL := app.config.PipelineServerURL
-			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, baseURL)
-			logger.Debug("Using override Pipeline Server URL from config - skipping DSPA discovery",
-				"namespace", namespace)
-
-			// Extract auth token from request identity to forward to Pipeline Server
-			authToken := ""
-			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil && identity.Token != "" {
-				authToken = identity.Token
-				logger.Debug("Using auth token from request identity", "tokenLength", len(authToken))
-			} else {
-				// Fallback: try reading Authorization header directly (for local testing)
-				authHeader := r.Header.Get("Authorization")
-				if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
-					authToken = strings.TrimPrefix(authHeader, "Bearer ")
-					logger.Debug("Using auth token from Authorization header (fallback for local testing)", "tokenLength", len(authToken))
-				} else {
-					logger.Debug("No auth token available from identity or Authorization header")
-				}
-			}
-
-			insecureSkipVerify := app.config.InsecureSkipVerify
-
-			logger.Debug("Creating Pipeline Server client with override URL",
-				"namespace", namespace,
-				"hasToken", authToken != "")
-
-			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(
-				baseURL,
-				authToken,
-				insecureSkipVerify,
-				app.rootCAs,
-			)
-			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
-
-			// Best-effort DSPA discovery so the S3 handlers can resolve credentials
-			// from the DSPA spec even when a Pipeline Server override URL is set
-			// (e.g. port-forwarding during local development). Failure is non-fatal:
-			// the S3 handler falls back to requiring an explicit secretName.
-			ctx = app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
 		} else {
 			// Get Kubernetes client
 			client, err := app.kubernetesClientFactory.GetClient(ctx)
@@ -557,11 +504,33 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 					"pipelineServerId", dspa.Metadata.Name)
 			}
 
+			// Dev-only: rewrite in-cluster URL to localhost via dynamic port-forward.
+			// portForwardManager is nil in production (requires DevMode=true).
+			if app.portForwardManager != nil {
+				if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, baseURL); pfErr != nil {
+					logger.Warn("dynamic port-forward failed for pipeline server, using original URL",
+						"error", pfErr, "url", baseURL)
+				} else {
+					baseURL = rewritten
+				}
+			}
+
 			// Extract the full object storage configuration from the DSPA spec and store in
 			// context. This allows downstream handlers to connect to S3 (or compatible stores
 			// like managed MinIO) without an additional Kubernetes API call.
 			dspaObjectStorage, storageType := resolveDSPAObjectStorage(dspa, namespace, logger)
 			if dspaObjectStorage != nil {
+				// Dev-only: rewrite S3 endpoint to localhost via dynamic port-forward.
+				// portForwardManager is nil in production (requires DevMode=true).
+				if app.portForwardManager != nil && dspaObjectStorage.EndpointURL != "" {
+					if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, dspaObjectStorage.EndpointURL); pfErr != nil {
+						logger.Warn("dynamic port-forward failed for S3 endpoint, using original URL",
+							"error", pfErr, "url", dspaObjectStorage.EndpointURL)
+					} else {
+						dspaObjectStorage.EndpointURL = rewritten
+					}
+				}
+
 				ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
 
 				// Log appropriate message based on storage type
@@ -690,6 +659,16 @@ func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespac
 	// Resolve and inject DSPA object storage config
 	dspaObjectStorage, storageType := resolveDSPAObjectStorage(dspa, namespace, logger)
 	if dspaObjectStorage != nil {
+		// Rewrite S3 endpoint URL if dynamic port-forwarding is enabled
+		if app.portForwardManager != nil && dspaObjectStorage.EndpointURL != "" {
+			if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, dspaObjectStorage.EndpointURL); pfErr != nil {
+				logger.Warn("dynamic port-forward failed for S3 endpoint, using original URL",
+					"error", pfErr, "url", dspaObjectStorage.EndpointURL)
+			} else {
+				dspaObjectStorage.EndpointURL = rewritten
+			}
+		}
+
 		ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
 
 		// Log appropriate message based on storage type

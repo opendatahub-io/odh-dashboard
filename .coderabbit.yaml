@@ -11,7 +11,6 @@ reviews:
     # Baseline already excludes: vendor, node_modules, bin, __pycache__,
     #   *.sum, *.pb.go, *.generated.go, synced security configs
     - "!package-lock.json"
-    - "!.github/**"
     - "!.tekton/**"
     - "!**/@mf-types/**"
     - "!**/dist/**"
