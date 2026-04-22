@@ -259,25 +259,37 @@ export const convertFeatureStoreLineageToVisualizationData = (
   return { nodes, edges };
 };
 
+const FEATURE_VIEW_TYPES = new Set(['featureView', 'onDemandFeatureView', 'streamFeatureView']);
+const isFeatureViewType = (type: string): boolean => FEATURE_VIEW_TYPES.has(type);
+
 /**
  * Builds a map of feature view name → feature entries derived from feature-type relationships.
- * Relationships only carry feature names, so valueType defaults to an empty string.
+ * Relationships only carry feature names; valueType is left empty because the
+ * relationship data does not include it. The empty string is intentional — the
+ * popover renderer uses `feature.valueType &&` to conditionally display the type,
+ * so an empty string correctly suppresses the "(type)" display for these entries.
  */
 const collectFeaturesByView = (
   relationships: FeatureStoreRelationship[],
 ): Map<string, FeatureColumns[]> => {
   const featuresByView = new Map<string, FeatureColumns[]>();
+  const seen = new Set<string>();
 
   const addFeature = (viewName: string, featureName: string) => {
+    const key = `${viewName}::${featureName}`;
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
     const existing = featuresByView.get(viewName) ?? [];
     existing.push({ name: featureName, valueType: '' });
     featuresByView.set(viewName, existing);
   };
 
   relationships.forEach((rel) => {
-    if (rel.source.type === 'feature' && rel.target.type.includes('featureView')) {
+    if (rel.source.type === 'feature' && isFeatureViewType(rel.target.type)) {
       addFeature(rel.target.name, rel.source.name);
-    } else if (rel.target.type === 'feature' && rel.source.type.includes('featureView')) {
+    } else if (rel.target.type === 'feature' && isFeatureViewType(rel.source.type)) {
       addFeature(rel.source.name, rel.target.name);
     }
   });
@@ -316,8 +328,8 @@ export const convertFeatureViewLineageToVisualizationData = (
     if (obj.type === 'feature') {
       return;
     }
-    const isCurrentFeatureView = obj.type.includes('featureView') && obj.name === featureViewName;
-    const isFeatureViewNode = obj.type.includes('featureView');
+    const isCurrentFeatureView = isFeatureViewType(obj.type) && obj.name === featureViewName;
+    const isFeatureViewNode = isFeatureViewType(obj.type);
     const layer = getObjectLayer(obj.type, isCurrentFeatureView);
 
     const objectTypeForLabel = isCurrentFeatureView && featureViewType ? featureViewType : obj.type;

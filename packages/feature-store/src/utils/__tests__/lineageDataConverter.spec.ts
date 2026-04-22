@@ -141,4 +141,20 @@ describe('convertFeatureViewLineageToVisualizationData', () => {
     expect(result.nodes).toHaveLength(0);
     expect(result.edges).toHaveLength(0);
   });
+
+  it('deduplicates features from duplicate relationships', () => {
+    const dupeLineage: FeatureViewLineage = {
+      relationships: [
+        buildRelationship('feature', 'conv_rate', 'featureView', 'driver_stats'),
+        buildRelationship('feature', 'conv_rate', 'featureView', 'driver_stats'),
+        buildRelationship('feature', 'acc_rate', 'featureView', 'driver_stats'),
+      ],
+      pagination: { totalCount: 3, totalPages: 1 },
+    };
+
+    const { nodes } = convert(dupeLineage);
+
+    const currentNode = nodes.find((n) => n.name === 'driver_stats');
+    expect(currentNode?.features).toHaveLength(2);
+  });
 });
