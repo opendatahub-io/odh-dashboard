@@ -10,7 +10,7 @@ import {
   SplitItem,
   Truncate,
 } from '@patternfly/react-core';
-import { OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
+import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useQueryClient } from '@tanstack/react-query';
@@ -31,7 +31,7 @@ import { useNotification } from '~/app/hooks/useNotification';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { RuntimeStateKF } from '~/app/types/pipeline';
-import { autoragExperimentsPathname } from '~/app/utilities/routes';
+import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
 import { parseErrorStatus } from '~/app/utilities/utils';
 
 function AutoragResultsPage(): React.JSX.Element {
@@ -190,6 +190,21 @@ function AutoragResultsPage(): React.JSX.Element {
                         Retry
                       </Button>
                     )}
+                  </SplitItem>
+                  <SplitItem>
+                    <Button
+                      variant="secondary"
+                      icon={<CogIcon />}
+                      component={(props) => (
+                        <Link
+                          {...props}
+                          to={`${autoragReconfigurePathname}/${namespace}/${runId}`}
+                        />
+                      )}
+                      data-testid="reconfigure-run-button"
+                    >
+                      Reconfigure
+                    </Button>
                   </SplitItem>
                   <SplitItem>
                     <Button

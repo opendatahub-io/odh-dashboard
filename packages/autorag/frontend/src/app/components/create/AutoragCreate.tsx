@@ -17,11 +17,15 @@ import LlamaStackConnectionModal from '~/app/components/common/LlamaStackConnect
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 
-function AutoragCreate(): React.JSX.Element {
+type AutoragCreateProps = {
+  initialLlamaStackSecret?: SecretSelection;
+};
+
+function AutoragCreate({ initialLlamaStackSecret }: AutoragCreateProps): React.JSX.Element {
   const { namespace } = useParams();
   const [selectedLlamaStackSecret, setSelectedLlamaStackSecret] = React.useState<
     SecretSelection | undefined
-  >();
+  >(initialLlamaStackSecret);
   const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
 
@@ -33,9 +37,12 @@ function AutoragCreate(): React.JSX.Element {
   // This is because TypeaheadSelect in SecretSelector does not support specifying an initial value.
   // Therefore, reset field on mount to avoid confusion of "Next" button being enabled even though
   // no selection appears to be made.
+  // Skip the reset when an initial secret is provided (reconfigure flow).
   useEffect(() => {
-    setValue('llama_stack_secret_name', '');
-  }, [setValue]);
+    if (!initialLlamaStackSecret) {
+      setValue('llama_stack_secret_name', '');
+    }
+  }, [setValue, initialLlamaStackSecret]);
 
   // Use a div instead of PF's <Form> to avoid nested <form> elements,
   // since AutoragConfigurePage already renders <Stack component="form">.

@@ -10,7 +10,7 @@ import {
   SplitItem,
   Truncate,
 } from '@patternfly/react-core';
-import { OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
+import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useQueryClient } from '@tanstack/react-query';
@@ -31,7 +31,7 @@ import { useNotification } from '~/app/hooks/useNotification';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutomlResults } from '~/app/hooks/useAutomlResults';
 import { RuntimeStateKF } from '~/app/types/pipeline';
-import { automlExperimentsPathname } from '~/app/utilities/routes';
+import { automlExperimentsPathname, automlReconfigurePathname } from '~/app/utilities/routes';
 import { parseErrorStatus } from '~/app/utilities/utils';
 
 function AutomlResultsPage(): React.JSX.Element {
@@ -179,6 +179,21 @@ function AutomlResultsPage(): React.JSX.Element {
                         Retry
                       </Button>
                     )}
+                  </SplitItem>
+                  <SplitItem>
+                    <Button
+                      variant="secondary"
+                      icon={<CogIcon />}
+                      component={(props) => (
+                        <Link
+                          {...props}
+                          to={`${automlReconfigurePathname}/${namespace}/${runId}`}
+                        />
+                      )}
+                      data-testid="reconfigure-run-button"
+                    >
+                      Reconfigure
+                    </Button>
                   </SplitItem>
                   <SplitItem>
                     <Button

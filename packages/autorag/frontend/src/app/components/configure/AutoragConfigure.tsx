@@ -142,7 +142,11 @@ const OPTIMIZATION_METRICS: {
   },
 ];
 
-function AutoragConfigure(): React.JSX.Element {
+type AutoragConfigureProps = {
+  initialValues?: Partial<ConfigureSchema> & { initialSecret?: SecretSelection };
+};
+
+function AutoragConfigure({ initialValues }: AutoragConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
   const autoragConnectionTypes = React.useMemo(
@@ -165,9 +169,19 @@ function AutoragConfigure(): React.JSX.Element {
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [isMetricSelectOpen, setIsMetricSelectOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
-  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
+  const initialSecret = initialValues?.initialSecret;
+  const initialInputDataKey = initialValues?.input_data_key;
+
+  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(initialSecret);
   const [inputDataSourceMode, setInputDataSourceMode] = useState<'select' | 'upload'>('select');
-  const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>();
+  const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>(() => {
+    if (!initialInputDataKey) {
+      return undefined;
+    }
+    const fileName = initialInputDataKey.split('/').pop() ?? initialInputDataKey;
+    const ext = fileName.includes('.') ? (fileName.split('.').pop() ?? '') : '';
+    return { name: fileName, path: `/${initialInputDataKey}`, type: ext };
+  });
   const [isInputDataFileUploading, setIsInputDataFileUploading] = useState(false);
   const [isInputDataDropdownOpen, setIsInputDataDropdownOpen] = useState(false);
   const inputDataUploadSeqRef = useRef(0);
@@ -231,7 +245,15 @@ function AutoragConfigure(): React.JSX.Element {
   }, [allModelsData, getValues, reset]);
 
   // set bucket from selected secret
+  // Tracks the previous value so the effect only fires on actual changes, not on mount.
+  // In reconfigure flows this prevents the pre-populated bucket from being cleared.
+  const prevSelectedSecretRef = useRef(selectedSecret);
   useEffect(() => {
+    if (prevSelectedSecretRef.current === selectedSecret) {
+      return;
+    }
+    prevSelectedSecretRef.current = selectedSecret;
+
     // reset bucket if secret is removed
     if (!selectedSecret) {
       setValue('input_data_bucket_name', '', { shouldValidate: true });
@@ -252,7 +274,15 @@ function AutoragConfigure(): React.JSX.Element {
   }, [inputDataSecretName, setValue]);
 
   // reset input data key if document input mode changes
+  // Tracks previous value so the effect only fires on actual changes, not on mount.
+  // In reconfigure flows this prevents the pre-populated file from being cleared.
+  const prevModeRef = useRef(inputDataSourceMode);
   useEffect(() => {
+    if (prevModeRef.current === inputDataSourceMode) {
+      return;
+    }
+    prevModeRef.current = inputDataSourceMode;
+
     inputDataUploadSeqRef.current += 1;
     setIsInputDataFileUploading(false);
     setValue('input_data_key', '', { shouldValidate: true });
@@ -270,7 +300,20 @@ function AutoragConfigure(): React.JSX.Element {
   }, [inputDataBucketName, inputDataSecretName, setValue, testDataBucketName, testDataSecretName]);
 
   // reset selected file values if input secret or bucket changes
+  // Track previous values so the effect only fires on actual changes, not on mount.
+  // In reconfigure flows this prevents the pre-populated file from being cleared.
+  const prevInputSecretNameRef = useRef(inputDataSecretName);
+  const prevInputBucketNameRef = useRef(inputDataBucketName);
   useEffect(() => {
+    if (
+      prevInputSecretNameRef.current === inputDataSecretName &&
+      prevInputBucketNameRef.current === inputDataBucketName
+    ) {
+      return;
+    }
+    prevInputSecretNameRef.current = inputDataSecretName;
+    prevInputBucketNameRef.current = inputDataBucketName;
+
     inputDataUploadSeqRef.current += 1;
     setIsInputDataFileUploading(false);
     setValue('input_data_key', '', { shouldValidate: true });
@@ -278,7 +321,20 @@ function AutoragConfigure(): React.JSX.Element {
   }, [inputDataSecretName, inputDataBucketName, setValue]);
 
   // reset selected file values if test secret or bucket changes
+  // Track previous values so the effect only fires on actual changes, not on mount.
+  // In reconfigure flows this prevents the pre-populated test file from being cleared.
+  const prevTestSecretNameRef = useRef(testDataSecretName);
+  const prevTestBucketNameRef = useRef(testDataBucketName);
   useEffect(() => {
+    if (
+      prevTestSecretNameRef.current === testDataSecretName &&
+      prevTestBucketNameRef.current === testDataBucketName
+    ) {
+      return;
+    }
+    prevTestSecretNameRef.current = testDataSecretName;
+    prevTestBucketNameRef.current = testDataBucketName;
+
     setValue('test_data_key', '', { shouldValidate: true });
     setSelectedInputDataFile(undefined);
   }, [testDataSecretName, testDataBucketName, setValue]);

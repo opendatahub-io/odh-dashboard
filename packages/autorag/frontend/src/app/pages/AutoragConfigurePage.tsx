@@ -24,6 +24,7 @@ import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { useCreatePipelineRunMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
+import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
 
@@ -34,7 +35,19 @@ const createFields = [
   'llama_stack_secret_name',
 ] as const satisfies Array<FieldPath<ConfigureSchema>>;
 
-function AutoragConfigurePage(): React.JSX.Element {
+type AutoragConfigurePageProps = {
+  initialValues?: Partial<ConfigureSchema> & {
+    initialSecret?: SecretSelection;
+    initialLlamaStackSecret?: SecretSelection;
+  };
+  /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
+  sourceRunId?: string;
+};
+
+function AutoragConfigurePage({
+  initialValues,
+  sourceRunId,
+}: AutoragConfigurePageProps): React.JSX.Element {
   const navigate = useNavigate();
   const notification = useNotification();
 
@@ -54,7 +67,7 @@ function AutoragConfigurePage(): React.JSX.Element {
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
-    defaultValues: configureSchema.defaults,
+    defaultValues: { ...configureSchema.defaults, ...initialValues },
   });
 
   const [displayName, , llamaStackSecretName] = useWatch({
@@ -63,6 +76,10 @@ function AutoragConfigurePage(): React.JSX.Element {
   });
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
+
+  const cancelPath = sourceRunId
+    ? `${autoragResultsPathname}/${namespace}/${sourceRunId}`
+    : `${autoragExperimentsPathname}/${namespace}`;
 
   const createActions = (
     <>
@@ -80,12 +97,7 @@ function AutoragConfigurePage(): React.JSX.Element {
         </Button>
       </ActionListItem>
       <ActionListItem>
-        <Button
-          component={(props) => (
-            <Link {...props} to={`${autoragExperimentsPathname}/${namespace}`} />
-          )}
-          variant="link"
-        >
+        <Button component={(props) => <Link {...props} to={cancelPath} />} variant="link">
           Cancel
         </Button>
       </ActionListItem>
@@ -102,7 +114,7 @@ function AutoragConfigurePage(): React.JSX.Element {
           isLoading={form.formState.isSubmitting}
           spinnerAriaValueText="Submitting"
         >
-          Create run
+          {sourceRunId ? 'Create new run' : 'Create run'}
         </Button>
       </ActionListItem>
       <ActionListItem>
@@ -201,7 +213,11 @@ function AutoragConfigurePage(): React.JSX.Element {
               )}
               hasBodyWrapper={false}
             >
-              {step === 'create' ? <AutoragCreate /> : <AutoragConfigure />}
+              {step === 'create' ? (
+                <AutoragCreate initialLlamaStackSecret={initialValues?.initialLlamaStackSecret} />
+              ) : (
+                <AutoragConfigure initialValues={initialValues} />
+              )}
             </PageSection>
           </StackItem>
           <StackItem>

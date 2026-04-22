@@ -24,6 +24,7 @@ import AutomlCreate from '~/app/components/create/AutomlCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { useCreatePipelineRunMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
+import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
 
@@ -32,7 +33,16 @@ const createFields = ['display_name', 'description'] as const satisfies Array<
   FieldPath<ConfigureSchema>
 >;
 
-function AutomlConfigurePage(): React.JSX.Element {
+type AutomlConfigurePageProps = {
+  initialValues?: Partial<ConfigureSchema> & { initialSecret?: SecretSelection };
+  /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
+  sourceRunId?: string;
+};
+
+function AutomlConfigurePage({
+  initialValues,
+  sourceRunId,
+}: AutomlConfigurePageProps): React.JSX.Element {
   const navigate = useNavigate();
   const notification = useNotification();
 
@@ -52,7 +62,7 @@ function AutomlConfigurePage(): React.JSX.Element {
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
-    defaultValues: configureSchema.defaults,
+    defaultValues: { ...configureSchema.defaults, ...initialValues },
   });
 
   const [displayName] = useWatch({
@@ -61,6 +71,10 @@ function AutomlConfigurePage(): React.JSX.Element {
   });
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
+
+  const cancelPath = sourceRunId
+    ? `${automlResultsPathname}/${namespace}/${sourceRunId}`
+    : `${automlExperimentsPathname}/${namespace}`;
 
   const createActions = (
     <>
@@ -74,12 +88,7 @@ function AutomlConfigurePage(): React.JSX.Element {
         </Button>
       </ActionListItem>
       <ActionListItem>
-        <Button
-          component={(props) => (
-            <Link {...props} to={`${automlExperimentsPathname}/${namespace}`} />
-          )}
-          variant="link"
-        >
+        <Button component={(props) => <Link {...props} to={cancelPath} />} variant="link">
           Cancel
         </Button>
       </ActionListItem>
@@ -94,7 +103,7 @@ function AutomlConfigurePage(): React.JSX.Element {
           variant="primary"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
         >
-          Create run
+          {sourceRunId ? 'Create new run' : 'Create run'}
         </Button>
       </ActionListItem>
       <ActionListItem>
@@ -189,7 +198,11 @@ function AutomlConfigurePage(): React.JSX.Element {
               )}
               hasBodyWrapper={false}
             >
-              {step === 'create' ? <AutomlCreate /> : <AutomlConfigure />}
+              {step === 'create' ? (
+                <AutomlCreate />
+              ) : (
+                <AutomlConfigure initialValues={initialValues} />
+              )}
             </PageSection>
           </StackItem>
           <StackItem>

@@ -137,7 +137,11 @@ function isAllowedTrainingDataUploadFile(file: File): boolean {
   return Boolean(file.type && file.type in TRAINING_DATA_FILE_ACCEPT);
 }
 
-function AutomlConfigure(): React.JSX.Element {
+type AutomlConfigureProps = {
+  initialValues?: Partial<ConfigureSchema> & { initialSecret?: SecretSelection };
+};
+
+function AutomlConfigure({ initialValues }: AutomlConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const queryClient = useQueryClient();
   const [allConnectionTypes] = useWatchConnectionTypes();
@@ -155,19 +159,31 @@ function AutomlConfigure(): React.JSX.Element {
   const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
   const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
-  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
+  const initialSecret = initialValues?.initialSecret;
+  const initialFileKey = initialValues?.train_data_file_key;
+
+  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(initialSecret);
   const [trainingDataSourceMode, setTrainingDataSourceMode] = useState<'select' | 'upload'>(
     'select',
   );
   const [selectedTrainingDataFile, setSelectedTrainingDataFile] = useState<
     S3ExplorerFile | undefined
-  >();
+  >(() => {
+    if (!initialFileKey) {
+      return undefined;
+    }
+    const fileName = initialFileKey.split('/').pop() ?? initialFileKey;
+    const ext = fileName.includes('.') ? (fileName.split('.').pop() ?? '') : '';
+    return { name: fileName, path: `/${initialFileKey}`, type: ext };
+  });
   const [isTrainingDataFileUploading, setIsTrainingDataFileUploading] = useState(false);
   const [isTrainingDataUploadDropdownOpen, setIsTrainingDataUploadDropdownOpen] = useState(false);
   const trainingDataUploadSeqRef = useRef(0);
   const trainingDataNativeInputRef = useRef<HTMLInputElement>(null);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
-  const previousFileKeyRef = useRef<string | undefined>();
+  // Initialized from initialFileKey so the file-change effect treats the pre-populated
+  // value as the baseline in reconfigure flows, preventing an unnecessary reset on mount.
+  const previousFileKeyRef = useRef<string | undefined>(initialFileKey);
 
   const notification = useNotification();
 
@@ -220,7 +236,15 @@ function AutomlConfigure(): React.JSX.Element {
   );
 
   // set bucket from selected secret
+  // Tracks the previous value so the effect only fires on actual changes, not on mount.
+  // In reconfigure flows this prevents the pre-populated bucket from being cleared.
+  const prevSelectedSecretRef = useRef(selectedSecret);
   useEffect(() => {
+    if (prevSelectedSecretRef.current === selectedSecret) {
+      return;
+    }
+    prevSelectedSecretRef.current = selectedSecret;
+
     // reset bucket if secret is removed
     if (!selectedSecret || !selectedSecret.data) {
       setValue('train_data_bucket_name', '', { shouldValidate: true });
@@ -234,7 +258,20 @@ function AutomlConfigure(): React.JSX.Element {
   }, [selectedSecret, setValue]);
 
   // reset selected file values if secret or bucket changes
+  // Track previous values so the effect only fires on actual changes, not on mount.
+  // In reconfigure flows this prevents the pre-populated file from being cleared.
+  const prevSecretNameRef = useRef(trainDataSecretName);
+  const prevBucketNameRef = useRef(trainDataBucketName);
   useEffect(() => {
+    if (
+      prevSecretNameRef.current === trainDataSecretName &&
+      prevBucketNameRef.current === trainDataBucketName
+    ) {
+      return;
+    }
+    prevSecretNameRef.current = trainDataSecretName;
+    prevBucketNameRef.current = trainDataBucketName;
+
     trainingDataUploadSeqRef.current += 1;
     setIsTrainingDataFileUploading(false);
     setValue('train_data_file_key', '', { shouldValidate: true });
@@ -242,7 +279,15 @@ function AutomlConfigure(): React.JSX.Element {
   }, [trainDataSecretName, trainDataBucketName, setValue]);
 
   // reset training data key when select vs upload mode changes
+  // Tracks previous value so the effect only fires on actual changes, not on mount.
+  // In reconfigure flows this prevents the pre-populated file from being cleared.
+  const prevModeRef = useRef(trainingDataSourceMode);
   useEffect(() => {
+    if (prevModeRef.current === trainingDataSourceMode) {
+      return;
+    }
+    prevModeRef.current = trainingDataSourceMode;
+
     trainingDataUploadSeqRef.current += 1;
     setIsTrainingDataFileUploading(false);
     setValue('train_data_file_key', '', { shouldValidate: true });
