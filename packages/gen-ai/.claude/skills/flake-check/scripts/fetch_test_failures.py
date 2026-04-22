@@ -215,7 +215,7 @@ def parse_jest_failures(lines: list[str]) -> list[dict]:
     text = "\n".join(lines)
     failures: list[dict] = []
 
-    pattern = re.compile(r"^●\s+(.+?)$", re.MULTILINE)
+    pattern = re.compile(r"^\s*●\s+(.+?)$", re.MULTILINE)
     positions = [(m.start(), m.group(1)) for m in pattern.finditer(text)]
 
     for i, (start, test_name) in enumerate(positions):
