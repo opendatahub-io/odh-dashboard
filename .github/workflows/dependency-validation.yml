@@ -108,8 +108,10 @@ jobs:
 
       - name: Run npm audit on base
         id: audit-base
+        env:
+          AUDIT_DIR: ${{ matrix.dir }}
         run: |
-          cd base/${{ matrix.dir }}
+          cd "base/${AUDIT_DIR}"
           npm ci
           set +e
           npm audit --audit-level=high --json > audit-base.json 2>/dev/null
@@ -132,10 +134,16 @@ jobs:
 
       - name: Fail if new high/critical CVEs introduced
         if: fromJSON(steps.audit.outputs.high) > fromJSON(steps.audit-base.outputs.high) || fromJSON(steps.audit.outputs.critical) > fromJSON(steps.audit-base.outputs.critical)
+        env:
+          AUDIT_DIR: ${{ matrix.dir }}
+          BASE_HIGH: ${{ steps.audit-base.outputs.high }}
+          BASE_CRITICAL: ${{ steps.audit-base.outputs.critical }}
+          HEAD_HIGH: ${{ steps.audit.outputs.high }}
+          HEAD_CRITICAL: ${{ steps.audit.outputs.critical }}
         run: |
-          echo "::error::PR introduces new high/critical vulnerabilities in ${{ matrix.dir }}."
-          echo "Base: ${{ steps.audit-base.outputs.high }} high, ${{ steps.audit-base.outputs.critical }} critical"
-          echo "Head: ${{ steps.audit.outputs.high }} high, ${{ steps.audit.outputs.critical }} critical"
+          echo "::error::PR introduces new high/critical vulnerabilities in ${AUDIT_DIR}."
+          echo "Base: ${BASE_HIGH} high, ${BASE_CRITICAL} critical"
+          echo "Head: ${HEAD_HIGH} high, ${HEAD_CRITICAL} critical"
           exit 1
 
   override-consistency:
