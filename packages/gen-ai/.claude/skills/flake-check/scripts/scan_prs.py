@@ -493,16 +493,18 @@ def main() -> None:
         # Build test-level patterns from the shared log fetch.
         # --file mode: use only the file-matched tests stored in pr["matched_tests"].
         # --deep mode: use all fetched tests across all PRs.
-        test_index: dict[str, dict] = {}
+        test_index: dict[tuple[str, str], dict] = {}
         for pr in pr_results:
             tests = pr.get("matched_tests", []) if args.file else all_pr_tests.get(pr["number"], [])
             for t in tests:
                 name = t.get("name", "")
                 if not name:
                     continue
-                if name not in test_index:
-                    test_index[name] = {"file": t.get("file", ""), "pr_numbers": [], "errors": []}
-                entry = test_index[name]
+                file = t.get("file") or ""
+                key = (file, name)
+                if key not in test_index:
+                    test_index[key] = {"file": file, "name": name, "pr_numbers": [], "errors": []}
+                entry = test_index[key]
                 if pr["number"] not in entry["pr_numbers"]:
                     entry["pr_numbers"].append(pr["number"])
                 err = t.get("error", "")
@@ -511,13 +513,13 @@ def main() -> None:
 
         output["test_patterns"] = [
             {
-                "test_name": name,
+                "test_name": data["name"],
                 "file": data["file"],
                 "failure_count": len(data["pr_numbers"]),
                 "pr_numbers": sorted(data["pr_numbers"], reverse=True),
                 "errors": data["errors"],
             }
-            for name, data in sorted(test_index.items(), key=lambda kv: -len(kv[1]["pr_numbers"]))
+            for (_file, _name), data in sorted(test_index.items(), key=lambda kv: -len(kv[1]["pr_numbers"]))
             if len(data["pr_numbers"]) >= 2
         ]
 
