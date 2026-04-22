@@ -278,10 +278,17 @@ A single passing rerun is suggestive but not conclusive — gather multiple sign
 - **Cross-PR recurrence:** run `/flake-check scan --file <filename>` — if this file keeps failing across PRs with unrelated code changes, that's the strongest signal of all
 - **Other giveaway signs:** timing errors (`Timed out retrying`), DOM race conditions (`Cannot read properties of null`), infrastructure errors (`ECONNRESET`, `ERR_CONNECTION_REFUSED`), no code overlap — see the flake-check README for the full pattern list
 
-When you have enough evidence, **search Jira first** to avoid duplicates:
-`project = RHOAIENG AND labels = "flaky-test" AND text ~ "<test name fragment>"`
+When you have enough evidence, **proactively ask the user** whether they want you to search Jira for existing tickets — do not wait for them to ask. Frame it as:
 
-If no existing ticket — say "create the Jira" and I'll file it, or copy these fields:
+> "Would you like me to search Jira for existing tracking tickets for these suspected flaky tests? (Requires Jira MCP to be configured.)"
+
+If they agree and Jira MCP is available, run up to three searches per suspected test — a single query on the full test name is often too narrow and will miss tickets filed against the file name or symptom:
+
+1. **Test file name** — `project = RHOAIENG AND labels = "flaky-test" AND text ~ "<filename>" ORDER BY created DESC`
+2. **Short it() fragment** — 2–3 distinctive words from the `it()` description, not the full sentence: `project = RHOAIENG AND labels = "flaky-test" AND text ~ "<short fragment>" ORDER BY created DESC`
+3. **Error symptom** — if a distinctive error token is known (e.g. `modal-submit-button`, `pf-m-progress`, `ECONNRESET`): `project = RHOAIENG AND labels = "flaky-test" AND text ~ "<symptom token>" ORDER BY created DESC`
+
+Deduplicate results across queries. Report unique matches (key, summary, status) for each test. If a ticket already exists, link to it. If no existing ticket — say "create the Jira" and I'll file it, or copy these fields:
 
 <For each ⚠️ Suspected Flaky test in the report, generate one block. Substitute all `<...>` placeholders except `<team label if known ...>` and `<team component if known>` — render those two verbatim so the user knows they must supply those values themselves.>
 
@@ -476,3 +483,15 @@ No failures matching "<file_filter>" were found across <scanned> recent PRs. The
 List PRs flagged `⚠️` or `❓` and offer:
 > "Run `/flake-check <number> --deep` for a deep investigation with full log analysis and rerun detection."
 > "If a pattern looks confirmed flaky, say 'create a Jira for this test' and I'll search for an existing ticket and file one with pre-filled fields if needed."
+
+**Jira search offer — include this whenever the report contains one or more ⚠️ Suspected Flaky tests:**
+
+> "Would you like me to search Jira for existing tracking tickets for these suspected flaky tests? (Requires Jira MCP to be configured.)"
+
+If they agree and Jira MCP is available, run up to three searches per suspected test — a single query on the full test name is often too narrow and will miss tickets filed against the file name or symptom:
+
+1. **Test file name** — `project = RHOAIENG AND labels = "flaky-test" AND text ~ "<filename>" ORDER BY created DESC`
+2. **Short it() fragment** — 2–3 distinctive words from the `it()` description, not the full sentence: `project = RHOAIENG AND labels = "flaky-test" AND text ~ "<short fragment>" ORDER BY created DESC`
+3. **Error symptom** — if a distinctive error token is known (e.g. `modal-submit-button`, `pf-m-progress`, `ECONNRESET`): `project = RHOAIENG AND labels = "flaky-test" AND text ~ "<symptom token>" ORDER BY created DESC`
+
+Deduplicate results across queries. Report unique matches (key, summary, status) for each test. If a match exists, link to it and note whether it is open or closed. If no match is found, say so and offer to file a new ticket.
