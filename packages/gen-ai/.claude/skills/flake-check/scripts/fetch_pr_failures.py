@@ -89,13 +89,21 @@ def detect_rerun_checks(repo: str, sha: str) -> list[str]:
     Silently returns empty list on API error.
     """
     try:
-        raw = run_gh("api", f"repos/{repo}/commits/{sha}/check-runs?per_page=100")
-        data = json.loads(raw)
+        check_runs: list[dict] = []
+        page = 1
+        while True:
+            raw = run_gh("api", f"repos/{repo}/commits/{sha}/check-runs?per_page=100&filter=all&page={page}")
+            data = json.loads(raw)
+            runs = data.get("check_runs", [])
+            check_runs.extend(runs)
+            if len(runs) < 100:
+                break
+            page += 1
     except (SystemExit, json.JSONDecodeError):
         return []
 
     by_name: dict[str, list[tuple[str, str]]] = defaultdict(list)
-    for run in data.get("check_runs", []):
+    for run in check_runs:
         name = run.get("name", "")
         conclusion = (run.get("conclusion") or "").lower()
         started_at = run.get("started_at") or ""
