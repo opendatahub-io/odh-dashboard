@@ -289,470 +289,342 @@ func TestPipelineRunsHandler_ResponseFormat(t *testing.T) {
 	})
 }
 
-// TestPipelineRunHandler tests the GET /api/v1/pipeline-runs/:runId endpoint
-func TestPipelineRunHandler_Success(t *testing.T) {
-	app := newTestApp(t)
+// Helper function to execute pipeline run handler and return response recorder.
+func executePipelineRunHandler(app *App, runID, namespace string) *httptest.ResponseRecorder {
+	req := newPipelineRunGetRequest(runID)
+	mockClient := psmocks.NewMockPipelineServerClient("mock://" + namespace)
+	discovered := newMockDiscoveredPipeline(namespace)
+	req = setPipelineRunContext(req, mockClient, namespace, discovered)
 
-	t.Run("should return single pipeline run by ID", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-abc123-def456"
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs/"+runID,
-			nil,
-		)
-		require.NoError(t, err)
+	params := httprouter.Params{httprouter.Param{Key: "runId", Value: runID}}
+	rr := httptest.NewRecorder()
 
-		// Attach mock client and discovered pipeline to context
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
-		req = req.WithContext(ctx)
-
-		// Create params with runId
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
-
-		app.PipelineRunHandler(rr, req, params)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var response PipelineRunEnvelope
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		require.NoError(t, err)
-
-		assert.NotNil(t, response.Data)
-		assert.Equal(t, runID, response.Data.RunID)
-
-		// Verify the runID was passed to the client
-		assert.Equal(t, runID, mockClient.LastGetRunID,
-			"Handler should have called GetRun with the requested runID")
-	})
-
-	t.Run("should return properly formatted envelope response", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-test-123"
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs/"+runID,
-			nil,
-		)
-		require.NoError(t, err)
-
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
-		req = req.WithContext(ctx)
-
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
-
-		app.PipelineRunHandler(rr, req, params)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var response map[string]interface{}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		require.NoError(t, err)
-
-		// Verify envelope structure
-		dataField, exists := response["data"]
-		assert.True(t, exists, "Response should have 'data' field")
-		assert.NotNil(t, dataField)
-	})
-
-	t.Run("should include all required fields in pipeline run", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-complete-test"
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs/"+runID,
-			nil,
-		)
-		require.NoError(t, err)
-
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
-		req = req.WithContext(ctx)
-
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
-
-		app.PipelineRunHandler(rr, req, params)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var response struct {
-			Data models.PipelineRun `json:"data"`
-		}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		require.NoError(t, err)
-
-		run := response.Data
-		// Verify required fields
-		assert.Equal(t, runID, run.RunID)
-		assert.NotEmpty(t, run.DisplayName, "DisplayName should not be empty")
-		assert.NotEmpty(t, run.State, "State should not be empty")
-		assert.NotEmpty(t, run.CreatedAt, "CreatedAt should not be empty")
-
-		// Verify enhanced fields
-		assert.NotEmpty(t, run.ExperimentID, "ExperimentID should not be empty")
-		assert.NotNil(t, run.PipelineVersionReference, "PipelineVersionReference should not be nil")
-		if run.PipelineVersionReference != nil {
-			assert.NotEmpty(t, run.PipelineVersionReference.PipelineID)
-			assert.NotEmpty(t, run.PipelineVersionReference.PipelineVersionID)
-		}
-		assert.NotEmpty(t, run.StorageState, "StorageState should not be empty")
-		assert.NotEmpty(t, run.ServiceAccount, "ServiceAccount should not be empty")
-
-		// Verify state history
-		assert.NotNil(t, run.StateHistory, "StateHistory should not be nil")
-
-		// Verify run details and task details
-		assert.NotNil(t, run.RunDetails, "RunDetails should not be nil")
-		if run.RunDetails != nil && len(run.RunDetails.TaskDetails) > 0 {
-			task := run.RunDetails.TaskDetails[0]
-			assert.NotEmpty(t, task.TaskID, "Task ID should not be empty")
-			assert.NotEmpty(t, task.DisplayName, "Task display name should not be empty")
-			assert.NotEmpty(t, task.State, "Task state should not be empty")
-		}
-
-		// Verify pipeline_type is set to "autorag"
-		assert.Equal(t, constants.PipelineTypeAutoRAG, run.PipelineType, "pipeline_type should be autorag")
-	})
-
-	t.Run("should include task details with inputs and outputs", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-with-tasks"
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs/"+runID,
-			nil,
-		)
-		require.NoError(t, err)
-
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
-		req = req.WithContext(ctx)
-
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
-
-		app.PipelineRunHandler(rr, req, params)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var response struct {
-			Data models.PipelineRun `json:"data"`
-		}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		require.NoError(t, err)
-
-		// Verify run details and task details are present
-		assert.NotNil(t, response.Data.RunDetails, "RunDetails should be present")
-		require.NotNil(t, response.Data.RunDetails, "RunDetails required for further checks")
-		assert.Greater(t, len(response.Data.RunDetails.TaskDetails), 0, "Should have at least one task")
-
-		// Verify task structure
-		if len(response.Data.RunDetails.TaskDetails) > 0 {
-			task := response.Data.RunDetails.TaskDetails[0]
-			assert.NotEmpty(t, task.TaskID)
-			assert.NotEmpty(t, task.DisplayName)
-			assert.NotEmpty(t, task.State)
-		}
-	})
+	app.PipelineRunHandler(rr, req, params)
+	return rr
 }
 
-func TestPipelineRunHandler_ErrorCases(t *testing.T) {
+// Helper function to assert required pipeline run fields.
+func assertPipelineRunRequiredFields(t *testing.T, run models.PipelineRun, expectedRunID string) {
+	t.Helper()
+
+	assert.Equal(t, expectedRunID, run.RunID)
+	assert.NotEmpty(t, run.DisplayName, "DisplayName should not be empty")
+	assert.NotEmpty(t, run.State, "State should not be empty")
+	assert.NotEmpty(t, run.CreatedAt, "CreatedAt should not be empty")
+	assert.NotEmpty(t, run.ExperimentID, "ExperimentID should not be empty")
+	assert.NotEmpty(t, run.StorageState, "StorageState should not be empty")
+	assert.NotEmpty(t, run.ServiceAccount, "ServiceAccount should not be empty")
+	assert.Equal(t, constants.PipelineTypeAutoRAG, run.PipelineType, "pipeline_type should be autorag")
+}
+
+// Helper function to assert pipeline version reference fields.
+func assertPipelineVersionReference(t *testing.T, ref *models.PipelineVersionReference) {
+	t.Helper()
+
+	require.NotNil(t, ref, "PipelineVersionReference should not be nil")
+	assert.NotEmpty(t, ref.PipelineID, "PipelineID should not be empty")
+	assert.NotEmpty(t, ref.PipelineVersionID, "PipelineVersionID should not be empty")
+}
+
+// TestPipelineRunHandler_ReturnsSingleRun verifies that the handler returns
+// a single pipeline run by ID with correct runID in the response.
+func TestPipelineRunHandler_ReturnsSingleRun(t *testing.T) {
 	app := newTestApp(t)
+	runID := "run-abc123-def456"
+	namespace := "test-namespace"
 
-	t.Run("should fail without pipeline server client in context", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-test-123"
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs/"+runID,
-			nil,
-		)
-		require.NoError(t, err)
+	rr := executePipelineRunHandler(app, runID, namespace)
 
-		// Don't attach client to context
-		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
+	assert.Equal(t, http.StatusOK, rr.Code)
 
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
+	var response PipelineRunEnvelope
+	err := json.Unmarshal(rr.Body.Bytes(), &response)
+	require.NoError(t, err)
 
-		app.PipelineRunHandler(rr, req, params)
+	assert.NotNil(t, response.Data)
+	assert.Equal(t, runID, response.Data.RunID)
+}
 
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-	})
+// TestPipelineRunHandler_EnvelopeFormat verifies that the handler returns
+// a properly formatted envelope response with a "data" field.
+func TestPipelineRunHandler_EnvelopeFormat(t *testing.T) {
+	app := newTestApp(t)
+	runID := "run-test-123"
 
-	t.Run("should fail with empty runId", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs/",
-			nil,
-		)
-		require.NoError(t, err)
+	rr := executePipelineRunHandler(app, runID, "test-namespace")
 
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var response map[string]any
+	err := json.Unmarshal(rr.Body.Bytes(), &response)
+	require.NoError(t, err)
+
+	dataField, exists := response["data"]
+	assert.True(t, exists, "Response should have 'data' field")
+	assert.NotNil(t, dataField, "Data field should not be nil")
+}
+
+// TestPipelineRunHandler_RequiredFields verifies that the handler returns
+// all required fields in the pipeline run response.
+func TestPipelineRunHandler_RequiredFields(t *testing.T) {
+	app := newTestApp(t)
+	runID := "run-complete-test"
+
+	rr := executePipelineRunHandler(app, runID, "test-namespace")
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var response struct {
+		Data models.PipelineRun `json:"data"`
+	}
+	err := json.Unmarshal(rr.Body.Bytes(), &response)
+	require.NoError(t, err)
+
+	run := response.Data
+
+	// Verify all required fields
+	assertPipelineRunRequiredFields(t, run, runID)
+	assertPipelineVersionReference(t, run.PipelineVersionReference)
+
+	// Verify state history
+	assert.NotNil(t, run.StateHistory, "StateHistory should not be nil")
+
+	// Verify run details and task details
+	assert.NotNil(t, run.RunDetails, "RunDetails should not be nil")
+	if run.RunDetails != nil && len(run.RunDetails.TaskDetails) > 0 {
+		task := run.RunDetails.TaskDetails[0]
+		assert.NotEmpty(t, task.TaskID, "Task ID should not be empty")
+		assert.NotEmpty(t, task.DisplayName, "Task display name should not be empty")
+		assert.NotEmpty(t, task.State, "Task state should not be empty")
+	}
+}
+
+// TestPipelineRunHandler_TaskDetails verifies that the handler includes
+// task details with proper structure in the pipeline run response.
+func TestPipelineRunHandler_TaskDetails(t *testing.T) {
+	app := newTestApp(t)
+	runID := "run-with-tasks"
+
+	rr := executePipelineRunHandler(app, runID, "test-namespace")
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var response struct {
+		Data models.PipelineRun `json:"data"`
+	}
+	err := json.Unmarshal(rr.Body.Bytes(), &response)
+	require.NoError(t, err)
+
+	// Verify run details and task details are present
+	require.NotNil(t, response.Data.RunDetails, "RunDetails should be present")
+	assert.Greater(t, len(response.Data.RunDetails.TaskDetails), 0, "Should have at least one task")
+
+	// Verify task structure
+	if len(response.Data.RunDetails.TaskDetails) > 0 {
+		task := response.Data.RunDetails.TaskDetails[0]
+		assert.NotEmpty(t, task.TaskID, "Task ID should not be empty")
+		assert.NotEmpty(t, task.DisplayName, "Task display name should not be empty")
+		assert.NotEmpty(t, task.State, "Task state should not be empty")
+	}
+}
+
+// Helper function to create a GET request for pipeline run handler.
+func newPipelineRunGetRequest(runID string) *http.Request {
+	url := "/api/v1/pipeline-runs/" + runID
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	return req
+}
+
+// Helper function to create a mock discovered pipeline for testing.
+func newMockDiscoveredPipeline(namespace string) *repositories.DiscoveredPipeline {
+	return &repositories.DiscoveredPipeline{
+		PipelineID:        psmocks.DeriveMockIDs(namespace).PipelineID,
+		PipelineVersionID: psmocks.DeriveMockIDs(namespace).LatestVersionID,
+		PipelineName:      "documents-rag-optimization-pipeline",
+		Namespace:         namespace,
+	}
+}
+
+// Helper function to set up request context with pipeline server client, namespace, and discovered pipeline.
+func setPipelineRunContext(req *http.Request, mockClient pipelineserver.PipelineServerClientInterface, namespace string, discovered *repositories.DiscoveredPipeline) *http.Request {
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, constants.PipelineServerClientKey, mockClient)
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, namespace)
+
+	if discovered != nil {
 		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
-		req = req.WithContext(ctx)
-
-		// Pass empty runId
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: ""},
-		}
-
-		app.PipelineRunHandler(rr, req, params)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		var response struct {
-			Error struct {
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			} `json:"error"`
-		}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		require.NoError(t, err)
-
-		assert.Contains(t, response.Error.Message, "missing runId parameter")
-	})
-
-	t.Run("should return 404 for non-existent run ID", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "non-existent-run-id" // Special ID that triggers 404 in mock
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs/"+runID,
-			nil,
-		)
-		require.NoError(t, err)
-
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
-		req = req.WithContext(ctx)
-
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
-
-		app.PipelineRunHandler(rr, req, params)
-
-		// Should return 404 Not Found
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-
-		var response struct {
-			Error struct {
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			} `json:"error"`
-		}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		require.NoError(t, err)
-
-		assert.Equal(t, "404", response.Error.Code)
-		assert.Contains(t, response.Error.Message, "could not be found")
-	})
-
-	t.Run("should return 500 for pipeline server errors", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "server-error-run-id" // Special ID that triggers 500 in mock
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs/"+runID,
-			nil,
-		)
-		require.NoError(t, err)
-
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
-		req = req.WithContext(ctx)
-
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
-
-		app.PipelineRunHandler(rr, req, params)
-
-		// Should return 500 Internal Server Error
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-
-		var response struct {
-			Error struct {
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			} `json:"error"`
-		}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		require.NoError(t, err)
-
-		assert.Equal(t, "500", response.Error.Code)
-		assert.Contains(t, response.Error.Message, "server encountered a problem")
-	})
-
-	t.Run("should return 404 when run belongs to different pipeline", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-different-pipeline"
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs/"+runID,
-			nil,
-		)
-		require.NoError(t, err)
-
-		// Create mock client that returns a run with different pipeline ID
-		mockClient := &differentPipelineMockClient{
-			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
-		}
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-
-		// Discovered pipeline has specific IDs
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
-		req = req.WithContext(ctx)
-
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
-
-		app.PipelineRunHandler(rr, req, params)
-
-		// Should return 404 because run belongs to different pipeline
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
-
-	t.Run("should return 404 when no discovered pipeline in context", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-test-123"
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs/"+runID,
-			nil,
-		)
-		require.NoError(t, err)
-
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		// Inject empty map — simulates middleware running but no pipeline found
+	} else {
+		// Empty map simulates middleware running but no pipeline found
 		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{})
-		req = req.WithContext(ctx)
+	}
 
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
+	return req.WithContext(ctx)
+}
+
+// Helper function to assert pipeline run error responses.
+func assertPipelineRunErrorResponse(t *testing.T, rr *httptest.ResponseRecorder, expectedStatus int, expectedCode string, messageSubstring string) {
+	t.Helper()
+
+	assert.Equal(t, expectedStatus, rr.Code)
+
+	if expectedCode != "" {
+		var response struct {
+			Error struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
 		}
-
-		app.PipelineRunHandler(rr, req, params)
-
-		// With no discovered pipeline, the ownership check fails and returns 404
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
-
-	t.Run("should return 404 when run has nil PipelineVersionReference", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-nil-reference"
-		req, err := http.NewRequest(
-			http.MethodGet,
-			"/api/v1/pipeline-runs/"+runID,
-			nil,
-		)
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		require.NoError(t, err)
 
-		// Create mock client that returns a run with nil PipelineVersionReference
-		mockClient := &nilPipelineReferenceMockClient{
-			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
+		assert.Equal(t, expectedCode, response.Error.Code)
+		if messageSubstring != "" {
+			assert.Contains(t, response.Error.Message, messageSubstring)
 		}
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+	}
+}
 
-		// Discovered pipeline
-		discovered := &repositories.DiscoveredPipeline{
-			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
-			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
-			PipelineName:      "documents-rag-optimization-pipeline",
-			Namespace:         "test-namespace",
-		}
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
-		req = req.WithContext(ctx)
+// TestPipelineRunHandler_MissingPipelineServerClient verifies that the handler
+// returns 500 when the pipeline server client is not in the request context.
+func TestPipelineRunHandler_MissingPipelineServerClient(t *testing.T) {
+	app := newTestApp(t)
+	runID := "run-test-123"
 
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
+	req := newPipelineRunGetRequest(runID)
+	// Don't attach client to context - only set namespace
+	ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
+	req = req.WithContext(ctx)
 
-		app.PipelineRunHandler(rr, req, params)
+	params := httprouter.Params{httprouter.Param{Key: "runId", Value: runID}}
+	rr := httptest.NewRecorder()
 
-		// Should return 404 for security (data integrity issue)
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
+	app.PipelineRunHandler(rr, req, params)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
+// TestPipelineRunHandler_EmptyRunID verifies that the handler returns 400
+// when the runId parameter is empty.
+func TestPipelineRunHandler_EmptyRunID(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+
+	req := newPipelineRunGetRequest("")
+	mockClient := psmocks.NewMockPipelineServerClient("mock://" + namespace)
+	discovered := newMockDiscoveredPipeline(namespace)
+	req = setPipelineRunContext(req, mockClient, namespace, discovered)
+
+	params := httprouter.Params{httprouter.Param{Key: "runId", Value: ""}}
+	rr := httptest.NewRecorder()
+
+	app.PipelineRunHandler(rr, req, params)
+
+	assertPipelineRunErrorResponse(t, rr, http.StatusBadRequest, "", "missing runId parameter")
+}
+
+// TestPipelineRunHandler_NonExistentRunID verifies that the handler returns 404
+// when the run ID does not exist in the pipeline server.
+func TestPipelineRunHandler_NonExistentRunID(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "non-existent-run-id" // Special ID that triggers 404 in mock
+
+	req := newPipelineRunGetRequest(runID)
+	mockClient := psmocks.NewMockPipelineServerClient("mock://" + namespace)
+	discovered := newMockDiscoveredPipeline(namespace)
+	req = setPipelineRunContext(req, mockClient, namespace, discovered)
+
+	params := httprouter.Params{httprouter.Param{Key: "runId", Value: runID}}
+	rr := httptest.NewRecorder()
+
+	app.PipelineRunHandler(rr, req, params)
+
+	assertPipelineRunErrorResponse(t, rr, http.StatusNotFound, "404", "could not be found")
+}
+
+// TestPipelineRunHandler_PipelineServerError verifies that the handler returns 500
+// when the pipeline server encounters an internal error.
+func TestPipelineRunHandler_PipelineServerError(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "server-error-run-id" // Special ID that triggers 500 in mock
+
+	req := newPipelineRunGetRequest(runID)
+	mockClient := psmocks.NewMockPipelineServerClient("mock://" + namespace)
+	discovered := newMockDiscoveredPipeline(namespace)
+	req = setPipelineRunContext(req, mockClient, namespace, discovered)
+
+	params := httprouter.Params{httprouter.Param{Key: "runId", Value: runID}}
+	rr := httptest.NewRecorder()
+
+	app.PipelineRunHandler(rr, req, params)
+
+	assertPipelineRunErrorResponse(t, rr, http.StatusInternalServerError, "500", "server encountered a problem")
+}
+
+// TestPipelineRunHandler_RunBelongsToDifferentPipeline verifies that the handler
+// returns 404 when the run belongs to a different pipeline than the discovered one.
+func TestPipelineRunHandler_RunBelongsToDifferentPipeline(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "run-different-pipeline"
+
+	req := newPipelineRunGetRequest(runID)
+	// Use mock client that returns a run with different pipeline ID
+	mockClient := &differentPipelineMockClient{
+		MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://" + namespace),
+	}
+	discovered := newMockDiscoveredPipeline(namespace)
+	req = setPipelineRunContext(req, mockClient, namespace, discovered)
+
+	params := httprouter.Params{httprouter.Param{Key: "runId", Value: runID}}
+	rr := httptest.NewRecorder()
+
+	app.PipelineRunHandler(rr, req, params)
+
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
+
+// TestPipelineRunHandler_NoDiscoveredPipeline verifies that the handler returns 404
+// when there is no discovered pipeline in the request context.
+func TestPipelineRunHandler_NoDiscoveredPipeline(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "run-test-123"
+
+	req := newPipelineRunGetRequest(runID)
+	mockClient := psmocks.NewMockPipelineServerClient("mock://" + namespace)
+	req = setPipelineRunContext(req, mockClient, namespace, nil) // nil = no discovered pipeline
+
+	params := httprouter.Params{httprouter.Param{Key: "runId", Value: runID}}
+	rr := httptest.NewRecorder()
+
+	app.PipelineRunHandler(rr, req, params)
+
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
+
+// TestPipelineRunHandler_NilPipelineVersionReference verifies that the handler returns 404
+// when the run has a nil PipelineVersionReference (data integrity issue).
+func TestPipelineRunHandler_NilPipelineVersionReference(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "run-nil-reference"
+
+	req := newPipelineRunGetRequest(runID)
+	// Use mock client that returns a run with nil PipelineVersionReference
+	mockClient := &nilPipelineReferenceMockClient{
+		MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://" + namespace),
+	}
+	discovered := newMockDiscoveredPipeline(namespace)
+	req = setPipelineRunContext(req, mockClient, namespace, discovered)
+
+	params := httprouter.Params{httprouter.Param{Key: "runId", Value: runID}}
+	rr := httptest.NewRecorder()
+
+	app.PipelineRunHandler(rr, req, params)
+
+	assert.Equal(t, http.StatusNotFound, rr.Code)
 }
 
 // failedRunMockClient returns runs with FAILED state for retry testing
@@ -883,199 +755,146 @@ func TestTerminatePipelineRunHandler_Success(t *testing.T) {
 	})
 }
 
-func TestTerminatePipelineRunHandler_ErrorCases(t *testing.T) {
+// Helper function to create a POST request for terminate pipeline run handler.
+func newTerminatePipelineRunRequest(runID string) *http.Request {
+	url := "/api/v1/pipeline-runs/" + runID + "/terminate"
+	req, _ := http.NewRequest(http.MethodPost, url, nil)
+	return req
+}
+
+// Helper function to execute terminate pipeline run handler with full context.
+func executeTerminateHandler(app *App, runID, namespace string, mockClient pipelineserver.PipelineServerClientInterface, withDiscoveredPipeline bool) *httptest.ResponseRecorder {
+	req := newTerminatePipelineRunRequest(runID)
+
+	var discovered *repositories.DiscoveredPipeline
+	if withDiscoveredPipeline {
+		discovered = newMockDiscoveredPipeline(namespace)
+	}
+
+	req = setPipelineRunContext(req, mockClient, namespace, discovered)
+	params := httprouter.Params{httprouter.Param{Key: "runId", Value: runID}}
+	rr := httptest.NewRecorder()
+
+	app.TerminatePipelineRunHandler(rr, req, params)
+	return rr
+}
+
+// TestTerminatePipelineRunHandler_MissingPipelineServerClient verifies that the handler
+// returns 500 when the pipeline server client is not in the request context.
+func TestTerminatePipelineRunHandler_MissingPipelineServerClient(t *testing.T) {
 	app := newTestApp(t)
+	runID := "run-test-123"
 
-	t.Run("should fail without pipeline server client in context", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-test-123"
-		req, err := http.NewRequest(
-			http.MethodPost,
-			"/api/v1/pipeline-runs/"+runID+"/terminate",
-			nil,
-		)
-		require.NoError(t, err)
+	req := newTerminatePipelineRunRequest(runID)
+	// Only set namespace, no pipeline server client
+	ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
+	req = req.WithContext(ctx)
 
-		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
+	params := httprouter.Params{httprouter.Param{Key: "runId", Value: runID}}
+	rr := httptest.NewRecorder()
 
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
+	app.TerminatePipelineRunHandler(rr, req, params)
 
-		app.TerminatePipelineRunHandler(rr, req, params)
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
 
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-	})
+// TestTerminatePipelineRunHandler_EmptyRunID verifies that the handler returns 400
+// when the runId parameter is empty.
+func TestTerminatePipelineRunHandler_EmptyRunID(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
 
-	t.Run("should fail with empty runId", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(
-			http.MethodPost,
-			"/api/v1/pipeline-runs//terminate",
-			nil,
-		)
-		require.NoError(t, err)
+	mockClient := psmocks.NewMockPipelineServerClient("mock://" + namespace)
+	rr := executeTerminateHandler(app, "", namespace, mockClient, true)
 
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-		req = withDiscoveredPipeline(req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
 
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: ""},
-		}
+// TestTerminatePipelineRunHandler_NonExistentRunID verifies that the handler returns 404
+// when the run ID does not exist in the pipeline server.
+func TestTerminatePipelineRunHandler_NonExistentRunID(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "non-existent-run-id" // Special ID that triggers 404 in mock
 
-		app.TerminatePipelineRunHandler(rr, req, params)
+	mockClient := psmocks.NewMockPipelineServerClient("mock://" + namespace)
+	rr := executeTerminateHandler(app, runID, namespace, mockClient, true)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
 
-	t.Run("should return 404 for non-existent run ID", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "non-existent-run-id"
-		req, err := http.NewRequest(
-			http.MethodPost,
-			"/api/v1/pipeline-runs/"+runID+"/terminate",
-			nil,
-		)
-		require.NoError(t, err)
+// TestTerminatePipelineRunHandler_RunBelongsToDifferentPipeline verifies that the handler
+// returns 404 when the run belongs to a different pipeline than the discovered one.
+func TestTerminatePipelineRunHandler_RunBelongsToDifferentPipeline(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "run-different-pipeline"
 
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-		req = withDiscoveredPipeline(req)
+	// Use mock client that returns a run with different pipeline ID
+	mockClient := &differentPipelineMockClient{
+		MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://" + namespace),
+	}
+	rr := executeTerminateHandler(app, runID, namespace, mockClient, true)
 
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
 
-		app.TerminatePipelineRunHandler(rr, req, params)
+// TestTerminatePipelineRunHandler_NonTerminatableState verifies that the handler returns 400
+// when the run is not in a terminatable state (e.g., SUCCEEDED, FAILED).
+func TestTerminatePipelineRunHandler_NonTerminatableState(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "run-succeeded"
 
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
+	// succeededRunMockClient returns SUCCEEDED state (not terminatable)
+	mockClient := &succeededRunMockClient{
+		MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://" + namespace),
+	}
+	rr := executeTerminateHandler(app, runID, namespace, mockClient, true)
 
-	t.Run("should return 404 when run belongs to different pipeline", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-different-pipeline"
-		req, err := http.NewRequest(
-			http.MethodPost,
-			"/api/v1/pipeline-runs/"+runID+"/terminate",
-			nil,
-		)
-		require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
 
-		mockClient := &differentPipelineMockClient{
-			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
-		}
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-		req = withDiscoveredPipeline(req)
+	var response struct {
+		Error struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	err := json.Unmarshal(rr.Body.Bytes(), &response)
+	require.NoError(t, err)
 
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
+	assert.Contains(t, response.Error.Message, "cannot be terminated")
+	assert.Empty(t, mockClient.LastTerminateRunID,
+		"TerminateRun should not have been called for a non-terminatable run")
+}
 
-		app.TerminatePipelineRunHandler(rr, req, params)
+// TestTerminatePipelineRunHandler_NoDiscoveredPipeline verifies that the handler returns 404
+// when there is no discovered pipeline in the request context.
+func TestTerminatePipelineRunHandler_NoDiscoveredPipeline(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "run-test-123"
 
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
+	mockClient := psmocks.NewMockPipelineServerClient("mock://" + namespace)
+	rr := executeTerminateHandler(app, runID, namespace, mockClient, false) // false = no discovered pipeline
 
-	t.Run("should return 400 when run is not in a terminatable state", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-succeeded"
-		req, err := http.NewRequest(
-			http.MethodPost,
-			"/api/v1/pipeline-runs/"+runID+"/terminate",
-			nil,
-		)
-		require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
 
-		// succeededRunMockClient returns SUCCEEDED state (not terminatable)
-		mockClient := &succeededRunMockClient{
-			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
-		}
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-		req = withDiscoveredPipeline(req)
+// TestTerminatePipelineRunHandler_NilPipelineVersionReference verifies that the handler returns 404
+// when the run has a nil PipelineVersionReference (data integrity issue).
+func TestTerminatePipelineRunHandler_NilPipelineVersionReference(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "run-nil-reference"
 
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
+	// Use mock client that returns a run with nil PipelineVersionReference
+	mockClient := &nilPipelineReferenceMockClient{
+		MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://" + namespace),
+	}
+	rr := executeTerminateHandler(app, runID, namespace, mockClient, true)
 
-		app.TerminatePipelineRunHandler(rr, req, params)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		var response struct {
-			Error struct {
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			} `json:"error"`
-		}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		require.NoError(t, err)
-
-		assert.Contains(t, response.Error.Message, "cannot be terminated")
-		assert.Empty(t, mockClient.LastTerminateRunID,
-			"TerminateRun should not have been called for a non-terminatable run")
-	})
-
-	t.Run("should return 404 when no discovered pipeline in context", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-test-123"
-		req, err := http.NewRequest(
-			http.MethodPost,
-			"/api/v1/pipeline-runs/"+runID+"/terminate",
-			nil,
-		)
-		require.NoError(t, err)
-
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{})
-		req = req.WithContext(ctx)
-
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
-
-		app.TerminatePipelineRunHandler(rr, req, params)
-
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
-
-	t.Run("should return 404 when run has nil PipelineVersionReference", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-nil-reference"
-		req, err := http.NewRequest(
-			http.MethodPost,
-			"/api/v1/pipeline-runs/"+runID+"/terminate",
-			nil,
-		)
-		require.NoError(t, err)
-
-		mockClient := &nilPipelineReferenceMockClient{
-			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
-		}
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-		req = withDiscoveredPipeline(req)
-
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
-
-		app.TerminatePipelineRunHandler(rr, req, params)
-
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
+	assert.Equal(t, http.StatusNotFound, rr.Code)
 }
 
 // terminateErrorMockClient returns a RUNNING run from GetRun (ownership passes)
@@ -1292,197 +1111,144 @@ func TestRetryPipelineRunHandler_Success(t *testing.T) {
 	})
 }
 
-func TestRetryPipelineRunHandler_ErrorCases(t *testing.T) {
+// Helper function to create a POST request for retry pipeline run handler.
+func newRetryPipelineRunRequest(runID string) *http.Request {
+	url := "/api/v1/pipeline-runs/" + runID + "/retry"
+	req, _ := http.NewRequest(http.MethodPost, url, nil)
+	return req
+}
+
+// Helper function to execute retry pipeline run handler with full context.
+func executeRetryHandler(app *App, runID, namespace string, mockClient pipelineserver.PipelineServerClientInterface, withDiscoveredPipeline bool) *httptest.ResponseRecorder {
+	req := newRetryPipelineRunRequest(runID)
+
+	var discovered *repositories.DiscoveredPipeline
+	if withDiscoveredPipeline {
+		discovered = newMockDiscoveredPipeline(namespace)
+	}
+
+	req = setPipelineRunContext(req, mockClient, namespace, discovered)
+	params := httprouter.Params{httprouter.Param{Key: "runId", Value: runID}}
+	rr := httptest.NewRecorder()
+
+	app.RetryPipelineRunHandler(rr, req, params)
+	return rr
+}
+
+// TestRetryPipelineRunHandler_MissingPipelineServerClient verifies that the handler
+// returns 500 when the pipeline server client is not in the request context.
+func TestRetryPipelineRunHandler_MissingPipelineServerClient(t *testing.T) {
 	app := newTestApp(t)
+	runID := "run-test-123"
 
-	t.Run("should fail without pipeline server client in context", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-test-123"
-		req, err := http.NewRequest(
-			http.MethodPost,
-			"/api/v1/pipeline-runs/"+runID+"/retry",
-			nil,
-		)
-		require.NoError(t, err)
+	req := newRetryPipelineRunRequest(runID)
+	// Only set namespace, no pipeline server client
+	ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
+	req = req.WithContext(ctx)
 
-		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
+	params := httprouter.Params{httprouter.Param{Key: "runId", Value: runID}}
+	rr := httptest.NewRecorder()
 
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
+	app.RetryPipelineRunHandler(rr, req, params)
 
-		app.RetryPipelineRunHandler(rr, req, params)
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
 
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-	})
+// TestRetryPipelineRunHandler_EmptyRunID verifies that the handler returns 400
+// when the runId parameter is empty.
+func TestRetryPipelineRunHandler_EmptyRunID(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
 
-	t.Run("should fail with empty runId", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(
-			http.MethodPost,
-			"/api/v1/pipeline-runs//retry",
-			nil,
-		)
-		require.NoError(t, err)
+	mockClient := psmocks.NewMockPipelineServerClient("mock://" + namespace)
+	rr := executeRetryHandler(app, "", namespace, mockClient, true)
 
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-		req = withDiscoveredPipeline(req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
 
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: ""},
-		}
+// TestRetryPipelineRunHandler_NonExistentRunID verifies that the handler returns 404
+// when the run ID does not exist in the pipeline server.
+func TestRetryPipelineRunHandler_NonExistentRunID(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "non-existent-run-id" // Special ID that triggers 404 in mock
 
-		app.RetryPipelineRunHandler(rr, req, params)
+	mockClient := psmocks.NewMockPipelineServerClient("mock://" + namespace)
+	rr := executeRetryHandler(app, runID, namespace, mockClient, true)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
 
-	t.Run("should return 404 for non-existent run ID", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "non-existent-run-id"
-		req, err := http.NewRequest(
-			http.MethodPost,
-			"/api/v1/pipeline-runs/"+runID+"/retry",
-			nil,
-		)
-		require.NoError(t, err)
+// TestRetryPipelineRunHandler_RunBelongsToDifferentPipeline verifies that the handler
+// returns 404 when the run belongs to a different pipeline than the discovered one.
+func TestRetryPipelineRunHandler_RunBelongsToDifferentPipeline(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "run-different-pipeline"
 
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-		req = withDiscoveredPipeline(req)
+	// Use mock client that returns a run with different pipeline ID
+	mockClient := &differentPipelineMockClient{
+		MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://" + namespace),
+	}
+	rr := executeRetryHandler(app, runID, namespace, mockClient, true)
 
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
 
-		app.RetryPipelineRunHandler(rr, req, params)
+// TestRetryPipelineRunHandler_NonRetryableState verifies that the handler returns 400
+// when the run is not in a retryable state (e.g., RUNNING, SUCCEEDED).
+func TestRetryPipelineRunHandler_NonRetryableState(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "run-succeeded"
 
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
+	// succeededRunMockClient returns SUCCEEDED state (not retryable)
+	mockClient := &succeededRunMockClient{
+		MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://" + namespace),
+	}
+	rr := executeRetryHandler(app, runID, namespace, mockClient, true)
 
-	t.Run("should return 404 when run belongs to different pipeline", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-different-pipeline"
-		req, err := http.NewRequest(
-			http.MethodPost,
-			"/api/v1/pipeline-runs/"+runID+"/retry",
-			nil,
-		)
-		require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
 
-		mockClient := &differentPipelineMockClient{
-			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
-		}
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-		req = withDiscoveredPipeline(req)
+	var response struct {
+		Error struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	err := json.Unmarshal(rr.Body.Bytes(), &response)
+	require.NoError(t, err)
 
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
+	assert.Contains(t, response.Error.Message, "cannot be retried")
+	assert.Empty(t, mockClient.LastRetryRunID,
+		"RetryRun should not have been called for a non-retryable run")
+}
 
-		app.RetryPipelineRunHandler(rr, req, params)
+// TestRetryPipelineRunHandler_NoDiscoveredPipeline verifies that the handler returns 404
+// when there is no discovered pipeline in the request context.
+func TestRetryPipelineRunHandler_NoDiscoveredPipeline(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "run-test-123"
 
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
+	mockClient := psmocks.NewMockPipelineServerClient("mock://" + namespace)
+	rr := executeRetryHandler(app, runID, namespace, mockClient, false) // false = no discovered pipeline
 
-	t.Run("should return 400 when run is not in a retryable state", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-succeeded"
-		req, err := http.NewRequest(
-			http.MethodPost,
-			"/api/v1/pipeline-runs/"+runID+"/retry",
-			nil,
-		)
-		require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
 
-		// succeededRunMockClient returns runs with SUCCEEDED state
-		mockClient := &succeededRunMockClient{
-			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
-		}
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-		req = withDiscoveredPipeline(req)
+// TestRetryPipelineRunHandler_NilPipelineVersionReference verifies that the handler returns 404
+// when the run has a nil PipelineVersionReference (data integrity issue).
+func TestRetryPipelineRunHandler_NilPipelineVersionReference(t *testing.T) {
+	app := newTestApp(t)
+	namespace := "test-namespace"
+	runID := "run-nil-reference"
 
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
+	// Use mock client that returns a run with nil PipelineVersionReference
+	mockClient := &nilPipelineReferenceMockClient{
+		MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://" + namespace),
+	}
+	rr := executeRetryHandler(app, runID, namespace, mockClient, true)
 
-		app.RetryPipelineRunHandler(rr, req, params)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		var response struct {
-			Error struct {
-				Code    string `json:"code"`
-				Message string `json:"message"`
-			} `json:"error"`
-		}
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		require.NoError(t, err)
-
-		assert.Contains(t, response.Error.Message, "cannot be retried")
-		assert.Empty(t, mockClient.LastRetryRunID,
-			"RetryRun should not have been called for a non-retryable run")
-	})
-
-	t.Run("should return 404 when no discovered pipeline in context", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-test-123"
-		req, err := http.NewRequest(
-			http.MethodPost,
-			"/api/v1/pipeline-runs/"+runID+"/retry",
-			nil,
-		)
-		require.NoError(t, err)
-
-		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{})
-		req = req.WithContext(ctx)
-
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
-
-		app.RetryPipelineRunHandler(rr, req, params)
-
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
-
-	t.Run("should return 404 when run has nil PipelineVersionReference", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		runID := "run-nil-reference"
-		req, err := http.NewRequest(
-			http.MethodPost,
-			"/api/v1/pipeline-runs/"+runID+"/retry",
-			nil,
-		)
-		require.NoError(t, err)
-
-		mockClient := &nilPipelineReferenceMockClient{
-			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
-		}
-		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
-		req = withDiscoveredPipeline(req)
-
-		params := httprouter.Params{
-			httprouter.Param{Key: "runId", Value: runID},
-		}
-
-		app.RetryPipelineRunHandler(rr, req, params)
-
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
+	assert.Equal(t, http.StatusNotFound, rr.Code)
 }

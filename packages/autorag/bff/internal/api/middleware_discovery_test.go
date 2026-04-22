@@ -303,218 +303,166 @@ func TestGetMockDSPipelineApplications(t *testing.T) {
 	})
 }
 
-// TestInjectDSPAObjectStorageForMinIO tests the MinIO auto-discovery functionality
-func TestInjectDSPAObjectStorageForMinIO(t *testing.T) {
-	t.Run("should inject managed MinIO storage config when minio.deploy is true", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+// Helper function to create a test app with mocked K8s environment for middleware testing.
+func newMiddlewareTestApp(t *testing.T) (*App, context.Context, context.CancelFunc) {
+	t.Helper()
 
-		logger := slog.Default()
-		cfg := config.EnvConfig{
-			MockK8Client: true,
-			AuthMethod:   config.AuthMethodInternal,
+	ctx, cancel := context.WithCancel(context.Background())
+	logger := slog.Default()
+	cfg := config.EnvConfig{
+		MockK8Client: true,
+		AuthMethod:   config.AuthMethodInternal,
+	}
+
+	testEnv, clientset, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
+		Logger: logger,
+		Ctx:    ctx,
+		Cancel: cancel,
+	})
+	require.NoError(t, err)
+
+	// Register cleanup to stop test environment
+	t.Cleanup(func() {
+		if testEnv != nil {
+			_ = testEnv.Stop()
 		}
-
-		testEnv, clientset, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
-			Logger: logger,
-			Ctx:    ctx,
-			Cancel: cancel,
-		})
-		require.NoError(t, err)
-		defer func() {
-			if testEnv != nil {
-				_ = testEnv.Stop()
-			}
-		}()
-
-		k8sFactory, err := k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
-		require.NoError(t, err)
-
-		app := &App{
-			config:                  cfg,
-			logger:                  logger,
-			kubernetesClientFactory: k8sFactory,
-		}
-
-		namespace := "minio-test"
-
-		// TODO: Create a mock DSPA in the test environment with managed MinIO
-		// Expected DSPA structure:
-		// - metadata.name: "pipelines"
-		// - spec.objectStorage.minio.deploy: true
-		// - spec.objectStorage.minio.bucket: "mlpipeline"
-
-		resultCtx := app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
-		require.NotNil(t, resultCtx, "Context should not be nil")
-
-		// Verify the injected storage config
-		storage, ok := resultCtx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage)
-		require.True(t, ok)
-		require.NotNil(t, storage)
-
-		assert.Equal(t, "ds-pipeline-s3-pipelines", storage.SecretName)
-		assert.Equal(t, "accesskey", storage.AccessKeyField)
-		assert.Equal(t, "secretkey", storage.SecretKeyField)
-		assert.Equal(t, "http://minio-pipelines.minio-test.svc.cluster.local:9000", storage.EndpointURL)
-		assert.Equal(t, "mlpipeline", storage.Bucket)
-		assert.Equal(t, "us-east-1", storage.Region)
 	})
 
-	t.Run("should inject external storage config when externalStorage is configured", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+	k8sFactory, err := k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+	require.NoError(t, err)
 
-		logger := slog.Default()
-		cfg := config.EnvConfig{
-			MockK8Client: true,
-			AuthMethod:   config.AuthMethodInternal,
-		}
+	app := &App{
+		config:                  cfg,
+		logger:                  logger,
+		kubernetesClientFactory: k8sFactory,
+	}
 
-		testEnv, clientset, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
-			Logger: logger,
-			Ctx:    ctx,
-			Cancel: cancel,
-		})
-		require.NoError(t, err)
-		defer func() {
-			if testEnv != nil {
-				_ = testEnv.Stop()
-			}
-		}()
+	return app, ctx, cancel
+}
 
-		k8sFactory, err := k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
-		require.NoError(t, err)
+// Helper function to assert DSPA object storage configuration in context.
+func assertDSPAStorageConfig(t *testing.T, ctx context.Context, expectedConfig *models.DSPAObjectStorage) {
+	t.Helper()
 
-		app := &App{
-			config:                  cfg,
-			logger:                  logger,
-			kubernetesClientFactory: k8sFactory,
-		}
+	storage, ok := ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage)
+	require.True(t, ok, "Storage should be present in context")
+	require.NotNil(t, storage, "Storage config should not be nil")
 
-		namespace := "external-storage-test"
+	assert.Equal(t, expectedConfig.SecretName, storage.SecretName)
+	assert.Equal(t, expectedConfig.AccessKeyField, storage.AccessKeyField)
+	assert.Equal(t, expectedConfig.SecretKeyField, storage.SecretKeyField)
+	assert.Equal(t, expectedConfig.EndpointURL, storage.EndpointURL)
+	assert.Equal(t, expectedConfig.Bucket, storage.Bucket)
+	assert.Equal(t, expectedConfig.Region, storage.Region)
+}
 
-		// TODO: Create a mock DSPA with external storage configuration
-		// Expected DSPA structure:
-		// - spec.objectStorage.externalStorage.scheme: "https"
-		// - spec.objectStorage.externalStorage.host: "s3.amazonaws.com"
-		// - spec.objectStorage.externalStorage.bucket: "my-external-bucket"
-		// - spec.objectStorage.externalStorage.region: "us-west-2"
-		// - spec.objectStorage.externalStorage.s3CredentialsSecret.secretName: "aws-s3-credentials"
+// TestInjectDSPAObjectStorage_ManagedMinIO verifies that managed MinIO storage
+// configuration is correctly injected when minio.deploy is true.
+func TestInjectDSPAObjectStorage_ManagedMinIO(t *testing.T) {
+	app, ctx, cancel := newMiddlewareTestApp(t)
+	defer cancel()
 
-		resultCtx := app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
-		require.NotNil(t, resultCtx, "Context should not be nil")
+	namespace := "minio-test"
 
-		// Verify the injected storage config
-		storage, ok := resultCtx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage)
-		require.True(t, ok)
-		require.NotNil(t, storage)
+	// TODO: Create a mock DSPA in the test environment with managed MinIO
+	// Expected DSPA structure:
+	// - metadata.name: "pipelines"
+	// - spec.objectStorage.minio.deploy: true
+	// - spec.objectStorage.minio.bucket: "mlpipeline"
 
-		assert.Equal(t, "aws-s3-credentials", storage.SecretName)
-		assert.Equal(t, "AWS_ACCESS_KEY_ID", storage.AccessKeyField)
-		assert.Equal(t, "AWS_SECRET_ACCESS_KEY", storage.SecretKeyField)
-		assert.Equal(t, "https://s3.amazonaws.com", storage.EndpointURL)
-		assert.Equal(t, "my-external-bucket", storage.Bucket)
-		assert.Equal(t, "us-west-2", storage.Region)
-	})
+	resultCtx := app.injectDSPAObjectStorageIfAvailable(ctx, namespace, app.logger)
+	require.NotNil(t, resultCtx, "Context should not be nil")
 
-	t.Run("should prefer external storage over managed MinIO when both are configured", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+	expectedStorage := &models.DSPAObjectStorage{
+		SecretName:     "ds-pipeline-s3-pipelines",
+		AccessKeyField: "accesskey",
+		SecretKeyField: "secretkey",
+		EndpointURL:    "http://minio-pipelines.minio-test.svc.cluster.local:9000",
+		Bucket:         "mlpipeline",
+		Region:         "us-east-1",
+	}
 
-		logger := slog.Default()
-		cfg := config.EnvConfig{
-			MockK8Client: true,
-			AuthMethod:   config.AuthMethodInternal,
-		}
+	assertDSPAStorageConfig(t, resultCtx, expectedStorage)
+}
 
-		testEnv, clientset, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
-			Logger: logger,
-			Ctx:    ctx,
-			Cancel: cancel,
-		})
-		require.NoError(t, err)
-		defer func() {
-			if testEnv != nil {
-				_ = testEnv.Stop()
-			}
-		}()
+// TestInjectDSPAObjectStorage_ExternalStorage verifies that external S3 storage
+// configuration is correctly injected when externalStorage is configured.
+func TestInjectDSPAObjectStorage_ExternalStorage(t *testing.T) {
+	app, ctx, cancel := newMiddlewareTestApp(t)
+	defer cancel()
 
-		k8sFactory, err := k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
-		require.NoError(t, err)
+	namespace := "external-storage-test"
 
-		app := &App{
-			config:                  cfg,
-			logger:                  logger,
-			kubernetesClientFactory: k8sFactory,
-		}
+	// TODO: Create a mock DSPA with external storage configuration
+	// Expected DSPA structure:
+	// - spec.objectStorage.externalStorage.scheme: "https"
+	// - spec.objectStorage.externalStorage.host: "s3.amazonaws.com"
+	// - spec.objectStorage.externalStorage.bucket: "my-external-bucket"
+	// - spec.objectStorage.externalStorage.region: "us-west-2"
+	// - spec.objectStorage.externalStorage.s3CredentialsSecret.secretName: "aws-s3-credentials"
 
-		namespace := "both-storage-test"
+	resultCtx := app.injectDSPAObjectStorageIfAvailable(ctx, namespace, app.logger)
+	require.NotNil(t, resultCtx, "Context should not be nil")
 
-		// TODO: Create a mock DSPA with BOTH external storage AND managed MinIO configured
-		// The middleware should prefer external storage when both are present
-		// Expected DSPA structure:
-		// - spec.objectStorage.externalStorage (configured with AWS S3)
-		// - spec.objectStorage.minio.deploy: true (also configured)
+	expectedStorage := &models.DSPAObjectStorage{
+		SecretName:     "aws-s3-credentials",
+		AccessKeyField: "AWS_ACCESS_KEY_ID",
+		SecretKeyField: "AWS_SECRET_ACCESS_KEY",
+		EndpointURL:    "https://s3.amazonaws.com",
+		Bucket:         "my-external-bucket",
+		Region:         "us-west-2",
+	}
 
-		resultCtx := app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
-		require.NotNil(t, resultCtx, "Context should not be nil")
+	assertDSPAStorageConfig(t, resultCtx, expectedStorage)
+}
 
-		// Verify that external storage is injected (not MinIO)
-		storage, ok := resultCtx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage)
-		require.True(t, ok)
-		require.NotNil(t, storage)
+// TestInjectDSPAObjectStorage_PrefersExternalOverMinIO verifies that external storage
+// is preferred over managed MinIO when both are configured in the DSPA.
+func TestInjectDSPAObjectStorage_PrefersExternalOverMinIO(t *testing.T) {
+	app, ctx, cancel := newMiddlewareTestApp(t)
+	defer cancel()
 
-		// Verify it's external storage (not MinIO) by checking the secret name and endpoint
-		assert.Equal(t, "aws-s3-credentials", storage.SecretName, "Should use external storage secret")
-		assert.NotEqual(t, "ds-pipeline-s3-pipelines", storage.SecretName, "Should not use MinIO secret convention")
-		assert.Equal(t, "https://s3.amazonaws.com", storage.EndpointURL, "Should use external storage endpoint")
-		assert.NotContains(t, storage.EndpointURL, "minio-", "Should not use MinIO endpoint")
-		assert.Equal(t, "AWS_ACCESS_KEY_ID", storage.AccessKeyField, "Should use AWS key names, not MinIO lowercase")
-		assert.Equal(t, "AWS_SECRET_ACCESS_KEY", storage.SecretKeyField, "Should use AWS key names, not MinIO lowercase")
-	})
+	namespace := "both-storage-test"
 
-	t.Run("should return original context when no DSPAs exist", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+	// TODO: Create a mock DSPA with BOTH external storage AND managed MinIO configured
+	// The middleware should prefer external storage when both are present
+	// Expected DSPA structure:
+	// - spec.objectStorage.externalStorage (configured with AWS S3)
+	// - spec.objectStorage.minio.deploy: true (also configured)
 
-		logger := slog.Default()
-		cfg := config.EnvConfig{
-			MockK8Client: true,
-			AuthMethod:   config.AuthMethodInternal,
-		}
+	resultCtx := app.injectDSPAObjectStorageIfAvailable(ctx, namespace, app.logger)
+	require.NotNil(t, resultCtx, "Context should not be nil")
 
-		testEnv, clientset, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
-			Logger: logger,
-			Ctx:    ctx,
-			Cancel: cancel,
-		})
-		require.NoError(t, err)
-		defer func() {
-			if testEnv != nil {
-				_ = testEnv.Stop()
-			}
-		}()
+	// Verify that external storage is injected (not MinIO)
+	storage, ok := resultCtx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage)
+	require.True(t, ok, "Storage should be present in context")
+	require.NotNil(t, storage, "Storage config should not be nil")
 
-		k8sFactory, err := k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
-		require.NoError(t, err)
+	// Assert it's external storage, not MinIO
+	assert.Equal(t, "aws-s3-credentials", storage.SecretName, "Should use external storage secret")
+	assert.NotEqual(t, "ds-pipeline-s3-pipelines", storage.SecretName, "Should not use MinIO secret convention")
+	assert.Equal(t, "https://s3.amazonaws.com", storage.EndpointURL, "Should use external storage endpoint")
+	assert.NotContains(t, storage.EndpointURL, "minio-", "Should not use MinIO endpoint")
+	assert.Equal(t, "AWS_ACCESS_KEY_ID", storage.AccessKeyField, "Should use AWS key names, not MinIO lowercase")
+	assert.Equal(t, "AWS_SECRET_ACCESS_KEY", storage.SecretKeyField, "Should use AWS key names, not MinIO lowercase")
+}
 
-		app := &App{
-			config:                  cfg,
-			logger:                  logger,
-			kubernetesClientFactory: k8sFactory,
-		}
+// TestInjectDSPAObjectStorage_NoDSPAs verifies that the original context is returned
+// unchanged when no DSPAs exist in the namespace.
+func TestInjectDSPAObjectStorage_NoDSPAs(t *testing.T) {
+	app, ctx, cancel := newMiddlewareTestApp(t)
+	defer cancel()
 
-		namespace := "no-dspas-namespace"
+	namespace := "no-dspas-namespace"
 
-		// Call injectDSPAObjectStorageIfAvailable on a namespace with no DSPAs
-		resultCtx := app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
+	// Call injectDSPAObjectStorageIfAvailable on a namespace with no DSPAs
+	resultCtx := app.injectDSPAObjectStorageIfAvailable(ctx, namespace, app.logger)
 
-		// Verify the returned context is the exact same object as the input context
-		assert.Same(t, ctx, resultCtx)
+	// Verify the returned context is the exact same object as the input context
+	assert.Same(t, ctx, resultCtx, "Should return original context when no DSPAs exist")
 
-		// Verify no storage config was injected into the context
-		assert.Nil(t, resultCtx.Value(constants.DSPAObjectStorageKey))
-	})
+	// Verify no storage config was injected into the context
+	assert.Nil(t, resultCtx.Value(constants.DSPAObjectStorageKey), "Storage should not be injected when no DSPAs exist")
 }
 
 // TestBuildMinIOObjectStorage tests the MinIO object storage builder helper

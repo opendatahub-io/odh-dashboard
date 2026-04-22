@@ -417,8 +417,113 @@ describe('AutoRAG API Contract Tests', () => {
       });
     });
 
-    // Secret sanitization tests (AWS_S3_BUCKET redaction) have been moved to:
-    // packages/autorag/bff/internal/repositories/secret_test.go
+    describe('Secret Value Sanitization', () => {
+      it('should return actual values only for AWS_S3_BUCKET keys', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default&type=storage');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretsResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+
+          // Find the secret that has both canonical and non-canonical bucket keys
+          const mixedCaseSecret = responseData.data?.find(
+            (s) => s.name === 'test-secret-mixed-case-bucket',
+          );
+          expect(mixedCaseSecret).toBeDefined();
+
+          const mixedCaseData = mixedCaseSecret?.data ?? {};
+
+          // Verify canonical key exists and is NOT redacted
+          expect(mixedCaseData).toHaveProperty('AWS_S3_BUCKET');
+          expect(mixedCaseData.AWS_S3_BUCKET).not.toBe('[REDACTED]');
+          expect(typeof mixedCaseData.AWS_S3_BUCKET).toBe('string');
+          expect(mixedCaseData.AWS_S3_BUCKET.length).toBeGreaterThan(0);
+
+          // Verify non-canonical (lowercase) variant exists and IS redacted
+          expect(mixedCaseData).toHaveProperty('aws_s3_bucket');
+          expect(mixedCaseData.aws_s3_bucket).toBe('[REDACTED]');
+
+          // Also verify all secrets follow the sanitization rule generically
+          responseData.data?.forEach((secret) => {
+            Object.entries(secret.data).forEach(([key, value]) => {
+              if (key === 'AWS_S3_BUCKET') {
+                expect(value).not.toBe('[REDACTED]');
+                expect(typeof value).toBe('string');
+                expect(value.length).toBeGreaterThan(0);
+              } else {
+                expect(value).toBe('[REDACTED]');
+              }
+            });
+          });
+        }
+      });
+
+      it('should sanitize all secret values except AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
+        expect(result.success).toBe(true);
+
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+
+          // Count how many secrets have at least one key
+          const secretsWithKeys = responseData.data?.filter(
+            (secret) => Object.keys(secret.data).length > 0,
+          );
+
+          if (secretsWithKeys && secretsWithKeys.length > 0) {
+            secretsWithKeys.forEach((secret) => {
+              Object.entries(secret.data).forEach(([key, value]) => {
+                // Only AWS_S3_BUCKET (case-sensitive, uppercase) should have actual values
+                const isAllowedKey = key === 'AWS_S3_BUCKET';
+
+                if (!isAllowedKey) {
+                  expect(value).toBe('[REDACTED]');
+                }
+              });
+            });
+          }
+        }
+      });
+
+      it('should only allow uppercase AWS_S3_BUCKET key', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
+        expect(result.success).toBe(true);
+
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+
+          responseData.data?.forEach((secret) => {
+            Object.entries(secret.data).forEach(([key, value]) => {
+              // Only exact uppercase AWS_S3_BUCKET should return actual value
+              if (key === 'AWS_S3_BUCKET') {
+                expect(value).not.toBe('[REDACTED]');
+              } else {
+                // Lowercase or mixed case variants should be redacted
+                expect(value).toBe('[REDACTED]');
+              }
+            });
+          });
+        }
+      });
+
+      it('should return data as object, not array', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default');
+        expect(result.success).toBe(true);
+
+        if (result.success) {
+          const responseData = result.response.data as SecretsResponseData;
+
+          responseData.data?.forEach((secret) => {
+            expect(typeof secret.data).toBe('object');
+            expect(Array.isArray(secret.data)).toBe(false);
+            expect(secret.data).not.toBeNull();
+          });
+        }
+      });
+    });
 
     describe('Error Cases', () => {
       it('should return 400 when namespace parameter is missing', async () => {
@@ -584,8 +689,29 @@ describe('AutoRAG API Contract Tests', () => {
       });
     });
 
-    // Bucket parameter fallback tests have been moved to:
-    // packages/autorag/bff/internal/api/s3_handler_test.go
+    describe('Bucket Parameter Fallback', () => {
+      it('should accept request without bucket query parameter when secret has AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret-with-bucket&key=file.pdf',
+        );
+        // Mock S3 should succeed when bucket is provided via secret's AWS_S3_BUCKET field
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          status: 200,
+        });
+      }, 8000);
+
+      it('should allow bucket query parameter to override secret AWS_S3_BUCKET', async () => {
+        const result = await apiClient.get(
+          '/api/v1/s3/file?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket&key=file.pdf',
+        );
+        // Mock S3 validates that query parameter bucket can override secret's AWS_S3_BUCKET
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          status: 200,
+        });
+      }, 8000);
+    });
 
     describe('Key Format Variations', () => {
       it('should handle nested key structure', async () => {
@@ -1054,8 +1180,38 @@ describe('AutoRAG API Contract Tests', () => {
         });
       });
 
-      // Display name length validation tests (250/251 chars) have been moved to:
-      // packages/autorag/bff/internal/repositories/pipeline_runs_test.go
+      it('display_name 250 chars accepted', async () => {
+        const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+          display_name: 'a'.repeat(250),
+          test_data_secret_name: 'minio-secret',
+          test_data_bucket_name: 'autorag',
+          test_data_key: 'test_data.json',
+          input_data_secret_name: 'minio-secret',
+          input_data_bucket_name: 'autorag',
+          input_data_key: 'documents/',
+          llama_stack_secret_name: 'llama-secret',
+        });
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('display_name 251 chars rejected', async () => {
+        const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+          display_name: 'a'.repeat(251),
+          test_data_secret_name: 'minio-secret',
+          test_data_bucket_name: 'autorag',
+          test_data_key: 'test_data.json',
+          input_data_secret_name: 'minio-secret',
+          input_data_bucket_name: 'autorag',
+          input_data_key: 'documents/',
+          llama_stack_secret_name: 'llama-secret',
+        });
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
 
       it('should return 400 for missing required fields', async () => {
         const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
@@ -1101,7 +1257,6 @@ describe('AutoRAG API Contract Tests', () => {
       it('should terminate an active pipeline run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-ghi789-jkl012/terminate?namespace=test-namespace',
-          {},
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -1112,7 +1267,6 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 400 when attempting to terminate a non-terminatable (SUCCEEDED) run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-abc123-def456/terminate?namespace=test-namespace',
-          {},
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -1123,7 +1277,6 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 404 for non-existent run ID', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/non-existent-run-id/terminate?namespace=test-namespace',
-          {},
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -1136,7 +1289,6 @@ describe('AutoRAG API Contract Tests', () => {
       it('should retry a failed pipeline run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-mno345-pqr678/retry?namespace=test-namespace',
-          {},
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -1147,7 +1299,6 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 400 when attempting to retry a non-retryable (SUCCEEDED) run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-abc123-def456/retry?namespace=test-namespace',
-          {},
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -1158,7 +1309,6 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 404 for non-existent run ID', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/non-existent-run-id/retry?namespace=test-namespace',
-          {},
         );
         expect(result.success).toBe(false);
         if (!result.success) {
