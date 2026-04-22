@@ -79,6 +79,7 @@ const RecentlyVisitedResources: React.FC<RecentlyVisitedResourcesProps> = ({
     if (error) {
       return (
         <EmptyState
+          role="alert"
           headingLevel="h4"
           icon={PathMissingIcon}
           titleText="Error loading recently visited resources"

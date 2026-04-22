@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { Bullseye, EmptyState, EmptyStateVariant } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateBody,
+  EmptyStateVariant,
+} from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { SearchIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router';
@@ -90,6 +97,9 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
     [schemaData, filterData],
   );
 
+  const isFilteredEmpty = schemaData.length > 0 && filteredSchemaData.length === 0;
+  const isTrulyEmpty = schemaData.length === 0;
+
   return (
     <Table
       data-testid="feature-view-schema-table"
@@ -102,10 +112,21 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
           <EmptyState
             headingLevel="h6"
             icon={SearchIcon}
-            titleText="No schema data available"
+            titleText={isTrulyEmpty ? 'No schema data available' : 'No results match your filters'}
             variant={EmptyStateVariant.lg}
             data-testid="feature-view-schema-empty-state"
-          />
+          >
+            {isFilteredEmpty && (
+              <>
+                <EmptyStateBody>Adjust or clear your filters to see schema rows.</EmptyStateBody>
+                <EmptyStateActions>
+                  <Button variant="link" onClick={onClearFilters}>
+                    Clear filters
+                  </Button>
+                </EmptyStateActions>
+              </>
+            )}
+          </EmptyState>
         </Bullseye>
       }
       rowRenderer={(item, index) => (
