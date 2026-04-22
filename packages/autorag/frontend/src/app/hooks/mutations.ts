@@ -15,7 +15,7 @@ export type S3FileUploadMutationVariables = UploadFileToS3Params & {
 };
 
 /**
- * React Query mutation for uploading a file to S3 via POST /api/v1/s3/file.
+ * React Query mutation for uploading a file to S3 via POST /api/v1/s3/files/:key.
  * Uses hostPath '' for same-origin requests by default.
  */
 export function useS3FileUploadMutation(
@@ -178,9 +178,11 @@ export function useUploadToStorageMutation(
         const params = new URLSearchParams({
           namespace,
           secretName,
-          key,
         });
-        xhr.open('POST', `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/file?${params.toString()}`);
+        xhr.open(
+          'POST',
+          `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
+        );
         xhr.send(formData);
       }),
   });

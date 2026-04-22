@@ -218,12 +218,14 @@ func s3ConnectivityErrorMessage(bucket string) string {
 }
 
 // GetS3FileHandler retrieves a file from S3 storage.
+// Path parameters:
+//   - key (required): S3 object key to retrieve.
+//
 // Query parameters:
 //   - secretName (optional): Kubernetes secret with S3 credentials.
 //     If omitted, credentials are taken from the DSPA associated with the namespace.
 //   - bucket (optional): S3 bucket; ignored on the DSPA path.
-//   - key (required): S3 object key to retrieve.
-func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	queryParams := r.URL.Query()
 
 	secretName := queryParams.Get("secretName")
@@ -232,9 +234,9 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	key := strings.TrimSpace(queryParams.Get("key"))
+	key := strings.TrimSpace(ps.ByName("key"))
 	if key == "" {
-		app.badRequestResponse(w, r, errors.New("query parameter 'key' is required and cannot be empty"))
+		app.badRequestResponse(w, r, errors.New("path parameter 'key' is required and cannot be empty"))
 		return
 	}
 
@@ -300,14 +302,15 @@ func (app *App) effectivePostS3CollisionAttempts() int {
 }
 
 // PostS3FileHandler uploads a CSV file to S3 storage using credentials from a Kubernetes secret.
-// Query parameters: namespace, secretName, key (required); bucket (optional, uses AWS_S3_BUCKET from secret if not provided).
+// Path parameters: key (required).
+// Query parameters: namespace, secretName (required); bucket (optional, uses AWS_S3_BUCKET from secret if not provided).
 // Request body: multipart/form-data with a file part named "file". Only CSV uploads are allowed: Content-Type
 // text/csv, or application/octet-stream with a .csv filename (or empty Content-Type with a .csv filename).
 // Candidate keys are chosen via HeadObject; the file is streamed to S3 once with If-None-Match (no full-file buffer).
 // If HeadObject and PUT disagree (concurrent writer), the handler returns 409 Conflict without retrying.
 //
 // Note: namespace is provided via the AttachNamespace middleware
-func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	queryParams := r.URL.Query()
 
 	secretName := queryParams.Get("secretName")
@@ -320,9 +323,9 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	key := strings.TrimSpace(queryParams.Get("key"))
+	key := strings.TrimSpace(ps.ByName("key"))
 	if key == "" {
-		app.badRequestResponse(w, r, errors.New("query parameter 'key' is required and cannot be empty"))
+		app.badRequestResponse(w, r, errors.New("path parameter 'key' is required and cannot be empty"))
 		return
 	}
 
@@ -596,12 +599,14 @@ func s3GetResponseTypeAllowsInlineViewing(sanitizedContentType string) bool {
 }
 
 // GetS3FileSchemaHandler retrieves the schema (column names and types) from a CSV file in S3.
+// Path parameters:
+//   - key (required): S3 object key (must be a .csv file).
+//
 // Query parameters:
 //   - secretName (optional): Kubernetes secret with S3 credentials.
 //     If omitted, credentials are taken from the DSPA associated with the namespace.
 //   - bucket (optional): S3 bucket; ignored on the DSPA path.
-//   - key (required): S3 object key (must be a .csv file).
-func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	queryParams := r.URL.Query()
 
 	secretName := queryParams.Get("secretName")
@@ -610,9 +615,9 @@ func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _
 		return
 	}
 
-	key := strings.TrimSpace(queryParams.Get("key"))
+	key := strings.TrimSpace(ps.ByName("key"))
 	if key == "" {
-		app.badRequestResponse(w, r, errors.New("query parameter 'key' is required and cannot be empty"))
+		app.badRequestResponse(w, r, errors.New("path parameter 'key' is required and cannot be empty"))
 		return
 	}
 
@@ -679,7 +684,7 @@ func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, _
 	}
 }
 
-// S3FilesEnvelope is the response envelope for GET /s3/files.
+// S3FilesEnvelope is the response envelope for GET /api/v1/s3/files.
 type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
 
 // GetS3FilesHandler lists objects in an S3 bucket.

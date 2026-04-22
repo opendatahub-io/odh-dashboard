@@ -36,8 +36,8 @@ const (
 	UserPath                = ApiPathPrefix + "/user"
 	NamespacePath           = ApiPathPrefix + "/namespaces"
 	SecretsPath             = ApiPathPrefix + "/secrets"
-	S3FilePath              = ApiPathPrefix + "/s3/file"
-	S3FileSchemaPath        = ApiPathPrefix + "/s3/file/schema"
+	S3FilePath              = ApiPathPrefix + "/s3/files/:key"
+	S3FileSchemaPath        = ApiPathPrefix + "/s3/files/:key/schema"
 	S3FilesPath             = ApiPathPrefix + "/s3/files"
 	PipelineRunsPath        = ApiPathPrefix + "/pipeline-runs"
 	ModelRegistriesPath     = ApiPathPrefix + "/model-registries"
@@ -262,8 +262,8 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileSchemaHandler))))
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileHandler))))
 	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler))))
-	// POST /s3/file deliberately omits attachPipelineClientIfNeeded: secretName is required; there is
-	// no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
+	// POST /s3/files/:key deliberately omits attachPipelineClientIfNeeded: secretName is required;
+	// there is no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
 	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToPipelineServers(app.PostS3FileHandler))))
 
 	// Model Registry - register model binary (target registry via path param + discovered ServerURL)
