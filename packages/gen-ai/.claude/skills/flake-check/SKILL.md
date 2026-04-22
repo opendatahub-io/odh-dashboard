@@ -20,7 +20,7 @@ Investigate failing CI checks on a PR and classify each failure using live CI da
 | `/flake-check scan <N>d` | Survey PRs from the last N days (e.g. `scan 7d`) |
 | `/flake-check scan --file <filename>` | Find every PR in the window where a specific test file appeared in failures (fetches logs — slower) |
 
-```
+```bash
 /flake-check 7301
 /flake-check 7301 --deep
 /flake-check scan
@@ -80,7 +80,7 @@ This skill separates **data collection** (deterministic Python scripts) from **a
 | Classification | Claude | Apply confidence model using symptom patterns, checking code overlap with failed tests, etc. |
 | Report | Claude | Generate structured, actionable output |
 
-Scripts live in `${CLAUDE_SKILL_DIR}/scripts/`. Run scripts from the repo root (the user's working directory) using their absolute path. All scripts output JSON to stdout; errors go to stderr.
+Scripts live in `${CLAUDE_SKILL_DIR}/scripts/`. Run scripts from the repo root (the user's working directory) using their absolute path. All scripts output JSON to stdout; errors are also emitted as JSON to stdout (`{"error": "..."}`) and exit with a non-zero status code.
 
 ## Prerequisites
 
