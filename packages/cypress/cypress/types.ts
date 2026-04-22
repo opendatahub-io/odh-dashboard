@@ -717,4 +717,5 @@ export type MlflowExperimentsTestData = {
   projectName: string;
   experiments: MlflowExperimentData[];
   runs: MlflowExperimentRunData[];
+  nonExistentExperiment: string;
 };

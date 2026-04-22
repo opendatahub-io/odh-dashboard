@@ -425,10 +425,11 @@ export const logMlflowRunViaAPI = (
   ).then((response) => {
     const runId = JSON.parse(response).run.info.run_id;
     const params = Object.entries(run.parameters).map(([key, value]) => ({ key, value }));
+    const metricTimestamp = Date.now();
     const metrics = Object.entries(run.metrics).map(([key, value]) => ({
       key,
       value: parseFloat(value),
-      timestamp: 0,
+      timestamp: metricTimestamp,
       step: 0,
     }));
     return execCurlInMlflowPod(
@@ -460,6 +461,25 @@ export const deleteMlflowExperimentViaAPI = (
     { experiment_id: experimentId }, // eslint-disable-line camelcase
     workspace,
   );
+
+/**
+ * Look up an MLflow experiment by name and return its ID, or undefined if not found.
+ */
+export const getMlflowExperimentIdByName = (
+  workspace: string,
+  experimentName: string,
+): Cypress.Chainable<string | undefined> =>
+  execCurlInMlflowPod(
+    '/api/2.0/mlflow/experiments/get-by-name',
+    { experiment_name: experimentName }, // eslint-disable-line camelcase
+    workspace,
+  ).then((response) => {
+    try {
+      return JSON.parse(response)?.experiment?.experiment_id;
+    } catch {
+      return undefined;
+    }
+  });
 
 /**
  * Log multiple runs sequentially under a single experiment.

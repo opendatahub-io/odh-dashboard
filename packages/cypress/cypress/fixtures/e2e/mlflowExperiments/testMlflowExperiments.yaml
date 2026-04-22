@@ -19,3 +19,4 @@ runs:
     metrics:
       accuracy: '0.97'
       loss: '0.03'
+nonExistentExperiment: 'nonexistent-experiment-xyz-no-results'

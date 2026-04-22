@@ -88,12 +88,20 @@ class MlflowExperiments {
     this.findExperimentTypeToggleItem(label).should('have.attr', 'aria-pressed', 'true');
   }
 
-  findGenAITab(name: string) {
-    return cy.findByRole('tab', { name });
+  findUsageTab() {
+    return cy.findByRole('tab', { name: 'Usage' });
   }
 
-  shouldHaveGenAITabSelected(name: string) {
-    this.findGenAITab(name).should('have.attr', 'aria-selected', 'true');
+  findQualityTab() {
+    return cy.findByRole('tab', { name: 'Quality' });
+  }
+
+  findToolCallsTab() {
+    return cy.findByRole('tab', { name: 'Tool calls' });
+  }
+
+  shouldHaveUsageTabSelected() {
+    this.findUsageTab().should('have.attr', 'aria-selected', 'true');
   }
 
   findEvaluationRunsLink() {
@@ -101,7 +109,7 @@ class MlflowExperiments {
   }
 
   findExperimentsSearchInput() {
-    return cy.findByTestId('search-experiment-input', { timeout: 1000 });
+    return cy.findByTestId('search-experiment-input', { timeout: 30000 });
   }
 
   findCreateExperimentButton() {

@@ -6,6 +6,7 @@ import {
   doesMlflowCRExist,
   createMlflowExperimentViaAPI,
   deleteMlflowExperimentViaAPI,
+  getMlflowExperimentIdByName,
   logMlflowRunsViaAPI,
 } from '../../../utils/oc_commands/mlflow';
 import { deleteOpenShiftProject, createOpenShiftProject } from '../../../utils/oc_commands/project';
@@ -22,6 +23,8 @@ describe('Verify MLflow Experiments page', () => {
   let operatorWasManaged = true;
   let crExisted = true;
   let runsExperimentId: string | undefined;
+  let uiExperimentName: string | undefined;
+  let uiExperimentDeleted = false;
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
@@ -54,6 +57,13 @@ describe('Verify MLflow Experiments page', () => {
   });
 
   after(() => {
+    if (uiExperimentName && !uiExperimentDeleted) {
+      getMlflowExperimentIdByName(projectName, uiExperimentName).then((id) => {
+        if (id) {
+          deleteMlflowExperimentViaAPI(projectName, id);
+        }
+      });
+    }
     if (runsExperimentId) {
       deleteMlflowExperimentViaAPI(projectName, runsExperimentId);
     }
@@ -64,12 +74,14 @@ describe('Verify MLflow Experiments page', () => {
   it(
     'Verify MLflow Experiments page',
     {
-      tags: ['@Sanity', '@SanitySet1', '@MLflow', '@MLflowExperiments'],
+      tags: ['@Sanity', '@SanitySet1', '@MLflow', '@MLflowExperiments', '@NonConcurrent'],
     },
     () => {
-      const experimentName = `e2e-experiment-${uuid}`;
-      const renamedExperimentName = `e2e-renamed-${uuid}`;
-      const runsExperimentName = `e2e-runs-${uuid}`;
+      const experiment = testData.experiments[0];
+      const experimentName = `${experiment.name}-${uuid}`;
+      uiExperimentName = experimentName;
+      const renamedExperimentName = `${experiment.renamedName}-${uuid}`;
+      const runsExperimentName = `${testData.experiments[1].name}-${uuid}`;
       const [run1, run2] = testData.runs;
 
       // =======================================================================
@@ -113,11 +125,11 @@ describe('Verify MLflow Experiments page', () => {
       cy.step('Verify GenAI toggle is selected by default');
       mlflowExperiments.shouldHaveExperimentTypeSelected(ExperimentTypeToggle.GEN_AI);
 
-      cy.step('Verify GenAI tabs (Usage, Quality, Tool calls) are visible');
-      mlflowExperiments.findGenAITab('Usage').should('be.visible');
-      mlflowExperiments.findGenAITab('Quality').should('be.visible');
-      mlflowExperiments.findGenAITab('Tool calls').should('be.visible');
-      mlflowExperiments.shouldHaveGenAITabSelected('Usage');
+      cy.step('Verify GenAI tabs are visible');
+      mlflowExperiments.findUsageTab().should('be.visible');
+      mlflowExperiments.findQualityTab().should('be.visible');
+      mlflowExperiments.findToolCallsTab().should('be.visible');
+      mlflowExperiments.shouldHaveUsageTabSelected();
 
       cy.step('Verify Evaluation runs link is visible');
       mlflowExperiments.findEvaluationRunsLink().should('be.visible');
@@ -172,7 +184,7 @@ describe('Verify MLflow Experiments page', () => {
       mlflowExperiments
         .findExperimentsSearchInput()
         .clear()
-        .type('nonexistent-experiment-xyz-no-results{enter}');
+        .type(`${testData.nonExistentExperiment}{enter}`);
       mlflowExperiments.findExperimentInTable(experimentName).should('not.exist');
 
       cy.step('Clear search to restore list');
@@ -198,6 +210,7 @@ describe('Verify MLflow Experiments page', () => {
       cy.step('Submit rename');
       mlflowExperiments.findRenameSubmitButton().click();
       mlflowExperiments.findExperimentDetailHeading(renamedExperimentName).should('be.visible');
+      uiExperimentName = renamedExperimentName;
 
       cy.step('Navigate back to list to verify renamed experiment');
       mlflowExperiments.findBreadcrumbItem('Experiments').click({ force: true });
@@ -225,6 +238,7 @@ describe('Verify MLflow Experiments page', () => {
 
       cy.step('Verify experiment removed from list');
       mlflowExperiments.findExperimentInTable(renamedExperimentName).should('not.exist');
+      uiExperimentDeleted = true;
 
       // =======================================================================
       // Experiment runs and comparison
