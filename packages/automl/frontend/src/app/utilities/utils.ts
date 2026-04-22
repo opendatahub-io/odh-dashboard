@@ -1,10 +1,40 @@
 import type { PipelineRun, TaskType } from '~/app/types';
+import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
   TASK_TYPE_TIMESERIES,
 } from './const';
+
+/**
+ * Whether the run is in a state where it can be terminated (stopped).
+ */
+export const isRunTerminatable = (state: string | undefined): boolean => {
+  const s = state?.toUpperCase();
+  return (
+    s === RuntimeStateKF.RUNNING || s === RuntimeStateKF.PENDING || s === RuntimeStateKF.PAUSED
+  );
+};
+
+/**
+ * Whether the run is still in progress (not yet in a terminal state).
+ * Includes CANCELING — the pipeline is still running but cannot be stopped again.
+ */
+export const isRunInProgress = (state: string | undefined): boolean => {
+  const s = state?.toUpperCase();
+  return (
+    s === RuntimeStateKF.RUNNING || s === RuntimeStateKF.PENDING || s === RuntimeStateKF.CANCELING
+  );
+};
+
+/**
+ * Whether the run is in a terminal failure state where it can be retried.
+ */
+export const isRunRetryable = (state: string | undefined): boolean => {
+  const s = state?.toUpperCase();
+  return s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED;
+};
 
 /**
  * Extracts HTTP status from Error.message when handleRestFailures (mod-arch-core)

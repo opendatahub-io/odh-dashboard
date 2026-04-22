@@ -599,11 +599,11 @@ describe('AutoragResultsPage', () => {
       expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
     });
 
-    it('should show Stop button when run is CANCELING', () => {
+    it('should not show Stop button when run is CANCELING', () => {
       setupWithRunState('CANCELING');
       renderPage();
 
-      expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
+      expect(screen.queryByTestId('stop-run-button')).not.toBeInTheDocument();
     });
 
     it('should show Stop button when run is PAUSED', () => {
