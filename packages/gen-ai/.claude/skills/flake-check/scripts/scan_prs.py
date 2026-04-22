@@ -307,13 +307,27 @@ def main() -> None:
         "--json", "number,title,author,createdAt,state,headRefOid",
     ]
 
+    search_parts = []
     if args.since:
-        gh_args += ["--search", f"created:>={args.since.isoformat()}"]
+        search_parts.append(f"created:>={args.since.isoformat()}")
+    if args.until:
+        # Include in the search query so the API scopes results to the window,
+        # preventing newer PRs from consuming the result budget before we reach
+        # the target window (the search API sorts by recency of update by default).
+        search_parts.append(f"created:<{args.until.isoformat()}")
+    if search_parts:
+        gh_args += ["--search", " ".join(search_parts)]
 
     raw = run_gh(*gh_args)
     prs_raw: list[dict] = json.loads(raw)
 
-    # Client-side --until filter
+    # limit_hit must be checked on the raw pre-filter list; filtering below reduces
+    # the count so checking after would produce a false negative.
+    limit_hit = len(prs_raw) > effective_limit
+    prs_raw = prs_raw[:effective_limit]
+
+    # Client-side --until filter as a safety net (search query already scopes this,
+    # but keep the guard in case gh CLI doesn't forward the query correctly).
     if args.until:
         until_iso = args.until.isoformat()
         prs_raw = [p for p in prs_raw if p["createdAt"][:10] < until_iso]
@@ -328,10 +342,6 @@ def main() -> None:
             else:
                 filtered.append(pr)
         prs_raw = filtered
-
-    # If we got more than the limit, there are additional PRs beyond this window
-    limit_hit = len(prs_raw) > effective_limit
-    prs_raw = prs_raw[:effective_limit]
 
     pr_results: list[dict] = []
     all_passing_count = 0
