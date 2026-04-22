@@ -6,6 +6,7 @@ import {
   mockTabularConfusionMatrices,
 } from '~/app/mocks/mockAutomlResultsContext';
 import { mockS3ListObjectsResponse } from '~/__mocks__/mockS3ListObjectsResponse';
+import { automlResultsPage } from '~/__tests__/cypress/cypress/pages/automlResults';
 
 const RUN_ID = mockTabularContext.pipelineRun.run_id;
 const NAMESPACE = 'kubeflow';
@@ -25,7 +26,6 @@ const mockPipelineSpec = {
         'autogluon-models-training': {
           taskInfo: { name: 'autogluon-models-training' },
           componentRef: { name: 'comp-autogluon-models-training' },
-          dependentTasks: ['automl-data-loader'],
         },
         'leaderboard-evaluation': {
           taskInfo: { name: 'leaderboard-evaluation' },
@@ -165,139 +165,129 @@ describe('AutoML Results Page', () => {
 
   describe('Leaderboard', () => {
     it('should display leaderboard with model rows', () => {
-      cy.visit(`/results/${NAMESPACE}/${RUN_ID}`);
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
 
-      cy.findByTestId('leaderboard-table').should('exist');
-      cy.findByTestId('leaderboard-row-1').should('exist');
-      cy.findByTestId('leaderboard-row-2').should('exist');
-      cy.findByTestId('leaderboard-row-3').should('exist');
+      automlResultsPage.findLeaderboardRow(1).should('exist');
+      automlResultsPage.findLeaderboardRow(2).should('exist');
+      automlResultsPage.findLeaderboardRow(3).should('exist');
     });
 
     it('should show top rank label on first model', () => {
-      cy.visit(`/results/${NAMESPACE}/${RUN_ID}`);
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
 
-      cy.findByTestId('leaderboard-table').should('exist');
-      cy.findByTestId('top-rank-label').should('exist');
+      automlResultsPage.findTopRankLabel().should('exist');
     });
 
     it('should open manage columns modal and hide a column', () => {
-      cy.visit(`/results/${NAMESPACE}/${RUN_ID}`);
-
-      cy.findByTestId('leaderboard-table').should('exist');
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
 
       // Verify F1 metric column exists before hiding
-      cy.findByTestId('metric-header-f1').should('exist');
+      automlResultsPage.findMetricHeader('f1').should('exist');
 
       // Open manage columns modal
-      cy.findByTestId('manage-columns-button').click();
-      cy.contains('Selected categories will be displayed in the table.').should('be.visible');
+      automlResultsPage.findManageColumnsButton().click();
+      automlResultsPage.findManageColumnsDescription().should('be.visible');
 
       // Uncheck F1 column and save
-      cy.findByTestId('column-check-metric:f1').click();
-      cy.contains('button', 'Save').click();
+      automlResultsPage.findColumnCheck('metric:f1').click();
+      automlResultsPage.findManageColumnsSaveButton().click();
 
       // F1 column should be hidden
-      cy.findByTestId('metric-header-f1').should('not.exist');
+      automlResultsPage.findMetricHeader('f1').should('not.exist');
     });
   });
 
   describe('Model Details Modal', () => {
     it('should open modal with all tabs', () => {
-      cy.visit(`/results/${NAMESPACE}/${RUN_ID}`);
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
 
-      cy.findByTestId('leaderboard-table').should('exist');
-      cy.findByTestId('model-link-1').click();
+      automlResultsPage.findModelLink(1).click();
 
-      cy.findByTestId('automl-model-details-modal').should('be.visible');
-      cy.findByTestId('tab-model-information').should('exist');
-      cy.findByTestId('tab-model-evaluation').should('exist');
-      cy.findByTestId('tab-feature-summary').should('exist');
-      cy.findByTestId('tab-confusion-matrix').should('exist');
+      automlResultsPage.findModelDetailsModal().should('be.visible');
+      automlResultsPage.findTab('model-information').should('exist');
+      automlResultsPage.findTab('model-evaluation').should('exist');
+      automlResultsPage.findTab('feature-summary').should('exist');
+      automlResultsPage.findTab('confusion-matrix').should('exist');
     });
 
     it('should close modal', () => {
-      cy.visit(`/results/${NAMESPACE}/${RUN_ID}`);
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
 
-      cy.findByTestId('leaderboard-table').should('exist');
-      cy.findByTestId('model-link-1').click();
-      cy.findByTestId('automl-model-details-modal').should('be.visible');
+      automlResultsPage.findModelLink(1).click();
+      automlResultsPage.findModelDetailsModal().should('be.visible');
 
-      cy.findByTestId('automl-model-details-modal').find('[aria-label="Close"]').click();
-      cy.findByTestId('automl-model-details-modal').should('not.exist');
+      automlResultsPage.findModelDetailsModalCloseButton().click();
+      automlResultsPage.findModelDetailsModal().should('not.exist');
     });
 
     it('should switch between models using the model selector dropdown', () => {
-      cy.visit(`/results/${NAMESPACE}/${RUN_ID}`);
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
 
-      cy.findByTestId('leaderboard-table').should('exist');
-      cy.findByTestId('model-link-1').click();
-      cy.findByTestId('automl-model-details-modal').should('be.visible');
+      automlResultsPage.findModelLink(1).click();
+      automlResultsPage.findModelDetailsModal().should('be.visible');
 
       // Open model selector and switch to a different model
-      cy.findByTestId('model-selector-dropdown').click();
-      cy.findByRole('menuitem', { name: /RandomForest_BAG_L1_FULL/ }).click();
+      automlResultsPage.findModelSelectorDropdown().click();
+      automlResultsPage.findModelSelectorOption('RandomForest_BAG_L1_FULL').click();
 
       // Verify the modal still shows with the new model
-      cy.findByTestId('automl-model-details-modal').should('be.visible');
-      cy.findByTestId('model-selector-dropdown').should('contain.text', 'RandomForest_BAG_L1_FULL');
+      automlResultsPage.findModelDetailsModal().should('be.visible');
+      automlResultsPage
+        .findModelSelectorDropdown()
+        .should('contain.text', 'RandomForest_BAG_L1_FULL');
     });
 
     it('should display feature importance bars in feature summary tab', () => {
-      cy.visit(`/results/${NAMESPACE}/${RUN_ID}`);
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
 
-      cy.findByTestId('leaderboard-table').should('exist');
-      cy.findByTestId('model-link-1').click();
-      cy.findByTestId('automl-model-details-modal').should('be.visible');
+      automlResultsPage.findModelLink(1).click();
+      automlResultsPage.findModelDetailsModal().should('be.visible');
 
-      cy.findByTestId('tab-feature-summary').click();
+      automlResultsPage.findTab('feature-summary').click();
 
-      cy.findByTestId('feature-importance-bar-color').should('exist');
-      cy.findByTestId('feature-importance-bar-hair_length').should('exist');
-      cy.findByTestId('feature-importance-bar-has_soul').should('exist');
+      automlResultsPage.findFeatureImportanceBar('color').should('exist');
+      automlResultsPage.findFeatureImportanceBar('hair_length').should('exist');
+      automlResultsPage.findFeatureImportanceBar('has_soul').should('exist');
     });
 
     it('should search features in feature summary tab', () => {
-      cy.visit(`/results/${NAMESPACE}/${RUN_ID}`);
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
 
-      cy.findByTestId('leaderboard-table').should('exist');
-      cy.findByTestId('model-link-1').click();
-      cy.findByTestId('tab-feature-summary').click();
+      automlResultsPage.findModelLink(1).click();
+      automlResultsPage.findTab('feature-summary').click();
 
       // Search for a specific feature
-      cy.findByTestId('feature-search').find('input').type('color');
-      cy.findByTestId('feature-importance-bar-color').should('exist');
-      cy.findByTestId('feature-importance-bar-hair_length').should('not.exist');
+      automlResultsPage.findFeatureSearchInput().type('color');
+      automlResultsPage.findFeatureImportanceBar('color').should('exist');
+      automlResultsPage.findFeatureImportanceBar('hair_length').should('not.exist');
 
       // Clear search and verify all features return
-      cy.findByTestId('feature-search').find('input').clear();
-      cy.findByTestId('feature-importance-bar-hair_length').should('exist');
+      automlResultsPage.findFeatureSearchInput().clear();
+      automlResultsPage.findFeatureImportanceBar('hair_length').should('exist');
     });
 
     it('should display confusion matrix in confusion matrix tab', () => {
-      cy.visit(`/results/${NAMESPACE}/${RUN_ID}`);
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
 
-      cy.findByTestId('leaderboard-table').should('exist');
-      cy.findByTestId('model-link-1').click();
-      cy.findByTestId('automl-model-details-modal').should('be.visible');
+      automlResultsPage.findModelLink(1).click();
+      automlResultsPage.findModelDetailsModal().should('be.visible');
 
-      cy.findByTestId('tab-confusion-matrix').click();
+      automlResultsPage.findTab('confusion-matrix').click();
 
-      cy.findByTestId('confusion-matrix-table').should('exist');
-      cy.findByTestId('confusion-matrix-gradient').should('exist');
+      automlResultsPage.findConfusionMatrixTable().should('exist');
+      automlResultsPage.findConfusionMatrixGradient().should('exist');
     });
   });
 
   describe('Run Details Drawer', () => {
     it('should open and close run details drawer', () => {
-      cy.visit(`/results/${NAMESPACE}/${RUN_ID}`);
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
 
-      cy.findByTestId('leaderboard-table').should('exist');
+      automlResultsPage.findRunDetailsButton().click();
+      automlResultsPage.findRunDetailsDrawerPanel().should('be.visible');
 
-      cy.findByTestId('run-details-button').click();
-      cy.findByTestId('run-details-drawer-panel').should('be.visible');
-
-      cy.findByTestId('run-details-drawer-close').click();
-      cy.findByTestId('run-details-drawer-panel').should('not.be.visible');
+      automlResultsPage.findRunDetailsDrawerCloseButton().click();
+      automlResultsPage.findRunDetailsDrawerPanel().should('not.be.visible');
     });
   });
 });

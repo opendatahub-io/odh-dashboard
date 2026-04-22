@@ -68,6 +68,7 @@ function AutomlConfigurePage(): React.JSX.Element {
         <Button
           type="submit"
           variant="primary"
+          data-testid="automl-next-button"
           isDisabled={!configureSchema.base.shape.display_name.safeParse(displayName).success}
         >
           Next
@@ -92,6 +93,7 @@ function AutomlConfigurePage(): React.JSX.Element {
         <Button
           type="submit"
           variant="primary"
+          data-testid="automl-create-run-button"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
         >
           Create run

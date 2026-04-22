@@ -496,6 +496,7 @@ function AutomlConfigure(): React.JSX.Element {
                             <Button
                               key="browse-bucket"
                               variant="secondary"
+                              data-testid="browse-bucket-button"
                               onClick={() => setIsFileExplorerOpen(true)}
                               isDisabled={!canSelectFiles || formIsSubmitting}
                             >
@@ -558,6 +559,7 @@ function AutomlConfigure(): React.JSX.Element {
                               ref={trainingDataNativeInputRef}
                               type="file"
                               hidden
+                              data-testid="automl-upload-file-input"
                               accept={TRAINING_DATA_UPLOAD_NATIVE_ACCEPT}
                               aria-hidden
                               tabIndex={-1}

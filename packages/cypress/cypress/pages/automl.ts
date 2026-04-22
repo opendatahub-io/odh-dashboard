@@ -41,15 +41,15 @@ class AutomlConfigurePage {
 
   // Step 1 - Create
   findNameInput() {
-    return cy.get('#display_name');
+    return cy.findByTestId('automl-name-input');
   }
 
   findDescriptionInput() {
-    return cy.get('#description');
+    return cy.findByTestId('automl-description-input');
   }
 
   findNextButton() {
-    return cy.findByRole('button', { name: 'Next' });
+    return cy.findByTestId('automl-next-button');
   }
 
   findConfigureStepSubtitle() {
@@ -70,7 +70,7 @@ class AutomlConfigurePage {
   }
 
   findUploadFileInput() {
-    return cy.get('input[type="file"]').first();
+    return cy.findByTestId('automl-upload-file-input');
   }
 
   findUploadSpinner() {
@@ -78,7 +78,7 @@ class AutomlConfigurePage {
   }
 
   findBrowseBucketButton() {
-    return cy.findByRole('button', { name: 'Browse bucket' });
+    return cy.findByTestId('browse-bucket-button');
   }
 
   // File Explorer Modal
@@ -108,9 +108,18 @@ class AutomlConfigurePage {
     return cy.findByTestId('label_column-select');
   }
 
+  findSelectOption(name: string | RegExp) {
+    return cy.findByRole('option', { name: name instanceof RegExp ? name : new RegExp(name) });
+  }
+
+  // Upload result
+  findUploadedFileCell(pattern: RegExp) {
+    return cy.contains('td', pattern);
+  }
+
   // Submit
   findCreateRunButton() {
-    return cy.findByRole('button', { name: 'Create run' });
+    return cy.findByTestId('automl-create-run-button');
   }
 }
 
@@ -121,6 +130,10 @@ class AutomlResultsPage {
 
   findRunDetailsButton() {
     return cy.findByTestId('run-details-button');
+  }
+
+  findRunInProgressMessage() {
+    return cy.findByTestId('automl-run-in-progress');
   }
 }
 
