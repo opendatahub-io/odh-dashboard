@@ -15,6 +15,16 @@ The user provides a **package name** (e.g., `model-registry`, `gen-ai`, `fronten
 - If it matches `frontend` or `backend`, use that directory directly
 - If ambiguous, list matches and ask the user to confirm
 
+### Input validation (CWE-78)
+
+Before running any shell commands, validate the resolved directory:
+
+- The package name must match `^[a-z0-9-]+$`.
+- The resolved path must be one of: `frontend`, `backend`, or `packages/<name>` where `<name>` passes the regex above.
+- Reject paths containing `..`, spaces, shell metacharacters (``; | & $ ` ( ) { }``), or absolute-path prefixes.
+- Construct the resolved path using `path.join`/`path.resolve` — never by string-interpolating user input into a shell string.
+- When invoking `rg`, pass arguments as an array (or use the `--` sentinel before the path argument) so the directory cannot be interpreted as shell tokens.
+
 ## Phase 1: Gather context
 
 1. Read the target package's `package.json` — record `dependencies`, `devDependencies`, and `overrides` (if any).
@@ -27,8 +37,16 @@ The user provides a **package name** (e.g., `model-registry`, `gen-ai`, `fronten
 Scan all `.ts`, `.tsx`, `.js`, `.jsx` files in the package's source directory for import/require statements.
 
 ```bash
-rg -t ts -t tsx --no-filename -o "(?:from\s+['\"]([^'\"./][^'\"]*)['\"]|require\s*\(\s*['\"]([^'\"./][^'\"]*)['\"])" <package-src-dir>
+rg -t ts -t js --no-filename -o \
+  "(?:from\s+['\"]([^'\"./][^'\"]*)['\"]|import\s+['\"]([^'\"./][^'\"]*)['\"]|import\s*\(\s*['\"]([^'\"./][^'\"]*)['\"]\s*\)|require\s*\(\s*['\"]([^'\"./][^'\"]*)['\"]\s*\))" \
+  -- "<package-src-dir>"
 ```
+
+This covers:
+- Named imports: `import { foo } from 'pkg'` / `export { bar } from 'pkg'`
+- Side-effect imports: `import 'pkg'`
+- Dynamic imports: `import('pkg')`
+- CommonJS requires: `require('pkg')`
 
 For each match, extract the **package name** (the first path segment, or first two segments for scoped packages like `@patternfly/react-core`).
 
