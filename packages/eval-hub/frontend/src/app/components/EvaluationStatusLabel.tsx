@@ -15,6 +15,7 @@ type StatusConfig = {
   color?: LabelProps['color'];
   status?: LabelProps['status'];
   icon: React.ReactNode;
+  isFilled?: boolean;
 };
 
 const statusMap: Record<EvaluationJobState, StatusConfig> = {
@@ -37,6 +38,7 @@ const statusMap: Record<EvaluationJobState, StatusConfig> = {
     label: 'Failed',
     status: 'danger',
     icon: <ExclamationCircleIcon />,
+    isFilled: true,
   },
   cancelled: {
     label: 'Canceled',
@@ -44,7 +46,7 @@ const statusMap: Record<EvaluationJobState, StatusConfig> = {
     icon: <BanIcon />,
   },
   stopping: {
-    label: 'Stopping',
+    label: 'Canceling',
     color: 'grey',
     icon: <InProgressIcon className="odh-u-spin" />,
   },
@@ -66,7 +68,7 @@ const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({ state, me
 
   const label = (
     <Label
-      variant="outline"
+      variant={config.isFilled ? 'filled' : 'outline'}
       color={config.color}
       status={config.status}
       icon={<Icon isInline>{config.icon}</Icon>}
