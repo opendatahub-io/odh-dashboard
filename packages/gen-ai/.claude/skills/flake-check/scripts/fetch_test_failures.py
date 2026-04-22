@@ -9,7 +9,7 @@ Fetches CI run logs and extracts individual test failure details.
 Strips GitHub Actions log line prefixes, detects the test framework,
 and parses out test names with their error snippets.
 
-Outputs structured JSON for Claude to classify against the flaky registry.
+Outputs structured JSON for Claude to classify suspected flaky tests.
 
 Usage:
     python3 fetch_test_failures.py 24269798994
