@@ -14,9 +14,9 @@ import { useNotification } from '~/app/hooks/useNotification';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import { REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
 import { generateReconfigureName } from '~/app/utilities/utils';
 import AutoragConfigurePage from './AutoragConfigurePage';
-import { REQUIRED_CONNECTION_SECRET_KEYS } from '../utilities/const';
 
 /**
  * Intermediate loader that fetches the previous pipeline run, resolves connection
