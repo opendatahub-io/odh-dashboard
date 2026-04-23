@@ -80,7 +80,7 @@ export async function uploadFileToS3(
   params: UploadFileToS3Params,
   file: File,
 ): Promise<UploadFileToS3Response> {
-  if (!params.key) {
+  if (!params.key || !params.key.trim()) {
     throw new Error('Upload key must be a non-empty string');
   }
 
