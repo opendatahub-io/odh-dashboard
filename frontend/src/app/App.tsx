@@ -116,10 +116,7 @@ const App: React.FC = () => {
               </Alert>
             </StackItem>
             <StackItem>
-              <Button
-                variant="secondary"
-                onClick={() => logout().then(() => window.location.reload())}
-              >
+              <Button variant="secondary" onClick={() => logout()}>
                 Logout
               </Button>
             </StackItem>
