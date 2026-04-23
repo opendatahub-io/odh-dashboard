@@ -112,7 +112,7 @@
     "dompurify": "^3.4.1",
     "es-toolkit": "^1.44.0",
     "lodash-es": "^4.17.15",
-    "mod-arch-core": "^1.6.0",
+    "mod-arch-core": "^1.15.4",
     "mod-arch-shared": "^1.15.4",
     "react": "^18",
     "react-dom": "^18",
