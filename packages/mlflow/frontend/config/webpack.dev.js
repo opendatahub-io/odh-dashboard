@@ -87,7 +87,19 @@ module.exports = smp.wrap(
             },
             pathRewrite: { '^/_bff/mlflow/api': '/api' },
             changeOrigin: true,
-            headers: getProxyHeaders(),
+            onProxyReq: (proxyReq, req) => {
+              const upstreamAuth = req.headers.authorization;
+              if (upstreamAuth && AUTH_METHOD === 'user_token') {
+                // Federated mode: forward the upstream token (may be impersonated) as x-forwarded-access-token
+                const token = upstreamAuth.replace(/^Bearer\s+/i, '');
+                proxyReq.setHeader('x-forwarded-access-token', token);
+              } else {
+                const headers = getProxyHeaders();
+                Object.entries(headers).forEach(([key, value]) => {
+                  proxyReq.setHeader(key, value);
+                });
+              }
+            },
           },
         ],
         devMiddleware: {
