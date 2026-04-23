@@ -42,6 +42,8 @@ export const OPTIMIZATION_METRIC_LABELS: Record<string, string> = {
   context_correctness: 'Context correctness',
 };
 
-export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Record<string, readonly string[]>> = {
-  s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
-};
+export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, readonly string[]>>> =
+  {
+    s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
+    lls: [],
+  };

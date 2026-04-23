@@ -67,8 +67,15 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     return base.partial().safeParse(params);
   }, [params]);
 
+  const shownWarnings = React.useRef({
+    secretsLoadError: false,
+    parseError: false,
+    secretMissing: false,
+  });
+
   React.useEffect(() => {
-    if (secretsError) {
+    if (secretsError && !shownWarnings.current.secretsLoadError) {
+      shownWarnings.current.secretsLoadError = true;
       notification.warning(
         'Unable to load connection secrets',
         'The previously used connection secret could not be loaded. You will need to manually select a connection secret.',
@@ -79,7 +86,8 @@ function AutomlReconfigureLoader(): React.JSX.Element {
   }, [secretsError]);
 
   React.useEffect(() => {
-    if (parsedParams && !parsedParams.success) {
+    if (parsedParams && !parsedParams.success && !shownWarnings.current.parseError) {
+      shownWarnings.current.parseError = true;
       // eslint-disable-next-line no-console
       console.warn('Failed to parse runtime parameters for reconfiguration:', parsedParams.error);
       notification.warning(
@@ -93,7 +101,14 @@ function AutomlReconfigureLoader(): React.JSX.Element {
 
   React.useEffect(() => {
     const name = params?.train_data_secret_name;
-    if (name && typeof name === 'string' && secrets && !secrets.find((s) => s.name === name)) {
+    if (
+      name &&
+      typeof name === 'string' &&
+      secrets &&
+      !secrets.find((s) => s.name === name) &&
+      !shownWarnings.current.secretMissing
+    ) {
+      shownWarnings.current.secretMissing = true;
       notification.warning(
         'Connection secret not found',
         `The previously used connection "${name}" could not be found. Please select a new connection.`,
@@ -137,9 +152,10 @@ function AutomlReconfigureLoader(): React.JSX.Element {
   if (secretName && typeof secretName === 'string' && secrets) {
     const match = secrets.find((s) => s.name === secretName);
     if (match) {
-      const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[match.type ?? ''] ?? [];
-      const availableKeys = Object.keys(match.data ?? {});
-      const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+      const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[match.type ?? ''];
+      const invalid = requiredKeys
+        ? getMissingRequiredKeys(requiredKeys, Object.keys(match.data ?? {})).length > 0
+        : true;
       initialInputDataSecret = { ...match, invalid };
     }
   }

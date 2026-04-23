@@ -77,8 +77,16 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     return base.partial().safeParse(params);
   }, [params]);
 
+  const shownWarnings = React.useRef({
+    secretsLoadError: false,
+    parseError: false,
+    storageMissing: false,
+    llsMissing: false,
+  });
+
   React.useEffect(() => {
-    if (storageSecretsError || llsSecretsError) {
+    if ((storageSecretsError || llsSecretsError) && !shownWarnings.current.secretsLoadError) {
+      shownWarnings.current.secretsLoadError = true;
       notification.warning(
         'Unable to load connection secrets',
         'The previously used connection secrets could not be loaded. You will need to manually select connection secrets.',
@@ -89,7 +97,8 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   }, [storageSecretsError, llsSecretsError]);
 
   React.useEffect(() => {
-    if (parsedParams && !parsedParams.success) {
+    if (parsedParams && !parsedParams.success && !shownWarnings.current.parseError) {
+      shownWarnings.current.parseError = true;
       // eslint-disable-next-line no-console
       console.warn('Failed to parse runtime parameters for reconfiguration:', parsedParams.error);
       notification.warning(
@@ -107,8 +116,10 @@ function AutoragReconfigureLoader(): React.JSX.Element {
       name &&
       typeof name === 'string' &&
       storageSecrets &&
-      !storageSecrets.find((s) => s.name === name)
+      !storageSecrets.find((s) => s.name === name) &&
+      !shownWarnings.current.storageMissing
     ) {
+      shownWarnings.current.storageMissing = true;
       notification.warning(
         'Connection secret not found',
         `The previously used storage connection "${name}" could not be found. Please select a new connection.`,
@@ -124,8 +135,10 @@ function AutoragReconfigureLoader(): React.JSX.Element {
       name &&
       typeof name === 'string' &&
       llsSecrets &&
-      !llsSecrets.find((s) => s.name === name)
+      !llsSecrets.find((s) => s.name === name) &&
+      !shownWarnings.current.llsMissing
     ) {
+      shownWarnings.current.llsMissing = true;
       notification.warning(
         'Connection secret not found',
         `The previously used LlamaStack connection "${name}" could not be found. Please select a new connection.`,
@@ -169,9 +182,10 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   if (secretName && typeof secretName === 'string' && storageSecrets) {
     const match = storageSecrets.find((s) => s.name === secretName);
     if (match) {
-      const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[match.type ?? ''] ?? [];
-      const availableKeys = Object.keys(match.data ?? {});
-      const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+      const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[match.type ?? ''];
+      const invalid = requiredKeys
+        ? getMissingRequiredKeys(requiredKeys, Object.keys(match.data ?? {})).length > 0
+        : true;
       initialInputDataSecret = { ...match, invalid };
     }
   }

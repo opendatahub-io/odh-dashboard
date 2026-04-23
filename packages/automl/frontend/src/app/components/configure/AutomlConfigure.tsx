@@ -430,11 +430,13 @@ function AutomlConfigure({
                                     }
 
                                     const requiredKeys =
-                                      REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''] ?? [];
-                                    const availableKeys = Object.keys(secret.data ?? {});
-                                    const invalid =
-                                      getMissingRequiredKeys(requiredKeys, availableKeys).length >
-                                      0;
+                                      REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''];
+                                    const invalid = requiredKeys
+                                      ? getMissingRequiredKeys(
+                                          requiredKeys,
+                                          Object.keys(secret.data ?? {}),
+                                        ).length > 0
+                                      : true;
                                     setNewConnectionNotLoaded(false);
                                     setSelectedSecret({ ...secret, invalid });
                                     onChange(invalid ? '' : secret.name);
@@ -859,10 +861,11 @@ function AutomlConfigure({
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
               setNewConnectionNotLoaded(false);
-              const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''] ?? [];
+              const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''];
               const secretData = secret.data ?? connection.stringData ?? {};
-              const availableKeys = Object.keys(secretData);
-              const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+              const invalid = requiredKeys
+                ? getMissingRequiredKeys(requiredKeys, Object.keys(secretData)).length > 0
+                : true;
               setSelectedSecret({
                 ...secret,
                 data: secretData,

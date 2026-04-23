@@ -1,3 +1,4 @@
+import React from 'react';
 import { renderHook } from '@testing-library/react';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 
@@ -62,16 +63,15 @@ describe('useReconfigureSafeEffect', () => {
     expect(callback).toHaveBeenCalledTimes(3);
   });
 
-  it('should not fire callback on StrictMode-style double-mount with identical deps', () => {
+  it('should not fire callback on StrictMode double-mount with identical deps', () => {
     const callback = jest.fn();
 
-    // Simulate StrictMode double-mount: two mounts with the same deps.
-    // The first mount sets the ref, the second mount sees identical deps and skips.
-    const { unmount } = renderHook(() => useReconfigureSafeEffect(callback, ['value']));
-    unmount();
-
-    // Remount with same deps (simulates StrictMode remount)
-    renderHook(() => useReconfigureSafeEffect(callback, ['value']));
+    // Wrap in real React.StrictMode so the same ref survives the
+    // mount → unmount → remount cycle and the effect fires twice
+    // with identical deps — verifying the hook skips on the remount.
+    renderHook(() => useReconfigureSafeEffect(callback, ['value']), {
+      wrapper: ({ children }) => React.createElement(React.StrictMode, null, children),
+    });
 
     expect(callback).not.toHaveBeenCalled();
   });

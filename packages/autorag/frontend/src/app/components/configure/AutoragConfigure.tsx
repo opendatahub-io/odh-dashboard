@@ -414,11 +414,13 @@ function AutoragConfigure({
                                     }
 
                                     const requiredKeys =
-                                      REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''] ?? [];
-                                    const availableKeys = Object.keys(secret.data ?? {});
-                                    const invalid =
-                                      getMissingRequiredKeys(requiredKeys, availableKeys).length >
-                                      0;
+                                      REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''];
+                                    const invalid = requiredKeys
+                                      ? getMissingRequiredKeys(
+                                          requiredKeys,
+                                          Object.keys(secret.data ?? {}),
+                                        ).length > 0
+                                      : true;
                                     setSelectedSecret({ ...secret, invalid });
                                     onChange(invalid ? '' : secret.name);
                                   }}
@@ -972,9 +974,10 @@ function AutoragConfigure({
             const list = await refresh();
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
-              const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''] ?? [];
-              const availableKeys = Object.keys(secret.data ?? {});
-              const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+              const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''];
+              const invalid = requiredKeys
+                ? getMissingRequiredKeys(requiredKeys, Object.keys(secret.data ?? {})).length > 0
+                : true;
               setSelectedSecret({ ...secret, invalid });
               setValue('input_data_secret_name', invalid ? '' : secret.name, {
                 shouldValidate: true,
