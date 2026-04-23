@@ -42,7 +42,19 @@ pr_branch=$(echo "$pr_json" | jq -r '.headRefName')
 ```
 
 - If already on correct branch: proceed.
-- If not: check `git status --porcelain` for uncommitted work (warn/ask to stash), then `gh pr checkout "$pr_number"`.
+- If not:
+  1. Check `git status --porcelain` for uncommitted work — warn and ask to stash or abort.
+  2. Check if the PR is from a fork:
+     ```bash
+     gh pr view "$pr_number" --json headRepositoryOwner --jq '.headRepositoryOwner.login'
+     ```
+  3. If fork owner differs from `$owner`, use `gh pr checkout "$pr_number"` which handles fork remotes automatically.
+  4. If same-repo PR and a stale local branch exists, delete it first then checkout:
+     ```bash
+     git branch -D "$pr_branch" 2>/dev/null
+     gh pr checkout "$pr_number"
+     ```
+  5. Never use `git reset --hard` to get onto a PR branch — always prefer `gh pr checkout` or a clean branch delete + checkout.
 
 ## Phase 1: Rebase and Merge Conflicts
 
@@ -101,7 +113,14 @@ For each failure:
 
 ## Phase 5: Simplify
 
-Invoke the `/simplify` skill to review changed code for quality issues:
+**Skip this phase if no files were changed in Phases 1-4.** Running simplify on the entire PR diff is expensive and not the purpose of this skill — simplify should only review code that maintain-pr itself modified.
+
+Check if any files were changed:
+```bash
+git diff --name-only
+```
+
+If there are changes, invoke `/simplify` to review them:
 
 ```
 Skill(simplify)
@@ -110,6 +129,8 @@ Skill(simplify)
 Apply any fixes it surfaces.
 
 ## Phase 6: Lint and Pre-commit
+
+**Skip this phase if no files were changed in Phases 1-5.**
 
 Run linters only on files modified by this skill's fixes:
 
