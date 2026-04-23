@@ -1,3 +1,4 @@
+import * as yaml from 'js-yaml';
 import { execWithOutput } from './baseCommands';
 import { getModelRegistryNamespace } from './modelRegistry';
 import type { CommandLineResult } from '../../types';
@@ -423,7 +424,10 @@ export const waitForModelCatalogCards = (
 
 /**
  * Check whether any catalog sources other than the specified ones are enabled.
- * Reads the model-catalog-sources (user overrides) ConfigMap, falling back to model-catalog-default-sources.
+ * Reads the model-catalog-sources (user overrides) ConfigMap, falling back to
+ * model-catalog-default-sources. Parses YAML in TypeScript via js-yaml so there
+ * is no dependency on yq, python3 or jq being available in CI.
+ * Sources without an explicit `.enabled` field are treated as enabled by default.
  * @param excludeSourceIds Source IDs to exclude from the check
  * @returns A Cypress chainable that resolves with true if at least one other source is enabled.
  */
@@ -431,41 +435,33 @@ export const hasOtherEnabledCatalogSources = (
   excludeSourceIds: string[],
 ): Cypress.Chainable<boolean> => {
   const namespace = getModelRegistryNamespace();
-  const excludeFilter = excludeSourceIds.map((id) => `"${id}"`).join(', ');
 
-  const buildJqFilter = (): string =>
-    `[.catalogs[] | select(.enabled == true) | select(.id | IN(${excludeFilter}) | not)] | length`;
-
-  const buildCommand = (configmap: string): string => {
-    const getYaml = `oc get configmap ${configmap} -n ${namespace} -o jsonpath='{.data.sources\\.yaml}'`;
-    return `
-      if command -v yq >/dev/null 2>&1; then
-        ${getYaml} | yq -o=json | jq '${buildJqFilter()}'
-      else
-        ${getYaml} | python3 -c 'import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)' 2>/dev/null | jq '${buildJqFilter()}'
-      fi
-    `.trim();
+  const parseAndCount = (yamlContent: string): boolean => {
+    const parsed = yaml.load(yamlContent) as {
+      catalogs: Array<{ id: string; enabled?: boolean }>;
+    };
+    const otherEnabled = parsed.catalogs.filter(
+      (c) => c.enabled !== false && !excludeSourceIds.includes(c.id),
+    );
+    cy.log(`Other enabled sources found: ${otherEnabled.length}`);
+    return otherEnabled.length > 0;
   };
 
-  const userCmd = buildCommand('model-catalog-sources');
-  const defaultCmd = buildCommand('model-catalog-default-sources');
+  const userCmd = `oc get configmap model-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}'`;
+  const defaultCmd = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}'`;
 
   return execWithOutput(userCmd, 30).then((userResult: CommandLineResult) => {
-    const userCount = parseInt(userResult.stdout.trim(), 10);
-    if (userResult.code === 0 && !Number.isNaN(userCount)) {
-      cy.log(`Other enabled sources (user configmap): ${userCount}`);
-      return cy.wrap(userCount > 0);
+    if (userResult.code === 0 && userResult.stdout.trim()) {
+      return cy.wrap(parseAndCount(userResult.stdout));
     }
-
     return execWithOutput(defaultCmd, 30).then((defaultResult: CommandLineResult) => {
-      const defaultCount = parseInt(defaultResult.stdout.trim(), 10);
-      if (defaultResult.code === 0 && !Number.isNaN(defaultCount)) {
-        cy.log(`Other enabled sources (default configmap): ${defaultCount}`);
-        return cy.wrap(defaultCount > 0);
+      if (defaultResult.code !== 0 || !defaultResult.stdout.trim()) {
+        const maskedStderr = maskSensitiveInfo(
+          [userResult.stderr, defaultResult.stderr].filter(Boolean).join('\n'),
+        );
+        throw new Error(`Failed to read catalog sources configmaps: ${maskedStderr}`);
       }
-
-      cy.log('Could not determine other enabled sources, assuming none');
-      return cy.wrap(false);
+      return cy.wrap(parseAndCount(defaultResult.stdout));
     });
   });
 };
@@ -475,8 +471,6 @@ export const hasOtherEnabledCatalogSources = (
  * If other sources are still enabled, waits for cards to be present (no empty state).
  * If no other sources remain, waits for the empty state to appear.
  * @param disabledSourceIds The source IDs that were just disabled
- * @param maxAttempts Maximum number of attempts (default: 20)
- * @param pollIntervalMs Interval between attempts in milliseconds (default: 5000)
  * @returns A Cypress chainable that resolves when the UI has stabilized.
  */
 export const waitForModelCatalogAfterDisable = (
@@ -490,6 +484,67 @@ export const waitForModelCatalogAfterDisable = (
     cy.step('No other catalog sources — waiting for empty state');
     return waitForModelCatalogEmptyState();
   });
+
+/**
+ * Poll until at least one model catalog card with validated performance data is visible,
+ * reloading the page between attempts.
+ * Required after enabling the performance view toggle on a fresh RHOAI install, where
+ * the model-catalog pod may be ready but the BFF has not yet served validated model metrics.
+ * @param maxAttempts Maximum number of attempts (default: 10)
+ * @param pollIntervalMs Interval between attempts in milliseconds (default: 5000)
+ * @returns A Cypress chainable that resolves when at least one validated model card is visible.
+ */
+export const waitForValidatedModelCards = (
+  maxAttempts = UI_POLL_CONFIG.maxAttempts,
+  pollIntervalMs = 10000,
+): Cypress.Chainable<undefined> => {
+  const startTime = Date.now();
+
+  const checkForValidatedCards = (attempt: number): void => {
+    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+    // Wait for the page content to stabilize after reload
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(UI_POLL_CONFIG.pageLoadWaitMs);
+    cy.get('body').then(($body) => {
+      const validatedCardCount = $body.find(
+        '[data-testid="model-catalog-card"]:has([data-testid="validated-model-hardware"])',
+      ).length;
+
+      cy.log(
+        `Attempt ${attempt}/${maxAttempts}: validatedCards=${validatedCardCount}, elapsed=${elapsedTime}s`,
+      );
+
+      if (validatedCardCount > 0) {
+        cy.log(
+          `✅ Found ${validatedCardCount} validated model card(s) with performance data (after ${elapsedTime}s)`,
+        );
+        return;
+      }
+
+      if (attempt >= maxAttempts) {
+        throw new Error(
+          `Validated model cards with performance data did not appear after ${maxAttempts} attempts (${elapsedTime}s). ` +
+            `Ensure the model-catalog BFF has fully loaded validated model metrics.`,
+        );
+      }
+
+      // Reload and retry — re-enable the performance toggle after reload as it resets to OFF
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(pollIntervalMs);
+      cy.reload();
+      cy.findByTestId('model-performance-view-toggle').then(($toggle) => {
+        if ($toggle.attr('aria-checked') !== 'true') {
+          cy.wrap($toggle).click({ force: true });
+        }
+      });
+      checkForValidatedCards(attempt + 1);
+    });
+  };
+
+  cy.step(`Polling for validated model cards with performance data (max ${maxAttempts} attempts)`);
+  return cy.then(() => checkForValidatedCards(1));
+};
 
 /**
  * Poll until model catalog shows empty state, reloading the page between attempts.
