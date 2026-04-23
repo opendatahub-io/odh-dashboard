@@ -1,9 +1,11 @@
+import * as React from 'react';
 import { TableRowTitleDescription } from '@odh-dashboard/internal/components/table/index';
 import { SortableData } from '@odh-dashboard/internal/components/table/types';
-import { Tr, Td, ActionsColumn } from '@patternfly/react-table';
+import { Td, ActionsColumn } from '@patternfly/react-table';
 import { Label } from '@patternfly/react-core';
-import * as React from 'react';
+import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { Link, useNavigate } from 'react-router-dom';
+import type { K8sResourceCommon } from '@odh-dashboard/internal/k8sTypes';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import PhaseLabel from '~/app/shared/PhaseLabel';
@@ -39,14 +41,29 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
     ? authPolicy.subjects.groups.length
     : 0;
   const modelsCount = Array.isArray(authPolicy.modelRefs) ? authPolicy.modelRefs.length : 0;
+  const policyResource: K8sResourceCommon = {
+    apiVersion: 'maas.opendatahub.io/v1alpha1',
+    kind: 'MaaSAuthPolicy',
+    metadata: {
+      name: authPolicy.name,
+      namespace: authPolicy.namespace,
+      ...(authPolicy.deletionTimestamp ? { deletionTimestamp: authPolicy.deletionTimestamp } : {}),
+    },
+  };
   return (
-    <Tr>
+    <ResourceTr resource={policyResource}>
       <Td dataLabel={columns[0].label}>
         <TableRowTitleDescription
           title={
-            <Link to={`${URL_PREFIX}/auth-policies/view/${policyNameSegment(authPolicy.name)}`}>
-              {authPolicy.displayName ?? authPolicy.name}
-            </Link>
+            authPolicy.deletionTimestamp ? (
+              <span data-testid="auth-policy-name">
+                {authPolicy.displayName ?? authPolicy.name}
+              </span>
+            ) : (
+              <Link to={`${URL_PREFIX}/auth-policies/view/${policyNameSegment(authPolicy.name)}`}>
+                {authPolicy.displayName ?? authPolicy.name}
+              </Link>
+            )
           }
           description={authPolicy.description ?? ''}
           truncateDescriptionLines={2}
@@ -60,6 +77,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
       <Td isActionCell>
         <ActionsColumn
           data-testid="auth-policy-actions"
+          isDisabled={!!authPolicy.deletionTimestamp}
           items={[
             {
               title: 'View details',
@@ -77,7 +95,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
           ]}
         />
       </Td>
-    </Tr>
+    </ResourceTr>
   );
 };
 

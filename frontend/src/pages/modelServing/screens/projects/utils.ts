@@ -96,7 +96,9 @@ export const useCreateServingRuntimeObject = (existingData?: {
     ? getDisplayNameFromServingRuntimeTemplate(existingData.servingRuntime)
     : '';
 
-  const existingNumReplicas = existingData?.servingRuntime?.spec.replicas ?? 1;
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const existingNumReplicas = existingData?.servingRuntime?.spec?.replicas ?? 1;
 
   const existingExternalRoute =
     existingData?.servingRuntime?.metadata.annotations?.['enable-route'] === 'true';
@@ -105,7 +107,9 @@ export const useCreateServingRuntimeObject = (existingData?: {
 
   const existingTokens = useDeepCompareMemoize(getServingRuntimeTokens(existingData?.secrets));
 
-  const existingImageName = existingData?.servingRuntime?.spec.containers[0].image;
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const existingImageName = existingData?.servingRuntime?.spec?.containers?.[0]?.image;
   const servingRuntimeScope =
     existingData?.servingRuntime?.metadata.annotations?.['opendatahub.io/serving-runtime-scope'];
 
@@ -450,7 +454,9 @@ export const getSubmitServingRuntimeResourcesFn = (
   }
   const servingRuntimeData = {
     ...createData,
-    existingTolerations: servingRuntimeSelected.spec.tolerations || [],
+    // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    existingTolerations: servingRuntimeSelected?.spec?.tolerations || [],
     ...(name !== undefined && { name }),
   };
 
