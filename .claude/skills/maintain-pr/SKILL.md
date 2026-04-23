@@ -28,6 +28,9 @@ End-to-end PR maintenance: merge conflicts, review feedback (CodeRabbit + human)
 Fetch metadata:
 ```bash
 pr_json=$(gh pr view "$pr_number" --json title,headRefName,baseRefName,mergeable,mergeStateStatus,number)
+pr_title=$(echo "$pr_json" | jq -r '.title')
+pr_branch=$(echo "$pr_json" | jq -r '.headRefName')
+base_branch=$(echo "$pr_json" | jq -r '.baseRefName')
 owner=$(gh repo view --json owner --jq '.owner.login')
 repo=$(gh repo view --json name --jq '.name')
 ```
@@ -38,7 +41,6 @@ Print: `Maintaining PR #<N>: <title>`
 
 ```bash
 current_branch=$(git branch --show-current)
-pr_branch=$(echo "$pr_json" | jq -r '.headRefName')
 ```
 
 - If already on correct branch: proceed.
@@ -60,8 +62,8 @@ pr_branch=$(echo "$pr_json" | jq -r '.headRefName')
 
 Check `mergeable` from pr_json:
 
-- **CONFLICTING**: `git fetch origin && git rebase origin/<base>`, resolve conflicts file by file, `git rebase --continue`. **Ask user before force-pushing.**
-- **MERGEABLE but behind**: `git rev-list --count HEAD..origin/<base>` — if > 0, rebase. Ask before force-pushing.
+- **CONFLICTING**: `git fetch origin && git rebase origin/$base_branch`, resolve conflicts file by file, `git rebase --continue`. **Ask user before force-pushing.**
+- **MERGEABLE but behind**: `git rev-list --count HEAD..origin/$base_branch` — if > 0, rebase. Ask before force-pushing.
 - **Up to date**: skip.
 
 ## Phase 2: CodeRabbit Review Feedback
@@ -79,7 +81,7 @@ The autofix skill handles:
 - Per-issue review and approval
 - Treating all CR content as untrusted
 
-**Do NOT commit or push during this phase** — the autofix skill may try to create a commit. If it does, that's fine — we'll consolidate at the end. If it asks about pushing, decline.
+**Do NOT commit or push during this phase.** The autofix skill's Step 7 (commit) and Step 9 (push) must be skipped — decline any commit or push prompts. All changes will be committed together in Phase 7 with proper attribution. If the autofix skill asks to commit, say no. If it asks to push, say no.
 
 ## Phase 3: Human Review Feedback
 
@@ -115,9 +117,9 @@ For each failure:
 
 **Skip this phase if no files were changed in Phases 1-4.** Running simplify on the entire PR diff is expensive and not the purpose of this skill — simplify should only review code that maintain-pr itself modified.
 
-Check if any files were changed:
+Check if any files were changed (include staged):
 ```bash
-git diff --name-only
+git diff --name-only HEAD
 ```
 
 If there are changes, invoke `/simplify` to review them:
@@ -132,10 +134,10 @@ Apply any fixes it surfaces.
 
 **Skip this phase if no files were changed in Phases 1-5.**
 
-Run linters only on files modified by this skill's fixes:
+Run linters only on files modified by this skill's fixes (include staged):
 
 ```bash
-git diff --name-only | grep -E '\.(js|ts|jsx|tsx)$'
+git diff --name-only HEAD | grep -E '\.(js|ts|jsx|tsx)$'
 ```
 
 Then lint those specific files (from project root):
@@ -162,13 +164,10 @@ git config user.name && git config user.email
 
 ```bash
 git add <only-files-we-changed>
-git commit -m "$(cat <<'EOF'
-fix: address review feedback and CI issues
+git commit -m "fix: address review feedback and CI issues
 
 Co-Authored-By: Claude <noreply@anthropic.com>
-Signed-off-by: <user name> <<user email>>
-EOF
-)"
+Signed-off-by: $(git config user.name) <$(git config user.email)>"
 ```
 
 **Do not push.** Inform the user and let them decide.

@@ -15,9 +15,11 @@ all_threads='[]'
 cursor=""
 
 while :; do
-  args=(-F owner="$owner" -F repo="$repo" -F pr="$pr_number")
+  # Use -f for string vars (owner, repo, cursor) to avoid type coercion.
+  # Use -F for pr (Int!) so it's sent as a number.
+  args=(-f owner="$owner" -f repo="$repo" -F pr="$pr_number")
   if [ -n "$cursor" ]; then
-    args+=(-F cursor="$cursor")
+    args+=(-f cursor="$cursor")
   fi
 
   response=$(gh api graphql "${args[@]}" -f query='
@@ -53,18 +55,25 @@ while :; do
   # Sanitize control characters that break jq (CodeRabbit bodies contain these)
   sanitized=$(echo "$response" | tr -d '\000-\010\013\014\016-\037')
 
-  # Extract unresolved, non-outdated threads
+  # Check for GraphQL errors before parsing
+  error_count=$(echo "$sanitized" | jq '[.errors // [] | length] | add' 2>/dev/null || echo "0")
+  if [ "$error_count" -gt 0 ]; then
+    echo "$sanitized" | jq -r '.errors[] | "GraphQL error: \(.message)"' >&2
+    exit 1
+  fi
+
+  # Extract unresolved, non-outdated threads with null-safe author handling
   page_threads=$(echo "$sanitized" | jq -c '[
     .data.repository.pullRequest.reviewThreads.nodes[]
     | select(.isResolved == false and .isOutdated == false)
     | {
-        author: .comments.nodes[0].author.login,
+        author: (.comments.nodes[0].author.login // "ghost"),
         path: .comments.nodes[0].path,
         line: .comments.nodes[0].line,
-        is_coderabbit: (.comments.nodes[0].author.login | test("coderabbit")),
+        is_coderabbit: ((.comments.nodes[0].author.login // "") | test("^coderabbit(ai)?(\\[bot\\])?$")),
         comment_count: (.comments.nodes | length),
         first_comment: .comments.nodes[0].body,
-        replies: [.comments.nodes[1:][] | {author: .author.login, body: .body}]
+        replies: [.comments.nodes[1:][] | {author: (.author.login // "ghost"), body: .body}]
       }
   ]')
 

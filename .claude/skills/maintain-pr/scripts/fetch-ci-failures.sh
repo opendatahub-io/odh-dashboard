@@ -11,9 +11,9 @@ owner="${1:?Usage: fetch-ci-failures.sh <owner> <repo> <pr_number>}"
 repo="${2:?Usage: fetch-ci-failures.sh <owner> <repo> <pr_number>}"
 pr_number="${3:?Usage: fetch-ci-failures.sh <owner> <repo> <pr_number>}"
 
-# Get failed checks — gh pr checks uses 'state' not 'conclusion'
-failed_checks=$(gh pr checks "$pr_number" --repo "$owner/$repo" --json name,state,link \
-  --jq '[.[] | select(.state == "FAILURE")]' 2>/dev/null || echo '[]')
+# Get all non-passing checks (fail, cancel, error, timed_out, etc.)
+failed_checks=$(gh pr checks "$pr_number" --repo "$owner/$repo" --json name,bucket,link \
+  --jq '[.[] | select(.bucket != "pass" and .bucket != "pending" and .bucket != "skipping")]' 2>/dev/null || echo '[]')
 
 count=$(echo "$failed_checks" | jq 'length')
 if [ "$count" -eq 0 ]; then
@@ -21,13 +21,11 @@ if [ "$count" -eq 0 ]; then
   exit 0
 fi
 
-# For each failure, fetch job logs
 results='[]'
 for i in $(seq 0 $((count - 1))); do
   name=$(echo "$failed_checks" | jq -r ".[$i].name")
   link=$(echo "$failed_checks" | jq -r ".[$i].link")
 
-  # Extract run ID from URL
   run_id=$(echo "$link" | grep -oE '/runs/[0-9]+' | grep -oE '[0-9]+' | head -1)
 
   if [ -z "$run_id" ]; then
@@ -35,25 +33,33 @@ for i in $(seq 0 $((count - 1))); do
     continue
   fi
 
-  # Get failed job ID
-  job_id=$(gh api "repos/$owner/$repo/actions/runs/$run_id/jobs" \
-    --jq '.jobs[] | select(.conclusion == "failure") | .id' 2>/dev/null | head -1)
+  # Get ALL failed job IDs (not just the first — matrix jobs can have multiple failures)
+  job_ids=$(gh api "repos/$owner/$repo/actions/runs/$run_id/jobs" \
+    --jq '[.jobs[] | select(.conclusion == "failure") | .id]' 2>/dev/null || echo '[]')
 
-  if [ -z "$job_id" ]; then
+  job_count=$(echo "$job_ids" | jq 'length')
+  if [ "$job_count" -eq 0 ]; then
     results=$(echo "$results" | jq -c --arg name "$name" --arg run_id "$run_id" \
       '. + [{name: $name, run_id: $run_id, error: "no failed job found"}]')
     continue
   fi
 
-  # Fetch log tail
-  log_tail=$(gh api "repos/$owner/$repo/actions/jobs/$job_id/logs" 2>/dev/null | tail -150 || echo "(logs unavailable)")
+  for j in $(seq 0 $((job_count - 1))); do
+    job_id=$(echo "$job_ids" | jq -r ".[$j]")
 
-  results=$(echo "$results" | jq -c \
-    --arg name "$name" \
-    --arg run_id "$run_id" \
-    --arg job_id "$job_id" \
-    --arg log_tail "$log_tail" \
-    '. + [{name: $name, run_id: $run_id, job_id: $job_id, log_tail: $log_tail}]')
+    # Write logs to temp file to avoid ARG_MAX with jq --arg
+    log_file=$(mktemp)
+    gh api "repos/$owner/$repo/actions/jobs/$job_id/logs" 2>/dev/null \
+      | tail -150 | tail -c 65536 > "$log_file" || echo "(logs unavailable)" > "$log_file"
+
+    results=$(echo "$results" | jq -c \
+      --arg name "$name" \
+      --arg run_id "$run_id" \
+      --arg job_id "$job_id" \
+      --rawfile log_tail "$log_file" \
+      '. + [{name: $name, run_id: $run_id, job_id: $job_id, log_tail: $log_tail}]')
+    rm -f "$log_file"
+  done
 done
 
 echo "$results" | jq '.'
