@@ -1,7 +1,7 @@
 import { pollUntilSuccess } from './baseCommands';
 import { enableGenAiFeatures, disableGenAiFeatures } from './genAi';
 import { appChrome } from '../../pages/appChrome';
-import type { CommandLineResult } from '../../types';
+import type { CommandLineResult, MlflowExperimentRunData } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 const DSC_RESOURCE = 'datasciencecluster default-dsc';
@@ -27,6 +27,56 @@ const getApplicationsNamespace = (): string => {
   }
   return assertNamespace(namespace);
 };
+
+/**
+ * Check if the MLflow operator is currently set to Managed in the DSC.
+ */
+export const isMlflowOperatorManaged = (): Cypress.Chainable<boolean> =>
+  cy
+    .exec(
+      `oc get ${DSC_RESOURCE} -o jsonpath="{.spec.components.mlflowoperator.managementState}"`,
+      { failOnNonZeroExit: false },
+    )
+    .then((result) => {
+      if (result.code !== 0) {
+        throw new Error(`Failed to read mlflowoperator state: ${maskSensitiveInfo(result.stderr)}`);
+      }
+      return result.stdout.replace(/"/g, '').trim() === 'Managed';
+    });
+
+/**
+ * Check if Gen AI (LlamaStack operator) is currently set to Managed in the DSC.
+ */
+export const isGenAiEnabled = (): Cypress.Chainable<boolean> =>
+  cy
+    .exec(
+      `oc get ${DSC_RESOURCE} -o jsonpath="{.spec.components.llamastackoperator.managementState}"`,
+      { failOnNonZeroExit: false },
+    )
+    .then((result) => {
+      if (result.code !== 0) {
+        throw new Error(
+          `Failed to read llamastackoperator state: ${maskSensitiveInfo(result.stderr)}`,
+        );
+      }
+      return result.stdout.replace(/"/g, '').trim() === 'Managed';
+    });
+
+/**
+ * Check if an MLflow CR exists in the applications namespace.
+ */
+export const doesMlflowCRExist = (): Cypress.Chainable<boolean> =>
+  cy
+    .exec(
+      `oc get mlflows.mlflow.opendatahub.io -n ${getApplicationsNamespace()} --no-headers 2>/dev/null | head -1`,
+      { failOnNonZeroExit: false },
+    )
+    .then((result) => {
+      if (result.code !== 0 && !result.stderr.includes('No resources found')) {
+        throw new Error(`Failed to check MLflow CR: ${maskSensitiveInfo(result.stderr)}`);
+      }
+      return result.stdout.trim().length > 0;
+    });
 
 const buildPatchCommand = (resource: string, patchJson: object, namespace?: string): string => {
   const safeNamespace = namespace ? assertNamespace(namespace) : undefined;
@@ -82,7 +132,7 @@ const ensureMlflowCR = (namespace: string): Cypress.Chainable<CommandLineResult>
 
     cy.log('Creating MLflow CR...');
     return cy
-      .exec(`oc apply -n ${safeNamespace} -f cypress/fixtures/e2e/promptManagement/mlflowCR.yaml`, {
+      .exec(`oc apply -n ${safeNamespace} -f cypress/fixtures/e2e/mlflow/mlflowCR.yaml`, {
         failOnNonZeroExit: false,
       })
       .then((applyResult) => {
@@ -132,41 +182,40 @@ const waitForMlflowCRReady = (namespace: string): Cypress.Chainable<Cypress.Exec
   );
 
 /**
- * Check if the Prompts nav item is visible in the sidebar.
+ * Poll until a nav item with the given label appears in the sidebar.
  */
-const isPromptsNavVisible = (): Cypress.Chainable<boolean> =>
-  appChrome.findSideBar().then(($sidebar) => $sidebar.find('a:contains("Prompts")').length > 0);
-
-/**
- * Poll until the Prompts nav item appears in the sidebar.
- */
-const waitForPromptsInSidebar = (): Cypress.Chainable<boolean> => {
+const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> => {
   const { maxAttempts, pollIntervalMs, pageLoadWaitMs } = UI_POLL_CONFIG;
   const startTime = Date.now();
 
+  const isVisible = (): Cypress.Chainable<boolean> =>
+    appChrome
+      .findSideBar()
+      .then(($sidebar) => $sidebar.find(`a:contains("${navLabel}")`).length > 0);
+
   const check = (attemptNumber = 1): Cypress.Chainable<boolean> => {
-    cy.step(`Attempt ${attemptNumber}/${maxAttempts} - Checking for Prompts in sidebar...`);
+    cy.step(`Attempt ${attemptNumber}/${maxAttempts} - Checking for ${navLabel} in sidebar...`);
 
     cy.visitWithLogin('/');
 
     // eslint-disable-next-line cypress/no-unnecessary-waiting
     return cy.wait(pageLoadWaitMs).then(() =>
-      isPromptsNavVisible().then((isVisible) => {
+      isVisible().then((found) => {
         const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
-        if (isVisible) {
-          cy.log(`Prompts nav item found in sidebar (after ${elapsedTime}s)`);
+        if (found) {
+          cy.log(`${navLabel} nav item found in sidebar (after ${elapsedTime}s)`);
           return cy.wrap(true);
         }
 
         if (attemptNumber >= maxAttempts) {
           throw new Error(
-            `Prompts nav item not found in sidebar after ${maxAttempts} attempts (${elapsedTime}s)`,
+            `${navLabel} nav item not found in sidebar after ${maxAttempts} attempts (${elapsedTime}s)`,
           );
         }
 
         cy.log(
-          `Prompts not yet visible (attempt ${attemptNumber}/${maxAttempts}, elapsed: ${elapsedTime}s)`,
+          `${navLabel} not yet visible (attempt ${attemptNumber}/${maxAttempts}, elapsed: ${elapsedTime}s)`,
         );
 
         // eslint-disable-next-line cypress/no-unnecessary-waiting
@@ -176,26 +225,21 @@ const waitForPromptsInSidebar = (): Cypress.Chainable<boolean> => {
   };
 
   const totalTimeout = (maxAttempts * pollIntervalMs) / 1000;
-  cy.log(`Polling for Prompts in sidebar (max ${totalTimeout}s)`);
+  cy.log(`Polling for ${navLabel} in sidebar (max ${totalTimeout}s)`);
   return check();
 };
 
 /**
- * Enable all features required for Prompt Management:
- * 1. Enable Gen AI features (LlamaStack operator, genAiStudio flag, sidebar)
- * 2. Set mlflowoperator to Managed and wait for it
- * 3. Create an MLflow CR and wait for it to be ready
- * 4. Wait for Prompts nav item in the sidebar
+ * Enable MLflow operator and tracking server (no Gen AI):
+ * 1. Set mlflowoperator to Managed and wait for it
+ * 2. Create an MLflow CR and wait for it to be ready
+ * 3. Wait for Experiments (MLflow) nav item in the sidebar
  */
-export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => {
+export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
   const namespace = getApplicationsNamespace();
 
-  cy.step('Enable Gen AI features (required for Prompts nav)');
-  return enableGenAiFeatures()
-    .then(() => {
-      cy.step('Set MLflow operator to Managed');
-      return setMlflowOperatorState('Managed');
-    })
+  cy.step('Set MLflow operator to Managed');
+  return setMlflowOperatorState('Managed')
     .then(() => {
       cy.step('Wait for MLflow operator to be ready');
       return waitForMlflowOperatorReady();
@@ -209,26 +253,258 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
       return waitForMlflowCRReady(namespace);
     })
     .then(() => {
-      cy.step('Wait for Prompts nav item in sidebar');
-      return waitForPromptsInSidebar();
+      cy.step('Wait for Experiments (MLflow) nav item in sidebar');
+      return waitForNavItemInSidebar('Experiments (MLflow)');
     });
 };
 
 /**
- * Disable MLflow and Gen AI features.
- * Sets mlflowoperator to Removed and disables Gen AI features.
+ * Restore MLflow to its pre-test state.
+ *
+ * @param operatorWasManaged - If true, the operator was already Managed before the test; skip setting it to Removed.
+ * @param crExisted - If true, the MLflow CR already existed before the test; skip deleting it.
  */
-export const disablePromptManagementFeatures = (): Cypress.Chainable<CommandLineResult> => {
+export const disableMlflowFeatures = (
+  operatorWasManaged = true,
+  crExisted = true,
+): Cypress.Chainable<undefined> => {
   const namespace = getApplicationsNamespace();
 
-  cy.step('Delete MLflow CR');
-  return deleteMlflowCR(namespace)
+  return cy
     .then(() => {
-      cy.step('Set MLflow operator to Removed');
-      return setMlflowOperatorState('Removed');
+      if (!crExisted) {
+        cy.step('Delete MLflow CR (was not present before test)');
+        deleteMlflowCR(namespace);
+      }
     })
     .then(() => {
-      cy.step('Disable Gen AI features');
-      return disableGenAiFeatures();
+      if (!operatorWasManaged) {
+        cy.step('Set MLflow operator to Removed (was not Managed before test)');
+        setMlflowOperatorState('Removed');
+      }
     });
+};
+
+/**
+ * Enable all features required for Prompt Management:
+ * 1. Enable Gen AI features (LlamaStack operator, genAiStudio flag, sidebar)
+ * 2. Enable MLflow features (operator, CR)
+ * 3. Wait for Prompts nav item in the sidebar
+ */
+export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => {
+  cy.step('Enable Gen AI features (required for Prompts nav)');
+  return enableGenAiFeatures()
+    .then(() => enableMlflowFeatures())
+    .then(() => {
+      cy.step('Wait for Prompts nav item in sidebar');
+      return waitForNavItemInSidebar('Prompts');
+    });
+};
+
+/**
+ * Restore MLflow and Gen AI features to their pre-test state.
+ *
+ * @param operatorWasManaged - If true, the operator was already Managed before the test.
+ * @param crExisted - If true, the MLflow CR already existed before the test.
+ * @param genAiWasEnabled - If true, Gen AI features were already enabled before the test.
+ */
+export const disablePromptManagementFeatures = (
+  operatorWasManaged = true,
+  crExisted = true,
+  genAiWasEnabled = true,
+): Cypress.Chainable<undefined> =>
+  disableMlflowFeatures(operatorWasManaged, crExisted).then(() => {
+    if (!genAiWasEnabled) {
+      cy.step('Disable Gen AI features (were not enabled before test)');
+      disableGenAiFeatures();
+    }
+  });
+
+/**
+ * Get the MLflow tracking server URL from the MLflow CR status.
+ */
+export const getMlflowTrackingUrl = (): Cypress.Chainable<string> => {
+  const namespace = getApplicationsNamespace();
+  return cy
+    .exec(
+      `oc get mlflows.mlflow.opendatahub.io -n ${namespace} -o jsonpath="{.items[0].status.address.url}"`,
+    )
+    .then((result) => {
+      const url = result.stdout.trim().replace(/"/g, '');
+      if (!url) {
+        throw new Error('MLflow tracking URL not found in CR status');
+      }
+      return url;
+    });
+};
+
+/**
+ * Get the name of a running MLflow tracking-server pod in the applications namespace.
+ * Uses the tracking-server label to avoid matching operator, database, or minio pods.
+ */
+const getMlflowPodName = (): Cypress.Chainable<string> => {
+  const namespace = getApplicationsNamespace();
+  return cy
+    .exec(
+      `oc get pods -n ${namespace} -l app=mlflow -o jsonpath="{.items[0].metadata.name}" --field-selector=status.phase=Running`,
+      { failOnNonZeroExit: false },
+    )
+    .then((result) => {
+      const podName = result.stdout.replace(/"/g, '').trim();
+      if (!podName) {
+        throw new Error(
+          `No running MLflow tracking pod found (label app=mlflow) in namespace ${namespace}`,
+        );
+      }
+      return podName;
+    });
+};
+
+/**
+ * Execute a curl command inside the MLflow pod against the tracking server.
+ */
+const execCurlInMlflowPod = (
+  endpoint: string,
+  body: object,
+  workspace: string,
+): Cypress.Chainable<string> => {
+  const namespace = getApplicationsNamespace();
+  const bodyJson = JSON.stringify(body);
+  const escapedBody = bodyJson.replace(/'/g, "'\\''");
+  return getMlflowPodName().then((podName) => {
+    const ns = assertNamespace(workspace);
+    const cmd = [
+      `printf '%s' '${escapedBody}'`,
+      '|',
+      `oc exec -n ${namespace} -i ${podName} -c mlflow --`,
+      `curl -sk -X POST 'https://localhost:8443${endpoint}'`,
+      `-H 'Content-Type: application/json'`,
+      `-H "Authorization: Bearer $(oc whoami -t)"`,
+      `-H 'X-MLFLOW-WORKSPACE: ${ns}'`,
+      `--data-binary @-`,
+    ].join(' ');
+    return cy.exec(cmd, { timeout: 30000, log: false }).then((result) => result.stdout.trim());
+  });
+};
+
+/**
+ * Create an MLflow experiment via the tracking server REST API.
+ *
+ * @param workspace - Namespace to scope the experiment to.
+ * @param experimentName - Display name for the experiment.
+ * @returns The experiment_id of the created experiment.
+ */
+export const createMlflowExperimentViaAPI = (
+  workspace: string,
+  experimentName: string,
+): Cypress.Chainable<string> =>
+  execCurlInMlflowPod(
+    '/api/2.0/mlflow/experiments/create',
+    { name: experimentName },
+    workspace,
+  ).then((response) => JSON.parse(response).experiment_id);
+
+/**
+ * Log a run with parameters and metrics via the MLflow tracking server REST API.
+ *
+ * @param workspace - Namespace to scope the run to.
+ * @param experimentId - The experiment_id to create the run under.
+ * @param run - Run data (name, parameters, metrics).
+ * @returns The run_id of the created run.
+ */
+export const logMlflowRunViaAPI = (
+  workspace: string,
+  experimentId: string,
+  run: MlflowExperimentRunData,
+): Cypress.Chainable<string> =>
+  execCurlInMlflowPod(
+    '/api/2.0/mlflow/runs/create',
+    /* eslint-disable camelcase */
+    { experiment_id: experimentId, run_name: run.name },
+    workspace,
+  ).then((response) => {
+    const runId = JSON.parse(response).run.info.run_id;
+    const params = Object.entries(run.parameters).map(([key, value]) => ({ key, value }));
+    const metricTimestamp = Date.now();
+    const metrics = Object.entries(run.metrics).map(([key, value]) => ({
+      key,
+      value: parseFloat(value),
+      timestamp: metricTimestamp,
+      step: 0,
+    }));
+    return execCurlInMlflowPod(
+      '/api/2.0/mlflow/runs/log-batch',
+      { run_id: runId, params, metrics },
+      workspace,
+    ).then(() =>
+      execCurlInMlflowPod(
+        '/api/2.0/mlflow/runs/update',
+        { run_id: runId, status: 'FINISHED', end_time: Date.now() },
+        workspace,
+      ).then(() => runId),
+    );
+    /* eslint-enable camelcase */
+  });
+
+/**
+ * Delete an MLflow experiment via the tracking server REST API.
+ *
+ * @param workspace - Namespace the experiment is scoped to.
+ * @param experimentId - The experiment_id to delete.
+ */
+export const deleteMlflowExperimentViaAPI = (
+  workspace: string,
+  experimentId: string,
+): Cypress.Chainable<string> =>
+  execCurlInMlflowPod(
+    '/api/2.0/mlflow/experiments/delete',
+    { experiment_id: experimentId }, // eslint-disable-line camelcase
+    workspace,
+  );
+
+/**
+ * Look up an MLflow experiment by name and return its ID, or undefined if not found.
+ */
+export const getMlflowExperimentIdByName = (
+  workspace: string,
+  experimentName: string,
+): Cypress.Chainable<string | undefined> =>
+  execCurlInMlflowPod(
+    '/api/2.0/mlflow/experiments/get-by-name',
+    { experiment_name: experimentName }, // eslint-disable-line camelcase
+    workspace,
+  ).then((response) => {
+    try {
+      return JSON.parse(response)?.experiment?.experiment_id;
+    } catch {
+      return undefined;
+    }
+  });
+
+/**
+ * Log multiple runs sequentially under a single experiment.
+ *
+ * @param workspace - Namespace to scope the runs to.
+ * @param experimentId - The experiment_id to create the runs under.
+ * @param runs - Array of run data objects (name, parameters, metrics).
+ * @returns Array of run_ids for all created runs.
+ */
+export const logMlflowRunsViaAPI = (
+  workspace: string,
+  experimentId: string,
+  runs: MlflowExperimentRunData[],
+): Cypress.Chainable<string[]> => {
+  const logNext = (
+    remaining: MlflowExperimentRunData[],
+    collected: string[],
+  ): Cypress.Chainable<string[]> => {
+    if (remaining.length === 0) {
+      return cy.wrap(collected);
+    }
+    const [run, ...rest] = remaining;
+    return logMlflowRunViaAPI(workspace, experimentId, run).then((runId) =>
+      logNext(rest, [...collected, runId]),
+    );
+  };
+  return logNext(runs, []);
 };
