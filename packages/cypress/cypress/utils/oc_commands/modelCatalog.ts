@@ -240,39 +240,25 @@ export const verifyModelCatalogSourceEnabled = (
 
 /**
  * Check if a specific model catalog source is currently enabled.
- * Checks model-catalog-sources (user overrides) first, then falls back to
- * model-catalog-default-sources. This mirrors the precedence used by
- * verifyModelCatalogSourceEnabled and the BFF itself.
+ * Checks the model-catalog-default-sources ConfigMap for the source's enabled status.
  * @param sourceId The ID of the source to check (e.g., 'redhat_ai_models')
  * @returns A Cypress chainable that resolves with true if enabled, false otherwise.
  */
 export const isModelCatalogSourceEnabled = (sourceId: string): Cypress.Chainable<boolean> => {
   const namespace = getModelRegistryNamespace();
   const parseCmd = getYamlParseCommand(sourceId);
-  const userCommand = `oc get configmap model-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' 2>/dev/null | ${parseCmd}`;
-  const defaultCommand = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
+  const command = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
 
-  return execWithOutput(userCommand, 30).then((userResult: CommandLineResult) => {
-    const userValue = userResult.stdout.trim();
-
-    if (userResult.code === 0 && (userValue === 'true' || userValue === 'false')) {
-      const isEnabled = userValue === 'true';
-      cy.log(`Source ${sourceId} is currently enabled: ${isEnabled} (from user configmap)`);
-      return cy.wrap(isEnabled);
+  return execWithOutput(command, 30).then((result: CommandLineResult) => {
+    if (result.code !== 0) {
+      const maskedStderr = maskSensitiveInfo(result.stderr);
+      cy.log(`ERROR: Failed to check source enabled status`);
+      cy.log(`stderr: ${maskedStderr}`);
+      return cy.wrap(false);
     }
-
-    return execWithOutput(defaultCommand, 30).then((defaultResult: CommandLineResult) => {
-      if (defaultResult.code !== 0) {
-        const maskedStderr = maskSensitiveInfo(defaultResult.stderr);
-        cy.log(`ERROR: Failed to check source enabled status`);
-        cy.log(`stderr: ${maskedStderr}`);
-        return cy.wrap(false);
-      }
-      const defaultValue = defaultResult.stdout.trim();
-      const isEnabled = defaultValue === '' ? true : defaultValue === 'true';
-      cy.log(`Source ${sourceId} is currently enabled: ${isEnabled} (from default configmap)`);
-      return cy.wrap(isEnabled);
-    });
+    const isEnabled = result.stdout.trim() === 'true';
+    cy.log(`Source ${sourceId} is currently enabled: ${isEnabled}`);
+    return cy.wrap(isEnabled);
   });
 };
 
