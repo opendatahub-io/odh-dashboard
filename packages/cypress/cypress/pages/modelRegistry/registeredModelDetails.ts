@@ -1,38 +1,39 @@
 /**
- * Page object for Registered Model Details page
- * Handles interactions with model properties, labels, and metadata editing
+ * Page objects for Registered Model and Model Version Details pages.
+ * ModelVersionDetails extends RegisteredModelDetails, scoping selectors to the version details card.
  */
 
 class RegisteredModelDetails {
-  // Properties section
   findPropertiesExpandableSection() {
     return cy.findByTestId('properties-expandable-section').first();
   }
 
   findPropertiesTable() {
-    return cy.findByTestId('properties-table');
+    return this.findPropertiesExpandableSection().findByTestId('properties-table');
   }
 
   findAddPropertyButton() {
-    return cy.findByTestId('add-property-button');
+    return this.findPropertiesExpandableSection().findByTestId('add-property-button');
   }
 
   findPropertyKeyInput() {
-    return cy.findByTestId('add-property-key-input');
+    return this.findPropertiesExpandableSection().findByTestId('add-property-key-input');
   }
 
   findPropertyValueInput() {
-    return cy.findByTestId('add-property-value-input');
+    return this.findPropertiesExpandableSection().findByTestId('add-property-value-input');
   }
 
   findSavePropertyButton() {
-    return cy.findByTestId('save-edit-button-property');
+    return this.findPropertiesExpandableSection().findByTestId('save-edit-button-property');
   }
 
   findDiscardPropertyButton() {
-    return cy.findByTestId('discard-edit-button-property');
+    return this.findPropertiesExpandableSection().findByTestId('discard-edit-button-property');
   }
 
+  // PF v6 ExpandableSection does not support data-testid on the internal toggle button;
+  // querying by aria-expanded is the most stable alternative available.
   findPropertiesToggleButton() {
     return this.findPropertiesExpandableSection().find('button[aria-expanded]').first();
   }
@@ -45,26 +46,20 @@ class RegisteredModelDetails {
           cy.wrap($btn).click();
         }
       });
-    this.findPropertiesExpandableSection()
-      .find('.pf-v6-c-expandable-section__content')
-      .first()
-      .should('not.have.css', 'visibility', 'hidden');
+    this.findPropertiesToggleButton().should('have.attr', 'aria-expanded', 'true');
   }
 
   findExpandPropertiesButton() {
-    return cy.findByTestId('expand-control-button');
+    return this.findPropertiesExpandableSection().findByTestId('expand-control-button');
   }
 
-  // Helper to add a custom property
   addCustomProperty(key: string, value: string) {
-    this.findPropertiesExpandableSection().click();
     this.findAddPropertyButton().click();
     this.findPropertyKeyInput().type(key);
     this.findPropertyValueInput().type(value);
     this.findSavePropertyButton().click();
   }
 
-  // Helper to verify custom property exists
   shouldHaveCustomProperty(key: string, value: string) {
     this.findPropertiesExpandableSection().within(() => {
       cy.contains(key).should('be.visible');
@@ -73,7 +68,6 @@ class RegisteredModelDetails {
     return this;
   }
 
-  // Labels section
   findLabel(labelText: string) {
     return cy.findByTestId('label').contains(labelText);
   }
@@ -86,11 +80,21 @@ class RegisteredModelDetails {
     return cy.findByTestId('modal-label-group');
   }
 
-  // Helper to verify label exists
   shouldHaveLabel(labelText: string) {
     cy.contains(labelText).should('be.visible');
     return this;
   }
 }
 
+class ModelVersionDetails extends RegisteredModelDetails {
+  findVersionDetailsCard() {
+    return cy.findByTestId('version-details-card');
+  }
+
+  findPropertiesExpandableSection() {
+    return this.findVersionDetailsCard().findByTestId('properties-expandable-section');
+  }
+}
+
 export const registeredModelDetails = new RegisteredModelDetails();
+export const modelVersionDetails = new ModelVersionDetails();

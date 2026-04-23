@@ -4,11 +4,13 @@ import {
   registerModelPage,
 } from '../../../pages/modelRegistry/registerModelPage';
 import { modelRegistry } from '../../../pages/modelRegistry';
-import { registeredModelDetails } from '../../../pages/modelRegistry/registeredModelDetails';
-import { modelVersionDetails } from '../../../pages/modelRegistry/modelVersionDetails';
+import {
+  registeredModelDetails,
+  modelVersionDetails,
+} from '../../../pages/modelRegistry/registeredModelDetails';
 import { retryableBeforeEach } from '../../../utils/retryableHooks';
 import {
-  checkModelCustomPropertiesInDatabase,
+  checkCustomPropertiesInDatabase,
   checkModelExistsInDatabase,
   checkModelRegistry,
   checkModelRegistryAvailable,
@@ -18,7 +20,6 @@ import {
   deleteModelRegistry,
   deleteModelRegistryDatabase,
   ensureOperatorMemoryLimit,
-  checkVersionCustomPropertiesInDatabase,
 } from '../../../utils/oc_commands/modelRegistry';
 import { loadModelRegistryFixture } from '../../../utils/dataLoader';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -153,9 +154,12 @@ describe('Verify custom properties and labels are retained during Model Registry
       });
 
       cy.step('Verify model custom properties exist in database');
-      checkModelCustomPropertiesInDatabase(modelName, databaseName, modelCustomPropertyKeys).should(
-        'be.true',
-      );
+      checkCustomPropertiesInDatabase(
+        modelName,
+        databaseName,
+        modelCustomPropertyKeys,
+        'exact',
+      ).should('be.true');
 
       cy.step('Navigate to version to add version custom properties');
       modelRegistry.findModelVersionsTab().should('be.visible').click();
@@ -181,10 +185,11 @@ describe('Verify custom properties and labels are retained during Model Registry
       });
 
       cy.step('Verify version custom properties exist in database');
-      checkVersionCustomPropertiesInDatabase(
+      checkCustomPropertiesInDatabase(
         testData.versionName,
         databaseName,
         versionCustomPropertyKeys,
+        'like',
       ).should('be.true');
 
       cy.step('Add a new custom property to the version');
@@ -221,13 +226,17 @@ describe('Verify custom properties and labels are retained during Model Registry
       });
 
       cy.step('Verify in database that both model and version properties are retained');
-      checkModelCustomPropertiesInDatabase(modelName, databaseName, modelCustomPropertyKeys).should(
-        'be.true',
-      );
-      checkVersionCustomPropertiesInDatabase(
+      checkCustomPropertiesInDatabase(
+        modelName,
+        databaseName,
+        modelCustomPropertyKeys,
+        'exact',
+      ).should('be.true');
+      checkCustomPropertiesInDatabase(
         testData.versionName,
         databaseName,
         extendedVersionPropertyKeys,
+        'like',
       ).should('be.true');
     },
   );
