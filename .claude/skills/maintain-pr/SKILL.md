@@ -1,7 +1,8 @@
 ---
 name: maintain-pr
-description: "Fix up an open pull request so it's ready to merge. Rebases onto the base branch, addresses CodeRabbit and human review feedback, fixes CI failures, runs code quality checks, and creates a clean commit. Use this skill whenever someone asks to fix a PR, clean up a PR, address review comments, fix CI, rebase a PR, or pastes a PR URL wanting it sorted out — even if they don't say 'maintain'."
+description: "Fix up an open pull request so it's ready to merge. Rebases onto the base branch, addresses CodeRabbit and human review feedback, fixes CI failures, runs code quality checks, and creates a clean commit."
 argument-hint: "[PR number or URL]"
+disable-model-invocation: true
 allowed-tools: Bash(gh *) Bash(git *) Bash(${CLAUDE_SKILL_DIR}/scripts/*)
 ---
 

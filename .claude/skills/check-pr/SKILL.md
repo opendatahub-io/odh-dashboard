@@ -1,7 +1,8 @@
 ---
 name: check-pr
-description: "Read-only merge readiness check for a PR. Runs 8 gates — conflicts, CI, reviews, Jira, tests, PR body, code style, and priority tier — then produces a pass/fail/warn report. Use this skill when someone asks if a PR is ready, wants a pre-merge check, says 'check this PR', 'is this mergeable', 'review PR status', or wants to know what's blocking a PR. Also use when triaging PRs to understand priority."
+description: "Read-only merge readiness check for a PR. Runs 8 gates — conflicts, CI, reviews, Jira, tests, PR body, code style, and priority tier — then produces a pass/fail/warn report."
 argument-hint: "[PR number or URL]"
+disable-model-invocation: true
 allowed-tools: Bash(gh *) Bash(git *) Bash(${CLAUDE_SKILL_DIR}/scripts/*)
 ---
 
