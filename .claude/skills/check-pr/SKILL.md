@@ -13,7 +13,7 @@ Evaluate whether a PR is ready to merge. Produces a structured report with pass/
 ## Resolve the PR
 
 ```bash
-pr_data=$(bash "$(dirname ${CLAUDE_SKILL_DIR})"/maintain-pr/scripts/resolve-pr.sh "$ARGUMENTS")
+pr_data=$(${CLAUDE_SKILL_DIR}/scripts/resolve-pr.sh "$ARGUMENTS")
 ```
 
 Extract `pr_number`, `owner`, `repo`, `pr_title`, `base_branch`, `body`, `reviewDecision` from the JSON output. If the script errors, ask the user for the PR number.
@@ -57,7 +57,7 @@ Read `reviewDecision` from pr_data:
 ### Unresolved review threads
 
 ```bash
-bash "$(dirname ${CLAUDE_SKILL_DIR})"/maintain-pr/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number"
+${CLAUDE_SKILL_DIR}/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number"
 ```
 
 Categorize the results:
