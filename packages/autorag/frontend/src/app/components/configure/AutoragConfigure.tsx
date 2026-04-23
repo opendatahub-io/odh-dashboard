@@ -180,8 +180,9 @@ function AutoragConfigure({
     if (!initialInputDataKey) {
       return undefined;
     }
-    const fileName = initialInputDataKey.split('/').pop() ?? initialInputDataKey;
-    const ext = fileName.includes('.') ? (fileName.split('.').pop() ?? '') : '';
+    const lastSegment = initialInputDataKey.split('/').pop();
+    const fileName = lastSegment || initialInputDataKey;
+    const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
     return { name: fileName, path: `/${initialInputDataKey}`, type: ext };
   });
   const [isInputDataFileUploading, setIsInputDataFileUploading] = useState(false);
@@ -276,8 +277,8 @@ function AutoragConfigure({
     setSelectedInputDataFile(undefined);
   }, [inputDataSourceMode, setValue]);
 
-  // ensure input and test have the same secret and bucket
-  useEffect(() => {
+  // ensure input and test have the same secret and bucket (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     if (inputDataSecretName !== testDataSecretName) {
       setValue('test_data_secret_name', inputDataSecretName, { shouldValidate: true });
     }

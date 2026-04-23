@@ -71,8 +71,12 @@ function AutomlResultsPage(): React.JSX.Element {
   const runRetryable = isRunRetryable(pipelineRun?.state);
 
   const handleStop = React.useCallback(async () => {
-    await handleConfirmStop();
-    setIsStopModalOpen(false);
+    try {
+      await handleConfirmStop();
+      setIsStopModalOpen(false);
+    } catch {
+      // Keep modal open on failure; error notification is shown by the hook.
+    }
   }, [handleConfirmStop]);
 
   const ReconfigureLink = React.useCallback(
@@ -138,7 +142,7 @@ function AutomlResultsPage(): React.JSX.Element {
                       <Button
                         variant="secondary"
                         icon={<RedoIcon />}
-                        onClick={handleRetry}
+                        onClick={() => void handleRetry().catch(() => undefined)}
                         isDisabled={isRetrying}
                         isLoading={isRetrying}
                         spinnerAriaValueText="Retrying run"

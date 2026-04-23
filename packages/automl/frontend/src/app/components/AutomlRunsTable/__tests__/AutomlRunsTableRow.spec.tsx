@@ -9,8 +9,8 @@ import AutomlRunsTableRow, {
   getStatusLabelProps,
 } from '~/app/components/AutomlRunsTable/AutomlRunsTableRow';
 
-const mockHandleRetry = jest.fn();
-const mockHandleConfirmStop = jest.fn();
+const mockHandleRetry = jest.fn().mockResolvedValue(undefined);
+const mockHandleConfirmStop = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('~/app/hooks/useAutomlRunActions', () => ({
   useAutomlRunActions: () => ({

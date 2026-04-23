@@ -175,8 +175,9 @@ function AutomlConfigure({
     if (!initialFileKey) {
       return undefined;
     }
-    const fileName = initialFileKey.split('/').pop() ?? initialFileKey;
-    const ext = fileName.includes('.') ? (fileName.split('.').pop() ?? '') : '';
+    const lastSegment = initialFileKey.split('/').pop();
+    const fileName = lastSegment || initialFileKey;
+    const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
     return { name: fileName, path: `/${initialFileKey}`, type: ext };
   });
   const [isTrainingDataFileUploading, setIsTrainingDataFileUploading] = useState(false);

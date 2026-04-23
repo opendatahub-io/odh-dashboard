@@ -64,8 +64,12 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
   const runRetryable = isRunRetryable(run.state);
 
   const handleStop = React.useCallback(async () => {
-    await handleConfirmStop();
-    setIsStopModalOpen(false);
+    try {
+      await handleConfirmStop();
+      setIsStopModalOpen(false);
+    } catch {
+      // Keep modal open on failure; error notification is shown by the hook.
+    }
   }, [handleConfirmStop]);
 
   const actions = React.useMemo(() => {
@@ -81,7 +85,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
     if (runRetryable) {
       items.push({
         title: <span data-testid="retry-run-action">Retry</span>,
-        onClick: () => void handleRetry(),
+        onClick: () => void handleRetry().catch(() => undefined),
         isDisabled: isRetrying,
       });
     }

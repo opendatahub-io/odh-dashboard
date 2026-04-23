@@ -7,8 +7,8 @@ import { MemoryRouter } from 'react-router-dom';
 import type { PipelineRun } from '~/app/types';
 import AutoragRunsTableRow from '~/app/components/AutoragRunsTable/AutoragRunsTableRow';
 
-const mockHandleRetry = jest.fn();
-const mockHandleConfirmStop = jest.fn();
+const mockHandleRetry = jest.fn().mockResolvedValue(undefined);
+const mockHandleConfirmStop = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('~/app/hooks/useAutoragRunActions', () => ({
   useAutoragRunActions: () => ({

@@ -18,6 +18,8 @@ import { REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
 import { generateReconfigureName } from '~/app/utilities/utils';
 import AutoragConfigurePage from './AutoragConfigurePage';
 
+const configureBasePartial = createConfigureSchema().base.partial();
+
 /**
  * Intermediate loader that fetches the previous pipeline run, resolves connection
  * secrets, and parses runtime parameters before mounting AutoragConfigurePage.
@@ -73,8 +75,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     if (params == null) {
       return undefined;
     }
-    const { base } = createConfigureSchema();
-    return base.partial().safeParse(params);
+    return configureBasePartial.safeParse(params);
   }, [params]);
 
   const shownWarnings = React.useRef({

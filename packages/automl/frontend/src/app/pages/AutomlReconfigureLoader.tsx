@@ -18,6 +18,8 @@ import { REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
 import { generateReconfigureName, getTaskType } from '~/app/utilities/utils';
 import AutomlConfigurePage from './AutomlConfigurePage';
 
+const configureBasePartial = createConfigureSchema().base.partial();
+
 /**
  * Intermediate loader that fetches the previous pipeline run, resolves connection
  * secrets, and parses runtime parameters before mounting AutomlConfigurePage.
@@ -63,8 +65,7 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     if (params == null) {
       return undefined;
     }
-    const { base } = createConfigureSchema();
-    return base.partial().safeParse(params);
+    return configureBasePartial.safeParse(params);
   }, [params]);
 
   const shownWarnings = React.useRef({
