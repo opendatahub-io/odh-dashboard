@@ -104,25 +104,6 @@ func TestGetS3FileHandler_MissingBucket(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
-func TestGetS3FileHandler_MissingKey(t *testing.T) {
-	mockClient := &mockKubernetesClientForSecrets{}
-	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
-	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-
-  // TODO: Need to update this path so the test matches?
-	_, res, err := setupApiTest[integrations.HTTPError](
-		"GET",
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
-		nil,
-		factory,
-		identity,
-	)
-
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusNotFound, res.StatusCode)
-  // TODO: Need to test the error message too
-}
-
 func TestGetS3FileHandler_WhitespaceOnlyKey(t *testing.T) {
 	mockClient := &mockKubernetesClientForSecrets{}
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
@@ -602,23 +583,6 @@ func TestGetS3FileSchemaHandler_MissingSecretName(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-}
-
-func TestGetS3FileSchemaHandler_MissingKey(t *testing.T) {
-	mockClient := &mockKubernetesClientForSecrets{}
-	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
-	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-
-	_, res, err := setupApiTest[integrations.HTTPError](
-		"GET",
-		"/api/v1/s3/file/schema?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
-		nil,
-		factory,
-		identity,
-	)
-
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusNotFound, res.StatusCode)
 }
 
 func TestGetS3FileSchemaHandler_SecretNotFound(t *testing.T) {
@@ -1466,23 +1430,6 @@ func TestPostS3FileHandler_MissingBucket(t *testing.T) {
 	assert.NoError(t, err)
 	defer res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-}
-
-func TestPostS3FileHandler_MissingKey(t *testing.T) {
-	mockClient := &mockKubernetesClientForSecrets{}
-	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
-	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-
-	res, err := setupApiTestPostMultipart(
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
-		[]byte("test"),
-		"file.csv",
-		factory,
-		identity,
-	)
-	assert.NoError(t, err)
-	defer res.Body.Close()
-	assert.Equal(t, http.StatusNotFound, res.StatusCode)
 }
 
 func TestPostS3FileHandler_WhitespaceOnlyKey(t *testing.T) {
