@@ -19,6 +19,12 @@ describe('Verify Model Catalog Source Enable/Disable', () => {
       .fixture('e2e/modelCatalog/testSourceEnableDisable.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as ModelCatalogSourceTestData;
+      })
+      .then(() => {
+        enableModelCatalogSource(testData.redhatAiSourceId);
+        enableModelCatalogSource(testData.redhatAiSourceId2);
+        verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, true);
+        verifyModelCatalogSourceEnabled(testData.redhatAiSourceId2, true);
       });
   });
 
@@ -56,11 +62,14 @@ describe('Verify Model Catalog Source Enable/Disable', () => {
       cy.step(`Disable the ${testData.sourceName} source`);
       modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId).click({ force: true });
 
+      cy.step('Verify first source is disabled in configmap');
+      verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, false);
+
       cy.step(`Disable the ${testData.sourceName2} source`);
       modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId2).click({ force: true });
 
-      cy.step('Verify configmap shows source as disabled');
-      verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, false);
+      cy.step('Verify second source is disabled in configmap');
+      verifyModelCatalogSourceEnabled(testData.redhatAiSourceId2, false);
 
       cy.step('Navigate to catalog');
       modelCatalog.visit();
