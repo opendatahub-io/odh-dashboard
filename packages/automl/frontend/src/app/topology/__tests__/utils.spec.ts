@@ -55,9 +55,15 @@ describe('createNode', () => {
 
     expect(node.width).toBeGreaterThanOrEqual(NODE_WIDTH);
   });
+
+  it('should use layoutWidth when provided', () => {
+    const node = createNode('t', 'Hi', mockTask('t'), undefined, undefined, 480);
+
+    expect(node.width).toBe(480);
+  });
 });
 
-describe('measureTextWidth via createNode', () => {
+describe('measurePipelineTaskNodeLayoutWidth via createNode', () => {
   afterEach(() => {
     jest.restoreAllMocks();
     jest.resetModules();
@@ -86,7 +92,7 @@ describe('measureTextWidth via createNode', () => {
       mockTask('task-1'),
     );
 
-    expect(node.width).toBe(NODE_WIDTH);
+    expect(node.width).toBeGreaterThanOrEqual(NODE_WIDTH);
   });
 
   it('should return width wider than NODE_WIDTH for long labels when canvas is available', () => {
@@ -111,12 +117,12 @@ describe('measureTextWidth via createNode', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { createNode: freshCreateNode } = require('~/app/topology/utils');
 
-    // 30 chars * 10px = 300px + 40px padding = 340px > NODE_WIDTH (200)
+    // 30 chars * 10px = 300px + NODE_PADDING (40) = 340px text layer; + length-aware chrome
     const longLabel = 'A'.repeat(30);
     const node = freshCreateNode('task-1', longLabel, mockTask('task-1'));
 
-    // 30 chars * 10px = 300px + NODE_PADDING (40) = 340px
-    expect(node.width).toBe(340);
+    const chrome = 40 + Math.min(80, Math.ceil(30 * 0.9));
+    expect(node.width).toBe(340 + chrome);
     expect(mockMeasureText).toHaveBeenCalledWith(longLabel);
   });
 });

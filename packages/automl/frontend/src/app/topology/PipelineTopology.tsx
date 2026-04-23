@@ -6,6 +6,7 @@ import {
 } from '@patternfly/react-topology';
 import { Bullseye, Spinner, EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { computePipelineRankSep } from './const';
 import useTopologyController from './useTopologyController';
 import PipelineVisualizationSurface from './PipelineVisualizationSurface';
 
@@ -22,7 +23,15 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
   onSelectionChange,
   className,
 }) => {
-  const controller = useTopologyController('automl-graph');
+  const horizontalRankSep = React.useMemo(
+    () =>
+      computePipelineRankSep(
+        Math.max(0, ...nodes.map((n) => (typeof n.width === 'number' ? n.width : 0))),
+      ),
+    [nodes],
+  );
+
+  const controller = useTopologyController('automl-graph', horizontalRankSep);
 
   React.useEffect(() => {
     if (controller && onSelectionChange) {

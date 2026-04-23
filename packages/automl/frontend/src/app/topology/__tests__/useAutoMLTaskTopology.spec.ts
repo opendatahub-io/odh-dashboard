@@ -183,4 +183,84 @@ describe('useAutoMLTaskTopology', () => {
       expect(node.data?.runStatus).toBeUndefined();
     });
   });
+
+  it('should map title-cased API display name to Model selection via normalized lookup', () => {
+    const spec: PipelineSpecVariable = {
+      root: {
+        dag: {
+          tasks: {
+            loader: {
+              taskInfo: { name: 'loader' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            someTaskId: {
+              taskInfo: { name: 'Autogluon Timeseries Models Selection' },
+              dependentTasks: ['loader'],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    };
+    const renderResult = testHook(useAutoMLTaskTopology)(spec, undefined);
+    expect(renderResult.result.current[1].label).toBe('Model selection');
+  });
+
+  it('should map autogluon-timeseries-models-selection task id to Model selection label', () => {
+    const spec: PipelineSpecVariable = {
+      root: {
+        dag: {
+          tasks: {
+            loader: {
+              taskInfo: { name: 'loader' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            'autogluon-timeseries-models-selection': {
+              taskInfo: { name: 'unexpected-api-name' },
+              dependentTasks: ['loader'],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    };
+    const renderResult = testHook(useAutoMLTaskTopology)(spec, undefined);
+    const nodes = renderResult.result.current;
+
+    expect(nodes[1].label).toBe('Model selection');
+  });
+
+  it('should assign wider layout width to longer resolved labels', () => {
+    const spec: PipelineSpecVariable = {
+      root: {
+        dag: {
+          tasks: {
+            short: {
+              taskInfo: { name: 'short' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            'very-long-task-name-for-layout': {
+              taskInfo: { name: 'very-long-task-name-for-layout' },
+              dependentTasks: ['short'],
+              componentRef: { name: '' },
+            },
+            tail: {
+              taskInfo: { name: 'tail' },
+              dependentTasks: ['very-long-task-name-for-layout'],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    };
+    const renderResult = testHook(useAutoMLTaskTopology)(spec, undefined);
+    const nodes = renderResult.result.current;
+
+    expect(nodes).toHaveLength(3);
+    expect(nodes[1].width).toBeGreaterThan(nodes[0].width);
+    expect(nodes[1].width).toBeGreaterThan(nodes[2].width);
+  });
 });

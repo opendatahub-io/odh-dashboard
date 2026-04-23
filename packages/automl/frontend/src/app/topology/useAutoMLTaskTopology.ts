@@ -20,8 +20,26 @@ const TASK_DISPLAY_NAMES: Record<string, string> = {
   'timeseries-leaderboard-evaluation': 'Leaderboard evaluation',
 };
 
-const humanizeTaskName = (name: string): string =>
-  TASK_DISPLAY_NAMES[name] ?? name.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+/** Normalize display names / ids to kebab-ish keys used in TASK_DISPLAY_NAMES. */
+const normalizeTaskLookupKey = (s: string): string =>
+  s.trim().toLowerCase().replace(/\s+/g, '-').replace(/_+/g, '-');
+
+/** Resolve UI label from API task name and/or DAG task id (id is stable; name may vary). */
+const resolveTaskLabel = (taskId: string, task: TaskKF): string => {
+  const rawName = task.taskInfo.name || taskId;
+  const candidates = [
+    rawName,
+    taskId,
+    normalizeTaskLookupKey(rawName),
+    normalizeTaskLookupKey(taskId),
+  ];
+  for (const key of candidates) {
+    if (key && TASK_DISPLAY_NAMES[key]) {
+      return TASK_DISPLAY_NAMES[key];
+    }
+  }
+  return rawName.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+};
 
 const topoSort = (tasks: Record<string, TaskKF>): string[] => {
   const visited = new Set<string>();
@@ -74,9 +92,10 @@ export const useAutoMLTaskTopology = (
     const ordered = topoSort(tasks);
     const terminalFallback = getTerminalFallbackStatus(runState);
 
+    const labels = ordered.map((taskId) => resolveTaskLabel(taskId, tasks[taskId]));
+
     return ordered.map((taskId, idx) => {
-      const task = tasks[taskId];
-      const label = humanizeTaskName(task.taskInfo.name || taskId);
+      const label = labels[idx];
 
       const status = parseRuntimeInfoFromRunDetails(taskId, runDetails);
       let runStatus: RunStatus | undefined;

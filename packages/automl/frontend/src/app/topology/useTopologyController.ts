@@ -8,13 +8,12 @@ import {
   Visualization,
 } from '@patternfly/react-topology';
 import { pipelineComponentFactory } from './factories';
-import {
-  PIPELINE_LAYOUT,
-  PIPELINE_NODE_SEPARATION_HORIZONTAL,
-  PIPELINE_NODE_SEPARATION_VERTICAL,
-} from './const';
+import { PIPELINE_LAYOUT, PIPELINE_NODE_SEPARATION_VERTICAL } from './const';
 
-const useTopologyController = (graphId: string): Visualization | null => {
+const useTopologyController = (
+  graphId: string,
+  horizontalRankSep: number,
+): Visualization | null => {
   const [controller, setController] = React.useState<Visualization | null>(null);
 
   React.useEffect(() => {
@@ -26,8 +25,10 @@ const useTopologyController = (graphId: string): Visualization | null => {
       (type: string, graph: Graph): Layout | undefined =>
         new PipelineDagreGroupsLayout(graph, {
           nodesep: PIPELINE_NODE_SEPARATION_VERTICAL,
-          ranksep: PIPELINE_NODE_SEPARATION_HORIZONTAL,
+          ranksep: horizontalRankSep,
           rankdir: 'LR',
+          // Steadier horizontal distribution than default `tight-tree` for simple linear pipelines
+          ranker: 'network-simplex',
         }),
     );
     visualizationController.fromModel(
@@ -54,7 +55,7 @@ const useTopologyController = (graphId: string): Visualization | null => {
     return () => {
       visualizationController.removeEventListener(GRAPH_LAYOUT_END_EVENT, onLayoutEnd);
     };
-  }, [graphId]);
+  }, [graphId, horizontalRankSep]);
 
   return controller;
 };
