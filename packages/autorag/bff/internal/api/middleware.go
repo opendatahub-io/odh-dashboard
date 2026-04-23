@@ -1428,13 +1428,17 @@ func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Re
 
 // preserveRawPath wraps an http.Handler so that percent-encoded path segments
 // (e.g. %2F inside an S3 key) are not decoded before reaching the router.
-// Scoped to S3 file endpoints only: when the raw URL contains "/s3/files/"
-// and RawPath is set (meaning percent-encoding is present), we swap Path for
-// RawPath so httprouter treats e.g. "docs%2Ffile.pdf" as one :key segment
-// instead of splitting on the decoded slash.
+// Scoped to S3 file endpoints only: when the raw URL starts with a known
+// S3 path prefix and RawPath is set (meaning percent-encoding is present),
+// we swap Path for RawPath so httprouter treats e.g. "docs%2Ffile.pdf" as
+// one :key segment instead of splitting on the decoded slash.
 func preserveRawPath(next http.Handler) http.Handler {
+	s3FilesPrefix := ApiPathPrefix + "/s3/files/"
+	s3FilesPrefixedPrefix := PathPrefix + ApiPathPrefix + "/s3/files/"
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.RawPath != "" && strings.Contains(r.URL.RawPath, "/s3/files/") {
+		if r.URL.RawPath != "" &&
+			(strings.HasPrefix(r.URL.RawPath, s3FilesPrefix) || strings.HasPrefix(r.URL.RawPath, s3FilesPrefixedPrefix)) {
 			r.URL.Path = r.URL.RawPath
 		}
 		next.ServeHTTP(w, r)
