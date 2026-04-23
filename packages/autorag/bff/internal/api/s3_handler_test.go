@@ -2006,3 +2006,71 @@ func TestPostS3FileHandler_SetsMetadataTimeoutForResolveKey(t *testing.T) {
 	assert.WithinDuration(t, requestStart.Add(s3MetadataTimeout), deadline, 5*time.Second,
 		"deadline should be approximately s3MetadataTimeout from request time")
 }
+
+// ---------------------------------------------------------------------------
+// preserveRawPath + url.PathUnescape integration
+// ---------------------------------------------------------------------------
+
+// keyCaptureS3Client records the key passed to GetObject so tests can assert
+// that the preserveRawPath middleware + url.PathUnescape pipeline decodes
+// percent-encoded S3 keys exactly once.
+type keyCaptureS3Client struct {
+	s3mocks.MockS3Client
+	capturedKey string
+}
+
+func (c *keyCaptureS3Client) GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error) {
+	c.capturedKey = key
+	return c.MockS3Client.GetObject(ctx, bucket, key)
+}
+
+func TestPreserveRawPath_S3KeyDecoding(t *testing.T) {
+	tests := []struct {
+		name        string
+		encodedKey  string
+		expectedKey string
+	}{
+		{
+			name:        "slash encoded as %2F",
+			encodedKey:  "docs%2Ffile.pdf",
+			expectedKey: "docs/file.pdf",
+		},
+		{
+			name:        "space encoded as %20",
+			encodedKey:  "my%20file.txt",
+			expectedKey: "my file.txt",
+		},
+		{
+			name:        "plain key without encoding",
+			encodedKey:  "simple.txt",
+			expectedKey: "simple.txt",
+		},
+		{
+			name:        "multiple encoded segments",
+			encodedKey:  "path%2Fto%2Fdeep%2Ffile.txt",
+			expectedKey: "path/to/deep/file.txt",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			secret := validS3Secret("aws-secret-1", "test-namespace")
+			k8sClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}
+			k8sFactory := &mockKubernetesClientFactoryForSecrets{client: k8sClient}
+			capture := &keyCaptureS3Client{}
+			s3Factory := s3mocks.NewMockClientFactory()
+			s3Factory.SetMockClient(capture)
+			identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+			rr := setupS3ApiTest(
+				http.MethodGet,
+				"/api/v1/s3/files/"+tt.encodedKey+"?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+				k8sFactory, s3Factory, identity,
+			)
+
+			assert.Equal(t, http.StatusOK, rr.Code, "handler should succeed for key %q", tt.encodedKey)
+			assert.Equal(t, tt.expectedKey, capture.capturedKey,
+				"key should be decoded exactly once: %q → %q", tt.encodedKey, tt.expectedKey)
+		})
+	}
+}
