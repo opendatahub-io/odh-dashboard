@@ -282,11 +282,11 @@ When you have enough evidence, **proactively ask the user** whether they want yo
 
 > "Would you like me to search Jira for existing tracking tickets for these suspected flaky tests? (Requires Jira MCP to be configured.)"
 
-If they agree and Jira MCP is available, run up to three searches per suspected test — a single query on the full test name is often too narrow and will miss tickets filed against the file name or symptom:
+If they agree and Jira MCP is available, run up to three searches per suspected test — a single query on the full test name is often too narrow and will miss tickets filed against the file name or symptom. Always include `component = "AI Core Dashboard"` to exclude flaky-test tickets from other repos (e.g. kserve) that share the RHOAIENG project:
 
-1. **Test file name** — `project = RHOAIENG AND labels = "flaky-test" AND text ~ "<filename>" ORDER BY created DESC`
-2. **Short it() fragment** — 2–3 distinctive words from the `it()` description, not the full sentence: `project = RHOAIENG AND labels = "flaky-test" AND text ~ "<short fragment>" ORDER BY created DESC`
-3. **Error symptom** — if a distinctive error token is known (e.g. `modal-submit-button`, `pf-m-progress`, `ECONNRESET`): `project = RHOAIENG AND labels = "flaky-test" AND text ~ "<symptom token>" ORDER BY created DESC`
+1. **Test file name** — `project = RHOAIENG AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<filename>" ORDER BY created DESC`
+2. **Short it() fragment** — 2–3 distinctive words from the `it()` description, not the full sentence: `project = RHOAIENG AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<short fragment>" ORDER BY created DESC`
+3. **Error symptom** — if a distinctive error token is known (e.g. `modal-submit-button`, `pf-m-progress`, `ECONNRESET`): `project = RHOAIENG AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<symptom token>" ORDER BY created DESC`
 
 Deduplicate results across queries. Report unique matches (key, summary, status) for each test. If a ticket already exists, link to it. If no existing ticket — say "create the Jira" and I'll file it, or copy these fields:
 
@@ -488,10 +488,10 @@ List PRs flagged `⚠️` or `❓` and offer:
 
 > "Would you like me to search Jira for existing tracking tickets for these suspected flaky tests? (Requires Jira MCP to be configured.)"
 
-If they agree and Jira MCP is available, run up to three searches per suspected test — a single query on the full test name is often too narrow and will miss tickets filed against the file name or symptom:
+If they agree and Jira MCP is available, run up to three searches per suspected test — a single query on the full test name is often too narrow and will miss tickets filed against the file name or symptom. Always include `component = "AI Core Dashboard"` to exclude flaky-test tickets from other repos (e.g. kserve) that share the RHOAIENG project:
 
-1. **Test file name** — `project = RHOAIENG AND labels = "flaky-test" AND text ~ "<filename>" ORDER BY created DESC`
-2. **Short it() fragment** — 2–3 distinctive words from the `it()` description, not the full sentence: `project = RHOAIENG AND labels = "flaky-test" AND text ~ "<short fragment>" ORDER BY created DESC`
-3. **Error symptom** — if a distinctive error token is known (e.g. `modal-submit-button`, `pf-m-progress`, `ECONNRESET`): `project = RHOAIENG AND labels = "flaky-test" AND text ~ "<symptom token>" ORDER BY created DESC`
+1. **Test file name** — `project = RHOAIENG AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<filename>" ORDER BY created DESC`
+2. **Short it() fragment** — 2–3 distinctive words from the `it()` description, not the full sentence: `project = RHOAIENG AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<short fragment>" ORDER BY created DESC`
+3. **Error symptom** — if a distinctive error token is known (e.g. `modal-submit-button`, `pf-m-progress`, `ECONNRESET`): `project = RHOAIENG AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<symptom token>" ORDER BY created DESC`
 
 Deduplicate results across queries. Report unique matches (key, summary, status) for each test. If a match exists, link to it and note whether it is open or closed. If no match is found, say so and offer to file a new ticket.
