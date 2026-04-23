@@ -276,9 +276,12 @@ func (app *App) Routes() http.Handler {
 	// App Router
 	appMux := http.NewServeMux()
 
-	// handler for api calls
-	appMux.Handle(ApiPathPrefix+"/", apiRouter)
-	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
+	// handler for api calls — preserveRawPath ensures percent-encoded path parameters
+	// (e.g., S3 keys containing %2F) are forwarded to the router without decoding,
+	// so :key matches the full encoded segment rather than splitting on /.
+	rawPathRouter := preserveRawPath(apiRouter)
+	appMux.Handle(ApiPathPrefix+"/", rawPathRouter)
+	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, rawPathRouter))
 
 	// file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)

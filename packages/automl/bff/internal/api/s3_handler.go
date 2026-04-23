@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
+	"net/url"
 	"path"
 	"regexp"
 	"strconv"
@@ -234,7 +235,12 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	key := strings.TrimSpace(ps.ByName("key"))
+	rawKey, err := url.PathUnescape(ps.ByName("key"))
+	if err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid URL encoding in path parameter 'key': %w", err))
+		return
+	}
+	key := strings.TrimSpace(rawKey)
 	if key == "" {
 		app.badRequestResponse(w, r, errors.New("path parameter 'key' is required and cannot be empty"))
 		return
@@ -323,7 +329,12 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	key := strings.TrimSpace(ps.ByName("key"))
+	rawKey, err := url.PathUnescape(ps.ByName("key"))
+	if err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid URL encoding in path parameter 'key': %w", err))
+		return
+	}
+	key := strings.TrimSpace(rawKey)
 	if key == "" {
 		app.badRequestResponse(w, r, errors.New("path parameter 'key' is required and cannot be empty"))
 		return
@@ -615,7 +626,12 @@ func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 
-	key := strings.TrimSpace(ps.ByName("key"))
+	rawKey, err := url.PathUnescape(ps.ByName("key"))
+	if err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid URL encoding in path parameter 'key': %w", err))
+		return
+	}
+	key := strings.TrimSpace(rawKey)
 	if key == "" {
 		app.badRequestResponse(w, r, errors.New("path parameter 'key' is required and cannot be empty"))
 		return
