@@ -92,7 +92,7 @@ describe('useS3GetFileSchemaQuery', () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/s3/file/schema?'),
+        expect.stringContaining('/api/v1/s3/files/data.csv/schema?'),
         expect.anything(),
       );
     });
@@ -101,7 +101,6 @@ describe('useS3GetFileSchemaQuery', () => {
     expect(callUrl).toContain('namespace=test-namespace');
     expect(callUrl).toContain('secretName=test-secret');
     expect(callUrl).toContain('bucket=test-bucket');
-    expect(callUrl).toContain('key=data.csv');
   });
 
   it('should omit bucket parameter when not provided', async () => {
@@ -133,7 +132,7 @@ describe('useS3GetFileSchemaQuery', () => {
     expect(callUrl).toContain('namespace=test-namespace');
     expect(callUrl).toContain('secretName=test-secret');
     expect(callUrl).not.toContain('bucket=');
-    expect(callUrl).toContain('key=data.csv');
+    expect(callUrl).toContain('/s3/files/data.csv/schema');
   });
 
   it('should parse response data correctly', async () => {
@@ -321,8 +320,8 @@ describe('useS3GetFileSchemaQuery', () => {
     });
 
     const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
-    // URLSearchParams handles encoding automatically
-    expect(callUrl).toContain('key=');
+    // key is now in the URL path, not query params
+    expect(callUrl).toContain('/s3/files/');
   });
 });
 
@@ -341,12 +340,11 @@ describe('fetchS3File', () => {
     const result = await fetchS3File('test-namespace', 'path/to/file.json');
 
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/v1/s3/file?'),
+      expect.stringContaining('/api/v1/s3/files/path%2Fto%2Ffile.json?'),
       expect.objectContaining({ signal: undefined }),
     );
     const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
     expect(callUrl).toContain('namespace=test-namespace');
-    expect(callUrl).toContain('key=path%2Fto%2Ffile.json');
     expect(result).toBe(mockBlob);
   });
 
