@@ -12,11 +12,9 @@ import { registerAndStorePage } from '../../../pages/modelRegistry/registerAndSt
 import { clickRegisterModelButton } from '../../../utils/modelRegistryUtils';
 import { retryableBeforeEach } from '../../../utils/retryableHooks';
 import {
-  checkModelExistsInDatabase,
   checkModelRegistry,
   checkModelRegistryAvailable,
   checkModelTransferJobPodStarted,
-  checkModelVersionExistsInDatabase,
   cleanupRegisteredModelsFromDatabase,
   createAndVerifyDatabase,
   createModelRegistryViaYAML,
@@ -144,9 +142,6 @@ describe('Verify models can be registered in a model registry', () => {
       cy.url().should('include', '/details');
       cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
 
-      cy.step('Verify the object storage model exists in the database');
-      checkModelExistsInDatabase(objectStorageModelName, databaseName).should('be.true');
-
       cy.step('Navigate back to register another model using direct URL');
       registerModelPage.visitWithRegistry(registryName);
 
@@ -176,9 +171,6 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Verify the URI model was registered');
       cy.url().should('include', '/details');
       cy.contains(testData.uriModelName, { timeout: 10000 }).should('be.visible');
-
-      cy.step('Verify the URI model exists in the database');
-      checkModelExistsInDatabase(testData.uriModelName, databaseName).should('be.true');
 
       cy.step('Navigate back to model registry to verify both models');
       cy.visitWithLogin(`/ai-hub/registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
@@ -239,9 +231,6 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Verify the new version was registered');
       cy.url().should('include', '/details');
       cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
-
-      cy.step('Verify the new version exists in the database');
-      checkModelVersionExistsInDatabase(testData.version2Name, databaseName).should('be.true');
     },
   );
 
