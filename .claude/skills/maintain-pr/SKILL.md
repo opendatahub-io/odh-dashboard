@@ -66,10 +66,10 @@ Check `mergeable` from pr_json:
 
 ## Phase 2: CodeRabbit Review Feedback
 
-Invoke the `coderabbit:autofix` skill to handle all CodeRabbit review threads. This skill fetches unresolved CodeRabbit threads via the GitHub GraphQL API, displays them, and walks through fixes with approval.
+Invoke the `coderabbit-autofix` skill to handle all CodeRabbit review threads. This skill fetches unresolved CodeRabbit threads via the GitHub GraphQL API, displays them, and walks through fixes with approval.
 
 ```
-Skill(coderabbit:autofix)
+Skill(coderabbit-autofix)
 ```
 
 The autofix skill handles:
