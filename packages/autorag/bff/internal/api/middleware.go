@@ -1434,11 +1434,9 @@ func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Re
 // one :key segment instead of splitting on the decoded slash.
 func preserveRawPath(next http.Handler) http.Handler {
 	s3FilesPrefix := ApiPathPrefix + "/s3/files/"
-	s3FilesPrefixedPrefix := PathPrefix + ApiPathPrefix + "/s3/files/"
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.RawPath != "" &&
-			(strings.HasPrefix(r.URL.RawPath, s3FilesPrefix) || strings.HasPrefix(r.URL.RawPath, s3FilesPrefixedPrefix)) {
+		if r.URL.RawPath != "" && strings.HasPrefix(r.URL.RawPath, s3FilesPrefix) {
 			r.URL.Path = r.URL.RawPath
 		}
 		next.ServeHTTP(w, r)

@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"net/url"
+
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
@@ -378,4 +380,57 @@ func TestRequireAccessToService(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 		assert.True(t, handlerCalled, "Next handler should be called when user is authorized")
 	})
+}
+
+func TestPreserveRawPath(t *testing.T) {
+	tests := []struct {
+		name         string
+		path         string
+		rawPath      string
+		expectedPath string
+	}{
+		{
+			name:         "s3 files path with percent-encoded key swaps Path for RawPath",
+			path:         "/api/v1/s3/files/docs/file.csv",
+			rawPath:      "/api/v1/s3/files/docs%2Ffile.csv",
+			expectedPath: "/api/v1/s3/files/docs%2Ffile.csv",
+		},
+		{
+			name:         "s3 files path without encoding is unchanged",
+			path:         "/api/v1/s3/files/simple.csv",
+			rawPath:      "",
+			expectedPath: "/api/v1/s3/files/simple.csv",
+		},
+		{
+			name:         "non-s3 path with RawPath is unchanged",
+			path:         "/api/v1/lsd/models",
+			rawPath:      "/api/v1/lsd/models",
+			expectedPath: "/api/v1/lsd/models",
+		},
+		{
+			name:         "prefixed path is not matched after StripPrefix removes it",
+			path:         "/autorag/api/v1/s3/files/docs/file.csv",
+			rawPath:      "/autorag/api/v1/s3/files/docs%2Ffile.csv",
+			expectedPath: "/autorag/api/v1/s3/files/docs/file.csv",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var capturedPath string
+			inner := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+				capturedPath = r.URL.Path
+			})
+
+			handler := preserveRawPath(inner)
+
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			req.URL = &url.URL{Path: tt.path, RawPath: tt.rawPath}
+			rr := httptest.NewRecorder()
+
+			handler.ServeHTTP(rr, req)
+
+			assert.Equal(t, tt.expectedPath, capturedPath)
+		})
+	}
 }
