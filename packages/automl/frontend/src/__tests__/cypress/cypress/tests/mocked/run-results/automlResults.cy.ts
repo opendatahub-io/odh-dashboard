@@ -1,4 +1,4 @@
-/* eslint-disable camelcase */
+/* eslint-disable camelcase -- BFF API uses snake_case field names (run_id, pipeline_run, etc.) */
 import { mockModArchResponse } from 'mod-arch-core';
 import {
   mockTabularContext,

@@ -6,6 +6,7 @@ class AutomlResultsPage {
 
   private wait() {
     cy.findByTestId('leaderboard-table');
+    cy.testA11y();
   }
 
   // Leaderboard
@@ -29,8 +30,11 @@ class AutomlResultsPage {
     return cy.findByTestId('manage-columns-button');
   }
 
+  // ColumnManagementModal is a PF component — scope selectors within the dialog
   findManageColumnsDescription() {
-    return cy.findByText('Selected categories will be displayed in the table.');
+    return cy
+      .findByRole('dialog')
+      .findByText('Selected categories will be displayed in the table.');
   }
 
   findColumnCheck(column: string) {
@@ -38,7 +42,7 @@ class AutomlResultsPage {
   }
 
   findManageColumnsSaveButton() {
-    return cy.findByRole('button', { name: 'Save' });
+    return cy.findByRole('dialog').findByRole('button', { name: 'Save' });
   }
 
   // Model links
