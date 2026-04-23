@@ -1,3 +1,5 @@
+<!-- Vendored from: https://github.com/coderabbitai/skills/tree/main/skills/autofix -->
+<!-- License: MIT | To update: copy from source repo -->
 # Git Platform Commands
 
 GitHub CLI commands for the CodeRabbit Autofix skill.

@@ -1,5 +1,9 @@
 ---
-name: autofix
+# Vendored from: https://github.com/coderabbitai/skills/tree/main/skills/autofix
+# Version: 1.1.0 (plugin version) / 0.1.0 (skill version)
+# License: MIT
+# To update: copy SKILL.md and github.md from the source repo
+name: coderabbit-autofix
 description: Auto-fix CodeRabbit review comments - get CodeRabbit review comments from GitHub and fix them interactively or in batch
 version: 0.1.0
 triggers:
