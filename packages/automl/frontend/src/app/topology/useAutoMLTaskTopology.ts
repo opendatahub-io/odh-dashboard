@@ -26,7 +26,7 @@ const normalizeTaskLookupKey = (s: string): string =>
 
 /** Resolve UI label from API task name and/or DAG task id (id is stable; name may vary). */
 const resolveTaskLabel = (taskId: string, task: TaskKF): string => {
-  const rawName = task.taskInfo.name || taskId;
+  const rawName = task.taskInfo?.name || taskId;
   const candidates = [
     rawName,
     taskId,
