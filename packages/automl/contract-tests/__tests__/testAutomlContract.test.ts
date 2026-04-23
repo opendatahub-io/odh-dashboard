@@ -612,11 +612,7 @@ describe('AutoML API Contract Tests', () => {
   describe('S3 File Upload (POST)', () => {
     const buildFormDataWithFile = (): FormData => {
       const form = new FormData();
-      form.append(
-        'file',
-        new Blob(['test content'], { type: 'application/octet-stream' }),
-        'file.pdf',
-      );
+      form.append('file', new Blob(['col1,col2\nval1,val2'], { type: 'text/csv' }), 'file.csv');
       return form;
     };
 
@@ -624,7 +620,7 @@ describe('AutoML API Contract Tests', () => {
       it('should return 400 when namespace parameter is missing', async () => {
         const form = buildFormDataWithFile();
         const result = await apiClient.postFormData(
-          '/api/v1/s3/files/file.pdf?secretName=test-secret&bucket=my-bucket',
+          '/api/v1/s3/files/file.csv?secretName=test-secret&bucket=my-bucket',
           form,
         );
         expect(result.success).toBe(false);
@@ -636,7 +632,7 @@ describe('AutoML API Contract Tests', () => {
       it('should return 400 when secretName parameter is missing', async () => {
         const form = buildFormDataWithFile();
         const result = await apiClient.postFormData(
-          '/api/v1/s3/files/file.pdf?namespace=default&bucket=my-bucket',
+          '/api/v1/s3/files/file.csv?namespace=default&bucket=my-bucket',
           form,
         );
         expect(result.success).toBe(false);
@@ -648,7 +644,7 @@ describe('AutoML API Contract Tests', () => {
       it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
         const form = buildFormDataWithFile();
         const result = await apiClient.postFormData(
-          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret',
+          '/api/v1/s3/files/file.csv?namespace=default&secretName=test-secret',
           form,
         );
         expect(result.success).toBe(false);
@@ -663,7 +659,7 @@ describe('AutoML API Contract Tests', () => {
         const form = new FormData();
         form.append('other', 'value');
         const result = await apiClient.postFormData(
-          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret&bucket=my-bucket',
+          '/api/v1/s3/files/file.csv?namespace=default&secretName=test-secret&bucket=my-bucket',
           form,
         );
         expect(result.success).toBe(false);
@@ -735,7 +731,7 @@ describe('AutoML API Contract Tests', () => {
 
       it('should return 413 when declared Content-Length exceeds max upload body size', async () => {
         const path =
-          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret&bucket=my-bucket';
+          '/api/v1/s3/files/file.csv?namespace=default&secretName=test-secret&bucket=my-bucket';
         const response = await postS3WithDeclaredContentLength(
           path,
           s3PostMaxDeclaredBodyBytes + 1,
@@ -758,7 +754,7 @@ describe('AutoML API Contract Tests', () => {
       it('should return 404 when secret does not exist', async () => {
         const form = buildFormDataWithFile();
         const result = await apiClient.postFormData(
-          '/api/v1/s3/files/file.pdf?namespace=default&secretName=non-existent-secret&bucket=my-bucket',
+          '/api/v1/s3/files/file.csv?namespace=default&secretName=non-existent-secret&bucket=my-bucket',
           form,
         );
         expect(result.success).toBe(false);
@@ -770,7 +766,7 @@ describe('AutoML API Contract Tests', () => {
       it('should return 404 when namespace does not exist', async () => {
         const form = buildFormDataWithFile();
         const result = await apiClient.postFormData(
-          '/api/v1/s3/files/file.pdf?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket',
+          '/api/v1/s3/files/file.csv?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket',
           form,
         );
         expect(result.success).toBe(false);
@@ -784,7 +780,7 @@ describe('AutoML API Contract Tests', () => {
       it('should return 201 with S3UploadSuccess when all parameters and file part are valid', async () => {
         const form = buildFormDataWithFile();
         const result = await apiClient.postFormData(
-          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret&bucket=my-bucket',
+          '/api/v1/s3/files/file.csv?namespace=default&secretName=test-secret&bucket=my-bucket',
           form,
         );
         expect(result).toMatchContract(apiSchema, {
