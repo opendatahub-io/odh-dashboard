@@ -1,51 +1,36 @@
 ---
 name: check-pr
-description: "Read-only merge readiness check for a PR. Evaluates conflicts, CI, review status, Jira adherence, test coverage, PR body health, code style, and assigns a priority tier (1-4). Use when user says check PR, is this ready to merge, PR readiness, review PR status, check this PR, or wants a gate/report before merging."
+description: "Read-only merge readiness check for a PR. Runs 8 gates — conflicts, CI, reviews, Jira, tests, PR body, code style, and priority tier — then produces a pass/fail/warn report. Use this skill when someone asks if a PR is ready, wants a pre-merge check, says 'check this PR', 'is this mergeable', 'review PR status', or wants to know what's blocking a PR. Also use when triaging PRs to understand priority."
 argument-hint: "[PR number or URL]"
 allowed-tools: Bash(gh *) Bash(git *) Bash(${CLAUDE_SKILL_DIR}/scripts/*)
 ---
 
-# Merge Queue — PR Readiness Check
+# Check PR — Merge Readiness Report
 
-Read-only assessment of whether a PR is ready to merge. Produces a report with pass/fail/warn for each gate and a priority tier classification. **Does not modify any code or push any changes.**
+Evaluate whether a PR is ready to merge. Produces a structured report with pass/fail/warn for each gate and a Jira-based priority tier. This skill is read-only — it never modifies code, commits, or pushes.
 
 ## Resolve the PR
 
-1. If `$ARGUMENTS` contains a PR number or URL, extract the number.
-2. Otherwise detect from current branch:
-   ```bash
-   gh pr list --head "$(git branch --show-current)" --state open --json number --jq '.[0].number'
-   ```
-3. If no PR found, ask the user.
-
-Fetch metadata:
 ```bash
-pr_json=$(gh pr view "$pr_number" --json title,headRefName,baseRefName,mergeable,mergeStateStatus,number,body,author,labels,additions,deletions,changedFiles,reviewDecision)
-pr_title=$(echo "$pr_json" | jq -r '.title')
-base_branch=$(echo "$pr_json" | jq -r '.baseRefName')
-pr_body=$(echo "$pr_json" | jq -r '.body')
-owner=$(gh repo view --json owner --jq '.owner.login')
-repo=$(gh repo view --json name --jq '.name')
+pr_data=$(bash "$(dirname ${CLAUDE_SKILL_DIR})"/maintain-pr/scripts/resolve-pr.sh "$ARGUMENTS")
 ```
 
-Print: `Merge readiness check for PR #<N>: <title>`
+Extract `pr_number`, `owner`, `repo`, `pr_title`, `base_branch`, `body`, `reviewDecision` from the JSON output. If the script errors, ask the user for the PR number.
 
 ## Gate 1: Merge Conflicts
 
-```bash
-echo "$pr_json" | jq -r '.mergeable'
-```
+Read `mergeable` from pr_data:
 
-- `MERGEABLE` → PASS
-- `CONFLICTING` → FAIL — "PR has merge conflicts. Rebase onto `$base_branch` required."
-- `UNKNOWN` → WARN — "GitHub hasn't computed merge status yet. Retry in a moment."
+- `MERGEABLE` → **PASS**
+- `CONFLICTING` → **FAIL** — needs rebase
+- `UNKNOWN` → **WARN** — GitHub hasn't computed status yet
 
-Also check if branch is behind:
+Also check if behind:
 ```bash
-git fetch origin "$base_branch" --quiet
-git rev-list --count HEAD..origin/$base_branch
+git fetch origin "$base_branch" --quiet 2>/dev/null
+git rev-list --count HEAD..origin/$base_branch 2>/dev/null || echo 0
 ```
-If > 0: WARN — "Branch is N commits behind `$base_branch`. Rebase recommended."
+If > 0: **WARN** — branch is N commits behind, rebase recommended.
 
 ## Gate 2: CI Status
 
@@ -53,172 +38,136 @@ If > 0: WARN — "Branch is N commits behind `$base_branch`. Rebase recommended.
 gh pr checks "$pr_number" --json name,bucket,link --jq '[.[] | {name, bucket, link}]'
 ```
 
-- All `bucket == "pass"` → PASS
-- Any `bucket == "fail"` → FAIL — list failed check names with links
-- Any `bucket == "pending"` → WARN — "N checks still running"
-- Any `bucket == "cancel"` → WARN — "N checks cancelled"
+- All `pass` → **PASS**
+- Any `fail` → **FAIL** — list names with links
+- Any `pending` → **WARN** — N checks still running
+- Any `cancel` → **WARN** — N checks cancelled
 
 ## Gate 3: Review Status
 
-### 3a: GitHub review decision
+### GitHub review decision
+
+Read `reviewDecision` from pr_data:
+- `APPROVED` → **PASS**
+- `CHANGES_REQUESTED` → **FAIL**
+- `REVIEW_REQUIRED` → **WARN**
+- empty/null → **WARN** — no required reviewers configured
+
+### Unresolved review threads
 
 ```bash
-echo "$pr_json" | jq -r '.reviewDecision'
+bash "$(dirname ${CLAUDE_SKILL_DIR})"/maintain-pr/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number"
 ```
 
-- `APPROVED` → PASS
-- `CHANGES_REQUESTED` → FAIL
-- `REVIEW_REQUIRED` → WARN — "No approvals yet"
-- `null` or empty → WARN — "No required reviewers configured"
+Categorize the results:
+- CodeRabbit threads with CRITICAL or MAJOR severity → **FAIL**
+- Any unresolved human threads → **FAIL**
+- CodeRabbit minor/info only → **WARN**
+- No unresolved threads → **PASS**
 
-### 3b: Unresolved review threads
-
-Use the fetch-review-threads script from maintain-pr:
-
-```bash
-threads=$(bash "$(dirname ${CLAUDE_SKILL_DIR})"/maintain-pr/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number")
-```
-
-Count and categorize:
-- **CodeRabbit blocker/critical/major** (`is_coderabbit == true`): extract severity from comment body. Any CRITICAL or MAJOR → FAIL.
-- **Human unresolved threads** (`is_coderabbit == false`): any unresolved → FAIL.
-- **CodeRabbit minor/info only**: WARN — "N minor suggestions unresolved"
-- No unresolved threads → PASS
+To extract severity from a CodeRabbit comment, look for the `_<emoji> <Level>_` pattern in the first line of `first_comment`.
 
 ## Gate 4: Jira Adherence
 
-Extract Jira issue key from PR title or body:
+Extract the Jira key from the PR title and body. Look for the `RHOAIENG-\d+` pattern specifically (the project key for this repo):
+
 ```bash
-jira_key=$(echo "$pr_title $pr_body" | grep -oE '[A-Z]+-[0-9]+' | head -1)
+jira_key=$(echo "$pr_title $pr_body" | grep -oE 'RHOAIENG-[0-9]+' | head -1)
 ```
 
-- No Jira key found → FAIL — "No Jira issue referenced in PR title or body"
-- Key found → fetch the issue and its hierarchy:
+If no key found, also check for a `issues.redhat.com/browse/` URL in the body.
+
+- No Jira reference → **FAIL**
+- Key found → fetch the hierarchy:
 
 ```bash
 ${CLAUDE_SKILL_DIR}/scripts/fetch-jira-tree.sh "$jira_key"
 ```
 
-This returns the issue, its parent chain, and a computed tier. Check:
-- Issue exists (no error in output) → PASS for linkage
-- Issue status is not `Closed` or `Done` → PASS (still active)
-- Issue has a description (`has_description == true`) → PASS
-- Issue has an assignee → PASS (or WARN if unassigned)
+If `JIRA_TOKEN` is not set, this gate becomes **WARN** ("Jira check skipped — JIRA_TOKEN not set") instead of failing. The script exits with an error message in this case.
 
-Save the output — it's reused in Gate 8 for tier classification.
+When it succeeds, check:
+- Issue exists → **PASS**
+- Issue is Closed/Done → **WARN** — linked issue is already resolved
+- No description → **WARN**
+- No assignee → **WARN**
+
+Save the output for Gate 8.
 
 ## Gate 5: Test Coverage
 
-Check if the PR includes test files:
-
 ```bash
-gh pr diff "$pr_number" --name-only | grep -E '\.(test|spec|cy)\.(ts|tsx|js|jsx)$'
+gh pr diff "$pr_number" --name-only
 ```
 
-Also check the PR body for test explanation:
-- PR has test file changes → PASS
-- PR body mentions testing in "Test Impact" section → PASS
-- Neither → WARN — "No test files changed and no test explanation in PR body"
+Check if the changed files include test files (`.test.`, `.spec.`, `.cy.`):
+- Test files changed → **PASS**
+- No test files but PR body has content under "Test Impact" section → **PASS**
+- Neither → **WARN**
 
-For non-code PRs (docs, config only), skip this gate.
+Skip this gate entirely if the PR only touches non-code files (markdown, yaml, config).
 
 ## Gate 6: PR Body Health
 
-Check the PR body against the template requirements:
+Check the PR body against the repo's template (`.github/pull_request_template.md`):
 
-1. **Description section**: `## Description` present with content (not just template comments) → PASS / FAIL
-2. **Testing section**: `## How Has This Been Tested?` present with content → PASS / FAIL
-3. **Test Impact section**: `## Test Impact` present with content → PASS / FAIL
-4. **Checklist items**: count checked `- [x]` vs unchecked `- [ ]` boxes
-   - All checked → PASS
-   - Some unchecked → WARN — "N/M checklist items unchecked"
-   - No checklist at all → FAIL
-5. **Jira link**: issue URL like `https://issues.redhat.com/browse/` present → PASS / FAIL
-6. **Screenshots** (if UI change): check for image links when PR touches `.tsx`/`.css` files → WARN if missing
+1. `## Description` section has real content (not just HTML comments from template) → pass/fail
+2. `## How Has This Been Tested?` has content → pass/fail
+3. `## Test Impact` has content → pass/fail
+4. Checklist: count `- [x]` vs `- [ ]` — report ratio
+5. Jira URL (`issues.redhat.com/browse/`) present → pass/fail
+6. If PR touches `.tsx`/`.css`/`.scss` files, check for image/gif links → warn if missing
 
-## Gate 7: Code Style Review
+Overall: **FAIL** if Description is empty, **WARN** for other missing sections.
 
-This is an agentic check — read the changed files and assess:
+## Gate 7: Code Style
 
 ```bash
-gh pr diff "$pr_number"
+${CLAUDE_SKILL_DIR}/scripts/scan-style.sh "$pr_number"
 ```
 
-Scan for:
-- Large files (> 500 line changes in a single file) → WARN
-- Console.log / debug statements left in → WARN
-- TODO/FIXME/HACK comments added → WARN
-- Inline styles in React components (should use CSS modules or PatternFly) → WARN
-- Any `eslint-disable` or `ts-ignore` added → WARN
-- Import of deprecated APIs → WARN
+The script scans added lines in the diff for common issues (console.logs, eslint-disables, inline styles, TODOs, large file changes) without loading the full diff into context.
 
-Report each finding with file and line. This gate is WARN-only, never FAIL.
+This gate is **WARN-only** — style issues don't block merging but should be called out. Report each finding with file and line.
 
-## Gate 8: PR Tier Classification
+## Gate 8: PR Tier
 
-Classify the PR's priority tier based on its Jira issue hierarchy. See [tier-definitions.md](references/tier-definitions.md) for full definitions.
+Uses the Jira hierarchy from Gate 4. If Gate 4 was skipped (no token) or no Jira key found, this is Tier 4.
 
-Use the output from Gate 4's `fetch-jira-tree.sh` call (already fetched). If no Jira key was found, this is Tier 4.
+The `fetch-jira-tree.sh` script already computes the tier. Read `tier` and `tier_reason` from its output. See [tier-definitions.md](references/tier-definitions.md) for what each tier means.
 
-The script walks the parent chain (issue → epic → initiative → RFE/strategy) and computes the tier automatically:
-
-```json
-{
-  "issue": {"key": "RHOAIENG-12345", "type": "Story", "priority": "Major", ...},
-  "hierarchy": [
-    {"key": "RHOAIENG-12345", "type": "Story"},
-    {"key": "RHOAIENG-100", "type": "Epic"},
-    {"key": "RHOAIENG-50", "type": "Initiative"}
-  ],
-  "hierarchy_path": "Story > Epic > Initiative",
-  "tier": 2,
-  "tier_reason": "Linked to Initiative via: Story > Epic > Initiative"
-}
+Display:
 ```
-
-Display the tier with rationale from the script output:
-```
-Tier: <tier> (<Strategic/Critical/Standard/Untracked>)
+Tier: <N> (<label>)
 Rationale: <tier_reason>
 Hierarchy: <hierarchy_path>
 ```
 
-Tier labels: 1=Strategic, 2=Critical, 3=Standard, 4=Untracked
+Labels: 1=Strategic, 2=Critical, 3=Standard, 4=Untracked
 
 ## Report
 
-Produce a summary table:
-
 ```
 ╔══════════════════════════════════════════════════════════════╗
-║  Merge Readiness Report — PR #<N>                          ║
-║  <PR title>                                                ║
-║  Tier: <1-4> (<Strategic/Critical/Standard/Untracked>)     ║
-╠══════════════════════════════════════════════════════════════╣
+║  Merge Readiness — PR #<N>                                 ║
+║  <title>                                                   ║
+║  Tier: <N> (<label>)                                       ║
+╠═══════════════════════╤════════╤════════════════════════════╣
 ║  Gate                 │ Status │ Details                    ║
 ╠═══════════════════════╪════════╪════════════════════════════╣
-║  Merge Conflicts      │ PASS   │ Clean, up to date         ║
-║  CI Status            │ FAIL   │ Lint failed (link)        ║
-║  Reviews              │ WARN   │ 2 minor CR suggestions    ║
-║  Jira Adherence       │ PASS   │ RHOAIENG-12345 (active)   ║
-║  Test Coverage        │ PASS   │ 3 test files changed      ║
-║  PR Body Health       │ WARN   │ 2/5 checklist unchecked   ║
-║  Code Style           │ WARN   │ 1 console.log found       ║
+║  1. Conflicts         │  ___   │                            ║
+║  2. CI                │  ___   │                            ║
+║  3. Reviews           │  ___   │                            ║
+║  4. Jira              │  ___   │                            ║
+║  5. Tests             │  ___   │                            ║
+║  6. PR Body           │  ___   │                            ║
+║  7. Style             │  ___   │                            ║
 ╠═══════════════════════╪════════╪════════════════════════════╣
-║  Overall              │ FAIL   │ 1 blocking gate           ║
-╚══════════════════════════════════════════════════════════════╝
-
-Blocking issues:
-1. CI: Lint check failed — https://github.com/...
-
-Warnings:
-1. Reviews: 2 minor CodeRabbit suggestions unresolved
-2. PR Body: Checklist items 3, 5 unchecked
-3. Style: console.log at src/app/pages/Foo.tsx:42
+║  Verdict              │  ___   │                            ║
+╚═══════════════════════╧════════╧════════════════════════════╝
 ```
 
-### Verdict
-
-- Any FAIL gate → **NOT READY** — list blocking issues
-- All PASS, no WARN → **READY TO MERGE**
-- All PASS, some WARN → **READY WITH WARNINGS** — list warnings
+Verdict:
+- Any FAIL → **NOT READY** + list blocking issues
+- All PASS, some WARN → **READY WITH WARNINGS** + list warnings
+- All PASS → **READY TO MERGE**
