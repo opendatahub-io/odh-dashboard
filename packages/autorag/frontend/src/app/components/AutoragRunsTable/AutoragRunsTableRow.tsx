@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Label, type LabelProps } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
 import StopRunModal from '~/app/components/run-results/StopRunModal';
@@ -53,7 +53,6 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
   namespace,
   onActionComplete,
 }) => {
-  const navigate = useNavigate();
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
     namespace,
@@ -89,11 +88,12 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
 
     items.push({
       title: <span data-testid="reconfigure-run-action">Reconfigure</span>,
-      onClick: () => navigate(`${autoragReconfigurePathname}/${namespace}/${run.run_id}`),
+      component: Link,
+      to: `${autoragReconfigurePathname}/${namespace}/${run.run_id}`,
     });
 
     return items;
-  }, [runTerminatable, runRetryable, handleRetry, isRetrying, navigate, namespace, run.run_id]);
+  }, [runTerminatable, runRetryable, handleRetry, isRetrying, namespace, run.run_id]);
 
   return (
     <>

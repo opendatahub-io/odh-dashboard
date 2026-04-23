@@ -188,6 +188,26 @@ describe('AutoragReconfigureLoader', () => {
       expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
     });
 
+    it('should show spinner while secrets are loading', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      // Secrets never resolve — stays pending
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      mockGetStorageSecrets.mockReturnValue(new Promise(() => {}));
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      mockGetLlsSecrets.mockReturnValue(new Promise(() => {}));
+
+      renderPage();
+
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
+    });
+
     it('should show spinner while namespaces are loading', () => {
       const { useNamespaceSelector } = jest.requireMock('mod-arch-core');
       useNamespaceSelector.mockReturnValue({
@@ -472,7 +492,7 @@ describe('AutoragReconfigureLoader', () => {
       });
     });
 
-    it('should not set initialInputDataSecret when secret name does not match any fetched secret', async () => {
+    it('should show warning and not set initialInputDataSecret when secret name does not match any fetched secret', async () => {
       mockGetStorageSecrets.mockResolvedValue([
         { uuid: 'other-uuid', name: 'other-secret', type: 's3', data: {} },
       ]);
@@ -502,6 +522,13 @@ describe('AutoragReconfigureLoader', () => {
       await screen.findByTestId('configure-page');
 
       expect(capturedProps.initialInputDataSecret).toBeUndefined();
+
+      await waitFor(() => {
+        expect(mockNotification.warning).toHaveBeenCalledWith(
+          'Connection secret not found',
+          expect.stringContaining('missing-secret'),
+        );
+      });
     });
 
     it('should resolve initialLlamaStackSecret from lls secrets list', async () => {
@@ -549,7 +576,7 @@ describe('AutoragReconfigureLoader', () => {
       });
     });
 
-    it('should not set initialLlamaStackSecret when lls secret name does not match', async () => {
+    it('should show warning and not set initialLlamaStackSecret when lls secret name does not match', async () => {
       mockGetLlsSecrets.mockResolvedValue([
         { uuid: 'other-uuid', name: 'other-lls', type: 'lls', data: {} },
       ]);
@@ -579,6 +606,13 @@ describe('AutoragReconfigureLoader', () => {
       await screen.findByTestId('configure-page');
 
       expect(capturedProps.initialLlamaStackSecret).toBeUndefined();
+
+      await waitFor(() => {
+        expect(mockNotification.warning).toHaveBeenCalledWith(
+          'Connection secret not found',
+          expect.stringContaining('missing-lls-secret'),
+        );
+      });
     });
 
     it('should show warning notification when secrets fail to load', async () => {

@@ -544,7 +544,7 @@ describe('AutomlReconfigureLoader', () => {
       });
     });
 
-    it('should not set initialInputDataSecret when secret name does not match any fetched secret', async () => {
+    it('should show warning and not set initialInputDataSecret when secret name does not match any fetched secret', async () => {
       mockGetSecretsQueryFn.mockResolvedValue([
         { uuid: 'other-uuid', name: 'other-secret', type: 's3', data: {} },
       ]);
@@ -571,6 +571,13 @@ describe('AutomlReconfigureLoader', () => {
       await screen.findByTestId('configure-page');
 
       expect(capturedProps.initialInputDataSecret).toBeUndefined();
+
+      await waitFor(() => {
+        expect(mockNotification.warning).toHaveBeenCalledWith(
+          'Connection secret not found',
+          expect.stringContaining('missing-secret'),
+        );
+      });
     });
 
     it('should not set initialInputDataSecret when pipeline run has no secret name', async () => {

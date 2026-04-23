@@ -238,9 +238,9 @@ function AutomlConfigure({
     trainDataFileKey,
   );
 
-  // set bucket from selected secret (skips mount to preserve pre-populated values in reconfigure)
+  // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {
-    // reset bucket if secret is removed
+    // Clear bucket when the secret object is deselected
     if (!selectedSecret || !selectedSecret.data) {
       setValue('train_data_bucket_name', '', { shouldValidate: true });
       return;

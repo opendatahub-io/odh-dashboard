@@ -18,6 +18,14 @@ import { generateReconfigureName, getTaskType } from '~/app/utilities/utils';
 import AutomlConfigurePage from './AutomlConfigurePage';
 import { REQUIRED_CONNECTION_SECRET_KEYS } from '../utilities/const';
 
+/**
+ * Intermediate loader that fetches the previous pipeline run, resolves connection
+ * secrets, and parses runtime parameters before mounting AutomlConfigurePage.
+ *
+ * This separation ensures the configure form only mounts once all async data has
+ * settled, preventing form state from being re-initialized when data arrives after
+ * the initial render.
+ */
 function AutomlReconfigureLoader(): React.JSX.Element {
   const { namespace, runId } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
@@ -82,6 +90,18 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     // notify once when parsing completes with errors
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parsedParams]);
+
+  React.useEffect(() => {
+    const name = params?.train_data_secret_name;
+    if (name && typeof name === 'string' && secrets && !secrets.find((s) => s.name === name)) {
+      notification.warning(
+        'Connection secret not found',
+        `The previously used connection "${name}" could not be found. Please select a new connection.`,
+      );
+    }
+    // notify once when secrets are loaded
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params?.train_data_secret_name, secrets]);
 
   if (noNamespaces || invalidNamespace || pipelineRunError) {
     return (

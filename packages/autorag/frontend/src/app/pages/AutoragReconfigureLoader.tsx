@@ -18,6 +18,14 @@ import { generateReconfigureName } from '~/app/utilities/utils';
 import AutoragConfigurePage from './AutoragConfigurePage';
 import { REQUIRED_CONNECTION_SECRET_KEYS } from '../utilities/const';
 
+/**
+ * Intermediate loader that fetches the previous pipeline run, resolves connection
+ * secrets, and parses runtime parameters before mounting AutoragConfigurePage.
+ *
+ * This separation ensures the configure form only mounts once all async data has
+ * settled, preventing form state from being re-initialized when data arrives after
+ * the initial render.
+ */
 function AutoragReconfigureLoader(): React.JSX.Element {
   const { namespace, runId } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
@@ -92,6 +100,40 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     // notify once when parsing completes with errors
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parsedParams]);
+
+  React.useEffect(() => {
+    const name = params?.input_data_secret_name;
+    if (
+      name &&
+      typeof name === 'string' &&
+      storageSecrets &&
+      !storageSecrets.find((s) => s.name === name)
+    ) {
+      notification.warning(
+        'Connection secret not found',
+        `The previously used storage connection "${name}" could not be found. Please select a new connection.`,
+      );
+    }
+    // notify once when secrets are loaded
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params?.input_data_secret_name, storageSecrets]);
+
+  React.useEffect(() => {
+    const name = params?.llama_stack_secret_name;
+    if (
+      name &&
+      typeof name === 'string' &&
+      llsSecrets &&
+      !llsSecrets.find((s) => s.name === name)
+    ) {
+      notification.warning(
+        'Connection secret not found',
+        `The previously used LlamaStack connection "${name}" could not be found. Please select a new connection.`,
+      );
+    }
+    // notify once when secrets are loaded
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params?.llama_stack_secret_name, llsSecrets]);
 
   if (noNamespaces || invalidNamespace || pipelineRunError) {
     return (

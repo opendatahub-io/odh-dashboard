@@ -246,9 +246,9 @@ function AutoragConfigure({
     }
   }, [allModelsData, getValues, reset]);
 
-  // set bucket from selected secret (skips mount to preserve pre-populated values in reconfigure)
+  // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {
-    // reset bucket if secret is removed
+    // Clear bucket when the secret object is deselected
     if (!selectedSecret) {
       setValue('input_data_bucket_name', '', { shouldValidate: true });
       return;
@@ -261,7 +261,7 @@ function AutoragConfigure({
     });
   }, [selectedSecret, setValue]);
 
-  // reset bucket if secret is removed
+  // Clear bucket when the form-level secret name is reset (e.g. user clears the dropdown)
   useEffect(() => {
     if (inputDataSecretName === '') {
       setValue('input_data_bucket_name', '', { shouldValidate: true });

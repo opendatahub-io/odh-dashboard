@@ -149,7 +149,12 @@ jest.mock('~/app/hooks/queries', () => ({
     error: null,
   })),
   useLlamaStackVectorStoreProvidersQuery: jest.fn(() => ({
-    data: { vector_store_providers: [{ provider_id: 'milvus', provider_type: 'remote::milvus' }] }, // eslint-disable-line camelcase
+    data: {
+      vector_store_providers: [
+        { provider_id: 'milvus', provider_type: 'remote::milvus' },
+        { provider_id: 'chromadb', provider_type: 'remote::chromadb' },
+      ],
+    }, // eslint-disable-line camelcase
     isLoading: false,
   })),
   useSecretsQuery: jest.fn(() => ({

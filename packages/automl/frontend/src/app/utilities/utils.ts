@@ -73,7 +73,7 @@ export const getTaskType = (pipelineRun?: PipelineRun): TaskType | undefined => 
 };
 
 /**
- * Determines if a task type is tabular.
+ * Determines if a pipelineRun's task type is tabular.
  * @param pipelineRun - The pipeline run to check
  * @returns true if the task type is tabular, false otherwise
  */
