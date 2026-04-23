@@ -83,7 +83,7 @@ class AutomlConfigurePage {
 
   // File Explorer Modal
   findFileExplorerSearch() {
-    return cy.findByTestId('file-explorer-search').find('input');
+    return cy.findByTestId('file-explorer-search-input');
   }
 
   findFileExplorerTable() {

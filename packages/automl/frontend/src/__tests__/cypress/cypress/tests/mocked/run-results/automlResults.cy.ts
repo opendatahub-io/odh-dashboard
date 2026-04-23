@@ -204,6 +204,7 @@ describe('AutoML Results Page', () => {
       automlResultsPage.findModelLink(1).click();
 
       automlResultsPage.findModelDetailsModal().should('be.visible');
+      cy.testA11y();
       automlResultsPage.findTab('model-information').should('exist');
       automlResultsPage.findTab('model-evaluation').should('exist');
       automlResultsPage.findTab('feature-summary').should('exist');

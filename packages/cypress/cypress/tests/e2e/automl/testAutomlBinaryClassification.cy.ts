@@ -14,6 +14,7 @@ import {
 type AutomlTestData = {
   projectNamePrefix: string;
   dspaSecretName: string;
+  secretName: string;
   runName: string;
   runDescription: string;
   trainingDataFile: string;
@@ -68,8 +69,8 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
 
       cy.step('Select S3 connection');
       automlConfigurePage.findSecretSelector().click();
-      automlConfigurePage.findSecretSelector().type('ods-ci-ds-pipelines');
-      automlConfigurePage.findSelectOption(/ods-ci-ds-pipelines/i).click();
+      automlConfigurePage.findSecretSelector().type(testData.secretName);
+      automlConfigurePage.findSelectOption(new RegExp(testData.secretName, 'i')).click();
 
       cy.step('Upload CSV file');
       automlConfigurePage.findUploadFileToggle().click();

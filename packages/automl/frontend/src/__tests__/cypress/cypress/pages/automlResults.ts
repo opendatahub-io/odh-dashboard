@@ -56,7 +56,8 @@ class AutomlResultsPage {
   }
 
   findModelDetailsModalCloseButton() {
-    return cy.findByTestId('automl-model-details-modal').find('[aria-label="Close"]');
+    // PF Modal renders the close button internally — no closeButtonProps available
+    return cy.findByTestId('automl-model-details-modal').findByRole('button', { name: 'Close' });
   }
 
   findModelSelectorDropdown() {
@@ -77,7 +78,7 @@ class AutomlResultsPage {
   }
 
   findFeatureSearchInput() {
-    return cy.findByTestId('feature-search').find('input');
+    return cy.findByTestId('feature-search-input');
   }
 
   // Confusion Matrix
