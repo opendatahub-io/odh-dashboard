@@ -217,6 +217,39 @@ describe('FileExplorer', () => {
       // Button should be disabled again
       expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
     });
+    it('should hide "View details" in selected files list when file is already being viewed', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      // Select file-1, then file-2 — filesToView will be [file-2] (last selected)
+      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
+      const row2 = screen.getByTestId('file-explorer-row--file-2-json');
+      fireEvent.click(within(row1).getByRole('checkbox'));
+      fireEvent.click(within(row2).getByRole('checkbox'));
+
+      const selectedFilesList = screen.getByTestId('file-explorer-selected-files');
+
+      // file-2 is currently being viewed — its kebab should NOT have "View details"
+      fireEvent.click(within(selectedFilesList).getByLabelText('file-2.json overflow menu'));
+      const file2Menu = screen.getByRole('menu');
+      expect(
+        within(file2Menu).queryByRole('menuitem', { name: 'View details' }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(file2Menu).getByRole('menuitem', { name: 'Remove selection' }),
+      ).toBeInTheDocument();
+
+      // Close the dropdown by clicking the toggle again
+      fireEvent.click(within(selectedFilesList).getByLabelText('file-2.json overflow menu'));
+
+      // file-1 is NOT being viewed — its kebab SHOULD have "View details"
+      fireEvent.click(within(selectedFilesList).getByLabelText('file-1.json overflow menu'));
+      const file1Menu = screen.getByRole('menu');
+      expect(within(file1Menu).getByRole('menuitem', { name: 'View details' })).toBeInTheDocument();
+      expect(
+        within(file1Menu).getByRole('menuitem', { name: 'Remove selection' }),
+      ).toBeInTheDocument();
+    });
     it('should call onPrimary with selected files and close modal', () => {
       const files = mockFiles(3);
       render(<FileExplorer {...defaultProps} files={files} />);
@@ -776,6 +809,107 @@ describe('FileExplorer', () => {
       expect(mockOnClose).toHaveBeenCalled();
     });
   });
+  describe('table row kebab actions', () => {
+    it('should show "View details" for an unselected, non-viewed file', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const kebab = within(row).getByRole('button', { name: /file-1\.json actions/i });
+      fireEvent.click(kebab);
+
+      const menu = screen.getByRole('menu');
+      expect(within(menu).getByRole('menuitem', { name: 'View details' })).toBeInTheDocument();
+    });
+    it('should hide "View details" in table kebab when file is currently being viewed', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const radio = within(row).getByRole('radio');
+      fireEvent.click(radio);
+
+      const kebab = within(row).getByRole('button', { name: /file-1\.json actions/i });
+      fireEvent.click(kebab);
+
+      const menu = screen.getByRole('menu');
+      expect(
+        within(menu).queryByRole('menuitem', { name: 'View details' }),
+      ).not.toBeInTheDocument();
+    });
+    it('should show "Select file" action for an unselected file', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const kebab = within(row).getByRole('button', { name: /file-1\.json actions/i });
+      fireEvent.click(kebab);
+
+      const menu = screen.getByRole('menu');
+      expect(within(menu).getByRole('menuitem', { name: 'Select file' })).toBeInTheDocument();
+      expect(
+        within(menu).queryByRole('menuitem', { name: 'Remove selection' }),
+      ).not.toBeInTheDocument();
+    });
+    it('should show "Select folder" action for an unselected folder', () => {
+      const folder = mockFolder({ name: 'my-folder', path: '/my-folder' });
+      render(<FileExplorer {...defaultProps} files={[folder]} />);
+
+      const row = screen.getByTestId('file-explorer-row--my-folder');
+      const kebab = within(row).getByRole('button', { name: /my-folder actions/i });
+      fireEvent.click(kebab);
+
+      const menu = screen.getByRole('menu');
+      expect(within(menu).getByRole('menuitem', { name: 'Select folder' })).toBeInTheDocument();
+    });
+    it('should select file via "Select file" kebab action', () => {
+      const files = mockFiles(3);
+      const onSelectFile = jest.fn();
+      render(<FileExplorer {...defaultProps} files={files} onSelectFile={onSelectFile} />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      const kebab = within(row).getByRole('button', { name: /file-1\.json actions/i });
+      fireEvent.click(kebab);
+
+      const menu = screen.getByRole('menu');
+      fireEvent.click(within(menu).getByRole('menuitem', { name: 'Select file' }));
+
+      const radio = within(row).getByRole('radio');
+      expect(radio).toBeChecked();
+      expect(onSelectFile).toHaveBeenCalledWith(files[0], true);
+    });
+    it('should show "Remove selection" instead of "Select file" for a selected file', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(within(row).getByRole('radio'));
+
+      const kebab = within(row).getByRole('button', { name: /file-1\.json actions/i });
+      fireEvent.click(kebab);
+
+      const menu = screen.getByRole('menu');
+      expect(within(menu).getByRole('menuitem', { name: 'Remove selection' })).toBeInTheDocument();
+      expect(within(menu).queryByRole('menuitem', { name: 'Select file' })).not.toBeInTheDocument();
+    });
+    it('should remove selection and clear details via table kebab "Remove selection"', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(within(row).getByRole('radio'));
+
+      expect(screen.getByTestId('file-explorer-details-panel')).toBeInTheDocument();
+
+      const kebab = within(row).getByRole('button', { name: /file-1\.json actions/i });
+      fireEvent.click(kebab);
+      const menu = screen.getByRole('menu');
+      fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove selection' }));
+
+      expect(within(row).getByRole('radio')).not.toBeChecked();
+      expect(screen.queryByTestId('file-explorer-details-panel')).not.toBeInTheDocument();
+    });
+  });
   describe('eye icon indicator in selected files list', () => {
     it('should show eye icon next to file being viewed when multiple files are selected', () => {
       const files = mockFiles(3);
@@ -889,20 +1023,15 @@ describe('FileExplorer', () => {
       const row2 = screen.getByTestId('file-explorer-row--file-2-json');
       const row3 = screen.getByTestId('file-explorer-row--file-3-json');
 
-      // Select two files
+      // Select two files — selecting auto-views the last selected file
       fireEvent.click(within(row1).getByRole('checkbox'));
       fireEvent.click(within(row2).getByRole('checkbox'));
-
-      // View details of file-2
-      const kebab2 = within(row2).getByRole('button', { name: /file-2\.json actions/i });
-      fireEvent.click(kebab2);
-      fireEvent.click(screen.getByText('View details'));
 
       const selectedFilesList = screen.getByTestId('file-explorer-selected-files');
       let file1Item = within(selectedFilesList).getByText('file-1.json').closest('li');
       let file2Item = within(selectedFilesList).getByText('file-2.json').closest('li');
 
-      // Eye should be on file-2
+      // Eye should be on file-2 (last selected)
       expect(within(file2Item!).queryByTitle('Viewing details')).toBeInTheDocument();
 
       // Select third file (selecting a file shows its details)

@@ -422,6 +422,67 @@ export const waitForModelCatalogCards = (
 };
 
 /**
+ * Poll until at least one model catalog card with validated performance data is visible,
+ * reloading the page between attempts.
+ * Required after enabling the performance view toggle on a fresh RHOAI install, where
+ * the model-catalog pod may be ready but the BFF has not yet served validated model metrics.
+ * @param maxAttempts Maximum number of attempts (default: 10)
+ * @param pollIntervalMs Interval between attempts in milliseconds (default: 5000)
+ * @returns A Cypress chainable that resolves when at least one validated model card is visible.
+ */
+export const waitForValidatedModelCards = (
+  maxAttempts = UI_POLL_CONFIG.maxAttempts,
+  pollIntervalMs = 10000,
+): Cypress.Chainable<undefined> => {
+  const startTime = Date.now();
+
+  const checkForValidatedCards = (attempt: number): void => {
+    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+    // Wait for the page content to stabilize after reload
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(UI_POLL_CONFIG.pageLoadWaitMs);
+    cy.get('body').then(($body) => {
+      const validatedCardCount = $body.find(
+        '[data-testid="model-catalog-card"]:has([data-testid="validated-model-hardware"])',
+      ).length;
+
+      cy.log(
+        `Attempt ${attempt}/${maxAttempts}: validatedCards=${validatedCardCount}, elapsed=${elapsedTime}s`,
+      );
+
+      if (validatedCardCount > 0) {
+        cy.log(
+          `✅ Found ${validatedCardCount} validated model card(s) with performance data (after ${elapsedTime}s)`,
+        );
+        return;
+      }
+
+      if (attempt >= maxAttempts) {
+        throw new Error(
+          `Validated model cards with performance data did not appear after ${maxAttempts} attempts (${elapsedTime}s). ` +
+            `Ensure the model-catalog BFF has fully loaded validated model metrics.`,
+        );
+      }
+
+      // Reload and retry — re-enable the performance toggle after reload as it resets to OFF
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(pollIntervalMs);
+      cy.reload();
+      cy.findByTestId('model-performance-view-toggle').then(($toggle) => {
+        if ($toggle.attr('aria-checked') !== 'true') {
+          cy.wrap($toggle).click({ force: true });
+        }
+      });
+      checkForValidatedCards(attempt + 1);
+    });
+  };
+
+  cy.step(`Polling for validated model cards with performance data (max ${maxAttempts} attempts)`);
+  return cy.then(() => checkForValidatedCards(1));
+};
+
+/**
  * Poll until model catalog shows empty state, reloading the page between attempts.
  * Useful after disabling all sources to wait for the UI to reflect the change.
  * @param maxAttempts Maximum number of attempts (default: 20)

@@ -77,6 +77,7 @@ export enum ProjectObjectType {
   featureStore = 'feature-store',
   promptManagement = 'prompt-management',
   mcpCatalog = 'mcp-catalog',
+  taskAssistant = 'task-assistant',
 }
 
 export const typedIconColor = (objectType: ProjectObjectType): string => {
@@ -138,6 +139,8 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-model-server--IconColor)';
     case ProjectObjectType.servingRuntime:
       return 'var(--ai-set-up--IconColor)';
+    case ProjectObjectType.taskAssistant:
+      return 'var(--ai-general--IconColor)';
     default:
       return '';
   }
@@ -203,6 +206,8 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-set-up--BackgroundColor)';
     case ProjectObjectType.servingRuntime:
       return 'var(--ai-set-up--BackgroundColor)';
+    case ProjectObjectType.taskAssistant:
+      return 'var(--ai-general--BackgroundColor)';
     default:
       return '';
   }
@@ -375,5 +380,22 @@ export const sectionTypeBorderColor = (sectionType: SectionType): string => {
       return 'var(--ai-general--BorderColor)';
     default:
       return '';
+  }
+};
+
+export const sectionTypeLabelColor = (
+  sectionType: SectionType,
+): 'orange' | 'teal' | 'purple' | 'grey' => {
+  switch (sectionType) {
+    case SectionType.setup:
+    case SectionType.organize:
+      return 'orange';
+    case SectionType.training:
+      return 'teal';
+    case SectionType.serving:
+      return 'purple';
+    case SectionType.general:
+    default:
+      return 'grey';
   }
 };

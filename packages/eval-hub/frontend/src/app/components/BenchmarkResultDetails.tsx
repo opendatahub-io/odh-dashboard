@@ -49,7 +49,6 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
     benchmarkConfig?.pass_criteria?.threshold ??
     job.pass_criteria?.threshold ??
     result.test?.threshold;
-  const providerLabel = result.provider_id ?? benchmarkConfig?.provider_id;
 
   return (
     <div data-testid={`benchmark-details-${benchmarkId}-${benchmarkIndex}`}>
@@ -80,22 +79,20 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
           </FlexItem>
         )}
       </Flex>
-      {providerLabel && (
-        <Content
-          component="p"
-          className="pf-v6-u-mb-sm"
-          style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
-          data-testid="benchmark-provider-label"
-        >
-          {providerLabel}
-        </Content>
-      )}
+      <Content
+        component="p"
+        className="pf-v6-u-mb-md"
+        style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+        data-testid="benchmark-provider-label"
+      >
+        {benchmarkId}
+      </Content>
 
       <DescriptionList
         isHorizontal
         isCompact
-        horizontalTermWidthModifier={{ default: '12ch', lg: '20ch' }}
-        className="pf-v6-u-mt-md pf-v6-u-mb-lg"
+        horizontalTermWidthModifier={{ default: 'max-content' }}
+        style={{ rowGap: 'var(--pf-t--global--spacer--sm)' }}
         data-testid="benchmark-details-info"
       >
         <DescriptionListGroup>
