@@ -218,16 +218,15 @@ func (app *App) mapMutationError(w http.ResponseWriter, r *http.Request, err err
 
 // terminatableStates lists the run states that are eligible for termination.
 var terminatableStates = map[string]bool{
-	"PENDING":   true,
-	"RUNNING":   true,
-	"PAUSED":    true,
-	"CANCELING": true,
+	"PENDING": true,
+	"RUNNING": true,
+	"PAUSED":  true,
 }
 
 // TerminatePipelineRunHandler handles POST /api/v1/pipeline-runs/:runId/terminate
 //
 // Terminates an active AutoRAG pipeline run. The run must be in an active state
-// (PENDING, RUNNING, PAUSED, or CANCELING) and belong to the discovered AutoRAG
+// (PENDING, RUNNING, or PAUSED) and belong to the discovered AutoRAG
 // pipeline in the namespace. The run transitions to CANCELING and then CANCELED state.
 //
 // Security: This endpoint validates that the requested run belongs to the AutoRAG pipeline
@@ -247,7 +246,7 @@ func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Reque
 	// Validate the run is in a terminatable state
 	runState := strings.ToUpper(run.State)
 	if !terminatableStates[runState] {
-		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be terminated; only PENDING, RUNNING, PAUSED, or CANCELING runs can be terminated", run.RunID, runState))
+		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be terminated; only PENDING, RUNNING, or PAUSED runs can be terminated", run.RunID, runState))
 		return
 	}
 

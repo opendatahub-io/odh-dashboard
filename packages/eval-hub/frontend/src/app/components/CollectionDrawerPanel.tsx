@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Button,
   Card,
   CardBody,
   Content,
@@ -8,11 +9,12 @@ import {
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
-  Button,
+  Flex,
+  FlexItem,
+  Label,
   Stack,
   StackItem,
   Title,
-  Label,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -67,7 +69,15 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
             <StackItem>
               <Stack hasGutter>
                 <StackItem>
-                  <Content component="h4">Benchmarks</Content>
+                  <Title
+                    headingLevel="h4"
+                    style={{
+                      fontSize: 'var(--pf-t--global--font--size--body--default)',
+                      fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
+                    }}
+                  >
+                    Benchmarks
+                  </Title>
                 </StackItem>
                 {collection.benchmarks.map((b) => {
                   const safeUrl = toSafeExternalUrl(b.url);
@@ -136,13 +146,22 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
       </DrawerPanelBody>
 
       <DrawerPanelBody style={{ flex: '0 0 auto' }} className="pf-v6-u-mt-md">
-        <Button
-          variant="primary"
-          data-testid="use-benchmark-suite-button"
-          onClick={() => onRunCollection(collection)}
-        >
-          Use this benchmark suite
-        </Button>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+          <FlexItem>
+            <Button
+              variant="primary"
+              data-testid="use-benchmark-suite-button"
+              onClick={() => onRunCollection(collection)}
+            >
+              Select benchmark suite
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button variant="link" onClick={onClose} data-testid="collection-drawer-close-footer">
+              Close
+            </Button>
+          </FlexItem>
+        </Flex>
       </DrawerPanelBody>
     </DrawerPanelContent>
   );

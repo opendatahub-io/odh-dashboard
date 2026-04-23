@@ -61,6 +61,24 @@ type RealS3Client struct {
 	options  S3ClientOptions
 }
 
+// s3ConnectTimeout is the maximum time allowed for TCP connection and TLS handshake
+// to the S3 endpoint. This must complete well under the OpenShift route timeout
+// (typically 30s) so the BFF can return a meaningful error instead of a raw 504.
+const s3ConnectTimeout = 10 * time.Second
+
+// buildS3AWSConfig creates the aws.Config used by NewRealS3Client.
+// It configures static credentials and single-attempt retries so that
+// unreachable S3 endpoints fail fast. The HTTP transport (including
+// connect and TLS handshake timeouts) is set by NewRealS3Client after
+// this function returns.
+func buildS3AWSConfig(creds *S3Credentials) aws.Config {
+	return aws.Config{
+		Region:           creds.Region,
+		Credentials:      credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
+		RetryMaxAttempts: 1,
+	}
+}
+
 // NewRealS3Client creates a new S3 client from credentials.
 func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client, error) {
 	if creds == nil {
@@ -74,14 +92,13 @@ func NewRealS3Client(creds *S3Credentials, opts S3ClientOptions) (*RealS3Client,
 		return nil, fmt.Errorf("%w: %w", ErrEndpointValidation, err)
 	}
 
-	cfg := aws.Config{
-		Region:      creds.Region,
-		Credentials: credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, ""),
-	}
+	cfg := buildS3AWSConfig(creds)
 
-	// Clone the default transport to preserve connection pooling and set a
-	// transport-level timeout unconditionally, regardless of TLS configuration.
+	// Clone the default transport to preserve connection pooling and set
+	// connect, TLS handshake, and response-header timeouts.
 	transport := cloneDefaultTransport()
+	transport.DialContext = (&net.Dialer{Timeout: s3ConnectTimeout}).DialContext
+	transport.TLSHandshakeTimeout = s3ConnectTimeout
 	transport.ResponseHeaderTimeout = 30 * time.Second
 
 	if c.options.RootCAs != nil {
