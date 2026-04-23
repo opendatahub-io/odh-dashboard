@@ -5,3 +5,4 @@ runName: automl-binary-run
 runDescription: 'E2E test binary classification run'
 trainingDataFile: automl-test-data.csv
 labelColumn: target
+awsBucket: BUCKET_2

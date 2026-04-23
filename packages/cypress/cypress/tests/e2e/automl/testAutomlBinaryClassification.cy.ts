@@ -19,10 +19,10 @@ type AutomlTestData = {
   runDescription: string;
   trainingDataFile: string;
   labelColumn: string;
+  awsBucket: 'BUCKET_2' | 'BUCKET_3';
 };
 
 const uuid = generateTestUUID();
-const awsBucket = 'BUCKET_2' as const;
 
 describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
   let testData: AutomlTestData;
@@ -34,7 +34,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutomlTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
-        provisionProjectForPipelines(projectName, testData.dspaSecretName, awsBucket);
+        provisionProjectForPipelines(projectName, testData.dspaSecretName, testData.awsBucket);
       }),
   );
 
@@ -56,7 +56,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       cy.step('Wait for pipeline server to be fully ready and click Create run');
       // The page may initially show "There is a problem with the pipeline server"
       // while the DSPA and BFF finish initializing. Reload until the empty state appears.
-      automlExperimentsPage.findEmptyState().should('exist', { timeout: 120000 });
+      automlExperimentsPage.findEmptyState(120000).should('exist');
       automlExperimentsPage.findCreateRunButton().click();
 
       cy.step('Step 1 - Fill name and description');

@@ -15,8 +15,8 @@ class AutomlExperimentsPage {
     return appChrome.findNavItem({ name: 'AutoML', rootSection: 'Develop & train' });
   }
 
-  findEmptyState() {
-    return cy.findByTestId('empty-experiments-state');
+  findEmptyState(timeout?: number) {
+    return cy.findByTestId('empty-experiments-state', timeout ? { timeout } : undefined);
   }
 
   findCreateRunButton() {

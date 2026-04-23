@@ -229,13 +229,11 @@ describe('AutoML Results Page', () => {
 
       // Open model selector and switch to a different model
       automlResultsPage.findModelSelectorDropdown().click();
-      automlResultsPage.findModelSelectorOption('RandomForest_BAG_L1_FULL').click();
+      automlResultsPage.findModelSelectorOption(MODEL_NAMES[1]).click();
 
       // Verify the modal still shows with the new model
       automlResultsPage.findModelDetailsModal().should('be.visible');
-      automlResultsPage
-        .findModelSelectorDropdown()
-        .should('contain.text', 'RandomForest_BAG_L1_FULL');
+      automlResultsPage.findModelSelectorDropdown().should('contain.text', MODEL_NAMES[1]);
     });
 
     it('should display feature importance bars in feature summary tab', () => {
