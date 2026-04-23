@@ -579,7 +579,7 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 POST /api/v1/pipeline-runs/{runId}/terminate
 ```
 
-Sends an asynchronous request to cancel an active pipeline run. The run must be in an active state (PENDING, RUNNING, PAUSED, or CANCELING) and belong to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace. The API requests a transition to CANCELING and attempts to cancel running tasks, which may result in a CANCELED final state if successful. However, the final state is not guaranteed — races or failures during cancellation may cause the run to end in a different terminal state.
+Sends an asynchronous request to cancel an active pipeline run. The run must be in an active state (PENDING, RUNNING, or PAUSED) and belong to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace. The API requests a transition to CANCELING and attempts to cancel running tasks, which may result in a CANCELED final state if successful. However, the final state is not guaranteed — races or failures during cancellation may cause the run to end in a different terminal state.
 
 ### Parameters
 
@@ -593,8 +593,8 @@ Sends an asynchronous request to cancel an active pipeline run. The run must be 
 This endpoint enforces ownership and state validation:
 
 - Fetches the run and validates it belongs to one of the discovered AutoML pipelines before terminating
-- Validates the run is in an active state (PENDING, RUNNING, PAUSED, or CANCELING) before proceeding
-- Returns `400 Bad Request` if the run is not in a terminatable state
+- Validates the run is in a terminatable state (PENDING, RUNNING, or PAUSED) before proceeding
+- Returns `400 Bad Request` if the run is not in a terminatable state (PENDING, RUNNING, or PAUSED)
 - Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
 - Prevents users from terminating runs from other pipelines in the same namespace
 
@@ -613,7 +613,7 @@ Returns `200 OK` with an empty body on success.
 
 | Status | Condition |
 |--------|-----------|
-| `400 Bad Request` | Missing `runId` parameter, or run is not in an active state (PENDING, RUNNING, PAUSED, or CANCELING) |
+| `400 Bad Request` | Missing `runId` parameter, or run is not in a terminatable state (PENDING, RUNNING, or PAUSED) |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
 | `404 Not Found` | Run not found, or run belongs to a different pipeline |
