@@ -72,7 +72,8 @@ const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isMaaSSubscriptionRef) &&
   (v.tokenMetadata === undefined || typeof v.tokenMetadata === 'object') &&
-  (v.creationTimestamp === undefined || typeof v.creationTimestamp === 'string');
+  (v.creationTimestamp === undefined || typeof v.creationTimestamp === 'string') &&
+  (v.deletionTimestamp === undefined || typeof v.deletionTimestamp === 'string');
 
 export const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
   isRecord(v) &&
@@ -98,7 +99,8 @@ export const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isModelRef) &&
   isSubjectSpec(v.subjects) &&
-  (v.meteringMetadata === undefined || isTokenMetadata(v.meteringMetadata));
+  (v.meteringMetadata === undefined || isTokenMetadata(v.meteringMetadata)) &&
+  (v.deletionTimestamp === undefined || typeof v.deletionTimestamp === 'string');
 
 /** Coerce null tokenRateLimits (Go nil slice → JSON null) to empty arrays. */
 const normalizeSubscription = (sub: MaaSSubscription): MaaSSubscription => ({
