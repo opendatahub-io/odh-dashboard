@@ -5,6 +5,7 @@ import {
   isRunTerminatable,
   isRunInProgress,
   isRunRetryable,
+  isRunArchivable,
   parseErrorStatus,
   getOptimizedMetricForRAG,
   formatMetricValue,
@@ -82,6 +83,33 @@ describe('isRunRetryable', () => {
   it('should return false for undefined or empty state', () => {
     expect(isRunRetryable(undefined)).toBe(false);
     expect(isRunRetryable('')).toBe(false);
+  });
+});
+
+describe('isRunArchivable', () => {
+  it('should return true for terminal states', () => {
+    expect(isRunArchivable('SUCCEEDED')).toBe(true);
+    expect(isRunArchivable('FAILED')).toBe(true);
+    expect(isRunArchivable('CANCELED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunArchivable('succeeded')).toBe(true);
+    expect(isRunArchivable('Succeeded')).toBe(true);
+    expect(isRunArchivable('failed')).toBe(true);
+    expect(isRunArchivable('canceled')).toBe(true);
+  });
+
+  it('should return false for active states', () => {
+    expect(isRunArchivable('RUNNING')).toBe(false);
+    expect(isRunArchivable('PENDING')).toBe(false);
+    expect(isRunArchivable('PAUSED')).toBe(false);
+    expect(isRunArchivable('CANCELING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunArchivable(undefined)).toBe(false);
+    expect(isRunArchivable('')).toBe(false);
   });
 });
 

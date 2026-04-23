@@ -1316,6 +1316,48 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
     });
+
+    describe('Archive Pipeline Run', () => {
+      it('should archive a succeeded pipeline run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-abc123-def456/archive?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should archive a failed pipeline run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-mno345-pqr678/archive?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should return 400 when attempting to archive an active (RUNNING) run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-ghi789-jkl012/archive?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 404 for non-existent run ID', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/non-existent-run-id/archive?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
   });
 
   describe('S3 File Upload (POST)', () => {

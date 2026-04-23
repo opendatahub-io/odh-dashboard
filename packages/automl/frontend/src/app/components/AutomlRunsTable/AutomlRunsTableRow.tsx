@@ -4,6 +4,7 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
+import ArchiveRunModal from '~/app/components/run-results/ArchiveRunModal';
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { TASK_TYPE_LABELS } from '~/app/utilities/const';
@@ -67,6 +68,7 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
   const taskType = getTaskType(run);
   const predictionTypeLabel = taskType ? (TASK_TYPE_LABELS[taskType] ?? taskType) : '—';
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const { handleRetry, handleConfirmStop, handleArchive, isRetrying, isTerminating, isArchiving } =
     useAutomlRunActions(namespace, run.run_id, onActionComplete);
 
@@ -78,6 +80,11 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
     await handleConfirmStop();
     setIsStopModalOpen(false);
   }, [handleConfirmStop]);
+
+  const handleConfirmArchive = React.useCallback(async () => {
+    await handleArchive();
+    setIsArchiveModalOpen(false);
+  }, [handleArchive]);
 
   const actions = React.useMemo(() => {
     const items: React.ComponentProps<typeof ActionsColumn>['items'] = [];
@@ -103,21 +110,13 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
       }
       items.push({
         title: <span data-testid="archive-run-action">Archive</span>,
-        onClick: () => void handleArchive(),
+        onClick: () => setIsArchiveModalOpen(true),
         isDisabled: isArchiving,
       });
     }
 
     return items;
-  }, [
-    runTerminatable,
-    runRetryable,
-    runArchivable,
-    handleRetry,
-    handleArchive,
-    isRetrying,
-    isArchiving,
-  ]);
+  }, [runTerminatable, runRetryable, runArchivable, handleRetry, isRetrying, isArchiving]);
 
   return (
     <>
@@ -152,6 +151,14 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={run.display_name}
+      />
+      <ArchiveRunModal
+        isOpen={isArchiveModalOpen}
+        onClose={() => setIsArchiveModalOpen(false)}
+        onConfirm={handleConfirmArchive}
+        isArchiving={isArchiving}
+        runName={run.display_name}
+        namespace={namespace}
       />
     </>
   );
