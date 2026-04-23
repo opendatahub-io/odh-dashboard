@@ -39,7 +39,7 @@ class MCPTab {
   openMCPTab(): void {
     // Click the MCP tab to show the servers table
     this.clickMCPTab();
-    this.findMCPServersTable({ timeout: 30000 }).should('exist').and('be.visible');
+    this.verifyMCPTabVisible();
   }
 
   verifyMCPTabVisible(): void {
