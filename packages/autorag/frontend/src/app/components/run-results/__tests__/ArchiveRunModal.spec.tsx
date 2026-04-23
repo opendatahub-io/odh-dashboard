@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import ArchiveRunModal from '~/app/components/run-results/ArchiveRunModal';
+import { pipelinesArchivedRunsPathname } from '~/app/utilities/routes';
 
 const renderModal = (props: Partial<React.ComponentProps<typeof ArchiveRunModal>> = {}) => {
   const defaultProps: React.ComponentProps<typeof ArchiveRunModal> = {
@@ -84,7 +85,7 @@ describe('ArchiveRunModal', () => {
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
-  it('should call onClose and clear input when Cancel is clicked', async () => {
+  it('should call onClose when Cancel is clicked', async () => {
     const onClose = jest.fn();
     const user = userEvent.setup();
     renderModal({ onClose });
@@ -123,9 +124,6 @@ describe('ArchiveRunModal', () => {
     renderModal({ namespace: 'my-namespace' });
 
     const link = screen.getByText('archived runs');
-    expect(link).toHaveAttribute(
-      'href',
-      '/develop-train/pipelines/runs/my-namespace/runs/archived',
-    );
+    expect(link).toHaveAttribute('href', pipelinesArchivedRunsPathname('my-namespace'));
   });
 });

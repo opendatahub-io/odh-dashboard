@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import {
   Button,
   Flex,
@@ -12,6 +11,8 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
+import { pipelinesArchivedRunsPathname } from '~/app/utilities/routes';
 
 type ArchiveRunModalProps = {
   isOpen: boolean;
@@ -32,7 +33,7 @@ const ArchiveRunModal: React.FC<ArchiveRunModalProps> = ({
 }) => {
   const [confirmInputValue, setConfirmInputValue] = React.useState('');
   const confirmMessage = runName ?? '';
-  const isDisabled = confirmInputValue.trim() !== confirmMessage || isArchiving;
+  const isDisabled = !confirmMessage || confirmInputValue.trim() !== confirmMessage || isArchiving;
 
   const handleClose = React.useCallback(() => {
     setConfirmInputValue('');
@@ -46,10 +47,7 @@ const ArchiveRunModal: React.FC<ArchiveRunModalProps> = ({
         <Stack hasGutter>
           <StackItem>
             The run will be archived. It can be restored from the Pipelines{' '}
-            <Link to={`/develop-train/pipelines/runs/${namespace}/runs/archived`}>
-              archived runs
-            </Link>{' '}
-            view.
+            <Link to={pipelinesArchivedRunsPathname(namespace)}>archived runs</Link> view.
           </StackItem>
           <StackItem>
             <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>

@@ -69,8 +69,12 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
   }, [handleConfirmStop]);
 
   const handleConfirmArchive = React.useCallback(async () => {
-    await handleArchive();
-    setIsArchiveModalOpen(false);
+    try {
+      await handleArchive();
+      setIsArchiveModalOpen(false);
+    } catch {
+      // Modal stays open; error toast is shown by handleArchive.
+    }
   }, [handleArchive]);
 
   const actions = React.useMemo(() => {

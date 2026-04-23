@@ -86,15 +86,15 @@ export const useAutoragRunActions = (
         queryKey: ['autorag', 'pipelineRun', runId, namespace],
       });
       notification.success(
-        'Run archived successfully',
-        'The run has been archived and will no longer appear in the runs list',
+        'Archive submitted successfully',
+        'The process is asynchronous and may take some time to take effect',
       );
     } catch (error) {
       notification.error(
         'Failed to archive run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
-      return;
+      throw error;
     }
     try {
       await onActionComplete?.();

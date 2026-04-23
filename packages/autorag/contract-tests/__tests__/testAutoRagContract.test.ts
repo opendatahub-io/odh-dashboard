@@ -1345,6 +1345,13 @@ describe('AutoRAG API Contract Tests', () => {
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.status).toBe(400);
+          expect({
+            status: result.error.status,
+            data: result.error.data,
+          }).toMatchContract(apiSchema, {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          });
         }
       });
 
@@ -1355,6 +1362,13 @@ describe('AutoRAG API Contract Tests', () => {
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.status).toBe(404);
+          expect({
+            status: result.error.status,
+            data: result.error.data,
+          }).toMatchContract(apiSchema, {
+            ref: '#/components/responses/NotFound/content/application~1json/schema',
+            status: 404,
+          });
         }
       });
     });
