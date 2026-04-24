@@ -39,5 +39,4 @@ export const FindAdministratorOptions = [
 export const OPTIMIZATION_METRIC_LABELS: Record<string, string> = {
   faithfulness: 'Answer faithfulness',
   answer_correctness: 'Answer correctness',
-  context_correctness: 'Context correctness',
 };
