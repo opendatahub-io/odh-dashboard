@@ -344,6 +344,40 @@ paths:
       summary: Get Guardrails Status
       description: Gets the status of GuardrailsOrchestrator in the specified namespace.
 
+  /gen-ai/api/v1/nemo-guardrails/init:
+    summary: Initialize NemoGuardrails resources
+    description: >-
+      Creates a placeholder ConfigMap and NemoGuardrails CR in the specified namespace.
+      The actual model, prompts, and API key are supplied at request time via inline
+      config in each guardrail/checks call — no per-model K8s resources are needed.
+    post:
+      tags:
+        - NemoGuardrails
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace in which to create NemoGuardrails resources
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '200':
+          $ref: '#/components/responses/NemoGuardrailsInitResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: initNemoGuardrails
+      summary: Initialize NemoGuardrails
+      description: >-
+        Creates a placeholder ConfigMap and NemoGuardrails CR. Idempotent — safe
+        to call multiple times; existing resources are updated in place.
+
   # =============================================================================
   # AI AVAILABLE ASSETS (AAA) ENDPOINTS
   # =============================================================================
@@ -4777,6 +4811,28 @@ components:
               summary: Installation failed
               value:
                 data: null
+
+    NemoGuardrailsInitResponse:
+      description: NemoGuardrails initialization result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: object
+                required:
+                  - name
+                properties:
+                  name:
+                    type: string
+                    description: Name of the created or updated NemoGuardrails CR
+                    example: nemoguardrails
+          example:
+            data:
+              name: nemoguardrails
 
     MCPToolsResponse:
       description: Comprehensive tools information from MCP server specified by URL

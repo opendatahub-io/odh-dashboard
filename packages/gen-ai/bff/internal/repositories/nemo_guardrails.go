@@ -5,7 +5,6 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	kubernetes "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -17,25 +16,17 @@ func NewNemoGuardrailsRepository() *NemoGuardrailsRepository {
 	return &NemoGuardrailsRepository{}
 }
 
-// InitNemoGuardrails creates per-model ConfigMaps and a NemoGuardrails CR for the given
-// install models. It is a thin delegation to the K8s client implementation.
+// InitNemoGuardrails creates a placeholder ConfigMap and NemoGuardrails CR in the namespace.
+// The actual model and API key are supplied at runtime via inline config in guardrail/checks calls.
 func (r *NemoGuardrailsRepository) InitNemoGuardrails(
 	client kubernetes.KubernetesClientInterface,
 	ctx context.Context,
 	identity *integrations.RequestIdentity,
 	namespace string,
-	installModels []models.InstallModel,
-	maasClient maas.MaaSClientInterface,
 ) (*models.NemoGuardrailsInitModel, error) {
-	userAuthToken := ""
-	if identity != nil {
-		userAuthToken = identity.Token
-	}
-
-	crName, err := client.CreateNemoGuardrailsResources(ctx, identity, namespace, installModels, maasClient, userAuthToken)
+	crName, err := client.CreateNemoGuardrailsResources(ctx, identity, namespace)
 	if err != nil {
 		return nil, err
 	}
-
 	return &models.NemoGuardrailsInitModel{Name: crName}, nil
 }

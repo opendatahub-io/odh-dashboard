@@ -905,6 +905,6 @@ func (m *TokenKubernetesClientMock) DeleteSecret(ctx context.Context, identity *
 }
 
 // CreateNemoGuardrailsResources delegates to the real implementation for testing.
-func (m *TokenKubernetesClientMock) CreateNemoGuardrailsResources(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, maasClient maas.MaaSClientInterface, userAuthToken string) (string, error) {
-	return m.TokenKubernetesClient.CreateNemoGuardrailsResources(ctx, identity, namespace, installModels, maasClient, userAuthToken)
+func (m *TokenKubernetesClientMock) CreateNemoGuardrailsResources(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
+	return m.TokenKubernetesClient.CreateNemoGuardrailsResources(ctx, identity, namespace)
 }

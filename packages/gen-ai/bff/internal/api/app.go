@@ -408,8 +408,8 @@ func (app *App) Routes() http.Handler {
 	// LSD Safety Config endpoint - returns configured guardrail models and shields
 	apiRouter.GET(constants.LSDSafetyPath, app.AttachNamespace(app.LSDSafetyConfigHandler))
 
-	// NemoGuardrails init endpoint - creates NemoGuardrails CR and per-model ConfigMaps
-	apiRouter.POST(constants.NemoGuardrailsInitPath, app.AttachMaaSClient(app.AttachNamespace(app.NemoGuardrailsInitHandler)))
+	// NemoGuardrails init endpoint - creates placeholder ConfigMap and NemoGuardrails CR
+	apiRouter.POST(constants.NemoGuardrailsInitPath, app.AttachNamespace(app.NemoGuardrailsInitHandler))
 
 	// MCP Client endpoints
 	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.MCPToolsHandler))
