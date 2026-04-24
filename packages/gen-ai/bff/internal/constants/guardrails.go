@@ -60,7 +60,6 @@ func FormatEnvVar(envName string) string {
 const (
 	NemoGuardrailsAPIVersion            = "trustyai.opendatahub.io/v1alpha1"
 	NemoGuardrailsKind                  = "NemoGuardrails"
-	NemoGuardrailsConfigMapPrefix       = "guardrail-"
 	NemoGuardrailsOpenAIAPIKeyEnvName   = "OPENAI_API_KEY"
 	NemoGuardrailsOpenAIAPIKeyFakeValue = "fake"
 	NemoGuardrailsEnableAuthAnnotation  = "security.opendatahub.io/enable-auth"
