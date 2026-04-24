@@ -1,4 +1,4 @@
-projectNamePrefix: 'test-automl-regression'
+projectNamePrefix: 'cy-e2e-automl-regression'
 dspaSecretName: dashboard-dspa-secret
 secretName: ods-ci-ds-pipelines
 runName: automl-regression-run

@@ -58,32 +58,7 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
     'Can submit a run and verify it appears in the experiments list',
     { tags: ['@AutoML', '@AutoMLRegression'] },
     () => {
-      cy.step('Navigate to AutoML experiments page and create a run');
-      automlExperimentsPage.visit(projectName);
-      automlExperimentsPage.findEmptyState(120000).should('exist');
-      automlExperimentsPage.findCreateRunButton().click();
-
-      cy.step('Step 1 - Fill name and description');
-      automlConfigurePage.findNameInput().type(testData.runName);
-      automlConfigurePage.findDescriptionInput().type(testData.runDescription);
-      automlConfigurePage.findNextButton().click();
-
-      cy.step('Select S3 connection');
-      automlConfigurePage.findSecretSelector().click();
-      automlConfigurePage.findSecretSelector().type(testData.secretName);
-      automlConfigurePage.findSelectOption(new RegExp(testData.secretName, 'i')).click();
-
-      cy.step('Upload CSV file');
-      const uploadFileName = `automl-test-data-${uuid}.csv`;
-      automlConfigurePage.findUploadFileToggle().click();
-      automlConfigurePage
-        .findUploadFileInput()
-        .selectFile(
-          { contents: `resources/automl/${testData.trainingDataFile}`, fileName: uploadFileName },
-          { force: true },
-        );
-      automlConfigurePage.findUploadSpinner().should('not.exist');
-      automlConfigurePage.findUploadedFileCell(new RegExp(uploadFileName)).should('be.visible');
+      automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
       cy.step('Select task type and label column');
       automlConfigurePage.findTaskTypeCard('binary').click();
@@ -93,12 +68,7 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);
 
-      cy.step('Submit the form');
-      automlConfigurePage.findCreateRunButton().click();
-
-      cy.step('Verify redirect to results page');
-      cy.url().should('include', '/develop-train/automl/results/');
-      automlResultsPage.findRunInProgressMessage().should('be.visible');
+      automlConfigurePage.submitRun();
 
       cy.step('Navigate back to experiments page and verify run appears');
       automlExperimentsPage.visit(projectName);

@@ -1,4 +1,4 @@
-projectNamePrefix: 'test-automl-binary'
+projectNamePrefix: 'cy-e2e-automl-binary'
 dspaSecretName: dashboard-dspa-secret
 secretName: ods-ci-ds-pipelines
 runName: automl-binary-run

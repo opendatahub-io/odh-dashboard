@@ -1,4 +1,4 @@
-projectNamePrefix: 'test-automl-timeseries'
+projectNamePrefix: 'cy-e2e-automl-timeseries'
 dspaSecretName: dashboard-dspa-secret
 secretName: ods-ci-ds-pipelines
 runName: automl-timeseries-run
