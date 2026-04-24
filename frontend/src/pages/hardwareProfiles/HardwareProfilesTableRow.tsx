@@ -74,7 +74,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
 
   const renderFeatureVisibility = () => {
     if (useCases.length === 0) {
-      return <i>All features</i>;
+      return <i data-testid="feature-visibility-all">All features</i>;
     }
 
     return (
