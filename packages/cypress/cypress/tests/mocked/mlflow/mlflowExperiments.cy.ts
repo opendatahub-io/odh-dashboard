@@ -49,7 +49,7 @@ describe('MLflow Experiments page wrapper', () => {
       mlflowExperiments.navigate();
 
       mlflowExperiments.shouldHaveExperimentsUrl();
-      mlflowExperiments.findNavItem().should('have.class', 'pf-m-current');
+      mlflowExperiments.findNavItem().should('have.attr', 'aria-current', 'page');
     });
   });
 
