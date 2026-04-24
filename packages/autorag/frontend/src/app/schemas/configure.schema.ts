@@ -21,9 +21,11 @@ export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = ['remote::milvus'];
 
 export const RAG_METRIC_FAITHFULNESS = 'faithfulness';
 export const RAG_METRIC_ANSWER_CORRECTNESS = 'answer_correctness';
+export const RAG_METRIC_CONTEXT_CORRECTNESS = 'context_correctness';
 export const RAG_OPTIMIZATION_METRICS = z.enum([
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_ANSWER_CORRECTNESS,
+  RAG_METRIC_CONTEXT_CORRECTNESS,
 ]);
 
 export const EXPERIMENT_SETTINGS_FIELDS = ['embeddings_models', 'generation_models'] as const;

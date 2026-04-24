@@ -107,7 +107,7 @@ describe('AutoragInputParametersPanel', () => {
     renderPanel({
       parameters: {
         ...defaultParameters,
-        optimization_metric: 'context_correctness' as ConfigureSchema['optimization_metric'],
+        optimization_metric: 'context_correctness',
       },
     });
     expect(screen.getByText('Context correctness')).toBeInTheDocument();
