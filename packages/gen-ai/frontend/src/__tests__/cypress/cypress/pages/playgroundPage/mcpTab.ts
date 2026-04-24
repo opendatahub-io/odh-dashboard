@@ -32,7 +32,9 @@ class MCPTab {
   }
 
   // The table inside the MCP tab (testId unchanged in component)
-  findMCPServersTable(options?: { timeout?: number }): Cypress.Chainable<JQuery<HTMLElement>> {
+  findMCPServersTable(
+    options?: Partial<Cypress.Loggable & Cypress.Timeoutable>,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('mcp-servers-panel-table', options);
   }
 
