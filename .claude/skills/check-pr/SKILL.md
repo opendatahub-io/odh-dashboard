@@ -1,6 +1,6 @@
 ---
 name: check-pr
-description: "Read-only merge readiness check for a PR. Runs 7 gates — conflicts, CI, reviews, Jira, tests, PR body, and code style — then produces a pass/fail/warn report."
+description: "Read-only merge readiness check for a PR. Aggregates status from GitHub, CI, CodeRabbit, and Jira — runs 6 gates (conflicts, CI, reviews, Jira, tests, PR body) and produces a pass/fail/warn report."
 argument-hint: "[PR number or URL]"
 disable-model-invocation: true
 allowed-tools: Bash(gh *) Bash(git *) Bash(${CLAUDE_SKILL_DIR}/scripts/*)
@@ -112,16 +112,6 @@ Check the PR body against the repo's template (`.github/pull_request_template.md
 
 Overall: **FAIL** if Description is empty, **WARN** for other missing sections.
 
-## Gate 7: Code Style
-
-```bash
-${CLAUDE_SKILL_DIR}/scripts/scan-style.sh "$pr_number"
-```
-
-The script scans added lines in the diff for common issues (console.logs, eslint-disables, inline styles, TODOs, large file changes) without loading the full diff into context.
-
-This gate is **WARN-only** — style issues don't block merging but should be called out. Report each finding with file and line.
-
 ## Report
 
 ```
@@ -137,7 +127,6 @@ This gate is **WARN-only** — style issues don't block merging but should be ca
 ║  4. Jira              │  ___   │                            ║
 ║  5. Tests             │  ___   │                            ║
 ║  6. PR Body           │  ___   │                            ║
-║  7. Style             │  ___   │                            ║
 ╠═══════════════════════╪════════╪════════════════════════════╣
 ║  Verdict              │  ___   │                            ║
 ╚═══════════════════════╧════════╧════════════════════════════╝
