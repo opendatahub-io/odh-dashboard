@@ -69,7 +69,7 @@ describe('MLflow Experiments page wrapper', () => {
   });
 
   describe('Dark mode toggle', () => {
-    it('should sync dark mode class and localStorage on toggle', () => {
+    it('should sync localStorage on toggle', () => {
       mlflowExperiments.visit(PROJECT_A);
 
       appChrome.findDarkThemeToggle().click();
