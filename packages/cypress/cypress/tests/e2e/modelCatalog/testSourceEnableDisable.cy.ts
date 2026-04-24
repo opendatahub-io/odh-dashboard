@@ -32,6 +32,7 @@ describe('Verify Model Catalog Source Enable/Disable', () => {
     cy.step('Re-enable model catalog sources via configmap');
     enableModelCatalogSource(testData.redhatAiSourceId);
     enableModelCatalogSource(testData.redhatAiSourceId2);
+    enableModelCatalogSource(testData.redhatAiSourceId3);
   });
 
   it(
@@ -68,14 +69,24 @@ describe('Verify Model Catalog Source Enable/Disable', () => {
       cy.step(`Disable the ${testData.sourceName2} source`);
       modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId2).click({ force: true });
 
+      cy.step(`Disable the ${testData.sourceName3} source`);
+      modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId3).click({ force: true });
+
       cy.step('Verify second source is disabled in configmap');
       verifyModelCatalogSourceEnabled(testData.redhatAiSourceId2, false);
+
+      cy.step('Verify third source is disabled in configmap');
+      verifyModelCatalogSourceEnabled(testData.redhatAiSourceId3, false);
 
       cy.step('Navigate to catalog');
       modelCatalog.visit();
 
       cy.step('Wait for catalog to reflect disabled sources');
-      waitForModelCatalogAfterDisable([testData.redhatAiSourceId, testData.redhatAiSourceId2]);
+      waitForModelCatalogAfterDisable([
+        testData.redhatAiSourceId,
+        testData.redhatAiSourceId2,
+        testData.redhatAiSourceId3,
+      ]);
     },
   );
 });
