@@ -194,7 +194,7 @@ export const compareRunColumns = (isMlflowAvailable?: boolean): SortableData<Pip
 ];
 
 export const getPipelineRunColumns = (
-  metricsColumns: SortableData<PipelineRunKF>[],
+  metricsColumnNames: string[],
   isMlflowAvailable?: boolean,
 ): SortableData<PipelineRunKF>[] => [
   { ...checkboxTableColumn(), isStickyColumn: true, stickyMinWidth: '45px' },
@@ -234,7 +234,11 @@ export const getPipelineRunColumns = (
     sortable: true,
     width: 10,
   },
-  ...metricsColumns,
+  ...metricsColumnNames.map((metricName: string) => ({
+    label: metricName,
+    field: metricName,
+    sortable: false,
+  })),
   kebabTableColumn(),
 ];
 
