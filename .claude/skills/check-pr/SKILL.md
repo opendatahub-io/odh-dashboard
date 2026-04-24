@@ -1,6 +1,6 @@
 ---
 name: check-pr
-description: "Read-only merge readiness check for a PR. Runs 8 gates — conflicts, CI, reviews, Jira, tests, PR body, code style, and priority tier — then produces a pass/fail/warn report."
+description: "Read-only merge readiness check for a PR. Runs 7 gates — conflicts, CI, reviews, Jira, tests, PR body, and code style — then produces a pass/fail/warn report."
 argument-hint: "[PR number or URL]"
 disable-model-invocation: true
 allowed-tools: Bash(gh *) Bash(git *) Bash(${CLAUDE_SKILL_DIR}/scripts/*)
@@ -8,7 +8,7 @@ allowed-tools: Bash(gh *) Bash(git *) Bash(${CLAUDE_SKILL_DIR}/scripts/*)
 
 # Check PR — Merge Readiness Report
 
-Evaluate whether a PR is ready to merge. Produces a structured report with pass/fail/warn for each gate and a Jira-based priority tier. This skill is read-only — it never modifies code, commits, or pushes.
+Evaluate whether a PR is ready to merge. Produces a structured report with pass/fail/warn for each gate. This skill is read-only — it never modifies code, commits, or pushes.
 
 ## Resolve the PR
 
@@ -79,21 +79,12 @@ jira_key=$(echo "$pr_title $pr_body" | grep -oE 'RHOAIENG-[0-9]+' | head -1)
 If no key found, also check for a `issues.redhat.com/browse/` URL in the body.
 
 - No Jira reference → **FAIL**
-- Key found → fetch the hierarchy:
-
-```bash
-${CLAUDE_SKILL_DIR}/scripts/fetch-jira-tree.sh "$jira_key"
-```
-
-If `JIRA_TOKEN` is not set, this gate becomes **WARN** ("Jira check skipped — JIRA_TOKEN not set") instead of failing. The script exits with an error message in this case.
-
-When it succeeds, check:
-- Issue exists → **PASS**
-- Issue is Closed/Done → **WARN** — linked issue is already resolved
-- No description → **WARN**
-- No assignee → **WARN**
-
-Save the output for Gate 8.
+- Key found → verify it exists. If `JIRA_TOKEN` is set, fetch the issue via Jira REST API or the Jira MCP tool to check:
+  - Issue exists → **PASS**
+  - Issue is Closed/Done → **WARN** — linked issue is already resolved
+  - No description → **WARN**
+  - No assignee → **WARN**
+- If `JIRA_TOKEN` is not set and no Jira MCP is available → **WARN** ("Jira validation skipped — no credentials available"). The Jira key was found in the PR body, so linkage passes, but the issue details can't be verified.
 
 ## Gate 5: Test Coverage
 
@@ -131,28 +122,12 @@ The script scans added lines in the diff for common issues (console.logs, eslint
 
 This gate is **WARN-only** — style issues don't block merging but should be called out. Report each finding with file and line.
 
-## Gate 8: PR Tier
-
-Uses the Jira hierarchy from Gate 4. If Gate 4 was skipped (no token) or no Jira key found, this is Tier 4.
-
-The `fetch-jira-tree.sh` script already computes the tier. Read `tier` and `tier_reason` from its output. See [tier-definitions.md](references/tier-definitions.md) for what each tier means.
-
-Display:
-```
-Tier: <N> (<label>)
-Rationale: <tier_reason>
-Hierarchy: <hierarchy_path>
-```
-
-Labels: 1=Strategic, 2=Critical, 3=Standard, 4=Untracked
-
 ## Report
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  Merge Readiness — PR #<N>                                 ║
 ║  <title>                                                   ║
-║  Tier: <N> (<label>)                                       ║
 ╠═══════════════════════╤════════╤════════════════════════════╣
 ║  Gate                 │ Status │ Details                    ║
 ╠═══════════════════════╪════════╪════════════════════════════╣
