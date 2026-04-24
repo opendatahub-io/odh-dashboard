@@ -13,7 +13,6 @@ import {
   cleanupServingRuntimeTemplate,
 } from '../../../utils/oc_commands/genAi';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
-import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { GenAiTestData } from '../../../types';
 import { projectDetails, projectListPage } from '../../../pages/projects';
@@ -46,7 +45,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   // Hardware profile variables
   let hardwareProfileName: string;
 
-  retryableBefore(() => {
+  before(() => {
     // Ignore module federation loading errors (for clusters without Gen AI modules deployed)
     Cypress.on('uncaught:exception', (err) => {
       // Ignore SyntaxError from missing federated modules
