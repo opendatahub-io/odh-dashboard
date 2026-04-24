@@ -23,8 +23,10 @@ describe('Verify Model Catalog Source Enable/Disable', () => {
       .then(() => {
         enableModelCatalogSource(testData.redhatAiSourceId);
         enableModelCatalogSource(testData.redhatAiSourceId2);
+        enableModelCatalogSource(testData.redhatAiSourceId3);
         verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, true);
         verifyModelCatalogSourceEnabled(testData.redhatAiSourceId2, true);
+        verifyModelCatalogSourceEnabled(testData.redhatAiSourceId3, true);
       });
   });
 
