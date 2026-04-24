@@ -20,7 +20,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       if (backend) {
         registerProxy(fastify, {
           prefix: `/_mf/${name}`,
-          rewritePrefix: ``,
+          rewritePrefix: `/`,
           authorize: backend.authorize,
           tls: backend.tls,
           service: {
