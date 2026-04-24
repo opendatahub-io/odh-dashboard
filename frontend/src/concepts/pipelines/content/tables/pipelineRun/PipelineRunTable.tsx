@@ -249,10 +249,10 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   );
 
   const columns = experiment
-    ? getPipelineRunColumns(visibleMetricColumnNames, isMlflowAvailable).filter(
+    ? getPipelineRunColumns(visibleMetricColumns, isMlflowAvailable).filter(
         (column) => column.field !== 'run_group',
       )
-    : getPipelineRunColumns(visibleMetricColumnNames, isMlflowAvailable);
+    : getPipelineRunColumns(visibleMetricColumns, isMlflowAvailable);
 
   return (
     <>
