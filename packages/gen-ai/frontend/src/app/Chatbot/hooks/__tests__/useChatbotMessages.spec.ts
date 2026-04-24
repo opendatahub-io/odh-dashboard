@@ -191,7 +191,10 @@ describe('useChatbotMessages', () => {
         content: '',
         name: 'Bot',
       });
-      expect(result.current.messages[2].errorClassification).toBeDefined();
+      expect(result.current.messages[2].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
+      });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).not.toHaveBeenCalled();
     });
@@ -248,7 +251,10 @@ describe('useChatbotMessages', () => {
         content: '',
         name: mockModelId,
       });
-      expect(result.current.messages[2].errorClassification).toBeDefined();
+      expect(result.current.messages[2].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
+      });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
 
@@ -285,7 +291,10 @@ describe('useChatbotMessages', () => {
         content: '',
         name: mockModelId,
       });
-      expect(result.current.messages[2].errorClassification).toBeDefined();
+      expect(result.current.messages[2].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
+      });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(mockCreateResponse).not.toHaveBeenCalled();
     });
@@ -306,7 +315,10 @@ describe('useChatbotMessages', () => {
         content: '',
         name: mockModelId,
       });
-      expect(result.current.messages[2].errorClassification).toBeDefined();
+      expect(result.current.messages[2].errorClassification).toMatchObject({
+        pattern: 'full-failure',
+        variant: 'danger',
+      });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
 
@@ -339,7 +351,10 @@ describe('useChatbotMessages', () => {
         content: '', // Error happened before streaming content was persisted
         name: mockModelId,
       });
-      expect(result.current.messages[2].errorClassification).toBeDefined();
+      expect(result.current.messages[2].errorClassification).toMatchObject({
+        pattern: 'partial-failure',
+        variant: 'warning',
+      });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(result.current.isLoading).toBe(false);
       expect(result.current.isStreamingWithoutContent).toBe(false);
