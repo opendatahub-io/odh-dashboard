@@ -86,6 +86,9 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
       automlConfigurePage.findLabelColumnSelect().should('not.be.disabled').click();
       automlConfigurePage.findSelectOption(new RegExp(testData.labelColumn as string)).click();
 
+      cy.step('Set top N models to minimize run time');
+      automlConfigurePage.setTopN(testData.topN as number);
+
       cy.step('Submit the form');
       automlConfigurePage.findCreateRunButton().click();
 

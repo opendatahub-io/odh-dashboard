@@ -98,6 +98,9 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
       automlConfigurePage.findPredictionLengthInput().clear();
       automlConfigurePage.findPredictionLengthInput().type(String(testData.predictionLength));
 
+      cy.step('Set top N models to minimize run time');
+      automlConfigurePage.setTopN(testData.topN as number);
+
       cy.step('Submit the form');
       automlConfigurePage.findCreateRunButton().click();
 
@@ -106,6 +109,9 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
 
       cy.step('Verify the run is in progress');
       automlResultsPage.findRunInProgressMessage().should('be.visible');
+
+      cy.step('Wait for run to complete and verify leaderboard');
+      automlResultsPage.waitForRunCompletion();
     },
   );
 });

@@ -5,5 +5,6 @@ runName: automl-select-file-run
 runDescription: 'E2E test selecting file from S3 bucket'
 trainingDataFile: automl-test-data.csv
 taskType: binary
+topN: 1
 labelColumn: target
 awsBucket: BUCKET_2

@@ -83,6 +83,9 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       automlConfigurePage.findLabelColumnSelect().should('not.be.disabled').click();
       automlConfigurePage.findSelectOption(new RegExp(testData.labelColumn as string)).click();
 
+      cy.step('Set top N models to minimize run time');
+      automlConfigurePage.setTopN(testData.topN as number);
+
       cy.step('Submit the form');
       automlConfigurePage.findCreateRunButton().click();
 
@@ -91,6 +94,15 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
 
       cy.step('Verify the run is in progress');
       automlResultsPage.findRunInProgressMessage().should('be.visible');
+    },
+  );
+
+  it(
+    'Verify binary classification run completes with leaderboard',
+    { tags: ['@AutoML', '@AutoMLRegression'] },
+    () => {
+      cy.step('Wait for run to complete and verify leaderboard');
+      automlResultsPage.waitForRunCompletion();
     },
   );
 });

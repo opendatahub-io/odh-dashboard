@@ -736,6 +736,8 @@ export type AutomlTestData = {
   trainingDataFile: string;
   taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries';
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  // Number of top models to train (min 1, default 3)
+  topN?: number;
   // Tabular task types (binary, multiclass, regression)
   labelColumn?: string;
   // Timeseries task type

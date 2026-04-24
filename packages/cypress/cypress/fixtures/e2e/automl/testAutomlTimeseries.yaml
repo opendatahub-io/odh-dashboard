@@ -5,6 +5,7 @@ runName: automl-timeseries-run
 runDescription: 'E2E test time series forecasting run'
 trainingDataFile: automl-timeseries-test-data.csv
 taskType: timeseries
+topN: 1
 targetColumn: value
 idColumn: series_id
 timestampColumn: timestamp

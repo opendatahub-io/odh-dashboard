@@ -147,6 +147,10 @@ class AutomlConfigurePage {
     return cy.findByTestId('top-n-input');
   }
 
+  setTopN(value: number) {
+    this.findTopNInput().find('input').clear().type(`${value}`);
+  }
+
   findSelectOption(name: string | RegExp) {
     return cy.findByRole('option', { name: name instanceof RegExp ? name : new RegExp(name) });
   }
@@ -258,6 +262,21 @@ class AutomlResultsPage {
 
   findRetryRunAction() {
     return cy.findByTestId('retry-run-action');
+  }
+
+  /**
+   * Waits up to `timeoutMs` (default 30 min) for the run to complete.
+   * Asserts that the leaderboard table appears. Fails if a
+   * canceled/failed status label appears instead.
+   */
+  waitForRunCompletion(timeoutMs = 1800000) {
+    // Wait for in-progress message to disappear (run finished)
+    this.findRunInProgressMessage().should('not.exist', { timeout: timeoutMs });
+    // Verify no failure/canceled status label appeared
+    this.findRunStatusLabel().should('not.exist');
+    // Verify the leaderboard table loaded with results
+    this.findLeaderboardTable().should('be.visible');
+    this.findTopRankLabel().should('exist');
   }
 }
 
