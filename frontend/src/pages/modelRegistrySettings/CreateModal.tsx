@@ -37,6 +37,7 @@ import {
   constructRequestBody,
   findConfigMap,
   findSecureDBType,
+  hasDatabaseInvalidChars,
   isClusterWideCABundleEnabled,
   isOpenshiftCAbundleEnabled,
   isValidPort,
@@ -54,7 +55,6 @@ import {
   DEFAULT_DATABASE_NAME,
   DEFAULT_MYSQL_PORT,
   DEFAULT_POSTGRES_PORT,
-  INVALID_DATABASE_CHARS,
   MAX_MODEL_REGISTRY_NAME_LENGTH,
   ResourceType,
   SecureDBRType,
@@ -391,8 +391,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   };
 
   const hasContent = (value: string): boolean => !!value.trim().length;
-
-  const hasDatabaseInvalidChars = (value: string): boolean => INVALID_DATABASE_CHARS.test(value);
 
   const canSubmit = () => {
     const isValidName = isK8sNameDescriptionDataValid(nameDesc);

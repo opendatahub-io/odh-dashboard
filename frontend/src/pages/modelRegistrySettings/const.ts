@@ -8,8 +8,6 @@ export const DEFAULT_MYSQL_PORT = '3306';
 export const DEFAULT_POSTGRES_PORT = '5432';
 export const DEFAULT_DATABASE_NAME = 'model-registry';
 
-export const INVALID_DATABASE_CHARS = /[?]/;
-
 export enum DatabaseSource {
   DEFAULT = 'default',
   EXTERNAL = 'external',

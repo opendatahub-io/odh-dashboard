@@ -105,6 +105,8 @@ export const isOpenshiftCAbundleEnabled = (existingCertConfigMaps: ConfigSecretI
  * @param value - The port value to validate
  * @returns true if the port is valid, false otherwise
  */
+export const hasDatabaseInvalidChars = (value: string): boolean => /\?/.test(value);
+
 export const isValidPort = (value: string): boolean => {
   const portNum = Number(value);
   return !Number.isNaN(portNum) && Number.isInteger(portNum) && portNum >= 1 && portNum <= 65535;
