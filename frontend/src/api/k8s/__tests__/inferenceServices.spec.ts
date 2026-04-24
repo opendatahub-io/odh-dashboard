@@ -602,6 +602,8 @@ describe('assembleInferenceService', () => {
         },
       ],
     });
+    // mockHardwareProfile uses a destructuring default for uid, so passing
+    // undefined doesn't clear it. We must delete it explicitly.
     delete (legacyHardwareProfile.metadata as Record<string, unknown>).uid;
 
     const podSpecOptions = mockModelServingPodSpecOptions({
