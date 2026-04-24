@@ -1913,6 +1913,10 @@ components:
           type: string
           format: date-time
           description: When the resource was created
+        deletionTimestamp:
+          type: string
+          format: date-time
+          description: When set, the subscription is marked for deletion (Kubernetes metadata.deletionTimestamp)
       required:
         - name
         - namespace
@@ -1988,6 +1992,10 @@ components:
           $ref: '#/components/schemas/SubjectSpec'
         meteringMetadata:
           $ref: '#/components/schemas/TokenMetadata'
+        deletionTimestamp:
+          type: string
+          format: date-time
+          description: When set, the policy is marked for deletion (Kubernetes metadata.deletionTimestamp)
       required:
         - name
         - namespace
