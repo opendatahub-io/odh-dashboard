@@ -49,12 +49,29 @@ const mockRegisteredModelWithData = mockRegisteredModel({
 });
 
 const mockModelVersionWithLabels = mockModelVersion({
+  id: '1',
   name: 'Version 1',
   customProperties: {
+    a1: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'v1' },
+    a2: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'v2' },
+    a3: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'v3' },
+    a4: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'v4' },
+    a5: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'v5' },
+    a6: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'v1' },
+    a7: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'v7' },
     'Testing label': { metadataType: ModelRegistryMetadataType.STRING, string_value: '' },
     'Financial data': { metadataType: ModelRegistryMetadataType.STRING, string_value: '' },
     'Fraud detection': { metadataType: ModelRegistryMetadataType.STRING, string_value: '' },
-    property1: { metadataType: ModelRegistryMetadataType.STRING, string_value: 'value1' },
+    'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc':
+      { metadataType: ModelRegistryMetadataType.STRING, string_value: '' },
+    'Machine learning': { metadataType: ModelRegistryMetadataType.STRING, string_value: '' },
+    'Next data to be overflow': {
+      metadataType: ModelRegistryMetadataType.STRING,
+      string_value: '',
+    },
+    'Label x': { metadataType: ModelRegistryMetadataType.STRING, string_value: '' },
+    'Label y': { metadataType: ModelRegistryMetadataType.STRING, string_value: '' },
+    'Label z': { metadataType: ModelRegistryMetadataType.STRING, string_value: '' },
   },
 });
 
