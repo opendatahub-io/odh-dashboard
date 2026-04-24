@@ -94,6 +94,7 @@
     "grpc-web": "^1.2.1",
     "lodash-es": "^4.17.15",
     "long": "^5.2.3",
+    "mod-arch-shared": "^1.2.0",
     "monaco-editor": "^0.50.0",
     "react": "^18.2.0",
     "react-cool-dimensions": "^2.0.5",
