@@ -140,6 +140,10 @@ func (f *fakeKubernetesClient) CanNamespaceAccessRegistry(ctx context.Context, i
 	return false, nil
 }
 
+func (f *fakeKubernetesClient) CanVerbMcpServersInNamespace(ctx context.Context, identity *k8s.RequestIdentity, namespace, verb string) (bool, error) {
+	return false, nil
+}
+
 func (f *fakeKubernetesClient) GetSelfSubjectRulesReview(ctx context.Context, identity *k8s.RequestIdentity, namespace string) ([]string, error) {
 	return nil, nil
 }
