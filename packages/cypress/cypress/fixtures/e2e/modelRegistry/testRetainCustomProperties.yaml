@@ -1,0 +1,59 @@
+# Test data for custom properties retention tests
+# Tests verify no data loss on related objects during model registry operations
+
+# Registry and database configuration
+registryNamePrefix: "test-props-registry"
+databaseNamePrefix: "props-db"
+projectNamePrefix: "props-deploy-project"
+operatorDeploymentName: "model-registry-operator-controller-manager"
+
+# Model configuration
+modelNamePrefix: "test-props-model"
+modelDescription: "Test model for verifying custom properties retention during operations"
+
+# Model custom properties
+modelCustomProperties:
+  - key: "model-prop-1"
+    value: "model-value-1"
+
+# Model labels
+modelLabels:
+  - "model-label-1"
+  - "model-label-2"
+
+# Version configuration
+versionName: "v1.0"
+versionDescription: "Test version for verifying custom properties retention"
+
+# Version custom properties
+versionCustomProperties:
+  - key: "version-prop-1"
+    value: "version-value-1"
+
+# Version labels
+versionLabels:
+  - "version-label-1"
+  - "version-label-2"
+
+# Model format configuration
+sourceModelFormat: "onnx"
+sourceModelFormatVersion: "1.0"
+
+# Updated values for edit tests
+updatedVersionDescription: "Updated description for version - testing properties retention"
+updatedModelFormat: "pytorch"
+updatedFormatVersion: "2.0"
+newVersionLabel: "new-version-label"
+newVersionPropertyKey: "new-version-prop"
+newVersionPropertyValue: "new-version-value"
+
+# Object storage configuration (for model registration)
+objectStorageEndpoint: "http://minio.example.com:9000"
+objectStorageBucket: "test-models"
+objectStorageRegion: "us-east-1"
+objectStoragePath: "models/retain-props-test/v1.0"
+
+# Model format for deployment test
+modelFormatForDeployment: "openvino_ir - opset13"
+servingRuntimeForDeployment: "OpenVINO Model Server"
+modelPathForDeployment: "kserve-openvino-test/openvino-example-model"

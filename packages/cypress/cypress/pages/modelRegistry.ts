@@ -218,6 +218,10 @@ class ModelRegistry {
     return cy.findByTestId('breadcrumb-model');
   }
 
+  findModelVersionBreadcrumbItem() {
+    return cy.findByTestId('breadcrumb-model-version');
+  }
+
   findModelVersionsTableKebab() {
     return cy.findByTestId('model-versions-table-kebab-action');
   }
@@ -248,6 +252,10 @@ class ModelRegistry {
 
   findEmptyModelRegistrySecondaryButton(timeout?: number) {
     return cy.findByTestId('empty-model-registry-secondary-action', { timeout });
+  }
+
+  findModelOverviewTab() {
+    return cy.findByTestId('model-overview-tab');
   }
 
   findModelVersionsTab() {
