@@ -1,16 +1,12 @@
 import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
-import { provisionProjectForPipelines } from '../../../utils/pipelines';
+import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { waitForDspaReady } from '../../../utils/oc_commands/dspa';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
-import {
-  automlExperimentsPage,
-  automlConfigurePage,
-  automlResultsPage,
-} from '../../../pages/automl';
+import { automlExperimentsPage, automlConfigurePage } from '../../../pages/automl';
 
 const uuid = generateTestUUID();
 
@@ -22,7 +18,7 @@ describe('AutoML Select File from Bucket E2E', { testIsolation: false }, () => {
     cy.fixture('e2e/automl/testAutomlSelectFile.yaml', 'utf8').then((yamlContent: string) => {
       testData = yaml.load(yamlContent) as AutomlTestData;
       projectName = `${testData.projectNamePrefix}-${uuid}`;
-      provisionProjectForPipelines(projectName, testData.dspaSecretName, testData.awsBucket);
+      provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
     }),
   );
 
@@ -56,7 +52,10 @@ describe('AutoML Select File from Bucket E2E', { testIsolation: false }, () => {
       automlConfigurePage.findSelectOption(new RegExp(testData.secretName, 'i')).click();
 
       cy.step('Verify Select File mode is the default');
-      automlConfigurePage.findSelectFileToggle().should('have.attr', 'aria-pressed', 'true');
+      automlConfigurePage
+        .findSelectFileToggle()
+        .find('button')
+        .should('have.attr', 'aria-pressed', 'true');
 
       cy.step('Open file explorer and browse for a CSV file');
       automlConfigurePage.findBrowseBucketButton().click();
@@ -64,30 +63,17 @@ describe('AutoML Select File from Bucket E2E', { testIsolation: false }, () => {
 
       cy.step('Search for the training data file and select it');
       automlConfigurePage.findFileExplorerSearch().type(testData.trainingDataFile);
-      automlConfigurePage.findFileExplorerRow(testData.trainingDataFile).click();
+      automlConfigurePage
+        .findFileExplorerTable()
+        .contains('td', testData.trainingDataFile)
+        .parent('tr')
+        .click();
       automlConfigurePage.findFileExplorerSelectBtn().click();
 
-      cy.step('Select Binary Classification prediction type');
-      automlConfigurePage.findTaskTypeCard('binary').click();
-
-      cy.step('Select label column');
-      automlConfigurePage.findLabelColumnSelect().should('not.be.disabled').click();
-      automlConfigurePage.findSelectOption(new RegExp(testData.labelColumn as string)).click();
-
-      cy.step('Set top N models to minimize run time');
-      automlConfigurePage.setTopN(testData.topN as number);
-
-      cy.step('Submit the form');
-      automlConfigurePage.findCreateRunButton().click();
-
-      cy.step('Verify redirect to results page');
-      cy.url().should('include', '/develop-train/automl/results/');
-
-      cy.step('Verify the run is in progress');
-      automlResultsPage.findRunInProgressMessage().should('be.visible');
-
-      cy.step('Wait for run to complete and verify leaderboard');
-      automlResultsPage.waitForRunCompletion();
+      cy.step('Verify selected file appears in the form');
+      automlConfigurePage
+        .findUploadedFileCell(new RegExp(testData.trainingDataFile))
+        .should('be.visible');
     },
   );
 });

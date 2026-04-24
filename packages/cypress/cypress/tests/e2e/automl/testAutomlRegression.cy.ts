@@ -1,7 +1,7 @@
 import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
-import { provisionProjectForPipelines } from '../../../utils/pipelines';
+import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { waitForDspaReady } from '../../../utils/oc_commands/dspa';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -22,7 +22,7 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
     cy.fixture('e2e/automl/testAutomlRegression.yaml', 'utf8').then((yamlContent: string) => {
       testData = yaml.load(yamlContent) as AutomlTestData;
       projectName = `${testData.projectNamePrefix}-${uuid}`;
-      provisionProjectForPipelines(projectName, testData.dspaSecretName, testData.awsBucket);
+      provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
     }),
   );
 
@@ -59,16 +59,18 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
       automlConfigurePage.findSelectOption(new RegExp(testData.secretName, 'i')).click();
 
       cy.step('Upload CSV file');
+      const uploadFileName = `automl-regression-test-data-${uuid}.csv`;
       automlConfigurePage.findUploadFileToggle().click();
       automlConfigurePage
         .findUploadFileInput()
-        .selectFile(`resources/automl/${testData.trainingDataFile}`, { force: true });
+        .selectFile(
+          { contents: `resources/automl/${testData.trainingDataFile}`, fileName: uploadFileName },
+          { force: true },
+        );
 
       cy.step('Wait for upload to complete');
       automlConfigurePage.findUploadSpinner().should('not.exist');
-      automlConfigurePage
-        .findUploadedFileCell(/automl-regression-test-data.*\.csv/)
-        .should('be.visible');
+      automlConfigurePage.findUploadedFileCell(new RegExp(uploadFileName)).should('be.visible');
 
       cy.step('Select Regression prediction type');
       automlConfigurePage.findTaskTypeCard('regression').click();
@@ -91,6 +93,14 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
 
       cy.step('Wait for run to complete and verify leaderboard');
       automlResultsPage.waitForRunCompletion();
+    },
+  );
+
+  it(
+    'Can interact with results page (leaderboard, model details, download)',
+    { tags: ['@AutoML', '@AutoMLRegression'] },
+    () => {
+      automlResultsPage.verifyResultsInteraction('regression');
     },
   );
 });
