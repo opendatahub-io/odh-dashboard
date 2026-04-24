@@ -7,39 +7,13 @@ class GenAiPlayground {
   navigateToAssets(projectName: string) {
     cy.visit(`/gen-ai-studio/assets/${projectName}`);
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
-    this.waitForAssetsPageLoad();
-  }
-
-  private waitForAssetsPageLoad() {
-    // Wait for page title to appear
-    cy.findByTestId('page-title', { timeout: 15000 })
-      .should('be.visible')
-      .should('contain.text', 'AI asset endpoints');
-    // Wait for project selector to finish loading
-    // This is critical - the Gen AI module can't render without a loaded project context
-    cy.findByTestId('project-selector-toggle', { timeout: 30000 })
-      .should('not.be.disabled')
-      .should('not.contain', 'Loading');
-    // Wait for Gen AI module content to load - either table, empty state, or loading spinner
-    // Using longer timeout for module federation to load
-    cy.findByRole('tabpanel', { timeout: 30000 }).should('be.visible');
-  }
-
-  findPageTitle() {
-    return cy.findByRole('heading', { name: /Playground/i });
   }
 
   findEmptyState() {
     return cy.findByTestId('empty-state');
   }
 
-  findModelsTable() {
-    return cy.findByTestId('ai-models-table', { timeout: 30000 });
-  }
-
   findAddToPlaygroundButton() {
-    // First ensure the table is visible, then find the button
-    this.findModelsTable().should('be.visible');
     return cy.findByTestId('ai-models-table').contains('button', 'Add to playground');
   }
 

@@ -91,6 +91,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
           cy.log(`Creating Hardware Profile: ${hardwareProfileName}`);
           createCleanHardwareProfile(testData.hardwareProfileResourceYamlPath);
         })
+        .then(() => enableGenAiFeatures())
         .then(() => getVllmCpuAmd64RuntimeInfo())
         .then((info) => {
           servingRuntimeName = info.singleModelServingName;
@@ -100,16 +101,6 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
           return cleanupServingRuntimeTemplate(servingRuntimeName);
         });
     });
-  });
-
-  beforeEach(() => {
-    if (skipTest) {
-      return;
-    }
-
-    // Ensure Gen AI features are enabled before each test
-    // This prevents issues if a previous test run or another test disabled them
-    enableGenAiFeatures();
   });
 
   after(() => {
