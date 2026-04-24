@@ -794,5 +794,6 @@ describe('hardware profiles - legacy feature visibility annotations', () => {
 
     const mixedRow = hardwareProfile.getRow('Mixed Profile');
     mixedRow.findFeatureLabel('model-serving').should('exist');
+    mixedRow.findAllFeaturesText().should('not.exist');
   });
 });
