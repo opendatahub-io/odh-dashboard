@@ -14,19 +14,19 @@ class ModelDetailsCard {
 
 class ModelDetailsExpandedCard {
   find() {
-    return cy.findByTestId('expandable-section__content');
+    return cy.findByTestId('model-details-card-expandable-content');
   }
 
   findExpandedButton() {
-    return cy.findByTestId('model-details-expanded-toggle');
+    return cy.findByTestId('model-details-card-toggle-button');
   }
 
   findLabelEditButton() {
-    return cy.findByTestId('editable-labels-group-edit');
+    return this.find().findByTestId('editable-labels-group-edit');
   }
 
   findLabelSaveButton() {
-    return cy.findByTestId('editable-labels-group-save');
+    return this.find().findByTestId('editable-labels-group-save');
   }
 
   findDescriptionEditButton() {
@@ -38,36 +38,52 @@ class ModelDetailsExpandedCard {
   }
 
   findAlert() {
-    return cy.findByTestId('unsaved-changes-alert');
+    return cy.findByTestId('edit-alert');
   }
 
   findPropertiesExpandableButton() {
-    return cy.findByTestId('properties-expandable-section-toggle');
+    return this.find().findByTestId('properties-expandable-section').findByRole('button');
   }
 
   findAddPropertyButton() {
-    return cy.findByTestId('add-property-button');
+    return this.find().findByTestId('add-property-button');
+  }
+
+  findTable() {
+    return this.find().findByTestId('properties-table');
   }
 
   getRow(name: string) {
-    return new PropertyRow(() => cy.findByTestId(`property-row-${name}`));
+    return new ExpandedModelDetailsCardPropertyRow(() =>
+      this.findTable()
+        .find('tr')
+        .filter((_i, el) => {
+          const td = el.querySelector('[data-label=Key]');
+          if (!td) {
+            return false;
+          }
+          const input = td.querySelector('input');
+          const text = td.textContent || '';
+          return input ? input.value === name : text.includes(name);
+        })
+        .first(),
+    );
   }
 }
 
-class PropertyRow {
+class ExpandedModelDetailsCardPropertyRow {
   constructor(private findFn: () => Cypress.Chainable) {}
 
-  private find() {
+  find() {
     return this.findFn();
   }
 
   findKebabAction(name: string) {
-    this.find().findByTestId('property-row-kebab').click();
-    return cy.findByRole('menuitem', { name });
+    return this.find().findKebabAction(name);
   }
 
   findSaveButton() {
-    return this.find().findByTestId('save-property-button');
+    return this.find().findByTestId('save-edit-button-property');
   }
 }
 
