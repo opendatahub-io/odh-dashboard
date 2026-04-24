@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import httpProxy, { FastifyHttpProxyOptions } from '@fastify/http-proxy';
+import httpProxy from '@fastify/http-proxy';
+import { FastifyReplyFromHooks } from '@fastify/reply-from';
 import { K8sResourceCommon, KubeFastifyInstance, ServiceAddressAnnotation } from '../types';
 import { isK8sStatus, passThroughResource } from '../routes/api/k8s/pass-through';
 import { DEV_MODE } from './constants';
@@ -223,8 +224,8 @@ export const registerProxy = async (
       host?: string;
       port?: number | string;
     };
-    onError?: FastifyHttpProxyOptions['replyOptions']['onError'];
-    rewriteHeaders?: FastifyHttpProxyOptions['replyOptions']['rewriteHeaders'];
+    onError?: FastifyReplyFromHooks['onError'];
+    rewriteHeaders?: (headers: IncomingHttpHeaders) => IncomingHttpHeaders;
   },
 ): Promise<void> => {
   const scheme = tls ? 'https' : 'http';
