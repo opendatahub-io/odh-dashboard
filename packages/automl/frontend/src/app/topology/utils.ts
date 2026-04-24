@@ -17,7 +17,8 @@ export const measurePipelineTaskLabelWidth = (text: string): number => {
     return NODE_WIDTH;
   }
   ctx.font = NODE_FONT;
-  return Math.max(NODE_WIDTH, ctx.measureText(text).width + NODE_PADDING);
+  const measuredTextWidth = Math.ceil(ctx.measureText(text).width);
+  return Math.max(NODE_WIDTH, measuredTextWidth + NODE_PADDING);
 };
 
 /** Layout chrome (status icon, pill padding) — scales slightly with label length. */

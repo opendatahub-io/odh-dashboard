@@ -117,12 +117,11 @@ describe('measurePipelineTaskNodeLayoutWidth via createNode', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { createNode: freshCreateNode } = require('~/app/topology/utils');
 
-    // 30 chars * 10px = 300px + NODE_PADDING (40) = 340px text layer; + length-aware chrome
+    // 30 chars × 10px + NODE_PADDING(40) = 340; + layout chrome 67 → 407 (update if production chrome changes)
     const longLabel = 'A'.repeat(30);
     const node = freshCreateNode('task-1', longLabel, mockTask('task-1'));
 
-    const chrome = 40 + Math.min(80, Math.ceil(30 * 0.9));
-    expect(node.width).toBe(340 + chrome);
+    expect(node.width).toBe(407);
     expect(mockMeasureText).toHaveBeenCalledWith(longLabel);
   });
 });

@@ -3,7 +3,7 @@ export const PIPELINE_NODE_SEPARATION_VERTICAL = 20;
 /** Fallback horizontal rank gap when node widths are not yet known. */
 export const PIPELINE_NODE_SEPARATION_HORIZONTAL = 96;
 
-/** Rank gap bounds; `computePipelineRankSep` scales with widest laid-out node. */
+/** Baseline (px) in `computePipelineRankSep`; upper bound is `PIPELINE_RANKSEP_MAX`. */
 export const PIPELINE_RANKSEP_MIN = 72;
 export const PIPELINE_RANKSEP_MAX = 200;
 
@@ -16,7 +16,7 @@ export function computePipelineRankSep(maxNodeLayoutWidth: number): number {
     return PIPELINE_NODE_SEPARATION_HORIZONTAL;
   }
   const scaled = Math.round(PIPELINE_RANKSEP_MIN + maxNodeLayoutWidth * 0.1);
-  return Math.min(PIPELINE_RANKSEP_MAX, Math.max(PIPELINE_RANKSEP_MIN, scaled));
+  return Math.min(PIPELINE_RANKSEP_MAX, scaled);
 }
 
 export const NODE_WIDTH = 200;

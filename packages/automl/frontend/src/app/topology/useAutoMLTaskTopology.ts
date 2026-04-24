@@ -24,9 +24,22 @@ const TASK_DISPLAY_NAMES: Record<string, string> = {
 const normalizeTaskLookupKey = (s: string): string =>
   s.trim().toLowerCase().replace(/\s+/g, '-').replace(/_+/g, '-');
 
+/**
+ * Sentence-case fallback when no TASK_DISPLAY_NAMES entry matches
+ * (matches entries like "Model selection", "Input data loader").
+ */
+const fallbackTaskDisplayLabel = (name: string): string => {
+  const spaced = name.trim().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');
+  if (!spaced) {
+    return name;
+  }
+  const lower = spaced.toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+};
+
 /** Resolve UI label from API task name and/or DAG task id (id is stable; name may vary). */
 const resolveTaskLabel = (taskId: string, task: TaskKF): string => {
-  const rawName = task.taskInfo?.name || taskId;
+  const rawName = task.taskInfo.name || taskId;
   const candidates = [
     rawName,
     taskId,
@@ -38,7 +51,7 @@ const resolveTaskLabel = (taskId: string, task: TaskKF): string => {
       return TASK_DISPLAY_NAMES[key];
     }
   }
-  return rawName.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return fallbackTaskDisplayLabel(rawName);
 };
 
 const topoSort = (tasks: Record<string, TaskKF>): string[] => {

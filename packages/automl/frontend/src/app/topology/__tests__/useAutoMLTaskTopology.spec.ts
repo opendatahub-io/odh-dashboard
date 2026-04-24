@@ -80,9 +80,9 @@ describe('useAutoMLTaskTopology', () => {
     const renderResult = testHook(useAutoMLTaskTopology)(mockSpec, undefined);
     const nodes = renderResult.result.current;
 
-    expect(nodes[0].label).toBe('Test Data Loader');
-    expect(nodes[1].label).toBe('Documents Sampling');
-    expect(nodes[2].label).toBe('Text Extraction');
+    expect(nodes[0].label).toBe('Test data loader');
+    expect(nodes[1].label).toBe('Documents sampling');
+    expect(nodes[2].label).toBe('Text extraction');
   });
 
   it('should humanize unknown task names via fallback', () => {
@@ -100,7 +100,7 @@ describe('useAutoMLTaskTopology', () => {
       },
     };
     const renderResult = testHook(useAutoMLTaskTopology)(spec, undefined);
-    expect(renderResult.result.current[0].label).toBe('My Custom Task');
+    expect(renderResult.result.current[0].label).toBe('My custom task');
   });
 
   it('should use terminal fallback status when run is succeeded but task has no details', () => {
