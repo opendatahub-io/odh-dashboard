@@ -607,7 +607,7 @@ describe('assembleInferenceService', () => {
     const podSpecOptions = mockModelServingPodSpecOptions({
       selectedHardwareProfile: legacyHardwareProfile,
       tolerations: legacyHardwareProfile.spec.scheduling?.node?.tolerations,
-      nodeSelector: undefined,
+      nodeSelector: { 'nvidia.com/gpu.present': 'true' },
       resources: {
         requests: { cpu: '1', memory: '2Gi' },
         limits: { cpu: '2', memory: '4Gi' },
@@ -626,6 +626,10 @@ describe('assembleInferenceService', () => {
 
     expect(result.spec.predictor.tolerations).toEqual(
       legacyHardwareProfile.spec.scheduling?.node?.tolerations,
+    );
+    expect(result.spec.predictor.nodeSelector).toEqual({ 'nvidia.com/gpu.present': 'true' });
+    expect(result.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name']).toBe(
+      'legacy-hwp',
     );
   });
 
