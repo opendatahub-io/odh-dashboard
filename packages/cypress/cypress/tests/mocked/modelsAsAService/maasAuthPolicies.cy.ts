@@ -92,7 +92,7 @@ describe('MaaS Auth Policies', () => {
   it('should display the auth policies table with correct page content', () => {
     authPoliciesPage.findTitle().should('contain.text', 'Authorization policies');
     authPoliciesPage.findTable().should('exist');
-    authPoliciesPage.findRows().should('have.length', 5);
+    authPoliciesPage.findRows().should('have.length', 6);
     const premiumRow = authPoliciesPage.getRow('premium-team-policy');
     premiumRow.findName().should('contain.text', 'premium-team-policy');
     premiumRow.findPhase().should('contain.text', 'Active');
@@ -114,7 +114,7 @@ describe('MaaS Auth Policies', () => {
   });
 
   it('should filter policies by keyword', () => {
-    authPoliciesPage.findRows().should('have.length', 5);
+    authPoliciesPage.findRows().should('have.length', 6);
 
     authPoliciesPage.findKeywordFilterInput().type('premium');
     authPoliciesPage.findRows().should('have.length', 1);
@@ -124,7 +124,24 @@ describe('MaaS Auth Policies', () => {
       .should('contain.text', 'premium-team-policy');
 
     authPoliciesPage.clearAllFilters();
-    authPoliciesPage.findRows().should('have.length', 5);
+    authPoliciesPage.findRows().should('have.length', 6);
+  });
+
+  it('should disable the action buttons for a deleting policy in the table and view page', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-policies', {
+      data: mockAuthPolicies(),
+    });
+    cy.interceptOdh(
+      'GET /maas/api/v1/view-policy/:name',
+      { path: { name: 'deleting-policy' } },
+      { data: mockPolicyInfo('deleting-policy') },
+    );
+    authPoliciesPage.visit();
+    authPoliciesPage.getRow('deleting-policy').findActionsToggle().should('be.disabled');
+    cy.visit(`/maas/auth-policies/view/deleting-policy`);
+    viewAuthPolicyPage.findActionsToggle().click();
+    viewAuthPolicyPage.findDeleteActionButton().should('be.disabled');
+    viewAuthPolicyPage.findEditActionButton().should('be.disabled');
   });
 
   it('should delete an auth policy', () => {

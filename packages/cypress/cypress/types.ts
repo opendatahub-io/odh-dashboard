@@ -703,3 +703,21 @@ export type PromptManagementTestData = {
   projectName: string;
   prompts: PromptManagementPromptData[];
 };
+
+export type MlflowExperimentRunData = {
+  name: string;
+  parameters: Record<string, string>;
+  metrics: Record<string, string>;
+};
+
+export type MlflowExperimentData = {
+  name: string;
+  renamedName: string;
+};
+
+export type MlflowExperimentsTestData = {
+  projectName: string;
+  experiments: MlflowExperimentData[];
+  runs: MlflowExperimentRunData[];
+  nonExistentExperiment: string;
+};
