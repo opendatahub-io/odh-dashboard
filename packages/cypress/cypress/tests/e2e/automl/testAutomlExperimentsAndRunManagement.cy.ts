@@ -14,13 +14,13 @@ import {
 
 const uuid = generateTestUUID();
 
-describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
+describe('AutoML Experiments List and Run Management E2E', { testIsolation: false }, () => {
   let testData: AutomlTestData;
   let projectName: string;
 
   retryableBefore(() =>
     cy
-      .fixture('e2e/automl/testAutomlBinaryClassification.yaml', 'utf8')
+      .fixture('e2e/automl/testAutomlExperimentsAndRunManagement.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutomlTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
@@ -33,8 +33,8 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
   });
 
   it(
-    'Can create and submit an AutoML binary classification run',
-    { tags: ['@Smoke', '@AutoML', '@AutoMLCI'] },
+    'Shows empty state and create run button on experiments page',
+    { tags: ['@AutoML', '@AutoMLRegression'] },
     () => {
       cy.step('Login and wait for pipeline server');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -43,9 +43,23 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       cy.step('Navigate to AutoML experiments page');
       automlExperimentsPage.visit(projectName);
 
-      cy.step('Wait for pipeline server to be fully ready and click Create run');
-      // The page may initially show "There is a problem with the pipeline server"
-      // while the DSPA and BFF finish initializing. Reload until the empty state appears.
+      cy.step('Verify empty state is displayed');
+      automlExperimentsPage.findEmptyState(120000).should('exist');
+
+      cy.step('Verify create run button is available');
+      automlExperimentsPage.findCreateRunButton().should('be.visible');
+
+      cy.step('Verify AutoML nav item is present');
+      automlExperimentsPage.findNavItem().should('be.visible');
+    },
+  );
+
+  it(
+    'Can submit a run and verify it appears in the experiments list',
+    { tags: ['@AutoML', '@AutoMLRegression'] },
+    () => {
+      cy.step('Navigate to AutoML experiments page and create a run');
+      automlExperimentsPage.visit(projectName);
       automlExperimentsPage.findEmptyState(120000).should('exist');
       automlExperimentsPage.findCreateRunButton().click();
 
@@ -53,9 +67,6 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       automlConfigurePage.findNameInput().type(testData.runName);
       automlConfigurePage.findDescriptionInput().type(testData.runDescription);
       automlConfigurePage.findNextButton().click();
-
-      cy.step('Verify configure step subtitle shows the run name');
-      automlConfigurePage.findConfigureStepSubtitle().should('contain.text', testData.runName);
 
       cy.step('Select S3 connection');
       automlConfigurePage.findSecretSelector().click();
@@ -66,20 +77,12 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       automlConfigurePage.findUploadFileToggle().click();
       automlConfigurePage
         .findUploadFileInput()
-        .selectFile(`resources/automl/${testData.trainingDataFile}`, {
-          force: true,
-        });
-
-      cy.step('Wait for upload to complete');
-      // Spinner appears during upload, then the file name appears in the table.
-      // The BFF may append a suffix (e.g., -1, -2) to avoid name conflicts.
+        .selectFile(`resources/automl/${testData.trainingDataFile}`, { force: true });
       automlConfigurePage.findUploadSpinner().should('not.exist');
       automlConfigurePage.findUploadedFileCell(/automl-test-data.*\.csv/).should('be.visible');
 
-      cy.step('Select Binary Classification prediction type');
+      cy.step('Select task type and label column');
       automlConfigurePage.findTaskTypeCard('binary').click();
-
-      cy.step('Select label column');
       automlConfigurePage.findLabelColumnSelect().should('not.be.disabled').click();
       automlConfigurePage.findSelectOption(new RegExp(testData.labelColumn as string)).click();
 
@@ -88,9 +91,41 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
 
       cy.step('Verify redirect to results page');
       cy.url().should('include', '/develop-train/automl/results/');
-
-      cy.step('Verify the run is in progress');
       automlResultsPage.findRunInProgressMessage().should('be.visible');
+
+      cy.step('Navigate back to experiments page and verify run appears');
+      automlExperimentsPage.visit(projectName);
+      automlResultsPage.findRunsTable().should('be.visible');
+      automlResultsPage.findRunsTable().should('contain.text', testData.runName);
+    },
+  );
+
+  it(
+    'Can open run details drawer and stop a running experiment',
+    { tags: ['@AutoML', '@AutoMLRegression'] },
+    () => {
+      cy.step('Navigate to experiments page');
+      automlExperimentsPage.visit(projectName);
+      automlResultsPage.findRunsTable().should('be.visible');
+
+      cy.step('Click on the run to view results');
+      automlResultsPage.findRunsTable().contains(testData.runName).click();
+
+      cy.step('Open run details drawer');
+      automlResultsPage.findRunDetailsButton().click();
+      automlResultsPage.findRunDetailsDrawerPanel().should('be.visible');
+
+      cy.step('Close run details drawer');
+      automlResultsPage.findRunDetailsDrawerClose().click();
+      automlResultsPage.findRunDetailsDrawerPanel().should('not.exist');
+
+      cy.step('Stop the running experiment');
+      automlResultsPage.findStopRunButton().click();
+      automlResultsPage.findStopRunModal().should('be.visible');
+      automlResultsPage.findConfirmStopRunButton().click();
+
+      cy.step('Verify the run is no longer in progress');
+      automlResultsPage.findRunInProgressMessage().should('not.exist');
     },
   );
 });

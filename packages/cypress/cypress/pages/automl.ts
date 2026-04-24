@@ -77,6 +77,14 @@ class AutomlConfigurePage {
     return cy.findByTestId('training-data-upload-spinner');
   }
 
+  findUploadRemoveAction() {
+    return cy.findByTestId('training-data-upload-remove');
+  }
+
+  findUploadReplaceAction() {
+    return cy.findByTestId('training-data-upload-replace');
+  }
+
   findBrowseBucketButton() {
     return cy.findByTestId('browse-bucket-button');
   }
@@ -99,13 +107,44 @@ class AutomlConfigurePage {
     return cy.findByTestId('file-explorer-select-btn');
   }
 
+  findFileExplorerCancelBtn() {
+    return cy.findByTestId('file-explorer-cancel-btn');
+  }
+
   // Step 2 - Configure details panel
   findTaskTypeCard(type: string) {
     return cy.findByTestId(`task-type-card-${type}`);
   }
 
+  // Tabular fields (binary, multiclass, regression)
   findLabelColumnSelect() {
     return cy.findByTestId('label_column-select');
+  }
+
+  // Timeseries fields
+  findTargetColumnSelect() {
+    return cy.findByTestId('target-select');
+  }
+
+  findTimestampColumnSelect() {
+    return cy.findByTestId('timestamp_column-select');
+  }
+
+  findIdColumnSelect() {
+    return cy.findByTestId('id_column-select');
+  }
+
+  findKnownCovariatesSelect() {
+    return cy.findByTestId('known_covariates_names-select');
+  }
+
+  findPredictionLengthInput() {
+    return cy.findByTestId('prediction-length-input');
+  }
+
+  // Top N models
+  findTopNInput() {
+    return cy.findByTestId('top-n-input');
   }
 
   findSelectOption(name: string | RegExp) {
@@ -128,12 +167,97 @@ class AutomlResultsPage {
     return cy.findByTestId('stop-run-button');
   }
 
+  findRetryRunButton() {
+    return cy.findByTestId('retry-run-button');
+  }
+
   findRunDetailsButton() {
     return cy.findByTestId('run-details-button');
   }
 
   findRunInProgressMessage() {
     return cy.findByTestId('automl-run-in-progress');
+  }
+
+  findRunStatusLabel() {
+    return cy.findByTestId('run-status-label');
+  }
+
+  // Leaderboard
+  findLeaderboardTable() {
+    return cy.findByTestId('leaderboard-table');
+  }
+
+  findLeaderboardLoading() {
+    return cy.findByTestId('leaderboard-loading');
+  }
+
+  findLeaderboardEmpty() {
+    return cy.findByTestId('leaderboard-empty');
+  }
+
+  findManageColumnsButton() {
+    return cy.findByTestId('manage-columns-button');
+  }
+
+  findTopRankLabel() {
+    return cy.findByTestId('top-rank-label');
+  }
+
+  // Run details drawer
+  findRunDetailsDrawerPanel() {
+    return cy.findByTestId('run-details-drawer-panel');
+  }
+
+  findRunDetailsDrawerClose() {
+    return cy.findByTestId('run-details-drawer-close');
+  }
+
+  // Stop run modal
+  findStopRunModal() {
+    return cy.findByTestId('stop-run-modal');
+  }
+
+  findConfirmStopRunButton() {
+    return cy.findByTestId('confirm-stop-run-button');
+  }
+
+  // Model details modal
+  findModelDetailsModal() {
+    return cy.findByTestId('automl-model-details-modal');
+  }
+
+  findModelSelectorDropdown() {
+    return cy.findByTestId('model-selector-dropdown');
+  }
+
+  findModelDetailsDownloadButton() {
+    return cy.findByTestId('model-details-download');
+  }
+
+  findModelDetailsActionsToggle() {
+    return cy.findByTestId('model-details-actions-toggle');
+  }
+
+  findRegisterModelAction() {
+    return cy.findByTestId('model-details-register-model');
+  }
+
+  // Runs table
+  findRunsTable() {
+    return cy.findByTestId('automl-runs-table');
+  }
+
+  findRunLink(runId: string) {
+    return cy.findByTestId(`run-name-${runId}`);
+  }
+
+  findStopRunAction() {
+    return cy.findByTestId('stop-run-action');
+  }
+
+  findRetryRunAction() {
+    return cy.findByTestId('retry-run-action');
   }
 }
 

@@ -1,8 +1,8 @@
-projectNamePrefix: 'test-automl-binary'
+projectNamePrefix: 'test-automl-select'
 dspaSecretName: dashboard-dspa-secret
 secretName: ods-ci-ds-pipelines
-runName: automl-binary-run
-runDescription: 'E2E test binary classification run'
+runName: automl-select-file-run
+runDescription: 'E2E test selecting file from S3 bucket'
 trainingDataFile: automl-test-data.csv
 taskType: binary
 labelColumn: target

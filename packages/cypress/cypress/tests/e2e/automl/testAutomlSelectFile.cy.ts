@@ -14,18 +14,16 @@ import {
 
 const uuid = generateTestUUID();
 
-describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
+describe('AutoML Select File from Bucket E2E', { testIsolation: false }, () => {
   let testData: AutomlTestData;
   let projectName: string;
 
   retryableBefore(() =>
-    cy
-      .fixture('e2e/automl/testAutomlBinaryClassification.yaml', 'utf8')
-      .then((yamlContent: string) => {
-        testData = yaml.load(yamlContent) as AutomlTestData;
-        projectName = `${testData.projectNamePrefix}-${uuid}`;
-        provisionProjectForPipelines(projectName, testData.dspaSecretName, testData.awsBucket);
-      }),
+    cy.fixture('e2e/automl/testAutomlSelectFile.yaml', 'utf8').then((yamlContent: string) => {
+      testData = yaml.load(yamlContent) as AutomlTestData;
+      projectName = `${testData.projectNamePrefix}-${uuid}`;
+      provisionProjectForPipelines(projectName, testData.dspaSecretName, testData.awsBucket);
+    }),
   );
 
   after(() => {
@@ -33,8 +31,8 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
   });
 
   it(
-    'Can create and submit an AutoML binary classification run',
-    { tags: ['@Smoke', '@AutoML', '@AutoMLCI'] },
+    'Can create an AutoML run by selecting a file from the S3 bucket',
+    { tags: ['@AutoML', '@AutoMLRegression'] },
     () => {
       cy.step('Login and wait for pipeline server');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -44,8 +42,6 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       automlExperimentsPage.visit(projectName);
 
       cy.step('Wait for pipeline server to be fully ready and click Create run');
-      // The page may initially show "There is a problem with the pipeline server"
-      // while the DSPA and BFF finish initializing. Reload until the empty state appears.
       automlExperimentsPage.findEmptyState(120000).should('exist');
       automlExperimentsPage.findCreateRunButton().click();
 
@@ -54,27 +50,22 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       automlConfigurePage.findDescriptionInput().type(testData.runDescription);
       automlConfigurePage.findNextButton().click();
 
-      cy.step('Verify configure step subtitle shows the run name');
-      automlConfigurePage.findConfigureStepSubtitle().should('contain.text', testData.runName);
-
       cy.step('Select S3 connection');
       automlConfigurePage.findSecretSelector().click();
       automlConfigurePage.findSecretSelector().type(testData.secretName);
       automlConfigurePage.findSelectOption(new RegExp(testData.secretName, 'i')).click();
 
-      cy.step('Upload CSV file');
-      automlConfigurePage.findUploadFileToggle().click();
-      automlConfigurePage
-        .findUploadFileInput()
-        .selectFile(`resources/automl/${testData.trainingDataFile}`, {
-          force: true,
-        });
+      cy.step('Verify Select File mode is the default');
+      automlConfigurePage.findSelectFileToggle().should('have.attr', 'aria-pressed', 'true');
 
-      cy.step('Wait for upload to complete');
-      // Spinner appears during upload, then the file name appears in the table.
-      // The BFF may append a suffix (e.g., -1, -2) to avoid name conflicts.
-      automlConfigurePage.findUploadSpinner().should('not.exist');
-      automlConfigurePage.findUploadedFileCell(/automl-test-data.*\.csv/).should('be.visible');
+      cy.step('Open file explorer and browse for a CSV file');
+      automlConfigurePage.findBrowseBucketButton().click();
+      automlConfigurePage.findFileExplorerTable().should('be.visible');
+
+      cy.step('Search for the training data file and select it');
+      automlConfigurePage.findFileExplorerSearch().type(testData.trainingDataFile);
+      automlConfigurePage.findFileExplorerRow(testData.trainingDataFile).click();
+      automlConfigurePage.findFileExplorerSelectBtn().click();
 
       cy.step('Select Binary Classification prediction type');
       automlConfigurePage.findTaskTypeCard('binary').click();

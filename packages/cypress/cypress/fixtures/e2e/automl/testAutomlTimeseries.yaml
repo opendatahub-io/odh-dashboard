@@ -1,0 +1,15 @@
+projectNamePrefix: 'test-automl-timeseries'
+dspaSecretName: dashboard-dspa-secret
+secretName: ods-ci-ds-pipelines
+runName: automl-timeseries-run
+runDescription: 'E2E test time series forecasting run'
+trainingDataFile: automl-timeseries-test-data.csv
+taskType: timeseries
+targetColumn: value
+idColumn: series_id
+timestampColumn: timestamp
+predictionLength: 10
+knownCovariates:
+  - temperature
+  - holiday
+awsBucket: BUCKET_2

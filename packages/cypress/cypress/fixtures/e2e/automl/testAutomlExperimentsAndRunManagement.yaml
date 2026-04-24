@@ -1,8 +1,8 @@
-projectNamePrefix: 'test-automl-binary'
+projectNamePrefix: 'test-automl-mgmt'
 dspaSecretName: dashboard-dspa-secret
 secretName: ods-ci-ds-pipelines
-runName: automl-binary-run
-runDescription: 'E2E test binary classification run'
+runName: automl-management-run
+runDescription: 'E2E test for experiments list and run management'
 trainingDataFile: automl-test-data.csv
 taskType: binary
 labelColumn: target

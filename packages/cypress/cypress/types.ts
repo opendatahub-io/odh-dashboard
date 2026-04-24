@@ -727,6 +727,25 @@ export type MlflowExperimentData = {
   renamedName: string;
 };
 
+export type AutomlTestData = {
+  projectNamePrefix: string;
+  dspaSecretName: string;
+  secretName: string;
+  runName: string;
+  runDescription: string;
+  trainingDataFile: string;
+  taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries';
+  awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  // Tabular task types (binary, multiclass, regression)
+  labelColumn?: string;
+  // Timeseries task type
+  targetColumn?: string;
+  idColumn?: string;
+  timestampColumn?: string;
+  predictionLength?: number;
+  knownCovariates?: string[];
+};
+
 export type MlflowExperimentsTestData = {
   projectName: string;
   experiments: MlflowExperimentData[];

@@ -14,13 +14,13 @@ import {
 
 const uuid = generateTestUUID();
 
-describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
+describe('AutoML Multiclass Classification E2E', { testIsolation: false }, () => {
   let testData: AutomlTestData;
   let projectName: string;
 
   retryableBefore(() =>
     cy
-      .fixture('e2e/automl/testAutomlBinaryClassification.yaml', 'utf8')
+      .fixture('e2e/automl/testAutomlMulticlassClassification.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutomlTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
@@ -33,8 +33,8 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
   });
 
   it(
-    'Can create and submit an AutoML binary classification run',
-    { tags: ['@Smoke', '@AutoML', '@AutoMLCI'] },
+    'Can create and submit an AutoML multiclass classification run',
+    { tags: ['@AutoML', '@AutoMLRegression'] },
     () => {
       cy.step('Login and wait for pipeline server');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -44,8 +44,6 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       automlExperimentsPage.visit(projectName);
 
       cy.step('Wait for pipeline server to be fully ready and click Create run');
-      // The page may initially show "There is a problem with the pipeline server"
-      // while the DSPA and BFF finish initializing. Reload until the empty state appears.
       automlExperimentsPage.findEmptyState(120000).should('exist');
       automlExperimentsPage.findCreateRunButton().click();
 
@@ -66,18 +64,16 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       automlConfigurePage.findUploadFileToggle().click();
       automlConfigurePage
         .findUploadFileInput()
-        .selectFile(`resources/automl/${testData.trainingDataFile}`, {
-          force: true,
-        });
+        .selectFile(`resources/automl/${testData.trainingDataFile}`, { force: true });
 
       cy.step('Wait for upload to complete');
-      // Spinner appears during upload, then the file name appears in the table.
-      // The BFF may append a suffix (e.g., -1, -2) to avoid name conflicts.
       automlConfigurePage.findUploadSpinner().should('not.exist');
-      automlConfigurePage.findUploadedFileCell(/automl-test-data.*\.csv/).should('be.visible');
+      automlConfigurePage
+        .findUploadedFileCell(/automl-multiclass-test-data.*\.csv/)
+        .should('be.visible');
 
-      cy.step('Select Binary Classification prediction type');
-      automlConfigurePage.findTaskTypeCard('binary').click();
+      cy.step('Select Multiclass Classification prediction type');
+      automlConfigurePage.findTaskTypeCard('multiclass').click();
 
       cy.step('Select label column');
       automlConfigurePage.findLabelColumnSelect().should('not.be.disabled').click();
