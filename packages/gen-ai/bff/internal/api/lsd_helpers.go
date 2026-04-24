@@ -55,28 +55,36 @@ func (app *App) mapLlamaStackClientErrorToHTTPError(lsErr *llamastack.LlamaStack
 	// Use the category as part of the error code for better frontend handling
 	categoryCode := strings.ToLower(string(enhancedErr.Category))
 
-	switch statusCode {
-	case http.StatusBadRequest:
+	// Override status code for transient errors (timeout/overload) to 503 while preserving category code
+	isTransientError := enhancedErr.Category == llamastack.CategoryModelTimeout || enhancedErr.Category == llamastack.CategoryModelOverloaded
+	if isTransientError {
+		statusCode = http.StatusServiceUnavailable
 		code = categoryCode
 		message = enhancedErr.UserFriendlyMsg
-	case http.StatusUnauthorized:
-		code = "unauthorized"
-		message = enhancedErr.UserFriendlyMsg
-	case http.StatusNotFound:
-		code = "not_found"
-		message = enhancedErr.UserFriendlyMsg
-	case http.StatusServiceUnavailable:
-		code = "service_unavailable"
-		message = enhancedErr.UserFriendlyMsg
-	case http.StatusBadGateway:
-		code = "bad_gateway"
-		message = enhancedErr.UserFriendlyMsg
-	case http.StatusInternalServerError:
-		code = categoryCode
-		message = enhancedErr.UserFriendlyMsg
-	default:
-		code = categoryCode
-		message = enhancedErr.UserFriendlyMsg
+	} else {
+		switch statusCode {
+		case http.StatusBadRequest:
+			code = categoryCode
+			message = enhancedErr.UserFriendlyMsg
+		case http.StatusUnauthorized:
+			code = "unauthorized"
+			message = enhancedErr.UserFriendlyMsg
+		case http.StatusNotFound:
+			code = "not_found"
+			message = enhancedErr.UserFriendlyMsg
+		case http.StatusServiceUnavailable:
+			code = "service_unavailable"
+			message = enhancedErr.UserFriendlyMsg
+		case http.StatusBadGateway:
+			code = "bad_gateway"
+			message = enhancedErr.UserFriendlyMsg
+		case http.StatusInternalServerError:
+			code = categoryCode
+			message = enhancedErr.UserFriendlyMsg
+		default:
+			code = categoryCode
+			message = enhancedErr.UserFriendlyMsg
+		}
 	}
 
 	return &integrations.HTTPError{

@@ -204,19 +204,19 @@ func TestMapLlamaStackClientErrorToHTTPError(t *testing.T) {
 			expectedMessageContains: "temporarily unavailable",
 		},
 		{
-			name:                    "internal server error with timeout - uses category code",
+			name:                    "internal server error with timeout - overrides to 503",
 			lsErr:                   llamastack.NewLlamaStackError(llamastack.ErrCodeInternalError, "request timed out", 500),
 			statusCode:              http.StatusInternalServerError,
 			expectedCode:            "model_timeout",
-			expectedStatusCode:      http.StatusInternalServerError,
+			expectedStatusCode:      http.StatusServiceUnavailable,
 			expectedMessageContains: "timed out",
 		},
 		{
-			name:                    "internal server error with overload - uses category code",
+			name:                    "internal server error with overload - overrides to 503",
 			lsErr:                   llamastack.NewLlamaStackError(llamastack.ErrCodeInternalError, "model is currently overloaded", 500),
 			statusCode:              http.StatusInternalServerError,
 			expectedCode:            "model_overloaded",
-			expectedStatusCode:      http.StatusInternalServerError,
+			expectedStatusCode:      http.StatusServiceUnavailable,
 			expectedMessageContains: "overloaded",
 		},
 		{
@@ -332,7 +332,7 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), "vector store")
 	})
 
-	t.Run("should categorize timeout errors correctly", func(t *testing.T) {
+	t.Run("should categorize timeout errors correctly and override to 503", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		rr := httptest.NewRecorder()
 
@@ -340,7 +340,7 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 
 		app.handleLlamaStackClientError(rr, req, lsErr)
 
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 		assert.Contains(t, rr.Body.String(), `"code": "model_timeout"`)
 		assert.Contains(t, rr.Body.String(), "timed out")
 	})
