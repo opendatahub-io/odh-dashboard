@@ -41,12 +41,11 @@ export const usePVCFreeAmount = (
     error,
   } = usePrometheusQuery<PVCMetricResult>('/api/prometheus/pvc', query, PROM_FETCH_OPTIONS);
 
+  const usedInBytes = findMetricValue(result, 'kubelet_volume_stats_used_bytes');
+  const capacityInBytes = findMetricValue(result, 'kubelet_volume_stats_capacity_bytes');
   const info: PVCUsageInfo = React.useMemo(
-    () => ({
-      usedInBytes: findMetricValue(result, 'kubelet_volume_stats_used_bytes'),
-      capacityInBytes: findMetricValue(result, 'kubelet_volume_stats_capacity_bytes'),
-    }),
-    [result],
+    () => ({ usedInBytes, capacityInBytes }),
+    [usedInBytes, capacityInBytes],
   );
 
   return [info, loaded, error];
