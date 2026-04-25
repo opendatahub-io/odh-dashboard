@@ -9,8 +9,4 @@ topN: 1
 targetColumn: value
 idColumn: series_id
 timestampColumn: timestamp
-predictionLength: 10
-knownCovariates:
-  - temperature
-  - holiday
 awsBucket: BUCKET_2

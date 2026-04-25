@@ -45,16 +45,6 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
       automlConfigurePage.findIdColumnSelect().should('not.be.disabled').click();
       automlConfigurePage.findSelectOption(new RegExp(testData.idColumn as string)).click();
 
-      cy.step('Select known covariates');
-      (testData.knownCovariates as string[]).forEach((covariate) => {
-        automlConfigurePage.findKnownCovariatesSelect().click();
-        automlConfigurePage.findSelectOption(new RegExp(covariate)).click();
-      });
-
-      cy.step('Set prediction length');
-      automlConfigurePage.findPredictionLengthInput().clear();
-      automlConfigurePage.findPredictionLengthInput().type(String(testData.predictionLength));
-
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);
 

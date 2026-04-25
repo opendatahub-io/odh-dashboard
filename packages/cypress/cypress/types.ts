@@ -744,8 +744,6 @@ export type AutomlTestData = {
   targetColumn?: string;
   idColumn?: string;
   timestampColumn?: string;
-  predictionLength?: number;
-  knownCovariates?: string[];
 };
 
 export type MlflowExperimentsTestData = {
