@@ -34,7 +34,11 @@ export const provisionProjectForAutoX = (
   bucketKey: 'BUCKET_2' | 'BUCKET_3',
 ): void => {
   const bucketConfig = AWS_BUCKETS[bucketKey];
-  const { host, scheme } = parseS3Endpoint(bucketConfig.ENDPOINT);
+  // Use DSPA_S3_ENDPOINT env var for in-cluster DSPA connectivity (disconnected clusters),
+  // falling back to the external ENDPOINT (connected clusters / CI).
+  // Must use full FQDN: CYPRESS_DSPA_S3_ENDPOINT=http://minio.ns.svc.cluster.local:9000
+  const dspaEndpoint = Cypress.env('DSPA_S3_ENDPOINT') as string | undefined;
+  const { host, scheme } = parseS3Endpoint(dspaEndpoint ?? bucketConfig.ENDPOINT);
 
   createCleanProject(projectName);
 

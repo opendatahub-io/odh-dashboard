@@ -79,7 +79,15 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       automlResultsPage.findRegisterModelModal().should('be.visible');
       automlResultsPage.findRegisterModelNameInput().should('be.visible');
       automlResultsPage.findRegisterModelDescriptionInput().should('be.visible');
-      automlResultsPage.findRegistrySelectToggle().should('be.visible');
+
+      cy.step('Verify registry select or no-registries warning is shown');
+      automlResultsPage.findRegisterModelModal().then(($modal) => {
+        if ($modal.find('[data-testid="registry-select-toggle"]').length) {
+          automlResultsPage.findRegistrySelectToggle().should('be.visible');
+        } else {
+          cy.contains('No model registries are available').should('be.visible');
+        }
+      });
 
       cy.step('Cancel register model modal');
       automlResultsPage.findRegisterModelCancelButton().click();

@@ -29,7 +29,7 @@ spec:
   dspVersion: v2
   podToPodTLS: false
   objectStorage:
-    disableHealthCheck: false
+    disableHealthCheck: true
     enableExternalRoute: false
     externalStorage:
       basePath: ''
