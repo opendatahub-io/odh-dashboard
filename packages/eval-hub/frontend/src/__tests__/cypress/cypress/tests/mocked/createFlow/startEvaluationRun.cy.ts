@@ -77,7 +77,7 @@ const navigateToBenchmarkStart = () => {
   chooseBenchmarkPage.visit(NAMESPACE);
   chooseBenchmarkPage
     .findBenchmarkCard('test-provider', 'bench-alpha')
-    .findByText('Use this benchmark')
+    .findByText('Select benchmark')
     .click();
 
   startEvaluationRunPage.findForm().should('exist');

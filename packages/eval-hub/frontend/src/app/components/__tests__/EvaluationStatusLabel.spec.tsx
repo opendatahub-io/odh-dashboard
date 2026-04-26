@@ -10,13 +10,15 @@ type ExpectedLabelConfig = {
   status?: LabelProps['status'];
 };
 
-const EXPECTED_LABELS: Record<EvaluationJobState, ExpectedLabelConfig> = {
+type ExpectedLabelConfigWithVariant = ExpectedLabelConfig & { isFilled?: boolean };
+
+const EXPECTED_LABELS: Record<EvaluationJobState, ExpectedLabelConfigWithVariant> = {
   pending: { text: 'Pending', color: 'purple' },
   running: { text: 'Running', color: 'blue' },
   completed: { text: 'Complete', status: 'success' },
-  failed: { text: 'Failed', status: 'danger' },
+  failed: { text: 'Failed', status: 'danger', isFilled: true },
   cancelled: { text: 'Canceled', color: 'grey' },
-  stopping: { text: 'Stopping', color: 'grey' },
+  stopping: { text: 'Canceling', color: 'grey' },
   stopped: { text: 'Stopped', color: 'grey' },
 };
 
@@ -52,9 +54,14 @@ describe('EvaluationStatusLabel', () => {
     }
   });
 
-  it.each(states)('should render with outline variant for "%s" state', (state) => {
+  it.each(states)('should render with correct variant for "%s" state', (state) => {
     render(<EvaluationStatusLabel state={state} />);
-    expect(screen.getByTestId(`status-label-${state}`)).toHaveClass('pf-m-outline');
+    const label = screen.getByTestId(`status-label-${state}`);
+    if (EXPECTED_LABELS[state].isFilled) {
+      expect(label).toHaveClass('pf-m-filled');
+    } else {
+      expect(label).toHaveClass('pf-m-outline');
+    }
   });
 
   it('should show a popover with the error message when failed label is clicked', () => {

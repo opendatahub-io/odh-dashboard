@@ -96,6 +96,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | **Modular Architecture**    | `modular-architecture.md`     | When working on the plugin/extension system or package integration              |
 | **Module Federation**       | `module-federation.md`        | When configuring Module Federation, webpack remotes, or shared dependencies    |
 | **Module Onboarding**       | `module-onboarding.md`        | When creating a new package/module in the monorepo                             |
+| **Pull Requests**           | `pull-requests.md`            | When creating a pull request — must follow `.github/pull_request_template.md`  |
 | **React**                   | `react.md`                    | When writing React components, hooks, or pages                                 |
 | **Security**                | `security.md`                 | When working on auth, secrets, input validation, or K8s API interactions        |
 | **Testing Standards**       | `testing-standards.md`        | When working across multiple test types or choosing a testing strategy          |

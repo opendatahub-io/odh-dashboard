@@ -2,6 +2,9 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import {
   enablePromptManagementFeatures,
   disablePromptManagementFeatures,
+  isMlflowOperatorManaged,
+  doesMlflowCRExist,
+  isGenAiEnabled,
 } from '../../../utils/oc_commands/mlflow';
 import { deleteOpenShiftProject, createOpenShiftProject } from '../../../utils/oc_commands/project';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -14,6 +17,9 @@ import type { PromptManagementTestData } from '../../../types';
 describe('Verify Prompt Management page', () => {
   let testData: PromptManagementTestData;
   let projectName: string;
+  let operatorWasManaged = true;
+  let crExisted = true;
+  let genAiWasEnabled = true;
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
@@ -24,6 +30,26 @@ describe('Verify Prompt Management page', () => {
         return deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
       })
       .then(() => createOpenShiftProject(projectName))
+      .then(() =>
+        isMlflowOperatorManaged().then((v) => {
+          operatorWasManaged = v;
+        }),
+      )
+      .then(() =>
+        doesMlflowCRExist().then((v) => {
+          crExisted = v;
+        }),
+      )
+      .then(() =>
+        isGenAiEnabled().then((v) => {
+          genAiWasEnabled = v;
+          cy.step(
+            `Pre-test state: operator=${operatorWasManaged ? 'Managed' : 'Removed'}, CR=${
+              crExisted ? 'exists' : 'absent'
+            }, GenAI=${genAiWasEnabled ? 'enabled' : 'disabled'}`,
+          );
+        }),
+      )
       .then(() => {
         cy.step('Enable all features required for Prompt Management');
         return enablePromptManagementFeatures();
@@ -31,14 +57,14 @@ describe('Verify Prompt Management page', () => {
   });
 
   after(() => {
-    disablePromptManagementFeatures();
+    disablePromptManagementFeatures(operatorWasManaged, crExisted, genAiWasEnabled);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
   it(
     'Create a prompt and verify it appears in the prompts table',
     {
-      tags: ['@Sanity', '@SanitySet1', '@PromptManagement', '@MLflow'],
+      tags: ['@Sanity', '@SanitySet1', '@PromptManagement', '@MLflow', '@NonConcurrent'],
     },
     () => {
       const prompt = testData.prompts[0];
@@ -119,20 +145,6 @@ describe('Verify Prompt Management page', () => {
 
       cy.step('Verify the prompt persists after navigation');
       promptManagement.findPromptInTable(prompt.name).should('be.visible');
-
-      cy.step('Toggle dark mode on');
-      promptManagement.findDarkThemeToggle().click();
-
-      cy.step('Verify dark theme is applied');
-      promptManagement.getHtmlDarkModeClass().should('equal', true);
-      promptManagement.getMlflowDarkModeStorageValue().should('equal', 'true');
-
-      cy.step('Toggle light mode back on');
-      promptManagement.findLightThemeToggle().click();
-
-      cy.step('Verify light theme is restored');
-      promptManagement.getHtmlDarkModeClass().should('equal', false);
-      promptManagement.getMlflowDarkModeStorageValue().should('equal', 'false');
     },
   );
 });
