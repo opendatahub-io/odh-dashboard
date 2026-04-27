@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Resolve a PR number and fetch its metadata.
-# Shared by maintain-pr and check-pr.
+# Used by check-pr skill.
 #
 # Usage: resolve-pr.sh [pr-number-or-url]
 #   If no argument, detects from the current branch.
