@@ -75,7 +75,7 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 		},
 		Data: buildNemoPlaceholderConfigMapData(),
 	}
-	if err := kc.Client.Create(ctx, cm); err != nil && !apierrors.IsAlreadyExists(err) {
+	if err := kc.Client.Create(ctx, cm); err != nil {
 		return "", fmt.Errorf("failed to create NemoGuardrails placeholder ConfigMap: %w", err)
 	}
 	kc.Logger.Info("created NemoGuardrails ConfigMap", "name", cm.Name, "namespace", namespace)
