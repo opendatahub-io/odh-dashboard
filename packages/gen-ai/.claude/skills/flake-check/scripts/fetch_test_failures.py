@@ -238,11 +238,12 @@ def parse_jest_failures(lines: list[str]) -> list[dict]:
             if len(error_parts) >= ERROR_CONTEXT_LINES:
                 break
 
-        failures.append({
-            "name": test_name.strip(),
-            "file": guessed_file,
-            "error": "\n".join(error_parts),
-        })
+        if error_parts:
+            failures.append({
+                "name": test_name.strip(),
+                "file": guessed_file,
+                "error": "\n".join(error_parts),
+            })
 
     return failures
 
