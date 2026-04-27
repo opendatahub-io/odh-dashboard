@@ -2,10 +2,12 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"testing"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -122,10 +124,12 @@ func TestCreateNemoGuardrailsResources_ErrorIfAlreadyExists(t *testing.T) {
 	_, err := kc.CreateNemoGuardrailsResources(context.Background(), nil, namespace)
 	require.NoError(t, err)
 
-	// Second call returns an error
+	// Second call returns a typed ErrNemoGuardrailsAlreadyInitialised
 	_, err = kc.CreateNemoGuardrailsResources(context.Background(), nil, namespace)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "already initialised")
+	var alreadyInit *models.ErrNemoGuardrailsAlreadyInitialised
+	assert.True(t, errors.As(err, &alreadyInit))
+	assert.Equal(t, namespace, alreadyInit.Namespace)
 }
 
 func TestCreateNemoGuardrailsResources_CRAnnotations(t *testing.T) {

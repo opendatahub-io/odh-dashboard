@@ -6,6 +6,7 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,7 +64,7 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 		return "", fmt.Errorf("failed to check for existing NemoGuardrails CR: %w", err)
 	}
 	if existing != nil {
-		return "", fmt.Errorf("NemoGuardrails already initialised in namespace %s", namespace)
+		return "", &models.ErrNemoGuardrailsAlreadyInitialised{Namespace: namespace}
 	}
 
 	// Step 1: Create the placeholder ConfigMap.

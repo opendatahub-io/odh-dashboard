@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -39,7 +40,12 @@ func (app *App) NemoGuardrailsInitHandler(w http.ResponseWriter, r *http.Request
 
 	result, err := app.repositories.NemoGuardrails.InitNemoGuardrails(client, ctx, identity, namespace)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		var alreadyInit *models.ErrNemoGuardrailsAlreadyInitialised
+		if errors.As(err, &alreadyInit) {
+			app.badRequestResponse(w, r, err)
+		} else {
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 
