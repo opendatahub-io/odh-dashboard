@@ -113,6 +113,11 @@ Skip if only non-code files changed (markdown, yaml, config).
   - Empty Description → ❌, other missing sections → ⚠️
 - **No PR**: ⏭️ skip — "no PR body yet"
 
+### Code Review
+
+- **PR exists**: ⏭️ skip — CodeRabbit and human reviewers handle this on the PR.
+- **No PR**: run a local code review to get feedback before the code is even submitted. Check if the CodeRabbit CLI is available (`coderabbit --version`). If yes, run `coderabbit review --agent` against the local diff. If not, invoke Claude's built-in `/review` skill as a fallback. Report findings as ✅ (no issues) or ⚠️/❌ (issues found with details).
+
 ## Step 3: Print results table
 
 ```
@@ -139,16 +144,7 @@ Verdict:
 - All ✅, some ⚠️ → **READY WITH WARNINGS**
 - All ✅ → **READY TO MERGE** (or **READY** if no PR)
 
-## Step 4: Local review (when no PR)
-
-If the Reviews check was skipped (no PR exists), run a local code review so there's feedback before fixing:
-
-- If CodeRabbit CLI is installed: `coderabbit review --agent`
-- Otherwise: invoke Claude's built-in `/review` skill as fallback
-
-Add any findings to the results.
-
-## Step 5: Fix (only with --fix)
+## Step 4: Fix (only with --fix)
 
 If `--fix` was not passed, stop after printing the table.
 
@@ -187,7 +183,7 @@ Signed-off-by: $(git config user.name) <$(git config user.email)>"
 
 Never push automatically. Tell the user what was done.
 
-## Step 6: Verify (after fix)
+## Step 5: Verify (after fix)
 
 Run lint and type-check on the files that were changed during the fix phase to verify the fixes compile cleanly. Don't re-fetch PR status from GitHub — nothing was pushed so the remote state is unchanged.
 
