@@ -49,6 +49,23 @@ describe('fetchS3File', () => {
     expect(callUrl).toContain('bucket=my-bucket');
   });
 
+  it('should encode special characters in key', async () => {
+    const mockBlob = new Blob(['content']);
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      blob: async () => mockBlob,
+    });
+
+    await fetchS3File('test-namespace', 'folder/my file.csv');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/s3/files/folder%2Fmy%20file.csv?'),
+      expect.objectContaining({ signal: undefined }),
+    );
+    const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
+    expect(callUrl).toContain('namespace=test-namespace');
+  });
+
   it('should omit secretName and bucket when not provided', async () => {
     const mockBlob = new Blob(['content']);
     (global.fetch as jest.Mock).mockResolvedValueOnce({

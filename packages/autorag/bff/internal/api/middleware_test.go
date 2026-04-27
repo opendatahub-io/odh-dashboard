@@ -403,6 +403,12 @@ func TestPreserveRawPath(t *testing.T) {
 			expectedPath: "/api/v1/s3/files/simple.csv",
 		},
 		{
+			name:         "double-encoded key preserves %25 literal",
+			path:         "/api/v1/s3/files/docs%2Ffile.csv",
+			rawPath:      "/api/v1/s3/files/docs%252Ffile.csv",
+			expectedPath: "/api/v1/s3/files/docs%252Ffile.csv",
+		},
+		{
 			name:         "non-s3 path with RawPath is unchanged",
 			path:         "/api/v1/lsd/models",
 			rawPath:      "/api/v1/lsd/models",

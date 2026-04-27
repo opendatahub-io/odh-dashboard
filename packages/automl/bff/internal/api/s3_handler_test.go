@@ -2677,6 +2677,13 @@ func TestPreserveRawPath_S3KeyDecoding(t *testing.T) {
 			encodedKey:  "path%2Fto%2Fdeep%2Ffile.csv",
 			expectedKey: "path/to/deep/file.csv",
 		},
+		{
+			// Go's url.Parse decodes %25→% so RawPath is empty; preserveRawPath
+			// is a no-op and the key is decoded the same as a single-encoded slash.
+			name:        "double-encoded %252F collapses to slash (Go URL parser limitation)",
+			encodedKey:  "docs%252Ffile.csv",
+			expectedKey: "docs/file.csv",
+		},
 	}
 
 	for _, tt := range tests {

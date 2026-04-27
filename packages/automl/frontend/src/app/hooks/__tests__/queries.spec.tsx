@@ -319,9 +319,14 @@ describe('useS3GetFileSchemaQuery', () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/s3/files/folder%2Fmy%20file.csv/schema?'),
+      expect.objectContaining({ signal: expect.anything() }),
+    );
     const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
-    // key is now in the URL path, not query params
-    expect(callUrl).toContain('/s3/files/');
+    expect(callUrl).toContain('namespace=test-namespace');
+    expect(callUrl).toContain('secretName=test-secret');
+    expect(callUrl).toContain('bucket=my-bucket');
   });
 });
 
