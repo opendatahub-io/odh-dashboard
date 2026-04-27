@@ -124,6 +124,22 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 		return "", fmt.Errorf("failed to create NemoGuardrails CR: %w", err)
 	}
 
+	// Set the NemoGuardrails CR as owner of the ConfigMap so it is garbage collected
+	// when the CR is deleted.
+	cm.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion:         constants.NemoGuardrailsAPIVersion,
+			Kind:               constants.NemoGuardrailsKind,
+			Name:               nemoGuardrailsCRName,
+			UID:                cr.GetUID(),
+			Controller:         &[]bool{true}[0],
+			BlockOwnerDeletion: &[]bool{false}[0],
+		},
+	}
+	if err := kc.Client.Update(ctx, cm); err != nil {
+		kc.Logger.Warn("failed to set owner reference on NemoGuardrails ConfigMap; it will not be garbage collected on CR deletion", "error", err)
+	}
+
 	kc.Logger.Info("NemoGuardrails resources created", "namespace", namespace)
 	return nemoGuardrailsCRName, nil
 }
