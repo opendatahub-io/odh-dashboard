@@ -141,7 +141,14 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 		},
 	}
 	if err := kc.Client.Update(ctx, cm); err != nil {
-		kc.Logger.Warn("failed to set owner reference on NemoGuardrails ConfigMap; it will not be garbage collected on CR deletion", "error", err)
+		// Roll back both resources so we don't leave a CR without a properly owned ConfigMap.
+		if deleteErr := kc.Client.Delete(ctx, cr); deleteErr != nil {
+			kc.Logger.Error("failed to clean up CR after owner reference update failure", "error", deleteErr)
+		}
+		if deleteErr := kc.Client.Delete(ctx, cm); deleteErr != nil {
+			kc.Logger.Error("failed to clean up ConfigMap after owner reference update failure", "error", deleteErr)
+		}
+		return "", fmt.Errorf("failed to set owner reference on NemoGuardrails ConfigMap: %w", err)
 	}
 
 	kc.Logger.Info("NemoGuardrails resources created", "namespace", namespace)
