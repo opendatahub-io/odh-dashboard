@@ -44,64 +44,29 @@ rails:
 	}
 }
 
-// upsertNemoConfigMap creates the ConfigMap if it does not exist, or updates its data if it does.
-func (kc *TokenKubernetesClient) upsertNemoConfigMap(ctx context.Context, cm *corev1.ConfigMap) error {
-	err := kc.Client.Create(ctx, cm)
-	if err == nil {
-		kc.Logger.Info("created NemoGuardrails ConfigMap", "name", cm.Name, "namespace", cm.Namespace)
-		return nil
-	}
-	if !apierrors.IsAlreadyExists(err) {
-		return err
-	}
-
-	existing := &corev1.ConfigMap{}
-	if err := kc.Client.Get(ctx, client.ObjectKey{Name: cm.Name, Namespace: cm.Namespace}, existing); err != nil {
-		return fmt.Errorf("failed to get existing NemoGuardrails ConfigMap %q: %w", cm.Name, err)
-	}
-	cm.ResourceVersion = existing.ResourceVersion
-	if err := kc.Client.Update(ctx, cm); err != nil {
-		return fmt.Errorf("failed to update NemoGuardrails ConfigMap %q: %w", cm.Name, err)
-	}
-	kc.Logger.Info("updated NemoGuardrails ConfigMap", "name", cm.Name, "namespace", cm.Namespace)
-	return nil
-}
-
-// upsertNemoGuardrailsCR creates the NemoGuardrails CR if it does not exist, or updates its spec
-// if it does. Only spec is replaced on update; operator-managed metadata fields are preserved.
-func (kc *TokenKubernetesClient) upsertNemoGuardrailsCR(ctx context.Context, namespace string, cr *unstructured.Unstructured) error {
-	err := kc.Client.Create(ctx, cr)
-	if err == nil {
-		kc.Logger.Info("created NemoGuardrails CR", "name", nemoGuardrailsCRName, "namespace", namespace)
-		return nil
-	}
-	if !apierrors.IsAlreadyExists(err) {
-		return err
-	}
-
-	existing, err := kc.GetNemoGuardrailsCR(ctx, namespace)
-	if err != nil {
-		return fmt.Errorf("failed to get existing NemoGuardrails CR: %w", err)
-	}
-	existing.Object["spec"] = cr.Object["spec"]
-	if err := kc.Client.Update(ctx, existing); err != nil {
-		return fmt.Errorf("failed to update NemoGuardrails CR: %w", err)
-	}
-	kc.Logger.Info("updated NemoGuardrails CR", "name", nemoGuardrailsCRName, "namespace", namespace)
-	return nil
-}
-
 // CreateNemoGuardrailsResources creates a placeholder ConfigMap and NemoGuardrails CR in the
-// namespace. The actual model, prompts, and API key are supplied at request time via inline
-// config in each guardrail/checks call — no per-model K8s resources are needed.
+// namespace. Returns an error if NemoGuardrails is already initialised — this is a one-time
+// setup; the UI should check for an existing CR before calling.
 //
-// Returns the name of the NemoGuardrails CR.
+// The actual model, prompts, and API key are supplied at request time via inline config in
+// each guardrail/checks call — no per-model K8s resources are needed.
+//
+// Returns the name of the created NemoGuardrails CR.
 func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 	ctx context.Context,
 	identity *integrations.RequestIdentity,
 	namespace string,
 ) (string, error) {
-	// Step 1: Upsert the placeholder ConfigMap.
+	// Guard: fail fast if NemoGuardrails already exists in this namespace.
+	existing, err := kc.GetNemoGuardrailsCR(ctx, namespace)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return "", fmt.Errorf("failed to check for existing NemoGuardrails CR: %w", err)
+	}
+	if existing != nil {
+		return "", fmt.Errorf("NemoGuardrails already initialised in namespace %s", namespace)
+	}
+
+	// Step 1: Create the placeholder ConfigMap.
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      nemoGuardrailsPlaceholderName,
@@ -110,11 +75,12 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 		},
 		Data: buildNemoPlaceholderConfigMapData(),
 	}
-	if err := kc.upsertNemoConfigMap(ctx, cm); err != nil {
-		return "", fmt.Errorf("failed to upsert NemoGuardrails placeholder ConfigMap: %w", err)
+	if err := kc.Client.Create(ctx, cm); err != nil {
+		return "", fmt.Errorf("failed to create NemoGuardrails placeholder ConfigMap: %w", err)
 	}
+	kc.Logger.Info("created NemoGuardrails ConfigMap", "name", cm.Name, "namespace", namespace)
 
-	// Step 2: Upsert the NemoGuardrails CR pointing to the placeholder.
+	// Step 2: Create the NemoGuardrails CR pointing to the placeholder.
 	cr := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": constants.NemoGuardrailsAPIVersion,
@@ -150,11 +116,15 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 		Kind:    constants.NemoGuardrailsKind,
 	})
 
-	if err := kc.upsertNemoGuardrailsCR(ctx, namespace, cr); err != nil {
-		return "", fmt.Errorf("failed to upsert NemoGuardrails CR: %w", err)
+	if err := kc.Client.Create(ctx, cr); err != nil {
+		// Clean up the ConfigMap we just created since CR creation failed.
+		if deleteErr := kc.Client.Delete(ctx, cm); deleteErr != nil {
+			kc.Logger.Error("failed to clean up ConfigMap after CR creation failure", "error", deleteErr)
+		}
+		return "", fmt.Errorf("failed to create NemoGuardrails CR: %w", err)
 	}
 
-	kc.Logger.Info("NemoGuardrails resources reconciled", "namespace", namespace)
+	kc.Logger.Info("NemoGuardrails resources created", "namespace", namespace)
 	return nemoGuardrailsCRName, nil
 }
 
