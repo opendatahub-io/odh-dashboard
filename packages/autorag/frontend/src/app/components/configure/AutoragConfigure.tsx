@@ -72,7 +72,6 @@ import {
   MAX_RAG_PATTERNS,
   MIN_RAG_PATTERNS,
   RAG_METRIC_ANSWER_CORRECTNESS,
-  RAG_METRIC_CONTEXT_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
 } from '~/app/schemas/configure.schema';
 import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
@@ -134,11 +133,6 @@ const OPTIMIZATION_METRICS: {
     value: RAG_METRIC_ANSWER_CORRECTNESS,
     label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_ANSWER_CORRECTNESS],
     description: 'How correct the generated answer is compared to the ground truth.',
-  },
-  {
-    value: RAG_METRIC_CONTEXT_CORRECTNESS,
-    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_CONTEXT_CORRECTNESS],
-    description: 'How precisely the retrieval step identifies relevant chunks.',
   },
 ];
 
