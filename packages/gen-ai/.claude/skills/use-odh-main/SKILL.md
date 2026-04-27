@@ -50,6 +50,14 @@ Use when the user asks to:
 - `--registry REGISTRY` — default `quay.io/opendatahub`
 - `--tag TAG` — default `main`
 
+### RHOAI: point the dashboard at ODH `main`
+
+RHOAI CSVs usually pin the dashboard image under a repository basename like **`odh-dashboard-rhel9`** (see `--list`). Step 4 matches that **basename exactly**, and Step 5 sets the override to **`${REGISTRY}/${COMPONENT}:${TAG}`** (e.g. `quay.io/opendatahub/odh-dashboard-rhel9:main`).
+
+- If that Quay repo/tag exists for your workflow, run with that basename, for example:  
+  `use-odh-main --registry quay.io/opendatahub --tag main odh-dashboard-rhel9`
+- Community builds often publish **`quay.io/opendatahub/odh-dashboard:main`** only. This skill does **not** remap `odh-dashboard-rhel9` → `odh-dashboard`; in that case use **`--list`** to confirm names, then either confirm the `-rhel9` image on Quay or apply a **one-off `oc patch` / `oc set image`** to the exact reference you need (see Troubleshooting).
+
 ---
 
 ## Step 1: Parse input arguments
@@ -60,24 +68,55 @@ REGISTRY="quay.io/opendatahub"
 TAG="main"
 LIST_ONLY=false
 
-for arg in "$@"; do
-  case "$arg" in
+while [[ $# -gt 0 ]]; do
+  case "$1" in
     --list)
       LIST_ONLY=true
+      shift
       ;;
     --registry)
-      shift
-      REGISTRY="$1"
+      if [[ $# -lt 2 ]]; then echo "ERROR: --registry requires a value"; exit 1; fi
+      REGISTRY="$2"
+      shift 2
       ;;
     --tag)
-      shift
-      TAG="$1"
+      if [[ $# -lt 2 ]]; then echo "ERROR: --tag requires a value"; exit 1; fi
+      TAG="$2"
+      shift 2
       ;;
     *)
-      COMPONENTS+=("$arg")
+      COMPONENTS+=("$1")
+      shift
       ;;
   esac
 done
+
+# Deduplicate components (preserve order)
+_COMPONENTS_DEDUPED=()
+for _c in "${COMPONENTS[@]}"; do
+  _dup=false
+  for _e in "${_COMPONENTS_DEDUPED[@]}"; do
+    if [[ "$_c" == "$_e" ]]; then _dup=true; break; fi
+  done
+  if [[ "$_dup" == "false" ]]; then _COMPONENTS_DEDUPED+=("$_c"); fi
+done
+COMPONENTS=("${_COMPONENTS_DEDUPED[@]}")
+
+validate_image_ref_part() {
+  local val="$1" what="$2"
+  if [[ -z "$val" ]]; then echo "ERROR: $what is empty"; exit 1; fi
+  if [[ "$val" == *$'\n'* || "$val" == *$'\r'* ]]; then echo "ERROR: $what must not contain newlines"; exit 1; fi
+  if [[ "$val" == *'|'* ]]; then echo "ERROR: $what must not contain '|' (used as delimiter internally)"; exit 1; fi
+  if [[ "$val" == *'"'* || "$val" == *'\'* ]]; then echo "ERROR: $what must not contain quotes or backslashes"; exit 1; fi
+}
+
+if [[ "$LIST_ONLY" == "false" ]]; then
+  validate_image_ref_part "$REGISTRY" "--registry"
+  validate_image_ref_part "$TAG" "--tag"
+  for _c in "${COMPONENTS[@]}"; do
+    validate_image_ref_part "$_c" "component name ($_c)"
+  done
+fi
 
 if [[ "$LIST_ONLY" == "false" && ${#COMPONENTS[@]} -eq 0 ]]; then
   echo "ERROR: No components specified."
@@ -104,18 +143,33 @@ OPERATOR_DEPLOY=""
 
 if oc get csv -n redhat-ods-operator 2>/dev/null | grep -q rhods-operator; then
   OPERATOR_NS="redhat-ods-operator"
-  CSV_NAME=$(oc get csv -n "$OPERATOR_NS" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null | grep rhods-operator)
+  CSV_NAME=$(oc get csv -n "$OPERATOR_NS" -o json 2>/dev/null | jq -r '
+    ([.items[] | select(.metadata.name | test("rhods-operator"))]
+      | sort_by(.metadata.creationTimestamp) | reverse) as $all
+    | ($all | map(select((.status.phase // "") == "Succeeded")) | .[0] // empty)
+      // ($all[0] // empty)
+    | .metadata.name // empty')
   OPERATOR_DEPLOY="rhods-operator"
   APPS_NS="redhat-ods-applications"
   echo "Detected RHOAI operator: $CSV_NAME in $OPERATOR_NS"
 elif oc get csv -n openshift-operators 2>/dev/null | grep -q opendatahub-operator; then
   OPERATOR_NS="openshift-operators"
-  CSV_NAME=$(oc get csv -n "$OPERATOR_NS" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null | grep opendatahub-operator)
+  CSV_NAME=$(oc get csv -n "$OPERATOR_NS" -o json 2>/dev/null | jq -r '
+    ([.items[] | select(.metadata.name | test("opendatahub-operator"))]
+      | sort_by(.metadata.creationTimestamp) | reverse) as $all
+    | ($all | map(select((.status.phase // "") == "Succeeded")) | .[0] // empty)
+      // ($all[0] // empty)
+    | .metadata.name // empty')
   OPERATOR_DEPLOY="opendatahub-operator-controller-manager"
   APPS_NS="opendatahub"
   echo "Detected ODH operator: $CSV_NAME in $OPERATOR_NS"
 else
   echo "ERROR: Neither RHOAI nor ODH operator found. Install one first."
+  exit 1
+fi
+
+if [[ -z "$CSV_NAME" ]]; then
+  echo "ERROR: Could not resolve a ClusterServiceVersion name in $OPERATOR_NS."
   exit 1
 fi
 ```
@@ -153,12 +207,16 @@ MATCHED=()
 UNMATCHED=()
 
 for COMPONENT in "${COMPONENTS[@]}"; do
-  RELATED_NAME=$(echo "$CSV_JSON" | jq -r --arg comp "$COMPONENT" \
-    '.spec.relatedImages[] | select(.image | contains($comp)) | .name' 2>/dev/null | head -1)
+  # Match image repository basename exactly (avoids odh-dashboard matching odh-dashboard-oauth)
+  RELATED_NAME=$(echo "$CSV_JSON" | jq -r --arg comp "$COMPONENT" '
+    def image_repo: (. | split("/") | last | split(":")[0]);
+    .spec.relatedImages[]? | select((.image | image_repo) == $comp) | .name' 2>/dev/null | head -1)
 
   if [[ -z "$RELATED_NAME" ]]; then
-    RELATED_NAME=$(echo "$CSV_JSON" | jq -r --arg comp "$COMPONENT" \
-      '.spec.relatedImages[] | select(.name | gsub("-"; "_") | contains($comp | gsub("-"; "_"))) | .name' 2>/dev/null | head -1)
+    RELATED_NAME=$(echo "$CSV_JSON" | jq -r --arg comp "$COMPONENT" '
+      .spec.relatedImages[]?
+      | select((.name | gsub("-"; "_")) == ($comp | gsub("-"; "_")))
+      | .name' 2>/dev/null | head -1)
   fi
 
   if [[ -n "$RELATED_NAME" ]]; then
@@ -220,23 +278,34 @@ echo ""
 
 ## Step 6: Patch CSV relatedImages
 
+Build one JSON Patch payload so relatedImages updates apply atomically (avoids a half-updated CSV if a later `oc patch` fails).
+
 ```bash
 echo "=== Patching CSV relatedImages ==="
+
+REL_PATCH_OPS=$(jq -n '[]')
 
 for patch_entry in "${PATCHES[@]}"; do
   IFS='|' read -r REL_NAME NEW_IMG OLD_IMG <<< "$patch_entry"
 
   INDEX=$(echo "$CSV_JSON" | jq -r --arg name "$REL_NAME" \
-    '[.spec.relatedImages[] | .name] | to_entries[] | select(.value == $name) | .key')
+    '[.spec.relatedImages[]? | .name] | to_entries[] | select(.value == $name) | .key' | head -1)
 
-  if [[ -n "$INDEX" ]]; then
-    oc patch csv "$CSV_NAME" -n "$OPERATOR_NS" --type=json \
-      -p "[{\"op\": \"replace\", \"path\": \"/spec/relatedImages/$INDEX/image\", \"value\": \"$NEW_IMG\"}]"
-    echo "Patched relatedImage[$INDEX] ($REL_NAME) -> $NEW_IMG"
+  if [[ -n "$INDEX" && "$INDEX" =~ ^[0-9]+$ ]]; then
+    REL_PATCH_OPS=$(jq -n --argjson ops "$REL_PATCH_OPS" --argjson idx "$INDEX" --arg img "$NEW_IMG" \
+      '$ops + [{op:"replace", path: ("/spec/relatedImages/" + ($idx | tostring) + "/image"), value: $img}]')
+    echo "Queued relatedImage[$INDEX] ($REL_NAME) -> $NEW_IMG"
   else
-    echo "WARNING: Could not find index for $REL_NAME, skipping relatedImage patch"
+    echo "WARNING: Could not find a unique numeric index for $REL_NAME, skipping relatedImage patch"
   fi
 done
+
+if [[ $(echo "$REL_PATCH_OPS" | jq 'length') -gt 0 ]]; then
+  oc patch csv "$CSV_NAME" -n "$OPERATOR_NS" --type=json -p "$REL_PATCH_OPS"
+  echo "Applied relatedImages patch ($(echo "$REL_PATCH_OPS" | jq 'length') operation(s))."
+else
+  echo "WARNING: No relatedImages patch operations to apply."
+fi
 
 echo ""
 ```
@@ -254,34 +323,67 @@ The operator reads component images from **`env`** entries in the CSV’s embedd
 ```bash
 echo "=== Patching Operator Deployment Env Vars in CSV ==="
 
+# Search all embedded deployments/containers (not only [0]) so this survives CSV layout changes.
+ENV_PATCH_OPS=$(jq -n '[]')
+
 for patch_entry in "${PATCHES[@]}"; do
   IFS='|' read -r REL_NAME NEW_IMG OLD_IMG <<< "$patch_entry"
 
-  ENV_INDEX=$(echo "$CSV_JSON" | jq -r --arg old "$OLD_IMG" \
-    '[.spec.install.spec.deployments[0].spec.template.spec.containers[0].env[] | .value] | to_entries[] | select(.value == $old) | .key' 2>/dev/null | head -1)
+  LOC=$(echo "$CSV_JSON" | jq -c --arg old "$OLD_IMG" '
+    [.spec.install.spec.deployments // [] | to_entries[] |
+      .key as $di |
+      .value.spec.template.spec.containers // [] | to_entries[] |
+      .key as $ci |
+      (.value.env // []) | to_entries[] |
+      select(.value.value == $old) |
+      {di: $di, ci: $ci, ei: .key, envName: .value.name}
+    ] | .[0] // empty' 2>/dev/null)
 
-  if [[ -n "$ENV_INDEX" ]]; then
-    ENV_NAME=$(echo "$CSV_JSON" | jq -r \
-      ".spec.install.spec.deployments[0].spec.template.spec.containers[0].env[$ENV_INDEX].name")
-
-    oc patch csv "$CSV_NAME" -n "$OPERATOR_NS" --type=json \
-      -p "[{\"op\": \"replace\", \"path\": \"/spec/install/spec/deployments/0/spec/template/spec/containers/0/env/$ENV_INDEX/value\", \"value\": \"$NEW_IMG\"}]"
-    echo "Patched env var $ENV_NAME -> $NEW_IMG"
-  else
+  if [[ -z "$LOC" || "$LOC" == "null" ]]; then
     DERIVED_ENV="RELATED_IMAGE_$(echo "$REL_NAME" | tr '[:lower:]-' '[:upper:]_' | sed 's/_IMAGE$//')"
-    ENV_INDEX=$(echo "$CSV_JSON" | jq -r --arg env "$DERIVED_ENV" \
-      '[.spec.install.spec.deployments[0].spec.template.spec.containers[0].env[] | .name] | to_entries[] | select(.value == $env) | .key' 2>/dev/null | head -1)
+    LOC=$(echo "$CSV_JSON" | jq -c --arg env "$DERIVED_ENV" '
+      [.spec.install.spec.deployments // [] | to_entries[] |
+        .key as $di |
+        .value.spec.template.spec.containers // [] | to_entries[] |
+        .key as $ci |
+        (.value.env // []) | to_entries[] |
+        select(.value.name == $env) |
+        {di: $di, ci: $ci, ei: .key, envName: .value.name}
+      ] | .[0] // empty' 2>/dev/null)
+  fi
 
-    if [[ -n "$ENV_INDEX" ]]; then
-      oc patch csv "$CSV_NAME" -n "$OPERATOR_NS" --type=json \
-        -p "[{\"op\": \"replace\", \"path\": \"/spec/install/spec/deployments/0/spec/template/spec/containers/0/env/$ENV_INDEX/value\", \"value\": \"$NEW_IMG\"}]"
-      echo "Patched env var $DERIVED_ENV -> $NEW_IMG"
+  if [[ -n "$LOC" && "$LOC" != "null" ]]; then
+    DI=$(echo "$LOC" | jq -r '.di')
+    CI=$(echo "$LOC" | jq -r '.ci')
+    EI=$(echo "$LOC" | jq -r '.ei')
+    ENV_NAME=$(echo "$LOC" | jq -r '.envName // empty')
+    if [[ "$DI" =~ ^[0-9]+$ && "$CI" =~ ^[0-9]+$ && "$EI" =~ ^[0-9]+$ ]]; then
+      ENV_PATCH_OPS=$(jq -n --argjson ops "$ENV_PATCH_OPS" --argjson loc "$LOC" --arg img "$NEW_IMG" '
+        $ops + [{
+          op: "replace",
+          path: (
+            "/spec/install/spec/deployments/" + ($loc.di | tostring)
+            + "/spec/template/spec/containers/" + ($loc.ci | tostring)
+            + "/env/" + ($loc.ei | tostring) + "/value"
+          ),
+          value: $img
+        }]')
+      echo "Queued env $ENV_NAME (deployments[$DI].containers[$CI].env[$EI]) -> $NEW_IMG"
     else
-      echo "WARNING: Could not find env var for $REL_NAME — operator may not pick up the override automatically"
-      echo "  You may need to patch the component deployment directly (see Troubleshooting)"
+      echo "WARNING: Invalid env location for $REL_NAME (di=$DI ci=$CI ei=$EI); skipping"
     fi
+  else
+    echo "WARNING: Could not find env var for $REL_NAME — operator may not pick up the override automatically"
+    echo "  You may need to patch the component deployment directly (see Troubleshooting)"
   fi
 done
+
+if [[ $(echo "$ENV_PATCH_OPS" | jq 'length') -gt 0 ]]; then
+  oc patch csv "$CSV_NAME" -n "$OPERATOR_NS" --type=json -p "$ENV_PATCH_OPS"
+  echo "Applied operator env patch ($(echo "$ENV_PATCH_OPS" | jq 'length') operation(s))."
+else
+  echo "WARNING: No operator env patch operations to apply."
+fi
 
 echo ""
 ```
@@ -398,10 +500,11 @@ for patch_entry in "${PATCHES[@]}"; do
 
   if [[ -z "$MATCH" ]]; then
     MATCH=$(echo "$ALL_DEPLOYS_JSON" | jq -r --arg comp "$COMPONENT_SHORT" '
+      def image_repo: (. | split("/") | last | split(":")[0]);
       .items[] |
       . as $deploy |
       .spec.template.spec.containers[] |
-      select(.image | contains($comp)) |
+      select(.image | image_repo == $comp) |
       "\($deploy.metadata.name)|\(.name)|\(.image)"
     ' 2>/dev/null | head -1)
   fi
@@ -415,16 +518,28 @@ for patch_entry in "${PATCHES[@]}"; do
 
   IFS='|' read -r DEPLOY_NAME CONTAINER_NAME ACTUAL_IMAGE <<< "$MATCH"
 
-  POD_NAME=$(oc get pods -n "$APPS_NS" -l app="$DEPLOY_NAME" \
-    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+  POD_SELECTOR=$(oc get deployment "$DEPLOY_NAME" -n "$APPS_NS" -o json 2>/dev/null | jq -r '
+    [.spec.selector.matchLabels // {} | to_entries[] | "\(.key)=\(.value)")]
+    | join(",")')
+  POD_NAME=""
+  if [[ -n "$POD_SELECTOR" ]]; then
+    POD_NAME=$(oc get pods -n "$APPS_NS" -l "$POD_SELECTOR" \
+      -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+  fi
+  if [[ -z "$POD_NAME" ]]; then
+    POD_NAME=$(oc get pods -n "$APPS_NS" -l "app=$DEPLOY_NAME" \
+      -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+  fi
+
   POD_STATUS=""
   CONTAINER_READY=""
-
   if [[ -n "$POD_NAME" ]]; then
-    POD_STATUS=$(oc get pod "$POD_NAME" -n "$APPS_NS" \
-      -o jsonpath='{.status.phase}' 2>/dev/null || echo "Unknown")
-    CONTAINER_READY=$(oc get pod "$POD_NAME" -n "$APPS_NS" \
-      -o jsonpath="{.status.containerStatuses[?(@.name==\"$CONTAINER_NAME\")].ready}" 2>/dev/null || echo "unknown")
+    POD_JSON=$(oc get pod "$POD_NAME" -n "$APPS_NS" -o json 2>/dev/null || echo "")
+    if [[ -n "$POD_JSON" ]]; then
+      POD_STATUS=$(echo "$POD_JSON" | jq -r '.status.phase // "Unknown"')
+      CONTAINER_READY=$(echo "$POD_JSON" | jq -r --arg cn "$CONTAINER_NAME" '
+        ((.status.containerStatuses // [])[] | select(.name == $cn) | .ready) // false' | head -1)
+    fi
   fi
 
   if [[ "$ACTUAL_IMAGE" == "$NEW_IMG" ]]; then
@@ -453,15 +568,18 @@ echo "  PENDING/FAIL: $FAIL"
 echo ""
 echo "=== Checking for Image Pull Errors ==="
 
-PULL_ERRORS=$(oc get pods -n "$APPS_NS" -o json 2>/dev/null | \
-  jq -r '.items[] | select(.status.containerStatuses[]?.state.waiting.reason == "ImagePullBackOff" or .status.containerStatuses[]?.state.waiting.reason == "ErrImagePull") | .metadata.name' 2>/dev/null)
+PULL_LINES=$(oc get pods -n "$APPS_NS" -o json 2>/dev/null | jq -r '
+  .items[] | . as $pod |
+  (($pod.spec.containers // []) + ($pod.spec.initContainers // [])) as $specs |
+  ($pod.status.containerStatuses // [])[] |
+  select((.state.waiting.reason // "") == "ImagePullBackOff" or (.state.waiting.reason // "") == "ErrImagePull") |
+  .name as $cn |
+  ($specs[] | select(.name == $cn) | .image) as $img |
+  "  \($pod.metadata.name)  container=\($cn)  image=\($img)  reason=\(.state.waiting.reason)"' 2>/dev/null)
 
-if [[ -n "$PULL_ERRORS" ]]; then
+if [[ -n "$PULL_LINES" ]]; then
   echo "WARNING: Pods with image pull errors detected:"
-  for pod in $PULL_ERRORS; do
-    IMAGE=$(oc get pod "$pod" -n "$APPS_NS" -o jsonpath='{.spec.containers[0].image}' 2>/dev/null)
-    echo "  $pod -> $IMAGE"
-  done
+  echo "$PULL_LINES"
   echo ""
   echo "This may indicate the image tag does not exist on the registry."
   echo "Verify the images exist:"
@@ -515,7 +633,7 @@ echo "Catalog-driven operator updates reset pinned images; re-apply overrides if
 ## Important notes
 
 - **CSV patching** is invasive; only use on clusters where that is acceptable.
-- **`quay.io/opendatahub/<component>:<tag>`** must exist and be pullable (or use `--registry`).
+- **`quay.io/opendatahub/<component>:<tag>`** must exist and be pullable (or use `--registry`). The `<component>` segment is whatever matches the CSV `relatedImage` **repository basename** (often **`odh-dashboard-rhel9`** on RHOAI, not `odh-dashboard`); see **RHOAI: point the dashboard at ODH `main`** above.
 - Works for **RHOAI** (`redhat-ods-operator`) and **ODH** (`openshift-operators`) as in Step 2.
 
 ## Troubleshooting
