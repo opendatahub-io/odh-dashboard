@@ -1,0 +1,4 @@
+prompt: >
+  Create a brief guide on how connection types work in the dashboard.
+  Connection types define reusable templates for data connections
+  (S3, database, etc.) that users can instantiate in their projects.

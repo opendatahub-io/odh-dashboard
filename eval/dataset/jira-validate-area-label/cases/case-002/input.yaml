@@ -1,0 +1,21 @@
+prompt: >
+  Validate area labels on this issue. The issue has no existing area labels.
+  Analyze the content and assign appropriate dashboard-area-* labels.
+
+issue_key: "RHOAIENG-99002"
+summary: "Pipeline run fails when workbench notebook uses GPU hardware profile"
+description: >
+  When a pipeline references a notebook that uses a GPU hardware profile,
+  the pipeline run fails with a resource allocation error. The pipeline
+  definition in the pipeline server cannot resolve the hardware profile
+  reference for the notebook container.
+
+  This affects the pipeline runs page and the workbench spawner integration.
+  The GPU hardware profile is configured via packages/hardware-profiles/.
+
+labels: []
+issuetype: Bug
+issuelinks:
+  - key: "RHOAIENG-98500"
+    type: "is blocked by"
+    labels: ["dashboard-area-pipelines"]

@@ -1,0 +1,4 @@
+prompt: >
+  Create documentation for the backend route handler that manages
+  accelerator profiles. The routes are in backend/src/routes/api/
+  and handle CRUD operations for AcceleratorProfile custom resources.

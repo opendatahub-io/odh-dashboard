@@ -1,0 +1,7 @@
+doc_type: guide
+expected_path_pattern: "docs/*.md or frontend/docs/*.md"
+key_sections:
+  - Overview
+  - How it works
+  - Usage
+min_interactions: 1

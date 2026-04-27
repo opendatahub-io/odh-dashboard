@@ -95,6 +95,9 @@ vendor/
 # Triage artifacts
 .artifacts/
 
+# Eval harness runs (generated results, logs, reports)
+eval/runs/
+
 # AgentReady reports
 .agentready/
 assessment-output.txt

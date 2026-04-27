@@ -1,0 +1,10 @@
+doc_type: package
+expected_path: packages/gen-ai/docs/overview.md
+expected_template: docs/templates/package-template.md
+key_sections:
+  - Overview
+  - Architecture
+  - Features
+  - Dependencies
+  - Interactions
+min_interactions: 1

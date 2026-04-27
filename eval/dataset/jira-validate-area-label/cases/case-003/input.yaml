@@ -1,0 +1,17 @@
+prompt: >
+  Validate area labels on this issue. The issue has no existing area labels.
+  Analyze the content and assign appropriate dashboard-area-* labels.
+
+issue_key: "RHOAIENG-99003"
+summary: "Add helper text for Allowed Org setting in model catalog admin"
+description: >
+  The Allowed Org field in the admin settings for Model Catalog does not
+  have helper text explaining what organizations are supported and what
+  format to use. Users are confused about whether to use the org name or
+  org ID.
+
+  This is a minor UX improvement to the existing model catalog admin
+  settings page.
+labels: []
+issuetype: Story
+issuelinks: []

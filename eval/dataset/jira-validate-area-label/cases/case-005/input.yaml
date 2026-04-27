@@ -1,0 +1,16 @@
+prompt: >
+  Validate area labels on this issue. The issue has no existing area labels.
+  Analyze the content and assign appropriate dashboard-area-* labels.
+
+issue_key: "RHOAIENG-99005"
+summary: "[AutoRAG] Experiment leaderboard shows wrong evaluation metrics"
+description: >
+  The AutoRAG experiment leaderboard page shows incorrect values for
+  faithfulness and answer correctness metrics. The pattern evaluation
+  scores are not being correctly parsed from the API response.
+
+  File: packages/autorag/frontend/src/pages/experiments/LeaderboardTable.tsx
+labels:
+  - AutoRAG
+issuetype: Bug
+issuelinks: []

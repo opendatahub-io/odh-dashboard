@@ -1,0 +1,4 @@
+prompt: >
+  Create documentation for the pipelines frontend area. This area covers
+  the pipeline runs, experiments, and executions pages in the dashboard.
+  It is under frontend/src/pages/pipelines/ and frontend/src/concepts/pipelines/.

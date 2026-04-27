@@ -1,0 +1,8 @@
+expected_areas:
+  - dashboard-area-pipelines
+  - dashboard-area-hardware-profiles
+confidence: high
+signal_dimensions:
+  - keyword (pipeline run, hardware profile, GPU)
+  - linked issue (RHOAIENG-98500 has dashboard-area-pipelines)
+  - code path (packages/hardware-profiles/)

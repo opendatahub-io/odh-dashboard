@@ -1,0 +1,9 @@
+doc_type: frontend_area
+expected_path: frontend/docs/pipelines.md
+expected_template: docs/templates/frontend-template.md
+key_sections:
+  - Overview
+  - Pages
+  - Components
+  - Interactions
+min_interactions: 1

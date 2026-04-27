@@ -1,0 +1,13 @@
+expected_areas:
+  - dashboard-area-autorag
+confidence: high
+signal_dimensions:
+  - keyword (AutoRAG, faithfulness, answer correctness, pattern evaluation)
+  - Jira label (AutoRAG)
+  - code path (packages/autorag/)
+  - summary prefix ([AutoRAG])
+notes: >
+  Should NOT be assigned dashboard-area-automl despite sharing
+  leaderboard UI patterns. The [AutoRAG] prefix, AutoRAG Jira label,
+  and autorag-specific metrics (faithfulness, answer correctness)
+  all clearly point to autorag, not automl.

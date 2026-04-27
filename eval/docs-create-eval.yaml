@@ -1,0 +1,118 @@
+name: docs-create-eval
+description: Evaluate the docs-create skill — generates documentation files from natural language descriptions
+skill: docs-create
+
+execution:
+  mode: case
+  arguments: "{prompt}"
+
+runner:
+  type: claude-code
+
+models:
+  skill: claude-sonnet-4-7
+  judge: claude-opus-4-7
+
+permissions:
+  allow: []
+  deny:
+    - "mcp__*"
+
+dataset:
+  path: eval/dataset/docs-create/cases
+  schema: |
+    Each case directory contains:
+    - input.yaml: YAML file. The 'prompt' field is a natural language description
+      of what documentation to create. May reference specific packages, frontend
+      areas, or backend modules in the odh-dashboard monorepo.
+    - reference.md: Gold standard documentation output for comparison scoring.
+      Follows docs/guidelines.md conventions. Under 300 lines, no placeholder text.
+    - annotations.yaml: Expected doc type, output path, and quality signals.
+
+inputs:
+  tools:
+    - match: Questions asked to the user via AskUserQuestion.
+      prompt: |
+        Answer based on the test case context. If asked to confirm, say "yes".
+        If asked about scope, say "keep it focused on the specified area".
+
+outputs:
+  - path: .
+    schema: |
+      A single markdown documentation file created at the path determined by
+      the skill (frontend/docs/, backend/docs/, packages/<name>/docs/, or
+      .claude/rules/). The file follows docs/guidelines.md conventions.
+
+traces:
+  stdout: true
+  stderr: true
+  events: false
+  metrics: true
+
+judges:
+  - name: file_created
+    description: |
+      Check that the skill created exactly one documentation file and it is
+      non-empty with at least 200 characters.
+    check: |
+      content = outputs.get("main_content", "")
+      if len(content.strip()) < 200:
+          return False, f"Output too short ({len(content.strip())} chars, need >=200)"
+      return True, f"Doc created with {len(content.strip())} chars"
+
+  - name: no_placeholders
+    description: |
+      Check that the generated doc has no placeholder text like [Description],
+      TODO, TBD, or "Not applicable" filler.
+    check: |
+      content = outputs.get("main_content", "")
+      placeholders = ["[Description]", "[TODO]", "TBD", "Not applicable",
+                       "[Add ", "[Insert ", "[Replace"]
+      found = [p for p in placeholders if p.lower() in content.lower()]
+      if found:
+          return False, f"Found placeholders: {', '.join(found)}"
+      return True, "No placeholder text found"
+
+  - name: under_line_limit
+    description: |
+      Check that the generated doc is under 300 lines (hard limit 500).
+    check: |
+      content = outputs.get("main_content", "")
+      lines = content.strip().split("\n")
+      if len(lines) > 500:
+          return False, f"Hard limit exceeded: {len(lines)} lines (max 500)"
+      if len(lines) > 300:
+          return False, f"Soft limit exceeded: {len(lines)} lines (target <300)"
+      return True, f"Doc is {len(lines)} lines"
+
+  - name: doc_quality
+    description: |
+      Evaluate the quality of the generated documentation compared to the
+      reference. Consider: accuracy, completeness, clarity, adherence to
+      docs/guidelines.md, and practical usefulness. Score 1-5.
+    prompt: |
+      Compare the generated documentation against the reference document.
+
+      Evaluation criteria:
+      1. **Accuracy** — Does the doc correctly describe the code/feature?
+      2. **Completeness** — Are all relevant sections covered?
+      3. **Clarity** — Is the writing clear and well-organized?
+      4. **Guidelines adherence** — Does it follow the project's doc conventions?
+      5. **Usefulness** — Would a developer find this doc helpful?
+
+      Score 1-5 where:
+      - 5: Excellent — matches or exceeds reference quality
+      - 4: Good — covers key points, minor gaps
+      - 3: Acceptable — usable but missing some important content
+      - 2: Below average — significant gaps or inaccuracies
+      - 1: Poor — largely incorrect or unhelpful
+
+thresholds:
+  file_created:
+    min_pass_rate: 1.0
+  no_placeholders:
+    min_pass_rate: 1.0
+  under_line_limit:
+    min_pass_rate: 1.0
+  doc_quality:
+    min_mean: 3.5

@@ -1,0 +1,4 @@
+prompt: >
+  Create documentation for the model-serving package. It provides the UI
+  for deploying and managing model serving endpoints in OpenShift AI,
+  including inference services, serving runtimes, and model deployments.

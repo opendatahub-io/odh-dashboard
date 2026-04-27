@@ -1,0 +1,14 @@
+prompt: >
+  Validate area labels on this issue. The issue has no existing area labels.
+  Analyze the content and assign appropriate dashboard-area-* labels.
+
+issue_key: "RHOAIENG-99004"
+summary: "Improve table performance for large datasets"
+description: >
+  The data table component used across multiple pages is slow when
+  rendering more than 500 rows. This affects model serving endpoints
+  table, pipeline runs table, and the registered models list. Need
+  to implement virtualization or pagination to improve performance.
+labels: []
+issuetype: Task
+issuelinks: []

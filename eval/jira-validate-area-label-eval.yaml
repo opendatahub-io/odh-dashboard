@@ -1,0 +1,123 @@
+name: jira-validate-area-label-eval
+description: Evaluate the jira-validate-area-label skill — assigns dashboard-area-* labels based on multi-signal content analysis
+skill: jira-validate-area-label
+
+execution:
+  mode: case
+  arguments: "{prompt}"
+
+runner:
+  type: claude-code
+
+models:
+  skill: claude-sonnet-4-7
+  judge: claude-opus-4-7
+
+permissions:
+  allow: []
+  deny:
+    - "mcp__atlassian__*"
+    - "mcp__*"
+
+dataset:
+  path: eval/dataset/jira-validate-area-label/cases
+  schema: |
+    Each case directory contains:
+    - input.yaml: YAML file with fields:
+        prompt: The instruction to run area label validation on a mock issue.
+        issue_key: Mock Jira issue key.
+        summary: Issue summary text.
+        description: Issue description text.
+        labels: Existing labels on the issue (list).
+        issuetype: Issue type (Bug, Story, Task).
+        issuelinks: Any linked issues (list, may be empty).
+    - reference.md: Expected operations output showing which dashboard-area-*
+      labels should be assigned and why.
+    - annotations.yaml: Expected area labels, confidence level, and signal
+      dimensions that should be cited.
+
+inputs:
+  tools:
+    - match: Questions asked to the user via AskUserQuestion.
+      prompt: |
+        Answer based on the test case context. Default to "yes" for
+        confirmations.
+    - match: Any interaction with Jira via MCP tools.
+      prompt: |
+        Block all Jira API calls. Return mock data from the test case
+        input.yaml instead.
+
+outputs:
+  - path: .artifacts/triage
+    schema: |
+      An operations JSON file following the jira-triage operations-schema.json
+      format. Contains ADD_LABEL operations for dashboard-area-* labels with
+      reasons citing the signal dimensions used.
+
+traces:
+  stdout: true
+  stderr: true
+  events: false
+  metrics: true
+
+judges:
+  - name: correct_areas
+    description: |
+      Check that the skill assigned the expected area labels from annotations.
+    check: |
+      import json
+      annotations = outputs.get("annotations", {})
+      expected = set(annotations.get("expected_areas", []))
+      content = outputs.get("main_content", "")
+      if not expected:
+          return True, "No expected areas in annotations"
+      found = set()
+      for area in expected:
+          if area in content:
+              found.add(area)
+      missing = expected - found
+      extra_check = True
+      if missing:
+          return False, f"Missing areas: {', '.join(missing)}"
+      return True, f"All {len(expected)} expected areas found"
+
+  - name: has_reasons
+    description: |
+      Check that each ADD_LABEL operation includes a reason citing at least
+      one signal dimension.
+    check: |
+      content = outputs.get("main_content", "")
+      if "reason" not in content.lower():
+          return False, "No reasons found in output"
+      signal_terms = ["keyword", "K8s kind", "code path", "Jira label",
+                       "linked issue", "scrum team", "summary", "description"]
+      found_signals = [t for t in signal_terms if t.lower() in content.lower()]
+      if not found_signals:
+          return False, "Reasons don't cite any signal dimensions"
+      return True, f"Reasons cite signals: {', '.join(found_signals)}"
+
+  - name: area_quality
+    description: |
+      Evaluate the quality of area label assignments compared to the reference.
+      Score 1-5 based on accuracy, signal analysis depth, and reason quality.
+    prompt: |
+      Compare the skill's area label assignments against the reference.
+
+      Evaluation criteria:
+      1. **Correct labels** — Did it assign the right dashboard-area-* labels?
+      2. **No false positives** — Did it avoid assigning incorrect areas?
+      3. **Signal analysis** — Did it use multiple signal dimensions (keywords,
+         K8s kinds, code paths, Jira labels, linked issues)?
+      4. **Confidence threshold** — Did it correctly skip ambiguous cases?
+      5. **Reason quality** — Are reasons concise and cite specific signals?
+
+      Score 1-5 where 5 is perfect (correct labels, strong multi-signal
+      analysis, no false positives).
+
+thresholds:
+  correct_areas:
+    min_pass_rate: 0.8
+  has_reasons:
+    min_pass_rate: 1.0
+  area_quality:
+    min_mean: 3.5

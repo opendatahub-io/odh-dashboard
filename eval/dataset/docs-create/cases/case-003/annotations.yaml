@@ -1,0 +1,9 @@
+doc_type: backend_module
+expected_path: backend/docs/accelerator-profiles.md
+expected_template: docs/templates/backend-template.md
+key_sections:
+  - Overview
+  - API Routes
+  - K8s Resources
+  - Dependencies
+min_interactions: 1
