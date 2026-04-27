@@ -320,7 +320,7 @@ AC: Investigate root cause (timing race, missing guard, selector instability); f
 
 ## `scan` Sub-command
 
-Survey recent PRs for CI failures without fetching any logs (lightweight). Use this to spot patterns across many PRs, then follow up with `/flake-check <number> --deep` for deep investigation.
+Survey recent PRs for CI failures. Plain `scan` is lightweight (no log fetching); `--deep` and `--file` additionally fetch CI logs for test-level analysis. Use this to spot patterns across many PRs, then follow up with `/flake-check <number> --deep` for deep investigation.
 
 ### Step 1 — Determine scan parameters
 
