@@ -38,7 +38,7 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
     'Can create and submit a full AutoRAG optimization run',
     { tags: ['@AutoRAG', '@AutoRAGRegression'] },
     () => {
-      autoragConfigurePage.submitRunSetup(testData, projectName);
+      autoragConfigurePage.submitRunSetup(testData, projectName, uuid);
 
       cy.step('Set max RAG patterns to minimize run time');
       autoragConfigurePage.setMaxRagPatterns(testData.maxRagPatterns as number);

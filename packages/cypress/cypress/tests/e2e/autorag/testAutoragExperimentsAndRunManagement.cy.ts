@@ -68,7 +68,7 @@ describe('AutoRAG Experiments List and Run Management E2E', { testIsolation: fal
     'Can submit a run and verify it appears in the experiments list',
     { tags: ['@AutoRAG', '@AutoRAGRegression'] },
     () => {
-      autoragConfigurePage.submitRunSetup(testData, projectName);
+      autoragConfigurePage.submitRunSetup(testData, projectName, uuid);
 
       cy.step('Set max RAG patterns to minimize run time');
       autoragConfigurePage.setMaxRagPatterns(testData.maxRagPatterns as number);

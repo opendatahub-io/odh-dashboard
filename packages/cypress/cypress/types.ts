@@ -744,6 +744,7 @@ export type AutoragTestData = {
   runName: string;
   runDescription: string;
   documentFile: string;
+  evaluationFile: string;
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
   maxRagPatterns?: number;
   optimizationMetric?: string;

@@ -30,7 +30,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
   const uploadToStorageMutation = useUploadToStorageMutation(namespace ?? '', testDataSecretName);
 
   return (
-    <>
+    <div data-testid="evaluation-file-selector">
       <FileSelector
         id={field.name}
         selected={field.value}
@@ -95,7 +95,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         selectableExtensions={['json']}
         unselectableReason="You can only select JSON files"
       />
-    </>
+    </div>
   );
 }
 

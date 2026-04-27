@@ -12,7 +12,7 @@ class AutoragExperimentsPage {
   }
 
   findNavItem() {
-    return appChrome.findNavItem({ name: 'AutoRAG', rootSection: 'Gen AI Studio' });
+    return appChrome.findNavItem({ name: 'AutoRAG', rootSection: 'Gen AI studio' });
   }
 
   findEmptyState(timeout?: number) {

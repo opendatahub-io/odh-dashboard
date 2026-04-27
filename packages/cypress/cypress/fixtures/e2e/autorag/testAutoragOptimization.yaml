@@ -5,6 +5,7 @@ llamaStackSecretName: cy-lls-secret
 runName: autorag-optimization-run
 runDescription: 'E2E full optimization run'
 documentFile: autorag-test-document.txt
+evaluationFile: autorag-evaluation-data.json
 awsBucket: BUCKET_2
 maxRagPatterns: 5
 optimizationMetric: faithfulness

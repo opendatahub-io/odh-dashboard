@@ -443,6 +443,7 @@ function AutoragConfigure(): React.JSX.Element {
                           <ToggleGroupItem
                             text="Select file or folder"
                             buttonId="document-input-select"
+                            data-testid="input-data-source-select-toggle"
                             isSelected={inputDataSourceMode === 'select'}
                             isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('select')}
@@ -450,6 +451,7 @@ function AutoragConfigure(): React.JSX.Element {
                           <ToggleGroupItem
                             text="Upload file"
                             buttonId="document-input-upload"
+                            data-testid="input-data-source-upload-toggle"
                             isSelected={inputDataSourceMode === 'upload'}
                             isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('upload')}
@@ -534,6 +536,7 @@ function AutoragConfigure(): React.JSX.Element {
                               ref={inputDataNativeInputRef}
                               type="file"
                               hidden
+                              data-testid="autorag-upload-file-input"
                               accept={INPUT_DATA_UPLOAD_NATIVE_ACCEPT}
                               aria-hidden
                               tabIndex={-1}

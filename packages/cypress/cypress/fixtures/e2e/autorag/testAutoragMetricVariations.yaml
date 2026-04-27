@@ -5,5 +5,6 @@ llamaStackSecretName: cy-lls-secret
 runName: autorag-metrics-run
 runDescription: 'E2E test for metric variation runs'
 documentFile: autorag-test-document.txt
+evaluationFile: autorag-evaluation-data.json
 awsBucket: BUCKET_2
 maxRagPatterns: 5

@@ -45,8 +45,16 @@ class AutoragConfigurePage {
     return cy.findByTestId('aws-secret-selector');
   }
 
+  findSelectFileToggle() {
+    return cy.findByTestId('input-data-source-select-toggle');
+  }
+
+  findUploadFileToggle() {
+    return cy.findByTestId('input-data-source-upload-toggle');
+  }
+
   findUploadFileInput() {
-    return cy.findByTestId('training-data-source-upload-toggle');
+    return cy.findByTestId('autorag-upload-file-input');
   }
 
   findUploadSpinner() {
@@ -131,6 +139,16 @@ class AutoragConfigurePage {
     return cy.findByRole('option', { name: name instanceof RegExp ? name : new RegExp(name) });
   }
 
+  // Evaluation dataset — PF FileUpload renders input with id from field.name
+  findEvaluationFileInput() {
+    return cy.findByTestId('evaluation-file-selector').find('input[type="file"]');
+  }
+
+  // Uploaded file table
+  findUploadedFileCell(pattern: RegExp) {
+    return cy.contains('td', pattern);
+  }
+
   // Submit
   findCreateRunButton() {
     return cy.findByTestId('autorag-create-run-button');
@@ -145,7 +163,7 @@ class AutoragConfigurePage {
    *
    * After this, optionally configure metric/patterns, then call `submitRun()`.
    */
-  submitRunSetup(testData: AutoragTestData, projectName: string) {
+  submitRunSetup(testData: AutoragTestData, projectName: string, uuid: string) {
     cy.step('Login and wait for pipeline server');
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     waitForDspaReady(projectName);
@@ -154,8 +172,16 @@ class AutoragConfigurePage {
     autoragExperimentsPage.visit(projectName);
 
     cy.step('Wait for pipeline server to be fully ready and click Create run');
-    autoragExperimentsPage.findEmptyState(120000).should('exist');
-    autoragExperimentsPage.findCreateRunButton().click();
+    cy.findByTestId('app-page-title', { timeout: 120000 }).should('be.visible');
+    // Use header button if runs already exist, otherwise empty state button
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="autorag-header-create-run-button"]').length) {
+        autoragExperimentsPage.findHeaderCreateRunButton().click();
+      } else {
+        autoragExperimentsPage.findEmptyState().should('exist');
+        autoragExperimentsPage.findCreateRunButton().click();
+      }
+    });
 
     cy.step('Step 1 - Fill name and description');
     this.findNameInput().type(testData.runName);
@@ -177,23 +203,32 @@ class AutoragConfigurePage {
     this.findSecretSelector().type(testData.s3SecretName);
     this.findSelectOption(new RegExp(testData.s3SecretName, 'i')).click();
 
-    cy.step('Browse and select a document from S3');
+    cy.step('Upload document file');
+    const uploadFileName = `${testData.documentFile.replace('.txt', '')}-${uuid}.txt`;
+    this.findUploadFileToggle().click();
+    this.findUploadFileInput().selectFile(
+      { contents: `resources/autorag/${testData.documentFile}`, fileName: uploadFileName },
+      { force: true },
+    );
+
+    cy.step('Wait for upload to complete');
+    this.findUploadSpinner().should('not.exist');
+    this.findUploadedFileCell(new RegExp(uploadFileName)).should('be.visible');
+
+    cy.step('Verify uploaded file is browsable in file explorer and select it');
+    this.findSelectFileToggle().click();
     this.findBrowseBucketButton().click();
     this.findFileExplorerTable().should('be.visible');
-    this.findFileExplorerTable().find('tbody tr').first().click();
+    this.findFileExplorerSearch().type(uploadFileName);
+    this.findFileExplorerTable().contains('td', uploadFileName).should('be.visible').click();
     this.findFileExplorerSelectBtn().click();
 
-    cy.step('Select first available LLM model');
-    this.findModelTable('llm').should('be.visible');
-    this.findModelTable('llm').find('tbody tr').first().find('input[type="checkbox"]').check();
-
-    cy.step('Select first available embedding model');
-    this.findModelTable('embedding').should('be.visible');
-    this.findModelTable('embedding')
-      .find('tbody tr')
-      .first()
-      .find('input[type="checkbox"]')
-      .check();
+    cy.step('Upload evaluation dataset JSON');
+    const evalFileName = `${testData.evaluationFile.replace('.json', '')}-${uuid}.json`;
+    this.findEvaluationFileInput().selectFile(
+      { contents: `resources/autorag/${testData.evaluationFile}`, fileName: evalFileName },
+      { force: true },
+    );
 
     cy.step('Select first available vector store');
     this.findVectorStoreSelector().click();

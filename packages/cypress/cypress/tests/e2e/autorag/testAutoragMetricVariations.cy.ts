@@ -44,7 +44,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
     'Can submit a run with answer_correctness metric',
     { tags: ['@AutoRAG', '@AutoRAGRegression'] },
     () => {
-      autoragConfigurePage.submitRunSetup(testData, projectName);
+      autoragConfigurePage.submitRunSetup(testData, projectName, uuid);
 
       cy.step('Select answer_correctness optimization metric');
       autoragConfigurePage.findOptimizationMetricSelect().click();
@@ -65,10 +65,42 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
     'Can submit a run with faithfulness metric',
     { tags: ['@AutoRAG', '@AutoRAGRegression'] },
     () => {
-      autoragConfigurePage.submitRunSetup(testData, projectName);
+      cy.step('Click Create run from experiments page');
+      autoragExperimentsPage.findHeaderCreateRunButton().click();
 
-      cy.step('Change run name to avoid duplicate');
-      autoragConfigurePage.findNameInput().clear().type(`${testData.runName}-faith`);
+      cy.step('Fill name and select LlamaStack secret');
+      autoragConfigurePage.findNameInput().type(`${testData.runName}-faith`);
+      autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
+      autoragConfigurePage.findLlamaStackSecretSelector().click();
+      autoragConfigurePage.findLlamaStackSecretSelector().type(testData.llamaStackSecretName);
+      autoragConfigurePage.findSelectOption(new RegExp(testData.llamaStackSecretName, 'i')).click();
+
+      cy.step('Click Next');
+      autoragConfigurePage.findNextButton().click();
+
+      cy.step('Select S3 connection');
+      autoragConfigurePage.findSecretSelector().click();
+      autoragConfigurePage.findSecretSelector().type(testData.s3SecretName);
+      autoragConfigurePage.findSelectOption(new RegExp(testData.s3SecretName, 'i')).click();
+
+      cy.step('Browse and select existing document from S3');
+      autoragConfigurePage.findBrowseBucketButton().click();
+      autoragConfigurePage.findFileExplorerTable().should('be.visible');
+      autoragConfigurePage.findFileExplorerTable().contains('td', '.txt').first().click();
+      autoragConfigurePage.findFileExplorerSelectBtn().click();
+
+      cy.step('Upload evaluation dataset JSON');
+      const evalFileName = `${testData.evaluationFile.replace('.json', '')}-${uuid}-faith.json`;
+      autoragConfigurePage
+        .findEvaluationFileInput()
+        .selectFile(
+          { contents: `resources/autorag/${testData.evaluationFile}`, fileName: evalFileName },
+          { force: true },
+        );
+
+      cy.step('Select vector store');
+      autoragConfigurePage.findVectorStoreSelector().click();
+      cy.findByTestId('vector-store-select-list').find('li').first().click();
 
       cy.step('Select faithfulness optimization metric');
       autoragConfigurePage.findOptimizationMetricSelect().click();
