@@ -43,6 +43,14 @@ class AppChrome {
   findNavItem(args: { name: string; rootSection?: string; subSection?: string }) {
     return this.findSideBar().findAppNavItem(args);
   }
+
+  findDarkThemeToggle() {
+    return cy.findByTestId('dark-theme-toggle');
+  }
+
+  findLightThemeToggle() {
+    return cy.findByTestId('light-theme-toggle');
+  }
 }
 
 export const appChrome = new AppChrome();
