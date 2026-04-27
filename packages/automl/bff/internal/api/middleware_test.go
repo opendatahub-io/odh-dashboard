@@ -11,10 +11,11 @@ import (
 
 func TestPreserveRawPath(t *testing.T) {
 	tests := []struct {
-		name         string
-		path         string
-		rawPath      string
-		expectedPath string
+		name           string
+		path           string
+		rawPath        string
+		useStripPrefix bool
+		expectedPath   string
 	}{
 		{
 			name:         "s3 files path with percent-encoded key swaps Path for RawPath",
@@ -35,10 +36,11 @@ func TestPreserveRawPath(t *testing.T) {
 			expectedPath: "/api/v1/models",
 		},
 		{
-			name:         "prefixed path is not matched after StripPrefix removes it",
-			path:         "/automl/api/v1/s3/files/docs/file.csv",
-			rawPath:      "/automl/api/v1/s3/files/docs%2Ffile.csv",
-			expectedPath: "/automl/api/v1/s3/files/docs/file.csv",
+			name:           "prefixed path is matched after StripPrefix removes prefix",
+			path:           "/automl/api/v1/s3/files/docs/file.csv",
+			rawPath:        "/automl/api/v1/s3/files/docs%2Ffile.csv",
+			useStripPrefix: true,
+			expectedPath:   "/api/v1/s3/files/docs%2Ffile.csv",
 		},
 	}
 
@@ -50,6 +52,9 @@ func TestPreserveRawPath(t *testing.T) {
 			})
 
 			handler := preserveRawPath(inner)
+			if tt.useStripPrefix {
+				handler = http.StripPrefix(PathPrefix, handler)
+			}
 
 			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			req.URL = &url.URL{Path: tt.path, RawPath: tt.rawPath}
