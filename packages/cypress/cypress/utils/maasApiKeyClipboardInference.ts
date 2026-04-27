@@ -18,12 +18,13 @@ export const stubClipboardWriteTextForApiKeyModal = (): void => {
  * After the copy button was clicked: reads the token from the stub, aliases it as
  * `maasApiKeyToken`, and asserts completions return 200.
  *
- * Prerequisites: {@link stubClipboardWriteTextForApiKeyModal}, copy click, and the same
- * `llmInferenceServiceName` the test captured from the deploy wizard (e.g. `resourceName` in the spec).
+ * @param getLlmInferenceServiceName Return the LLMInferenceService `metadata.name` from the deploy wizard
+ * (e.g. `() => resourceName`). Must be a **getter** so the name is read when this chain runs, not when the
+ * spec is first parsed — otherwise it is still `undefined` before the wizard's `.then` has executed.
  */
 export const verifyMaaSModelInferenceUsingCopiedApiKeyFromModal = (
   projectName: string,
-  llmInferenceServiceName: string,
+  getLlmInferenceServiceName: () => string,
 ): Cypress.Chainable<MaaSModelInferencingResult> =>
   cy
     .get(`@${CLIPBOARD_WRITE_STUB_ALIAS}`)
@@ -35,31 +36,41 @@ export const verifyMaaSModelInferenceUsingCopiedApiKeyFromModal = (
     .then((raw) => {
       const token = String(raw).trim();
       cy.wrap(token).as('maasApiKeyToken');
+      const llmInferenceServiceName = getLlmInferenceServiceName().trim();
       cy.step('Inference with the model using the API key');
       return verifyMaaSModelInferencing(llmInferenceServiceName, projectName, token).then(
-        ({ response }) => {
+        (result) => {
+          const { response } = result;
           cy.log(`Response status: ${response.status}`);
           expect(response.status).to.equal(200);
-          cy.log(`✅ Inference with the model using the API key successful`);
+          cy.log(`✅ Inference with the model using the copied API key successful`);
           cy.log(`✅ Response body: ${JSON.stringify(response.body)}`);
+          return result;
         },
       );
     });
 
 /**
  * Asserts the model returns 403 using alias `maasApiKeyToken` (after the key was revoked in the UI).
+ *
+ * @param getLlmInferenceServiceName Same deferred getter as {@link verifyMaaSModelInferenceUsingCopiedApiKeyFromModal}.
  */
 export const verifyMaaSModelInferenceUsingRevokedApiKey = (
   projectName: string,
-  llmInferenceServiceName: string,
+  getLlmInferenceServiceName: () => string,
 ): Cypress.Chainable<MaaSModelInferencingResult> =>
-  cy.get('@maasApiKeyToken').then((revokedToken) =>
-    verifyMaaSModelInferencing(llmInferenceServiceName, projectName, String(revokedToken)).then(
-      ({ response }) => {
-        expect(response.status).to.equal(403);
-        cy.log(`❌ Inference with the model using the revoked API key failed`);
-        cy.log(`Response status: ${response.status}`);
-        cy.log(`Response body: ${JSON.stringify(response.body)}`);
-      },
-    ),
-  );
+  cy.get('@maasApiKeyToken').then((revokedToken) => {
+    const llmInferenceServiceName = getLlmInferenceServiceName().trim();
+    return verifyMaaSModelInferencing(
+      llmInferenceServiceName,
+      projectName,
+      String(revokedToken),
+    ).then((result) => {
+      const { response } = result;
+      cy.log(`Response status: ${response.status}`);
+      expect(response.status).to.equal(403);
+      cy.log(`❌ Inference with the model using the revoked API key failed`);
+      cy.log(`❌ Response body: ${JSON.stringify(response.body)}`);
+      return result;
+    });
+  });

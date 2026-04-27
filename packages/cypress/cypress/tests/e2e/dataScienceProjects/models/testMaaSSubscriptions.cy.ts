@@ -317,7 +317,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .getRow(`${subscriptionDisplayName}2`)
         .findKebabAction('View details')
         .click();
-      cy.url().should('include', `/maas/subscriptions/view/${subscriptionName}`);
+      cy.url().should('include', `/maas/subscriptions/view/${subscriptionName}2`);
 
       viewSubscriptionPage.findTitle().should('contain.text', `${subscriptionDisplayName}2`);
 
@@ -344,6 +344,8 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       subscriptionsPage.getRow(`${subscriptionDisplayName}2`).findKebabAction('Delete').click();
       deleteSubscriptionModal.findInput().type(`${subscriptionName}2`);
       deleteSubscriptionModal.findSubmitButton().click();
+      // Sometimes the page isn't refreshing fast enough, reloading for now
+      subscriptionsPage.reload();
       subscriptionsPage.findFilterInput().type(`${subscriptionName}2`);
       subscriptionsPage.findRows().should('have.length', 0);
       subscriptionsPage.findTable().should('not.contain', `${subscriptionDisplayName}2`);
@@ -369,7 +371,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       copyApiKeyModal.shouldBeOpen();
       stubClipboardWriteTextForApiKeyModal();
       copyApiKeyModal.findApiKeyTokenCopyButton().click();
-      verifyMaaSModelInferenceUsingCopiedApiKeyFromModal(projectName, resourceName);
+      verifyMaaSModelInferenceUsingCopiedApiKeyFromModal(projectName, () => resourceName);
 
       cy.step('Revoke the API key');
       copyApiKeyModal.findCloseButton().click();
@@ -387,7 +389,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       revokeAPIKeyModal.findRevokeButton().click();
 
       cy.step('Try and inference with the model using the revoked API key');
-      verifyMaaSModelInferenceUsingRevokedApiKey(projectName, resourceName);
+      verifyMaaSModelInferenceUsingRevokedApiKey(projectName, () => resourceName);
     },
   );
 });

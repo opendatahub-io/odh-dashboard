@@ -695,6 +695,11 @@ class SubscriptionsPage {
     this.wait();
   }
 
+  reload(): void {
+    cy.reload();
+    this.wait();
+  }
+
   private wait(): void {
     cy.findByTestId('app-page-title').should('exist');
     cy.testA11y();
