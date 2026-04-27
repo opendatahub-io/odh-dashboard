@@ -86,20 +86,31 @@ const waitForGenAiStudioFeatureFlag = (): Cypress.Chainable<Cypress.Exec> => {
  *
  * @returns A Cypress chainable resolving to true if the section exists, false otherwise.
  */
-const isGenAiStudioVisible = (): Cypress.Chainable<boolean> => {
-  return appChrome
-    .findSideBar()
-    .then(($sidebar) => $sidebar.find('button:contains("Gen AI studio")').length > 0);
-};
-
 /**
- * Poll until the Gen AI Studio section appears in the sidebar.
- * Uses visitWithLogin for the first attempt to establish a session,
- * then cy.reload() for subsequent attempts to avoid repeated OAuth overhead.
- *
- * @returns A Cypress chainable that resolves when the section is visible.
+ * Retry-aware check for an element inside the sidebar.
+ * See `findNavItemInSidebar` in mlflow.ts for rationale.
  */
 const SIDEBAR_SETTLE_TIMEOUT = 30000;
+const NAV_ITEM_SETTLE_MS = 15000;
+const NAV_ITEM_POLL_MS = 500;
+
+const findInSidebar = (selector: string): Cypress.Chainable<boolean> =>
+  appChrome.findSideBar().then(
+    ($sidebar) =>
+      new Cypress.Promise<boolean>((resolve) => {
+        const deadline = Date.now() + NAV_ITEM_SETTLE_MS;
+        const poll = () => {
+          if ($sidebar.find(selector).length > 0) {
+            resolve(true);
+          } else if (Date.now() >= deadline) {
+            resolve(false);
+          } else {
+            setTimeout(poll, NAV_ITEM_POLL_MS);
+          }
+        };
+        poll();
+      }),
+  );
 
 const waitForGenAiStudioInSidebar = (): Cypress.Chainable<boolean> => {
   const { maxAttempts, pollIntervalMs } = UI_POLL_CONFIG;
@@ -114,12 +125,9 @@ const waitForGenAiStudioInSidebar = (): Cypress.Chainable<boolean> => {
       cy.reload();
     }
 
-    // Wait for the app to finish loading (user, config, DSC). The main
-    // content container is only rendered after those complete, so its
-    // presence confirms area flags and extensions are evaluated.
     cy.get('[data-testid="dashboard-page-main"]', { timeout: SIDEBAR_SETTLE_TIMEOUT });
 
-    return isGenAiStudioVisible().then((isVisible) => {
+    return findInSidebar('button:contains("Gen AI studio")').then((isVisible) => {
       const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
       if (isVisible) {

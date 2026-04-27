@@ -187,6 +187,80 @@ const waitForMlflowCRReady = (namespace: string): Cypress.Chainable<Cypress.Exec
  */
 const SIDEBAR_SETTLE_TIMEOUT = 30000;
 
+const logSidebarDiagnostics = (): void => {
+  cy.window({ log: false }).then((win) => {
+    const mfEl = win.document.getElementById('mf-remotes-json');
+    const mfContent = mfEl?.textContent ?? '(element not found)';
+    cy.log(`[DIAG] mf-remotes-json: ${mfContent}`);
+  });
+
+  appChrome.findSideBar().then(($sidebar) => {
+    const links: string[] = [];
+    $sidebar.find('a').each((_i, el) => {
+      const text = el.textContent;
+      if (text && text.trim()) {
+        links.push(text.trim());
+      }
+    });
+    cy.log(`[DIAG] Sidebar links (${links.length}): ${links.join(' | ')}`);
+
+    const sections: string[] = [];
+    $sidebar.find('button').each((_i, el) => {
+      const text = el.textContent;
+      if (text && text.trim()) {
+        sections.push(text.trim());
+      }
+    });
+    cy.log(`[DIAG] Sidebar sections (${sections.length}): ${sections.join(' | ')}`);
+  });
+
+  cy.request({ url: '/api/dsc/status', failOnStatusCode: false, timeout: 10000, log: false }).then(
+    (resp) => {
+      if (resp.status === 200 && resp.body?.components) {
+        const mlflow = resp.body.components.mlflowoperator?.managementState ?? '(missing)';
+        const llama = resp.body.components.llamastackoperator?.managementState ?? '(missing)';
+        cy.log(`[DIAG] /api/dsc/status: mlflowoperator=${mlflow}, llamastackoperator=${llama}`);
+      } else {
+        cy.log(`[DIAG] /api/dsc/status: HTTP ${resp.status}`);
+      }
+    },
+  );
+};
+
+/**
+ * Retry-aware check for a nav item inside the sidebar element.
+ *
+ * After `dashboard-page-main` appears, area flags are set via a React
+ * useEffect that runs asynchronously. Extension-provided nav items only
+ * render once the PluginStore has evaluated those flags. This creates a
+ * short gap (typically < 1 s) during which the sidebar exists but doesn't
+ * yet contain extension items. A one-shot jQuery `.find()` during that gap
+ * always misses the item, making the outer reload loop retry needlessly.
+ *
+ * This helper polls the live jQuery element for up to `NAV_ITEM_SETTLE_MS`
+ * so that a single page load is enough once the extensions are ready.
+ */
+const NAV_ITEM_SETTLE_MS = 15000;
+const NAV_ITEM_POLL_MS = 500;
+
+const findNavItemInSidebar = ($sidebar: JQuery, navLabel: string): Cypress.Chainable<boolean> =>
+  cy.wrap(null, { log: false }).then(
+    () =>
+      new Cypress.Promise<boolean>((resolve) => {
+        const deadline = Date.now() + NAV_ITEM_SETTLE_MS;
+        const poll = () => {
+          if ($sidebar.find(`a:contains("${navLabel}")`).length > 0) {
+            resolve(true);
+          } else if (Date.now() >= deadline) {
+            resolve(false);
+          } else {
+            setTimeout(poll, NAV_ITEM_POLL_MS);
+          }
+        };
+        poll();
+      }),
+  );
+
 const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> => {
   const { maxAttempts, pollIntervalMs } = UI_POLL_CONFIG;
   const startTime = Date.now();
@@ -200,14 +274,11 @@ const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> =
       cy.reload();
     }
 
-    // Wait for the app to finish loading (user, config, DSC). The main
-    // content container is only rendered after those complete, so its
-    // presence confirms area flags and extensions are evaluated.
     cy.get('[data-testid="dashboard-page-main"]', { timeout: SIDEBAR_SETTLE_TIMEOUT });
 
     return appChrome
       .findSideBar()
-      .then(($sidebar) => $sidebar.find(`a:contains("${navLabel}")`).length > 0)
+      .then(($sidebar) => findNavItemInSidebar($sidebar, navLabel))
       .then((found) => {
         const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
@@ -216,7 +287,12 @@ const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> =
           return cy.wrap(true);
         }
 
+        if (attemptNumber === 1) {
+          logSidebarDiagnostics();
+        }
+
         if (attemptNumber >= maxAttempts) {
+          logSidebarDiagnostics();
           throw new Error(
             `${navLabel} nav item not found in sidebar after ${maxAttempts} attempts (${elapsedTime}s)`,
           );
