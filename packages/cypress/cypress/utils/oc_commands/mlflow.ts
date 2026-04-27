@@ -185,14 +185,11 @@ const waitForMlflowCRReady = (namespace: string): Cypress.Chainable<Cypress.Exec
  * Uses visitWithLogin for the first attempt to establish a session,
  * then cy.reload() for subsequent attempts to avoid repeated OAuth overhead.
  */
+const SIDEBAR_SETTLE_TIMEOUT = 30000;
+
 const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> => {
   const { maxAttempts, pollIntervalMs } = UI_POLL_CONFIG;
   const startTime = Date.now();
-
-  const isVisible = (): Cypress.Chainable<boolean> =>
-    appChrome
-      .findSideBar()
-      .then(($sidebar) => $sidebar.find(`a:contains("${navLabel}")`).length > 0);
 
   const check = (attemptNumber = 1): Cypress.Chainable<boolean> => {
     cy.step(`Attempt ${attemptNumber}/${maxAttempts} - Checking for ${navLabel} in sidebar...`);
@@ -203,8 +200,14 @@ const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> =
       cy.reload();
     }
 
-    return cy.get('#page-sidebar', { timeout: 15000 }).then(() =>
-      isVisible().then((found) => {
+    // Wait for the dashboard app to finish its loading sequence
+    // (#dashboard-page-main appears only after user, config, and DSC are fetched).
+    cy.get('#dashboard-page-main', { timeout: SIDEBAR_SETTLE_TIMEOUT });
+
+    return appChrome
+      .findSideBar()
+      .then(($sidebar) => $sidebar.find(`a:contains("${navLabel}")`).length > 0)
+      .then((found) => {
         const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
         if (found) {
@@ -224,8 +227,7 @@ const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> =
 
         // eslint-disable-next-line cypress/no-unnecessary-waiting
         return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
-      }),
-    );
+      });
   };
 
   const totalTimeout = (maxAttempts * pollIntervalMs) / 1000;
