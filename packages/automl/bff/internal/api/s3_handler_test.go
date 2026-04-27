@@ -566,16 +566,16 @@ func TestS3Repository_GetS3Credentials_WithoutBucket(t *testing.T) {
 	assert.Equal(t, "", creds.Bucket) // Bucket should be empty when not in secret
 }
 
-// Tests for GetS3FileSchemaHandler
+// Tests for view=schema on GetS3FileHandler
 
-func TestGetS3FileSchemaHandler_MissingNamespace(t *testing.T) {
+func TestGetS3FileHandler_ViewSchema_MissingNamespace(t *testing.T) {
 	mockClient := &mockKubernetesClientForSecrets{}
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
-		"/api/v1/s3/files/data.csv/schema?secretName=aws-secret-1&bucket=my-bucket",
+		"/api/v1/s3/files/data.csv?view=schema&secretName=aws-secret-1&bucket=my-bucket",
 		nil,
 		factory,
 		identity,
@@ -585,14 +585,14 @@ func TestGetS3FileSchemaHandler_MissingNamespace(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
-func TestGetS3FileSchemaHandler_MissingSecretName(t *testing.T) {
+func TestGetS3FileHandler_ViewSchema_MissingSecretName(t *testing.T) {
 	mockClient := &mockKubernetesClientForSecrets{}
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
-		"/api/v1/s3/files/data.csv/schema?namespace=test-namespace&bucket=my-bucket",
+		"/api/v1/s3/files/data.csv?view=schema&namespace=test-namespace&bucket=my-bucket",
 		nil,
 		factory,
 		identity,
@@ -602,14 +602,14 @@ func TestGetS3FileSchemaHandler_MissingSecretName(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
-func TestGetS3FileSchemaHandler_SecretNotFound(t *testing.T) {
+func TestGetS3FileHandler_ViewSchema_SecretNotFound(t *testing.T) {
 	mockClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{}}
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
-		"/api/v1/s3/files/data.csv/schema?namespace=test-namespace&secretName=non-existent-secret&bucket=my-bucket",
+		"/api/v1/s3/files/data.csv?view=schema&namespace=test-namespace&secretName=non-existent-secret&bucket=my-bucket",
 		nil,
 		factory,
 		identity,
@@ -619,7 +619,7 @@ func TestGetS3FileSchemaHandler_SecretNotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, res.StatusCode)
 }
 
-func TestGetS3FileSchemaHandler_MissingBucket(t *testing.T) {
+func TestGetS3FileHandler_ViewSchema_MissingBucket(t *testing.T) {
 	// Secret without AWS_S3_BUCKET, and no bucket query param provided
 	mockSecrets := []corev1.Secret{
 		{
@@ -644,7 +644,7 @@ func TestGetS3FileSchemaHandler_MissingBucket(t *testing.T) {
 
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
-		"/api/v1/s3/files/data.csv/schema?namespace=test-namespace&secretName=aws-secret-1",
+		"/api/v1/s3/files/data.csv?view=schema&namespace=test-namespace&secretName=aws-secret-1",
 		nil,
 		factory,
 		identity,
@@ -654,10 +654,7 @@ func TestGetS3FileSchemaHandler_MissingBucket(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
-// Tests for SSRF protection in S3 endpoint validation
-
-func TestGetS3FileSchemaHandler_IncludesParseWarnings(t *testing.T) {
-	// Create a mock secret with valid S3 credentials
+func TestGetS3FileHandler_ViewSchema_IncludesParseWarnings(t *testing.T) {
 	mockSecrets := []corev1.Secret{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -678,10 +675,9 @@ func TestGetS3FileSchemaHandler_IncludesParseWarnings(t *testing.T) {
 	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
-	// Make request to get CSV schema
 	result, res, err := setupApiTest[map[string]interface{}](
 		"GET",
-		"/api/v1/s3/files/data.csv/schema?namespace=default&secretName=test-secret&bucket=my-bucket",
+		"/api/v1/s3/files/data.csv?view=schema&namespace=default&secretName=test-secret&bucket=my-bucket",
 		nil,
 		factory,
 		identity,
@@ -690,23 +686,19 @@ func TestGetS3FileSchemaHandler_IncludesParseWarnings(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	// Verify response structure includes parse_warnings
 	assert.NotNil(t, result)
 	data, ok := result["data"].(map[string]interface{})
 	assert.True(t, ok, "Response should have 'data' field")
 	assert.NotNil(t, data)
 
-	// Verify parse_warnings field exists
 	parseWarnings, ok := data["parse_warnings"]
 	assert.True(t, ok, "Response data should have 'parse_warnings' field")
 	assert.NotNil(t, parseWarnings)
 
-	// For mock data, parse_warnings should be 0
 	parseWarningsFloat, ok := parseWarnings.(float64)
 	assert.True(t, ok, "parse_warnings should be a number")
 	assert.Equal(t, float64(0), parseWarningsFloat, "Mock data should have 0 parse warnings")
 
-	// Verify columns field still exists and mock-inferred types are passed through (column typing)
 	columns, ok := data["columns"]
 	assert.True(t, ok, "Response data should have 'columns' field")
 	assert.NotNil(t, columns)
@@ -958,7 +950,7 @@ func TestGetS3FileHandler_DSPAPath_BucketOverriddenByDSPA(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
-func TestGetS3FileSchemaHandler_DSPAPath_Success(t *testing.T) {
+func TestGetS3FileHandler_ViewSchema_DSPAPath_Success(t *testing.T) {
 	mockSecrets := []corev1.Secret{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -986,16 +978,16 @@ func TestGetS3FileSchemaHandler_DSPAPath_Success(t *testing.T) {
 		Region:         "us-east-1",
 	}
 
-	req := buildDSPARequest("GET", "/api/v1/s3/files/data.csv/schema", dspaStorage, "default", identity)
+	req := buildDSPARequest("GET", "/api/v1/s3/files/data.csv?view=schema", dspaStorage, "default", identity)
 
 	app := newS3TestApp(factory)
 	rr := httptest.NewRecorder()
-	app.GetS3FileSchemaHandler(rr, req, httprouter.Params{{Key: "key", Value: "data.csv"}})
+	app.GetS3FileHandler(rr, req, httprouter.Params{{Key: "key", Value: "data.csv"}})
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
-func TestGetS3FileSchemaHandler_DSPAPath_EmptyBucket_Returns503(t *testing.T) {
+func TestGetS3FileHandler_ViewSchema_DSPAPath_EmptyBucket_Returns503(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 	mockSecrets := []corev1.Secret{
 		{
@@ -1018,11 +1010,11 @@ func TestGetS3FileSchemaHandler_DSPAPath_EmptyBucket_Returns503(t *testing.T) {
 		Region:         "us-east-1",
 	}
 
-	req := buildDSPARequest("GET", "/api/v1/s3/files/data.csv/schema", dspaStorage, "default", identity)
+	req := buildDSPARequest("GET", "/api/v1/s3/files/data.csv?view=schema", dspaStorage, "default", identity)
 
 	app := newS3TestApp(factory)
 	rr := httptest.NewRecorder()
-	app.GetS3FileSchemaHandler(rr, req, httprouter.Params{{Key: "key", Value: "data.csv"}})
+	app.GetS3FileHandler(rr, req, httprouter.Params{{Key: "key", Value: "data.csv"}})
 
 	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 }
@@ -2193,7 +2185,7 @@ func (c *connectivityErrorS3Client) GetCSVSchema(_ context.Context, _, _ string)
 	return s3int.CSVSchemaResult{}, &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("i/o timeout")}
 }
 
-func TestGetS3FileSchemaHandler_ConnectivityError_Returns503(t *testing.T) {
+func TestGetS3FileHandler_ViewSchema_ConnectivityError_Returns503(t *testing.T) {
 	t.Parallel()
 	secret := mockS3Secret("aws-secret-1", "test-namespace")
 	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
@@ -2203,7 +2195,7 @@ func TestGetS3FileSchemaHandler_ConnectivityError_Returns503(t *testing.T) {
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodGet,
-		"/api/v1/s3/files/file.csv/schema?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		"/api/v1/s3/files/file.csv?view=schema&namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		http.NoBody,
 		"",
 		k8sFactory,
@@ -2532,7 +2524,7 @@ func TestGetS3FilesHandler_SetsMetadataTimeout(t *testing.T) {
 		"deadline should be approximately s3MetadataTimeout from request time")
 }
 
-func TestGetS3FileSchemaHandler_SetsMetadataTimeout(t *testing.T) {
+func TestGetS3FileHandler_ViewSchema_SetsMetadataTimeout(t *testing.T) {
 	t.Parallel()
 	secret := mockS3Secret("aws-secret-1", "test-namespace")
 	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
@@ -2543,7 +2535,7 @@ func TestGetS3FileSchemaHandler_SetsMetadataTimeout(t *testing.T) {
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodGet,
-		"/api/v1/s3/files/data.csv/schema?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		"/api/v1/s3/files/data.csv?view=schema&namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		http.NoBody,
 		"",
 		k8sFactory,
@@ -2597,6 +2589,60 @@ func TestGetS3FileHandler_DoesNotSetMetadataTimeout(t *testing.T) {
 	require.NotNil(t, capturingClient.capturedCtx, "GetObject should have been called")
 	_, hasDeadline := capturingClient.capturedCtx.Deadline()
 	assert.False(t, hasDeadline, "context passed to GetObject should NOT have a handler-imposed deadline")
+}
+
+func TestGetS3FileHandler_FileNamedSchema_ReturnsFileContents(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	s3Factory := s3mocks.NewMockClientFactory()
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/files/"+url.PathEscape("inafolder/schema")+"?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.NotEqual(t, "application/json", res.Header.Get("Content-Type"),
+		"file named 'schema' without view=schema should stream file contents, not return JSON schema")
+}
+
+func TestGetS3FileHandler_UnknownView_Returns400(t *testing.T) {
+	t.Parallel()
+	secret := mockS3Secret("aws-secret-1", "test-namespace")
+	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
+	s3Factory := s3mocks.NewMockClientFactory()
+	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+	rr := setupS3ApiTestWithBody(
+		http.MethodGet,
+		"/api/v1/s3/files/data.csv?view=unknown&namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+		http.NoBody,
+		"",
+		k8sFactory,
+		s3Factory,
+		identity,
+		nil,
+		nil,
+	)
+	res := rr.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	var env ErrorEnvelope
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
+	require.NotNil(t, env.Error)
+	assert.Contains(t, env.Error.Message, "unsupported view")
 }
 
 func TestPostS3FileHandler_SetsMetadataTimeoutForResolveKey(t *testing.T) {

@@ -37,7 +37,6 @@ const (
 	NamespacePath           = ApiPathPrefix + "/namespaces"
 	SecretsPath             = ApiPathPrefix + "/secrets"
 	S3FilePath              = ApiPathPrefix + "/s3/files/:key"
-	S3FileSchemaPath        = ApiPathPrefix + "/s3/files/:key/schema"
 	S3FilesPath             = ApiPathPrefix + "/s3/files"
 	PipelineRunsPath        = ApiPathPrefix + "/pipeline-runs"
 	ModelRegistriesPath     = ApiPathPrefix + "/model-registries"
@@ -259,7 +258,6 @@ func (app *App) Routes() http.Handler {
 
 	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
 	// secretName (the handler resolves credentials directly in that case).
-	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileSchemaHandler))))
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileHandler))))
 	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler))))
 	// POST /s3/files/:key deliberately omits attachPipelineClientIfNeeded: secretName is required;

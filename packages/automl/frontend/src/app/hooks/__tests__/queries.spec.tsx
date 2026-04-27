@@ -92,7 +92,7 @@ describe('useS3GetFileSchemaQuery', () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/s3/files/data.csv/schema?'),
+        expect.stringContaining('/api/v1/s3/files/data.csv?'),
         expect.anything(),
       );
     });
@@ -101,6 +101,7 @@ describe('useS3GetFileSchemaQuery', () => {
     expect(callUrl).toContain('namespace=test-namespace');
     expect(callUrl).toContain('secretName=test-secret');
     expect(callUrl).toContain('bucket=test-bucket');
+    expect(callUrl).toContain('view=schema');
   });
 
   it('should omit bucket parameter when not provided', async () => {
@@ -132,7 +133,8 @@ describe('useS3GetFileSchemaQuery', () => {
     expect(callUrl).toContain('namespace=test-namespace');
     expect(callUrl).toContain('secretName=test-secret');
     expect(callUrl).not.toContain('bucket=');
-    expect(callUrl).toContain('/s3/files/data.csv/schema');
+    expect(callUrl).toContain('/s3/files/data.csv?');
+    expect(callUrl).toContain('view=schema');
   });
 
   it('should parse response data correctly', async () => {
@@ -320,13 +322,14 @@ describe('useS3GetFileSchemaQuery', () => {
     });
 
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/v1/s3/files/folder%2Fmy%20file.csv/schema?'),
+      expect.stringContaining('/api/v1/s3/files/folder%2Fmy%20file.csv?'),
       expect.objectContaining({ signal: expect.anything() }),
     );
     const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
     expect(callUrl).toContain('namespace=test-namespace');
     expect(callUrl).toContain('secretName=test-secret');
     expect(callUrl).toContain('bucket=my-bucket');
+    expect(callUrl).toContain('view=schema');
   });
 });
 

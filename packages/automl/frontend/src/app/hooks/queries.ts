@@ -135,9 +135,10 @@ export function useS3GetFileSchemaQuery(
         secretName,
         ...(bucket && { bucket }),
       });
+      params.set('view', 'schema');
 
       const response = await fetch(
-        `${URL_PREFIX}/api/v1/s3/files/${encodeURIComponent(key)}/schema?${params.toString()}`,
+        `${URL_PREFIX}/api/v1/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
         { signal },
       );
 

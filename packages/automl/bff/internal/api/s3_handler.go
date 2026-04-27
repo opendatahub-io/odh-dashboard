@@ -246,6 +246,16 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
+	if v := queryParams.Get("view"); v != "" && v != "schema" {
+		app.badRequestResponse(w, r, fmt.Errorf("unsupported view: %q (supported: schema)", v))
+		return
+	}
+
+	if queryParams.Get("view") == "schema" {
+		app.handleS3FileSchemaView(w, r, key, queryParams)
+		return
+	}
+
 	s3, ok := app.resolveS3Client(w, r, strings.TrimSpace(secretName), queryParams.Get("bucket"))
 	if !ok {
 		return
@@ -609,33 +619,8 @@ func s3GetResponseTypeAllowsInlineViewing(sanitizedContentType string) bool {
 	}
 }
 
-// GetS3FileSchemaHandler retrieves the schema (column names and types) from a CSV file in S3.
-// Path parameters:
-//   - key (required): S3 object key (must be a .csv file).
-//
-// Query parameters:
-//   - secretName (optional): Kubernetes secret with S3 credentials.
-//     If omitted, credentials are taken from the DSPA associated with the namespace.
-//   - bucket (optional): S3 bucket; ignored on the DSPA path.
-func (app *App) GetS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	queryParams := r.URL.Query()
-
-	secretName := queryParams.Get("secretName")
-	if secretName != "" && !isValidDNS1123Subdomain(secretName) {
-		app.badRequestResponse(w, r, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
-		return
-	}
-
-	rawKey, err := url.PathUnescape(ps.ByName("key"))
-	if err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid URL encoding in path parameter 'key': %w", err))
-		return
-	}
-	key := strings.TrimSpace(rawKey)
-	if key == "" {
-		app.badRequestResponse(w, r, errors.New("path parameter 'key' is required and cannot be empty"))
-		return
-	}
+func (app *App) handleS3FileSchemaView(w http.ResponseWriter, r *http.Request, key string, queryParams url.Values) {
+	secretName := strings.TrimSpace(queryParams.Get("secretName"))
 
 	s3, ok := app.resolveS3Client(w, r, secretName, queryParams.Get("bucket"))
 	if !ok {
