@@ -10,9 +10,8 @@ const DASHBOARD_CONFIG = 'odhdashboardconfig odh-dashboard-config';
 
 // Polling configuration for UI visibility (slower, requires page reload)
 const UI_POLL_CONFIG = {
-  maxAttempts: 15,
-  pollIntervalMs: 10000, // 10 seconds between attempts
-  pageLoadWaitMs: 5000,
+  maxAttempts: 20,
+  pollIntervalMs: 5000,
 } as const;
 
 /**
@@ -95,24 +94,27 @@ const isGenAiStudioVisible = (): Cypress.Chainable<boolean> => {
 
 /**
  * Poll until the Gen AI Studio section appears in the sidebar.
- * Refreshes the page and checks for the nav section on each attempt.
+ * Uses visitWithLogin for the first attempt to establish a session,
+ * then cy.reload() for subsequent attempts to avoid repeated OAuth overhead.
  *
  * @returns A Cypress chainable that resolves when the section is visible.
  */
 const waitForGenAiStudioInSidebar = (): Cypress.Chainable<boolean> => {
-  const { maxAttempts, pollIntervalMs, pageLoadWaitMs } = UI_POLL_CONFIG;
+  const { maxAttempts, pollIntervalMs } = UI_POLL_CONFIG;
   const startTime = Date.now();
 
   const checkForSection = (attemptNumber = 1): Cypress.Chainable<boolean> => {
     cy.step(`Attempt ${attemptNumber}/${maxAttempts} - Checking for Gen AI studio in sidebar...`);
 
-    // Visit/reload the dashboard to get fresh sidebar state
-    cy.visitWithLogin('/');
+    if (attemptNumber === 1) {
+      cy.visitWithLogin('/');
+    } else {
+      cy.reload();
+    }
 
-    // Wait for page to fully load, then check for the section
-    // eslint-disable-next-line cypress/no-unnecessary-waiting
-    return cy.wait(pageLoadWaitMs).then(() => {
-      return isGenAiStudioVisible().then((isVisible) => {
+    // Wait for sidebar to render before checking
+    return cy.get('#page-sidebar', { timeout: 15000 }).then(() =>
+      isGenAiStudioVisible().then((isVisible) => {
         const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
         if (isVisible) {
@@ -132,8 +134,8 @@ const waitForGenAiStudioInSidebar = (): Cypress.Chainable<boolean> => {
 
         // eslint-disable-next-line cypress/no-unnecessary-waiting
         return cy.wait(pollIntervalMs).then(() => checkForSection(attemptNumber + 1));
-      });
-    });
+      }),
+    );
   };
 
   const totalTimeout = (maxAttempts * pollIntervalMs) / 1000;
@@ -142,14 +144,13 @@ const waitForGenAiStudioInSidebar = (): Cypress.Chainable<boolean> => {
 };
 
 /**
- * Enable Gen AI features by patching the DataScienceCluster and ODHDashboardConfig resources.
- * Sets LlamaStack operator to Managed, waits for the operator to be ready,
- * waits for the namespace, enables Gen AI Studio, polls for the feature flag,
- * and finally polls until it appears in the sidebar.
+ * Enable Gen AI backend resources without waiting for sidebar visibility.
+ * Sets LlamaStack operator to Managed, waits for readiness, namespace,
+ * enables Gen AI Studio flag, and polls for the feature flag.
  *
- * @returns A Cypress chainable that resolves when Gen AI Studio is visible in the sidebar.
+ * Useful for composition when a caller will perform its own sidebar check.
  */
-export const enableGenAiFeatures = (): Cypress.Chainable<boolean> => {
+export const enableGenAiBackend = (): Cypress.Chainable<Cypress.Exec> => {
   const namespace = getApplicationsNamespace();
 
   cy.step('Set LlamaStack to Managed');
@@ -169,6 +170,33 @@ export const enableGenAiFeatures = (): Cypress.Chainable<boolean> => {
     .then(() => {
       cy.step('Wait for genAiStudio feature flag to be set');
       return waitForGenAiStudioFeatureFlag();
+    });
+};
+
+/**
+ * Poll until the DSC status reports llamastackoperator as Managed.
+ * The dashboard frontend reads DSC status to evaluate the plugin-gen-ai area flag.
+ */
+const waitForDSCLlamaStackManaged = (): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get ${DSC_RESOURCE} -o json | jq -e '.status.components.llamastackoperator.managementState == "Managed"'`,
+    'DSC status to reflect llamastackoperator as Managed',
+    { maxAttempts: 60, pollIntervalMs: 5000 },
+  );
+
+/**
+ * Enable Gen AI features by patching the DataScienceCluster and ODHDashboardConfig resources.
+ * Sets LlamaStack operator to Managed, waits for the operator to be ready,
+ * waits for the namespace, enables Gen AI Studio, polls for the feature flag,
+ * verifies DSC status, and finally polls until it appears in the sidebar.
+ *
+ * @returns A Cypress chainable that resolves when Gen AI Studio is visible in the sidebar.
+ */
+export const enableGenAiFeatures = (): Cypress.Chainable<boolean> => {
+  return enableGenAiBackend()
+    .then(() => {
+      cy.step('Verify DSC status reflects llamastackoperator as Managed');
+      return waitForDSCLlamaStackManaged();
     })
     .then(() => {
       cy.step('Wait for Gen AI Studio to appear in sidebar');
