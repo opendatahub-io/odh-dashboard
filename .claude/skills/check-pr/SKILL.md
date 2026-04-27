@@ -14,22 +14,19 @@ With `--fix`, attempts to fix failing checks after reporting.
 
 ## Step 1: Resolve context
 
-Determine whether `$ARGUMENTS` contains `--fix`. Strip it from args if present and remember the flag.
+Parse `$ARGUMENTS` — strip `--fix` if present and remember the flag. Whatever remains is the PR number or URL.
 
 Try to find a PR:
+- If a number/URL was given, extract the PR number from it.
+- Otherwise, detect from the current branch: `gh pr list --head "$(git branch --show-current)" --state open --json number --jq '.[0].number'`
+- If a PR is found, fetch its metadata: `gh pr view "$pr_number" --json title,headRefName,baseRefName,mergeable,mergeStateStatus,number,body,author,reviewDecision`
+- If no PR is found, that's fine — the skill runs in local mode.
+
+Get repo coordinates:
 ```bash
-${CLAUDE_SKILL_DIR}/scripts/resolve-pr.sh "$ARGUMENTS"
-```
-
-This returns JSON with PR metadata, or errors if no PR is found. Either outcome is fine — the skill adapts.
-
-If a PR was found, extract: `pr_number`, `owner`, `repo`, `pr_title`, `base_branch`, `body`, `reviewDecision`, `mergeable`.
-
-If no PR, determine context from the local branch:
-```bash
-base_branch="main"
 owner=$(gh repo view --json owner --jq '.owner.login')
 repo=$(gh repo view --json name --jq '.name')
+base_branch="main"  # or from PR metadata if available
 ```
 
 Detect which packages are affected by comparing against the base branch:
