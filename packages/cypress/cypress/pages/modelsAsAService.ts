@@ -744,6 +744,14 @@ class SubscriptionTableRow extends TableRow {
     return this.find().find('[data-label="Name"]');
   }
 
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findTitleButton(): Cypress.Chainable<JQuery<HTMLAnchorElement>> {
+    return this.find().findByTestId('table-row-title').find('a');
+  }
+
   findPhase(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Phase"]');
   }
@@ -1034,6 +1042,18 @@ class ViewSubscriptionPage {
   findDetailsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('subscription-details-tab');
   }
+
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-actions-toggle');
+  }
+
+  findDeleteActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Delete' });
+  }
+
+  findEditActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Edit' });
+  }
 }
 
 class PolicyPage {
@@ -1177,7 +1197,11 @@ class AuthPolicyTableRow extends TableRow {
   }
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-testid="auth-policy-actions"]');
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findTitleButton(): Cypress.Chainable<JQuery<HTMLAnchorElement>> {
+    return this.find().findByTestId('table-row-title').find('a');
   }
 }
 
@@ -1240,6 +1264,14 @@ class ViewAuthPolicyPage {
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('policy-actions-toggle');
+  }
+
+  findDeleteActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Delete' });
+  }
+
+  findEditActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Edit' });
   }
 
   findPageError(): Cypress.Chainable<JQuery<HTMLElement>> {
