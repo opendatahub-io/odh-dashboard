@@ -375,8 +375,8 @@ paths:
       operationId: initNemoGuardrails
       summary: Initialize NemoGuardrails
       description: >-
-        Creates a placeholder ConfigMap and NemoGuardrails CR. Idempotent — safe
-        to call multiple times; existing resources are updated in place.
+        Creates a placeholder ConfigMap and NemoGuardrails CR. One-time setup —
+        returns 400 if NemoGuardrails is already initialised in the namespace.
 
   # =============================================================================
   # AI AVAILABLE ASSETS (AAA) ENDPOINTS
