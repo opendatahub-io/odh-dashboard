@@ -56,13 +56,14 @@ The failing test exercises feature area X, but the PR only touches feature area 
 
 *How to find it:* `/flake-check <PR> --deep` — adds a "Previously Failed — Rerun Detected" section to the report.
 
-**Signal 4 — Symptom pattern match (weak, starting point only)**
+**Signal 4 — Symptom pattern match (low/moderate - starting point only)**
 
 | Pattern | What it usually indicates |
 |---------|--------------------------|
 | `CypressError: Timed out retrying after` | DOM timing race |
 | `cy.click() / cy.type() failed — requires a DOM element` | Element disappeared mid-test |
 | `AssertionError: Timed out retrying` | Timing race — but check the error detail; a missing named element may be a real defect |
+| `Unable to find an element by:` | Ambiguous — element absent or not yet rendered; check CI screenshot/video to confirm |
 | `socket hang up` / `ECONNRESET` / `ERR_CONNECTION_REFUSED` | Infrastructure hiccup |
 | `Cannot read properties of null` | Race condition in test setup |
 
@@ -115,7 +116,8 @@ Apply this conservatively — a real regression can produce the same symptoms as
 
 **Likely real**
 - No symptom pattern match and no cross-PR recurrence signal
-- Also use Likely real when a symptom pattern matched but analysis suggests a real failure (e.g. deterministic missing element, brand-new test, wrong selector name)
+- Also use Likely real when a symptom pattern matched but analysis clearly points to a real failure (e.g. brand-new test with a wrong selector name, deterministic build/lint error)
+- Do NOT automatically classify "Unable to find an element" errors as Likely real — these are ambiguous and require visual confirmation first (see "Downloading CI Artifacts" below)
 - Treat as a real failure until proven otherwise
 - Recommended action: investigate as a potential real regression
 
@@ -123,11 +125,73 @@ Apply this conservatively — a real regression can produce the same symptoms as
 - `CypressError: Timed out retrying after`
 - `cy.click() failed because it requires a DOM element`
 - `cy.type() failed because it requires a DOM element`
-- `AssertionError: Timed out retrying` — **distinguish**: if the error names a specific element that never appeared (e.g. "Unable to find button with name X"), this is likely a real defect, not a timing race; classify as Likely real
+- `AssertionError: Timed out retrying` — timing race signal; if the error names a specific element (e.g. "Unable to find button with name X"), this is **ambiguous** — the element may have been genuinely absent (real failure) or may not have rendered in time (flaky); classify as Suspected flaky; CI artifacts are especially useful for resolving this case (see "Downloading CI Artifacts" below)
+- `Unable to find an element by:` — element lookup failed; **ambiguous** between a real missing element and a rendering/timing race; classify as Suspected flaky; CI artifacts are especially useful for resolving this case (see "Downloading CI Artifacts" below)
 - `socket hang up`
 - `ECONNRESET`
 - `net::ERR_CONNECTION_REFUSED`
 - `Cannot read properties of null` in test output (race condition signal)
+
+---
+
+## Downloading CI Artifacts
+
+When a failure matches an ambiguous pattern — especially `Unable to find an element by:` or `AssertionError: Timed out retrying` naming a specific element — proactively offer to download the Cypress screenshot or video for that run. These give direct visual evidence of the UI state at the moment of failure, which is often decisive.
+
+**Step 1 — List available artifacts for the run:**
+
+```bash
+gh api repos/opendatahub-io/odh-dashboard/actions/runs/<run_id>/artifacts \
+  --jq '.artifacts[] | {name: .name, id: .id, size_in_bytes: .size_in_bytes, expired: .expired}'
+```
+
+Look for artifact names containing `screenshot`, `video`, or `cypress`. If `expired: true`, the artifacts are no longer available — note this and skip. If the list is empty (no artifacts at all), advise the user to check whether the failing workflow uploads Cypress results on failure — fetch the workflow path for the run and read the file to verify:
+```bash
+gh api repos/opendatahub-io/odh-dashboard/actions/runs/<run_id> --jq '.path'
+```
+Check whether the workflow contains an `actions/upload-artifact` step that runs `if: failure()` and includes the Cypress `screenshots` and `videos` output directories. If missing, suggest adding it so future failures produce downloadable evidence.
+
+**Step 2 — Download the artifact:**
+
+```bash
+gh run download <run_id> -n <artifact-name> -D /tmp/ci-artifacts/
+```
+
+Cypress zips each artifact type separately. After download, list what was extracted:
+
+```bash
+find /tmp/ci-artifacts/ -type f | sort
+```
+
+**Step 3 — Find the file for the failing test:**
+
+Cypress names screenshots after the test: `<describe block> -- <it description> (failed).png`, nested under the spec file's path. Videos are named after the spec file: `<spec-file>.cy.ts.mp4`.
+
+Match the failing test name from the log to the downloaded files.
+
+**Step 4 — View the image or video:**
+
+For screenshots, use the Read tool to view the PNG directly — Claude can analyse what's shown:
+
+```
+Read: /tmp/ci-artifacts/cypress/screenshots/.../<test name> (failed).png
+```
+
+After reading, always share the local path and the terminal command to open it:
+> Screenshot saved locally: `/tmp/ci-artifacts/.../<test name> (failed).png`
+> Open in macOS: `open "/tmp/ci-artifacts/.../<test name> (failed).png"`
+
+For videos, Claude cannot play MP4 files — provide the local path and the terminal command to open it:
+> Video saved locally: `/tmp/ci-artifacts/.../videos/<spec>.cy.ts.mp4`
+> Open in macOS: `open "/tmp/ci-artifacts/.../videos/<spec>.cy.ts.mp4"`
+
+**What to look for:**
+- Screenshot shows the expected element clearly rendered → timing race, supports flaky classification
+- Screenshot shows a blank page, wrong page, or missing component → likely a real defect or infrastructure issue
+- Screenshot shows a spinner or partially loaded state → async race condition, supports flaky classification
+- Element is visibly absent with no obvious loading state → may be a real regression; investigate further
+
+After viewing, update the classification based on what the screenshot shows and explain your reasoning.
 
 ---
 
@@ -210,6 +274,23 @@ gh pr view <number> --json files --jq '[.files[].path]'
 ```
 
 For each suspected flaky test, compare the PR's changed file paths against the feature area the test exercises — inferred from the test file's directory (e.g. `cypress/tests/mocked/pipelines/runs/` → pipelines area) and the source directories the PR touches (e.g. `frontend/src/pages/pipelines/` → pipelines area).
+
+**Artifact check — run this for every Suspected flaky test:**
+
+After the initial classification and before generating the report, proactively check whether CI screenshots or videos are available for the failing run. Do not wait for the user to ask.
+
+```bash
+gh api repos/opendatahub-io/odh-dashboard/actions/runs/<run_id>/artifacts \
+  --jq '.artifacts[] | {name: .name, id: .id, size_in_bytes: .size_in_bytes, expired: .expired}'
+```
+
+- If artifacts exist and are not expired: download and inspect them — see "Downloading CI Artifacts" for the full procedure. View any screenshots with the Read tool and include your visual analysis in the report.
+- If artifacts are expired: note this in the report and suggest the user rerun the failing check to capture fresh artifacts if they need visual confirmation.
+- If no artifacts are found at all: note this and advise the user to check whether the failing workflow is configured to upload Cypress results on failure. Look up the relevant workflow file to check — for example:
+  ```bash
+  gh api repos/opendatahub-io/odh-dashboard/actions/runs/<run_id> --jq '.path'
+  ```
+  Then read that workflow file (e.g. `.github/workflows/gen-ai-frontend-build.yml`) and check whether it has an artifact upload step (typically `actions/upload-artifact`) that runs `if: failure()` and includes the Cypress `screenshots` and `videos` directories. If this step is missing or misconfigured, advise the user to add it so future failures produce downloadable evidence.
 
 **Overlap verdict — refine the classification based on the result (check in this order):**
 - **PR modifies the test file itself** — the failing test's exact file path is among the PR's changed files → the overlap is the test file being edited directly, not source code in the same area. Do NOT escalate to "regression possible". Instead, fetch the PR's title, body, and branch name to look for evidence this is a flake fix attempt:
