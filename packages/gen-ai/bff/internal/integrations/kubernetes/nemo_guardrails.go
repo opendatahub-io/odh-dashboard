@@ -119,6 +119,10 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 	if err := kc.Client.Create(ctx, cr); err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			// A concurrent init completed between our GetNemoGuardrailsCR check and now.
+			// Clean up the placeholder ConfigMap we just created before returning.
+			if deleteErr := kc.Client.Delete(ctx, cm); deleteErr != nil {
+				kc.Logger.Error("failed to clean up ConfigMap after concurrent CR creation", "error", deleteErr)
+			}
 			return "", &models.ErrNemoGuardrailsAlreadyInitialised{Namespace: namespace}
 		}
 		// Unexpected server error — clean up the ConfigMap we just created.
