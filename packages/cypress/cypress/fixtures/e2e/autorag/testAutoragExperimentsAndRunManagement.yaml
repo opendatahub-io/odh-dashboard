@@ -1,0 +1,9 @@
+projectNamePrefix: 'cy-e2e-autorag-mgmt'
+dspaSecretName: dashboard-dspa-secret
+s3SecretName: ods-ci-ds-pipelines
+llamaStackSecretName: cy-lls-secret
+runName: autorag-management-run
+runDescription: 'E2E test for autorag experiments list and run management'
+documentFile: autorag-test-document.txt
+awsBucket: BUCKET_2
+maxRagPatterns: 5

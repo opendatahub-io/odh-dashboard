@@ -1,0 +1,10 @@
+projectNamePrefix: 'cy-e2e-autorag-opt'
+dspaSecretName: dashboard-dspa-secret
+s3SecretName: ods-ci-ds-pipelines
+llamaStackSecretName: cy-lls-secret
+runName: autorag-optimization-run
+runDescription: 'E2E full optimization run'
+documentFile: autorag-test-document.txt
+awsBucket: BUCKET_2
+maxRagPatterns: 5
+optimizationMetric: faithfulness

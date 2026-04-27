@@ -1,0 +1,9 @@
+projectNamePrefix: 'cy-e2e-autorag-metrics'
+dspaSecretName: dashboard-dspa-secret
+s3SecretName: ods-ci-ds-pipelines
+llamaStackSecretName: cy-lls-secret
+runName: autorag-metrics-run
+runDescription: 'E2E test for metric variation runs'
+documentFile: autorag-test-document.txt
+awsBucket: BUCKET_2
+maxRagPatterns: 5

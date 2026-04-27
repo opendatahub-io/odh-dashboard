@@ -733,3 +733,16 @@ export type MlflowExperimentsTestData = {
   runs: MlflowExperimentRunData[];
   nonExistentExperiment: string;
 };
+
+export type AutoragTestData = {
+  projectNamePrefix: string;
+  dspaSecretName: string;
+  s3SecretName: string;
+  llamaStackSecretName: string;
+  runName: string;
+  runDescription: string;
+  documentFile: string;
+  awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  maxRagPatterns?: number;
+  optimizationMetric?: string;
+};
