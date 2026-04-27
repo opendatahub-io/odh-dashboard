@@ -1099,6 +1099,18 @@ describe('Pipelines', () => {
 
   it('uploads fails with argo workflow', () => {
     initIntercepts({});
+
+    // Return empty results for filtered version requests (duplicate-name check)
+    // so the generic initIntercepts mock doesn't cause a false-positive.
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
+        query: { filter: /.*/ },
+      },
+      { pipeline_versions: [], total_size: 0 },
+    );
+
     pipelinesGlobal.visit(projectName);
 
     // Wait for the pipelines table to load

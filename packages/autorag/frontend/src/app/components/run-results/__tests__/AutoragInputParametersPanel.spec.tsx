@@ -103,6 +103,16 @@ describe('AutoragInputParametersPanel', () => {
     expect(screen.getByText('Answer faithfulness')).toBeInTheDocument();
   });
 
+  it('should format context_correctness metric with human-readable label', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        optimization_metric: 'context_correctness',
+      },
+    });
+    expect(screen.getByText('Context correctness')).toBeInTheDocument();
+  });
+
   it('should render model configuration with counts', () => {
     renderPanel();
     expect(screen.getByText('Model configuration')).toBeInTheDocument();
