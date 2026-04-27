@@ -62,7 +62,7 @@ class AutoragConfigurePage {
   }
 
   findBrowseBucketButton() {
-    return cy.contains('button', 'Browse bucket');
+    return cy.findByTestId('browse-bucket-button');
   }
 
   // File Explorer
@@ -103,6 +103,10 @@ class AutoragConfigurePage {
 
   findVectorStoreOption(providerId: string) {
     return cy.findByTestId(`vector-store-option-${providerId}`);
+  }
+
+  findFirstVectorStoreOption() {
+    return cy.findByTestId('vector-store-select-list').find('li').first();
   }
 
   // Step 2 - Optimization
@@ -172,6 +176,7 @@ class AutoragConfigurePage {
     autoragExperimentsPage.visit(projectName);
 
     cy.step('Wait for pipeline server to be fully ready and click Create run');
+    // Pipeline server startup can take up to 2 minutes on first provisioning
     cy.findByTestId('app-page-title', { timeout: 120000 }).should('be.visible');
     // Use header button if runs already exist, otherwise empty state button
     cy.get('body').then(($body) => {
@@ -232,7 +237,7 @@ class AutoragConfigurePage {
 
     cy.step('Select first available vector store');
     this.findVectorStoreSelector().click();
-    cy.findByTestId('vector-store-select-list').find('li').first().click();
+    this.findFirstVectorStoreOption().click();
   }
 
   /**

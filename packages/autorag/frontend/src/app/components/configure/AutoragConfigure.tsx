@@ -474,6 +474,7 @@ function AutoragConfigure(): React.JSX.Element {
                             <Button
                               key="select-files"
                               variant="secondary"
+                              data-testid="browse-bucket-button"
                               onClick={() => setFileExplorerMode('input_data')}
                               isDisabled={!selectedSecret || selectedSecret.invalid || isSubmitting}
                             >

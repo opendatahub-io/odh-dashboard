@@ -97,6 +97,11 @@ class AutoragResultsPage {
     return cy.findByTestId('pattern-details-save-inference-notebook');
   }
 
+  // Sample Q&A entries
+  findQAEntry(questionId: string) {
+    return cy.findByTestId(`qa-entry-${questionId}`);
+  }
+
   // Run Details Drawer
   findRunDetailsButton() {
     return cy.findByTestId('run-details-button');

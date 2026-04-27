@@ -83,10 +83,16 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       autoragConfigurePage.findSecretSelector().type(testData.s3SecretName);
       autoragConfigurePage.findSelectOption(new RegExp(testData.s3SecretName, 'i')).click();
 
-      cy.step('Browse and select existing document from S3');
+      cy.step('Browse and select the document uploaded by the first test');
+      const uploadFileName = `${testData.documentFile.replace('.txt', '')}-${uuid}.txt`;
       autoragConfigurePage.findBrowseBucketButton().click();
       autoragConfigurePage.findFileExplorerTable().should('be.visible');
-      autoragConfigurePage.findFileExplorerTable().contains('td', '.txt').first().click();
+      autoragConfigurePage.findFileExplorerSearch().type(uploadFileName);
+      autoragConfigurePage
+        .findFileExplorerTable()
+        .contains('td', uploadFileName)
+        .should('be.visible')
+        .click();
       autoragConfigurePage.findFileExplorerSelectBtn().click();
 
       cy.step('Upload evaluation dataset JSON');
@@ -100,7 +106,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
 
       cy.step('Select vector store');
       autoragConfigurePage.findVectorStoreSelector().click();
-      cy.findByTestId('vector-store-select-list').find('li').first().click();
+      autoragConfigurePage.findFirstVectorStoreOption().click();
 
       cy.step('Select faithfulness optimization metric');
       autoragConfigurePage.findOptimizationMetricSelect().click();

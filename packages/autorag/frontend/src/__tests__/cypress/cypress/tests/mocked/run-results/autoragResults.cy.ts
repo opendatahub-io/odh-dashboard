@@ -264,9 +264,9 @@ describe('AutoRAG Results Page', () => {
 
       autoragResultsPage.findTab('sample_qa').should('exist').click();
 
-      // Verify Q&A entries are rendered
-      cy.findByTestId('qa-entry-q1').should('exist');
-      cy.findByTestId('qa-entry-q2').should('exist');
+      // Verify Q&A entries are rendered (question_id values from mockEvaluationResults)
+      autoragResultsPage.findQAEntry('q1').should('exist');
+      autoragResultsPage.findQAEntry('q2').should('exist');
     });
 
     it('should close modal', () => {
