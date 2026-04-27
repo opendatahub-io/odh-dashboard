@@ -379,9 +379,7 @@ describe('Model Registry selector persistence', () => {
     verifyRelativeURL(modelRegistryUrl('modelregistry-sample-2'));
 
     cy.reload();
-    cy.findByText('Select a model registry to view and manage your registered models.', {
-      exact: false,
-    }).should('exist');
+    cy.findByTestId('model-registry-page-description').should('exist');
 
     modelRegistry.findModelRegistry().should('contain.text', 'modelregistry-sample-2');
   });
@@ -396,9 +394,7 @@ describe('Model Registry selector persistence', () => {
       },
     });
 
-    cy.findByText('Select a model registry to view and manage your registered models.', {
-      exact: false,
-    }).should('exist');
+    cy.findByTestId('model-registry-page-description').should('exist');
 
     modelRegistry.findModelRegistry().should('contain.text', 'modelregistry-sample-2');
     verifyRelativeURL(modelRegistryUrl('modelregistry-sample-2'));
@@ -414,9 +410,7 @@ describe('Model Registry selector persistence', () => {
       },
     });
 
-    cy.findByText('Select a model registry to view and manage your registered models.', {
-      exact: false,
-    }).should('exist');
+    cy.findByTestId('model-registry-page-description').should('exist');
 
     modelRegistry.findModelRegistry().should('contain.text', 'Model Registry Sample');
     verifyRelativeURL(modelRegistryUrl('modelregistry-sample'));

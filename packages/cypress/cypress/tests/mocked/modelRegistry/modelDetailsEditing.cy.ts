@@ -168,7 +168,7 @@ const initIntercepts = () => {
       },
     },
     { data: mockModelVersionWithLabels },
-  ).as('UpdatePropertyRow');
+  );
 
   cy.interceptOdh(
     `PATCH /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId`,
@@ -261,7 +261,7 @@ describe('Model version details editing (useBlocker)', () => {
       cy.contains('Second Label').parent().find('[data-testid^="remove-label-"]').click();
     });
 
-    modelVersionDetails.findSaveLabelsButton().should('exist').click();
+    modelVersionDetails.findSaveLabelsButton().should('be.visible').and('not.be.disabled').click();
   });
 
   it('should validate label length', () => {
@@ -275,6 +275,8 @@ describe('Model version details editing (useBlocker)', () => {
         cy.contains('New Label').should('exist').click();
         cy.focused().type(`${longLabel}{enter}`);
       });
+
+    cy.findAllByTestId('label-error-alert').should('have.length', 2);
 
     cy.findAllByTestId('label-error-alert')
       .eq(0)
@@ -314,14 +316,14 @@ describe('Model version details editing (useBlocker)', () => {
       .eq(0)
       .should('be.visible')
       .within(() => {
-        cy.contains(/Testing label already exists|can't exceed 63 characters/g).should('exist');
+        cy.contains(/Testing label already exists|can't exceed 63 characters/).should('exist');
       });
 
     cy.findAllByTestId('label-error-alert')
       .eq(1)
       .should('be.visible')
       .within(() => {
-        cy.contains(/Testing label already exists|can't exceed 63 characters/g).should('exist');
+        cy.contains(/Testing label already exists|can't exceed 63 characters/).should('exist');
       });
   });
 });
