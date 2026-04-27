@@ -238,7 +238,7 @@ is_binary_file() {
   if [ ! -f "$filepath" ]; then
     return 1
   fi
-  if grep -qP '\x00' "$filepath" 2>/dev/null; then
+  if LC_ALL=C grep -q $'\x00' "$filepath" 2>/dev/null; then
     return 0
   fi
   local mime_type
@@ -364,12 +364,22 @@ if [ ! -d "$LOCAL_REPO" ]; then
   clean_exit 1 "Path '$LOCAL_REPO' does not exist or is not a directory" true
 fi
 
-LOCAL_REPO_RESOLVED=$(cd "$LOCAL_REPO" && pwd)
-LOCAL_REPO_LABEL=$(git -C "$LOCAL_REPO_RESOLVED" remote get-url origin 2>/dev/null || echo "local-repository")
+LOCAL_REPO_INPUT=$(cd "$LOCAL_REPO" && pwd)
 
-if ! git -C "$LOCAL_REPO_RESOLVED" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  clean_exit 1 "Path '$LOCAL_REPO_RESOLVED' is not a valid Git repository" true
+if ! git -C "$LOCAL_REPO_INPUT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  clean_exit 1 "Path '$LOCAL_REPO_INPUT' is not a valid Git repository" true
 fi
+
+LOCAL_REPO_RESOLVED=$(git -C "$LOCAL_REPO_INPUT" rev-parse --show-toplevel)
+if [ "$LOCAL_REPO_INPUT" != "$LOCAL_REPO_RESOLVED" ]; then
+  warning_msg "Path points to a subdirectory inside the Git repository"
+  echo "  Provided:  $LOCAL_REPO_INPUT"
+  echo "  Repo root: $LOCAL_REPO_RESOLVED"
+  echo "  Using repo root for sync operations."
+  echo ""
+fi
+LOCAL_REPO_ORIGIN=$(git -C "$LOCAL_REPO_RESOLVED" remote get-url origin 2>/dev/null || echo "")
+LOCAL_REPO_LABEL="$LOCAL_REPO_RESOLVED"
 
 if ! git -C "$LOCAL_REPO_RESOLVED" rev-parse --verify "$LOCAL_BRANCH" >/dev/null 2>&1; then
   error_msg "Branch '$LOCAL_BRANCH' does not exist in $LOCAL_REPO_RESOLVED"
@@ -624,8 +634,27 @@ if [ ! -d "$TARGET_DIR" ] && ([ -z "$CURRENT_COMMIT" ] || [ "$CURRENT_COMMIT" = 
 
   cd "$MONOREPO_ROOT"
 
-  if ! update_package_json_commit "$TARGET_COMMIT"; then
+  bootstrap_tmp="$PACKAGE_JSON.tmp"
+  if ! jq --arg local_repo_path "$LOCAL_REPO_RESOLVED" \
+          --arg origin_url "$LOCAL_REPO_ORIGIN" \
+          --arg branch "$LOCAL_BRANCH" \
+          --arg commit "$TARGET_COMMIT" \
+          '.subtree = (
+            { DO_NOT_MERGE_SYNCED_FROM_LOCAL: (
+                { local_repo_path: $local_repo_path, branch: $branch }
+                + if $origin_url != "" then { origin_url: $origin_url } else {} end
+              ) }
+            + (if .subtree.repo then { repo: .subtree.repo } else {} end)
+            + { branch: $branch }
+            + (if .subtree.src then { src: .subtree.src } else {} end)
+            + { target: .subtree.target, commit: $commit }
+          )' "$PACKAGE_JSON" > "$bootstrap_tmp"; then
+    rm -f "$bootstrap_tmp"
     clean_exit 1 "Failed to update package.json during initial setup"
+  fi
+  if ! mv "$bootstrap_tmp" "$PACKAGE_JSON"; then
+    rm -f "$bootstrap_tmp"
+    clean_exit 1 "Failed to write package.json during initial setup"
   fi
 
   if ! git add "$WORKSPACE_LOCATION" "$PACKAGE_JSON"; then
@@ -660,13 +689,14 @@ if [ "$needs_sync_work" = true ]; then
   echo ""
 
   temp_file="$PACKAGE_JSON.tmp"
-  if ! jq --arg local_repo "$LOCAL_REPO_LABEL" \
+  if ! jq --arg local_repo_path "$LOCAL_REPO_RESOLVED" \
+          --arg origin_url "$LOCAL_REPO_ORIGIN" \
           --arg branch "$LOCAL_BRANCH" \
           '.subtree = {
-            DO_NOT_MERGE_SYNCED_FROM_LOCAL: {
-              local_repo: $local_repo,
-              branch: $branch
-            },
+            DO_NOT_MERGE_SYNCED_FROM_LOCAL: (
+              { local_repo_path: $local_repo_path, branch: $branch }
+              + if $origin_url != "" then { origin_url: $origin_url } else {} end
+            ),
             repo: .subtree.repo,
             branch: $branch,
             src: .subtree.src,
@@ -696,8 +726,9 @@ if [ "$needs_sync_work" = true ]; then
 
   commit_msg="${COMMIT_PREFIX}Override subtree config for local sync
 
-Syncing from local repository: $LOCAL_REPO_LABEL
-Branch: $LOCAL_BRANCH
+Syncing from local repository: $LOCAL_REPO_RESOLVED
+Branch: $LOCAL_BRANCH${LOCAL_REPO_ORIGIN:+
+Origin: $LOCAL_REPO_ORIGIN}
 
 This commit should NOT be merged. It exists only to test changes from a local repository."
 
