@@ -211,9 +211,16 @@ gh pr view <number> --json files --jq '[.files[].path]'
 
 For each suspected flaky test, compare the PR's changed file paths against the feature area the test exercises — inferred from the test file's directory (e.g. `cypress/tests/mocked/pipelines/runs/` → pipelines area) and the source directories the PR touches (e.g. `frontend/src/pages/pipelines/` → pipelines area).
 
-**Overlap verdict — refine the classification based on the result:**
+**Overlap verdict — refine the classification based on the result (check in this order):**
+- **PR modifies the test file itself** — the failing test's exact file path is among the PR's changed files → the overlap is the test file being edited directly, not source code in the same area. Do NOT escalate to "regression possible". Instead, fetch the PR's title, body, and branch name to look for evidence this is a flake fix attempt:
+  ```bash
+  gh pr view <number> --json title,body,headRefName --jq '{title: .title, branch: .headRefName, body: .body}'
+  ```
+  Look for keywords: `flake`, `flaky`, `stabilize`, `intermittent`, `timing`, `fix test`, `test fix`, or a RHOAIENG ticket reference in a known flaky-test context. Then apply one of:
+  - *Flake fix signals found* — PR title/body/branch suggests this is a flake fix attempt; classify as **⚠️ Suspected Flaky — PR appears to be a flake fix (fix may be incomplete)**; note the test is still failing and the underlying issue may not yet be resolved; recommend cross-PR recurrence and rerun checks to confirm
+  - *No flake fix signals* — no evidence the PR is trying to fix this test; the test file edit may be incidental; classify as **⚠️ Suspected Flaky — PR modifies the failing test file (ambiguous)**; recommend gathering more signals before drawing conclusions
 - **No overlap** — PR changes are in a different domain than the test's feature area (e.g. PR touches `api-keys/`, test is in `pipelines/runs/`) → refine to **⚠️ Suspected Flaky — no code overlap (likely unrelated to this PR)**; lower the alarm level in the report
-- **Overlap detected** — PR touches files in the same feature area as the failing test → keep as **⚠️ Suspected Flaky — code overlap detected (regression possible)**; flag clearly that a real regression is plausible
+- **Overlap detected** — PR touches source files in the same feature area as the failing test, but does NOT modify the test file itself → keep as **⚠️ Suspected Flaky — code overlap detected (regression possible)**; flag clearly that a real regression is plausible
 - **Unclear** — PR spans many areas or the test area is ambiguous → note uncertainty and keep as Suspected flaky
 
 ### Step 4 — Generate the report
@@ -241,9 +248,11 @@ For each suspected flaky test, compare the PR's changed file paths against the f
 <For each Suspected flaky:>
 
 - **"<test name>"** matched symptom: `<pattern>`
-  - **Code overlap:** <one of the three verdicts below>
+  - **Code overlap:** <one of the verdicts below>
+    - *PR appears to be a flake fix (fix may be incomplete)* — PR edits `<test file>` and title/body/branch suggests a flake fix attempt; the test is still failing — the fix may not yet be working; gather cross-PR recurrence and rerun signals to confirm
+    - *PR modifies the failing test file (ambiguous)* — PR edits `<test file>` but no flake fix signals found in title/body/branch; unclear whether the edit is incidental or intentional — gather more signals before drawing conclusions
     - *No overlap* — PR touches `<areas>`, test exercises `<area>`; failure is likely unrelated to these changes — rerun to unblock; then gather deeper signal to confirm flakiness (see "If You Confirm It's Flaky" below)
-    - *Overlap detected* — PR touches files in the same area as this test (`<area>`); a real regression is plausible — investigate before dismissing
+    - *Overlap detected* — PR touches source files in the same area as this test (`<area>`) but does not modify the test file itself; a real regression is plausible — investigate before dismissing
     - *Unclear* — PR spans multiple areas or test area is ambiguous; treat with caution
 ---
 
