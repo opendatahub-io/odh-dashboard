@@ -472,7 +472,7 @@ def main() -> None:
             "limit": effective_limit,
             "limit_hit": limit_hit,
             "bots_excluded": not args.include_bots,
-            "deep": args.deep,
+            "deep": run_deep,
             "file_filter": args.file,
         },
         "prs": pr_results,
