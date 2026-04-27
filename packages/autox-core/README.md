@@ -20,7 +20,7 @@ AutoX is a shared library package that extracts and consolidates duplicate code 
 ## Package Structure
 
 ```text
-packages/autox/
+packages/autox-core/
 ├── frontend/                # Frontend shared library
 │   └── src/
 │       ├── hooks/           # React hooks (usePipelineRuns, useNotification, useS3ListFiles)
@@ -29,15 +29,9 @@ packages/autox/
 │       └── types/           # TypeScript types (PipelineRun, S3Object, RuntimeStateKF)
 │
 └── bff/                     # BFF shared library
-    └── internal/
-        ├── models/          # Data models (PipelineRun, S3Object, Secret, Namespace)
-        ├── integrations/    # External service clients
-        │   ├── kubernetes/  # K8s client wrapper
-        │   ├── s3/          # AWS S3 client
-        │   └── pipelineserver/ # KFP/DSPv2 client
-        ├── repositories/    # Business logic layer
-        ├── api/             # HTTP utilities (error handling, JSON writers)
-        └── utils/           # Shared utilities
+    └── kubernetes/
+    ├── pipelines/
+    └── s3/
 ```
 
 ---
