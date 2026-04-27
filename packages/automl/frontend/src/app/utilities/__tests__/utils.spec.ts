@@ -101,7 +101,7 @@ describe('formatMetricName', () => {
 
   it('should convert snake_case to Title Case', () => {
     expect(formatMetricName('balanced_accuracy')).toBe('Balanced Accuracy');
-    expect(formatMetricName('root_mean_squared_error')).toBe('Root Mean Squared Error');
+    expect(formatMetricName('some_unknown_metric')).toBe('Some Unknown Metric');
   });
 
   it('should title-case a single-word key not in the display names map', () => {

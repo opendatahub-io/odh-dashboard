@@ -127,6 +127,10 @@ const COLUMN_META: Record<
     description:
       'The rank of the pattern. Ranks are determined by the performance of the optimized metric.',
   },
+  pattern: {
+    name: 'Pattern name',
+    description: 'The name of the generated RAG pattern.',
+  },
   modelNames: {
     name: 'Model names',
     description: 'Names of the generation and embedding models used in the pattern.',
@@ -134,64 +138,66 @@ const COLUMN_META: Record<
   // metric columns use the "metric:<key>" id — handled via a fallback with priority 1
   'metric:faithfulness': {
     name: formatMetricName('faithfulness'),
-    // description: 'Accuracy of the generated response to the retrieved text.',
+    description:
+      'Measures whether the generated answer uses information from the retrieved context rather than hallucinated content. A high faithfulness score means the answer uses information from the retrieved documents, not from the model’s training data.',
   },
   'metric:answer_correctness': {
     name: formatMetricName('answer_correctness'),
-    // description:
-    //   'Correctness of the generated response including both the relevance of the retrieved context and the quality of the generated response.',
+    description:
+      'Measures whether the generated answer matches the expected ground-truth answers in your test data. A high answer correctness score means the RAG system produces answers that align with your provided correct answers.',
   },
   'metric:context_correctness': {
     name: formatMetricName('context_correctness'),
-    // description: 'Relevancy of the generated response to the input.',
+    description:
+      'Measures whether the retrieved documents are relevant to the question. A high context correctness score means the retrieval step retrieves the relevant documents before the generation model produces an answer.',
   },
   retrievalMethod: {
     name: 'Retrieval method',
-    // description:
-    //   'Retrieval methods differ in the ways that they filter and rank documents so that they can retrieve relevant data.',
+    description: 'The method used to retrieve relevant chunks from the vector database.',
     priority: 2,
     field: 'retrievalMethod',
     testId: 'retrieval-method',
   },
   retrievalRankerStrategy: {
     name: 'Hybrid strategy',
-    // description:
-    //   'A method that combines multiple retrieval approaches to enhance answer accuracy. RRF (reciprocal rank fusion) merges rankings from various sources into one list, and weighted assigns importance to outputs, prioritizing the most reliable for the final outcome.',
+    description:
+      'A method that combines multiple retrieval approaches to enhance answer accuracy. RRF (reciprocal rank fusion) merges rankings from various sources into one list, and weighted assigns importance to outputs, prioritizing the most reliable for the final outcome.',
     priority: 3,
     field: 'retrievalRankerStrategy',
     testId: 'retrieval-ranker-strategy',
   },
   retrievalSearchMode: {
     name: 'Retrieval search mode',
+    description:
+      'The search strategy. Hybrid search combines vector and keyword search and is available only with Milvus.',
     priority: 4,
     field: 'retrievalSearchMode',
     testId: 'retrieval-search-mode',
   },
   chunkingMethod: {
-    name: 'Chunk method',
-    // description:
-    //   'How relevant text is retrieved for each chunk of the input after splitting the input into multiple chunks.',
+    name: 'Chunking method',
+    description: 'The method used to split documents into chunks.',
     priority: 5,
     field: 'chunkingMethod',
     testId: 'chunking-method',
   },
   retrievalNumberOfChunks: {
     name: 'Number of chunks',
-    // description: 'The number of chunks that are retrieved from the indexed documents.',
+    description: 'The number of document chunks retrieved per query.',
     priority: 6,
     field: 'retrievalNumberOfChunks',
     testId: 'retrieval-number-of-chunks',
   },
   chunkingChunkSize: {
     name: 'Chunk size',
-    // description: 'The maximum number of characters that a chunk should contain.',
+    description: 'The size of each document chunk in characters.',
     priority: 7,
     field: 'chunkingChunkSize',
     testId: 'chunking-chunk-size',
   },
   chunkingChunkOverlap: {
     name: 'Chunk overlap',
-    // description: 'The number of characters that overlap between two chunks.',
+    description: 'The number of overlapping characters between consecutive chunks.',
     priority: 8,
     field: 'chunkingChunkOverlap',
     testId: 'chunking-chunk-overlap',
@@ -223,6 +229,10 @@ const getColumnPriority = (id: string): number => {
 // Helper to resolve display name for any column id
 const getColumnName = (id: string, fallbackLabel: string): string =>
   getColumnMeta(id)?.name ?? fallbackLabel;
+
+// Resolve display text for a column header: acronym → name → fallback
+const getColumnHeader = (id: string, fallback?: string): string =>
+  getColumnMeta(id)?.acronym ?? getColumnMeta(id)?.name ?? fallback ?? id;
 
 // Togglable settings columns for the table body. Derived by filtering COLUMN_META to entries
 // with a `field` — only those map to a LeaderboardEntry key and render as data cells.
@@ -776,7 +786,7 @@ function AutoragLeaderboard({
                 stickyMinWidth="120px"
                 stickyLeftOffset="0"
               >
-                <ColumnHeaderContent columnId="rank">Rank</ColumnHeaderContent>
+                <ColumnHeaderContent columnId="rank">{getColumnHeader('rank')}</ColumnHeaderContent>
               </Th>
               <Th
                 sort={getSortParams('pattern')}
@@ -785,7 +795,9 @@ function AutoragLeaderboard({
                 stickyMinWidth="150px"
                 stickyLeftOffset="120px"
               >
-                <ColumnHeaderContent columnId="pattern">Pattern name</ColumnHeaderContent>
+                <ColumnHeaderContent columnId="pattern">
+                  {getColumnHeader('pattern')}
+                </ColumnHeaderContent>
               </Th>
               <Th
                 sort={getSortParams('modelNames')}
@@ -794,7 +806,9 @@ function AutoragLeaderboard({
                 stickyMinWidth="200px"
                 stickyLeftOffset="270px"
               >
-                <ColumnHeaderContent columnId="modelNames">Model names</ColumnHeaderContent>
+                <ColumnHeaderContent columnId="modelNames">
+                  {getColumnHeader('modelNames')}
+                </ColumnHeaderContent>
               </Th>
               <Th
                 sort={getSortParams('optimized-metric')}
@@ -808,8 +822,7 @@ function AutoragLeaderboard({
                   columnId={`metric:${optimizedMetric}`}
                   tooltipName={`${getColumnMeta(`metric:${optimizedMetric}`)?.name ?? formatMetricName(optimizedMetric)} (optimized)`}
                 >
-                  {getColumnMeta(`metric:${optimizedMetric}`)?.acronym ??
-                    formatMetricName(optimizedMetric)}
+                  {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}
                   <div
                     data-testid="optimized-indicator"
                     className="autorag-leaderboard__optimized-indicator"
@@ -829,7 +842,7 @@ function AutoragLeaderboard({
                   }
                 >
                   <ColumnHeaderContent columnId={dc.id}>
-                    {getColumnMeta(dc.id)?.acronym ?? dc.label}
+                    {getColumnHeader(dc.id, dc.label)}
                   </ColumnHeaderContent>
                 </Th>
               ))}

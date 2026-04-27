@@ -58,7 +58,7 @@ type LeaderboardEntry = {
  *   full `name`. Useful for metric columns where the full name is too long for a header cell.
  * @property description - Optional supplementary text shown below `name` in the tooltip.
  */
-type ColumnMeta = { name: string; description?: string; acronym?: string };
+type ColumnMeta = { name: string; acronym?: string; description?: string };
 const COLUMN_META: Record<string, ColumnMeta> = {
   rank: {
     name: 'Rank',
@@ -69,85 +69,154 @@ const COLUMN_META: Record<string, ColumnMeta> = {
     name: 'Model name',
     description: 'The name of the generated model.',
   },
+  'metric:accuracy': {
+    name: 'Accuracy',
+    description:
+      'The proportion of correct predictions out of total predictions. A high accuracy score means the model correctly classifies most inputs.',
+  },
+  'metric:balanced_accuracy': {
+    name: 'Balanced Accuracy',
+    description: 'Ratio of number of correct predictions to the total number of input samples.',
+  },
+  'metric:precision': {
+    name: 'Precision',
+    description:
+      'Measures the accuracy of a prediction based on percent of positive predictions that are correct.',
+  },
+  'metric:recall': {
+    name: 'Recall',
+    description:
+      'Measures the percentage of identified positive predictions against possible positives in the data set.',
+  },
   'metric:roc_auc': {
     name: 'Receiver Operating Characteristic (Area Under Curve)',
     acronym: formatMetricName('roc_auc'),
-    // description: 'Receiver Operating Characteristic (Area Under Curve)',
+    description: 'Measure of how well a parameter can distinguish between two groups.',
   },
   'metric:mcc': {
     name: 'Matthews correlation coefficient (MCC)',
     acronym: formatMetricName('mcc'),
-    // description: 'Matthews correlation coefficient (MCC)',
+    description:
+      'A correlation coefficient between observed and predicted classifications that accounts for all four quadrants of a confusion matrix. Ranges from -1 (total disagreement) to +1 (perfect prediction), with 0 indicating no better than random.',
   },
   'metric:f1': {
     name: formatMetricName('f1'),
     acronym: formatMetricName('f1'),
-    // description: formatMetricName('f1'),
+    description:
+      'Harmonic average of the precision and recall, with best value of 1 (perfect precision and recall) and worst at 0.',
   },
   'metric:r2': {
     name: formatMetricName('r2'),
     acronym: formatMetricName('r2'),
-    // description: formatMetricName('r2'),
+    description:
+      'The proportion of variance in the target variable that the model explains. A score of 1.0 means the model perfectly predicts the target. A score of 0.0 means the model performs no better than predicting the mean.',
   },
+  // Timeseries runs return acronym keys (e.g. "MAE"); regression runs return
+  // snake_case keys (e.g. "mean_absolute_error"). Both aliases are needed until
+  // the backend normalises metric keys. See RHOAIENG-59989.
   'metric:mae': {
     name: 'Mean Absolute Error (MAE)',
     acronym: formatMetricName('mae'),
-    // description: 'Mean Absolute Error (MAE)',
+    description: 'Average of absolute differences between the actual values and predicted values.',
   },
+  'metric:mean_absolute_error': {
+    name: 'Mean Absolute Error (MAE)',
+    acronym: formatMetricName('mean_absolute_error'),
+    description: 'Average of absolute differences between the actual values and predicted values.',
+  },
+  'metric:median_absolute_error': {
+    name: 'Median Absolute Error (MedAE)',
+    acronym: formatMetricName('median_absolute_error'),
+    description: 'The median of all absolute differences between true and false predictions.',
+  },
+  'metric:pearsonr': {
+    name: 'Pearson r',
+    acronym: formatMetricName('pearsonr'),
+    description:
+      'Measures the linear correlation between predicted and actual values. Ranges from -1 (perfect negative correlation) to +1 (perfect positive correlation), with 0 indicating no linear relationship.',
+  },
+  // Timeseries → "MSE"; regression → "mean_squared_error". See RHOAIENG-59989.
   'metric:mse': {
     name: 'Mean Squared Error (MSE)',
     acronym: formatMetricName('mse'),
-    // description: 'Mean Squared Error (MSE)',
+    description:
+      'Measures the average squared difference between the estimated values and what is estimated.',
   },
+  'metric:mean_squared_error': {
+    name: 'Mean Squared Error (MSE)',
+    acronym: formatMetricName('mean_squared_error'),
+    description:
+      'Measures the average squared difference between the estimated values and what is estimated.',
+  },
+  // Timeseries → "RMSE"; regression → "root_mean_squared_error". See RHOAIENG-59989.
   'metric:rmse': {
-    name: 'Root Mean Square Error (RMSE)',
+    name: 'Root Mean Squared Error (RMSE)',
     acronym: formatMetricName('rmse'),
-    // description: 'Root Mean Square Error (RMSE)',
+    description:
+      'Square root of the mean of the squared differences between the actual values and predicted values.',
+  },
+  'metric:root_mean_squared_error': {
+    name: 'Root Mean Squared Error (RMSE)',
+    acronym: formatMetricName('root_mean_squared_error'),
+    description:
+      'Square root of the mean of the squared differences between the actual values and predicted values.',
   },
   'metric:mape': {
     name: 'Mean Absolute Percentage Error (MAPE)',
     acronym: formatMetricName('mape'),
-    // description: 'Mean Absolute Percentage Error (MAPE)',
+    description:
+      'The average of absolute percentage errors between predicted and actual values. Expresses prediction accuracy as a percentage, making it easy to interpret across different scales.',
   },
   'metric:mase': {
     name: 'Mean Absolute Scaled Error (MASE)',
     acronym: formatMetricName('mase'),
-    // description: 'Mean Absolute Scaled Error (MASE)',
+    description:
+      'A scale-independent measure of forecast accuracy. A MASE absolute value below 1.0 means the model outperforms a naive baseline forecast. Lower values indicate better performance.',
   },
   'metric:rmsle': {
     name: 'Root Mean Squared Logarithmic Error (RMSLE)',
     acronym: formatMetricName('rmsle'),
-    // description: 'Root Mean Squared Logarithmic Error (RMSLE)',
+    description:
+      'The log of the predictions and actual values. Typically used for very large data sets.',
   },
   'metric:rmsse': {
     name: 'Root Mean Squared Scaled Error (RMSSE)',
     acronym: formatMetricName('rmsse'),
-    // description: 'Root Mean Squared Scaled Error (RMSSE)',
+    description:
+      'A scale-independent error metric that normalizes RMSE by the in-sample naive forecast error. A value below 1.0 means the model outperforms a naive one-step-ahead baseline.',
   },
   'metric:smape': {
     name: 'Symmetric Mean Absolute Percentage Error (SMAPE)',
     acronym: formatMetricName('smape'),
-    // description: 'Symmetric Mean Absolute Percentage Error (SMAPE)',
+    description:
+      'Symmetric mean absolute percentage error (SMAPE or sMAPE). At each fitted point, the absolute difference between actual value and predicted value is divided by half the sum of absolute actual value and predicted value, and then average all such values across all the fitted points.',
   },
   'metric:sql': {
     name: 'Scaled Quantile Loss (SQL)',
     acronym: formatMetricName('sql'),
-    // description: 'Scaled Quantile Loss (SQL)',
+    description:
+      'Measures the accuracy of probabilistic forecasts at specific quantiles, scaled relative to the total absolute values of the target. Lower values indicate better calibrated prediction intervals.',
   },
   'metric:wape': {
     name: 'Weighted Absolute Percentage Error (WAPE)',
     acronym: formatMetricName('wape'),
-    // description: 'Weighted Absolute Percentage Error (WAPE)',
+    description:
+      'The sum of absolute errors divided by the sum of absolute actual values. Unlike MAPE, it handles zero actual values gracefully and gives more weight to larger observations.',
   },
   'metric:wql': {
     name: 'Weighted Quantile Loss (WQL)',
     acronym: formatMetricName('wql'),
-    // description: 'Weighted Quantile Loss (WQL)',
+    description:
+      'A weighted average of quantile losses across multiple quantiles, measuring the overall quality of probabilistic forecasts. Lower values indicate better prediction interval coverage.',
   },
 };
 
 // Safe accessor — COLUMN_META is typed as Record<string, …> so TS believes every
 // key returns a value, but at runtime dynamic metric keys may be absent.
+// Resolve display text for a column header: acronym → name → fallback
+const getColumnHeader = (id: string, fallback?: string): string =>
+  getColumnMeta(id)?.acronym ?? getColumnMeta(id)?.name ?? fallback ?? id;
+
 const getColumnMeta = (id: string): ColumnMeta | undefined => {
   if (id in COLUMN_META) {
     return COLUMN_META[id];
@@ -600,7 +669,7 @@ function AutomlLeaderboard({
                 stickyMinWidth="120px"
                 stickyLeftOffset="0"
               >
-                <ColumnHeaderContent columnId="rank">Rank</ColumnHeaderContent>
+                <ColumnHeaderContent columnId="rank">{getColumnHeader('rank')}</ColumnHeaderContent>
               </Th>
               <Th
                 sort={getSortParams('model')}
@@ -609,7 +678,9 @@ function AutomlLeaderboard({
                 stickyMinWidth="150px"
                 stickyLeftOffset="120px"
               >
-                <ColumnHeaderContent columnId="model">Model name</ColumnHeaderContent>
+                <ColumnHeaderContent columnId="model">
+                  {getColumnHeader('model')}
+                </ColumnHeaderContent>
               </Th>
               <Th
                 sort={getSortParams('optimized-metric')}
@@ -626,8 +697,7 @@ function AutomlLeaderboard({
                     formatMetricName(optimizedMetric)
                   } (optimized)`}
                 >
-                  {getColumnMeta(`metric:${optimizedMetric}`)?.acronym ??
-                    formatMetricName(optimizedMetric)}
+                  {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}
                   <div
                     data-testid="optimized-indicator"
                     className="automl-leaderboard__optimized-indicator"
@@ -643,7 +713,7 @@ function AutomlLeaderboard({
                   data-testid={`metric-header-${metricKey}`}
                 >
                   <ColumnHeaderContent columnId={`metric:${metricKey}`}>
-                    {getColumnMeta(`metric:${metricKey}`)?.acronym ?? formatMetricName(metricKey)}
+                    {getColumnHeader(`metric:${metricKey}`, formatMetricName(metricKey))}
                   </ColumnHeaderContent>
                 </Th>
               ))}
