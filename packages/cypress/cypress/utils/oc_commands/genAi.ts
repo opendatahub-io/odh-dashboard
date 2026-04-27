@@ -114,9 +114,10 @@ const waitForGenAiStudioInSidebar = (): Cypress.Chainable<boolean> => {
       cy.reload();
     }
 
-    // Wait for the dashboard app to finish its loading sequence
-    // (#dashboard-page-main appears only after user, config, and DSC are fetched).
-    cy.get('#dashboard-page-main', { timeout: SIDEBAR_SETTLE_TIMEOUT });
+    // Wait for the app to finish loading (user, config, DSC). The main
+    // content container is only rendered after those complete, so its
+    // presence confirms area flags and extensions are evaluated.
+    cy.get('[data-testid="dashboard-page-main"]', { timeout: SIDEBAR_SETTLE_TIMEOUT });
 
     return isGenAiStudioVisible().then((isVisible) => {
       const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
