@@ -68,6 +68,7 @@ function AutoragConfigurePage(): React.JSX.Element {
     <>
       <ActionListItem>
         <Button
+          data-testid="autorag-next-button"
           type="submit"
           variant="primary"
           isDisabled={
@@ -96,6 +97,7 @@ function AutoragConfigurePage(): React.JSX.Element {
     <>
       <ActionListItem>
         <Button
+          data-testid="autorag-create-run-button"
           type="submit"
           variant="primary"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
