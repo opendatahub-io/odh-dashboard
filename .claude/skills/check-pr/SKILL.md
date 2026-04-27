@@ -1,6 +1,6 @@
 ---
 name: check-pr
-description: "Check a PR's readiness to merge, or check local branch quality if no PR exists. Runs all applicable checks (conflicts, CI, lint, type-check, tests, reviews, Jira, PR body) using whatever context is available — skips checks it can't run. Optionally fixes failures with --fix. Use when someone says check PR, check my branch, is this ready, or wants a pre-merge report."
+description: "Check a PR or local branch for merge readiness. Gathers context, runs reviews and checks, reports a results table. Optionally fixes issues with --fix."
 argument-hint: "[PR number or URL] [--fix]"
 disable-model-invocation: true
 allowed-tools: Bash(gh *) Bash(git *) Bash(npm *) Bash(npx *) Bash(${CLAUDE_SKILL_DIR}/scripts/*)
@@ -8,183 +8,77 @@ allowed-tools: Bash(gh *) Bash(git *) Bash(npm *) Bash(npx *) Bash(${CLAUDE_SKIL
 
 # Check PR
 
-Run every applicable check against the current work and report results. Adapts to context — if a PR exists, reads from GitHub. If not, runs checks locally. Skips anything it can't check.
+Four steps: gather context, review code, run checks, optionally fix. Adapts to what's available — if there's a PR, use it. If not, work locally. Skip what you can't check.
 
-With `--fix`, attempts to fix failing checks after reporting.
+Never push, never comment on the PR.
 
-## Step 1: Resolve context
+## Step 1: Gather context
 
-Parse `$ARGUMENTS` — strip `--fix` if present and remember the flag. Whatever remains is the PR number or URL.
+Parse `$ARGUMENTS` — strip `--fix` if present. The rest is a PR number or URL.
 
-Try to find a PR:
-- If a number/URL was given, extract the PR number from it.
-- Otherwise, detect from the current branch: `gh pr list --head "$(git branch --show-current)" --state open --json number --jq '.[0].number'`
-- If a PR is found, fetch its metadata: `gh pr view "$pr_number" --json title,headRefName,baseRefName,mergeable,mergeStateStatus,number,body,author,reviewDecision`
-- If no PR is found, that's fine — the skill runs in local mode.
+Try to find a PR. If a number was given, use it. Otherwise try `gh pr list --head "$(git branch --show-current)"`. If a PR exists, fetch its metadata with `gh pr view`. If not, that's fine.
 
-Get repo coordinates:
+Figure out:
+- **owner/repo**: `gh repo view --json owner,name`
+- **base branch**: from PR metadata, or default to `main`
+- **affected packages**: `git diff --name-only origin/$base_branch | cut -d'/' -f1-2 | sort -u`
+- **Jira key**: grep for `RHOAIENG-[0-9]+` in PR title/body, branch name, or recent commit messages
+
+## Step 2: Review
+
+If a PR exists, fetch existing reviews:
 ```bash
-owner=$(gh repo view --json owner --jq '.owner.login')
-repo=$(gh repo view --json name --jq '.name')
-base_branch="main"  # or from PR metadata if available
+${CLAUDE_SKILL_DIR}/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number"
 ```
+This gives CodeRabbit threads (with severity) and human review threads. Also check `reviewDecision` from PR metadata.
 
-Detect which packages are affected by comparing against the base branch:
-```bash
-git diff --name-only origin/$base_branch | cut -d'/' -f1-2 | sort -u
-```
+If no PR exists, no one has reviewed the code yet. Run a local review:
+- If CodeRabbit CLI is installed (`coderabbit --version`): `coderabbit review --agent`
+- Otherwise: invoke `/review` as fallback
 
-## Step 2: Run all checks
+## Step 3: Check
 
-Run every check below. Each check uses PR data if available, otherwise falls back to local or skips. Collect results into a table: check name, status (✅ ❌ ⚠️ ⏭️), and details.
+Run each check using PR data when available, local tools when not. Report each as ✅ ❌ ⚠️ or ⏭️ (skipped).
 
-### Conflicts
+| Check | What to check |
+|---|---|
+| **Conflicts** | PR: `mergeable` field. Local: `git rev-list --count HEAD..origin/$base_branch` |
+| **CI** | PR: `gh pr checks --json name,bucket,link`. Local: ⏭️ skip |
+| **Lint** | PR: ⏭️ (CI covers it). Local: `npm run lint` on affected packages |
+| **Type Check** | PR: ⏭️ (CI covers it). Local: `npm run type-check` on affected packages |
+| **Unit Tests** | PR: ⏭️ (CI covers it). Local: `npm run test-unit` on affected packages |
+| **Reviews** | Results from Step 2. Unresolved critical/major CR or human threads → ❌ |
+| **Jira** | Key found and issue exists → ✅. No key → ❌. Can't verify → ⚠️ |
+| **Test Coverage** | Test files in diff → ✅. None but explained in PR body → ✅. Neither → ⚠️ |
+| **PR Body** | PR: check Description, How Tested, Test Impact sections filled, checklist items checked. Local: ⏭️ skip |
 
-- **PR exists**: read `mergeable` from PR metadata. `MERGEABLE` → ✅, `CONFLICTING` → ❌, `UNKNOWN` → ⚠️. Also check commits behind with `git rev-list --count HEAD..origin/$base_branch`.
-- **No PR**: `git fetch origin $base_branch --quiet && git rev-list --count HEAD..origin/$base_branch`. 0 → ✅, >0 → ⚠️ "N commits behind".
-
-### CI
-
-- **PR exists**: `gh pr checks "$pr_number" --json name,bucket,link --jq '[.[] | {name, bucket, link}]'`. All pass → ✅, any fail → ❌ (list names + links), any pending → ⚠️.
-- **No PR**: ⏭️ skip — "no PR, CI hasn't run"
-
-### Lint
-
-- **PR exists**: ⏭️ skip — "CI covers this"
-- **No PR**: run `npm run lint` on affected packages. Pass → ✅, fail → ❌ with error summary.
-
-### Type Check
-
-- **PR exists**: ⏭️ skip — "CI covers this"
-- **No PR**: run `npm run type-check` on affected packages. Pass → ✅, fail → ❌ with error summary.
-
-### Unit Tests
-
-- **PR exists**: ⏭️ skip — "CI covers this"
-- **No PR**: run `npm run test-unit` on affected packages. Pass → ✅, fail → ❌ with failure summary.
-
-### Reviews
-
-- **PR exists**: fetch unresolved review threads:
-  ```bash
-  ${CLAUDE_SKILL_DIR}/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number"
-  ```
-  Also read `reviewDecision` from PR metadata.
-  - `APPROVED` + no unresolved threads → ✅
-  - `CHANGES_REQUESTED` → ❌
-  - Unresolved CodeRabbit CRITICAL/MAJOR → ❌
-  - Unresolved human threads → ❌
-  - Only minor/info CodeRabbit threads → ⚠️
-  - `REVIEW_REQUIRED` → ⚠️
-- **No PR**: ⏭️ skip — "no PR, no reviews yet"
-
-### Jira
-
-Extract Jira key from PR title/body (if PR) or branch name/commit messages (if local):
-```bash
-# From PR
-echo "$pr_title $pr_body" | grep -oE 'RHOAIENG-[0-9]+' | head -1
-# From branch/commits
-git branch --show-current | grep -oE 'RHOAIENG-[0-9]+' || git log --oneline -5 | grep -oE 'RHOAIENG-[0-9]+' | head -1
-```
-
-- No key found → ❌ "no Jira issue referenced"
-- Key found → ✅. If Jira MCP or `JIRA_TOKEN` is available, verify the issue exists and is active. Otherwise ⚠️ "found key, couldn't verify".
-
-### Test Coverage
-
-Check if the diff includes test files (`.test.`, `.spec.`, `.cy.`):
-- **PR exists**: `gh pr diff "$pr_number" --name-only`
-- **No PR**: `git diff --name-only origin/$base_branch`
-
-Test files present → ✅. No test files but "Test Impact" section explains why → ✅. Neither → ⚠️.
-
-Skip if only non-code files changed (markdown, yaml, config).
-
-### PR Body
-
-- **PR exists**: check against `.github/pull_request_template.md`:
-  1. `## Description` has real content (not just template comments) → ✅/❌
-  2. `## How Has This Been Tested?` has content → ✅/⚠️
-  3. `## Test Impact` has content → ✅/⚠️
-  4. Checklist: count `- [x]` vs `- [ ]` → report ratio
-  5. Jira URL present → ✅/❌
-  6. Screenshots if PR touches `.tsx`/`.css`/`.scss` → ⚠️ if missing
-  - Empty Description → ❌, other missing sections → ⚠️
-- **No PR**: ⏭️ skip — "no PR body yet"
-
-### Code Review
-
-- **PR exists**: ⏭️ skip — CodeRabbit and human reviewers handle this on the PR.
-- **No PR**: run a local code review to get feedback before the code is even submitted. Check if the CodeRabbit CLI is available (`coderabbit --version`). If yes, run `coderabbit review --agent` against the local diff. If not, invoke Claude's built-in `/review` skill as a fallback. Report findings as ✅ (no issues) or ⚠️/❌ (issues found with details).
-
-## Step 3: Print results table
+Print a results table:
 
 ```
-PR Review — PR #1234: feat: add new feature
+Check PR — PR #1234: feat: add new feature
 Jira: RHOAIENG-12345
 
 | Check         | Status | Details                          |
 |---------------|--------|----------------------------------|
-| Conflicts     | ✅     | Clean, up to date                |
+| Conflicts     | ✅     | Up to date                       |
 | CI            | ❌     | Lint failed (link)               |
-| Lint          | ⏭️     | CI covers this                   |
-| Type Check    | ⏭️     | CI covers this                   |
-| Unit Tests    | ⏭️     | CI covers this                   |
-| Reviews       | ⚠️     | 2 minor CR suggestions           |
-| Jira          | ✅     | RHOAIENG-12345 — active          |
-| Test Coverage | ✅     | 3 test files changed             |
-| PR Body       | ⚠️     | 2/5 checklist unchecked          |
+| ...           |        |                                  |
 
 Verdict: NOT READY — 1 failing check
 ```
 
-Verdict:
-- Any ❌ → **NOT READY**
-- All ✅, some ⚠️ → **READY WITH WARNINGS**
-- All ✅ → **READY TO MERGE** (or **READY** if no PR)
+Verdict: any ❌ → **NOT READY**. All ✅ with ⚠️ → **READY WITH WARNINGS**. All ✅ → **READY**.
 
 ## Step 4: Fix (only with --fix)
 
-If `--fix` was not passed, stop after printing the table.
+Stop here if `--fix` was not passed.
 
-If `--fix` was passed, work through the failing checks:
+Work through failing checks in order:
 
-### Rebase (if Conflicts ❌ or ⚠️)
-Fetch and rebase onto base branch. Resolve conflicts file by file. Do not push — the user will push manually when ready.
+1. **Rebase** if conflicts found
+2. **Review fixes** — PR: invoke `coderabbit-autofix` for CR threads (decline its commit/push prompts), then fix human threads via `fetch-review-threads.sh`. Local: fix issues from the local review
+3. **CI / lint / test fixes** — fix specific errors in files changed by this branch. Don't auto-format entire directories. Don't fix pre-existing issues
+4. **Cleanup** — run `/simplify` on files changed during fixes, then lint those files. Skip if nothing changed
+5. **Commit** — one commit with all fixes. Descriptive message. `Co-Authored-By` + `Signed-off-by`. Never push
 
-### Review fixes (if Reviews ❌)
-- **PR exists**: invoke `coderabbit-autofix` for CodeRabbit threads. Decline any commit/push prompts — everything commits together at the end. Then fetch human threads via `fetch-review-threads.sh`, verify each is valid, apply smallest safe fix.
-- **No PR**: fix issues surfaced by the local review in Step 4.
-
-### CI / local check fixes (if CI ❌, Lint ❌, Type Check ❌, or Unit Tests ❌)
-- **PR exists**: use `${CLAUDE_SKILL_DIR}/scripts/fetch-ci-failures.sh "$owner" "$repo" "$pr_number"` to get failed job logs. Fix the specific errors.
-- **No PR**: the lint/type-check/test output from Step 2 already has the errors. Fix them.
-
-Only fix errors in files changed by this PR/branch. Don't fix pre-existing issues. Don't run `eslint --fix` on entire directories — fix specific lines with the Edit tool.
-
-### Cleanup (if any files were changed above)
-Skip if nothing was changed by the fix steps.
-
-Run `/simplify` on changed files, then lint those files to catch anything remaining.
-
-### Commit
-Skip if nothing was changed.
-
-Create one commit with all fixes. Write a descriptive message reflecting what actually changed.
-
-```bash
-git add <files-changed>
-git commit -m "fix: <describe what changed>
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-Signed-off-by: $(git config user.name) <$(git config user.email)>"
-```
-
-Never push automatically. Tell the user what was done.
-
-## Step 5: Verify (after fix)
-
-Run lint and type-check on the files that were changed during the fix phase to verify the fixes compile cleanly. Don't re-fetch PR status from GitHub — nothing was pushed so the remote state is unchanged.
-
-Print an updated results table. PR-sourced checks (CI, reviews, mergeable) keep their original status. Local checks (lint, type-check) get updated based on the verification run.
+After fixing, run lint and type-check on changed files to verify the fixes compile. Print an updated table — PR-sourced checks keep their original status (nothing was pushed), local checks get updated.
