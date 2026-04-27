@@ -566,8 +566,8 @@ describe('AutoragConfigure', () => {
       await waitFor(() => {
         expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
         expect(screen.getByTestId('metric-option-answer_correctness')).toBeInTheDocument();
-        expect(screen.getByTestId('metric-option-context_correctness')).toBeInTheDocument();
       });
+      expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
     });
 
     it('should render with a non-default metric when configured', () => {
