@@ -2,7 +2,12 @@ import * as React from 'react';
 import { Popover, Spinner, Content, Tooltip, Flex, ContentVariants } from '@patternfly/react-core';
 import { ExclamationCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
-import { getPvcRequestSize, getPvcTotalSize } from '#~/pages/projects/utils';
+import {
+  getEffectiveCapacityGiB,
+  getPvcPercentageUsed,
+  getPvcRequestSize,
+  getPvcTotalSize,
+} from '#~/pages/projects/utils';
 import { usePVCFreeAmount } from '#~/api';
 import { bytesAsRoundedGiB } from '#~/utilities/number';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
@@ -13,8 +18,8 @@ type StorageSizeBarProps = {
 };
 
 const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
-  const [inUseInBytes, loaded, error] = usePVCFreeAmount(pvc);
-  const maxValue = getPvcTotalSize(pvc);
+  const [{ usedInBytes: inUseInBytes, capacityInBytes }, loaded, error] = usePVCFreeAmount(pvc);
+  const pvcMaxValue = getPvcTotalSize(pvc);
   const requestedValue = getPvcRequestSize(pvc);
 
   if (pvc.status?.conditions?.find((c) => c.type === 'FileSystemResizePending')) {
@@ -36,19 +41,30 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
     );
   }
 
-  if (!error && Number.isNaN(inUseInBytes)) {
+  const percentage =
+    !error && !Number.isNaN(inUseInBytes)
+      ? getPvcPercentageUsed(pvc, inUseInBytes, capacityInBytes)
+      : NaN;
+
+  if (loaded && !error && Number.isNaN(percentage)) {
     return (
       <div>
         <Tooltip content="No active storage information at this time, check back later">
-          <Content component="small">Max {maxValue}</Content>
+          <Content component="small">Max {pvcMaxValue}</Content>
         </Tooltip>
       </div>
     );
   }
 
+  const effectiveCapGiB = getEffectiveCapacityGiB(pvc, capacityInBytes);
+  const maxValue = Number.isNaN(effectiveCapGiB)
+    ? pvcMaxValue
+    : `${bytesAsRoundedGiB(effectiveCapGiB * 1024 ** 3)}GiB`;
+
   const inUseValue = `${bytesAsRoundedGiB(inUseInBytes)}GiB`;
-  const percentage = ((parseFloat(inUseValue) / parseFloat(maxValue)) * 100).toFixed(2);
-  const percentageLabel = error ? '' : `Storage is ${percentage}% full`;
+  const progressValue = Number.isNaN(percentage) ? 0 : percentage;
+  const percentageLabel =
+    error || !loaded || Number.isNaN(percentage) ? '' : `Storage is ${percentage.toFixed(2)}% full`;
 
   let inUseRender: React.ReactNode;
   if (error) {
@@ -69,7 +85,7 @@ const StorageSizeBar: React.FC<StorageSizeBarProps> = ({ pvc }) => {
       contentComponentVariant={ContentVariants.small}
       maxValueLabel={maxValue}
       aria-label={percentageLabel || 'Storage progress bar'}
-      value={Number(percentage)}
+      value={progressValue}
     />
   );
 

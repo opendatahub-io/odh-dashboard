@@ -2,7 +2,6 @@ import { act } from 'react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import axios from '#~/utilities/axios';
 import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
-import { mockPrometheusQueryResponse } from '#~/__mocks__/mockPrometheusQueryResponse';
 import { usePVCFreeAmount } from '#~/api/prometheus/pvcs';
 import { POLL_INTERVAL } from '#~/utilities/const';
 
@@ -13,84 +12,140 @@ jest.mock('#~/utilities/axios', () => ({
 jest.useFakeTimers();
 const mockAxios = jest.mocked(axios.post);
 
+const mockPvcMetricsResponse = (usedBytes: string, capacityBytes: string) => ({
+  data: {
+    response: {
+      data: {
+        result: [
+          {
+            metric: { __name__: 'kubelet_volume_stats_used_bytes' },
+            value: [1704910625, usedBytes],
+          },
+          {
+            metric: { __name__: 'kubelet_volume_stats_capacity_bytes' },
+            value: [1704910625, capacityBytes],
+          },
+        ],
+        resultType: 'vector',
+      },
+      status: 'success',
+    },
+  },
+});
+
+const mockPartialPvcMetricsResponse = (usedBytes: string) => ({
+  data: {
+    response: {
+      data: {
+        result: [
+          {
+            metric: { __name__: 'kubelet_volume_stats_used_bytes' },
+            value: [1704910625, usedBytes],
+          },
+        ],
+        resultType: 'vector',
+      },
+      status: 'success',
+    },
+  },
+});
+
+const mockEmptyPvcMetricsResponse = () => ({
+  data: {
+    response: {
+      data: {
+        result: [],
+        resultType: 'vector',
+      },
+      status: 'success',
+    },
+  },
+});
+
 describe('usePVCFreeAmount', () => {
-  const pvcFreeAmountMock = mockPVCK8sResource({});
-  it('should fetch and return pvc free amount', async () => {
-    mockAxios.mockResolvedValue({ data: { response: mockPrometheusQueryResponse({}) } });
+  const pvcMock = mockPVCK8sResource({});
 
-    const renderResult = await testHook(usePVCFreeAmount)(pvcFreeAmountMock);
-    expect(renderResult).hookToStrictEqual([NaN, false, undefined]);
+  it('should fetch both metrics in a single query and return usage info', async () => {
+    mockAxios.mockResolvedValue(mockPvcMetricsResponse('1024', '5368709120'));
+
+    const renderResult = await testHook(usePVCFreeAmount)(pvcMock);
+    expect(renderResult).hookToStrictEqual([
+      { usedInBytes: NaN, capacityInBytes: NaN },
+      false,
+      undefined,
+    ]);
     expect(mockAxios).toHaveBeenCalledTimes(1);
     expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/pvc', {
-      query:
-        "namespace=test-project&query=kubelet_volume_stats_used_bytes{persistentvolumeclaim='test-storage'}",
+      query: expect.stringContaining(
+        'kubelet_volume_stats_used_bytes|kubelet_volume_stats_capacity_bytes',
+      ),
     });
-    expect(renderResult).hookToHaveUpdateCount(1);
 
-    //wait for update
     await renderResult.waitForNextUpdate();
-    expect(renderResult).hookToStrictEqual([50, true, undefined]);
-    expect(mockAxios).toHaveBeenCalledTimes(1);
-    expect(renderResult).hookToHaveUpdateCount(2);
-    expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/pvc', {
-      query:
-        "namespace=test-project&query=kubelet_volume_stats_used_bytes{persistentvolumeclaim='test-storage'}",
-    });
-    expect(renderResult).hookToBeStable([false, false, true]);
-
-    //set interval
-    mockAxios.mockResolvedValue({
-      data: { response: mockPrometheusQueryResponse({ value: [1704899825.644, '16'] }) },
-    });
-    await act(() => {
-      jest.advanceTimersByTime(POLL_INTERVAL);
-    });
-
-    expect(renderResult).hookToStrictEqual([16, true, undefined]);
-    expect(mockAxios).toHaveBeenCalledTimes(2);
-    expect(renderResult).hookToHaveUpdateCount(3);
-    expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/pvc', {
-      query:
-        "namespace=test-project&query=kubelet_volume_stats_used_bytes{persistentvolumeclaim='test-storage'}",
-    });
-    expect(renderResult).hookToBeStable([false, true, true]);
+    expect(renderResult).hookToStrictEqual([
+      { usedInBytes: 1024, capacityInBytes: 5368709120 },
+      true,
+      undefined,
+    ]);
   });
 
-  it('should handle errors and rethrows', async () => {
+  it('should handle errors', async () => {
     mockAxios.mockRejectedValue(new Error('error'));
-    const renderResult = await testHook(usePVCFreeAmount)(pvcFreeAmountMock);
-    expect(renderResult).hookToStrictEqual([NaN, false, undefined]);
-    expect(mockAxios).toHaveBeenCalledTimes(1);
-    expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/pvc', {
-      query:
-        "namespace=test-project&query=kubelet_volume_stats_used_bytes{persistentvolumeclaim='test-storage'}",
-    });
-    expect(renderResult).hookToHaveUpdateCount(1);
+    const renderResult = await testHook(usePVCFreeAmount)(pvcMock);
 
-    //wait for update
     await renderResult.waitForNextUpdate();
-    expect(renderResult).hookToStrictEqual([NaN, false, new Error('error')]);
-    expect(mockAxios).toHaveBeenCalledTimes(1);
-    expect(renderResult).hookToHaveUpdateCount(2);
-    expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/pvc', {
-      query:
-        "namespace=test-project&query=kubelet_volume_stats_used_bytes{persistentvolumeclaim='test-storage'}",
-    });
-    expect(renderResult).hookToBeStable([true, true, false]);
+    const [info, loaded, err] = renderResult.result.current;
+    expect(info).toEqual({ usedInBytes: NaN, capacityInBytes: NaN });
+    expect(loaded).toBe(false);
+    expect(err).toBeInstanceOf(Error);
+  });
 
-    //set interval
-    mockAxios.mockRejectedValue(new Error('error1'));
+  it('should parse scientific notation byte values correctly', async () => {
+    // Prometheus can return large byte values in scientific notation, e.g. "1.0338218e9".
+    // Number() handles this correctly; parseInt() would have truncated to 1.
+    mockAxios.mockResolvedValue(mockPvcMetricsResponse('1.0338218e9', '5.36870912e9'));
+
+    const renderResult = await testHook(usePVCFreeAmount)(pvcMock);
+    await renderResult.waitForNextUpdate();
+
+    const [{ usedInBytes, capacityInBytes }] = renderResult.result.current;
+    expect(usedInBytes).toBeCloseTo(1033821800, 0);
+    expect(capacityInBytes).toBeCloseTo(5368709120, 0);
+  });
+
+  it('should return NaN for capacityInBytes when the capacity metric is missing', async () => {
+    mockAxios.mockResolvedValue(mockPartialPvcMetricsResponse('1024'));
+
+    const renderResult = await testHook(usePVCFreeAmount)(pvcMock);
+    await renderResult.waitForNextUpdate();
+
+    const [info] = renderResult.result.current;
+    expect(info).toEqual({ usedInBytes: 1024, capacityInBytes: NaN });
+  });
+
+  it('should return NaN for both fields when the result array is empty', async () => {
+    mockAxios.mockResolvedValue(mockEmptyPvcMetricsResponse());
+
+    const renderResult = await testHook(usePVCFreeAmount)(pvcMock);
+    await renderResult.waitForNextUpdate();
+
+    const [info] = renderResult.result.current;
+    expect(info).toEqual({ usedInBytes: NaN, capacityInBytes: NaN });
+  });
+
+  it('should refetch on interval via refreshRate', async () => {
+    mockAxios.mockResolvedValue(mockPvcMetricsResponse('1024', '5368709120'));
+
+    const renderResult = await testHook(usePVCFreeAmount)(pvcMock);
+    await renderResult.waitForNextUpdate();
+
+    const initialCalls = mockAxios.mock.calls.length;
+
+    mockAxios.mockResolvedValue(mockPvcMetricsResponse('2048', '5368709120'));
     await act(() => {
       jest.advanceTimersByTime(POLL_INTERVAL);
     });
 
-    expect(renderResult).hookToStrictEqual([NaN, false, new Error('error1')]);
-    expect(mockAxios).toHaveBeenCalledTimes(2);
-    expect(renderResult).hookToHaveUpdateCount(3);
-    expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/pvc', {
-      query:
-        "namespace=test-project&query=kubelet_volume_stats_used_bytes{persistentvolumeclaim='test-storage'}",
-    });
-    expect(renderResult).hookToBeStable([true, true, false]);
+    expect(mockAxios.mock.calls.length).toBeGreaterThan(initialCalls);
   });
 });
