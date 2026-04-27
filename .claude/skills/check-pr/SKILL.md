@@ -158,7 +158,7 @@ If `--fix` was not passed, stop after printing the table.
 If `--fix` was passed, work through the failing checks:
 
 ### Rebase (if Conflicts ❌ or ⚠️)
-Fetch and rebase onto base branch. Resolve conflicts file by file. Ask the user before force-pushing.
+Fetch and rebase onto base branch. Resolve conflicts file by file. Do not push — the user will push manually when ready.
 
 ### Review fixes (if Reviews ❌)
 - **PR exists**: invoke `coderabbit-autofix` for CodeRabbit threads. Decline any commit/push prompts — everything commits together at the end. Then fetch human threads via `fetch-review-threads.sh`, verify each is valid, apply smallest safe fix.
