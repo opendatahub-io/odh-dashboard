@@ -168,13 +168,19 @@ export function useUploadToStorageMutation(
         });
 
         xhr.addEventListener('error', () => {
-          reject(new Error('Upload failed'));
+          reject(
+            new Error('Upload failed due to a network error. Check your connection and try again.'),
+          );
         });
 
         const formData = new FormData();
         formData.append('file', file);
 
         const key = (path ? `${path}/` : '') + file.name;
+        if (!key || !key.trim()) {
+          reject(new Error('Upload key must be a non-empty string'));
+          return;
+        }
         const params = new URLSearchParams({
           namespace,
           secretName,

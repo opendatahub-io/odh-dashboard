@@ -330,6 +330,16 @@ describe('fetchS3File', () => {
     jest.clearAllMocks();
   });
 
+  it('should throw for empty key', async () => {
+    await expect(fetchS3File('ns', '')).rejects.toThrow('File key must be a non-empty string');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('should throw for whitespace-only key', async () => {
+    await expect(fetchS3File('ns', '   ')).rejects.toThrow('File key must be a non-empty string');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it('should construct URL with namespace and key', async () => {
     const mockBlob = new Blob(['file content']);
     (global.fetch as jest.Mock).mockResolvedValueOnce({

@@ -66,6 +66,10 @@ export async function fetchS3File(
   key: string,
   options?: FetchS3FileOptions,
 ): Promise<Blob> {
+  if (!key || !key.trim()) {
+    throw new Error('File key must be a non-empty string');
+  }
+
   const { secretName, bucket, signal } = options ?? {};
   const params = new URLSearchParams({
     namespace,
