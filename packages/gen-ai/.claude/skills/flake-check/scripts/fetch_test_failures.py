@@ -98,7 +98,7 @@ def detect_framework(lines: list[str], check_name: str | None = None) -> str:
             return "cypress"
         if "unit" in cn or "jest" in cn:
             return "jest"
-        if "go" in cn or "bff" in cn:
+        if re.search(r"\bgo\b", cn) or "bff" in cn:
             return "go"
     # Fall back: scan full cleaned log (not just first 200 — failures can appear anywhere)
     sample = "\n".join(lines).lower()
