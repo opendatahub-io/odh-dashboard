@@ -85,7 +85,7 @@ func TestCreateNemoGuardrailsResources_CreatesPlaceholder(t *testing.T) {
 
 	kc := &TokenKubernetesClient{Logger: slog.Default(), Client: fakeClient}
 
-	crName, err := kc.CreateNemoGuardrailsResources(context.Background(), nil, namespace)
+	crName, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace)
 	require.NoError(t, err)
 	assert.Equal(t, nemoGuardrailsCRName, crName)
 
@@ -121,11 +121,11 @@ func TestCreateNemoGuardrailsResources_ErrorIfAlreadyExists(t *testing.T) {
 	kc := &TokenKubernetesClient{Logger: slog.Default(), Client: fakeClient}
 
 	// First call succeeds
-	_, err := kc.CreateNemoGuardrailsResources(context.Background(), nil, namespace)
+	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace)
 	require.NoError(t, err)
 
 	// Second call returns a typed ErrNemoGuardrailsAlreadyInitialised
-	_, err = kc.CreateNemoGuardrailsResources(context.Background(), nil, namespace)
+	_, err = kc.CreateNemoGuardrailsResources(context.Background(), namespace)
 	require.Error(t, err)
 	var alreadyInit *models.ErrNemoGuardrailsAlreadyInitialised
 	assert.True(t, errors.As(err, &alreadyInit))
@@ -139,7 +139,7 @@ func TestCreateNemoGuardrailsResources_CRAnnotations(t *testing.T) {
 
 	kc := &TokenKubernetesClient{Logger: slog.Default(), Client: fakeClient}
 
-	_, err := kc.CreateNemoGuardrailsResources(context.Background(), nil, namespace)
+	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace)
 	require.NoError(t, err)
 
 	cr := getNemoCR(t, fakeClient, namespace)
@@ -172,7 +172,7 @@ func TestCreateNemoGuardrailsResources_CleansUpConfigMapOnCRFailure(t *testing.T
 
 	kc := &TokenKubernetesClient{Logger: slog.Default(), Client: fakeClient}
 
-	_, err := kc.CreateNemoGuardrailsResources(context.Background(), nil, namespace)
+	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "already initialised")
 }
@@ -184,7 +184,7 @@ func TestCreateNemoGuardrailsResources_OnlyOneCMCreated(t *testing.T) {
 
 	kc := &TokenKubernetesClient{Logger: slog.Default(), Client: fakeClient}
 
-	_, err := kc.CreateNemoGuardrailsResources(context.Background(), nil, namespace)
+	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace)
 	require.NoError(t, err)
 
 	cmList := &corev1.ConfigMapList{}

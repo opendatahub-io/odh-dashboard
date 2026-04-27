@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
-	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -55,7 +54,6 @@ rails:
 // Returns the name of the created NemoGuardrails CR.
 func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 	ctx context.Context,
-	identity *integrations.RequestIdentity,
 	namespace string,
 ) (string, error) {
 	// Guard: fail fast if NemoGuardrails already exists in this namespace.

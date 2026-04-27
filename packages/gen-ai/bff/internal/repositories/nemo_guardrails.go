@@ -24,7 +24,7 @@ func (r *NemoGuardrailsRepository) InitNemoGuardrails(
 	identity *integrations.RequestIdentity,
 	namespace string,
 ) (*models.NemoGuardrailsInitModel, error) {
-	crName, err := client.CreateNemoGuardrailsResources(ctx, identity, namespace)
+	crName, err := client.CreateNemoGuardrailsResources(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
