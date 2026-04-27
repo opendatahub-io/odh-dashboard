@@ -43,3 +43,5 @@ PIP_TRUSTED_HOST: pypi.org
 NGC_API_KEY: bm90IGEgdmFsaWQgYXBpIGtleQo=
 OCI_SECRET_VALUE: cmhvYWlfZGFzaGJvYXJkK3Job
 OCI_MODEL_URI: quay.io/my_user/my_oci_model:latest
+LLAMA_STACK_URL: https://llamastack.apps.your-cluster.com
+LLAMA_STACK_API_KEY: your-api-key-here

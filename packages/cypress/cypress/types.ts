@@ -246,6 +246,8 @@ export type TestConfig = {
   NGC_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
+  LLAMA_STACK_URL?: string;
+  LLAMA_STACK_API_KEY?: string;
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
