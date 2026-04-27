@@ -2,11 +2,12 @@ import {
   ModelLocationSelectOption,
   ModelTypeLabel,
 } from '@odh-dashboard/model-serving/types/form-data';
+import { cleanupAuthPolicy, cleanupSubscription } from '../../../../utils/oc_commands/maas';
 import {
-  cleanupAuthPolicy,
-  cleanupSubscription,
-  verifyMaaSModelInferencing,
-} from '../../../../utils/oc_commands/maas';
+  stubClipboardWriteTextForApiKeyModal,
+  verifyMaaSModelInferenceUsingCopiedApiKeyFromModal,
+  verifyMaaSModelInferenceUsingRevokedApiKey,
+} from '../../../../utils/maasApiKeyClipboardInference';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
@@ -29,6 +30,7 @@ import {
   editSubscriptionPage,
   deleteSubscriptionModal,
   revokeAPIKeyModal,
+  viewSubscriptionPage,
 } from '../../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import type { DataScienceProjectData } from '../../../../types';
@@ -46,18 +48,21 @@ import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/mod
 
 let testData: DataScienceProjectData;
 let projectName: string;
+let resourceName: string;
 let modelName: string;
 let subscriptionDescription: string;
 let subscriptionPriority: number;
+let secondSubscriptionPriority: number;
 let subscriptionGroups: string;
 let subscriptionName: string;
 let subscriptionDisplayName: string;
 let tokenRateLimit: { limit: number; window: string };
 const uuid = generateTestUUID();
+let apiKeyName: string;
 let hardwareProfileResourceName: string;
 let modelURI: string;
-const llmInferenceServiceConfigName = 'kserve-config-llm-template-cpu';
-const llmInferenceServiceConfigDisplayName = 'vLLM CPU LLMInferenceServiceConfig';
+let llmInferenceServiceConfigName: string;
+let llmInferenceServiceConfigDisplayName: string;
 const llmInferenceServiceConfigYamlPath =
   'resources/modelServing/llmd-inference-service-config.yaml';
 
@@ -68,15 +73,18 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
-        modelName = `${testData.singleModelName}-maasSubs`;
+        modelName = `${testData.singleModelName}-maassubs`;
+        llmInferenceServiceConfigName = testData.llmInferenceServiceConfigName;
+        llmInferenceServiceConfigDisplayName = testData.llmInferenceServiceConfigDisplayName;
         modelURI = testData.modelLocationURI;
         hardwareProfileResourceName = `${testData.hardwareProfileName}`;
-        // TODO remove the -a from the subscription name once RHOAIENG-58437 is resolved
-        subscriptionDisplayName = 'A Test MaaS Subscription';
-        subscriptionName = 'a-test-maas-subscription';
+        subscriptionDisplayName = testData.subscriptionDisplayName;
+        subscriptionName = testData.subscriptionName;
         subscriptionDescription = 'This is a test MaaS subscription';
         subscriptionPriority = 256;
+        secondSubscriptionPriority = subscriptionPriority + 1;
         subscriptionGroups = 'system:authenticated';
+        apiKeyName = `maas-api-key-${uuid}`;
         tokenRateLimit = {
           limit: 1000,
           window: '1000',
@@ -153,7 +161,9 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .as('resourceName');
+        .then((val) => {
+          resourceName = String(val ?? '');
+        });
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
@@ -167,7 +177,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       // Verify MaaS checkbox is unchecked by default
       maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
 
-      // Check the MaaS checkbox — the gateway field should become disabled and show the MaaS gateway
+      // Check the MaaS checkbox
       maasWizardField.findSaveAsMaaSCheckbox().click();
       maasWizardField.findSaveAsMaaSCheckbox().should('be.checked');
       modelServingWizard.findNextButton().click();
@@ -179,12 +189,12 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       modelServingSection.findModelServerDeployedName(modelName);
 
       cy.step('Verify LLMInferenceService exists in the project namespace');
-      cy.get<string>('@resourceName').then((resourceName) => {
+      cy.then(() => {
         checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
 
       cy.step('Verify LLMInferenceServiceConfig was copied to the project namespace');
-      cy.get<string>('@resourceName').then((resourceName) => {
+      cy.then(() => {
         checkLLMInferenceServiceConfigState(resourceName, projectName, {
           containerImage: 'quay.io/pierdipi/vllm-cpu:latest',
         });
@@ -203,7 +213,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       createSubscriptionPage.findAddModelsButton().click();
       addModelsToSubscriptionModal.shouldBeOpen();
       addModelsToSubscriptionModal.findTable().should('exist');
-      addModelsToSubscriptionModal.findToggleModelButton('gpt2-maassubs').click();
+      addModelsToSubscriptionModal.findToggleModelButton(modelName).click();
       addModelsToSubscriptionModal.findConfirmButton().click();
 
       // Verify the model appears in the subscription models table
@@ -211,7 +221,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       createSubscriptionPage.findModelsTable().should('contain.text', modelName);
 
       // Edit token rate limits for the added model
-      createSubscriptionPage.findModelsTable().findByTestId('add-token-limit-0').click();
+      createSubscriptionPage.addTokenRateLimit(0);
       editRateLimitsModal.shouldBeOpen();
       editRateLimitsModal.findCountInput(0).clear();
       editRateLimitsModal.findCountInput(0).type(tokenRateLimit.limit.toString());
@@ -240,7 +250,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       createSubscriptionPage
         .findPriorityInput()
         .clear()
-        .type((subscriptionPriority + 1).toString());
+        .type(secondSubscriptionPriority.toString());
       // Select groups and add a custom one
       createSubscriptionPage.typeCustomGroup(subscriptionGroups);
 
@@ -248,7 +258,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       createSubscriptionPage.findAddModelsButton().click();
       addModelsToSubscriptionModal.shouldBeOpen();
       addModelsToSubscriptionModal.findTable().should('exist');
-      addModelsToSubscriptionModal.findToggleModelButton('gpt2-maassubs').click();
+      addModelsToSubscriptionModal.findToggleModelButton(modelName).click();
       addModelsToSubscriptionModal.findConfirmButton().click();
 
       // Verify the model appears in the subscription models table
@@ -256,7 +266,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       createSubscriptionPage.findModelsTable().should('contain.text', modelName);
 
       // Edit token rate limits for the added model
-      createSubscriptionPage.findModelsTable().findByTestId('add-token-limit-0').click();
+      createSubscriptionPage.addTokenRateLimit(0);
       editRateLimitsModal.shouldBeOpen();
       editRateLimitsModal.findCountInput(0).clear();
       editRateLimitsModal.findCountInput(0).type(tokenRateLimit.limit.toString());
@@ -283,13 +293,16 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       editSubscriptionPage.findNameInput().should('have.value', `${subscriptionDisplayName}2`);
       editSubscriptionPage
         .findPriorityInput()
-        .should('have.value', (subscriptionPriority + 1).toString());
+        .should('have.value', secondSubscriptionPriority.toString());
       editSubscriptionPage.typeCustomGroup('premium-users');
       editSubscriptionPage.findPolicyChangeWarning().should('exist');
       editSubscriptionPage.findPolicyChangeWarning().should('exist');
       editSubscriptionPage.findModelsTable().should('contain.text', modelName);
 
-      editSubscriptionPage.findDescriptionInput().clear().type('Updated description');
+      editSubscriptionPage
+        .findDescriptionInput()
+        .clear()
+        .type(`Updated - ${subscriptionDescription}`);
       editSubscriptionPage.findSaveButton().click();
 
       cy.step('Verify the second subscription is updated');
@@ -297,7 +310,35 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       subscriptionsPage.findFilterInput().type(`${subscriptionName}2`);
       subscriptionsPage.findRows().should('have.length', 1);
       subscriptionsPage.findRows().should('contain.text', `${subscriptionDisplayName}2`);
-      subscriptionsPage.findRows().should('contain.text', 'Updated description');
+      subscriptionsPage.findRows().should('contain.text', `Updated - ${subscriptionDescription}`);
+
+      cy.step('Verify the view subscription page');
+      subscriptionsPage
+        .getRow(`${subscriptionDisplayName}2`)
+        .findKebabAction('View details')
+        .click();
+      cy.url().should('include', `/maas/subscriptions/view/${subscriptionName}`);
+
+      viewSubscriptionPage.findTitle().should('contain.text', `${subscriptionDisplayName}2`);
+
+      viewSubscriptionPage
+        .findDetailsSection()
+        .should('contain.text', `${subscriptionDisplayName}2`)
+        .and('contain.text', 'Name')
+        .and('contain.text', 'Created');
+
+      viewSubscriptionPage.findGroupsSection().should('exist');
+      viewSubscriptionPage.findGroupsTable().should('contain.text', subscriptionGroups);
+
+      viewSubscriptionPage.findModelsSection().should('exist');
+      viewSubscriptionPage
+        .findModelsTable()
+        .should('contain.text', modelName)
+        .and('contain.text', projectName)
+        .and('contain.text', tokenRateLimit.limit.toString());
+
+      viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
+      cy.url().should('include', '/maas/subscriptions');
 
       cy.step('Delete the second subscription');
       subscriptionsPage.getRow(`${subscriptionDisplayName}2`).findKebabAction('Delete').click();
@@ -311,12 +352,12 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       apiKeysPage.visit();
       apiKeysPage.findCreateApiKeyButton().click();
       createApiKeyModal.shouldBeOpen();
-      createApiKeyModal.findNameInput().type(`maas-api-key-${uuid}`);
+      createApiKeyModal.findNameInput().type(apiKeyName);
       createApiKeyModal
         .findDescriptionInput()
         .type(`Cypress test: API key for ${subscriptionDisplayName}`);
       createApiKeyModal.findSubscriptionToggle().click();
-      createApiKeyModal.findSubscriptionOption('a-test-maas-subscription').click();
+      createApiKeyModal.findSubscriptionOption(subscriptionName).click();
       createApiKeyModal.findExpirationToggle().click();
       createApiKeyModal.findExpirationOption('custom').click();
       createApiKeyModal.findCustomDaysInput().should('exist');
@@ -326,29 +367,9 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Read the API key from the success dialog');
       copyApiKeyModal.shouldBeOpen();
-      cy.window().then((win) => {
-        cy.stub(win.navigator.clipboard, 'writeText').as('clipboardWrite');
-      });
+      stubClipboardWriteTextForApiKeyModal();
       copyApiKeyModal.findApiKeyTokenCopyButton().click();
-      cy.get('@clipboardWrite').should('have.been.calledOnce');
-      cy.get('@clipboardWrite')
-        .invoke('getCall', 0)
-        .its('args.0')
-        .should('be.a', 'string')
-        .and('not.be.empty')
-        .then((raw) => {
-          const token = String(raw).trim();
-          cy.wrap(token).as('maasApiKeyToken');
-          cy.step('Inference with the model using the API key');
-          return cy.get<string>('@resourceName').then((resourceName) =>
-            verifyMaaSModelInferencing(resourceName, projectName, token).then(({ response }) => {
-              cy.log(`Response status: ${response.status}`);
-              expect(response.status).to.equal(200);
-              cy.log(`✅ Inference with the model using the API key successful`);
-              cy.log(`✅ Response body: ${JSON.stringify(response.body)}`);
-            }),
-          );
-        });
+      verifyMaaSModelInferenceUsingCopiedApiKeyFromModal(projectName, resourceName);
 
       cy.step('Revoke the API key');
       copyApiKeyModal.findCloseButton().click();
@@ -357,27 +378,16 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       // Filter by the admin username to find the API key, there could be a lot of keys
       apiKeysPage.findFilterInput().find('input').type(HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
       apiKeysPage.findFilterSearchButton().click();
-      apiKeysPage.getRow(`maas-api-key-${uuid}`).findKebabAction('Revoke').click();
+      apiKeysPage.getRow(apiKeyName).findKebabAction('Revoke').click();
 
       revokeAPIKeyModal.shouldBeOpen();
       revokeAPIKeyModal.findRevokeButton().should('be.disabled');
-      revokeAPIKeyModal.findRevokeConfirmationInput().clear().type(`maas-api-key-${uuid}`);
+      revokeAPIKeyModal.findRevokeConfirmationInput().clear().type(apiKeyName);
       revokeAPIKeyModal.findRevokeButton().should('be.enabled');
       revokeAPIKeyModal.findRevokeButton().click();
 
       cy.step('Try and inference with the model using the revoked API key');
-      cy.get<string>('@maasApiKeyToken').then((revokedToken) =>
-        cy.get<string>('@resourceName').then((resourceName) =>
-          verifyMaaSModelInferencing(resourceName, projectName, revokedToken).then(
-            ({ response }) => {
-              expect(response.status).to.equal(403);
-              cy.log(`❌ Inference with the model using the revoked API key failed`);
-              cy.log(`Response status: ${response.status}`);
-              cy.log(`Response body: ${JSON.stringify(response.body)}`);
-            },
-          ),
-        ),
-      );
+      verifyMaaSModelInferenceUsingRevokedApiKey(projectName, resourceName);
     },
   );
 });

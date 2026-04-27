@@ -850,6 +850,10 @@ class CreateSubscriptionPage {
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('cancel-subscription-button');
   }
+
+  addTokenRateLimit(index: number): void {
+    this.findModelsTable().findByTestId(`add-token-limit-${index}`).click();
+  }
 }
 
 class EditSubscriptionPage {
