@@ -11,7 +11,6 @@ const renderModal = (props: Partial<React.ComponentProps<typeof DeleteRunModal>>
     onConfirm: jest.fn(),
     isDeleting: false,
     runName: 'my-test-run',
-    namespace: 'test-namespace',
     ...props,
   };
   return render(<DeleteRunModal {...defaultProps} />);
