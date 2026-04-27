@@ -187,6 +187,8 @@ Signed-off-by: $(git config user.name) <$(git config user.email)>"
 
 Never push automatically. Tell the user what was done.
 
-## Step 6: Re-check (after fix)
+## Step 6: Verify (after fix)
 
-Re-run all checks from Step 2 and print an updated results table. This shows what went from ❌ to ✅.
+Run lint and type-check on the files that were changed during the fix phase to verify the fixes compile cleanly. Don't re-fetch PR status from GitHub — nothing was pushed so the remote state is unchanged.
+
+Print an updated results table. PR-sourced checks (CI, reviews, mergeable) keep their original status. Local checks (lint, type-check) get updated based on the verification run.
