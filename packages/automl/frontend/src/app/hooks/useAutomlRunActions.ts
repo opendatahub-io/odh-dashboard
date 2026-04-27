@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import {
-  useArchivePipelineRunMutation,
+  useDeletePipelineRunMutation,
   useRetryPipelineRunMutation,
   useTerminatePipelineRunMutation,
 } from '~/app/hooks/mutations';
@@ -10,14 +10,14 @@ import { useNotification } from '~/app/hooks/useNotification';
 type AutomlRunActions = {
   handleRetry: () => Promise<void>;
   handleConfirmStop: () => Promise<void>;
-  handleArchive: () => Promise<void>;
+  handleDelete: () => Promise<void>;
   isRetrying: boolean;
   isTerminating: boolean;
-  isArchiving: boolean;
+  isDeleting: boolean;
 };
 
 /**
- * Encapsulates retry and stop (terminate) actions for a pipeline run,
+ * Encapsulates retry, stop (terminate), and delete actions for a pipeline run,
  * including mutation state and toast notifications.
  */
 export const useAutomlRunActions = (
@@ -29,7 +29,7 @@ export const useAutomlRunActions = (
   const notification = useNotification();
   const retryMutation = useRetryPipelineRunMutation(namespace, runId);
   const terminateMutation = useTerminatePipelineRunMutation(namespace, runId);
-  const archiveMutation = useArchivePipelineRunMutation(namespace, runId);
+  const deleteMutation = useDeletePipelineRunMutation(namespace, runId);
 
   const handleRetry = React.useCallback(async () => {
     try {
@@ -75,17 +75,17 @@ export const useAutomlRunActions = (
     }
   }, [terminateMutation, queryClient, runId, namespace, onActionComplete, notification]);
 
-  const handleArchive = React.useCallback(async () => {
+  const handleDelete = React.useCallback(async () => {
     try {
-      await archiveMutation.mutateAsync();
+      await deleteMutation.mutateAsync();
       await queryClient.invalidateQueries({ queryKey: ['pipelineRun', runId, namespace] });
       notification.success(
-        'Archive submitted successfully',
-        'The process is asynchronous and may take some time to take effect',
+        'Run deleted successfully',
+        'The pipeline run has been permanently removed',
       );
     } catch (error) {
       notification.error(
-        'Failed to archive run',
+        'Failed to delete run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
       throw error;
@@ -93,16 +93,16 @@ export const useAutomlRunActions = (
     try {
       await onActionComplete?.();
     } catch {
-      // Caller refresh failure should not mask a successful archive.
+      // Caller refresh failure should not mask a successful delete.
     }
-  }, [archiveMutation, queryClient, runId, namespace, onActionComplete, notification]);
+  }, [deleteMutation, queryClient, runId, namespace, onActionComplete, notification]);
 
   return {
     handleRetry,
     handleConfirmStop,
-    handleArchive,
+    handleDelete,
     isRetrying: retryMutation.isPending,
     isTerminating: terminateMutation.isPending,
-    isArchiving: archiveMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   };
 };

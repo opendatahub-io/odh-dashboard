@@ -74,7 +74,7 @@ describe('AutoragRunsTableRow', () => {
   });
 
   describe('kebab action menu', () => {
-    it('should show archive action for succeeded runs', async () => {
+    it('should show delete action for succeeded runs', async () => {
       render(
         <MemoryRouter>
           <AutoragRunsTableRow run={{ ...mockRun, state: 'SUCCEEDED' }} namespace={mockNamespace} />
@@ -82,7 +82,7 @@ describe('AutoragRunsTableRow', () => {
       );
       const kebab = screen.getByRole('button', { name: 'Kebab toggle' });
       await userEvent.click(kebab);
-      expect(screen.getByTestId('archive-run-action')).toBeInTheDocument();
+      expect(screen.getByTestId('delete-run-action')).toBeInTheDocument();
     });
 
     it('should not show kebab menu for canceling runs', () => {

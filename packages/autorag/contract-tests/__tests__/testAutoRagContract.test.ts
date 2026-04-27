@@ -1317,10 +1317,10 @@ describe('AutoRAG API Contract Tests', () => {
       });
     });
 
-    describe('Archive Pipeline Run', () => {
-      it('should archive a succeeded pipeline run', async () => {
-        const result = await apiClient.post(
-          '/api/v1/pipeline-runs/run-abc123-def456/archive?namespace=test-namespace',
+    describe('Delete Pipeline Run', () => {
+      it('should delete a succeeded pipeline run', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/run-abc123-def456?namespace=test-namespace',
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -1328,9 +1328,9 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should archive a failed pipeline run', async () => {
-        const result = await apiClient.post(
-          '/api/v1/pipeline-runs/run-mno345-pqr678/archive?namespace=test-namespace',
+      it('should delete a failed pipeline run', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/run-mno345-pqr678?namespace=test-namespace',
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -1338,9 +1338,9 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
 
-      it('should return 400 when attempting to archive an active (RUNNING) run', async () => {
-        const result = await apiClient.post(
-          '/api/v1/pipeline-runs/run-ghi789-jkl012/archive?namespace=test-namespace',
+      it('should return 400 when attempting to delete an active (RUNNING) run', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/run-ghi789-jkl012?namespace=test-namespace',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -1356,8 +1356,8 @@ describe('AutoRAG API Contract Tests', () => {
       });
 
       it('should return 404 for non-existent run ID', async () => {
-        const result = await apiClient.post(
-          '/api/v1/pipeline-runs/non-existent-run-id/archive?namespace=test-namespace',
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/non-existent-run-id?namespace=test-namespace',
         );
         expect(result.success).toBe(false);
         if (!result.success) {

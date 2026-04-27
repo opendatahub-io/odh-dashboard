@@ -4,7 +4,7 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
-import ArchiveRunModal from '~/app/components/run-results/ArchiveRunModal';
+import DeleteRunModal from '~/app/components/run-results/DeleteRunModal';
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { TASK_TYPE_LABELS } from '~/app/utilities/const';
@@ -13,7 +13,7 @@ import {
   getTaskType,
   isRunTerminatable,
   isRunRetryable,
-  isRunArchivable,
+  isRunDeletable,
 } from '~/app/utilities/utils';
 import { automlRunsColumns } from './columns';
 
@@ -68,27 +68,27 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
   const taskType = getTaskType(run);
   const predictionTypeLabel = taskType ? (TASK_TYPE_LABELS[taskType] ?? taskType) : '—';
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
-  const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
-  const { handleRetry, handleConfirmStop, handleArchive, isRetrying, isTerminating, isArchiving } =
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const { handleRetry, handleConfirmStop, handleDelete, isRetrying, isTerminating, isDeleting } =
     useAutomlRunActions(namespace, run.run_id, onActionComplete);
 
   const runTerminatable = isRunTerminatable(run.state);
   const runRetryable = isRunRetryable(run.state);
-  const runArchivable = isRunArchivable(run.state);
+  const runDeletable = isRunDeletable(run.state);
 
   const handleStop = React.useCallback(async () => {
     await handleConfirmStop();
     setIsStopModalOpen(false);
   }, [handleConfirmStop]);
 
-  const handleConfirmArchive = React.useCallback(async () => {
+  const handleConfirmDelete = React.useCallback(async () => {
     try {
-      await handleArchive();
-      setIsArchiveModalOpen(false);
+      await handleDelete();
+      setIsDeleteModalOpen(false);
     } catch {
-      // Modal stays open; error toast is shown by handleArchive.
+      // Modal stays open; error toast is shown by handleDelete.
     }
-  }, [handleArchive]);
+  }, [handleDelete]);
 
   const actions = React.useMemo(() => {
     const items: React.ComponentProps<typeof ActionsColumn>['items'] = [];
@@ -108,19 +108,19 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
       });
     }
 
-    if (runArchivable) {
+    if (runDeletable) {
       if (runTerminatable || runRetryable) {
         items.push({ isSeparator: true });
       }
       items.push({
-        title: <span data-testid="archive-run-action">Archive</span>,
-        onClick: () => setIsArchiveModalOpen(true),
-        isDisabled: isArchiving,
+        title: <span data-testid="delete-run-action">Delete</span>,
+        onClick: () => setIsDeleteModalOpen(true),
+        isDisabled: isDeleting,
       });
     }
 
     return items;
-  }, [runTerminatable, runRetryable, runArchivable, handleRetry, isRetrying, isArchiving]);
+  }, [runTerminatable, runRetryable, runDeletable, handleRetry, isRetrying, isDeleting]);
 
   return (
     <>
@@ -156,13 +156,12 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
         isTerminating={isTerminating}
         runName={run.display_name}
       />
-      <ArchiveRunModal
-        isOpen={isArchiveModalOpen}
-        onClose={() => setIsArchiveModalOpen(false)}
-        onConfirm={handleConfirmArchive}
-        isArchiving={isArchiving}
+      <DeleteRunModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
         runName={run.display_name}
-        namespace={namespace}
       />
     </>
   );

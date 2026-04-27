@@ -300,9 +300,8 @@ func (r *PipelineRunsRepository) RetryPipelineRun(
 	return nil
 }
 
-// ArchivePipelineRun archives a pipeline run by ID.
-// It sends an archive request to the pipeline server to change the run's storage_state to ARCHIVED.
-func (r *PipelineRunsRepository) ArchivePipelineRun(
+// DeletePipelineRun permanently deletes a pipeline run by ID.
+func (r *PipelineRunsRepository) DeletePipelineRun(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	runID string,
@@ -311,7 +310,7 @@ func (r *PipelineRunsRepository) ArchivePipelineRun(
 		return fmt.Errorf("pipeline server client is nil")
 	}
 
-	if err := client.ArchiveRun(ctx, runID); err != nil {
+	if err := client.DeleteRun(ctx, runID); err != nil {
 		var httpErr *ps.HTTPError
 		if errors.As(err, &httpErr) {
 			switch httpErr.Status() {
@@ -321,7 +320,7 @@ func (r *PipelineRunsRepository) ArchivePipelineRun(
 				return err
 			}
 		}
-		return fmt.Errorf("failed to archive pipeline run: %w", err)
+		return fmt.Errorf("failed to delete pipeline run: %w", err)
 	}
 
 	return nil

@@ -622,37 +622,37 @@ async function retryPipelineRun(namespace, runId, token) {
 }
 ```
 
-## Archive Pipeline Run
+## Delete Pipeline Run
 
 ### Endpoint
 
 ```http
-POST /api/v1/pipeline-runs/{runId}/archive
+DELETE /api/v1/pipeline-runs/{runId}
 ```
 
-Archives a pipeline run that is in a terminal state (SUCCEEDED, FAILED, or CANCELED). The run must belong to the discovered AutoRAG pipeline in the namespace. Archiving changes the run's `storage_state` from `AVAILABLE` to `ARCHIVED`, hiding it from the default list view. Archived runs can be restored from the Pipelines archived runs view.
+Permanently deletes a pipeline run that is in a terminal state (SUCCEEDED, FAILED, or CANCELED). The run must belong to the discovered AutoRAG pipeline in the namespace. This action cannot be undone.
 
 ### Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
-| `runId` | path parameter | Yes | Unique identifier of the pipeline run to archive |
+| `runId` | path parameter | Yes | Unique identifier of the pipeline run to delete |
 
 ### Security & Filtering
 
 This endpoint enforces the same ownership validation as the Terminate Run endpoint:
 
-- Fetches the run and validates it belongs to the discovered AutoRAG pipeline before archiving
-- Validates the run is in SUCCEEDED, FAILED, or CANCELED state before archiving
+- Fetches the run and validates it belongs to the discovered AutoRAG pipeline before deleting
+- Validates the run is in SUCCEEDED, FAILED, or CANCELED state before deleting
 - Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
-- Returns `400 Bad Request` if the run is not in an archivable state
-- Prevents users from archiving runs from other pipelines in the same namespace
+- Returns `400 Bad Request` if the run is not in an deletable state
+- Prevents users from deleting runs from other pipelines in the same namespace
 
 ### Request Example
 
 ```bash
-curl -X POST "http://localhost:4001/api/v1/pipeline-runs/abc123-def456-ghi789/archive?namespace=my-namespace" \
+curl -X DELETE "http://localhost:4001/api/v1/pipeline-runs/abc123-def456-ghi789?namespace=my-namespace" \
   -H "Authorization: Bearer <your-token>"
 ```
 

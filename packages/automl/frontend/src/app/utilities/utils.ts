@@ -37,9 +37,9 @@ export const isRunRetryable = (state: string | undefined): boolean => {
 };
 
 /**
- * Whether the run is in a terminal state where it can be archived.
+ * Whether the run is in a terminal state where it can be deleted.
  */
-export const isRunArchivable = (state: string | undefined): boolean => {
+export const isRunDeletable = (state: string | undefined): boolean => {
   const s = state?.toUpperCase();
   return (
     s === RuntimeStateKF.SUCCEEDED || s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED

@@ -52,7 +52,7 @@ jest.mock('~/app/hooks/mutations', () => ({
     mutateAsync: jest.fn(),
     isPending: false,
   }),
-  useArchivePipelineRunMutation: jest.fn().mockReturnValue({
+  useDeletePipelineRunMutation: jest.fn().mockReturnValue({
     mutateAsync: jest.fn(),
     isPending: false,
   }),

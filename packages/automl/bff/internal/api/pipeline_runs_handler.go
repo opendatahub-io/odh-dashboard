@@ -288,45 +288,42 @@ func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 }
 
-// archivableStates lists the run states that are eligible for archiving.
-var archivableStates = map[string]bool{
+// deletableStates lists the run states that are eligible for deletion.
+var deletableStates = map[string]bool{
 	"SUCCEEDED": true,
 	"FAILED":    true,
 	"CANCELED":  true,
 }
 
-// ArchivePipelineRunHandler handles POST /api/v1/pipeline-runs/:runId/archive
+// DeletePipelineRunHandler handles DELETE /api/v1/pipeline-runs/:runId
 //
-// Archives a completed, failed, or canceled AutoML pipeline run. The run must belong to one of the
-// discovered AutoML pipelines (timeseries or tabular) in the namespace. Archiving changes the run's
-// storage_state from AVAILABLE to ARCHIVED, hiding it from default list views.
+// Permanently deletes a completed, failed, or canceled AutoML pipeline run. The run must belong
+// to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace.
 //
 // Security: This endpoint validates that the requested run belongs to a discovered
-// AutoML pipeline before archiving it. This prevents users from archiving runs
+// AutoML pipeline before deleting it. This prevents users from deleting runs
 // from other pipelines in the same namespace.
 //
-// Only runs in SUCCEEDED, FAILED, or CANCELED state can be archived.
+// Only runs in SUCCEEDED, FAILED, or CANCELED state can be deleted.
 //
 // Error Responses:
-//   - 400: Missing runId or run is not in an archivable state
+//   - 400: Missing runId or run is not in a deletable state
 //   - 404: Run not found, run belongs to a different pipeline, or no pipelines discovered
 //   - 500: Pipeline Server error
-func (app *App) ArchivePipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (app *App) DeletePipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	client, run, ok := app.resolveOwnedRun(w, r, params)
 	if !ok {
 		return
 	}
 
-	// Validate the run is in an archivable state
 	runState := strings.ToUpper(run.State)
-	if !archivableStates[runState] {
-		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be archived; only SUCCEEDED, FAILED, or CANCELED runs can be archived", run.RunID, runState))
+	if !deletableStates[runState] {
+		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be deleted; only SUCCEEDED, FAILED, or CANCELED runs can be deleted", run.RunID, runState))
 		return
 	}
 
-	// Ownership and state confirmed — archive the run
-	if err := app.repositories.PipelineRuns.ArchivePipelineRun(client, r.Context(), run.RunID); err != nil {
-		app.mapMutationError(w, r, err, "archive")
+	if err := app.repositories.PipelineRuns.DeletePipelineRun(client, r.Context(), run.RunID); err != nil {
+		app.mapMutationError(w, r, err, "delete")
 		return
 	}
 

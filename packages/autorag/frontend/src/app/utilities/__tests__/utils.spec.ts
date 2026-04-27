@@ -5,7 +5,7 @@ import {
   isRunTerminatable,
   isRunInProgress,
   isRunRetryable,
-  isRunArchivable,
+  isRunDeletable,
   parseErrorStatus,
   getOptimizedMetricForRAG,
   formatMetricValue,
@@ -86,30 +86,30 @@ describe('isRunRetryable', () => {
   });
 });
 
-describe('isRunArchivable', () => {
+describe('isRunDeletable', () => {
   it('should return true for terminal states', () => {
-    expect(isRunArchivable('SUCCEEDED')).toBe(true);
-    expect(isRunArchivable('FAILED')).toBe(true);
-    expect(isRunArchivable('CANCELED')).toBe(true);
+    expect(isRunDeletable('SUCCEEDED')).toBe(true);
+    expect(isRunDeletable('FAILED')).toBe(true);
+    expect(isRunDeletable('CANCELED')).toBe(true);
   });
 
   it('should be case-insensitive', () => {
-    expect(isRunArchivable('succeeded')).toBe(true);
-    expect(isRunArchivable('Succeeded')).toBe(true);
-    expect(isRunArchivable('failed')).toBe(true);
-    expect(isRunArchivable('canceled')).toBe(true);
+    expect(isRunDeletable('succeeded')).toBe(true);
+    expect(isRunDeletable('Succeeded')).toBe(true);
+    expect(isRunDeletable('failed')).toBe(true);
+    expect(isRunDeletable('canceled')).toBe(true);
   });
 
   it('should return false for active states', () => {
-    expect(isRunArchivable('RUNNING')).toBe(false);
-    expect(isRunArchivable('PENDING')).toBe(false);
-    expect(isRunArchivable('PAUSED')).toBe(false);
-    expect(isRunArchivable('CANCELING')).toBe(false);
+    expect(isRunDeletable('RUNNING')).toBe(false);
+    expect(isRunDeletable('PENDING')).toBe(false);
+    expect(isRunDeletable('PAUSED')).toBe(false);
+    expect(isRunDeletable('CANCELING')).toBe(false);
   });
 
   it('should return false for undefined or empty state', () => {
-    expect(isRunArchivable(undefined)).toBe(false);
-    expect(isRunArchivable('')).toBe(false);
+    expect(isRunDeletable(undefined)).toBe(false);
+    expect(isRunDeletable('')).toBe(false);
   });
 });
 

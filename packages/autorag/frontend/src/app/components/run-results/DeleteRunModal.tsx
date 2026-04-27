@@ -11,29 +11,25 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
-import { pipelinesArchivedRunsPathname } from '~/app/utilities/routes';
 
-type ArchiveRunModalProps = {
+type DeleteRunModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  isArchiving: boolean;
+  isDeleting: boolean;
   runName?: string;
-  namespace: string;
 };
 
-const ArchiveRunModal: React.FC<ArchiveRunModalProps> = ({
+const DeleteRunModal: React.FC<DeleteRunModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
-  isArchiving,
+  isDeleting,
   runName,
-  namespace,
 }) => {
   const [confirmInputValue, setConfirmInputValue] = React.useState('');
   const confirmMessage = runName ?? '';
-  const isDisabled = !confirmMessage || confirmInputValue.trim() !== confirmMessage || isArchiving;
+  const isDisabled = !confirmMessage || confirmInputValue.trim() !== confirmMessage || isDeleting;
 
   const handleClose = React.useCallback(() => {
     setConfirmInputValue('');
@@ -41,23 +37,20 @@ const ArchiveRunModal: React.FC<ArchiveRunModalProps> = ({
   }, [onClose]);
 
   return (
-    <Modal variant="small" isOpen={isOpen} onClose={handleClose} data-testid="archive-run-modal">
-      <ModalHeader title="Archive AutoRAG optimization run?" titleIconVariant="warning" />
+    <Modal variant="small" isOpen={isOpen} onClose={handleClose} data-testid="delete-run-modal">
+      <ModalHeader title="Delete AutoRAG optimization run?" titleIconVariant="warning" />
       <ModalBody>
         <Stack hasGutter>
-          <StackItem>
-            The run will be archived. It can be restored from the Pipelines{' '}
-            <Link to={pipelinesArchivedRunsPathname(namespace)}>archived runs</Link> view.
-          </StackItem>
+          <StackItem>The run will be permanently deleted. This action cannot be undone.</StackItem>
           <StackItem>
             <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
               <FlexItem>
-                Type <strong>{confirmMessage}</strong> to confirm archiving:
+                Type <strong>{confirmMessage}</strong> to confirm deletion:
               </FlexItem>
               <TextInput
-                id="confirm-archive-input"
-                data-testid="confirm-archive-input"
-                aria-label="confirm archive input"
+                id="confirm-delete-input"
+                data-testid="confirm-delete-input"
+                aria-label="confirm delete input"
                 value={confirmInputValue}
                 onChange={(_e, newValue) => setConfirmInputValue(newValue)}
                 onKeyDown={(event) => {
@@ -72,16 +65,16 @@ const ArchiveRunModal: React.FC<ArchiveRunModalProps> = ({
       </ModalBody>
       <ModalFooter>
         <Button
-          variant="primary"
+          variant="danger"
           onClick={onConfirm}
           isDisabled={isDisabled}
-          isLoading={isArchiving}
-          spinnerAriaValueText="Archiving run"
-          data-testid="confirm-archive-run-button"
+          isLoading={isDeleting}
+          spinnerAriaValueText="Deleting run"
+          data-testid="confirm-delete-run-button"
         >
-          Archive
+          Delete
         </Button>
-        <Button variant="link" onClick={handleClose} isDisabled={isArchiving}>
+        <Button variant="link" onClick={handleClose} isDisabled={isDeleting}>
           Cancel
         </Button>
       </ModalFooter>
@@ -89,4 +82,4 @@ const ArchiveRunModal: React.FC<ArchiveRunModalProps> = ({
   );
 };
 
-export default ArchiveRunModal;
+export default DeleteRunModal;

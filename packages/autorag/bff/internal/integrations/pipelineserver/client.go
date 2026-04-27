@@ -37,7 +37,7 @@ type PipelineServerClientInterface interface {
 	CreateRun(ctx context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error)
 	TerminateRun(ctx context.Context, runID string) error
 	RetryRun(ctx context.Context, runID string) error
-	ArchiveRun(ctx context.Context, runID string) error
+	DeleteRun(ctx context.Context, runID string) error
 	ListPipelines(ctx context.Context, filter string) (*models.KFPipelinesResponse, error)
 	ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error)
 	GetPipelineVersion(ctx context.Context, pipelineID, versionID string) (*models.KFPipelineVersion, error)
@@ -379,21 +379,19 @@ func (c *RealPipelineServerClient) RetryRun(ctx context.Context, runID string) e
 	return nil
 }
 
-// ArchiveRun archives a pipeline run via the KFP v2beta1 API.
-// It calls POST /apis/v2beta1/runs/{runID}:archive which changes the run's
-// storage_state from AVAILABLE to ARCHIVED, hiding it from default list views.
-func (c *RealPipelineServerClient) ArchiveRun(ctx context.Context, runID string) error {
+// DeleteRun permanently deletes a pipeline run via the KFP v2beta1 API.
+// It calls DELETE /apis/v2beta1/runs/{runID} which removes the run record entirely.
+func (c *RealPipelineServerClient) DeleteRun(ctx context.Context, runID string) error {
 	if runID == "" {
 		return fmt.Errorf("runID is required")
 	}
 
-	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs/%s:archive", c.baseURL, url.PathEscape(runID))
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs/%s", c.baseURL, url.PathEscape(runID))
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader([]byte("{}")))
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, apiURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
 
 	if c.authToken != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
@@ -410,7 +408,7 @@ func (c *RealPipelineServerClient) ArchiveRun(ctx context.Context, runID string)
 		respBody, _ := io.ReadAll(limitedReader)
 		_, _ = io.Copy(io.Discard, resp.Body)
 
-		errorMsg := fmt.Sprintf("failed to archive run %s: %s", runID, string(respBody))
+		errorMsg := fmt.Sprintf("failed to delete run %s: %s", runID, string(respBody))
 		if len(respBody) == maxPipelineErrorBodySize {
 			errorMsg += " (truncated)"
 		}
