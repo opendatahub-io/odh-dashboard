@@ -264,6 +264,55 @@ const waitForMlflowTrackingPodReady = (namespace: string): Cypress.Chainable<Cyp
 };
 
 /**
+ * Poll via cy.request() until the mlflowEmbedded module federation remote entry
+ * returns HTTP 200. The dashboard proxies this through /_mf/mlflowEmbedded/*.
+ *
+ * The k8s deployment can report "Available" before the MLflow web server is
+ * ready to serve the federated JavaScript bundle. Without this check the
+ * sidebar poll would start while loadRemote() still fails silently, so the
+ * nav item never appears.
+ *
+ * Requires an active browser session (call after cy.visitWithLogin).
+ */
+const waitForMlflowRemoteEntry = (): Cypress.Chainable<boolean> => {
+  const remoteEntryPath = '/_mf/mlflowEmbedded/mlflow/static-files/federated/remoteEntry.js';
+  const maxAttempts = 60;
+  const pollIntervalMs = 5000;
+  const startTime = Date.now();
+
+  const check = (attempt = 1): Cypress.Chainable<boolean> => {
+    cy.step(`Attempt ${attempt}/${maxAttempts} - Polling mlflowEmbedded remote entry...`);
+
+    return cy
+      .request({ url: remoteEntryPath, failOnStatusCode: false, timeout: 10000 })
+      .then((resp) => {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        if (resp.status === 200) {
+          cy.log(`mlflowEmbedded remote entry reachable (after ${elapsed}s)`);
+          return cy.wrap(true);
+        }
+
+        if (attempt >= maxAttempts) {
+          throw new Error(
+            `mlflowEmbedded remote entry not reachable after ${maxAttempts} attempts ` +
+              `(${elapsed}s, last status=${resp.status})`,
+          );
+        }
+
+        cy.log(
+          `remote entry returned ${resp.status} (attempt ${attempt}/${maxAttempts}, ${elapsed}s)`,
+        );
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        return cy.wait(pollIntervalMs).then(() => check(attempt + 1));
+      });
+  };
+
+  cy.log(`Polling mlflowEmbedded remote entry (max ${(maxAttempts * pollIntervalMs) / 1000}s)`);
+  return check();
+};
+
+/**
  * Enable MLflow backend resources without waiting for sidebar visibility.
  * Sets MLflow operator to Managed, waits for it, creates MLflow CR,
  * waits for CR readiness and tracking server pod availability.
@@ -298,13 +347,23 @@ const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
  * 1. Set mlflowoperator to Managed and wait for it
  * 2. Create an MLflow CR and wait for it to be ready
  * 3. Verify DSC status reflects mlflowoperator as Managed
- * 4. Wait for Experiments (MLflow) nav item in the sidebar
+ * 4. Establish browser session and verify federated remote is loadable
+ * 5. Wait for Experiments (MLflow) nav item in the sidebar
  */
 export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
   return enableMlflowBackend()
     .then(() => {
       cy.step('Verify DSC status reflects mlflowoperator as Managed');
       return waitForDSCComponentsManaged(['mlflowoperator']);
+    })
+    .then(() => {
+      cy.step('Establish browser session for remote entry check');
+      cy.visitWithLogin('/');
+      return cy.get('#page-sidebar', { timeout: 15000 });
+    })
+    .then(() => {
+      cy.step('Wait for mlflowEmbedded module federation remote to be loadable');
+      return waitForMlflowRemoteEntry();
     })
     .then(() => {
       cy.step('Wait for Experiments (MLflow) nav item in sidebar');
@@ -359,6 +418,15 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
     .then(() => {
       cy.step('Verify DSC status reflects both operators as Managed');
       return waitForDSCComponentsManaged(['llamastackoperator', 'mlflowoperator']);
+    })
+    .then(() => {
+      cy.step('Establish browser session for remote entry check');
+      cy.visitWithLogin('/');
+      return cy.get('#page-sidebar', { timeout: 15000 });
+    })
+    .then(() => {
+      cy.step('Wait for mlflowEmbedded module federation remote to be loadable');
+      return waitForMlflowRemoteEntry();
     })
     .then(() => {
       cy.step('Wait for Prompts nav item in sidebar');
