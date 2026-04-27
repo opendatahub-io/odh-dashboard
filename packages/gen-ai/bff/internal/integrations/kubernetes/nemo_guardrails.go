@@ -66,7 +66,6 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 	}
 
 	// Step 1: Create the placeholder ConfigMap.
-	// Treat IsAlreadyExists as success — a concurrent init may have created it first.
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      nemoGuardrailsPlaceholderName,
