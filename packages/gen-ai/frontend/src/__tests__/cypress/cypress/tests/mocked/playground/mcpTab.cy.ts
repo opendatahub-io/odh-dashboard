@@ -470,6 +470,8 @@ describe('Playground - MCP Servers', () => {
       cy.step('Close success modal and open tools modal');
       playgroundPage.mcpTab.closeSuccessModal();
       mcpServerSuccessModal.find().should('not.exist');
+      // Select MCP tab to ensure it's active
+      playgroundPage.mcpTab.clickMCPTab();
       // Wait for MCP table to be visible after potential tab remount
       playgroundPage.mcpTab.verifyMCPTabVisible();
       // Re-query server row after modal closes to avoid stale reference
