@@ -15,6 +15,7 @@ import (
 type LlamaStackConfig struct {
 	Version             string              `json:"version" yaml:"version"`
 	DistroName          string              `json:"distro_name" yaml:"distro_name"`
+	ImageName           string              `json:"image_name,omitempty" yaml:"image_name,omitempty"` // Deprecated: Use DistroName (backward compatibility for pre-0.7.x)
 	APIs                []string            `json:"apis" yaml:"apis"`
 	Providers           Providers           `json:"providers" yaml:"providers"`
 	MetadataStore       MetadataStore       `json:"metadata_store" yaml:"metadata_store"`
@@ -155,6 +156,7 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 	return &LlamaStackConfig{
 		Version:    "2",
 		DistroName: "rh",
+		ImageName:  "rh", // Deprecated: Set for backward compatibility with pre-0.7.x LlamaStack
 		APIs: []string{
 			"responses", "datasetio", "files", "inference",
 			"safety", "scoring", "tool_runtime", "vector_io",
