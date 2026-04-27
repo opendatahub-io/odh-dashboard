@@ -309,22 +309,24 @@ def fetch_queue_time_minutes(run_id: str, job_id: str) -> float | None:
     return None
 
 
-def fetch_log(run_id: str, job_id: str | None) -> list[str]:
+def fetch_log(run_id: str, job_id: str | None) -> tuple[list[str], bool]:
     """Fetch CI log lines.
 
     With a job_id: fetches only that job's log (scoped, complete, no truncation needed).
     Without a job_id: fetches all failed jobs concatenated — can be very large, so we
     keep only the tail where failures typically appear.
+
+    Returns (lines, truncated).
     """
     if job_id:
         raw = run_gh("run", "view", run_id, "--job", job_id, "--log")
-        return raw.splitlines()
+        return raw.splitlines(), False
     else:
         raw = run_gh("run", "view", run_id, "--log-failed")
         all_lines = raw.splitlines()
         if len(all_lines) > MAX_LINES:
-            all_lines = all_lines[-MAX_LINES:]
-        return all_lines
+            return all_lines[-MAX_LINES:], True
+        return all_lines, False
 
 
 def main() -> None:
@@ -333,7 +335,7 @@ def main() -> None:
     parser.add_argument("--job", help="Job ID (optional; scopes to a single job)", default=None)
     args = parser.parse_args()
 
-    raw_lines = fetch_log(args.run_id, args.job)
+    raw_lines, log_truncated = fetch_log(args.run_id, args.job)
     check_name = extract_check_name(raw_lines)
 
     # Strip GH Actions prefixes and ANSI codes to get clean test output
@@ -341,6 +343,12 @@ def main() -> None:
     clean_lines = [line for line in stripped_lines if line.strip()]
 
     warnings: list[str] = []
+
+    if log_truncated:
+        warnings.append(
+            f"Log truncated to last {MAX_LINES} lines — early failures may be missing. "
+            "Pass --job <job_id> to fetch a single job's complete log."
+        )
 
     # Warn if prefix stripping appears to have silently failed (GH Actions format may have changed).
     # Sample lines that look like they have the expected tab-separated prefix; if most still contain
