@@ -306,7 +306,7 @@ def main() -> None:
     if args.since is None and args.until is None:
         args.since = parse_date_arg("7d")
 
-    effective_limit = args.limit or 50
+    effective_limit = args.limit or (50 if args.since else 20)
 
     # Fetch PR metadata only — check status is fetched per PR below via REST.
     # Omitting statusCheckRollup avoids GraphQL timeouts on repos with large matrix suites.
