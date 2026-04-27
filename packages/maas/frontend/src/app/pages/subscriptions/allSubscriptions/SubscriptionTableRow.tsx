@@ -1,8 +1,10 @@
 import * as React from 'react';
-import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, Td } from '@patternfly/react-table';
+import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { Content, Label } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
+import type { K8sResourceCommon } from '@odh-dashboard/internal/k8sTypes';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import PhaseLabel from '~/app/shared/PhaseLabel';
@@ -31,14 +33,31 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
     setDeleteSubscription(subscriptionToDelete);
   };
 
+  const subscriptionResource: K8sResourceCommon = {
+    apiVersion: 'maas.opendatahub.io/v1alpha1',
+    kind: 'MaaSSubscription',
+    metadata: {
+      name: subscription.name,
+      namespace: subscription.namespace,
+      ...(subscription.deletionTimestamp
+        ? { deletionTimestamp: subscription.deletionTimestamp }
+        : {}),
+    },
+  };
   return (
-    <Tr key={key}>
+    <ResourceTr resource={subscriptionResource} key={key}>
       <Td dataLabel={subscriptionsColumns[0].label}>
         <TableRowTitleDescription
           title={
-            <Link to={`${URL_PREFIX}/subscriptions/view/${subscription.name}`}>
-              {subscription.displayName ?? subscription.name}
-            </Link>
+            subscription.deletionTimestamp ? (
+              <span data-testid="subscription-name">
+                {subscription.displayName ?? subscription.name}
+              </span>
+            ) : (
+              <Link to={`${URL_PREFIX}/subscriptions/view/${subscription.name}`}>
+                {subscription.displayName ?? subscription.name}
+              </Link>
+            )
           }
           description={subscription.description ?? ''}
           truncateDescriptionLines={2}
@@ -61,6 +80,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
       <Td isActionCell>
         <ActionsColumn
           data-testid="subscription-actions"
+          isDisabled={!!subscription.deletionTimestamp}
           items={[
             {
               title: 'View details',
@@ -78,7 +98,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
           ]}
         />
       </Td>
-    </Tr>
+    </ResourceTr>
   );
 };
 

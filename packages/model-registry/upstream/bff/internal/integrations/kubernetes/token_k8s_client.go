@@ -234,6 +234,35 @@ func (kc *TokenKubernetesClient) CanNamespaceAccessRegistry(ctx context.Context,
 	return CanNamespaceAccessRegistry(ctx, kc.Client, kc.Logger, jobNamespace, registryName, registryNamespace)
 }
 
+func (kc *TokenKubernetesClient) CanVerbMcpServersInNamespace(ctx context.Context, _ *RequestIdentity, namespace, verb string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      verb,
+				Group:     McpServerAPIGroup,
+				Resource:  McpServerResource,
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("self-SAR failed for MCP server access", "verb", verb, "namespace", namespace, "error", err)
+		return false, err
+	}
+
+	if !resp.Status.Allowed {
+		kc.Logger.Warn("MCP server access denied", "verb", verb, "namespace", namespace)
+		return false, nil
+	}
+
+	return true, nil
+}
+
 // RequestIdentity is unused because the token already represents the user identity.
 // This endpoint is used only on dev mode that is why is safe to ignore permissions errors
 func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestIdentity) ([]corev1.Namespace, error) {
