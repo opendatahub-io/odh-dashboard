@@ -267,6 +267,66 @@ const waitForMlflowTrackingPodReady = (namespace: string): Cypress.Chainable<Cyp
 };
 
 /**
+ * Poll the dashboard backend's /api/dsc/status until it reflects the expected
+ * component management states.
+ *
+ * The backend uses a ResourceWatcher that caches DSC status with a 2-minute
+ * (active) or 30-minute (inactive) polling interval. After patching the DSC
+ * on the cluster, the cached response can be stale. Polling this endpoint:
+ *  - activates the watcher (switches from 30 min to 2 min interval)
+ *  - waits for the cache to refresh before the frontend evaluates area flags
+ *
+ * Requires an active browser session (call after cy.visitWithLogin).
+ */
+const waitForDashboardDSCStatus = (
+  components: Record<string, string>,
+): Cypress.Chainable<boolean> => {
+  const maxAttempts = 60;
+  const pollIntervalMs = 5000;
+  const startTime = Date.now();
+  const label = Object.entries(components)
+    .map(([k, v]) => `${k}=${v}`)
+    .join(', ');
+
+  const check = (attempt = 1): Cypress.Chainable<boolean> => {
+    cy.step(`Attempt ${attempt}/${maxAttempts} - Polling /api/dsc/status for ${label}...`);
+
+    return cy
+      .request({ url: '/api/dsc/status', failOnStatusCode: false, timeout: 10000 })
+      .then((resp) => {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        if (resp.status === 200 && resp.body?.components) {
+          const allMatch = Object.entries(components).every(
+            ([comp, expected]) => resp.body.components[comp]?.managementState === expected,
+          );
+          if (allMatch) {
+            cy.log(`Dashboard DSC status matches (after ${elapsed}s)`);
+            return cy.wrap(true);
+          }
+        }
+
+        if (attempt >= maxAttempts) {
+          throw new Error(
+            `Dashboard /api/dsc/status did not reflect ${label} after ${maxAttempts} ` +
+              `attempts (${elapsed}s)`,
+          );
+        }
+
+        cy.log(
+          `Dashboard DSC status not yet updated (attempt ${attempt}/${maxAttempts}, ${elapsed}s)`,
+        );
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        return cy.wait(pollIntervalMs).then(() => check(attempt + 1));
+      });
+  };
+
+  const totalTimeout = (maxAttempts * pollIntervalMs) / 1000;
+  cy.log(`Polling dashboard /api/dsc/status for ${label} (max ${totalTimeout}s)`);
+  return check();
+};
+
+/**
  * Poll via cy.request() until the mlflowEmbedded module federation remote entry
  * returns HTTP 200. The dashboard proxies this through /_mf/mlflowEmbedded/*.
  *
@@ -369,6 +429,10 @@ export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
       return waitForMlflowRemoteEntry();
     })
     .then(() => {
+      cy.step('Wait for dashboard backend to reflect mlflowoperator as Managed');
+      return waitForDashboardDSCStatus({ mlflowoperator: 'Managed' });
+    })
+    .then(() => {
       cy.step('Wait for Experiments (MLflow) nav item in sidebar');
       return waitForNavItemInSidebar('Experiments (MLflow)');
     });
@@ -430,6 +494,13 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
     .then(() => {
       cy.step('Wait for mlflowEmbedded module federation remote to be loadable');
       return waitForMlflowRemoteEntry();
+    })
+    .then(() => {
+      cy.step('Wait for dashboard backend to reflect both operators as Managed');
+      return waitForDashboardDSCStatus({
+        llamastackoperator: 'Managed',
+        mlflowoperator: 'Managed',
+      });
     })
     .then(() => {
       cy.step('Wait for Prompts nav item in sidebar');
