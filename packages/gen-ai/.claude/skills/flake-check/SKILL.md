@@ -366,7 +366,7 @@ When `--file` is passed, `scan_prs.py` fetches CI logs for all failing checks no
 - `test_patterns` — *(with `--deep` or `--file`)* **individual test names** that failed on two or more PRs, each with `failure_count`, `pr_numbers`, and distinct `errors` seen. A test appearing here means the *same specific `it()` block* recurred across PRs — much stronger evidence than the same job recurring. With `--deep`: fetches logs for all failing checks not excluded by `_DETERMINISTIC_PREFIXES` across all scanned PRs (the same test can recur across different check matrix variants — this catches it). With `--file`: same log fetching but filtered to a specific file.
 - `bots_excluded` — count of bot PRs filtered out
 - `all_passing_count` — PRs where everything passed
-- `filters` — the resolved `since`/`until`/`limit`/`deep` values actually used
+- `filters` — the resolved `since`/`until`/`limit`/`limit_hit`/`deep`/`bots_excluded`/`file_filter` values actually used
 
 ### Step 3 — Test-file overlap analysis (deep mode and file mode)
 
