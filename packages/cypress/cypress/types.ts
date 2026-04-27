@@ -530,6 +530,18 @@ export type ModelRegistryTestData = {
   ociUriModelName: string;
   ociUriJobName: string;
   ociUriOriginUri: string;
+
+  // Custom properties retention test configuration
+  modelNamePrefix: string;
+  modelDescription: string;
+  versionName: string;
+  versionDescription: string;
+  sourceModelFormat: string;
+  sourceModelFormatVersion: string;
+  modelCustomProperties: Array<{ key: string; value: string }>;
+  versionCustomProperties: Array<{ key: string; value: string }>;
+  newVersionPropertyKey: string;
+  newVersionPropertyValue: string;
 };
 
 export type ManageRegistryPermissionsTestData = {
@@ -614,6 +626,8 @@ export type ModelCatalogSourceTestData = {
   redhatAiSourceId: string;
   sourceName2: string;
   redhatAiSourceId2: string;
+  sourceName3: string;
+  redhatAiSourceId3: string;
 };
 
 export type TrainJobTestData = {

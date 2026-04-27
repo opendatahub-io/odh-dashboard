@@ -204,23 +204,11 @@ class MlflowExperiments {
     return cy.contains('Metrics', { timeout: 10000 });
   }
 
-  findDarkThemeToggle() {
-    return cy.findByTestId('dark-theme-toggle');
-  }
-
-  findLightThemeToggle() {
-    return cy.findByTestId('light-theme-toggle');
-  }
-
   getMlflowDarkModeStorageValue(): Cypress.Chainable<string | null> {
     return cy.window().then((win) => {
       const value = win.localStorage.getItem(MLFLOW_DARK_MODE_KEY);
       return cy.wrap<string | null>(value);
     });
-  }
-
-  getHtmlDarkModeClass(): Cypress.Chainable<boolean> {
-    return cy.document().then((doc) => doc.documentElement.classList.contains('pf-v6-theme-dark'));
   }
 }
 
