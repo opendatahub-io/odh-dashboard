@@ -68,6 +68,7 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 	}
 
 	// Step 1: Create the placeholder ConfigMap.
+	// Treat IsAlreadyExists as success — a concurrent init may have created it first.
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      nemoGuardrailsPlaceholderName,
@@ -76,7 +77,7 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 		},
 		Data: buildNemoPlaceholderConfigMapData(),
 	}
-	if err := kc.Client.Create(ctx, cm); err != nil {
+	if err := kc.Client.Create(ctx, cm); err != nil && !apierrors.IsAlreadyExists(err) {
 		return "", fmt.Errorf("failed to create NemoGuardrails placeholder ConfigMap: %w", err)
 	}
 	kc.Logger.Info("created NemoGuardrails ConfigMap", "name", cm.Name, "namespace", namespace)
@@ -118,7 +119,11 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 	})
 
 	if err := kc.Client.Create(ctx, cr); err != nil {
-		// Clean up the ConfigMap we just created since CR creation failed.
+		if apierrors.IsAlreadyExists(err) {
+			// A concurrent init completed between our GetNemoGuardrailsCR check and now.
+			return "", &models.ErrNemoGuardrailsAlreadyInitialised{Namespace: namespace}
+		}
+		// Unexpected server error — clean up the ConfigMap we just created.
 		if deleteErr := kc.Client.Delete(ctx, cm); deleteErr != nil {
 			kc.Logger.Error("failed to clean up ConfigMap after CR creation failure", "error", deleteErr)
 		}
