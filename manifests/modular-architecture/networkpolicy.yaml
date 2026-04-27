@@ -36,52 +36,19 @@ spec:
         # Allow traffic from pods in the same namespace
         - podSelector: {}
   egress:
-    # Allow DNS resolution (RHOAIENG-49013)
-    # Ports 53 (service) and 5353 (CoreDNS pod target port after DNAT)
+    # Allow all in-cluster egress (DNS, inter-BFF communication, Prometheus, Perses, etc.)
+    # No port restrictions: the dashboard communicates with many in-cluster services
+    # on various ports; enumerating them creates fragile maintenance burden (RHOAIENG-59861).
     - to:
         - namespaceSelector: {}
-      ports:
-        - port: 53
-          protocol: UDP
-        - port: 53
-          protocol: TCP
-        - port: 5353
-          protocol: UDP
-        - port: 5353
-          protocol: TCP
-    # Allow inter-BFF communication within same namespace
-    - to:
-        - podSelector:
-            matchLabels:
-              deployment: odh-dashboard
-      ports:
-        - port: 8043
-          protocol: TCP
-        - port: 8143
-          protocol: TCP
-        - port: 8243
-          protocol: TCP
-        - port: 8343
-          protocol: TCP
-    # Allow egress to Kubernetes API server (runs on host network, port 6443)
+    # Allow egress to Kubernetes API server (runs on host network, not matched by namespaceSelector)
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
       ports:
         - port: 6443
           protocol: TCP
-    # Allow egress to in-cluster services (any namespace) on common ports
-    - to:
-        - namespaceSelector: {}
-      ports:
-        - port: 443
-          protocol: TCP
-        - port: 80
-          protocol: TCP
-        - port: 8321
-          protocol: TCP
     # Allow egress to external services (off-cluster backends like MaaS, MLflow, LlamaStack)
-    # ipBlock with 0.0.0.0/0 matches all external IPs; namespaceSelector only matches in-cluster pods
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
