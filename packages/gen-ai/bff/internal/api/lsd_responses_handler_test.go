@@ -650,11 +650,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.Equal(t, "completed", responseData["status"])
 		assert.NotNil(t, responseData["output"], "expected output from RAG response")
 	})
-
 })
-
-// Note: InputShieldID/OutputShieldID moderation tests were removed. Moderation tests
-// will be added once the guardrail_config request field is wired into the handler.
 
 var _ = Describe("StreamingContextCancellation", func() {
 	var app App

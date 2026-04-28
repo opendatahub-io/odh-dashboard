@@ -1,5 +1,7 @@
 package constants
 
+import "fmt"
+
 // GuardrailsOrchestrator CR constants
 const (
 	// GuardrailsOrchestratorAPIVersion is the API version for the GuardrailsOrchestrator CR
@@ -18,6 +20,26 @@ const (
 	GuardrailsPhaseProgressing = "Progressing"
 	GuardrailsPhaseFailed      = "Failed"
 )
+
+// Safety Provider configuration for TrustyAI FMS
+const (
+	SafetyProviderModule = "llama_stack_provider_trustyai_fms==0.3.2"
+	SafetyProviderID     = "trustyai_fms"
+	SafetyProviderType   = "remote::trustyai_fms"
+)
+
+// Guardrails authentication and service configuration
+const (
+	GuardrailAuthTokenEnvName               = "GUARDRAIL_AUTH_TOKEN"
+	DefaultGuardrailsServiceAccountName     = "guardrails-service-account"
+	DefaultGuardrailsTokenSecretSuffix      = "-token"
+	DefaultDetectorURL                      = "https://custom-guardrails-service:8480"
+)
+
+// FormatEnvVar formats an environment variable name as LlamaStack template syntax
+func FormatEnvVar(envName string) string {
+	return fmt.Sprintf("${env.%s}", envName)
+}
 
 // NemoGuardrails CR constants
 const (

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
 	"gopkg.in/yaml.v2"
@@ -553,6 +554,16 @@ func (c *LlamaStackConfig) AddFileProcessorsProvider(provider Provider) {
 // AddFilesProvider adds a new files provider to the config
 func (c *LlamaStackConfig) AddFilesProvider(provider Provider) {
 	c.Providers.Files = append(c.Providers.Files, provider)
+}
+
+// AddSafetyProvider adds a new safety provider to the config
+func (c *LlamaStackConfig) AddSafetyProvider(provider Provider) {
+	c.Providers.Safety = append(c.Providers.Safety, provider)
+}
+
+// RegisterShield adds a shield to the registered resources
+func (c *LlamaStackConfig) RegisterShield(shield Shield) {
+	c.RegisteredResources.Shields = append(c.RegisteredResources.Shields, shield)
 }
 
 // RegisterVectorStore adds a vector store to the registered resources.

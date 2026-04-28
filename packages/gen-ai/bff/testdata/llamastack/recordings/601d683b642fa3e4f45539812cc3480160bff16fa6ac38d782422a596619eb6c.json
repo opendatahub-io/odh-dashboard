@@ -61,7 +61,7 @@
                 "tool_calls": [
                   {
                     "index": null,
-                    "id": "function-call-3376797253905515753",
+                    "id": "function-call-11858820744251561694",
                     "function": {
                       "arguments": "{\"query\":\"machine learning\"}",
                       "name": "file_search"
@@ -83,7 +83,7 @@
           "usage": {
             "completion_tokens": 16,
             "prompt_tokens": 45,
-            "total_tokens": 113,
+            "total_tokens": 122,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
