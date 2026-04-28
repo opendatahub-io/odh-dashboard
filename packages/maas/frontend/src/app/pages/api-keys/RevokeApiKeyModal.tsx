@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, Stack, StackItem } from '@patternfly/react-core';
+import { Stack, StackItem } from '@patternfly/react-core';
 import { APIKey } from '~/app/types/api-key';
 import DeleteModal from '~/app/shared/DeleteModal';
 import useRevokeApiKey from '~/app/hooks/useRevokeApiKey';
@@ -44,17 +44,9 @@ const RevokeApiKeyModal: React.FC<RevokeApiKeyModalProps> = ({ apiKey, onClose }
     >
       <Stack hasGutter>
         <StackItem>
-          <Alert title="This action is permanent and cannot be undone" variant="warning">
-            Revoking this API key will immediately and permanently invalidate it. Any applications
-            or services currently using this key will lose access.
-          </Alert>
-        </StackItem>
-        <StackItem>
-          Are you sure you want to revoke the API key <strong>{apiKey.name}</strong>?
-        </StackItem>
-        <StackItem>
-          The key will remain visible with an Expired status but can no longer be used for
-          authentication.
+          The <strong>{apiKey.name}</strong> API key will be revoked, and any applications or
+          services currently using the key will lose access. The key will remain visible from within
+          OpenShift AI, but can no longer be used for authentication.
         </StackItem>
       </Stack>
     </DeleteModal>

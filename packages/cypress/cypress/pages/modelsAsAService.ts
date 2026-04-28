@@ -495,7 +495,7 @@ export const subscriptionPopover = new SubscriptionPopover();
 
 class BulkRevokeAPIKeyModal extends Modal {
   constructor() {
-    super('Revoke all your active keys?');
+    super('Revoke all API keys?');
   }
 
   findRevokeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -653,7 +653,7 @@ class CopyApiKeyModal extends Modal {
 
 class AdminBulkRevokeAPIKeyModal extends Modal {
   constructor() {
-    super('Revoke all active keys for a single user?');
+    super('Revoke user API keys?');
   }
 
   findUsernameInput(): Cypress.Chainable<JQuery<HTMLElement>> {

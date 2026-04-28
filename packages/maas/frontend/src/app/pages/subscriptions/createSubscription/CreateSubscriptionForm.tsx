@@ -407,7 +407,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
                 <>
                   Create a matching authorization policy{' '}
                   <Popover
-                    headerContent="Why create a policy?"
+                    headerContent="Why create an authorization policy?"
                     bodyContent={
                       <>
                         <p>
@@ -453,13 +453,15 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           <Alert
             variant="warning"
             isInline
-            title="Policies are not automatically updated"
+            title="Authorization policies are not automatically updated"
             data-testid="policy-change-warning"
           >
             If this subscription has associated authorization policies, you must manually update
             them from the{' '}
-            <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies page</Link> after saving{' '}
-            your changes.
+            <b>
+              <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies page</Link>
+            </b>{' '}
+            after your changes.
           </Alert>
         )}
 
