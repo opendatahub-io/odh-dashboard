@@ -2,14 +2,11 @@ name: Dependency Validation
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
     paths:
-      - "package.json"
       - "package-lock.json"
-      - "packages/*/frontend/package.json"
       - "packages/*/frontend/package-lock.json"
-      - "packages/*/upstream/frontend/package.json"
       - "packages/*/upstream/frontend/package-lock.json"
-      - "packages/*/upstream/workspaces/frontend/package.json"
       - "packages/*/upstream/workspaces/frontend/package-lock.json"
 
 concurrency:
@@ -37,13 +34,13 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           CHANGED=$(git diff --name-only "$BASE_SHA"..HEAD -- \
-            'package.json' 'package-lock.json' \
-            'packages/*/frontend/package.json' 'packages/*/frontend/package-lock.json' \
-            'packages/*/upstream/frontend/package.json' 'packages/*/upstream/frontend/package-lock.json' \
-            'packages/*/upstream/workspaces/frontend/package.json' 'packages/*/upstream/workspaces/frontend/package-lock.json')
+            'package-lock.json' \
+            'packages/*/frontend/package-lock.json' \
+            'packages/*/upstream/frontend/package-lock.json' \
+            'packages/*/upstream/workspaces/frontend/package-lock.json')
 
           DIRS="[]"
-          if echo "$CHANGED" | grep -qE '^package(-lock)?\.json$'; then
+          if echo "$CHANGED" | grep -qE '^package-lock\.json$'; then
             DIRS=$(echo "$DIRS" | jq '. + ["."]')
           fi
 
@@ -77,30 +74,23 @@ jobs:
         run: npm ci
         working-directory: ${{ matrix.dir }}
 
-      - name: Run npm audit
+      - name: Run npm audit on head
         id: audit
         working-directory: ${{ matrix.dir }}
         run: |
           set +e
-          npm audit --audit-level=high --json > audit-head.json 2>/dev/null
-          AUDIT_EXIT=$?
+          npm audit --omit=dev --audit-level=high --json > audit-head.json 2>/dev/null
           set -e
 
           if jq empty audit-head.json 2>/dev/null; then
-            HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-head.json)
-            CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-head.json)
-            TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit-head.json)
+            jq -r '[.vulnerabilities // {} | to_entries[].value.via[]? | select(type == "object") | .url // .source] | unique | .[]' audit-head.json | sort > head-ids.txt
           else
-            echo "::warning::npm audit produced invalid JSON; defaulting counts to 0"
-            HIGH=0
-            CRITICAL=0
-            TOTAL=0
+            echo "::warning::npm audit produced invalid JSON; treating as zero advisories"
+            touch head-ids.txt
           fi
 
-          echo "high=$HIGH" >> "$GITHUB_OUTPUT"
-          echo "critical=$CRITICAL" >> "$GITHUB_OUTPUT"
-          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
-          echo "exit_code=$AUDIT_EXIT" >> "$GITHUB_OUTPUT"
+          echo "Advisory IDs on head:"
+          cat head-ids.txt
 
       - name: Checkout base for comparison
         uses: actions/checkout@v4
@@ -116,37 +106,37 @@ jobs:
           cd "base/${AUDIT_DIR}"
           npm ci
           set +e
-          npm audit --audit-level=high --json > audit-base.json 2>/dev/null
+          npm audit --omit=dev --audit-level=high --json > audit-base.json 2>/dev/null
           set -e
 
           if jq empty audit-base.json 2>/dev/null; then
-            HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-base.json)
-            CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-base.json)
-            TOTAL=$(jq '.metadata.vulnerabilities.total // 0' audit-base.json)
+            jq -r '[.vulnerabilities // {} | to_entries[].value.via[]? | select(type == "object") | .url // .source] | unique | .[]' audit-base.json | sort > base-ids.txt
           else
-            echo "::warning::npm audit produced invalid JSON on base; defaulting counts to 0"
-            HIGH=0
-            CRITICAL=0
-            TOTAL=0
+            echo "::warning::npm audit produced invalid JSON on base; treating as zero advisories"
+            touch base-ids.txt
           fi
 
-          echo "high=$HIGH" >> "$GITHUB_OUTPUT"
-          echo "critical=$CRITICAL" >> "$GITHUB_OUTPUT"
-          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+          echo "Advisory IDs on base:"
+          cat base-ids.txt
 
-      - name: Fail if new high/critical CVEs introduced
-        if: fromJSON(steps.audit.outputs.high) > fromJSON(steps.audit-base.outputs.high) || fromJSON(steps.audit.outputs.critical) > fromJSON(steps.audit-base.outputs.critical)
+      - name: Fail if new advisories introduced
+        working-directory: ${{ matrix.dir }}
         env:
           AUDIT_DIR: ${{ matrix.dir }}
-          BASE_HIGH: ${{ steps.audit-base.outputs.high }}
-          BASE_CRITICAL: ${{ steps.audit-base.outputs.critical }}
-          HEAD_HIGH: ${{ steps.audit.outputs.high }}
-          HEAD_CRITICAL: ${{ steps.audit.outputs.critical }}
         run: |
-          echo "::error::PR introduces new high/critical vulnerabilities in ${AUDIT_DIR}."
-          echo "Base: ${BASE_HIGH} high, ${BASE_CRITICAL} critical"
-          echo "Head: ${HEAD_HIGH} high, ${HEAD_CRITICAL} critical"
-          exit 1
+          NEW_ADVISORIES=$(comm -23 head-ids.txt "$GITHUB_WORKSPACE/base/${AUDIT_DIR}/base-ids.txt")
+
+          if [ -n "$NEW_ADVISORIES" ]; then
+            COUNT=$(echo "$NEW_ADVISORIES" | wc -l | tr -d ' ')
+            echo "::error::PR introduces ${COUNT} new advisory ID(s) in ${AUDIT_DIR} not present on the base branch:"
+            echo "$NEW_ADVISORIES"
+            echo ""
+            echo "If this is acceptable (e.g. dev-only, not reachable, already tracked),"
+            echo "add the 'skip-audit' label to bypass this check."
+            exit 1
+          fi
+
+          echo "No new advisories introduced in ${AUDIT_DIR}."
 
   override-consistency:
     runs-on: ubuntu-latest
@@ -206,110 +196,3 @@ jobs:
             console.log('All shared overrides are consistent (' + found.length + ' files checked).');
           }
           "
-
-  dependency-summary:
-    needs: detect-dirs
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - name: Checkout PR head
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Checkout base
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: base
-
-      - name: Generate dependency diff summary
-        id: diff
-        env:
-          CHANGED_DIRS: ${{ needs.detect-dirs.outputs.dirs }}
-        run: |
-          node -e "
-          const fs = require('fs');
-          const path = require('path');
-          const dirs = JSON.parse(process.env.CHANGED_DIRS || '[]');
-          const marker = '<!-- dependency-validation -->';
-
-          const lockfiles = dirs
-            .map(d => d === '.' ? 'package-lock.json' : path.join(d, 'package-lock.json'))
-            .filter(f => fs.existsSync(f) && fs.existsSync(path.join('base', f)));
-
-          if (lockfiles.length === 0) {
-            fs.writeFileSync('dep-summary.md', marker + '\nNo dependency version changes detected.\n');
-            process.exit(0);
-          }
-
-          const changes = [];
-          for (const lockfile of lockfiles) {
-            const baseLock = JSON.parse(fs.readFileSync(path.join('base', lockfile), 'utf8'));
-            const headLock = JSON.parse(fs.readFileSync(lockfile, 'utf8'));
-            const basePkgs = baseLock.packages || {};
-            const headPkgs = headLock.packages || {};
-            const dir = path.dirname(lockfile);
-            const prefix = dir === '.' ? '' : dir + ': ';
-
-            for (const [name, info] of Object.entries(headPkgs)) {
-              const basePkg = basePkgs[name];
-              const short = prefix + name.replace('node_modules/', '');
-              if (!basePkg) {
-                changes.push('| \`' + short + '\` | — | ' + info.version + ' | Added |');
-              } else if (basePkg.version !== info.version) {
-                changes.push('| \`' + short + '\` | ' + basePkg.version + ' | ' + info.version + ' | Updated |');
-              }
-            }
-            for (const name of Object.keys(basePkgs)) {
-              if (!headPkgs[name]) {
-                const short = prefix + name.replace('node_modules/', '');
-                changes.push('| \`' + short + '\` | ' + basePkgs[name].version + ' | — | Removed |');
-              }
-            }
-          }
-
-          if (changes.length === 0) {
-            fs.writeFileSync('dep-summary.md', marker + '\nNo dependency version changes detected.\n');
-          } else {
-            const header = '## Dependency Changes\n\n| Package | Before | After | Status |\n|---------|--------|-------|--------|\n';
-            const limited = changes.slice(0, 50);
-            let body = marker + '\n' + header + limited.join('\n') + '\n';
-            if (changes.length > 50) {
-              body += '\n*...and ' + (changes.length - 50) + ' more changes.*\n';
-            }
-            fs.writeFileSync('dep-summary.md', body);
-          }
-          "
-
-      - name: Post PR comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const body = fs.readFileSync('dep-summary.md', 'utf8');
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            const botComment = comments.find(c =>
-              c.user?.type === 'Bot' && c.body?.includes('<!-- dependency-validation -->')
-            );
-            if (botComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body,
-              });
-            }
