@@ -3,7 +3,7 @@ package helper
 import (
 	"testing"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 
