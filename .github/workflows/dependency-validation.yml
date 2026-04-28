@@ -33,8 +33,10 @@ jobs:
 
       - name: Detect changed package directories
         id: dirs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..HEAD -- \
+          CHANGED=$(git diff --name-only "$BASE_SHA"..HEAD -- \
             'package.json' 'package-lock.json' \
             'packages/*/frontend/package.json' 'packages/*/frontend/package-lock.json' \
             'packages/*/upstream/frontend/package.json' 'packages/*/upstream/frontend/package-lock.json' \
@@ -288,7 +290,7 @@ jobs:
               issue_number: context.issue.number,
             });
             const botComment = comments.find(c =>
-              c.user.type === 'Bot' && c.body?.includes('<!-- dependency-validation -->')
+              c.user?.type === 'Bot' && c.body?.includes('<!-- dependency-validation -->')
             );
             if (botComment) {
               await github.rest.issues.updateComment({
