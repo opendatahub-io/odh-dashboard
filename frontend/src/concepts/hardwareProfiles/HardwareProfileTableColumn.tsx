@@ -82,7 +82,7 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
                 content="No matching hardware profile found, using existing settings. Default, min, and max values are not available. Expand the row to view the current resource settings."
                 data-testid="hardware-profile-custom-tooltip"
               >
-                <Button isInline variant="plain">
+                <Button isInline variant="plain" aria-label="Custom hardware profile">
                   <i>Custom</i>
                 </Button>
               </Tooltip>
