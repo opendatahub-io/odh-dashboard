@@ -15,10 +15,12 @@ export const createLlamaStackSecret = (
   baseUrl: string,
   apiKey: string,
 ): void => {
+  const escapeShellSingleQuote = (s: string) => s.replace(/'/g, "'\\''");
+
   cy.exec(
     `oc create secret generic ${secretName} -n ${namespace} ` +
-      `--from-literal=LLAMA_STACK_CLIENT_BASE_URL='${baseUrl}' ` +
-      `--from-literal=LLAMA_STACK_CLIENT_API_KEY='${apiKey}'`,
+      `--from-literal=LLAMA_STACK_CLIENT_BASE_URL='${escapeShellSingleQuote(baseUrl)}' ` +
+      `--from-literal=LLAMA_STACK_CLIENT_API_KEY='${escapeShellSingleQuote(apiKey)}'`,
     { failOnNonZeroExit: true },
   );
 };

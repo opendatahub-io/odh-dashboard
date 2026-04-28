@@ -21,6 +21,12 @@ export const deleteS3TestFiles = (
   bucketKey: 'BUCKET_2' | 'BUCKET_3',
   prefix: string,
 ): void => {
+  if (!/^[a-zA-Z0-9\-_*]+$/.test(prefix)) {
+    throw new Error(
+      `Invalid S3 prefix pattern: ${prefix}. Only alphanumeric, hyphens, asterisks, and underscores allowed.`,
+    );
+  }
+
   const bucketConfig = AWS_BUCKETS[bucketKey];
   const podName = `s3-cleanup-${Date.now()}`;
 

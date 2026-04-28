@@ -73,7 +73,7 @@ describe('AutoRAG Experiments List and Run Management E2E', { testIsolation: fal
       autoragConfigurePage.submitRunSetup(testData, projectName, uuid);
 
       cy.step('Set max RAG patterns to minimize run time');
-      autoragConfigurePage.setMaxRagPatterns(testData.maxRagPatterns as number);
+      autoragConfigurePage.setMaxRagPatterns(testData.maxRagPatterns);
 
       autoragConfigurePage.submitRun();
 

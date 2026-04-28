@@ -61,9 +61,7 @@ class AutoragResultsPage {
   }
 
   findPatternSelectorOption(name: string) {
-    // formatPatternName inserts \u00a0 between prefix and trailing digits
-    const pattern = name.replace(/(\D)(\d)/, '$1.?$2');
-    return cy.get('[role="menuitem"]').contains(new RegExp(pattern));
+    return cy.findByTestId(`pattern-option-${name}`);
   }
 
   findTab(tabKey: string) {

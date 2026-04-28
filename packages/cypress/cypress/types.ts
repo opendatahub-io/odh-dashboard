@@ -746,6 +746,6 @@ export type AutoragTestData = {
   documentFile: string;
   evaluationFile: string;
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
-  maxRagPatterns?: number;
+  maxRagPatterns: number;
   optimizationMetric?: string;
 };

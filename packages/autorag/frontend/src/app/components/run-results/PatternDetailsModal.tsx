@@ -490,7 +490,11 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                     >
                       <DropdownList>
                         {patterns.map((pattern, i) => (
-                          <DropdownItem key={i} value={i}>
+                          <DropdownItem
+                            key={i}
+                            value={i}
+                            data-testid={`pattern-option-${pattern.name}`}
+                          >
                             {formatPatternName(pattern.name)}
                           </DropdownItem>
                         ))}

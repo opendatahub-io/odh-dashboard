@@ -53,7 +53,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       autoragConfigurePage.findMetricOption('answer_correctness').click();
 
       cy.step('Set max RAG patterns');
-      autoragConfigurePage.setMaxRagPatterns(testData.maxRagPatterns as number);
+      autoragConfigurePage.setMaxRagPatterns(testData.maxRagPatterns);
 
       autoragConfigurePage.submitRun();
 
@@ -115,7 +115,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       autoragConfigurePage.findMetricOption('faithfulness').click();
 
       cy.step('Set max RAG patterns');
-      autoragConfigurePage.setMaxRagPatterns(testData.maxRagPatterns as number);
+      autoragConfigurePage.setMaxRagPatterns(testData.maxRagPatterns);
 
       autoragConfigurePage.submitRun();
     },
