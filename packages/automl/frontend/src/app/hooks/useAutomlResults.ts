@@ -4,6 +4,7 @@ import {
   useS3ListFilesQuery,
   fetchS3Json,
   AutomlModelSchema,
+  isRawModelV35,
   isRawTimeseriesModelV34,
 } from '~/app/hooks/queries';
 import { getFiles as getS3Files } from '~/app/api/s3.ts';
@@ -196,10 +197,7 @@ export function useAutomlResults(
               },
               metrics: validated.metrics,
             };
-          } else if (
-            'metrics' in validated.location &&
-            typeof validated.location.metrics === 'string'
-          ) {
+          } else if (isRawModelV35(validated)) {
             // Unified 3.5 schema: notebook (file path) + metrics in location
             const { metrics: locationMetrics } = validated.location;
             model = {

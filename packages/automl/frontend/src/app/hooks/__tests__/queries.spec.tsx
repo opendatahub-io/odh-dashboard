@@ -502,6 +502,15 @@ describe('AutomlModelSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('should reject a unified 3.5 model that includes base_model', () => {
+    const invalid = {
+      ...validUnifiedModel,
+      base_model: 'gpt-4',
+    };
+    const result = AutomlModelSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
+  });
+
   it('should reject non-numeric metric values', () => {
     const invalid = {
       ...validUnifiedModel,

@@ -298,13 +298,13 @@ export async function fetchS3Json<T>(
  */
 /* eslint-disable camelcase */
 
-const AutomlModelBaseSchema = z.object({
+const AutomlModelBaseSchema = z.strictObject({
   name: z.string(),
-  location: z.object({
+  location: z.strictObject({
     model_directory: z.string().optional(),
     predictor: z.string(),
   }),
-  metrics: z.object({
+  metrics: z.strictObject({
     test_data: z.record(z.string(), z.number()),
   }),
 });
@@ -314,7 +314,7 @@ const AutomlTabularModelSchemaV34 = AutomlModelBaseSchema.extend({
   location: AutomlModelBaseSchema.shape.location.extend({
     notebook: z.string(),
   }),
-});
+}).strict();
 
 // Legacy timeseries schema (pre-3.5): notebooks plural (directory), base_model, metrics in location
 const AutomlTimeseriesModelSchemaV34 = AutomlModelBaseSchema.extend({
@@ -323,7 +323,7 @@ const AutomlTimeseriesModelSchemaV34 = AutomlModelBaseSchema.extend({
     notebooks: z.string(),
     metrics: z.string(),
   }),
-});
+}).strict();
 
 // Unified schema (3.5+): notebook singular (file path), metrics in location, no base_model
 const AutomlModelSchemaV35 = AutomlModelBaseSchema.extend({
@@ -331,7 +331,7 @@ const AutomlModelSchemaV35 = AutomlModelBaseSchema.extend({
     notebook: z.string(),
     metrics: z.string(),
   }),
-});
+}).strict();
 
 // Try 3.5 first, then fall back to legacy schemas for backwards compatibility
 export const AutomlModelSchema = z.union([
