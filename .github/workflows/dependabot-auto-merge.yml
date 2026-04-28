@@ -82,14 +82,15 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Approve patch update via Prow commands
+      - name: Approve patch update
         if: steps.checks.outputs.ready == 'true' && steps.metadata.outputs.update-type == 'version-update:semver-patch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           REPO: ${{ github.repository }}
         run: |
-          gh pr comment "$PR_NUMBER" --repo "$REPO" --body $'/lgtm\n/approve'
+          gh pr review "$PR_NUMBER" --repo "$REPO" --approve
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body '/approve'
 
   # Reactive path: fires when Prow (or any external tool) reports a commit
   # status. Finds the Dependabot PR for that commit and labels it if all
@@ -155,14 +156,15 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Approve patch update via Prow commands
+      - name: Approve patch update
         if: steps.checks.outputs.ready == 'true' && steps.metadata.outputs.update-type == 'version-update:semver-patch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           REPO: ${{ github.repository }}
         run: |
-          gh pr comment "$PR_NUMBER" --repo "$REPO" --body $'/lgtm\n/approve'
+          gh pr review "$PR_NUMBER" --repo "$REPO" --approve
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body '/approve'
 
   # Safety-net sweep: catches any Dependabot PRs that slipped through
   # the event-driven paths (dropped events, races, etc.).
@@ -226,5 +228,6 @@ jobs:
             fi
 
             echo "All checks passed — approving PR #$PR_NUMBER"
-            gh pr comment "$PR_NUMBER" --repo "$REPO" --body $'/lgtm\n/approve'
+            gh pr review "$PR_NUMBER" --repo "$REPO" --approve
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body '/approve'
           done
