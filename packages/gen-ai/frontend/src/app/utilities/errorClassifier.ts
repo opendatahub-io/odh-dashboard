@@ -211,21 +211,18 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
   let description: string;
 
   if (isStreamingError && context.wasStreamStarted) {
-    // Streaming interruptions: error occurred during streaming (with or without partial content)
     pattern = 'streaming-interruption';
-    variant = 'danger'; // Streaming interruptions are always danger
+    variant = 'danger';
     description = rawMessage || microcopy.description;
   } else if (isPartial || context.wasResponseGenerated) {
     pattern = 'partial-failure';
-    variant = 'warning'; // Partial failures are warnings
-    // Use actual error message for partial failures
+    variant = 'warning';
     description = rawMessage
       ? `This response may be incomplete: ${rawMessage}`
       : microcopy.description;
   } else {
     pattern = 'full-failure';
-    variant = 'danger'; // Full failures are danger
-    // Use actual error message for full failures
+    variant = 'danger';
     description = rawMessage || microcopy.description;
   }
 
