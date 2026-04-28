@@ -460,8 +460,6 @@ describe('Archiving model', () => {
       expect(interception.request.body).to.eql(mockModArchResponse({ state: 'ARCHIVED' }));
     });
     verifyRelativeURL(modelRegistryUrl('modelregistry-sample'));
-    cy.findByText('Select a model registry to view and manage your registered models.', {
-      exact: false,
-    }).should('exist');
+    cy.findByTestId('model-registry-selector-dropdown').should('exist');
   });
 });

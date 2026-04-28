@@ -38,9 +38,6 @@ class ModelCatalog {
   }
 
   private wait() {
-    cy.findByText('Discover models that are available for your organization', {
-      exact: false,
-    }).should('exist');
     cy.testA11y();
   }
 

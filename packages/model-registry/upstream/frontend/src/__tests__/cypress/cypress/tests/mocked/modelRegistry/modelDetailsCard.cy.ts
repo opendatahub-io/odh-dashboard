@@ -268,31 +268,4 @@ describe('Model Details Card', () => {
 
     cy.findByTestId('model-details-tab-content').should('be.visible');
   });
-
-  // TODO: Pending tests for complex interactions with mod-arch-shared components
-  // These tests need investigation of exact DOM structure of mod-arch-shared components
-
-  // Skip: useBlocker (from mod-arch-shared's NavigationBlockerModal) requires createBrowserRouter,
-  // which is incompatible with standalone mode due to Module Federation singleton sharing.
-  // TODO: Move to packages/cypress/ (federated mode) where useBlocker works.
-  it.skip('allows editing model description', () => {
-    cy.visit(registeredModelOverviewUrl);
-
-    cy.findByText('Test model description').should('be.visible');
-
-    modelDetailsCard.findDescriptionEditButton().click();
-
-    modelDetailsCard.findDescriptionTextArea().should('be.visible');
-
-    modelDetailsCard.findDescriptionTextArea().clear();
-    modelDetailsCard.findDescriptionTextArea().type('Updated model description for testing');
-
-    modelDetailsCard.findDescriptionSaveButton().click();
-
-    cy.wait('@patchRegisteredModel').then((interception) => {
-      expect(interception.request.body.data.description).to.equal(
-        'Updated model description for testing',
-      );
-    });
-  });
 });
