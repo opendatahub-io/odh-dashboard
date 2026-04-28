@@ -8,6 +8,7 @@ import {
   assemblePodSpecOptions,
   applyHardwareProfileConfig,
   formatIdentifierDetails,
+  formatResource,
 } from '#~/concepts/hardwareProfiles/utils';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import {
@@ -21,6 +22,20 @@ import { UseHardwareProfileConfigResult } from '#~/concepts/hardwareProfiles/use
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const.ts';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+
+describe('formatResource', () => {
+  it('should format with Default and Max labels separated by comma', () => {
+    expect(formatResource('CPU', '2 Cores', '8 Cores')).toBe(
+      'CPU: Default = 2 Cores, Max = 8 Cores',
+    );
+  });
+
+  it('should handle unrestricted max', () => {
+    expect(formatResource('Memory', '4 GiB', 'unrestricted')).toBe(
+      'Memory: Default = 4 GiB, Max = unrestricted',
+    );
+  });
+});
 
 describe('formatIdentifierDetails', () => {
   it('should format CPU identifier with default, min, and max', () => {
