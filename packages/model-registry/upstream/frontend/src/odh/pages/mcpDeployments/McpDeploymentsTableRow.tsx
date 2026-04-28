@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Timestamp, TimestampTooltipVariant, Truncate } from '@patternfly/react-core';
-import { McpDeployment } from '~/app/mcpDeploymentTypes';
+import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import { getDeploymentDisplayName } from './utils';
 import McpDeploymentStatusLabel from './McpDeploymentStatusLabel';
 import McpDeploymentServicePopover from './McpDeploymentServicePopover';

@@ -1,5 +1,5 @@
 import yaml from 'js-yaml';
-import type { MCPServerCR } from '~/app/mcpDeploymentTypes';
+import type { MCPServerCR } from '~/odh/types/mcpDeploymentTypes';
 
 /**
  * Extracts the editable portion of the MCPServer CR spec (config + runtime)

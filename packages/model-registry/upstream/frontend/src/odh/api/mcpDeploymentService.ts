@@ -5,7 +5,7 @@ import {
   restDELETE,
   handleRestFailures,
 } from 'mod-arch-core';
-import { McpDeploymentList } from '~/app/mcpDeploymentTypes';
+import { McpDeploymentList } from '~/odh/types/mcpDeploymentTypes';
 
 export const deleteMcpDeployment =
   (hostPath: string, queryParams: Record<string, unknown> = {}) =>

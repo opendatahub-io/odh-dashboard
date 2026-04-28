@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, ClipboardCopy, Popover } from '@patternfly/react-core';
-import { McpDeployment } from '~/app/mcpDeploymentTypes';
+import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import { getConnectionUrl } from './utils';
 
 type McpDeploymentServicePopoverProps = {

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Label, Popover } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
-import { McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
+import { McpDeploymentPhase } from '~/odh/types/mcpDeploymentTypes';
 import { getStatusInfo } from './utils';
 
 type McpDeploymentStatusLabelProps = {

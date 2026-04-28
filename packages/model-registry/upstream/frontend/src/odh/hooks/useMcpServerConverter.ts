@@ -6,8 +6,8 @@ import {
   FetchStateCallbackPromise,
   NotReadyError,
 } from 'mod-arch-core';
-import { getMcpServerConverter } from '~/app/api/mcpCatalogDeployment/service';
-import { MCPServerCR } from '~/app/mcpDeploymentTypes';
+import { getMcpServerConverter } from '~/odh/api/mcpCatalogDeployment/service';
+import { MCPServerCR } from '~/odh/types/mcpDeploymentTypes';
 
 const useMcpServerConverter = (
   serverId: string,

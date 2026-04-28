@@ -3,8 +3,8 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Table as PfTable, Tbody } from '@patternfly/react-table';
-import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
-import McpDeploymentsTableRow from '~/app/pages/mcpDeployments/McpDeploymentsTableRow';
+import { McpDeployment, McpDeploymentPhase } from '~/odh/types/mcpDeploymentTypes';
+import McpDeploymentsTableRow from '~/odh/pages/mcpDeployments/McpDeploymentsTableRow';
 import { createMockDeployment } from './mcpDeploymentTestUtils';
 
 const renderRow = (deployment: McpDeployment, onDeleteClick = jest.fn(), onEditClick = jest.fn()) =>

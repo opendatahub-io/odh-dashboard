@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useQueryParamNamespaces } from 'mod-arch-core';
-import { McpDeployment } from '~/app/mcpDeploymentTypes';
+import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import DeleteModal from '~/app/shared/components/DeleteModal';
-import { deleteMcpDeployment } from '~/app/api/mcpDeploymentService';
+import { deleteMcpDeployment } from '~/odh/api/mcpDeploymentService';
 import { BFF_HOST_PATH } from '~/app/utilities/const';
 import { getDeploymentDisplayName } from './utils';
 

@@ -13,7 +13,7 @@ import {
   McpDeployment,
   McpDeploymentCreateRequest,
   McpDeploymentUpdateRequest,
-} from '~/app/mcpDeploymentTypes';
+} from '~/odh/types/mcpDeploymentTypes';
 
 export type McpServerAvailabilityResponse = {
   available: boolean;

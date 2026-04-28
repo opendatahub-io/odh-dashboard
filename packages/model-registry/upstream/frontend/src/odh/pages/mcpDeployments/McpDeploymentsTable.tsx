@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Table, DashboardEmptyTableView } from 'mod-arch-shared';
-import { McpDeployment } from '~/app/mcpDeploymentTypes';
+import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import { mcpDeploymentColumns } from './McpDeploymentsTableColumns';
 import McpDeploymentsTableRow from './McpDeploymentsTableRow';
 

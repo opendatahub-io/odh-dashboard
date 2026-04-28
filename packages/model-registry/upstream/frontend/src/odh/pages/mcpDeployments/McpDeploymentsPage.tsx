@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFieldWrapper';
-import { McpDeployment } from '~/app/mcpDeploymentTypes';
+import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import McpDeployModal from '~/odh/components/McpDeployModal';
 import useMcpDeployments from './useMcpDeployments';
 import McpDeploymentsTable from './McpDeploymentsTable';

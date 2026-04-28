@@ -1,4 +1,4 @@
-import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
+import { McpDeployment, McpDeploymentPhase } from '~/odh/types/mcpDeploymentTypes';
 
 export const getConnectionUrl = (deployment: McpDeployment): string | undefined => {
   if (deployment.phase !== McpDeploymentPhase.RUNNING) {

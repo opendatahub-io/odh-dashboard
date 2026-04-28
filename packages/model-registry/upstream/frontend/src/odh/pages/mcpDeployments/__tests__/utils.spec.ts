@@ -1,9 +1,9 @@
-import { McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
+import { McpDeploymentPhase } from '~/odh/types/mcpDeploymentTypes';
 import {
   getConnectionUrl,
   getDeploymentDisplayName,
   getStatusInfo,
-} from '~/app/pages/mcpDeployments/utils';
+} from '~/odh/pages/mcpDeployments/utils';
 import { createMockDeployment } from './mcpDeploymentTestUtils';
 
 describe('getDeploymentDisplayName', () => {

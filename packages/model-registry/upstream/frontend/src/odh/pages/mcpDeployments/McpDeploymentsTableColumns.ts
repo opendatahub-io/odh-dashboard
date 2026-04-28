@@ -1,5 +1,5 @@
 import { SortableData } from 'mod-arch-shared';
-import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
+import { McpDeployment, McpDeploymentPhase } from '~/odh/types/mcpDeploymentTypes';
 import { getDeploymentDisplayName } from './utils';
 
 const phaseOrder: Record<McpDeploymentPhase, number> = {

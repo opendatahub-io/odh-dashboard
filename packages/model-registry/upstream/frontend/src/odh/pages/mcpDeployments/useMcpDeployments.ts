@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useFetchState, FetchState, useQueryParamNamespaces, POLL_INTERVAL } from 'mod-arch-core';
-import { McpDeploymentList } from '~/app/mcpDeploymentTypes';
+import { McpDeploymentList } from '~/odh/types/mcpDeploymentTypes';
 import { BFF_HOST_PATH } from '~/app/utilities/const';
-import { getListMcpDeployments } from '~/app/api/mcpDeploymentService';
+import { getListMcpDeployments } from '~/odh/api/mcpDeploymentService';
 
 const EMPTY_LIST: McpDeploymentList = { items: [], size: 0 };
 

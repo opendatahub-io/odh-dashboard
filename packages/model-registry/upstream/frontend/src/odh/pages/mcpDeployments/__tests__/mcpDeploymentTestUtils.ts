@@ -1,4 +1,4 @@
-import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
+import { McpDeployment, McpDeploymentPhase } from '~/odh/types/mcpDeploymentTypes';
 
 export const createMockDeployment = (overrides: Partial<McpDeployment> = {}): McpDeployment => ({
   name: 'kubernetes-mcp',

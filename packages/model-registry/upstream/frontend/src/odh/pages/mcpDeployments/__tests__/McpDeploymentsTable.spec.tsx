@@ -3,8 +3,8 @@ import * as React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
-import McpDeploymentsTable from '~/app/pages/mcpDeployments/McpDeploymentsTable';
+import { McpDeployment, McpDeploymentPhase } from '~/odh/types/mcpDeploymentTypes';
+import McpDeploymentsTable from '~/odh/pages/mcpDeployments/McpDeploymentsTable';
 
 const mockDeployments: McpDeployment[] = [
   {
