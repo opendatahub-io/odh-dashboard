@@ -259,7 +259,12 @@ paths:
                 description: The binary content of the requested file (default)
             application/json:
               schema:
-                $ref: "#/components/schemas/S3FileSchemaResponse"
+                description: >-
+                  Only returned when view=schema is specified for a CSV file.
+                  Without view=schema, JSON files are streamed as raw content
+                  under the */* media type.
+                allOf:
+                  - $ref: "#/components/schemas/S3FileSchemaResponse"
           headers:
             Transfer-Encoding:
               description: Set to 'chunked' for streaming large files
