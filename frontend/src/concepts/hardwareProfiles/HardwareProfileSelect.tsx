@@ -141,11 +141,18 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 <Truncate
                   content={profile.spec.identifiers
                     .map((identifier) => {
-                      const resourceValue = formatResourceValue(
+                      const defaultVal = formatResourceValue(
                         identifier.defaultCount,
                         identifier.resourceType,
                       ).toString();
-                      return formatResource(identifier.displayName, resourceValue, resourceValue);
+                      const maxVal =
+                        identifier.maxCount === undefined
+                          ? 'unrestricted'
+                          : formatResourceValue(
+                              identifier.maxCount,
+                              identifier.resourceType,
+                            ).toString();
+                      return formatResource(identifier.displayName, defaultVal, maxVal);
                     })
                     .join('; ')}
                 />
@@ -221,13 +228,20 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
               <StackItem>
                 <Truncate
                   content={profile.spec.identifiers
-                    .map((identifier) =>
-                      formatResource(
-                        identifier.displayName,
-                        identifier.defaultCount.toString(),
-                        identifier.defaultCount.toString(),
-                      ),
-                    )
+                    .map((identifier) => {
+                      const defaultVal = formatResourceValue(
+                        identifier.defaultCount,
+                        identifier.resourceType,
+                      ).toString();
+                      const maxVal =
+                        identifier.maxCount === undefined
+                          ? 'unrestricted'
+                          : formatResourceValue(
+                              identifier.maxCount,
+                              identifier.resourceType,
+                            ).toString();
+                      return formatResource(identifier.displayName, defaultVal, maxVal);
+                    })
                     .join('; ')}
                 />
               </StackItem>
@@ -339,13 +353,20 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                           getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) ||
                           (hardwareProfileConfig.selectedProfile.spec.identifiers &&
                             hardwareProfileConfig.selectedProfile.spec.identifiers
-                              .map((identifier) =>
-                                formatResource(
-                                  identifier.displayName,
-                                  identifier.defaultCount.toString(),
-                                  identifier.defaultCount.toString(),
-                                ),
-                              )
+                              .map((identifier) => {
+                                const defaultVal = formatResourceValue(
+                                  identifier.defaultCount,
+                                  identifier.resourceType,
+                                ).toString();
+                                const maxVal =
+                                  identifier.maxCount === undefined
+                                    ? 'unrestricted'
+                                    : formatResourceValue(
+                                        identifier.maxCount,
+                                        identifier.resourceType,
+                                      ).toString();
+                                return formatResource(identifier.displayName, defaultVal, maxVal);
+                              })
                               .join('; '))
                         }
                       />

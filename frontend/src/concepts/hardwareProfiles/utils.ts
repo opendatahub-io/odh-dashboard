@@ -52,8 +52,11 @@ export const formatToleration = (toleration: Toleration): string => {
 export const formatNodeSelector = (selector: NodeSelector): string[] =>
   Object.entries(selector).map(([key, value]) => `Key = ${key}; Value = ${value}`);
 
-export const formatResource = (identifier: string, request: string, limit: string): string =>
-  `${identifier}: Request = ${request}, Limit = ${limit}`;
+export const formatResource = (
+  identifier: string,
+  defaultCount: string,
+  maxCount: string,
+): string => `${identifier}: Default = ${defaultCount}, Max = ${maxCount}`;
 
 export const formatIdentifierDetails = (identifier: Identifier): string => {
   const defaultVal = formatResourceValue(
