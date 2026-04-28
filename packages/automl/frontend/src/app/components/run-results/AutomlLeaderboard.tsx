@@ -140,7 +140,7 @@ const COLUMN_META: Record<string, ColumnMeta> = {
     name: 'Mean Squared Error (MSE)',
     acronym: formatMetricName('mse'),
     description:
-      'Measures the average squared difference between the estimated values and what is estimated.',
+      'Measures the average squared difference between the predicted and actual values.',
   },
   'metric:mean_squared_error': {
     name: 'Mean Squared Error (MSE)',
