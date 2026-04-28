@@ -1,8 +1,17 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { EmptyState, EmptyStateBody, EmptyStateVariant } from '@patternfly/react-core';
+import {
+  Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  Flex,
+  FlexItem,
+} from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
+import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
+import { IconSize } from '@odh-dashboard/internal/types';
 import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import McpDeployModal from '~/odh/components/McpDeployModal';
 import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFieldWrapper';
@@ -63,11 +72,25 @@ const McpDeploymentsPage: React.FC<McpDeploymentsPageProps> = ({ namespace }) =>
   const isEmpty = !noProjectSelected && loaded && !loadError && deployments.items.length === 0;
 
   const headerContent = (
-    <NamespaceSelectorFieldWrapper
-      selectedNamespace={namespace ?? ''}
-      onSelect={handleProjectSelect}
-      selectorOnly
-    />
+    <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+      <ProjectIconWithSize size={IconSize.XXL} />
+      <Flex
+        spaceItems={{ default: 'spaceItemsSm' }}
+        alignItems={{ default: 'alignItemsCenter' }}
+        flex={{ default: 'flex_2' }}
+      >
+        <FlexItem>
+          <Bullseye>Project</Bullseye>
+        </FlexItem>
+        <FlexItem flex={{ default: 'flex_1' }}>
+          <NamespaceSelectorFieldWrapper
+            selectedNamespace={namespace ?? ''}
+            onSelect={handleProjectSelect}
+            selectorOnly
+          />
+        </FlexItem>
+      </Flex>
+    </Flex>
   );
 
   return (
