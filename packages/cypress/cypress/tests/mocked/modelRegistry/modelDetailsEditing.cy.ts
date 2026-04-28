@@ -1,11 +1,4 @@
 /* eslint-disable camelcase */
-// These tests cover edit flows that require useBlocker (from mod-arch-shared's NavigationBlockerModal).
-// useBlocker requires createBrowserRouter (data router), which is incompatible with standalone mode
-// due to Module Federation singleton sharing. They run here in federated mode where the host dashboard
-// provides createBrowserRouter.
-// Corresponding upstream tests are skipped in:
-//   packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelRegistry/modelDetailsCard.cy.ts
-//   packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelRegistry/modelVersionDetails.cy.ts
 
 import {
   mockDashboardConfig,
@@ -168,7 +161,7 @@ const initIntercepts = () => {
       },
     },
     { data: mockModelVersionWithLabels },
-  ).as('UpdatePropertyRow');
+  );
 
   cy.interceptOdh(
     `PATCH /model-registry/api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId`,
@@ -186,11 +179,10 @@ const initIntercepts = () => {
 describe('Model details editing (useBlocker)', () => {
   beforeEach(() => {
     initIntercepts();
+    cy.visitWithLogin('/ai-hub/models/registry/modelregistry-sample/registered-models/1/overview');
   });
 
   it('allows editing model description', () => {
-    cy.visitWithLogin('/ai-hub/models/registry/modelregistry-sample/registered-models/1/overview');
-
     cy.findByText('Test model description').should('be.visible');
 
     modelDetailsCard.findDescriptionEditButton().click();

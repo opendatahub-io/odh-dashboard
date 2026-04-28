@@ -266,27 +266,6 @@ describe('Model version details', () => {
       cy.findByTestId('breadcrumb-model-version').should('contain.text', 'Test Model');
     });
 
-    // Skip: useBlocker (from mod-arch-shared's NavigationBlockerModal) requires createBrowserRouter,
-    // which is incompatible with standalone mode due to Module Federation singleton sharing.
-    // TODO: Move to packages/cypress/ (federated mode) where useBlocker works.
-    it.skip('should show alerts for the expanded section', () => {
-      modelDetailsExpandedCard.findExpandedButton().click();
-      modelDetailsExpandedCard.find().should('be.visible');
-      modelDetailsExpandedCard.findLabelEditButton().click();
-      modelDetailsExpandedCard.findAlert().should('exist');
-      modelDetailsExpandedCard.findLabelSaveButton().click();
-      modelDetailsExpandedCard.findDescriptionEditButton().click();
-      modelDetailsExpandedCard.findAlert().should('exist');
-      modelDetailsExpandedCard.findDescriptionSaveButton().click();
-      modelDetailsExpandedCard.findPropertiesExpandableButton().click();
-      const propertyRow = modelDetailsExpandedCard.getRow('property1');
-      propertyRow.findKebabAction('Edit').click();
-      modelDetailsExpandedCard.findAlert().should('exist');
-      propertyRow.findSaveButton().click();
-      modelDetailsExpandedCard.findAddPropertyButton().click();
-      modelDetailsExpandedCard.findAlert().should('exist');
-    });
-
     it('should delete a property row', () => {
       cy.interceptApi(
         `PATCH /api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId`,
@@ -449,101 +428,6 @@ describe('Model version details', () => {
       cy.findByTestId('model-version-selector-list')
         .find('.pf-v6-c-badge')
         .should('have.length', 1);
-    });
-
-    // Skip: useBlocker requires createBrowserRouter (see expanded section test above).
-    it.skip('should handle label editing', () => {
-      modelVersionDetails.findEditLabelsButton().click();
-
-      modelVersionDetails.findAddLabelButton().click();
-      cy.findByTestId('editable-label-group')
-        .should('exist')
-        .within(() => {
-          cy.contains('New Label').should('exist').click();
-          cy.focused().type('First Label{enter}');
-        });
-
-      modelVersionDetails.findAddLabelButton().click();
-      cy.findByTestId('editable-label-group')
-        .should('exist')
-        .within(() => {
-          cy.contains('New Label').should('exist').click();
-          cy.focused().type('Second Label{enter}');
-        });
-
-      cy.findByTestId('editable-label-group').within(() => {
-        cy.contains('First Label').should('exist').click();
-        cy.focused().type('Updated First Label{enter}');
-      });
-
-      cy.findByTestId('editable-label-group').within(() => {
-        cy.contains('Second Label').parent().find('[data-testid^="remove-label-"]').click();
-      });
-
-      modelVersionDetails.findSaveLabelsButton().should('exist').click();
-    });
-
-    // Skip: useBlocker requires createBrowserRouter (see expanded section test above).
-    it.skip('should validate label length', () => {
-      modelVersionDetails.findEditLabelsButton().click();
-
-      const longLabel = 'a'.repeat(64);
-      modelVersionDetails.findAddLabelButton().click();
-      cy.findByTestId('editable-label-group')
-        .should('exist')
-        .within(() => {
-          cy.contains('New Label').should('exist').click();
-          cy.focused().type(`${longLabel}{enter}`);
-        });
-
-      cy.findAllByTestId('label-error-alert')
-        .eq(0)
-        .should('be.visible')
-        .within(() => {
-          cy.contains(`can't exceed 63 characters`).should('exist');
-        });
-
-      cy.findAllByTestId('label-error-alert')
-        .eq(1)
-        .should('be.visible')
-        .within(() => {
-          cy.contains(`can't exceed 63 characters`).should('exist');
-        });
-    });
-
-    // Skip: useBlocker requires createBrowserRouter (see expanded section test above).
-    it.skip('should validate duplicate labels', () => {
-      modelVersionDetails.findEditLabelsButton().click();
-
-      modelVersionDetails.findAddLabelButton().click();
-      cy.findByTestId('editable-label-group')
-        .should('exist')
-        .within(() => {
-          cy.get('[data-testid^="editable-label-"]').last().click();
-          cy.focused().type('{selectall}{backspace}Testing label{enter}');
-        });
-
-      modelVersionDetails.findAddLabelButton().click();
-      cy.findByTestId('editable-label-group')
-        .should('exist')
-        .within(() => {
-          cy.get('[data-testid^="editable-label-"]').last().click();
-          cy.focused().type('{selectall}{backspace}Testing label{enter}');
-        });
-
-      cy.findAllByTestId('label-error-alert')
-        .eq(0)
-        .should('be.visible')
-        .within(() => {
-          cy.contains(/Testing label already exists|can't exceed 63 characters/g).should('exist');
-        });
-
-      cy.findAllByTestId('label-error-alert')
-        .eq(1)
-        .should('be.visible')
-        .within(() => {
-          cy.contains(/Testing label already exists|can't exceed 63 characters/g).should('exist');
-        });
     });
 
     it('should navigate to versions list when clicking ViewAllVersionsButton', () => {

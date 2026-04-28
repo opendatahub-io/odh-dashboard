@@ -63,7 +63,6 @@ jobs:
       - name: Cypress mock tests
         working-directory: packages/model-registry/upstream/frontend
         run: npm run test:cypress-ci
-        continue-on-error: true
 
       - name: Run clean
         working-directory: packages/model-registry/upstream/frontend

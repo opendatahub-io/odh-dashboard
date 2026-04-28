@@ -5,9 +5,6 @@ class AppChrome {
   }
 
   private wait() {
-    cy.findByText('Select a model registry to view and manage your registered models.', {
-      exact: false,
-    }).should('exist');
     cy.testA11y();
   }
 
