@@ -12,6 +12,7 @@ import {
   ManageHardwareProfileSectionTitles,
 } from '#~/pages/hardwareProfiles/const';
 import {
+  filterRecognizedVisibility,
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
   isHardwareProfileEnabled,
@@ -67,10 +68,10 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
           if (
             hardwareProfile.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility']
           ) {
-            const visibleIn = JSON.parse(
+            const visibleIn: string[] = JSON.parse(
               hardwareProfile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
             );
-            setVisibility(visibleIn);
+            setVisibility(filterRecognizedVisibility(visibleIn));
           } else {
             setVisibility([]);
           }

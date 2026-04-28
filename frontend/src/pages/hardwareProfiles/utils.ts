@@ -1,4 +1,4 @@
-import { HardwareProfileKind } from '#~/k8sTypes';
+import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
 import { DisplayNameAnnotation, Identifier, IdentifierResourceType } from '#~/types';
 import {
   HardwareProfileWarningType,
@@ -242,4 +242,11 @@ export const orderHardwareProfiles = (
     });
   }
   return alphaSortHardwareProfilesByName(profiles);
+};
+
+export const filterRecognizedVisibility = (
+  visibleIn: string[],
+): HardwareProfileFeatureVisibility[] => {
+  const recognized: string[] = Object.values(HardwareProfileFeatureVisibility);
+  return visibleIn.filter((v): v is HardwareProfileFeatureVisibility => recognized.includes(v));
 };
