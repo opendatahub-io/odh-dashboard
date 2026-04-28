@@ -156,7 +156,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 <Truncate
                   content={`Local queue: ${profile.spec.scheduling.kueue.localQueueName}${
                     profile.spec.scheduling.kueue.priorityClass
-                      ? `, Priority: ${profile.spec.scheduling.kueue.priorityClass}`
+                      ? `; Priority: ${profile.spec.scheduling.kueue.priorityClass}`
                       : ''
                   }`}
                 />
@@ -237,7 +237,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 <Truncate
                   content={`Local queue: ${profile.spec.scheduling.kueue.localQueueName}${
                     profile.spec.scheduling.kueue.priorityClass
-                      ? `, Priority: ${profile.spec.scheduling.kueue.priorityClass}`
+                      ? `; Priority: ${profile.spec.scheduling.kueue.priorityClass}`
                       : ''
                   }`}
                 />
@@ -359,7 +359,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                         return (
                           <HelperTextItem>
                             {`Local queue: ${kueue.localQueueName}${
-                              kueue.priorityClass ? `, Priority: ${kueue.priorityClass}` : ''
+                              kueue.priorityClass ? `; Priority: ${kueue.priorityClass}` : ''
                             }`}
                           </HelperTextItem>
                         );
