@@ -81,7 +81,7 @@ const COLUMN_META: Record<string, ColumnMeta> = {
   'metric:precision': {
     name: 'Precision',
     description:
-      'Measures the accuracy of a prediction based on percent of positive predictions that are correct.',
+      'The proportion of positive predictions that are correct. A high precision score means the model rarely labels a negative example as positive.',
   },
   'metric:recall': {
     name: 'Recall',
