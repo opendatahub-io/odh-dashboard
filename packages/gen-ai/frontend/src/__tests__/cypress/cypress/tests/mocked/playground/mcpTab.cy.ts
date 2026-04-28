@@ -470,14 +470,13 @@ describe('Playground - MCP Servers', () => {
       cy.step('Close success modal and open tools modal');
       playgroundPage.mcpTab.closeSuccessModal();
       mcpServerSuccessModal.find().should('not.exist');
-      // Select MCP tab to ensure it's active
-      playgroundPage.mcpTab.clickMCPTab();
-      // Wait for MCP table to be visible after potential tab remount
-      playgroundPage.mcpTab.verifyMCPTabVisible();
       // Re-query server row after modal closes to avoid stale reference
       const freshServerRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
-      freshServerRow.findToolsButton().should('exist').and('not.have.attr', 'aria-disabled');
-      freshServerRow.findToolsButton().click();
+      freshServerRow
+        .findToolsButton()
+        .should('exist')
+        .and('not.have.attr', 'aria-disabled')
+        .click();
 
       cy.step('Verify tools modal opens with all tools selected');
       mcpToolsModal.find().should('be.visible');
@@ -575,9 +574,11 @@ describe('Playground - MCP Servers', () => {
 
             // Re-query server row to avoid stale references
             const reopenServerRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
-            reopenServerRow.findToolsButton().should('exist');
-            reopenServerRow.findToolsButton().should('not.have.attr', 'aria-disabled');
-            reopenServerRow.findToolsButton().click();
+            reopenServerRow
+              .findToolsButton()
+              .should('exist')
+              .and('not.have.attr', 'aria-disabled')
+              .click();
             mcpToolsModal.find().should('be.visible');
             mcpToolsModal
               .find()
