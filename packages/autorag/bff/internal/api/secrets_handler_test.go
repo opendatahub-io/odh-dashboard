@@ -1399,20 +1399,15 @@ func TestGetSecretsHandler_DisplayNameAndDescription_BothPresent(t *testing.T) {
 	assert.Equal(t, "Main S3 bucket for production workloads", envelope.Data[0].Description)
 }
 
-func TestGetSecretsHandler_DoesNotLogCredentials(t *testing.T) {
-	// Create a buffer to capture log output
-	var logBuffer bytes.Buffer
-	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{
-		Level: slog.LevelDebug, // Capture all log levels
-	}))
-
+// Helper function to create mock secrets with sensitive test data for credential logging tests.
+// Returns the mock secrets and the sensitive values that should NEVER appear in logs or responses.
+func createMockSecretsWithSensitiveData() ([]corev1.Secret, string, string, string, string) {
 	// Create sensitive test data - these values should NEVER appear in logs
 	sensitiveAccessKey := "AKIAIOSFODNN7EXAMPLE"
 	sensitiveSecretKey := "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 	sensitiveAPIKey := "sk-proj-1234567890abcdefghijklmnopqrstuvwxyz"
 	sensitivePassword := "SuperSecretPassword123!"
 
-	// Create mock secrets with sensitive credentials
 	mockSecrets := []corev1.Secret{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1451,162 +1446,152 @@ func TestGetSecretsHandler_DoesNotLogCredentials(t *testing.T) {
 		},
 	}
 
-	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
-	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
+	return mockSecrets, sensitiveAccessKey, sensitiveSecretKey, sensitiveAPIKey, sensitivePassword
+}
 
-	// Create an app with the custom logger that captures output
-	app := &App{
+// Helper function to create a test App with the given logger and Kubernetes client.
+func newSecretsHandlerTestApp(logger *slog.Logger, client *mockKubernetesClientForSecrets) *App {
+	factory := &mockKubernetesClientFactoryForSecrets{client: client}
+	return &App{
 		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
 		logger:                  logger,
 		kubernetesClientFactory: factory,
 		repositories:            repositories.NewRepositories(logger),
 	}
+}
 
-	// Test successful request
-	t.Run("successful request", func(t *testing.T) {
-		logBuffer.Reset()
+// Helper function to assert that sensitive credentials do NOT appear in the given log output.
+func assertNoCredentialsInLogs(t *testing.T, logOutput, accessKey, secretKey, apiKey, password string) {
+	t.Helper()
+	assert.NotContains(t, logOutput, accessKey, "AWS access key should not be logged")
+	assert.NotContains(t, logOutput, secretKey, "AWS secret key should not be logged")
+	assert.NotContains(t, logOutput, apiKey, "API key should not be logged")
+	assert.NotContains(t, logOutput, password, "Password should not be logged")
+}
 
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/secrets?namespace=test-namespace", nil)
-		req.Header.Set(constants.KubeflowUserIDHeader, "test-user")
+// Helper function to create a test request with required context values for secrets handler.
+func newSecretsHandlerTestRequest() *http.Request {
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/secrets?namespace=test-namespace", nil)
+	req.Header.Set(constants.KubeflowUserIDHeader, "test-user")
 
-		// Add required context values
-		ctx := req.Context()
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &kubernetes.RequestIdentity{UserID: "test-user"})
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &kubernetes.RequestIdentity{UserID: "test-user"})
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+	return req.WithContext(ctx)
+}
 
-		w := httptest.NewRecorder()
-		app.GetSecretsHandler(w, req, nil)
+// TestGetSecretsHandler_DoesNotLogCredentials_Success verifies that sensitive credentials
+// are not logged during successful secret retrieval requests.
+func TestGetSecretsHandler_DoesNotLogCredentials_Success(t *testing.T) {
+	var logBuffer bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
 
-		assert.Equal(t, http.StatusOK, w.Code)
+	mockSecrets, accessKey, secretKey, apiKey, password := createMockSecretsWithSensitiveData()
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	app := newSecretsHandlerTestApp(logger, mockClient)
 
-		// Verify sensitive values are NOT in logs
-		logOutput := logBuffer.String()
-		assert.NotContains(t, logOutput, sensitiveAccessKey, "AWS access key should not be logged")
-		assert.NotContains(t, logOutput, sensitiveSecretKey, "AWS secret key should not be logged")
-		assert.NotContains(t, logOutput, sensitiveAPIKey, "API key should not be logged")
-		assert.NotContains(t, logOutput, sensitivePassword, "Password should not be logged")
-	})
+	req := newSecretsHandlerTestRequest()
+	w := httptest.NewRecorder()
 
-	// Test error scenarios to ensure credentials are not logged in error messages
-	t.Run("kubernetes client error", func(t *testing.T) {
-		logBuffer.Reset()
+	app.GetSecretsHandler(w, req, nil)
 
-		// Create a mock client that returns an error
-		errorClient := &mockKubernetesClientForSecrets{
-			secrets: mockSecrets,
-			err:     fmt.Errorf("kubernetes error: unable to retrieve secrets"),
-		}
-		errorFactory := &mockKubernetesClientFactoryForSecrets{client: errorClient}
+	assert.Equal(t, http.StatusOK, w.Code)
+	assertNoCredentialsInLogs(t, logBuffer.String(), accessKey, secretKey, apiKey, password)
+}
 
-		errorApp := &App{
-			config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
-			logger:                  logger,
-			kubernetesClientFactory: errorFactory,
-			repositories:            repositories.NewRepositories(logger),
-		}
+// TestGetSecretsHandler_DoesNotLogCredentials_K8sError verifies that sensitive credentials
+// are not logged when Kubernetes client returns an error.
+func TestGetSecretsHandler_DoesNotLogCredentials_K8sError(t *testing.T) {
+	var logBuffer bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
 
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/secrets?namespace=test-namespace", nil)
-		req.Header.Set(constants.KubeflowUserIDHeader, "test-user")
+	mockSecrets, accessKey, secretKey, apiKey, password := createMockSecretsWithSensitiveData()
+	errorClient := &mockKubernetesClientForSecrets{
+		secrets: mockSecrets,
+		err:     fmt.Errorf("kubernetes error: unable to retrieve secrets"),
+	}
+	app := newSecretsHandlerTestApp(logger, errorClient)
 
-		ctx := req.Context()
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &kubernetes.RequestIdentity{UserID: "test-user"})
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
+	req := newSecretsHandlerTestRequest()
+	w := httptest.NewRecorder()
 
-		w := httptest.NewRecorder()
-		errorApp.GetSecretsHandler(w, req, nil)
+	app.GetSecretsHandler(w, req, nil)
 
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assertNoCredentialsInLogs(t, logBuffer.String(), accessKey, secretKey, apiKey, password)
+}
 
-		// Verify sensitive values are NOT in error logs
-		logOutput := logBuffer.String()
-		assert.NotContains(t, logOutput, sensitiveAccessKey, "AWS access key should not be logged in errors")
-		assert.NotContains(t, logOutput, sensitiveSecretKey, "AWS secret key should not be logged in errors")
-		assert.NotContains(t, logOutput, sensitiveAPIKey, "API key should not be logged in errors")
-		assert.NotContains(t, logOutput, sensitivePassword, "Password should not be logged in errors")
-	})
+// TestGetSecretsHandler_DoesNotLogCredentials_Forbidden verifies that sensitive credentials
+// are not logged when Kubernetes returns a forbidden error.
+func TestGetSecretsHandler_DoesNotLogCredentials_Forbidden(t *testing.T) {
+	var logBuffer bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
 
-	// Test forbidden error
-	t.Run("forbidden error", func(t *testing.T) {
-		logBuffer.Reset()
+	mockSecrets, accessKey, secretKey, apiKey, password := createMockSecretsWithSensitiveData()
+	forbiddenErr := &apierrors.StatusError{
+		ErrStatus: metav1.Status{
+			Status:  metav1.StatusFailure,
+			Message: "forbidden: User cannot list secrets in namespace",
+			Reason:  metav1.StatusReasonForbidden,
+			Code:    http.StatusForbidden,
+		},
+	}
+	errorClient := &mockKubernetesClientForSecrets{
+		secrets: mockSecrets,
+		err:     forbiddenErr,
+	}
+	app := newSecretsHandlerTestApp(logger, errorClient)
 
-		forbiddenErr := &apierrors.StatusError{
-			ErrStatus: metav1.Status{
-				Status:  metav1.StatusFailure,
-				Message: "forbidden: User cannot list secrets in namespace",
-				Reason:  metav1.StatusReasonForbidden,
-				Code:    http.StatusForbidden,
-			},
-		}
+	req := newSecretsHandlerTestRequest()
+	w := httptest.NewRecorder()
 
-		errorClient := &mockKubernetesClientForSecrets{
-			secrets: mockSecrets,
-			err:     forbiddenErr,
-		}
-		errorFactory := &mockKubernetesClientFactoryForSecrets{client: errorClient}
+	app.GetSecretsHandler(w, req, nil)
 
-		errorApp := &App{
-			config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
-			logger:                  logger,
-			kubernetesClientFactory: errorFactory,
-			repositories:            repositories.NewRepositories(logger),
-		}
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assertNoCredentialsInLogs(t, logBuffer.String(), accessKey, secretKey, apiKey, password)
+}
 
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/secrets?namespace=test-namespace", nil)
-		req.Header.Set(constants.KubeflowUserIDHeader, "test-user")
+// TestGetSecretsHandler_SanitizesResponseBody verifies that the HTTP response body
+// contains [REDACTED] for sensitive fields and does not expose actual credentials.
+func TestGetSecretsHandler_SanitizesResponseBody(t *testing.T) {
+	var logBuffer bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
 
-		ctx := req.Context()
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &kubernetes.RequestIdentity{UserID: "test-user"})
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
+	mockSecrets, accessKey, secretKey, apiKey, password := createMockSecretsWithSensitiveData()
+	mockClient := &mockKubernetesClientForSecrets{secrets: mockSecrets}
+	app := newSecretsHandlerTestApp(logger, mockClient)
 
-		w := httptest.NewRecorder()
-		errorApp.GetSecretsHandler(w, req, nil)
+	req := newSecretsHandlerTestRequest()
+	w := httptest.NewRecorder()
 
-		assert.Equal(t, http.StatusForbidden, w.Code)
+	app.GetSecretsHandler(w, req, nil)
 
-		// Verify sensitive values are NOT in logs
-		logOutput := logBuffer.String()
-		assert.NotContains(t, logOutput, sensitiveAccessKey, "AWS access key should not be logged in forbidden errors")
-		assert.NotContains(t, logOutput, sensitiveSecretKey, "AWS secret key should not be logged in forbidden errors")
-		assert.NotContains(t, logOutput, sensitiveAPIKey, "API key should not be logged in forbidden errors")
-		assert.NotContains(t, logOutput, sensitivePassword, "Password should not be logged in forbidden errors")
-	})
+	assert.Equal(t, http.StatusOK, w.Code)
 
-	// Verify that response body contains only [REDACTED] values, not actual credentials
-	t.Run("response body sanitization", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/secrets?namespace=test-namespace", nil)
-		req.Header.Set(constants.KubeflowUserIDHeader, "test-user")
+	responseBody := w.Body.String()
 
-		ctx := req.Context()
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &kubernetes.RequestIdentity{UserID: "test-user"})
-		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-		req = req.WithContext(ctx)
+	// Verify sensitive values are NOT in response body
+	assert.NotContains(t, responseBody, accessKey, "AWS access key should not be in response")
+	assert.NotContains(t, responseBody, secretKey, "AWS secret key should not be in response")
+	assert.NotContains(t, responseBody, apiKey, "API key should not be in response")
+	assert.NotContains(t, responseBody, password, "Password should not be in response")
 
-		w := httptest.NewRecorder()
-		app.GetSecretsHandler(w, req, nil)
+	// Verify [REDACTED] is present for sanitized fields
+	assert.Contains(t, responseBody, "[REDACTED]", "Response should contain [REDACTED] markers")
 
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		responseBody := w.Body.String()
-
-		// Verify sensitive values are NOT in response body
-		assert.NotContains(t, responseBody, sensitiveAccessKey, "AWS access key should not be in response")
-		assert.NotContains(t, responseBody, sensitiveSecretKey, "AWS secret key should not be in response")
-		assert.NotContains(t, responseBody, sensitiveAPIKey, "API key should not be in response")
-		assert.NotContains(t, responseBody, sensitivePassword, "Password should not be in response")
-
-		// Verify [REDACTED] is present for sanitized fields
-		assert.Contains(t, responseBody, "[REDACTED]", "Response should contain [REDACTED] markers")
-
-		// Verify the count of [REDACTED] matches expected sanitized fields
-		redactedCount := strings.Count(responseBody, "[REDACTED]")
-		// aws-secret: 4 fields (3 redacted: access_key, secret_key, region, endpoint)
-		// lls-secret: 2 fields (2 redacted: api_key, base_url)
-		// generic-secret: 2 fields (2 redacted: password, username)
-		// Total: 8 redacted values expected (aws_s3_bucket is allowed, but not in this test data)
-		// Note: endpoint and region are also redacted
-		assert.GreaterOrEqual(t, redactedCount, 8, "Should have at least 8 [REDACTED] values in response")
-	})
+	// Verify the count of [REDACTED] matches expected sanitized fields
+	redactedCount := strings.Count(responseBody, "[REDACTED]")
+	// aws-secret: 4 fields (all redacted: access_key, secret_key, region, endpoint)
+	// lls-secret: 2 fields (all redacted: api_key, base_url)
+	// generic-secret: 2 fields (all redacted: password, username)
+	// Total: 8 redacted values expected
+	assert.GreaterOrEqual(t, redactedCount, 8, "Should have at least 8 [REDACTED] values in response")
 }
