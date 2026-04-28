@@ -2,10 +2,12 @@ import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { Identifier, IdentifierResourceType } from '#~/types';
 import {
   determineIdentifierUnit,
+  filterRecognizedVisibility,
   isHardwareProfileIdentifierValid,
   validateProfileWarning,
 } from '#~/pages/hardwareProfiles/utils';
 import { HardwareProfileWarningType } from '#~/concepts/hardwareProfiles/types';
+import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, OTHER } from '#~/utilities/valueUnits';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -418,5 +420,37 @@ describe('determine unit', () => {
       defaultCount: '2Gi',
     };
     expect(determineIdentifierUnit(nodeUnknownResource)).toEqual(OTHER);
+  });
+});
+
+describe('filterRecognizedVisibility', () => {
+  it('should return recognized enum values unchanged', () => {
+    expect(
+      filterRecognizedVisibility([
+        HardwareProfileFeatureVisibility.WORKBENCH,
+        HardwareProfileFeatureVisibility.MODEL_SERVING,
+      ]),
+    ).toEqual([
+      HardwareProfileFeatureVisibility.WORKBENCH,
+      HardwareProfileFeatureVisibility.MODEL_SERVING,
+    ]);
+  });
+
+  it('should return an empty array when all values are unrecognized', () => {
+    expect(filterRecognizedVisibility(['pipelines', 'foo', 'bar'])).toEqual([]);
+  });
+
+  it('should keep recognized values and discard unrecognized ones from a mixed list', () => {
+    expect(
+      filterRecognizedVisibility([
+        'pipelines',
+        HardwareProfileFeatureVisibility.MODEL_SERVING,
+        'unknown-value',
+      ]),
+    ).toEqual([HardwareProfileFeatureVisibility.MODEL_SERVING]);
+  });
+
+  it('should return an empty array when given an empty array', () => {
+    expect(filterRecognizedVisibility([])).toEqual([]);
   });
 });
