@@ -7,11 +7,11 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/api"
-	"github.com/kubeflow/model-registry/ui/bff/internal/constants"
-	helper "github.com/kubeflow/model-registry/ui/bff/internal/helpers"
-	"github.com/kubeflow/model-registry/ui/bff/internal/integrations/httpclient"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	"github.com/kubeflow/hub/ui/bff/internal/api"
+	"github.com/kubeflow/hub/ui/bff/internal/constants"
+	helper "github.com/kubeflow/hub/ui/bff/internal/helpers"
+	"github.com/kubeflow/hub/ui/bff/internal/integrations/httpclient"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 )
 
 type MCPServerEnvelope api.Envelope[*models.MCPServer, api.None]
