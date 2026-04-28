@@ -31,75 +31,13 @@ const STREAMING_ERROR_MAP: Record<string, string> = {
   /* eslint-enable camelcase */
 };
 
-// Keywords in error messages that indicate streaming connection loss
-const STREAM_LOST_KEYWORDS = [
-  'stream terminated',
-  'connection reset',
-  'connection lost',
-  'stream closed',
-  'connection closed',
-  'broken pipe',
-];
-
-// Pattern for EOF with word boundaries (to avoid matching "EOF" in unrelated contexts)
-const EOF_PATTERN = /\bEOF\b/i;
-
-// Keywords in error messages that indicate streaming timeout
-const STREAM_TIMEOUT_KEYWORDS = [
-  'stream timeout',
-  'stream timed out',
-  'no response',
-  'stopped responding',
-];
-
-// Keywords in error messages that indicate context length exceeded during streaming
-const STREAM_CONTEXT_KEYWORDS = [
-  'context length exceeded',
-  'context exceeded',
-  'maximum context',
-  'exceeded at token',
-];
-
-function detectStreamingErrorFromMessage(message: string): string | null {
-  const lowerMessage = message.toLowerCase();
-
-  // Check for connection loss (keywords + EOF pattern)
-  if (
-    STREAM_LOST_KEYWORDS.some((keyword) => lowerMessage.includes(keyword.toLowerCase())) ||
-    EOF_PATTERN.test(message)
-  ) {
-    return 'stream:connection_lost';
-  }
-
-  // Check for timeout
-  if (STREAM_TIMEOUT_KEYWORDS.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))) {
-    return 'stream:timeout';
-  }
-
-  // Check for context length exceeded
-  if (STREAM_CONTEXT_KEYWORDS.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))) {
-    return 'stream:context_length';
-  }
-
-  return null;
-}
-
 function resolveTemplateKey(error: ApiError): string {
   const component = error.error?.component;
   const code = error.error?.code;
-  const message = error.error?.message ?? error.message ?? '';
 
   // Check for streaming errors first (they can have component + code)
   if (code && Object.prototype.hasOwnProperty.call(STREAMING_ERROR_MAP, code)) {
     return STREAMING_ERROR_MAP[code];
-  }
-
-  // Check message for streaming keywords
-  if (message) {
-    const streamingKey = detectStreamingErrorFromMessage(message);
-    if (streamingKey) {
-      return streamingKey;
-    }
   }
 
   if (component && code) {
@@ -151,9 +89,7 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
   const rawMessage = error.error?.message ?? error.message ?? '';
 
   const isPartial = component ? PARTIAL_COMPONENTS.has(component) : false;
-  const isStreamingError =
-    (code && Object.prototype.hasOwnProperty.call(STREAMING_ERROR_MAP, code)) ||
-    detectStreamingErrorFromMessage(rawMessage) !== null;
+  const isStreamingError = code && Object.prototype.hasOwnProperty.call(STREAMING_ERROR_MAP, code);
 
   const effectiveContext = {
     ...context,
