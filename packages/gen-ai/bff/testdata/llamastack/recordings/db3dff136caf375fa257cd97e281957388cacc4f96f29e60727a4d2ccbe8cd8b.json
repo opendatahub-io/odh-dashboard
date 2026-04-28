@@ -20,7 +20,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.6.1"
+      "openai_sdk_version": "2.32.0"
     }
   },
   "response": {
@@ -32,39 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello! I'm an AI, so I don't experience feelings, but I'm functioning perfectly and ready to assist you.\n\nHow are you doing today? Or, how",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 38,
-            "prompt_tokens": 7,
-            "total_tokens": 370,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-db3dff136caf",
-          "choices": [
-            {
-              "delta": {
-                "content": " can I help you?",
+                "content": "Hello! I'm doing well, thank you for asking. I'm ready to assist you.\n\nHow are you today?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -81,9 +49,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 43,
+            "completion_tokens": 27,
             "prompt_tokens": 7,
-            "total_tokens": 375,
+            "total_tokens": 115,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

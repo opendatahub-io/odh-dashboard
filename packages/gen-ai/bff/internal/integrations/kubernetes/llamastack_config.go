@@ -36,15 +36,16 @@ type VectorStoreModelReference struct {
 }
 
 type Providers struct {
-	Inference   []Provider `json:"inference" yaml:"inference"`
-	VectorIO    []Provider `json:"vector_io" yaml:"vector_io"`
-	Responses   []Provider `json:"responses" yaml:"responses"`
-	Eval        []Provider `json:"eval" yaml:"eval"`
-	Files       []Provider `json:"files" yaml:"files"`
-	DatasetIO   []Provider `json:"datasetio" yaml:"datasetio"`
-	Scoring     []Provider `json:"scoring" yaml:"scoring"`
-	ToolRuntime []Provider `json:"tool_runtime" yaml:"tool_runtime"`
-	Safety      []Provider `json:"safety" yaml:"safety"`
+	Inference      []Provider `json:"inference" yaml:"inference"`
+	VectorIO       []Provider `json:"vector_io" yaml:"vector_io"`
+	Responses      []Provider `json:"responses" yaml:"responses"`
+	Eval           []Provider `json:"eval" yaml:"eval"`
+	FileProcessors []Provider `json:"file_processors" yaml:"file_processors"`
+	Files          []Provider `json:"files" yaml:"files"`
+	DatasetIO      []Provider `json:"datasetio" yaml:"datasetio"`
+	Scoring        []Provider `json:"scoring" yaml:"scoring"`
+	ToolRuntime    []Provider `json:"tool_runtime" yaml:"tool_runtime"`
+	Safety         []Provider `json:"safety" yaml:"safety"`
 }
 
 type Provider struct {
@@ -155,8 +156,8 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 		Version:    "2",
 		DistroName: "rh",
 		APIs: []string{
-			"responses", "datasetio", "files", "inference",
-			"safety", "scoring", "tool_runtime", "vector_io",
+			"responses", "file_processors", "files", "inference",
+			"tool_runtime", "vector_io",
 		},
 		Providers: Providers{
 			Inference: []Provider{NewSentenceTransformerProvider()},
@@ -185,26 +186,17 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 					},
 				}),
 			},
+			FileProcessors: []Provider{
+				NewProvider("pypdf", "inline::pypdf", EmptyConfig()),
+			},
 			Files: []Provider{
-				NewProvider("meta-reference-files", "inline::localfs", map[string]interface{}{
+				NewProvider("localfs-files", "inline::localfs", map[string]interface{}{
 					"storage_dir": "/opt/app-root/src/.llama/distributions/rh/files",
 					"metadata_store": map[string]interface{}{
 						"table_name": "files_metadata",
 						"backend":    "sql_default",
 					},
 				}),
-			},
-			DatasetIO: []Provider{
-				NewProvider("huggingface", "remote::huggingface", map[string]interface{}{
-					"kvstore": map[string]interface{}{
-						"namespace": "datasetio::huggingface",
-						"backend":   "kv_default",
-					},
-				}),
-			},
-			Scoring: []Provider{
-				NewProvider("basic", "inline::basic", EmptyConfig()),
-				NewProvider("llm-as-judge", "inline::llm-as-judge", EmptyConfig()),
 			},
 			ToolRuntime: []Provider{
 				NewProvider("file-search", "inline::file-search", EmptyConfig()),
@@ -553,6 +545,11 @@ func (c *LlamaStackConfig) AddToolRuntimeProvider(provider Provider) {
 	c.Providers.ToolRuntime = append(c.Providers.ToolRuntime, provider)
 }
 
+// AddFileProcessorsProvider adds a new file processors provider to the config
+func (c *LlamaStackConfig) AddFileProcessorsProvider(provider Provider) {
+	c.Providers.FileProcessors = append(c.Providers.FileProcessors, provider)
+}
+
 // AddFilesProvider adds a new files provider to the config
 func (c *LlamaStackConfig) AddFilesProvider(provider Provider) {
 	c.Providers.Files = append(c.Providers.Files, provider)
@@ -742,6 +739,154 @@ func NewBenchmark(benchmarkID, name, benchmarkType string, config map[string]int
 		Config:        config,
 		Metadata:      EmptyConfig(),
 	}
+}
+
+// CreateSafetyProvider creates a safety provider configuration from guardrails array
+// This generates the TrustyAI FMS provider with shields for each guardrail model
+func CreateSafetyProvider(guardrails []models.GuardrailInput) Provider {
+	shields := make(map[string]interface{})
+
+	for _, guardrail := range guardrails {
+		// Default policies if not provided (input includes jailbreak, output does not)
+		inputPolicies := guardrail.InputPolicies
+		if len(inputPolicies) == 0 {
+			inputPolicies = models.DefaultInputGuardrailPolicies()
+		}
+		outputPolicies := guardrail.OutputPolicies
+		if len(outputPolicies) == 0 {
+			outputPolicies = models.DefaultOutputGuardrailPolicies()
+		}
+
+		// Generate shield IDs based on model name or index
+		inputShieldID := generateShieldID("input", guardrail.ModelName)
+		outputShieldID := generateShieldID("output", guardrail.ModelName)
+
+		// Construct guardrail_model in format: provider_id/model_name
+		guardrailModel := fmt.Sprintf("%s/%s", guardrail.ProviderID, guardrail.ModelName)
+
+		// Use provided detector URL or fall back to default
+		detectorURL := guardrail.DetectorURL
+		if detectorURL == "" {
+			detectorURL = constants.DefaultDetectorURL
+		}
+
+		// Create input shield config
+		// auth_token: Token from guardrails-service-account for kube-rbac-proxy authentication
+		// guardrail_model_token: model API token for calling the LLM
+		shields[inputShieldID] = map[string]interface{}{
+			"type":          "content",
+			"detector_url":  detectorURL,
+			"message_types": []string{"user"},
+			"verify_ssl":    false,
+			"auth_token":    constants.FormatEnvVar(constants.GuardrailAuthTokenEnvName),
+			"detector_params": map[string]interface{}{
+				"custom": map[string]interface{}{
+					"input_guardrail": map[string]interface{}{
+						"input_policies":        inputPolicies,
+						"guardrail_model":       guardrailModel,
+						"guardrail_model_token": guardrail.TokenEnvVar,
+						"guardrail_model_url":   guardrail.ModelURL,
+					},
+				},
+			},
+		}
+
+		// Create output shield config
+		// auth_token: Token from guardrails-service-account for kube-rbac-proxy authentication
+		// guardrail_model_token: model API token for calling the LLM
+		shields[outputShieldID] = map[string]interface{}{
+			"type":          "content",
+			"detector_url":  detectorURL,
+			"message_types": []string{"completion"},
+			"verify_ssl":    false,
+			"auth_token":    constants.FormatEnvVar(constants.GuardrailAuthTokenEnvName),
+			"detector_params": map[string]interface{}{
+				"custom": map[string]interface{}{
+					"output_guardrail": map[string]interface{}{
+						"output_policies":       outputPolicies,
+						"guardrail_model":       guardrailModel,
+						"guardrail_model_token": guardrail.TokenEnvVar,
+						"guardrail_model_url":   guardrail.ModelURL,
+					},
+				},
+			},
+		}
+	}
+
+	return Provider{
+		ProviderID:   constants.SafetyProviderID,
+		ProviderType: constants.SafetyProviderType,
+		Module:       constants.SafetyProviderModule,
+		Config: map[string]interface{}{
+			"shields": shields,
+		},
+	}
+}
+
+// generateShieldID creates a unique shield ID based on type and model name
+func generateShieldID(shieldType, modelName string) string {
+	// Sanitize model name for use in shield ID
+	sanitized := strings.ReplaceAll(modelName, "/", "_")
+	sanitized = strings.ReplaceAll(sanitized, " ", "_")
+	sanitized = strings.ReplaceAll(sanitized, "-", "_")
+	sanitized = strings.ToLower(sanitized)
+
+	return fmt.Sprintf("trustyai_%s_%s", shieldType, sanitized)
+}
+
+// CreateShieldsFromGuardrails creates shield registrations for the registered_resources section
+func CreateShieldsFromGuardrails(guardrails []models.GuardrailInput) []Shield {
+	var shields []Shield
+
+	for _, guardrail := range guardrails {
+		inputShieldID := generateShieldID("input", guardrail.ModelName)
+		outputShieldID := generateShieldID("output", guardrail.ModelName)
+
+		// Register input shield
+		shields = append(shields, Shield{
+			ShieldID:   inputShieldID,
+			ProviderID: constants.SafetyProviderID,
+		})
+
+		// Register output shield
+		shields = append(shields, Shield{
+			ShieldID:   outputShieldID,
+			ProviderID: constants.SafetyProviderID,
+		})
+	}
+
+	return shields
+}
+
+// AddGuardrailsToConfig adds safety providers and shields based on the guardrails configuration.
+// It also ensures the "safety" API is in the APIs list (it is not included by default
+// since the upstream 1.0.0 distribution removed safety from the default config).
+func (c *LlamaStackConfig) AddGuardrailsToConfig(guardrails []models.GuardrailInput) {
+	if len(guardrails) == 0 {
+		return
+	}
+
+	c.ensureAPI("safety")
+
+	// Create and add safety provider
+	safetyProvider := CreateSafetyProvider(guardrails)
+	c.AddSafetyProvider(safetyProvider)
+
+	// Create and register shields
+	shields := CreateShieldsFromGuardrails(guardrails)
+	for _, shield := range shields {
+		c.RegisterShield(shield)
+	}
+}
+
+// ensureAPI adds an API to the APIs list if not already present.
+func (c *LlamaStackConfig) ensureAPI(api string) {
+	for _, a := range c.APIs {
+		if a == api {
+			return
+		}
+	}
+	c.APIs = append(c.APIs, api)
 }
 
 // EnableRBACAuth enables RBAC authentication using the Kubernetes auth provider.

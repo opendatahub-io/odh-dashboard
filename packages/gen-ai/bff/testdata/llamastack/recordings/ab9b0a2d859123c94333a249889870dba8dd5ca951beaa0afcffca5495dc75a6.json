@@ -15,7 +15,7 @@
     "endpoint": "/v1/embeddings",
     "model": "models/gemini-embedding-001",
     "provider_metadata": {
-      "openai_sdk_version": "2.6.1"
+      "openai_sdk_version": "2.32.0"
     }
   },
   "response": {

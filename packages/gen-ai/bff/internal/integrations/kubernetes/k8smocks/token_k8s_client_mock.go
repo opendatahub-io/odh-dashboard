@@ -384,6 +384,107 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 		return nil, fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 	}
 
+	// Check guardrails: feature flag first, then auto-detect infrastructure
+	actuallyEnableGuardrails := false
+	if enableGuardrails {
+		guardrailStatus, err := m.GetGuardrailsOrchestratorStatus(ctx, identity, namespace)
+		if err == nil && guardrailStatus.Phase == "Ready" {
+			actuallyEnableGuardrails = true
+		}
+	}
+
+	// Build safety section based on enableGuardrails flag
+	// When enabled, guardrails are automatically added for all selected models
+	safetySection := "  safety: []"
+	shieldsSection := "  shields: []"
+
+	if actuallyEnableGuardrails && len(installModels) > 0 {
+		// Build shields config for each model when guardrails are enabled
+		shieldsConfig := ""
+		shieldsList := ""
+
+		// Default policies for models
+		inputPolicies := models.DefaultInputGuardrailPolicies()
+		outputPolicies := models.DefaultOutputGuardrailPolicies()
+		detectorURL := constants.DefaultDetectorURL
+
+		for i, model := range installModels {
+			modelName := model.ModelName
+			guardrailModelURL := "http://" + modelName + "-predictor." + namespace + ".svc.cluster.local/v1/chat/completions"
+
+			// Generate shield IDs
+			inputShieldID := generateMockShieldID("input", modelName, i)
+			outputShieldID := generateMockShieldID("output", modelName, i)
+
+			// Format policies as YAML array
+			inputPoliciesYAML := formatPoliciesYAML(inputPolicies)
+			outputPoliciesYAML := formatPoliciesYAML(outputPolicies)
+
+			// Add shields config
+			// auth_token uses GUARDRAIL_AUTH_TOKEN from guardrails-service-account secret
+			shieldsConfig += `
+        ` + inputShieldID + `:
+          type: content
+          detector_url: "` + detectorURL + `"
+          message_types: ["user", "completion"]
+          verify_ssl: false
+          auth_token: "` + constants.FormatEnvVar(constants.GuardrailAuthTokenEnvName) + `"
+          detector_params:
+            custom:
+              input_guardrail:
+                input_policies: ` + inputPoliciesYAML + `
+                guardrail_model: ` + modelName + `
+                guardrail_model_token: "${env.VLLM_API_TOKEN_1:=fake}"
+                guardrail_model_url: "` + guardrailModelURL + `"
+        ` + outputShieldID + `:
+          type: content
+          detector_url: "` + detectorURL + `"
+          message_types: ["user", "completion"]
+          verify_ssl: false
+          auth_token: "` + constants.FormatEnvVar(constants.GuardrailAuthTokenEnvName) + `"
+          detector_params:
+            custom:
+              output_guardrail:
+                output_policies: ` + outputPoliciesYAML + `
+                guardrail_model: ` + modelName + `
+                guardrail_model_token: "${env.VLLM_API_TOKEN_1:=fake}"
+                guardrail_model_url: "` + guardrailModelURL + `"`
+
+			// Add shield registrations
+			shieldsList += `
+    - shield_id: ` + inputShieldID + `
+      provider_id: trustyai_fms
+    - shield_id: ` + outputShieldID + `
+      provider_id: trustyai_fms`
+		}
+
+		safetySection = `  safety:
+  - provider_id: trustyai_fms
+    provider_type: remote::trustyai_fms
+    module: llama_stack_provider_trustyai_fms==0.3.2
+    config:
+      shields:` + shieldsConfig
+
+		shieldsSection = `  shields:` + shieldsList
+	}
+
+	// Build APIs list -- safety is only included when guardrails are enabled
+	apisSection := `- file_processors
+- files
+- inference
+- responses
+- tool_runtime
+- vector_io`
+	if actuallyEnableGuardrails {
+		apisSection = `- file_processors
+- files
+- inference
+- responses
+- safety
+- tool_runtime
+- vector_io`
+	}
+
 	// Then create the ConfigMap that the LSD will reference
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -395,15 +496,7 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 version: "2"
 distro_name: rh
 apis:
-- datasetio
-- files
-- inference
-- responses
-- safety
-- scoring
-- telemetry
-- tool_runtime
-- vector_io
+` + apisSection + `
 providers:
   inference:
   - provider_id: vllm-inference-1
@@ -424,8 +517,12 @@ providers:
       persistence:
         namespace: vector_io::milvus
         backend: kv_default
-  safety: []
+` + safetySection + `
   eval: []
+  file_processors:
+  - provider_id: pypdf
+    provider_type: inline::pypdf
+    config: {}
   responses:
   - provider_id: builtin
     provider_type: inline::builtin
@@ -440,35 +537,15 @@ providers:
           max_write_queue_size: 10000
           num_writers: 4
   files:
-  - provider_id: meta-reference-files
+  - provider_id: localfs-files
     provider_type: inline::localfs
     config:
       storage_dir: /opt/app-root/src/.llama/distributions/rh/files
       metadata_store:
         table_name: files_metadata
         backend: sql_default
-  datasetio:
-  - provider_id: huggingface
-    provider_type: remote::huggingface
-    config:
-      kvstore:
-        namespace: datasetio::huggingface
-        backend: kv_default
-  scoring:
-  - provider_id: basic
-    provider_type: inline::basic
-    config: {}
-  - provider_id: llm-as-judge
-    provider_type: inline::llm-as-judge
-    config: {}
-  telemetry:
-  - provider_id: meta-reference
-    provider_type: inline::meta-reference
-    config:
-      service_name: "${env.OTEL_SERVICE_NAME:=\u200B}"
-      sinks: ${env.TELEMETRY_SINKS:=console,sqlite}
-      sqlite_db_path: /opt/app-root/src/.llama/distributions/rh/trace_store.db
-      otel_exporter_otlp_endpoint: ${env.OTEL_EXPORTER_OTLP_ENDPOINT:=}
+  datasetio: []
+  scoring: []
   tool_runtime:
   - provider_id: file-search
     provider_type: inline::file-search
@@ -511,7 +588,7 @@ registered_resources:
       model_id: mock-model
       provider_id: vllm-inference-1
       model_type: llm
-  shields: []
+` + shieldsSection + `
   vector_stores: []
   datasets: []
   scoring_fns: []

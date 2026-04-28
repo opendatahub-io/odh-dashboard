@@ -1,5 +1,5 @@
 {
-  "test_id": null,
+  "test_id": "bff/testdata/llamastack/test.py::record",
   "request": {
     "method": "POST",
     "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/models",
@@ -8,7 +8,7 @@
     "endpoint": "/v1/models",
     "model": "",
     "provider_metadata": {
-      "openai_sdk_version": "2.6.1"
+      "openai_sdk_version": "2.32.0"
     }
   },
   "response": {
@@ -151,6 +151,26 @@
           "object": "model",
           "owned_by": "google",
           "display_name": "Gemma 3n E2B"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemma-4-26b-a4b-it",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemma 4 26B A4B IT"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemma-4-31b-it",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemma 4 31B IT"
         }
       },
       {
@@ -306,6 +326,16 @@
       {
         "__type__": "openai.types.model.Model",
         "__data__": {
+          "id": "models/gemini-3.1-flash-tts-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemini 3.1 Flash TTS Preview"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
           "id": "models/gemini-robotics-er-1.5-preview",
           "created": null,
           "object": "model",
@@ -316,11 +346,41 @@
       {
         "__type__": "openai.types.model.Model",
         "__data__": {
+          "id": "models/gemini-robotics-er-1.6-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemini Robotics-ER 1.6 Preview"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
           "id": "models/gemini-2.5-computer-use-preview-10-2025",
           "created": null,
           "object": "model",
           "owned_by": "google",
           "display_name": "Gemini 2.5 Computer Use Preview 10-2025"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/deep-research-max-preview-04-2026",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Deep Research Max Preview (Apr-21-2026)"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/deep-research-preview-04-2026",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Deep Research Preview (Apr-21-2026)"
         }
       },
       {
@@ -351,6 +411,16 @@
           "object": "model",
           "owned_by": "google",
           "display_name": "Gemini Embedding 2 Preview"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-embedding-2",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemini Embedding 2"
         }
       },
       {

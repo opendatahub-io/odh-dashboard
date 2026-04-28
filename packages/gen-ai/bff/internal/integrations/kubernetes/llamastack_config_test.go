@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -105,13 +106,12 @@ func TestProviderCreationUtilities(t *testing.T) {
 	config.AddResponsesProvider(provider1)
 	assert.Equal(t, 2, len(config.Providers.Responses))
 
-	// default datasetio provider already added; adding one more
+	// datasetio/scoring not in defaults (removed in 1.0.0); adding one
 	config.AddDatasetIOProvider(provider1)
-	assert.Equal(t, 2, len(config.Providers.DatasetIO))
+	assert.Equal(t, 1, len(config.Providers.DatasetIO))
 
-	// default scoring providers already added; adding one more
 	config.AddScoringProvider(provider1)
-	assert.Equal(t, 3, len(config.Providers.Scoring))
+	assert.Equal(t, 1, len(config.Providers.Scoring))
 
 	// default tool runtime providers already added; adding one more
 	config.AddToolRuntimeProvider(provider1)
@@ -1322,10 +1322,21 @@ func TestDefaultConfig_APIsAndProviders(t *testing.T) {
 	config := NewDefaultLlamaStackConfig()
 
 	expectedAPIs := []string{
-		"responses", "datasetio", "files", "inference",
-		"safety", "scoring", "tool_runtime", "vector_io",
+		"responses", "file_processors", "files", "inference",
+		"tool_runtime", "vector_io",
 	}
 	assert.Equal(t, expectedAPIs, config.APIs)
+
+	assert.Empty(t, config.Providers.DatasetIO, "datasetio providers should be empty by default (removed in 1.0.0)")
+	assert.Empty(t, config.Providers.Scoring, "scoring providers should be empty by default (removed in 1.0.0)")
+	assert.Empty(t, config.Providers.Safety, "safety providers should be empty by default (added conditionally via AddGuardrailsToConfig)")
+	assert.NotContains(t, config.APIs, "datasetio")
+	assert.NotContains(t, config.APIs, "scoring")
+	assert.NotContains(t, config.APIs, "safety")
+
+	require.Len(t, config.Providers.FileProcessors, 1)
+	assert.Equal(t, "pypdf", config.Providers.FileProcessors[0].ProviderID)
+	assert.Equal(t, "inline::pypdf", config.Providers.FileProcessors[0].ProviderType)
 
 	require.Len(t, config.Providers.Responses, 1)
 	assert.Equal(t, "builtin", config.Providers.Responses[0].ProviderID)
@@ -1344,6 +1355,50 @@ func TestDefaultConfig_APIsAndProviders(t *testing.T) {
 	require.Len(t, config.Providers.Inference, 1)
 	assert.Equal(t, "sentence-transformers", config.Providers.Inference[0].ProviderID)
 	assert.Equal(t, "inline::sentence-transformers", config.Providers.Inference[0].ProviderType)
+}
+
+func TestAddGuardrailsToConfig_InjectsSafetyAPI(t *testing.T) {
+	config := NewDefaultLlamaStackConfig()
+
+	assert.NotContains(t, config.APIs, "safety", "safety should not be in APIs before guardrails are added")
+	assert.Empty(t, config.Providers.Safety)
+
+	guardrails := []models.GuardrailInput{
+		{
+			ModelName:      "llama-guard-3",
+			ProviderID:     "vllm-inference-1",
+			TokenEnvVar:    "${env.VLLM_API_TOKEN:=fake}",
+			ModelURL:       "http://localhost:8000/v1",
+			DetectorURL:    "https://detector:8480",
+			InputPolicies:  []string{"jailbreak"},
+			OutputPolicies: []string{"content-moderation"},
+		},
+	}
+
+	config.AddGuardrailsToConfig(guardrails)
+
+	assert.Contains(t, config.APIs, "safety", "safety API should be added when guardrails are configured")
+	assert.NotEmpty(t, config.Providers.Safety, "safety provider should be added")
+
+	// Verify idempotency: calling again should not duplicate the "safety" entry
+	config.AddGuardrailsToConfig(guardrails)
+
+	safetyCount := 0
+	for _, api := range config.APIs {
+		if api == "safety" {
+			safetyCount++
+		}
+	}
+	assert.Equal(t, 1, safetyCount, "safety API should appear exactly once even after multiple AddGuardrailsToConfig calls")
+}
+
+func TestAddGuardrailsToConfig_EmptyGuardrails(t *testing.T) {
+	config := NewDefaultLlamaStackConfig()
+
+	config.AddGuardrailsToConfig([]models.GuardrailInput{})
+
+	assert.NotContains(t, config.APIs, "safety", "safety should not be added for empty guardrails")
+	assert.Empty(t, config.Providers.Safety)
 }
 
 func TestDefaultConfig_ResponsesProviderPersistence(t *testing.T) {
@@ -1400,6 +1455,7 @@ func TestDefaultConfig_Serialization(t *testing.T) {
 		assert.Contains(t, yamlStr, "inline::builtin")
 		assert.Contains(t, yamlStr, "inline::file-search")
 		assert.Contains(t, yamlStr, "inline::milvus")
+		assert.Contains(t, yamlStr, "inline::pypdf")
 		assert.Contains(t, yamlStr, "default_provider_id: milvus")
 	})
 
@@ -1411,6 +1467,7 @@ func TestDefaultConfig_Serialization(t *testing.T) {
 		assert.Contains(t, jsonStr, "inline::builtin")
 		assert.Contains(t, jsonStr, "inline::file-search")
 		assert.Contains(t, jsonStr, "inline::milvus")
+		assert.Contains(t, jsonStr, "inline::pypdf")
 		assert.Contains(t, jsonStr, "\"default_provider_id\":\"milvus\"")
 	})
 }
