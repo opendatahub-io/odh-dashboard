@@ -75,83 +75,29 @@ describe('errorClassifier', () => {
         expect(result.isRetriable).toBe(false);
       });
 
-      it('should mark timeout errors as retriable', () => {
+      it('should mark errors without retriable field as retriable by default', () => {
         const error = { error: { code: 'timeout', message: 'Request timed out' } };
         const result = classifyError(error);
 
         expect(result.isRetriable).toBe(true);
       });
 
-      it('should mark server errors as retriable', () => {
-        const error = { error: { code: 'server_error', message: 'Server error' } };
-        const result = classifyError(error);
-
-        expect(result.isRetriable).toBe(true);
-      });
-
-      it('should mark stream_lost as retriable', () => {
-        const error = { error: { code: 'stream_lost', message: 'Stream lost' } };
-        const result = classifyError(error);
-
-        expect(result.isRetriable).toBe(true);
-      });
-
-      it('should mark stream_timeout as retriable', () => {
-        const error = { error: { code: 'stream_timeout', message: 'Stream timeout' } };
-        const result = classifyError(error);
-
-        expect(result.isRetriable).toBe(true);
-      });
-
-      it('should mark stream_context as non-retriable', () => {
-        const error = { error: { code: 'stream_context', message: 'Context exceeded' } };
-        const result = classifyError(error);
-
-        expect(result.isRetriable).toBe(false);
-      });
-
-      it('should mark context_length as non-retriable', () => {
+      it('should mark errors with BFF retriable=true as retriable', () => {
         const error = {
-          error: { code: 'context_length', message: 'Context length exceeded' },
+          error: { code: 'server_error', message: 'Server error', retriable: true },
+        };
+        const result = classifyError(error);
+
+        expect(result.isRetriable).toBe(true);
+      });
+
+      it('should mark errors with BFF retriable=false as non-retriable', () => {
+        const error = {
+          error: { code: 'stream_context', message: 'Context exceeded', retriable: false },
         };
         const result = classifyError(error);
 
         expect(result.isRetriable).toBe(false);
-      });
-
-      it('should mark 429 HTTP status as retriable', () => {
-        const error = { status: 429, error: { message: 'Too many requests' } };
-        const result = classifyError(error);
-
-        expect(result.isRetriable).toBe(true);
-      });
-
-      it('should mark 5xx HTTP statuses as retriable', () => {
-        expect(classifyError({ status: 500, error: { message: 'Server error' } }).isRetriable).toBe(
-          true,
-        );
-        expect(classifyError({ status: 502, error: { message: 'Bad gateway' } }).isRetriable).toBe(
-          true,
-        );
-        expect(
-          classifyError({ status: 503, error: { message: 'Service unavailable' } }).isRetriable,
-        ).toBe(true);
-        expect(
-          classifyError({ status: 504, error: { message: 'Gateway timeout' } }).isRetriable,
-        ).toBe(true);
-      });
-
-      it('should mark configuration errors as non-retriable', () => {
-        const errors = [
-          { error: { code: 'max_tokens', message: 'Token limit exceeded' } },
-          { error: { code: 'chat_template', message: 'Invalid chat template' } },
-          { error: { code: 'no_tools', message: 'Tools not supported' } },
-          { error: { code: 'no_images', message: 'Images not supported' } },
-        ];
-
-        errors.forEach((error) => {
-          expect(classifyError(error).isRetriable).toBe(false);
-        });
       });
     });
 
@@ -308,11 +254,11 @@ describe('errorClassifier', () => {
         });
       });
 
-      it('should detect streaming errors from timeout with message keywords', () => {
+      it('should use BFF-provided streaming error code for timeout', () => {
         const error = {
           error: {
             component: 'llama_stack' as const,
-            code: 'timeout',
+            code: 'stream_lost',
             message: '{"error": "stream terminated: connection reset by peer"}',
           },
         };
@@ -322,7 +268,7 @@ describe('errorClassifier', () => {
         expect(result.description).toBe('{"error": "stream terminated: connection reset by peer"}');
       });
 
-      it('should detect context_length error from BFF', () => {
+      it('should use BFF-provided context_length code', () => {
         const error = {
           error: {
             component: 'model' as const,
@@ -334,19 +280,6 @@ describe('errorClassifier', () => {
 
         expect(result.title).toBe('Streaming error — context length exceeded');
         expect(result.description).toBe('{"error": "context length 8192 exceeded at token 8191"}');
-      });
-
-      it('should detect context length from message keywords', () => {
-        const error = {
-          error: {
-            component: 'model' as const,
-            code: 'some_error',
-            message: '{"error": "context length exceeded at token 8191"}',
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe('Streaming error — context length exceeded');
       });
 
       it('should use generic title for unknown errors', () => {
@@ -620,7 +553,10 @@ describe('errorClassifier', () => {
       });
 
       it('should handle service_unavailable code', () => {
-        const error = { status: 503, error: { message: 'Service down' } };
+        const error = {
+          status: 503,
+          error: { message: 'Service down', retriable: true },
+        };
         const result = classifyError(error);
 
         expect(result.title).toBe("Couldn't reach the server");
@@ -629,7 +565,10 @@ describe('errorClassifier', () => {
       });
 
       it('should handle bad_gateway code', () => {
-        const error = { status: 502, error: { message: 'Gateway error' } };
+        const error = {
+          status: 502,
+          error: { message: 'Gateway error', retriable: true },
+        };
         const result = classifyError(error);
 
         expect(result.title).toBe("Couldn't reach the server");
@@ -639,7 +578,11 @@ describe('errorClassifier', () => {
 
       it('should handle ERROR_CATEGORIES.INVALID_PARAMETER', () => {
         const error = {
-          error: { code: ERROR_CATEGORIES.INVALID_PARAMETER, message: 'Invalid param' },
+          error: {
+            code: ERROR_CATEGORIES.INVALID_PARAMETER,
+            message: 'Invalid param',
+            retriable: false,
+          },
         };
         const result = classifyError(error);
 
@@ -688,12 +631,16 @@ describe('errorClassifier', () => {
 
       it('should handle ERROR_CATEGORIES.MODEL_OVERLOADED', () => {
         const error = {
-          error: { code: ERROR_CATEGORIES.MODEL_OVERLOADED, message: 'Model overloaded' },
+          error: {
+            code: ERROR_CATEGORIES.MODEL_OVERLOADED,
+            message: 'Model overloaded',
+            retriable: true,
+          },
         };
         const result = classifyError(error);
 
         expect(result.title).toBe("Couldn't reach the server");
-        expect(result.isRetriable).toBe(false);
+        expect(result.isRetriable).toBe(true);
       });
     });
 
