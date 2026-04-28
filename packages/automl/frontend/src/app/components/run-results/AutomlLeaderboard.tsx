@@ -177,7 +177,7 @@ const COLUMN_META: Record<string, ColumnMeta> = {
     name: 'Root Mean Squared Logarithmic Error (RMSLE)',
     acronym: formatMetricName('rmsle'),
     description:
-      'The log of the predictions and actual values. Typically used for very large data sets.',
+      'Square root of the mean of the squared differences between the log of actual values and the log of predicted values. Useful when target values span a wide range.',
   },
   'metric:rmsse': {
     name: 'Root Mean Squared Scaled Error (RMSSE)',
