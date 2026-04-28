@@ -56,7 +56,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-audit') && needs.detect-dirs.outputs.dirs != '[]' }}
+      pull-requests: write
+    if: ${{ needs.detect-dirs.outputs.dirs != '[]' }}
     strategy:
       fail-fast: false
       matrix:
@@ -119,7 +120,8 @@ jobs:
           echo "Advisory IDs on base:"
           cat base-ids.txt
 
-      - name: Fail if new advisories introduced
+      - name: Evaluate new advisories
+        id: evaluate
         working-directory: ${{ matrix.dir }}
         env:
           AUDIT_DIR: ${{ matrix.dir }}
@@ -128,15 +130,79 @@ jobs:
 
           if [ -n "$NEW_ADVISORIES" ]; then
             COUNT=$(echo "$NEW_ADVISORIES" | wc -l | tr -d ' ')
-            echo "::error::PR introduces ${COUNT} new advisory ID(s) in ${AUDIT_DIR} not present on the base branch:"
-            echo "$NEW_ADVISORIES"
-            echo ""
-            echo "If this is acceptable (e.g. dev-only, not reachable, already tracked),"
-            echo "add the 'skip-audit' label to bypass this check."
-            exit 1
+            echo "has_new=true" >> "$GITHUB_OUTPUT"
+            echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+            {
+              echo 'advisories<<ADVISORY_EOF'
+              echo "$NEW_ADVISORIES"
+              echo 'ADVISORY_EOF'
+            } >> "$GITHUB_OUTPUT"
+            echo "Found $COUNT new advisory ID(s) in ${AUDIT_DIR}"
+          else
+            echo "has_new=false" >> "$GITHUB_OUTPUT"
+            echo "No new advisories introduced in ${AUDIT_DIR}."
           fi
 
-          echo "No new advisories introduced in ${AUDIT_DIR}."
+      - name: Post bypass comment when ok-to-skip-audit is set
+        if: steps.evaluate.outputs.has_new == 'true' && contains(github.event.pull_request.labels.*.name, 'ok-to-skip-audit')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- audit-bypass-notice -->';
+            const dir = '${{ matrix.dir }}';
+            const count = '${{ steps.evaluate.outputs.count }}';
+            const advisories = `${{ steps.evaluate.outputs.advisories }}`;
+            const advisoryList = advisories.trim().split('\n').map(a => `- ${a}`).join('\n');
+
+            const body = [
+              marker,
+              `### Audit bypassed via \`ok-to-skip-audit\` label`,
+              '',
+              `**${count}** new production advisor${count === '1' ? 'y' : 'ies'} in \`${dir}\` not present on the base branch:`,
+              '',
+              advisoryList,
+              '',
+              '> This check passed because `ok-to-skip-audit` was applied.',
+              '> Remove the label to re-enforce the audit gate.',
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c =>
+              c.user?.type === 'Bot' && c.body?.includes(marker)
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Fail if new advisories and no bypass label
+        if: steps.evaluate.outputs.has_new == 'true' && !contains(github.event.pull_request.labels.*.name, 'ok-to-skip-audit')
+        env:
+          AUDIT_DIR: ${{ matrix.dir }}
+          NEW_COUNT: ${{ steps.evaluate.outputs.count }}
+          NEW_ADVISORIES: ${{ steps.evaluate.outputs.advisories }}
+        run: |
+          echo "::error::PR introduces ${NEW_COUNT} new advisory ID(s) in ${AUDIT_DIR} not present on the base branch:"
+          echo "$NEW_ADVISORIES"
+          echo ""
+          echo "If this is acceptable (e.g. not reachable, already tracked),"
+          echo "add the 'ok-to-skip-audit' label to bypass this check."
+          exit 1
 
   override-consistency:
     runs-on: ubuntu-latest
