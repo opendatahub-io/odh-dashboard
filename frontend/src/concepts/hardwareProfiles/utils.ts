@@ -53,7 +53,7 @@ export const formatNodeSelector = (selector: NodeSelector): string[] =>
   Object.entries(selector).map(([key, value]) => `Key = ${key}; Value = ${value}`);
 
 export const formatResource = (identifier: string, request: string, limit: string): string =>
-  `${identifier}: Request = ${request}; Limit = ${limit}`;
+  `${identifier}: Request = ${request}, Limit = ${limit}`;
 
 export const formatIdentifierDetails = (identifier: Identifier): string => {
   const defaultVal = formatResourceValue(
