@@ -333,7 +333,8 @@ const AutomlModelSchemaV35 = AutomlModelBaseSchema.extend({
   }),
 }).strict();
 
-// Try 3.5 first, then fall back to legacy schemas for backwards compatibility
+// Try 3.5 first, then fall back to legacy schemas for backwards compatibility.
+// strict() on each schema is what disambiguates V35 from V34 tabular (both have `notebook`).
 export const AutomlModelSchema = z.union([
   AutomlModelSchemaV35,
   AutomlTimeseriesModelSchemaV34,

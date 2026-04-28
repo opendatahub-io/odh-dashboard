@@ -4,7 +4,6 @@ import {
   useS3ListFilesQuery,
   fetchS3Json,
   AutomlModelSchema,
-  isRawModelV35,
   isRawTimeseriesModelV34,
 } from '~/app/hooks/queries';
 import { getFiles as getS3Files } from '~/app/api/s3.ts';
@@ -180,50 +179,28 @@ export function useAutomlResults(
           });
 
           // Rewrite relative location paths to absolute S3 paths.
-          // Handles three schema versions:
-          //   3.5+:         notebook (file path) + metrics
-          //   3.4 timeseries: notebooks (directory) + metrics + base_model
-          //   3.4 tabular:    notebook (file path), no metrics
-          let model: AutomlModel;
-          if (isRawTimeseriesModelV34(validated)) {
-            model = {
-              name: validated.name,
-              location: {
-                // eslint-disable-next-line camelcase
-                model_directory: directory,
-                predictor: `${artifactDirectory}${validated.location.predictor}`,
-                notebook: `${artifactDirectory}${validated.location.notebooks}/automl_predictor_notebook.ipynb`,
-                metrics: `${artifactDirectory}${validated.location.metrics}`,
-              },
-              metrics: validated.metrics,
-            };
-          } else if (isRawModelV35(validated)) {
-            // Unified 3.5 schema: notebook (file path) + metrics in location
-            const { metrics: locationMetrics } = validated.location;
-            model = {
-              name: validated.name,
-              location: {
-                // eslint-disable-next-line camelcase
-                model_directory: directory,
-                predictor: `${artifactDirectory}${validated.location.predictor}`,
-                notebook: `${artifactDirectory}${validated.location.notebook}`,
-                metrics: `${artifactDirectory}${locationMetrics}`,
-              },
-              metrics: validated.metrics,
-            };
-          } else {
-            // Legacy tabular (3.4): no metrics in location
-            model = {
-              name: validated.name,
-              location: {
-                // eslint-disable-next-line camelcase
-                model_directory: directory,
-                predictor: `${artifactDirectory}${validated.location.predictor}`,
-                notebook: `${artifactDirectory}${validated.location.notebook}`,
-              },
-              metrics: validated.metrics,
-            };
-          }
+          // Timeseries (3.4) uses `notebooks` (plural, directory); all others use `notebook` (file).
+          // V35 and timeseries have `location.metrics`; legacy tabular does not.
+          const notebook = isRawTimeseriesModelV34(validated)
+            ? `${artifactDirectory}${validated.location.notebooks}/automl_predictor_notebook.ipynb`
+            : `${artifactDirectory}${validated.location.notebook}`;
+
+          const locationMetrics =
+            'metrics' in validated.location
+              ? `${artifactDirectory}${validated.location.metrics}`
+              : undefined;
+
+          const model: AutomlModel = {
+            name: validated.name,
+            location: {
+              // eslint-disable-next-line camelcase
+              model_directory: directory,
+              predictor: `${artifactDirectory}${validated.location.predictor}`,
+              notebook,
+              ...(locationMetrics != null && { metrics: locationMetrics }),
+            },
+            metrics: validated.metrics,
+          };
 
           return { name, model };
         },

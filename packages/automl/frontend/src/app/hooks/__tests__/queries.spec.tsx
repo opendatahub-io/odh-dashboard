@@ -13,6 +13,7 @@ import type {
   AutomlRawTabularModelV34,
   AutomlRawTimeseriesModelV34,
   AutomlRawModelV35,
+  AutomlRawModel,
 } from '~/app/hooks/queries';
 
 // Mock fetch globally
@@ -511,6 +512,15 @@ describe('AutomlModelSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('should parse a v3.4 tabular model with extra metrics in location as v3.5', () => {
+    const ambiguous = {
+      ...validTabularModelV34,
+      location: { ...validTabularModelV34.location, metrics: 'metrics' },
+    };
+    const result = AutomlModelSchema.safeParse(ambiguous);
+    expect(result.success).toBe(true);
+  });
+
   it('should reject non-numeric metric values', () => {
     const invalid = {
       ...validUnifiedModel,
@@ -588,6 +598,20 @@ describe('isRawModelV35', () => {
       metrics: { test_data: { mase: 1.2 } },
     };
     expect(isRawModelV35(model)).toBe(false);
+  });
+
+  it('should return false when notebook + metrics present but base_model also exists', () => {
+    const model = {
+      name: 'WeightedEnsemble_L5_FULL',
+      base_model: 'some-base',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawModelV35(model as AutomlRawModel)).toBe(false);
   });
 
   it('should return false for a legacy tabular model without metrics in location', () => {
