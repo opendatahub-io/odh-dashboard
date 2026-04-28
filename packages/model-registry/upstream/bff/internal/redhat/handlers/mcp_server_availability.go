@@ -6,9 +6,9 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/api"
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	redhatrepos "github.com/kubeflow/model-registry/ui/bff/internal/redhat/repositories"
+	"github.com/kubeflow/hub/ui/bff/internal/api"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	redhatrepos "github.com/kubeflow/hub/ui/bff/internal/redhat/repositories"
 )
 
 type McpServerAvailabilityEnvelope api.Envelope[McpServerAvailabilityResponse, api.None]
