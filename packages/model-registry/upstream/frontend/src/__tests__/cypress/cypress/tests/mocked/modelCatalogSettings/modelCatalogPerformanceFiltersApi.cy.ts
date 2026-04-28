@@ -36,6 +36,7 @@ const assertPerformanceFiltersVisible = (shouldExist: boolean): void => {
 
 const visitWithPerformanceToggle = (toggleOn: boolean): void => {
   modelCatalog.visit();
+  modelCatalog.findAllModelsToggle().should('exist');
   modelCatalog.findLoadingState().should('not.exist');
 
   if (toggleOn) {
