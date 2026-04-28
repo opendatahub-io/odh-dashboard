@@ -22,16 +22,6 @@ filters:
       - eval-hub-approvers
       - mlflow-approvers
 
-  # Dependabot auto-merge: allow github-actions bot to approve dependency-only changes.
-  # Scoped to package/lockfile paths so it cannot approve non-dependency PRs.
-  '(^|.*/)package(-lock)?\.json$':
-    approvers:
-      - general-approvers
-      - managers-backup-approvers
-      - github-actions
-    reviewers:
-      - github-actions
-
   # Catchall
   '.*':
     approvers:
