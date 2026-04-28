@@ -32,6 +32,7 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 				`"component": "model"`,
 				`"code": "invalid_parameter"`,
 				`"retriable": false`,
+				`"message": "input is required"`,
 			},
 		},
 		{
@@ -41,6 +42,7 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 			expectedBodyContains: []string{
 				`"component": "model"`,
 				`"code": "invalid_parameter"`,
+				`"message": "temperature invalid"`,
 			},
 		},
 		{
@@ -51,6 +53,7 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 				`"component": "llama_stack"`,
 				`"code": "server_error"`,
 				`"retriable": true`,
+				`"message": "invalid token"`,
 			},
 		},
 		{
@@ -60,6 +63,7 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 			expectedBodyContains: []string{
 				`"component": "llama_stack"`,
 				`"code": "server_error"`,
+				`"message": "resource not found"`,
 			},
 		},
 		{
@@ -69,6 +73,7 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 			expectedBodyContains: []string{
 				`"component": "llama_stack"`,
 				`"code": "server_error"`,
+				`"message": "connection refused"`,
 			},
 		},
 		{
@@ -177,7 +182,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			expectedComponent:       "model",
 			expectedCode:            "invalid_parameter",
 			expectedStatusCode:      http.StatusBadRequest,
-			expectedMessageContains: "parameters are invalid",
+			expectedMessageContains: "temperature must be between 0.0 and 2.0",
 			expectedRetriable:       false,
 		},
 		{
@@ -187,7 +192,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			expectedComponent:       "model",
 			expectedCode:            "invalid_model_config",
 			expectedStatusCode:      http.StatusBadRequest,
-			expectedMessageContains: "configuration is invalid",
+			expectedMessageContains: "max_tokens exceeds limit",
 			expectedRetriable:       false,
 		},
 		{
@@ -197,7 +202,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			expectedComponent:       "llama_stack",
 			expectedCode:            "server_error",
 			expectedStatusCode:      http.StatusUnauthorized,
-			expectedMessageContains: "session is invalid",
+			expectedMessageContains: "invalid token",
 			expectedRetriable:       true,
 		},
 		{
@@ -207,7 +212,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			expectedComponent:       "llama_stack",
 			expectedCode:            "server_error",
 			expectedStatusCode:      http.StatusNotFound,
-			expectedMessageContains: "requested resource was not found",
+			expectedMessageContains: "resource not found",
 			expectedRetriable:       true,
 		},
 		{
@@ -217,7 +222,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			expectedComponent:       "llama_stack",
 			expectedCode:            "server_error",
 			expectedStatusCode:      http.StatusBadGateway,
-			expectedMessageContains: "Unable to connect",
+			expectedMessageContains: "connection refused",
 			expectedRetriable:       true,
 		},
 		{
@@ -227,7 +232,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			expectedComponent:       "llama_stack",
 			expectedCode:            "timeout",
 			expectedStatusCode:      http.StatusServiceUnavailable,
-			expectedMessageContains: "timed out",
+			expectedMessageContains: "request timed out",
 			expectedRetriable:       true,
 		},
 		{
@@ -237,7 +242,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			expectedComponent:       "llama_stack",
 			expectedCode:            "rate_limit",
 			expectedStatusCode:      http.StatusServiceUnavailable,
-			expectedMessageContains: "overloaded",
+			expectedMessageContains: "model is currently overloaded",
 			expectedRetriable:       true,
 		},
 		{
@@ -247,7 +252,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			expectedComponent:       "rag",
 			expectedCode:            "not_found",
 			expectedStatusCode:      http.StatusBadRequest,
-			expectedMessageContains: "vector store",
+			expectedMessageContains: "vector store 'vs_123' not found",
 			expectedRetriable:       false,
 		},
 		{
@@ -257,7 +262,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			expectedComponent:       "guardrails",
 			expectedCode:            "content_blocked",
 			expectedStatusCode:      http.StatusBadRequest,
-			expectedMessageContains: "blocked by guardrails",
+			expectedMessageContains: "content blocked by guardrails",
 			expectedRetriable:       false,
 		},
 	}
@@ -297,7 +302,7 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		// "input is required" should be categorized as invalid_parameter
 		assert.Contains(t, body, `"component": "model"`)
 		assert.Contains(t, body, `"code": "invalid_parameter"`)
-		assert.Contains(t, body, "parameters are invalid")
+		assert.Contains(t, body, "input is required")
 		assert.Contains(t, body, `"retriable": false`)
 	})
 
@@ -313,7 +318,7 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		// Temperature error gets invalid_parameter category
 		assert.Contains(t, rr.Body.String(), `"component": "model"`)
 		assert.Contains(t, rr.Body.String(), `"code": "invalid_parameter"`)
-		assert.Contains(t, rr.Body.String(), "parameters are invalid")
+		assert.Contains(t, rr.Body.String(), "temperature out of range")
 	})
 
 	t.Run("should handle LlamaStackError with not found", func(t *testing.T) {
@@ -327,8 +332,8 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 		assert.Contains(t, rr.Body.String(), `"component": "llama_stack"`)
 		assert.Contains(t, rr.Body.String(), `"code": "server_error"`)
-		// Not found errors get code-specific message
-		assert.Contains(t, rr.Body.String(), "requested resource was not found")
+		// Not found errors pass through the actual OpenAI message
+		assert.Contains(t, rr.Body.String(), "resource not found")
 		assert.Contains(t, rr.Body.String(), `"retriable": true`)
 	})
 
