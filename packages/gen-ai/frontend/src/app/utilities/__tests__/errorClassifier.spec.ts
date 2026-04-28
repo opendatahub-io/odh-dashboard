@@ -319,7 +319,8 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toBe('Streaming error — connection lost');
-        expect(result.description).toBe('The connection to the model was lost during generation.');
+        // Full failures show actual error message
+        expect(result.description).toBe('{"error": "stream terminated: connection reset by peer"}');
       });
 
       it('should detect context_length error from BFF', () => {
@@ -333,7 +334,8 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toBe('Streaming error — context length exceeded');
-        expect(result.description).toBe("The response exceeded the model's context length.");
+        // Full failures show actual error message
+        expect(result.description).toBe('{"error": "context length 8192 exceeded at token 8191"}');
       });
 
       it('should detect context length from message keywords', () => {
@@ -369,8 +371,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
 
-        expect(result.description).toContain('Llama 3.1 8B');
-        expect(result.description).toContain('supports a maximum of');
+        // Full failures show actual error message
+        expect(result.description).toBe('Token limit exceeded');
       });
 
       it('should generate description for max_tokens error without model name', () => {
@@ -383,8 +385,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toContain('The selected model');
-        expect(result.description).toContain('supports a maximum of');
+        // Full failures show actual error message
+        expect(result.description).toBe('Token limit exceeded');
       });
 
       it('should generate description for chat_template error', () => {
@@ -397,8 +399,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
 
-        expect(result.description).toContain('Llama 3.1 8B');
-        expect(result.description).toContain("doesn't support the current chat template");
+        // Full failures show actual error message
+        expect(result.description).toBe('Invalid template');
       });
 
       it('should generate description for no_tools error', () => {
@@ -411,8 +413,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
 
-        expect(result.description).toContain('Llama 3.1 8B');
-        expect(result.description).toContain("doesn't support the tools feature");
+        // Full failures show actual error message
+        expect(result.description).toBe('Tools not supported');
       });
 
       it('should generate description for no_images error', () => {
@@ -425,8 +427,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toContain("can't process images");
-        expect(result.description).toContain('multimodal');
+        // Full failures show actual error message
+        expect(result.description).toBe('Images not supported');
       });
 
       it('should generate description for timeout error', () => {
@@ -439,9 +441,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe(
-          "The model server didn't respond in time. This may be a temporary issue.",
-        );
+        // Full failures show actual error message
+        expect(result.description).toBe('Request timed out');
       });
 
       it('should generate description for server_error', () => {
@@ -454,27 +455,24 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe(
-          "The model server encountered an internal error and couldn't generate a response.",
-        );
+        // Full failures show actual error message
+        expect(result.description).toBe('Server error');
       });
 
       it('should generate description for rate_limit error', () => {
         const error = { status: 429, error: { message: 'Rate limited' } };
         const result = classifyError(error);
 
-        expect(result.description).toBe(
-          'Too many requests to the model server. Wait a moment before trying again.',
-        );
+        // Full failures show actual error message
+        expect(result.description).toBe('Rate limited');
       });
 
       it('should generate description for service_unavailable error', () => {
         const error = { status: 503, error: { message: 'Service down' } };
         const result = classifyError(error);
 
-        expect(result.description).toBe(
-          "The playground server isn't responding. Check your connection and try again.",
-        );
+        // Full failures show actual error message
+        expect(result.description).toBe('Service down');
       });
 
       it('should generate description for RAG partial failures', () => {
@@ -483,9 +481,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { wasResponseGenerated: true });
 
-        expect(result.description).toBe(
-          'This response was generated without context from your knowledge sources. Results may be less accurate.',
-        );
+        // Partial failures show: "This response may be incomplete: [actual error]"
+        expect(result.description).toBe('This response may be incomplete: RAG failed');
         expect(result.pattern).toBe('partial-failure' as ErrorPattern);
       });
 
@@ -499,9 +496,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe(
-          "The embedding model couldn't process your query for retrieval. The response doesn't include knowledge source context.",
-        );
+        // Partial failures show: "This response may be incomplete: [actual error]"
+        expect(result.description).toBe('This response may be incomplete: Embedding failed');
       });
 
       it('should generate description for rag_empty error', () => {
@@ -510,9 +506,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe(
-          "Your knowledge sources didn't return any relevant results. The response was generated without additional context.",
-        );
+        // Partial failures show: "This response may be incomplete: [actual error]"
+        expect(result.description).toBe('This response may be incomplete: No results');
       });
 
       it('should generate description for guardrail_flagged error', () => {
@@ -525,9 +520,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe(
-          'A guardrail flagged this response. Review the output carefully.',
-        );
+        // Partial failures show: "This response may be incomplete: [actual error]"
+        expect(result.description).toBe('This response may be incomplete: Content flagged');
       });
 
       it('should generate description for guardrail_down error', () => {
@@ -540,9 +534,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe(
-          "The safety filter couldn't process this response. Review the output carefully.",
-        );
+        // Partial failures show: "This response may be incomplete: [actual error]"
+        expect(result.description).toBe('This response may be incomplete: Guardrails down');
       });
 
       it('should generate description for mcp_down error', () => {
@@ -551,9 +544,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe(
-          "The model attempted to use the A tool tool but the server didn't respond. The response was generated without this tool's output.",
-        );
+        // Partial failures show: "This response may be incomplete: [actual error]"
+        expect(result.description).toBe('This response may be incomplete: MCP server down');
       });
 
       it('should generate description for mcp_auth error', () => {
@@ -562,9 +554,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe(
-          "The A tool tool server rejected the request due to an authentication error. Check the server's credentials in the Build panel.",
-        );
+        // Partial failures show: "This response may be incomplete: [actual error]"
+        expect(result.description).toBe('This response may be incomplete: Auth failed');
       });
 
       it('should generate description for mcp_exec error', () => {
@@ -577,40 +568,40 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe(
-          'The A tool tool encountered an error during execution. The response may be incomplete.',
-        );
+        // Partial failures show: "This response may be incomplete: [actual error]"
+        expect(result.description).toBe('This response may be incomplete: Execution failed');
       });
 
       it('should generate description for stream_lost error', () => {
         const error = { error: { code: 'stream_lost', message: 'Stream lost' } };
         const result = classifyError(error, { wasStreamStarted: true });
 
-        expect(result.description).toBe('The connection to the model was lost during generation.');
+        // Streaming interruptions show actual error message
+        expect(result.description).toBe('Stream lost');
       });
 
       it('should generate description for stream_timeout error', () => {
         const error = { error: { code: 'stream_timeout', message: 'Stream timeout' } };
         const result = classifyError(error, { wasStreamStarted: true });
 
-        expect(result.description).toBe('The model stopped responding during generation.');
+        // Streaming interruptions show actual error message
+        expect(result.description).toBe('Stream timeout');
       });
 
       it('should generate description for stream_context error', () => {
         const error = { error: { code: 'stream_context', message: 'Context exceeded' } };
         const result = classifyError(error, { wasStreamStarted: true });
 
-        expect(result.description).toBe("The response exceeded the model's context length.");
+        // Streaming interruptions show actual error message
+        expect(result.description).toBe('Context exceeded');
       });
 
       it('should use error message as fallback for unknown errors', () => {
         const error = { error: { code: 'unknown', message: 'Custom error message' } };
         const result = classifyError(error);
 
-        // Unknown errors without status/component fall back to bff:unreachable
-        expect(result.description).toBe(
-          'Unable to connect to the playground backend. Check that the service is running.',
-        );
+        // Full failures show actual error message
+        expect(result.description).toBe('Custom error message');
       });
 
       it('should use default message when error message is empty', () => {
@@ -656,9 +647,8 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toBe("Couldn't reach the server");
-        expect(result.description).toBe(
-          "The playground server isn't responding. Check your connection and try again.",
-        );
+        // Full failures show actual error message
+        expect(result.description).toBe('Service down');
         expect(result.isRetriable).toBe(true);
       });
 
@@ -667,9 +657,8 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toBe("Couldn't reach the server");
-        expect(result.description).toBe(
-          "The playground server isn't responding. Check your connection and try again.",
-        );
+        // Full failures show actual error message
+        expect(result.description).toBe('Gateway error');
         expect(result.isRetriable).toBe(true);
       });
 
