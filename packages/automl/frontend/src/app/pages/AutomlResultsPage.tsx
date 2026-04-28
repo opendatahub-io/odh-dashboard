@@ -58,6 +58,8 @@ function AutomlResultsPage(): React.JSX.Element {
     error: pipelineRunLoadError,
   } = usePipelineRunQuery(runId, namespace);
 
+  // Two-tier error strategy: polling errors (data already loaded) show a non-blocking
+  // notification with stale data, while initial load errors (no data yet) show a full error page.
   const hasPreviousData = !!pipelineRun;
   const isPollingError = pipelineRunError && hasPreviousData;
   const isInitialLoadError = pipelineRunError && !hasPreviousData;
@@ -69,7 +71,7 @@ function AutomlResultsPage(): React.JSX.Element {
         'The status update has failed consistently for multiple attempts. The displayed results may not reflect the current state of the pipeline run.',
       );
     }
-  }, [isPollingError, pipelineRunLoadError, notification]);
+  }, [isPollingError, notification]);
 
   const invalidPipelineRunId =
     isInitialLoadError &&
@@ -86,10 +88,11 @@ function AutomlResultsPage(): React.JSX.Element {
     refetch: refetchModels,
   } = useAutomlResults(runId, namespace, pipelineRun);
 
-  const failedModelsNotified = React.useRef(false);
+  const failedModelsNotifiedKey = React.useRef('');
   React.useEffect(() => {
-    if (failedModels.length > 0 && !failedModelsNotified.current) {
-      failedModelsNotified.current = true;
+    const key = [...failedModels].toSorted().join(',');
+    if (failedModels.length > 0 && failedModelsNotifiedKey.current !== key) {
+      failedModelsNotifiedKey.current = key;
       const total = failedModels.length + Object.keys(models).length;
       notification.warning(
         `${failedModels.length} of ${total} models could not be loaded`,

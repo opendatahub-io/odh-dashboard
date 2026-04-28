@@ -1,4 +1,4 @@
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import { useS3ListFilesQuery, fetchS3File } from '~/app/hooks/queries';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
@@ -332,9 +332,12 @@ export function useAutoragResults(
     (isRagPatternsError ? new Error('Failed to list RAG patterns directory') : undefined) ||
     (patternQueries.isError ? new Error('Failed to fetch pattern data') : undefined);
 
+  const queryClient = useQueryClient();
   const refetch = React.useCallback(() => {
     refetchTemplatesOptimization();
-  }, [refetchTemplatesOptimization]);
+    queryClient.invalidateQueries({ queryKey: ['s3Files', namespace] });
+    queryClient.invalidateQueries({ queryKey: ['s3File', namespace] });
+  }, [refetchTemplatesOptimization, queryClient, namespace]);
 
   return {
     patterns,

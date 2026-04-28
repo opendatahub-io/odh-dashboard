@@ -58,6 +58,8 @@ function AutoragResultsPage(): React.JSX.Element {
     error: pipelineRunLoadError,
   } = usePipelineRunQuery(runId, namespace);
 
+  // Two-tier error strategy: polling errors (data already loaded) show a non-blocking
+  // notification with stale data, while initial load errors (no data yet) show a full error page.
   const hasPreviousData = !!pipelineRun;
   const isPollingError = pipelineRunError && hasPreviousData;
   const isInitialLoadError = pipelineRunError && !hasPreviousData;
@@ -69,7 +71,7 @@ function AutoragResultsPage(): React.JSX.Element {
         'The status update has failed consistently for multiple attempts. The displayed results may not reflect the current state of the pipeline run.',
       );
     }
-  }, [isPollingError, pipelineRunLoadError, notification]);
+  }, [isPollingError, notification]);
 
   const invalidPipelineRunId =
     isInitialLoadError &&
@@ -87,10 +89,11 @@ function AutoragResultsPage(): React.JSX.Element {
     ragPatternsBasePath,
   } = useAutoragResults(runId, namespace, pipelineRun);
 
-  const failedPatternsNotified = React.useRef(false);
+  const failedPatternsNotifiedKey = React.useRef('');
   React.useEffect(() => {
-    if (failedPatterns.length > 0 && !failedPatternsNotified.current) {
-      failedPatternsNotified.current = true;
+    const key = [...failedPatterns].toSorted().join(',');
+    if (failedPatterns.length > 0 && failedPatternsNotifiedKey.current !== key) {
+      failedPatternsNotifiedKey.current = key;
       const total = failedPatterns.length + Object.keys(patterns).length;
       notification.warning(
         `${failedPatterns.length} of ${total} patterns could not be loaded`,

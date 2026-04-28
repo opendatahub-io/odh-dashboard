@@ -1,4 +1,4 @@
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import {
   useS3ListFilesQuery,
@@ -301,9 +301,12 @@ export function useAutomlResults(
       (modelQueries.isError ? new Error('Failed to fetch model data') : undefined)
     : undefined;
 
+  const queryClient = useQueryClient();
   const refetch = React.useCallback(() => {
     refetchS3Files();
-  }, [refetchS3Files]);
+    queryClient.invalidateQueries({ queryKey: ['s3Files', namespace] });
+    queryClient.invalidateQueries({ queryKey: ['s3File', namespace] });
+  }, [refetchS3Files, queryClient, namespace]);
 
   return {
     models,
