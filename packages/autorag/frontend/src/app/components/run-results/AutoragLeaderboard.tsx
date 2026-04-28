@@ -246,26 +246,27 @@ const SETTINGS_COLUMNS = Object.entries(COLUMN_META)
     testId: meta.testId!,
   }));
 
-const ColumnHeaderContent: React.FC<{
-  columnId: string;
-  tooltipName?: string;
-  children: React.ReactNode;
-}> = ({ columnId, tooltipName, children }) => {
+const getColumnInfoProps = (
+  columnId: string,
+  tooltipName?: string,
+  suffix?: string,
+): ThProps['info'] | undefined => {
   const meta = getColumnMeta(columnId);
-  const name = tooltipName ?? meta?.name ?? children;
+  const name = tooltipName ?? meta?.name;
   const description = meta?.description;
-  return (
-    <Tooltip
-      content={
-        <div>
-          <div className="pf-v6-u-font-weight-bold">{name}</div>
-          {description && <div className="pf-v6-u-font-size-xs pf-v6-u-mt-xs">{description}</div>}
-        </div>
-      }
-    >
-      <span>{children}</span>
-    </Tooltip>
-  );
+  if (!description && !meta?.acronym) {
+    return undefined;
+  }
+  return {
+    popover: (
+      <>
+        {name && <strong>{name}</strong>}
+        {name && description && ': '}
+        {description}
+        {suffix && ` ${suffix}`}
+      </>
+    ),
+  };
 };
 
 const MetricCell: React.FC<{ value: number | string }> = ({ value }) => {
@@ -780,70 +781,74 @@ function AutoragLeaderboard({
             <Tr>
               <Th
                 sort={getSortParams('rank')}
+                info={getColumnInfoProps('rank')}
                 data-testid="rank-header"
                 className="autorag-leaderboard__rank-cell"
                 isStickyColumn
                 stickyMinWidth="120px"
                 stickyLeftOffset="0"
               >
-                <ColumnHeaderContent columnId="rank">{getColumnHeader('rank')}</ColumnHeaderContent>
+                {getColumnHeader('rank')}
               </Th>
               <Th
                 sort={getSortParams('pattern')}
+                info={getColumnInfoProps('pattern')}
                 data-testid="pattern-name-header"
                 isStickyColumn
                 stickyMinWidth="150px"
                 stickyLeftOffset="120px"
               >
-                <ColumnHeaderContent columnId="pattern">
-                  {getColumnHeader('pattern')}
-                </ColumnHeaderContent>
+                {getColumnHeader('pattern')}
               </Th>
               <Th
                 sort={getSortParams('modelNames')}
+                info={getColumnInfoProps('modelNames')}
                 data-testid="model-name-header"
                 isStickyColumn
                 stickyMinWidth="200px"
                 stickyLeftOffset="270px"
               >
-                <ColumnHeaderContent columnId="modelNames">
-                  {getColumnHeader('modelNames')}
-                </ColumnHeaderContent>
+                {getColumnHeader('modelNames')}
               </Th>
               <Th
                 sort={getSortParams('optimized-metric')}
+                info={(() => {
+                  const hasBrackets = !!getColumnMeta(`metric:${optimizedMetric}`)?.acronym;
+                  return getColumnInfoProps(
+                    `metric:${optimizedMetric}`,
+                    `${
+                      getColumnMeta(`metric:${optimizedMetric}`)?.name ??
+                      formatMetricName(optimizedMetric)
+                    } ${hasBrackets ? '[optimized]' : '(optimized)'}`,
+                    'AutoRAG prioritized performance of this metric and used it to rank patterns.',
+                  );
+                })()}
                 data-testid={`metric-header-${optimizedMetric}`}
                 isStickyColumn
                 hasRightBorder
                 stickyMinWidth="150px"
                 stickyLeftOffset="470px"
               >
-                <ColumnHeaderContent
-                  columnId={`metric:${optimizedMetric}`}
-                  tooltipName={`${getColumnMeta(`metric:${optimizedMetric}`)?.name ?? formatMetricName(optimizedMetric)} (optimized)`}
+                {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}
+                <div
+                  data-testid="optimized-indicator"
+                  className="autorag-leaderboard__optimized-indicator"
                 >
-                  {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}
-                  <div
-                    data-testid="optimized-indicator"
-                    className="autorag-leaderboard__optimized-indicator"
-                  >
-                    (optimized)
-                  </div>
-                </ColumnHeaderContent>
+                  (optimized)
+                </div>
               </Th>
               {visibleDynamicColumns.map((dc) => (
                 <Th
                   key={dc.id}
                   sort={getSortParams(dc.id)}
+                  info={getColumnInfoProps(dc.id)}
                   data-testid={
                     dc.kind === 'metric'
                       ? `metric-header-${dc.metricKey}`
                       : `${dc.col.testId}-header`
                   }
                 >
-                  <ColumnHeaderContent columnId={dc.id}>
-                    {getColumnHeader(dc.id, dc.label)}
-                  </ColumnHeaderContent>
+                  {getColumnHeader(dc.id, dc.label)}
                 </Th>
               ))}
               <Th

@@ -76,7 +76,8 @@ const COLUMN_META: Record<string, ColumnMeta> = {
   },
   'metric:balanced_accuracy': {
     name: 'Balanced Accuracy',
-    description: 'The average of the model's accuracy in each category. A high balanced accuracy score means the model correctly classifies inputs in most categories.',
+    description:
+      "The average of the model's accuracy in each category. A high balanced accuracy score means the model correctly classifies inputs in most categories.",
   },
   'metric:precision': {
     name: 'Precision',
@@ -139,14 +140,12 @@ const COLUMN_META: Record<string, ColumnMeta> = {
   'metric:mse': {
     name: 'Mean Squared Error (MSE)',
     acronym: formatMetricName('mse'),
-    description:
-      'Measures the average squared difference between the predicted and actual values.',
+    description: 'Measures the average squared difference between the predicted and actual values.',
   },
   'metric:mean_squared_error': {
     name: 'Mean Squared Error (MSE)',
     acronym: formatMetricName('mean_squared_error'),
-    description:
-      'Measures the average squared difference between the actual and predicted values.',
+    description: 'Measures the average squared difference between the actual and predicted values.',
   },
   // Timeseries → "RMSE"; regression → "root_mean_squared_error". See RHOAIENG-59989.
   'metric:rmse': {
@@ -229,26 +228,27 @@ const getColumnMeta = (id: string): ColumnMeta | undefined => {
   return undefined;
 };
 
-const ColumnHeaderContent: React.FC<{
-  columnId: string;
-  tooltipName?: string;
-  children: React.ReactNode;
-}> = ({ columnId, tooltipName, children }) => {
+const getColumnInfoProps = (
+  columnId: string,
+  tooltipName?: string,
+  suffix?: string,
+): ThProps['info'] | undefined => {
   const meta = getColumnMeta(columnId);
-  const name = tooltipName ?? meta?.name ?? children;
+  const name = tooltipName ?? meta?.name;
   const description = meta?.description;
-  return (
-    <Tooltip
-      content={
-        <div>
-          <div className="pf-v6-u-font-weight-bold">{name}</div>
-          {description && <div className="pf-v6-u-font-size-xs pf-v6-u-mt-xs">{description}</div>}
-        </div>
-      }
-    >
-      <span>{children}</span>
-    </Tooltip>
-  );
+  if (!description && !meta?.acronym) {
+    return undefined;
+  }
+  return {
+    popover: (
+      <>
+        {name && <strong>{name}</strong>}
+        {name && description && ': '}
+        {description}
+        {suffix && ` ${suffix}`}
+      </>
+    ),
+  };
 };
 
 type AutomlLeaderboardProps = {
@@ -663,58 +663,60 @@ function AutomlLeaderboard({
             <Tr>
               <Th
                 sort={getSortParams('rank')}
+                info={getColumnInfoProps('rank')}
                 data-testid="rank-header"
                 className="automl-leaderboard__rank-cell"
                 isStickyColumn
                 stickyMinWidth="120px"
                 stickyLeftOffset="0"
               >
-                <ColumnHeaderContent columnId="rank">{getColumnHeader('rank')}</ColumnHeaderContent>
+                {getColumnHeader('rank')}
               </Th>
               <Th
                 sort={getSortParams('model')}
+                info={getColumnInfoProps('model')}
                 data-testid="model-name-header"
                 isStickyColumn
                 stickyMinWidth="150px"
                 stickyLeftOffset="120px"
               >
-                <ColumnHeaderContent columnId="model">
-                  {getColumnHeader('model')}
-                </ColumnHeaderContent>
+                {getColumnHeader('model')}
               </Th>
               <Th
                 sort={getSortParams('optimized-metric')}
+                info={(() => {
+                  const hasBrackets = !!getColumnMeta(`metric:${optimizedMetric}`)?.acronym;
+                  return getColumnInfoProps(
+                    `metric:${optimizedMetric}`,
+                    `${
+                      getColumnMeta(`metric:${optimizedMetric}`)?.name ??
+                      formatMetricName(optimizedMetric)
+                    } ${hasBrackets ? '[optimized]' : '(optimized)'}`,
+                    'AutoML prioritized performance of this metric and used it to rank models.',
+                  );
+                })()}
                 data-testid={`metric-header-${optimizedMetric}`}
                 isStickyColumn
                 hasRightBorder
                 stickyMinWidth="150px"
                 stickyLeftOffset="270px"
               >
-                <ColumnHeaderContent
-                  columnId={`metric:${optimizedMetric}`}
-                  tooltipName={`${
-                    getColumnMeta(`metric:${optimizedMetric}`)?.name ??
-                    formatMetricName(optimizedMetric)
-                  } (optimized)`}
+                {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}
+                <div
+                  data-testid="optimized-indicator"
+                  className="automl-leaderboard__optimized-indicator"
                 >
-                  {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}
-                  <div
-                    data-testid="optimized-indicator"
-                    className="automl-leaderboard__optimized-indicator"
-                  >
-                    (optimized)
-                  </div>
-                </ColumnHeaderContent>
+                  (optimized)
+                </div>
               </Th>
               {visibleNonOptimizedMetricKeys.map((metricKey) => (
                 <Th
                   key={metricKey}
                   sort={getSortParams(`metric:${metricKey}`)}
+                  info={getColumnInfoProps(`metric:${metricKey}`)}
                   data-testid={`metric-header-${metricKey}`}
                 >
-                  <ColumnHeaderContent columnId={`metric:${metricKey}`}>
-                    {getColumnHeader(`metric:${metricKey}`, formatMetricName(metricKey))}
-                  </ColumnHeaderContent>
+                  {getColumnHeader(`metric:${metricKey}`, formatMetricName(metricKey))}
                 </Th>
               ))}
               <Th
