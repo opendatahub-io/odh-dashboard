@@ -47,67 +47,47 @@ func (app *App) getDefaultStatusCodeForLlamaStackClientError(errorCode string) i
 	}
 }
 
-// categoryToFrontendError maps ResponseErrorCategory to frontend-expected error structure
 func categoryToFrontendError(category llamastack.ResponseErrorCategory) (component, code string, retriable bool) {
 	switch category {
-	// Model timeout and overload - retriable
 	case llamastack.CategoryModelTimeout:
 		return "llama_stack", "timeout", true
 	case llamastack.CategoryModelOverloaded:
 		return "llama_stack", "rate_limit", true
-
-	// RAG errors
 	case llamastack.CategoryRAGError:
 		return "rag", "unreachable", true
 	case llamastack.CategoryRAGVectorStoreNotFound:
 		return "rag", "not_found", false
-
-	// Guardrails errors
 	case llamastack.CategoryGuardrailsError:
 		return "guardrails", "unreachable", true
 	case llamastack.CategoryGuardrailsViolation:
 		return "guardrails", "content_blocked", false
-
-	// MCP errors
 	case llamastack.CategoryMCPError:
 		return "mcp", "unreachable", true
 	case llamastack.CategoryMCPToolNotFound:
 		return "mcp", "not_found", false
 	case llamastack.CategoryMCPAuthError:
 		return "mcp", "unauthorized", false
-
-	// Model configuration and validation errors - not retriable
 	case llamastack.CategoryInvalidModelConfig:
 		return "model", "invalid_model_config", false
 	case llamastack.CategoryUnsupportedFeature:
 		return "model", "unsupported_feature", false
 	case llamastack.CategoryInvalidParameter:
 		return "model", "invalid_parameter", false
-
-	// Model invocation errors
 	case llamastack.CategoryModelInvocationError:
 		return "llama_stack", "server_error", true
-
-	// Generic/unknown errors - retriable
 	default:
 		return "llama_stack", "server_error", true
 	}
 }
 
-// mapLlamaStackClientErrorToFrontendError converts LlamaStackError to frontend-compatible error structure
 func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaStackError, statusCode int) *integrations.FrontendErrorResponse {
-	// Enhance the error with categorization
 	enhancedErr := llamastack.NewEnhancedLlamaStackError(lsErr)
-
-	// Map category to frontend-expected component, code, and retriable
 	component, code, retriable := categoryToFrontendError(enhancedErr.Category)
 
-	// Override status code for transient errors to 503
 	if retriable && (enhancedErr.Category == llamastack.CategoryModelTimeout || enhancedErr.Category == llamastack.CategoryModelOverloaded) {
 		statusCode = http.StatusServiceUnavailable
 	}
 
-	// Extract tool name for MCP errors (tool name is in Param field)
 	toolName := ""
 	if component == "mcp" && lsErr.Param != "" {
 		toolName = lsErr.Param
