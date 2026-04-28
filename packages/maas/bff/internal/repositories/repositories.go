@@ -27,7 +27,9 @@ func NewRepositories(logger *slog.Logger, k8sFactory kubernetes.KubernetesClient
 			config.TiersConfigMapNamespace,
 			config.TiersConfigMapName,
 			config.GatewayNamespace,
-			config.GatewayName),
+			config.GatewayName,
+			config.CombinedTokenRateLimitPolicyName,
+			config.CombinedRequestRateLimitPolicyName),
 		APIKeys: NewAPIKeysRepository(logger),
 	}
 }

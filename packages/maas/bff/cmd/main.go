@@ -50,12 +50,22 @@ func main() {
 	flag.BoolVar(&cfg.FederatedPlatform, "federated-platform", false, "DEPRECATED: Use -deployment-mode=federated instead")
 
 	// MaaS
-	flag.StringVar(&cfg.TiersConfigMapNamespace, "tiers-configmap-namespace", getEnvAsString("TIERS_CONFIGMAP_NS", "maas-api"), "Namespace where the ConfigMap for tiers configuration is located")
+	flag.StringVar(&cfg.TiersConfigMapNamespace, "tiers-configmap-namespace", getEnvAsString("TIERS_CONFIGMAP_NS", "redhat-ods-applications"), "Namespace where the ConfigMap for tiers configuration is located")
 	flag.StringVar(&cfg.TiersConfigMapName, "tiers-configmap-name", getEnvAsString("TIERS_CONFIGMAP_NAME", "tier-to-group-mapping"), "Name of the ConfigMap for tiers configuration")
 	flag.StringVar(&cfg.GatewayNamespace, "gateway-namespace", getEnvAsString("GATEWAY_NAMESPACE", "openshift-ingress"), "Namespace where the MaaS Gateway is deployed in")
 	flag.StringVar(&cfg.GatewayName, "gateway-name", getEnvAsString("GATEWAY_NAME", "maas-default-gateway"), "The names of the MaaS Gateway")
+	flag.StringVar(&cfg.CombinedTokenRateLimitPolicyName, "combined-token-rate-limit-policy-name", getEnvAsString("MAAS_COMBINED_TOKEN_RATE_LIMIT_POLICY_NAME", ""), "Name of the single TokenRateLimitPolicy holding all tier token limits (default: {gateway-name}-token-rate-limits)")
+	flag.StringVar(&cfg.CombinedRequestRateLimitPolicyName, "combined-request-rate-limit-policy-name", getEnvAsString("MAAS_COMBINED_REQUEST_RATE_LIMIT_POLICY_NAME", ""), "Name of the single RateLimitPolicy holding all tier request limits (default: {gateway-name}-request-rate-limits)")
 
 	flag.Parse()
+
+	// Resolve combined policy names after flags/env so we can default from gateway name.
+	if cfg.CombinedTokenRateLimitPolicyName == "" {
+		cfg.CombinedTokenRateLimitPolicyName = cfg.GatewayName + "-token-rate-limits"
+	}
+	if cfg.CombinedRequestRateLimitPolicyName == "" {
+		cfg.CombinedRequestRateLimitPolicyName = cfg.GatewayName + "-request-rate-limits"
+	}
 
 	// Handle backward compatibility: if old flags are used, override deployment mode
 	if cfg.StandaloneMode {
