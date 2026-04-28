@@ -74,7 +74,7 @@ describe('Verify MLflow Experiments page', () => {
   it(
     'Verify MLflow Experiments page',
     {
-      tags: ['@Sanity', '@SanitySet1', '@MLflow', '@MLflowExperiments', '@NonConcurrent'],
+      tags: ['@Tier', '@Tier1', '@MLflow', '@MLflowExperiments', '@NonConcurrent'],
     },
     () => {
       const experiment = testData.experiments[0];

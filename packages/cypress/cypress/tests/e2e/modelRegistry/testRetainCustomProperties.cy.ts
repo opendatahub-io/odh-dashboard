@@ -82,7 +82,7 @@ describe('Verify custom properties and labels are retained during Model Registry
   it(
     'Retains custom properties across all model registry operations',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4'],
+      tags: ['@Dashboard', '@ModelRegistry', '@Tier', '@Tier4'],
     },
     () => {
       cy.step('Log into the application');

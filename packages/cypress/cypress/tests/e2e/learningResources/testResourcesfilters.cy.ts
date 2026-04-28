@@ -28,7 +28,7 @@ describe('Verify the filters on Resources page', () => {
 
   it(
     'Test whether enabled, resource type, provider and provider type filters are working',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-489', '@Dashboard', '@LearningResourcesCI'] },
+    { tags: ['@Tier', '@Tier1', '@ODS-489', '@Dashboard', '@LearningResourcesCI'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -78,7 +78,7 @@ describe('Verify the filters on Resources page', () => {
 
   it(
     'Test RHOAI-specific filters',
-    { tags: ['@Sanity', '@SanitySet1', '@Dashboard', '@LearningResourcesCI'] },
+    { tags: ['@Tier', '@Tier1', '@Dashboard', '@LearningResourcesCI'] },
     () => {
       const applicationsNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
       if (applicationsNamespace === 'opendatahub') {

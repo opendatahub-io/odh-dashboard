@@ -39,7 +39,7 @@ describe('Verify Model Catalog Source Enable/Disable', () => {
 
   it(
     'Admin can enable and disable model catalog sources',
-    { tags: ['@Sanity', '@SanitySet4', '@Dashboard', '@ModelCatalog', '@NonConcurrent'] },
+    { tags: ['@Tier', '@Tier4', '@Dashboard', '@ModelCatalog', '@NonConcurrent'] },
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
