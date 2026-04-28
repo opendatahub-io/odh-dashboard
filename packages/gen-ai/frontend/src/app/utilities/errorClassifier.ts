@@ -1,5 +1,4 @@
 import { ApiError, ClassifiedError } from '~/app/types';
-import { RETRIABLE_HTTP_STATUSES, RETRIABLE_ERROR_CODES } from '~/app/Chatbot/const';
 import { getMicrocopy } from './microcopy';
 
 interface ClassifyContext {
@@ -8,18 +7,6 @@ interface ClassifyContext {
   toolName?: string;
   wasStreamStarted?: boolean;
   wasResponseGenerated?: boolean;
-}
-
-// Type guard helpers for readonly const arrays
-type RetriableCode = (typeof RETRIABLE_ERROR_CODES)[number];
-type RetriableStatus = (typeof RETRIABLE_HTTP_STATUSES)[number];
-
-function isRetriableCode(code: string): code is RetriableCode {
-  return RETRIABLE_ERROR_CODES.some((c) => c === code);
-}
-
-function isRetriableStatus(status: number): status is RetriableStatus {
-  return RETRIABLE_HTTP_STATUSES.some((s) => s === status);
 }
 
 const COMPONENT_DISPLAY_NAMES: Record<string, string> = {
@@ -137,29 +124,8 @@ function resolveRetriable(error: ApiError): boolean {
     return error.error.retriable;
   }
 
-  const code = error.error?.code;
-  const message = error.error?.message ?? error.message ?? '';
-
-  // Streaming connection/timeout errors are retriable, but NOT context length
-  const streamingKey = detectStreamingErrorFromMessage(message);
-  if (streamingKey && streamingKey !== 'stream:context_length') {
-    return true;
-  }
-
-  if (code && isRetriableCode(code)) {
-    return true;
-  }
-  if (error.status && isRetriableStatus(error.status)) {
-    return true;
-  }
-
-  // Fallback: unknown errors are retriable per spec
-  const templateKey = resolveTemplateKey(error);
-  if (templateKey === 'unknown') {
-    return true;
-  }
-
-  return false;
+  // Fallback for non-BFF errors: unknown errors are retriable per spec
+  return true;
 }
 
 export function classifyError(error: ApiError, context: ClassifyContext = {}): ClassifiedError {
