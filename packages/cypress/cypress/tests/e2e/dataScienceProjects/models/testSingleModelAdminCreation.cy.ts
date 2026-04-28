@@ -136,7 +136,9 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
       // Verify model deployment is ready
-      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      cy.then(() => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
       modelServingSection.findModelMetricsLink(testData.singleModelAdminName);
@@ -174,10 +176,12 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       //Verify the model is stopped
       cy.step('Verify the model is stopped');
-      checkInferenceServiceState(resourceName, projectName, {
-        checkReady: false,
-        checkStopped: true,
-        requireLoadedState: false,
+      cy.then(() => {
+        checkInferenceServiceState(resourceName, projectName, {
+          checkReady: false,
+          checkStopped: true,
+          requireLoadedState: false,
+        });
       });
       kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
 
@@ -188,7 +192,9 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       //Verify the model is running again
       cy.step('Verify the model is running again');
-      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      cy.then(() => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
       kServeRow
         .findStatusLabel()
         .invoke('text')

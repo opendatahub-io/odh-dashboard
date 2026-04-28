@@ -611,6 +611,8 @@ export type ModelCatalogSourceTestData = {
   redhatAiSourceId: string;
   sourceName2: string;
   redhatAiSourceId2: string;
+  sourceName3: string;
+  redhatAiSourceId3: string;
 };
 
 export type TrainJobTestData = {
@@ -697,4 +699,22 @@ export type PromptManagementPromptData = {
 export type PromptManagementTestData = {
   projectName: string;
   prompts: PromptManagementPromptData[];
+};
+
+export type MlflowExperimentRunData = {
+  name: string;
+  parameters: Record<string, string>;
+  metrics: Record<string, string>;
+};
+
+export type MlflowExperimentData = {
+  name: string;
+  renamedName: string;
+};
+
+export type MlflowExperimentsTestData = {
+  projectName: string;
+  experiments: MlflowExperimentData[];
+  runs: MlflowExperimentRunData[];
+  nonExistentExperiment: string;
 };

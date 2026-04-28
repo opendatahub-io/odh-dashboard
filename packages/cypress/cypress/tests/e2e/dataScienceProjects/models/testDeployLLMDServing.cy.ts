@@ -169,7 +169,9 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Verify that the Model is ready');
       // Image was patched in YAML editor before submit, so no post-deployment patching needed
-      checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
+      cy.then(() => {
+        checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
 
       cy.step('Verify the model Row');
       const llmdRow = modelServingGlobal.getDeploymentRow(modelName);
@@ -218,7 +220,9 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLCodeEditor().waitForReady();
       modelServingWizard.findSubmitButton().should('be.enabled').click();
       const llmdRow = modelServingGlobal.getDeploymentRow(yamlEditorModelName);
-      checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
+      cy.then(() => {
+        checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
+      });
 
       cy.step('Verify the model Row');
       llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');
