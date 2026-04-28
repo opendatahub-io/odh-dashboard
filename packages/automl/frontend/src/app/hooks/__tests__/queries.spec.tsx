@@ -6,9 +6,14 @@ import {
   useModelEvaluationArtifactsQuery,
   fetchS3File,
   AutomlModelSchema,
-  isRawTimeseriesModel,
+  isRawTimeseriesModelV34,
+  isRawModelV35,
 } from '~/app/hooks/queries';
-import type { AutomlRawTabularModel, AutomlRawTimeseriesModel } from '~/app/hooks/queries';
+import type {
+  AutomlRawTabularModelV34,
+  AutomlRawTimeseriesModelV34,
+  AutomlRawModelV35,
+} from '~/app/hooks/queries';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -421,7 +426,19 @@ describe('fetchS3File', () => {
 
 /* eslint-disable camelcase */
 describe('AutomlModelSchema', () => {
-  const validTabularModel: AutomlRawTabularModel = {
+  const validUnifiedModel: AutomlRawModelV35 = {
+    name: 'WeightedEnsemble_L5_FULL',
+    location: {
+      predictor: 'WeightedEnsemble_L5_FULL/predictor.pkl',
+      notebook: 'WeightedEnsemble_L5_FULL/notebooks/automl_predictor_notebook.ipynb',
+      metrics: 'WeightedEnsemble_L5_FULL/metrics',
+    },
+    metrics: {
+      test_data: { accuracy: 0.95, f1: 0.93 },
+    },
+  };
+
+  const validTabularModelV34: AutomlRawTabularModelV34 = {
     name: 'WeightedEnsemble_L5_FULL',
     location: {
       predictor: 'WeightedEnsemble_L5_FULL/predictor.pkl',
@@ -432,7 +449,7 @@ describe('AutomlModelSchema', () => {
     },
   };
 
-  const validTimeseriesModel: AutomlRawTimeseriesModel = {
+  const validTimeseriesModelV34: AutomlRawTimeseriesModelV34 = {
     name: 'TemporalFusionTransformer_FULL',
     base_model: 'TemporalFusionTransformer',
     location: {
@@ -445,26 +462,36 @@ describe('AutomlModelSchema', () => {
     },
   };
 
-  it('should validate a tabular model', () => {
-    const result = AutomlModelSchema.safeParse(validTabularModel);
+  it('should validate a unified 3.5 model', () => {
+    const result = AutomlModelSchema.safeParse(validUnifiedModel);
     expect(result.success).toBe(true);
   });
 
-  it('should validate a timeseries model', () => {
-    const result = AutomlModelSchema.safeParse(validTimeseriesModel);
+  it('should validate a legacy tabular 3.4 model', () => {
+    const result = AutomlModelSchema.safeParse(validTabularModelV34);
+    expect(result.success).toBe(true);
+  });
+
+  it('should validate a legacy timeseries 3.4 model', () => {
+    const result = AutomlModelSchema.safeParse(validTimeseriesModelV34);
     expect(result.success).toBe(true);
   });
 
   it('should accept optional model_directory', () => {
+    const unifiedWithDir = {
+      ...validUnifiedModel,
+      location: { ...validUnifiedModel.location, model_directory: 'some/dir/' },
+    };
     const tabularWithDir = {
-      ...validTabularModel,
-      location: { ...validTabularModel.location, model_directory: 'some/dir/' },
+      ...validTabularModelV34,
+      location: { ...validTabularModelV34.location, model_directory: 'some/dir/' },
     };
     const timeseriesWithDir = {
-      ...validTimeseriesModel,
-      location: { ...validTimeseriesModel.location, model_directory: 'some/dir/' },
+      ...validTimeseriesModelV34,
+      location: { ...validTimeseriesModelV34.location, model_directory: 'some/dir/' },
     };
 
+    expect(AutomlModelSchema.safeParse(unifiedWithDir).success).toBe(true);
     expect(AutomlModelSchema.safeParse(tabularWithDir).success).toBe(true);
     expect(AutomlModelSchema.safeParse(timeseriesWithDir).success).toBe(true);
   });
@@ -477,7 +504,7 @@ describe('AutomlModelSchema', () => {
 
   it('should reject non-numeric metric values', () => {
     const invalid = {
-      ...validTabularModel,
+      ...validUnifiedModel,
       metrics: { test_data: { accuracy: 'high' } },
     };
     const result = AutomlModelSchema.safeParse(invalid);
@@ -485,9 +512,9 @@ describe('AutomlModelSchema', () => {
   });
 });
 
-describe('isRawTimeseriesModel', () => {
-  it('should return true for a timeseries model with base_model', () => {
-    const model: AutomlRawTimeseriesModel = {
+describe('isRawTimeseriesModelV34', () => {
+  it('should return true for a legacy timeseries model with notebooks plural', () => {
+    const model: AutomlRawTimeseriesModelV34 = {
       name: 'TemporalFusionTransformer_FULL',
       base_model: 'TemporalFusionTransformer',
       location: {
@@ -497,11 +524,24 @@ describe('isRawTimeseriesModel', () => {
       },
       metrics: { test_data: { mase: 1.2 } },
     };
-    expect(isRawTimeseriesModel(model)).toBe(true);
+    expect(isRawTimeseriesModelV34(model)).toBe(true);
   });
 
-  it('should return false for a tabular model without base_model', () => {
-    const model: AutomlRawTabularModel = {
+  it('should return false for a unified 3.5 model', () => {
+    const model: AutomlRawModelV35 = {
+      name: 'WeightedEnsemble_L5_FULL',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawTimeseriesModelV34(model)).toBe(false);
+  });
+
+  it('should return false for a legacy tabular model', () => {
+    const model: AutomlRawTabularModelV34 = {
       name: 'WeightedEnsemble_L5_FULL',
       location: {
         predictor: 'predictor.pkl',
@@ -509,7 +549,48 @@ describe('isRawTimeseriesModel', () => {
       },
       metrics: { test_data: { accuracy: 0.95 } },
     };
-    expect(isRawTimeseriesModel(model)).toBe(false);
+    expect(isRawTimeseriesModelV34(model)).toBe(false);
+  });
+});
+
+describe('isRawModelV35', () => {
+  it('should return true for a unified 3.5 model', () => {
+    const model: AutomlRawModelV35 = {
+      name: 'WeightedEnsemble_L5_FULL',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawModelV35(model)).toBe(true);
+  });
+
+  it('should return false for a legacy timeseries model', () => {
+    const model: AutomlRawTimeseriesModelV34 = {
+      name: 'TemporalFusionTransformer_FULL',
+      base_model: 'TemporalFusionTransformer',
+      location: {
+        predictor: 'predictor.pkl',
+        notebooks: 'notebooks',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { mase: 1.2 } },
+    };
+    expect(isRawModelV35(model)).toBe(false);
+  });
+
+  it('should return false for a legacy tabular model without metrics in location', () => {
+    const model: AutomlRawTabularModelV34 = {
+      name: 'WeightedEnsemble_L5_FULL',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawModelV35(model)).toBe(false);
   });
 });
 /* eslint-enable camelcase */

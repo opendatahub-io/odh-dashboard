@@ -4,7 +4,7 @@ import {
   useS3ListFilesQuery,
   fetchS3Json,
   AutomlModelSchema,
-  isRawTimeseriesModel,
+  isRawTimeseriesModelV34,
 } from '~/app/hooks/queries';
 import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
@@ -179,13 +179,14 @@ export function useAutomlResults(
           });
 
           // Rewrite relative location paths to absolute S3 paths.
-          // Timeseries has `notebooks` (directory) + `metrics`; tabular has `notebook` (file path).
+          // Handles three schema versions:
+          //   3.5+:         notebook (file path) + metrics
+          //   3.4 timeseries: notebooks (directory) + metrics + base_model
+          //   3.4 tabular:    notebook (file path), no metrics
           let model: AutomlModel;
-          if (isRawTimeseriesModel(validated)) {
+          if (isRawTimeseriesModelV34(validated)) {
             model = {
               name: validated.name,
-              // eslint-disable-next-line camelcase
-              base_model: validated.base_model,
               location: {
                 // eslint-disable-next-line camelcase
                 model_directory: directory,
@@ -195,7 +196,25 @@ export function useAutomlResults(
               },
               metrics: validated.metrics,
             };
+          } else if (
+            'metrics' in validated.location &&
+            typeof validated.location.metrics === 'string'
+          ) {
+            // Unified 3.5 schema: notebook (file path) + metrics in location
+            const { metrics: locationMetrics } = validated.location;
+            model = {
+              name: validated.name,
+              location: {
+                // eslint-disable-next-line camelcase
+                model_directory: directory,
+                predictor: `${artifactDirectory}${validated.location.predictor}`,
+                notebook: `${artifactDirectory}${validated.location.notebook}`,
+                metrics: `${artifactDirectory}${locationMetrics}`,
+              },
+              metrics: validated.metrics,
+            };
           } else {
+            // Legacy tabular (3.4): no metrics in location
             model = {
               name: validated.name,
               location: {
