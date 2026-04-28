@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
@@ -16,8 +15,13 @@ func (app *App) handleLlamaStackClientError(w http.ResponseWriter, r *http.Reque
 			statusCode = app.getDefaultStatusCodeForLlamaStackClientError(llamastackErr.Code)
 		}
 
-		httpError := app.mapLlamaStackClientErrorToHTTPError(llamastackErr, statusCode)
-		app.errorResponse(w, r, httpError)
+		frontendErr := app.mapLlamaStackClientErrorToFrontendError(llamastackErr, statusCode)
+
+		// Send frontend-compatible error response
+		if writeErr := app.WriteJSON(w, frontendErr.Status, frontendErr, nil); writeErr != nil {
+			app.LogError(r, writeErr)
+			w.WriteHeader(frontendErr.Status)
+		}
 		return
 	}
 
@@ -43,55 +47,74 @@ func (app *App) getDefaultStatusCodeForLlamaStackClientError(errorCode string) i
 	}
 }
 
-// mapLlamaStackClientErrorToHTTPError converts LlamaStackError to HTTP error with appropriate codes
-// and enhanced error categorization for better user experience
-func (app *App) mapLlamaStackClientErrorToHTTPError(lsErr *llamastack.LlamaStackError, statusCode int) *integrations.HTTPError {
-	var code string
-	var message string
+// categoryToFrontendError maps ResponseErrorCategory to frontend-expected error structure
+func categoryToFrontendError(category llamastack.ResponseErrorCategory) (component, code string, retriable bool) {
+	switch category {
+	// Model timeout and overload - retriable
+	case llamastack.CategoryModelTimeout:
+		return "llama_stack", "timeout", true
+	case llamastack.CategoryModelOverloaded:
+		return "llama_stack", "rate_limit", true
 
+	// RAG errors
+	case llamastack.CategoryRAGError:
+		return "rag", "unreachable", true
+	case llamastack.CategoryRAGVectorStoreNotFound:
+		return "rag", "not_found", false
+
+	// Guardrails errors
+	case llamastack.CategoryGuardrailsError:
+		return "guardrails", "unreachable", true
+	case llamastack.CategoryGuardrailsViolation:
+		return "guardrails", "content_blocked", false
+
+	// MCP errors
+	case llamastack.CategoryMCPError:
+		return "mcp", "unreachable", true
+	case llamastack.CategoryMCPToolNotFound:
+		return "mcp", "not_found", false
+	case llamastack.CategoryMCPAuthError:
+		return "mcp", "unauthorized", false
+
+	// Model configuration and validation errors - not retriable
+	case llamastack.CategoryInvalidModelConfig:
+		return "model", "invalid_model_config", false
+	case llamastack.CategoryUnsupportedFeature:
+		return "model", "unsupported_feature", false
+	case llamastack.CategoryInvalidParameter:
+		return "model", "invalid_parameter", false
+
+	// Model invocation errors
+	case llamastack.CategoryModelInvocationError:
+		return "llama_stack", "server_error", true
+
+	// Generic/unknown errors - retriable
+	default:
+		return "llama_stack", "server_error", true
+	}
+}
+
+// mapLlamaStackClientErrorToFrontendError converts LlamaStackError to frontend-compatible error structure
+func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaStackError, statusCode int) *integrations.FrontendErrorResponse {
 	// Enhance the error with categorization
 	enhancedErr := llamastack.NewEnhancedLlamaStackError(lsErr)
 
-	// Use the category as part of the error code for better frontend handling
-	categoryCode := strings.ToLower(string(enhancedErr.Category))
+	// Map category to frontend-expected component, code, and retriable
+	component, code, retriable := categoryToFrontendError(enhancedErr.Category)
 
-	// Override status code for transient errors (timeout/overload) to 503 while preserving category code
-	isTransientError := enhancedErr.Category == llamastack.CategoryModelTimeout || enhancedErr.Category == llamastack.CategoryModelOverloaded
-	if isTransientError {
+	// Override status code for transient errors to 503
+	if retriable && (enhancedErr.Category == llamastack.CategoryModelTimeout || enhancedErr.Category == llamastack.CategoryModelOverloaded) {
 		statusCode = http.StatusServiceUnavailable
-		code = categoryCode
-		message = enhancedErr.UserFriendlyMsg
-	} else {
-		switch statusCode {
-		case http.StatusBadRequest:
-			code = categoryCode
-			message = enhancedErr.UserFriendlyMsg
-		case http.StatusUnauthorized:
-			code = "unauthorized"
-			message = enhancedErr.UserFriendlyMsg
-		case http.StatusNotFound:
-			code = "not_found"
-			message = enhancedErr.UserFriendlyMsg
-		case http.StatusServiceUnavailable:
-			code = "service_unavailable"
-			message = enhancedErr.UserFriendlyMsg
-		case http.StatusBadGateway:
-			code = "bad_gateway"
-			message = enhancedErr.UserFriendlyMsg
-		case http.StatusInternalServerError:
-			code = categoryCode
-			message = enhancedErr.UserFriendlyMsg
-		default:
-			code = categoryCode
-			message = enhancedErr.UserFriendlyMsg
-		}
 	}
 
-	return &integrations.HTTPError{
-		StatusCode: statusCode,
-		ErrorResponse: integrations.ErrorResponse{
-			Code:    code,
-			Message: message,
+	return &integrations.FrontendErrorResponse{
+		Status:  statusCode,
+		Message: enhancedErr.UserFriendlyMsg,
+		Error: &integrations.ErrorDetail{
+			Component: component,
+			Code:      code,
+			Message:   enhancedErr.Message, // Original error message
+			Retriable: retriable,
 		},
 	}
 }
