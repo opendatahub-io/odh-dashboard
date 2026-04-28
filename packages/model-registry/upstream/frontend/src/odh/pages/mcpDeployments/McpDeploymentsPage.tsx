@@ -1,18 +1,13 @@
 import * as React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useNamespaceSelector, useModularArchContext } from 'mod-arch-core';
-import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateVariant,
-  Flex,
-  FlexItem,
-} from '@patternfly/react-core';
+import { EmptyState, EmptyStateBody, EmptyStateVariant } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
-import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFieldWrapper';
 import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import McpDeployModal from '~/odh/components/McpDeployModal';
+import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFieldWrapper';
+import { useProjectsBridge } from '~/odh/context/ProjectsBridgeContext';
+import { mcpDeploymentsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import useMcpDeployments from './useMcpDeployments';
 import McpDeploymentsTable from './McpDeploymentsTable';
 import McpDeploymentsToolbar from './McpDeploymentsToolbar';
@@ -20,43 +15,25 @@ import McpDeploymentsEmptyState from './McpDeploymentsEmptyState';
 import DeleteMcpDeploymentModal from './DeleteMcpDeploymentModal';
 import { getDeploymentDisplayName } from './utils';
 
-const McpDeploymentsPage: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [deployments, loaded, loadError, refresh] = useMcpDeployments();
+type McpDeploymentsPageProps = {
+  namespace?: string;
+};
+
+const McpDeploymentsPage: React.FC<McpDeploymentsPageProps> = ({ namespace }) => {
+  const [deployments, loaded, loadError, refresh] = useMcpDeployments(namespace);
   const [filterText, setFilterText] = React.useState('');
   const [deleteTarget, setDeleteTarget] = React.useState<McpDeployment | undefined>();
   const [editingDeployment, setEditingDeployment] = React.useState<McpDeployment>();
-  const { preferredNamespace, updatePreferredNamespace } = useNamespaceSelector();
-  const { config } = useModularArchContext();
+  const { updatePreferredProject, projects } = useProjectsBridge();
+  const navigate = useNavigate();
 
-  const isMandatoryNamespace = Boolean(config.mandatoryNamespace);
-  const selectedProject = preferredNamespace?.name || '';
-
-  // If a namespace query param is present (e.g. after deploying from the catalog),
-  // use it to pre-select the project, then remove it from the URL.
-  // TODO: Remove this when the page switches to ProjectsContext (RHOAIENG-56566).
-  const namespaceParamConsumedRef = React.useRef(false);
-  React.useEffect(() => {
-    if (namespaceParamConsumedRef.current) {
-      return;
-    }
-    const ns = searchParams.get('namespace');
-    if (ns) {
-      namespaceParamConsumedRef.current = true;
-      updatePreferredNamespace({ name: ns });
-      searchParams.delete('namespace');
-      setSearchParams(searchParams, { replace: true });
-    }
-  }, [searchParams, setSearchParams, updatePreferredNamespace]);
-
-  const handleProjectChange = React.useCallback(
-    (projectName: string) => {
-      if (!projectName || isMandatoryNamespace) {
-        return;
-      }
-      updatePreferredNamespace({ name: projectName });
+  const handleProjectSelect = React.useCallback(
+    (ns: string) => {
+      const match = projects.find((p) => p.name === ns) ?? null;
+      updatePreferredProject(match);
+      navigate(mcpDeploymentsUrl(ns));
     },
-    [isMandatoryNamespace, updatePreferredNamespace],
+    [projects, updatePreferredProject, navigate],
   );
 
   const handleDeleteClick = React.useCallback((deployment: McpDeployment) => {
@@ -82,20 +59,15 @@ const McpDeploymentsPage: React.FC = () => {
 
   const clearFilters = React.useCallback(() => setFilterText(''), []);
 
-  const noProjectSelected = !selectedProject;
+  const noProjectSelected = !namespace;
   const isEmpty = !noProjectSelected && loaded && !loadError && deployments.items.length === 0;
 
   const headerContent = (
-    <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
-      <FlexItem>Project</FlexItem>
-      <FlexItem>
-        <NamespaceSelectorFieldWrapper
-          selectedNamespace={selectedProject}
-          onSelect={handleProjectChange}
-          selectorOnly
-        />
-      </FlexItem>
-    </Flex>
+    <NamespaceSelectorFieldWrapper
+      selectedNamespace={namespace ?? ''}
+      onSelect={handleProjectSelect}
+      selectorOnly
+    />
   );
 
   return (
@@ -135,9 +107,10 @@ const McpDeploymentsPage: React.FC = () => {
         onDeleteClick={handleDeleteClick}
         onEditClick={handleEditClick}
       />
-      {deleteTarget && (
+      {deleteTarget && namespace && (
         <DeleteMcpDeploymentModal
           deployment={deleteTarget}
+          namespace={namespace}
           onClose={(deleted) => {
             if (deleted) {
               refresh();

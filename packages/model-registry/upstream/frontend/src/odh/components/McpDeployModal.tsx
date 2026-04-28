@@ -13,7 +13,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
-import { APIOptions, useQueryParamNamespaces } from 'mod-arch-core';
+import { APIOptions } from 'mod-arch-core';
 import { DashboardModalFooter, FieldGroupHelpLabelIcon } from 'mod-arch-shared';
 import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
 import {
@@ -43,7 +43,6 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
 }) => {
   const { serverId = '' } = useParams<{ serverId: string }>();
   const navigate = useNavigate();
-  const queryParams = useQueryParamNamespaces();
   const { theme } = useThemeContext();
   const [crData, crLoaded, crError] = useMcpServerConverter(existingDeployment ? '' : serverId);
 
@@ -97,6 +96,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   const [selectedNamespace, setSelectedNamespace] = React.useState(
     existingDeployment?.namespace ?? '',
   );
+  const queryParams = React.useMemo(() => ({ namespace: selectedNamespace }), [selectedNamespace]);
   const [yamlContent, setYamlContent] = React.useState(existingDeployment?.yaml ?? '');
   const [ociImageValue, setOciImageValue] = React.useState(existingDeployment?.image ?? '');
   const [isSubmitting, setIsSubmitting] = React.useState(false);

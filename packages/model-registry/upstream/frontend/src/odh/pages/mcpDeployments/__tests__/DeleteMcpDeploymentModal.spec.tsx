@@ -10,16 +10,17 @@ jest.mock('~/odh/api/mcpDeploymentService', () => ({
   deleteMcpDeployment: jest.fn(),
 }));
 
-jest.mock('mod-arch-core', () => ({
-  ...jest.requireActual('mod-arch-core'),
-  useQueryParamNamespaces: jest.fn(() => ({})),
-}));
-
 const deleteMcpDeploymentMock = jest.mocked(deleteMcpDeployment);
 
 const renderModal = (onClose = jest.fn()) => {
   const deployment = createMockDeployment({ name: 'kubernetes-mcp' });
-  render(<DeleteMcpDeploymentModal deployment={deployment} onClose={onClose} />);
+  render(
+    <DeleteMcpDeploymentModal
+      deployment={deployment}
+      namespace="test-namespace"
+      onClose={onClose}
+    />,
+  );
   return { deployment, onClose };
 };
 

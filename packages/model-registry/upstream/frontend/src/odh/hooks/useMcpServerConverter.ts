@@ -1,27 +1,19 @@
 import React from 'react';
-import {
-  useFetchState,
-  useQueryParamNamespaces,
-  APIOptions,
-  FetchStateCallbackPromise,
-  NotReadyError,
-} from 'mod-arch-core';
+import { useFetchState, APIOptions, FetchStateCallbackPromise, NotReadyError } from 'mod-arch-core';
 import { getMcpServerConverter } from '~/odh/api/mcpCatalogDeployment/service';
 import { MCPServerCR } from '~/odh/types/mcpDeploymentTypes';
 
 const useMcpServerConverter = (
   serverId: string,
 ): [data: MCPServerCR | null, loaded: boolean, error: Error | undefined] => {
-  const queryParams = useQueryParamNamespaces();
-
   const callback = React.useCallback<FetchStateCallbackPromise<MCPServerCR>>(
     (opts: APIOptions) => {
       if (!serverId) {
         return Promise.reject(new NotReadyError('No server id'));
       }
-      return getMcpServerConverter('', queryParams)(opts, serverId);
+      return getMcpServerConverter('', {})(opts, serverId);
     },
-    [serverId, queryParams],
+    [serverId],
   );
 
   const [data, loaded, error] = useFetchState<MCPServerCR | null>(callback, null, {

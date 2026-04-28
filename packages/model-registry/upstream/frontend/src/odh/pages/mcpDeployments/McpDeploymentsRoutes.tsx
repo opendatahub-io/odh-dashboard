@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import McpDeploymentsPage from './McpDeploymentsPage';
+import McpDeploymentsCoreLoader from './McpDeploymentsCoreLoader';
 
 const McpDeploymentsRoutes: React.FC = () => (
   <Routes>
-    <Route path="/" element={<McpDeploymentsPage />} />
+    <Route path="/:namespace?" element={<McpDeploymentsCoreLoader />} />
     <Route path="*" element={<Navigate to="." />} />
   </Routes>
 );
