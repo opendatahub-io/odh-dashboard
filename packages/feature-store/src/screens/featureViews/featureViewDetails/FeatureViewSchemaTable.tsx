@@ -5,6 +5,7 @@ import {
   EmptyState,
   EmptyStateActions,
   EmptyStateBody,
+  EmptyStateFooter,
   EmptyStateVariant,
 } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
@@ -119,11 +120,13 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
             {isFilteredEmpty && (
               <>
                 <EmptyStateBody>Adjust or clear your filters to see schema rows.</EmptyStateBody>
-                <EmptyStateActions>
-                  <Button variant="link" onClick={onClearFilters}>
-                    Clear filters
-                  </Button>
-                </EmptyStateActions>
+                <EmptyStateFooter>
+                  <EmptyStateActions>
+                    <Button variant="link" onClick={onClearFilters}>
+                      Clear filters
+                    </Button>
+                  </EmptyStateActions>
+                </EmptyStateFooter>
               </>
             )}
           </EmptyState>
