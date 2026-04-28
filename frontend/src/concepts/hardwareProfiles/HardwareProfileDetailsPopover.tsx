@@ -93,9 +93,13 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
               {profileIdentifiers.length > 0 &&
                 profileIdentifiers.map((identifier) => (
                   <StackItem key={identifier.identifier}>
-                    {renderSection(identifier.displayName || identifier.identifier, [
-                      formatIdentifierDetails(identifier),
-                    ])}
+                    {renderSection(
+                      identifier.displayName &&
+                        identifier.displayName.toLowerCase() !== identifier.identifier.toLowerCase()
+                        ? `${identifier.displayName} (${identifier.identifier})`
+                        : identifier.displayName || identifier.identifier,
+                      [formatIdentifierDetails(identifier)],
+                    )}
                   </StackItem>
                 ))}
             </>

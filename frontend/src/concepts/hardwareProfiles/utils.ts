@@ -65,7 +65,7 @@ export const formatIdentifierDetails = (identifier: Identifier): string => {
     identifier.maxCount === undefined
       ? 'unrestricted'
       : formatResourceValue(identifier.maxCount, identifier.resourceType).toString();
-  return `${identifier.identifier}: Default = ${defaultVal} | Min = ${minVal} | Max = ${maxVal}`;
+  return `Default = ${defaultVal} | Min = ${minVal} | Max = ${maxVal}`;
 };
 
 /**
