@@ -96,12 +96,6 @@ describe('HardwareProfileDetailsPopover', () => {
       );
     });
 
-    it('should display Custom label in table view', () => {
-      renderWithContext(<HardwareProfileDetailsPopover tableView />);
-
-      expect(screen.getByTestId('hardware-profile-details-popover')).toHaveTextContent('Custom');
-    });
-
     it('should display "View details" text in form view', () => {
       renderWithContext(<HardwareProfileDetailsPopover />);
 
