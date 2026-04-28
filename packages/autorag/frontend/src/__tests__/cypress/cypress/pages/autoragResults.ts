@@ -32,16 +32,16 @@ class AutoragResultsPage {
 
   findManageColumnsDescription() {
     return cy
-      .findByRole('dialog')
-      .findByText('Selected categories will be displayed in the table.');
+      .get('[role="dialog"]')
+      .contains('Selected categories will be displayed in the table.');
   }
 
   findColumnCheck(column: string) {
-    return cy.findByTestId(`column-check-${column}`);
+    return cy.get(`[data-testid="column-check-${column}"]`);
   }
 
   findManageColumnsSaveButton() {
-    return cy.findByRole('dialog').findByRole('button', { name: 'Save' });
+    return cy.get('[role="dialog"]').contains('button', 'Save');
   }
 
   // Pattern links
@@ -63,7 +63,9 @@ class AutoragResultsPage {
   }
 
   findPatternSelectorOption(name: string) {
-    return cy.findByRole('menuitem', { name: new RegExp(name) });
+    // formatPatternName inserts \u00a0 between prefix and trailing digits
+    const pattern = name.replace(/(\D)(\d)/, '$1.?$2');
+    return cy.get('[role="menuitem"]').contains(new RegExp(pattern));
   }
 
   findTab(tabKey: string) {

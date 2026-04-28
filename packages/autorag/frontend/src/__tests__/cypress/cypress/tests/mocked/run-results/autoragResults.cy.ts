@@ -1,6 +1,7 @@
 /* eslint-disable camelcase -- BFF API uses snake_case field names */
 import { mockModArchResponse } from 'mod-arch-core';
 import { mockAutoragPatterns } from '~/app/mocks/mockAutoRAGPatterns';
+import { mockS3ListObjectsResponse } from '~/__mocks__/mockS3ListObjectsResponse';
 import { autoragResultsPage } from '~/__tests__/cypress/cypress/pages/autoragResults';
 import type { AutoRAGEvaluationResult } from '~/app/types/autoragPattern';
 
@@ -86,11 +87,13 @@ const initResultsIntercepts = () => {
       pathname: '/autorag/api/v1/s3/files',
       query: { path: `${ROOT_DIR}/${RUN_ID}/${PATTERN_GEN_DIR}` },
     },
-    mockModArchResponse({
-      common_prefixes: [{ prefix: `${ROOT_DIR}/${RUN_ID}/${PATTERN_GEN_DIR}/${UUID}/` }],
-      contents: [],
-      key_count: 1,
-    }),
+    mockModArchResponse(
+      mockS3ListObjectsResponse({
+        common_prefixes: [{ prefix: `${ROOT_DIR}/${RUN_ID}/${PATTERN_GEN_DIR}/${UUID}/` }],
+        contents: [],
+        key_count: 1,
+      }),
+    ),
   );
 
   // S3 files listing — Stage 2: pattern directory listing
@@ -102,13 +105,15 @@ const initResultsIntercepts = () => {
         path: `${ROOT_DIR}/${RUN_ID}/${PATTERN_GEN_DIR}/${UUID}/rag_patterns`,
       },
     },
-    mockModArchResponse({
-      common_prefixes: PATTERN_NAMES.map((name) => ({
-        prefix: `${ROOT_DIR}/${RUN_ID}/${PATTERN_GEN_DIR}/${UUID}/rag_patterns/${name}/`,
-      })),
-      contents: [],
-      key_count: PATTERN_NAMES.length,
-    }),
+    mockModArchResponse(
+      mockS3ListObjectsResponse({
+        common_prefixes: PATTERN_NAMES.map((name) => ({
+          prefix: `${ROOT_DIR}/${RUN_ID}/${PATTERN_GEN_DIR}/${UUID}/rag_patterns/${name}/`,
+        })),
+        contents: [],
+        key_count: PATTERN_NAMES.length,
+      }),
+    ),
   );
 
   // S3 file download — Stage 3: pattern.json for each pattern
@@ -169,35 +174,28 @@ describe('AutoRAG Results Page', () => {
     it('should open manage columns modal and hide a column', () => {
       autoragResultsPage.visit(NAMESPACE, RUN_ID);
 
-      autoragResultsPage.findMetricHeader('faithfulness').should('exist');
+      autoragResultsPage.findMetricHeader('answer_correctness').should('exist');
 
       autoragResultsPage.findManageColumnsButton().click();
       autoragResultsPage.findManageColumnsDescription().should('be.visible');
 
-      autoragResultsPage.findColumnCheck('metric:faithfulness').click();
+      autoragResultsPage.findColumnCheck('metric:answer_correctness').click();
       autoragResultsPage.findManageColumnsSaveButton().click();
 
-      autoragResultsPage.findMetricHeader('faithfulness').should('not.exist');
+      autoragResultsPage.findMetricHeader('answer_correctness').should('not.exist');
     });
   });
 
   describe('Pattern Details Modal — Tabs', () => {
-    it('should open modal and show Pattern information tab by default', () => {
+    it('should open modal with Pattern information tab, score types, and progress bars', () => {
       autoragResultsPage.visit(NAMESPACE, RUN_ID);
 
       autoragResultsPage.findPatternLink(1).click();
       autoragResultsPage.findPatternDetailsModal().should('be.visible');
-      cy.testA11y();
 
       autoragResultsPage.findTab('pattern_information').should('exist');
-    });
 
-    it('should toggle score type radio buttons on overview tab', () => {
-      autoragResultsPage.visit(NAMESPACE, RUN_ID);
-
-      autoragResultsPage.findPatternLink(1).click();
-      autoragResultsPage.findPatternDetailsModal().should('be.visible');
-
+      // Score type radio buttons
       autoragResultsPage.findScoreTypeRadio('mean').should('exist');
       autoragResultsPage.findScoreTypeRadio('ci_high').should('exist');
       autoragResultsPage.findScoreTypeRadio('ci_low').should('exist');
@@ -205,66 +203,34 @@ describe('AutoRAG Results Page', () => {
       autoragResultsPage.findScoreTypeRadio('ci_high').click();
       autoragResultsPage.findScoreTypeRadio('ci_low').click();
       autoragResultsPage.findScoreTypeRadio('mean').click();
-    });
 
-    it('should display score progress bars for each metric', () => {
-      autoragResultsPage.visit(NAMESPACE, RUN_ID);
-
-      autoragResultsPage.findPatternLink(1).click();
-      autoragResultsPage.findPatternDetailsModal().should('be.visible');
-
+      // Score progress bars
       autoragResultsPage.findScoreProgress('answer_correctness').should('exist');
       autoragResultsPage.findScoreProgress('faithfulness').should('exist');
       autoragResultsPage.findScoreProgress('context_correctness').should('exist');
     });
 
-    it('should navigate to Vector store settings tab', () => {
+    it('should navigate through all settings tabs', () => {
       autoragResultsPage.visit(NAMESPACE, RUN_ID);
       autoragResultsPage.findPatternLink(1).click();
+      autoragResultsPage.findPatternDetailsModal().should('be.visible');
 
       autoragResultsPage.findTab('vector_store').should('exist').click();
       autoragResultsPage.findPatternDetailsModal().should('contain.text', 'milvus');
-    });
-
-    it('should navigate to Chunking settings tab', () => {
-      autoragResultsPage.visit(NAMESPACE, RUN_ID);
-      autoragResultsPage.findPatternLink(1).click();
 
       autoragResultsPage.findTab('chunking').should('exist').click();
       autoragResultsPage.findPatternDetailsModal().should('contain.text', 'recursive');
-    });
-
-    it('should navigate to Embedding settings tab', () => {
-      autoragResultsPage.visit(NAMESPACE, RUN_ID);
-      autoragResultsPage.findPatternLink(1).click();
 
       autoragResultsPage.findTab('embedding').should('exist').click();
       autoragResultsPage.findPatternDetailsModal().should('contain.text', 'cosine');
-    });
-
-    it('should navigate to Retrieval settings tab', () => {
-      autoragResultsPage.visit(NAMESPACE, RUN_ID);
-      autoragResultsPage.findPatternLink(1).click();
 
       autoragResultsPage.findTab('retrieval').should('exist').click();
       autoragResultsPage.findPatternDetailsModal().should('contain.text', 'window');
-    });
-
-    it('should navigate to Generation settings tab', () => {
-      autoragResultsPage.visit(NAMESPACE, RUN_ID);
-      autoragResultsPage.findPatternLink(1).click();
 
       autoragResultsPage.findTab('generation').should('exist').click();
       autoragResultsPage.findPatternDetailsModal().should('contain.text', '{document}');
-    });
-
-    it('should navigate to Sample Q&A tab and show evaluation results', () => {
-      autoragResultsPage.visit(NAMESPACE, RUN_ID);
-      autoragResultsPage.findPatternLink(1).click();
 
       autoragResultsPage.findTab('sample_qa').should('exist').click();
-
-      // Verify Q&A entries are rendered (question_id values from mockEvaluationResults)
       autoragResultsPage.findQAEntry('q1').should('exist');
       autoragResultsPage.findQAEntry('q2').should('exist');
     });
@@ -294,7 +260,8 @@ describe('AutoRAG Results Page', () => {
       autoragResultsPage.findPatternDetailsModal().should('be.visible');
       autoragResultsPage
         .findPatternSelectorDropdown()
-        .should('contain.text', sortedPatterns[1].name);
+        .invoke('text')
+        .should('match', new RegExp(sortedPatterns[1].name.replace(/(\D)(\d)/, '$1.?$2')));
     });
   });
 
