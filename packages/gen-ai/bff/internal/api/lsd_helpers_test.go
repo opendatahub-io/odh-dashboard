@@ -174,6 +174,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		expectedStatusCode      int
 		expectedMessageContains string
 		expectedRetriable       bool
+		expectedToolName        string
 	}{
 		{
 			name:                    "bad request with invalid parameter",
@@ -265,6 +266,39 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			expectedMessageContains: "content blocked by guardrails",
 			expectedRetriable:       false,
 		},
+		{
+			name:                    "MCP tool error with tool name",
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "tool invocation failed", "tool_error", "tool_error", "github-search", 500),
+			statusCode:              http.StatusInternalServerError,
+			expectedComponent:       "mcp",
+			expectedCode:            "unreachable",
+			expectedStatusCode:      http.StatusInternalServerError,
+			expectedMessageContains: "tool invocation failed",
+			expectedRetriable:       true,
+			expectedToolName:        "github-search",
+		},
+		{
+			name:                    "MCP tool not found with tool name",
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "tool not found", "invalid_request_error", "tool_not_found", "weather-api", 400),
+			statusCode:              http.StatusBadRequest,
+			expectedComponent:       "mcp",
+			expectedCode:            "unreachable",
+			expectedStatusCode:      http.StatusBadRequest,
+			expectedMessageContains: "tool not found",
+			expectedRetriable:       true,
+			expectedToolName:        "weather-api",
+		},
+		{
+			name:                    "MCP error without tool name",
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "mcp server error", "mcp_error", "mcp_error", "", 500),
+			statusCode:              http.StatusInternalServerError,
+			expectedComponent:       "mcp",
+			expectedCode:            "unreachable",
+			expectedStatusCode:      http.StatusInternalServerError,
+			expectedMessageContains: "mcp server error",
+			expectedRetriable:       true,
+			expectedToolName:        "",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -275,8 +309,13 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			assert.NotNil(t, frontendErr.Error)
 			assert.Equal(t, tc.expectedComponent, frontendErr.Error.Component)
 			assert.Equal(t, tc.expectedCode, frontendErr.Error.Code)
-			assert.Contains(t, frontendErr.Message, tc.expectedMessageContains)
+			assert.Contains(t, frontendErr.Error.Message, tc.expectedMessageContains)
 			assert.Equal(t, tc.expectedRetriable, frontendErr.Error.Retriable)
+
+			// For MCP errors, verify tool name is populated from Param field
+			if tc.expectedComponent == "mcp" {
+				assert.Equal(t, tc.expectedToolName, frontendErr.Error.ToolName)
+			}
 		})
 	}
 }

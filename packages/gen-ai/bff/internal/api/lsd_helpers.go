@@ -107,12 +107,19 @@ func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaS
 		statusCode = http.StatusServiceUnavailable
 	}
 
+	// Extract tool name for MCP errors (tool name is in Param field)
+	toolName := ""
+	if component == "mcp" && lsErr.Param != "" {
+		toolName = lsErr.Param
+	}
+
 	return &integrations.FrontendErrorResponse{
-		Status:  statusCode,
-		Message: enhancedErr.Message, // Use actual OpenAI error message
+		Status: statusCode,
 		Error: &integrations.ErrorDetail{
 			Component: component,
 			Code:      code,
+			Message:   enhancedErr.Message,
+			ToolName:  toolName,
 			Retriable: retriable,
 		},
 	}
