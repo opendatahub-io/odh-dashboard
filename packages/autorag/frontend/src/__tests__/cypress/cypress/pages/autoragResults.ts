@@ -31,17 +31,15 @@ class AutoragResultsPage {
   }
 
   findManageColumnsDescription() {
-    return cy
-      .get('[role="dialog"]')
-      .contains('Selected categories will be displayed in the table.');
+    return cy.findByRole('dialog').contains('Selected categories will be displayed in the table.');
   }
 
   findColumnCheck(column: string) {
-    return cy.get(`[data-testid="column-check-${column}"]`);
+    return cy.findByTestId(`column-check-${column}`);
   }
 
   findManageColumnsSaveButton() {
-    return cy.get('[role="dialog"]').contains('button', 'Save');
+    return cy.findByRole('dialog').findByRole('button', { name: 'Save' });
   }
 
   // Pattern links

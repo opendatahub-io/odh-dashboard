@@ -1,5 +1,6 @@
 import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { createLlamaStackSecret } from '../../../utils/oc_commands/llamaStackSecret';
@@ -39,6 +40,7 @@ describe('AutoRAG Experiments List and Run Management E2E', { testIsolation: fal
   );
 
   after(() => {
+    deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
