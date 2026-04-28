@@ -6,6 +6,7 @@ import type { PipelineRun, S3CommonPrefix } from '~/app/types';
 
 type UseAutoragResultsReturn = {
   patterns: Record<string, AutoragPattern>;
+  failedPatterns: string[];
   isLoading: boolean;
   isError: boolean;
   error: Error | undefined;
@@ -337,6 +338,7 @@ export function useAutoragResults(
 
   return {
     patterns,
+    failedPatterns: patternQueries.failedPatterns,
     isLoading:
       isTemplatesOptimizationLoading ||
       isTemplatesOptimizationFetching ||

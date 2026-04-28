@@ -271,6 +271,7 @@ describe('AutoragResultsPage', () => {
 
     mockUseAutoragResults.mockReturnValue({
       patterns: {},
+      failedPatterns: [],
       isLoading: false,
       isError: false,
       error: undefined,
@@ -337,6 +338,7 @@ describe('AutoragResultsPage', () => {
 
       mockUseAutoragResults.mockReturnValue({
         patterns: mockPatterns,
+        failedPatterns: [],
         isLoading: false,
         isError: false,
       });
@@ -413,6 +415,7 @@ describe('AutoragResultsPage', () => {
 
       mockUseAutoragResults.mockReturnValue({
         patterns: {},
+        failedPatterns: [],
         isLoading: true,
         isError: false,
       });
@@ -437,6 +440,7 @@ describe('AutoragResultsPage', () => {
 
       mockUseAutoragResults.mockReturnValue({
         patterns: mockPatterns,
+        failedPatterns: [],
         isLoading: false,
         isError: false,
       });
@@ -461,6 +465,7 @@ describe('AutoragResultsPage', () => {
 
       mockUseAutoragResults.mockReturnValue({
         patterns: {},
+        failedPatterns: [],
         isLoading: false,
         isError: false,
       });
@@ -850,6 +855,72 @@ describe('AutoragResultsPage', () => {
       );
     });
 
+    it('should trigger warning notification when some patterns fail to load', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseAutoragResults.mockReturnValue({
+        patterns: mockPatterns,
+        failedPatterns: ['BrokenPattern1', 'BrokenPattern2'],
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      renderPage();
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+      expect(mockNotification.warning).toHaveBeenCalledWith(
+        '2 of 4 patterns could not be loaded',
+        'The following patterns failed to load: BrokenPattern1, BrokenPattern2',
+      );
+    });
+
+    it('should only trigger failed patterns notification once across re-renders', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseAutoragResults.mockReturnValue({
+        patterns: mockPatterns,
+        failedPatterns: ['BrokenPattern1'],
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      const { rerender } = render(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <AutoragResultsPage />
+        </QueryClientProvider>,
+      );
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+
+      rerender(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <AutoragResultsPage />
+        </QueryClientProvider>,
+      );
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+    });
+
     it('should pass patternsError, patternsLoadError, and onRetryPatterns through context', () => {
       const mockPipelineRun = createMockPipelineRun();
       const mockRefetch = jest.fn();
@@ -864,6 +935,7 @@ describe('AutoragResultsPage', () => {
 
       mockUseAutoragResults.mockReturnValue({
         patterns: {},
+        failedPatterns: [],
         isLoading: false,
         isError: true,
         error: new Error('Failed to list RAG patterns directory'),

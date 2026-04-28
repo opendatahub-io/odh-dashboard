@@ -79,12 +79,25 @@ function AutoragResultsPage(): React.JSX.Element {
   // Fetch and process AutoRAG results using custom hook
   const {
     patterns,
+    failedPatterns,
     isLoading: patternsLoading,
     isError: patternsError,
     error: patternsLoadError,
     refetch: refetchPatterns,
     ragPatternsBasePath,
   } = useAutoragResults(runId, namespace, pipelineRun);
+
+  const failedPatternsNotified = React.useRef(false);
+  React.useEffect(() => {
+    if (failedPatterns.length > 0 && !failedPatternsNotified.current) {
+      failedPatternsNotified.current = true;
+      const total = failedPatterns.length + Object.keys(patterns).length;
+      notification.warning(
+        `${failedPatterns.length} of ${total} patterns could not be loaded`,
+        `The following patterns failed to load: ${failedPatterns.join(', ')}`,
+      );
+    }
+  }, [failedPatterns, patterns, notification]);
 
   const runTerminatable = isRunTerminatable(pipelineRun?.state);
   const runRetryable = isRunRetryable(pipelineRun?.state);

@@ -13,6 +13,7 @@ import { isTabularRun } from '~/app/utilities/utils';
 
 type UseAutomlResultsReturn = {
   models: Record<string, AutomlModel>;
+  failedModels: string[];
   isLoading: boolean;
   isError: boolean;
   error: Error | undefined;
@@ -306,6 +307,7 @@ export function useAutomlResults(
 
   return {
     models,
+    failedModels: modelQueries.failedModels,
     isLoading:
       isS3Loading || isS3Fetching || modelArtifactQueries.isPending || modelQueries.isPending,
     isError: hasError,

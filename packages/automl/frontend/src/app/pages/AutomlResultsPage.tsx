@@ -79,11 +79,24 @@ function AutomlResultsPage(): React.JSX.Element {
   // Fetch and process AutoML results using custom hook
   const {
     models,
+    failedModels,
     isLoading: modelsLoading,
     isError: modelsError,
     error: modelsLoadError,
     refetch: refetchModels,
   } = useAutomlResults(runId, namespace, pipelineRun);
+
+  const failedModelsNotified = React.useRef(false);
+  React.useEffect(() => {
+    if (failedModels.length > 0 && !failedModelsNotified.current) {
+      failedModelsNotified.current = true;
+      const total = failedModels.length + Object.keys(models).length;
+      notification.warning(
+        `${failedModels.length} of ${total} models could not be loaded`,
+        `The following models failed to load: ${failedModels.join(', ')}`,
+      );
+    }
+  }, [failedModels, models, notification]);
 
   const runTerminatable = isRunTerminatable(pipelineRun?.state);
   const runRetryable = isRunRetryable(pipelineRun?.state);

@@ -230,6 +230,7 @@ describe('AutomlResultsPage', () => {
 
     mockUseAutomlResults.mockReturnValue({
       models: {},
+      failedModels: [],
       isLoading: false,
       isError: false,
       error: undefined,
@@ -290,6 +291,7 @@ describe('AutomlResultsPage', () => {
 
       mockUseAutomlResults.mockReturnValue({
         models: mockModels,
+        failedModels: [],
         isLoading: false,
         isError: false,
       });
@@ -360,6 +362,7 @@ describe('AutomlResultsPage', () => {
 
       mockUseAutomlResults.mockReturnValue({
         models: {},
+        failedModels: [],
         isLoading: true,
         isError: false,
       });
@@ -438,6 +441,7 @@ describe('AutomlResultsPage', () => {
 
       mockUseAutomlResults.mockReturnValue({
         models: {},
+        failedModels: [],
         isLoading: false,
         isError: false,
       });
@@ -947,6 +951,73 @@ describe('AutomlResultsPage', () => {
       );
     });
 
+    it('should trigger warning notification when some models fail to load', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseAutomlResults.mockReturnValue({
+        models: mockModels,
+        failedModels: ['BrokenModel_L1', 'BrokenModel_L2'],
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      renderPage();
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+      expect(mockNotification.warning).toHaveBeenCalledWith(
+        '2 of 4 models could not be loaded',
+        'The following models failed to load: BrokenModel_L1, BrokenModel_L2',
+      );
+    });
+
+    it('should only trigger failed models notification once across re-renders', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      const failedModels = ['BrokenModel_L1'];
+      mockUseAutomlResults.mockReturnValue({
+        models: mockModels,
+        failedModels,
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      const { rerender } = render(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <AutomlResultsPage />
+        </QueryClientProvider>,
+      );
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+
+      rerender(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <AutomlResultsPage />
+        </QueryClientProvider>,
+      );
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+    });
+
     it('should pass modelsError, modelsLoadError, and onRetryModels through context', () => {
       const mockPipelineRun = createMockPipelineRun();
       const mockRefetch = jest.fn();
@@ -961,6 +1032,7 @@ describe('AutomlResultsPage', () => {
 
       mockUseAutomlResults.mockReturnValue({
         models: {},
+        failedModels: [],
         isLoading: false,
         isError: true,
         error: new Error('Failed to list model directories'),
