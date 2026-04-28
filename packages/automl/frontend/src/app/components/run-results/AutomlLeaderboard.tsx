@@ -146,7 +146,7 @@ const COLUMN_META: Record<string, ColumnMeta> = {
     name: 'Mean Squared Error (MSE)',
     acronym: formatMetricName('mean_squared_error'),
     description:
-      'Measures the average squared difference between the estimated values and what is estimated.',
+      'Measures the average squared difference between the actual and predicted values.',
   },
   // Timeseries → "RMSE"; regression → "root_mean_squared_error". See RHOAIENG-59989.
   'metric:rmse': {
