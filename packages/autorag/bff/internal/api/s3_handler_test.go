@@ -2015,11 +2015,9 @@ func TestPreserveRawPath_S3KeyDecoding(t *testing.T) {
 			expectedKey: "path/to/deep/file.txt",
 		},
 		{
-			// Go's url.Parse decodes %25→% so RawPath is empty; preserveRawPath
-			// is a no-op and the key is decoded the same as a single-encoded slash.
-			name:        "double-encoded %252F collapses to slash (Go URL parser limitation)",
+			name:        "double-encoded %252F preserves literal percent-2F",
 			encodedKey:  "docs%252Ffile.pdf",
-			expectedKey: "docs/file.pdf",
+			expectedKey: "docs%2Ffile.pdf",
 		},
 	}
 
