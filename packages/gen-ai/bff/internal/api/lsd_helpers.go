@@ -109,11 +109,10 @@ func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaS
 
 	return &integrations.FrontendErrorResponse{
 		Status:  statusCode,
-		Message: enhancedErr.UserFriendlyMsg,
+		Message: enhancedErr.Message, // Use actual OpenAI error message
 		Error: &integrations.ErrorDetail{
 			Component: component,
 			Code:      code,
-			Message:   enhancedErr.Message, // Original error message
 			Retriable: retriable,
 		},
 	}
