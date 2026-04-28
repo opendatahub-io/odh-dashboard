@@ -22,43 +22,62 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 		name                 string
 		inputError           error
 		expectedStatusCode   int
-		expectedBodyContains string
+		expectedBodyContains []string
 	}{
 		{
-			name:                 "LlamaStackError with InvalidRequest code - input required",
-			inputError:           llamastack.NewInvalidRequestError("input is required"),
-			expectedStatusCode:   http.StatusBadRequest,
-			expectedBodyContains: "invalid_parameter",
+			name:               "LlamaStackError with InvalidRequest code - input required",
+			inputError:         llamastack.NewInvalidRequestError("input is required"),
+			expectedStatusCode: http.StatusBadRequest,
+			expectedBodyContains: []string{
+				`"component": "model"`,
+				`"code": "invalid_parameter"`,
+				`"retriable": false`,
+			},
 		},
 		{
-			name:                 "LlamaStackError with InvalidRequest code - parameter error",
-			inputError:           llamastack.NewInvalidRequestError("temperature invalid"),
-			expectedStatusCode:   http.StatusBadRequest,
-			expectedBodyContains: "invalid_parameter",
+			name:               "LlamaStackError with InvalidRequest code - parameter error",
+			inputError:         llamastack.NewInvalidRequestError("temperature invalid"),
+			expectedStatusCode: http.StatusBadRequest,
+			expectedBodyContains: []string{
+				`"component": "model"`,
+				`"code": "invalid_parameter"`,
+			},
 		},
 		{
-			name:                 "LlamaStackError with Unauthorized code",
-			inputError:           llamastack.NewUnauthorizedError("invalid token"),
-			expectedStatusCode:   http.StatusUnauthorized,
-			expectedBodyContains: "unauthorized",
+			name:               "LlamaStackError with Unauthorized code",
+			inputError:         llamastack.NewUnauthorizedError("invalid token"),
+			expectedStatusCode: http.StatusUnauthorized,
+			expectedBodyContains: []string{
+				`"component": "llama_stack"`,
+				`"code": "server_error"`,
+				`"retriable": true`,
+			},
 		},
 		{
-			name:                 "LlamaStackError with NotFound code",
-			inputError:           llamastack.NewNotFoundError("resource not found"),
-			expectedStatusCode:   http.StatusNotFound,
-			expectedBodyContains: "not_found",
+			name:               "LlamaStackError with NotFound code",
+			inputError:         llamastack.NewNotFoundError("resource not found"),
+			expectedStatusCode: http.StatusNotFound,
+			expectedBodyContains: []string{
+				`"component": "llama_stack"`,
+				`"code": "server_error"`,
+			},
 		},
 		{
-			name:                 "LlamaStackError with ConnectionFailed code",
-			inputError:           llamastack.NewConnectionError("connection refused"),
-			expectedStatusCode:   http.StatusBadGateway,
-			expectedBodyContains: "bad_gateway",
+			name:               "LlamaStackError with ConnectionFailed code",
+			inputError:         llamastack.NewConnectionError("connection refused"),
+			expectedStatusCode: http.StatusBadGateway,
+			expectedBodyContains: []string{
+				`"component": "llama_stack"`,
+				`"code": "server_error"`,
+			},
 		},
 		{
-			name:                 "Generic error (not LlamaStackError)",
-			inputError:           errors.New("generic error message"),
-			expectedStatusCode:   http.StatusInternalServerError,
-			expectedBodyContains: "the server encountered a problem",
+			name:               "Generic error (not LlamaStackError)",
+			inputError:         errors.New("generic error message"),
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedBodyContains: []string{
+				"the server encountered a problem",
+			},
 		},
 	}
 
@@ -72,7 +91,9 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 
 			body := rr.Body.String()
-			assert.Contains(t, body, tc.expectedBodyContains)
+			for _, expected := range tc.expectedBodyContains {
+				assert.Contains(t, body, expected)
+			}
 		})
 	}
 }
@@ -133,7 +154,7 @@ func TestGetDefaultStatusCodeForLlamaStackClientError(t *testing.T) {
 	}
 }
 
-func TestMapLlamaStackClientErrorToHTTPError(t *testing.T) {
+func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	app := &App{
 		logger: logger,
@@ -143,115 +164,114 @@ func TestMapLlamaStackClientErrorToHTTPError(t *testing.T) {
 		name                    string
 		lsErr                   *llamastack.LlamaStackError
 		statusCode              int
+		expectedComponent       string
 		expectedCode            string
 		expectedStatusCode      int
 		expectedMessageContains string
+		expectedRetriable       bool
 	}{
 		{
-			name:                    "bad request with invalid parameter - uses category code",
+			name:                    "bad request with invalid parameter",
 			lsErr:                   llamastack.NewInvalidRequestError("temperature must be between 0.0 and 2.0"),
 			statusCode:              http.StatusBadRequest,
+			expectedComponent:       "model",
 			expectedCode:            "invalid_parameter",
 			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "parameters are invalid",
+			expectedRetriable:       false,
 		},
 		{
-			name:                    "bad request with token limit - uses category code",
-			lsErr:                   llamastack.NewInvalidRequestError("max_tokens exceeds limit"),
+			name:                    "bad request with token limit",
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "max_tokens exceeds limit", "invalid_request_error", "invalid_request_error", "", http.StatusBadRequest),
 			statusCode:              http.StatusBadRequest,
+			expectedComponent:       "model",
 			expectedCode:            "invalid_model_config",
 			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "configuration is invalid",
+			expectedRetriable:       false,
 		},
 		{
-			name:                    "bad request with generic error - uses generic category",
-			lsErr:                   llamastack.NewInvalidRequestError("some generic error"),
-			statusCode:              http.StatusBadRequest,
-			expectedCode:            "generic_error",
-			expectedStatusCode:      http.StatusBadRequest,
-			expectedMessageContains: "unexpected error occurred",
-		},
-		{
-			name:                    "unauthorized error - uses hardcoded code",
+			name:                    "unauthorized error",
 			lsErr:                   llamastack.NewUnauthorizedError("invalid token"),
 			statusCode:              http.StatusUnauthorized,
-			expectedCode:            "unauthorized",
+			expectedComponent:       "llama_stack",
+			expectedCode:            "server_error",
 			expectedStatusCode:      http.StatusUnauthorized,
 			expectedMessageContains: "session is invalid",
+			expectedRetriable:       true,
 		},
 		{
-			name:                    "not found error - uses hardcoded code",
+			name:                    "not found error",
 			lsErr:                   llamastack.NewNotFoundError("resource not found"),
 			statusCode:              http.StatusNotFound,
-			expectedCode:            "not_found",
+			expectedComponent:       "llama_stack",
+			expectedCode:            "server_error",
 			expectedStatusCode:      http.StatusNotFound,
 			expectedMessageContains: "requested resource was not found",
+			expectedRetriable:       true,
 		},
 		{
-			name:                    "connection error - uses hardcoded code",
+			name:                    "connection error",
 			lsErr:                   llamastack.NewConnectionError("connection refused"),
 			statusCode:              http.StatusBadGateway,
-			expectedCode:            "bad_gateway",
+			expectedComponent:       "llama_stack",
+			expectedCode:            "server_error",
 			expectedStatusCode:      http.StatusBadGateway,
 			expectedMessageContains: "Unable to connect",
+			expectedRetriable:       true,
 		},
 		{
-			name:                    "service unavailable - uses hardcoded code",
-			lsErr:                   llamastack.NewLlamaStackError(llamastack.ErrCodeServerUnavailable, "service down", 503),
-			statusCode:              http.StatusServiceUnavailable,
-			expectedCode:            "service_unavailable",
-			expectedStatusCode:      http.StatusServiceUnavailable,
-			expectedMessageContains: "temporarily unavailable",
-		},
-		{
-			name:                    "internal server error with timeout - overrides to 503",
-			lsErr:                   llamastack.NewLlamaStackError(llamastack.ErrCodeInternalError, "request timed out", 500),
-			statusCode:              http.StatusInternalServerError,
-			expectedCode:            "model_timeout",
+			name:                    "timeout error - overrides to 503",
+			lsErr:                   llamastack.NewLlamaStackError(llamastack.ErrCodeTimeout, "request timed out", 504),
+			statusCode:              http.StatusGatewayTimeout,
+			expectedComponent:       "llama_stack",
+			expectedCode:            "timeout",
 			expectedStatusCode:      http.StatusServiceUnavailable,
 			expectedMessageContains: "timed out",
+			expectedRetriable:       true,
 		},
 		{
-			name:                    "internal server error with overload - overrides to 503",
-			lsErr:                   llamastack.NewLlamaStackError(llamastack.ErrCodeInternalError, "model is currently overloaded", 500),
-			statusCode:              http.StatusInternalServerError,
-			expectedCode:            "model_overloaded",
+			name:                    "overload error - overrides to 503",
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "model is currently overloaded", "rate_limit_error", "rate_limit_exceeded", "", 429),
+			statusCode:              http.StatusTooManyRequests,
+			expectedComponent:       "llama_stack",
+			expectedCode:            "rate_limit",
 			expectedStatusCode:      http.StatusServiceUnavailable,
 			expectedMessageContains: "overloaded",
+			expectedRetriable:       true,
 		},
 		{
-			name:                    "internal server error generic - uses category code",
-			lsErr:                   llamastack.NewLlamaStackError(llamastack.ErrCodeInternalError, "internal error", 500),
-			statusCode:              http.StatusInternalServerError,
-			expectedCode:            "generic_error",
-			expectedStatusCode:      http.StatusInternalServerError,
-			expectedMessageContains: "unexpected error occurred",
-		},
-		{
-			name:                    "unknown status code with RAG error - uses category code",
-			lsErr:                   llamastack.NewLlamaStackError("CUSTOM_ERROR", "vector store not found", 418),
-			statusCode:              http.StatusTeapot,
-			expectedCode:            "rag_vector_store_not_found",
-			expectedStatusCode:      http.StatusTeapot,
+			name:                    "RAG vector store not found",
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "vector store 'vs_123' not found", "invalid_request_error", "resource_not_found", "", http.StatusBadRequest),
+			statusCode:              http.StatusBadRequest,
+			expectedComponent:       "rag",
+			expectedCode:            "not_found",
+			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "vector store",
+			expectedRetriable:       false,
 		},
 		{
-			name:                    "unknown status code with guardrails violation - uses category code",
-			lsErr:                   llamastack.NewLlamaStackError("CUSTOM_ERROR", "content blocked by guardrails", 418),
-			statusCode:              http.StatusTeapot,
-			expectedCode:            "guardrails_violation",
-			expectedStatusCode:      http.StatusTeapot,
+			name:                    "guardrails violation",
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails("CUSTOM_ERROR", "content blocked by guardrails", "", "content_policy_violation", "", 400),
+			statusCode:              http.StatusBadRequest,
+			expectedComponent:       "guardrails",
+			expectedCode:            "content_blocked",
+			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "blocked by guardrails",
+			expectedRetriable:       false,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			httpError := app.mapLlamaStackClientErrorToHTTPError(tc.lsErr, tc.statusCode)
+			frontendErr := app.mapLlamaStackClientErrorToFrontendError(tc.lsErr, tc.statusCode)
 
-			assert.Equal(t, tc.expectedStatusCode, httpError.StatusCode)
-			assert.Equal(t, tc.expectedCode, httpError.Code)
-			assert.Contains(t, httpError.Message, tc.expectedMessageContains)
+			assert.Equal(t, tc.expectedStatusCode, frontendErr.Status)
+			assert.NotNil(t, frontendErr.Error)
+			assert.Equal(t, tc.expectedComponent, frontendErr.Error.Component)
+			assert.Equal(t, tc.expectedCode, frontendErr.Error.Code)
+			assert.Contains(t, frontendErr.Message, tc.expectedMessageContains)
+			assert.Equal(t, tc.expectedRetriable, frontendErr.Error.Retriable)
 		})
 	}
 }
@@ -275,8 +295,10 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		body := rr.Body.String()
 
 		// "input is required" should be categorized as invalid_parameter
+		assert.Contains(t, body, `"component": "model"`)
 		assert.Contains(t, body, `"code": "invalid_parameter"`)
 		assert.Contains(t, body, "parameters are invalid")
+		assert.Contains(t, body, `"retriable": false`)
 	})
 
 	t.Run("should handle LlamaStackError with parameter validation error", func(t *testing.T) {
@@ -289,6 +311,7 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		// Temperature error gets invalid_parameter category
+		assert.Contains(t, rr.Body.String(), `"component": "model"`)
 		assert.Contains(t, rr.Body.String(), `"code": "invalid_parameter"`)
 		assert.Contains(t, rr.Body.String(), "parameters are invalid")
 	})
@@ -302,9 +325,11 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		app.handleLlamaStackClientError(rr, req, lsErr)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
-		assert.Contains(t, rr.Body.String(), `"code": "not_found"`)
+		assert.Contains(t, rr.Body.String(), `"component": "llama_stack"`)
+		assert.Contains(t, rr.Body.String(), `"code": "server_error"`)
 		// Not found errors get code-specific message
 		assert.Contains(t, rr.Body.String(), "requested resource was not found")
+		assert.Contains(t, rr.Body.String(), `"retriable": true`)
 	})
 
 	t.Run("should fall back to serverErrorResponse for unknown error type", func(t *testing.T) {
@@ -323,25 +348,29 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		rr := httptest.NewRecorder()
 
-		lsErr := llamastack.NewInvalidRequestError("vector store 'vs_123' not found")
+		lsErr := llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "vector store 'vs_123' not found", "invalid_request_error", "resource_not_found", "", http.StatusBadRequest)
 
 		app.handleLlamaStackClientError(rr, req, lsErr)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), `"code": "rag_vector_store_not_found"`)
+		assert.Contains(t, rr.Body.String(), `"component": "rag"`)
+		assert.Contains(t, rr.Body.String(), `"code": "not_found"`)
 		assert.Contains(t, rr.Body.String(), "vector store")
+		assert.Contains(t, rr.Body.String(), `"retriable": false`)
 	})
 
 	t.Run("should categorize timeout errors correctly and override to 503", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		rr := httptest.NewRecorder()
 
-		lsErr := llamastack.NewLlamaStackError(llamastack.ErrCodeInternalError, "request timed out", 500)
+		lsErr := llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "request timed out", "server_error", "timeout", "", 500)
 
 		app.handleLlamaStackClientError(rr, req, lsErr)
 
 		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
-		assert.Contains(t, rr.Body.String(), `"code": "model_timeout"`)
+		assert.Contains(t, rr.Body.String(), `"component": "llama_stack"`)
+		assert.Contains(t, rr.Body.String(), `"code": "timeout"`)
 		assert.Contains(t, rr.Body.String(), "timed out")
+		assert.Contains(t, rr.Body.String(), `"retriable": true`)
 	})
 }

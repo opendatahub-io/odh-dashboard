@@ -6,205 +6,158 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCategorizeResponseError(t *testing.T) {
+func TestCategorizeByErrorCode(t *testing.T) {
 	tests := []struct {
 		name             string
-		errorMessage     string
+		errorCode        string
+		errorType        string
+		message          string
+		statusCode       int
 		expectedCategory ResponseErrorCategory
 	}{
-		// Model configuration errors
+		// Rate limiting
 		{
-			name:             "max_tokens exceeded",
-			errorMessage:     "max_tokens value 10000 exceeds model maximum of 4096",
-			expectedCategory: CategoryInvalidModelConfig,
-		},
-		{
-			name:             "invalid max_tokens",
-			errorMessage:     "max_tokens invalid: must be greater than 0",
-			expectedCategory: CategoryInvalidModelConfig,
-		},
-		{
-			name:             "chat_template not found",
-			errorMessage:     "chat_template 'custom' not found for model llama-3.1-8b",
-			expectedCategory: CategoryInvalidModelConfig,
-		},
-		{
-			name:             "context length exceeded",
-			errorMessage:     "Input prompt too long: context length exceeded (8192 tokens max)",
-			expectedCategory: CategoryInvalidModelConfig,
-		},
-		{
-			name:             "sequence too long",
-			errorMessage:     "The sequence length is too long for the model: 12000 tokens",
-			expectedCategory: CategoryInvalidModelConfig,
-		},
-
-		// Unsupported features
-		{
-			name:             "tools not supported",
-			errorMessage:     "Model does not support tool calling",
-			expectedCategory: CategoryUnsupportedFeature,
-		},
-		{
-			name:             "images not supported",
-			errorMessage:     "This model does not support image inputs",
-			expectedCategory: CategoryUnsupportedFeature,
-		},
-		{
-			name:             "streaming not supported",
-			errorMessage:     "Streaming is not supported for this model",
-			expectedCategory: CategoryUnsupportedFeature,
-		},
-		{
-			name:             "function calling unavailable",
-			errorMessage:     "Function calling is not supported by this model",
-			expectedCategory: CategoryUnsupportedFeature,
-		},
-
-		// Invalid parameters
-		{
-			name:             "temperature out of range",
-			errorMessage:     "temperature must be between 0.0 and 2.0, got 3.5",
-			expectedCategory: CategoryInvalidParameter,
-		},
-		{
-			name:             "top_p invalid",
-			errorMessage:     "top_p out of range: must be between 0.0 and 1.0",
-			expectedCategory: CategoryInvalidParameter,
-		},
-
-		// RAG errors
-		{
-			name:             "vector store not found",
-			errorMessage:     "Vector store 'vs_abc123' not found",
-			expectedCategory: CategoryRAGVectorStoreNotFound,
-		},
-		{
-			name:             "vectorstore does not exist",
-			errorMessage:     "vectorstore does not exist: vs_test",
-			expectedCategory: CategoryRAGVectorStoreNotFound,
-		},
-		{
-			name:             "embedding error",
-			errorMessage:     "Embedding service failed: connection refused",
-			expectedCategory: CategoryRAGError,
-		},
-		{
-			name:             "vector search failed",
-			errorMessage:     "Vector search failed: timeout waiting for results",
-			expectedCategory: CategoryRAGError,
-		},
-		{
-			name:             "retrieval error",
-			errorMessage:     "Document retrieval failed: no documents found",
-			expectedCategory: CategoryRAGError,
-		},
-
-		// Guardrails errors
-		{
-			name:             "shield not found",
-			errorMessage:     "Shield 'custom_shield' not found",
-			expectedCategory: CategoryGuardrailsError,
-		},
-		{
-			name:             "guardrail error",
-			errorMessage:     "Guardrail processing failed: TrustyAI service unavailable",
-			expectedCategory: CategoryGuardrailsError,
-		},
-		{
-			name:             "content blocked",
-			errorMessage:     "Content blocked by guardrails: inappropriate language detected",
-			expectedCategory: CategoryGuardrailsViolation,
-		},
-		{
-			name:             "guardrail violation",
-			errorMessage:     "Input rejected due to guardrail violation",
-			expectedCategory: CategoryGuardrailsViolation,
-		},
-
-		// MCP errors
-		{
-			name:             "MCP tool not found",
-			errorMessage:     "MCP tool 'search_web' not found on server",
-			expectedCategory: CategoryMCPToolNotFound,
-		},
-		{
-			name:             "MCP authentication failed",
-			errorMessage:     "MCP authentication failed: invalid token",
-			expectedCategory: CategoryMCPAuthError,
-		},
-		{
-			name:             "tool authorization failed",
-			errorMessage:     "Tool authorization failed: insufficient permissions",
-			expectedCategory: CategoryMCPAuthError,
-		},
-		{
-			name:             "tool execution failed",
-			errorMessage:     "Tool execution failed: server returned error 500",
-			expectedCategory: CategoryMCPError,
-		},
-		{
-			name:             "MCP error generic",
-			errorMessage:     "MCP error: unable to connect to server",
-			expectedCategory: CategoryMCPError,
-		},
-
-		// Model invocation errors
-		{
-			name:             "request timeout",
-			errorMessage:     "Request timed out after 30 seconds",
-			expectedCategory: CategoryModelTimeout,
-		},
-		{
-			name:             "deadline exceeded",
-			errorMessage:     "Context deadline exceeded while waiting for response",
-			expectedCategory: CategoryModelTimeout,
-		},
-		{
-			name:             "model overloaded",
-			errorMessage:     "Model is currently overloaded, please try again later",
+			name:             "rate limit exceeded",
+			errorCode:        "rate_limit_exceeded",
+			errorType:        "rate_limit_error",
+			message:          "Rate limit exceeded for model",
+			statusCode:       429,
 			expectedCategory: CategoryModelOverloaded,
 		},
 		{
-			name:             "too many requests",
-			errorMessage:     "Too many requests: rate limit exceeded",
+			name:             "insufficient quota",
+			errorCode:        "insufficient_quota",
+			errorType:        "rate_limit_error",
+			message:          "You exceeded your quota",
+			statusCode:       429,
 			expectedCategory: CategoryModelOverloaded,
 		},
+
+		// Invalid requests
+		{
+			name:             "invalid request with max_tokens",
+			errorCode:        "invalid_request_error",
+			errorType:        "invalid_request_error",
+			message:          "max_tokens value exceeds limit",
+			statusCode:       400,
+			expectedCategory: CategoryInvalidModelConfig,
+		},
+		{
+			name:             "invalid request with tools",
+			errorCode:        "invalid_request_error",
+			errorType:        "invalid_request_error",
+			message:          "Model does not support tool calling",
+			statusCode:       400,
+			expectedCategory: CategoryUnsupportedFeature,
+		},
+		{
+			name:             "invalid parameter generic",
+			errorCode:        "invalid_parameter",
+			errorType:        "invalid_request_error",
+			message:          "temperature out of range",
+			statusCode:       400,
+			expectedCategory: CategoryInvalidParameter,
+		},
+
+		// Timeouts
+		{
+			name:             "timeout error",
+			errorCode:        "timeout",
+			errorType:        "server_error",
+			message:          "Request timed out",
+			statusCode:       504,
+			expectedCategory: CategoryModelTimeout,
+		},
+		{
+			name:             "gateway timeout",
+			errorCode:        "gateway_timeout",
+			errorType:        "server_error",
+			message:          "Gateway timeout",
+			statusCode:       504,
+			expectedCategory: CategoryModelTimeout,
+		},
+
+		// Model errors
+		{
+			name:             "model not found",
+			errorCode:        "model_not_found",
+			errorType:        "invalid_request_error",
+			message:          "Model 'llama-3' not found",
+			statusCode:       404,
+			expectedCategory: CategoryModelInvocationError,
+		},
+
+		// Vector store errors
+		{
+			name:             "vector store not found by code",
+			errorCode:        "vector_store_not_found",
+			errorType:        "resource_not_found",
+			message:          "Vector store not found",
+			statusCode:       404,
+			expectedCategory: CategoryRAGVectorStoreNotFound,
+		},
+		{
+			name:             "resource not found with vector in message",
+			errorCode:        "resource_not_found",
+			errorType:        "not_found_error",
+			message:          "vector store 'vs_123' not found",
+			statusCode:       404,
+			expectedCategory: CategoryRAGVectorStoreNotFound,
+		},
+
+		// Content policy
+		{
+			name:             "content policy violation",
+			errorCode:        "content_policy_violation",
+			errorType:        "invalid_request_error",
+			message:          "Content blocked by policy",
+			statusCode:       400,
+			expectedCategory: CategoryGuardrailsViolation,
+		},
+
+		// Server errors with CUDA OOM
 		{
 			name:             "CUDA out of memory",
-			errorMessage:     "CUDA out of memory: failed to allocate 2GB",
+			errorCode:        "server_error",
+			errorType:        "server_error",
+			message:          "CUDA out of memory: failed to allocate 2.5 GB",
+			statusCode:       500,
 			expectedCategory: CategoryModelOverloaded,
 		},
 		{
 			name:             "OOM error",
-			errorMessage:     "OOM: Out of memory on GPU device 0",
+			errorCode:        "internal_error",
+			errorType:        "server_error",
+			message:          "OOM: insufficient memory",
+			statusCode:       500,
+			expectedCategory: CategoryModelOverloaded,
+		},
+
+		// Fallback to status code
+		{
+			name:             "429 without error code",
+			errorCode:        "",
+			errorType:        "",
+			message:          "Too many requests",
+			statusCode:       429,
 			expectedCategory: CategoryModelOverloaded,
 		},
 		{
-			name:             "model not found",
-			errorMessage:     "Model 'llama-3.1-405b' not found or not loaded",
-			expectedCategory: CategoryModelInvocationError,
-		},
-
-		// Generic errors
-		{
-			name:             "unknown error",
-			errorMessage:     "Something went wrong",
-			expectedCategory: CategoryGenericError,
-		},
-		{
-			name:             "empty error message",
-			errorMessage:     "",
-			expectedCategory: CategoryGenericError,
+			name:             "503 without error code",
+			errorCode:        "",
+			errorType:        "",
+			message:          "Service unavailable",
+			statusCode:       503,
+			expectedCategory: CategoryModelTimeout,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			category := CategorizeResponseError(tt.errorMessage)
+			category := CategorizeByErrorCode(tt.errorCode, tt.errorType, tt.message, tt.statusCode)
 			assert.Equal(t, tt.expectedCategory, category,
-				"Expected category %s but got %s for error: %s",
-				tt.expectedCategory, category, tt.errorMessage)
+				"Expected category %s but got %s for error code: %s, type: %s, message: %s",
+				tt.expectedCategory, category, tt.errorCode, tt.errorType, tt.message)
 		})
 	}
 }

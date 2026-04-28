@@ -1,7 +1,7 @@
 package llamastack
 
 import (
-	"regexp"
+	"strings"
 )
 
 // ResponseErrorCategory represents the category of error encountered when creating a response
@@ -35,72 +35,102 @@ const (
 	CategoryGenericError ResponseErrorCategory = "GENERIC_ERROR"
 )
 
-// ErrorPattern represents a pattern to match against error messages
-type ErrorPattern struct {
-	Pattern  *regexp.Regexp
-	Category ResponseErrorCategory
-}
+// CategorizeByErrorCode categorizes errors based on structured error codes from OpenAI-compatible APIs
+// This is the preferred method as it relies on semantic error codes rather than message pattern matching
+func CategorizeByErrorCode(errorCode, errorType, message string, statusCode int) ResponseErrorCategory {
+	// Normalize error code for comparison (lowercase, replace hyphens/underscores)
+	normalizedCode := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(errorCode, "-", "_"), " ", "_"))
 
-// Common error patterns from LlamaStack, vLLM, and other components
-var errorPatterns = []ErrorPattern{
-	// Model configuration errors
-	{regexp.MustCompile(`(?i)max_tokens.*invalid|max_tokens.*exceed|max_tokens.*too (large|small)`), CategoryInvalidModelConfig},
-	{regexp.MustCompile(`(?i)chat_template.*not found|chat_template.*invalid|chat_template.*missing`), CategoryInvalidModelConfig},
-	{regexp.MustCompile(`(?i)invalid.*sampling.*parameter|sampling.*out of range`), CategoryInvalidModelConfig},
-	{regexp.MustCompile(`(?i)context.*length.*exceed|sequence.*too long|prompt.*too long`), CategoryInvalidModelConfig},
+	// Check error code first (most specific)
+	switch normalizedCode {
+	// Rate limiting and capacity errors
+	case "rate_limit_exceeded", "insufficient_quota", "requests_per_minute_exceeded":
+		return CategoryModelOverloaded
 
-	// Unsupported features
-	{regexp.MustCompile(`(?i)does not support.*tool|tool.*not supported|tools.*unavailable`), CategoryUnsupportedFeature},
-	{regexp.MustCompile(`(?i)does not support.*image|image.*not supported|vision.*unavailable`), CategoryUnsupportedFeature},
-	{regexp.MustCompile(`(?i)streaming.*not supported|cannot stream`), CategoryUnsupportedFeature},
-	{regexp.MustCompile(`(?i)function.*calling.*not supported`), CategoryUnsupportedFeature},
+	// Invalid request errors
+	case "invalid_request_error", "invalid_model", "invalid_parameter", "missing_required_field":
+		// Need to check message for more specific categorization
+		if strings.Contains(strings.ToLower(message), "max_tokens") ||
+			strings.Contains(strings.ToLower(message), "context length") ||
+			strings.Contains(strings.ToLower(message), "prompt too long") {
+			return CategoryInvalidModelConfig
+		}
+		if strings.Contains(strings.ToLower(message), "tool") ||
+			strings.Contains(strings.ToLower(message), "image") ||
+			strings.Contains(strings.ToLower(message), "streaming") {
+			return CategoryUnsupportedFeature
+		}
+		return CategoryInvalidParameter
 
-	// Invalid parameters
-	{regexp.MustCompile(`(?i)temperature.*invalid|temperature.*out of range|temperature.*between`), CategoryInvalidParameter},
-	{regexp.MustCompile(`(?i)top_p.*invalid|top_p.*out of range`), CategoryInvalidParameter},
-	{regexp.MustCompile(`(?i)invalid.*parameter|parameter.*validation.*failed`), CategoryInvalidParameter},
-	{regexp.MustCompile(`(?i)\b(input|request body|body)\s+is\s+required\b`), CategoryInvalidParameter},
-	{regexp.MustCompile(`(?i)missing\s+required\s+field`), CategoryInvalidParameter},
-	{regexp.MustCompile(`(?i)\bmust\s+be\s+provided\b`), CategoryInvalidParameter},
+	// Timeout errors
+	case "timeout", "request_timeout", "gateway_timeout":
+		return CategoryModelTimeout
 
-	// RAG errors
-	{regexp.MustCompile(`(?i)vector.*store.*not found|vectorstore.*does not exist`), CategoryRAGVectorStoreNotFound},
-	{regexp.MustCompile(`(?i)embedding.*error|embedding.*failed|vector.*search.*failed`), CategoryRAGError},
-	{regexp.MustCompile(`(?i)retrieval.*error|rag.*failed|document.*retrieval.*failed`), CategoryRAGError},
+	// Model errors
+	case "model_not_found", "model_unavailable", "model_error":
+		return CategoryModelInvocationError
 
-	// Guardrails errors
-	{regexp.MustCompile(`(?i)shield.*not found|shield.*unavailable|guardrail.*not configured`), CategoryGuardrailsError},
-	{regexp.MustCompile(`(?i)shield.*error|guardrail.*failed|moderation.*error`), CategoryGuardrailsError},
-	{regexp.MustCompile(`(?i)content.*blocked|guardrail.*violation|input.*rejected`), CategoryGuardrailsViolation},
+	// Resource not found errors
+	case "resource_not_found", "vector_store_not_found":
+		if strings.Contains(strings.ToLower(message), "vector") {
+			return CategoryRAGVectorStoreNotFound
+		}
+		return CategoryGenericError
 
-	// MCP errors (check these before model timeouts to avoid misclassification)
-	{regexp.MustCompile(`(?i)tool.*not found|mcp.*tool.*unavailable`), CategoryMCPToolNotFound},
-	{regexp.MustCompile(`(?i)mcp.*authentication|mcp.*unauthorized|tool.*authorization.*failed`), CategoryMCPAuthError},
-	{regexp.MustCompile(`(?i)mcp.*(timeout|timed out)|tool.*(timeout|timed out)`), CategoryMCPError},
-	{regexp.MustCompile(`(?i)mcp.*error|tool.*execution.*failed|tool.*invocation.*failed`), CategoryMCPError},
+	// Tool/MCP errors
+	case "tool_not_found", "tool_error", "mcp_error":
+		return CategoryMCPError
 
-	// Model invocation errors (more specific timeout pattern to avoid matching connection/tool timeouts)
-	{regexp.MustCompile(`(?i)(model|request|inference).*(timeout|timed out)|deadline exceeded`), CategoryModelTimeout},
-	{regexp.MustCompile(`(?i)model.*overloaded|too many requests|rate.*limit|capacity.*exceeded`), CategoryModelOverloaded},
-	{regexp.MustCompile(`(?i)model.*not found|model.*unavailable|model.*not loaded`), CategoryModelInvocationError},
-	{regexp.MustCompile(`(?i)(cuda.*out of memory|\boom\b|memory.*allocation.*failed)`), CategoryModelOverloaded},
-}
+	// Content policy violations
+	case "content_policy_violation", "content_blocked", "guardrail_violation":
+		return CategoryGuardrailsViolation
 
-// CategorizeResponseError analyzes an error message and returns the most specific category
-func CategorizeResponseError(errorMessage string) ResponseErrorCategory {
-	if errorMessage == "" {
+	// Server errors
+	case "server_error", "internal_error", "service_unavailable":
+		// Check message for CUDA OOM or other runtime errors
+		msgLower := strings.ToLower(message)
+		if strings.Contains(msgLower, "cuda") && strings.Contains(msgLower, "memory") ||
+			strings.Contains(msgLower, "oom") {
+			return CategoryModelOverloaded
+		}
 		return CategoryGenericError
 	}
 
-	// Check against all known patterns
-	for _, pattern := range errorPatterns {
-		if pattern.Pattern.MatchString(errorMessage) {
-			return pattern.Category
-		}
+	// Check error type as fallback
+	switch strings.ToLower(errorType) {
+	case "invalid_request_error":
+		return CategoryInvalidParameter
+	case "rate_limit_error":
+		return CategoryModelOverloaded
+	case "authentication_error", "permission_error":
+		return CategoryGenericError // Auth errors are handled at higher level
 	}
 
-	// Default to generic error
+	// Check HTTP status code as last resort
+	switch statusCode {
+	case 429: // Too Many Requests
+		return CategoryModelOverloaded
+	case 400: // Bad Request
+		return CategoryInvalidParameter
+	case 404: // Not Found
+		if strings.Contains(strings.ToLower(message), "vector") {
+			return CategoryRAGVectorStoreNotFound
+		}
+		return CategoryGenericError
+	case 503, 504: // Service Unavailable, Gateway Timeout
+		return CategoryModelTimeout
+	}
+
 	return CategoryGenericError
+}
+
+// CategorizeResponseError categorizes errors using structured error codes from OpenAI-compatible APIs
+func CategorizeResponseError(err *LlamaStackError) ResponseErrorCategory {
+	if err == nil {
+		return CategoryGenericError
+	}
+
+	return CategorizeByErrorCode(err.ErrorCode, err.Type, err.Message, err.StatusCode)
 }
 
 // GetUserFriendlyErrorMessage returns a user-friendly error message based on category and error code
@@ -185,7 +215,8 @@ func NewEnhancedLlamaStackError(baseError *LlamaStackError) *EnhancedLlamaStackE
 		}
 	}
 
-	category := CategorizeResponseError(baseError.Message)
+	// Use new categorization that prefers structured error codes
+	category := CategorizeResponseError(baseError)
 	userFriendlyMsg := GetUserFriendlyErrorMessage(category, baseError.Code)
 
 	return &EnhancedLlamaStackError{
