@@ -1027,9 +1027,14 @@ components:
         Uses proper CSV parsing to handle quoted values and different line endings (\n, \r\n, \r).
         Returns an error if the file has fewer than 100 data rows.
       type: object
+      required:
+        - data
       properties:
         data:
           type: object
+          required:
+            - columns
+            - parse_warnings
           properties:
             columns:
               type: array
