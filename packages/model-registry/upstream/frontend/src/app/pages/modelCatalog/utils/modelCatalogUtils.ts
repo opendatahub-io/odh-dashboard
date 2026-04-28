@@ -180,8 +180,7 @@ export const isModelValidated = (model: CatalogModel): boolean => {
 };
 
 // Utility function to check if a model is from Red Hat
-export const isRedHatModel = (model: CatalogModel): boolean =>
-  model.provider === 'Red Hat';
+export const isRedHatModel = (model: CatalogModel): boolean => model.provider === 'Red Hat';
 
 export const shouldShowValidatedInsights = (
   model: CatalogModel,
@@ -750,6 +749,21 @@ export const orderLabelsByPriority = (
 
   // Then add any remaining labels that weren't in catalogLabels
   orderedLabels.push(...Array.from(remainingLabels));
+
+  return orderedLabels;
+};
+
+export const getActiveSourceLabels = (
+  catalogSources: CatalogSourceList | null,
+  catalogLabels: CatalogLabelList | null,
+): string[] => {
+  const enabledSources = filterEnabledCatalogSources(catalogSources);
+  const uniqueLabels = getUniqueSourceLabels(enabledSources);
+  const orderedLabels = orderLabelsByPriority(uniqueLabels, catalogLabels);
+
+  if (hasSourcesWithoutLabels(enabledSources)) {
+    return [...orderedLabels, SourceLabel.other];
+  }
 
   return orderedLabels;
 };

@@ -25,6 +25,8 @@ type PlatformExtensionDataLoaderProps<TExtension extends PlatformExtension> = {
   ) => DataHook | undefined;
 };
 
+export const isDataHook = (value: unknown): value is () => unknown => typeof value === 'function';
+
 /**
  * Generic component that renders one HookNotify per active platform whose resolved
  * extension provides a data hook. This is O(N platforms), not O(N items in the list).

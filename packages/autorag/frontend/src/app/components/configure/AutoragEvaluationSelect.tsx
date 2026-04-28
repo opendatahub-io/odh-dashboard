@@ -18,6 +18,9 @@ function AutoragEvaluationSelect(): React.JSX.Element {
   const [fileExplorerOpen, setFileExplorerOpen] = useState(false);
 
   const form = useFormContext<ConfigureSchema>();
+  const {
+    formState: { isSubmitting },
+  } = form;
   const controller = useController({ control: form.control, name: 'test_data_key' });
   const { field } = controller;
 
@@ -31,14 +34,20 @@ function AutoragEvaluationSelect(): React.JSX.Element {
       <FileSelector
         id={field.name}
         selected={field.value}
+        isDisabled={isSubmitting}
         onUpload={async (file, setProgress, setStatus) => {
           let response;
           try {
             response = await uploadToStorageMutation.mutateAsync({ file, onProgress: setProgress });
           } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const isConflict = errorMessage.toLowerCase().includes('unique filename');
+
             notification.error(
               'Failed to upload file',
-              error instanceof Error ? error.message : String(error),
+              isConflict
+                ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
+                : errorMessage,
             );
             setStatus('danger');
             return;
@@ -49,6 +58,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         }}
         onClear={() => field.onChange('')}
         fileUploadProps={{
+          dropzoneProps: { accept: { 'application/json': ['.json'] } },
           filenamePlaceholder: 'Drag and drop or browse from...',
           // @ts-expect-error: bypass ts error to allow icon
           browseButtonText: (

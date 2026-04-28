@@ -173,7 +173,8 @@ jest.mock('@openshift/dynamic-plugin-sdk', () => ({
 
 jest.mock('~/app/Chatbot/store/usePlaygroundStore', () => ({
   usePlaygroundStore: jest.fn(() => ({
-    setIsPromptManagementModalOpen: jest.fn(),
+    openModal: jest.fn(),
+    closeModal: jest.fn(),
   })),
 }));
 
@@ -182,13 +183,13 @@ const createMockSourceManagement = (
 ): UseSourceManagementReturn => ({
   selectedSourceSettings: null,
   isSourceSettingsOpen: false,
-  isRawUploaded: false,
+  autoEnableRag: false,
   filesWithSettings: [],
   currentFileForSettings: null,
   pendingFiles: [],
   isUploading: false,
   uploadProgress: { current: 0, total: 0 },
-  setIsRawUploaded: jest.fn(),
+  setAutoEnableRag: jest.fn(),
   handleSourceDrop: jest.fn(),
   removeUploadedSource: jest.fn(),
   handleSourceSettingsSubmit: jest.fn(),

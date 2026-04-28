@@ -10,28 +10,28 @@ const phaseOrder: Record<McpDeploymentPhase, number> = {
 
 export const mcpDeploymentColumns: SortableData<McpDeployment>[] = [
   {
-    field: 'server',
-    label: 'Server',
-    sortable: (a, b) => (a.serverName ?? '').localeCompare(b.serverName ?? ''),
-    width: 20,
-  },
-  {
     field: 'name',
     label: 'Name',
     sortable: (a, b) => getDeploymentDisplayName(a).localeCompare(getDeploymentDisplayName(b)),
     width: 20,
   },
   {
+    field: 'server',
+    label: 'MCP server',
+    sortable: (a, b) => (a.serverName ?? '').localeCompare(b.serverName ?? ''),
+    width: 20,
+  },
+  {
     field: 'created',
     label: 'Created',
     sortable: (a, b) =>
-      new Date(a.creationTimestamp).getTime() - new Date(b.creationTimestamp).getTime(),
+      new Date(b.creationTimestamp).getTime() - new Date(a.creationTimestamp).getTime(),
     width: 20,
   },
   {
     field: 'status',
     label: 'Status',
-    sortable: (a, b) => (phaseOrder[a.phase] ?? 3) - (phaseOrder[b.phase] ?? 3),
+    sortable: (a, b) => phaseOrder[a.phase] - phaseOrder[b.phase],
     width: 15,
   },
   {

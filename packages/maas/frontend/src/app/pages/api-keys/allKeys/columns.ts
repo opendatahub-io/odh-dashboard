@@ -35,7 +35,7 @@ export const apiKeyColumns: ApiKeyColumn[] = [
   },
   {
     field: 'creationDate',
-    label: 'Creation date',
+    label: 'Created',
     width: 15,
     sortable: true,
     serverSortField: 'created_at',
@@ -49,9 +49,12 @@ export const apiKeyColumns: ApiKeyColumn[] = [
   },
   {
     field: 'expirationDate',
-    label: 'Expiration date',
+    label: 'Expires',
     width: 15,
     sortable: true,
     serverSortField: 'expires_at',
   },
 ];
+
+export const getVisibleApiKeyColumns = (isMaasAdmin: boolean): ApiKeyColumn[] =>
+  isMaasAdmin ? apiKeyColumns : apiKeyColumns.filter((col) => col.field !== 'username');

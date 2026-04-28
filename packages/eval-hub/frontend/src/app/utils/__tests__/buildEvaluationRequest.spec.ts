@@ -57,26 +57,7 @@ describe('buildEvaluationRequest', () => {
       });
       expect(result.name).toBe('My Eval');
     });
-
-    it('should include description when provided', () => {
-      const result = buildEvaluationRequest({
-        ...baseParams,
-        description: ' some desc ',
-        benchmark: makeBenchmark(),
-      });
-      expect(result.description).toBe('some desc');
-    });
-
-    it('should omit description when empty or whitespace-only', () => {
-      const result = buildEvaluationRequest({
-        ...baseParams,
-        description: '   ',
-        benchmark: makeBenchmark(),
-      });
-      expect(result).not.toHaveProperty('description');
-    });
   });
-
   describe('inference mode', () => {
     it('should use modelName and endpointUrl for the model field', () => {
       const result = buildEvaluationRequest({
@@ -200,11 +181,27 @@ describe('buildEvaluationRequest', () => {
   });
 
   describe('collection flow', () => {
-    it('should include collection.id and omit top-level benchmarks when collection is provided', () => {
+    it('should include collection.id with benchmark configs and omit top-level benchmarks', () => {
       const col = makeCollection();
       const result = buildEvaluationRequest({ ...baseParams, collection: col });
 
-      expect(result.collection).toEqual({ id: 'col-1' });
+      expect(result.collection).toEqual({
+        id: 'col-1',
+        benchmarks: [
+          {
+            id: 'mmlu',
+            provider_id: 'lm_harness',
+            primary_score: { metric: 'accuracy', lower_is_better: false },
+            pass_criteria: { threshold: 0.7 },
+          },
+          {
+            id: 'hellaswag',
+            provider_id: 'lm_harness',
+            primary_score: undefined,
+            pass_criteria: undefined,
+          },
+        ],
+      });
       expect(result).not.toHaveProperty('benchmarks');
     });
 
@@ -212,13 +209,21 @@ describe('buildEvaluationRequest', () => {
       const col = makeCollection();
       const result = buildEvaluationRequest({ ...baseParams, collection: col });
 
-      expect(result.collection).toEqual({ id: 'col-1' });
+      expect(result.collection?.id).toBe('col-1');
     });
 
     it('should not include top-level benchmarks when using a collection', () => {
       const col = makeCollection();
       const result = buildEvaluationRequest({ ...baseParams, collection: col });
 
+      expect(result).not.toHaveProperty('benchmarks');
+    });
+
+    it('should handle collection with no benchmarks', () => {
+      const col = makeCollection({ benchmarks: undefined });
+      const result = buildEvaluationRequest({ ...baseParams, collection: col });
+
+      expect(result.collection).toEqual({ id: 'col-1', benchmarks: undefined });
       expect(result).not.toHaveProperty('benchmarks');
     });
   });
@@ -280,7 +285,7 @@ describe('buildEvaluationRequest', () => {
       });
 
       expect(result).not.toHaveProperty('benchmarks');
-      expect(result.collection).toEqual({ id: 'col-1' });
+      expect(result.collection?.id).toBe('col-1');
       expect(result).toHaveProperty('experiment', experiment);
     });
 
@@ -365,7 +370,7 @@ describe('buildEvaluationRequest', () => {
       });
 
       expect(result.experiment).toEqual({ name: 'col-experiment' });
-      expect(result.collection).toEqual({ id: 'col-1' });
+      expect(result.collection?.id).toBe('col-1');
       expect(result).not.toHaveProperty('benchmarks');
     });
 
@@ -437,14 +442,14 @@ describe('buildEvaluationRequest', () => {
       expect(result.benchmarks).toEqual([]);
     });
 
-    it('should prefer benchmark over collection when both are provided', () => {
+    it('should prefer collection over benchmark when both are provided', () => {
       const result = buildEvaluationRequest({
         ...baseParams,
         benchmark: makeBenchmark(),
         collection: makeCollection(),
       });
 
-      expect(result.collection).toEqual({ id: 'col-1' });
+      expect(result.collection?.id).toBe('col-1');
       expect(result).not.toHaveProperty('benchmarks');
     });
 
@@ -453,7 +458,7 @@ describe('buildEvaluationRequest', () => {
       const result = buildEvaluationRequest({ ...baseParams, collection: col });
 
       expect(result).not.toHaveProperty('benchmarks');
-      expect(result.collection).toEqual({ id: 'col-1' });
+      expect(result.collection).toEqual({ id: 'col-1', benchmarks: undefined });
     });
   });
 });

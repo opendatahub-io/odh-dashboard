@@ -1,4 +1,4 @@
-import { CatalogSource, CatalogSourceList } from '../app/modelCatalogTypes';
+import { CatalogSource, CatalogSourceList } from '~/app/modelCatalogTypes';
 
 export const mockCatalogSource = (partial?: Partial<CatalogSource>): CatalogSource => ({
   id: 'sample-source',
@@ -55,6 +55,25 @@ export const mockCatalogSourceActive = (): CatalogSource => ({
   labels: ['Community', 'Enterprise'],
   status: 'available',
 });
+
+export const mockTwoProviderSources = (): CatalogSource[] => [
+  mockCatalogSource({ labels: ['Provider one'] }),
+  mockCatalogSource({
+    id: 'source-2',
+    name: 'Provider Two Source',
+    labels: ['Provider two'],
+  }),
+];
+
+export const mockProviderAndCustomSources = (): CatalogSource[] => [
+  mockCatalogSource({ labels: ['Provider one'] }),
+  mockCatalogSource({ id: 'custom-source', name: 'Custom Source', labels: [] }),
+];
+
+export const mockDefaultSources = (): CatalogSource[] => [
+  mockCatalogSource({}),
+  mockCatalogSource({ id: 'source-2', name: 'source 2' }),
+];
 
 export const mockCatalogSourceList = (partial?: Partial<CatalogSourceList>): CatalogSourceList => ({
   items: [

@@ -3,6 +3,8 @@ import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardw
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   extractK8sNameDescriptionFieldData,
+  INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
+  INFERENCE_SERVICE_NAME_REGEX,
   LimitNameResourceType,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useAccessReview } from '@odh-dashboard/internal/api/index';
@@ -93,6 +95,8 @@ export const useModelDeploymentWizard = (
     initialData: extractK8sNameDescriptionFieldData(initialData?.k8sNameDesc),
     editableK8sName: !initialData?.k8sNameDesc?.k8sName.state.immutable,
     limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+    regexp: INFERENCE_SERVICE_NAME_REGEX,
+    invalidCharsMessage: INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
   });
   const hardwareProfileConfig = useHardwareProfileConfig(...(initialData?.hardwareProfile ?? []));
   const modelFormatState = useModelFormatField(
@@ -207,8 +211,12 @@ export const useModelDeploymentWizard = (
         isDisabled: tokenAuthDisabled,
         ...(tokenAuthDisabled ? { data: [] } : {}),
       },
+      'llmd-serving/gateway': {
+        ...(state['llmd-serving/gateway'] ?? {}),
+        ...computedOverrides['llmd-serving/gateway'],
+      },
     }),
-    [state, tokenAuthDisabled],
+    [state, tokenAuthDisabled, computedOverrides],
   );
 
   return {

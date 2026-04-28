@@ -1,6 +1,35 @@
 import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
+const K8S_NAME_REGEX = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+const MAX_K8S_NAME_LENGTH = 253;
+
+const assertValidK8sName = (value: string, label: string): void => {
+  if (!value || value.length > MAX_K8S_NAME_LENGTH || !K8S_NAME_REGEX.test(value)) {
+    throw new Error(
+      `Invalid ${label} "${value}": must be a lowercase RFC-1123 DNS label (a-z, 0-9, -)`,
+    );
+  }
+};
+
+/**
+ * Parses a Go-style time.Duration string (e.g. '300s', '5m', '1h30m10s') into seconds.
+ * Supports hours (h), minutes (m), and seconds (s).
+ */
+const parseGoDurationToSeconds = (duration: string): number => {
+  const pattern = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/;
+  const match = duration.trim().match(pattern);
+  if (!match || match[0] === '') {
+    throw new Error(
+      `Invalid timeout format "${duration}". Use Go duration syntax, e.g. "300s", "5m", or "1h30m".`,
+    );
+  }
+  const hours = parseInt(match[1] || '0', 10);
+  const minutes = parseInt(match[2] || '0', 10);
+  const seconds = parseInt(match[3] || '0', 10);
+  return hours * 3600 + minutes * 60 + seconds;
+};
+
 /**
  * Creates Kueue resources for training jobs by applying a YAML template.
  * This function dynamically replaces placeholders in the template with actual values and applies it.
@@ -207,6 +236,78 @@ export const getTrainJobNumNodes = (
         message: `TrainJob ${trainJobName} has numNodes: ${numNodes}`,
       });
       return numNodes;
+    });
+};
+
+/**
+ * Verifies that all pods associated with a TrainJob have completed successfully.
+ * Uses the `jobset.sigs.k8s.io/jobset-name` label to match pods belonging to the
+ * specific TrainJob, consistent with the production code in model-training/src/api/pods.ts.
+ *
+ * @param trainJobName - The name of the TrainJob whose pods to check.
+ * @param namespace - The namespace where the TrainJob pods are running.
+ */
+export const verifyTrainJobPodsCompleted = (
+  trainJobName: string,
+  namespace: string,
+  timeout = '300s',
+): Cypress.Chainable<CommandLineResult> => {
+  assertValidK8sName(trainJobName, 'trainJobName');
+  assertValidK8sName(namespace, 'namespace');
+
+  const timeoutSeconds = parseGoDurationToSeconds(timeout);
+  const cypressTimeout = (timeoutSeconds + 10) * 1000;
+
+  cy.log(`Verifying pods for TrainJob ${trainJobName} in namespace ${namespace} are completed`);
+
+  return cy
+    .exec(
+      `oc get pods -n ${namespace} -l jobset.sigs.k8s.io/jobset-name=${trainJobName} -o jsonpath='{range .items[*]}{.metadata.name}{"\\n"}{end}'`,
+      { failOnNonZeroExit: false, timeout: 30000 },
+    )
+    .then((result) => {
+      if (result.code !== 0) {
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        throw new Error(`Failed to get TrainJob pods: ${maskedStderr}`);
+      }
+      const podNames = result.stdout
+        .replace(/'/g, '')
+        .trim()
+        .split('\n')
+        .filter((name: string) => name.trim().length > 0);
+
+      expect(podNames.length).to.be.greaterThan(0, 'Expected at least one pod for the TrainJob');
+
+      // eslint-disable-next-line cypress/unsafe-to-chain-command
+      return cy
+        .wrap(podNames)
+        .each((podName: string) => {
+          assertValidK8sName(podName, 'podName');
+          const waitCmd = `oc wait --for=jsonpath='{.status.phase}'=Succeeded pod/${podName} -n ${namespace} --timeout=${timeout}`;
+          cy.log(`Waiting for pod ${podName} to reach Succeeded`);
+
+          return cy
+            .exec(waitCmd, { failOnNonZeroExit: false, timeout: cypressTimeout })
+            .then((waitResult) => {
+              if (waitResult.code !== 0) {
+                return cy
+                  .exec(`oc get pod/${podName} -n ${namespace} -o jsonpath='{.status.phase}'`, {
+                    failOnNonZeroExit: false,
+                  })
+                  .then((statusResult) => {
+                    const phase = statusResult.stdout.replace(/'/g, '').trim();
+                    cy.log(`Pod ${podName} phase: ${phase}`);
+                    if (phase === 'Failed') {
+                      throw new Error(`Pod ${podName} failed to complete successfully`);
+                    }
+                    const maskedStderr = maskSensitiveInfo(waitResult.stderr);
+                    throw new Error(`Pod ${podName} did not reach Succeeded: ${maskedStderr}`);
+                  });
+              }
+              return cy.log(`Pod ${podName} completed successfully`);
+            });
+        })
+        .then(() => result);
     });
 };
 

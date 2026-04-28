@@ -7,6 +7,12 @@ import React from 'react';
 import { BrowserRouter } from 'react-router';
 import AutoragConfigurePage from '~/app/pages/AutoragConfigurePage';
 
+// Truncate relies on DOM measurement APIs (scrollWidth) unavailable in JSDOM.
+jest.mock('@patternfly/react-core', () => ({
+  ...jest.requireActual('@patternfly/react-core'),
+  Truncate: ({ content }: { content: string }) => <span>{content}</span>,
+}));
+
 const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
 const mockMutateAsync = jest.fn();
@@ -104,7 +110,7 @@ jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
   const MockVectorStoreSelector = () => {
     const { setValue } = useFormContext();
     ReactMock.useEffect(() => {
-      setValue('llama_stack_vector_io_provider_id', 'ls_milvus', { shouldValidate: true });
+      setValue('llama_stack_vector_io_provider_id', 'milvus', { shouldValidate: true });
     }, [setValue]);
     return ReactMock.createElement(
       'div',
@@ -251,7 +257,7 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
           uuid: 'aws-secret-1',
           name: 'Test AWS Secret',
           displayName: 'Test AWS Secret',
-          data: { aws_s3_bucket: 'test-bucket' },
+          data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
           type: 's3',
           invalid: false,
         });
@@ -313,7 +319,7 @@ describe('AutoragConfigurePage', () => {
       // Check for form fields that are rendered by AutoragCreate
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
       expect(await screen.findByLabelText(/Description/i)).toBeInTheDocument();
-      expect(await screen.findByText(/Llama Stack instance/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Llama Stack connection/i)).toBeInTheDocument();
     });
 
     it('should NOT render AutoragConfigure component on initial load', async () => {
@@ -323,9 +329,9 @@ describe('AutoragConfigurePage', () => {
       expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
     });
 
-    it('should display "Create AutoRAG experiment" subtitle in create step', async () => {
+    it('should display "Create AutoRAG optimization run" subtitle in create step', async () => {
       renderWithProviders(<AutoragConfigurePage />);
-      expect(await screen.findByText('Create RAG optimization run')).toBeInTheDocument();
+      expect(await screen.findByText('Create AutoRAG optimization run')).toBeInTheDocument();
     });
 
     it('should display description text in create step', async () => {
@@ -404,18 +410,14 @@ describe('AutoragConfigurePage', () => {
   });
 
   describe('Create step - Cancel button', () => {
-    it('should render Cancel link', async () => {
+    it('should render Cancel link with correct href', async () => {
       renderWithProviders(<AutoragConfigurePage />);
       const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
       expect(cancelLink).toBeInTheDocument();
-      expect(cancelLink).toHaveAttribute('href', '/gen-ai-studio/autorag/experiments');
-    });
-
-    it('should have correct href for Cancel link', async () => {
-      renderWithProviders(<AutoragConfigurePage />);
-
-      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
-      expect(cancelLink).toHaveAttribute('href', '/gen-ai-studio/autorag/experiments');
+      expect(cancelLink).toHaveAttribute(
+        'href',
+        '/gen-ai-studio/autorag/experiments/test-namespace',
+      );
     });
   });
 
@@ -444,7 +446,8 @@ describe('AutoragConfigurePage', () => {
     });
 
     it('should display experiment name in subtitle in configure step', async () => {
-      expect(await screen.findByText('"My Experiment" configurations')).toBeInTheDocument();
+      const subtitle = await screen.findByTestId('configure-step-subtitle');
+      expect(subtitle).toHaveTextContent('"My Experiment" configurations');
     });
 
     it('should NOT display description text in configure step', async () => {
@@ -457,11 +460,12 @@ describe('AutoragConfigurePage', () => {
 
     it('should display breadcrumb in configure step', async () => {
       expect(await screen.findByText('AutoRAG: test-namespace')).toBeInTheDocument();
-      expect(await screen.findByText('My Experiment')).toBeInTheDocument();
+      const breadcrumbName = await screen.findByTestId('configure-breadcrumb-name');
+      expect(breadcrumbName).toHaveTextContent('My Experiment');
     });
 
-    it('should render "Run experiment" button', async () => {
-      expect(await screen.findByRole('button', { name: 'Run experiment' })).toBeInTheDocument();
+    it('should render "Create run" button', async () => {
+      expect(await screen.findByRole('button', { name: 'Create run' })).toBeInTheDocument();
     });
 
     it('should render "Back" button', async () => {
@@ -495,9 +499,9 @@ describe('AutoragConfigurePage', () => {
       const backButton = await screen.findByRole('button', { name: 'Back' });
       await user.click(backButton);
 
-      // Should show create component again (has Name, Description, Llama Stack instance)
+      // Should show create component again (has Name, Description, Llama Stack connection)
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
-      expect(await screen.findByText(/Llama Stack instance/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Llama Stack connection/i)).toBeInTheDocument();
       // Should NOT show configure component (Documents, Configure Details)
       expect(screen.queryByText('Knowledge setup')).not.toBeInTheDocument();
       expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
@@ -532,8 +536,8 @@ describe('AutoragConfigurePage', () => {
     });
   });
 
-  describe('Configure step - Run experiment', () => {
-    it('should call mutateAsync when Run experiment button is clicked with valid form', async () => {
+  describe('Configure step - Create run', () => {
+    it('should call mutateAsync when Create run button is clicked with valid form', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
 
@@ -566,12 +570,14 @@ describe('AutoragConfigurePage', () => {
       // Vector store value is auto-set by the mocked AutoragVectorStoreSelector.
 
       // Wait for form to be valid and Run button to be enabled
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
 
-      // Click Run experiment button
+      // Click Create run button
       await user.click(runButton);
 
       // Assert that the payload contains the .json evaluation dataset
@@ -613,8 +619,10 @@ describe('AutoragConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -656,8 +664,10 @@ describe('AutoragConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -700,8 +710,10 @@ describe('AutoragConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Click Run experiment button
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      // Click Create run button
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -752,7 +764,9 @@ describe('AutoragConfigurePage', () => {
       });
       expect(mockS3UploadMutateAsync).toHaveBeenCalledTimes(1);
 
-      const runButton = await screen.findByRole('button', { name: 'Run experiment' });
+      const runButton = await screen.findByRole('button', {
+        name: 'Create run',
+      });
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
@@ -856,7 +870,8 @@ describe('AutoragConfigurePage', () => {
       await user.click(await screen.findByRole('button', { name: 'Next' }));
 
       // Verify we're in configure step with correct subtitle
-      expect(await screen.findByText('"Persistent Experiment" configurations')).toBeInTheDocument();
+      const subtitle = await screen.findByTestId('configure-step-subtitle');
+      expect(subtitle).toHaveTextContent('"Persistent Experiment" configurations');
     });
   });
 });

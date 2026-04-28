@@ -58,8 +58,7 @@ make run LOG_LEVEL=DEBUG
 | `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution                                       |
 | `-mock-pipeline-server-client` | `MOCK_PIPELINE_SERVER_CLIENT` | Use mock client for Kubeflow Pipelines API calls                                       |
 | `-mock-s3-client` | `MOCK_S3_CLIENT` | Use mock client for S3 SDK calls                                                       |
-| `-pipeline-server-url` | `PIPELINE_SERVER_URL` | Override Kubeflow Pipelines URL for local testing (e.g., `http://localhost:8888`)      |
-| `-autorag-pipeline-name-prefix` | `AUTORAG_PIPELINE_NAME_PREFIX` | Prefix for identifying AutoRAG managed pipelines during discovery (default: `autorag`) |
+| `-autorag-pipeline-name-prefix` | `AUTORAG_PIPELINE_NAME_PREFIX` | Prefix for identifying AutoRAG managed pipelines during discovery (default: `documents-rag-optimization-pipeline`) |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets                                         |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO)                                                |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins                                                           |
@@ -172,64 +171,86 @@ If you're integrating with a proxy or tool that uses a custom header (e.g., X-Fo
 make run AUTH_METHOD=user_token AUTH_TOKEN_HEADER=X-Forwarded-Access-Token AUTH_TOKEN_PREFIX=""
 ```
 
-### Local testing with port-forward
+### Service connectivity in dev mode
 
-When testing the BFF locally against Kubeflow Pipelines running in a cluster, you can use port-forwarding to access the pipeline service:
+When running in dev mode (via `make dev-start-federated`), the BFF uses **dynamic port-forwarding** to automatically establish connections to in-cluster services such as the Kubeflow Pipelines server and managed MinIO. This eliminates the need for manual `kubectl port-forward` commands or environment variable overrides like `PIPELINE_SERVER_URL`.
 
-**Terminal 1: Set up port-forward**
-```shell
-kubectl port-forward -n <namespace> svc/<service-name> 8888:8443
+Under the covers, the BFF discovers the DSPipelineApplication (DSPA) in the target namespace, identifies the pipeline server and any managed MinIO services, and sets up local port-forwards on-demand. The forwarded connections are managed for the lifetime of the BFF process and cleaned up automatically on shutdown.
+
+This means you can simply start the BFF in dev mode and it will handle all service connectivity transparently using your current kubeconfig context.
+
+### Setting up a LlamaStack secret
+
+The AutoRAG BFF requires a Kubernetes secret with LlamaStack credentials to access models and vector stores. The secret must contain the LlamaStack server URL and an API key (OAuth2 token from Keycloak).
+
+#### Secret format
+
+```yaml
+kind: Secret
+apiVersion: v1
+metadata:
+  name: my-lls-secret
+  namespace: <your-namespace>
+type: Opaque
+data:
+  llama_stack_client_base_url: <base64-encoded URL>
+  llama_stack_client_api_key: <base64-encoded token>
 ```
 
-**Note:** Replace `<service-name>` with your actual Pipeline Server service name. To discover the service name in your namespace, run:
-```shell
-kubectl get svc -n <namespace>
-```
-Look for the service associated with your DSPipelineApplication (typically named like `ds-pipeline-<dspa-name>`).
+The secret keys `llama_stack_client_base_url` and `llama_stack_client_api_key` are required (exact match, case-sensitive). The BFF reads these to create the LlamaStack client.
 
-**Terminal 2: Run BFF with override URL and skip TLS verification**
-```shell
-cd packages/autorag/bff
-make run PIPELINE_SERVER_URL=https://localhost:8888 INSECURE_SKIP_VERIFY=true
-```
+#### Generating the API key
 
-**Terminal 3: Test the endpoints**
-```shell
-# List pipeline runs
-curl -H "kubeflow-userid: user@example.com" \
-  -H "Authorization: Bearer $(oc whoami -t)" \
-  "http://localhost:4000/api/v1/pipeline-runs?namespace=<namespace>" | jq
-
-# Get a specific run with full task details
-curl -H "kubeflow-userid: user@example.com" \
-  -H "Authorization: Bearer $(oc whoami -t)" \
-  "http://localhost:4000/api/v1/pipeline-runs/<run-id>?namespace=<namespace>" | jq
-```
-
-**Note:** The `INSECURE_SKIP_VERIFY=true` flag is required when using port-forward because Kubeflow Pipelines uses a self-signed certificate. This should only be used for local development and testing, never in production.
-
-#### S3 endpoints in port-forward mode
-
-When `PIPELINE_SERVER_URL` is set, the pipeline client is created from the override URL directly rather than by discovering the DSPipelineApplication (DSPA) in the cluster. However, the BFF will still **attempt best-effort DSPA discovery** via the Kubernetes API so that the S3 file endpoint (`GET /api/v1/s3/file`) can resolve credentials from the DSPA spec without requiring an explicit `secretName` query parameter.
-
-If you see the error `"query parameter 'secretName' is required when no DSPA object storage config is available"` while using port-forward mode, one of the following is likely true:
-
-- Your auth token does not have permission to list `datasciencepipelinesapplications` resources in the namespace — verify with `kubectl auth can-i list datasciencepipelinesapplications -n <namespace>`
-- No DSPA exists in the namespace yet
-- The DSPA exists but its API Server component is not ready
-
-As a workaround you can pass `secretName` explicitly:
-```shell
-curl -H "kubeflow-userid: user@example.com" \
-  -H "Authorization: Bearer $(oc whoami -t)" \
-  "http://localhost:4000/api/v1/s3/file?namespace=<namespace>&secretName=<secret>&bucket=<bucket>&key=<key>"
-```
-
-This will configure the BFF to extract the raw token from the following header:
+The LlamaStack server uses Keycloak for authentication. To obtain an OAuth2 access token:
 
 ```shell
-X-Forwarded-Access-Token: <your-token>
+# 1. Retrieve Keycloak client credentials from the cluster
+CLIENT_ID=$(oc get secret llama-stack-client-secret -n keycloak -o jsonpath='{.data.client-id}' | base64 -d)
+CLIENT_SECRET=$(oc get secret llama-stack-client-secret -n keycloak -o jsonpath='{.data.client-secret}' | base64 -d)
+
+# 2. Request a token via the Keycloak token endpoint (from inside the cluster)
+TOKEN=$(oc exec -n llama-stack $(oc get pods -n llama-stack -l app=llama-stack -o jsonpath='{.items[0].metadata.name}') -- \
+  curl -s -X POST 'http://keycloak-service.keycloak.svc.cluster.local:8080/realms/llamastack/protocol/openid-connect/token' \
+  -d "client_id=${CLIENT_ID}&grant_type=client_credentials&client_secret=${CLIENT_SECRET}" | jq -r '.access_token')
+
+# 3. Verify the token works
+curl -s -H "Authorization: Bearer ${TOKEN}" \
+  'https://<llamastack-route>/v1/vector_stores' | jq
 ```
+
+#### Creating the secret
+
+Once you have the token and know your LlamaStack server URL, create the secret:
+
+```shell
+oc create secret generic my-lls-secret \
+  --namespace=<your-namespace> \
+  --from-literal=llama_stack_client_base_url=https://<llamastack-route> \
+  --from-literal=llama_stack_client_api_key=${TOKEN}
+```
+
+**Note:** OAuth2 tokens expire. You will need to regenerate the token and update the secret when it expires. To update an existing secret:
+
+```shell
+oc create secret generic my-lls-secret \
+  --namespace=<your-namespace> \
+  --from-literal=llama_stack_client_base_url=https://<llamastack-route> \
+  --from-literal=llama_stack_client_api_key=${TOKEN} \
+  --dry-run=client -o yaml | oc apply -f -
+```
+
+#### Using the secret with the BFF
+
+The secret name is passed as a query parameter to the LlamaStack endpoints:
+
+```shell
+curl -H "Authorization: Bearer $(oc whoami -t)" \
+  'http://localhost:4000/api/v1/lsd/models?namespace=<your-namespace>&secretName=my-lls-secret'
+```
+
+For more details on the LlamaStack endpoints, see:
+- [LSD Models API](docs/lsd-models-endpoint.md)
+- [LSD Vector Stores API](docs/lsd-vector-stores-endpoint.md)
 
 ### Enabling CORS
 
@@ -292,3 +313,46 @@ export INSECURE_SKIP_VERIFY=true
 ```
 
 > **Warning:** Only use in development. Keep TLS verification enabled in production.
+
+### Federated development with a live cluster
+
+To run the AutoRAG module as a federated micro-frontend against the main ODH Dashboard with a real cluster, you need two things running:
+
+1. The AutoRAG BFF + frontend in federated mode
+2. The main ODH Dashboard
+
+The BFF automatically handles service connectivity (pipeline server, MinIO, etc.) via dynamic port-forwarding when running in dev mode. No manual port-forward setup is required. See [Service connectivity in dev mode](#service-connectivity-in-dev-mode) for details.
+
+#### 1. Start AutoRAG in federated mode
+
+From the `packages/autorag/` directory:
+
+```shell
+make dev-start-federated
+```
+
+This starts both the BFF (port 4001) and the frontend webpack dev server (port 9107) in federated mode. The BFF connects to in-cluster services using dynamic port-forwarding and uses your cluster credentials for RBAC.
+
+**Pipeline name prefix:** The BFF discovers AutoRAG pipelines by matching display names that start with a configurable prefix. The default is `documents-rag-optimization-pipeline`. If your pipelines use a different naming convention, override it:
+
+```shell
+AUTORAG_PIPELINE_NAME_PREFIX=my-custom-prefix make dev-start-federated
+```
+
+#### 2. Start the main ODH Dashboard
+
+In a separate terminal, from the repo root:
+
+```shell
+npm run dev
+```
+
+Then access the dashboard at **http://localhost:4010** and navigate to the AutoRAG section.
+
+#### Mock mode (no cluster required)
+
+If you don't have a cluster available, you can run with fully mocked backends:
+
+```shell
+make dev-start-federated-mock
+```

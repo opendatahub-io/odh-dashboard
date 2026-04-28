@@ -41,4 +41,8 @@ const (
 	MaaSModelRefCreatePath = ApiPathPrefix + "/maasmodel"
 	MaaSModelRefUpdatePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
 	MaaSModelRefDeletePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
+
+	// Inter-BFF token routes (stub for Gen-AI BFF inter-BFF communication testing)
+	// These endpoints are called by Gen-AI BFF to issue/revoke ephemeral tokens
+	TokensPath = ApiPathPrefix + "/tokens"
 )

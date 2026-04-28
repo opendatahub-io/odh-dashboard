@@ -84,7 +84,7 @@ describe('useSourceManagement', () => {
       expect(result.current.filesWithSettings).toEqual([]);
       expect(result.current.selectedSourceSettings).toBeNull();
       expect(result.current.isSourceSettingsOpen).toBe(false);
-      expect(result.current.isRawUploaded).toBe(false);
+      expect(result.current.autoEnableRag).toBe(false);
       expect(result.current.currentFileForSettings).toBeNull();
     });
   });

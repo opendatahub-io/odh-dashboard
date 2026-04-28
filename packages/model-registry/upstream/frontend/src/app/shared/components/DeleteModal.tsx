@@ -29,6 +29,8 @@ type DeleteModalProps = {
   genericLabel?: boolean;
   inputPlaceholder?: string;
   inputHelperText?: string;
+  /** When true, append a required indicator (*) after the confirmation prompt. */
+  confirmationRequiredIndicator?: boolean;
 };
 
 const DeleteModal: React.FC<DeleteModalProps> = ({
@@ -44,6 +46,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   genericLabel,
   inputPlaceholder,
   inputHelperText,
+  confirmationRequiredIndicator = false,
 }) => {
   const [value, setValue] = React.useState('');
 
@@ -76,7 +79,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
               <FlexItem>
                 Type <strong>{deleteNameSanitized}</strong> to confirm
-                {genericLabel ? '' : ' deletion'}:
+                {genericLabel ? '' : ' deletion'}:{confirmationRequiredIndicator ? ' *' : ''}
               </FlexItem>
 
               <FlexItem>
@@ -126,6 +129,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       <ModalFooter>
         <Button
           key="delete-button"
+          data-testid="delete-modal-confirm-button"
           variant="danger"
           isLoading={deleting}
           isDisabled={deleting || value.trim() !== deleteNameSanitized}
@@ -133,7 +137,12 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         >
           {submitButtonLabel}
         </Button>
-        <Button key="cancel-button" variant="link" onClick={() => onBeforeClose(false)}>
+        <Button
+          key="cancel-button"
+          data-testid="delete-modal-cancel-button"
+          variant="link"
+          onClick={() => onBeforeClose(false)}
+        >
           Cancel
         </Button>
       </ModalFooter>

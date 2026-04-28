@@ -20,7 +20,7 @@ describe('EmptyExperimentsState', () => {
         'Test different model configurations to find the best-performing solution for classification, regression, and time series problems.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('create-experiment-button')).toHaveTextContent('Create experiment');
+    expect(screen.getByTestId('create-run-button')).toHaveTextContent('Create run');
   });
 
   it('should use default data-testid when not provided', () => {
@@ -53,7 +53,7 @@ describe('EmptyExperimentsState', () => {
       </MemoryRouter>,
     );
 
-    const createButton = screen.getByTestId('create-experiment-button');
+    const createButton = screen.getByTestId('create-run-button');
     expect(createButton.closest('a')).toHaveAttribute('href', '/automl/create/my-namespace');
   });
 });

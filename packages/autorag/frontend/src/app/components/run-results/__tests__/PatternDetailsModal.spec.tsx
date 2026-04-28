@@ -17,7 +17,7 @@ const mockPattern: AutoragPattern = {
   max_combinations: 20,
   duration_seconds: 120,
   settings: {
-    vector_store: { datasource_type: 'ls_milvus', collection_name: 'collection0' },
+    vector_store: { datasource_type: 'milvus', collection_name: 'collection0' },
     chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
     embedding: {
       model_id: 'mock-embed-a',
@@ -110,7 +110,7 @@ describe('PatternDetailsModal', () => {
   it('should show plain text when only one pattern exists', () => {
     render(<PatternDetailsModal {...defaultProps} />);
     expect(screen.queryByTestId('pattern-selector-dropdown')).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'pattern0' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^pattern\s+0$/ })).toBeInTheDocument();
   });
 
   it('should display all settings tabs plus Pattern information', () => {
@@ -144,7 +144,7 @@ describe('PatternDetailsModal', () => {
       render(<PatternDetailsModal {...defaultProps} />);
 
       expect(screen.getByText('Name')).toBeInTheDocument();
-      expect(screen.getAllByText('pattern0').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('pattern 0').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('Iteration')).toBeInTheDocument();
       expect(screen.getByText('0')).toBeInTheDocument();
       expect(screen.getByText('Max Combinations')).toBeInTheDocument();
@@ -230,7 +230,7 @@ describe('PatternDetailsModal', () => {
       await user.click(screen.getByTestId('tab-vector_store'));
 
       expect(screen.getByText('Datasource Type')).toBeInTheDocument();
-      expect(screen.getByText('ls_milvus')).toBeInTheDocument();
+      expect(screen.getByText('milvus')).toBeInTheDocument();
       expect(screen.getByText('Collection Name')).toBeInTheDocument();
       expect(screen.getByText('collection0')).toBeInTheDocument();
     });
@@ -382,7 +382,7 @@ describe('PatternDetailsModal', () => {
     it('should display the current pattern name in the dropdown toggle', () => {
       render(<PatternDetailsModal {...twoPatternProps} />);
       const toggle = screen.getByTestId('pattern-selector-dropdown');
-      expect(toggle).toHaveTextContent('pattern0');
+      expect(toggle).toHaveTextContent('pattern 0');
     });
 
     it('should call onPatternChange when a different pattern is selected', async () => {
@@ -391,7 +391,7 @@ describe('PatternDetailsModal', () => {
       render(<PatternDetailsModal {...twoPatternProps} onPatternChange={onPatternChange} />);
 
       await user.click(screen.getByTestId('pattern-selector-dropdown'));
-      await user.click(screen.getByText('pattern1'));
+      await user.click(screen.getByText('pattern 1'));
 
       expect(onPatternChange).toHaveBeenCalledWith(1);
     });
@@ -420,33 +420,32 @@ describe('PatternDetailsModal', () => {
     it('should trigger window.print when Download is clicked', async () => {
       const user = userEvent.setup();
       const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
-      render(<PatternDetailsModal {...defaultProps} />);
-
-      await user.click(screen.getByTestId('pattern-details-download'));
-
-      await new Promise((resolve) => {
-        requestAnimationFrame(resolve);
-      });
-
-      expect(printSpy).toHaveBeenCalledTimes(1);
-      printSpy.mockRestore();
+      try {
+        render(<PatternDetailsModal {...defaultProps} />);
+        await user.click(screen.getByTestId('pattern-details-download'));
+        expect(printSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        printSpy.mockRestore();
+      }
     });
 
     it('should render print-only container with all sections when printing', async () => {
       const user = userEvent.setup();
-      jest.spyOn(window, 'print').mockImplementation(jest.fn());
-      render(<PatternDetailsModal {...defaultProps} />);
+      const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
+      try {
+        render(<PatternDetailsModal {...defaultProps} />);
+        await user.click(screen.getByTestId('pattern-details-download'));
 
-      await user.click(screen.getByTestId('pattern-details-download'));
-
-      const printContainer = document.querySelector('.autorag-pattern-details-print-only');
-      expect(printContainer).toBeInTheDocument();
-      expect(printContainer).toHaveTextContent('pattern0');
-      expect(printContainer).toHaveTextContent('Pattern information');
-      expect(printContainer).toHaveTextContent('Chunking');
-      expect(printContainer).toHaveTextContent('Embedding');
-
-      jest.restoreAllMocks();
+        // Print container should be portalled to document.body
+        const printContainer = screen.getByTestId('print-container');
+        expect(printContainer.parentElement).toBe(document.body);
+        expect(printContainer).toHaveTextContent('pattern 0');
+        expect(printContainer).toHaveTextContent('Pattern information');
+        expect(printContainer).toHaveTextContent('Chunking');
+        expect(printContainer).toHaveTextContent('Embedding');
+      } finally {
+        printSpy.mockRestore();
+      }
     });
   });
 

@@ -68,7 +68,7 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       path: '/ai-hub/mcp-servers/*',
       group: '2_mcp_servers',
       section: 'ai-hub',
-      objectType: 'model-catalog',
+      objectType: 'mcp-catalog',
     },
   },
   {
@@ -139,19 +139,6 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       href: '/develop-train/pipelines/executions',
       section: 'pipelines',
       path: '/develop-train/pipelines/executions/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.DS_PIPELINES],
-    },
-    properties: {
-      id: 'experiments',
-      title: 'Experiments',
-      href: '/develop-train/experiments',
-      section: 'develop-and-train',
-      path: '/develop-train/experiments/*',
     },
   },
   {

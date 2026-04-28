@@ -1,10 +1,14 @@
 import * as React from 'react';
 import { Label, type LabelProps } from '@patternfly/react-core';
-import { Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
+import StopRunModal from '~/app/components/run-results/StopRunModal';
+import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
+import { TASK_TYPE_LABELS } from '~/app/utilities/const';
 import { automlResultsPathname } from '~/app/utilities/routes';
+import { getTaskType, isRunTerminatable, isRunRetryable } from '~/app/utilities/utils';
 import { automlRunsColumns } from './columns';
 
 /** Run state values (API / display). Use lowercase for case-insensitive matching. */
@@ -16,11 +20,13 @@ export const RUN_STATE = {
   INCOMPLETE: 'incomplete',
   COMPLETE: 'complete',
   PAUSED: 'paused',
+  SKIPPED: 'skipped',
 } as const;
 
 type AutomlRunsTableRowProps = {
   run: PipelineRun;
   namespace: string;
+  onActionComplete?: () => void | Promise<void>;
 };
 
 export const getStatusLabelProps = (
@@ -48,30 +54,85 @@ export const getStatusLabelProps = (
   return { color: 'grey' };
 };
 
-const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({ run, namespace }) => (
-  <Tr>
-    <Td dataLabel={automlRunsColumns[0].label}>
-      <Link
-        to={`${automlResultsPathname}/${namespace}/${run.run_id}`}
-        data-testid={`run-name-${run.run_id}`}
-      >
-        {run.display_name}
-      </Link>
-    </Td>
-    <Td dataLabel={automlRunsColumns[1].label}>{run.description ?? '—'}</Td>
-    <Td dataLabel={automlRunsColumns[2].label}>
-      <RunStartTimestamp run={run} />
-    </Td>
-    <Td dataLabel={automlRunsColumns[3].label}>
-      {run.state ? (
-        <Label variant="outline" isCompact {...getStatusLabelProps(run.state)}>
-          {run.state}
-        </Label>
-      ) : (
-        '—'
-      )}
-    </Td>
-  </Tr>
-);
+const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
+  run,
+  namespace,
+  onActionComplete,
+}) => {
+  const taskType = getTaskType(run);
+  const predictionTypeLabel = taskType ? (TASK_TYPE_LABELS[taskType] ?? taskType) : '—';
+  const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
+  const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutomlRunActions(
+    namespace,
+    run.run_id,
+    onActionComplete,
+  );
+
+  const runTerminatable = isRunTerminatable(run.state);
+  const runRetryable = isRunRetryable(run.state);
+
+  const handleStop = React.useCallback(async () => {
+    await handleConfirmStop();
+    setIsStopModalOpen(false);
+  }, [handleConfirmStop]);
+
+  const actions = React.useMemo(() => {
+    const items: React.ComponentProps<typeof ActionsColumn>['items'] = [];
+
+    if (runTerminatable) {
+      items.push({
+        title: <span data-testid="stop-run-action">Stop</span>,
+        onClick: () => setIsStopModalOpen(true),
+      });
+    }
+
+    if (runRetryable) {
+      items.push({
+        title: <span data-testid="retry-run-action">Retry</span>,
+        onClick: () => void handleRetry(),
+        isDisabled: isRetrying,
+      });
+    }
+
+    return items;
+  }, [runTerminatable, runRetryable, handleRetry, isRetrying]);
+
+  return (
+    <>
+      <Tr>
+        <Td dataLabel={automlRunsColumns[0].label}>
+          <Link
+            to={`${automlResultsPathname}/${namespace}/${run.run_id}`}
+            data-testid={`run-name-${run.run_id}`}
+          >
+            {run.display_name}
+          </Link>
+        </Td>
+        <Td dataLabel={automlRunsColumns[1].label}>{run.description ?? '—'}</Td>
+        <Td dataLabel={automlRunsColumns[2].label}>{predictionTypeLabel}</Td>
+        <Td dataLabel={automlRunsColumns[3].label}>
+          <RunStartTimestamp run={run} />
+        </Td>
+        <Td dataLabel={automlRunsColumns[4].label}>
+          {run.state ? (
+            <Label variant="outline" isCompact {...getStatusLabelProps(run.state)}>
+              {run.state}
+            </Label>
+          ) : (
+            '—'
+          )}
+        </Td>
+        <Td isActionCell>{actions.length > 0 ? <ActionsColumn items={actions} /> : null}</Td>
+      </Tr>
+      <StopRunModal
+        isOpen={isStopModalOpen}
+        onClose={() => setIsStopModalOpen(false)}
+        onConfirm={handleStop}
+        isTerminating={isTerminating}
+        runName={run.display_name}
+      />
+    </>
+  );
+};
 
 export default AutomlRunsTableRow;

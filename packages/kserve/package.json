@@ -7,7 +7,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
-    "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix"
+    "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage"
   },
   "exports": {
     "./extensions": "./extensions.ts",
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
   }
 }

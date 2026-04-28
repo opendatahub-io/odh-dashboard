@@ -41,7 +41,7 @@ type GroupReference struct {
 
 // OwnerSpec defines who owns a subscription.
 type OwnerSpec struct {
-	Groups []GroupReference `json:"groups,omitempty"`
+	Groups []GroupReference `json:"groups"`
 }
 
 // TokenRateLimit defines a token-based rate limit.
@@ -57,11 +57,10 @@ type BillingRate struct {
 
 // ModelSubscriptionRef references a model with rate limits within a subscription.
 type ModelSubscriptionRef struct {
-	Name              string           `json:"name"`
-	Namespace         string           `json:"namespace"`
-	TokenRateLimits   []TokenRateLimit `json:"tokenRateLimits,omitempty"`
-	TokenRateLimitRef *string          `json:"tokenRateLimitRef,omitempty"`
-	BillingRate       *BillingRate     `json:"billingRate,omitempty"`
+	Name            string           `json:"name"`
+	Namespace       string           `json:"namespace"`
+	TokenRateLimits []TokenRateLimit `json:"tokenRateLimits"`
+	BillingRate     *BillingRate     `json:"billingRate,omitempty"`
 }
 
 // TokenMetadata contains metadata for token usage attribution and metering.
@@ -74,20 +73,22 @@ type TokenMetadata struct {
 // MaaSSubscription is the BFF representation of a MaaSSubscription CR.
 type MaaSSubscription struct {
 	Name              string                 `json:"name"`
-	Namespace         string                 `json:"namespace"`
 	DisplayName       string                 `json:"displayName,omitempty"`
 	Description       string                 `json:"description,omitempty"`
+	Namespace         string                 `json:"namespace"`
 	Phase             string                 `json:"phase,omitempty"`
-	Priority          int32                  `json:"priority,omitempty"`
+	StatusMessage     string                 `json:"statusMessage,omitempty"`
+	Priority          int32                  `json:"priority"`
 	Owner             OwnerSpec              `json:"owner"`
 	ModelRefs         []ModelSubscriptionRef `json:"modelRefs"`
 	TokenMetadata     *TokenMetadata         `json:"tokenMetadata,omitempty"`
 	CreationTimestamp *time.Time             `json:"creationTimestamp,omitempty"`
+	DeletionTimestamp *time.Time             `json:"deletionTimestamp,omitempty"`
 }
 
 // SubjectSpec defines subjects (groups) that have access.
 type SubjectSpec struct {
-	Groups []GroupReference `json:"groups,omitempty"`
+	Groups []GroupReference `json:"groups"`
 }
 
 // ModelRef is a simple reference to a MaaSModelRef by name and namespace.
@@ -98,14 +99,17 @@ type ModelRef struct {
 
 // MaaSAuthPolicy is the BFF representation of a MaaSAuthPolicy CR.
 type MaaSAuthPolicy struct {
-	Name             string         `json:"name"`
-	Namespace        string         `json:"namespace"`
-	DisplayName      string         `json:"displayName,omitempty"`
-	Description      string         `json:"description,omitempty"`
-	Phase            string         `json:"phase,omitempty"`
-	ModelRefs        []ModelRef     `json:"modelRefs"`
-	Subjects         SubjectSpec    `json:"subjects"`
-	MeteringMetadata *TokenMetadata `json:"meteringMetadata,omitempty"`
+	Name              string         `json:"name"`
+	Namespace         string         `json:"namespace"`
+	DisplayName       string         `json:"displayName,omitempty"`
+	Description       string         `json:"description,omitempty"`
+	Phase             string         `json:"phase,omitempty"`
+	StatusMessage     string         `json:"statusMessage,omitempty"`
+	CreationTimestamp *time.Time     `json:"creationTimestamp,omitempty"`
+	ModelRefs         []ModelRef     `json:"modelRefs"`
+	Subjects          SubjectSpec    `json:"subjects"`
+	MeteringMetadata  *TokenMetadata `json:"meteringMetadata,omitempty"`
+	DeletionTimestamp *time.Time     `json:"deletionTimestamp,omitempty"`
 }
 
 // ModelReference references a model endpoint.
@@ -128,6 +132,8 @@ type MaaSModelRefSummary struct {
 // CreateSubscriptionRequest is the request body for creating a new subscription.
 type CreateSubscriptionRequest struct {
 	Name             string                 `json:"name"`
+	DisplayName      string                 `json:"displayName,omitempty"`
+	Description      string                 `json:"description,omitempty"`
 	Owner            OwnerSpec              `json:"owner"`
 	ModelRefs        []ModelSubscriptionRef `json:"modelRefs"`
 	TokenMetadata    *TokenMetadata         `json:"tokenMetadata,omitempty"`
@@ -137,6 +143,8 @@ type CreateSubscriptionRequest struct {
 
 // UpdateSubscriptionRequest is the request body for updating a subscription.
 type UpdateSubscriptionRequest struct {
+	DisplayName   string                 `json:"displayName,omitempty"`
+	Description   string                 `json:"description,omitempty"`
 	Owner         OwnerSpec              `json:"owner"`
 	ModelRefs     []ModelSubscriptionRef `json:"modelRefs"`
 	TokenMetadata *TokenMetadata         `json:"tokenMetadata,omitempty"`

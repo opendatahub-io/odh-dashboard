@@ -1,0 +1,32 @@
+apiVersion: mlflow.opendatahub.io/v1
+kind: MLflow
+metadata:
+  name: mlflow
+spec:
+  image:
+    image: quay.io/opendatahub/mlflow:odh-stable
+    imagePullPolicy: Always
+  replicas: 1
+  resources:
+    requests:
+      cpu: '1'
+      memory: '2Gi'
+    limits:
+      cpu: '4'
+      memory: '3Gi'
+  podAnnotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '8443'
+  storage:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  backendStoreUri: 'sqlite:////mlflow/mlflow.db'
+  registryStoreUri: 'sqlite:////mlflow/mlflow.db'
+  artifactsDestination: 'file:///mlflow/artifacts'
+  serveArtifacts: true
+  env:
+    - name: MLFLOW_LOGGING_LEVEL
+      value: DEBUG

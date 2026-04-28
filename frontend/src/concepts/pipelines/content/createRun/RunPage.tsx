@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { PageSection } from '@patternfly/react-core';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import { ExperimentKF, PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import GenericSidebar from '#~/components/GenericSidebar';
 import {
@@ -48,21 +49,22 @@ const RunPage: React.FC<RunPageProps> = ({
     nameDesc: locationNameDesc,
     pipeline: locationPipeline,
     version: locationVersion,
-    experiment: locationExperiment,
+    experiment: locationRunGroup,
+    mlflow: locationMlflow,
   } = location.state?.locationData || {};
   const { triggerType: triggerTypeString } = useGetSearchParamValues([
     PipelineRunSearchParam.TriggerType,
   ]);
   const triggerType = asEnumMember(triggerTypeString, ScheduledType);
   const isSchedule = runType === RunTypeOption.SCHEDULED;
-
   const [defaultExperiment] = useDefaultExperiment();
-
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const jumpToSections = Object.values(CreateRunPageSections).filter(
     (section) =>
       !(
         (section === CreateRunPageSections.SCHEDULE_DETAILS && !isSchedule) ||
-        (section === CreateRunPageSections.RUN_DETAILS && isSchedule)
+        (section === CreateRunPageSections.RUN_DETAILS && isSchedule) ||
+        (section === CreateRunPageSections.MLFLOW_INTEGRATION && !isMlflowAvailable)
       ),
   );
 
@@ -99,7 +101,8 @@ const RunPage: React.FC<RunPageProps> = ({
     pipeline: locationPipeline || contextPipeline,
     version: locationVersion || contextPipelineVersion,
     versionToUse: versionToUseData,
-    experiment: locationExperiment || contextExperiment || defaultExperiment,
+    experiment: locationRunGroup || contextExperiment || defaultExperiment,
+    ...(locationMlflow ? { mlflow: locationMlflow } : {}),
   });
 
   const onValueChange = React.useCallback(

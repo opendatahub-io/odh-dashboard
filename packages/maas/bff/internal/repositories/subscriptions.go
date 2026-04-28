@@ -77,7 +77,7 @@ func (r *SubscriptionsRepository) GetSubscription(ctx context.Context, name stri
 	obj, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return nil, nil
+			return nil, err
 		}
 		return nil, fmt.Errorf("failed to get MaaSSubscription: %w", err)
 	}
@@ -97,11 +97,11 @@ func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, reques
 	kubeClient := client.GetDynamicClient()
 
 	// Build and create the MaaSSubscription CR in the configured namespace
-	subObj := buildSubscriptionUnstructured(request.Name, r.namespace, request.Owner, request.ModelRefs, request.TokenMetadata, request.Priority)
+	subObj := buildSubscriptionUnstructured(request.Name, r.namespace, request.DisplayName, request.Description, request.Owner, request.ModelRefs, request.TokenMetadata, request.Priority)
 	createdSub, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Create(ctx, subObj, metav1.CreateOptions{})
 	if err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
-			return nil, fmt.Errorf("MaaSSubscription '%s' already exists", request.Name)
+			return nil, err
 		}
 		return nil, fmt.Errorf("failed to create MaaSSubscription: %w", err)
 	}
@@ -126,7 +126,7 @@ func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, reques
 			policyName,
 			r.namespace,
 			"",
-			"",
+			fmt.Sprintf("Auth policy created for subscription \"%s\"", request.Name),
 			modelRefs,
 			request.Owner.Groups,
 			request.TokenMetadata,
@@ -163,13 +163,13 @@ func (r *SubscriptionsRepository) UpdateSubscription(ctx context.Context, name s
 	existingObj, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return nil, nil
+			return nil, err
 		}
 		return nil, fmt.Errorf("failed to get MaaSSubscription: %w", err)
 	}
 
-	// Update the subscription spec
-	updateSubscriptionSpec(existingObj, request.Owner, request.ModelRefs, request.TokenMetadata, request.Priority)
+	// Update the subscription spec and annotations
+	updateSubscriptionSpec(existingObj, request.DisplayName, request.Description, request.Owner, request.ModelRefs, request.TokenMetadata, request.Priority)
 	updatedSub, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Update(ctx, existingObj, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update MaaSSubscription: %w", err)
@@ -198,7 +198,7 @@ func (r *SubscriptionsRepository) DeleteSubscription(ctx context.Context, name s
 	err = kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return fmt.Errorf("MaaSSubscription '%s' not found", name)
+			return err
 		}
 		return fmt.Errorf("failed to delete MaaSSubscription: %w", err)
 	}
@@ -206,7 +206,7 @@ func (r *SubscriptionsRepository) DeleteSubscription(ctx context.Context, name s
 	return nil
 }
 
-// GetFormData returns groups and model refs for the subscription creation form.
+// GetFormData returns groups, model refs, and all subscriptions for the subscription creation form.
 func (r *SubscriptionsRepository) GetFormData(ctx context.Context) (*models.SubscriptionFormDataResponse, error) {
 	r.logger.Debug("Getting subscription form data")
 
@@ -287,7 +287,7 @@ func (r *SubscriptionsRepository) GetModelRefSummaries(ctx context.Context, refs
 		refSet[ref.Namespace+"/"+ref.Name] = true
 	}
 
-	var result []models.MaaSModelRefSummary
+	result := make([]models.MaaSModelRefSummary, 0)
 	for _, ref := range allRefs {
 		if refSet[ref.Namespace+"/"+ref.Name] {
 			result = append(result, ref)
@@ -349,6 +349,8 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	sub.Phase = phase
 
+	sub.StatusMessage = extractReadyConditionMessage(content)
+
 	priority, _, _ := unstructured.NestedFieldNoCopy(content, "spec", "priority")
 	if priority != nil {
 		switch v := priority.(type) {
@@ -359,6 +361,7 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		}
 	}
 
+	sub.Owner.Groups = []models.GroupReference{}
 	ownerGroups, _, _ := unstructured.NestedSlice(content, "spec", "owner", "groups")
 	for _, g := range ownerGroups {
 		if gMap, ok := g.(map[string]interface{}); ok {
@@ -368,10 +371,13 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		}
 	}
 
+	sub.ModelRefs = []models.ModelSubscriptionRef{}
 	modelRefs, _, _ := unstructured.NestedSlice(content, "spec", "modelRefs")
 	for _, mr := range modelRefs {
 		if mrMap, ok := mr.(map[string]interface{}); ok {
-			ref := models.ModelSubscriptionRef{}
+			ref := models.ModelSubscriptionRef{
+				TokenRateLimits: make([]models.TokenRateLimit, 0),
+			}
 			if name, ok := mrMap["name"].(string); ok {
 				ref.Name = name
 			}
@@ -394,9 +400,6 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 						ref.TokenRateLimits = append(ref.TokenRateLimits, limit)
 					}
 				}
-			}
-			if trlRef, ok := mrMap["tokenRateLimitRef"].(string); ok {
-				ref.TokenRateLimitRef = &trlRef
 			}
 			if br, ok := mrMap["billingRate"].(map[string]interface{}); ok {
 				if perToken, ok := br["perToken"].(string); ok {
@@ -426,6 +429,10 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		}
 		sub.TokenMetadata = tokenMeta
 	}
+	if dt := obj.GetDeletionTimestamp(); dt != nil {
+		t := dt.Time
+		sub.DeletionTimestamp = &t
+	}
 
 	ct := obj.GetCreationTimestamp()
 	if !ct.IsZero() {
@@ -451,6 +458,9 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	policy.Phase = phase
 
+	policy.StatusMessage = extractReadyConditionMessage(content)
+
+	policy.ModelRefs = []models.ModelRef{}
 	modelRefs, _, _ := unstructured.NestedSlice(content, "spec", "modelRefs")
 	for _, mr := range modelRefs {
 		if mrMap, ok := mr.(map[string]interface{}); ok {
@@ -465,6 +475,7 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 		}
 	}
 
+	policy.Subjects.Groups = []models.GroupReference{}
 	subjectGroups, _, _ := unstructured.NestedSlice(content, "spec", "subjects", "groups")
 	for _, g := range subjectGroups {
 		if gMap, ok := g.(map[string]interface{}); ok {
@@ -494,6 +505,17 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 		policy.MeteringMetadata = meta
 	}
 
+	ct := obj.GetCreationTimestamp()
+	if !ct.IsZero() {
+		t := ct.Time
+		policy.CreationTimestamp = &t
+	}
+
+	if dt := obj.GetDeletionTimestamp(); dt != nil {
+		t := dt.Time
+		policy.DeletionTimestamp = &t
+	}
+
 	return policy, nil
 }
 
@@ -521,14 +543,40 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) (*mode
 	return summary, nil
 }
 
+// extractReadyConditionMessage returns the message from the "Ready" condition in status.conditions.
+func extractReadyConditionMessage(content map[string]interface{}) string {
+	conditions, _, _ := unstructured.NestedSlice(content, "status", "conditions")
+	for _, c := range conditions {
+		if cMap, ok := c.(map[string]interface{}); ok {
+			if condType, _ := cMap["type"].(string); condType == "Ready" {
+				if msg, _ := cMap["message"].(string); msg != "" {
+					return msg
+				}
+			}
+		}
+	}
+	return ""
+}
+
 // --- Builder helpers: Go models -> Unstructured ---
 
-func buildSubscriptionUnstructured(name, namespace string, owner models.OwnerSpec, modelRefs []models.ModelSubscriptionRef, tokenMetadata *models.TokenMetadata, priority int32) *unstructured.Unstructured {
+func buildSubscriptionUnstructured(name, namespace, displayName, description string, owner models.OwnerSpec, modelRefs []models.ModelSubscriptionRef, tokenMetadata *models.TokenMetadata, priority int32) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetAPIVersion("maas.opendatahub.io/v1alpha1")
 	obj.SetKind("MaaSSubscription")
 	obj.SetName(name)
 	obj.SetNamespace(namespace)
+
+	annotations := map[string]string{}
+	if displayName != "" {
+		annotations["openshift.io/display-name"] = displayName
+	}
+	if description != "" {
+		annotations["openshift.io/description"] = description
+	}
+	if len(annotations) > 0 {
+		obj.SetAnnotations(annotations)
+	}
 
 	spec := map[string]interface{}{
 		"priority":  int64(priority),
@@ -604,6 +652,58 @@ func buildOwnerSpec(owner models.OwnerSpec) map[string]interface{} {
 	}
 }
 
+// mergeOwnerSpec updates only groups, preserving unmanaged fields like users.
+func mergeOwnerSpec(existing map[string]interface{}, owner models.OwnerSpec) map[string]interface{} {
+	if existing == nil {
+		existing = map[string]interface{}{}
+	}
+	existing["groups"] = buildOwnerSpec(owner)["groups"]
+	return existing
+}
+
+// indexModelRefsByKey indexes existing refs by "namespace/name" for quick lookup during a merge.
+func indexModelRefsByKey(refs []interface{}) map[string]map[string]interface{} {
+	idx := make(map[string]map[string]interface{}, len(refs))
+	for _, r := range refs {
+		if m, ok := r.(map[string]interface{}); ok {
+			name, _ := m["name"].(string)
+			ns, _ := m["namespace"].(string)
+			idx[ns+"/"+name] = m
+		}
+	}
+	return idx
+}
+
+// mergeModelSubscriptionRefs merges the incoming refs with the existing ones, preserving fields the UI doesn't own (e.g. billingRate).
+func mergeModelSubscriptionRefs(existing []interface{}, refs []models.ModelSubscriptionRef) []interface{} {
+	existingByKey := indexModelRefsByKey(existing)
+	result := make([]interface{}, len(refs))
+	for i, ref := range refs {
+		refMap := existingByKey[ref.Namespace+"/"+ref.Name]
+		if refMap == nil {
+			refMap = map[string]interface{}{
+				"name":      ref.Name,
+				"namespace": ref.Namespace,
+			}
+		}
+		// only tokenRateLimits is owned by the UI; everything else (e.g. billingRate) is left untouched.
+		if len(ref.TokenRateLimits) > 0 {
+			tokenLimits := make([]interface{}, 0, len(ref.TokenRateLimits))
+			for _, limit := range ref.TokenRateLimits {
+				tokenLimits = append(tokenLimits, map[string]interface{}{
+					"limit":  limit.Limit,
+					"window": limit.Window,
+				})
+			}
+			refMap["tokenRateLimits"] = tokenLimits
+		} else {
+			delete(refMap, "tokenRateLimits")
+		}
+		result[i] = refMap
+	}
+	return result
+}
+
 func buildModelSubscriptionRefs(refs []models.ModelSubscriptionRef) []interface{} {
 	result := make([]interface{}, len(refs))
 	for i, ref := range refs {
@@ -620,9 +720,6 @@ func buildModelSubscriptionRefs(refs []models.ModelSubscriptionRef) []interface{
 				}
 			}
 			mr["tokenRateLimits"] = trls
-		}
-		if ref.TokenRateLimitRef != nil {
-			mr["tokenRateLimitRef"] = *ref.TokenRateLimitRef
 		}
 		if ref.BillingRate != nil {
 			mr["billingRate"] = map[string]interface{}{
@@ -652,14 +749,32 @@ func buildTokenMetadata(tm *models.TokenMetadata) map[string]interface{} {
 	return meta
 }
 
-func updateSubscriptionSpec(obj *unstructured.Unstructured, owner models.OwnerSpec, modelRefs []models.ModelSubscriptionRef, tokenMetadata *models.TokenMetadata, priority int32) {
+func updateSubscriptionSpec(obj *unstructured.Unstructured, displayName, description string, owner models.OwnerSpec, modelRefs []models.ModelSubscriptionRef, tokenMetadata *models.TokenMetadata, priority int32) {
+	annotations := obj.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	if displayName != "" {
+		annotations["openshift.io/display-name"] = displayName
+	} else {
+		delete(annotations, "openshift.io/display-name")
+	}
+	if description != "" {
+		annotations["openshift.io/description"] = description
+	} else {
+		delete(annotations, "openshift.io/description")
+	}
+	obj.SetAnnotations(annotations)
+
 	existingSpec, _, _ := unstructured.NestedMap(obj.Object, "spec")
 	if existingSpec == nil {
 		existingSpec = map[string]interface{}{}
 	}
 	existingSpec["priority"] = int64(priority)
-	existingSpec["owner"] = buildOwnerSpec(owner)
-	existingSpec["modelRefs"] = buildModelSubscriptionRefs(modelRefs)
+	existingOwner, _ := existingSpec["owner"].(map[string]interface{})
+	existingSpec["owner"] = mergeOwnerSpec(existingOwner, owner)
+	existingModelRefs, _ := existingSpec["modelRefs"].([]interface{})
+	existingSpec["modelRefs"] = mergeModelSubscriptionRefs(existingModelRefs, modelRefs)
 
 	if tokenMetadata != nil {
 		existingSpec["tokenMetadata"] = buildTokenMetadata(tokenMetadata)

@@ -1,0 +1,11 @@
+projectName: rayjob-e2e-test
+rayJobName: test-ray-job-pause-scale
+flavorName: ray-e2e-flavor
+clusterQueueName: ray-e2e-cluster-queue
+localQueueName: ray-e2e-local-queue
+cpuQuota: 100
+memoryQuota: 200
+gpuQuota: 8
+workerGroupName: worker-group-1
+rayImage: rayproject/ray:2.9.0
+rayVersion: "2.9.0"

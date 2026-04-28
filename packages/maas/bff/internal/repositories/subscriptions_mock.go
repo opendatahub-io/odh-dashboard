@@ -2,9 +2,11 @@ package repositories
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/mocks"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
@@ -31,7 +33,7 @@ func (r *MockSubscriptionsRepository) GetSubscription(_ context.Context, name st
 			return &sub, nil
 		}
 	}
-	return nil, nil
+	return nil, k8sErrors.NewNotFound(constants.MaaSSubscriptionGvr.GroupResource(), name)
 }
 
 func (r *MockSubscriptionsRepository) CreateSubscription(_ context.Context, request models.CreateSubscriptionRequest) (*models.CreateSubscriptionResponse, error) {
@@ -39,7 +41,7 @@ func (r *MockSubscriptionsRepository) CreateSubscription(_ context.Context, requ
 
 	for _, sub := range mocks.GetMockMaaSSubscriptions() {
 		if sub.Name == request.Name {
-			return nil, fmt.Errorf("MaaSSubscription '%s' already exists", request.Name)
+			return nil, k8sErrors.NewAlreadyExists(constants.MaaSSubscriptionGvr.GroupResource(), request.Name)
 		}
 	}
 
@@ -51,6 +53,8 @@ func (r *MockSubscriptionsRepository) CreateSubscription(_ context.Context, requ
 	response := &models.CreateSubscriptionResponse{
 		Subscription: models.MaaSSubscription{
 			Name:          request.Name,
+			DisplayName:   request.DisplayName,
+			Description:   request.Description,
 			Namespace:     "mock-namespace",
 			Phase:         "Pending",
 			Priority:      request.Priority,
@@ -87,12 +91,14 @@ func (r *MockSubscriptionsRepository) UpdateSubscription(_ context.Context, name
 		}
 	}
 	if existing == nil {
-		return nil, nil
+		return nil, k8sErrors.NewNotFound(constants.MaaSSubscriptionGvr.GroupResource(), name)
 	}
 
 	return &models.CreateSubscriptionResponse{
 		Subscription: models.MaaSSubscription{
 			Name:              existing.Name,
+			DisplayName:       request.DisplayName,
+			Description:       request.Description,
 			Namespace:         existing.Namespace,
 			Phase:             existing.Phase,
 			Priority:          request.Priority,
@@ -111,20 +117,21 @@ func (r *MockSubscriptionsRepository) DeleteSubscription(_ context.Context, name
 			return nil
 		}
 	}
-	return fmt.Errorf("MaaSSubscription '%s' not found", name)
+	return k8sErrors.NewNotFound(constants.MaaSSubscriptionGvr.GroupResource(), name)
 }
 
 func (r *MockSubscriptionsRepository) GetFormData(_ context.Context) (*models.SubscriptionFormDataResponse, error) {
 	r.logger.Debug("Getting subscription form data (mock)")
 	return &models.SubscriptionFormDataResponse{
-		Groups:    mocks.GetMockGroups(),
-		ModelRefs: mocks.GetMockMaaSModelRefSummaries(),
+		Groups:        mocks.GetMockGroups(),
+		ModelRefs:     mocks.GetMockMaaSModelRefSummaries(),
+		Subscriptions: mocks.GetMockMaaSSubscriptions(),
 	}, nil
 }
 
 func (r *MockSubscriptionsRepository) GetAuthPoliciesForSubscription(_ context.Context, subscriptionName string) ([]models.MaaSAuthPolicy, error) {
 	r.logger.Debug("Getting auth policies for subscription (mock)", slog.String("subscription", subscriptionName))
-	var result []models.MaaSAuthPolicy
+	result := make([]models.MaaSAuthPolicy, 0)
 	for _, policy := range mocks.GetMockMaaSAuthPolicies() {
 		if policy.Name == subscriptionName+"-policy" {
 			result = append(result, policy)

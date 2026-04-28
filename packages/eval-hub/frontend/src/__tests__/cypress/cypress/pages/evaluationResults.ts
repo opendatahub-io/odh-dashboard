@@ -40,8 +40,8 @@ class EvaluationResultsPage {
     return cy.findByTestId('view-more-benchmarks');
   }
 
-  findBenchmarkDetails(benchmarkId: string) {
-    return cy.findByTestId(`benchmark-details-${benchmarkId}`);
+  findBenchmarkDetails(benchmarkId: string, benchmarkIndex: number) {
+    return cy.findByTestId(`benchmark-details-${benchmarkId}-${benchmarkIndex}`);
   }
 
   findBenchmarkDetailsInfo() {

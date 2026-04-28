@@ -1,4 +1,16 @@
-import { Breadcrumb, BreadcrumbItem, Skeleton } from '@patternfly/react-core';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  Button,
+  Drawer,
+  DrawerContent,
+  DrawerContentBody,
+  Skeleton,
+  Split,
+  SplitItem,
+  Truncate,
+} from '@patternfly/react-core';
+import { OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
@@ -7,15 +19,27 @@ import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
+import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
+import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
+import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
-import { parseErrorStatus } from '~/app/utilities/utils';
+import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
 
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector();
+  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
+    storeLastNamespace: true,
+  });
+  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
+  const handleDrawerClose = React.useCallback(() => setIsDrawerOpen(false), []);
+  const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
+  const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
+    namespace ?? '',
+    runId ?? '',
+  );
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -44,6 +68,14 @@ function AutoragResultsPage(): React.JSX.Element {
     ragPatternsBasePath,
   } = useAutoragResults(runId, namespace, pipelineRun);
 
+  const runTerminatable = isRunTerminatable(pipelineRun?.state);
+  const runRetryable = isRunRetryable(pipelineRun?.state);
+
+  const handleStop = React.useCallback(async () => {
+    await handleConfirmStop();
+    setIsStopModalOpen(false);
+  }, [handleConfirmStop]);
+
   const contextValue = React.useMemo(
     () =>
       getAutoragContext({
@@ -64,38 +96,111 @@ function AutoragResultsPage(): React.JSX.Element {
   );
 
   return (
-    <ApplicationsPage
-      title={<AutoragHeader />}
-      subtext={
-        <h2 className="pf-v6-u-mt-sm">
-          {pipelineRun ? `"${pipelineRun.display_name}" results` : <Skeleton width="300px" />}
-        </h2>
-      }
-      breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem>
-            <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
-          </BreadcrumbItem>
-          <BreadcrumbItem isActive>{pipelineRun?.display_name}</BreadcrumbItem>
-        </Breadcrumb>
-      }
-      empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
-      emptyStatePage={
-        invalidPipelineRunId ? (
-          <InvalidPipelineRun />
-        ) : (
-          <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
-        )
-      }
-      loadError={patternsLoadError ?? pipelineRunLoadError ?? namespacesLoadError}
-      loaded={namespacesLoaded && !pipelineRunPending}
-    >
-      {!patternsError && (
-        <AutoragResultsContext.Provider value={contextValue}>
-          <AutoragResults />
-        </AutoragResultsContext.Provider>
-      )}
-    </ApplicationsPage>
+    <>
+      <Drawer isExpanded={isDrawerOpen}>
+        <DrawerContent
+          panelContent={
+            <AutoragInputParametersPanel
+              onClose={handleDrawerClose}
+              parameters={contextValue.parameters}
+              isLoading={pipelineRunPending}
+            />
+          }
+        >
+          <DrawerContentBody>
+            <ApplicationsPage
+              title={<AutoragHeader />}
+              subtext={
+                <h2 className="pf-v6-u-mt-sm">
+                  {pipelineRun ? (
+                    <span>
+                      &quot;
+                      <Truncate content={pipelineRun.display_name || ''} />
+                      &quot; results
+                    </span>
+                  ) : (
+                    <Skeleton width="300px" />
+                  )}
+                </h2>
+              }
+              headerAction={
+                <Split hasGutter>
+                  <SplitItem>
+                    {runTerminatable && (
+                      <Button
+                        variant="secondary"
+                        icon={<StopCircleIcon />}
+                        onClick={() => setIsStopModalOpen(true)}
+                        data-testid="stop-run-button"
+                      >
+                        Stop
+                      </Button>
+                    )}
+                    {runRetryable && (
+                      <Button
+                        variant="secondary"
+                        icon={<RedoIcon />}
+                        onClick={handleRetry}
+                        isDisabled={isRetrying}
+                        isLoading={isRetrying}
+                        spinnerAriaValueText="Retrying run"
+                        data-testid="retry-run-button"
+                      >
+                        Retry
+                      </Button>
+                    )}
+                  </SplitItem>
+                  <SplitItem>
+                    <Button
+                      variant="link"
+                      icon={<OpenDrawerRightIcon />}
+                      onClick={() => setIsDrawerOpen((prev) => !prev)}
+                      aria-expanded={isDrawerOpen}
+                      data-testid="run-details-button"
+                    >
+                      Run details
+                    </Button>
+                  </SplitItem>
+                </Split>
+              }
+              breadcrumb={
+                <Breadcrumb>
+                  <BreadcrumbItem>
+                    <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
+                  </BreadcrumbItem>
+                  <BreadcrumbItem isActive>
+                    <Truncate content={pipelineRun?.display_name || ''} />
+                  </BreadcrumbItem>
+                </Breadcrumb>
+              }
+              empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
+              emptyStatePage={
+                invalidPipelineRunId ? (
+                  <InvalidPipelineRun />
+                ) : (
+                  <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
+                )
+              }
+              loadError={patternsLoadError ?? pipelineRunLoadError ?? namespacesLoadError}
+              loaded={namespacesLoaded && !pipelineRunPending}
+            >
+              {!patternsError && (
+                <AutoragResultsContext.Provider value={contextValue}>
+                  <AutoragResults />
+                </AutoragResultsContext.Provider>
+              )}
+            </ApplicationsPage>
+          </DrawerContentBody>
+        </DrawerContent>
+      </Drawer>
+      <StopRunModal
+        isOpen={isStopModalOpen}
+        onClose={() => setIsStopModalOpen(false)}
+        onConfirm={handleStop}
+        isTerminating={isTerminating}
+        runName={pipelineRun?.display_name}
+      />
+    </>
   );
 }
 

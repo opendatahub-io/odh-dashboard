@@ -2,26 +2,44 @@ import * as React from 'react';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import type { PipelineRun } from '~/app/types';
+import { getTaskType } from '~/app/utilities/utils';
 
 const configureSchema = createConfigureSchema();
 
-// Based on the artifact schema from Model artitfact metadata.
-// See https://github.com/LukaszCmielowski/pipelines-components/blob/rhoai_automl/pipelines/training/automl/autogluon_tabular_training_pipeline/README.md#model-artifact-metadata
-export type AutomlModel = {
-  display_name: string;
-  model_config: {
-    eval_metric: string;
-    // time_limit: number;
-  };
+// Normalized model types after rewriting relative S3 paths to absolute paths.
+// Tabular and timeseries models have different shapes; downstream code should
+// use the `AutomlModel` union and narrow via `isTimeseriesModel()` when needed.
+
+export type AutomlTabularModel = {
+  name: string;
   location: {
     model_directory: string;
     predictor: string;
     notebook: string;
   };
   metrics: {
-    test_data?: Record<string, unknown>;
+    test_data: Record<string, number>;
   };
 };
+
+export type AutomlTimeseriesModel = {
+  name: string;
+  base_model: string;
+  location: {
+    model_directory: string;
+    predictor: string;
+    notebook: string;
+    metrics: string;
+  };
+  metrics: {
+    test_data: Record<string, number>;
+  };
+};
+
+export type AutomlModel = AutomlTabularModel | AutomlTimeseriesModel;
+
+export const isTimeseriesModel = (model: AutomlModel): model is AutomlTimeseriesModel =>
+  'base_model' in model;
 
 export type AutomlResultsContextProps = {
   pipelineRun?: PipelineRun;
@@ -63,21 +81,14 @@ export function getAutomlContext({
   let parameters: Partial<ConfigureSchema> = {};
   if (parseResult.success) {
     parameters = parseResult.data;
-    // FYI default task_type to timeseries since it is the only task which will not have
-    // this as an actual parameter passed to the pipeline
-    // Check the original input, not the parsed result (which may have Zod defaults)
-    const hasTaskType =
-      inputParams && Object.prototype.hasOwnProperty.call(inputParams, 'task_type');
-    if (!hasTaskType) {
-      // eslint-disable-next-line camelcase
-      parameters.task_type = 'timeseries';
-    }
+    // eslint-disable-next-line camelcase
+    parameters.task_type = getTaskType(pipelineRun) ?? 'timeseries';
   } else {
     // Fallback to default task_type even on parse failure
     // eslint-disable-next-line no-console, camelcase
     console.warn('Failed to parse pipeline runtime parameters:', parseResult.error);
     // eslint-disable-next-line camelcase
-    parameters = { task_type: 'timeseries' };
+    parameters = { task_type: getTaskType(pipelineRun) ?? 'timeseries' };
   }
 
   return {

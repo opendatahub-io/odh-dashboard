@@ -1,75 +1,56 @@
+.autorag-pattern-details-modal {
+  height: 80vh;
+}
+
 .autorag-pre-wrap {
   white-space: pre-wrap;
 }
 
-.autorag-pattern-details-print-only {
+.odh-autox-print-only {
   display: none;
 }
 
 @media print {
-  // !important required to hide all page content behind the modal backdrop for print
-  body > *:not(.pf-v6-c-backdrop) {
+  // Hide everything except the portalled print container
+  body > *:not(.odh-autox-print-only) {
     display: none !important;
   }
 
-  // !important required to override PF backdrop fixed positioning and hidden overflow for print layout
-  .pf-v6-c-backdrop {
-    position: static !important;
-    overflow: visible !important;
-  }
-
-  // !important required to override PF modal inline styles for fixed positioning, max-width, and box-shadow
-  .autorag-pattern-details-modal {
-    position: static !important;
-    max-width: none !important;
-    min-height: auto !important;
-    box-shadow: none !important;
-    border: none !important;
-    overflow: visible !important;
-  }
-
-  // !important required to hide interactive modal chrome (header, close button) in print output
-  .autorag-pattern-details-screen-only,
-  .pf-v6-c-modal-box__header,
-  .pf-v6-c-modal-box__close {
-    display: none !important;
-  }
-
-  // !important required to show print-only content that is hidden by default
-  .autorag-pattern-details-print-only {
+  // Show the print container
+  .odh-autox-print-only {
     display: block !important;
   }
 
   .autorag-print-header {
-    margin-bottom: 24px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #000;
+    margin-bottom: var(--pf-t--global--spacer--md);
+    padding-bottom: var(--pf-t--global--spacer--sm);
+    border-bottom: 2px solid var(--pf-t--global--border--color--strong);
 
     h1 {
-      font-size: 24px;
+      font-size: var(--pf-t--global--font--size--2xl);
       margin: 0;
     }
 
     p {
-      font-size: 14px;
-      color: #555;
-      margin: 4px 0 0;
+      font-size: var(--pf-t--global--font--size--sm);
+      color: var(--pf-t--global--text--color--subtle);
+      margin: var(--pf-t--global--spacer--xs) 0 0;
     }
   }
 
+  // Each section starts on a new page except the first
   .autorag-print-page {
-    page-break-before: always;
-    padding-top: 16px;
-
-    h2 {
-      font-size: 20px;
-      margin-bottom: 16px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #ccc;
-    }
+    break-before: page;
   }
 
-  .autorag-print-header + .autorag-print-page {
-    page-break-before: avoid;
+  .autorag-print-page--first {
+    break-before: avoid;
+  }
+
+  .autorag-print-page h2 {
+    font-size: var(--pf-t--global--font--size--xl);
+    margin-bottom: var(--pf-t--global--spacer--md);
+    padding-bottom: var(--pf-t--global--spacer--sm);
+    border-bottom: 1px solid var(--pf-t--global--border--color--default);
   }
 }

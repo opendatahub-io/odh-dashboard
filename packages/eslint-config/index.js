@@ -21,6 +21,15 @@ const addNoExtraneousDependenciesRule = (config, dirname) => {
       },
     ],
   };
+  clone.overrides = [
+    ...(clone.overrides || []),
+    {
+      files: ['**/*.md/*.js', '**/*.md/*.jsx', '**/*.md/*.ts', '**/*.md/*.tsx'],
+      rules: {
+        'import/no-extraneous-dependencies': 'off',
+      },
+    },
+  ];
   clone.root = true;
   return clone;
 };

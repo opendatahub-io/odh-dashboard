@@ -16,12 +16,12 @@ User requests Jira creation (e.g., "create jira", "make jira tickets", "log a bu
 
 * **Project Key**: `RHOAIENG` (This is the primary project for Dashboard-related issues).
 * **Team Field**:
-  * ID: `customfield_12313240`
-  * Value: `'4158'` (This string value represents the "RHOAI Dashboard" team).
+  * ID: `customfield_10001` (Jira Teams / `atlassian-team`)
+  * Value: `"ec74d716-af36-4b3c-950f-f79213d08f71-1809"` (RHOAI Dashboard team)
 * **Component**: `'AI Core Dashboard'` (This string value should be used for the components field).
 * **Epic Link Custom Field ID** (for Stories/Tasks under an Epic): `customfield_12311140`.
 * **Verify Information**: Always confirm specific details like summaries, descriptions, parent epic keys, and any ambiguous fields with the user.
-* **Team Value is a STRING**: The team field value (`'4158'`) must be passed as a string.
+* **Team Value is a plain string**: Pass `{"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809"}` in `additional_fields`. Do NOT wrap in `{"id": "..."}` — the mcp-atlassian server expects the bare team ID string.
 * **Component is a STRING argument**: The `components` parameter is a direct top-level argument in the tool call.
 * **Iterative Creation**: If multiple issues are requested, create them one by one, confirming success or handling errors for each before proceeding.
 * **Error Handling**: If a tool call fails, analyze the error message. It often provides clues about field formats or missing required fields.
@@ -121,7 +121,7 @@ A defect in the product — e.g., something should be working but it is not. Thi
 * **Bugs are NOT**:
   * New functionality that is unlike existing functionality.
   * A way to "improve" things outside of "expected functionality" - e.g., "A form should submit cleanly and report k8s errors on the form" (expected) vs "A form should scroll to where the error is in the form" (new functionality).
-  * Tests that are broken (these should be Tasks).
+  * Tests that are broken, **including intermittent Cypress/CI flakes** (file as **Task**). A failing or flaky test does not by itself prove a user-facing product defect — use Task for spec/CI stability work unless the report documents reproducible broken **product** behavior.
 
 ### Information Gathering
 
@@ -163,7 +163,7 @@ summary="BUG: [User-provided summary]",
 description="[Formatted markdown string including Description, Steps, Actual, Expected, Reproducibility, and Acceptance Criteria]",
 components="AI Core Dashboard",
 additional_fields={
-	"customfield_12313240": "4158",  # Team: RHOAI Dashboard
+	"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809",  # Team: RHOAI Dashboard
 	"priority": {"name": "..."},     # e.g., "Critical", "Major", "Normal", "Minor" (See Appendix A)
 	"labels": ["..."]                # e.g., ["needs-info"] (See Appendix B for other general labels)
 }
@@ -179,6 +179,7 @@ A user-impact addition/change to the product — e.g., feature work to add parti
 
 * **Stories are NOT**:
   * Test additions (outside of expected tests accompanying new work - these are Tasks).
+  * Cypress/CI **flake** or spec-stability work (these are **Tasks**, not Stories or Bugs).
   * Fixes to defects in the product (these are Bugs).
 
 ### Information Gathering
@@ -208,11 +209,11 @@ A user-impact addition/change to the product — e.g., feature work to add parti
 ```python
 project_key="RHOAIENG",
 issue_type="Story",
-summary="STORY: [User-provided summary]",
+summary="[User-provided summary]",
 description="[Formatted markdown string including Description of enhancement, Acceptance Criteria, and Additional info]",
 components="AI Core Dashboard",
 additional_fields={
-	"customfield_12313240": "4158",  # Team: RHOAI Dashboard
+	"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809",  # Team: RHOAI Dashboard
 	"priority": {"name": "..."},     # e.g., "Major", "Normal" (See Appendix A)
 	"labels": ["enhancement", "..."] # e.g., ["enhancement", "needs-ux"] (See Appendix B for other general labels)
 }
@@ -225,6 +226,8 @@ additional_fields={
 ### Definition
 
 A non-user facing change to the product — e.g., add a test, fix a test, or a refactor of code that does not impact the user (code cleanness / DRY / etc).
+
+* **Use Task for:** Cypress or CI **flakes** (intermittent failures, timing, unstable specs), E2E test stabilization, and similar work — consistent with triage rules that keep these as **Task**, not Bug.
 
 * **Tasks are NOT**:
   * New product functionality visible to the user.
@@ -255,11 +258,11 @@ A non-user facing change to the product — e.g., add a test, fix a test, or a r
 ```python
 project_key="RHOAIENG",
 issue_type="Task",
-summary="TASK: [User-provided summary]",
+summary="[User-provided summary]",
 description="[Formatted markdown string including Description of task, Acceptance Criteria, and Additional info]",
 components="AI Core Dashboard",
 additional_fields={
-	"customfield_12313240": "4158",  # Team: RHOAI Dashboard
+	"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809",  # Team: RHOAI Dashboard
 	"priority": {"name": "..."},     # e.g., "Normal", "Minor" (See Appendix A)
 	"labels": ["tech-debt", "..."]   # e.g., ["tech-debt", "needs-info"] (See Appendix B for other general labels)
 }
@@ -290,12 +293,12 @@ A user-impact Story that is part of a larger Epic. Follows Story definition abov
 
 project_key="RHOAIENG",  # Can be inferred if PARENT_EPIC_KEY is for RHOAIENG
 issue_type="Story",
-summary="STORY: [User-provided summary]",
+summary="[User-provided summary]",
 description="[Formatted markdown string for Story description, AC, and Additional Info]",
 components="AI Core Dashboard",
 additional_fields={
 	"customfield_12311140": PARENT_EPIC_KEY,  # Epic Link field
-	"customfield_12313240": "4158",           # Team: RHOAI Dashboard
+	"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809",  # Team: RHOAI Dashboard
 	"priority": {"name": "..."},
 	"labels": ["enhancement", "..."]
 }
@@ -328,12 +331,12 @@ A non-user facing Task that is part of a larger Epic. Follows Task definition ab
 
 project_key="RHOAIENG",  # Can be inferred
 issue_type="Task",
-summary="TASK: [User-provided summary]",
+summary="[User-provided summary]",
 description="[Formatted markdown string for Task description, AC, and Additional Info]",
 components="AI Core Dashboard",
 additional_fields={
 	"customfield_12311140": PARENT_EPIC_KEY,  # Epic Link field
-	"customfield_12313240": "4158",           # Team: RHOAI Dashboard
+	"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809",  # Team: RHOAI Dashboard
 	"priority": {"name": "..."},
 	"labels": ["tech-debt", "..."]
 }
@@ -382,11 +385,11 @@ additional_fields={
 ```python
 project_key="RHOAIENG",
 issue_type="Epic",
-summary="EPIC: [User-provided Epic Name]",
+summary="[User-provided Epic Name]",
 description="[User-provided concise, high-level description of what the Epic aims to accomplish]",
 components="AI Core Dashboard",  # Or other relevant components for the Epic
 additional_fields={
-	"customfield_12313240": "4158",  # Team: RHOAI Dashboard
+	"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809",  # Team: RHOAI Dashboard
 	"priority": {"name": "..."},     # e.g., "Major", "Critical"
 	"labels": ["..."]                # (See Appendix B for other general labels)
 }
@@ -424,7 +427,7 @@ These steps are typically for issues already created, but the principles guide f
    * **Informational**: Console output issues, React warnings.
    * *Note*: Set via `additional_fields`: `{"priority": {"name": "Blocker"}}` (or other levels).
 
-3. **Team**: Covered by `customfield_12313240: '4158'`.
+3. **Team**: Covered by `customfield_10001: "ec74d716-af36-4b3c-950f-f79213d08f71-1809"` (plain string, not `{"id": "..."}`).
 
 4. **Post-Creation Status**: API-created issues might start in 'New' or 'Backlog' depending on project workflow. If triaging implies moving from 'New' to 'Backlog', this might require a subsequent `mcp_atlassian_jira_transition_issue` call.
 

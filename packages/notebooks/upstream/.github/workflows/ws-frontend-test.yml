@@ -11,6 +11,7 @@ on:
       - v*-branch
   pull_request:
     paths:
+      - releasing/version/VERSION
       - workspaces/frontend/**
     branches:
       - main
@@ -21,18 +22,29 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@3235b876344d2a9aa001b8d1453c930bba69e610 # v3
         with:
-          node-version: "20"
+          node-version-file: workspaces/frontend/package.json
+          cache-dependency-path: workspaces/frontend/package-lock.json
+
+      # TODO: Remove this once it is possible to specify a npm version for
+      # `actions/setup-node` or the node version that we're using is new enough
+      # to ship with npm >= 11
+      #
+      # https://github.com/actions/setup-node/issues/529#issuecomment-4179457319
+      - name: Upgrade npm
+        working-directory: workspaces/frontend
+        # npm pkg get engines.npm -> "^11.10.0"
+        run: npm install --global npm@$(npm pkg get engines.npm | tr --delete '"')
 
       - name: Install dependencies
         working-directory: workspaces/frontend
-        run: npm install
+        run: npm ci
 
       - name: Clean
         working-directory: workspaces/frontend
@@ -54,7 +66,7 @@ jobs:
         run: npm run test
 
       - name: Upload Cypress test report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: "!cancelled() && steps.run-tests.outcome != 'skipped'"
         with:
           name: cypress-report
@@ -63,14 +75,14 @@ jobs:
             workspaces/frontend/src/__tests__/cypress/results/mocked/junit-report.xml
 
       - name: Upload Cypress screenshots (on failure)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: "failure() && steps.run-tests.outcome == 'failure'"
         with:
           name: cypress-screenshots
           path: workspaces/frontend/src/__tests__/cypress/results/mocked/screenshots
 
       - name: Upload Cypress video recordings (on failure)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: "failure() && steps.run-tests.outcome == 'failure'"
         with:
           name: cypress-videos

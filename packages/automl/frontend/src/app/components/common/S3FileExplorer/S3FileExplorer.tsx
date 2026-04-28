@@ -187,6 +187,13 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   // State -------------------------------------------------------------------->
 
+  // TODO [ Gustavo ] From self-review:
+  //  This component manages 10+ useState + 7 useRef + multiple useEffect + useMemo + useCallback.
+  //  Consider using useReducer to consolidate the related state (filesToRender, foldersToRender, fetchError,
+  //  loadingToRender, hasNextPage, pageToRender, perPageToRender, currentPath, searchQuery, selectedFolder)
+  //  into a single reducer. This would make state transitions more predictable and easier to reason about,
+  //  especially the "reset" transitions that currently require touching 10+ setState calls.
+  //  This should be done once S3FileExplorer finds a common home.
   const [filesToRender, setFilesToRender] = useState<Files>([]);
   const [foldersToRender, setFoldersToRender] = useState<Folder[]>([]);
   const sourceToRender: Source | undefined = useMemo(
@@ -433,6 +440,40 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
         };
       }
 
+      if (message.includes('endpoint URL must use HTTPS scheme, got: http')) {
+        return {
+          isEmpty: true,
+          emptyStateProps: {
+            status: 'danger',
+            titleText: 'S3 Connection must use HTTPS',
+            body: (
+              <>
+                The connection {secretNameToRender} is configured using HTTP. Configure the
+                connection&apos;s endpoint using HTTPS and try again.
+              </>
+            ),
+          },
+        };
+      }
+
+      if (message.includes('Unable to connect to the S3 storage endpoint')) {
+        return {
+          isEmpty: true,
+          emptyStateProps: {
+            status: 'danger',
+            titleText: 'S3 endpoint unreachable',
+            body: (
+              <>
+                The S3 storage endpoint for connection {secretNameToRender} could not be reached.
+                The endpoint may be unreachable from this cluster. If this is a disconnected or
+                air-gapped environment, verify the S3 endpoint URL in the data connection secret
+                points to a storage service accessible within the cluster network.
+              </>
+            ),
+          },
+        };
+      }
+
       if (message.includes('not found')) {
         return {
           isEmpty: true,
@@ -556,6 +597,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       onSetPage={handleSetPage}
       onPerPageSelect={handlePerPageSelect}
       onPrimary={onSelectFiles}
+      allowedSearchCharacters={/[^/]/}
+      allowedSearchCharactersLabel="Searches are case-sensitive and must match the beginning of the term. Slashes (/) are automatically removed."
     />
   );
 };

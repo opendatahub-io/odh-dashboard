@@ -56,11 +56,6 @@ type McpDeploymentUpdateRequest struct {
 	YAML        *string `json:"yaml,omitempty"`
 }
 
-// SpecYAMLWrapper mirrors the "spec:" top-level key the frontend YAML
-type SpecYAMLWrapper struct {
-	Spec McpSpecBody `json:"spec" yaml:"spec"`
-}
-
 // McpSpecBody holds the config and runtime sections parsed from YAML.
 type McpSpecBody struct {
 	Config  *MCPConfigSpec  `json:"config,omitempty" yaml:"config,omitempty"`

@@ -422,6 +422,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       const { message } = fetchError;
       const secretNameToRender = <strong>{secretName ?? 'unknown'}</strong>;
 
+      // TODO [ Gustavo ] Generally weak error handling: Add CommonErrorHandling strategy to AutoX BFF+UI
+
       if (message.includes('bucket is required')) {
         return {
           isEmpty: true,
@@ -432,6 +434,40 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
               <>
                 A bucket is required for retrieving files from the connection. Configure{' '}
                 {secretNameToRender} with a bucket.
+              </>
+            ),
+          },
+        };
+      }
+
+      if (message.includes('endpoint URL must use HTTPS scheme, got: http')) {
+        return {
+          isEmpty: true,
+          emptyStateProps: {
+            status: 'danger',
+            titleText: 'S3 Connection must use HTTPS',
+            body: (
+              <>
+                The connection {secretNameToRender} is configured using HTTP. Configure the
+                connection&apos;s endpoint using HTTPS and try again.
+              </>
+            ),
+          },
+        };
+      }
+
+      if (message.includes('Unable to connect to the S3 storage endpoint')) {
+        return {
+          isEmpty: true,
+          emptyStateProps: {
+            status: 'danger',
+            titleText: 'S3 endpoint unreachable',
+            body: (
+              <>
+                The S3 storage endpoint for connection {secretNameToRender} could not be reached.
+                The endpoint may be unreachable from this cluster. If this is a disconnected or
+                air-gapped environment, verify the S3 endpoint URL in the data connection secret
+                points to a storage service accessible within the cluster network.
               </>
             ),
           },
@@ -561,6 +597,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       onSetPage={handleSetPage}
       onPerPageSelect={handlePerPageSelect}
       onPrimary={onSelectFiles}
+      allowedSearchCharacters={/[^/]/}
+      allowedSearchCharactersLabel="Searches are case-sensitive and must match the beginning of the term. Slashes (/) are automatically removed."
     />
   );
 };

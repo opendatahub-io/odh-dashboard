@@ -22,6 +22,7 @@ import {
   modelServingWizard,
   modelServingWizardEdit,
 } from '../../../pages/modelServing';
+import { initMockGatewayIntercepts } from '../../../utils/modelServingUtils';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -41,6 +42,7 @@ describe('MaaS Deployment Wizard', () => {
           [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
           [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
         },
+        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
     );
     cy.interceptOdh(
@@ -51,8 +53,22 @@ describe('MaaS Deployment Wizard', () => {
         genAiStudio: true,
         modelAsService: true,
         disableLLMd: false,
+        llmGatewayField: true,
       }),
     );
+
+    initMockGatewayIntercepts({
+      gateways: [
+        {
+          name: 'maas-default-gateway',
+          namespace: 'openshift-ingress',
+          listener: 'http',
+          status: 'Ready',
+        },
+        { name: 'test-gateway', namespace: 'test-ns', listener: 'http', status: 'Ready' },
+        { name: 'other-gateway', namespace: 'other-ns', listener: 'http', status: 'Ready' },
+      ],
+    });
     cy.interceptOdh('GET /api/components', null, []);
     cy.interceptK8sList(
       { model: HardwareProfileModel, ns: 'opendatahub' },
@@ -111,29 +127,30 @@ describe('MaaS Deployment Wizard', () => {
     cy.intercept('PUT', '**/llminferenceservices/test-llm-inference-service*', (req) => {
       req.reply({ statusCode: 200, body: req.body });
     }).as('updateLLMInferenceService');
-    cy.interceptOdh(
-      'POST /maas/api/v1/maasmodel',
-      mockMaaSModelRef({
+    cy.interceptOdh('POST /maas/api/v1/maasmodel', {
+      data: mockMaaSModelRef({
         name: 'test-maas-model-ref',
         namespace: 'test-project',
         modelRef: { name: 'test-llm-inference-service', kind: 'LLMInferenceService' },
         displayName: 'Test LLM Inference Service',
         description: 'Test LLM Inference Service Description',
       }),
-    ).as('createMaaSModelRef');
+    }).as('createMaaSModelRef');
     cy.interceptOdh(
       'DELETE /maas/api/v1/maasmodel/:namespace/:name',
       { path: { namespace: 'test-project', name: 'test-llm-inference-service' } },
-      { message: 'Deleted successfully' },
+      { data: { message: 'Deleted successfully' } },
     ).as('deleteMaaSModelRef');
     cy.interceptOdh(
       'PUT /maas/api/v1/maasmodel/:namespace/:name',
       { path: { namespace: '*', name: '*' } },
-      mockMaaSModelRef({
-        name: 'test-maas-model-ref',
-        namespace: 'test-project',
-        modelRef: { name: 'test-llm-inference-service', kind: 'LLMInferenceService' },
-      }),
+      {
+        data: mockMaaSModelRef({
+          name: 'test-maas-model-ref',
+          namespace: 'test-project',
+          modelRef: { name: 'test-llm-inference-service', kind: 'LLMInferenceService' },
+        }),
+      },
     ).as('updateMaaSModelRef');
   };
 
@@ -162,12 +179,25 @@ describe('MaaS Deployment Wizard', () => {
     // uncheck token auth to simplify test
     modelServingWizard.findTokenAuthenticationCheckbox().click();
 
+    // Verify gateway select exists and that maas-default-gateway is hidden when MaaS is unchecked
+    modelServingWizard.findGatewaySelect().should('exist').click();
+    cy.findByRole('option', { name: 'maas-default-gateway | openshift-ingress' }).should(
+      'not.exist',
+    );
+    // Select a non-MaaS gateway
+    cy.findByRole('option', { name: 'test-gateway | test-ns' }).click();
+
     // Verify MaaS checkbox is unchecked by default
     maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
 
-    // Check the MaaS checkbox
+    // Check the MaaS checkbox — the gateway field should become disabled and show the MaaS gateway
     maasWizardField.findSaveAsMaaSCheckbox().click();
     maasWizardField.findSaveAsMaaSCheckbox().should('be.checked');
+
+    modelServingWizard
+      .findGatewaySelect()
+      .should('be.disabled')
+      .should('contain.text', 'maas-default-gateway | openshift-ingress');
 
     modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -176,8 +206,8 @@ describe('MaaS Deployment Wizard', () => {
 
     cy.wait('@createMaaSModelRef').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=true');
-      expect(interception.request.body.name).to.equal('test-llm-inference-service');
-      expect(interception.request.body.namespace).to.equal('test-project');
+      expect(interception.request.body.data.name).to.equal('test-llm-inference-service');
+      expect(interception.request.body.data.namespace).to.equal('test-project');
     });
 
     cy.wait('@createLLMInferenceService').then((interception) => {
@@ -195,10 +225,10 @@ describe('MaaS Deployment Wizard', () => {
     cy.get('@createLLMInferenceService.all').should('have.length', 2);
     cy.wait('@createMaaSModelRef').then((interception) => {
       expect(interception.request.url).not.to.include('?dryRun=true');
-      expect(interception.request.body.name).to.equal('test-llm-inference-service');
-      expect(interception.request.body.namespace).to.equal('test-project');
-      expect(interception.request.body.displayName).to.equal('Test LLM Inference Service');
-      expect(interception.request.body.description).to.equal(
+      expect(interception.request.body.data.name).to.equal('test-llm-inference-service');
+      expect(interception.request.body.data.namespace).to.equal('test-project');
+      expect(interception.request.body.data.displayName).to.equal('Test LLM Inference Service');
+      expect(interception.request.body.data.description).to.equal(
         'Test LLM Inference Service Description',
       );
     });
@@ -206,6 +236,7 @@ describe('MaaS Deployment Wizard', () => {
   });
   it('should update the MaaSModelRef when editing an existing deployment', () => {
     initMaaSDeploymentIntercepts();
+
     const savedURIModel = mockLLMInferenceServiceK8sResource({
       isMaaS: true,
       replicas: 2,
@@ -229,14 +260,21 @@ describe('MaaS Deployment Wizard', () => {
       'Large Profile Compatible CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
     );
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // MaaS checkbox is checked (from existing deployment), gateway should be disabled showing MaaS gateway
     maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('be.checked');
+    modelServingWizardEdit
+      .findGatewaySelect()
+      .should('be.disabled')
+      .should('contain.text', 'maas-default-gateway | openshift-ingress');
+
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
     modelServingWizardEdit.findSubmitButton().click();
     cy.wait('@updateMaaSModelRef').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=true');
       expect(interception.request.url).to.include('/test-project/test-llm-inference-service');
-      expect(interception.request.body.displayName).to.equal('test-llmd-model-2');
-      expect(interception.request.body.description).to.equal('test-llmd-description-2');
+      expect(interception.request.body.data.displayName).to.equal('test-llmd-model-2');
+      expect(interception.request.body.data.description).to.equal('test-llmd-description-2');
     });
     cy.wait('@updateLLMInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
@@ -258,6 +296,7 @@ describe('MaaS Deployment Wizard', () => {
   });
   it('should delete the MaaSModelRef when the MaaS checkbox is unchecked', () => {
     initMaaSDeploymentIntercepts();
+
     const savedURIModel = mockLLMInferenceServiceK8sResource({
       isMaaS: true,
       replicas: 2,
@@ -287,9 +326,26 @@ describe('MaaS Deployment Wizard', () => {
     );
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
+    // MaaS is checked, gateway should be disabled showing MaaS gateway
     maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('be.checked');
+    modelServingWizardEdit
+      .findGatewaySelect()
+      .should('be.disabled')
+      .should('contain.text', 'maas-default-gateway | openshift-ingress');
+
+    // Uncheck MaaS — gateway should become enabled and no longer show the MaaS gateway
     maasWizardField.findSaveAsMaaSCheckbox().click();
     maasWizardField.findSaveAsMaaSCheckbox().should('not.be.checked');
+
+    // Gateway should now be enabled; open it to verify maas-default-gateway is hidden
+    modelServingWizardEdit.findGatewaySelect().should('not.be.disabled').click();
+    cy.findByRole('option', { name: 'maas-default-gateway | openshift-ingress' }).should(
+      'not.exist',
+    );
+    cy.findByRole('option', { name: 'other-gateway | other-ns' }).should('exist');
+    // Close dropdown without selecting — no gateway selected
+    modelServingWizardEdit.findGatewaySelect().click();
+
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
     modelServingWizardEdit.findSubmitButton().click();
     cy.wait('@deleteMaaSModelRef').then((interception) => {
@@ -298,7 +354,7 @@ describe('MaaS Deployment Wizard', () => {
     });
     cy.wait('@updateLLMInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
-      expect(interception.request.body.spec.router.gateway.refs).to.deep.equal(undefined);
+      expect(interception.request.body.spec.router.gateway).to.deep.equal({});
     });
 
     cy.wait('@updateLLMInferenceService').then((interception) => {

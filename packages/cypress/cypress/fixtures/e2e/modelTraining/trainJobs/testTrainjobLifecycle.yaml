@@ -1,0 +1,9 @@
+projectName: lifecycle-test
+trainJobName: lifecycle-train-job
+trainingRuntimeName: lifecycle-training-runtime
+flavorName: lifecycle-flavor
+clusterQueueName: lifecycle-cq
+localQueueName: lifecycle-lq
+cpuQuota: 100
+memoryQuota: 200
+gpuQuota: 8

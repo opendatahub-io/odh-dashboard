@@ -43,6 +43,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
   Tooltip,
+  Truncate,
   type DropEvent,
 } from '@patternfly/react-core';
 import {
@@ -71,18 +72,21 @@ import {
   MAX_RAG_PATTERNS,
   MIN_RAG_PATTERNS,
   RAG_METRIC_ANSWER_CORRECTNESS,
-  RAG_METRIC_CONTEXT_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
 } from '~/app/schemas/configure.schema';
+import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
-import './AutoragConfigure.css';
+import EvaluationTemplateModal from './EvaluationTemplateModal';
+import './AutoragConfigure.scss';
 
-const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = { s3: ['aws_s3_bucket'] };
+const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = {
+  s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
+};
 
 /** MIME types and extensions for the knowledge document upload dropzone (react-dropzone `accept` format). */
 const INPUT_DATA_FILE_ACCEPT: Record<string, string[]> = {
@@ -98,8 +102,8 @@ const INPUT_DATA_UPLOAD_NATIVE_ACCEPT = [
   ...new Set(Object.values(INPUT_DATA_FILE_ACCEPT).flat()),
 ].join(',');
 
-/** Matches MultipleFileUpload dropzone `maxSize` (1 GiB). */
-const INPUT_DATA_UPLOAD_MAX_BYTES = 1024 * 1024 * 1024;
+/** Matches MultipleFileUpload dropzone `maxSize` (32 MiB). */
+const INPUT_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
 
 /** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
 function isAllowedInputDataUploadFile(file: File): boolean {
@@ -122,18 +126,13 @@ const OPTIMIZATION_METRICS: {
 }[] = [
   {
     value: RAG_METRIC_FAITHFULNESS,
-    label: 'Answer faithfulness',
+    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_FAITHFULNESS],
     description: 'How factually grounded the answer is in the retrieved context.',
   },
   {
     value: RAG_METRIC_ANSWER_CORRECTNESS,
-    label: 'Answer correctness',
+    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_ANSWER_CORRECTNESS],
     description: 'How correct the generated answer is compared to the ground truth.',
-  },
-  {
-    value: RAG_METRIC_CONTEXT_CORRECTNESS,
-    label: 'Context correctness',
-    description: 'How precisely the retrieval step identifies relevant chunks.',
   },
 ];
 
@@ -159,16 +158,18 @@ function AutoragConfigure(): React.JSX.Element {
 
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [isMetricSelectOpen, setIsMetricSelectOpen] = useState(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
   const [inputDataSourceMode, setInputDataSourceMode] = useState<'select' | 'upload'>('select');
+  const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>();
   const [isInputDataFileUploading, setIsInputDataFileUploading] = useState(false);
   const [isInputDataDropdownOpen, setIsInputDataDropdownOpen] = useState(false);
+  const inputDataUploadSeqRef = useRef(0);
   const inputDataNativeInputRef = useRef<HTMLInputElement>(null);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
 
   const notification = useNotification();
-  const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>();
 
   const form = useFormContext<ConfigureSchema>();
   const { getValues, reset, setValue, formState } = form;
@@ -231,10 +232,7 @@ function AutoragConfigure(): React.JSX.Element {
       return;
     }
 
-    const bucketKey = findKey(
-      selectedSecret.data,
-      (value, key) => key.toLowerCase() === 'aws_s3_bucket',
-    );
+    const bucketKey = findKey(selectedSecret.data, (value, key) => key === 'AWS_S3_BUCKET');
     setValue('input_data_bucket_name', bucketKey ? selectedSecret.data[bucketKey] : '', {
       shouldValidate: true,
     });
@@ -249,8 +247,10 @@ function AutoragConfigure(): React.JSX.Element {
 
   // reset input data key if document input mode changes
   useEffect(() => {
+    inputDataUploadSeqRef.current += 1;
     setIsInputDataFileUploading(false);
     setValue('input_data_key', '', { shouldValidate: true });
+    setSelectedInputDataFile(undefined);
   }, [inputDataSourceMode, setValue]);
 
   // ensure input and test have the same secret and bucket
@@ -265,6 +265,7 @@ function AutoragConfigure(): React.JSX.Element {
 
   // reset selected file values if input secret or bucket changes
   useEffect(() => {
+    inputDataUploadSeqRef.current += 1;
     setIsInputDataFileUploading(false);
     setValue('input_data_key', '', { shouldValidate: true });
     setSelectedInputDataFile(undefined);
@@ -294,7 +295,7 @@ function AutoragConfigure(): React.JSX.Element {
         return;
       }
       if (file.size > INPUT_DATA_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', 'File size must be 1 GiB or less.');
+        notification.error('File too large', 'File size must be 32 MiB or less.');
         return;
       }
       if (!isAllowedInputDataUploadFile(file)) {
@@ -304,6 +305,7 @@ function AutoragConfigure(): React.JSX.Element {
         );
         return;
       }
+      const uploadRequestId = ++inputDataUploadSeqRef.current;
       setValue('input_data_key', '', { shouldValidate: true });
       setIsInputDataDropdownOpen(false);
       setIsInputDataFileUploading(true);
@@ -315,11 +317,26 @@ function AutoragConfigure(): React.JSX.Element {
           key: file.name,
           file,
         });
+        if (uploadRequestId !== inputDataUploadSeqRef.current) {
+          return;
+        }
         setValue('input_data_key', uploadResult.key, { shouldValidate: true });
       } catch (err) {
-        notification.error('Failed to upload file', err instanceof Error ? err.message : '');
+        if (uploadRequestId === inputDataUploadSeqRef.current) {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          const isConflict = errorMessage.toLowerCase().includes('unique filename');
+
+          notification.error(
+            'Failed to upload file',
+            isConflict
+              ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
+              : errorMessage,
+          );
+        }
       } finally {
-        setIsInputDataFileUploading(false);
+        if (uploadRequestId === inputDataUploadSeqRef.current) {
+          setIsInputDataFileUploading(false);
+        }
       }
     },
     [inputDataBucketName, inputDataSecretName, namespace, notification, setValue, uploadFileToS3],
@@ -365,6 +382,7 @@ function AutoragConfigure(): React.JSX.Element {
                                   namespace={String(namespace)}
                                   type="storage"
                                   additionalRequiredKeys={AUTORAG_REQUIRED_KEYS}
+                                  isDisabled={isSubmitting}
                                   value={selectedSecret?.uuid}
                                   onChange={(secret) => {
                                     if (!secret) {
@@ -397,6 +415,7 @@ function AutoragConfigure(): React.JSX.Element {
                           <Button
                             key="add-new-connection"
                             variant="tertiary"
+                            isDisabled={isSubmitting}
                             onClick={() => setIsConnectionModalOpen(true)}
                           >
                             Add new connection
@@ -413,18 +432,20 @@ function AutoragConfigure(): React.JSX.Element {
                       <StackItem className="pf-v6-u-mt-sm">
                         <ToggleGroup
                           aria-label="Choose how to add documents"
-                          className="autoragConfigureToggleGroupFullWidth pf-v6-u-mb-md"
+                          className="autorag-configure__toggle-group-full-width pf-v6-u-mb-md"
                         >
                           <ToggleGroupItem
                             text="Select file or folder"
                             buttonId="document-input-select"
                             isSelected={inputDataSourceMode === 'select'}
+                            isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('select')}
                           />
                           <ToggleGroupItem
                             text="Upload file"
                             buttonId="document-input-upload"
                             isSelected={inputDataSourceMode === 'upload'}
+                            isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('upload')}
                           />
                         </ToggleGroup>
@@ -432,7 +453,7 @@ function AutoragConfigure(): React.JSX.Element {
 
                       {inputDataSourceMode === 'select' && (
                         <>
-                          <StackItem className="pf-v6-u-mb-sm">
+                          <StackItem>
                             <Content component="h4">Select file or folder</Content>
                           </StackItem>
                           <StackItem>
@@ -451,6 +472,44 @@ function AutoragConfigure(): React.JSX.Element {
                               Browse bucket
                             </Button>
                           </StackItem>
+                          {selectedInputDataFile && (
+                            <StackItem>
+                              <Table aria-label="Selected input data file" variant="compact">
+                                <Thead>
+                                  <Tr>
+                                    <Th>Name</Th>
+                                    <Th>Type</Th>
+                                    <Th />
+                                  </Tr>
+                                </Thead>
+                                <Tbody>
+                                  <Tr>
+                                    <Td dataLabel="Name">
+                                      <Truncate content={selectedInputDataFile.name} />
+                                    </Td>
+                                    <Td dataLabel="Type">{selectedInputDataFile.type}</Td>
+                                    <Td isActionCell>
+                                      <Tooltip content="Remove selection">
+                                        <Button
+                                          size="sm"
+                                          variant="plain"
+                                          aria-label="Remove selection"
+                                          icon={<TimesIcon />}
+                                          isDisabled={isSubmitting}
+                                          onClick={() => {
+                                            setSelectedInputDataFile(undefined);
+                                            setValue('input_data_key', '', {
+                                              shouldValidate: true,
+                                            });
+                                          }}
+                                        />
+                                      </Tooltip>
+                                    </Td>
+                                  </Tr>
+                                </Tbody>
+                              </Table>
+                            </StackItem>
+                          )}
                         </>
                       )}
 
@@ -501,7 +560,7 @@ function AutoragConfigure(): React.JSX.Element {
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText="Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text"
+                                  infoText="Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text. Maximum file size: 32 MiB"
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>
@@ -533,7 +592,11 @@ function AutoragConfigure(): React.JSX.Element {
                                           </SplitItem>
                                         )}
                                         <SplitItem isFilled>
-                                          {isInputDataFileUploading ? 'Uploading…' : inputDataKey}
+                                          {isInputDataFileUploading ? (
+                                            'Uploading…'
+                                          ) : (
+                                            <Truncate content={inputDataKey} />
+                                          )}
                                         </SplitItem>
                                       </Split>
                                     </Td>
@@ -558,11 +621,16 @@ function AutoragConfigure(): React.JSX.Element {
                                         popperProps={{ position: 'end', preventOverflow: true }}
                                       >
                                         <DropdownList>
-                                          <DropdownItem key="remove" onClick={clearInputDataUpload}>
+                                          <DropdownItem
+                                            key="remove"
+                                            isDisabled={isSubmitting}
+                                            onClick={clearInputDataUpload}
+                                          >
                                             Remove
                                           </DropdownItem>
                                           <DropdownItem
                                             key="replace"
+                                            isDisabled={isSubmitting}
                                             onClick={openInputDataReplaceFileDialog}
                                           >
                                             Replace
@@ -579,39 +647,6 @@ function AutoragConfigure(): React.JSX.Element {
                       )}
                     </>
                   )}
-                  {selectedInputDataFile && (
-                    <StackItem>
-                      <Table aria-label="Selected input data file" variant="compact">
-                        <Thead>
-                          <Tr>
-                            <Th>Name</Th>
-                            <Th>Type</Th>
-                            <Th />
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          <Tr>
-                            <Td dataLabel="Name">{selectedInputDataFile.name}</Td>
-                            <Td dataLabel="Type">{selectedInputDataFile.type}</Td>
-                            <Td isActionCell>
-                              <Tooltip content="Remove selection">
-                                <Button
-                                  size="sm"
-                                  variant="plain"
-                                  aria-label="Remove selection"
-                                  icon={<TimesIcon />}
-                                  onClick={() => {
-                                    setSelectedInputDataFile(undefined);
-                                    setValue('input_data_key', '', { shouldValidate: true });
-                                  }}
-                                />
-                              </Tooltip>
-                            </Td>
-                          </Tr>
-                        </Tbody>
-                      </Table>
-                    </StackItem>
-                  )}
                 </Stack>
               </CardBody>
             </div>
@@ -624,7 +659,7 @@ function AutoragConfigure(): React.JSX.Element {
                 <Content component="h3">Configure details</Content>
               </CardHeader>
               <CardBody>
-                {!inputDataSecretName ? (
+                {!inputDataKey ? (
                   <EmptyState
                     variant="xs"
                     titleText="Select an S3 connection or upload a file to get started"
@@ -656,7 +691,11 @@ function AutoragConfigure(): React.JSX.Element {
                               Select the evaluation dataset that will be used to measure the quality
                               of the generated responses. Must adhere to the{' '}
                             </span>
-                            <Button variant="link" isInline component="span" onClick={() => null}>
+                            <Button
+                              variant="link"
+                              isInline
+                              onClick={() => setIsTemplateModalOpen(true)}
+                            >
                               evaluation dataset template
                             </Button>
                             <span>.</span>
@@ -712,6 +751,7 @@ function AutoragConfigure(): React.JSX.Element {
                                     ref={toggleRef}
                                     onClick={() => setIsMetricSelectOpen((prev) => !prev)}
                                     isExpanded={isMetricSelectOpen}
+                                    isDisabled={isSubmitting}
                                     data-testid="optimization-metric-select"
                                   >
                                     {selected?.label ?? ''}
@@ -754,6 +794,7 @@ function AutoragConfigure(): React.JSX.Element {
                                 value={field.value}
                                 min={MIN_RAG_PATTERNS}
                                 max={MAX_RAG_PATTERNS}
+                                isDisabled={isSubmitting}
                                 validated={fieldState.error ? 'error' : 'default'}
                                 onMinus={() => field.onChange(field.value - 1)}
                                 onPlus={() => field.onChange(field.value + 1)}
@@ -942,6 +983,9 @@ function AutoragConfigure(): React.JSX.Element {
         selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
         unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
       />
+      {isTemplateModalOpen && (
+        <EvaluationTemplateModal onClose={() => setIsTemplateModalOpen(false)} />
+      )}
       <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}
         onClose={() => {

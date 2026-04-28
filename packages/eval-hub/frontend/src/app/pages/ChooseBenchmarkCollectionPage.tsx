@@ -8,6 +8,7 @@ import {
   Card,
   CardBody,
   CardFooter,
+  CardHeader,
   CardTitle,
   Content,
   Drawer,
@@ -30,11 +31,13 @@ import {
 } from '@patternfly/react-core';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useCollections } from '~/app/hooks/useCollections';
 import { Collection } from '~/app/types';
 import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
-import { getCategoryColor } from '~/app/components/benchmarkUtils';
+import { capitalizeFirst, getCategoryColor } from '~/app/components/benchmarkUtils';
 
 const ChooseBenchmarkCollectionPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -63,6 +66,12 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
 
   const handleRunCollection = React.useCallback(
     (c: Collection) => {
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
+        runType: 'collection',
+        collectionName: c.name,
+        benchmarkTypes: JSON.stringify((c.benchmarks ?? []).map((b) => b.id)),
+        countOfBenchmarks: c.benchmarks?.length ?? 0,
+      });
       const params = new URLSearchParams({
         type: 'collection',
         collectionId: c.resource.id,
@@ -85,6 +94,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
   const categoryToggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle
       ref={toggleRef}
+      data-testid="collections-category-toggle"
       onClick={() => setIsCategoryOpen((prev) => !prev)}
       isExpanded={isCategoryOpen}
     >
@@ -93,7 +103,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
   );
 
   return (
-    <Drawer isExpanded={!!selectedCollection} isInline>
+    <Drawer isExpanded={!!selectedCollection}>
       <DrawerContent
         panelContent={
           <CollectionDrawerPanel
@@ -106,7 +116,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
         <DrawerContentBody>
           <ApplicationsPage
             title="Select benchmark suite"
-            description="Select a benchmark suite to run on your model or agent."
+            description="Select a benchmark suite to evaluate your model, agent, or pre-recorded responses."
             breadcrumb={
               <Breadcrumb>
                 <BreadcrumbItem
@@ -114,7 +124,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                 />
                 <BreadcrumbItem
                   render={() => (
-                    <Link to={evaluationCreateRoute(namespace)}>Create evaluation run</Link>
+                    <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
                   )}
                 />
                 <BreadcrumbItem isActive>Select benchmark suite</BreadcrumbItem>
@@ -213,16 +223,14 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                         isSelected={isSelected}
                         data-testid={`collection-card-${collection.resource.id}`}
                       >
-                        <CardTitle>
-                          {collection.category && (
-                            <Label
-                              color={getCategoryColor(collection.category)}
-                              isCompact
-                              style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                            >
-                              {collection.category}
+                        {collection.category && (
+                          <CardHeader>
+                            <Label color={getCategoryColor(collection.category)} isCompact>
+                              {capitalizeFirst(collection.category)}
                             </Label>
-                          )}
+                          </CardHeader>
+                        )}
+                        <CardTitle>
                           <Button
                             variant="link"
                             isInline
@@ -254,9 +262,10 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                           <Button
                             variant="secondary"
                             isInline
+                            data-testid="use-benchmark-suite-button"
                             onClick={() => handleRunCollection(collection)}
                           >
-                            Use this collection
+                            Select benchmark suite
                           </Button>
                         </CardFooter>
                       </Card>

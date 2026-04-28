@@ -1,24 +1,102 @@
 /* eslint-disable camelcase */
 import {
+  isRunTerminatable,
+  isRunInProgress,
+  isRunRetryable,
   formatMetricName,
   formatMetricValue,
   toNumericMetric,
   getOptimizedMetricForTask,
   computeRankMap,
-  isErrorMetric,
 } from '~/app/utilities/utils';
+
+describe('isRunTerminatable', () => {
+  it('should return true for active states', () => {
+    expect(isRunTerminatable('RUNNING')).toBe(true);
+    expect(isRunTerminatable('PENDING')).toBe(true);
+    expect(isRunTerminatable('PAUSED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunTerminatable('running')).toBe(true);
+    expect(isRunTerminatable('Running')).toBe(true);
+    expect(isRunTerminatable('pending')).toBe(true);
+  });
+
+  it('should return false for terminal states', () => {
+    expect(isRunTerminatable('SUCCEEDED')).toBe(false);
+    expect(isRunTerminatable('FAILED')).toBe(false);
+    expect(isRunTerminatable('CANCELED')).toBe(false);
+    expect(isRunTerminatable('CANCELING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunTerminatable(undefined)).toBe(false);
+    expect(isRunTerminatable('')).toBe(false);
+  });
+});
+
+describe('isRunInProgress', () => {
+  it('should return true for in-progress states including CANCELING', () => {
+    expect(isRunInProgress('RUNNING')).toBe(true);
+    expect(isRunInProgress('PENDING')).toBe(true);
+    expect(isRunInProgress('CANCELING')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunInProgress('running')).toBe(true);
+    expect(isRunInProgress('canceling')).toBe(true);
+  });
+
+  it('should return false for terminal and non-active states', () => {
+    expect(isRunInProgress('SUCCEEDED')).toBe(false);
+    expect(isRunInProgress('FAILED')).toBe(false);
+    expect(isRunInProgress('CANCELED')).toBe(false);
+    expect(isRunInProgress('PAUSED')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunInProgress(undefined)).toBe(false);
+    expect(isRunInProgress('')).toBe(false);
+  });
+});
+
+describe('isRunRetryable', () => {
+  it('should return true for retryable states', () => {
+    expect(isRunRetryable('FAILED')).toBe(true);
+    expect(isRunRetryable('CANCELED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunRetryable('failed')).toBe(true);
+    expect(isRunRetryable('Failed')).toBe(true);
+    expect(isRunRetryable('canceled')).toBe(true);
+  });
+
+  it('should return false for non-retryable states', () => {
+    expect(isRunRetryable('RUNNING')).toBe(false);
+    expect(isRunRetryable('SUCCEEDED')).toBe(false);
+    expect(isRunRetryable('PENDING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunRetryable(undefined)).toBe(false);
+    expect(isRunRetryable('')).toBe(false);
+  });
+});
 
 describe('formatMetricName', () => {
   it('should return special-cased acronyms as-is', () => {
     expect(formatMetricName('roc_auc')).toBe('ROC AUC');
     expect(formatMetricName('mcc')).toBe('MCC');
-    expect(formatMetricName('f1')).toBe('F1');
+    expect(formatMetricName('f1')).toBe('F₁');
     expect(formatMetricName('r2')).toBe('R²');
     expect(formatMetricName('mae')).toBe('MAE');
     expect(formatMetricName('mse')).toBe('MSE');
     expect(formatMetricName('rmse')).toBe('RMSE');
     expect(formatMetricName('mape')).toBe('MAPE');
     expect(formatMetricName('mase')).toBe('MASE');
+    expect(formatMetricName('smape')).toBe('SMAPE');
   });
 
   it('should convert snake_case to Title Case', () => {
@@ -26,7 +104,7 @@ describe('formatMetricName', () => {
     expect(formatMetricName('root_mean_squared_error')).toBe('Root Mean Squared Error');
   });
 
-  it('should capitalize a single word', () => {
+  it('should title-case a single-word key not in the display names map', () => {
     expect(formatMetricName('accuracy')).toBe('Accuracy');
     expect(formatMetricName('precision')).toBe('Precision');
   });
@@ -110,9 +188,9 @@ describe('getOptimizedMetricForTask', () => {
     expect(getOptimizedMetricForTask('timeseries')).toBe('mase');
   });
 
-  it('should return undefined for unknown task types', () => {
-    expect(getOptimizedMetricForTask('unknown')).toBeUndefined();
-    expect(getOptimizedMetricForTask('')).toBeUndefined();
+  it('should return Unknown metric for unknown task types', () => {
+    expect(getOptimizedMetricForTask('unknown')).toBe('Unknown metric');
+    expect(getOptimizedMetricForTask('')).toBe('Unknown metric');
   });
 });
 
@@ -154,15 +232,16 @@ describe('computeRankMap', () => {
     });
   });
 
-  it('should rank models by mase ascending for timeseries (lower is better)', () => {
+  it('should rank models by negated mase descending for timeseries (higher is better)', () => {
     const models = {
-      ModelA: buildModel(0.15, 'mase'),
-      ModelB: buildModel(0.05, 'mase'),
-      ModelC: buildModel(0.1, 'mase'),
+      ModelA: buildModel(-0.15, 'mase'),
+      ModelB: buildModel(-0.05, 'mase'),
+      ModelC: buildModel(-0.1, 'mase'),
     };
 
     const rankMap = computeRankMap(models, 'timeseries');
 
+    // -0.05 > -0.10 > -0.15, so ModelB (closest to 0) is best
     expect(rankMap).toEqual({
       ModelB: 1,
       ModelC: 2,
@@ -179,21 +258,6 @@ describe('computeRankMap', () => {
     const rankMap = computeRankMap(models, 'regression');
 
     // -0.084 > -0.097, so ModelB is better
-    expect(rankMap).toEqual({
-      ModelB: 1,
-      ModelA: 2,
-    });
-  });
-
-  it('should use absolute values for error metrics like mase', () => {
-    const models = {
-      ModelA: buildModel(-0.15, 'mase'),
-      ModelB: buildModel(-0.05, 'mase'),
-    };
-
-    const rankMap = computeRankMap(models, 'timeseries');
-
-    // |−0.05| < |−0.15|, so ModelB is better (lower error)
     expect(rankMap).toEqual({
       ModelB: 1,
       ModelA: 2,
@@ -231,15 +295,16 @@ describe('computeRankMap', () => {
     });
   });
 
-  it('should rank models with missing metrics last for error metrics', () => {
+  it('should rank models with missing metrics last for negated error metrics', () => {
     const models = {
-      ModelA: buildModel(0.15, 'mase'),
+      ModelA: buildModel(-0.15, 'mase'),
       ModelB: { metrics: { test_data: {} } }, // missing mase
-      ModelC: buildModel(0.05, 'mase'),
+      ModelC: buildModel(-0.05, 'mase'),
     };
 
     const rankMap = computeRankMap(models, 'timeseries');
 
+    // -0.05 > -0.15 > -Infinity (missing), so ModelC is best
     expect(rankMap).toEqual({
       ModelC: 1,
       ModelA: 2,
@@ -261,39 +326,19 @@ describe('computeRankMap', () => {
     });
   });
 
-  it('should fall back to accuracy for unknown task types', () => {
+  it('should assign insertion-order ranking for unknown task types', () => {
     const models = {
       ModelA: buildModel(0.7),
       ModelB: buildModel(0.85),
     };
 
+    // Unknown task types map to 'Unknown metric', which no model has,
+    // so all models tie and receive insertion-order ranking.
     const rankMap = computeRankMap(models, 'unknown');
 
     expect(rankMap).toEqual({
-      ModelB: 1,
-      ModelA: 2,
+      ModelA: 1,
+      ModelB: 2,
     });
-  });
-});
-
-describe('isErrorMetric', () => {
-  it('should return true for known error metrics', () => {
-    expect(isErrorMetric('mase')).toBe(true);
-    expect(isErrorMetric('mse')).toBe(true);
-    expect(isErrorMetric('mae')).toBe(true);
-    expect(isErrorMetric('rmse')).toBe(true);
-    expect(isErrorMetric('mape')).toBe(true);
-  });
-
-  it('should return false for non-error metrics', () => {
-    expect(isErrorMetric('accuracy')).toBe(false);
-    expect(isErrorMetric('r2')).toBe(false);
-    expect(isErrorMetric('f1')).toBe(false);
-    expect(isErrorMetric('precision')).toBe(false);
-  });
-
-  it('should be case-insensitive', () => {
-    expect(isErrorMetric('MASE')).toBe(true);
-    expect(isErrorMetric('MSE')).toBe(true);
   });
 });

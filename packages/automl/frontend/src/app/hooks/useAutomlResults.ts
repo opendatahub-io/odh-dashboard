@@ -1,10 +1,15 @@
 import { useQueries } from '@tanstack/react-query';
 import React from 'react';
-import { useS3ListFilesQuery, fetchS3File } from '~/app/hooks/queries';
+import {
+  useS3ListFilesQuery,
+  fetchS3Json,
+  AutomlModelSchema,
+  isRawTimeseriesModel,
+} from '~/app/hooks/queries';
 import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
-import { isTabularRun, getOptimizedMetricForTask } from '~/app/utilities/utils';
+import { isTabularRun } from '~/app/utilities/utils';
 
 type UseAutomlResultsReturn = {
   models: Record<string, AutomlModel>;
@@ -15,15 +20,21 @@ type UseAutomlResultsReturn = {
 
 /**
  * Custom hook to fetch and process AutoML model results from S3.
+ * Models are outputted into the following directory structure
+ *      Tabular:     autogluon-tabular-training-pipeline/xxx/autogluon-models-training/yyy/models_artifact/WeightedEnsemble_L5_FULL
+ *      Time series: autogluon-timeseries-training-pipeline/xxx/autogluon-timeseries-models-full-refit/yyy/model_artifact/TemporalFusionTransformer_FULL
+ * where xxx is the kubeflow pipeline run_id and yyy is a nondeterministic ID.
+ * The directory variables used to generate these paths in this file are as follows:
+ *      ${rootDir}/xxx/${modelGenerationDir}/yyy/${modelArtifactsDirectory}/${modelName}
  *
  * ## Testing Strategy
  *
  * **DO NOT unit test this hook directly.**
  *
- * This hook has 3 cascading async query stages that make it extremely difficult to unit test:
+ * This hook has cascading async query stages that make it extremely difficult to unit test:
  * 1. S3 list query → model directories
  * 2. Artifact queries (one per directory) → model artifact paths
- * 3. Metrics queries (one per model, enabled AFTER artifacts complete) → model data
+ * 3. Model JSON queries (one per model, enabled AFTER artifacts complete) → model data
  *
  * The cascading `useQueries` with conditional `enabled` flags creates complex timing dependencies
  * that are difficult to mock and lead to flaky tests.
@@ -35,11 +46,11 @@ type UseAutomlResultsReturn = {
  *
  * This provides better coverage of real-world usage and is more maintainable.
  *
- * This hook handles the complex cascade of queries needed to fetch AutoML results:
+ * This hook handles the cascade of queries needed to fetch AutoML results:
  * 1. Fetches S3 files to get model directories
  * 2. Fetches model artifacts for each directory
- * 3. Fetches metrics.json for each model
- * 4. Transforms all data into the final AutomlModel format
+ * 3. Fetches model.json for each model
+ * 4. Collects all models into a Record keyed by model name
  *
  * @param runId - The pipeline run ID
  * @param namespace - The Kubernetes namespace
@@ -58,11 +69,12 @@ export function useAutomlResults(
     ? `autogluon-tabular-training-pipeline`
     : 'autogluon-timeseries-training-pipeline';
   const modelGenerationDir = isTabular
-    ? 'autogluon-models-full-refit'
-    : 'timeseries-models-full-refit';
+    ? 'autogluon-models-training'
+    : 'autogluon-timeseries-models-full-refit';
   const generatedModelsPath = shouldFetchS3Files
     ? `${rootDir}/${runId}/${modelGenerationDir}`
     : undefined;
+
   const {
     data: s3Files,
     isLoading: isS3Loading,
@@ -70,11 +82,12 @@ export function useAutomlResults(
   } = useS3ListFilesQuery(namespace, generatedModelsPath);
 
   // Step 2: Fetch model artifact directories from each common prefix
+  const modelArtifactsDirectory = isTabular ? 'models_artifact' : 'model_artifact';
   const modelArtifactQueries = useQueries({
     queries: (s3Files?.common_prefixes ?? [])
       .filter((prefixObj) => typeof prefixObj.prefix === 'string' && prefixObj.prefix.length > 0)
       .map((prefixObj) => {
-        const path = `${prefixObj.prefix}model_artifact`;
+        const path = `${prefixObj.prefix}${modelArtifactsDirectory}`;
         return {
           queryKey: ['s3Files', namespace, path],
           queryFn: async ({ signal }) => {
@@ -114,7 +127,7 @@ export function useAutomlResults(
             (prefixObj) => typeof prefixObj.prefix === 'string' && prefixObj.prefix.length > 0,
           )
           .map((prefixObj) => {
-            // Extract model name from prefix like "...model_artifact/WeightedEnsemble_L5_FULL/"
+            // Extract model name from prefix like ".../${modelArtifactsDirectory}/WeightedEnsemble_L5_FULL/"
             const { prefix } = prefixObj;
             const parts = prefix.split('/').filter(Boolean);
             if (parts.length === 0) {
@@ -135,41 +148,67 @@ export function useAutomlResults(
             return {
               name,
               directory: prefix,
+              // Parent path up to models_artifact/ (excludes the model name).
+              // Used as the base for resolving predictor and notebook paths,
+              // which already include the model name as their first segment.
+              artifactDirectory: `${parts.slice(0, -1).join('/')}/`,
             };
           })
-          .filter((item): item is { name: string; directory: string } => item !== null);
+          .filter(
+            (item): item is { name: string; directory: string; artifactDirectory: string } =>
+              item !== null,
+          );
       }),
     [modelArtifactQueries.data],
   );
 
-  // Step 4: Fetch metrics.json for each model
-  const metricsQueries = useQueries({
-    queries: modelDirectories.map(({ name, directory }) => {
-      const metricsPath = `${directory}metrics/metrics.json`;
+  // Step 4: Fetch model.json for each model directory
+  const modelQueries = useQueries({
+    queries: modelDirectories.map(({ name, directory, artifactDirectory }) => {
+      const modelJsonPath = `${directory}model.json`;
       return {
-        queryKey: ['s3File', namespace, name, metricsPath],
+        queryKey: ['s3File', namespace, name, modelJsonPath],
         queryFn: async ({ signal }) => {
-          if (!namespace || !metricsPath) {
-            throw new Error('namespace and key are required');
+          if (!namespace) {
+            throw new Error('namespace is required');
           }
 
-          const blob = await fetchS3File(namespace, metricsPath, { signal });
-          const text = await blob.text();
-          const data = JSON.parse(text);
-          const metricsData = data?.data?.columns || data;
+          const validated = await fetchS3Json(namespace, modelJsonPath, {
+            signal,
+            schema: AutomlModelSchema,
+          });
 
-          // Validate that metricsData is a non-null object
-          if (!metricsData || typeof metricsData !== 'object' || Array.isArray(metricsData)) {
-            throw new Error(
-              `Invalid metrics data structure in ${metricsPath}: expected object, got ${typeof metricsData}`,
-            );
+          // Rewrite relative location paths to absolute S3 paths.
+          // Timeseries has `notebooks` (directory) + `metrics`; tabular has `notebook` (file path).
+          let model: AutomlModel;
+          if (isRawTimeseriesModel(validated)) {
+            model = {
+              name: validated.name,
+              // eslint-disable-next-line camelcase
+              base_model: validated.base_model,
+              location: {
+                // eslint-disable-next-line camelcase
+                model_directory: directory,
+                predictor: `${artifactDirectory}${validated.location.predictor}`,
+                notebook: `${artifactDirectory}${validated.location.notebooks}/automl_predictor_notebook.ipynb`,
+                metrics: `${artifactDirectory}${validated.location.metrics}`,
+              },
+              metrics: validated.metrics,
+            };
+          } else {
+            model = {
+              name: validated.name,
+              location: {
+                // eslint-disable-next-line camelcase
+                model_directory: directory,
+                predictor: `${artifactDirectory}${validated.location.predictor}`,
+                notebook: `${artifactDirectory}${validated.location.notebook}`,
+              },
+              metrics: validated.metrics,
+            };
           }
 
-          return {
-            modelName: name,
-            directory,
-            data: metricsData,
-          };
+          return { name, model };
         },
         enabled: Boolean(
           namespace && modelDirectories.length > 0 && !modelArtifactQueries.isPending,
@@ -177,37 +216,62 @@ export function useAutomlResults(
         retry: false,
       };
     }),
-    combine: (results) => ({
-      data: results.filter((r) => !r.isError).map((r) => r.data),
-      isPending: results.some((r) => r.isPending),
-      isError: results.length > 0 && results.every((r) => r.isError),
-      failedModels: results
-        .map((r, i) => (r.isError ? modelDirectories[i]?.name : null))
-        .filter((name): name is string => Boolean(name)),
-    }),
+    combine: (results) => {
+      // eslint-disable-next-line no-console
+      results.forEach((r, i) => {
+        if (r.isError) {
+          // eslint-disable-next-line no-console
+          console.error(
+            `Model query failed for AutoML model "${modelDirectories[i]?.name}" (directory: "${modelDirectories[i]?.directory}")`,
+            r.error,
+          );
+        }
+      });
+      if (results.length > 0 && results.every((r) => r.isError)) {
+        // eslint-disable-next-line no-console
+        console.error(
+          'ALL AutoML model queries failed. Total:',
+          results.length,
+          'Errors:',
+          results.map((r, i) => ({
+            model: modelDirectories[i]?.name,
+            directory: modelDirectories[i]?.directory,
+            error: r.error,
+          })),
+        );
+      }
+      return {
+        data: results.filter((r) => !r.isError).map((r) => r.data),
+        isPending: results.some((r) => r.isPending),
+        isError: results.length > 0 && results.every((r) => r.isError),
+        failedModels: results
+          .map((r, i) => (r.isError ? modelDirectories[i]?.name : null))
+          .filter((name): name is string => Boolean(name)),
+      };
+    },
   });
 
-  // Step 5: Transform data into final AutomlModel format
+  // Step 5: Collect models into a Record keyed by model name
   const models = React.useMemo(() => {
-    if (metricsQueries.isPending || modelDirectories.length === 0) {
+    if (modelQueries.isPending || modelDirectories.length === 0) {
       return {};
     }
 
     // Security: Create results with null prototype to prevent prototype pollution
     const results: Record<string, AutomlModel> = Object.create(null);
-    const taskType = pipelineRun?.runtime_config?.parameters?.task_type ?? 'timeseries';
 
-    metricsQueries.data.forEach((entry) => {
+    modelQueries.data.forEach((entry) => {
       // Skip entries that failed to load or are missing
-      if (!entry || !entry.modelName || !entry.directory || !entry.data) {
-        if (entry?.modelName) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- entry can be undefined at runtime from failed queries
+      if (!entry || !entry.name || !entry.model) {
+        if (entry?.name) {
           // eslint-disable-next-line no-console
-          console.warn(`Skipping model ${entry.modelName}: failed to load metrics`);
+          console.warn(`Skipping model ${entry.name}: failed to load model.json`);
         }
         return;
       }
 
-      const { modelName, directory, data: metricsData } = entry;
+      const { name: modelName, model } = entry;
 
       // Security: Additional validation to reject dangerous keys
       const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
@@ -217,51 +281,25 @@ export function useAutomlResults(
         return;
       }
 
-      // Defensive validation: skip models with invalid metrics data
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (!metricsData || typeof metricsData !== 'object' || Array.isArray(metricsData)) {
-        // eslint-disable-next-line no-console
-        console.warn(`Skipping model ${modelName}: invalid metrics data structure`);
-        return;
-      }
-
-      /* eslint-disable camelcase */
-      const evalMetric = getOptimizedMetricForTask(taskType) ?? 'accuracy';
-      results[modelName] = {
-        display_name: modelName,
-        model_config: {
-          eval_metric: evalMetric,
-        },
-        location: {
-          model_directory: directory,
-          // Points to the predictor folder (not the pkl file) — used as the artifact URI
-          // when registering the model in Model Registry.
-          predictor: `${directory}predictor`,
-          notebook: `${directory}notebooks/automl_predictor_notebook.ipynb`,
-        },
-        metrics: {
-          test_data: metricsData,
-        },
-      };
-      /* eslint-enable camelcase */
+      results[modelName] = model;
     });
 
     return results;
-  }, [metricsQueries.data, metricsQueries.isPending, modelDirectories, pipelineRun]);
+  }, [modelQueries.data, modelQueries.isPending, modelDirectories]);
 
   // Determine overall error state
-  const hasError = isS3Error || modelArtifactQueries.isError || metricsQueries.isError;
+  const hasError = isS3Error || modelArtifactQueries.isError || modelQueries.isError;
 
   // Determine the first error encountered
   const error = hasError
     ? (isS3Error ? new Error('Failed to list model directories') : undefined) ||
       (modelArtifactQueries.isError ? new Error('Failed to list model artifacts') : undefined) ||
-      (metricsQueries.isError ? new Error('Failed to fetch model metrics') : undefined)
+      (modelQueries.isError ? new Error('Failed to fetch model data') : undefined)
     : undefined;
 
   return {
     models,
-    isLoading: isS3Loading || modelArtifactQueries.isPending || metricsQueries.isPending,
+    isLoading: isS3Loading || modelArtifactQueries.isPending || modelQueries.isPending,
     isError: hasError,
     error,
   };

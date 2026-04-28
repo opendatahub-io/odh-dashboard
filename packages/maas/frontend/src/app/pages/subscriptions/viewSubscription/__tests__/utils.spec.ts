@@ -13,43 +13,41 @@ const makeRef = (
 });
 
 describe('formatTokenLimits', () => {
-  it('returns "Unlimited" when the model is not found in the list', () => {
+  it('returns an empty array when the model is not found in the list', () => {
     const refs = [makeRef('model-a', [{ limit: 1000, window: '1h' }])];
-    expect(formatTokenLimits(refs, Namespace, 'model-b')).toBe('Unlimited');
+    expect(formatTokenLimits(refs, Namespace, 'model-b')).toEqual([]);
   });
 
-  it('returns "Unlimited" when the model has an empty tokenRateLimits array', () => {
+  it('returns an empty array when the model has an empty tokenRateLimits array', () => {
     const refs = [makeRef('model-a', [])];
-    expect(formatTokenLimits(refs, Namespace, 'model-a')).toBe('Unlimited');
+    expect(formatTokenLimits(refs, Namespace, 'model-a')).toEqual([]);
   });
 
-  it('formats the first token rate limit correctly', () => {
+  it('formats a single token rate limit correctly', () => {
     const refs = [makeRef('model-a', [{ limit: 5000, window: '1h' }])];
-    expect(formatTokenLimits(refs, Namespace, 'model-a')).toBe('5,000 / 1h');
+    expect(formatTokenLimits(refs, Namespace, 'model-a')).toEqual(['5,000 / 1 hour']);
   });
 
-  it('uses only the first limit when multiple rate limits are defined', () => {
+  it('formats all rate limits when multiple are defined', () => {
     const refs = [
       makeRef('model-a', [
         { limit: 1000, window: '1m' },
-        { limit: 50000, window: '1d' },
+        { limit: 50000, window: '1h' },
       ]),
     ];
-    expect(formatTokenLimits(refs, Namespace, 'model-a')).toBe('1,000 / 1m');
-  });
-
-  it('returns "Unlimited" when the model has no tokenRateLimits field (undefined)', () => {
-    const refs = [makeRef('model-a', undefined)];
-    expect(formatTokenLimits(refs, Namespace, 'model-a')).toBe('Unlimited');
+    expect(formatTokenLimits(refs, Namespace, 'model-a')).toEqual([
+      '1,000 / 1 minute',
+      '50,000 / 1 hour',
+    ]);
   });
 
   it('formats large limit numbers with locale separators', () => {
     const refs = [makeRef('model-a', [{ limit: 1_000_000, window: '24h' }])];
-    expect(formatTokenLimits(refs, Namespace, 'model-a')).toBe('1,000,000 / 24h');
+    expect(formatTokenLimits(refs, Namespace, 'model-a')).toEqual(['1,000,000 / 24 hours']);
   });
 
-  it('returns "Unlimited" when namespace does not match', () => {
+  it('returns an empty array when namespace does not match', () => {
     const refs = [makeRef('model-a', [{ limit: 1000, window: '1h' }])];
-    expect(formatTokenLimits(refs, 'other-namespace', 'model-a')).toBe('Unlimited');
+    expect(formatTokenLimits(refs, 'other-namespace', 'model-a')).toEqual([]);
   });
 });

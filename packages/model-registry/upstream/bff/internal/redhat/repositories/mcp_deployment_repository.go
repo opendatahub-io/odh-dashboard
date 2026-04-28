@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	"gopkg.in/yaml.v3"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -425,6 +425,7 @@ func buildMcpDeploymentPatch(req models.McpDeploymentUpdateRequest) (map[string]
 }
 
 // parseSpecYAML unmarshals the frontend YAML into McpSpecBody.
+// Expects config/runtime keys at the top level.
 func parseSpecYAML(rawYAML string) (*models.McpSpecBody, error) {
 	var generic map[string]interface{}
 	if err := yaml.Unmarshal([]byte(rawYAML), &generic); err != nil {
@@ -436,35 +437,20 @@ func parseSpecYAML(rawYAML string) (*models.McpSpecBody, error) {
 		return nil, fmt.Errorf("failed to convert YAML to JSON: %w", err)
 	}
 
-	var wrapper struct {
-		Spec models.McpSpecBody `json:"spec"`
-	}
-	if err := json.Unmarshal(jsonBytes, &wrapper); err != nil {
-		return nil, fmt.Errorf("failed to parse spec: %w", err)
-	}
-
-	if wrapper.Spec.Config != nil || wrapper.Spec.Runtime != nil {
-		return &wrapper.Spec, nil
-	}
-
 	var direct models.McpSpecBody
 	if err := json.Unmarshal(jsonBytes, &direct); err != nil {
 		return nil, fmt.Errorf("failed to parse spec: %w", err)
 	}
 
-	if direct.Config == nil && direct.Runtime == nil {
-		return nil, fmt.Errorf("YAML must contain config or runtime under spec")
+	if direct.Config != nil || direct.Runtime != nil {
+		return &direct, nil
 	}
 
-	return &direct, nil
+	return nil, fmt.Errorf("YAML must contain config or runtime")
 }
 
 func marshalSpecToYAML(spec models.McpSpecBody) string {
-	wrapper := struct {
-		Spec models.McpSpecBody `json:"spec"`
-	}{Spec: spec}
-
-	jsonBytes, err := json.Marshal(wrapper)
+	jsonBytes, err := json.Marshal(spec)
 	if err != nil {
 		return ""
 	}

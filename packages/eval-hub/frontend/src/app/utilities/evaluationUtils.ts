@@ -4,23 +4,63 @@ import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 export const getEvaluationName = (job: EvaluationJob): string =>
   job.name || job.resource.tenant || job.resource.id;
 
-export const getJobBenchmarks = (job: EvaluationJob): NonNullable<EvaluationJob['benchmarks']> =>
-  job.benchmarks ?? job.collection?.benchmarks ?? [];
+export const getJobBenchmarks = (job: EvaluationJob): NonNullable<EvaluationJob['benchmarks']> => {
+  if (job.benchmarks?.length) {
+    return job.benchmarks;
+  }
+  if (job.collection?.benchmarks?.length) {
+    const collBenchmarks = job.collection.benchmarks;
+    const resultsBenchmarks = job.results.benchmarks;
+    if (resultsBenchmarks?.length) {
+      /* eslint-disable camelcase */
+      return resultsBenchmarks.map((rb, rbIdx) => {
+        const config = collBenchmarks.find(
+          (cb, cbIdx) =>
+            cb.id === rb.id && (cb.benchmark_index ?? cbIdx) === (rb.benchmark_index ?? rbIdx),
+        );
+        return {
+          id: rb.id,
+          provider_id: rb.provider_id,
+          benchmark_index: rb.benchmark_index,
+          primary_score: config?.primary_score,
+          pass_criteria: config?.pass_criteria,
+        };
+      });
+      /* eslint-enable camelcase */
+    }
+    /* eslint-disable camelcase */
+    return collBenchmarks.map((b, i) => ({
+      ...b,
+      benchmark_index: b.benchmark_index ?? i,
+    }));
+    /* eslint-enable camelcase */
+  }
+  if (job.results.benchmarks?.length) {
+    /* eslint-disable camelcase */
+    return job.results.benchmarks.map((b) => ({
+      id: b.id,
+      provider_id: b.provider_id,
+      benchmark_index: b.benchmark_index,
+    }));
+    /* eslint-enable camelcase */
+  }
+  return [];
+};
 
 export const getBenchmarkName = (
   job: EvaluationJob,
   collectionNameMap?: CollectionNameMap,
 ): string => {
+  if (job.collection?.id) {
+    return collectionNameMap?.[job.collection.id] ?? job.collection.id;
+  }
   const benchmarks = getJobBenchmarks(job);
   if (benchmarks.length > 0) {
-    const first = benchmarks[0].id;
+    const first = getBenchmarkDisplayName(benchmarks[0].id);
     if (benchmarks.length === 1) {
       return first;
     }
     return `${first} +${benchmarks.length - 1} more`;
-  }
-  if (job.collection?.id) {
-    return collectionNameMap?.[job.collection.id] ?? job.collection.id;
   }
   return '-';
 };
@@ -56,8 +96,16 @@ export const getResultScore = (job: EvaluationJob): string => {
   return '-';
 };
 
-export const getBenchmarkResultScore = (job: EvaluationJob, benchmarkId: string): string => {
-  const benchmark = job.results.benchmarks?.find((b) => b.id === benchmarkId);
+export const getBenchmarkResultScore = (
+  job: EvaluationJob,
+  benchmarkId: string,
+  benchmarkIndex?: number,
+): string => {
+  const benchmark = job.results.benchmarks?.find(
+    (b) =>
+      b.id === benchmarkId &&
+      (benchmarkIndex === undefined || b.benchmark_index === benchmarkIndex),
+  );
   if (!benchmark) {
     return '-';
   }

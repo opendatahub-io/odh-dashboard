@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
@@ -245,6 +246,60 @@ func DeterminePipelineType(taskType string) (string, error) {
 	}
 }
 
+// TerminatePipelineRun terminates an active pipeline run by ID.
+// It sends a terminate request to the pipeline server.
+func (r *PipelineRunsRepository) TerminatePipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	runID string,
+) error {
+	if client == nil {
+		return fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := client.TerminateRun(ctx, runID); err != nil {
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) {
+			switch httpErr.Status() {
+			case http.StatusNotFound:
+				return ErrPipelineRunNotFound
+			case http.StatusBadRequest:
+				return err
+			}
+		}
+		return fmt.Errorf("failed to terminate pipeline run: %w", err)
+	}
+
+	return nil
+}
+
+// RetryPipelineRun retries a failed or terminated pipeline run by ID.
+// It sends a retry request to the pipeline server to re-initiate the run.
+func (r *PipelineRunsRepository) RetryPipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	runID string,
+) error {
+	if client == nil {
+		return fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := client.RetryRun(ctx, runID); err != nil {
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) {
+			switch httpErr.Status() {
+			case http.StatusNotFound:
+				return ErrPipelineRunNotFound
+			case http.StatusBadRequest:
+				return err
+			}
+		}
+		return fmt.Errorf("failed to retry pipeline run: %w", err)
+	}
+
+	return nil
+}
+
 // ValidateCreateAutoMLRunRequest checks that all required fields are present,
 // rejects fields not in the pipeline type's schema, and validates enum/range values.
 //
@@ -307,12 +362,28 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 	}
 
 	// Validate optional field ranges
-	if req.TopN != nil && *req.TopN <= 0 {
-		return NewValidationError("invalid top_n: must be a positive integer")
+	if req.TopN != nil {
+		if *req.TopN < constants.MinTopN {
+			return NewValidationError(fmt.Sprintf("invalid top_n: must be at least %d", constants.MinTopN))
+		}
+
+		// Enforce max top_n based on pipeline type
+		maxTopN := constants.MaxTopNTabular
+		if pipelineType == constants.PipelineTypeTimeSeries {
+			maxTopN = constants.MaxTopNTimeSeries
+		}
+
+		if *req.TopN > maxTopN {
+			return NewValidationError(fmt.Sprintf("invalid top_n: maximum value for %s pipeline is %d", pipelineType, maxTopN))
+		}
 	}
 
 	if req.PredictionLength != nil && *req.PredictionLength <= 0 {
 		return NewValidationError("invalid prediction_length: must be a positive integer")
+	}
+
+	if utf8.RuneCountInString(req.DisplayName) > 250 {
+		return NewValidationError("display_name must be at most 250 characters")
 	}
 
 	return nil

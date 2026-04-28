@@ -7,8 +7,10 @@ import {
   EmptyStateFooter,
   EmptyStateVariant,
 } from '@patternfly/react-core';
-import { CubesIcon } from '@patternfly/react-icons';
+import { SearchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
+import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const EvalHubEmptyState: React.FC = () => {
   const navigate = useNavigate();
@@ -16,23 +18,25 @@ const EvalHubEmptyState: React.FC = () => {
   return (
     <EmptyState
       headingLevel="h2"
-      icon={CubesIcon}
-      titleText="No existing evaluation runs"
+      icon={SearchIcon}
+      titleText="No evaluation runs"
       variant={EmptyStateVariant.lg}
       data-testid="eval-hub-empty-state"
     >
       <EmptyStateBody data-testid="eval-hub-empty-state-body">
-        No evaluation runs have been started in this project. Start a new evaluation run, or select
-        a different project.
+        Start an evaluation run, or select a different project to view its runs.
       </EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
           <Button
             variant="primary"
             data-testid="create-evaluation-button"
-            onClick={() => navigate('create')}
+            onClick={() => {
+              fireSimpleTrackingEvent(EVAL_HUB_EVENTS.START_EVALUATION_SELECTED);
+              navigate('create');
+            }}
           >
-            Create new evaluation
+            Start evaluation run
           </Button>
         </EmptyStateActions>
       </EmptyStateFooter>

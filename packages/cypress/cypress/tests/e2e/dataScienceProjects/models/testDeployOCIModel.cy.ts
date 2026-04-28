@@ -24,6 +24,7 @@ import { loadDeployOCIModelFixture } from '../../../../utils/dataLoader';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 
 let projectName: string;
+let resourceName: string;
 let connectionName: string;
 let secretDetailsFile: string;
 let ociRegistryHost: string;
@@ -134,7 +135,9 @@ describe(
           .findResourceNameInput()
           .should('be.visible')
           .invoke('val')
-          .as('resourceName');
+          .then((val) => {
+            resourceName = val as string;
+          });
         modelServingWizard.findModelFormatSelectOption(modelFormat).click();
         modelServingWizard.selectServingRuntimeOption(servingRuntime);
         modelServingWizard.findNextButton().click();
@@ -153,7 +156,7 @@ describe(
         modelServingSection.findModelServerDeployedName(modelDeploymentName);
 
         cy.step('Verify that the Model is running');
-        cy.get<string>('@resourceName').then((resourceName) => {
+        cy.then(() => {
           checkInferenceServiceState(resourceName, projectName, { checkReady: true });
         });
         modelServingSection.findModelMetricsLink(modelDeploymentName);
@@ -216,6 +219,12 @@ describe(
 
         // Submit the changes
         modelServingWizardEdit.findSubmitButton().click();
+        modelServingSection.findModelServerDeployedName(modelDeploymentName);
+
+        cy.step('Verify that the Model is running');
+        cy.then(() => {
+          checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+        });
 
         // Verify the model is accessible without a token after disabling auth
         cy.step('Verify the model is accessible without a token after disabling auth');

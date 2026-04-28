@@ -1,10 +1,6 @@
 import * as React from 'react';
-import { Label, Tooltip } from '@patternfly/react-core';
-import {
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  InProgressIcon,
-} from '@patternfly/react-icons';
+import { Label, Popover } from '@patternfly/react-core';
+import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
 import { McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
 import { getStatusInfo } from './utils';
 
@@ -19,14 +15,14 @@ const statusIconMap: Record<McpDeploymentPhase, React.ReactNode> = {
 };
 
 const McpDeploymentStatusLabel: React.FC<McpDeploymentStatusLabelProps> = ({ phase }) => {
-  const { label, status, tooltip } = getStatusInfo(phase);
+  const { label, status, popoverBody } = getStatusInfo(phase);
 
   return (
-    <Tooltip content={tooltip}>
+    <Popover bodyContent={popoverBody} data-testid="mcp-deployment-status-popover">
       <Label status={status} icon={statusIconMap[phase]} data-testid="mcp-deployment-status-label">
         {label}
       </Label>
-    </Tooltip>
+    </Popover>
   );
 };
 

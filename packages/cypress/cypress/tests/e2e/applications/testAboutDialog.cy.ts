@@ -53,9 +53,9 @@ describe('Verify RHODS About Dialog', () => {
           .invoke('text')
           .should('match', /\d/) // Wait until text contains at least one digit
           .then((uiVersion) => {
-            softTrue(
-              version.includes(uiVersion),
-              `${productName} version '${version}' is not similar to '${uiVersion}' in About dialog`,
+            expect(version).to.contain(
+              uiVersion,
+              `${productName} version '${version}' should be similar to '${uiVersion}' in About dialog`,
             );
           });
       });
@@ -77,8 +77,8 @@ describe('Verify RHODS About Dialog', () => {
                 return;
               }
               const text = texts.join(' ');
-              softTrue(
-                version.some((v) => text.includes(v)),
+              expect(version.some((v) => text.includes(v))).to.equal(
+                true,
                 `Version ${version} not found for component ${component}`,
               );
             });

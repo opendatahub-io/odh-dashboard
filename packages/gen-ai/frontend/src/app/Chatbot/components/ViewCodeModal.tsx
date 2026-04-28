@@ -22,7 +22,6 @@ import {
   selectConfigIds,
   getConfigDisplayLabel,
 } from '~/app/Chatbot/store';
-import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 
 interface ViewCodeModalProps {
   isOpen: boolean;
@@ -123,7 +122,6 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
   // Get all config IDs from store
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
-  const activePrompt = usePlaygroundStore((state) => state.activePrompt);
 
   // Dynamic state for each config's code export
   const [codeStates, setCodeStates] = React.useState<Record<string, ConfigCodeState | undefined>>(
@@ -156,6 +154,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         isRagEnabled,
         knowledgeMode,
         selectedVectorStoreId,
+        activePrompt,
       } = config;
       const mcpServersToUse = mcpServers.filter((server) =>
         selectedMcpServerIds.includes(server.url),
@@ -276,7 +275,6 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
       mcpServerTokens,
       namespace,
       toolSelections,
-      activePrompt,
     ],
   );
 

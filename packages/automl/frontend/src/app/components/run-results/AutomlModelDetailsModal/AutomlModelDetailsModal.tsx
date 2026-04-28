@@ -13,7 +13,7 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
-import { computeRankMap } from '~/app/utilities/utils';
+import { computeRankMap, getOptimizedMetricForTask } from '~/app/utilities/utils';
 import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import { useModelEvaluationArtifactsQuery } from '~/app/hooks/queries';
 import { getVisibleTabs, type TabDefinition } from './tabConfig';
@@ -26,6 +26,7 @@ type AutomlModelDetailsModalProps = {
   modelName: string;
   rank: number;
   onClickSaveNotebook?: (modelName: string) => void;
+  onRegisterModel?: (modelName: string) => void;
 };
 
 /** Group tabs by their section for sidebar rendering. */
@@ -45,10 +46,12 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   modelName,
   rank: initialRank,
   onClickSaveNotebook,
+  onRegisterModel,
 }) => {
   const { models: modelsRecord, parameters, pipelineRun } = useAutomlResultsContext();
   const models = Object.values(modelsRecord);
   const taskType = parameters?.task_type ?? TASK_TYPE_TIMESERIES;
+  const evalMetric = getOptimizedMetricForTask(taskType);
   const createdAt = pipelineRun?.created_at;
 
   const [selectedModelName, setSelectedModelName] = React.useState(modelName);
@@ -84,26 +87,14 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
 
   const [isPrinting, setIsPrinting] = React.useState(false);
 
-  // Mount print container, wait for render, then trigger print
   React.useEffect(() => {
     if (!isPrinting) {
       return;
     }
     const handleAfterPrint = () => setIsPrinting(false);
     window.addEventListener('afterprint', handleAfterPrint);
-    // Double rAF ensures the print-only container is painted before
-    // triggering print — single rAF fires before paint in Safari/Firefox.
-    let innerFrameId: number | undefined;
-    const outerFrameId = requestAnimationFrame(() => {
-      innerFrameId = requestAnimationFrame(() => {
-        window.print();
-      });
-    });
+    window.print();
     return () => {
-      cancelAnimationFrame(outerFrameId);
-      if (innerFrameId !== undefined) {
-        cancelAnimationFrame(innerFrameId);
-      }
       window.removeEventListener('afterprint', handleAfterPrint);
     };
   }, [isPrinting]);
@@ -133,12 +124,21 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
             currentModelName={selectedModelName}
             rank={rank}
             rankMap={rankMap}
+            evalMetric={evalMetric}
             onSelectModel={(name) => setSelectedModelName(name)}
             onDownload={() => setIsPrinting(true)}
             onSaveNotebook={
               onClickSaveNotebook
                 ? () => {
                     onClickSaveNotebook(selectedModelName);
+                  }
+                : undefined
+            }
+            onRegisterModel={
+              onRegisterModel
+                ? () => {
+                    onClose();
+                    onRegisterModel(selectedModelName);
                   }
                 : undefined
             }
@@ -211,7 +211,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
           own header since CSS cannot repeat arbitrary headers. */}
       {isPrinting &&
         ReactDOM.createPortal(
-          <div className="automl-model-details-print-only" data-testid="print-container">
+          <div className="odh-autox-print-only" data-testid="print-container">
             {visibleTabs.map((tab, index) => {
               const TabComponent = tab.component;
               return (
@@ -221,9 +221,9 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                   data-testid={`print-page-${tab.key}`}
                 >
                   <div className="automl-print-header">
-                    <h1>{model.display_name}</h1>
+                    <h1>{model.name}</h1>
                     <p>
-                      Rank: {rank} | {model.model_config.eval_metric}
+                      Rank: {rank} | {evalMetric}
                     </p>
                   </div>
                   <Title headingLevel="h2">{tab.label}</Title>

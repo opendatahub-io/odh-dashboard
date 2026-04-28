@@ -70,9 +70,9 @@ type MockPipelineServerClient struct {
 	// Namespace determines which mock data set to return (default: 5 runs, bella: empty, bento: 30 runs)
 	Namespace string
 	// PipelineNamePrefix is the prefix used to construct the AutoML pipeline's DisplayName in
-	// ListPipelines (e.g. "automl" → "automl-pipeline").  Defaults to "automl" when empty,
-	// matching the default discovery prefix in discoverOnePipeline.  Tests that exercise
-	// non-default discovery prefixes can set this field to match the prefix they pass.
+	// ListPipelines.  Defaults to "automl" when empty, matching the default discovery prefix
+	// in discoverOnePipeline.  Tests that exercise non-default discovery prefixes can set
+	// this field to match the prefix they pass.
 	// Ignored when PipelineNames is set.
 	PipelineNamePrefix string
 	// PipelineNames, when non-empty, overrides PipelineNamePrefix: ListPipelines returns one
@@ -83,16 +83,41 @@ type MockPipelineServerClient struct {
 	LastListRunsParams *pipelineserver.ListRunsParams
 	// LastGetRunID records the last runID passed to GetRun for test assertions
 	LastGetRunID string
+	// LastTerminateRunID records the last runID passed to TerminateRun for test assertions
+	LastTerminateRunID string
+	// LastRetryRunID records the last runID passed to RetryRun for test assertions
+	LastRetryRunID string
 }
 
 // pipelineDisplayName returns the DisplayName used for the AutoML pipeline fixture,
 // falling back to the default prefix when PipelineNamePrefix is not set.
 func (m *MockPipelineServerClient) pipelineDisplayName() string {
-	prefix := m.PipelineNamePrefix
-	if prefix == "" {
-		prefix = defaultPipelineNamePrefix
+	if m.PipelineNamePrefix != "" {
+		return m.PipelineNamePrefix
 	}
-	return prefix + "-pipeline"
+	return defaultPipelineNamePrefix
+}
+
+// CreatePipeline returns a mock pipeline shell (no version).
+func (m *MockPipelineServerClient) CreatePipeline(_ context.Context, name string) (*models.KFPipeline, error) {
+	m.PipelineNames = append(m.PipelineNames, name)
+	ids := DeriveMockIDsFromName(m.Namespace, name)
+	return &models.KFPipeline{
+		PipelineID:  ids.PipelineID,
+		DisplayName: name,
+		Namespace:   m.Namespace,
+		CreatedAt:   "2026-04-08T12:00:00Z",
+	}, nil
+}
+
+// UploadPipelineVersion returns a mock pipeline version with the given version name.
+func (m *MockPipelineServerClient) UploadPipelineVersion(_ context.Context, pipelineID string, versionName string, _ []byte) (*models.KFPipelineVersion, error) {
+	return &models.KFPipelineVersion{
+		PipelineID:        pipelineID,
+		PipelineVersionID: hashUUID("version:" + pipelineID + ":" + versionName),
+		DisplayName:       versionName,
+		CreatedAt:         "2026-04-08T12:00:00Z",
+	}, nil
 }
 
 // NewMockPipelineServerClient creates a new mock pipeline server client.
@@ -507,7 +532,15 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 		}
 	}
 
-	// Return mock data based on the run ID, using namespace-derived IDs
+	// Look up the run from the base mock data so that state-dependent
+	// logic (terminate / retry) sees the correct State value.
+	for _, run := range getBaseMockRuns(m.Namespace) {
+		if run.RunID == runID {
+			return &run, nil
+		}
+	}
+
+	// Fallback for unknown run IDs: return a generic SUCCEEDED run
 	ids := DeriveMockIDs(m.Namespace)
 	mockRun := &models.KFPipelineRun{
 		RunID:        runID,
@@ -580,6 +613,54 @@ func (m *MockPipelineServerClient) GetPipelineVersion(_ context.Context, _, _ st
 	}, nil
 }
 
+// TerminateRun simulates terminating a pipeline run.
+// Special run IDs for testing error conditions:
+// - "non-existent-run-id" returns 404 error
+// - "server-error-run-id" returns 500 error
+func (m *MockPipelineServerClient) TerminateRun(_ context.Context, runID string) error {
+	m.LastTerminateRunID = runID
+
+	if runID == "non-existent-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 404,
+			Message:    fmt.Sprintf("Failed to terminate run: Run %s not found", runID),
+		}
+	}
+
+	if runID == "server-error-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 500,
+			Message:    "Internal server error",
+		}
+	}
+
+	return nil
+}
+
+// RetryRun simulates retrying a failed or terminated pipeline run.
+// Special run IDs for testing error conditions:
+// - "non-existent-run-id" returns 404 error
+// - "server-error-run-id" returns 500 error
+func (m *MockPipelineServerClient) RetryRun(_ context.Context, runID string) error {
+	m.LastRetryRunID = runID
+
+	if runID == "non-existent-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 404,
+			Message:    fmt.Sprintf("Failed to retry run: Run %s not found", runID),
+		}
+	}
+
+	if runID == "server-error-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 500,
+			Message:    "Internal server error",
+		}
+	}
+
+	return nil
+}
+
 // ListPipelines returns mock pipeline data with namespace-derived IDs.
 // The filter parameter is accepted but ignored by the mock (all pipelines are always returned).
 // When PipelineNames is set, returns one pipeline per name with IDs derived from name+namespace.
@@ -608,21 +689,21 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 	ids := DeriveMockIDs(m.Namespace)
 
 	// In namespace mode (mock:// URL), return both AutoML pipeline types so the discovery
-	// middleware can match "automl-timeseries" and "automl-tabular" prefixes.
+	// middleware can match "autogluon-timeseries-training-pipeline" and "autogluon-tabular-training-pipeline" prefixes.
 	if m.Namespace != "" {
 		tabIDs := DeriveTabularMockIDs(m.Namespace)
 		return &models.KFPipelinesResponse{
 			Pipelines: []models.KFPipeline{
 				{
 					PipelineID:  ids.PipelineID,
-					DisplayName: "automl-timeseries-pipeline",
+					DisplayName: "autogluon-timeseries-training-pipeline",
 					Description: "Managed AutoML time-series pipeline",
 					CreatedAt:   "2026-02-20T10:00:00Z",
 					Namespace:   m.Namespace,
 				},
 				{
 					PipelineID:  tabIDs.PipelineID,
-					DisplayName: "automl-tabular-pipeline",
+					DisplayName: "autogluon-tabular-training-pipeline",
 					Description: "Managed AutoML tabular pipeline",
 					CreatedAt:   "2026-02-20T10:00:00Z",
 					Namespace:   m.Namespace,

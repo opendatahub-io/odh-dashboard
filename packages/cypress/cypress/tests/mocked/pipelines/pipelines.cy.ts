@@ -849,7 +849,11 @@ describe('Pipelines', () => {
     pipelineImportModal.shouldBeOpen();
     pipelineImportModal.fillPipelineName('New pipeline');
     pipelineImportModal.fillPipelineDescription('New pipeline description');
+    // Safety net: intercept the upload endpoint so the test never hangs if the
+    // client-side argo detection is bypassed due to a stale-closure race.
+    pipelineImportModal.mockUploadPipeline({}, projectName);
     pipelineImportModal.uploadPipelineYaml(argoWorkflowPipeline);
+    pipelineImportModal.findSubmitButton().should('be.enabled');
     pipelineImportModal.submit();
 
     pipelineImportModal.findImportModalError().should('exist');
@@ -868,6 +872,7 @@ describe('Pipelines', () => {
     pipelineImportModal.fillPipelineName('New pipeline');
     pipelineImportModal.fillPipelineDescription('New pipeline description');
     pipelineImportModal.uploadPipelineYaml(v1PipelineYamlPath);
+    pipelineImportModal.findSubmitButton().should('be.enabled');
     pipelineImportModal.submit();
 
     pipelineImportModal.findImportModalError().should('exist');
@@ -1094,6 +1099,18 @@ describe('Pipelines', () => {
 
   it('uploads fails with argo workflow', () => {
     initIntercepts({});
+
+    // Return empty results for filtered version requests (duplicate-name check)
+    // so the generic initIntercepts mock doesn't cause a false-positive.
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
+        query: { filter: /.*/ },
+      },
+      { pipeline_versions: [], total_size: 0 },
+    );
+
     pipelinesGlobal.visit(projectName);
 
     // Wait for the pipelines table to load
@@ -1107,7 +1124,11 @@ describe('Pipelines', () => {
     pipelineVersionImportModal.selectPipelineByName('Test pipeline');
     pipelineVersionImportModal.fillVersionName('Argo workflow version');
     pipelineVersionImportModal.fillVersionDescription('Argo workflow version description');
+    // Safety net: intercept the upload endpoint so the test never hangs if the
+    // client-side argo detection is bypassed due to a stale-closure race.
+    pipelineVersionImportModal.mockUploadVersion({}, projectName);
     pipelineVersionImportModal.uploadPipelineYaml(argoWorkflowPipeline);
+    pipelineVersionImportModal.findSubmitButton().should('be.enabled');
     pipelineVersionImportModal.submit();
 
     pipelineVersionImportModal.findImportModalError().should('exist');

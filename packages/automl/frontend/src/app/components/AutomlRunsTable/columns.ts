@@ -8,6 +8,8 @@ import type { PipelineRun } from '~/app/types';
 export const automlRunsColumns: SortableData<PipelineRun>[] = [
   { label: 'Name', field: 'display_name', sortable: false, width: 20 },
   { label: 'Description', field: 'description', sortable: false, width: 25 },
-  { label: 'Started', field: 'created_at', sortable: false, width: 20 },
-  { label: 'Status', field: 'state', sortable: false, width: 15 },
+  { label: 'Prediction type', field: 'task_type', sortable: false, width: 15 },
+  { label: 'Started', field: 'created_at', sortable: false, width: 15 },
+  { label: 'Status', field: 'state', sortable: false, width: 10 },
+  { label: '', field: 'actions', sortable: false },
 ];

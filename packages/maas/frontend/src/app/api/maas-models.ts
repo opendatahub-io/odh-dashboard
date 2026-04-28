@@ -1,5 +1,6 @@
 import {
   APIOptions,
+  assembleModArchBody,
   handleRestFailures,
   isModArchResponse,
   restGET,
@@ -65,13 +66,13 @@ export const createMaaSModelRef =
       restCREATE(
         hostPath,
         `${URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel${dryRun ? '?dryRun=true' : ''}`,
-        requestBody,
+        assembleModArchBody(requestBody),
         {},
         opts,
       ),
     ).then((response) => {
-      if (isMaaSModelRef(response)) {
-        return response;
+      if (isModArchResponse<unknown>(response) && isMaaSModelRef(response.data)) {
+        return response.data;
       }
       throw new Error('Invalid response format');
     });
@@ -92,13 +93,13 @@ export const updateMaaSModelRef =
       restUPDATE(
         hostPath,
         `${URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel/${namespace}/${name}${dryRun ? '?dryRun=true' : ''}`,
-        requestBody,
+        assembleModArchBody(requestBody),
         {},
         opts,
       ),
     ).then((response) => {
-      if (isMaaSModelRef(response)) {
-        return response;
+      if (isModArchResponse<unknown>(response) && isMaaSModelRef(response.data)) {
+        return response.data;
       }
       throw new Error('Invalid response format');
     });
@@ -116,8 +117,11 @@ export const deleteMaaSModelRef =
         opts,
       ),
     ).then((response) => {
-      if (isDeleteMaaSModelRefResponse(response)) {
-        return response;
+      if (
+        isModArchResponse<unknown>(response) &&
+        (response.data == null || isDeleteMaaSModelRefResponse(response.data))
+      ) {
+        return response.data ?? { message: '' };
       }
       throw new Error('Invalid response format');
     });

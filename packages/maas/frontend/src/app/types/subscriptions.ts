@@ -1,21 +1,22 @@
 export type MaaSSubscription = {
   name: string;
-  namespace: string;
-  phase?: string;
   displayName?: string;
   description?: string;
+  namespace: string;
+  phase?: string;
+  statusMessage?: string;
   priority?: number;
   owner: OwnerSpec;
   modelRefs: ModelSubscriptionRef[];
   tokenMetadata?: TokenMetadata;
   creationTimestamp?: string;
+  deletionTimestamp?: string;
 };
 
 export type ModelSubscriptionRef = {
   name: string;
   namespace: string;
-  tokenRateLimits?: TokenRateLimit[];
-  tokenRateLimitRef?: string;
+  tokenRateLimits: TokenRateLimit[];
   billingRate?: BillingRate;
 };
 
@@ -68,22 +69,64 @@ export type MaaSModelRefSummary = {
 };
 
 export type SubjectSpec = {
-  groups: GroupReference[];
+  groups?: GroupReference[];
+};
+
+export type SubscriptionPolicyFormDataResponse = {
+  groups: string[];
+  modelRefs: MaaSModelRefSummary[];
+  subscriptions: MaaSSubscription[];
+  policies: MaaSAuthPolicy[];
+};
+
+export type CreateSubscriptionRequest = {
+  name: string;
+  displayName?: string;
+  description?: string;
+  owner: OwnerSpec;
+  modelRefs: ModelSubscriptionRef[];
+  priority: number;
+  createAuthPolicy: boolean;
+};
+
+export type UpdateSubscriptionRequest = {
+  displayName?: string;
+  description?: string;
+  owner: OwnerSpec;
+  modelRefs: ModelSubscriptionRef[];
+  tokenMetadata?: TokenMetadata;
+  priority: number;
+};
+
+export type CreateSubscriptionResponse = {
+  subscription: MaaSSubscription;
+  authPolicy?: MaaSAuthPolicy;
 };
 
 export type MaaSAuthPolicy = {
+  displayName?: string;
+  description?: string;
   name: string;
   namespace: string;
   phase?: string;
+  statusMessage?: string;
+  creationTimestamp?: string;
   modelRefs: ModelRef[];
   subjects: SubjectSpec;
   meteringMetadata?: TokenMetadata;
+  deletionTimestamp?: string;
 };
 
 export type SubscriptionInfoResponse = {
   subscription: MaaSSubscription;
   modelRefs: MaaSModelRefSummary[];
   authPolicies: MaaSAuthPolicy[];
+  meteringMetadata?: TokenMetadata;
+};
+
+export type SubscriptionModelEntry = {
+  modelRefSummary: MaaSModelRefSummary;
+  tokenRateLimits: TokenRateLimit[];
 };
 
 export type TokenRateLimitInfo = {
@@ -111,4 +154,10 @@ export type UserSubscription = {
   organization_id?: string;
   cost_center?: string;
   labels?: Record<string, string>;
+};
+
+export type RateLimit = {
+  count: number;
+  time: number;
+  unit: 'hour' | 'minute' | 'second';
 };

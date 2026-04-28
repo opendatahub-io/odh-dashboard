@@ -12,8 +12,11 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -89,15 +92,21 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 		return namespaceList.Items, nil
 	}
 
-	// List namespaces
+	// List all namespaces and filter by SAR checks
 	namespaceList, err := kc.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list namespaces: %w", err)
+		if !k8serrors.IsForbidden(err) {
+			return nil, fmt.Errorf("failed to list namespaces: %w", err)
+		}
+		// Service account cannot list namespaces (e.g. local dev without cluster-admin).
+		// Fall back to the OpenShift Projects API with impersonation so the API server
+		// enforces the caller's permissions, not the service account's.
+		kc.Logger.Debug("cluster-wide namespace list forbidden, falling back to OpenShift Projects API", "error", err)
+		return kc.getNamespacesViaProjectsAPI(ctx, identity)
 	}
 
-	// Optimization 2: Worker pool for parallel SAR processing
-	// Use a fixed number of workers to process namespace checks, providing better resource control
-	const numWorkers = 10 // Fixed number of workers to avoid resource overhead
+	// Worker pool for parallel SAR processing
+	const numWorkers = 10
 
 	type sarJob struct {
 		namespace corev1.Namespace
@@ -109,25 +118,20 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 		err       error
 	}
 
-	// Create job and result channels
 	jobs := make(chan sarJob, len(namespaceList.Items))
 	results := make(chan sarResult, len(namespaceList.Items))
 
-	// Start worker pool
 	for w := 0; w < numWorkers; w++ {
 		go func() {
 			for {
 				select {
 				case <-ctx.Done():
-					// Respect context cancellation
 					return
 				case job, ok := <-jobs:
 					if !ok {
-						// Jobs channel closed, exit worker
 						return
 					}
 
-					// Perform SAR check
 					sar := &authv1.SubjectAccessReview{
 						Spec: authv1.SubjectAccessReviewSpec{
 							User:   identity.UserID,
@@ -144,35 +148,29 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 
 					select {
 					case <-ctx.Done():
-						// Context cancelled, exit worker
 						return
 					case results <- sarResult{
 						namespace: job.namespace,
 						allowed:   err == nil && response.Status.Allowed,
 						err:       err,
 					}:
-						// Result sent successfully
 					}
 				}
 			}
 		}()
 	}
 
-	// Send jobs to workers
 	go func() {
 		defer close(jobs)
 		for _, ns := range namespaceList.Items {
 			select {
 			case <-ctx.Done():
-				// Context cancelled, stop sending jobs
 				return
 			case jobs <- sarJob{namespace: ns}:
-				// Job sent successfully
 			}
 		}
 	}()
 
-	// Collect results
 	var allowed []corev1.Namespace
 	errorCount := 0
 	processed := 0
@@ -180,7 +178,6 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 	for processed < len(namespaceList.Items) {
 		select {
 		case <-ctx.Done():
-			// Context cancelled, return what we have so far
 			kc.Logger.Warn("context cancelled during namespace access checks",
 				"user", identity.UserID,
 				"processed", processed,
@@ -206,6 +203,72 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 		"errors", errorCount)
 
 	return allowed, nil
+}
+
+// getNamespacesViaProjectsAPI uses the OpenShift Projects API to list namespaces
+// accessible to the caller. An impersonated rest.Config is created from the caller's
+// identity so the API server enforces authorization for the user, not the service account.
+func (kc *InternalKubernetesClient) getNamespacesViaProjectsAPI(ctx context.Context, identity *RequestIdentity) ([]corev1.Namespace, error) {
+	impersonatedConfig := rest.CopyConfig(kc.RestConfig)
+	impersonatedConfig.Impersonate = rest.ImpersonationConfig{
+		UserName: identity.UserID,
+		Groups:   append([]string(nil), identity.Groups...),
+	}
+	// Clear client certificates to prevent credential leakage across user boundaries
+	impersonatedConfig.CertData = nil
+	impersonatedConfig.CertFile = ""
+	impersonatedConfig.KeyData = nil
+	impersonatedConfig.KeyFile = ""
+
+	dynClient, err := dynamic.NewForConfig(impersonatedConfig)
+	if err != nil {
+		kc.Logger.Error("failed to create dynamic client for Projects API", "error", err)
+		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	typedClient, err := kubernetes.NewForConfig(impersonatedConfig)
+	if err != nil {
+		kc.Logger.Error("failed to create typed client for namespace details", "error", err)
+		return nil, fmt.Errorf("failed to create typed client: %w", err)
+	}
+
+	projectGVR := schema.GroupVersionResource{
+		Group:    "project.openshift.io",
+		Version:  "v1",
+		Resource: "projects",
+	}
+
+	projectList, err := dynClient.Resource(projectGVR).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to list OpenShift projects", "error", err)
+		return nil, fmt.Errorf("failed to list projects: %w", err)
+	}
+
+	namespaces := make([]corev1.Namespace, 0, len(projectList.Items))
+	for _, project := range projectList.Items {
+		projectName := project.GetName()
+
+		ns, err := typedClient.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
+		if err != nil {
+			if k8serrors.IsForbidden(err) || k8serrors.IsNotFound(err) {
+				kc.Logger.Warn("failed to get namespace details, using project metadata", "namespace", projectName, "error", err)
+				namespaces = append(namespaces, corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        projectName,
+						Annotations: project.GetAnnotations(),
+						Labels:      project.GetLabels(),
+					},
+				})
+			} else {
+				return nil, fmt.Errorf("failed to get namespace %s: %w", projectName, err)
+			}
+		} else {
+			namespaces = append(namespaces, *ns)
+		}
+	}
+
+	kc.Logger.Debug("listed namespaces via OpenShift Projects API", "count", len(namespaces))
+	return namespaces, nil
 }
 
 // GetSecrets lists secrets in a namespace.

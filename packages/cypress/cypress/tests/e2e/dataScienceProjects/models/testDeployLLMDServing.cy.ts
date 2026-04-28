@@ -28,6 +28,7 @@ import { stubClipboard, getClipboardContent } from '../../../../utils/clipboardU
 
 let testData: DataScienceProjectData;
 let projectName: string;
+let resourceName: string;
 let modelName: string;
 const uuid = generateTestUUID();
 let hardwareProfileResourceName: string;
@@ -85,7 +86,7 @@ describe('A user can deploy an LLMD model', () => {
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin(
-        '/?devFeatureFlags=deploymentWizardYAMLViewer=true',
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,vLLMDeploymentOnMaaS=true',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -110,6 +111,10 @@ describe('A user can deploy an LLMD model', () => {
         .clear()
         .type(`${modelName}${testData.connectionNameSuffix}`);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+
+      cy.step('Verify legacy deployment checkbox appears and is unchecked');
+      modelServingWizard.findLegacyModeCheckbox().should('exist').should('not.be.checked');
+
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Select Model deployment');
@@ -119,7 +124,9 @@ describe('A user can deploy an LLMD model', () => {
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .as('resourceName');
+        .then((val) => {
+          resourceName = val as string;
+        });
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
 
       cy.step('Verify YAML Viewer');
@@ -166,7 +173,7 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Verify that the Model is ready');
       // Image was patched in YAML editor before submit, so no post-deployment patching needed
-      cy.get<string>('@resourceName').then((resourceName) => {
+      cy.then(() => {
         checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
 
@@ -199,6 +206,7 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Deploy LLMD Model From YAML Editor');
       projectDetails.findSectionTab('model-server').click();
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Enter Manual YAML editor Mode');
@@ -216,7 +224,9 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLCodeEditor().waitForReady();
       modelServingWizard.findSubmitButton().should('be.enabled').click();
       const llmdRow = modelServingGlobal.getDeploymentRow(yamlEditorModelName);
-      checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
+      cy.then(() => {
+        checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
+      });
 
       cy.step('Verify the model Row');
       llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');

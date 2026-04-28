@@ -25,9 +25,11 @@ import {
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useProviders } from '~/app/hooks/useProviders';
 import { FlatBenchmark } from '~/app/types';
 import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import BenchmarkDrawerPanel from '~/app/components/BenchmarkDrawerPanel';
 import BenchmarkCard from '~/app/components/BenchmarkCard';
 import {
@@ -44,6 +46,11 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
 
   const handleRunBenchmark = React.useCallback(
     (b: FlatBenchmark) => {
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
+        runType: 'single',
+        benchmarkTypes: JSON.stringify([b.id]),
+        countOfBenchmarks: 1,
+      });
       const params = new URLSearchParams({
         type: 'benchmark',
         providerId: b.providerId,
@@ -133,7 +140,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
   const hasActiveFilters = Object.values(filterData).some((v) => v && String(v).trim());
 
   return (
-    <Drawer isExpanded={!!selectedBenchmark} isInline>
+    <Drawer isExpanded={!!selectedBenchmark}>
       <DrawerContent
         panelContent={
           <BenchmarkDrawerPanel
@@ -145,7 +152,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
       >
         <DrawerContentBody>
           <ApplicationsPage
-            title="Single benchmark"
+            title="Select benchmark"
             description="Select a benchmark to run on your model, agent or pre-recorded responses."
             breadcrumb={
               <Breadcrumb>
@@ -154,10 +161,10 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                 />
                 <BreadcrumbItem
                   render={() => (
-                    <Link to={evaluationCreateRoute(namespace)}>Create evaluation run</Link>
+                    <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
                   )}
                 />
-                <BreadcrumbItem isActive>Single benchmark</BreadcrumbItem>
+                <BreadcrumbItem isActive>Select benchmark</BreadcrumbItem>
               </Breadcrumb>
             }
             loaded={loaded}

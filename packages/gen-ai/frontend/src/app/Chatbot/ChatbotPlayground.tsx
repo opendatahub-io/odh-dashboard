@@ -8,12 +8,14 @@ import {
 } from '@patternfly/react-core';
 import { Chatbot, ChatbotContent, ChatbotDisplayMode } from '@patternfly/chatbot';
 import { useLocation } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import useFetchGuardrailModels from '~/app/hooks/useFetchGuardrailModels';
 import { isLlamaModelEnabled } from '~/app/utilities';
+import { getId } from '~/app/utilities/utils';
 import { TokenInfo, ResponseMetrics } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
@@ -243,10 +245,11 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   const handleSendMessage = React.useCallback(
     (message: string) => {
-      messageHooksRef.current.forEach((hook) => hook.handleMessageSend(message));
+      const compareID = isCompareMode ? getId() : '';
+      messageHooksRef.current.forEach((hook) => hook.handleMessageSend(message, compareID));
       setLastInput(message);
     },
-    [setLastInput],
+    [setLastInput, isCompareMode],
   );
 
   const handleStopStreaming = React.useCallback(() => {
@@ -395,7 +398,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   };
 
   // Render chatbot content for a config
-  const renderChatbotContent = (configId: string) => (
+  const renderChatbotContent = (configId: string, index: number) => (
     <Chatbot
       displayMode={ChatbotDisplayMode.embedded}
       data-testid={isCompareMode ? `chatbot-${configId}` : 'chatbot'}
@@ -420,6 +423,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           welcomeDescription={isCompareMode ? 'Send a message to compare models' : undefined}
           onMessagesHookReady={getHookReadyCallback(configId)}
           guardrailModelConfigs={guardrailModelConfigs}
+          configIndex={isCompareMode ? index + 1 : 0}
+          isCompareMode={isCompareMode}
         />
       </ChatbotContent>
     </Chatbot>
@@ -450,6 +455,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         onClose={() => setIsNewChatModalOpen(false)}
         onConfirm={() => {
           messageHooksRef.current.forEach((hook) => hook.clearConversation());
+          if (isCompareMode) {
+            fireMiscTrackingEvent('Playground Compare Chat Cleared', { success: true });
+          }
           setIsNewChatModalOpen(false);
         }}
       />
@@ -520,10 +528,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                           isSettingsOpen={isDrawerExpanded}
                           isActiveConfig={isDrawerExpanded && configId === activePaneConfigId}
                         >
-                          {renderChatbotContent(configId)}
+                          {renderChatbotContent(configId, index)}
                         </ComparePaneWrapper>
                       ) : (
-                        renderChatbotContent(configId)
+                        renderChatbotContent(configId, index)
                       )}
                     </div>
                   </React.Fragment>

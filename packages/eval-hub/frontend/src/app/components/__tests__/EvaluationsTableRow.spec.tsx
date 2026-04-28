@@ -104,7 +104,7 @@ describe('EvaluationsTableRow', () => {
         </Table>
       </MemoryRouter>,
     );
-    expect(screen.getByTestId('evaluation-benchmark')).toHaveTextContent('arc_easy +1 more');
+    expect(screen.getByTestId('evaluation-benchmark')).toHaveTextContent('Arc Easy +1 more');
     expect(screen.getByTestId('evaluation-result')).toHaveTextContent('-');
   });
 
@@ -174,10 +174,10 @@ describe('EvaluationsTableRow', () => {
       renderRow({ state: 'running' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
       fireEvent.click(screen.getByText('Stop'));
-      expect(screen.getByText('Stop evaluation run')).toBeInTheDocument();
+      expect(screen.getByText('Stop evaluation?')).toBeInTheDocument();
       expect(
         screen.getByText(
-          'By stopping this evaluation run you will cancel this evaluation process.',
+          'The eval-job-001 evaluation will be stopped, and its progress will be lost.',
         ),
       ).toBeInTheDocument();
     });
@@ -186,11 +186,9 @@ describe('EvaluationsTableRow', () => {
       renderRow({ state: 'completed' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
       fireEvent.click(screen.getByText('Delete'));
-      expect(screen.getByText('Delete evaluation run')).toBeInTheDocument();
+      expect(screen.getByText('Delete evaluation run?')).toBeInTheDocument();
       expect(
-        screen.getByText(
-          'By deleting this evaluation run you will be removing it from the list of evaluation reports.',
-        ),
+        screen.getByText('The eval-job-001 evaluation run and its results will be deleted.'),
       ).toBeInTheDocument();
     });
 
@@ -198,10 +196,10 @@ describe('EvaluationsTableRow', () => {
       renderRow({ state: 'completed' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
       fireEvent.click(screen.getByText('Delete'));
-      expect(screen.getByText('Delete evaluation run')).toBeInTheDocument();
+      expect(screen.getByText('Delete evaluation run?')).toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId('evaluation-delete-cancel'));
-      expect(screen.queryByText('Delete evaluation run')).not.toBeInTheDocument();
+      expect(screen.queryByText('Delete evaluation run?')).not.toBeInTheDocument();
     });
 
     it('should call cancelEvaluationJob when stop is confirmed', async () => {

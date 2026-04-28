@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import {
   Button,
   Card,
@@ -51,7 +52,7 @@ import type {
   AutoragPatternSettings,
 } from '~/app/types/autoragPattern';
 import { usePatternEvaluationResults } from '~/app/hooks/usePatternEvaluationResults';
-import { formatMetricName, formatMetricValue } from '~/app/utilities/utils';
+import { formatMetricName, formatMetricValue, formatPatternName } from '~/app/utilities/utils';
 import './PatternDetailsModal.scss';
 
 let echartsRegistered = false;
@@ -367,11 +368,8 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
     }
     const handleAfterPrint = () => setIsPrinting(false);
     window.addEventListener('afterprint', handleAfterPrint);
-    const frameId = requestAnimationFrame(() => {
-      window.print();
-    });
+    window.print();
     return () => {
-      cancelAnimationFrame(frameId);
       window.removeEventListener('afterprint', handleAfterPrint);
     };
   }, [isPrinting]);
@@ -382,7 +380,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   const allSections = [OVERVIEW_KEY, ...settingsKeys, ...(showSampleQA ? [SAMPLE_QA_KEY] : [])];
 
   const topLevelFields: Record<string, unknown> = {
-    name: data.name,
+    name: formatPatternName(data.name),
     iteration: data.iteration,
     // eslint-disable-next-line camelcase
     max_combinations: data.max_combinations,
@@ -451,193 +449,201 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   };
 
   return (
-    <Modal
-      variant={ModalVariant.large}
-      isOpen={isOpen}
-      onClose={onClose}
-      className="autorag-pattern-details-modal"
-      data-testid="pattern-details-modal"
-    >
-      <ModalHeader>
-        <Flex
-          alignItems={{ default: 'alignItemsFlexEnd' }}
-          gap={{ default: 'gapXl' }}
-          data-testid="pattern-details-header"
-        >
-          <FlexItem>
-            <Stack>
-              <StackItem>
-                <Content component={ContentVariants.small}>Pattern details</Content>
-              </StackItem>
-              <StackItem>
-                {patterns.length > 1 ? (
-                  <Dropdown
-                    isOpen={isPatternDropdownOpen}
-                    onSelect={(_e, value) => {
-                      onPatternChange(Number(value));
-                      setIsPatternDropdownOpen(false);
-                    }}
-                    onOpenChange={setIsPatternDropdownOpen}
-                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                      <MenuToggle
-                        ref={toggleRef}
-                        onClick={() => setIsPatternDropdownOpen(!isPatternDropdownOpen)}
-                        isExpanded={isPatternDropdownOpen}
-                        data-testid="pattern-selector-dropdown"
-                      >
-                        {data.name}
-                      </MenuToggle>
-                    )}
-                  >
-                    <DropdownList>
-                      {patterns.map((pattern, i) => (
-                        <DropdownItem key={i} value={i}>
-                          {pattern.name}
-                        </DropdownItem>
-                      ))}
-                    </DropdownList>
-                  </Dropdown>
-                ) : (
-                  <Title headingLevel="h2" size="lg">
-                    {data.name}
+    <>
+      <Modal
+        variant={ModalVariant.large}
+        isOpen={isOpen}
+        onClose={onClose}
+        className="autorag-pattern-details-modal"
+        data-testid="pattern-details-modal"
+      >
+        <ModalHeader>
+          <Flex
+            alignItems={{ default: 'alignItemsFlexEnd' }}
+            gap={{ default: 'gapXl' }}
+            data-testid="pattern-details-header"
+          >
+            <FlexItem>
+              <Stack>
+                <StackItem>
+                  <Content component={ContentVariants.small}>Pattern details</Content>
+                </StackItem>
+                <StackItem>
+                  {patterns.length > 1 ? (
+                    <Dropdown
+                      isOpen={isPatternDropdownOpen}
+                      onSelect={(_e, value) => {
+                        onPatternChange(Number(value));
+                        setIsPatternDropdownOpen(false);
+                      }}
+                      onOpenChange={setIsPatternDropdownOpen}
+                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setIsPatternDropdownOpen(!isPatternDropdownOpen)}
+                          isExpanded={isPatternDropdownOpen}
+                          data-testid="pattern-selector-dropdown"
+                        >
+                          {formatPatternName(data.name)}
+                        </MenuToggle>
+                      )}
+                    >
+                      <DropdownList>
+                        {patterns.map((pattern, i) => (
+                          <DropdownItem key={i} value={i}>
+                            {formatPatternName(pattern.name)}
+                          </DropdownItem>
+                        ))}
+                      </DropdownList>
+                    </Dropdown>
+                  ) : (
+                    <Title headingLevel="h2" size="lg">
+                      {formatPatternName(data.name)}
+                    </Title>
+                  )}
+                </StackItem>
+              </Stack>
+            </FlexItem>
+            <FlexItem>
+              <Stack>
+                <StackItem>
+                  <Content component={ContentVariants.small}>Rank</Content>
+                </StackItem>
+                <StackItem>
+                  <Title headingLevel="h2" size="lg" data-testid="pattern-rank">
+                    {rank}
                   </Title>
-                )}
-              </StackItem>
-            </Stack>
-          </FlexItem>
-          <FlexItem>
-            <Stack>
-              <StackItem>
-                <Content component={ContentVariants.small}>Rank</Content>
-              </StackItem>
-              <StackItem>
-                <Title headingLevel="h2" size="lg" data-testid="pattern-rank">
-                  {rank}
-                </Title>
-              </StackItem>
-            </Stack>
-          </FlexItem>
-          <FlexItem>
-            <Stack>
-              <StackItem>
-                <Content component={ContentVariants.small}>
-                  {optimizedMetric
-                    ? `${formatMetricName(optimizedMetric)} (optimized)`
-                    : 'Final score'}
-                </Content>
-              </StackItem>
-              <StackItem>
-                <Title headingLevel="h2" size="lg" data-testid="pattern-final-score">
-                  {optimizedMetric && data.scores[optimizedMetric]
-                    ? formatMetricValue(data.scores[optimizedMetric].mean)
-                    : data.final_score.toFixed(3)}
-                </Title>
-              </StackItem>
-            </Stack>
-          </FlexItem>
-          <FlexItem align={{ default: 'alignRight' }}>
-            <Flex gap={{ default: 'gapSm' }}>
-              <FlexItem>
-                <Button
-                  variant="secondary"
-                  icon={<DownloadIcon />}
-                  onClick={() => setIsPrinting(true)}
-                  data-testid="pattern-details-download"
-                >
-                  Download
-                </Button>
-              </FlexItem>
-              {onSaveNotebook && (
+                </StackItem>
+              </Stack>
+            </FlexItem>
+            <FlexItem>
+              <Stack>
+                <StackItem>
+                  <Content component={ContentVariants.small}>
+                    {optimizedMetric
+                      ? `${formatMetricName(optimizedMetric)} (optimized)`
+                      : 'Final score'}
+                  </Content>
+                </StackItem>
+                <StackItem>
+                  <Title headingLevel="h2" size="lg" data-testid="pattern-final-score">
+                    {optimizedMetric && data.scores[optimizedMetric]
+                      ? formatMetricValue(data.scores[optimizedMetric].mean)
+                      : data.final_score.toFixed(3)}
+                  </Title>
+                </StackItem>
+              </Stack>
+            </FlexItem>
+            <FlexItem align={{ default: 'alignRight' }}>
+              <Flex gap={{ default: 'gapSm' }}>
                 <FlexItem>
-                  <Dropdown
-                    isOpen={isNotebookDropdownOpen}
-                    onSelect={(_e, value) => {
-                      setIsNotebookDropdownOpen(false);
-                      if (value === 'indexing' || value === 'inference') {
-                        onSaveNotebook(data.name, value);
-                      }
-                    }}
-                    onOpenChange={setIsNotebookDropdownOpen}
-                    toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                      <MenuToggle
-                        ref={toggleRef}
-                        variant="primary"
-                        onClick={() => setIsNotebookDropdownOpen(!isNotebookDropdownOpen)}
-                        isExpanded={isNotebookDropdownOpen}
-                        data-testid="pattern-details-save-notebook-toggle"
-                      >
-                        Save as notebook
-                      </MenuToggle>
-                    )}
+                  <Button
+                    variant="secondary"
+                    icon={<DownloadIcon />}
+                    onClick={() => setIsPrinting(true)}
+                    data-testid="pattern-details-download"
                   >
-                    <DropdownList>
-                      <DropdownItem
-                        key="indexing"
-                        value="indexing"
-                        data-testid="pattern-details-save-indexing-notebook"
-                      >
-                        Indexing
-                      </DropdownItem>
-                      <DropdownItem
-                        key="inference"
-                        value="inference"
-                        data-testid="pattern-details-save-inference-notebook"
-                      >
-                        Inference
-                      </DropdownItem>
-                    </DropdownList>
-                  </Dropdown>
+                    Download
+                  </Button>
                 </FlexItem>
-              )}
-            </Flex>
-          </FlexItem>
-        </Flex>
-        <Divider />
-      </ModalHeader>
-      <ModalBody>
-        <Flex className="autorag-pattern-details-screen-only">
-          <FlexItem>
-            <Tabs
-              activeKey={activeSection}
-              onSelect={(_e, key) => setActiveSection(String(key))}
-              isVertical
-              aria-label="Pattern detail sections"
-            >
-              {allSections.map((key) => (
-                <Tab
-                  key={key}
-                  eventKey={key}
-                  title={<TabTitleText>{getTabLabel(key)}</TabTitleText>}
-                  data-testid={`tab-${key}`}
-                />
-              ))}
-            </Tabs>
-          </FlexItem>
-          <FlexItem flex={{ default: 'flex_1' }}>
-            <Stack hasGutter>
-              <StackItem>
-                <Title headingLevel="h3">{getTabLabel(activeSection)}</Title>
-              </StackItem>
-              <StackItem>{renderContent()}</StackItem>
-            </Stack>
-          </FlexItem>
-        </Flex>
-        {isPrinting && (
-          <div className="autorag-pattern-details-print-only">
-            <div className="autorag-print-header">
-              <h1>{data.name}</h1>
-              <p>
-                {data.name} |{' '}
-                {optimizedMetric
-                  ? `${formatMetricName(optimizedMetric)} (optimized): ${
-                      data.scores[optimizedMetric]
-                        ? formatMetricValue(data.scores[optimizedMetric].mean)
-                        : 'N/A'
-                    }`
-                  : `Final score: ${data.final_score}`}
-              </p>
-            </div>
-            <div className="autorag-print-page">
+                {onSaveNotebook && (
+                  <FlexItem>
+                    <Dropdown
+                      isOpen={isNotebookDropdownOpen}
+                      onSelect={(_e, value) => {
+                        setIsNotebookDropdownOpen(false);
+                        if (value === 'indexing' || value === 'inference') {
+                          onSaveNotebook(data.name, value);
+                        }
+                      }}
+                      onOpenChange={setIsNotebookDropdownOpen}
+                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          variant="primary"
+                          onClick={() => setIsNotebookDropdownOpen(!isNotebookDropdownOpen)}
+                          isExpanded={isNotebookDropdownOpen}
+                          data-testid="pattern-details-save-notebook-toggle"
+                        >
+                          Save as notebook
+                        </MenuToggle>
+                      )}
+                    >
+                      <DropdownList>
+                        <DropdownItem
+                          key="indexing"
+                          value="indexing"
+                          data-testid="pattern-details-save-indexing-notebook"
+                        >
+                          Indexing
+                        </DropdownItem>
+                        <DropdownItem
+                          key="inference"
+                          value="inference"
+                          data-testid="pattern-details-save-inference-notebook"
+                        >
+                          Inference
+                        </DropdownItem>
+                      </DropdownList>
+                    </Dropdown>
+                  </FlexItem>
+                )}
+              </Flex>
+            </FlexItem>
+          </Flex>
+          <Divider />
+        </ModalHeader>
+        <ModalBody>
+          <Flex className="autorag-pattern-details-screen-only">
+            <FlexItem>
+              <Tabs
+                activeKey={activeSection}
+                onSelect={(_e, key) => setActiveSection(String(key))}
+                isVertical
+                aria-label="Pattern detail sections"
+              >
+                {allSections.map((key) => (
+                  <Tab
+                    key={key}
+                    eventKey={key}
+                    title={<TabTitleText>{getTabLabel(key)}</TabTitleText>}
+                    data-testid={`tab-${key}`}
+                  />
+                ))}
+              </Tabs>
+            </FlexItem>
+            <FlexItem flex={{ default: 'flex_1' }}>
+              <Stack hasGutter>
+                <StackItem>
+                  <Title headingLevel="h3">{getTabLabel(activeSection)}</Title>
+                </StackItem>
+                <StackItem>{renderContent()}</StackItem>
+              </Stack>
+            </FlexItem>
+          </Flex>
+        </ModalBody>
+      </Modal>
+
+      {/* Print-only container: portalled to document.body so it sits outside
+        the PF modal DOM — avoids backdrop/overflow/centering issues across
+        browsers. Each section is rendered as a separate print page. */}
+      {isPrinting &&
+        ReactDOM.createPortal(
+          <div className="odh-autox-print-only" data-testid="print-container">
+            <div className="autorag-print-page autorag-print-page--first">
+              <div className="autorag-print-header">
+                <h1>{formatPatternName(data.name)}</h1>
+                <p>
+                  {formatPatternName(data.name)} |{' '}
+                  {optimizedMetric
+                    ? `${formatMetricName(optimizedMetric)} (optimized): ${
+                        data.scores[optimizedMetric]
+                          ? formatMetricValue(data.scores[optimizedMetric].mean)
+                          : 'N/A'
+                      }`
+                    : `Final score: ${data.final_score}`}
+                </p>
+              </div>
               <Title headingLevel="h2">Pattern information</Title>
               <KeyValueList entries={topLevelFields} />
               <Title headingLevel="h3">Scores ({scoreTypeLabels[scoreType]})</Title>
@@ -645,20 +651,26 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             </div>
             {settingsKeys.map((key) => (
               <div key={key} className="autorag-print-page">
+                <div className="autorag-print-header">
+                  <h1>{formatPatternName(data.name)}</h1>
+                </div>
                 <Title headingLevel="h2">{humanize(key)}</Title>
                 <KeyValueList entries={settingsSectionEntries(data.settings, key)} />
               </div>
             ))}
             {evaluationResults && evaluationResults.length > 0 && (
               <div className="autorag-print-page">
+                <div className="autorag-print-header">
+                  <h1>{formatPatternName(data.name)}</h1>
+                </div>
                 <Title headingLevel="h2">Sample Q&A</Title>
                 <PrintSampleQAContent results={evaluationResults} />
               </div>
             )}
-          </div>
+          </div>,
+          document.body,
         )}
-      </ModalBody>
-    </Modal>
+    </>
   );
 };
 

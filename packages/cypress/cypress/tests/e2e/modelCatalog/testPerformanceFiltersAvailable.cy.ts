@@ -5,12 +5,14 @@ import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import {
   ensureModelCatalogSourceEnabled,
   waitForModelCatalogCards,
+  waitForModelCatalogDeployment,
+  waitForValidatedModelCards,
 } from '../../../utils/oc_commands/modelCatalog';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
 import type { ModelCatalogSourceTestData } from '../../../types';
 
-describe('[Automation Bug: RHOAIENG-55621] Verify Performance Filters are available on RHOAI', () => {
+describe('Verify Performance Filters are available on RHOAI', () => {
   let testData: ModelCatalogSourceTestData;
   let skipTest = false;
 
@@ -26,6 +28,13 @@ describe('[Automation Bug: RHOAIENG-55621] Verify Performance Filters are availa
       } else {
         cy.log('RHOAI operator confirmed:', result.stdout);
       }
+    });
+
+    cy.then(() => {
+      if (skipTest) {
+        return;
+      }
+      waitForModelCatalogDeployment();
     });
 
     // If not skipping, proceed with test setup
@@ -63,7 +72,7 @@ describe('[Automation Bug: RHOAIENG-55621] Verify Performance Filters are availa
 
   it(
     'Performance view toggle enables filters and shows benchmark data on validated models',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@Maintain'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
     () => {
       if (skipTest) {
         cy.log(
@@ -92,6 +101,9 @@ describe('[Automation Bug: RHOAIENG-55621] Verify Performance Filters are availa
       modelCatalog.findWorkloadTypeFilter().should('be.visible');
       modelCatalog.findLatencyFilter().should('be.visible');
       modelCatalog.findMaxRpsFilter().should('be.visible');
+
+      cy.step('Wait for validated model cards with performance data to appear');
+      waitForValidatedModelCards();
 
       cy.step('Find a validated model card and verify it shows metrics');
       modelCatalog.findValidatedModelCard().should('have.length.at.least', 1);

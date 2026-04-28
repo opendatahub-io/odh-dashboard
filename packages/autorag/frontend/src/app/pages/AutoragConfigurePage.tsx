@@ -10,6 +10,7 @@ import {
   PageSection,
   Stack,
   StackItem,
+  Truncate,
 } from '@patternfly/react-core';
 import classNames from 'classnames';
 import { useNamespaceSelector } from 'mod-arch-core';
@@ -38,7 +39,9 @@ function AutoragConfigurePage(): React.JSX.Element {
   const notification = useNotification();
 
   const { namespace } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector();
+  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
+    storeLastNamespace: true,
+  });
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -78,7 +81,9 @@ function AutoragConfigurePage(): React.JSX.Element {
       </ActionListItem>
       <ActionListItem>
         <Button
-          component={(props) => <Link {...props} to={autoragExperimentsPathname} />}
+          component={(props) => (
+            <Link {...props} to={`${autoragExperimentsPathname}/${namespace}`} />
+          )}
           variant="link"
         >
           Cancel
@@ -97,7 +102,7 @@ function AutoragConfigurePage(): React.JSX.Element {
           isLoading={form.formState.isSubmitting}
           spinnerAriaValueText="Submitting"
         >
-          Run experiment
+          Create run
         </Button>
       </ActionListItem>
       <ActionListItem>
@@ -119,7 +124,15 @@ function AutoragConfigurePage(): React.JSX.Element {
       title={<AutoragHeader />}
       subtext={
         <h2 className="pf-v6-u-mt-sm">
-          {step === 'create' ? 'Create RAG optimization run' : `"${displayName}" configurations`}
+          {step === 'create' ? (
+            'Create AutoRAG optimization run'
+          ) : (
+            <span data-testid="configure-step-subtitle">
+              &quot;
+              <Truncate content={displayName || ''} />
+              &quot; configurations
+            </span>
+          )}
         </h2>
       }
       description={
@@ -136,7 +149,9 @@ function AutoragConfigurePage(): React.JSX.Element {
             <BreadcrumbItem>
               <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
             </BreadcrumbItem>
-            <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
+            <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
+              <Truncate content={displayName || ''} />
+            </BreadcrumbItem>
           </Breadcrumb>
         )
       }

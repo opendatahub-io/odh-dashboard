@@ -1,5 +1,5 @@
 import * as React from 'react';
-import useExperiments from '#~/concepts/pipelines/apiHooks/useExperiments';
+import { useAllExperiments } from '#~/concepts/pipelines/apiHooks/useExperiments';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 
 type PipelineRunExperimentsContextState = {
@@ -22,7 +22,7 @@ type PipelineRunExperimentsContextProps = {
 const PipelineRunExperimentsContextProvider: React.FC<PipelineRunExperimentsContextProps> = ({
   children,
 }) => {
-  const [{ items: experiments }, loaded, error] = useExperiments();
+  const [{ items: experiments }, loaded, error] = useAllExperiments();
 
   const contextValue = React.useMemo(
     () => ({ experiments, loaded, error }),

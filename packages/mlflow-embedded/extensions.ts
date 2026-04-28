@@ -2,6 +2,7 @@ import type {
   AreaExtension,
   HrefNavItemExtension,
   RouteExtension,
+  TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
@@ -16,18 +17,17 @@ import { PROMPT_MANAGEMENT_PAGE_TITLE } from './shared/const';
 /**
  * MLflow host-side extensions.
  */
-const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
+const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | TaskItemExtension)[] = [
   {
     type: 'app.area',
     properties: {
       id: 'mlflow-embedded',
-      featureFlags: ['mlflow'],
     },
   },
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW],
+      required: [SupportedArea.MLFLOW],
     },
     properties: {
       id: 'experiments-mlflow',
@@ -35,13 +35,12 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
       href: '/develop-train/mlflow/experiments',
       section: 'develop-and-train',
       path: '/develop-train/mlflow/experiments/*',
-      label: 'Tech Preview',
     },
   },
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.DS_PIPELINES, SupportedArea.MLFLOW],
+      required: [SupportedArea.MLFLOW],
     },
     properties: {
       path: '/develop-train/mlflow/*',
@@ -60,7 +59,6 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
       section: 'gen-ai-studio',
       path: globPromptManagementAll,
       group: '6_prompt_management',
-      label: 'Tech Preview',
     },
   },
   {
@@ -71,6 +69,32 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
     properties: {
       path: globPromptManagementAll,
       component: () => import('./prompts/GlobalMLflowPromptManagementRoutes'),
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: [SupportedArea.MLFLOW],
+    },
+    properties: {
+      id: 'develop-experiments',
+      group: 'develop-and-train',
+      title: 'Track and compare training runs',
+      destination: { href: '/develop-train/mlflow/experiments' },
+      order: '3_experiments',
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: ['plugin-gen-ai', SupportedArea.MLFLOW],
+    },
+    properties: {
+      id: 'genai-prompts',
+      group: 'gen-ai-studio',
+      title: 'Create and manage AI prompts',
+      destination: { href: promptManagementPath },
+      order: '4_prompts',
     },
   },
 ];

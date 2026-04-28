@@ -16,5 +16,5 @@ export const mcpServerCRToYaml = (cr: MCPServerCR): string => {
   }
   editableSpec.config = cr.spec.config;
 
-  return yaml.dump({ spec: editableSpec }, { lineWidth: -1, noRefs: true });
+  return yaml.dump(editableSpec, { lineWidth: -1, noRefs: true });
 };

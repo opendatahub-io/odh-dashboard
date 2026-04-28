@@ -1,4 +1,34 @@
 import type { PipelineRun } from '~/app/types';
+import { RuntimeStateKF } from '~/app/types/pipeline';
+
+/**
+ * Whether the run is in a state where it can be terminated (stopped).
+ */
+export const isRunTerminatable = (state: string | undefined): boolean => {
+  const s = state?.toUpperCase();
+  return (
+    s === RuntimeStateKF.RUNNING || s === RuntimeStateKF.PENDING || s === RuntimeStateKF.PAUSED
+  );
+};
+
+/**
+ * Whether the run is still in progress (not yet in a terminal state).
+ * Includes CANCELING — the pipeline is still running but cannot be stopped again.
+ */
+export const isRunInProgress = (state: string | undefined): boolean => {
+  const s = state?.toUpperCase();
+  return (
+    s === RuntimeStateKF.RUNNING || s === RuntimeStateKF.PENDING || s === RuntimeStateKF.CANCELING
+  );
+};
+
+/**
+ * Whether the run is in a terminal failure state where it can be retried.
+ */
+export const isRunRetryable = (state: string | undefined): boolean => {
+  const s = state?.toUpperCase();
+  return s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED;
+};
 
 /**
  * Extracts HTTP status from Error.message when handleRestFailures (mod-arch-core)
@@ -57,17 +87,25 @@ export function downloadBlob(blob: Blob, filename: string): void {
 }
 
 /**
+ * Insert a non-breaking space between a word prefix and trailing digits.
+ * e.g. "Pattern7" → "Pattern\u00a07"
+ */
+export function formatPatternName(name: string): string {
+  return name.replace(/(\S)\s*(\d+)$/, '$1\u00a0$2');
+}
+
+/**
  * Format metric key names for display (e.g. "answer_correctness" -> "Answer Correctness").
  */
 export function formatMetricName(metricKey: string): string {
   /* eslint-disable camelcase */
   const specialCases: Record<string, string> = {
-    faithfulness: 'Faithfulness',
-    answer_correctness: 'Answer Correctness',
-    context_correctness: 'Context Correctness',
-    answer_relevancy: 'Answer Relevancy',
-    context_precision: 'Context Precision',
-    context_recall: 'Context Recall',
+    faithfulness: 'Answer faithfulness',
+    answer_correctness: 'Answer correctness',
+    context_correctness: 'Context correctness',
+    answer_relevancy: 'Answer relevancy',
+    context_precision: 'Context precision',
+    context_recall: 'Context recall',
   };
   /* eslint-enable camelcase */
 

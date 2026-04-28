@@ -13,6 +13,9 @@ import {
   PipelineVersionFilterSelector,
 } from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
 import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
+import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -31,15 +34,20 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
   const { versions } = React.useContext(PipelineRunVersionsContext);
   const { isExperimentArchived } = useIsExperimentArchived();
   const { experiment } = React.useContext(ExperimentContext);
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
+  const { namespace } = usePipelinesAPI();
   const options = React.useMemo(
     () => ({
       [FilterOptions.NAME]: 'Schedule',
       ...(!experiment && {
-        [FilterOptions.EXPERIMENT]: 'Experiment',
+        [FilterOptions.RUN_GROUP]: 'Run group',
       }),
       [FilterOptions.PIPELINE_VERSION]: 'Pipeline version',
+      ...(isMlflowAvailable && {
+        [FilterOptions.MLFLOW_EXPERIMENT]: 'MLflow experiment',
+      }),
     }),
-    [experiment],
+    [experiment, isMlflowAvailable],
   );
   return (
     <PipelineFilterBar<keyof typeof options>
@@ -54,11 +62,18 @@ const PipelineRecurringRunTableToolbar: React.FC<PipelineRecurringRunTableToolba
             onChange={(_event, value) => onChange(value)}
           />
         ),
-        [FilterOptions.EXPERIMENT]: ({ onChange, label }) => (
+        [FilterOptions.RUN_GROUP]: ({ onChange, label }) => (
           <ExperimentFilterSelector
             resources={experiments}
             selection={label}
             onSelect={(e) => onChange(e.experiment_id, e.display_name)}
+          />
+        ),
+        [FilterOptions.MLFLOW_EXPERIMENT]: ({ onChange, value }) => (
+          <MlflowExperimentSelector
+            workspace={namespace}
+            selection={value}
+            onSelect={(mlflowExperiment) => onChange(mlflowExperiment.name)}
           />
         ),
         [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (

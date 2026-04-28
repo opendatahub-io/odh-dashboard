@@ -8,7 +8,7 @@ export const MAX_RAG_PATTERNS = 20;
 
 // The allowlist of supported vector store provider types.
 // The BFF returns all vector_io providers; only providers with these types are shown in the UI.
-// The selected value is dynamically constructed as ls_${provider_id}.
+// The selected value is the provider_id.
 export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = ['remote::milvus'];
 
 // Default in-memory vector store provider — disabled until 3.5 or later.
@@ -36,7 +36,15 @@ function createConfigureSchema() {
     // Make sure all fields (including optional ones) have a default to ensure RHF works as intended.
     /* eslint-disable camelcase */
     schema: z.object({
-      display_name: z.string().trim().min(1).default(''),
+      display_name: z
+        .string()
+        .trim()
+        .min(1)
+        .refine(
+          (val) => Array.from(val).length <= 250,
+          'Display name must be at most 250 characters',
+        )
+        .default(''),
       description: z.string().trim().default('').optional(),
 
       input_data_secret_name: z.string().min(1).default(''),
@@ -71,7 +79,7 @@ function createConfigureSchema() {
         // Delete vector database ID if it's empty or set to the default in-memory provider.
         // if (
         //   data.llama_stack_vector_io_provider_id === '' ||
-        //   data.llama_stack_vector_io_provider_id === `ls_${DEFAULT_IN_MEMORY_PROVIDER.provider_id}`
+        //   data.llama_stack_vector_io_provider_id === DEFAULT_IN_MEMORY_PROVIDER.provider_id
         // ) {
         //   delete data.llama_stack_vector_io_provider_id;
         // }

@@ -9,6 +9,7 @@ import {
   CATALOG_SETTINGS_PAGE_TITLE,
   catalogSettingsUrl,
 } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
+import { mcpCatalogUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import { McpServerDeployModalExtension } from './extension-points';
 
 const reliantAreas = ['model-registry'];
@@ -20,7 +21,13 @@ const createRedirectComponent = (args: { from: string; to: string }) => () =>
     default: () => module.buildV2RedirectElement(args),
   }));
 
-const extensions: (NavExtension | RouteExtension | AreaExtension | TabRouteTabExtension | McpServerDeployModalExtension)[] = [
+const extensions: (
+  | NavExtension
+  | RouteExtension
+  | AreaExtension
+  | TabRouteTabExtension
+  | McpServerDeployModalExtension
+)[] = [
   {
     type: 'app.area',
     properties: {
@@ -148,7 +155,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | TabRouteTabEx
       path: '/ai-hub/mcp-catalog/*',
       component: createRedirectComponent({
         from: '/ai-hub/mcp-catalog/*',
-        to: '/ai-hub/mcp-servers/catalog/*',
+        to: `${mcpCatalogUrl()}/*`,
       }),
     },
   },
@@ -211,7 +218,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | TabRouteTabEx
     },
     properties: {
       useIsDeployAvailable: () =>
-        import('../app/hooks/mcpCatalogDeployment/useMcpServerDeployAvailable').then((m) => m.default),
+        import('../app/hooks/mcpCatalogDeployment/useMcpServerDeployAvailable').then(
+          (m) => m.default,
+        ),
     },
   },
 ];

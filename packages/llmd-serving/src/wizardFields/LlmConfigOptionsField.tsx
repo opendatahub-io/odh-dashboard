@@ -107,7 +107,7 @@ export type LLMConfigOptionsFieldValue = {
   data?: ModelServerSelectFieldData;
 };
 
-type LLMConfigOptionsFieldType = WizardField<
+export type LLMConfigOptionsFieldType = WizardField<
   LLMConfigOptionsFieldValue,
   LLMConfigOptionsData,
   { hardwareProfile?: HardwareProfileKind }
@@ -129,7 +129,7 @@ const LLMConfigOptionsField: LLMConfigOptionsFieldType['component'] = ({
     <ModelServerTemplateSelectField
       label="Deployment resource"
       modelServerState={{
-        data: value.data,
+        data: value?.data,
         setData: (data: ModelServerSelectFieldData) => onChange({ data }),
         options,
       }}

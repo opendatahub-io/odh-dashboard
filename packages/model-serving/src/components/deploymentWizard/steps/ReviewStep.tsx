@@ -60,8 +60,9 @@ const getExtensionItems = (
     .flatMap((section) => section.items) ?? [];
 
 const getStatusSections = (
-  projectName?: string,
-  extensionStatusSections?: StatusSection[],
+  projectName: string | undefined,
+  extensionStatusSections: StatusSection[] | undefined,
+  isGenAiEnabled: boolean,
 ): StatusSection[] => {
   return [
     {
@@ -252,7 +253,7 @@ const getStatusSections = (
         },
         {
           key: 'modelServer',
-          label: 'Serving runtime',
+          label: 'Deployment resource',
           comp: (state) => state.modelServer.data?.selection?.label || 'Auto-selected',
         },
         {
@@ -270,14 +271,16 @@ const getStatusSections = (
           key: 'modelAvailability-aiAssetEndpoint',
           label: 'AI asset endpoint',
           comp: (state) => (state.modelAvailability.data.saveAsAiAsset ? 'Yes' : 'No'),
-          isVisible: (wizardState) => !!wizardState.state.modelAvailability.showField,
+          isVisible: (wizardState) =>
+            !!wizardState.state.modelAvailability.showField && isGenAiEnabled,
         },
         {
           key: 'modelAvailability-useCase',
           label: 'Use case',
           comp: (state) => state.modelAvailability.data.useCase || undefined,
           optional: true,
-          isVisible: (wizardState) => !!wizardState.state.modelAvailability.showField,
+          isVisible: (wizardState) =>
+            !!wizardState.state.modelAvailability.showField && isGenAiEnabled,
         },
         {
           key: 'externalRoute',
@@ -369,12 +372,22 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
   projectName,
   externalData,
 }) => {
+  const { isGenAiEnabled } = wizardState.state.modelAvailability;
+
   const extensionSections = React.useMemo((): WizardReviewSection[] => {
     return wizardState.fields.flatMap((field) => {
       if (!field.getReviewSections) {
         return [];
       }
+      // Skip inactive fields - they don't have data in the form state
+      if (!field.isActive(wizardState.state)) {
+        return [];
+      }
       const value = resolveFieldValue(field, wizardState.state);
+      // Skip if field value is not available (field may be active but data not yet initialized)
+      if (value === undefined || value === null) {
+        return [];
+      }
       const fieldExternalData = externalData?.[field.id];
       return field.getReviewSections(value, wizardState.state, fieldExternalData?.data);
     });
@@ -394,8 +407,8 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
   }, [extensionSections]);
 
   const statusSections = React.useMemo(
-    () => [...getStatusSections(projectName, extensionStatusSections)],
-    [projectName, extensionStatusSections],
+    () => [...getStatusSections(projectName, extensionStatusSections, isGenAiEnabled)],
+    [projectName, extensionStatusSections, isGenAiEnabled],
   );
 
   if (!wizardState.loaded.summaryLoaded) {

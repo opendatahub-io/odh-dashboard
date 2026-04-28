@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -144,13 +144,12 @@ func TestBuildMcpServerFromCreateRequest_DefaultPort(t *testing.T) {
 }
 
 func TestBuildMcpServerFromCreateRequest_WithSpecYAML(t *testing.T) {
-	yamlContent := `spec:
-  config:
-    port: 3000
-    path: /mcp
-  runtime:
-    security:
-      serviceAccountName: mcp-viewer`
+	yamlContent := `config:
+  port: 3000
+  path: /mcp
+runtime:
+  security:
+    serviceAccountName: mcp-viewer`
 
 	req := models.McpDeploymentCreateRequest{
 		Name:  "k8s-mcp",
@@ -214,9 +213,8 @@ func TestBuildMcpServerFromCreateRequest_InvalidYAML(t *testing.T) {
 }
 
 func TestBuildMcpServerFromCreateRequest_YAMLPortTakesPrecedence(t *testing.T) {
-	yamlContent := `spec:
-  config:
-    port: 5555`
+	yamlContent := `config:
+  port: 5555`
 
 	req := models.McpDeploymentCreateRequest{
 		Image: "quay.io/mcp/test:1.0",
@@ -625,39 +623,6 @@ func TestConvertUnstructuredToMcpDeployment_FailedNoAddress(t *testing.T) {
 }
 
 // parseSpecYAML
-func TestParseSpecYAML_WithSpecWrapper(t *testing.T) {
-	// yaml.v3 uses lowercased field names when no yaml struct tags exist
-	yamlStr := `spec:
-  config:
-    port: 9090
-    path: /mcp
-  runtime:
-    replicas: 2
-    security:
-      serviceAccountName: test-sa`
-
-	spec, err := parseSpecYAML(yamlStr)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if spec.Config == nil {
-		t.Fatal("expected config to be parsed")
-	}
-	if spec.Config.Port != 9090 {
-		t.Fatalf("expected port 9090, got %d", spec.Config.Port)
-	}
-	if spec.Config.Path != "/mcp" {
-		t.Fatalf("expected path '/mcp', got %q", spec.Config.Path)
-	}
-	if spec.Runtime == nil {
-		t.Fatal("expected runtime to be parsed")
-	}
-	if spec.Runtime.Security == nil || spec.Runtime.Security.ServiceAccountName != "test-sa" {
-		t.Fatalf("expected serviceAccountName 'test-sa', got %+v", spec.Runtime)
-	}
-}
-
 func TestParseSpecYAML_DirectKeys(t *testing.T) {
 	yamlStr := `config:
   port: 7070
@@ -681,10 +646,9 @@ runtime:
 }
 
 func TestParseSpecYAML_ConfigOnly(t *testing.T) {
-	yamlStr := `spec:
-  config:
-    port: 8080
-    path: /sse`
+	yamlStr := `config:
+  port: 8080
+  path: /sse`
 
 	spec, err := parseSpecYAML(yamlStr)
 	if err != nil {
@@ -755,10 +719,9 @@ func TestBuildMcpDeploymentPatch_DisplayNameOnly(t *testing.T) {
 }
 
 func TestBuildMcpDeploymentPatch_YAMLOnly(t *testing.T) {
-	yamlStr := `spec:
-  config:
-    port: 3000
-    path: /mcp`
+	yamlStr := `config:
+  port: 3000
+  path: /mcp`
 	req := models.McpDeploymentUpdateRequest{
 		YAML: &yamlStr,
 	}
@@ -791,12 +754,11 @@ func TestBuildMcpDeploymentPatch_YAMLOnly(t *testing.T) {
 
 func TestBuildMcpDeploymentPatch_DisplayNameAndYAML(t *testing.T) {
 	displayName := "New Name"
-	yamlStr := `spec:
-  config:
-    port: 4000
-  runtime:
-    security:
-      serviceAccountName: admin`
+	yamlStr := `config:
+  port: 4000
+runtime:
+  security:
+    serviceAccountName: admin`
 
 	req := models.McpDeploymentUpdateRequest{
 		DisplayName: &displayName,
@@ -919,10 +881,9 @@ func TestBuildMcpDeploymentPatch_ImageOnly(t *testing.T) {
 
 func TestBuildMcpDeploymentPatch_ImageAndYAML(t *testing.T) {
 	newImage := "quay.io/mcp/new:3.0"
-	yamlStr := `spec:
-  config:
-    port: 5000
-    path: /sse`
+	yamlStr := `config:
+  port: 5000
+  path: /sse`
 	req := models.McpDeploymentUpdateRequest{
 		Image: &newImage,
 		YAML:  &yamlStr,
@@ -1041,13 +1002,12 @@ func TestConvertUnstructuredToMcpDeployment_YAMLOmitsEmptyFields(t *testing.T) {
 
 // Round-trip: Create -> Unstructured -> McpDeployment
 func TestRoundTrip_CreateToDeployment(t *testing.T) {
-	yamlContent := `spec:
-  config:
-    port: 9090
-    path: /mcp
-  runtime:
-    security:
-      serviceAccountName: mcp-viewer`
+	yamlContent := `config:
+  port: 9090
+  path: /mcp
+runtime:
+  security:
+    serviceAccountName: mcp-viewer`
 
 	req := models.McpDeploymentCreateRequest{
 		Name:        "round-trip-test",

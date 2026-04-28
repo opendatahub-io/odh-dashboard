@@ -109,7 +109,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
         </StackItem>
       )}
       <StackItem>
-        <Card>
+        <Card data-testid="version-details-card">
           <CardHeader>
             <Title headingLevel="h2">Version details</Title>
           </CardHeader>
@@ -170,6 +170,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
                 )}
                 {isTransferJobSource && modelArtifact ? (
                   <StorageLocationSection
+                    artifactUri={modelArtifact.uri}
                     fallbackNamespace={transferJobParams.jobNamespace}
                     transferJob={transferJob}
                     transferJobLoaded={transferJobLoaded}

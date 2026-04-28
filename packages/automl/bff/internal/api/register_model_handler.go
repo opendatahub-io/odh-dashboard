@@ -114,18 +114,20 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	// In dev mode, prefer ExternalURL (OpenShift Route) because the in-cluster
-	// ServerURL is not reachable from a local development environment.
-	// In production, always use the in-cluster ServerURL.
+	// Always prefer ExternalURL when available to avoid NetworkPolicy restrictions.
+	// The model-registry-operator creates a NetworkPolicy that blocks in-cluster traffic
+	// to the kube-rbac-proxy on port 8443, only allowing external Route access.
+	// Fall back to ServerURL only if ExternalURL is not available.
 	baseURL := ""
-	if app.config.DevMode && strings.TrimSpace(reg.ExternalURL) != "" {
+	if strings.TrimSpace(reg.ExternalURL) != "" {
 		baseURL = strings.TrimSuffix(strings.TrimSpace(reg.ExternalURL), "/")
-		logger.Debug("Using external URL for model registry (dev mode)", "url", baseURL)
+		logger.Debug("Using external URL for model registry", "url", baseURL)
 	} else {
 		baseURL = strings.TrimSuffix(strings.TrimSpace(reg.ServerURL), "/")
+		logger.Warn("Using internal URL for model registry; may fail due to NetworkPolicy restrictions", "url", baseURL)
 	}
 	if baseURL == "" {
-		app.serverErrorResponse(w, r, fmt.Errorf("model registry has empty server_url"))
+		app.serviceUnavailableResponse(w, r, fmt.Errorf("model registry has no usable URL (external_url/server_url are empty)"))
 		return
 	}
 
@@ -192,16 +194,16 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 func validateResolvedModelRegistryURL(serverURL, authMethod string) error {
 	u, err := url.Parse(serverURL)
 	if err != nil || u.Scheme == "" || u.Host == "" {
-		return fmt.Errorf("invalid model registry server_url")
+		return fmt.Errorf("invalid model registry URL")
 	}
 	if authMethod == config.AuthMethodUser &&
 		u.Scheme != "https" &&
 		u.Hostname() != "localhost" &&
 		u.Hostname() != "127.0.0.1" {
-		return fmt.Errorf("model registry server_url must use https when using user token auth (except for localhost)")
+		return fmt.Errorf("model registry URL must use https when using user token auth (except for localhost)")
 	}
 	if !strings.Contains(u.Path, "/api/model_registry/") {
-		return fmt.Errorf("model registry server_url path must contain /api/model_registry/")
+		return fmt.Errorf("model registry URL path must contain /api/model_registry/")
 	}
 	return nil
 }

@@ -102,6 +102,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
     runType: { type: RunTypeOption.ONE_TRIGGER },
     pipeline: ilabPipeline,
     version: ilabPipelineVersion,
+    mlflow: { isExperimentTrackingEnabled: false },
   });
 
   const onSubmit = async (dryRun: boolean, presetValues?: FineTunePageFooterSubmitPresetValues) => {
@@ -288,10 +289,10 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
                             ),
                           },
                         };
-                        if (!isFilledRunFormData(runFormDataWithParams)) {
+                        if (!isFilledRunFormData(runFormDataWithParams, false)) {
                           throw new Error('Form data was incomplete.');
                         }
-                        await handleSubmit(runFormDataWithParams, api)
+                        await handleSubmit(runFormDataWithParams, api, false)
                           .then((run) => {
                             afterSubmit(run);
                             setIsSubmitting(false);

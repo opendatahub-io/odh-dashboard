@@ -52,14 +52,14 @@ func hashUUID(input string) string {
 }
 
 // defaultPipelineNamePrefix is the prefix used when PipelineNamePrefix is not set.
-const defaultPipelineNamePrefix = "autorag"
+const defaultPipelineNamePrefix = "documents-rag-optimization-pipeline"
 
 // MockPipelineServerClient provides mock data for development
 type MockPipelineServerClient struct {
 	// Namespace determines which mock data set to return (default: 5 runs, bella: empty, bento: 30 runs)
 	Namespace string
 	// PipelineNamePrefix is the prefix used to construct the AutoRAG pipeline's DisplayName in
-	// ListPipelines (e.g. "autorag" → "autorag-pipeline").  Defaults to "autorag" when empty,
+	// ListPipelines.  Defaults to "documents-rag-optimization-pipeline" when empty,
 	// matching the default discovery prefix in discoverOnePipeline.  Tests that exercise
 	// non-default discovery prefixes can set this field to match the prefix they pass.
 	// Ignored when PipelineNames is set.
@@ -72,16 +72,41 @@ type MockPipelineServerClient struct {
 	LastListRunsParams *pipelineserver.ListRunsParams
 	// LastGetRunID records the last runID passed to GetRun for test assertions
 	LastGetRunID string
+	// LastTerminateRunID records the last runID passed to TerminateRun for test assertions
+	LastTerminateRunID string
+	// LastRetryRunID records the last runID passed to RetryRun for test assertions
+	LastRetryRunID string
 }
 
 // pipelineDisplayName returns the DisplayName used for the AutoRAG pipeline fixture,
 // falling back to the default prefix when PipelineNamePrefix is not set.
 func (m *MockPipelineServerClient) pipelineDisplayName() string {
-	prefix := m.PipelineNamePrefix
-	if prefix == "" {
-		prefix = defaultPipelineNamePrefix
+	if m.PipelineNamePrefix != "" {
+		return m.PipelineNamePrefix
 	}
-	return prefix + "-pipeline"
+	return defaultPipelineNamePrefix
+}
+
+// CreatePipeline returns a mock pipeline shell (no version).
+func (m *MockPipelineServerClient) CreatePipeline(_ context.Context, name string) (*models.KFPipeline, error) {
+	m.PipelineNames = append(m.PipelineNames, name)
+	ids := DeriveMockIDsFromName(m.Namespace, name)
+	return &models.KFPipeline{
+		PipelineID:  ids.PipelineID,
+		DisplayName: name,
+		Namespace:   m.Namespace,
+		CreatedAt:   "2026-04-08T12:00:00Z",
+	}, nil
+}
+
+// UploadPipelineVersion returns a mock pipeline version with the given version name.
+func (m *MockPipelineServerClient) UploadPipelineVersion(_ context.Context, pipelineID string, versionName string, _ []byte) (*models.KFPipelineVersion, error) {
+	return &models.KFPipelineVersion{
+		PipelineID:        pipelineID,
+		PipelineVersionID: hashUUID("version:" + pipelineID + ":" + versionName),
+		DisplayName:       versionName,
+		CreatedAt:         "2026-04-08T12:00:00Z",
+	}, nil
 }
 
 // NewMockPipelineServerClient creates a new mock pipeline server client.
@@ -392,7 +417,8 @@ func getBaseMockRuns(namespace string) []models.KFPipelineRun {
 	}
 }
 
-// cloneRunWithVariant returns a copy of the template run with unique IDs for the given index
+// cloneRunWithVariant returns a copy of the template run with unique IDs for the given index.
+// TaskDetails are deep-copied to prevent mutations from affecting the original template.
 func cloneRunWithVariant(template *models.KFPipelineRun, index int) models.KFPipelineRun {
 	run := *template
 	suffix := fmt.Sprintf("-%d", index)
@@ -400,9 +426,13 @@ func cloneRunWithVariant(template *models.KFPipelineRun, index int) models.KFPip
 	run.DisplayName = template.DisplayName + " " + suffix
 	if run.RunDetails != nil {
 		details := *run.RunDetails
-		for i := range details.TaskDetails {
-			details.TaskDetails[i].RunID = run.RunID
+		// Deep copy the TaskDetails slice so mutations don't affect the original template
+		tasks := make([]models.TaskDetail, len(details.TaskDetails))
+		copy(tasks, details.TaskDetails)
+		for i := range tasks {
+			tasks[i].RunID = run.RunID
 		}
+		details.TaskDetails = tasks
 		run.RunDetails = &details
 	}
 	return run
@@ -454,7 +484,15 @@ func (m *MockPipelineServerClient) GetRun(ctx context.Context, runID string) (*m
 		}
 	}
 
-	// Return mock data based on the run ID, using namespace-derived IDs
+	// Look up the run from the base mock data so that state-dependent
+	// logic (terminate / retry) sees the correct State value.
+	for _, run := range getBaseMockRuns(m.Namespace) {
+		if run.RunID == runID {
+			return &run, nil
+		}
+	}
+
+	// Fallback for unknown run IDs: return a generic SUCCEEDED run
 	ids := DeriveMockIDs(m.Namespace)
 	mockRun := &models.KFPipelineRun{
 		RunID:        runID,
@@ -572,6 +610,54 @@ func (m *MockPipelineServerClient) CreateRun(_ context.Context, request models.C
 			},
 		},
 	}, nil
+}
+
+// TerminateRun simulates terminating a pipeline run.
+// Special run IDs for testing error conditions:
+// - "non-existent-run-id" returns 404 error
+// - "server-error-run-id" returns 500 error
+func (m *MockPipelineServerClient) TerminateRun(_ context.Context, runID string) error {
+	m.LastTerminateRunID = runID
+
+	if runID == "non-existent-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 404,
+			Message:    fmt.Sprintf("Failed to terminate run: Run %s not found", runID),
+		}
+	}
+
+	if runID == "server-error-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 500,
+			Message:    "Internal server error",
+		}
+	}
+
+	return nil
+}
+
+// RetryRun simulates retrying a failed or terminated pipeline run.
+// Special run IDs for testing error conditions:
+// - "non-existent-run-id" returns 404 error
+// - "server-error-run-id" returns 500 error
+func (m *MockPipelineServerClient) RetryRun(_ context.Context, runID string) error {
+	m.LastRetryRunID = runID
+
+	if runID == "non-existent-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 404,
+			Message:    fmt.Sprintf("Failed to retry run: Run %s not found", runID),
+		}
+	}
+
+	if runID == "server-error-run-id" {
+		return &pipelineserver.HTTPError{
+			StatusCode: 500,
+			Message:    "Internal server error",
+		}
+	}
+
+	return nil
 }
 
 // ListPipelines returns mock pipeline data with namespace-derived IDs.

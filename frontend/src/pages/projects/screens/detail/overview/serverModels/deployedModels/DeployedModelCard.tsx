@@ -80,7 +80,7 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
                 component={ContentVariants.dt}
                 style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
               >
-                Serving runtime
+                Deployment resource
               </Content>
               <Content
                 component={ContentVariants.dd}

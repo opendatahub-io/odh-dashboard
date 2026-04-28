@@ -7,12 +7,12 @@ import type {
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
 import { LLMD_SERVING_ID } from '@odh-dashboard/llmd-serving/extensions';
 import { MODEL_AS_SERVICE_ID } from '~/odh/odhExtensions/odhExtensions';
-import type { MaaSFieldValue } from './modelDeploymentWizard/MaaSEndpointCheckbox';
+import type { MaaSFieldType, MaaSFieldValue } from './modelDeploymentWizard/MaaSEndpointCheckbox';
 
 const MAAS_ENDPOINT_FIELD_ID = 'maas/save-as-maas-checkbox';
 
 export type ModelServingExtensions =
-  | WizardField2Extension<MaaSFieldValue, undefined, LLMdDeployment>
+  | WizardField2Extension<MaaSFieldType, LLMdDeployment>
   | WizardFieldApplyExtension<MaaSFieldValue, LLMdDeployment>
   | WizardFieldExtractorExtension<MaaSFieldValue, LLMdDeployment>
   | WizardFieldDeploymentFunctionsExtension<MaaSFieldValue, LLMdDeployment>;

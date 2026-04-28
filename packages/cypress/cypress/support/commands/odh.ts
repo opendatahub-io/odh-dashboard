@@ -27,7 +27,6 @@ import type {
   CatalogModel,
   CatalogModelList,
 } from '@odh-dashboard/model-registry/types/modelCatalogTypes';
-import type { Tier } from '@odh-dashboard/maas/types/tier';
 import type {
   BaseMetricCreationResponse,
   BaseMetricListResponse,
@@ -101,8 +100,12 @@ import type {
   MaaSSubscription,
   SubscriptionInfoResponse,
   UserSubscription,
+  CreateSubscriptionResponse,
+  SubscriptionPolicyFormDataResponse,
+  MaaSAuthPolicy,
 } from '@odh-dashboard/maas/types/subscriptions';
 import type { MaaSModelRef } from '@odh-dashboard/maas/types/maas-model';
+import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -1102,24 +1105,6 @@ declare global {
           response: OdhResponse<GlobalSearchResponse>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /maas/api/v1/tiers',
-          response: { data: OdhResponse<Tier[]> },
-        ) => Cypress.Chainable<null>) &
-        ((
-          type: 'POST /maas/api/v1/tier',
-          response: { data: OdhResponse<Tier> },
-        ) => Cypress.Chainable<null>) &
-        ((
-          type: 'DELETE /maas/api/v1/tier/:name',
-          options: { path: { name: string } },
-          response: { data: null },
-        ) => Cypress.Chainable<null>) &
-        ((
-          type: 'PUT /maas/api/v1/tier/:name',
-          options: { path: { name: string } },
-          response: { data: OdhResponse<Tier> },
-        ) => Cypress.Chainable<null>) &
-        ((
           type: 'POST /maas/api/v1/api-keys/search',
           response: { data: OdhResponse<APIKeyListResponse> },
         ) => Cypress.Chainable<null>) &
@@ -1155,12 +1140,12 @@ declare global {
         ((
           type: 'DELETE /maas/api/v1/subscription/:name',
           options: { path: { name: string } },
-          response: OdhResponse<{ message: string }>,
+          response: OdhResponse<{ data: { message: string } }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/subscription-info/:name',
           options: { path: { name: string } },
-          response: OdhResponse<SubscriptionInfoResponse>,
+          response: OdhResponse<{ data: SubscriptionInfoResponse }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/subscriptions',
@@ -1168,17 +1153,53 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'POST /maas/api/v1/maasmodel',
-          response: OdhResponse<MaaSModelRef>,
+          response: OdhResponse<{ data: MaaSModelRef }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'DELETE /maas/api/v1/maasmodel/:namespace/:name',
           options: { path: { namespace: string; name: string } },
-          response: OdhResponse<{ message: string }>,
+          response: OdhResponse<{ data: { message: string } }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'PUT /maas/api/v1/maasmodel/:namespace/:name',
           options: { path: { namespace: string; name: string } },
-          response: OdhResponse<MaaSModelRef>,
+          response: OdhResponse<{ data: MaaSModelRef }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /maas/api/v1/new-subscription',
+          response: OdhResponse<{ data: CreateSubscriptionResponse }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PUT /maas/api/v1/update-subscription/:name',
+          options: { path: { name: string } },
+          response: OdhResponse<{ data: CreateSubscriptionResponse }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/subscription-policy-form-data',
+          response: OdhResponse<{ data: SubscriptionPolicyFormDataResponse }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/all-policies',
+          response: OdhResponse<{ data: MaaSAuthPolicy[] }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /maas/api/v1/new-policy',
+          response: OdhResponse<{ data: MaaSAuthPolicy }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/view-policy/:name',
+          options: { path: { name: string } },
+          response: OdhResponse<{ data: PolicyInfoResponse }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PUT /maas/api/v1/update-policy/:name',
+          options: { path: { name: string } },
+          response: OdhResponse<{ data: MaaSAuthPolicy }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/delete-policy/:name',
+          options: { path: { name: string } },
+          response: OdhResponse<{ data: { message: string } }>,
         ) => Cypress.Chainable<null>);
     }
   }

@@ -29,12 +29,29 @@ class ChooseBenchmarkPage {
     return cy.findByTestId('benchmarks-filter-toolbar');
   }
 
+  findFilterDropdownToggle() {
+    return cy.findByTestId('filter-toolbar-dropdown');
+  }
+
   findBenchmarksEmptyState() {
     return cy.findByTestId('benchmarks-empty-state');
   }
 
   findClearFiltersButton() {
     return cy.findByTestId('benchmarks-clear-filters');
+  }
+
+  selectFilterOption(optionName: string) {
+    this.findFilterDropdownToggle().click();
+    cy.findByText(optionName).click();
+  }
+
+  findNameFilterInput() {
+    return cy.findByPlaceholderText('Filter by name');
+  }
+
+  findNextPageButton() {
+    return cy.findByLabelText('Go to next page');
   }
 }
 

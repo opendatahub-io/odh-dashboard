@@ -10,6 +10,7 @@ import {
   PageSection,
   Stack,
   StackItem,
+  Truncate,
 } from '@patternfly/react-core';
 import classNames from 'classnames';
 import { useNamespaceSelector } from 'mod-arch-core';
@@ -36,7 +37,9 @@ function AutomlConfigurePage(): React.JSX.Element {
   const notification = useNotification();
 
   const { namespace } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector();
+  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
+    storeLastNamespace: true,
+  });
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -72,7 +75,9 @@ function AutomlConfigurePage(): React.JSX.Element {
       </ActionListItem>
       <ActionListItem>
         <Button
-          component={(props) => <Link {...props} to={automlExperimentsPathname} />}
+          component={(props) => (
+            <Link {...props} to={`${automlExperimentsPathname}/${namespace}`} />
+          )}
           variant="link"
         >
           Cancel
@@ -89,7 +94,7 @@ function AutomlConfigurePage(): React.JSX.Element {
           variant="primary"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
         >
-          Run experiment
+          Create run
         </Button>
       </ActionListItem>
       <ActionListItem>
@@ -110,7 +115,15 @@ function AutomlConfigurePage(): React.JSX.Element {
       title={<AutomlHeader />}
       subtext={
         <h2 className="pf-v6-u-mt-sm">
-          {step === 'create' ? 'Create AutoML experiment' : `"${displayName}" configurations`}
+          {step === 'create' ? (
+            'Create AutoML optimization run'
+          ) : (
+            <span data-testid="configure-step-subtitle">
+              &quot;
+              <Truncate content={displayName || ''} />
+              &quot; configurations
+            </span>
+          )}
         </h2>
       }
       description={
@@ -124,7 +137,9 @@ function AutomlConfigurePage(): React.JSX.Element {
             <BreadcrumbItem>
               <Link to={getRedirectPath(namespace!)}>AutoML: {namespace}</Link>
             </BreadcrumbItem>
-            <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
+            <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
+              <Truncate content={displayName || ''} />
+            </BreadcrumbItem>
           </Breadcrumb>
         )
       }
