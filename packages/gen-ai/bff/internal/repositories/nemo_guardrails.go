@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 
-	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	kubernetes "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
@@ -21,7 +20,6 @@ func NewNemoGuardrailsRepository() *NemoGuardrailsRepository {
 func (r *NemoGuardrailsRepository) InitNemoGuardrails(
 	client kubernetes.KubernetesClientInterface,
 	ctx context.Context,
-	identity *integrations.RequestIdentity,
 	namespace string,
 ) (*models.NemoGuardrailsInitModel, error) {
 	crName, err := client.CreateNemoGuardrailsResources(ctx, namespace)

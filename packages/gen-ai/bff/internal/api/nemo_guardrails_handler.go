@@ -7,7 +7,6 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
-	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -26,19 +25,13 @@ func (app *App) NemoGuardrailsInitHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-		return
-	}
-
 	client, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	result, err := app.repositories.NemoGuardrails.InitNemoGuardrails(client, ctx, identity, namespace)
+	result, err := app.repositories.NemoGuardrails.InitNemoGuardrails(client, ctx, namespace)
 	if err != nil {
 		var alreadyInit *models.ErrNemoGuardrailsAlreadyInitialised
 		if errors.As(err, &alreadyInit) {
