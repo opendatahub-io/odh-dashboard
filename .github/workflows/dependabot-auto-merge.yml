@@ -2,17 +2,18 @@ name: Dependabot Auto-merge
 
 on:
   # Trigger after the Dependency Validation workflow completes on Dependabot PRs.
-  # Unlike check_suite (which fires per-app and can miss Prow statuses),
-  # workflow_run fires deterministically when the named workflow finishes.
   workflow_run:
     workflows: ["Dependency Validation"]
     types:
       - completed
 
-  # Fallback: catches Dependabot PRs where Prow statuses arrived after
-  # the workflow_run trigger already fired and skipped.
+  # Trigger when any commit status is reported (covers Prow statuses which
+  # arrive via the commit-status API after GitHub Actions workflows finish).
+  status: {}
+
+  # Reduced-frequency safety net for edge cases (dropped events, races).
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "0 */6 * * *"
 
 permissions:
   contents: read
@@ -58,8 +59,6 @@ jobs:
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           REPO: ${{ github.repository }}
         run: |
-          # The combined status API merges both check runs (GitHub Actions)
-          # and commit statuses (Prow) into a single verdict.
           COMBINED=$(gh api "repos/${REPO}/commits/${HEAD_SHA}/status" \
             --jq '.state')
 
@@ -93,8 +92,82 @@ jobs:
           gh pr edit "$PR_NUMBER" --repo "$REPO" \
             --add-label "lgtm,approved"
 
-  # Fallback sweep: re-check open Dependabot PRs that the workflow_run
-  # path may have skipped because Prow statuses were still pending.
+  # Reactive path: fires when Prow (or any external tool) reports a commit
+  # status. Finds the Dependabot PR for that commit and labels it if all
+  # statuses are now green.
+  auto-merge-on-status:
+    if: github.event_name == 'status' && github.event.state == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find Dependabot PR for this commit
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ github.event.commit.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          PR_DATA=$(gh api "repos/${REPO}/commits/${COMMIT_SHA}/pulls" \
+            --jq '[.[] | select(.user.login == "dependabot[bot]" and .state == "open")] | .[0] // empty' 2>/dev/null || true)
+
+          if [ -z "$PR_DATA" ]; then
+            echo "No open Dependabot PR for this commit, skipping"
+            exit 0
+          fi
+
+          PR_NUMBER=$(echo "$PR_DATA" | jq -r '.number')
+          echo "Found Dependabot PR #$PR_NUMBER"
+
+          EXISTING_LABELS=$(echo "$PR_DATA" | jq -r '[.labels[].name] | join(",")')
+          if echo "$EXISTING_LABELS" | grep -q "lgtm" && echo "$EXISTING_LABELS" | grep -q "approved"; then
+            echo "PR already has lgtm+approved, skipping"
+            exit 0
+          fi
+
+          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Verify combined commit status
+        id: checks
+        if: steps.pr.outputs.number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ github.event.commit.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          COMBINED=$(gh api "repos/${REPO}/commits/${COMMIT_SHA}/status" \
+            --jq '.state')
+
+          echo "Combined commit status: $COMBINED"
+
+          if [ "$COMBINED" != "success" ]; then
+            echo "Not all checks/statuses have passed (state=$COMBINED), skipping"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.checks.outputs.ready == 'true'
+
+      - name: Fetch Dependabot metadata
+        if: steps.checks.outputs.ready == 'true'
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply lgtm and approved labels for patch updates
+        if: steps.checks.outputs.ready == 'true' && steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR_NUMBER" --repo "$REPO" \
+            --add-label "lgtm,approved"
+
+  # Safety-net sweep: catches any Dependabot PRs that slipped through
+  # the event-driven paths (dropped events, races, etc.).
   auto-merge-sweep:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
@@ -141,11 +214,6 @@ jobs:
               continue
             fi
 
-            # Patch-only gate: Dependabot single-package titles use
-            # "from X.Y.Z to X.Y.W". If major.minor changed it's not
-            # a patch. Grouped titles ("Bump the <group> group ...") skip
-            # this check — they are already constrained to patch+minor
-            # by the dependabot.yml ignore rule.
             PR_TITLE=$(gh pr view "$PR_NUMBER" --repo "$REPO" \
               --json title --jq '.title')
 
