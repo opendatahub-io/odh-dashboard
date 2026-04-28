@@ -1,7 +1,7 @@
-# AutoX Shared Library Package
+# `autox-core` Shared Library Package
 
 **Package**: `@odh-dashboard/autox`  
-**Description**: Shared library providing common BFF and Frontend utilities for AutoML, AutoRAG, and related packages.  
+**Description**: Shared library providing common services and UI utilities for AutoML, AutoRAG, and related packages. 
 **Status**: 🚧 Under Active Development
 
 ---
@@ -10,8 +10,8 @@
 
 AutoX is a shared library package that extracts and consolidates duplicate code from AutoML and AutoRAG packages. It provides:
 
-- **Frontend**: React hooks, UI components, utilities, and TypeScript types
-- **BFF (Backend For Frontend)**: Go packages for Kubernetes, S3, Pipeline Server integrations, and common models
+- **UI**: React hooks, UI components, utilities, and TypeScript types
+- **Services**: Go packages for Kubernetes, S3, Pipeline Server integrations, and common models
 
 **Key Principle**: AutoX exports low-level primitives. Consumer packages (AutoML, AutoRAG) compose them into domain-specific features.
 
@@ -20,18 +20,37 @@ AutoX is a shared library package that extracts and consolidates duplicate code 
 ## Package Structure
 
 ```text
-packages/autox-core/
-├── frontend/                # Frontend shared library
-│   └── src/
-│       ├── hooks/           # React hooks (usePipelineRuns, useNotification, useS3ListFiles)
-│       ├── components/      # UI primitives (FileExplorer, PipelineRunsTable)
-│       ├── utils/           # Utilities (validation, formatting, helpers)
-│       └── types/           # TypeScript types (PipelineRun, S3Object, RuntimeStateKF)
+autox-core/
+├── services/
+│   ├── kubernetes/             # Kubernetes integration
+│   │   ├── models.go           # Domain models (Namespace, Secret, RequestIdentity)
+│   │   ├── client.go           # K8s client interface
+│   │   ├── factory.go          # Unified factory (handles static vs token auth)
+│   │   ├── service.go          # KubernetesService (business logic)
+│   │   ├── validators.go       # Input validation (namespace format, RBAC checks)
+│   │   └── errors.go           # Custom errors (NotFoundError, ForbiddenError)
+│   │
+│   ├── pipelines/              # Kubeflow Pipelines integration
+│   │   ├── models.go           # Domain models (PipelineRun, Pipeline, DSPA)
+│   │   ├── client.go           # HTTP client for KFP API
+│   │   ├── service.go          # PipelinesService (discovery, caching, CRUD)
+│   │   ├── discovery.go        # DSPA discovery, pipeline discovery with LRU cache
+│   │   ├── validators.go       # Request validation
+│   │   └── errors.go           # Custom errors
+│   │
+│   ├── ...
+│   │
+│   └── common/                 # Shared utilities
+│       ├── errors/             # Base error types and helpers
+│       ├── validation/         # Generic validators (DNS-1123, URLs)
+│       └── cache/              # LRU cache implementation
 │
-└── bff/                     # BFF shared library
-    └── kubernetes/
-    ├── pipelines/
-    └── s3/
+└── ui/
+    ├── components/             # Shared UI primitives
+    ├── hooks/                  # Shared hooks
+    ├── layouts/                # Shared layouts
+    ├── utils/                  # Validation, formatting, helpers
+    └── types/                  # Shared TypeScript types
 ```
 
 ---
