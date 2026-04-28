@@ -74,7 +74,7 @@ import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import ConfigureTabularForm from './ConfigureTabularForm';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
-import './AutomlConfigure.css';
+import './AutomlConfigure.scss';
 
 const PREDICTION_TYPES: {
   value: ConfigureSchema['task_type'];
@@ -460,7 +460,7 @@ function AutomlConfigure(): React.JSX.Element {
                       <StackItem className="pf-v6-u-mt-sm">
                         <ToggleGroup
                           aria-label="Choose how to add training data"
-                          className="automlConfigureToggleGroupFullWidth pf-v6-u-mb-md"
+                          className="automl-configure__toggle-group-full-width pf-v6-u-mb-md"
                         >
                           <ToggleGroupItem
                             text="Select file from bucket"

@@ -751,3 +751,49 @@ describe('hardware profiles - ordering', () => {
     hardwareProfile.findRows().eq(3).should('contain', 'Alpha One Profile');
   });
 });
+
+describe('hardware profiles - legacy feature visibility annotations', () => {
+  beforeEach(() => {
+    asProductAdminUser();
+  });
+
+  it('should show "All features" for a profile whose only visibility values are legacy', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        modelServerSizes: [],
+        notebookSizes: [],
+      }),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([
+        mockHardwareProfile({
+          name: 'legacy-profile',
+          displayName: 'Legacy Profile',
+          annotations: {
+            'opendatahub.io/dashboard-feature-visibility': JSON.stringify(['pipelines']),
+          },
+        }),
+        mockHardwareProfile({
+          name: 'mixed-profile',
+          displayName: 'Mixed Profile',
+          annotations: {
+            'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
+              'pipelines',
+              'model-serving',
+            ]),
+          },
+        }),
+      ]),
+    );
+    hardwareProfile.visit();
+
+    const legacyRow = hardwareProfile.getRow('Legacy Profile');
+    legacyRow.findAllFeaturesText().should('have.text', 'All features');
+
+    const mixedRow = hardwareProfile.getRow('Mixed Profile');
+    mixedRow.findFeatureLabel('model-serving').should('exist');
+    mixedRow.findAllFeaturesText().should('not.exist');
+  });
+});
