@@ -470,6 +470,10 @@ describe('Playground - MCP Servers', () => {
       cy.step('Close success modal and open tools modal');
       playgroundPage.mcpTab.closeSuccessModal();
       mcpServerSuccessModal.find().should('not.exist');
+      // Select MCP tab to ensure it's active after modal close
+      playgroundPage.mcpTab.clickMCPTab();
+      // Wait for MCP table to be visible
+      playgroundPage.mcpTab.verifyMCPTabVisible();
       // Re-query server row after modal closes to avoid stale reference
       const freshServerRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
       freshServerRow
@@ -569,7 +573,9 @@ describe('Playground - MCP Servers', () => {
             mcpToolsModal.find().should('not.exist');
 
             cy.step('Re-open to verify all tools remain selected');
-            // Wait for MCP table to be visible after potential tab remount
+            // Select MCP tab to ensure it's active after modal close
+            playgroundPage.mcpTab.clickMCPTab();
+            // Wait for MCP table to be visible
             playgroundPage.mcpTab.verifyMCPTabVisible();
 
             // Re-query server row to avoid stale references
