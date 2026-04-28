@@ -9,6 +9,7 @@ type UseAutoragResultsReturn = {
   isLoading: boolean;
   isError: boolean;
   error: Error | undefined;
+  refetch: () => void;
   ragPatternsBasePath?: string;
 };
 
@@ -56,7 +57,9 @@ export function useAutoragResults(
   const {
     data: templatesOptimizationData,
     isLoading: isTemplatesOptimizationLoading,
+    isFetching: isTemplatesOptimizationFetching,
     isError: isTemplatesOptimizationError,
+    refetch: refetchTemplatesOptimization,
   } = useS3ListFilesQuery(namespace, templatesOptimizationPath);
 
   // Step 1b: Extract the non-deterministic UUID directory
@@ -328,11 +331,20 @@ export function useAutoragResults(
     (isRagPatternsError ? new Error('Failed to list RAG patterns directory') : undefined) ||
     (patternQueries.isError ? new Error('Failed to fetch pattern data') : undefined);
 
+  const refetch = React.useCallback(() => {
+    refetchTemplatesOptimization();
+  }, [refetchTemplatesOptimization]);
+
   return {
     patterns,
-    isLoading: isTemplatesOptimizationLoading || isRagPatternsLoading || patternQueries.isPending,
+    isLoading:
+      isTemplatesOptimizationLoading ||
+      isTemplatesOptimizationFetching ||
+      isRagPatternsLoading ||
+      patternQueries.isPending,
     isError: hasError,
     error,
+    refetch,
     ragPatternsBasePath: ragPatternsPath,
   };
 }

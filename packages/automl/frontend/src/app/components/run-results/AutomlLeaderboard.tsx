@@ -2,7 +2,9 @@ import {
   Bullseye,
   Button,
   EmptyState,
+  EmptyStateActions,
   EmptyStateBody,
+  EmptyStateFooter,
   EmptyStateVariant,
   Label,
   Skeleton,
@@ -11,7 +13,7 @@ import {
   ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
-import { ColumnsIcon, StarIcon } from '@patternfly/react-icons';
+import { ColumnsIcon, ExclamationCircleIcon, StarIcon } from '@patternfly/react-icons';
 import {
   ActionsColumn,
   InnerScrollContainer,
@@ -194,8 +196,16 @@ function AutomlLeaderboard({
   onRegisterModel,
 }: AutomlLeaderboardProps): React.JSX.Element | null {
   const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
-  const { models, parameters, modelsLoading, pipelineRun, pipelineRunLoading } =
-    useAutomlResultsContext();
+  const {
+    models,
+    parameters,
+    modelsLoading,
+    modelsError,
+    modelsLoadError,
+    onRetryModels,
+    pipelineRun,
+    pipelineRunLoading,
+  } = useAutomlResultsContext();
   // FYI default taskType to timeseries since it is the only task which will not have
   // this as an actual parameter passed to the pipeline
   const taskType = parameters?.task_type ?? 'timeseries';
@@ -497,6 +507,33 @@ function AutomlLeaderboard({
           ))}
         </Tbody>
       </Table>
+    );
+  }
+
+  // Show error state when model fetching failed
+  if (modelsError) {
+    return (
+      <Bullseye>
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="Unable to fetch models"
+          status="danger"
+          variant={EmptyStateVariant.sm}
+          data-testid="leaderboard-error"
+        >
+          <EmptyStateBody>
+            {modelsLoadError?.message ?? 'An error occurred while loading model results.'}
+          </EmptyStateBody>
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              <Button variant="link" onClick={onRetryModels}>
+                Retry
+              </Button>
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        </EmptyState>
+      </Bullseye>
     );
   }
 

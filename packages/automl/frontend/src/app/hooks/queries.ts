@@ -201,6 +201,7 @@ const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED', '
 
 export const isTerminalState = (state: string): boolean => TERMINAL_STATES.has(state);
 const POLL_INTERVAL_MS = 10000;
+const RETRY_DELAY_MS = 5000;
 
 export function usePipelineRunQuery(
   runId?: string,
@@ -211,6 +212,8 @@ export function usePipelineRunQuery(
     queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
     enabled: !!runId && !!namespace,
     placeholderData: (previousData) => previousData,
+    retry: 5,
+    retryDelay: RETRY_DELAY_MS,
     refetchInterval: (query) => {
       const state = query.state.data?.state;
       if (!state || isTerminalState(state)) {

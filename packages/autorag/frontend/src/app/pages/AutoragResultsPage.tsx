@@ -23,6 +23,7 @@ import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInp
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
+import { useNotification } from '~/app/hooks/useNotification';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
@@ -47,6 +48,8 @@ function AutoragResultsPage(): React.JSX.Element {
 
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
 
+  const notification = useNotification();
+
   const {
     data: pipelineRun,
     isPending: pipelineRunPending,
@@ -54,8 +57,22 @@ function AutoragResultsPage(): React.JSX.Element {
     isError: pipelineRunError,
     error: pipelineRunLoadError,
   } = usePipelineRunQuery(runId, namespace);
+
+  const hasPreviousData = !!pipelineRun;
+  const isPollingError = pipelineRunError && hasPreviousData;
+  const isInitialLoadError = pipelineRunError && !hasPreviousData;
+
+  React.useEffect(() => {
+    if (isPollingError) {
+      notification.warning(
+        'Pipeline run status update failed',
+        'The status update has failed consistently for multiple attempts. The displayed results may not reflect the current state of the pipeline run.',
+      );
+    }
+  }, [isPollingError, pipelineRunLoadError, notification]);
+
   const invalidPipelineRunId =
-    pipelineRunError &&
+    isInitialLoadError &&
     pipelineRunLoadError instanceof Error &&
     parseErrorStatus(pipelineRunLoadError) === 404;
 
@@ -65,6 +82,7 @@ function AutoragResultsPage(): React.JSX.Element {
     isLoading: patternsLoading,
     isError: patternsError,
     error: patternsLoadError,
+    refetch: refetchPatterns,
     ragPatternsBasePath,
   } = useAutoragResults(runId, namespace, pipelineRun);
 
@@ -83,6 +101,9 @@ function AutoragResultsPage(): React.JSX.Element {
         patterns,
         pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
         patternsLoading,
+        patternsError,
+        patternsLoadError,
+        onRetryPatterns: refetchPatterns,
         ragPatternsBasePath,
       }),
     [
@@ -91,6 +112,9 @@ function AutoragResultsPage(): React.JSX.Element {
       pipelineRunPending,
       pipelineRunFetching,
       patternsLoading,
+      patternsError,
+      patternsLoadError,
+      refetchPatterns,
       ragPatternsBasePath,
     ],
   );
@@ -181,14 +205,14 @@ function AutoragResultsPage(): React.JSX.Element {
                   <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
                 )
               }
-              loadError={patternsLoadError ?? pipelineRunLoadError ?? namespacesLoadError}
+              loadError={
+                hasPreviousData ? undefined : (pipelineRunLoadError ?? namespacesLoadError)
+              }
               loaded={namespacesLoaded && !pipelineRunPending}
             >
-              {!patternsError && (
-                <AutoragResultsContext.Provider value={contextValue}>
-                  <AutoragResults />
-                </AutoragResultsContext.Provider>
-              )}
+              <AutoragResultsContext.Provider value={contextValue}>
+                <AutoragResults />
+              </AutoragResultsContext.Provider>
             </ApplicationsPage>
           </DrawerContentBody>
         </DrawerContent>

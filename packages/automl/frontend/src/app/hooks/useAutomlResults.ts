@@ -16,6 +16,7 @@ type UseAutomlResultsReturn = {
   isLoading: boolean;
   isError: boolean;
   error: Error | undefined;
+  refetch: () => void;
 };
 
 /**
@@ -78,7 +79,9 @@ export function useAutomlResults(
   const {
     data: s3Files,
     isLoading: isS3Loading,
+    isFetching: isS3Fetching,
     isError: isS3Error,
+    refetch: refetchS3Files,
   } = useS3ListFilesQuery(namespace, generatedModelsPath);
 
   // Step 2: Fetch model artifact directories from each common prefix
@@ -297,10 +300,16 @@ export function useAutomlResults(
       (modelQueries.isError ? new Error('Failed to fetch model data') : undefined)
     : undefined;
 
+  const refetch = React.useCallback(() => {
+    refetchS3Files();
+  }, [refetchS3Files]);
+
   return {
     models,
-    isLoading: isS3Loading || modelArtifactQueries.isPending || modelQueries.isPending,
+    isLoading:
+      isS3Loading || isS3Fetching || modelArtifactQueries.isPending || modelQueries.isPending,
     isError: hasError,
     error,
+    refetch,
   };
 }
