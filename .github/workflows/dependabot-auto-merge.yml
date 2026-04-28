@@ -82,15 +82,15 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Approve patch update
+      - name: Apply lgtm and approved labels for patch updates
         if: steps.checks.outputs.ready == 'true' && steps.metadata.outputs.update-type == 'version-update:semver-patch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           REPO: ${{ github.repository }}
         run: |
-          gh pr review "$PR_NUMBER" --repo "$REPO" --approve
-          gh pr comment "$PR_NUMBER" --repo "$REPO" --body '/approve'
+          gh pr edit "$PR_NUMBER" --repo "$REPO" \
+            --add-label "lgtm,approved"
 
   # Reactive path: fires when Prow (or any external tool) reports a commit
   # status. Finds the Dependabot PR for that commit and labels it if all
@@ -156,15 +156,15 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Approve patch update
+      - name: Apply lgtm and approved labels for patch updates
         if: steps.checks.outputs.ready == 'true' && steps.metadata.outputs.update-type == 'version-update:semver-patch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           REPO: ${{ github.repository }}
         run: |
-          gh pr review "$PR_NUMBER" --repo "$REPO" --approve
-          gh pr comment "$PR_NUMBER" --repo "$REPO" --body '/approve'
+          gh pr edit "$PR_NUMBER" --repo "$REPO" \
+            --add-label "lgtm,approved"
 
   # Safety-net sweep: catches any Dependabot PRs that slipped through
   # the event-driven paths (dropped events, races, etc.).
@@ -227,7 +227,7 @@ jobs:
               fi
             fi
 
-            echo "All checks passed — approving PR #$PR_NUMBER"
-            gh pr review "$PR_NUMBER" --repo "$REPO" --approve
-            gh pr comment "$PR_NUMBER" --repo "$REPO" --body '/approve'
+            echo "All checks passed — labelling PR #$PR_NUMBER"
+            gh pr edit "$PR_NUMBER" --repo "$REPO" \
+              --add-label "lgtm,approved"
           done
