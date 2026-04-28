@@ -35,19 +35,21 @@ export const verifyMaaSModelInferenceUsingCopiedApiKeyFromModal = (
     .and('not.be.empty')
     .then((raw) => {
       const token = String(raw).trim();
-      cy.wrap(token).as('maasApiKeyToken');
       const llmInferenceServiceName = getLlmInferenceServiceName().trim();
-      cy.step('Inference with the model using the API key');
-      return verifyMaaSModelInferencing(llmInferenceServiceName, projectName, token).then(
-        (result) => {
+      return cy
+        .wrap(token)
+        .as('maasApiKeyToken')
+        .then(() => cy.step('Inference with the model using the API key'))
+        .then(() => verifyMaaSModelInferencing(llmInferenceServiceName, projectName, token))
+        .then((result) => {
           const { response } = result;
-          cy.log(`Response status: ${response.status}`);
           expect(response.status).to.equal(200);
-          cy.log(`✅ Inference with the model using the copied API key successful`);
-          cy.log(`✅ Response body: ${JSON.stringify(response.body)}`);
-          return result;
-        },
-      );
+          return cy
+            .log(`Response status: ${response.status}`)
+            .log(`✅ Inference with the model using the copied API key successful`)
+            .log(`✅ Response body: ${JSON.stringify(response.body)}`)
+            .then(() => result);
+        });
     });
 
 /**
@@ -67,10 +69,11 @@ export const verifyMaaSModelInferenceUsingRevokedApiKey = (
       String(revokedToken),
     ).then((result) => {
       const { response } = result;
-      cy.log(`Response status: ${response.status}`);
       expect(response.status).to.equal(403);
-      cy.log(`❌ Inference with the model using the revoked API key failed`);
-      cy.log(`❌ Response body: ${JSON.stringify(response.body)}`);
-      return result;
+      return cy
+        .log(`Response status: ${response.status}`)
+        .log(`❌ Inference with the model using the revoked API key failed`)
+        .log(`❌ Response body: ${JSON.stringify(response.body)}`)
+        .then(() => result);
     });
   });
