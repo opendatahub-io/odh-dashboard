@@ -54,10 +54,9 @@ class MCPTab {
 
   getServerRow(serverName: string, serverUrl: string): PlaygroundMCPServerRow {
     const rowSelector = () =>
-      this.findMCPServersTable({ timeout: 30000 }).contains(
-        'tr',
-        serverName,
-      ) as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>;
+      this.findMCPServersTable().contains('tr', serverName) as unknown as Cypress.Chainable<
+        JQuery<HTMLTableRowElement>
+      >;
     return new PlaygroundMCPServerRow(rowSelector, serverName, serverUrl);
   }
 
