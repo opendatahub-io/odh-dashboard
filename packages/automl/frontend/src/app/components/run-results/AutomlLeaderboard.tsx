@@ -92,7 +92,7 @@ const COLUMN_META: Record<string, ColumnMeta> = {
   'metric:roc_auc': {
     name: 'Receiver Operating Characteristic (Area Under Curve)',
     acronym: formatMetricName('roc_auc'),
-    description: 'Measure of how well a parameter can distinguish between two groups.',
+    description: 'Measures how well a model distinguishes between two classes.',
   },
   'metric:mcc': {
     name: 'Matthews correlation coefficient (MCC)',
