@@ -76,7 +76,7 @@ const COLUMN_META: Record<string, ColumnMeta> = {
   },
   'metric:balanced_accuracy': {
     name: 'Balanced Accuracy',
-    description: 'Ratio of number of correct predictions to the total number of input samples.',
+    description: 'The average of the model's accuracy in each category. A high balanced accuracy score means the model correctly classifies inputs in most categories.',
   },
   'metric:precision': {
     name: 'Precision',
