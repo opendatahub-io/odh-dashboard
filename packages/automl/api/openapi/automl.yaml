@@ -254,17 +254,7 @@ paths:
           content:
             "*/*":
               schema:
-                type: string
-                format: binary
-                description: The binary content of the requested file (default)
-            application/json:
-              schema:
-                description: >-
-                  Only returned when view=schema is specified for a CSV file.
-                  Without view=schema, JSON files are streamed as raw content
-                  under the */* media type.
-                allOf:
-                  - $ref: "#/components/schemas/S3FileSchemaResponse"
+                $ref: "#/components/schemas/S3FileResponse"
           headers:
             Transfer-Encoding:
               description: Set to 'chunked' for streaming large files
@@ -1000,6 +990,25 @@ components:
             S3 object key where the file was stored. May differ from the requested `key`
             when a collision was resolved (e.g. `data/file-1.csv` if `data/file.csv` existed).
           example: data/training.csv
+
+    S3FileResponse:
+      description: >-
+        Response for file retrieval from S3. The actual content depends on the
+        request parameters:
+
+        - **Default (no view parameter):** Returns raw file bytes with the
+          appropriate Content-Type for the file (e.g. application/pdf, text/csv,
+          application/json). JSON files are streamed as-is — they are not
+          parsed or validated against any schema.
+
+        - **view=schema (CSV files only):** Returns a JSON object containing
+          the CSV column schema with inferred data types
+          (see S3FileSchemaResponse).
+      oneOf:
+        - type: string
+          format: binary
+          description: Raw file bytes (default). Includes JSON files served as-is.
+        - $ref: "#/components/schemas/S3FileSchemaResponse"
 
     S3FileSchemaResponse:
       description: >-
