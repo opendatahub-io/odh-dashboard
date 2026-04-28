@@ -9,21 +9,21 @@ import (
 
 // MockNemoClient provides a configurable mock implementation of NemoClientInterface for testing.
 type MockNemoClient struct {
-	CheckGuardrailsFunc func(ctx context.Context, input string, configID string) (*nemopkg.GuardrailCheckResponse, error)
+	CheckGuardrailsFunc func(ctx context.Context, input string, opts nemopkg.GuardrailsOptions, role string) (*nemopkg.GuardrailCheckResponse, error)
 }
 
 // NewMockNemoClient creates a mock that returns success (not flagged) by default.
 func NewMockNemoClient() *MockNemoClient {
 	return &MockNemoClient{
-		CheckGuardrailsFunc: func(_ context.Context, _ string, _ string) (*nemopkg.GuardrailCheckResponse, error) {
+		CheckGuardrailsFunc: func(_ context.Context, _ string, _ nemopkg.GuardrailsOptions, _ string) (*nemopkg.GuardrailCheckResponse, error) {
 			return &nemopkg.GuardrailCheckResponse{Status: nemopkg.StatusSuccess}, nil
 		},
 	}
 }
 
 // CheckGuardrails delegates to CheckGuardrailsFunc, allowing per-test overrides.
-func (m *MockNemoClient) CheckGuardrails(ctx context.Context, input string, configID string) (*nemopkg.GuardrailCheckResponse, error) {
-	return m.CheckGuardrailsFunc(ctx, input, configID)
+func (m *MockNemoClient) CheckGuardrails(ctx context.Context, input string, opts nemopkg.GuardrailsOptions, role string) (*nemopkg.GuardrailCheckResponse, error) {
+	return m.CheckGuardrailsFunc(ctx, input, opts, role)
 }
 
 // MockClientFactory creates MockNemoClient instances.

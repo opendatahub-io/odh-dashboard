@@ -41,20 +41,26 @@ func NewNemoGuardrailsClient(baseURL, authToken string, insecureSkipVerify bool,
 }
 
 // CheckGuardrails sends a moderation request to NeMo's /v1/guardrail/checks endpoint.
-func (c *NemoGuardrailsClient) CheckGuardrails(ctx context.Context, input string, configID string) (*GuardrailCheckResponse, error) {
+//
+// opts must carry a fully inline config (model endpoint, rails, prompts) so that no
+// pre-existing ConfigMap is required on the cluster.
+//
+// role controls which rails fire: RoleUser ("user") triggers input rails,
+// RoleAssistant ("assistant") triggers output rails.
+func (c *NemoGuardrailsClient) CheckGuardrails(ctx context.Context, input string, opts GuardrailsOptions, role string) (*GuardrailCheckResponse, error) {
 	if input == "" {
 		return nil, fmt.Errorf("input is required")
 	}
-	if configID == "" {
-		return nil, fmt.Errorf("config_id is required")
+	if opts.Config == nil || len(opts.Config.Models) == 0 {
+		return nil, fmt.Errorf("inline guardrail config with at least one model is required")
 	}
 
 	reqBody := GuardrailCheckRequest{
 		Model: DefaultModel,
 		Messages: []Message{
-			{Role: "user", Content: input},
+			{Role: role, Content: input},
 		},
-		Guardrails: GuardrailsOptions{ConfigID: configID},
+		Guardrails: opts,
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)
