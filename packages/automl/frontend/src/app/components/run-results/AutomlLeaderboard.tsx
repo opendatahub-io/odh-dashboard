@@ -72,7 +72,7 @@ const COLUMN_META: Record<string, ColumnMeta> = {
   'metric:accuracy': {
     name: 'Accuracy',
     description:
-      'The proportion of correct predictions out of total predictions. A high accuracy score means the model correctly classifies most inputs.',
+      'The proportion of predictions that are correct. A high accuracy score means the model correctly classifies most inputs.',
   },
   'metric:balanced_accuracy': {
     name: 'Balanced Accuracy',
