@@ -86,7 +86,7 @@ const COLUMN_META: Record<string, ColumnMeta> = {
   'metric:recall': {
     name: 'Recall',
     description:
-      'Measures the percentage of identified positive predictions against possible positives in the data set.',
+      'The proportion of actual positives that the model correctly identifies. A high recall score means the model rarely misses positive examples.',
   },
   'metric:roc_auc': {
     name: 'Receiver Operating Characteristic (Area Under Curve)',
