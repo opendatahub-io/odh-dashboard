@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import {
   Bullseye,
   Spinner,
@@ -14,11 +14,8 @@ import McpDeploymentsPage from './McpDeploymentsPage';
 
 const McpDeploymentsCoreLoader: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
-  const [searchParams] = useSearchParams();
   const { projects, preferredProject, updatePreferredProject, loaded, loadError } =
     useProjectsBridge();
-
-  const queryNs = searchParams.get('namespace');
 
   const currentProject = namespace ? (projects.find((p) => p.name === namespace) ?? null) : null;
 
@@ -27,10 +24,6 @@ const McpDeploymentsCoreLoader: React.FC = () => {
       updatePreferredProject(currentProject);
     }
   }, [currentProject, updatePreferredProject]);
-
-  if (!namespace && queryNs) {
-    return <Navigate to={mcpDeploymentsUrl(queryNs)} replace />;
-  }
 
   if (!loaded && !loadError) {
     return (
