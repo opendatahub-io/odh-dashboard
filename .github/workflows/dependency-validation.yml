@@ -170,16 +170,22 @@ jobs:
           const overrides = {};
           let hasError = false;
 
+          function collectOverrides(obj, prefix, filePath) {
+            for (const [key, value] of Object.entries(obj)) {
+              const keyPath = prefix ? prefix + '.' + key : key;
+              if (typeof value === 'string') {
+                if (!overrides[keyPath]) overrides[keyPath] = {};
+                overrides[keyPath][filePath] = value;
+              } else if (typeof value === 'object' && value !== null) {
+                collectOverrides(value, keyPath, filePath);
+              }
+            }
+          }
+
           for (const p of found) {
             const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
             if (!pkg.overrides) continue;
-
-            for (const [key, value] of Object.entries(pkg.overrides)) {
-              if (typeof value === 'string') {
-                if (!overrides[key]) overrides[key] = {};
-                overrides[key][p] = value;
-              }
-            }
+            collectOverrides(pkg.overrides, '', p);
           }
 
           for (const [dep, locations] of Object.entries(overrides)) {
