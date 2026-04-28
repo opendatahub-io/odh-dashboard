@@ -32,7 +32,71 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello! I'm doing well, thank you for asking. I'm ready to assist you.\n\nHow are you today?",
+                "content": "Hello! As an AI, I don't",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 10,
+            "prompt_tokens": 7,
+            "total_tokens": 419,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-db3dff136caf",
+          "choices": [
+            {
+              "delta": {
+                "content": " experience feelings or physical states, so I don't \"feel\" in the human sense. However, I'm functioning perfectly and ready to assist you.\n\nThank you for asking! How are *you* doing today? And how",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 58,
+            "prompt_tokens": 7,
+            "total_tokens": 467,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-db3dff136caf",
+          "choices": [
+            {
+              "delta": {
+                "content": " can I help you?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -49,9 +113,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 27,
+            "completion_tokens": 63,
             "prompt_tokens": 7,
-            "total_tokens": 115,
+            "total_tokens": 472,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

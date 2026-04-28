@@ -44,12 +44,6 @@ func GetTestLlamaStackURL() string {
 	return fmt.Sprintf("http://localhost:%d", GetTestLlamaStackPort())
 }
 
-// GetTestLlamaStackShieldModel returns the test shield model from TEST_LLAMA_STACK_SHIELD_MODEL.
-// Panics if the env var is not set; the Makefile is the single source of truth.
-func GetTestLlamaStackShieldModel() string {
-	return RequiredEnv("TEST_LLAMA_STACK_SHIELD_MODEL")
-}
-
 // ConfigureProductionEnvFromTest bridges test env vars to production env vars.
 // The Makefile passes TEST_* variables; production code reads DEFAULT_* variables.
 // This function connects them so the Makefile doesn't need to know production internals.

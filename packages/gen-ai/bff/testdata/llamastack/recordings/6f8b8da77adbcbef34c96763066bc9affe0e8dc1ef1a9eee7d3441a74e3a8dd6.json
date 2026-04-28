@@ -32,7 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello there!\n\nAh, MaaS \u2013 Mobility as a Service. An exciting concept for integrated",
+                "content": "Hello there! Great to hear from the world of MaaS \u2013 Mobility as a Service!\n\nThat's an incredibly exciting and relevant",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -49,9 +49,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 19,
+            "completion_tokens": 27,
             "prompt_tokens": 5,
-            "total_tokens": 609,
+            "total_tokens": 1005,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -64,7 +64,39 @@
           "choices": [
             {
               "delta": {
-                "content": " and convenient transportation.\n\nHow can I assist you today? What's on your mind?",
+                "content": " field, revolutionizing how we think about transportation by integrating various modes into a single, accessible platform.\n\nWhat's on your mind today, or what would you like to discuss about MaaS? Are you looking into its benefits, challenges",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 75,
+            "prompt_tokens": 5,
+            "total_tokens": 1053,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-6f8b8da77adb",
+          "choices": [
+            {
+              "delta": {
+                "content": ", implementation, or something else? I'm ready to dive in!",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -81,9 +113,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 38,
+            "completion_tokens": 90,
             "prompt_tokens": 5,
-            "total_tokens": 628,
+            "total_tokens": 1068,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

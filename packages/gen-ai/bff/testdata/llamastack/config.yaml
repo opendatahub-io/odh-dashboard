@@ -5,7 +5,6 @@ apis:
 - file_processors
 - files
 - inference
-- safety
 - tool_runtime
 - vector_io
 providers:
@@ -34,11 +33,6 @@ providers:
       metadata_store:
         table_name: files_metadata
         backend: sql_default
-  safety:
-  - provider_id: llama-guard
-    provider_type: inline::llama-guard
-    config:
-      excluded_categories: []
   responses:
   - provider_id: builtin
     provider_type: inline::builtin
@@ -89,10 +83,7 @@ registered_resources:
     provider_id: ${env.TEST_LLAMA_STACK_PROVIDER}
     metadata:
       embedding_dimension: ${env.TEST_LLAMA_STACK_EMBEDDING_DIMENSION}
-  shields:
-  - shield_id: llama-guard
-    provider_id: llama-guard
-    provider_shield_id: ${env.TEST_LLAMA_STACK_SHIELD_MODEL}
+  shields: []
   vector_stores: []
   datasets: []
   scoring_fns: []
@@ -104,6 +95,4 @@ vector_stores:
   default_embedding_model:
     provider_id: ${env.TEST_LLAMA_STACK_PROVIDER}
     model_id: ${env.TEST_LLAMA_STACK_EMBEDDING_MODEL_ID}
-safety:
-  default_shield_id: llama-guard
 connectors: []
