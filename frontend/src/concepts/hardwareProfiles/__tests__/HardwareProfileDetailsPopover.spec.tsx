@@ -68,9 +68,9 @@ describe('HardwareProfileDetailsPopover', () => {
 
       const details = screen.getByTestId('hardware-profile-details');
       expect(details).toHaveTextContent('CPU');
-      expect(details).toHaveTextContent('cpu: Default = 2 Cores | Min = 1 Cores | Max = 4 Cores');
+      expect(details).toHaveTextContent('Default = 2 Cores | Min = 1 Cores | Max = 4 Cores');
       expect(details).toHaveTextContent('Memory');
-      expect(details).toHaveTextContent('memory: Default = 4 GiB | Min = 2 GiB | Max = 8 GiB');
+      expect(details).toHaveTextContent('Default = 4 GiB | Min = 2 GiB | Max = 8 GiB');
     });
 
     it('should display "View details" text in form view (non-tableView)', () => {
