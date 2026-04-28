@@ -652,15 +652,6 @@ type VerifyExternalModel = ModArchRestCREATE<
 >;
 type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;
 
-/** Playground Error States Types */
-
-/**
- * Error pattern determines how the error is rendered in the chat transcript
- */
-// ──────────────────────────────────────────────────────────────────────────────
-// Error Types (matches UXD prototype structure)
-// ──────────────────────────────────────────────────────────────────────────────
-
 export type ErrorPattern = 'full-failure' | 'partial-failure' | 'streaming-interruption';
 export type ErrorVariant = 'danger' | 'warning';
 
