@@ -319,7 +319,6 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toBe('Streaming error — connection lost');
-        // Full failures show actual error message
         expect(result.description).toBe('{"error": "stream terminated: connection reset by peer"}');
       });
 
@@ -334,7 +333,6 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toBe('Streaming error — context length exceeded');
-        // Full failures show actual error message
         expect(result.description).toBe('{"error": "context length 8192 exceeded at token 8191"}');
       });
 
@@ -371,7 +369,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
 
-        // Full failures show actual error message
         expect(result.description).toBe('Token limit exceeded');
       });
 
@@ -385,7 +382,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Full failures show actual error message
         expect(result.description).toBe('Token limit exceeded');
       });
 
@@ -399,7 +395,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
 
-        // Full failures show actual error message
         expect(result.description).toBe('Invalid template');
       });
 
@@ -413,7 +408,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
 
-        // Full failures show actual error message
         expect(result.description).toBe('Tools not supported');
       });
 
@@ -427,7 +421,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Full failures show actual error message
         expect(result.description).toBe('Images not supported');
       });
 
@@ -441,7 +434,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Full failures show actual error message
         expect(result.description).toBe('Request timed out');
       });
 
@@ -455,7 +447,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Full failures show actual error message
         expect(result.description).toBe('Server error');
       });
 
@@ -463,7 +454,6 @@ describe('errorClassifier', () => {
         const error = { status: 429, error: { message: 'Rate limited' } };
         const result = classifyError(error);
 
-        // Full failures show actual error message
         expect(result.description).toBe('Rate limited');
       });
 
@@ -471,7 +461,6 @@ describe('errorClassifier', () => {
         const error = { status: 503, error: { message: 'Service down' } };
         const result = classifyError(error);
 
-        // Full failures show actual error message
         expect(result.description).toBe('Service down');
       });
 
@@ -481,7 +470,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { wasResponseGenerated: true });
 
-        // Partial failures show: "This response may be incomplete: [actual error]"
         expect(result.description).toBe('This response may be incomplete: RAG failed');
         expect(result.pattern).toBe('partial-failure' as ErrorPattern);
       });
@@ -496,7 +484,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Partial failures show: "This response may be incomplete: [actual error]"
         expect(result.description).toBe('This response may be incomplete: Embedding failed');
       });
 
@@ -506,7 +493,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Partial failures show: "This response may be incomplete: [actual error]"
         expect(result.description).toBe('This response may be incomplete: No results');
       });
 
@@ -520,7 +506,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Partial failures show: "This response may be incomplete: [actual error]"
         expect(result.description).toBe('This response may be incomplete: Content flagged');
       });
 
@@ -534,7 +519,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Partial failures show: "This response may be incomplete: [actual error]"
         expect(result.description).toBe('This response may be incomplete: Guardrails down');
       });
 
@@ -544,7 +528,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Partial failures show: "This response may be incomplete: [actual error]"
         expect(result.description).toBe('This response may be incomplete: MCP server down');
       });
 
@@ -554,7 +537,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Partial failures show: "This response may be incomplete: [actual error]"
         expect(result.description).toBe('This response may be incomplete: Auth failed');
       });
 
@@ -568,7 +550,6 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Partial failures show: "This response may be incomplete: [actual error]"
         expect(result.description).toBe('This response may be incomplete: Execution failed');
       });
 
@@ -576,7 +557,6 @@ describe('errorClassifier', () => {
         const error = { error: { code: 'stream_lost', message: 'Stream lost' } };
         const result = classifyError(error, { wasStreamStarted: true });
 
-        // Streaming interruptions show actual error message
         expect(result.description).toBe('Stream lost');
       });
 
@@ -584,7 +564,6 @@ describe('errorClassifier', () => {
         const error = { error: { code: 'stream_timeout', message: 'Stream timeout' } };
         const result = classifyError(error, { wasStreamStarted: true });
 
-        // Streaming interruptions show actual error message
         expect(result.description).toBe('Stream timeout');
       });
 
@@ -592,7 +571,6 @@ describe('errorClassifier', () => {
         const error = { error: { code: 'stream_context', message: 'Context exceeded' } };
         const result = classifyError(error, { wasStreamStarted: true });
 
-        // Streaming interruptions show actual error message
         expect(result.description).toBe('Context exceeded');
       });
 
@@ -600,7 +578,6 @@ describe('errorClassifier', () => {
         const error = { error: { code: 'unknown', message: 'Custom error message' } };
         const result = classifyError(error);
 
-        // Full failures show actual error message
         expect(result.description).toBe('Custom error message');
       });
 
@@ -647,7 +624,6 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toBe("Couldn't reach the server");
-        // Full failures show actual error message
         expect(result.description).toBe('Service down');
         expect(result.isRetriable).toBe(true);
       });
@@ -657,7 +633,6 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toBe("Couldn't reach the server");
-        // Full failures show actual error message
         expect(result.description).toBe('Gateway error');
         expect(result.isRetriable).toBe(true);
       });
