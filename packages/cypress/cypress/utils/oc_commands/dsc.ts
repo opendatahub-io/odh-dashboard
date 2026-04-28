@@ -82,3 +82,30 @@ export const isTrainerManaged = (): Cypress.Chainable<boolean> =>
 
     return cy.wrap(isManaged);
   });
+
+/**
+ * True when DataScienceCluster has TrustyAI available for the dashboard (Managed or Unmanaged).
+ * Removed or missing spec.components.trustyai is treated as unavailable — matches host gating for LM eval.
+ */
+export const isTrustyAIStackAvailable = (): Cypress.Chainable<boolean> =>
+  getDSC().then((dsc) => {
+    if (!dsc) {
+      cy.log('No DataScienceCluster found; TrustyAI prerequisite not met.');
+      return cy.wrap(false);
+    }
+
+    const state = getDSCComponentState(dsc, 'trustyai');
+    const ok = state === 'Managed' || state === 'Unmanaged';
+
+    if (ok) {
+      cy.log(`TrustyAI component managementState is '${state}' (ok for LM / Eval Hub).`);
+    } else {
+      cy.log(
+        `TrustyAI component managementState is '${
+          state ?? 'undefined'
+        }'; expected Managed or Unmanaged.`,
+      );
+    }
+
+    return cy.wrap(ok);
+  });

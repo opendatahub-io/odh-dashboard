@@ -1,0 +1,25 @@
+# EvalHub instance for E2E / fresh clusters. Operator requires spec.database (sqlite or postgresql).
+# Applied in APPLICATIONS_NAMESPACE (e.g. redhat-ods-applications). Use postgresql + secret for prod-like installs.
+#
+# When MLflow tracking is required for CreateEvaluationJob, set MLFLOW_TRACKING_URI to the in-cluster
+# MLflow service (same convention as RHOAI: Service/mlflow in applications namespace). The TrustyAI
+# operator may not inject this after the MLflow CR is created later; set explicitly or restart EvalHub
+# once MLflow exists if jobs fail with message_code mlflow_required_for_experiment.
+# For each evaluation namespace (e.g. test-eval), TrustyAI expects RoleBindings created by the
+# operator — mirror evalhub-odh for `redhat-ods-applications:evalhub-service`:
+# - trustyai-service-operator-evalhub-job-config (ConfigMaps for jobs)
+# - trustyai-service-operator-evalhub-jobs-writer (batch/jobs)
+# - trustyai-service-operator-evalhub-mlflow-access (MLflow experiments API)
+# and (once SA exists) bind trustyai-service-operator-evalhub-mlflow-jobs-access to the tenant's
+# evalhub-*-job SA. Manual `test-eval`: `oc create rolebinding ...` for each ClusterRole above.
+apiVersion: trustyai.opendatahub.io/v1alpha1
+kind: EvalHub
+metadata:
+  name: evalhub
+spec:
+  replicas: 1
+  database:
+    type: sqlite
+  env:
+    - name: MLFLOW_TRACKING_URI
+      value: 'https://mlflow.redhat-ods-applications.svc.cluster.local:8443'

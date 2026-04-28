@@ -43,3 +43,4 @@ PIP_TRUSTED_HOST: pypi.org
 NGC_API_KEY: bm90IGEgdmFsaWQgYXBpIGtleQo=
 OCI_SECRET_VALUE: cmhvYWlfZGFzaGJvYXJkK3Job
 OCI_MODEL_URI: quay.io/my_user/my_oci_model:latest
+EVAL_HUB_GEMINI_API_KEY: test

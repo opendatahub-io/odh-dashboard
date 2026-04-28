@@ -247,6 +247,8 @@ export type TestConfig = {
   NGC_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
+  /** Optional: Gemini (or compatible) API key for Eval Hub live E2E that submits an inference evaluation. */
+  EVAL_HUB_GEMINI_API_KEY?: string;
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
@@ -630,6 +632,31 @@ export type GenAiTestData = {
   configMapName: string;
   playgroundServiceName: string;
   servingRuntimesPath: string;
+};
+
+/** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
+export type EvalHubTestData = {
+  /**
+   * `metadata.name` of the EvalHub CR in `APPLICATIONS_NAMESPACE` (must match the instance manifest).
+   * When absent, tests default to `evalhub`.
+   */
+  evalHubCrName?: string;
+  /**
+   * Fixture path (under `cypress/fixtures/`) for the EvalHub CR applied on fresh clusters when missing.
+   */
+  evalHubInstanceResourceYamlPath?: string;
+  /**
+   * Fixture path (under `cypress/fixtures/`) for a cluster-scoped `MLflow` CR (applied when missing).
+   */
+  mlflowInstanceResourceYamlPath?: string;
+  /** Title text on the benchmark card to select (must match provider catalog on the cluster). */
+  benchmarkCardTitle?: string;
+  /** OpenAI-compatible inference base URL for the evaluation job. */
+  inferenceEndpointUrl?: string;
+  /** Model name sent to the inference API (verbatim). */
+  inferenceModelName?: string;
+  /** JSON object string merged into benchmark parameters (valid JSON object). */
+  additionalBenchmarkParams?: string;
 };
 
 export type ModelCatalogSourceTestData = {

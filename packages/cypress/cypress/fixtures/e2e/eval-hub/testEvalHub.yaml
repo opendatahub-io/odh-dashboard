@@ -1,0 +1,15 @@
+# Eval Hub E2E — the suite creates an ephemeral OpenShift project `eval-hub-e2e-<uuid>` for Evaluations + RBAC.
+# EvalHub CR + cluster MLflow CR are ensured when missing (see test `retryableBefore`).
+evalHubCrName: evalhub
+evalHubInstanceResourceYamlPath: resources/eval-hub/evalhub-instance.yaml
+mlflowInstanceResourceYamlPath: resources/mlflow/mlflow-instance-rhoai-ea2-minimal.yaml
+# Single-benchmark + Gemini inference flow (see second `it` in testEvalHub.cy.ts)
+benchmarkCardTitle: Basic science Q&A
+inferenceEndpointUrl: https://generativelanguage.googleapis.com/v1beta/openai
+inferenceModelName: gemini-2.5-flash
+additionalBenchmarkParams: |
+  {
+    "num_examples": 10,
+    "limit": 5,
+    "tokenizer": "google/flan-t5-small"
+  }

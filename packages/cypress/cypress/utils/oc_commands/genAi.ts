@@ -70,34 +70,4 @@ export const deployGenAiModel = (projectName: string, testData: GenAiTestData): 
   checkInferenceServiceState(inferenceServiceName, projectName, { checkReady: true });
 };
 
-/**
- * Cleanup serving runtime template by ServingRuntime name.
- * Searches for templates containing a ServingRuntime with the given name.
- *
- * @param servingRuntimeName - The ServingRuntime metadata.name to search for inside templates.
- * @returns A Cypress chainable that resolves when cleanup is complete.
- */
-export const cleanupServingRuntimeTemplate = (
-  servingRuntimeName: string,
-): Cypress.Chainable<CommandLineResult> => {
-  const namespace = getApplicationsNamespace();
-
-  const jqFilter = `.items[] | select(.objects[]? | select(.kind == "ServingRuntime" and .metadata.name == "${servingRuntimeName}")) | .metadata.name`;
-  const findCommand = `oc get templates -ojson -n ${namespace} | jq -r '${jqFilter}'`;
-
-  cy.log(`Searching for template with ServingRuntime: ${servingRuntimeName}`);
-
-  return cy.exec(findCommand, { failOnNonZeroExit: false }).then((result) => {
-    const templateName = result.stdout.trim();
-
-    if (templateName) {
-      cy.log(`Template found: ${templateName}. Proceeding to delete.`);
-      return cy.exec(`oc delete template ${templateName} -n ${namespace}`, {
-        failOnNonZeroExit: false,
-      });
-    }
-
-    cy.log('No matching serving runtime template found.');
-    return cy.wrap(result);
-  });
-};
+export { cleanupServingRuntimeTemplate } from './servingRuntimeTemplate';
