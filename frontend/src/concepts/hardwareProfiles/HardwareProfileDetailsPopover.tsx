@@ -138,15 +138,9 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
         style={tableView ? { textDecoration: 'none' } : undefined}
         data-testid="hardware-profile-details-popover"
       >
-        {tableView ? (
-          hardwareProfile ? (
-            getHardwareProfileDisplayName(hardwareProfile)
-          ) : (
-            <i>Custom</i>
-          )
-        ) : (
-          'View details'
-        )}
+        {tableView && hardwareProfile
+          ? getHardwareProfileDisplayName(hardwareProfile)
+          : 'View details'}
       </Button>
     </Popover>
   );
