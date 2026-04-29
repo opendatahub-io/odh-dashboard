@@ -55,7 +55,7 @@ git diff --name-only origin/$base_branch | cut -d'/' -f1-2 | sort -u
 
 Extract Jira key from PR title/body, branch name, or recent commits:
 ```bash
-grep -oE 'RHOAIENG-[0-9]+' <<< "$pr_title $pr_body" || git branch --show-current | grep -oE 'RHOAIENG-[0-9]+'
+grep -oE '[A-Z][A-Z0-9]+-[0-9]+' <<< "$pr_title $pr_body" | head -1 || git branch --show-current | grep -oE '[A-Z][A-Z0-9]+-[0-9]+' | head -1
 ```
 
 Print a context summary:

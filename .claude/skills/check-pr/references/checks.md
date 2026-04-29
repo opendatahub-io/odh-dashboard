@@ -89,7 +89,7 @@ Checks that the work is tracked in Jira.
 
 | Context | How to check |
 |---|---|
-| PR (any) | Extract key from PR title/body: `grep -oE 'RHOAIENG-[0-9]+'` |
+| PR (any) | Extract key from PR title/body: `grep -oE '[A-Z][A-Z0-9]+-[0-9]+'` |
 | No PR | Extract from branch name or recent commits |
 
 If key found: ✅. If Jira MCP or JIRA_TOKEN available, verify issue exists and is active. If can't verify: ⚠️ "found key, couldn't verify." No key: ❌.
@@ -119,7 +119,7 @@ Checks that the PR description follows the template.
 2. `## How Has This Been Tested?` has content → ✅/⚠️
 3. `## Test Impact` has content → ✅/⚠️
 4. Checklist: count `- [x]` vs `- [ ]` → report ratio
-5. Jira URL (`issues.redhat.com/browse/`) present → ✅/❌
+5. Jira URL (link to an issue tracker like `issues.redhat.com/browse/` or `atlassian.net/browse/`) present → ✅/❌
 6. If PR touches `.tsx`/`.css`/`.scss` files, check for image/gif links → ⚠️ if missing
 
 Empty Description → ❌. Other missing sections → ⚠️.
