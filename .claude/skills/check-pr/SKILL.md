@@ -88,43 +88,14 @@ Run whichever the user picks. If a reviewer fails (e.g. CR CLI not installed or 
 
 **This step is read-only. Do not fix, edit, or modify any files during checks.** Just run the checks, record the results, and report them. All fixes happen in Step 4.
 
-Run each check. A check can be:
-- ✅ **passed**
-- ❌ **failed** — with details
-- ⚠️ **warning** — passed with caveats
-- ⏭️ **covered** — only if CI already ran this check on the exact same commit (synced with PR)
+Read [references/checks.md](references/checks.md) for the full list of checks and how to run each one in each context (PR synced, PR not synced, no PR).
 
-**⏭️ means "this check passed in CI on the exact same commit."** It does NOT mean "skipped" or "not applicable." If a check can't run (OOM, missing tool), that's ❌ or ⚠️ with an explanation. If a check doesn't apply to this context (e.g. no PR body because there's no PR), use ➖ with a reason. Never use "N/A" — use ➖ instead.
+Statuses:
+- ✅ passed · ❌ failed · ⚠️ warning · ⏭️ covered by CI (same commit) · ➖ not applicable
 
-| Check | PR synced with local | PR exists but not synced | No PR |
-|---|---|---|---|
-| **Conflicts** | `mergeable` from PR | `mergeable` from PR + warn "local out of sync" | `git rev-list --count HEAD..origin/$base_branch` |
-| **CI** | ⏭️ read from `gh pr checks` | ❌ "CI ran on different code" — run locally | run locally |
-| **Lint** | ⏭️ if CI lint passed | `npm run lint` on affected packages | `npm run lint` on affected packages |
-| **Type Check** | ⏭️ if CI type-check passed | `npm run type-check` | `npm run type-check` |
-| **Unit Tests** | ⏭️ if CI tests passed | `npm run test-unit` | `npm run test-unit` |
-| **Reviews** | Results from Step 2 | Results from Step 2 | Results from Step 2 |
-| **Jira** | key found + verify if possible | key found + verify if possible | key found + verify if possible |
-| **Test Coverage** | test files in diff | test files in diff | test files in diff |
-| **PR Body** | check template sections | check template sections | ❌ "no PR body" |
+⏭️ means CI ran this on the exact same commit. If a check can't run (OOM, missing tool), that's ❌ or ⚠️ — never ⏭️. If a check doesn't apply (no PR body because no PR), use ➖.
 
-Print results table:
-
-```
-| Check         | Status | Details                          |
-|---------------|--------|----------------------------------|
-| Conflicts     | ✅     | Up to date                       |
-| CI            | ⏭️     | All passing (synced with PR)     |
-| Lint          | ⏭️     | Passed in CI                     |
-| Type Check    | ⏭️     | Passed in CI                     |
-| Unit Tests    | ⏭️     | Passed in CI                     |
-| Reviews       | ❌     | 2 unresolved human threads       |
-| Jira          | ✅     | RHOAIENG-12345 — active          |
-| Test Coverage | ✅     | 3 test files changed             |
-| PR Body       | ⚠️     | 2/5 checklist unchecked          |
-
-Verdict: NOT READY — 1 failing check
-```
+Print a results table with every check, its status, and details. End with a verdict: any ❌ → **NOT READY**, all ✅ with ⚠️ → **READY WITH WARNINGS**, all ✅ → **READY**.
 
 ## Step 4: Fix
 
