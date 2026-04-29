@@ -1,7 +1,7 @@
 ---
 name: check-pr
-description: "Check a PR or local branch for merge readiness. Gathers context, runs reviews and checks, reports a results table. Interactive by default — asks what to review and whether to fix. Supports flags: --fix, --local, --review coderabbit,claude."
-argument-hint: "[PR number or URL] [--fix] [--local] [--review coderabbit,claude]"
+description: "Check a PR or local branch for merge readiness. Gathers context, runs reviews and checks, reports a results table. Interactive by default — asks what to review and whether to fix. Supports flags: --fix, --local, --review coderabbit,claude,style."
+argument-hint: "[PR number or URL] [--fix] [--local] [--review coderabbit,claude,style]"
 disable-model-invocation: true
 allowed-tools: Bash(gh *) Bash(git *) Bash(npm *) Bash(npx *) Bash(${CLAUDE_SKILL_DIR}/scripts/*)
 ---
