@@ -116,6 +116,7 @@ const COLUMN_META: Record<
     name: string;
     acronym?: string;
     description?: string;
+    minWidth?: string;
     priority?: number;
     field?: SettingsField;
     testId?: string;
@@ -140,16 +141,19 @@ const COLUMN_META: Record<
     name: formatMetricName('faithfulness'),
     description:
       'Measures whether the generated answer uses information from the retrieved context rather than hallucinated content. A high faithfulness score means the answer uses information from the retrieved documents, not from the model’s training data.',
+    minWidth: '15rem',
   },
   'metric:answer_correctness': {
     name: formatMetricName('answer_correctness'),
     description:
       'Measures whether the generated answer matches the expected ground-truth answers in your test data. A high answer correctness score means the RAG system produces answers that align with your provided correct answers.',
+    minWidth: '15rem',
   },
   'metric:context_correctness': {
     name: formatMetricName('context_correctness'),
     description:
       'Measures whether the retrieved documents are relevant to the question. A high context correctness score means the retrieval step retrieves the relevant documents before the generation model produces an answer.',
+    minWidth: '15.5rem',
   },
   retrievalMethod: {
     name: 'Retrieval method',
@@ -157,11 +161,13 @@ const COLUMN_META: Record<
     priority: 2,
     field: 'retrievalMethod',
     testId: 'retrieval-method',
+    minWidth: '13rem',
   },
   retrievalRankerStrategy: {
     name: 'Hybrid strategy',
     description:
       'A method that combines multiple retrieval approaches to enhance answer accuracy. RRF (reciprocal rank fusion) merges rankings from various sources into one list, and weighted assigns importance to outputs, prioritizing the most reliable for the final outcome.',
+    minWidth: '12rem',
     priority: 3,
     field: 'retrievalRankerStrategy',
     testId: 'retrieval-ranker-strategy',
@@ -170,6 +176,7 @@ const COLUMN_META: Record<
     name: 'Retrieval search mode',
     description:
       'The search strategy. Hybrid search combines vector and keyword search and is available only with Milvus.',
+    minWidth: '14rem',
     priority: 4,
     field: 'retrievalSearchMode',
     testId: 'retrieval-search-mode',
@@ -177,6 +184,7 @@ const COLUMN_META: Record<
   chunkingMethod: {
     name: 'Chunking method',
     description: 'The method used to split documents into chunks.',
+    minWidth: '13rem',
     priority: 5,
     field: 'chunkingMethod',
     testId: 'chunking-method',
@@ -184,6 +192,7 @@ const COLUMN_META: Record<
   retrievalNumberOfChunks: {
     name: 'Number of chunks',
     description: 'The number of document chunks retrieved per query.',
+    minWidth: '13rem',
     priority: 6,
     field: 'retrievalNumberOfChunks',
     testId: 'retrieval-number-of-chunks',
@@ -191,6 +200,7 @@ const COLUMN_META: Record<
   chunkingChunkSize: {
     name: 'Chunk size',
     description: 'The size of each document chunk in characters.',
+    minWidth: '10rem',
     priority: 7,
     field: 'chunkingChunkSize',
     testId: 'chunking-chunk-size',
@@ -198,6 +208,7 @@ const COLUMN_META: Record<
   chunkingChunkOverlap: {
     name: 'Chunk overlap',
     description: 'The number of overlapping characters between consecutive chunks.',
+    minWidth: '12rem',
     priority: 8,
     field: 'chunkingChunkOverlap',
     testId: 'chunking-chunk-overlap',
@@ -831,29 +842,38 @@ function AutoragLeaderboard({
                 hasRightBorder
                 stickyMinWidth="150px"
                 stickyLeftOffset="470px"
+                style={
+                  getColumnMeta(`metric:${optimizedMetric}`)?.minWidth
+                    ? { minWidth: getColumnMeta(`metric:${optimizedMetric}`)?.minWidth }
+                    : undefined
+                }
               >
-                {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}
-                <div
+                {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}{' '}
+                <span
                   data-testid="optimized-indicator"
                   className="autorag-leaderboard__optimized-indicator"
                 >
                   (optimized)
-                </div>
+                </span>
               </Th>
-              {visibleDynamicColumns.map((dc) => (
-                <Th
-                  key={dc.id}
-                  sort={getSortParams(dc.id)}
-                  info={getColumnInfoProps(dc.id)}
-                  data-testid={
-                    dc.kind === 'metric'
-                      ? `metric-header-${dc.metricKey}`
-                      : `${dc.col.testId}-header`
-                  }
-                >
-                  {getColumnHeader(dc.id, dc.label)}
-                </Th>
-              ))}
+              {visibleDynamicColumns.map((dc) => {
+                const colMeta = getColumnMeta(dc.id);
+                return (
+                  <Th
+                    key={dc.id}
+                    sort={getSortParams(dc.id)}
+                    info={getColumnInfoProps(dc.id)}
+                    data-testid={
+                      dc.kind === 'metric'
+                        ? `metric-header-${dc.metricKey}`
+                        : `${dc.col.testId}-header`
+                    }
+                    style={colMeta?.minWidth ? { minWidth: colMeta.minWidth } : undefined}
+                  >
+                    {getColumnHeader(dc.id, dc.label)}
+                  </Th>
+                );
+              })}
               <Th
                 screenReaderText="Actions"
                 isStickyColumn
