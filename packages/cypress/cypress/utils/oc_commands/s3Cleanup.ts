@@ -35,7 +35,7 @@ export const deleteS3TestFiles = (
 
   cy.exec(
     `oc run ${podName} -n ${namespace} ` +
-      `--image=amazon/aws-cli:2 ` +
+      `--image=amazon/aws-cli:latest ` +
       `--restart=Never --rm --attach ` +
       `--env=AWS_ACCESS_KEY_ID=${shQuote(AWS_BUCKETS.AWS_ACCESS_KEY_ID)} ` +
       `--env=AWS_SECRET_ACCESS_KEY=${shQuote(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY)} ` +
