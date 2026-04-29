@@ -1,16 +1,47 @@
 ---
-name: check-pr
-description: "Check a PR or local branch for merge readiness. Gathers context, runs reviews and checks, reports a results table. Interactive by default — asks what to review and whether to fix. Supports flags: --fix, --local, --review coderabbit,claude,style."
-argument-hint: "[PR number or URL] [--fix] [--local] [--review coderabbit,claude,style]"
+name: preflight
+description: "Pre-merge readiness check for a PR or local branch. Gathers context, runs reviews and checks, reports a results table. Interactive by default — asks what to review and whether to fix. Supports flags: --fix, --local, --review coderabbit,claude,style, --help."
+argument-hint: "[PR] [--fix] [--local] [--review coderabbit,claude,style] [--help]"
 disable-model-invocation: true
 allowed-tools: Bash(gh *) Bash(git *) Bash(npm *) Bash(npx *) Bash(${CLAUDE_SKILL_DIR}/scripts/*)
 ---
 
-# Check PR
+# Preflight
 
-Gather context, review code, run checks, report results. Interactive by default — asks the user before making decisions. Never skip a check silently.
+Pre-merge readiness check. Gather context, review code, run checks, report results. Interactive by default — asks the user before making decisions. Never skip a check silently.
 
 Never push. Never comment on the PR.
+
+## --help
+
+If `$ARGUMENTS` is `--help`, print the following and stop:
+
+```
+/preflight [PR] [flags]
+
+  PR number or URL      Check a specific PR (optional — auto-detects from branch)
+                        If no PR exists, runs in local mode automatically.
+
+Flags:
+  --fix                 Fix failing checks after reporting
+  --local               Ignore PR even if one exists, run everything locally
+  --review X,Y          Run specific reviewers without asking
+                        Options: coderabbit, claude, style
+  --help                Show this help
+
+Examples:
+  /preflight                                  Check current branch (auto-detect PR)
+  /preflight 1234                             Check PR #1234
+  /preflight --fix                            Check and fix current branch
+  /preflight --review coderabbit,style        Run specific reviewers
+  /preflight 1234 --review claude --fix       Check PR, run Claude review, fix issues
+
+How it works:
+  1. Gather    Detect PR, sync status, affected packages, Jira key
+  2. Review    Fetch PR reviews or run local reviewers (interactive)
+  3. Check     Run all checks, print results table (read-only)
+  4. Fix       Optionally fix failing checks (--fix or interactive)
+```
 
 ## Flags
 
@@ -18,6 +49,7 @@ Parse these from `$ARGUMENTS` before processing:
 - `--fix` — after reporting, fix failing checks without asking
 - `--local` — ignore PR even if one exists, run everything locally
 - `--review X,Y` — run specific reviewers without asking (options: `coderabbit`, `claude`, `style`)
+- `--help` — print usage and stop
 - No flags — interactive mode: ask the user what to do at decision points
 
 ## Step 1: Gather context
@@ -35,11 +67,8 @@ repo=$(gh repo view --json name --jq '.name')
 
 **Check if local matches PR** (important — determines whether CI results are trustworthy):
 ```bash
-# Get the PR's head SHA
 pr_sha=$(gh pr view "$pr_number" --json headRefOid --jq '.headRefOid')
-# Get local HEAD
 local_sha=$(git rev-parse HEAD)
-# Check for uncommitted changes
 has_changes=$(git status --porcelain)
 ```
 
@@ -60,11 +89,11 @@ grep -oE '[A-Z][A-Z0-9]+-[0-9]+' <<< "$pr_title $pr_body" | head -1 || git branc
 
 Print a context summary:
 ```
-Check PR — PR #1234: feat: add new feature (synced ✅)
+Preflight — PR #1234: feat: add new feature (synced ✅)
 ```
 or
 ```
-Check PR — local branch: fix/RHOAIENG-14618 (no PR)
+Preflight — local branch: fix/RHOAIENG-14618 (no PR)
 ```
 
 ## Step 2: Review
