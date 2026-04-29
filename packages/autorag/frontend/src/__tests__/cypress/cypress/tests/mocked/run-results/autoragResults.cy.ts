@@ -2,6 +2,8 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { mockAutoragPatterns } from '~/app/mocks/mockAutoRAGPatterns';
 import { mockS3ListObjectsResponse } from '~/__mocks__/mockS3ListObjectsResponse';
+import { mockUserSettings } from '~/__mocks__/mockUserSettings';
+import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { autoragResultsPage } from '~/__tests__/cypress/cypress/pages/autoragResults';
 import type { AutoRAGEvaluationResult } from '~/app/types/autoragPattern';
 
@@ -74,6 +76,18 @@ const ROOT_DIR = 'documents-rag-optimization-pipeline';
 const PATTERN_GEN_DIR = 'rag-templates-optimization';
 
 const initResultsIntercepts = () => {
+  // App shell endpoints required when running via packages/cypress project context (CI).
+  // The autorag support file's beforeEach provides these locally, but CI uses
+  // --project ../packages/cypress which loads a different support file.
+  cy.intercept(
+    { method: 'GET', pathname: '/api/v1/user' },
+    mockModArchResponse(mockUserSettings({})),
+  );
+  cy.intercept(
+    { method: 'GET', pathname: '/api/v1/namespaces' },
+    mockModArchResponse([mockNamespace({})]),
+  );
+
   // Pipeline run endpoint — returns a SUCCEEDED run
   cy.intercept(
     { method: 'GET', pathname: `/autorag/api/v1/pipeline-runs/${RUN_ID}` },

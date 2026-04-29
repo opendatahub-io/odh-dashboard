@@ -1,5 +1,8 @@
 import { AWS_BUCKETS } from '../s3Buckets';
 
+/** Shell-escape a value by wrapping in single quotes (handles embedded quotes). */
+const shQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
+
 /**
  * Delete S3 objects whose keys match a given prefix pattern.
  *
@@ -32,13 +35,13 @@ export const deleteS3TestFiles = (
 
   cy.exec(
     `oc run ${podName} -n ${namespace} ` +
-      `--image=amazon/aws-cli:latest ` +
+      `--image=amazon/aws-cli:2 ` +
       `--restart=Never --rm --attach ` +
-      `--env=AWS_ACCESS_KEY_ID=${AWS_BUCKETS.AWS_ACCESS_KEY_ID} ` +
-      `--env=AWS_SECRET_ACCESS_KEY=${AWS_BUCKETS.AWS_SECRET_ACCESS_KEY} ` +
-      `--env=AWS_DEFAULT_REGION=${bucketConfig.REGION} ` +
-      `-- s3 rm s3://${bucketConfig.NAME}/ --recursive ` +
-      `--endpoint-url ${bucketConfig.ENDPOINT} ` +
+      `--env=AWS_ACCESS_KEY_ID=${shQuote(AWS_BUCKETS.AWS_ACCESS_KEY_ID)} ` +
+      `--env=AWS_SECRET_ACCESS_KEY=${shQuote(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY)} ` +
+      `--env=AWS_DEFAULT_REGION=${shQuote(bucketConfig.REGION)} ` +
+      `-- s3 rm ${shQuote(`s3://${bucketConfig.NAME}/`)} --recursive ` +
+      `--endpoint-url ${shQuote(bucketConfig.ENDPOINT)} ` +
       `--exclude '*' --include '${prefix}'`,
     { failOnNonZeroExit: false, log: false, timeout: 120000 },
   );

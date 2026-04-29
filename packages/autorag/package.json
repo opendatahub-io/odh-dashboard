@@ -24,7 +24,7 @@
     }
   },
   "cypress": {
-    "mocked": "frontend/src/__tests__/cypress/cypress/tests/mocked/**/*.cy.ts"
+    "mocked": "frontend/src/__tests__/cypress/cypress/tests/mocked/!(kubeflowStandalone)/**/*.cy.ts"
   },
   "e2eCiTags": ["@AutoRAGCI"],
   "bffConfig": {

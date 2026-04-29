@@ -28,7 +28,10 @@ describe('AutoRAG Experiments List and Run Management E2E', { testIsolation: fal
         projectName = `${testData.projectNamePrefix}-${uuid}`;
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
 
-        const llamaStackUrl = Cypress.env('LLAMA_STACK_URL') as string;
+        const llamaStackUrl = Cypress.env('LLAMA_STACK_URL') as string | undefined;
+        if (!llamaStackUrl) {
+          throw new Error('LLAMA_STACK_URL must be set in test-variables.yml');
+        }
         const llamaStackApiKey = (Cypress.env('LLAMA_STACK_API_KEY') as string) || '';
         createLlamaStackSecret(
           projectName,
