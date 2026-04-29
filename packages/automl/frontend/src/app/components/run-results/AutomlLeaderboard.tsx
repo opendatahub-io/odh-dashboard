@@ -59,6 +59,29 @@ type LeaderboardEntry = {
  * @property description - Optional supplementary text shown below `name` in the tooltip.
  */
 type ColumnMeta = { name: string; acronym?: string; description?: string; minWidth?: string };
+
+const MAE_META: ColumnMeta = {
+  name: 'Mean Absolute Error (MAE)',
+  acronym: formatMetricName('mae'),
+  description: 'Average of absolute differences between the actual values and predicted values.',
+  minWidth: '9rem',
+};
+
+const MSE_META: ColumnMeta = {
+  name: 'Mean Squared Error (MSE)',
+  acronym: formatMetricName('mse'),
+  description: 'Measures the average squared difference between the actual and predicted values.',
+  minWidth: '9rem',
+};
+
+const RMSE_META: ColumnMeta = {
+  name: 'Root Mean Squared Error (RMSE)',
+  acronym: formatMetricName('rmse'),
+  description:
+    'Square root of the mean of the squared differences between the actual values and predicted values.',
+  minWidth: '9rem',
+};
+
 const COLUMN_META: Record<string, ColumnMeta> = {
   rank: {
     name: 'Rank',
@@ -123,18 +146,8 @@ const COLUMN_META: Record<string, ColumnMeta> = {
   // Timeseries runs return acronym keys (e.g. "MAE"); regression runs return
   // snake_case keys (e.g. "mean_absolute_error"). Both aliases are needed until
   // the backend normalises metric keys. See RHOAIENG-59989.
-  'metric:mae': {
-    name: 'Mean Absolute Error (MAE)',
-    acronym: formatMetricName('mae'),
-    description: 'Average of absolute differences between the actual values and predicted values.',
-    minWidth: '9rem',
-  },
-  'metric:mean_absolute_error': {
-    name: 'Mean Absolute Error (MAE)',
-    acronym: formatMetricName('mean_absolute_error'),
-    description: 'Average of absolute differences between the actual values and predicted values.',
-    minWidth: '9rem',
-  },
+  'metric:mae': MAE_META,
+  'metric:mean_absolute_error': MAE_META,
   'metric:median_absolute_error': {
     name: 'Median Absolute Error (MedAE)',
     acronym: formatMetricName('median_absolute_error'),
@@ -149,33 +162,11 @@ const COLUMN_META: Record<string, ColumnMeta> = {
     minWidth: '9rem',
   },
   // Timeseries → "MSE"; regression → "mean_squared_error". See RHOAIENG-59989.
-  'metric:mse': {
-    name: 'Mean Squared Error (MSE)',
-    acronym: formatMetricName('mse'),
-    description: 'Measures the average squared difference between the actual and predicted values.',
-    minWidth: '9rem',
-  },
-  'metric:mean_squared_error': {
-    name: 'Mean Squared Error (MSE)',
-    acronym: formatMetricName('mean_squared_error'),
-    description: 'Measures the average squared difference between the actual and predicted values.',
-    minWidth: '9rem',
-  },
+  'metric:mse': MSE_META,
+  'metric:mean_squared_error': MSE_META,
   // Timeseries → "RMSE"; regression → "root_mean_squared_error". See RHOAIENG-59989.
-  'metric:rmse': {
-    name: 'Root Mean Squared Error (RMSE)',
-    acronym: formatMetricName('rmse'),
-    description:
-      'Square root of the mean of the squared differences between the actual values and predicted values.',
-    minWidth: '9rem',
-  },
-  'metric:root_mean_squared_error': {
-    name: 'Root Mean Squared Error (RMSE)',
-    acronym: formatMetricName('root_mean_squared_error'),
-    description:
-      'Square root of the mean of the squared differences between the actual values and predicted values.',
-    minWidth: '9rem',
-  },
+  'metric:rmse': RMSE_META,
+  'metric:root_mean_squared_error': RMSE_META,
   'metric:mape': {
     name: 'Mean Absolute Percentage Error (MAPE)',
     acronym: formatMetricName('mape'),
@@ -412,27 +403,25 @@ function AutomlLeaderboard({
   // Transform models into LeaderboardEntry array
   const data: LeaderboardEntry[] = React.useMemo(() => {
     const entries = Object.entries(models).map(([modelName, model]: [string, AutomlModel]) => {
-      // Helper to get metric value from test_data
-      const getMetricValue = (metricName: string): number | string => {
-        // Defensive check: verify metrics and test_data are non-null plain objects (not arrays)
-        const testData =
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          model.metrics &&
-          typeof model.metrics === 'object' &&
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          !Array.isArray(model.metrics) &&
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          model.metrics.test_data &&
-          typeof model.metrics.test_data === 'object' &&
-          !Array.isArray(model.metrics.test_data)
-            ? model.metrics.test_data
-            : {};
+      // Defensive check: verify metrics and test_data are non-null plain objects (not arrays)
+      const testData =
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        model.metrics &&
+        typeof model.metrics === 'object' &&
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        !Array.isArray(model.metrics) &&
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        model.metrics.test_data &&
+        typeof model.metrics.test_data === 'object' &&
+        !Array.isArray(model.metrics.test_data)
+          ? model.metrics.test_data
+          : {};
+      const testDataLookup = Object.fromEntries(
+        Object.entries(testData).map(([k, v]) => [k.toLowerCase(), v]),
+      );
 
-        // Case-insensitive metric lookup
-        const metricKey = Object.keys(testData).find(
-          (key) => key.toLowerCase() === metricName.toLowerCase(),
-        );
-        const value = metricKey ? testData[metricKey] : undefined;
+      const getMetricValue = (metricName: string): number | string => {
+        const value = testDataLookup[metricName.toLowerCase()];
 
         if (typeof value === 'number' && Number.isFinite(value)) {
           return value;

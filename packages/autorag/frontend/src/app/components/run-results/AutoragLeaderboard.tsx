@@ -457,20 +457,19 @@ function AutoragLeaderboard({
   const data: LeaderboardEntry[] = React.useMemo(() => {
     const entries = Object.entries(patterns).map(
       ([patternName, pattern]: [string, AutoragPattern]) => {
-        // Helper to get metric object from scores
+        // Defensive check: verify scores is a non-null plain object (not array)
+        const scores =
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          pattern.scores && typeof pattern.scores === 'object' && !Array.isArray(pattern.scores)
+            ? pattern.scores
+            : {};
+        const scoreLookup = Object.fromEntries(
+          Object.entries(scores).map(([k, v]) => [k.toLowerCase(), v]),
+        );
+
         const getMetricObject = (metricName: string) => {
-          // Defensive check: verify scores is a non-null plain object (not array)
-          const scores =
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            pattern.scores && typeof pattern.scores === 'object' && !Array.isArray(pattern.scores)
-              ? pattern.scores
-              : {};
-          const metricKey = Object.keys(scores).find(
-            (key) => key.toLowerCase() === metricName.toLowerCase(),
-          );
-          const metricData = metricKey ? scores[metricKey] : undefined;
+          const metricData = scoreLookup[metricName.toLowerCase()];
           const meanValue = metricData?.mean;
-          // Only return numeric mean if it's a finite number
           const isValidNumber = typeof meanValue === 'number' && Number.isFinite(meanValue);
           return {
             mean: isValidNumber ? meanValue : 'N/A',
