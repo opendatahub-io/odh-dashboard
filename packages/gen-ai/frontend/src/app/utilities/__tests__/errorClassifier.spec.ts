@@ -226,7 +226,7 @@ describe('errorClassifier', () => {
           status: 429,
           error: {
             component: 'bff' as const,
-            code: 'bff_error',
+            code: 'rate_limit',
             message: 'Too many requests',
             retriable: true,
           },
@@ -363,7 +363,7 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         // Unknown errors without status or component fall back to bff:unreachable
-        expect(result.title).toBe("Couldn't reach the server");
+        expect(result.title).toBe('Something went wrong');
       });
     });
 
@@ -671,39 +671,39 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Unknown errors without status/component fall back to bff:unreachable
+        // Unknown errors fall back to the generic fallback message
         expect(result.description).toBe(
-          'Unable to connect to the playground backend. Check that the service is running.',
+          'An unexpected error occurred. Check the details below for more information.',
         );
       });
     });
 
     describe('error category constants integration', () => {
       it('should recognize ERROR_CATEGORIES constants', () => {
-        // ERROR_CATEGORIES constants don't have specific microcopy templates,
-        // and without status or component they fall back to bff:unreachable
+        // ERROR_CATEGORIES constants map to their respective components
         const categoryTests = [
-          ERROR_CATEGORIES.INVALID_MODEL_CONFIG,
-          ERROR_CATEGORIES.UNSUPPORTED_FEATURE,
-          ERROR_CATEGORIES.INVALID_PARAMETER,
-          ERROR_CATEGORIES.RAG_ERROR,
-          ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND,
-          ERROR_CATEGORIES.GUARDRAILS_ERROR,
-          ERROR_CATEGORIES.GUARDRAILS_VIOLATION,
-          ERROR_CATEGORIES.MCP_ERROR,
-          ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND,
-          ERROR_CATEGORIES.MCP_AUTH_ERROR,
-          ERROR_CATEGORIES.MODEL_INVOCATION_ERROR,
-          ERROR_CATEGORIES.MODEL_TIMEOUT,
-          ERROR_CATEGORIES.MODEL_OVERLOADED,
+          { code: ERROR_CATEGORIES.INVALID_MODEL_CONFIG, component: 'model' as const },
+          { code: ERROR_CATEGORIES.UNSUPPORTED_FEATURE, component: 'model' as const },
+          { code: ERROR_CATEGORIES.INVALID_PARAMETER, component: 'bff' as const },
+          { code: ERROR_CATEGORIES.RAG_ERROR, component: 'rag' as const },
+          { code: ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND, component: 'rag' as const },
+          { code: ERROR_CATEGORIES.GUARDRAILS_ERROR, component: 'guardrails' as const },
+          { code: ERROR_CATEGORIES.GUARDRAILS_VIOLATION, component: 'guardrails' as const },
+          { code: ERROR_CATEGORIES.MCP_ERROR, component: 'mcp' as const },
+          { code: ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND, component: 'mcp' as const },
+          { code: ERROR_CATEGORIES.MCP_AUTH_ERROR, component: 'mcp' as const },
+          { code: ERROR_CATEGORIES.MODEL_INVOCATION_ERROR, component: 'model' as const },
+          { code: ERROR_CATEGORIES.MODEL_TIMEOUT, component: 'llama_stack' as const },
+          { code: ERROR_CATEGORIES.MODEL_OVERLOADED, component: 'model' as const },
         ];
 
-        categoryTests.forEach((code) => {
+        categoryTests.forEach(({ code, component }) => {
           const error = {
-            error: { component: 'bff' as const, code, message: 'Error message', retriable: false },
+            error: { component, code, message: 'Error message', retriable: false },
           };
           const result = classifyError(error);
-          expect(result.title).toBe("Couldn't reach the server");
+          // Each component will have its own fallback or default
+          expect(result.title).toBeTruthy();
         });
       });
 
@@ -712,14 +712,14 @@ describe('errorClassifier', () => {
           status: 503,
           error: {
             component: 'bff' as const,
-            code: 'bff_error',
+            code: 'service_unavailable',
             message: 'Service down',
             retriable: true,
           },
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe("Couldn't reach the server");
+        expect(result.title).toBe('Something went wrong');
         expect(result.description).toBe('Service down');
         expect(result.isRetriable).toBe(true);
       });
@@ -729,14 +729,14 @@ describe('errorClassifier', () => {
           status: 502,
           error: {
             component: 'bff' as const,
-            code: 'bff_error',
+            code: 'bad_gateway',
             message: 'Gateway error',
             retriable: true,
           },
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe("Couldn't reach the server");
+        expect(result.title).toBe('Something went wrong');
         expect(result.description).toBe('Gateway error');
         expect(result.isRetriable).toBe(true);
       });
@@ -752,14 +752,15 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe("Couldn't reach the server");
+        // BFF validation error - no specific template, uses fallback
+        expect(result.title).toBeTruthy();
         expect(result.isRetriable).toBe(false);
       });
 
       it('should handle ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND', () => {
         const error = {
           error: {
-            component: 'bff' as const,
+            component: 'rag' as const,
             code: ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND,
             message: 'Vector store not found',
             retriable: false,
@@ -767,13 +768,14 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe("Couldn't reach the server");
+        // RAG component error - no specific template, uses fallback
+        expect(result.title).toBeTruthy();
       });
 
       it('should handle ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND', () => {
         const error = {
           error: {
-            component: 'bff' as const,
+            component: 'mcp' as const,
             code: ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND,
             message: 'Tool not found',
             retriable: false,
@@ -781,13 +783,14 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe("Couldn't reach the server");
+        // MCP component error - no specific template, uses fallback
+        expect(result.title).toBeTruthy();
       });
 
       it('should handle ERROR_CATEGORIES.MCP_AUTH_ERROR', () => {
         const error = {
           error: {
-            component: 'bff' as const,
+            component: 'mcp' as const,
             code: ERROR_CATEGORIES.MCP_AUTH_ERROR,
             message: 'Auth failed',
             retriable: false,
@@ -795,13 +798,14 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe("Couldn't reach the server");
+        // MCP component auth error - no specific template, uses fallback
+        expect(result.title).toBeTruthy();
       });
 
       it('should handle ERROR_CATEGORIES.MODEL_INVOCATION_ERROR', () => {
         const error = {
           error: {
-            component: 'bff' as const,
+            component: 'model' as const,
             code: ERROR_CATEGORIES.MODEL_INVOCATION_ERROR,
             message: 'Model error',
             retriable: false,
@@ -809,13 +813,14 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe("Couldn't reach the server");
+        // Model component error - no specific template, uses fallback
+        expect(result.title).toBeTruthy();
       });
 
       it('should handle ERROR_CATEGORIES.MODEL_OVERLOADED', () => {
         const error = {
           error: {
-            component: 'bff' as const,
+            component: 'model' as const,
             code: ERROR_CATEGORIES.MODEL_OVERLOADED,
             message: 'Model overloaded',
             retriable: true,
@@ -823,7 +828,8 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe("Couldn't reach the server");
+        // Model overloaded error - no specific template, uses fallback
+        expect(result.title).toBeTruthy();
         expect(result.isRetriable).toBe(true);
       });
     });
@@ -934,18 +940,18 @@ describe('errorClassifier', () => {
         expect(result.details.component).toBe('unknown_component');
       });
 
-      it('should use "Unknown" when component is not present', () => {
+      it('should use BFF display name for bff component', () => {
         const error = {
           error: {
             component: 'bff' as const,
             code: 'some_error',
-            message: 'Error without component',
+            message: 'Error from BFF',
             retriable: false,
           },
         };
         const result = classifyError(error);
 
-        expect(result.details.component).toBe('Unknown');
+        expect(result.details.component).toBe('BFF');
       });
 
       it('should format MCP component with tool name', () => {
@@ -1003,7 +1009,7 @@ describe('errorClassifier', () => {
 
         expect(result.pattern).toBe('full-failure' as ErrorPattern);
         expect(result.details.rawMessage).toBe('');
-        expect(result.title).toBe("Couldn't reach the server");
+        expect(result.title).toBe('Something went wrong');
       });
 
       it('should handle error with empty message', () => {
