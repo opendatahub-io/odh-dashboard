@@ -318,6 +318,22 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 	}
 }
 
+// resolveMaaSBaseURL returns the MaaS controller base URL based on configuration.
+//
+// Priority:
+//  1. MAAS_URL env var (explicit developer override)
+//  2. Autodiscovered endpoint using the cached cluster domain
+//  3. Returns "" when MaaS is not available
+func (app *App) resolveMaaSBaseURL() string {
+	if app.config.MaaSURL != "" {
+		return app.config.MaaSURL
+	}
+	if app.clusterDomain != "" {
+		return fmt.Sprintf("https://maas.%s/maas-api", app.clusterDomain)
+	}
+	return ""
+}
+
 // AttachMaaSClient middleware creates a MaaS client and attaches it to context.
 // This middleware can be used independently and doesn't require namespace.
 //
@@ -338,31 +354,17 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 			// In mock mode, use empty URL since mock factory ignores it
 			maasClient = app.maasClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs)
 		} else {
-			var serviceURL string
+			serviceURL := app.resolveMaaSBaseURL()
 
-			// Configuration Priority:
-			// 1. MAAS_URL env var (if set for local dev) - works even without cluster domain
-			// 2. Autodiscovered endpoint (production default) - requires cluster domain
-			// 3. MaaS unavailable - attach nil and let handler decide if it's needed
-
-			if app.config.MaaSURL != "" {
-				// Priority 1: Use environment variable if explicitly set
-				serviceURL = app.config.MaaSURL
-				logger.Debug("Using MAAS_URL environment variable (developer override)",
-					"serviceURL", serviceURL)
-			} else if app.clusterDomain != "" {
-				// Priority 2: Autodiscovery using cached cluster domain (from service account at startup)
-				serviceURL = fmt.Sprintf("https://maas.%s/maas-api", app.clusterDomain)
-				logger.Debug("Using autodiscovered MaaS endpoint from cached cluster domain",
-					"clusterDomain", app.clusterDomain,
-					"serviceURL", serviceURL)
-			} else {
-				// Priority 3: MaaS unavailable - neither env var nor cluster domain available
+			if serviceURL == "" {
+				// MaaS unavailable - neither env var nor cluster domain available
 				logger.Debug("MaaS unavailable: no MAAS_URL configured and cluster domain not available")
 				ctx = context.WithValue(ctx, constants.MaaSClientKey, nil)
 				next(w, r.WithContext(ctx), ps)
 				return
 			}
+
+			logger.Debug("Using MaaS URL", "serviceURL", serviceURL)
 
 			// Get RequestIdentity from context (set by InjectRequestIdentity middleware)
 			identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)

@@ -787,3 +787,16 @@ func (m *TokenKubernetesClientMock) DeleteSecret(ctx context.Context, identity *
 func (m *TokenKubernetesClientMock) CreateNemoGuardrailsResources(ctx context.Context, namespace string) (string, error) {
 	return m.TokenKubernetesClient.CreateNemoGuardrailsResources(ctx, namespace)
 }
+
+// GetInferenceServiceURL returns a mock InferenceService URL for the given modelName.
+// Returns ("", nil) for unknown names so callers fall back gracefully.
+func (m *TokenKubernetesClientMock) GetInferenceServiceURL(_ context.Context, _ *integrations.RequestIdentity, namespace string, modelName string) (string, error) {
+	mockURLs := map[string]string{
+		"llama-32-3b-instruct": "http://llama-32-3b-instruct-predictor." + namespace + ".svc.cluster.local/v1",
+		"llama-guard-3":        "http://llama-guard-3-predictor." + namespace + ".svc.cluster.local/v1",
+	}
+	if url, ok := mockURLs[modelName]; ok {
+		return url, nil
+	}
+	return "", nil
+}

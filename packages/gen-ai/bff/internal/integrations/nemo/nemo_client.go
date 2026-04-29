@@ -55,8 +55,15 @@ func (c *NemoGuardrailsClient) CheckGuardrails(ctx context.Context, input string
 		return nil, fmt.Errorf("inline guardrail config with at least one model is required")
 	}
 
+	modelName := DefaultModel
+	if len(opts.Config.Models) > 0 {
+		if mn, ok := opts.Config.Models[0].Parameters["model_name"].(string); ok && mn != "" {
+			modelName = mn
+		}
+	}
+
 	reqBody := GuardrailCheckRequest{
-		Model: DefaultModel,
+		Model: modelName,
 		Messages: []Message{
 			{Role: role, Content: input},
 		},
