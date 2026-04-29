@@ -237,19 +237,25 @@ const logSidebarDiagnostics = (): void => {
  * yet contain extension items. A one-shot jQuery `.find()` during that gap
  * always misses the item, making the outer reload loop retry needlessly.
  *
- * This helper polls the live jQuery element for up to `NAV_ITEM_SETTLE_MS`
+ * This helper polls the live `#page-sidebar` DOM for up to `NAV_ITEM_SETTLE_MS`
  * so that a single page load is enough once the extensions are ready.
+ *
+ * `.then()` must allow longer than `defaultCommandTimeout` (10s) while the inner
+ * `Cypress.Promise` polls for up to `NAV_ITEM_SETTLE_MS` (15s).
  */
 const NAV_ITEM_SETTLE_MS = 15000;
 const NAV_ITEM_POLL_MS = 500;
+const NAV_ITEM_FIND_TIMEOUT_MS = NAV_ITEM_SETTLE_MS + 5000;
 
-const findNavItemInSidebar = ($sidebar: JQuery, navLabel: string): Cypress.Chainable<boolean> =>
+const findNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> =>
   cy.wrap(null, { log: false }).then(
+    { timeout: NAV_ITEM_FIND_TIMEOUT_MS },
     () =>
       new Cypress.Promise<boolean>((resolve) => {
         const deadline = Date.now() + NAV_ITEM_SETTLE_MS;
         const poll = () => {
-          if ($sidebar.find(`a:contains("${navLabel}")`).length > 0) {
+          const $sidebar = Cypress.$('#page-sidebar');
+          if ($sidebar.length > 0 && $sidebar.find(`a:contains("${navLabel}")`).length > 0) {
             resolve(true);
           } else if (Date.now() >= deadline) {
             resolve(false);
@@ -278,7 +284,7 @@ const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> =
 
     return appChrome
       .findSideBar()
-      .then(($sidebar) => findNavItemInSidebar($sidebar, navLabel))
+      .then(() => findNavItemInSidebar(navLabel))
       .then((found) => {
         const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
