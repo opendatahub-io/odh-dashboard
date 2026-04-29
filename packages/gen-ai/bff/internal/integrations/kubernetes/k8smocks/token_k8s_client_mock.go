@@ -903,3 +903,8 @@ func (m *TokenKubernetesClientMock) DeleteSecret(ctx context.Context, identity *
 	}
 	return m.Client.Delete(ctx, secret)
 }
+
+// CreateNemoGuardrailsResources delegates to the real implementation for testing.
+func (m *TokenKubernetesClientMock) CreateNemoGuardrailsResources(ctx context.Context, namespace string) (string, error) {
+	return m.TokenKubernetesClient.CreateNemoGuardrailsResources(ctx, namespace)
+}
