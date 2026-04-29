@@ -260,7 +260,13 @@ describe('useAutoMLTaskTopology', () => {
     const nodes = renderResult.result.current;
 
     expect(nodes).toHaveLength(3);
-    expect(nodes[1].width).toBeGreaterThan(nodes[0].width);
-    expect(nodes[1].width).toBeGreaterThan(nodes[2].width);
+    const shortW = nodes[0].width;
+    const longW = nodes[1].width;
+    const tailW = nodes[2].width;
+    if (shortW === undefined || longW === undefined || tailW === undefined) {
+      throw new Error('expected layout width on every topology node');
+    }
+    expect(longW).toBeGreaterThan(shortW);
+    expect(longW).toBeGreaterThan(tailW);
   });
 });
