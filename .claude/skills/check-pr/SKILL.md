@@ -17,7 +17,7 @@ Never push. Never comment on the PR.
 Parse these from `$ARGUMENTS` before processing:
 - `--fix` — after reporting, fix failing checks without asking
 - `--local` — ignore PR even if one exists, run everything locally
-- `--review X,Y` — run specific reviewers without asking (options: `coderabbit`, `claude`)
+- `--review X,Y` — run specific reviewers without asking (options: `coderabbit`, `claude`, `style`)
 - No flags — interactive mode: ask the user what to do at decision points
 
 ## Step 1: Gather context
