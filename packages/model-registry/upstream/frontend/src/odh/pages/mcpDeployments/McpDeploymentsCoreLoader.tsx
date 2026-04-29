@@ -20,10 +20,10 @@ const McpDeploymentsCoreLoader: React.FC = () => {
   const currentProject = namespace ? (projects.find((p) => p.name === namespace) ?? null) : null;
 
   React.useEffect(() => {
-    if (currentProject) {
+    if (currentProject && currentProject.name !== preferredProject?.name) {
       updatePreferredProject(currentProject);
     }
-  }, [currentProject, updatePreferredProject]);
+  }, [currentProject, preferredProject?.name, updatePreferredProject]);
 
   if (!loaded && !loadError) {
     return (
