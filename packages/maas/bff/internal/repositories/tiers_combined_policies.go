@@ -8,9 +8,12 @@
 //
 // Read path (see attachTierRateLimits in tiers.go):
 //
-//	Step 1 — GET the two combined policies by fixed metadata.name (no label selector required).
-//	Step 2 — For each tier row from the ConfigMap, read rates from spec.limits using the managed keys.
-//	Step 3 — If a tier has no data in the combined object, GET legacy per-tier CRs (pre-upgrade clusters).
+//	Step 1 — LIST TokenRateLimitPolicy / RateLimitPolicy in the gateway namespace whose spec.targetRef
+//	         matches this Gateway (see tiers_gateway_discovery.go).
+//	Step 2 — For each tier, discover limits: managed keys, tier-named keys, then arbitrary keys whose
+//	         when predicates reference auth.identity.tier == "<tier>" (CLI layout). Canonical combined
+//	         names are tried first.
+//	Step 3 — If still empty, GET legacy per-tier CRs (pre-upgrade clusters that may not set targetRef).
 //
 // Write path (CreateTier / UpdateTier / DeleteTier in tiers.go):
 //
@@ -20,6 +23,7 @@
 //	         upsert or delete only the managed keys for tiers still in the ConfigMap (CLI-only keys stay).
 //	Step 4 — upsert combined CRs; Update uses mergeGatewayPolicySpec so unknown spec fields survive.
 //	Step 5 — delete legacy per-tier policy objects for tiers we touched + tiers just removed.
+//	Step 6 — delete any other gateway-scoped TRLP/RLP (non-canonical names) so limits live in one object.
 //
 // DeleteTier ordering: ConfigMap row is removed first, then sync runs with tiersRemoved so managed keys
 // for the deleted tier are stripped from spec.limits even though that tier no longer appears in the loop.
@@ -191,23 +195,25 @@ func extractLimitsMap(policy *unstructured.Unstructured) map[string]interface{} 
 }
 
 // buildLimitsByTierForSync builds per-tier TierLimits used for the next combined policy write.
-// Step 1: load the current combined TRLP/RLP (if any).
+// Step 1: list all gateway-scoped TRLP/RLP (same targetRef as this Gateway).
 // Step 2: for each tier in parsedTiers, if tier name matches dirtyTierName use dirtyLimits from the API request;
-// otherwise copy limits from the combined policies (with legacy per-tier GET fallback when combined is missing a key).
+// otherwise copy limits via discovery (canonical keys, tier-named keys, predicate match), then legacy per-tier GET.
 func (t *TiersRepository) buildLimitsByTierForSync(
 	ctx context.Context,
 	parsedTiers []tierConfigMapData,
 	dirtyTierName string,
 	dirtyLimits models.TierLimits,
 ) (map[string]models.TierLimits, error) {
-	combinedToken, err := t.getPolicyByName(ctx, constants.TokenPolicyGvr, t.combinedTokenPolicyName)
+	allTRLP, err := t.listPoliciesForGateway(ctx, constants.TokenPolicyGvr)
 	if err != nil {
 		return nil, err
 	}
-	combinedRate, err := t.getPolicyByName(ctx, constants.RatePolicyGvr, t.combinedRatePolicyName)
+	allRLP, err := t.listPoliciesForGateway(ctx, constants.RatePolicyGvr)
 	if err != nil {
 		return nil, err
 	}
+	sortedTR := sortPoliciesCanonicalFirst(allTRLP, t.combinedTokenPolicyName)
+	sortedRL := sortPoliciesCanonicalFirst(allRLP, t.combinedRatePolicyName)
 
 	out := make(map[string]models.TierLimits, len(parsedTiers))
 	kube, err := t.k8sFactory.GetClient(ctx)
@@ -223,11 +229,11 @@ func (t *TiersRepository) buildLimitsByTierForSync(
 			continue
 		}
 
-		tok, tokErr := convertPolicyToRateLimits(combinedToken, managedTokenLimitKey(name))
+		tok, tokErr := discoverTokenRateLimitsForTier(name, sortedTR)
 		if tokErr != nil {
 			return nil, tokErr
 		}
-		req, reqErr := convertPolicyToRateLimits(combinedRate, managedRequestLimitKey(name))
+		req, reqErr := discoverRequestRateLimitsForTier(name, sortedRL)
 		if reqErr != nil {
 			return nil, reqErr
 		}
@@ -324,6 +330,18 @@ func (t *TiersRepository) syncCombinedPolicies(ctx context.Context, parsedTiers 
 	if err := t.deleteLegacyPerTierPoliciesForTiers(ctx, legacyCleanupNames); err != nil {
 		if t.logger != nil {
 			t.logger.Warn("legacy per-tier policy cleanup failed (combined policies are still correct)", "error", err)
+		}
+	}
+
+	// Remove any other TRLP/RLP that target the same Gateway so limits are not split across objects (Kuadrant "Overridden").
+	if err := t.deleteNonCanonicalGatewayPolicies(ctx, constants.TokenPolicyGvr, t.combinedTokenPolicyName); err != nil {
+		if t.logger != nil {
+			t.logger.Warn("non-canonical TokenRateLimitPolicy cleanup failed (combined policy is still correct)", "error", err)
+		}
+	}
+	if err := t.deleteNonCanonicalGatewayPolicies(ctx, constants.RatePolicyGvr, t.combinedRatePolicyName); err != nil {
+		if t.logger != nil {
+			t.logger.Warn("non-canonical RateLimitPolicy cleanup failed (combined policy is still correct)", "error", err)
 		}
 	}
 

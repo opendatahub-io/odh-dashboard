@@ -145,19 +145,20 @@ func (t *TiersRepository) updateTiersConfigMap(ctx context.Context, tiersConfigM
 	return nil
 }
 
-// attachTierRateLimits fills each tier's Limits from the single combined TokenRateLimitPolicy / RateLimitPolicy.
-// Step A: GET combined policies by fixed names (CLI can use the same names without the dashboard label).
-// Step B: read spec.limits["<tier>-tokens"] / ["<tier>-requests"].
-// Step C: if a tier has no data in the combined object, fall back to legacy per-tier CRs (pre-migration clusters).
+// attachTierRateLimits fills each tier's Limits from TokenRateLimitPolicy / RateLimitPolicy objects that target
+// this repository's Gateway. Discovery order: canonical combined names first, then other gateway-scoped policies
+// (CLI layout: arbitrary limit keys with tier predicates), then legacy per-tier CRs that may not targetRef the Gateway.
 func (t *TiersRepository) attachTierRateLimits(ctx context.Context, tiers models.TiersList) error {
-	combinedToken, err := t.getPolicyByName(ctx, constants.TokenPolicyGvr, t.combinedTokenPolicyName)
+	allTRLP, err := t.listPoliciesForGateway(ctx, constants.TokenPolicyGvr)
 	if err != nil {
 		return err
 	}
-	combinedRate, err := t.getPolicyByName(ctx, constants.RatePolicyGvr, t.combinedRatePolicyName)
+	allRLP, err := t.listPoliciesForGateway(ctx, constants.RatePolicyGvr)
 	if err != nil {
 		return err
 	}
+	sortedTR := sortPoliciesCanonicalFirst(allTRLP, t.combinedTokenPolicyName)
+	sortedRL := sortPoliciesCanonicalFirst(allRLP, t.combinedRatePolicyName)
 
 	legacyTokenPolicies, legacyRatePolicies, err := t.fetchPolicyResources(ctx)
 	if err != nil {
@@ -169,8 +170,7 @@ func (t *TiersRepository) attachTierRateLimits(ctx context.Context, tiers models
 		tokenLimitKey := managedTokenLimitKey(tierName)
 		rateLimitKey := managedRequestLimitKey(tierName)
 
-		tokenPolicy := combinedToken
-		tiers[idx].Limits.TokensPerUnit, err = convertPolicyToRateLimits(tokenPolicy, tokenLimitKey)
+		tiers[idx].Limits.TokensPerUnit, err = discoverTokenRateLimitsForTier(tierName, sortedTR)
 		if err != nil {
 			return err
 		}
@@ -182,8 +182,7 @@ func (t *TiersRepository) attachTierRateLimits(ctx context.Context, tiers models
 			}
 		}
 
-		ratePolicy := combinedRate
-		tiers[idx].Limits.RequestsPerUnit, err = convertPolicyToRateLimits(ratePolicy, rateLimitKey)
+		tiers[idx].Limits.RequestsPerUnit, err = discoverRequestRateLimitsForTier(tierName, sortedRL)
 		if err != nil {
 			return err
 		}

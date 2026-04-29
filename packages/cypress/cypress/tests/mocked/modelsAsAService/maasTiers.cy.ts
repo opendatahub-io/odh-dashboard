@@ -80,18 +80,21 @@ describe('Tiers Page', () => {
   });
 
   it('should create a new tier', () => {
+    const createdTier = mockTier({
+      name: 'test-tier',
+      displayName: 'Test Tier',
+      description: 'Test tier description',
+      level: 5,
+      groups: ['premium-users'],
+      limits: {
+        tokensPerUnit: [{ count: 500, time: 5, unit: 'hour' }],
+        requestsPerUnit: [{ count: 200, time: 3, unit: 'second' }],
+      },
+    });
+    const tiersAfterCreate = mockTiers().concat(createdTier);
+
     cy.interceptOdh('POST /maas/api/v1/tier', {
-      data: mockTier({
-        name: 'test-tier',
-        displayName: 'Test Tier',
-        description: 'Test tier description',
-        level: 5,
-        groups: ['premium-users'],
-        limits: {
-          tokensPerUnit: [{ count: 500, time: 5, unit: 'hour' }],
-          requestsPerUnit: [{ count: 200, time: 3, unit: 'second' }],
-        },
-      }),
+      data: createdTier,
     }).as('createTier');
 
     tiersPage.findCreateTierButton().click();
@@ -144,20 +147,11 @@ describe('Tiers Page', () => {
       ]);
     });
     cy.interceptOdh('GET /maas/api/v1/tiers', {
-      data: mockTiers().concat(
-        mockTier({
-          name: 'test-tier',
-          displayName: 'Test Tier',
-          description: 'Test tier description',
-          level: 5,
-          groups: ['premium-users'],
-          limits: {
-            tokensPerUnit: [{ count: 500, time: 5, unit: 'hour' }],
-            requestsPerUnit: [{ count: 200, time: 3, unit: 'second' }],
-          },
-        }),
-      ),
+      data: tiersAfterCreate,
     });
+    cy.intercept('GET', '/api/tiers', tiersAfterCreate);
+
+    tiersPage.visit();
 
     tiersPage.findTable().should('exist');
     tiersPage.findRows().should('have.length', 4);
@@ -251,7 +245,7 @@ describe('Tiers Page', () => {
     createTierPage.selectGroupsOption('all-users');
     createTierPage.findTokenRateLimitCheckbox().should('be.checked');
     createTierPage.findTokenRateLimitCountInput(0).should('have.value', '1000000');
-    createTierPage.findTokenRateLimitCountInput(0).clear().type('2000000');
+    createTierPage.findTokenRateLimitCountInput(0).focus().type('{selectall}2000000');
     createTierPage.findTokenRateLimitTimeInput(0).should('have.value', '1');
     createTierPage.findTokenRateLimitTimeInput(0).clear().type('2');
     createTierPage.selectTokenRateLimitUnit(0, 'minute');
