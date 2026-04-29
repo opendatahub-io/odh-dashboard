@@ -137,18 +137,16 @@ const normalizeToApiError = (error: unknown): ApiError => {
   if (!isRecord(error)) {
     return {
       status: 500,
-      message: String(error),
       error: { component: 'bff', code: 'unknown', message: String(error), retriable: false },
     };
   }
 
-  // Check if error has top-level ApiError shape (status + message + error)
+  // Check if error has top-level ApiError shape (status + error)
   if (
     'status' in error &&
-    'message' in error &&
     'error' in error &&
     typeof error.status === 'number' &&
-    typeof error.message === 'string'
+    isRecord(error.error)
   ) {
     // Error has ApiError shape, return it
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -157,12 +155,9 @@ const normalizeToApiError = (error: unknown): ApiError => {
 
   // Check if error has nested error object (mod-arch format)
   if ('error' in error && isRecord(error.error)) {
-    const nestedMessage =
-      typeof error.error.message === 'string' ? error.error.message : 'An error occurred';
     // Has nested error - preserve it and add top-level defaults if missing
     return {
       status: typeof error.status === 'number' ? error.status : 500,
-      message: typeof error.message === 'string' ? error.message : nestedMessage,
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       error: error.error as ApiError['error'],
     };
@@ -172,7 +167,6 @@ const normalizeToApiError = (error: unknown): ApiError => {
   const fallbackMessage = typeof error.message === 'string' ? error.message : 'An error occurred';
   return {
     status: typeof error.status === 'number' ? error.status : 500,
-    message: fallbackMessage,
     error: isRecord(error.error)
       ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         (error.error as ApiError['error'])
