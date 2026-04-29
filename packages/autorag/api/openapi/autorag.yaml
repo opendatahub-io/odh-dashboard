@@ -151,8 +151,8 @@ paths:
   # S3 Endpoints
   # =============================================================================
 
-  /api/v1/s3/file:
-    summary: Path used to get or upload a file in S3.
+  /api/v1/s3/files/{key}:
+    summary: Endpoints for working with a specific file from an S3-compatible connection.
     description: >-
       The REST endpoint/path used to retrieve or upload files in S3 storage.
       Uses the credentials from a specified Kubernetes secret to access the S3 bucket.
@@ -192,7 +192,7 @@ paths:
             pattern: '^\S(.*\S)?$'
           example: my-bucket
         - name: key
-          in: query
+          in: path
           required: true
           description: The S3 object key to retrieve
           schema:
@@ -275,7 +275,7 @@ paths:
             pattern: '^\S(.*\S)?$'
           example: my-bucket
         - name: key
-          in: query
+          in: path
           required: true
           description: The S3 object key where the file will be uploaded
           schema:
@@ -337,9 +337,8 @@ paths:
         Returns 409 if the object key chosen after collision resolution still conflicts at upload time
         (e.g. concurrent writer); the client should retry the upload.
 
-  # TODO [ Gustavo ] Ongoing discussion on what this endpoint and the other S3/file endpoint should be structured as
   /api/v1/s3/files:
-    summary: Endpoints for dealing with multiple files within an S3-compatible connection
+    summary: Endpoints for working with files from an S3-compatible connection.
     get:
       operationId: getS3Files
       summary: Get files from S3
