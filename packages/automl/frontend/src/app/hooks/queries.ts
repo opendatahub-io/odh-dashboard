@@ -178,7 +178,7 @@ export function useS3ListFilesQuery(
   path?: string,
 ): UseQueryResult<S3ListObjectsResponse, Error> {
   return useQuery({
-    queryKey: ['s3Files', namespace, path],
+    queryKey: ['automl', 's3Files', namespace, path],
     queryFn: async ({ signal }) => {
       if (!namespace || !path) {
         throw new Error('namespace and path are required');

@@ -93,7 +93,7 @@ export function useAutomlResults(
       .map((prefixObj) => {
         const path = `${prefixObj.prefix}${modelArtifactsDirectory}`;
         return {
-          queryKey: ['s3Files', namespace, path],
+          queryKey: ['automl', 's3Files', namespace, path],
           queryFn: async ({ signal }) => {
             if (!namespace) {
               throw new Error('namespace is required');
@@ -171,7 +171,7 @@ export function useAutomlResults(
     queries: modelDirectories.map(({ name, directory, artifactDirectory }) => {
       const modelJsonPath = `${directory}model.json`;
       return {
-        queryKey: ['s3File', namespace, name, modelJsonPath],
+        queryKey: ['automl', 's3File', namespace, name, modelJsonPath],
         queryFn: async ({ signal }) => {
           if (!namespace) {
             throw new Error('namespace is required');
@@ -304,8 +304,8 @@ export function useAutomlResults(
   const queryClient = useQueryClient();
   const refetch = React.useCallback(() => {
     refetchS3Files();
-    queryClient.invalidateQueries({ queryKey: ['s3Files', namespace] });
-    queryClient.invalidateQueries({ queryKey: ['s3File', namespace] });
+    queryClient.invalidateQueries({ queryKey: ['automl', 's3Files', namespace] });
+    queryClient.invalidateQueries({ queryKey: ['automl', 's3File', namespace] });
   }, [refetchS3Files, queryClient, namespace]);
 
   return {

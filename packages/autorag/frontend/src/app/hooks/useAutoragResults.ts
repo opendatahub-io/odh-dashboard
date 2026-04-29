@@ -182,7 +182,7 @@ export function useAutoragResults(
     queries: patternDirectories.map(({ name, directory }) => {
       const patternJsonPath = `${directory}pattern.json`;
       return {
-        queryKey: ['s3File', namespace, name, patternJsonPath],
+        queryKey: ['autorag', 's3File', namespace, name, patternJsonPath],
         queryFn: async ({ signal }) => {
           if (!namespace || !patternJsonPath) {
             throw new Error('namespace and key are required');
@@ -336,7 +336,7 @@ export function useAutoragResults(
   const refetch = React.useCallback(() => {
     refetchTemplatesOptimization();
     queryClient.invalidateQueries({ queryKey: ['autorag', 's3Files', namespace] });
-    queryClient.invalidateQueries({ queryKey: ['s3File', namespace] });
+    queryClient.invalidateQueries({ queryKey: ['autorag', 's3File', namespace] });
   }, [refetchTemplatesOptimization, queryClient, namespace]);
 
   return {
