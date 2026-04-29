@@ -67,7 +67,7 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
 
   const { component } = error.error;
   const { code } = error.error;
-  const rawMessage = error.error.message || error.message || '';
+  const rawMessage = error.error.message || '';
 
   const isPartial = PARTIAL_COMPONENTS.has(component);
   const isStreamingError = Object.prototype.hasOwnProperty.call(STREAMING_ERROR_MAP, code);

@@ -92,7 +92,6 @@ export const MOCK_SCENARIOS: MockScenario[] = [
     trigger: 'rate_limit',
     apiError: {
       status: 429,
-      message: 'Too Many Requests',
       error: {
         component: 'bff',
         code: 'rate_limit',
@@ -105,7 +104,6 @@ export const MOCK_SCENARIOS: MockScenario[] = [
     trigger: 'network_error',
     apiError: {
       status: 502,
-      message: 'Bad Gateway',
       error: {
         component: 'bff',
         code: 'network_error',

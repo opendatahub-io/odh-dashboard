@@ -422,7 +422,6 @@ describe('useChatbotMessages - Error Handling', () => {
           expect.objectContaining({
             error: mockError.error,
             status: expect.any(Number),
-            message: expect.any(String),
           }),
           expect.objectContaining({
             wasResponseGenerated: false,
@@ -475,7 +474,6 @@ describe('useChatbotMessages - Error Handling', () => {
           expect.objectContaining({
             error: mockError.error,
             status: expect.any(Number),
-            message: expect.any(String),
           }),
           expect.objectContaining({
             wasStreamStarted: true,
@@ -773,12 +771,11 @@ describe('useChatbotMessages - Error Handling', () => {
       await result.current.handleMessageSend('Test');
 
       await waitFor(() => {
-        // normalizeToApiError adds status and message to the error
+        // normalizeToApiError adds status to the error
         expect(mockClassifyError).toHaveBeenCalledWith(
           expect.objectContaining({
             error: mockError.error,
             status: expect.any(Number),
-            message: expect.any(String),
           }),
           expect.objectContaining({
             modelName: 'llama-3.1-8b', // getLlamaModelDisplayName is mocked to return modelId
