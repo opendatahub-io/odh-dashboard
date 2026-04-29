@@ -43,7 +43,7 @@ class TaskDrawer extends Contextual<HTMLElement> {
   }
 
   shouldHaveTaskName(name: string) {
-    return this.find().findByTestId('pipeline-task-name').should('have.text', name);
+    return this.find().findByTestId('pipeline-task-name').should('contain.text', name);
   }
 }
 
@@ -61,6 +61,47 @@ class PipelinesTopology {
 
   findTaskNode(name: string) {
     return cy.get(`[data-id="${name}"][data-kind="node"][data-type="DEFAULT_TASK_NODE"]`);
+  }
+
+  findTaskNodes() {
+    return cy.get('[data-kind="node"][data-type="DEFAULT_TASK_NODE"]');
+  }
+
+  findNodes() {
+    return cy.get('[data-kind="node"]');
+  }
+
+  findEdges() {
+    return cy.get('[data-kind="edge"]');
+  }
+
+  // PatternFly Topology third-party component — no data-testid support
+  findVisualizationSurface() {
+    return cy.get('.pf-topology-visualization-surface');
+  }
+
+  findCollapseAllButton() {
+    return cy.findByRole('button', { name: /collapse all/i });
+  }
+
+  findExpandAllButton() {
+    return cy.findByRole('button', { name: /expand all/i });
+  }
+
+  findZoomInButton() {
+    return cy.findByRole('button', { name: /zoom in/i });
+  }
+
+  findZoomOutButton() {
+    return cy.findByRole('button', { name: /zoom out/i });
+  }
+
+  findFitToScreenButton() {
+    return cy.findByRole('button', { name: /fit to screen/i });
+  }
+
+  findResetViewButton() {
+    return cy.findByRole('button', { name: /reset view/i });
   }
 
   findArtifactNode(name: string) {

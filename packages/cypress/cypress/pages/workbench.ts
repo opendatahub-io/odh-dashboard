@@ -684,8 +684,9 @@ class CreateSpawnerPage {
   }
 
   findConnectionsTableRow(name: string, type: string) {
-    this.findConnectionsTable().find(`[data-label=Name]`).contains(name);
-    this.findConnectionsTable().find(`[data-label=Type]`).contains(type);
+    this.findConnectionsTable().scrollIntoView();
+    this.findConnectionsTable().find(`[data-label=Name]`).contains(name).should('be.visible');
+    this.findConnectionsTable().find(`[data-label=Type]`).contains(type).should('be.visible');
   }
 
   findFeatureStoreSection() {
