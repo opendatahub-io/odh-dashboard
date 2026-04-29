@@ -12,7 +12,7 @@ export const PIPELINE_RANKSEP_MAX = 200;
  * and long-label pipelines get extra horizontal space automatically.
  */
 export function computePipelineRankSep(maxNodeLayoutWidth: number): number {
-  if (!maxNodeLayoutWidth || maxNodeLayoutWidth <= 0) {
+  if (!Number.isFinite(maxNodeLayoutWidth) || maxNodeLayoutWidth <= 0) {
     return PIPELINE_NODE_SEPARATION_HORIZONTAL;
   }
   const scaled = Math.round(PIPELINE_RANKSEP_MIN + maxNodeLayoutWidth * 0.1);

@@ -24,6 +24,7 @@ export const measurePipelineTaskLabelWidth = (text: string): number => {
 /** Layout chrome (status icon, pill padding) — scales slightly with label length. */
 const layoutChromeForTaskLabel = (label: string): number => {
   const base = 40;
+  // Slightly sub-linear growth so long labels add chrome without dominating (tunable UX constant).
   const fromLength = Math.min(80, Math.ceil(label.length * 0.9));
   return base + fromLength;
 };

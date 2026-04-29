@@ -9,6 +9,10 @@ describe('computePipelineRankSep', () => {
   it('returns default horizontal separation when max width is unknown', () => {
     expect(computePipelineRankSep(0)).toBe(PIPELINE_NODE_SEPARATION_HORIZONTAL);
     expect(computePipelineRankSep(-1)).toBe(PIPELINE_NODE_SEPARATION_HORIZONTAL);
+    expect(computePipelineRankSep(Number.NaN)).toBe(PIPELINE_NODE_SEPARATION_HORIZONTAL);
+    expect(computePipelineRankSep(Number.POSITIVE_INFINITY)).toBe(
+      PIPELINE_NODE_SEPARATION_HORIZONTAL,
+    );
   });
 
   it('scales ranksep up with wider nodes and clamps to max', () => {
