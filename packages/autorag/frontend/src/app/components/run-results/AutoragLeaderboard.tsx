@@ -254,7 +254,7 @@ const getColumnInfoProps = (
   const meta = getColumnMeta(columnId);
   const name = tooltipName ?? meta?.name;
   const description = meta?.description;
-  if (!description && !meta?.acronym) {
+  if (!description && !meta?.acronym && !suffix) {
     return undefined;
   }
   return {
