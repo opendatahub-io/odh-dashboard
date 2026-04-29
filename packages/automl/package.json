@@ -23,6 +23,9 @@
       "port": 8043
     }
   },
+  "cypress": {
+    "mocked": "frontend/src/__tests__/cypress/cypress/tests/mocked/**/*.cy.ts"
+  },
   "e2eCiTags": ["@AutoMLCI"],
   "bffConfig": {
     "enabled": true,

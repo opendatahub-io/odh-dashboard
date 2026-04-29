@@ -1,5 +1,6 @@
 import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -21,6 +22,7 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
   );
 
   after(() => {
+    deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
