@@ -673,12 +673,12 @@ export interface ClassifiedError {
 
 export interface ApiError {
   status?: number;
-  error?: {
-    component?: 'guardrails' | 'rag' | 'mcp' | 'model' | 'llama_stack' | 'bff';
-    code?: string;
-    message?: string;
+  error: {
+    component: 'guardrails' | 'rag' | 'mcp' | 'model' | 'llama_stack' | 'bff';
+    code: string;
+    message: string;
     tool_name?: string;
-    retriable?: boolean;
+    retriable: boolean;
   };
   message?: string;
 }
