@@ -138,20 +138,21 @@ const normalizeToApiError = (error: unknown): ApiError => {
     return {
       status: 500,
       message: String(error),
-      error: { code: 'unknown', message: String(error) },
+      error: { component: 'bff', code: 'unknown', message: String(error), retriable: false },
     };
   }
 
-  // Check if error has top-level ApiError shape (status + message)
+  // Check if error has top-level ApiError shape (status + message + error)
   if (
     'status' in error &&
     'message' in error &&
+    'error' in error &&
     typeof error.status === 'number' &&
     typeof error.message === 'string'
   ) {
     // Error has ApiError shape, return it
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return error as ApiError;
+    return error as unknown as ApiError;
   }
 
   // Check if error has nested error object (mod-arch format)
@@ -175,7 +176,7 @@ const normalizeToApiError = (error: unknown): ApiError => {
     error: isRecord(error.error)
       ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         (error.error as ApiError['error'])
-      : { code: 'unknown', message: fallbackMessage },
+      : { component: 'bff', code: 'unknown', message: fallbackMessage, retriable: false },
   };
 };
 
