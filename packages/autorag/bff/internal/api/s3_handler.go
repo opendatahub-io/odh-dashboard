@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
+	"net/url"
 	"path"
 	"regexp"
 	"strconv"
@@ -224,14 +225,16 @@ func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretNa
 }
 
 // GetS3FileHandler retrieves a file from S3 storage using credentials from a Kubernetes secret.
+// Path parameters:
+//   - key (required): The S3 object key to retrieve
+//
 // Query parameters:
 //   - namespace (required): The Kubernetes namespace containing the secret
 //   - secretName (optional): Name of the Kubernetes secret holding S3 credentials.
 //     If omitted, the secret name is taken from the DSPA associated with the
 //     Pipeline Server in this namespace (set by AttachPipelineServerClient middleware).
 //   - bucket (optional): The S3 bucket name; if not provided, will use AWS_S3_BUCKET from the secret
-//   - key (required): The S3 object key to retrieve
-func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	queryParams := r.URL.Query()
 
 	// Resolve S3 credentials from one of two sources:
@@ -247,9 +250,13 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	key := strings.TrimSpace(queryParams.Get("key"))
+	key, err := url.PathUnescape(ps.ByName("key"))
+	if err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid URL encoding in path parameter 'key': %w", err))
+		return
+	}
 	if key == "" {
-		app.badRequestResponse(w, r, errors.New("query parameter 'key' is required and cannot be empty"))
+		app.badRequestResponse(w, r, errors.New("path parameter 'key' is required and cannot be empty"))
 		return
 	}
 
@@ -325,13 +332,14 @@ func (app *App) effectivePostS3CollisionAttempts() int {
 }
 
 // PostS3FileHandler uploads a file to S3 storage using credentials from a Kubernetes secret.
-// Query parameters: namespace, secretName, key (required); bucket (optional, uses AWS_S3_BUCKET from secret if not provided).
+// Path parameters: key (required).
+// Query parameters: namespace, secretName (required); bucket (optional, uses AWS_S3_BUCKET from secret if not provided).
 // Request body: multipart/form-data with a file part named "file". Streams the file to S3 without buffering.
 // Candidate keys are chosen via HeadObject; the file is streamed to S3 once with If-None-Match (no full-file buffer).
 // If HeadObject and PUT disagree (concurrent writer), the handler returns 409 Conflict without retrying.
 //
 // Note: namespace is provided via the AttachNamespace middleware
-func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	queryParams := r.URL.Query()
 
 	secretName := queryParams.Get("secretName")
@@ -344,9 +352,13 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	key := strings.TrimSpace(queryParams.Get("key"))
+	key, err := url.PathUnescape(ps.ByName("key"))
+	if err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid URL encoding in path parameter 'key': %w", err))
+		return
+	}
 	if key == "" {
-		app.badRequestResponse(w, r, errors.New("query parameter 'key' is required and cannot be empty"))
+		app.badRequestResponse(w, r, errors.New("path parameter 'key' is required and cannot be empty"))
 		return
 	}
 

@@ -64,15 +64,21 @@ export async function fetchS3File(
   key: string,
   options?: FetchS3FileOptions,
 ): Promise<Blob> {
+  if (!key || !key.trim()) {
+    throw new Error('File key must be a non-empty string');
+  }
+
   const { secretName, bucket, signal } = options ?? {};
   const params = new URLSearchParams({
     namespace,
-    key,
     ...(secretName && { secretName }),
     ...(bucket && { bucket }),
   });
 
-  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`, { signal });
+  const response = await fetch(
+    `${URL_PREFIX}/api/v1/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
+    { signal },
+  );
 
   if (!response.ok) {
     let errorMessage = response.statusText;
