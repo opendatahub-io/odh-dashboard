@@ -1,0 +1,79 @@
+name: Module caches
+description: Restores and saves root, per-module node_modules, and Cypress binary caches
+inputs:
+  node-version:
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Root node_modules cache
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-root-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ inputs.node-version }}-modules-root-
+
+    - name: Cypress binary cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/Cypress
+        key: ${{ runner.os }}-cypress-bin-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-cypress-bin-
+
+    - name: automl node_modules cache
+      uses: actions/cache@v4
+      with:
+        path: packages/automl/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-automl-${{ hashFiles('packages/automl/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-automl-
+
+    - name: autorag node_modules cache
+      uses: actions/cache@v4
+      with:
+        path: packages/autorag/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-autorag-${{ hashFiles('packages/autorag/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-autorag-
+
+    - name: eval-hub node_modules cache
+      uses: actions/cache@v4
+      with:
+        path: packages/eval-hub/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-eval-hub-${{ hashFiles('packages/eval-hub/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-eval-hub-
+
+    - name: gen-ai node_modules cache
+      uses: actions/cache@v4
+      with:
+        path: packages/gen-ai/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-gen-ai-${{ hashFiles('packages/gen-ai/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-gen-ai-
+
+    - name: maas node_modules cache
+      uses: actions/cache@v4
+      with:
+        path: packages/maas/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-maas-${{ hashFiles('packages/maas/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-maas-
+
+    - name: mlflow node_modules cache
+      uses: actions/cache@v4
+      with:
+        path: packages/mlflow/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-mlflow-${{ hashFiles('packages/mlflow/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-mlflow-
+
+    - name: model-registry node_modules cache
+      uses: actions/cache@v4
+      with:
+        path: packages/model-registry/upstream/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-model-registry-${{ hashFiles('packages/model-registry/upstream/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-model-registry-
+
+    - name: notebooks node_modules cache
+      uses: actions/cache@v4
+      with:
+        path: packages/notebooks/upstream/workspaces/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-notebooks-${{ hashFiles('packages/notebooks/upstream/workspaces/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-notebooks-

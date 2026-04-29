@@ -30,16 +30,27 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Cache npm dependencies
+      - name: Root node_modules cache
         uses: actions/cache@v4
         with:
-          path: |
-            **/node_modules
-            ~/.npm
-            ~/.cache/Cypress
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-npm-${{ hashFiles('package-lock.json', 'packages/model-registry/upstream/frontend/package-lock.json') }}
+          path: node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-${{ hashFiles('package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-npm-
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-
+      - name: Cypress binary cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: ${{ runner.os }}-cypress-bin-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-cypress-bin-
+      - name: model-registry node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: packages/model-registry/upstream/frontend/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-model-registry-${{ hashFiles('packages/model-registry/upstream/frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-model-registry-
 
       - name: Install root level dependencies
         run: npm install
