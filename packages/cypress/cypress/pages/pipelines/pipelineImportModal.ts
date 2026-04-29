@@ -94,7 +94,7 @@ class PipelineImportModal extends Modal {
   }
 
   submit(): void {
-    this.findSubmitButton().click();
+    this.findSubmitButton().should('be.enabled').click();
   }
 }
 
