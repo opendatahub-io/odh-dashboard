@@ -1,0 +1,27 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/nim",
+  "description": "NVIDIA NIM model serving platform extension",
+  "version": "0.0.0",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "type-check": "tsc --noEmit",
+    "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix",
+    "test-unit": "jest --silent --passWithNoTests",
+    "test-unit-coverage": "jest --silent --coverage --passWithNoTests"
+  },
+  "exports": {
+    "./extensions": "./extensions.ts",
+    "./types": "./src/types.ts"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/model-serving": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  }
+}
