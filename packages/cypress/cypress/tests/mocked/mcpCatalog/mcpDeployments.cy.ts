@@ -12,6 +12,7 @@ import {
   mcpServerDetailsPage,
 } from '../../../pages/mcpDeployments';
 import { appChrome } from '../../../pages/appChrome';
+import { tabRoutePage } from '../../../pages/tabRoutePage';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
   mockRunningDeployment,
@@ -575,6 +576,9 @@ describe('MCP Deployments Project Persistence', () => {
 
     // Navigate to model serving via the nav sidebar (SPA navigation preserves preferredProject)
     appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).click();
+
+    // Click the Deployments tab (Models nav lands on the catalog tab by default)
+    tabRoutePage.findTab('deployments').click();
 
     // Model serving's CoreLoader should redirect to the preferred project
     cy.location('pathname').should('eq', '/ai-hub/models/deployments/test-project');
