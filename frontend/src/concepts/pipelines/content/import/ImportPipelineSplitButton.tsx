@@ -12,8 +12,6 @@ import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import PipelineImportModal from '#~/concepts/pipelines/content/import/PipelineImportModal';
 import PipelineVersionImportModal from '#~/concepts/pipelines/content/import/PipelineVersionImportModal';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import ManageSamplePipelinesModal from '#~/concepts/pipelines/content/ManageSamplePipelinesModal';
 
 type ImportPipelineSplitButtonProps = {
   onImportPipeline?: (pipeline: PipelineKF) => void;
@@ -38,10 +36,7 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
   const [isPipelineModalOpen, setPipelineModalOpen] = React.useState(false);
   const [isPipelineVersionModalOpen, setPipelineVersionModalOpen] = React.useState(false);
-  const [isManageSamplePipelinesModalOpen, setManageSamplePipelinesModalOpen] =
-    React.useState(false);
   const tooltipRef = React.useRef<HTMLButtonElement>(null);
-  const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
   return (
     <>
@@ -94,16 +89,6 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
               </DropdownItem>
             </>
           ) : null}
-          {isFineTuningAvailable && (
-            <DropdownItem
-              id="manage-sample-pipelines-button"
-              key="manage-sample-pipelines-button"
-              isAriaDisabled={!apiAvailable}
-              onClick={() => setManageSamplePipelinesModalOpen(true)}
-            >
-              Manage preconfigured pipelines
-            </DropdownItem>
-          )}
         </DropdownList>
       </Dropdown>
       {isPipelineModalOpen ? (
@@ -132,13 +117,6 @@ const ImportPipelineSplitButton: React.FC<ImportPipelineSplitButtonProps> = ({
           }}
         />
       )}
-      {isManageSamplePipelinesModalOpen && isFineTuningAvailable ? (
-        <ManageSamplePipelinesModal
-          onClose={() => {
-            setManageSamplePipelinesModalOpen(false);
-          }}
-        />
-      ) : null}
     </>
   );
 };

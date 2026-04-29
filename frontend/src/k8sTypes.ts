@@ -1370,10 +1370,9 @@ export type DashboardConfigKind = K8sResourceCommon & {
 };
 /**
  * @deprecated -- accelerator profiles are going away; only in deprecation paths
- * used by *both* modelmesh and finetuning
+ * used by modelmesh
  *
  * modelmesh: RHOAIENG-34917, RHOAIENG-19185
- * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
  */
 export type AcceleratorProfileKind = K8sResourceCommon & {
   metadata: {

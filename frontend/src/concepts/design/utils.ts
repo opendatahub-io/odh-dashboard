@@ -46,7 +46,6 @@ export enum ProjectObjectType {
   pipelineArtifact = 'pipeline-artifact',
   modelCustomization = 'model-customization',
   modelEvaluation = 'model-evaluation',
-  labTuning = 'lab-tuning',
   clusterStorage = 'cluster-storage',
   model = 'model',
   singleModel = 'single-model',
@@ -180,7 +179,6 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.connectedModels:
     case ProjectObjectType.modelCustomization:
     case ProjectObjectType.modelEvaluation:
-    case ProjectObjectType.labTuning:
       return 'var(--ai-model-server--BackgroundColor)';
     case ProjectObjectType.modelRegistrySettings:
       return 'var(--ai-set-up--BackgroundColor)';
@@ -241,7 +239,6 @@ export const typedColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.deployingModels:
     case ProjectObjectType.connectedModels:
     case ProjectObjectType.modelCustomization:
-    case ProjectObjectType.labTuning:
       return 'var(--ai-model-server--Color)';
     case ProjectObjectType.modelRegistrySettings:
       return 'var(--ai-set-up--Color)';

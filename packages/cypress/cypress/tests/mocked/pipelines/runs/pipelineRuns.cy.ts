@@ -743,7 +743,7 @@ describe('Pipeline runs', () => {
       });
 
       describe('Labels', () => {
-        it('shows model registered label when fine tuning and model registry is enabled', () => {
+        it('shows model registered label when model registry is enabled', () => {
           pipelineRunsGlobal.visit(projectName, 'active');
           activeRunsTable
             .findModelRegisteredLabel('Test active run 1')

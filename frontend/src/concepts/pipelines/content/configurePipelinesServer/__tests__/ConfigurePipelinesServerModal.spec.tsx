@@ -5,7 +5,6 @@ import { BrowserRouter } from 'react-router-dom';
 import { ConfigurePipelinesServerModal } from '#~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
-import { useIsAreaAvailable } from '#~/concepts/areas';
 import { NotificationWatcherContext } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
 import { createPipelinesCR, deleteSecret } from '#~/api';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
@@ -19,13 +18,6 @@ jest.mock('#~/concepts/pipelines/context', () => ({
 jest.mock('#~/pages/projects/screens/detail/connections/usePipelinesConnections', () => ({
   __esModule: true,
   default: jest.fn(),
-}));
-
-jest.mock('#~/concepts/areas', () => ({
-  useIsAreaAvailable: jest.fn(),
-  SupportedArea: {
-    FINE_TUNING: 'fine-tuning',
-  },
 }));
 
 jest.mock('#~/api', () => ({
@@ -55,19 +47,10 @@ jest.mock(
   }),
 );
 
-jest.mock(
-  '#~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection',
-  () => ({
-    __esModule: true,
-    default: () => <div>Sample pipeline settings</div>,
-  }),
-);
-
 const mockUsePipelinesAPI = usePipelinesAPI as jest.MockedFunction<typeof usePipelinesAPI>;
 const mockUsePipelinesConnections = usePipelinesConnections as jest.MockedFunction<
   typeof usePipelinesConnections
 >;
-const mockUseIsAreaAvailable = useIsAreaAvailable as jest.MockedFunction<typeof useIsAreaAvailable>;
 const mockCreatePipelinesCR = createPipelinesCR as jest.MockedFunction<typeof createPipelinesCR>;
 const mockDeleteSecret = deleteSecret as jest.MockedFunction<typeof deleteSecret>;
 const mockFireFormTrackingEvent = fireFormTrackingEvent as jest.MockedFunction<
@@ -119,16 +102,6 @@ describe('ConfigurePipelinesServerModal', () => {
 
     mockUsePipelinesConnections.mockReturnValue([[], true, undefined, jest.fn()]);
 
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: false,
-      featureFlags: {},
-      devFlags: {},
-      reliantAreas: {},
-      requiredComponents: {},
-      requiredCapabilities: {},
-      customCondition: jest.fn(),
-    } as ReturnType<typeof useIsAreaAvailable>);
-
     mockConfigureDSPipelineResourceSpec.mockResolvedValue(
       {} as Awaited<ReturnType<typeof configureDSPipelineResourceSpec>>,
     );
@@ -173,38 +146,6 @@ describe('ConfigurePipelinesServerModal', () => {
     expect(
       screen.getByText('Allow caching to be configured per pipeline and task'),
     ).toBeInTheDocument();
-  });
-
-  it('should show fine-tuning section when available', () => {
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: true,
-      featureFlags: {},
-      devFlags: {},
-      reliantAreas: {},
-      requiredComponents: {},
-      requiredCapabilities: {},
-      customCondition: jest.fn(),
-    } as ReturnType<typeof useIsAreaAvailable>);
-
-    renderModal();
-
-    expect(screen.getByText('Sample pipeline settings')).toBeInTheDocument();
-  });
-
-  it('should not show fine-tuning section when not available', () => {
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: false,
-      featureFlags: {},
-      devFlags: {},
-      reliantAreas: {},
-      requiredComponents: {},
-      requiredCapabilities: {},
-      customCondition: jest.fn(),
-    } as ReturnType<typeof useIsAreaAvailable>);
-
-    renderModal();
-
-    expect(screen.queryByText('Sample pipeline settings')).not.toBeInTheDocument();
   });
 
   it('should have caching enabled by default', () => {
@@ -293,7 +234,6 @@ describe('ConfigurePipelinesServerModal', () => {
     expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Pipeline Server Configured', {
       outcome: 'submit',
       success: true,
-      isILabEnabled: false,
     });
 
     expect(mockOnClose).toHaveBeenCalled();

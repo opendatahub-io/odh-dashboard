@@ -7,13 +7,7 @@ import {
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { DataSciencePipelineApplicationModel } from '#~/api/models';
-import {
-  DSPipelineKind,
-  DSPipelineManagedPipelinesKind,
-  K8sAPIOptions,
-  RouteKind,
-  SecretKind,
-} from '#~/k8sTypes';
+import { DSPipelineKind, K8sAPIOptions, RouteKind, SecretKind } from '#~/k8sTypes';
 import { getRoute } from '#~/api/k8s/routes';
 import { getSecret } from '#~/api/k8s/secrets';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
@@ -127,20 +121,3 @@ export const deletePipelineCR = async (
       opts,
     ),
   );
-
-export const toggleInstructLabState = (
-  namespace: string,
-  name: string,
-  managedPipelines: DSPipelineManagedPipelinesKind,
-): Promise<DSPipelineKind> =>
-  k8sPatchResource<DSPipelineKind>({
-    model: DataSciencePipelineApplicationModel,
-    queryOptions: { name, ns: namespace },
-    patches: [
-      {
-        op: 'replace',
-        path: '/spec/apiServer/managedPipelines',
-        value: managedPipelines,
-      },
-    ],
-  });
