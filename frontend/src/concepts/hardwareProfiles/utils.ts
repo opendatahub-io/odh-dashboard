@@ -10,6 +10,7 @@ import {
 } from '#~/types';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
+import { PodSpecOptions } from './types';
 
 export const formatToleration = (toleration: Toleration): string => {
   const parts = [`Key = ${toleration.key}`];
@@ -174,3 +175,8 @@ export const getProfileScore = (profile: HardwareProfileKind): number => {
 
   return score;
 };
+
+export const isLegacyHardwareProfileSelected = (podSpecOptions: PodSpecOptions): boolean =>
+  !!podSpecOptions.selectedHardwareProfile &&
+  (!!podSpecOptions.selectedAcceleratorProfile ||
+    !podSpecOptions.selectedHardwareProfile.metadata.uid);

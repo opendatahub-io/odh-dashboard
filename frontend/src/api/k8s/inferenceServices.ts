@@ -15,6 +15,7 @@ import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { getInferenceServiceDeploymentMode } from '#~/pages/modelServing/screens/projects/utils';
 import { parseCommandLine } from '#~/api/k8s/utils';
 import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { isLegacyHardwareProfileSelected } from '#~/concepts/hardwareProfiles/utils';
 import { getModelServingProjects } from './projects';
 
 const applyAuthToInferenceService = (
@@ -148,10 +149,7 @@ export const assembleInferenceService = (
 
   const dashboardNamespace = data.dashboardNamespace ?? '';
   if (!isModelMesh && podSpecOptions && podSpecOptions.selectedHardwareProfile) {
-    const isLegacyHardwareProfile =
-      !!podSpecOptions.selectedAcceleratorProfile ||
-      !podSpecOptions.selectedHardwareProfile.metadata.uid;
-    if (!isLegacyHardwareProfile) {
+    if (!isLegacyHardwareProfileSelected(podSpecOptions)) {
       annotations['opendatahub.io/hardware-profile-name'] =
         podSpecOptions.selectedHardwareProfile.metadata.name;
     } else {
@@ -230,7 +228,10 @@ export const assembleInferenceService = (
 
   if (!isModelMesh && podSpecOptions) {
     const { tolerations, resources, nodeSelector } = podSpecOptions;
-    if (!podSpecOptions.selectedHardwareProfile) {
+    if (
+      !podSpecOptions.selectedHardwareProfile ||
+      isLegacyHardwareProfileSelected(podSpecOptions)
+    ) {
       if (tolerations) {
         updatedInferenceService.spec.predictor.tolerations = tolerations;
       }
