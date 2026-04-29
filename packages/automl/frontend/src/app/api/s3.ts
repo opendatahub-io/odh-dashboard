@@ -67,7 +67,7 @@ export type GetFilesOptions = {
 // Public --------------------------------------------------------------------->
 
 /**
- * Uploads a file to S3 via the BFF POST /api/v1/s3/file endpoint.
+ * Uploads a file to S3 via the BFF POST /api/v1/s3/files/:key endpoint.
  * Uses the given secret for credentials and the file's key (path) in the bucket.
  *
  * @param hostPath - Base path for API requests (e.g. '' for same-origin)
@@ -80,10 +80,13 @@ export async function uploadFileToS3(
   params: UploadFileToS3Params,
   file: File,
 ): Promise<UploadFileToS3Response> {
+  if (!params.key || !params.key.trim()) {
+    throw new Error('Upload key must be a non-empty string');
+  }
+
   const queryParams: Record<string, string> = {
     namespace: params.namespace,
     secretName: params.secretName,
-    key: params.key,
   };
   if (params.bucket !== undefined && params.bucket !== '') {
     queryParams.bucket = params.bucket;
@@ -92,7 +95,7 @@ export async function uploadFileToS3(
   const formData = new FormData();
   formData.append('file', file, file.name);
 
-  const path = `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/file`;
+  const path = `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/files/${encodeURIComponent(params.key)}`;
 
   const response = await handleRestFailures(restCREATE(hostPath, path, formData, queryParams));
 
