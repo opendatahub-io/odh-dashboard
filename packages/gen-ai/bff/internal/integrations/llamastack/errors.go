@@ -13,9 +13,9 @@ import (
 type LlamaStackError struct {
 	Code       string `json:"code"`
 	Message    string `json:"message"`
-	Type       string `json:"type,omitempty"`        // OpenAI error type (e.g., "invalid_request_error")
-	ErrorCode  string `json:"error_code,omitempty"`  // OpenAI error code (e.g., "rate_limit_exceeded")
-	Param      string `json:"param,omitempty"`       // Parameter that caused the error
+	Type       string `json:"type,omitempty"`       // OpenAI error type (e.g., "invalid_request_error")
+	ErrorCode  string `json:"error_code,omitempty"` // OpenAI error code (e.g., "rate_limit_exceeded")
+	Param      string `json:"param,omitempty"`      // Parameter that caused the error
 	StatusCode int    `json:"-"`
 }
 
