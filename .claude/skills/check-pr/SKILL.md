@@ -86,13 +86,15 @@ Run whichever the user picks. If a reviewer fails (e.g. CR CLI not installed or 
 
 ## Step 3: Check
 
+**This step is read-only. Do not fix, edit, or modify any files during checks.** Just run the checks, record the results, and report them. All fixes happen in Step 4.
+
 Run each check. A check can be:
 - ✅ **passed**
 - ❌ **failed** — with details
 - ⚠️ **warning** — passed with caveats
 - ⏭️ **covered** — only if CI already ran this check on the exact same commit (synced with PR)
 
-**⏭️ means "this check passed in CI on this exact code." It does NOT mean "skipped because we couldn't run it."** If a check can't run (e.g. tsc OOM, missing tool), that's ❌ or ⚠️ with an explanation, never ⏭️.
+**⏭️ means "this check passed in CI on the exact same commit."** It does NOT mean "skipped" or "not applicable." If a check can't run (OOM, missing tool), that's ❌ or ⚠️ with an explanation. If a check doesn't apply to this context (e.g. no PR body because there's no PR), use ➖ with a reason. Never use "N/A" — use ➖ instead.
 
 | Check | PR synced with local | PR exists but not synced | No PR |
 |---|---|---|---|
