@@ -1,0 +1,23 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/nim-serving",
+  "description": "NIM serving extensions for the model deployment wizard.",
+  "version": "0.0.0",
+  "scripts": {
+    "lint": "eslint .",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage",
+    "type-check": "tsc --noEmit"
+  },
+  "exports": {
+    "./extensions": "./extensions.ts"
+  },
+  "dependencies": {
+    "@odh-dashboard/plugin-core": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  }
+}
