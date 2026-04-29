@@ -5,8 +5,9 @@
   "version": "0.0.0",
   "scripts": {
     "lint": "eslint .",
-    "test-unit": "jest --silent",
-    "test-unit-coverage": "jest --silent --coverage",
+    "lint:fix": "eslint . --fix",
+    "test-unit": "jest --silent --passWithNoTests",
+    "test-unit-coverage": "jest --silent --coverage --passWithNoTests",
     "type-check": "tsc --noEmit"
   },
   "exports": {
