@@ -293,7 +293,6 @@ function AutoragLeaderboard({
     patterns,
     patternsLoading,
     patternsError,
-    patternsLoadError,
     onRetryPatterns,
     pipelineRun,
     pipelineRunLoading,
@@ -698,9 +697,7 @@ function AutoragLeaderboard({
           variant={EmptyStateVariant.sm}
           data-testid="leaderboard-error"
         >
-          <EmptyStateBody>
-            {patternsLoadError?.message ?? 'An error occurred while loading pattern results.'}
-          </EmptyStateBody>
+          <EmptyStateBody>An error occurred while loading pattern results.</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
               <Button variant="link" onClick={onRetryPatterns}>

@@ -201,7 +201,6 @@ function AutomlLeaderboard({
     parameters,
     modelsLoading,
     modelsError,
-    modelsLoadError,
     onRetryModels,
     pipelineRun,
     pipelineRunLoading,
@@ -522,9 +521,7 @@ function AutomlLeaderboard({
           variant={EmptyStateVariant.sm}
           data-testid="leaderboard-error"
         >
-          <EmptyStateBody>
-            {modelsLoadError?.message ?? 'An error occurred while loading model results.'}
-          </EmptyStateBody>
+          <EmptyStateBody>An error occurred while loading model results.</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
               <Button variant="link" onClick={onRetryModels}>

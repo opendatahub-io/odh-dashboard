@@ -482,7 +482,7 @@ describe('AutoragLeaderboard component', () => {
       const errorState = screen.getByTestId('leaderboard-error');
       expect(errorState).toBeInTheDocument();
       expect(within(errorState).getByText('Unable to fetch RAG patterns')).toBeInTheDocument();
-      expect(errorState).toHaveTextContent('Failed to list RAG patterns directory');
+      expect(errorState).toHaveTextContent('An error occurred while loading pattern results.');
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
     });
 

@@ -212,7 +212,7 @@ export function usePipelineRunQuery(
     queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
     enabled: !!runId && !!namespace,
     placeholderData: (previousData) => previousData,
-    retry: 5,
+    retry: 4,
     retryDelay: RETRY_DELAY_MS,
     refetchInterval: (query) => {
       const state = query.state.data?.state;

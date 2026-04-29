@@ -482,7 +482,7 @@ describe('AutomlLeaderboard component', () => {
       const errorState = screen.getByTestId('leaderboard-error');
       expect(errorState).toBeInTheDocument();
       expect(within(errorState).getByText('Unable to fetch models')).toBeInTheDocument();
-      expect(errorState).toHaveTextContent('Failed to list model directories');
+      expect(errorState).toHaveTextContent('An error occurred while loading model results.');
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
     });
 

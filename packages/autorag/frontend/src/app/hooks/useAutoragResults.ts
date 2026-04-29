@@ -335,7 +335,7 @@ export function useAutoragResults(
   const queryClient = useQueryClient();
   const refetch = React.useCallback(() => {
     refetchTemplatesOptimization();
-    queryClient.invalidateQueries({ queryKey: ['s3Files', namespace] });
+    queryClient.invalidateQueries({ queryKey: ['autorag', 's3Files', namespace] });
     queryClient.invalidateQueries({ queryKey: ['s3File', namespace] });
   }, [refetchTemplatesOptimization, queryClient, namespace]);
 
@@ -344,7 +344,7 @@ export function useAutoragResults(
     failedPatterns: patternQueries.failedPatterns,
     isLoading:
       isTemplatesOptimizationLoading ||
-      isTemplatesOptimizationFetching ||
+      (!templatesOptimizationData && isTemplatesOptimizationFetching) ||
       isRagPatternsLoading ||
       patternQueries.isPending,
     isError: hasError,
