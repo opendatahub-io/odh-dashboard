@@ -38,8 +38,9 @@ Use when the user asks to:
 
 1. Confirm prerequisites (or ask the user to confirm cluster context).
 2. Run the workflow **in order** using the shell blocks below. Combine into a single script only if the user wants one file; otherwise run stepwise so output is visible.
-3. After `--list`, **stop** after Step 3’s list branch.
-4. If any step warns that env vars could not be patched, surface the **manual `oc set image` fallback** from Troubleshooting.
+3. If the user invokes **`use-odh-main` with no arguments**, run Step 1 only: the script prints **example commands** and exits (no cluster changes). Same examples are documented under **Example commands**; **`--help`** prints them and exits successfully.
+4. After `--list`, **stop** after Step 3’s list branch.
+5. If any step warns that env vars could not be patched, surface the **manual `oc set image` fallback** from Troubleshooting.
 
 ---
 
@@ -49,6 +50,33 @@ Use when the user asks to:
 - `--list` — print `relatedImages` and exit
 - `--registry REGISTRY` — default `quay.io/opendatahub`
 - `--tag TAG` — default `main`
+- `--help` / `-h` — print the examples below and exit (success)
+
+### Example commands
+
+Run these as the argument list to the Step 1 script (or teach the user the same invocations). Names must match CSV `relatedImage` repository basenames; use `--list` first if unsure.
+
+```text
+# Discover image basenames in the current CSV (no cluster mutation)
+use-odh-main --list
+
+# Override one component to quay.io/opendatahub/<name>:main (defaults)
+use-odh-main odh-dashboard-rhel9
+
+# Override several gen-ai–related components at once
+use-odh-main odh-mod-arch-automl odh-mod-arch-autorag
+
+# Same defaults, explicit registry and tag
+use-odh-main --registry quay.io/opendatahub --tag main odh-gen-ai-controller-rhel9
+
+# Custom tag on the default registry layout
+use-odh-main --tag nightly odh-dashboard-rhel9
+
+# Help only (prints this style of usage and exits 0)
+use-odh-main --help
+```
+
+If the user runs **`use-odh-main` with no arguments** (and not `--list` / `--help`), the Step 1 script **prints the same example block** and exits with a non-zero status so the agent does not continue without components.
 
 ### RHOAI: point the dashboard at ODH `main`
 
@@ -67,9 +95,35 @@ COMPONENTS=()
 REGISTRY="quay.io/opendatahub"
 TAG="main"
 LIST_ONLY=false
+WANT_HELP=false
+
+print_use_odh_main_examples() {
+  cat <<'EOF'
+Example commands (pass as script args, or run equivalent oc workflow):
+
+  use-odh-main --list
+  use-odh-main odh-dashboard-rhel9
+  use-odh-main odh-mod-arch-automl odh-mod-arch-autorag
+  use-odh-main --registry quay.io/opendatahub --tag main odh-gen-ai-controller-rhel9
+  use-odh-main --tag nightly odh-dashboard-rhel9
+  use-odh-main --help
+
+Flags:
+  --list              Print relatedImages from the CSV and exit
+  --registry REGISTRY Default quay.io/opendatahub
+  --tag TAG           Default main
+  --help, -h          Print this message and exit 0
+
+Components are CSV relatedImage repository basenames; run with --list to see names.
+EOF
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --help|-h)
+      WANT_HELP=true
+      shift
+      ;;
     --list)
       LIST_ONLY=true
       shift
@@ -102,6 +156,11 @@ for _c in "${COMPONENTS[@]}"; do
 done
 COMPONENTS=("${_COMPONENTS_DEDUPED[@]}")
 
+if [[ "$WANT_HELP" == "true" ]]; then
+  print_use_odh_main_examples
+  exit 0
+fi
+
 validate_image_ref_part() {
   local val="$1" what="$2"
   if [[ -z "$val" ]]; then echo "ERROR: $what is empty"; exit 1; fi
@@ -119,10 +178,9 @@ if [[ "$LIST_ONLY" == "false" ]]; then
 fi
 
 if [[ "$LIST_ONLY" == "false" && ${#COMPONENTS[@]} -eq 0 ]]; then
-  echo "ERROR: No components specified."
-  echo "Usage: use-odh-main <component1> [component2] ..."
-  echo "Example: use-odh-main odh-mod-arch-automl odh-mod-arch-autorag"
-  echo "Use --list to see available component images in the current CSV."
+  echo "ERROR: No components specified. Use --list to inspect the CSV, or pass one or more component basenames."
+  echo ""
+  print_use_odh_main_examples
   exit 1
 fi
 ```
