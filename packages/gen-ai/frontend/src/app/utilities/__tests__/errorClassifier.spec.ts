@@ -6,7 +6,14 @@ describe('errorClassifier', () => {
   describe('classifyError', () => {
     describe('error pattern determination', () => {
       it('should classify as full-failure when no response was generated', () => {
-        const error = { error: { code: 'timeout', message: 'Request timed out' } };
+        const error = {
+          error: {
+            component: 'bff' as const,
+            code: 'timeout',
+            message: 'Request timed out',
+            retriable: true,
+          },
+        };
         const result = classifyError(error, {
           wasResponseGenerated: false,
           wasStreamStarted: false,
@@ -22,6 +29,7 @@ describe('errorClassifier', () => {
             component: 'rag' as const,
             code: 'unreachable',
             message: 'RAG retrieval failed',
+            retriable: false,
           },
         };
         const result = classifyError(error, {
@@ -34,7 +42,14 @@ describe('errorClassifier', () => {
       });
 
       it('should classify as streaming_interruption when stream started but no full response', () => {
-        const error = { error: { code: 'stream_lost', message: 'Connection lost' } };
+        const error = {
+          error: {
+            component: 'bff' as const,
+            code: 'stream_lost',
+            message: 'Connection lost',
+            retriable: true,
+          },
+        };
         const result = classifyError(error, {
           wasResponseGenerated: false,
           wasStreamStarted: true,
@@ -45,7 +60,14 @@ describe('errorClassifier', () => {
       });
 
       it('should classify as streaming_interruption when stream started with partial response', () => {
-        const error = { error: { code: 'stream_lost', message: 'Connection lost' } };
+        const error = {
+          error: {
+            component: 'bff' as const,
+            code: 'stream_lost',
+            message: 'Connection lost',
+            retriable: true,
+          },
+        };
         const result = classifyError(error, {
           wasResponseGenerated: true,
           wasStreamStarted: true,
@@ -59,7 +81,12 @@ describe('errorClassifier', () => {
     describe('retriable determination', () => {
       it('should mark as retriable when error has explicit retriable flag set to true', () => {
         const error = {
-          error: { code: 'custom_error', message: 'Custom error', retriable: true },
+          error: {
+            component: 'bff' as const,
+            code: 'custom_error',
+            message: 'Custom error',
+            retriable: true,
+          },
         };
         const result = classifyError(error);
 
@@ -68,23 +95,26 @@ describe('errorClassifier', () => {
 
       it('should mark as non-retriable when error has explicit retriable flag set to false', () => {
         const error = {
-          error: { code: 'timeout', message: 'Timeout', retriable: false },
+          error: {
+            component: 'bff' as const,
+            code: 'timeout',
+            message: 'Timeout',
+            retriable: false,
+          },
         };
         const result = classifyError(error);
 
         expect(result.isRetriable).toBe(false);
       });
 
-      it('should mark errors without retriable field as retriable by default', () => {
-        const error = { error: { code: 'timeout', message: 'Request timed out' } };
-        const result = classifyError(error);
-
-        expect(result.isRetriable).toBe(true);
-      });
-
       it('should mark errors with BFF retriable=true as retriable', () => {
         const error = {
-          error: { code: 'server_error', message: 'Server error', retriable: true },
+          error: {
+            component: 'bff' as const,
+            code: 'server_error',
+            message: 'Server error',
+            retriable: true,
+          },
         };
         const result = classifyError(error);
 
@@ -93,7 +123,12 @@ describe('errorClassifier', () => {
 
       it('should mark errors with BFF retriable=false as non-retriable', () => {
         const error = {
-          error: { code: 'stream_context', message: 'Context exceeded', retriable: false },
+          error: {
+            component: 'bff' as const,
+            code: 'stream_context',
+            message: 'Context exceeded',
+            retriable: false,
+          },
         };
         const result = classifyError(error);
 
@@ -108,6 +143,7 @@ describe('errorClassifier', () => {
             component: 'model' as const,
             code: 'max_tokens',
             message: 'Token limit exceeded',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -121,6 +157,7 @@ describe('errorClassifier', () => {
             component: 'model' as const,
             code: 'chat_template',
             message: 'Invalid template',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -134,6 +171,7 @@ describe('errorClassifier', () => {
             component: 'model' as const,
             code: 'no_tools',
             message: 'Tools not supported',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -147,6 +185,7 @@ describe('errorClassifier', () => {
             component: 'model' as const,
             code: 'no_images',
             message: 'Images not supported',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -160,6 +199,7 @@ describe('errorClassifier', () => {
             component: 'llama_stack' as const,
             code: 'timeout',
             message: 'Request timed out',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -173,6 +213,7 @@ describe('errorClassifier', () => {
             component: 'llama_stack' as const,
             code: 'server_error',
             message: 'Internal error',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -181,7 +222,15 @@ describe('errorClassifier', () => {
       });
 
       it('should generate title for rate_limit error', () => {
-        const error = { status: 429, error: { message: 'Too many requests' } };
+        const error = {
+          status: 429,
+          error: {
+            component: 'bff' as const,
+            code: 'bff_error',
+            message: 'Too many requests',
+            retriable: true,
+          },
+        };
         const result = classifyError(error);
 
         expect(result.title).toBe('Request was rate limited');
@@ -196,7 +245,12 @@ describe('errorClassifier', () => {
 
         errors.forEach(({ code, expected }) => {
           const error = {
-            error: { component: 'rag' as const, code, message: 'RAG error' },
+            error: {
+              component: 'rag' as const,
+              code,
+              message: 'RAG error',
+              retriable: false,
+            },
           };
           expect(classifyError(error).title).toBe(expected);
         });
@@ -210,7 +264,12 @@ describe('errorClassifier', () => {
 
         errors.forEach(({ code, expected }) => {
           const error = {
-            error: { component: 'guardrails' as const, code, message: 'Guardrails error' },
+            error: {
+              component: 'guardrails' as const,
+              code,
+              message: 'Guardrails error',
+              retriable: false,
+            },
           };
           expect(classifyError(error).title).toBe(expected);
         });
@@ -224,6 +283,7 @@ describe('errorClassifier', () => {
             message: 'Tool failed',
             // eslint-disable-next-line camelcase
             tool_name: 'GitHub',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -233,7 +293,12 @@ describe('errorClassifier', () => {
 
       it('should generate title for MCP errors without tool name', () => {
         const error = {
-          error: { component: 'mcp' as const, code: 'unreachable', message: 'Tool failed' },
+          error: {
+            component: 'mcp' as const,
+            code: 'unreachable',
+            message: 'Tool failed',
+            retriable: false,
+          },
         };
         const result = classifyError(error);
 
@@ -248,7 +313,9 @@ describe('errorClassifier', () => {
         ];
 
         errors.forEach(({ code, expected }) => {
-          const error = { error: { code, message: 'Stream error' } };
+          const error = {
+            error: { component: 'bff' as const, code, message: 'Stream error', retriable: false },
+          };
           const result = classifyError(error, { wasStreamStarted: true });
           expect(result.title).toBe(expected);
         });
@@ -260,6 +327,7 @@ describe('errorClassifier', () => {
             component: 'llama_stack' as const,
             code: 'stream_lost',
             message: '{"error": "stream terminated: connection reset by peer"}',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -274,6 +342,7 @@ describe('errorClassifier', () => {
             component: 'model' as const,
             code: 'context_length',
             message: '{"error": "context length 8192 exceeded at token 8191"}',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -283,7 +352,14 @@ describe('errorClassifier', () => {
       });
 
       it('should use generic title for unknown errors', () => {
-        const error = { error: { code: 'unknown_code', message: 'Unknown error' } };
+        const error = {
+          error: {
+            component: 'bff' as const,
+            code: 'unknown_code',
+            message: 'Unknown error',
+            retriable: true,
+          },
+        };
         const result = classifyError(error);
 
         // Unknown errors without status or component fall back to bff:unreachable
@@ -298,6 +374,7 @@ describe('errorClassifier', () => {
             component: 'model' as const,
             code: 'max_tokens',
             message: 'Token limit exceeded',
+            retriable: false,
           },
         };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
@@ -311,6 +388,7 @@ describe('errorClassifier', () => {
             component: 'model' as const,
             code: 'max_tokens',
             message: 'Token limit exceeded',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -324,6 +402,7 @@ describe('errorClassifier', () => {
             component: 'model' as const,
             code: 'chat_template',
             message: 'Invalid template',
+            retriable: false,
           },
         };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
@@ -337,6 +416,7 @@ describe('errorClassifier', () => {
             component: 'model' as const,
             code: 'no_tools',
             message: 'Tools not supported',
+            retriable: false,
           },
         };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
@@ -350,6 +430,7 @@ describe('errorClassifier', () => {
             component: 'model' as const,
             code: 'no_images',
             message: 'Images not supported',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -363,6 +444,7 @@ describe('errorClassifier', () => {
             component: 'llama_stack' as const,
             code: 'timeout',
             message: 'Request timed out',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -376,6 +458,7 @@ describe('errorClassifier', () => {
             component: 'llama_stack' as const,
             code: 'server_error',
             message: 'Server error',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -384,14 +467,30 @@ describe('errorClassifier', () => {
       });
 
       it('should generate description for rate_limit error', () => {
-        const error = { status: 429, error: { message: 'Rate limited' } };
+        const error = {
+          status: 429,
+          error: {
+            component: 'bff' as const,
+            code: 'bff_error',
+            message: 'Rate limited',
+            retriable: true,
+          },
+        };
         const result = classifyError(error);
 
         expect(result.description).toBe('Rate limited');
       });
 
       it('should generate description for service_unavailable error', () => {
-        const error = { status: 503, error: { message: 'Service down' } };
+        const error = {
+          status: 503,
+          error: {
+            component: 'bff' as const,
+            code: 'bff_error',
+            message: 'Service down',
+            retriable: true,
+          },
+        };
         const result = classifyError(error);
 
         expect(result.description).toBe('Service down');
@@ -399,7 +498,12 @@ describe('errorClassifier', () => {
 
       it('should generate description for RAG partial failures', () => {
         const error = {
-          error: { component: 'rag' as const, code: 'unreachable', message: 'RAG failed' },
+          error: {
+            component: 'rag' as const,
+            code: 'unreachable',
+            message: 'RAG failed',
+            retriable: false,
+          },
         };
         const result = classifyError(error, { wasResponseGenerated: true });
 
@@ -413,6 +517,7 @@ describe('errorClassifier', () => {
             component: 'rag' as const,
             code: 'embedding_failure',
             message: 'Embedding failed',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -422,7 +527,12 @@ describe('errorClassifier', () => {
 
       it('should generate description for rag_empty error', () => {
         const error = {
-          error: { component: 'rag' as const, code: 'no_results', message: 'No results' },
+          error: {
+            component: 'rag' as const,
+            code: 'no_results',
+            message: 'No results',
+            retriable: false,
+          },
         };
         const result = classifyError(error);
 
@@ -435,6 +545,7 @@ describe('errorClassifier', () => {
             component: 'guardrails' as const,
             code: 'content_flagged',
             message: 'Content flagged',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -448,6 +559,7 @@ describe('errorClassifier', () => {
             component: 'guardrails' as const,
             code: 'service_down',
             message: 'Guardrails down',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -457,7 +569,12 @@ describe('errorClassifier', () => {
 
       it('should generate description for mcp_down error', () => {
         const error = {
-          error: { component: 'mcp' as const, code: 'unreachable', message: 'MCP server down' },
+          error: {
+            component: 'mcp' as const,
+            code: 'unreachable',
+            message: 'MCP server down',
+            retriable: false,
+          },
         };
         const result = classifyError(error);
 
@@ -466,7 +583,12 @@ describe('errorClassifier', () => {
 
       it('should generate description for mcp_auth error', () => {
         const error = {
-          error: { component: 'mcp' as const, code: 'auth_failure', message: 'Auth failed' },
+          error: {
+            component: 'mcp' as const,
+            code: 'auth_failure',
+            message: 'Auth failed',
+            retriable: false,
+          },
         };
         const result = classifyError(error);
 
@@ -479,6 +601,7 @@ describe('errorClassifier', () => {
             component: 'mcp' as const,
             code: 'execution_error',
             message: 'Execution failed',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -487,35 +610,65 @@ describe('errorClassifier', () => {
       });
 
       it('should generate description for stream_lost error', () => {
-        const error = { error: { code: 'stream_lost', message: 'Stream lost' } };
+        const error = {
+          error: {
+            component: 'bff' as const,
+            code: 'stream_lost',
+            message: 'Stream lost',
+            retriable: true,
+          },
+        };
         const result = classifyError(error, { wasStreamStarted: true });
 
         expect(result.description).toBe('Stream lost');
       });
 
       it('should generate description for stream_timeout error', () => {
-        const error = { error: { code: 'stream_timeout', message: 'Stream timeout' } };
+        const error = {
+          error: {
+            component: 'bff' as const,
+            code: 'stream_timeout',
+            message: 'Stream timeout',
+            retriable: true,
+          },
+        };
         const result = classifyError(error, { wasStreamStarted: true });
 
         expect(result.description).toBe('Stream timeout');
       });
 
       it('should generate description for stream_context error', () => {
-        const error = { error: { code: 'stream_context', message: 'Context exceeded' } };
+        const error = {
+          error: {
+            component: 'bff' as const,
+            code: 'stream_context',
+            message: 'Context exceeded',
+            retriable: true,
+          },
+        };
         const result = classifyError(error, { wasStreamStarted: true });
 
         expect(result.description).toBe('Context exceeded');
       });
 
       it('should use error message as fallback for unknown errors', () => {
-        const error = { error: { code: 'unknown', message: 'Custom error message' } };
+        const error = {
+          error: {
+            component: 'bff' as const,
+            code: 'unknown',
+            message: 'Custom error message',
+            retriable: true,
+          },
+        };
         const result = classifyError(error);
 
         expect(result.description).toBe('Custom error message');
       });
 
       it('should use default message when error message is empty', () => {
-        const error = { error: { code: 'unknown', message: '' } };
+        const error = {
+          error: { component: 'bff' as const, code: 'unknown', message: '', retriable: true },
+        };
         const result = classifyError(error);
 
         // Unknown errors without status/component fall back to bff:unreachable
@@ -546,7 +699,9 @@ describe('errorClassifier', () => {
         ];
 
         categoryTests.forEach((code) => {
-          const error = { error: { code, message: 'Error message' } };
+          const error = {
+            error: { component: 'bff' as const, code, message: 'Error message', retriable: false },
+          };
           const result = classifyError(error);
           expect(result.title).toBe("Couldn't reach the server");
         });
@@ -555,7 +710,12 @@ describe('errorClassifier', () => {
       it('should handle service_unavailable code', () => {
         const error = {
           status: 503,
-          error: { message: 'Service down', retriable: true },
+          error: {
+            component: 'bff' as const,
+            code: 'bff_error',
+            message: 'Service down',
+            retriable: true,
+          },
         };
         const result = classifyError(error);
 
@@ -567,7 +727,12 @@ describe('errorClassifier', () => {
       it('should handle bad_gateway code', () => {
         const error = {
           status: 502,
-          error: { message: 'Gateway error', retriable: true },
+          error: {
+            component: 'bff' as const,
+            code: 'bff_error',
+            message: 'Gateway error',
+            retriable: true,
+          },
         };
         const result = classifyError(error);
 
@@ -579,6 +744,7 @@ describe('errorClassifier', () => {
       it('should handle ERROR_CATEGORIES.INVALID_PARAMETER', () => {
         const error = {
           error: {
+            component: 'bff' as const,
             code: ERROR_CATEGORIES.INVALID_PARAMETER,
             message: 'Invalid param',
             retriable: false,
@@ -593,8 +759,10 @@ describe('errorClassifier', () => {
       it('should handle ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND', () => {
         const error = {
           error: {
+            component: 'bff' as const,
             code: ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND,
             message: 'Vector store not found',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -604,7 +772,12 @@ describe('errorClassifier', () => {
 
       it('should handle ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND', () => {
         const error = {
-          error: { code: ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND, message: 'Tool not found' },
+          error: {
+            component: 'bff' as const,
+            code: ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND,
+            message: 'Tool not found',
+            retriable: false,
+          },
         };
         const result = classifyError(error);
 
@@ -613,7 +786,12 @@ describe('errorClassifier', () => {
 
       it('should handle ERROR_CATEGORIES.MCP_AUTH_ERROR', () => {
         const error = {
-          error: { code: ERROR_CATEGORIES.MCP_AUTH_ERROR, message: 'Auth failed' },
+          error: {
+            component: 'bff' as const,
+            code: ERROR_CATEGORIES.MCP_AUTH_ERROR,
+            message: 'Auth failed',
+            retriable: false,
+          },
         };
         const result = classifyError(error);
 
@@ -622,7 +800,12 @@ describe('errorClassifier', () => {
 
       it('should handle ERROR_CATEGORIES.MODEL_INVOCATION_ERROR', () => {
         const error = {
-          error: { code: ERROR_CATEGORIES.MODEL_INVOCATION_ERROR, message: 'Model error' },
+          error: {
+            component: 'bff' as const,
+            code: ERROR_CATEGORIES.MODEL_INVOCATION_ERROR,
+            message: 'Model error',
+            retriable: false,
+          },
         };
         const result = classifyError(error);
 
@@ -632,6 +815,7 @@ describe('errorClassifier', () => {
       it('should handle ERROR_CATEGORIES.MODEL_OVERLOADED', () => {
         const error = {
           error: {
+            component: 'bff' as const,
             code: ERROR_CATEGORIES.MODEL_OVERLOADED,
             message: 'Model overloaded',
             retriable: true,
@@ -649,7 +833,9 @@ describe('errorClassifier', () => {
         const error = {
           error: {
             component: 'rag' as const,
+            code: 'unknown',
             message: 'Retrieval failed',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -662,7 +848,9 @@ describe('errorClassifier', () => {
         const error = {
           error: {
             component: 'guardrails' as const,
+            code: 'unknown',
             message: 'Guardrails failed',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -675,7 +863,9 @@ describe('errorClassifier', () => {
         const error = {
           error: {
             component: 'mcp' as const,
+            code: 'unknown',
             message: 'MCP failed',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -690,6 +880,7 @@ describe('errorClassifier', () => {
             code: 'no_results',
             component: 'rag' as const,
             message: 'No results',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -703,6 +894,7 @@ describe('errorClassifier', () => {
             code: 'unknown_code',
             component: 'guardrails' as const,
             message: 'Unknown guardrails error',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -719,6 +911,7 @@ describe('errorClassifier', () => {
             component: 'guardrails' as const,
             code: 'some_error',
             message: 'Guardrails error',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -733,6 +926,7 @@ describe('errorClassifier', () => {
             component: 'unknown_component' as any,
             code: 'some_error',
             message: 'Unknown component error',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -743,8 +937,10 @@ describe('errorClassifier', () => {
       it('should use "Unknown" when component is not present', () => {
         const error = {
           error: {
+            component: 'bff' as const,
             code: 'some_error',
             message: 'Error without component',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -760,6 +956,7 @@ describe('errorClassifier', () => {
             message: 'Tool failed',
             // eslint-disable-next-line camelcase
             tool_name: 'GitHub',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -773,6 +970,7 @@ describe('errorClassifier', () => {
             component: 'mcp' as const,
             code: 'mcp_down',
             message: 'Tool failed',
+            retriable: false,
           },
         };
         const result = classifyError(error);
@@ -799,7 +997,9 @@ describe('errorClassifier', () => {
       });
 
       it('should handle empty error object', () => {
-        const result = classifyError({});
+        const result = classifyError({
+          error: { component: 'bff' as const, code: 'unknown', message: '', retriable: false },
+        });
 
         expect(result.pattern).toBe('full-failure' as ErrorPattern);
         expect(result.details.rawMessage).toBe('');
@@ -807,7 +1007,9 @@ describe('errorClassifier', () => {
       });
 
       it('should handle error with empty message', () => {
-        const error = { error: { code: 'test', message: '' } };
+        const error = {
+          error: { component: 'bff' as const, code: 'test', message: '', retriable: true },
+        };
         const result = classifyError(error);
 
         expect(result.details.rawMessage).toBe('');

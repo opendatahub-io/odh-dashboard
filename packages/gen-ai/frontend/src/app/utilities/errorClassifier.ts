@@ -32,77 +32,39 @@ const STREAMING_ERROR_MAP: Record<string, string> = {
 };
 
 function resolveTemplateKey(error: ApiError): string {
-  const component = error.error?.component;
-  const code = error.error?.code;
+  const { component } = error.error;
+  const { code } = error.error;
 
   // Check for streaming errors first (they can have component + code)
-  if (code && Object.prototype.hasOwnProperty.call(STREAMING_ERROR_MAP, code)) {
+  if (Object.prototype.hasOwnProperty.call(STREAMING_ERROR_MAP, code)) {
     return STREAMING_ERROR_MAP[code];
   }
 
-  if (component && code) {
-    return `${component}:${code}`;
-  }
-
-  if (error.status === 429) {
-    return 'bff:rate_limit';
-  }
-  if (error.status && error.status >= 500) {
-    return 'bff:network_error';
-  }
-  if (error.status === 0 || (!error.status && !component)) {
-    return 'bff:unreachable';
-  }
-
-  return 'unknown';
+  return `${component}:${code}`;
 }
 
 function resolveRetriable(error: ApiError): boolean {
-  if (error.error?.retriable !== undefined) {
-    return error.error.retriable;
-  }
-
-  // Fallback for non-BFF errors: unknown errors are retriable per spec
-  return true;
+  return error.error.retriable;
 }
 
 export function classifyError(error: ApiError, context: ClassifyContext = {}): ClassifiedError {
-  // Handle null/undefined errors defensively
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!error) {
-    return {
-      pattern: 'full-failure',
-      variant: 'danger',
-      title: 'Something went wrong',
-      description: 'An unexpected error occurred. Check the details below for more information.',
-      details: {
-        component: 'Unknown',
-        errorCode: 'UNKNOWN',
-        rawMessage: 'An unexpected error occurred',
-      },
-      isRetriable: true,
-    };
-  }
+  const { component } = error.error;
+  const { code } = error.error;
+  const rawMessage = error.error.message || error.message || '';
 
-  const component = error.error?.component;
-  const code = error.error?.code ?? '';
-  const rawMessage = error.error?.message ?? error.message ?? '';
-
-  const isPartial = component ? PARTIAL_COMPONENTS.has(component) : false;
-  const isStreamingError = code && Object.prototype.hasOwnProperty.call(STREAMING_ERROR_MAP, code);
+  const isPartial = PARTIAL_COMPONENTS.has(component);
+  const isStreamingError = Object.prototype.hasOwnProperty.call(STREAMING_ERROR_MAP, code);
 
   const effectiveContext = {
     ...context,
-    toolName: context.toolName ?? error.error?.tool_name,
+    toolName: context.toolName ?? error.error.tool_name,
   };
 
   const templateKey = resolveTemplateKey(error);
   const microcopy = getMicrocopy(templateKey, effectiveContext);
   const isRetriable = resolveRetriable(error);
 
-  const displayComponent = component
-    ? (COMPONENT_DISPLAY_NAMES[component] ?? component)
-    : 'Unknown';
+  const displayComponent = COMPONENT_DISPLAY_NAMES[component] ?? component;
   const componentLabel =
     component === 'mcp' && effectiveContext.toolName
       ? `MCP: ${effectiveContext.toolName}`
