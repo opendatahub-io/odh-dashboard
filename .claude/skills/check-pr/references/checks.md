@@ -43,12 +43,45 @@ Don't hardcode check names. Let the script discover what exists and report what 
 
 ## Reviews
 
-Checks for unresolved review feedback.
+Reviews are reported as separate rows in the results table, each with its source.
+
+### CodeRabbit Reviews
 
 | Context | How to check |
 |---|---|
-| PR (any) | Fetch threads via `fetch-review-threads.sh`. Check `reviewDecision`. Unresolved critical/major CR or human threads → ❌ |
-| No PR | Results from Step 2 local review |
+| PR (any) | Fetch threads via `fetch-review-threads.sh`, filter to `is_coderabbit == true`. Parse severity from comment body. |
+| No PR + CR CLI ran | Results from Step 2 CodeRabbit CLI review |
+| No PR + CR CLI not ran | ➖ "not run" |
+
+Report: `CodeRabbit (PR)` or `CodeRabbit (local)` as the source. Unresolved critical/major → ❌. Minor only → ⚠️. None → ✅.
+
+### Human Reviews
+
+| Context | How to check |
+|---|---|
+| PR (any) | Fetch threads via `fetch-review-threads.sh`, filter to `is_coderabbit == false`. Also check `reviewDecision` from PR metadata. |
+| No PR | ➖ "no PR — no human reviews" |
+
+Report: `Human (PR)` as the source. Any unresolved threads → ❌. `CHANGES_REQUESTED` → ❌. `APPROVED` + no threads → ✅. `REVIEW_REQUIRED` → ⚠️.
+
+### Style Review
+
+| Context | How to check |
+|---|---|
+| PR + style review exists | Check if `/style-review` was run on the PR (look for style review threads) |
+| No PR + style ran | Results from Step 2 style review |
+| Not run | ➖ "not run" |
+
+Report: `Style (local)` as the source.
+
+### Claude Review
+
+| Context | How to check |
+|---|---|
+| Ran in Step 2 | Results from `/review` invocation |
+| Not run | ➖ "not run" |
+
+Report: `Claude (local)` as the source.
 
 ## Jira
 
