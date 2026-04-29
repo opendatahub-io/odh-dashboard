@@ -319,7 +319,7 @@ function AutoragLeaderboard({
           ? pattern.scores
           : {};
       Object.keys(scores).forEach((key) => {
-        keysSet.add(key);
+        keysSet.add(key.toLowerCase());
       });
     });
     return Array.from(keysSet).toSorted();
@@ -327,7 +327,7 @@ function AutoragLeaderboard({
 
   // Metric keys excluding the optimized metric (shown in sticky column)
   const nonOptimizedMetricKeys = React.useMemo(
-    () => metricKeys.filter((key) => key !== optimizedMetric),
+    () => metricKeys.filter((key) => key.toLowerCase() !== optimizedMetric.toLowerCase()),
     [metricKeys, optimizedMetric],
   );
 
@@ -454,7 +454,10 @@ function AutoragLeaderboard({
             pattern.scores && typeof pattern.scores === 'object' && !Array.isArray(pattern.scores)
               ? pattern.scores
               : {};
-          const metricData = scores[metricName];
+          const metricKey = Object.keys(scores).find(
+            (key) => key.toLowerCase() === metricName.toLowerCase(),
+          );
+          const metricData = metricKey ? scores[metricKey] : undefined;
           const meanValue = metricData?.mean;
           // Only return numeric mean if it's a finite number
           const isValidNumber = typeof meanValue === 'number' && Number.isFinite(meanValue);
@@ -813,13 +816,13 @@ function AutoragLeaderboard({
               <Th
                 sort={getSortParams('optimized-metric')}
                 info={(() => {
-                  const hasBrackets = !!getColumnMeta(`metric:${optimizedMetric}`)?.acronym;
+                  const metricName =
+                    getColumnMeta(`metric:${optimizedMetric}`)?.name ??
+                    formatMetricName(optimizedMetric);
+                  const hasBrackets = metricName.includes('(');
                   return getColumnInfoProps(
                     `metric:${optimizedMetric}`,
-                    `${
-                      getColumnMeta(`metric:${optimizedMetric}`)?.name ??
-                      formatMetricName(optimizedMetric)
-                    } ${hasBrackets ? '[optimized]' : '(optimized)'}`,
+                    `${metricName} ${hasBrackets ? '[optimized]' : '(optimized)'}`,
                     'AutoRAG prioritized performance of this metric and used it to rank patterns.',
                   );
                 })()}

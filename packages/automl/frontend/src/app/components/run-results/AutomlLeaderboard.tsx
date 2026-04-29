@@ -128,7 +128,7 @@ const COLUMN_META: Record<string, ColumnMeta> = {
   'metric:median_absolute_error': {
     name: 'Median Absolute Error (MedAE)',
     acronym: formatMetricName('median_absolute_error'),
-    description: 'The median of all absolute differences between true and false predictions.',
+    description: 'The median of all absolute differences between actual and predicted values.',
   },
   'metric:pearsonr': {
     name: 'Pearson r',
@@ -140,7 +140,7 @@ const COLUMN_META: Record<string, ColumnMeta> = {
   'metric:mse': {
     name: 'Mean Squared Error (MSE)',
     acronym: formatMetricName('mse'),
-    description: 'Measures the average squared difference between the predicted and actual values.',
+    description: 'Measures the average squared difference between the actual and predicted values.',
   },
   'metric:mean_squared_error': {
     name: 'Mean Squared Error (MSE)',
@@ -212,6 +212,10 @@ const COLUMN_META: Record<string, ColumnMeta> = {
 
 // Safe accessor — COLUMN_META is typed as Record<string, …> so TS believes every
 // key returns a value, but at runtime dynamic metric keys may be absent.
+// Helper to resolve display name for any column id
+const getColumnName = (id: string, fallbackLabel: string): string =>
+  getColumnMeta(id)?.name ?? fallbackLabel;
+
 // Resolve display text for a column header: acronym → name → fallback
 const getColumnHeader = (id: string, fallback?: string): string =>
   getColumnMeta(id)?.acronym ?? getColumnMeta(id)?.name ?? fallback ?? id;
@@ -250,6 +254,12 @@ const getColumnInfoProps = (
     ),
   };
 };
+
+const MetricCell: React.FC<{ value: number | string }> = ({ value }) => (
+  <Tooltip content={String(value)}>
+    <span>{formatMetricValue(value)}</span>
+  </Tooltip>
+);
 
 type AutomlLeaderboardProps = {
   onViewDetails?: (modelName: string, rank: number) => void;
@@ -297,7 +307,7 @@ function AutomlLeaderboard({
           ? model.metrics.test_data
           : {};
       Object.keys(testData).forEach((key) => {
-        keysSet.add(key);
+        keysSet.add(key.toLowerCase());
       });
     });
     return Array.from(keysSet).toSorted();
@@ -321,7 +331,7 @@ function AutomlLeaderboard({
       },
       ...nonOptimizedMetricKeys.map((key) => ({
         id: `metric:${key}`,
-        label: formatMetricName(key),
+        label: getColumnName(`metric:${key}`, formatMetricName(key)),
       })),
     ],
     [nonOptimizedMetricKeys, optimizedMetric],
@@ -339,7 +349,7 @@ function AutomlLeaderboard({
         title: col.label,
         isShownByDefault: true,
         isShown: !hiddenColumnIds.has(col.id),
-        isUntoggleable: col.isAlwaysVisible,
+        isUntoggleable: 'isAlwaysVisible' in col ? Boolean(col.isAlwaysVisible) : undefined,
       })),
     [columnDefs, hiddenColumnIds],
   );
@@ -685,13 +695,13 @@ function AutomlLeaderboard({
               <Th
                 sort={getSortParams('optimized-metric')}
                 info={(() => {
-                  const hasBrackets = !!getColumnMeta(`metric:${optimizedMetric}`)?.acronym;
+                  const metricName =
+                    getColumnMeta(`metric:${optimizedMetric}`)?.name ??
+                    formatMetricName(optimizedMetric);
+                  const hasBrackets = metricName.includes('(');
                   return getColumnInfoProps(
                     `metric:${optimizedMetric}`,
-                    `${
-                      getColumnMeta(`metric:${optimizedMetric}`)?.name ??
-                      formatMetricName(optimizedMetric)
-                    } ${hasBrackets ? '[optimized]' : '(optimized)'}`,
+                    `${metricName} ${hasBrackets ? '[optimized]' : '(optimized)'}`,
                     'AutoML prioritized performance of this metric and used it to rank models.',
                   );
                 })()}
@@ -771,9 +781,7 @@ function AutomlLeaderboard({
                   stickyMinWidth="150px"
                   stickyLeftOffset="270px"
                 >
-                  <Tooltip content={String(entry.optimizedMetricValue)}>
-                    <span>{formatMetricValue(entry.optimizedMetricValue)}</span>
-                  </Tooltip>
+                  <MetricCell value={entry.optimizedMetricValue} />
                 </Td>
                 {visibleNonOptimizedMetricKeys.map((metricKey) => (
                   <Td
@@ -781,9 +789,7 @@ function AutomlLeaderboard({
                     dataLabel={formatMetricName(metricKey)}
                     data-testid={`metric-${metricKey}-${entry.rank}`}
                   >
-                    <Tooltip content={String(entry.metrics[metricKey])}>
-                      <span>{formatMetricValue(entry.metrics[metricKey])}</span>
-                    </Tooltip>
+                    <MetricCell value={entry.metrics[metricKey]} />
                   </Td>
                 ))}
                 <Td
