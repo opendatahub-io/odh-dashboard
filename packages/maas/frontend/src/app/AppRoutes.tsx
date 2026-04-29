@@ -11,11 +11,24 @@ import AllAuthPoliciesPage from '~/app/pages/auth-policies/AllAuthPoliciesPage';
 import CreateAuthPolicyPage from '~/app/pages/auth-policies/CreateAuthPolicyPage';
 import EditAuthPolicyPage from '~/app/pages/auth-policies/EditAuthPolicyPage';
 import ViewAuthPoliciesPage from '~/app/pages/auth-policies/ViewAuthPoliciesPage';
+import AllEndpointsPage from '~/app/pages/endpoints/AllEndpointsPage';
+import CreateEndpointsPage from '~/app/pages/endpoints/CreateEndpointsPage';
+import EditEndpointsPage from '~/app/pages/endpoints/EditEndpointsPage';
+
+export const EndpointsTabRoutes: React.FC = () => (
+  <Routes>
+    <Route index element={<AllEndpointsPage />} />
+    <Route path="create" element={<CreateEndpointsPage />} />
+    <Route path="edit/:endpointName" element={<EditEndpointsPage />} />
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();
   const isSubscriptions = pathname.startsWith(`${URL_PREFIX}/subscriptions`);
   const isAuthPolicies = pathname.startsWith(`${URL_PREFIX}/auth-policies`);
+  const isEndpoints = pathname.startsWith(`${URL_PREFIX}/maas-endpoints`);
   if (isAuthPolicies) {
     return (
       <Routes>
@@ -37,6 +50,9 @@ const AppRoutes: React.FC = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
     );
+  }
+  if (isEndpoints) {
+    return <EndpointsTabRoutes />;
   }
 
   return (
