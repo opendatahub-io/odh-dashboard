@@ -18,47 +18,28 @@ Checks whether the branch can merge cleanly and is up to date.
 | PR not synced | `mergeable` from PR + warn "local out of sync" |
 | No PR | `git rev-list --count HEAD..origin/$base_branch` — 0 is ✅, >0 is ⚠️ |
 
-## CI
+## CI / Build / Lint / Type Check / Unit Tests
 
-Checks the status of CI checks on the PR.
+These checks are all discovered dynamically via `analyze-ci.sh`:
 
-| Context | How to check |
+```bash
+${CLAUDE_SKILL_DIR}/scripts/analyze-ci.sh "$owner" "$repo" "$pr_number"
+```
+
+The script returns three things:
+- **pr_checks**: status of every CI check on the PR (name, bucket, link, timestamps)
+- **failures**: for failed/cancelled checks, the job logs
+- **local_workflows**: what CI workflows exist in `.github/workflows/` and what commands they run
+
+**How to use this data:**
+
+| Context | What to do |
 |---|---|
-| PR synced | ⏭️ read from `gh pr checks --json name,bucket,link` — report any failures |
-| PR not synced | ➖ "CI ran on different code — see local checks below" |
-| No PR | ➖ "no PR — CI hasn't run" |
+| PR synced | Read `pr_checks`. Each check with `bucket: "pass"` → ⏭️. Each with `bucket: "fail"` → ❌ (use the failure logs). Each with `bucket: "pending"` → ⚠️ "still running". Report each check by name. |
+| PR not synced | PR checks don't apply to this code. Read `local_workflows` to understand what CI *would* run, then run the equivalent commands locally on affected packages. |
+| No PR | Same as not synced — read `local_workflows`, run locally. |
 
-## Lint
-
-Checks that code passes lint rules.
-
-| Context | How to check |
-|---|---|
-| PR synced | ⏭️ if CI lint check passed |
-| PR not synced | `npm run lint` on affected packages |
-| No PR | `npm run lint` on affected packages |
-
-Only lint affected packages — detect from `git diff --name-only origin/$base_branch | cut -d'/' -f1-2 | sort -u`.
-
-## Type Check
-
-Checks TypeScript compilation.
-
-| Context | How to check |
-|---|---|
-| PR synced | ⏭️ if CI type-check passed |
-| PR not synced | `npm run type-check` on affected packages |
-| No PR | `npm run type-check` on affected packages |
-
-## Unit Tests
-
-Runs unit tests on affected packages.
-
-| Context | How to check |
-|---|---|
-| PR synced | ⏭️ if CI unit tests passed |
-| PR not synced | `npm run test-unit` on affected packages |
-| No PR | `npm run test-unit` on affected packages |
+Don't hardcode check names. Let the script discover what exists and report what it finds. The LLM interprets which checks map to lint, type-check, tests, build, etc. from the workflow names and job commands.
 
 ## Reviews
 

@@ -80,6 +80,7 @@ If no PR exists, or PR exists but is not synced, or `--local`: no reviews have b
 If `--review` flag was passed, use those reviewers directly. Otherwise use AskUserQuestion with `multiSelect: true` so the user can pick any combination:
 - "CodeRabbit CLI" — run `coderabbit review --agent` (requires CLI installed)
 - "Claude review" — invoke `/review` built-in skill
+- "Style review" — invoke `/style-review` for code style and pattern checks
 - "Skip review" — no review
 
 Run whichever the user picks. If a reviewer fails (e.g. CR CLI not installed or errors), report the failure clearly — don't silently fall back to something else.
