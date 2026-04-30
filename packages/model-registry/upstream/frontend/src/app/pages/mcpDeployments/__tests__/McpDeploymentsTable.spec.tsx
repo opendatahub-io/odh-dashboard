@@ -3,34 +3,35 @@ import * as React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
+import { McpDeployment } from '~/app/mcpDeploymentTypes';
 import McpDeploymentsTable from '~/app/pages/mcpDeployments/McpDeploymentsTable';
+import {
+  createMockDeployment,
+  createReadyConditions,
+  createInitializingConditions,
+  createFailedConditions,
+} from './mcpDeploymentTestUtils';
 
 const mockDeployments: McpDeployment[] = [
-  {
+  createMockDeployment({
     name: 'kubernetes-mcp',
-    namespace: 'mcp-servers',
     uid: 'uid-1',
-    creationTimestamp: '2026-03-10T14:30:00Z',
-    image: 'quay.io/mcp-servers/kubernetes:1.0.0',
-    phase: McpDeploymentPhase.RUNNING,
-  },
-  {
+    conditions: createReadyConditions(),
+  }),
+  createMockDeployment({
     name: 'slack-mcp',
-    namespace: 'mcp-servers',
     uid: 'uid-2',
     creationTimestamp: '2026-03-14T11:00:00Z',
     image: 'quay.io/mcp-servers/slack:0.5.0',
-    phase: McpDeploymentPhase.PENDING,
-  },
-  {
+    conditions: createInitializingConditions(),
+  }),
+  createMockDeployment({
     name: 'jira-mcp',
-    namespace: 'mcp-servers',
     uid: 'uid-3',
     creationTimestamp: '2026-03-08T16:45:00Z',
     image: 'quay.io/mcp-servers/jira:1.2.0',
-    phase: McpDeploymentPhase.FAILED,
-  },
+    conditions: createFailedConditions(),
+  }),
 ];
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (

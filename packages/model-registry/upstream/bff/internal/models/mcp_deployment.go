@@ -1,13 +1,5 @@
 package models
 
-type McpDeploymentPhase string
-
-const (
-	McpDeploymentPhasePending McpDeploymentPhase = "Pending"
-	McpDeploymentPhaseRunning McpDeploymentPhase = "Running"
-	McpDeploymentPhaseFailed  McpDeploymentPhase = "Failed"
-)
-
 type McpDeploymentCondition struct {
 	Type               string `json:"type"`
 	Status             string `json:"status"`
@@ -31,8 +23,7 @@ type McpDeployment struct {
 	CreationTimestamp string                   `json:"creationTimestamp"`
 	Image             string                   `json:"image"`
 	YAML              string                   `json:"yaml,omitempty"`
-	Phase             McpDeploymentPhase       `json:"phase"`
-	Conditions        []McpDeploymentCondition `json:"conditions,omitempty"`
+	Conditions        []McpDeploymentCondition `json:"conditions"`
 	Address           *McpDeploymentAddress    `json:"address,omitempty"`
 }
 

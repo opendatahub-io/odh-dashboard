@@ -412,77 +412,74 @@ func TestConvertUnstructuredToMcpDeployment_NoAnnotations(t *testing.T) {
 	}
 }
 
-// extractMcpServerStatus
-func TestExtractMcpServerStatus_NoStatus(t *testing.T) {
+// extractMcpServerConditions
+func TestExtractMcpServerConditions_NoStatus(t *testing.T) {
 	obj := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"metadata": map[string]interface{}{"name": "test"},
 		},
 	}
 
-	phase, conditions := extractMcpServerStatus(obj)
-	if phase != models.McpDeploymentPhasePending {
-		t.Fatalf("expected phase Pending, got %q", phase)
-	}
-	if conditions != nil {
-		t.Fatalf("expected nil conditions, got %+v", conditions)
+	conditions := extractMcpServerConditions(obj)
+	if len(conditions) != 0 {
+		t.Fatalf("expected empty conditions, got %+v", conditions)
 	}
 }
 
-func TestExtractMcpServerStatus_WithPhase(t *testing.T) {
+func TestExtractMcpServerConditions_NoConditions(t *testing.T) {
 	obj := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"metadata": map[string]interface{}{"name": "test"},
-			"status": map[string]interface{}{
-				"phase": "Running",
-			},
+			"status":   map[string]interface{}{},
 		},
 	}
 
-	phase, _ := extractMcpServerStatus(obj)
-	if phase != models.McpDeploymentPhaseRunning {
-		t.Fatalf("expected phase Running, got %q", phase)
+	conditions := extractMcpServerConditions(obj)
+	if len(conditions) != 0 {
+		t.Fatalf("expected empty conditions, got %+v", conditions)
 	}
 }
 
-func TestExtractMcpServerStatus_WithConditions(t *testing.T) {
+func TestExtractMcpServerConditions_WithConditions(t *testing.T) {
 	obj := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"metadata": map[string]interface{}{"name": "test"},
 			"status": map[string]interface{}{
-				"phase": "Running",
 				"conditions": []interface{}{
+					map[string]interface{}{
+						"type":               "Accepted",
+						"status":             "True",
+						"lastTransitionTime": "2026-03-30T10:00:00Z",
+						"reason":             "Valid",
+						"message":            "Configuration is valid",
+					},
 					map[string]interface{}{
 						"type":               "Ready",
 						"status":             "True",
-						"lastTransitionTime": "2026-03-30T10:00:00Z",
-						"reason":             "AllGood",
+						"lastTransitionTime": "2026-03-30T10:01:00Z",
+						"reason":             "Available",
 						"message":            "Server is running",
-					},
-					map[string]interface{}{
-						"type":   "Available",
-						"status": "True",
 					},
 				},
 			},
 		},
 	}
 
-	phase, conditions := extractMcpServerStatus(obj)
-	if phase != models.McpDeploymentPhaseRunning {
-		t.Fatalf("expected phase Running, got %q", phase)
-	}
+	conditions := extractMcpServerConditions(obj)
 	if len(conditions) != 2 {
 		t.Fatalf("expected 2 conditions, got %d", len(conditions))
 	}
-	if conditions[0].Type != "Ready" {
-		t.Fatalf("expected first condition type 'Ready', got %q", conditions[0].Type)
+	if conditions[0].Type != "Accepted" {
+		t.Fatalf("expected first condition type 'Accepted', got %q", conditions[0].Type)
 	}
-	if conditions[0].Reason != "AllGood" {
-		t.Fatalf("expected reason 'AllGood', got %q", conditions[0].Reason)
+	if conditions[0].Reason != "Valid" {
+		t.Fatalf("expected reason 'Valid', got %q", conditions[0].Reason)
 	}
-	if conditions[1].Type != "Available" {
-		t.Fatalf("expected second condition type 'Available', got %q", conditions[1].Type)
+	if conditions[1].Type != "Ready" {
+		t.Fatalf("expected second condition type 'Ready', got %q", conditions[1].Type)
+	}
+	if conditions[1].Reason != "Available" {
+		t.Fatalf("expected reason 'Available', got %q", conditions[1].Reason)
 	}
 }
 
@@ -559,13 +556,19 @@ func TestExtractMcpServerAddress_WithURL(t *testing.T) {
 func TestConvertUnstructuredToMcpDeployment_WithStatusAndAddress(t *testing.T) {
 	obj := newTestUnstructured("k8s-mcp", "test-ns", "quay.io/mcp/k8s:1.0", 8080)
 	obj.Object["status"] = map[string]interface{}{
-		"phase": "Running",
 		"conditions": []interface{}{
+			map[string]interface{}{
+				"type":               "Accepted",
+				"status":             "True",
+				"lastTransitionTime": "2026-03-30T10:04:00Z",
+				"reason":             "Valid",
+				"message":            "Configuration is valid",
+			},
 			map[string]interface{}{
 				"type":               "Ready",
 				"status":             "True",
 				"lastTransitionTime": "2026-03-30T10:05:00Z",
-				"reason":             "DeploymentAvailable",
+				"reason":             "Available",
 				"message":            "Deployment is available and ready",
 			},
 		},
@@ -579,14 +582,14 @@ func TestConvertUnstructuredToMcpDeployment_WithStatusAndAddress(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if deployment.Phase != models.McpDeploymentPhaseRunning {
-		t.Fatalf("expected phase Running, got %q", deployment.Phase)
+	if len(deployment.Conditions) != 2 {
+		t.Fatalf("expected 2 conditions, got %d", len(deployment.Conditions))
 	}
-	if len(deployment.Conditions) != 1 {
-		t.Fatalf("expected 1 condition, got %d", len(deployment.Conditions))
+	if deployment.Conditions[0].Type != "Accepted" {
+		t.Fatalf("expected first condition type 'Accepted', got %q", deployment.Conditions[0].Type)
 	}
-	if deployment.Conditions[0].Reason != "DeploymentAvailable" {
-		t.Fatalf("expected reason 'DeploymentAvailable', got %q", deployment.Conditions[0].Reason)
+	if deployment.Conditions[1].Reason != "Available" {
+		t.Fatalf("expected reason 'Available', got %q", deployment.Conditions[1].Reason)
 	}
 	if deployment.Address == nil {
 		t.Fatal("expected address to be populated")
@@ -599,12 +602,11 @@ func TestConvertUnstructuredToMcpDeployment_WithStatusAndAddress(t *testing.T) {
 func TestConvertUnstructuredToMcpDeployment_FailedNoAddress(t *testing.T) {
 	obj := newTestUnstructured("broken-mcp", "test-ns", "quay.io/fake:bad", 8080)
 	obj.Object["status"] = map[string]interface{}{
-		"phase": "Failed",
 		"conditions": []interface{}{
 			map[string]interface{}{
 				"type":   "Ready",
 				"status": "False",
-				"reason": "DeploymentFailed",
+				"reason": "DeploymentUnavailable",
 			},
 		},
 	}
@@ -614,8 +616,11 @@ func TestConvertUnstructuredToMcpDeployment_FailedNoAddress(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if deployment.Phase != models.McpDeploymentPhaseFailed {
-		t.Fatalf("expected phase Failed, got %q", deployment.Phase)
+	if len(deployment.Conditions) != 1 {
+		t.Fatalf("expected 1 condition, got %d", len(deployment.Conditions))
+	}
+	if deployment.Conditions[0].Reason != "DeploymentUnavailable" {
+		t.Fatalf("expected reason 'DeploymentUnavailable', got %q", deployment.Conditions[0].Reason)
 	}
 	if deployment.Address != nil {
 		t.Fatalf("expected nil address for failed deployment without address, got %+v", deployment.Address)

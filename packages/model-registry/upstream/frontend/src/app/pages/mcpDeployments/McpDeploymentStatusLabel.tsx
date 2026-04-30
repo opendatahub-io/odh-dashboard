@@ -1,25 +1,31 @@
 import * as React from 'react';
 import { Label, Popover } from '@patternfly/react-core';
-import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
-import { McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
-import { getStatusInfo } from './utils';
+import {
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  ExclamationTriangleIcon,
+  InProgressIcon,
+} from '@patternfly/react-icons';
+import { McpDeploymentCondition } from '~/app/mcpDeploymentTypes';
+import { getStatusInfo, McpDeploymentStatusInfo } from './utils';
 
 type McpDeploymentStatusLabelProps = {
-  phase: McpDeploymentPhase;
+  conditions: McpDeploymentCondition[];
 };
 
-const statusIconMap: Record<McpDeploymentPhase, React.ReactNode> = {
-  [McpDeploymentPhase.RUNNING]: <CheckCircleIcon />,
-  [McpDeploymentPhase.FAILED]: <ExclamationCircleIcon />,
-  [McpDeploymentPhase.PENDING]: <InProgressIcon />,
+const statusIconMap: Record<McpDeploymentStatusInfo['status'], React.ReactNode> = {
+  success: <CheckCircleIcon />,
+  danger: <ExclamationCircleIcon />,
+  warning: <ExclamationTriangleIcon />,
+  info: <InProgressIcon />,
 };
 
-const McpDeploymentStatusLabel: React.FC<McpDeploymentStatusLabelProps> = ({ phase }) => {
-  const { label, status, popoverBody } = getStatusInfo(phase);
+const McpDeploymentStatusLabel: React.FC<McpDeploymentStatusLabelProps> = ({ conditions }) => {
+  const { label, status, popoverBody } = getStatusInfo(conditions);
 
   return (
     <Popover bodyContent={popoverBody} data-testid="mcp-deployment-status-popover">
-      <Label status={status} icon={statusIconMap[phase]} data-testid="mcp-deployment-status-label">
+      <Label status={status} icon={statusIconMap[status]} data-testid="mcp-deployment-status-label">
         {label}
       </Label>
     </Popover>

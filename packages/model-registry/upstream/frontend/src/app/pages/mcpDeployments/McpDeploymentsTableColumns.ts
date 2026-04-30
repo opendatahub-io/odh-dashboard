@@ -1,12 +1,6 @@
 import { SortableData } from 'mod-arch-shared';
-import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
-import { getDeploymentDisplayName } from './utils';
-
-const phaseOrder: Record<McpDeploymentPhase, number> = {
-  [McpDeploymentPhase.RUNNING]: 0,
-  [McpDeploymentPhase.PENDING]: 1,
-  [McpDeploymentPhase.FAILED]: 2,
-};
+import { McpDeployment } from '~/app/mcpDeploymentTypes';
+import { getDeploymentDisplayName, getStatusSortWeight } from './utils';
 
 export const mcpDeploymentColumns: SortableData<McpDeployment>[] = [
   {
@@ -31,7 +25,7 @@ export const mcpDeploymentColumns: SortableData<McpDeployment>[] = [
   {
     field: 'status',
     label: 'Status',
-    sortable: (a, b) => phaseOrder[a.phase] - phaseOrder[b.phase],
+    sortable: (a, b) => getStatusSortWeight(a.conditions) - getStatusSortWeight(b.conditions),
     width: 15,
   },
   {
