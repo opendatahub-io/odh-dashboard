@@ -18,7 +18,11 @@ import {
   getAccountErrors,
   getApiKeyValidationStatus,
 } from '../nimK8sUtils';
-import { NIM_ACCOUNT_NAME, NGC_API_KEY_DATA_KEY, NIM_SECRET_GENERATE_NAME } from '../nimConstants';
+import {
+  NIM_ACCOUNT_NAME,
+  NIM_ACCOUNT_API_KEY_DATA_KEY,
+  NIM_ACCOUNT_SECRET_GENERATE_NAME,
+} from '../nimConstants';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sCreateResource: jest.fn(),
@@ -46,10 +50,10 @@ describe('assembleNIMSecret', () => {
   it('should build a secret with generateName and the API key', () => {
     const secret = assembleNIMSecret('test-ns', 'nvapi-test-key');
 
-    expect(secret.metadata.generateName).toBe(NIM_SECRET_GENERATE_NAME);
+    expect(secret.metadata.generateName).toBe(NIM_ACCOUNT_SECRET_GENERATE_NAME);
     expect(secret.metadata.namespace).toBe('test-ns');
     expect(secret.type).toBe('Opaque');
-    expect(secret.stringData?.[NGC_API_KEY_DATA_KEY]).toBe('nvapi-test-key');
+    expect(secret.stringData?.[NIM_ACCOUNT_API_KEY_DATA_KEY]).toBe('nvapi-test-key');
     expect(secret.metadata.labels).toEqual({ 'opendatahub.io/managed': 'true' });
   });
 });
@@ -151,7 +155,7 @@ describe('updateNIMSecretAndRevalidate', () => {
     expect(mockReplaceSecret).toHaveBeenCalledWith(
       expect.objectContaining({
         metadata: { name: 'nvidia-nim-secrets-abc', namespace: 'test-ns' },
-        stringData: { [NGC_API_KEY_DATA_KEY]: 'nvapi-new-key' },
+        stringData: { [NIM_ACCOUNT_API_KEY_DATA_KEY]: 'nvapi-new-key' },
       }),
     );
     expect(mockK8sPatchResource).toHaveBeenCalledWith(
