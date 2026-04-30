@@ -400,6 +400,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     });
   };
 
+  const isNemoGuardrailsConflict = (e: unknown): boolean =>
+    e instanceof Error && 'code' in e && e.code === '409';
+
   const onSubmit = () => {
     if (submitting) {
       return;
@@ -445,13 +448,19 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         }),
       });
 
-      // If guardrails are enabled, init NemoGuardrails. Already-initialised (400) is swallowed —
+      // If guardrails are enabled, init NemoGuardrails. A 409 (already initialised) is swallowed —
       // the status poller in ChatbotConfigurationState handles waiting for ready.
+      // Any other error (network fault, server error) is rethrown to surface in the wizard.
       const nemoPromise: Promise<void> = guardrailsEnabled
         ? api
             .initNemoGuardrails({})
             .then(() => undefined)
-            .catch(() => undefined)
+            .catch((e: unknown) => {
+              if (isNemoGuardrailsConflict(e)) {
+                return undefined;
+              }
+              throw e;
+            })
         : Promise.resolve();
 
       Promise.all([installLSDPromise, nemoPromise])

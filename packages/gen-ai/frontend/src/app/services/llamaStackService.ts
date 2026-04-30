@@ -666,9 +666,30 @@ export const getSafetyConfig = modArchRestGET<SafetyConfigResponse>('/lsd/safety
 /** NemoGuardrails Endpoints */
 export const getNemoGuardrailsStatus =
   modArchRestGET<NemoGuardrailsStatus>('/nemo-guardrails/status');
-export const initNemoGuardrails = modArchRestCREATE<{ name: string }, Record<string, never>>(
-  '/nemo-guardrails/init',
-);
+
+// Custom implementation that bypasses handleRestFailures so the raw
+// { error: { code, message } } body is preserved in the thrown error.
+// This allows the caller to distinguish 409 (already initialised) from
+// unexpected server faults instead of catching everything blindly.
+export const initNemoGuardrails =
+  (hostPath: string, baseQueryParams: Record<string, unknown> = {}) =>
+  (_data: Record<string, never>, opts: APIOptions = {}): Promise<{ name: string }> =>
+    restCREATE<{ data?: { name: string }; error?: { code: string; message: string } }>(
+      hostPath,
+      '/nemo-guardrails/init',
+      {},
+      baseQueryParams,
+      opts,
+    ).then((response) => {
+      if (response.error) {
+        const err = Object.assign(new Error(response.error.message), { code: response.error.code });
+        throw err;
+      }
+      if (response.data) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
 
 /** MLflow Prompt Registry Endpoints */
 export const listMLflowPrompts = modArchRestGET<MLflowPromptsResponse>('/mlflow/prompts');

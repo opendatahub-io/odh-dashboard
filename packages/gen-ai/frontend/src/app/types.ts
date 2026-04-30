@@ -651,7 +651,10 @@ type GetBFFConfig = ModArchRestGET<BFFConfig>;
 type GetGuardrailsStatus = ModArchRestGET<GuardrailsStatus>;
 type GetSafetyConfig = ModArchRestGET<SafetyConfigResponse>;
 type GetNemoGuardrailsStatus = ModArchRestGET<NemoGuardrailsStatus>;
-type InitNemoGuardrails = ModArchRestCREATE<{ name: string }, Record<string, never>>;
+type InitNemoGuardrails = (
+  _data: Record<string, never>,
+  opts?: APIOptions,
+) => Promise<{ name: string }>;
 type ListMLflowPrompts = ModArchRestGET<MLflowPromptsResponse>;
 type RegisterMLflowPrompt = ModArchRestCREATE<MLflowPromptVersion, MLflowRegisterPromptRequest>;
 type GetMLflowPrompt = ModArchRestGET<MLflowPromptVersion>;
