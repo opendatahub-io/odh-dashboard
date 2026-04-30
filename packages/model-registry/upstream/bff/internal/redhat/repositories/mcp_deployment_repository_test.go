@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )

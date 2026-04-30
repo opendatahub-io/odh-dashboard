@@ -15,7 +15,7 @@ export type S3FileUploadMutationVariables = UploadFileToS3Params & {
 };
 
 /**
- * React Query mutation for uploading a file to S3 via POST /api/v1/s3/file.
+ * React Query mutation for uploading a file to S3 via POST /api/v1/s3/files/:key.
  * Uses hostPath '' for same-origin requests by default.
  */
 export function useS3FileUploadMutation(

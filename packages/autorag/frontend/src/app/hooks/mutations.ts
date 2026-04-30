@@ -15,7 +15,7 @@ export type S3FileUploadMutationVariables = UploadFileToS3Params & {
 };
 
 /**
- * React Query mutation for uploading a file to S3 via POST /api/v1/s3/file.
+ * React Query mutation for uploading a file to S3 via POST /api/v1/s3/files/:key.
  * Uses hostPath '' for same-origin requests by default.
  */
 export function useS3FileUploadMutation(
@@ -198,19 +198,27 @@ export function useUploadToStorageMutation(
         });
 
         xhr.addEventListener('error', () => {
-          reject(new Error('Upload failed'));
+          reject(
+            new Error('Upload failed due to a network error. Check your connection and try again.'),
+          );
         });
 
         const formData = new FormData();
         formData.append('file', file);
 
         const key = (path ? `${path}/` : '') + file.name;
+        if (!key || !key.trim()) {
+          reject(new Error('Upload key must be a non-empty string'));
+          return;
+        }
         const params = new URLSearchParams({
           namespace,
           secretName,
-          key,
         });
-        xhr.open('POST', `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/file?${params.toString()}`);
+        xhr.open(
+          'POST',
+          `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
+        );
         xhr.send(formData);
       }),
   });
