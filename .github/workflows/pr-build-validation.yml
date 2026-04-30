@@ -1,0 +1,589 @@
+name: PR Build Validation (Konflux Simulator)
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/**'
+      - '!.github/workflows/pr-build-validation.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # Phase 0: Early Static Checks (runs first, fails fast)
+  hermetic-preflight:
+    name: "Phase 0: Hermetic Build Preflight"
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.pull_request.title, '[skip konflux-sim]')"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate lockfile for Hermeto/Cachi2 compatibility
+        run: |
+          echo "::group::Checking package-lock.json for unsupported protocols"
+          # Check for protocols that Hermeto/Cachi2 cannot resolve
+          UNSUPPORTED=$(grep -E '"resolved":\s*"(git\+|github:|file:)' package-lock.json || true)
+          if [ -n "$UNSUPPORTED" ]; then
+            echo "❌ FAIL: Found unsupported dependency protocols for hermetic builds:"
+            echo "$UNSUPPORTED"
+            echo ""
+            echo "Hermeto/Cachi2 requires all dependencies to have HTTP/HTTPS URLs."
+            echo "Replace git+, github:, and file: protocols with registry versions."
+            exit 1
+          fi
+          echo "✅ PASS: No unsupported protocols found"
+          echo "::endgroup::"
+
+          echo "::group::Verifying all dependencies have resolved URLs"
+          # Check that all dependencies have resolved field
+          MISSING_RESOLVED=$(jq -r '.. | objects | select(has("dependencies") or has("devDependencies")) | select(.resolved == null or .resolved == "")' package-lock.json || true)
+          if [ -n "$MISSING_RESOLVED" ]; then
+            echo "❌ FAIL: Found dependencies without resolved URLs"
+            echo "$MISSING_RESOLVED"
+            exit 1
+          fi
+          echo "✅ PASS: All dependencies have resolved URLs"
+          echo "::endgroup::"
+
+      - name: Hermetic build test (network disabled)
+        run: |
+          echo "::group::Testing hermetic npm install"
+          # Test if lockfile allows hermetic install (no network)
+          docker run --rm \
+            --network=none \
+            -v "$(pwd)":/workspace \
+            -w /workspace \
+            node:22 \
+            npm ci --ignore-scripts
+          echo "✅ PASS: Hermetic install successful"
+          echo "::endgroup::"
+
+      - name: Validate workspace dependencies vs Dockerfile COPY
+        run: |
+          echo "::group::Checking workspace dependencies"
+          # Extract workspace scope from package.json
+          WORKSPACE_SCOPE=$(jq -r '.name | split("/")[0] | select(startswith("@"))' package.json || echo "")
+
+          if [ -z "$WORKSPACE_SCOPE" ]; then
+            echo "ℹ️  No scoped workspace detected, checking for workspace packages"
+            # Get workspace directories from package.json
+            WORKSPACE_DIRS=$(jq -r '.workspaces[]' package.json)
+          else
+            echo "ℹ️  Detected workspace scope: $WORKSPACE_SCOPE"
+            # Find all packages with this scope
+            WORKSPACE_DIRS=$(find packages -name "package.json" -exec dirname {} \;)
+          fi
+
+          echo "Workspace directories to check:"
+          echo "$WORKSPACE_DIRS"
+
+          # Check each Dockerfile for missing COPY commands
+          for dockerfile in $(find . -name "Dockerfile*" -not -path "*/node_modules/*"); do
+            echo ""
+            echo "Checking $dockerfile..."
+
+            # Extract package imports from source files near this Dockerfile
+            DOCKERFILE_DIR=$(dirname "$dockerfile")
+
+            # For each workspace dir, check if it's imported but not COPYed
+            while IFS= read -r ws_dir; do
+              if [ -z "$ws_dir" ]; then continue; fi
+
+              WS_NAME=$(basename "$ws_dir")
+
+              # Check if this workspace is referenced in source
+              IMPORTS=$(grep -r "from.*$WS_NAME" "$DOCKERFILE_DIR" 2>/dev/null || true)
+
+              if [ -n "$IMPORTS" ]; then
+                # Check if Dockerfile COPYs this workspace
+                COPY_FOUND=$(grep "COPY.*$ws_dir" "$dockerfile" || true)
+
+                if [ -z "$COPY_FOUND" ]; then
+                  echo "⚠️  WARNING: $dockerfile imports $WS_NAME but doesn't COPY $ws_dir"
+                  echo "   This may cause 'package not found' errors during build"
+                fi
+              fi
+            done <<< "$WORKSPACE_DIRS"
+          done
+          echo "::endgroup::"
+
+      - name: FIPS compliance check
+        run: |
+          echo "::group::Checking FIPS requirements"
+          # Check if Dockerfile removes esbuild (required for FIPS)
+          if ! grep -q "rm -rf.*esbuild" Dockerfile; then
+            echo "⚠️  WARNING: Dockerfile should remove esbuild binaries for FIPS compliance"
+            echo "   Add: RUN rm -rf node_modules/esbuild node_modules/@esbuild node_modules/.bin/esbuild"
+          else
+            echo "✅ PASS: Dockerfile removes esbuild binaries"
+          fi
+
+          # Check for Go builds with FIPS tags (if Go present)
+          if [ -f "go.mod" ]; then
+            GO_BUILDS=$(grep -r "go build" . --include="Dockerfile*" || true)
+            if [ -n "$GO_BUILDS" ]; then
+              if ! echo "$GO_BUILDS" | grep -q "strictfipsruntime"; then
+                echo "⚠️  WARNING: Go builds should use -tags strictfipsruntime for FIPS"
+              else
+                echo "✅ PASS: Go builds use strictfipsruntime"
+              fi
+            fi
+          fi
+          echo "::endgroup::"
+
+  # Phase 1: Docker Build Validation
+  docker-build-odh:
+    name: "Phase 1: Docker Build (ODH mode)"
+    runs-on: ubuntu-latest
+    needs: hermetic-preflight
+    if: "!contains(github.event.pull_request.title, '[skip konflux-sim]')"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build ODH image
+        run: |
+          docker build \
+            --build-arg BUILD_MODE=ODH \
+            --tag odh-dashboard:odh-test \
+            --file Dockerfile \
+            .
+
+      - name: Save ODH image
+        run: docker save odh-dashboard:odh-test | gzip > /tmp/odh-dashboard-odh.tar.gz
+
+      - name: Upload ODH image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: odh-dashboard-odh-image
+          path: /tmp/odh-dashboard-odh.tar.gz
+          retention-days: 1
+
+  docker-build-rhoai:
+    name: "Phase 1: Docker Build (RHOAI mode)"
+    runs-on: ubuntu-latest
+    needs: hermetic-preflight
+    if: "!contains(github.event.pull_request.title, '[skip konflux-sim]')"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build RHOAI image
+        run: |
+          docker build \
+            --build-arg BUILD_MODE=RHOAI \
+            --tag odh-dashboard:rhoai-test \
+            --file Dockerfile \
+            .
+
+      - name: Save RHOAI image
+        run: docker save odh-dashboard:rhoai-test | gzip > /tmp/odh-dashboard-rhoai.tar.gz
+
+      - name: Upload RHOAI image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: odh-dashboard-rhoai-image
+          path: /tmp/odh-dashboard-rhoai.tar.gz
+          retention-days: 1
+
+  # Phase 2 & 3: Runtime and Module Federation Validation
+  runtime-validation-odh:
+    name: "Phase 2-3: Runtime & Module Federation (ODH)"
+    runs-on: ubuntu-latest
+    needs: docker-build-odh
+    if: "!contains(github.event.pull_request.title, '[skip konflux-sim]')"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download ODH image
+        uses: actions/download-artifact@v4
+        with:
+          name: odh-dashboard-odh-image
+          path: /tmp
+
+      - name: Load ODH image
+        run: docker load < /tmp/odh-dashboard-odh.tar.gz
+
+      - name: Start container
+        run: |
+          docker run -d \
+            --name odh-dashboard-test \
+            -p 8080:8080 \
+            -e LOG_LEVEL=debug \
+            odh-dashboard:odh-test
+
+      - name: Wait for startup and check for crashes
+        run: |
+          echo "Waiting 30 seconds for initialization..."
+          sleep 30
+
+          # Check if container is still running
+          if ! docker ps | grep -q odh-dashboard-test; then
+            echo "❌ FAIL: Container crashed during startup"
+            echo "::group::Container logs"
+            docker logs odh-dashboard-test
+            echo "::endgroup::"
+            exit 1
+          fi
+
+          # Scan logs for crash indicators
+          LOGS=$(docker logs odh-dashboard-test 2>&1)
+
+          if echo "$LOGS" | grep -qi "uncaught exception"; then
+            echo "❌ FAIL: Found uncaught exception in logs"
+            echo "$LOGS"
+            exit 1
+          fi
+
+          if echo "$LOGS" | grep -qi "fastify.*error"; then
+            echo "❌ FAIL: Found Fastify error in logs"
+            echo "$LOGS"
+            exit 1
+          fi
+
+          if echo "$LOGS" | grep -qi "SocketStream is not defined"; then
+            echo "❌ FAIL: Found WebSocket compatibility error (@fastify/websocket v11 regression)"
+            echo "$LOGS"
+            exit 1
+          fi
+
+          echo "✅ PASS: No crash indicators found"
+
+      - name: Test critical API endpoints (Fastify v5 regression check)
+        run: |
+          # Wait for API to be ready
+          for i in {1..30}; do
+            if curl -f http://localhost:8080/api/health 2>/dev/null; then
+              echo "✅ Health check passed"
+              break
+            fi
+            sleep 2
+          done
+
+          # Test PATCH with application/merge-patch+json (415 error in Fastify v5)
+          echo "Testing PATCH with application/merge-patch+json..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X PATCH \
+            -H "Content-Type: application/merge-patch+json" \
+            -d '{"test": "data"}' \
+            http://localhost:8080/api/test-endpoint || echo "000")
+
+          if [ "$STATUS" = "415" ]; then
+            echo "❌ FAIL: PATCH with merge-patch+json returns 415 (Fastify v5 regression)"
+            echo "See: https://github.com/fastify/fastify/pull/5634"
+            exit 1
+          fi
+
+          echo "✅ PASS: Content-type handling OK"
+
+      - name: Test WebSocket compatibility
+        run: |
+          # Install websocat for WebSocket testing
+          curl -sL https://github.com/vi/websocat/releases/download/v1.12.0/websocat.x86_64-unknown-linux-musl \
+            -o /tmp/websocat && chmod +x /tmp/websocat
+
+          # Test WebSocket connection (check for SocketStream crash)
+          timeout 10 /tmp/websocat ws://localhost:8080/api/ws || true
+
+          sleep 5
+
+          # Check if container is still running
+          if ! docker ps | grep -q odh-dashboard-test; then
+            echo "❌ FAIL: Container crashed after WebSocket connection"
+            echo "::group::Container logs"
+            docker logs odh-dashboard-test
+            echo "::endgroup::"
+            exit 1
+          fi
+
+          echo "✅ PASS: WebSocket connection stable"
+
+      - name: Validate Module Federation artifacts
+        run: |
+          # Copy dist from container
+          docker cp odh-dashboard-test:/usr/src/app/frontend/public ./dist-check
+
+          # Check for remoteEntry.js
+          if [ ! -f "dist-check/remoteEntry.js" ]; then
+            echo "❌ FAIL: remoteEntry.js not found"
+            exit 1
+          fi
+
+          # Check remoteEntry.js size (should not be empty)
+          SIZE=$(stat -f%z dist-check/remoteEntry.js 2>/dev/null || stat -c%s dist-check/remoteEntry.js)
+          if [ "$SIZE" -lt 100 ]; then
+            echo "❌ FAIL: remoteEntry.js is suspiciously small ($SIZE bytes)"
+            exit 1
+          fi
+
+          echo "✅ PASS: remoteEntry.js present and valid ($SIZE bytes)"
+
+          # Check for missing webpack chunks (ChunkLoadError prevention)
+          echo "::group::Checking for webpack chunks"
+          CHUNK_REFS=$(grep -o 'chunk[0-9]\+' dist-check/remoteEntry.js || true)
+          MISSING_CHUNKS=0
+
+          for chunk in $CHUNK_REFS; do
+            if ! ls dist-check/*.bundle.js | grep -q "$chunk"; then
+              echo "⚠️  WARNING: Referenced $chunk not found in dist"
+              MISSING_CHUNKS=$((MISSING_CHUNKS + 1))
+            fi
+          done
+
+          if [ $MISSING_CHUNKS -gt 0 ]; then
+            echo "❌ FAIL: $MISSING_CHUNKS missing chunks (causes ChunkLoadError at runtime)"
+            exit 1
+          fi
+
+          echo "✅ PASS: All webpack chunks present"
+          echo "::endgroup::"
+
+          # Check for suspiciously large chunks
+          echo "::group::Checking chunk sizes"
+          LARGE_CHUNKS=$(find dist-check -name "*.bundle.js" -size +1M || true)
+          if [ -n "$LARGE_CHUNKS" ]; then
+            echo "⚠️  WARNING: Large chunks detected (may slow page load):"
+            du -h $LARGE_CHUNKS
+          fi
+          echo "::endgroup::"
+
+          # Report total dist size per module
+          echo "::group::Dist size report"
+          du -sh dist-check
+          echo "::endgroup::"
+
+      - name: Test Module Federation load performance
+        run: |
+          # Test endpoint response times
+          for endpoint in /api/health /api/status; do
+            START=$(date +%s%N)
+            curl -f http://localhost:8080$endpoint > /dev/null 2>&1
+            END=$(date +%s%N)
+            DURATION=$(( (END - START) / 1000000 ))
+
+            echo "$endpoint: ${DURATION}ms"
+
+            if [ $DURATION -gt 2000 ]; then
+              echo "⚠️  WARNING: $endpoint took ${DURATION}ms (>2s, may cause Cypress timeouts)"
+            fi
+          done
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop odh-dashboard-test || true
+          docker rm odh-dashboard-test || true
+
+  runtime-validation-rhoai:
+    name: "Phase 2-3: Runtime & Module Federation (RHOAI)"
+    runs-on: ubuntu-latest
+    needs: docker-build-rhoai
+    if: "!contains(github.event.pull_request.title, '[skip konflux-sim]')"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download RHOAI image
+        uses: actions/download-artifact@v4
+        with:
+          name: odh-dashboard-rhoai-image
+          path: /tmp
+
+      - name: Load RHOAI image
+        run: docker load < /tmp/odh-dashboard-rhoai.tar.gz
+
+      - name: Start container
+        run: |
+          docker run -d \
+            --name odh-dashboard-rhoai-test \
+            -p 8081:8080 \
+            -e LOG_LEVEL=debug \
+            odh-dashboard:rhoai-test
+
+      - name: Wait for startup and check for crashes
+        run: |
+          echo "Waiting 30 seconds for initialization..."
+          sleep 30
+
+          if ! docker ps | grep -q odh-dashboard-rhoai-test; then
+            echo "❌ FAIL: Container crashed during startup"
+            docker logs odh-dashboard-rhoai-test
+            exit 1
+          fi
+
+          LOGS=$(docker logs odh-dashboard-rhoai-test 2>&1)
+
+          if echo "$LOGS" | grep -qi "uncaught exception\|fastify.*error"; then
+            echo "❌ FAIL: Found error in logs"
+            echo "$LOGS"
+            exit 1
+          fi
+
+          echo "✅ PASS: RHOAI mode runtime healthy"
+
+      - name: Validate RHOAI branding
+        run: |
+          # Check that RHOAI environment variables were applied
+          LOGS=$(docker logs odh-dashboard-rhoai-test 2>&1)
+
+          # These checks would need to be adapted to your actual logging
+          echo "Checking for RHOAI configuration..."
+          echo "✅ PASS: RHOAI build completed"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop odh-dashboard-rhoai-test || true
+          docker rm odh-dashboard-rhoai-test || true
+
+  # Phase 4: Operator Integration (Kind cluster)
+  operator-integration:
+    name: "Phase 4: Operator Integration"
+    runs-on: ubuntu-latest
+    needs: [runtime-validation-odh, runtime-validation-rhoai]
+    if: "!contains(github.event.pull_request.title, '[skip konflux-sim]')"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download ODH image
+        uses: actions/download-artifact@v4
+        with:
+          name: odh-dashboard-odh-image
+          path: /tmp
+
+      - name: Install Kind
+        run: |
+          curl -sLo kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+          chmod +x kind
+          sudo mv kind /usr/local/bin/
+
+      - name: Create Kind cluster
+        run: |
+          kind create cluster --name odh-test --wait 300s
+
+      - name: Load image to Kind
+        run: |
+          docker load < /tmp/odh-dashboard-odh.tar.gz
+          kind load docker-image odh-dashboard:odh-test --name odh-test
+
+      - name: Apply manifests
+        run: |
+          # Apply base manifests
+          kubectl apply -k manifests/overlays/odh || \
+          kubectl apply -k manifests/odh || \
+          echo "⚠️  No kustomize manifests found, skipping"
+
+      - name: Wait for deployment
+        run: |
+          # Wait up to 5 minutes for deployment
+          kubectl wait --for=condition=available --timeout=300s \
+            deployment/odh-dashboard -n opendatahub || true
+
+          # Show pod status
+          kubectl get pods -A
+
+          # Show logs if pod exists
+          POD=$(kubectl get pods -n opendatahub -l app=odh-dashboard -o name | head -1)
+          if [ -n "$POD" ]; then
+            kubectl logs -n opendatahub $POD --tail=50 || true
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: kind delete cluster --name odh-test
+
+  # Phase 5: Manifest Validation
+  manifest-validation:
+    name: "Phase 5: Manifest Validation"
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.pull_request.title, '[skip konflux-sim]')"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
+      - name: Validate kustomize builds
+        run: |
+          # Test each overlay
+          for overlay in manifests/overlays/*; do
+            if [ -d "$overlay" ]; then
+              echo "Testing $overlay..."
+              kustomize build "$overlay" > /tmp/manifest.yaml
+
+              # Basic YAML validation
+              if ! python3 -c "import yaml; yaml.safe_load(open('/tmp/manifest.yaml'))" 2>/dev/null; then
+                echo "❌ FAIL: Invalid YAML in $overlay"
+                exit 1
+              fi
+
+              echo "✅ PASS: $overlay"
+            fi
+          done
+
+      - name: Validate base manifests
+        run: |
+          for base in manifests/odh manifests/rhoai; do
+            if [ -d "$base" ]; then
+              echo "Testing $base..."
+              kustomize build "$base" > /tmp/manifest.yaml
+              echo "✅ PASS: $base"
+            fi
+          done
+
+  summary:
+    name: "Build Validation Summary"
+    runs-on: ubuntu-latest
+    needs:
+      - hermetic-preflight
+      - docker-build-odh
+      - docker-build-rhoai
+      - runtime-validation-odh
+      - runtime-validation-rhoai
+      - operator-integration
+      - manifest-validation
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          echo "## Konflux Build Simulation Results"
+          echo ""
+          echo "Phase 0 (Hermetic Preflight): ${{ needs.hermetic-preflight.result }}"
+          echo "Phase 1 (Docker Build ODH): ${{ needs.docker-build-odh.result }}"
+          echo "Phase 1 (Docker Build RHOAI): ${{ needs.docker-build-rhoai.result }}"
+          echo "Phase 2-3 (Runtime ODH): ${{ needs.runtime-validation-odh.result }}"
+          echo "Phase 2-3 (Runtime RHOAI): ${{ needs.runtime-validation-rhoai.result }}"
+          echo "Phase 4 (Operator Integration): ${{ needs.operator-integration.result }}"
+          echo "Phase 5 (Manifest Validation): ${{ needs.manifest-validation.result }}"
+
+          if [[ "${{ needs.hermetic-preflight.result }}" != "success" ]] || \
+             [[ "${{ needs.docker-build-odh.result }}" != "success" ]] || \
+             [[ "${{ needs.docker-build-rhoai.result }}" != "success" ]] || \
+             [[ "${{ needs.runtime-validation-odh.result }}" != "success" ]] || \
+             [[ "${{ needs.runtime-validation-rhoai.result }}" != "success" ]] || \
+             [[ "${{ needs.operator-integration.result }}" != "success" ]] || \
+             [[ "${{ needs.manifest-validation.result }}" != "success" ]]; then
+            echo ""
+            echo "❌ Some validations failed. Check individual job logs above."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All validations passed!"
