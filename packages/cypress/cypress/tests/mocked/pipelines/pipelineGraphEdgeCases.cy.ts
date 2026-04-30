@@ -299,6 +299,7 @@ describe('Pipeline Graph Edge Cases', () => {
 
       pipelineDetails.findPageTitle().should('exist');
       pipelineDetails.findVisualizationSurface().should('be.visible');
+      pipelineDetails.findTaskNodes().should('have.length', 1);
     });
 
     it('should handle empty pipeline spec', () => {
