@@ -4,6 +4,10 @@ resources:
   - ../core-bases/base
   - federation-configmap.yaml
   - networkpolicy.yaml
+  - modules-service-account.yaml
+  - modules-cluster-role.yaml
+  - modules-cluster-role-binding.yaml
+  - modules-sa-token-secret.yaml
 configMapGenerator:
   - name: modular-architecture-params
     env: params.env
