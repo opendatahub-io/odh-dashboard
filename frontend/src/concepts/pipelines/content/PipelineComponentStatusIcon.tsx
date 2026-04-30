@@ -28,7 +28,7 @@ const STATUS_CONFIG: Record<StatusType, StatusConfig> = {
   },
   [StatusType.IN_PROGRESS]: {
     icon: InProgressIcon,
-    className: 'odh-u-spin',
+    className: 'ai-u-spin',
   },
   [StatusType.SUCCESS]: {
     icon: CheckCircleIcon,
