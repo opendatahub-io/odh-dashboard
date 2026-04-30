@@ -550,27 +550,125 @@ jobs:
           docker load < /tmp/odh-dashboard-odh.tar.gz
           kind load docker-image odh-dashboard:odh-test --name odh-test
 
+      - name: Create opendatahub namespace
+        run: |
+          kubectl create namespace opendatahub
+
+      - name: Create mock OpenShift secrets
+        run: |
+          set -euo pipefail
+          # Create dummy TLS secret for proxy
+          openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout /tmp/tls.key -out /tmp/tls.crt \
+            -days 1 -subj "/CN=dashboard" 2>/dev/null
+
+          kubectl create secret tls dashboard-proxy-tls \
+            --cert=/tmp/tls.crt --key=/tmp/tls.key \
+            -n opendatahub
+
+          rm /tmp/tls.key /tmp/tls.crt
+
+          # Create dummy CA bundle configmaps
+          kubectl create configmap odh-ca-cert \
+            --from-literal=odh-ca-bundle.crt="# Dummy CA bundle for Kind testing" \
+            -n opendatahub
+
+          kubectl create configmap odh-trusted-ca-cert \
+            --from-literal=odh-trusted-ca-bundle.crt="# Dummy trusted CA bundle for Kind testing" \
+            -n opendatahub
+
+          echo "✅ Created mock OpenShift secrets and configmaps"
+
       - name: Apply manifests
         run: |
-          # Apply base manifests
-          kubectl apply -k manifests/overlays/odh || \
-          kubectl apply -k manifests/odh || \
-          echo "⚠️  No kustomize manifests found, skipping"
+          set -euo pipefail
+          # Apply base manifests to opendatahub namespace
+          kubectl apply -k manifests/overlays/odh -n opendatahub || \
+          kubectl apply -k manifests/odh -n opendatahub || {
+            echo "❌ FAIL: No kustomize manifests found"
+            exit 1
+          }
 
-      - name: Wait for deployment
+      - name: Patch deployment for Kind resource constraints
         run: |
-          # Wait up to 5 minutes for deployment
-          kubectl wait --for=condition=available --timeout=300s \
-            deployment/odh-dashboard -n opendatahub || true
+          set -euo pipefail
+          # Reduce resource requests to fit in Kind's limited memory (~2Gi total)
+          # Dashboard has many containers - reduce each to minimal viable requests
+          kubectl patch deployment odh-dashboard -n opendatahub --type=json -p='[
+            {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/memory", "value": "128Mi"},
+            {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/cpu", "value": "50m"},
+            {"op": "replace", "path": "/spec/template/spec/containers/1/resources/requests/memory", "value": "64Mi"},
+            {"op": "replace", "path": "/spec/template/spec/containers/1/resources/requests/cpu", "value": "50m"}
+          ]' || true
 
-          # Show pod status
-          kubectl get pods -A
+          # Reduce to 1 replica for resource constraints
+          kubectl scale deployment odh-dashboard --replicas=1 -n opendatahub
 
-          # Show logs if pod exists
+          echo "✅ Patched deployment for Kind constraints"
+
+      - name: Wait for pods to attempt starting
+        run: |
+          set -euo pipefail
+          echo "Waiting for pods to be created and attempt starting..."
+
+          # Wait up to 2 minutes for pod creation
+          for i in {1..24}; do
+            POD_COUNT=$(kubectl get pods -n opendatahub -l app=odh-dashboard --no-headers 2>/dev/null | wc -l)
+            if [ "$POD_COUNT" -gt 0 ]; then
+              echo "✅ Pod(s) created"
+              break
+            fi
+            echo "Waiting for pods... ($i/24)"
+            sleep 5
+          done
+
+          # Give pods time to pull images and start containers
+          echo "Waiting 60s for image pull and container startup..."
+          sleep 60
+
+      - name: Check container status and validate
+        run: |
+          set -euo pipefail
+          echo "::group::Pod status"
+          kubectl get pods -n opendatahub -o wide
+          echo "::endgroup::"
+
+          echo "::group::Deployment status"
+          kubectl describe deployment odh-dashboard -n opendatahub
+          echo "::endgroup::"
+
+          # Get pod details
+          echo "::group::Pod events and status"
           POD=$(kubectl get pods -n opendatahub -l app=odh-dashboard -o name | head -1)
           if [ -n "$POD" ]; then
-            kubectl logs -n opendatahub "$POD" --tail=50 || true
+            kubectl describe -n opendatahub "$POD"
           fi
+          echo "::endgroup::"
+
+          # Check if containers started (even if they fail later)
+          echo "Validating container lifecycle..."
+          CONTAINER_STATUSES=$(kubectl get pods -n opendatahub -l app=odh-dashboard -o jsonpath='{.items[0].status.containerStatuses[*].state}' 2>/dev/null || echo "")
+
+          if [ -z "$CONTAINER_STATUSES" ]; then
+            echo "❌ FAIL: No container statuses found - pods may not have started"
+            exit 1
+          fi
+
+          # Check for successful image pulls
+          IMAGES_PULLED=$(kubectl get pods -n opendatahub -l app=odh-dashboard -o jsonpath='{.items[0].status.containerStatuses[*].imageID}' 2>/dev/null | wc -w)
+
+          if [ "$IMAGES_PULLED" -eq 0 ]; then
+            echo "❌ FAIL: No images were pulled successfully"
+            exit 1
+          fi
+
+          echo "✅ PASS: Containers attempted to start, $IMAGES_PULLED image(s) pulled"
+          echo "Container states: $CONTAINER_STATUSES"
+
+          # Show logs from main container (even if it failed)
+          echo "::group::Container logs"
+          kubectl logs -n opendatahub "$POD" -c odh-dashboard --tail=100 || echo "No logs available"
+          echo "::endgroup::"
 
       - name: Cleanup
         if: always()
