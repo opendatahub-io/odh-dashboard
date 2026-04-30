@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
@@ -36,14 +35,16 @@ func (app *App) LogError(r *http.Request, err error) {
 }
 
 func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
-	httpError := &integrations.HTTPError{
-		StatusCode: http.StatusBadRequest,
-		ErrorResponse: integrations.ErrorResponse{
-			Code:    strconv.Itoa(http.StatusBadRequest),
-			Message: err.Error(),
+	frontendError := &integrations.FrontendErrorResponse{
+		Status: http.StatusBadRequest,
+		Error: &integrations.ErrorDetail{
+			Component: "bff",
+			Code:      "bad_request",
+			Message:   err.Error(),
+			Retriable: false,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	app.frontendErrorResponse(w, r, frontendError)
 }
 
 func (app *App) guardrailViolationResponse(w http.ResponseWriter, r *http.Request, code string, msg string) {
@@ -58,39 +59,45 @@ func (app *App) guardrailViolationResponse(w http.ResponseWriter, r *http.Reques
 }
 
 func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
-	httpError := &integrations.HTTPError{
-		StatusCode: http.StatusUnauthorized,
-		ErrorResponse: integrations.ErrorResponse{
-			Code:    strconv.Itoa(http.StatusUnauthorized),
-			Message: err.Error(),
+	frontendError := &integrations.FrontendErrorResponse{
+		Status: http.StatusUnauthorized,
+		Error: &integrations.ErrorDetail{
+			Component: "bff",
+			Code:      "unauthorized",
+			Message:   err.Error(),
+			Retriable: false,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	app.frontendErrorResponse(w, r, frontendError)
 }
 
 // TODO: remove nolint comment below when we use this method
 //
 //nolint:unused
 func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
-	httpError := &integrations.HTTPError{
-		StatusCode: http.StatusForbidden,
-		ErrorResponse: integrations.ErrorResponse{
-			Code:    strconv.Itoa(http.StatusForbidden),
-			Message: message,
+	frontendError := &integrations.FrontendErrorResponse{
+		Status: http.StatusForbidden,
+		Error: &integrations.ErrorDetail{
+			Component: "bff",
+			Code:      "forbidden",
+			Message:   message,
+			Retriable: false,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	app.frontendErrorResponse(w, r, frontendError)
 }
 
 func (app *App) conflictResponse(w http.ResponseWriter, r *http.Request, err error) {
-	httpError := &integrations.HTTPError{
-		StatusCode: http.StatusConflict,
-		ErrorResponse: integrations.ErrorResponse{
-			Code:    "conflict",
-			Message: err.Error(),
+	frontendError := &integrations.FrontendErrorResponse{
+		Status: http.StatusConflict,
+		Error: &integrations.ErrorDetail{
+			Component: "bff",
+			Code:      "conflict",
+			Message:   err.Error(),
+			Retriable: false,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	app.frontendErrorResponse(w, r, frontendError)
 }
 
 func (app *App) errorResponse(w http.ResponseWriter, r *http.Request, error *integrations.HTTPError) {
@@ -117,42 +124,54 @@ func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Reques
 	}
 	app.errorResponse(w, r, httpError)
 }
+func (app *App) frontendErrorResponse(w http.ResponseWriter, r *http.Request, frontendError *integrations.FrontendErrorResponse) {
+	err := app.WriteJSON(w, frontendError.Status, frontendError, nil)
+
+	if err != nil {
+		app.LogError(r, err)
+		w.WriteHeader(frontendError.Status)
+	}
+}
 
 func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.LogError(r, err)
 
-	httpError := &integrations.HTTPError{
-		StatusCode: http.StatusInternalServerError,
-		ErrorResponse: integrations.ErrorResponse{
-			Code:    strconv.Itoa(http.StatusInternalServerError),
-			Message: "the server encountered a problem and could not process your request",
+	frontendError := &integrations.FrontendErrorResponse{
+		Status: http.StatusInternalServerError,
+		Error: &integrations.ErrorDetail{
+			Component: "bff",
+			Code:      "internal_error",
+			Message:   "the server encountered a problem and could not process your request",
+			Retriable: true,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	app.frontendErrorResponse(w, r, frontendError)
 }
 
 func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
-
-	httpError := &integrations.HTTPError{
-		StatusCode: http.StatusNotFound,
-		ErrorResponse: integrations.ErrorResponse{
-			Code:    strconv.Itoa(http.StatusNotFound),
-			Message: "the requested resource could not be found",
+	frontendError := &integrations.FrontendErrorResponse{
+		Status: http.StatusNotFound,
+		Error: &integrations.ErrorDetail{
+			Component: "bff",
+			Code:      "not_found",
+			Message:   "the requested resource could not be found",
+			Retriable: false,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	app.frontendErrorResponse(w, r, frontendError)
 }
 
 func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
-
-	httpError := &integrations.HTTPError{
-		StatusCode: http.StatusMethodNotAllowed,
-		ErrorResponse: integrations.ErrorResponse{
-			Code:    strconv.Itoa(http.StatusMethodNotAllowed),
-			Message: fmt.Sprintf("the %s method is not supported for this resource", r.Method),
+	frontendError := &integrations.FrontendErrorResponse{
+		Status: http.StatusMethodNotAllowed,
+		Error: &integrations.ErrorDetail{
+			Component: "bff",
+			Code:      "method_not_allowed",
+			Message:   fmt.Sprintf("the %s method is not supported for this resource", r.Method),
+			Retriable: false,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	app.frontendErrorResponse(w, r, frontendError)
 }
 
 // TODO remove nolint comment below when we use this method
@@ -162,12 +181,14 @@ func (app *App) failedValidationResponse(w http.ResponseWriter, r *http.Request,
 	if err != nil {
 		message = []byte("{}")
 	}
-	httpError := &integrations.HTTPError{
-		StatusCode: http.StatusUnprocessableEntity,
-		ErrorResponse: integrations.ErrorResponse{
-			Code:    strconv.Itoa(http.StatusUnprocessableEntity),
-			Message: string(message),
+	frontendError := &integrations.FrontendErrorResponse{
+		Status: http.StatusUnprocessableEntity,
+		Error: &integrations.ErrorDetail{
+			Component: "bff",
+			Code:      "validation_failed",
+			Message:   string(message),
+			Retriable: false,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	app.frontendErrorResponse(w, r, frontendError)
 }
