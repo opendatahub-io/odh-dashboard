@@ -425,6 +425,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                         hideColumns={['project']}
                         titleHeadingLevel="h3"
                         titleSize="md"
+                        resourceType="subscription"
                       />
                     </FormGroup>
                   </>

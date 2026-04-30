@@ -49,6 +49,7 @@ export type MaasModelsSectionProps = {
   tableAriaLabel?: string;
   addModelsButtonTestId?: string;
   addModelsButtonAriaLabel?: string;
+  resourceType?: string;
 };
 
 const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
@@ -62,10 +63,11 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
   onEditLimits,
   onRemoveModel,
   helperText,
-  formGroupFieldId = 'subscription-models',
-  sectionTestId = 'subscription-models-section',
-  tableTestId = 'subscription-models-table',
-  tableAriaLabel = 'Subscription models',
+  resourceType = 'subscription',
+  formGroupFieldId = `${resourceType.toLowerCase().replace(' ', '-')}-models`,
+  sectionTestId = `${resourceType.toLowerCase().replace(' ', '-')}-models-section`,
+  tableTestId = `${resourceType.toLowerCase().replace(' ', '-')}-models-table`,
+  tableAriaLabel = `${resourceType} models`,
   addModelsButtonTestId = 'add-models-button',
   addModelsButtonAriaLabel,
 }) => {
@@ -214,7 +216,7 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
           <StackItem>
             {helperText ?? (
               <Content>
-                Select models to make available to members of this subscription, then set token
+                Select models to make available to members of this {resourceType}, then set token
                 limits for each one.
               </Content>
             )}
@@ -246,14 +248,14 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
             </Title>
           </FlexItem>
           <FlexItem>
-            <Content component="p">Models available to members of this subscription</Content>
+            <Content component="p">Models available to members of this {resourceType}</Content>
           </FlexItem>
         </Flex>
       </StackItem>
       <StackItem>
         {modelRefSummaries.length === 0 ? (
           <Bullseye>
-            <Content component="p">No models assigned to this subscription.</Content>
+            <Content component="p">No models assigned to this {resourceType}.</Content>
           </Bullseye>
         ) : (
           table

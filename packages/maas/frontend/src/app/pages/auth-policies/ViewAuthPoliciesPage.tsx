@@ -11,7 +11,8 @@ import {
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
-import { MaaSAuthPolicy } from '~/app/types/subscriptions';
+import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
+import { PolicyInfoResponse } from '~/app/types/auth-policies';
 import { URL_PREFIX } from '~/app/utilities/const';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
@@ -20,6 +21,24 @@ import PolicyGroupsSection from './viewAuthPolicy/PolicyGroupsSection';
 
 type PolicyActionsProps = {
   policy: MaaSAuthPolicy;
+};
+
+const viewModelRefSummaries = (info: PolicyInfoResponse): MaaSModelRefSummary[] => {
+  const policyRefs = Array.isArray(info.policy.modelRefs) ? info.policy.modelRefs : [];
+  const modelRefSummaries = Array.isArray(info.modelRefs) ? info.modelRefs : [];
+
+  return policyRefs.map((ref) => {
+    const summary = modelRefSummaries.find(
+      (s) => s.name === ref.name && s.namespace === ref.namespace,
+    );
+    return (
+      summary ?? {
+        name: ref.name,
+        namespace: ref.namespace,
+        modelRef: { kind: '', name: '' },
+      }
+    );
+  });
 };
 
 const PolicyActions: React.FC<PolicyActionsProps> = ({ policy }) => {
@@ -109,8 +128,9 @@ const ViewAuthPoliciesPage: React.FC = () => {
             </PageSection>
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
               <MaasModelsSection
-                modelRefSummaries={policyInfo.modelRefs}
+                modelRefSummaries={viewModelRefSummaries(policyInfo)}
                 hideColumns={['tokenLimits']}
+                resourceType="authorization policy"
               />
             </PageSection>
           </Tab>
