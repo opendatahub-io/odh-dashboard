@@ -57,6 +57,7 @@ export enum SupportedArea {
   PERFORMANCE_METRICS = 'performance-metrics',
   TRUSTY_AI = 'trusty-ai',
   NIM_MODEL = 'nim-model',
+  NIM_WIZARD = 'nim-wizard',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   MODEL_AS_SERVICE = 'model-as-service',
   MAAS_AUTH_POLICIES = 'maas-auth-policies',
