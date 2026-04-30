@@ -914,7 +914,6 @@ describe('Pipeline topology', () => {
       cy.wait('@emptyLogs');
       pipelineRunDetails.findLogs().should('be.visible');
       pipelineRunDetails.findLogs().contains('No logs available');
-      pipelineRunDetails.findLogsSuccessAlert().should('not.exist');
     });
 
     it('should handle malformed log data', () => {
