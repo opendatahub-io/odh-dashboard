@@ -131,7 +131,7 @@ const NIMSettingsCard: React.FC = () => {
           namespace={namespace}
           isReplacing={isReplacing}
           existingSecretName={existingSecretName}
-          onActionComplete={refresh}
+          refresh={refresh}
           startRevalidation={startRevalidation}
           accountStatus={status}
           accountErrors={errorMessages}
