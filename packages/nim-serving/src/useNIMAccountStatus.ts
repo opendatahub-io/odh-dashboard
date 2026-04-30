@@ -13,7 +13,6 @@ import {
 export enum NIMAccountStatus {
   NOT_FOUND = 'NOT_FOUND',
   PENDING = 'PENDING',
-  CONFIGURING = 'CONFIGURING',
   ERROR = 'ERROR',
   READY = 'READY',
 }
@@ -63,7 +62,7 @@ export const deriveStatus = (
         errorMessages: errors.length > 0 ? errors : [VALIDATION_TIMEOUT_MESSAGE],
       };
     }
-    return { status: NIMAccountStatus.CONFIGURING, errorMessages: [] };
+    return { status: NIMAccountStatus.PENDING, errorMessages: [] };
   }
   if (accountAge > VALIDATION_TIMEOUT_MS) {
     return { status: NIMAccountStatus.ERROR, errorMessages: [VALIDATION_TIMEOUT_MESSAGE] };
@@ -126,10 +125,7 @@ const useNIMAccountStatus = (namespace: string): NIMAccountStatusResult => {
   const effectiveErrors = isWaitingForRevalidation ? [] : derived.errorMessages;
 
   React.useEffect(() => {
-    const isFastPoll =
-      effectiveStatus === NIMAccountStatus.PENDING ||
-      effectiveStatus === NIMAccountStatus.CONFIGURING;
-    setPollRate(isFastPoll ? FAST_POLL_INTERVAL : POLL_INTERVAL);
+    setPollRate(effectiveStatus === NIMAccountStatus.PENDING ? FAST_POLL_INTERVAL : POLL_INTERVAL);
   }, [effectiveStatus]);
 
   const startRevalidation = React.useCallback(() => {
