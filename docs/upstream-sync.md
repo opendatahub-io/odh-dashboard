@@ -71,7 +71,7 @@ This temporarily overrides the `package.json` config to point at the PR's branch
 
 The `/upstream-sync` Claude Code skill automates the full PR sync workflow:
 
-```
+```text
 /upstream-sync model-registry
 /upstream-sync model-registry https://github.com/kubeflow/model-registry/pull/1234
 ```
@@ -148,7 +148,7 @@ These changes exist only for local testing. After validating, discard the branch
 
 The `/upstream-sync-local` Claude Code skill automates the local sync workflow:
 
-```
+```text
 /upstream-sync-local model-registry /path/to/local/model-registry feature/my-changes
 ```
 
@@ -252,7 +252,7 @@ Three Claude Code skills automate the sync workflows. All are available via slas
 
 Orchestrates the full PR sync workflow: branch creation, running the script, conflict resolution, tests, and PR creation.
 
-```
+```text
 # Normal sync
 /upstream-sync model-registry
 
@@ -264,7 +264,7 @@ Orchestrates the full PR sync workflow: branch creation, running the script, con
 
 Orchestrates local sync from a local upstream repository clone.
 
-```
+```text
 # Sync all new commits from a branch
 /upstream-sync-local model-registry /path/to/local/model-registry feature/my-changes
 
@@ -279,7 +279,7 @@ Orchestrates local sync from a local upstream repository clone.
 
 Checks whether a package's upstream copy is up to date.
 
-```
+```text
 /upstream-sync-status model-registry
 ```
 

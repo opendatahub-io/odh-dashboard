@@ -625,7 +625,7 @@ if [ "$SINGLE_COMMIT_MODE" != true ]; then
   fi
 fi
 
-if [ ! -d "$TARGET_DIR" ] && ([ -z "$CURRENT_COMMIT" ] || [ "$CURRENT_COMMIT" = "null" ] || [ "$CURRENT_COMMIT" = "" ]); then
+if [ ! -d "$TARGET_DIR" ] && { [ -z "$CURRENT_COMMIT" ] || [ "$CURRENT_COMMIT" = "null" ] || [ "$CURRENT_COMMIT" = "" ]; }; then
   progress_msg "Performing initial setup - no previous commit found"
 
   if ! copy_upstream_files "$LOCAL_REPO_RESOLVED" "$UPSTREAM_SUBDIR" "$TARGET_DIR"; then
@@ -635,14 +635,13 @@ if [ ! -d "$TARGET_DIR" ] && ([ -z "$CURRENT_COMMIT" ] || [ "$CURRENT_COMMIT" = 
   cd "$MONOREPO_ROOT"
 
   bootstrap_tmp="$PACKAGE_JSON.tmp"
-  if ! jq --arg local_repo_path "$LOCAL_REPO_RESOLVED" \
-          --arg origin_url "$LOCAL_REPO_ORIGIN" \
+  if ! jq --arg origin_url "$LOCAL_REPO_ORIGIN" \
           --arg branch "$LOCAL_BRANCH" \
           --arg commit "$TARGET_COMMIT" \
           '.subtree = (
             { DO_NOT_MERGE_SYNCED_FROM_LOCAL: (
-                { local_repo_path: $local_repo_path, branch: $branch }
-                + if $origin_url != "" then { origin_url: $origin_url } else {} end
+                { branch: $branch }
+                + if $origin_url != "" then { origin_url: $origin_url } else { source: "local repository" } end
               ) }
             + (if .subtree.repo then { repo: .subtree.repo } else {} end)
             + { branch: $branch }
@@ -689,13 +688,12 @@ if [ "$needs_sync_work" = true ]; then
   echo ""
 
   temp_file="$PACKAGE_JSON.tmp"
-  if ! jq --arg local_repo_path "$LOCAL_REPO_RESOLVED" \
-          --arg origin_url "$LOCAL_REPO_ORIGIN" \
+  if ! jq --arg origin_url "$LOCAL_REPO_ORIGIN" \
           --arg branch "$LOCAL_BRANCH" \
           '.subtree = {
             DO_NOT_MERGE_SYNCED_FROM_LOCAL: (
-              { local_repo_path: $local_repo_path, branch: $branch }
-              + if $origin_url != "" then { origin_url: $origin_url } else {} end
+              { branch: $branch }
+              + if $origin_url != "" then { origin_url: $origin_url } else { source: "local repository" } end
             ),
             repo: .subtree.repo,
             branch: $branch,
@@ -726,7 +724,7 @@ if [ "$needs_sync_work" = true ]; then
 
   commit_msg="${COMMIT_PREFIX}Override subtree config for local sync
 
-Syncing from local repository: $LOCAL_REPO_RESOLVED
+Syncing from local repository (path omitted)
 Branch: $LOCAL_BRANCH${LOCAL_REPO_ORIGIN:+
 Origin: $LOCAL_REPO_ORIGIN}
 
@@ -927,7 +925,8 @@ apply_patch_based_update() {
         echo -e "   ${YELLOW}Upstream commit: $commit${NC}"
         echo ""
 
-        local apply_error=$(cat "$TMP_DIR/apply_error.log" 2>/dev/null || echo "")
+        local apply_error
+        apply_error=$(cat "$TMP_DIR/apply_error.log" 2>/dev/null || echo "")
         local has_git_conflicts=false
         local has_rejected_patches=false
         local failed_files=()
@@ -956,7 +955,8 @@ apply_patch_based_update() {
             info_msg "Attempting to apply other files from the patch individually..."
             echo ""
 
-            local all_files=$(grep '^diff --git' "$filtered_patch" | sed 's/^diff --git a\/.* b\///' || true)
+            local all_files
+            all_files=$(grep '^diff --git' "$filtered_patch" | sed 's/^diff --git a\/.* b\///' || true)
 
             while IFS= read -r file; do
               [ -z "$file" ] && continue
