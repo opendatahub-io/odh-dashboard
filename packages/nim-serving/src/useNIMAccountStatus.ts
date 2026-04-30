@@ -18,7 +18,11 @@ export enum NIMAccountStatus {
   READY = 'READY',
 }
 
-const REVALIDATION_TIMEOUT_MS = 30000;
+const REVALIDATION_TIMEOUT_MS = 30_000;
+const VALIDATION_TIMEOUT_MS = 300_000;
+
+const VALIDATION_TIMEOUT_MESSAGE =
+  'NIM account validation is taking longer than expected. You may want to replace the API key or disable NIM and try again.';
 
 type NIMAccountStatusResult = {
   status: NIMAccountStatus;
@@ -27,6 +31,14 @@ type NIMAccountStatusResult = {
   loaded: boolean;
   refresh: () => Promise<NIMAccountKind | null | undefined>;
   startRevalidation: () => void;
+};
+
+const getAccountAgeMs = (account: NIMAccountKind): number => {
+  const timestamp = account.status?.lastAccountCheck ?? account.metadata.creationTimestamp;
+  if (!timestamp) {
+    return 0;
+  }
+  return Date.now() - new Date(timestamp).getTime();
 };
 
 export const deriveStatus = (
@@ -42,8 +54,19 @@ export const deriveStatus = (
     const errors = getAccountErrors(account);
     return { status: NIMAccountStatus.ERROR, errorMessages: errors };
   }
+  const accountAge = getAccountAgeMs(account);
   if (isApiKeyValidated(account)) {
+    if (accountAge > VALIDATION_TIMEOUT_MS) {
+      const errors = getAccountErrors(account);
+      return {
+        status: NIMAccountStatus.ERROR,
+        errorMessages: errors.length > 0 ? errors : [VALIDATION_TIMEOUT_MESSAGE],
+      };
+    }
     return { status: NIMAccountStatus.CONFIGURING, errorMessages: [] };
+  }
+  if (accountAge > VALIDATION_TIMEOUT_MS) {
+    return { status: NIMAccountStatus.ERROR, errorMessages: [VALIDATION_TIMEOUT_MESSAGE] };
   }
   return { status: NIMAccountStatus.PENDING, errorMessages: [] };
 };

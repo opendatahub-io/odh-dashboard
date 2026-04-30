@@ -59,6 +59,34 @@ describe('deriveStatus', () => {
     expect(result.errorMessages).toEqual([]);
   });
 
+  it('should return ERROR when CONFIGURING has timed out based on lastAccountCheck', () => {
+    const staleTime = new Date(Date.now() - 360_000).toISOString();
+    const account = mockNimAccount({
+      conditions: [
+        { type: 'APIKeyValidation', status: 'True', reason: 'ApiKeyValidated' },
+        {
+          type: 'AccountStatus',
+          status: 'False',
+          reason: 'AccountNotSuccessful',
+          message: 'nim config reconciliation failed',
+        },
+      ],
+    });
+    account.status = { ...account.status, lastAccountCheck: staleTime };
+    const result = deriveStatus(account);
+    expect(result.status).toBe(NIMAccountStatus.ERROR);
+    expect(result.errorMessages).toEqual(['nim config reconciliation failed']);
+  });
+
+  it('should return ERROR when PENDING has timed out based on creationTimestamp', () => {
+    const staleTime = new Date(Date.now() - 360_000).toISOString();
+    const account = mockNimAccount({ conditions: [] });
+    account.metadata.creationTimestamp = staleTime;
+    const result = deriveStatus(account);
+    expect(result.status).toBe(NIMAccountStatus.ERROR);
+    expect(result.errorMessages[0]).toContain('taking longer than expected');
+  });
+
   it('should return PENDING when account exists but has no definitive conditions', () => {
     const account = mockNimAccount({ conditions: [] });
     const result = deriveStatus(account);
