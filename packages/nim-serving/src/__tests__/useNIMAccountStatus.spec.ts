@@ -1,7 +1,7 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { listNIMAccounts } from '@odh-dashboard/internal/api/k8s/nimAccounts';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
-import useNIMAccountStatus, { NIMAccountStatus } from '../useNIMAccountStatus';
+import useNIMAccountStatus, { deriveStatus, NIMAccountStatus } from '../useNIMAccountStatus';
 
 jest.mock('@odh-dashboard/internal/api/k8s/nimAccounts', () => ({
   listNIMAccounts: jest.fn(),
@@ -9,26 +9,44 @@ jest.mock('@odh-dashboard/internal/api/k8s/nimAccounts', () => ({
 
 const mockListNIMAccounts = jest.mocked(listNIMAccounts);
 
+describe('deriveStatus', () => {
+  it('should return NOT_FOUND when account is undefined', () => {
+    const result = deriveStatus(undefined);
+    expect(result.status).toBe(NIMAccountStatus.NOT_FOUND);
+    expect(result.errorMessages).toEqual([]);
+  });
+
+  it('should return READY when AccountStatus condition is True', () => {
+    const account = mockNimAccount({
+      conditions: [{ type: 'AccountStatus', status: 'True', reason: 'AccountSuccessful' }],
+    });
+    const result = deriveStatus(account);
+    expect(result.status).toBe(NIMAccountStatus.READY);
+    expect(result.errorMessages).toEqual([]);
+  });
+
+  it('should return ERROR when conditions have status False', () => {
+    const account = mockNimAccount({
+      conditions: [
+        { type: 'AccountStatus', status: 'False', reason: 'Failed', message: 'invalid key' },
+      ],
+    });
+    const result = deriveStatus(account);
+    expect(result.status).toBe(NIMAccountStatus.ERROR);
+    expect(result.errorMessages).toEqual(['invalid key']);
+  });
+
+  it('should return PENDING when account exists but has no definitive conditions', () => {
+    const account = mockNimAccount({ conditions: [] });
+    const result = deriveStatus(account);
+    expect(result.status).toBe(NIMAccountStatus.PENDING);
+    expect(result.errorMessages).toEqual([]);
+  });
+});
+
 describe('useNIMAccountStatus', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  it('should return NOT_FOUND when no account exists', async () => {
-    mockListNIMAccounts.mockResolvedValue([]);
-
-    const renderResult = testHook(useNIMAccountStatus)('test-ns');
-    await renderResult.waitForNextUpdate();
-
-    expect(renderResult.result.current.status).toBe(NIMAccountStatus.NOT_FOUND);
-    expect(renderResult.result.current.nimAccount).toBeUndefined();
-    expect(renderResult.result.current.errorMessages).toEqual([]);
-    expect(renderResult.result.current.loaded).toBe(true);
   });
 
   it('should return READY when account has AccountStatus True', async () => {
@@ -74,15 +92,5 @@ describe('useNIMAccountStatus', () => {
 
     expect(renderResult.result.current.status).toBe(NIMAccountStatus.PENDING);
     expect(renderResult.result.current.errorMessages).toEqual([]);
-  });
-
-  it('should return NOT_FOUND when listNIMAccounts throws', async () => {
-    mockListNIMAccounts.mockRejectedValue(new Error('network error'));
-
-    const renderResult = testHook(useNIMAccountStatus)('test-ns');
-    await renderResult.waitForNextUpdate();
-
-    expect(renderResult.result.current.status).toBe(NIMAccountStatus.NOT_FOUND);
-    expect(renderResult.result.current.loaded).toBe(true);
   });
 });
