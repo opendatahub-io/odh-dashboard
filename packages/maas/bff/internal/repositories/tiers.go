@@ -332,12 +332,13 @@ func (t *TiersRepository) DeleteTierByName(ctx context.Context, name string) err
 	// TODO: Delete side effects? (e.g. models belonging to the tier)
 
 	remainingTiers := slices.Delete(slices.Clone(parsedTiers), tierIdx, tierIdx+1)
-	if err := t.updateTiersConfigMap(ctx, tierConfigMap, remainingTiers); err != nil {
+
+	// Sync the policies before updating the ConfigMap so a failed policy update leaves the tier row in place
+	// If the ConfigMap update fails after this, the tier still shows up in the UI while limits are already stripped
+	if err := t.syncCombinedPoliciesFromDirtyTier(ctx, remainingTiers, "", models.TierLimits{}, []string{name}); err != nil {
 		return err
 	}
-
-	// Strip removed tier's managed keys from the combined policies and delete legacy per-tier CRs for all affected names.
-	if err := t.syncCombinedPoliciesFromDirtyTier(ctx, remainingTiers, "", models.TierLimits{}, []string{name}); err != nil {
+	if err := t.updateTiersConfigMap(ctx, tierConfigMap, remainingTiers); err != nil {
 		return err
 	}
 
