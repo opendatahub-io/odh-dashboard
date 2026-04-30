@@ -1,9 +1,8 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   Alert,
   Button,
   FormGroup,
-  FormGroupLabelHelp,
   HelperText,
   HelperTextItem,
   Popover,
@@ -12,6 +11,7 @@ import {
 } from '@patternfly/react-core';
 import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import FieldGroupHelpLabelIcon from '@odh-dashboard/internal/components/FieldGroupHelpLabelIcon';
 import type { NamespaceSelectorFieldProps } from '@mf/modelRegistry/extension-points';
 
 const SELECTOR_TOOLTIP =
@@ -52,17 +52,12 @@ const ProjectSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
   registryName,
   selectorOnly,
 }) => {
-  const labelHelpRef = useRef<HTMLSpanElement>(null);
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
   const noProjects = projectsLoaded && projects.length === 0;
 
   const showNoAccessAlert = selectedNamespace && !isLoading && hasAccess === false;
 
-  const labelHelp = (
-    <Popover triggerRef={labelHelpRef} bodyContent={SELECTOR_TOOLTIP} aria-label={SELECTOR_TOOLTIP}>
-      <FormGroupLabelHelp ref={labelHelpRef} aria-label="More info for project field" />
-    </Popover>
-  );
+  const labelHelp = <FieldGroupHelpLabelIcon content={SELECTOR_TOOLTIP} />;
 
   const helperTextNode = (
     <>

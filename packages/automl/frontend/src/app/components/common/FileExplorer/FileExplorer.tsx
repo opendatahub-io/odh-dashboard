@@ -165,6 +165,8 @@ const defaults = {
 
     tableActionViewDetails: 'View details',
     tableActionRemoveSelection: 'Remove selection',
+    tableActionSelectFile: 'Select file',
+    tableActionSelectFolder: 'Select folder',
 
     detailsViewingDetailsOfThisFile: 'Viewing details',
     detailsPanelTitle: 'Details',
@@ -271,6 +273,7 @@ interface FilesTableProps {
   unselectableReason?: string;
   onFolderClick?: (folder: Folder) => void;
   onViewDetails: (file: File) => void;
+  onRemoveSelection: (file: File) => void;
   filesToView?: Files;
   isEmpty?: boolean;
   emptyStateProps?: FileExplorerEmptyStateConfig;
@@ -286,6 +289,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
   unselectableReason,
   onFolderClick,
   onViewDetails,
+  onRemoveSelection,
   filesToView,
   isEmpty: isEmptyProp,
   emptyStateProps,
@@ -393,19 +397,43 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   Array.isArray(filesToView) && filesToView.some((f) => f.path === file.path);
                 const isUnselectable = file.selectable === false;
 
-                const actions: IAction[] = [
-                  {
+                const onSelect = (_event: unknown, isSelecting: boolean) => {
+                  if (selection === 'radio') {
+                    setSelectedFiles(isSelecting ? [file] : []);
+                  } else {
+                    const current = Array.isArray(selectedFiles) ? selectedFiles : [];
+                    if (isSelecting) {
+                      if (!current.some((f) => f.path === file.path)) {
+                        setSelectedFiles([...current, file]);
+                      }
+                    } else {
+                      setSelectedFiles(current.filter((f) => f.path !== file.path));
+                    }
+                  }
+                  if (isSelecting) {
+                    onViewDetails(file);
+                  }
+                  onSelectFile?.(file, isSelecting);
+                };
+
+                const actions: IAction[] = [];
+                if (!isFileBeingViewed) {
+                  actions.push({
                     title: defaults.labels.tableActionViewDetails,
                     onClick: () => onViewDetails(file),
-                  },
-                ];
+                  });
+                }
                 if (isSelected) {
                   actions.push({
                     title: defaults.labels.tableActionRemoveSelection,
-                    onClick: () => {
-                      setSelectedFiles(selectedFiles.filter((f) => f.path !== file.path));
-                      onSelectFile?.(file, false);
-                    },
+                    onClick: () => onRemoveSelection(file),
+                  });
+                } else {
+                  actions.push({
+                    title: isFolder(file)
+                      ? defaults.labels.tableActionSelectFolder
+                      : defaults.labels.tableActionSelectFile,
+                    onClick: (event) => onSelect(event, true),
                   });
                 }
 
@@ -413,7 +441,31 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   <Tr
                     key={file.path}
                     data-testid={`file-explorer-row-${sanitizeId(file.path)}`}
+                    isSelectable={!isUnselectable}
                     isRowSelected={isSelected}
+                    isClickable={!isUnselectable}
+                    onRowClick={(event) => {
+                      // we want to ignore clicks that propagate up from the
+                      // folder link button, actions menu toggle, etc.
+                      const clickedInteractiveDescendant =
+                        event?.target instanceof Element &&
+                        event.target.closest('a, button, input, label');
+                      // when using both `onRowClick` and the radio/checkbox on the Td component,
+                      // keyboard events on the Td radio/checkbox no longer trigger `onSelect`
+                      // so we need handle it here instead
+                      const clickedRadioOrCheckboxWithKeyboard =
+                        event?.target instanceof HTMLInputElement &&
+                        ['radio', 'checkbox'].includes(event.target.type) &&
+                        event.nativeEvent instanceof KeyboardEvent &&
+                        event.nativeEvent.code === 'Space';
+
+                      if (
+                        !isUnselectable &&
+                        (!clickedInteractiveDescendant || clickedRadioOrCheckboxWithKeyboard)
+                      ) {
+                        onSelect(event, selection === 'checkbox' ? !isSelected : true);
+                      }
+                    }}
                   >
                     <Td
                       width={columns.select.width}
@@ -426,24 +478,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                       }
                       select={{
                         rowIndex,
-                        onSelect: (_event, isSelecting) => {
-                          if (selection === 'radio') {
-                            setSelectedFiles(isSelecting ? [file] : []);
-                          } else {
-                            const current = Array.isArray(selectedFiles) ? selectedFiles : [];
-                            if (isSelecting) {
-                              if (!current.some((f) => f.path === file.path)) {
-                                setSelectedFiles([...current, file]);
-                              }
-                            } else {
-                              setSelectedFiles(current.filter((f) => f.path !== file.path));
-                            }
-                          }
-                          if (isSelecting) {
-                            onViewDetails(file);
-                          }
-                          onSelectFile?.(file, isSelecting);
-                        },
+                        onSelect,
                         isSelected: Boolean(isSelected || file.forceShowAsSelected),
                         isDisabled: isUnselectable,
                         variant: selection,
@@ -456,17 +491,13 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         flexWrap={{ default: 'nowrap' }}
                       >
                         <FlexItem>
-                          {isFolder(file) && (
-                            <Truncate
-                              href="#"
-                              onClick={(e: React.MouseEvent) => {
-                                e.preventDefault();
-                                onFolderClick?.(file);
-                              }}
-                              content={file.name}
-                            />
+                          {isFolder(file) ? (
+                            <Button variant="link" isInline onClick={() => onFolderClick?.(file)}>
+                              <Truncate content={file.name} />
+                            </Button>
+                          ) : (
+                            <Truncate content={file.name} />
                           )}
-                          {!isFolder(file) && <Truncate content={file.name} />}
                         </FlexItem>
                         {!isSelected && isFileBeingViewed && (
                           <FlexItem>
@@ -481,7 +512,20 @@ const FilesTable: React.FC<FilesTableProps> = ({
                       {isFolder(file) ? defaults.labels.folderType : file.type}
                     </Td>
                     <Td width={columns.actions.width} isActionCell>
-                      <ActionsColumn items={actions} />
+                      <ActionsColumn
+                        actionsToggle={({ toggleRef, onToggle, isOpen, isDisabled }) => (
+                          <MenuToggle
+                            aria-label={`${file.name} actions`}
+                            ref={toggleRef}
+                            onClick={(event) => onToggle(event)}
+                            isExpanded={isOpen}
+                            isDisabled={isDisabled}
+                            variant="plain"
+                            icon={<EllipsisVIcon />}
+                          />
+                        )}
+                        items={actions}
+                      />
                     </Td>
                   </Tr>
                 );
@@ -645,11 +689,13 @@ const FileDetails: React.FC<FileDetailsProps> = ({ file }) => (
 
 interface SelectedFilesDataListProps {
   selectedFiles: Files;
+  filesToView?: Files;
   onViewDetails: (file: File) => void;
   onRemoveSelection: (file: File) => void;
 }
 const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
   selectedFiles,
+  filesToView,
   onViewDetails,
   onRemoveSelection,
 }) => {
@@ -675,11 +721,28 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
             <DataListItemCells
               dataListCells={[
                 <DataListCell key="name">
-                  <Truncate
-                    id={`selected-file-${sanitizeId(file.path)}`}
-                    content={file.name}
-                    tooltipPosition="right"
-                  />
+                  <Flex
+                    spaceItems={{ default: 'spaceItemsSm' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    flexWrap={{ default: 'nowrap' }}
+                  >
+                    <FlexItem>
+                      <Truncate
+                        id={`selected-file-${sanitizeId(file.path)}`}
+                        content={file.name}
+                        tooltipPosition="right"
+                      />
+                    </FlexItem>
+                    {selectedFiles.length > 1 &&
+                      Array.isArray(filesToView) &&
+                      filesToView.some((f) => f.path === file.path) && (
+                        <FlexItem>
+                          <OutlinedEyeIcon
+                            title={defaults.labels.detailsViewingDetailsOfThisFile}
+                          />
+                        </FlexItem>
+                      )}
+                  </Flex>
                 </DataListCell>,
               ]}
             />
@@ -707,15 +770,19 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
                 popperProps={{ position: 'right' }}
               >
                 <DropdownList>
-                  <DropdownItem
-                    key="view-details"
-                    onClick={() => {
-                      onViewDetails(file);
-                      setOpenMenuFileKey(null);
-                    }}
-                  >
-                    {defaults.labels.tableActionViewDetails}
-                  </DropdownItem>
+                  {!(
+                    Array.isArray(filesToView) && filesToView.some((f) => f.path === file.path)
+                  ) && (
+                    <DropdownItem
+                      key="view-details"
+                      onClick={() => {
+                        onViewDetails(file);
+                        setOpenMenuFileKey(null);
+                      }}
+                    >
+                      {defaults.labels.tableActionViewDetails}
+                    </DropdownItem>
+                  )}
                   <DropdownItem
                     key="remove-selection"
                     onClick={() => {
@@ -786,6 +853,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
         {Array.isArray(selectedFiles) && selectedFiles.length > 0 && (
           <SelectedFilesDataList
             selectedFiles={selectedFiles}
+            filesToView={filesToView}
             onViewDetails={onViewDetails}
             onRemoveSelection={onRemoveSelection}
           />
@@ -1144,6 +1212,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   unselectableReason={unselectableReason}
                   onFolderClick={handleFolderClick}
                   onViewDetails={handleViewDetails}
+                  onRemoveSelection={handleRemoveSelection}
                   filesToView={filesToView}
                   isEmpty={isEmpty}
                   emptyStateProps={emptyStateProps}

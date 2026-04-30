@@ -53,6 +53,7 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     setPageSize,
     loaded: runsLoaded,
     error: runsError,
+    refresh: refreshRuns,
   } = usePipelineRuns(effectiveNamespace);
 
   const loaded = defsLoaded && runsLoaded;
@@ -158,6 +159,7 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
       pageSize={pageSize}
       onPageChange={setPage}
       onPerPageChange={setPageSize}
+      onRunActionComplete={refreshRuns}
     />
   );
 }

@@ -10,10 +10,10 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/api"
-	"github.com/kubeflow/model-registry/ui/bff/internal/constants"
-	helper "github.com/kubeflow/model-registry/ui/bff/internal/helpers"
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/api"
+	"github.com/kubeflow/hub/ui/bff/internal/constants"
+	helper "github.com/kubeflow/hub/ui/bff/internal/helpers"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
