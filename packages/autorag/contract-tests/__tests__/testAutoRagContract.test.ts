@@ -1292,6 +1292,62 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
     });
+
+    describe('Delete Pipeline Run', () => {
+      it('should delete a succeeded pipeline run', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/run-abc123-def456?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should delete a failed pipeline run', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/run-mno345-pqr678?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should return 400 when attempting to delete an active (RUNNING) run', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/run-ghi789-jkl012?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+          expect({
+            status: result.error.status,
+            data: result.error.data,
+          }).toMatchContract(apiSchema, {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          });
+        }
+      });
+
+      it('should return 404 for non-existent run ID', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/non-existent-run-id?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+          expect({
+            status: result.error.status,
+            data: result.error.data,
+          }).toMatchContract(apiSchema, {
+            ref: '#/components/responses/NotFound/content/application~1json/schema',
+            status: 404,
+          });
+        }
+      });
+    });
   });
 
   describe('S3 File Upload (POST)', () => {

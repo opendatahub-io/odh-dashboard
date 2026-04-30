@@ -272,6 +272,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.CreatePipelineRunHandler)))))
 	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.TerminatePipelineRunHandler)))))
 	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.RetryPipelineRunHandler)))))
+	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.DeletePipelineRunHandler)))))
 
 	// App Router
 	appMux := http.NewServeMux()
