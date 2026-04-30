@@ -89,7 +89,6 @@ const PIP_TRUSTED_HOST = testConfig?.PIP_TRUSTED_HOST;
 const NGC_API_KEY = testConfig?.NGC_API_KEY;
 const OCI_SECRET_VALUE = testConfig?.OCI_SECRET_VALUE;
 const OCI_MODEL_URI = testConfig?.OCI_MODEL_URI;
-const EVAL_HUB_GEMINI_API_KEY = testConfig?.EVAL_HUB_GEMINI_API_KEY ?? env.EVAL_HUB_GEMINI_API_KEY;
 
 // BYOIDC cluster authentication settings
 const CLUSTER_AUTH = testConfig?.CLUSTER_AUTH;
@@ -109,7 +108,6 @@ export const cypressEnv = {
   NGC_API_KEY,
   OCI_SECRET_VALUE,
   OCI_MODEL_URI,
-  EVAL_HUB_GEMINI_API_KEY,
   CLUSTER_AUTH,
 };
 

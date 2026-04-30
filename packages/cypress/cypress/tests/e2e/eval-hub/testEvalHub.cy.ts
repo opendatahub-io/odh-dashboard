@@ -8,15 +8,23 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { isTrustyAIStackAvailable } from '../../../utils/oc_commands/dsc';
 import type { EvalHubTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
-import { deleteEvalHubCr, ensureEvalHubCrReady } from '../../../utils/oc_commands/evalHubInstance';
+import {
+  deleteEvalHubCr,
+  deleteEvalHubE2eDatabaseSecret,
+  ensureEvalHubCrReady,
+} from '../../../utils/oc_commands/evalHubInstance';
 import { ensureEvalHubTenantRoleBindingsForEvalHubService } from '../../../utils/oc_commands/evalHubTenantRbac';
 import { deleteMlflowCr, ensureMlflowCrReady } from '../../../utils/oc_commands/mlflowInstance';
+import { readGeminiApiKeyFromCluster } from '../../../utils/oc_commands/evalHubGeminiSecret';
 import { evaluationsPage } from '../../../pages/evaluations';
 import { evalHubEvaluationFlow } from '../../../pages/evalHubEvaluationFlow';
 
 /**
  * Live-cluster Eval Hub E2E (no model serving deploy). Creates an ephemeral OpenShift project per run
  * for `/evaluation/:ns` and TrustyAI tenant RoleBindings; ensures EvalHub CR + cluster MLflow CR when missing.
+ *
+ * Cluster cleanup if `after()` did not run (killed process, hook failure): run
+ * `packages/eval-hub/scripts/cleanup-evalhub-e2e.sh` with `APPLICATIONS_NAMESPACE` set.
  */
 describe('Eval Hub E2E', () => {
   let testData: EvalHubTestData;
@@ -118,6 +126,12 @@ describe('Eval Hub E2E', () => {
       return deleteEvalHubCr(evalHubCrName);
     })
       .then(() => {
+        if (skipTest || !evalHubCrCreatedByTest) {
+          return cy.wrap(null);
+        }
+        return deleteEvalHubE2eDatabaseSecret();
+      })
+      .then(() => {
         if (skipTest || !mlflowCrCreatedByTest) {
           return cy.wrap(null);
         }
@@ -163,66 +177,63 @@ describe('Eval Hub E2E', () => {
         this.skip();
       }
 
-      const geminiKey = Cypress.env('EVAL_HUB_GEMINI_API_KEY') as string | undefined;
-      if (!geminiKey?.trim()) {
-        // eslint-disable-next-line no-console -- sync notice; avoid cy.log before this.skip()
-        console.log(
-          'Skipping Gemini Eval Hub E2E: set EVAL_HUB_GEMINI_API_KEY in test-variables.yml (or process env).',
-        );
-        this.skip();
-      }
-
       const ns = evaluationTenantProject;
-      const benchmarkTitle = testData.benchmarkCardTitle ?? 'Basic science Q&A';
+      const benchmarkTitle = testData.benchmarkCardTitle ?? 'Everyday activity completion';
       const endpointUrl =
         testData.inferenceEndpointUrl ?? 'https://generativelanguage.googleapis.com/v1beta/openai';
       const modelName = testData.inferenceModelName ?? 'gemini-2.5-flash';
       const extraParams = (testData.additionalBenchmarkParams ?? '').trim();
       const evaluationRunName = `e2e-gemini-${uuid}`;
 
-      cy.step('Open Evaluations with LM eval dev flags');
-      cy.visitWithLogin(evaluationsPage.pathWithLmEvalDevFlags(ns), HTPASSWD_CLUSTER_ADMIN_USER);
-      evaluationsPage.assertEvaluationsShellVisible(ns);
+      return readGeminiApiKeyFromCluster({
+        namespace: testData.geminiApiKeySecretNamespace,
+        secretName: testData.geminiApiKeySecretName,
+        dataKey: testData.geminiApiKeySecretKey,
+      }).then((geminiKey) => {
+        cy.step('Open Evaluations with LM eval dev flags');
+        cy.visitWithLogin(evaluationsPage.pathWithLmEvalDevFlags(ns), HTPASSWD_CLUSTER_ADMIN_USER);
+        evaluationsPage.assertEvaluationsShellVisible(ns);
 
-      cy.step('Create new evaluation → single benchmark');
-      evalHubEvaluationFlow.openCreateEvaluationFromList();
-      evalHubEvaluationFlow.selectSingleBenchmarkEntry();
+        cy.step('Create new evaluation → single benchmark');
+        evalHubEvaluationFlow.openCreateEvaluationFromList();
+        evalHubEvaluationFlow.selectSingleBenchmarkEntry();
 
-      cy.step(`Select benchmark card: ${benchmarkTitle}`);
-      evalHubEvaluationFlow.startRunForBenchmarkCardContaining(benchmarkTitle);
+        cy.step(`Select benchmark card: ${benchmarkTitle}`);
+        evalHubEvaluationFlow.startRunForBenchmarkCardContaining(benchmarkTitle);
 
-      cy.step(
-        'Start evaluation form: name, defaults (MLflow new experiment EvalHub), inference source',
-      );
-      cy.findByTestId('benchmark-name-display').should('contain.text', benchmarkTitle);
-      evalHubEvaluationFlow.findEvaluationNameInput().clear().type(evaluationRunName);
-      cy.findByTestId('experiment-mode-new').should('be.checked');
-      cy.findByTestId('new-experiment-name-input').should('have.value', 'EvalHub');
-      evalHubEvaluationFlow.findInputModeInference().should('be.checked');
+        cy.step(
+          'Start evaluation form: name, defaults (MLflow new experiment EvalHub), inference source',
+        );
+        cy.findByTestId('benchmark-name-display').should('contain.text', benchmarkTitle);
+        evalHubEvaluationFlow.findEvaluationNameInput().clear().type(evaluationRunName);
+        cy.findByTestId('experiment-mode-new').should('be.checked');
+        cy.findByTestId('new-experiment-name-input').should('have.value', 'EvalHub');
+        evalHubEvaluationFlow.findInputModeInference().should('be.checked');
 
-      cy.step('Model details (OpenAI-compatible Gemini endpoint)');
-      evalHubEvaluationFlow.findModelNameInput().clear().type(modelName);
-      evalHubEvaluationFlow.findEndpointUrlInput().clear().type(endpointUrl);
-      evalHubEvaluationFlow.findApiKeyInput().clear().type(geminiKey, { log: false });
+        cy.step('Model details (OpenAI-compatible Gemini endpoint)');
+        evalHubEvaluationFlow.findModelNameInput().clear().type(modelName);
+        evalHubEvaluationFlow.findEndpointUrlInput().clear().type(endpointUrl);
+        evalHubEvaluationFlow.findApiKeyInput().clear().type(geminiKey, { log: false });
 
-      if (extraParams) {
-        cy.step('Benchmark parameters JSON');
-        evalHubEvaluationFlow.findBenchmarkParametersCheckbox().check({ force: true });
-        evalHubEvaluationFlow
-          .findAdditionalBenchmarkParamsTextarea()
-          .should('be.visible')
-          .clear()
-          .type(extraParams, { parseSpecialCharSequences: false });
-      }
+        if (extraParams) {
+          cy.step('Benchmark parameters JSON');
+          evalHubEvaluationFlow.findBenchmarkParametersCheckbox().check({ force: true });
+          evalHubEvaluationFlow
+            .findAdditionalBenchmarkParamsTextarea()
+            .should('be.visible')
+            .clear()
+            .type(extraParams, { parseSpecialCharSequences: false });
+        }
 
-      cy.step('Submit and return to evaluations list');
-      evalHubEvaluationFlow.findStartEvaluationSubmitButton().should('be.enabled');
-      evalHubEvaluationFlow.findStartEvaluationSubmitButton().click();
-      cy.url({ timeout: 120000 }).should('include', `/evaluation/${ns}`);
-      cy.url().should('not.include', '/create');
+        cy.step('Submit and return to evaluations list');
+        evalHubEvaluationFlow.findStartEvaluationSubmitButton().should('be.enabled');
+        evalHubEvaluationFlow.findStartEvaluationSubmitButton().click();
+        cy.url({ timeout: 120000 }).should('include', `/evaluation/${ns}`);
+        cy.url().should('not.include', '/create');
 
-      cy.step('Evaluation name appears in the table');
-      evaluationsPage.assertEvaluationsTableContains(evaluationRunName);
+        cy.step('Evaluation name appears in the table');
+        evaluationsPage.assertEvaluationsTableContains(evaluationRunName);
+      });
     },
   );
 });

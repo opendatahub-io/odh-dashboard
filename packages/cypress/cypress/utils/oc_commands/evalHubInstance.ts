@@ -3,6 +3,9 @@ import { createCustomResource } from './customResources';
 import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
+/** Placeholder DB secret in `resources/eval-hub/evalhub-instance.yaml` (multi-doc); torn down with suite-created EvalHub. */
+export const EVALHUB_E2E_DB_SECRET_NAME = 'evalhub-e2e-database-credentials';
+
 const getApplicationsNamespace = (): string => {
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
   if (!namespace) {
@@ -57,5 +60,13 @@ export const deleteEvalHubCr = (crName: string): Cypress.Chainable<CommandLineRe
   const ns = getApplicationsNamespace();
   const cmd = `oc delete evalhub ${crName} -n ${ns} --ignore-not-found`;
   cy.log(`Deleting EvalHub CR: ${cmd}`);
+  return cy.exec(cmd, { failOnNonZeroExit: false });
+};
+
+/** Removes the E2E placeholder DB Secret applied with `evalhub-instance.yaml` (after EvalHub CR is deleted). */
+export const deleteEvalHubE2eDatabaseSecret = (): Cypress.Chainable<CommandLineResult> => {
+  const ns = getApplicationsNamespace();
+  const cmd = `oc delete secret ${EVALHUB_E2E_DB_SECRET_NAME} -n ${ns} --ignore-not-found`;
+  cy.log(`Deleting Eval Hub E2E database placeholder secret: ${cmd}`);
   return cy.exec(cmd, { failOnNonZeroExit: false });
 };

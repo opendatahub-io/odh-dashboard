@@ -247,8 +247,6 @@ export type TestConfig = {
   NGC_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
-  /** Optional: Gemini (or compatible) API key for Eval Hub live E2E that submits an inference evaluation. */
-  EVAL_HUB_GEMINI_API_KEY?: string;
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
@@ -657,6 +655,12 @@ export type EvalHubTestData = {
   inferenceModelName?: string;
   /** JSON object string merged into benchmark parameters (valid JSON object). */
   additionalBenchmarkParams?: string;
+  /** OpenShift Secret name holding Gemini API key (default `geminiapikey`). */
+  geminiApiKeySecretName?: string;
+  /** Secret data key (default `api-key`, as in `oc create secret generic ... --from-literal=api-key=...`). */
+  geminiApiKeySecretKey?: string;
+  /** Namespace for that Secret; defaults to `APPLICATIONS_NAMESPACE`. */
+  geminiApiKeySecretNamespace?: string;
 };
 
 export type ModelCatalogSourceTestData = {

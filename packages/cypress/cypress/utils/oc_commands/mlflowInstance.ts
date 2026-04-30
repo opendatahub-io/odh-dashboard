@@ -3,10 +3,12 @@ import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 const MLFLOW_CR_NAME = 'mlflow';
+/** RHOAI/ODH MLflow instance CR (cluster-scoped); short name `mlflow` is not always registered in discovery. */
+const MLFLOW_GVR = 'mlflows.mlflow.opendatahub.io';
 
 const waitMlflowAvailable = (): Cypress.Chainable<Cypress.Exec> =>
   pollUntilSuccess(
-    `oc get mlflow ${MLFLOW_CR_NAME} -o json | jq -e '.status.conditions[]? | select(.type=="Available") | .status == "True"'`,
+    `oc get ${MLFLOW_GVR} ${MLFLOW_CR_NAME} -o json | jq -e '.status.conditions[]? | select(.type=="Available") | .status == "True"'`,
     `MLflow ${MLFLOW_CR_NAME} Available`,
     { maxAttempts: 72, pollIntervalMs: 5000 },
   );
@@ -23,7 +25,7 @@ export const ensureMlflowCrReady = (
 ): Cypress.Chainable<boolean> =>
   cy.fixture(fixturePathRelativeToFixtures, 'utf8').then((yamlContent: string) =>
     cy
-      .exec(`oc get mlflow ${MLFLOW_CR_NAME} -o name --ignore-not-found`, {
+      .exec(`oc get ${MLFLOW_GVR} ${MLFLOW_CR_NAME} -o name --ignore-not-found`, {
         failOnNonZeroExit: false,
       })
       .then((result: CommandLineResult) => {
@@ -48,7 +50,7 @@ export const ensureMlflowCrReady = (
 /** Deletes the default `mlflow` MLflow CR (when the suite created it). */
 export const deleteMlflowCr = (): Cypress.Chainable<CommandLineResult> => {
   cy.log(`Deleting MLflow CR ${MLFLOW_CR_NAME} if present`);
-  return cy.exec(`oc delete mlflow ${MLFLOW_CR_NAME} --ignore-not-found`, {
+  return cy.exec(`oc delete ${MLFLOW_GVR} ${MLFLOW_CR_NAME} --ignore-not-found`, {
     failOnNonZeroExit: false,
   });
 };
