@@ -125,12 +125,12 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
             <Button
               variant={ButtonVariant.secondary}
               onClick={() => {
-                navigate(genAiChatPlaygroundRoute(namespace?.name), {
-                  state: { vectorStoreId: store.vector_store_id },
-                });
                 fireMiscTrackingEvent('Available Endpoints Playground Launched', {
                   assetType: 'vector_store',
                   assetId: store.vector_store_id,
+                });
+                navigate(genAiChatPlaygroundRoute(namespace?.name), {
+                  state: { vectorStoreId: store.vector_store_id },
                 });
               }}
             >
