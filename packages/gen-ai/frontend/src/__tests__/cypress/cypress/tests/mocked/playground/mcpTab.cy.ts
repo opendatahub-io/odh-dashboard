@@ -473,11 +473,8 @@ describe('Playground - MCP Servers', () => {
       // MCP tab remains selected from initial navigation
       // Re-query server row after modal closes to avoid stale reference
       const freshServerRow = playgroundPage.mcpTab.getServerRow(serverName, serverUrl);
-      freshServerRow
-        .findToolsButton()
-        .should('exist')
-        .and('not.have.attr', 'aria-disabled')
-        .click();
+      freshServerRow.findToolsButton().should('exist').should('not.have.attr', 'aria-disabled');
+      freshServerRow.findToolsButton().click();
 
       cy.step('Verify tools modal opens with all tools selected');
       mcpToolsModal.find().should('be.visible');
@@ -576,8 +573,8 @@ describe('Playground - MCP Servers', () => {
             reopenServerRow
               .findToolsButton()
               .should('exist')
-              .and('not.have.attr', 'aria-disabled')
-              .click();
+              .should('not.have.attr', 'aria-disabled');
+            reopenServerRow.findToolsButton().click();
             mcpToolsModal.find().should('be.visible');
             mcpToolsModal
               .find()
