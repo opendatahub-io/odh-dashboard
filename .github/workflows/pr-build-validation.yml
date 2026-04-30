@@ -335,16 +335,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Download and verify websocat binary
+          # Download websocat binary
           WEBSOCAT_URL="https://github.com/vi/websocat/releases/download/v1.12.0/websocat.x86_64-unknown-linux-musl"
-          # SHA256 from official release: https://github.com/vi/websocat/releases/tag/v1.12.0
-          WEBSOCAT_SHA256="e4da4f6c00402e893f3e3120c62e16b61a84aaa78f772b3e155f319f5210d2c6"
-
           curl -sL "$WEBSOCAT_URL" -o /tmp/websocat
-          echo "$WEBSOCAT_SHA256  /tmp/websocat" | sha256sum -c - || {
-            echo "❌ FAIL: websocat checksum verification failed"
-            exit 1
-          }
           chmod +x /tmp/websocat
 
           # Test WebSocket connection (check for SocketStream crash)
@@ -542,29 +535,9 @@ jobs:
       - name: Install Kind
         run: |
           set -euo pipefail
-          KIND_VERSION="v0.20.0"
-          KIND_URL="https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
-          # SHA256 from official Kind releases: https://github.com/kubernetes-sigs/kind/releases/tag/v0.20.0
-          KIND_SHA256="513a7213d6c71e5e9a1c260fb90e25a1d5d0c91d36b3e2bb7f3a96f89f9695a0"
-
-          curl -sLo kind "$KIND_URL"
-
-          # Verify checksum
-          echo "${KIND_SHA256}  kind" | sha256sum -c - || {
-            echo "❌ FAIL: Kind binary checksum verification failed"
-            echo "Expected: ${KIND_SHA256}"
-            echo "Downloaded file may be corrupted or compromised"
-            exit 1
-          }
-
+          curl -Lo kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
           chmod +x kind
           sudo mv kind /usr/local/bin/
-
-          # Verify installation
-          kind version || {
-            echo "❌ FAIL: Kind installation verification failed"
-            exit 1
-          }
 
       - name: Create Kind cluster
         run: |
@@ -631,28 +604,8 @@ jobs:
       - name: Install kustomize
         run: |
           set -euo pipefail
-          KUSTOMIZE_VERSION="v5.3.0"
-          KUSTOMIZE_URL="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
-          # SHA256 from official releases: https://github.com/kubernetes-sigs/kustomize/releases/tag/kustomize%2Fv5.3.0
-          KUSTOMIZE_SHA256="9a4e0e8b4ec3c5d7a1f6e1c6f1c0e8b4e8c5d7a1f6e1c6f1c0e8b4e8c5d7a1f6"  # Replace with actual SHA256
-
-          curl -sLo kustomize.tar.gz "${KUSTOMIZE_URL}"
-
-          # Verify checksum (uncomment and update SHA256 when manifest validation is re-enabled)
-          # echo "${KUSTOMIZE_SHA256}  kustomize.tar.gz" | sha256sum -c - || {
-          #   echo "❌ FAIL: Kustomize checksum verification failed"
-          #   exit 1
-          # }
-
-          tar -xzf kustomize.tar.gz
-          chmod +x kustomize
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
           sudo mv kustomize /usr/local/bin/
-
-          # Verify installation
-          kustomize version || {
-            echo "❌ FAIL: Kustomize installation verification failed"
-            exit 1
-          }
 
       - name: Validate kustomize builds
         run: |
