@@ -669,7 +669,7 @@ function AutomlLeaderboard({
                 data-testid="rank-header"
                 className="automl-leaderboard__rank-cell"
                 isStickyColumn
-                stickyMinWidth="120px"
+                stickyMinWidth="140px"
                 stickyLeftOffset="0"
               >
                 {getColumnHeader('rank')}
@@ -680,7 +680,7 @@ function AutomlLeaderboard({
                 data-testid="model-name-header"
                 isStickyColumn
                 stickyMinWidth="150px"
-                stickyLeftOffset="120px"
+                stickyLeftOffset="140px"
               >
                 {getColumnHeader('model')}
               </Th>
@@ -701,7 +701,7 @@ function AutomlLeaderboard({
                 isStickyColumn
                 hasRightBorder
                 stickyMinWidth="150px"
-                stickyLeftOffset="270px"
+                stickyLeftOffset="290px"
                 style={
                   getColumnMeta(`metric:${optimizedMetric}`)?.minWidth
                     ? { minWidth: getColumnMeta(`metric:${optimizedMetric}`)?.minWidth }
@@ -763,7 +763,7 @@ function AutomlLeaderboard({
                   data-testid={`model-name-${entry.rank}`}
                   isStickyColumn
                   stickyMinWidth="150px"
-                  stickyLeftOffset="120px"
+                  stickyLeftOffset="140px"
                 >
                   <Button
                     variant="link"
@@ -780,7 +780,7 @@ function AutomlLeaderboard({
                   isStickyColumn
                   hasRightBorder
                   stickyMinWidth="150px"
-                  stickyLeftOffset="270px"
+                  stickyLeftOffset="290px"
                 >
                   <MetricCell value={entry.optimizedMetricValue} />
                 </Td>

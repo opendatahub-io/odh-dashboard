@@ -800,7 +800,7 @@ function AutoragLeaderboard({
                 data-testid="rank-header"
                 className="autorag-leaderboard__rank-cell"
                 isStickyColumn
-                stickyMinWidth="120px"
+                stickyMinWidth="140px"
                 stickyLeftOffset="0"
               >
                 {getColumnHeader('rank')}
@@ -811,7 +811,7 @@ function AutoragLeaderboard({
                 data-testid="pattern-name-header"
                 isStickyColumn
                 stickyMinWidth="150px"
-                stickyLeftOffset="120px"
+                stickyLeftOffset="140px"
               >
                 {getColumnHeader('pattern')}
               </Th>
@@ -821,7 +821,7 @@ function AutoragLeaderboard({
                 data-testid="model-name-header"
                 isStickyColumn
                 stickyMinWidth="200px"
-                stickyLeftOffset="270px"
+                stickyLeftOffset="290px"
               >
                 {getColumnHeader('modelNames')}
               </Th>
@@ -842,7 +842,7 @@ function AutoragLeaderboard({
                 isStickyColumn
                 hasRightBorder
                 stickyMinWidth="150px"
-                stickyLeftOffset="470px"
+                stickyLeftOffset="490px"
                 style={
                   getColumnMeta(`metric:${optimizedMetric}`)?.minWidth
                     ? { minWidth: getColumnMeta(`metric:${optimizedMetric}`)?.minWidth }
@@ -908,7 +908,7 @@ function AutoragLeaderboard({
                   data-testid={`pattern-name-${entry.rank}`}
                   isStickyColumn
                   stickyMinWidth="150px"
-                  stickyLeftOffset="120px"
+                  stickyLeftOffset="140px"
                 >
                   <Button
                     variant="link"
@@ -924,7 +924,7 @@ function AutoragLeaderboard({
                   data-testid={`model-name-${entry.rank}`}
                   isStickyColumn
                   stickyMinWidth="200px"
-                  stickyLeftOffset="270px"
+                  stickyLeftOffset="290px"
                 >
                   <Tooltip content={entry.generationModelId}>
                     <span>{getModelIdShortName(entry.generationModelId)}</span>
@@ -941,7 +941,7 @@ function AutoragLeaderboard({
                   isStickyColumn
                   hasRightBorder
                   stickyMinWidth="150px"
-                  stickyLeftOffset="470px"
+                  stickyLeftOffset="490px"
                 >
                   <MetricCell value={entry.optimizedMetricValue} />
                 </Td>

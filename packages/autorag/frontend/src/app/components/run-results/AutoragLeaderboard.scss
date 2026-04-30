@@ -58,4 +58,11 @@
     color: var(--pf-t--global--text--color--subtle);
     font-size: var(--pf-t--global--font--size--xs);
   }
+
+  // Reset sticky offsets in responsive grid layout to prevent indentation
+  &.pf-v6-c-table.pf-m-grid-md {
+    .pf-v6-c-table__sticky-cell {
+      inset-inline-start: 0 !important;
+    }
+  }
 }
