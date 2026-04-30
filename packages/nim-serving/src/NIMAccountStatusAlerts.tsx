@@ -23,6 +23,17 @@ const NIMAccountStatusAlerts: React.FC<NIMAccountStatusAlertsProps> = ({
           This can take a few minutes.
         </Alert>
       );
+    case NIMAccountStatus.CONFIGURING:
+      return (
+        <Alert
+          variant="info"
+          isInline
+          title="API key validated. Configuring NIM resources."
+          customIcon={<Spinner size="md" />}
+        >
+          This can take a few minutes.
+        </Alert>
+      );
     case NIMAccountStatus.ERROR:
       return (
         <Alert variant="danger" isInline title="Validation failed">

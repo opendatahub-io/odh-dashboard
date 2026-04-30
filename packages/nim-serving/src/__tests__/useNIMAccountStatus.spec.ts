@@ -25,15 +25,38 @@ describe('deriveStatus', () => {
     expect(result.errorMessages).toEqual([]);
   });
 
-  it('should return ERROR when conditions have status False', () => {
+  it('should return ERROR when APIKeyValidation condition is False', () => {
     const account = mockNimAccount({
       conditions: [
+        {
+          type: 'APIKeyValidation',
+          status: 'False',
+          reason: 'ValidationFailed',
+          message: 'API key failed validation.',
+        },
         { type: 'AccountStatus', status: 'False', reason: 'Failed', message: 'invalid key' },
       ],
     });
     const result = deriveStatus(account);
     expect(result.status).toBe(NIMAccountStatus.ERROR);
-    expect(result.errorMessages).toEqual(['invalid key']);
+    expect(result.errorMessages).toEqual(['API key failed validation.', 'invalid key']);
+  });
+
+  it('should return CONFIGURING when APIKeyValidation is True but AccountStatus is not ready', () => {
+    const account = mockNimAccount({
+      conditions: [
+        { type: 'APIKeyValidation', status: 'True', reason: 'ApiKeyValidated' },
+        {
+          type: 'AccountStatus',
+          status: 'False',
+          reason: 'AccountNotSuccessful',
+          message: 'nim config reconciliation failed',
+        },
+      ],
+    });
+    const result = deriveStatus(account);
+    expect(result.status).toBe(NIMAccountStatus.CONFIGURING);
+    expect(result.errorMessages).toEqual([]);
   });
 
   it('should return PENDING when account exists but has no definitive conditions', () => {
@@ -76,11 +99,16 @@ describe('useNIMAccountStatus', () => {
     expect(renderResult.result.current.errorMessages).toEqual([]);
   });
 
-  it('should return ERROR when account has conditions with status False', async () => {
+  it('should return ERROR when APIKeyValidation is False', async () => {
     const account = mockNimAccount({
       namespace: 'test-ns',
       conditions: [
-        { type: 'AccountStatus', status: 'False', reason: 'Failed', message: 'invalid key' },
+        {
+          type: 'APIKeyValidation',
+          status: 'False',
+          reason: 'ValidationFailed',
+          message: 'API key failed validation.',
+        },
       ],
     });
     mockListNIMAccounts.mockResolvedValue([account]);
@@ -89,7 +117,7 @@ describe('useNIMAccountStatus', () => {
     await renderResult.waitForNextUpdate();
 
     expect(renderResult.result.current.status).toBe(NIMAccountStatus.ERROR);
-    expect(renderResult.result.current.errorMessages).toEqual(['invalid key']);
+    expect(renderResult.result.current.errorMessages).toEqual(['API key failed validation.']);
   });
 
   it('should return PENDING when account exists but has no definitive conditions', async () => {

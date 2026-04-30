@@ -3,11 +3,17 @@ import { NIMAccountKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
 import useFetch, { FetchStateCallbackPromise } from '@odh-dashboard/internal/utilities/useFetch';
 import { POLL_INTERVAL, FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
 import { listNIMAccounts } from '@odh-dashboard/internal/api/k8s/nimAccounts';
-import { isAccountReady, getAccountErrors } from './nimK8sUtils';
+import {
+  isAccountReady,
+  isApiKeyValidated,
+  isApiKeyValidationFailed,
+  getAccountErrors,
+} from './nimK8sUtils';
 
 export enum NIMAccountStatus {
   NOT_FOUND = 'NOT_FOUND',
   PENDING = 'PENDING',
+  CONFIGURING = 'CONFIGURING',
   ERROR = 'ERROR',
   READY = 'READY',
 }
@@ -32,9 +38,12 @@ export const deriveStatus = (
   if (isAccountReady(account)) {
     return { status: NIMAccountStatus.READY, errorMessages: [] };
   }
-  const errors = getAccountErrors(account);
-  if (errors.length > 0) {
+  if (isApiKeyValidationFailed(account)) {
+    const errors = getAccountErrors(account);
     return { status: NIMAccountStatus.ERROR, errorMessages: errors };
+  }
+  if (isApiKeyValidated(account)) {
+    return { status: NIMAccountStatus.CONFIGURING, errorMessages: [] };
   }
   return { status: NIMAccountStatus.PENDING, errorMessages: [] };
 };
@@ -94,7 +103,10 @@ const useNIMAccountStatus = (namespace: string): NIMAccountStatusResult => {
   const effectiveErrors = isWaitingForRevalidation ? [] : derived.errorMessages;
 
   React.useEffect(() => {
-    setPollRate(effectiveStatus === NIMAccountStatus.PENDING ? FAST_POLL_INTERVAL : POLL_INTERVAL);
+    const isFastPoll =
+      effectiveStatus === NIMAccountStatus.PENDING ||
+      effectiveStatus === NIMAccountStatus.CONFIGURING;
+    setPollRate(isFastPoll ? FAST_POLL_INTERVAL : POLL_INTERVAL);
   }, [effectiveStatus]);
 
   const startRevalidation = React.useCallback(() => {

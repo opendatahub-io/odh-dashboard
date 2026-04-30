@@ -48,7 +48,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
   const [createError, setCreateError] = React.useState<string>();
 
   React.useEffect(() => {
-    if (modalState !== ModalState.VALIDATING) {
+    if (modalState !== ModalState.VALIDATING && modalState !== ModalState.ERROR) {
       return;
     }
     if (accountStatus === NIMAccountStatus.READY) {
@@ -56,6 +56,12 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
       onActionComplete();
     } else if (accountStatus === NIMAccountStatus.ERROR) {
       setModalState(ModalState.ERROR);
+    } else if (
+      (accountStatus === NIMAccountStatus.PENDING ||
+        accountStatus === NIMAccountStatus.CONFIGURING) &&
+      modalState === ModalState.ERROR
+    ) {
+      setModalState(ModalState.VALIDATING);
     }
   }, [modalState, accountStatus, onClose, onActionComplete]);
 
@@ -129,7 +135,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
           )}
           {modalState === ModalState.VALIDATING && (
             <StackItem>
-              <NIMAccountStatusAlerts status={NIMAccountStatus.PENDING} errorMessages={[]} />
+              <NIMAccountStatusAlerts status={accountStatus} errorMessages={[]} />
             </StackItem>
           )}
           {modalState === ModalState.ERROR && (
