@@ -145,30 +145,26 @@ describe('AI Assets - Model Tab - Remove Asset Action', () => {
     modelsTabPage.getRow('Llama 3B Internal').find().should('exist');
   });
 
-  it(
-    'should display loading state while deleting and error on failure with retry',
-    { tags: ['@GenAI', '@ModelsTab'] },
-    () => {
-      cy.step('Intercept delete request with delay');
-      cy.interceptGenAi('DELETE /api/v1/models/external', {
-        statusCode: 200,
-        body: { success: true },
-        delay: 1000,
-      }).as('deleteModel');
+  it('should display loading state while deleting', { tags: ['@GenAI', '@ModelsTab'] }, () => {
+    cy.step('Intercept delete request with delay');
+    cy.interceptGenAi('DELETE /api/v1/models/external', {
+      statusCode: 200,
+      body: { success: true },
+      delay: 1000,
+    }).as('deleteModel');
 
-      cy.step('Open delete modal and click Remove');
-      modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().click();
-      kebabMenu.findRemoveAssetItem().click();
-      deleteModelModal.findRemoveButton().click();
+    cy.step('Open delete modal and click Remove');
+    modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().click();
+    kebabMenu.findRemoveAssetItem().click();
+    deleteModelModal.findRemoveButton().click();
 
-      cy.step('Verify loading state');
-      deleteModelModal.findRemovingButton().should('be.visible').and('be.disabled');
-      deleteModelModal.findCancelButton().should('be.disabled');
+    cy.step('Verify loading state');
+    deleteModelModal.findRemovingButton().should('be.visible').and('be.disabled');
+    deleteModelModal.findCancelButton().should('be.disabled');
 
-      cy.step('Wait for deletion to complete');
-      cy.wait('@deleteModel');
-    },
-  );
+    cy.step('Wait for deletion to complete');
+    cy.wait('@deleteModel');
+  });
 
   it('should display error on failure and allow retry', { tags: ['@GenAI', '@ModelsTab'] }, () => {
     cy.step('Intercept delete request with error');
@@ -356,8 +352,26 @@ describe('AI Assets - Model Tab - Accessibility', () => {
         .findKebabMenu()
         .should('have.attr', 'aria-label', 'Actions for Custom GPT Endpoint');
 
-      cy.step('Open menu and verify menu roles');
+      cy.step('Open menu via mouse click and verify menu roles');
       modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().click();
+      kebabMenu.shouldBeVisible();
+      kebabMenu.findRemoveAssetItem().should('exist');
+
+      cy.step('Close menu');
+      modelsTabPage.findTable().click('topLeft');
+      kebabMenu.shouldNotExist();
+
+      cy.step('Open menu via Enter key');
+      modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().focus().type('{enter}');
+      kebabMenu.shouldBeVisible();
+      kebabMenu.findRemoveAssetItem().should('exist');
+
+      cy.step('Close menu');
+      modelsTabPage.findTable().click('topLeft');
+      kebabMenu.shouldNotExist();
+
+      cy.step('Open menu via Space key');
+      modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().focus().type(' ');
       kebabMenu.shouldBeVisible();
       kebabMenu.findRemoveAssetItem().should('exist');
     },

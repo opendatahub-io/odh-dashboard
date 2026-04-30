@@ -125,6 +125,7 @@ describe('Environment Variable Edge Cases - RHOAIENG-18214/17122', () => {
         .findRemoveEnvironmentVariableButton()
         .click();
 
+      editSpawnerPage.findEnvironmentVariableFields().should('have.length', 2);
       editSpawnerPage
         .getEnvironmentVariableTypeField(0)
         .find()
@@ -142,6 +143,7 @@ describe('Environment Variable Edge Cases - RHOAIENG-18214/17122', () => {
         .findRemoveEnvironmentVariableButton()
         .click();
 
+      editSpawnerPage.findEnvironmentVariableFields().should('have.length', 1);
       editSpawnerPage
         .getEnvironmentVariableTypeField(0)
         .find()
@@ -204,6 +206,7 @@ describe('Environment Variable Edge Cases - RHOAIENG-18214/17122', () => {
         .findRemoveEnvironmentVariableButton()
         .click();
 
+      editSpawnerPage.findEnvironmentVariableFields().should('have.length', 2);
       editSpawnerPage
         .getEnvironmentVariableTypeField(0)
         .getKeyValuePair(0)
@@ -221,6 +224,7 @@ describe('Environment Variable Edge Cases - RHOAIENG-18214/17122', () => {
         .findRemoveEnvironmentVariableButton()
         .click();
 
+      editSpawnerPage.findEnvironmentVariableFields().should('have.length', 1);
       editSpawnerPage.getEnvironmentVariableTypeField(0).find().should('be.visible');
       editSpawnerPage
         .getEnvironmentVariableTypeField(0)
