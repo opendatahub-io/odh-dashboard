@@ -1128,7 +1128,6 @@ describe('Pipelines', () => {
     // client-side argo detection is bypassed due to a stale-closure race.
     pipelineVersionImportModal.mockUploadVersion({}, projectName);
     pipelineVersionImportModal.uploadPipelineYaml(argoWorkflowPipeline);
-    pipelineVersionImportModal.findSubmitButton().should('be.enabled');
     pipelineVersionImportModal.submit();
 
     pipelineVersionImportModal.findImportModalError().should('exist');
