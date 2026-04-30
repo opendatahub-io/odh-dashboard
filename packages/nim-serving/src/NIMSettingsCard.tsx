@@ -31,7 +31,8 @@ const NIMSettingsCard: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
 
-  const { status, nimAccount, errorMessages, refresh } = useNIMAccountStatus(namespace);
+  const { status, nimAccount, errorMessages, refresh, startRevalidation } =
+    useNIMAccountStatus(namespace);
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isReplacing, setIsReplacing] = React.useState(false);
@@ -129,6 +130,9 @@ const NIMSettingsCard: React.FC = () => {
           isReplacing={isReplacing}
           existingSecretName={existingSecretName}
           onActionComplete={refresh}
+          startRevalidation={startRevalidation}
+          accountStatus={status}
+          accountErrors={errorMessages}
         />
       )}
 
