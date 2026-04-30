@@ -68,9 +68,9 @@ export const deleteKueueResources = (
   // Use ';' so each delete runs independently — '&&' would skip
   // ClusterQueue/ResourceFlavor if LocalQueue deletion fails or hangs.
   const ocCommand = [
-    `oc delete LocalQueue ${localQueueName} -n ${projectName}${ignoreFlag}`,
-    `oc delete ClusterQueue ${clusterQueueName}${ignoreFlag}`,
-    `oc delete ResourceFlavor ${resourceFlavor}${ignoreFlag}`,
+    `oc delete LocalQueue ${localQueueName} -n ${projectName} --wait=false${ignoreFlag}`,
+    `oc delete ClusterQueue ${clusterQueueName} --wait=false${ignoreFlag}`,
+    `oc delete ResourceFlavor ${resourceFlavor} --wait=false${ignoreFlag}`,
   ].join(' ; ');
 
   cy.log(`Executing: ${ocCommand}`);

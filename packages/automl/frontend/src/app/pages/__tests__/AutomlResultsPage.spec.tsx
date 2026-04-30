@@ -52,6 +52,10 @@ jest.mock('~/app/hooks/mutations', () => ({
     mutateAsync: jest.fn(),
     isPending: false,
   }),
+  useDeletePipelineRunMutation: jest.fn().mockReturnValue({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
 }));
 
 // Mock AutomlResults to capture context

@@ -1,7 +1,8 @@
 import React from 'react';
 import { z } from 'zod';
-import { Form, FormSection, Spinner } from '@patternfly/react-core';
+import { Alert, Form, FormSection, Spinner } from '@patternfly/react-core';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 import { modelTypeSelectFieldSchema, ModelTypeSelectField } from '../fields/ModelTypeSelectField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ModelLocationSelectField } from '../fields/ModelLocationSelectField';
@@ -33,12 +34,17 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
   wizardState,
   validation,
 }) => {
+  const isNimWizardEnabled = useIsAreaAvailable(SupportedArea.NIM_WIZARD).status;
+
   if (!wizardState.loaded.modelSourceLoaded) {
     return <Spinner data-testid="spinner" />;
   }
 
   return (
     <Form>
+      {isNimWizardEnabled && (
+        <Alert variant="info" isInline title="(TODO replace me) NIM serving extension is enabled" />
+      )}
       <FormSection title="Model details">
         <p style={{ marginTop: '-8px' }}>Provide information about the model you want to deploy.</p>
         <ModelLocationSelectField

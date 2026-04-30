@@ -237,10 +237,21 @@ describe('AutomlRunsTableRow', () => {
       jest.clearAllMocks();
     });
 
-    it('should not show kebab menu for succeeded runs', () => {
+    it('should show delete action for succeeded runs', async () => {
       render(
         <MemoryRouter>
           <AutomlRunsTableRow run={{ ...mockRun, state: 'SUCCEEDED' }} namespace={mockNamespace} />
+        </MemoryRouter>,
+      );
+      const kebab = screen.getByRole('button', { name: 'Kebab toggle' });
+      await userEvent.click(kebab);
+      expect(screen.getByTestId('delete-run-action')).toBeInTheDocument();
+    });
+
+    it('should not show kebab menu for canceling runs', () => {
+      render(
+        <MemoryRouter>
+          <AutomlRunsTableRow run={{ ...mockRun, state: 'CANCELING' }} namespace={mockNamespace} />
         </MemoryRouter>,
       );
       expect(screen.queryByRole('button', { name: 'Kebab toggle' })).not.toBeInTheDocument();
