@@ -339,7 +339,7 @@ const useChatbotMessages = ({
         promptVersion: promptVersion ?? 0,
         promptName: promptName ?? '',
         ragSource: isRagEnabled ? (knowledgeMode === 'inline' ? 'upload' : 'vectorstore') : '',
-        selectedCollectionId: currentVectorStoreId ?? '',
+        selectedCollectionId: isRagEnabled ? (currentVectorStoreId ?? '') : '',
       });
 
       if (!apiAvailable) {
