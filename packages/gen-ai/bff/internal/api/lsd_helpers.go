@@ -47,44 +47,44 @@ func (app *App) getDefaultStatusCodeForLlamaStackClientError(errorCode string) i
 	}
 }
 
-func categoryToFrontendError(category llamastack.ResponseErrorCategory) (component, code string, retriable bool) {
-	switch category {
-	case llamastack.CategoryModelTimeout:
-		return "llama_stack", "timeout", true
-	case llamastack.CategoryModelOverloaded:
-		return "llama_stack", "rate_limit", true
-	case llamastack.CategoryRAGError:
-		return "rag", "unreachable", true
-	case llamastack.CategoryRAGVectorStoreNotFound:
-		return "rag", "not_found", false
-	case llamastack.CategoryGuardrailsError:
-		return "guardrails", "unreachable", true
-	case llamastack.CategoryGuardrailsViolation:
-		return "guardrails", "content_blocked", false
-	case llamastack.CategoryMCPError:
-		return "mcp", "unreachable", true
-	case llamastack.CategoryMCPToolNotFound:
-		return "mcp", "not_found", false
-	case llamastack.CategoryMCPAuthError:
-		return "mcp", "unauthorized", false
-	case llamastack.CategoryInvalidModelConfig:
-		return "model", "invalid_model_config", false
-	case llamastack.CategoryUnsupportedFeature:
-		return "model", "unsupported_feature", false
-	case llamastack.CategoryInvalidParameter:
-		return "model", "invalid_parameter", false
-	case llamastack.CategoryModelInvocationError:
-		return "llama_stack", "server_error", true
+func getComponentFromErrorCode(errorCode string) string {
+	switch errorCode {
+	case "tool_not_found", "tool_error", "mcp_error":
+		return "mcp"
+	case "resource_not_found", "vector_store_not_found":
+		return "rag"
+	case "content_policy_violation", "content_blocked", "guardrail_violation":
+		return "guardrails"
+	case "invalid_model", "model_not_found", "model_unavailable", "model_error":
+		return "model"
 	default:
-		return "llama_stack", "server_error", true
+		return "llama_stack"
+	}
+}
+
+func isRetriableError(errorCode string, statusCode int) bool {
+	switch errorCode {
+	case "rate_limit_exceeded", "insufficient_quota", "requests_per_minute_exceeded":
+		return true
+	case "timeout", "request_timeout", "gateway_timeout":
+		return true
+	case "server_error", "internal_error", "service_unavailable":
+		return true
+	default:
+		return statusCode >= 500
 	}
 }
 
 func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaStackError, statusCode int) *integrations.FrontendErrorResponse {
-	enhancedErr := llamastack.NewEnhancedLlamaStackError(lsErr)
-	component, code, retriable := categoryToFrontendError(enhancedErr.Category)
+	errorCode := lsErr.ErrorCode
+	if errorCode == "" {
+		errorCode = lsErr.Code
+	}
 
-	if retriable && (enhancedErr.Category == llamastack.CategoryModelTimeout || enhancedErr.Category == llamastack.CategoryModelOverloaded) {
+	component := getComponentFromErrorCode(errorCode)
+	retriable := isRetriableError(errorCode, statusCode)
+
+	if retriable && (statusCode == 429 || statusCode == 504) {
 		statusCode = http.StatusServiceUnavailable
 	}
 
@@ -97,8 +97,8 @@ func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaS
 		Status: statusCode,
 		Error: &integrations.ErrorDetail{
 			Component: component,
-			Code:      code,
-			Message:   enhancedErr.Message,
+			Code:      errorCode,
+			Message:   lsErr.Message,
 			ToolName:  toolName,
 			Retriable: retriable,
 		},
