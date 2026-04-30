@@ -60,28 +60,6 @@ type LeaderboardEntry = {
  */
 type ColumnMeta = { name: string; acronym?: string; description?: string; minWidth?: string };
 
-const MAE_META: ColumnMeta = {
-  name: 'Mean Absolute Error (MAE)',
-  acronym: formatMetricName('mae'),
-  description: 'Average of absolute differences between the actual values and predicted values.',
-  minWidth: '9rem',
-};
-
-const MSE_META: ColumnMeta = {
-  name: 'Mean Squared Error (MSE)',
-  acronym: formatMetricName('mse'),
-  description: 'Measures the average squared difference between the actual and predicted values.',
-  minWidth: '9rem',
-};
-
-const RMSE_META: ColumnMeta = {
-  name: 'Root Mean Squared Error (RMSE)',
-  acronym: formatMetricName('rmse'),
-  description:
-    'Square root of the mean of the squared differences between the actual values and predicted values.',
-  minWidth: '9rem',
-};
-
 const COLUMN_META: Record<string, ColumnMeta> = {
   rank: {
     name: 'Rank',
@@ -143,11 +121,25 @@ const COLUMN_META: Record<string, ColumnMeta> = {
       'The proportion of variance in the target variable that the model explains. A score of 1.0 means the model perfectly predicts the target. A score of 0.0 means the model performs no better than predicting the mean.',
     minWidth: '8rem',
   },
-  // Timeseries runs return acronym keys (e.g. "MAE"); regression runs return
-  // snake_case keys (e.g. "mean_absolute_error"). Both aliases are needed until
-  // the backend normalises metric keys. See RHOAIENG-59989.
-  'metric:mae': MAE_META,
-  'metric:mean_absolute_error': MAE_META,
+  'metric:mean_absolute_error': {
+    name: 'Mean Absolute Error (MAE)',
+    acronym: formatMetricName('mean_absolute_error'),
+    description: 'Average of absolute differences between the actual values and predicted values.',
+    minWidth: '9rem',
+  },
+  'metric:mean_squared_error': {
+    name: 'Mean Squared Error (MSE)',
+    acronym: formatMetricName('mean_squared_error'),
+    description: 'Measures the average squared difference between the actual and predicted values.',
+    minWidth: '9rem',
+  },
+  'metric:root_mean_squared_error': {
+    name: 'Root Mean Squared Error (RMSE)',
+    acronym: formatMetricName('root_mean_squared_error'),
+    description:
+      'Square root of the mean of the squared differences between the actual values and predicted values.',
+    minWidth: '9rem',
+  },
   'metric:median_absolute_error': {
     name: 'Median Absolute Error (MedAE)',
     acronym: formatMetricName('median_absolute_error'),
@@ -161,64 +153,58 @@ const COLUMN_META: Record<string, ColumnMeta> = {
       'Measures the linear correlation between predicted and actual values. Ranges from -1 (perfect negative correlation) to +1 (perfect positive correlation), with 0 indicating no linear relationship.',
     minWidth: '9rem',
   },
-  // Timeseries → "MSE"; regression → "mean_squared_error". See RHOAIENG-59989.
-  'metric:mse': MSE_META,
-  'metric:mean_squared_error': MSE_META,
-  // Timeseries → "RMSE"; regression → "root_mean_squared_error". See RHOAIENG-59989.
-  'metric:rmse': RMSE_META,
-  'metric:root_mean_squared_error': RMSE_META,
-  'metric:mape': {
+  'metric:mean_absolute_percentage_error': {
     name: 'Mean Absolute Percentage Error (MAPE)',
-    acronym: formatMetricName('mape'),
+    acronym: formatMetricName('mean_absolute_percentage_error'),
     description:
       'The average of absolute percentage errors between predicted and actual values. Expresses prediction accuracy as a percentage, making it easy to interpret across different scales.',
     minWidth: '9rem',
   },
-  'metric:mase': {
+  'metric:mean_absolute_scaled_error': {
     name: 'Mean Absolute Scaled Error (MASE)',
-    acronym: formatMetricName('mase'),
+    acronym: formatMetricName('mean_absolute_scaled_error'),
     description:
       'A scale-independent measure of forecast accuracy. A MASE absolute value below 1.0 means the model outperforms a naive baseline forecast. Lower values indicate better performance.',
     minWidth: '9rem',
   },
-  'metric:rmsle': {
+  'metric:root_mean_squared_logarithmic_error': {
     name: 'Root Mean Squared Logarithmic Error (RMSLE)',
-    acronym: formatMetricName('rmsle'),
+    acronym: formatMetricName('root_mean_squared_logarithmic_error'),
     description:
       'Square root of the mean of the squared differences between the log of actual values and the log of predicted values. Useful when target values span a wide range.',
     minWidth: '9rem',
   },
-  'metric:rmsse': {
+  'metric:root_mean_squared_scaled_error': {
     name: 'Root Mean Squared Scaled Error (RMSSE)',
-    acronym: formatMetricName('rmsse'),
+    acronym: formatMetricName('root_mean_squared_scaled_error'),
     description:
       'A scale-independent error metric that normalizes RMSE by the in-sample naive forecast error. A value below 1.0 means the model outperforms a naive one-step-ahead baseline.',
     minWidth: '9rem',
   },
-  'metric:smape': {
+  'metric:symmetric_mean_absolute_percentage_error': {
     name: 'Symmetric Mean Absolute Percentage Error (SMAPE)',
-    acronym: formatMetricName('smape'),
+    acronym: formatMetricName('symmetric_mean_absolute_percentage_error'),
     description:
       'Symmetric mean absolute percentage error (SMAPE or sMAPE). At each fitted point, the absolute difference between actual value and predicted value is divided by half the sum of absolute actual value and predicted value, and then average all such values across all the fitted points.',
     minWidth: '9rem',
   },
-  'metric:sql': {
+  'metric:scaled_quantile_loss': {
     name: 'Scaled Quantile Loss (SQL)',
-    acronym: formatMetricName('sql'),
+    acronym: formatMetricName('scaled_quantile_loss'),
     description:
       'Measures the accuracy of probabilistic forecasts at specific quantiles, scaled relative to the total absolute values of the target. Lower values indicate better calibrated prediction intervals.',
     minWidth: '9rem',
   },
-  'metric:wape': {
+  'metric:weighted_absolute_percentage_error': {
     name: 'Weighted Absolute Percentage Error (WAPE)',
-    acronym: formatMetricName('wape'),
+    acronym: formatMetricName('weighted_absolute_percentage_error'),
     description:
       'The sum of absolute errors divided by the sum of absolute actual values. Unlike MAPE, it handles zero actual values gracefully and gives more weight to larger observations.',
     minWidth: '9rem',
   },
-  'metric:wql': {
+  'metric:weighted_quantile_loss': {
     name: 'Weighted Quantile Loss (WQL)',
-    acronym: formatMetricName('wql'),
+    acronym: formatMetricName('weighted_quantile_loss'),
     description:
       'A weighted average of quantile losses across multiple quantiles, measuring the overall quality of probabilistic forecasts. Lower values indicate better prediction interval coverage.',
     minWidth: '9rem',
@@ -235,17 +221,8 @@ const getColumnName = (id: string, fallbackLabel: string): string =>
 const getColumnHeader = (id: string, fallback?: string): string =>
   getColumnMeta(id)?.acronym ?? getColumnMeta(id)?.name ?? fallback ?? id;
 
-const getColumnMeta = (id: string): ColumnMeta | undefined => {
-  if (id in COLUMN_META) {
-    return COLUMN_META[id];
-  }
-  // Metric keys from the API may differ in case (e.g. "metric:MASE" vs "metric:mase")
-  const lowerId = id.toLowerCase();
-  if (lowerId in COLUMN_META) {
-    return COLUMN_META[lowerId];
-  }
-  return undefined;
-};
+const getColumnMeta = (id: string): ColumnMeta | undefined =>
+  id in COLUMN_META ? COLUMN_META[id] : undefined;
 
 const getColumnInfoProps = (
   columnId: string,
