@@ -56,11 +56,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
       onActionComplete();
     } else if (accountStatus === NIMAccountStatus.ERROR) {
       setModalState(ModalState.ERROR);
-    } else if (
-      (accountStatus === NIMAccountStatus.PENDING ||
-        accountStatus === NIMAccountStatus.CONFIGURING) &&
-      modalState === ModalState.ERROR
-    ) {
+    } else if (accountStatus === NIMAccountStatus.PENDING && modalState === ModalState.ERROR) {
       setModalState(ModalState.VALIDATING);
     }
   }, [modalState, accountStatus, onClose, onActionComplete]);

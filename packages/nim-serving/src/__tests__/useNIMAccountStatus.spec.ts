@@ -42,7 +42,7 @@ describe('deriveStatus', () => {
     expect(result.errorMessages).toEqual(['API key failed validation.', 'invalid key']);
   });
 
-  it('should return CONFIGURING when APIKeyValidation is True but AccountStatus is not ready', () => {
+  it('should return PENDING when APIKeyValidation is True but AccountStatus is not ready (mid-reconciliation)', () => {
     const account = mockNimAccount({
       conditions: [
         { type: 'APIKeyValidation', status: 'True', reason: 'ApiKeyValidated' },
@@ -55,7 +55,7 @@ describe('deriveStatus', () => {
       ],
     });
     const result = deriveStatus(account);
-    expect(result.status).toBe(NIMAccountStatus.CONFIGURING);
+    expect(result.status).toBe(NIMAccountStatus.PENDING);
     expect(result.errorMessages).toEqual([]);
   });
 
