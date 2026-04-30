@@ -102,7 +102,8 @@ describe('Environment Variable Edge Cases - RHOAIENG-18214/17122', () => {
       row.findKebab().click();
       workbenchActions.findEditWorkbenchAction().click();
 
-      // Verify all 3 pre-existing env variables are displayed
+      // Verify exactly 3 pre-existing env variables are displayed
+      editSpawnerPage.findEnvironmentVariableFields().should('have.length', 3);
       editSpawnerPage
         .getEnvironmentVariableTypeField(0)
         .find()
@@ -243,6 +244,8 @@ describe('Environment Variable Edge Cases - RHOAIENG-18214/17122', () => {
         .findRemoveEnvironmentVariableButton()
         .click();
 
+      editSpawnerPage.findEnvironmentVariableFields().should('have.length', 0);
+
       editSpawnerPage.findAddVariableButton().click();
       envField = editSpawnerPage.getEnvironmentVariableTypeField(0);
       envField.selectEnvironmentVariableType('Secret');
@@ -255,6 +258,11 @@ describe('Environment Variable Edge Cases - RHOAIENG-18214/17122', () => {
         .getKeyValuePair(0)
         .findKeyInput()
         .should('have.value', 'SECOND_KEY');
+      editSpawnerPage
+        .getEnvironmentVariableTypeField(0)
+        .getKeyValuePair(0)
+        .findValueInput()
+        .should('have.value', 'second_value');
     });
   });
 });
