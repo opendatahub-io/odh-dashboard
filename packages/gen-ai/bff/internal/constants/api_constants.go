@@ -68,4 +68,7 @@ const (
 	// LSD Safety endpoint - returns configured guardrail models and shields
 	// Parsed from llama-stack-config ConfigMap
 	LSDSafetyPath = ApiPathPrefix + "/lsd/safety"
+
+	// NemoGuardrails endpoints
+	NemoGuardrailsInitPath = ApiPathPrefix + "/nemo-guardrails/init"
 )
