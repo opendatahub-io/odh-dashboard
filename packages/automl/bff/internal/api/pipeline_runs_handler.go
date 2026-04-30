@@ -288,6 +288,48 @@ func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 }
 
+// deletableStates lists the run states that are eligible for deletion.
+var deletableStates = map[string]bool{
+	"SUCCEEDED": true,
+	"FAILED":    true,
+	"CANCELED":  true,
+}
+
+// DeletePipelineRunHandler handles DELETE /api/v1/pipeline-runs/:runId
+//
+// Permanently deletes a completed, failed, or canceled AutoML pipeline run. The run must belong
+// to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace.
+//
+// Security: This endpoint validates that the requested run belongs to a discovered
+// AutoML pipeline before deleting it. This prevents users from deleting runs
+// from other pipelines in the same namespace.
+//
+// Only runs in SUCCEEDED, FAILED, or CANCELED state can be deleted.
+//
+// Error Responses:
+//   - 400: Missing runId or run is not in a deletable state
+//   - 404: Run not found, run belongs to a different pipeline, or no pipelines discovered
+//   - 500: Pipeline Server error
+func (app *App) DeletePipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	client, run, ok := app.resolveOwnedRun(w, r, params)
+	if !ok {
+		return
+	}
+
+	runState := strings.ToUpper(run.State)
+	if !deletableStates[runState] {
+		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be deleted; only SUCCEEDED, FAILED, or CANCELED runs can be deleted", run.RunID, runState))
+		return
+	}
+
+	if err := app.repositories.PipelineRuns.DeletePipelineRun(client, r.Context(), run.RunID); err != nil {
+		app.mapMutationError(w, r, err, "delete")
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // retryableStates lists the run states that are eligible for retry.
 var retryableStates = map[string]bool{
 	"FAILED":   true,

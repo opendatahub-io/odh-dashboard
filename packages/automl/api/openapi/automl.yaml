@@ -727,6 +727,42 @@ paths:
       operationId: getPipelineRunById
       summary: Get Pipeline Run by ID
       description: Returns a single pipeline run by its unique identifier
+    delete:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the pipeline run to delete
+          example: "abc123-def456-ghi789"
+      responses:
+        "200":
+          description: Run deleted successfully
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: deletePipelineRun
+      summary: Delete Pipeline Run
+      description: >-
+        Permanently deletes a completed, failed, or canceled AutoML pipeline run. The BFF validates
+        that the run belongs to one of the discovered AutoML managed pipelines in the namespace and
+        that it is in a deletable state (SUCCEEDED, FAILED, or CANCELED) before deleting it.
+        This prevents users from deleting runs from other pipelines in the same namespace.
 
   /api/v1/pipeline-runs/{runId}/terminate:
     summary: Terminate an active pipeline run
