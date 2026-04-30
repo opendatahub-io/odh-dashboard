@@ -52,6 +52,24 @@ Parse these from `$ARGUMENTS` before processing:
 - `--help` — print usage and stop
 - No flags — interactive mode: ask the user what to do at decision points
 
+## Step 0: Prerequisites
+
+Before doing anything, verify required tools are available:
+
+```bash
+which gh jq git 2>/dev/null
+```
+
+- `gh` — required for PR checks, CI status, review threads
+- `jq` — required by all scripts
+- `git` — required for branch/diff operations
+
+If any are missing, stop and tell the user what to install. These are non-negotiable — the skill can't function without them.
+
+Optional tools (check but don't block):
+- `coderabbit` — needed only if user selects CodeRabbit review
+- `npm` / `npx` — needed only for local lint/type-check/test runs
+
 ## Step 1: Gather context
 
 Try to find a PR (unless `--local`):
