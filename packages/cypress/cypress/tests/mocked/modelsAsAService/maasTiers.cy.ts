@@ -149,7 +149,6 @@ describe('Tiers Page', () => {
     cy.interceptOdh('GET /maas/api/v1/tiers', {
       data: tiersAfterCreate,
     });
-    cy.intercept('GET', '/api/tiers', tiersAfterCreate);
 
     tiersPage.visit();
 

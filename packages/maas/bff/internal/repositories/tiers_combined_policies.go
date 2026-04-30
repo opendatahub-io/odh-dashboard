@@ -434,7 +434,9 @@ func mergeGatewayPolicySpec(existing *unstructured.Unstructured, gatewayName str
 		"kind":  "Gateway",
 		"name":  gatewayName,
 	}
-	delete(spec, "strategy")
+	if defaults, ok := spec["defaults"].(map[string]interface{}); ok && defaults != nil {
+		delete(defaults, "strategy")
+	}
 	return unstructured.SetNestedMap(existing.Object, spec, "spec")
 }
 
@@ -478,9 +480,4 @@ func (t *TiersRepository) deleteLegacyPerTierPoliciesForTiers(ctx context.Contex
 		}
 	}
 	return errors.Join(errs...)
-}
-
-// deleteLegacyPoliciesForSingleTier removes old per-tier policy names for one tier (used after DeleteTier).
-func (t *TiersRepository) deleteLegacyPoliciesForSingleTier(ctx context.Context, tierName string) error {
-	return t.deleteLegacyPerTierPoliciesForTiers(ctx, []string{tierName})
 }
