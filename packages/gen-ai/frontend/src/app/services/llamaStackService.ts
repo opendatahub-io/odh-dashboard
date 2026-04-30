@@ -29,6 +29,7 @@ import {
   OutputItem,
   ResponseMetrics,
   SafetyConfigResponse,
+  NemoGuardrailsStatus,
   SimplifiedResponseData,
   SourceItem,
   VectorStore,
@@ -661,6 +662,13 @@ export const generateMaaSToken = modArchRestCREATE<MaaSTokenResponse, MaaSTokenR
 
 export const getGuardrailsStatus = modArchRestGET<GuardrailsStatus>('/guardrails/status');
 export const getSafetyConfig = modArchRestGET<SafetyConfigResponse>('/lsd/safety');
+
+/** NemoGuardrails Endpoints */
+export const getNemoGuardrailsStatus =
+  modArchRestGET<NemoGuardrailsStatus>('/nemo-guardrails/status');
+export const initNemoGuardrails = modArchRestCREATE<{ name: string }, Record<string, never>>(
+  '/nemo-guardrails/init',
+);
 
 /** MLflow Prompt Registry Endpoints */
 export const listMLflowPrompts = modArchRestGET<MLflowPromptsResponse>('/mlflow/prompts');
