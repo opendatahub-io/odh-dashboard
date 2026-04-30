@@ -15,8 +15,8 @@ import {
   deleteNIMResources,
   getNIMAccount,
   isAccountReady,
+  isApiKeyValidationFailed,
   getAccountErrors,
-  getApiKeyValidationStatus,
 } from '../nimK8sUtils';
 import {
   NIM_ACCOUNT_NAME,
@@ -273,18 +273,25 @@ describe('getAccountErrors', () => {
   });
 });
 
-describe('getApiKeyValidationStatus', () => {
-  it('should return the status of the APIKeyValidation condition', () => {
+describe('isApiKeyValidationFailed', () => {
+  it('should return true when APIKeyValidation condition is False', () => {
+    const account = mockNimAccount({
+      conditions: [{ type: 'APIKeyValidation', status: 'False', reason: 'ValidationFailed' }],
+    });
+    expect(isApiKeyValidationFailed(account)).toBe(true);
+  });
+
+  it('should return false when APIKeyValidation condition is True', () => {
     const account = mockNimAccount({
       conditions: [{ type: 'APIKeyValidation', status: 'True', reason: 'Valid' }],
     });
-    expect(getApiKeyValidationStatus(account)).toBe('True');
+    expect(isApiKeyValidationFailed(account)).toBe(false);
   });
 
-  it('should return Unknown when no APIKeyValidation condition exists', () => {
+  it('should return false when no APIKeyValidation condition exists', () => {
     const account = mockNimAccount({
       conditions: [{ type: 'AccountStatus', status: 'True', reason: 'OK' }],
     });
-    expect(getApiKeyValidationStatus(account)).toBe('Unknown');
+    expect(isApiKeyValidationFailed(account)).toBe(false);
   });
 });

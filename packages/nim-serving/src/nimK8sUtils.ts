@@ -132,16 +132,22 @@ export const isAccountReady = (account: NIMAccountKind): boolean => {
   return conditions.some((c: K8sCondition) => c.type === 'AccountStatus' && c.status === 'True');
 };
 
+export const isApiKeyValidated = (account: NIMAccountKind): boolean => {
+  const conditions = account.status?.conditions ?? [];
+  return conditions.some((c: K8sCondition) => c.type === 'APIKeyValidation' && c.status === 'True');
+};
+
+export const isApiKeyValidationFailed = (account: NIMAccountKind): boolean => {
+  const conditions = account.status?.conditions ?? [];
+  return conditions.some(
+    (c: K8sCondition) => c.type === 'APIKeyValidation' && c.status === 'False',
+  );
+};
+
 export const getAccountErrors = (account: NIMAccountKind): string[] => {
   const conditions = account.status?.conditions ?? [];
   return conditions
     .filter((c: K8sCondition) => c.status === 'False')
     .map((c: K8sCondition) => c.message)
     .filter((msg): msg is string => !!msg);
-};
-
-export const getApiKeyValidationStatus = (account: NIMAccountKind): string => {
-  const conditions = account.status?.conditions ?? [];
-  const apiKeyCondition = conditions.find((c: K8sCondition) => c.type === 'APIKeyValidation');
-  return apiKeyCondition?.status ?? 'Unknown';
 };
